@@ -23,6 +23,7 @@ public static class RoomEnvironmentDebugScenarios
         Run("Room cache resolves a room by grid cell", VerifyCellLookup, errors);
         Run("Room environment query drives work multipliers", VerifyEnvironmentQueryWorkMultiplier, errors);
         Run("Mood thresholds match the room grade bands", VerifyMoodThresholds, errors);
+        Run("Outcome save phase follows the ledger dependency", VerifyOutcomeSavePhase, errors);
 
         if (errors.Count > 0)
         {
@@ -77,6 +78,32 @@ public static class RoomEnvironmentDebugScenarios
             && hygienic.Cleanliness > luxurious.Cleanliness
             && damaged.Beauty < hygienic.Beauty
             && damaged.Cleanliness < hygienic.Cleanliness;
+    }
+
+    private static bool VerifyOutcomeSavePhase()
+    {
+        RoomEnvironmentOutcomeSaveSection section =
+            new RoomEnvironmentOutcomeSaveSection(
+                new RoomEnvironmentOutcomePersistenceStub());
+        return section.RestorePhase == DungeonSaveRestorePhase.LateRuntimeState
+            && section.DependsOn.Contains(GameplayOutcomeLedgerSaveSection.Id);
+    }
+
+    private sealed class RoomEnvironmentOutcomePersistenceStub :
+        IRoomEnvironmentOutcomePersistence
+    {
+        public RoomEnvironmentOutcomeSaveData CaptureOutcomeState() => new();
+
+        public RoomEnvironmentOutcomeRestoreCandidate PrepareOutcomeRestore(
+            RoomEnvironmentOutcomeSaveData data) =>
+            new RoomEnvironmentOutcomeRestoreCandidate(
+                Math.Max(1L, data?.nextOutcomeSequence ?? 1L),
+                new Dictionary<string, float>(StringComparer.Ordinal));
+
+        public void PublishOutcomeRestore(
+            RoomEnvironmentOutcomeRestoreCandidate candidate)
+        {
+        }
     }
 
     private static bool VerifyCrowding()

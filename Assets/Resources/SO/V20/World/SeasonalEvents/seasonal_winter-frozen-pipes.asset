@@ -14,13 +14,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
   stableId: seasonal:winter-frozen-pipes
   displayName: "\uB3D9\uACB0 \uBC30\uAD00"
-  description: "\uB3D9\uACB0\uC774 \uBB3C \uACF5\uAE09\uACFC \uC758\uB8CC\uC2E4 \uC6B4\uC601\uC744
-    \uD568\uAED8 \uC704\uD611\uD55C\uB2E4."
+  description: "\uC0AC\uAC74 \uB3D9\uC548 \uC2E4\uC81C \uC2DC\uC124 \uC628\uB3C4\uAC00 0\uB3C4 \uC774\uD558\uBA74
+    \uBC30\uAD00 \uC720\uB7C9\uC774 80%\uB85C \uC904\uACE0 2\uB3C4 \uC774\uC0C1\uC5D0\uC11C \uD68C\uBCF5\uD55C\uB2E4. \uC800\uC7A5\uB41C \uBB3C\uACFC
+    \uC218\uB3D9 \uAE09\uC218\uB294 \uC190\uC0C1\uB418\uC9C0 \uC54A\uB294\uB2E4."
   authoringRevision: 1
   sourceNote: V20 hand-authored seasonal world event manifest.
   season: 3
   minimumDurationDays: 2
   maximumDurationDays: 4
+  worldWaterRegenerationMultiplier: 1
+  powerAvailableSupplyCapacityMultiplier: 1
+  pipedWaterThroughputMultiplier: 0.8
+  pipedWaterFreezeThresholdC: 0
+  pipedWaterRecoveryThresholdC: 2
+  cropPrimaryBatchLossPercent: 0
+  requiredWeatherFrontId:
   affectedDomainIds:
   - facility
   - health
@@ -33,11 +41,7 @@ MonoBehaviour:
     worldMetrics: []
     requiredFlags: []
     excludedFlags: []
-  startEffects:
-  - kind: 14
-    targetId: frozen-pipes
-    amount: 4
-    durationDays: 4
+  startEffects: []
   dailyEffects: []
   endEffects:
   - kind: 12

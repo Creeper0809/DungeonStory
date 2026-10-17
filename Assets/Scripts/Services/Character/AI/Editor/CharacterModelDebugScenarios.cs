@@ -193,6 +193,7 @@ public static class CharacterModelDebugScenarios
             "Demon",
             "Golem",
             "Harpy",
+            "Human",
             "Kobold",
             "Myconid",
             "Orc",

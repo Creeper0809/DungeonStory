@@ -767,6 +767,54 @@ MonoBehaviour:
     m_Key: UnknownIntruder
     m_Metadata:
       m_Items: []
+  - m_Id: 12292361857355776
+    m_Key: CommittedWarningActualPhase
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493120
+    m_Key: CommittedWarningDetail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493121
+    m_Key: CommittedWarningDirection.East
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493122
+    m_Key: CommittedWarningDirection.North
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493123
+    m_Key: CommittedWarningDirection.South
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493124
+    m_Key: CommittedWarningDirection.Unknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493125
+    m_Key: CommittedWarningDirection.West
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493126
+    m_Key: CommittedWarningEntered
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493127
+    m_Key: CommittedWarningEntering
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493128
+    m_Key: CommittedWarningRallyEstimate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493129
+    m_Key: CommittedWarningUnknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493130
+    m_Key: CommittedWarningUnknownValue
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

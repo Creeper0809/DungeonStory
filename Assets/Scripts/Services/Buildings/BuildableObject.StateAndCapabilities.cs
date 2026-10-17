@@ -9,6 +9,37 @@ internal sealed class BuildableObjectStateAndCapabilityController
     private readonly Action markDynamicStateDirty;
     private readonly List<IBuildingStateModule> runtimeStateModules =
         new List<IBuildingStateModule>();
+    private IReadOnlyList<object> abilityRuntimes = Array.Empty<object>();
+    private BuildingAbilityCollection boundDefinitions;
+    private int boundDefinitionRevision;
+    private IBuildingAbilityRuntimeDispatcher boundDispatcher;
+
+    internal void SetAbilityRuntimes(BuildingAbilityCollection definitions, IReadOnlyList<object> runtimes,
+        IBuildingAbilityRuntimeDispatcher dispatcher)
+    {
+        abilityRuntimes = runtimes ?? throw new ArgumentNullException(nameof(runtimes));
+        boundDefinitions = definitions ?? throw new ArgumentNullException(nameof(definitions));
+        boundDefinitionRevision = definitions.Revision;
+        boundDispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
+    }
+
+    internal IEnumerable<TCapability> GetAbilityRuntimes<TCapability>(
+        BuildingAbilityCollection definitions,
+        IBuildingAbilityRuntimeDispatcher dispatcher) where TCapability : class
+    {
+        if (definitions == null) yield break;
+        if (!ReferenceEquals(definitions, boundDefinitions) || definitions.Revision != boundDefinitionRevision
+            || !ReferenceEquals(dispatcher, boundDispatcher))
+        {
+            IReadOnlyList<object> candidate = (dispatcher
+                ?? throw new InvalidOperationException("Building runtime binding requires its registered dispatcher."))
+                .BindRuntimeAbilities(definitions.Items)
+                ?? throw new InvalidOperationException("Building dispatcher returned null runtime bindings.");
+            SetAbilityRuntimes(definitions, candidate, dispatcher);
+        }
+        foreach (object runtime in abilityRuntimes)
+            if (runtime is TCapability capability) yield return capability;
+    }
 
     internal BuildableObjectStateAndCapabilityController(
         MonoBehaviour host,
@@ -40,6 +71,77 @@ internal sealed class BuildableObjectStateAndCapabilityController
         (state ?? throw new ArgumentNullException(nameof(state))).cleanliness =
             Mathf.Clamp(value, 0f, 100f);
         markDynamicStateDirty();
+    }
+
+    internal void SetSynthesisOutcomeRevision(
+        FacilityRuntimeState state,
+        long revision)
+    {
+        if (state == null)
+            throw new ArgumentNullException(nameof(state));
+        if (revision < 0L)
+            throw new ArgumentOutOfRangeException(nameof(revision));
+        state.synthesisOutcomeRevision = revision;
+        markDynamicStateDirty();
+    }
+
+    internal FacilityRuntimeState ReplaceFuelState(
+        FacilityRuntimeState state,
+        float remainingFuelGameSeconds,
+        int nextFuelOperationSequence,
+        FacilityFuelCommitState pendingFuel)
+    {
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+        if (float.IsNaN(remainingFuelGameSeconds)
+            || float.IsInfinity(remainingFuelGameSeconds)
+            || remainingFuelGameSeconds < 0f
+            || nextFuelOperationSequence <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(remainingFuelGameSeconds),
+                "Facility fuel state requires finite nonnegative seconds and a positive sequence.");
+        }
+
+        FacilityRuntimeState candidate = state.Clone();
+        candidate.remainingFuelGameSeconds = remainingFuelGameSeconds;
+        candidate.nextFuelOperationSequence = nextFuelOperationSequence;
+        candidate.pendingFuel = pendingFuel?.Clone() ?? new FacilityFuelCommitState();
+        if (!candidate.IsValid(out string error))
+        {
+            throw new InvalidOperationException(
+                $"Facility fuel state mutation rejected: {error}");
+        }
+        return candidate;
+    }
+
+    internal float ConsumeFuelGameSeconds(
+        FacilityRuntimeState state,
+        float requestedSeconds)
+    {
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+        if (float.IsNaN(requestedSeconds)
+            || float.IsInfinity(requestedSeconds)
+            || requestedSeconds < 0f)
+        {
+            throw new ArgumentOutOfRangeException(nameof(requestedSeconds));
+        }
+
+        float consumed = Mathf.Min(state.remainingFuelGameSeconds, requestedSeconds);
+        if (consumed <= 0f)
+        {
+            return 0f;
+        }
+        state.remainingFuelGameSeconds = Mathf.Max(
+            0f,
+            state.remainingFuelGameSeconds - consumed);
+        markDynamicStateDirty();
+        return consumed;
     }
 
     internal IReadOnlyList<IBuildingStateModule> GetStateModules()

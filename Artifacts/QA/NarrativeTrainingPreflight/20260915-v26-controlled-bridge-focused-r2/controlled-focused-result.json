@@ -1,0 +1,100 @@
+{
+  "deterministicReplayFiles": 3,
+  "historyManifestHash": "sha256:536840e851125422cdd0e4153d7dc548d3e1d736c30f3b52696f9d828a3148c1",
+  "humanApprovalClaimed": false,
+  "naturalPlayClaimed": false,
+  "newUnityExecutionClaimed": true,
+  "originalManifestHash": "sha256:093c50311e6e603d0a00221e1d68eeeb153522e790d5210d8f50ec7955e2fa69",
+  "rejectedCases": [
+    {
+      "accepted": false,
+      "authoredCaseSha256": "sha256:05c8aa4a500e3926cfa2c024cbf4c634d702f45cf45f2725c0cd374339000ec3",
+      "caseId": "skill-unknown-state-field",
+      "failureReason": "ArgumentException: CharacterSkill state has unsupported field 'inventedBudget'.",
+      "profileId": "CharacterSkill",
+      "scenarioFamilyId": "authored:riverbank-rescue"
+    },
+    {
+      "accepted": false,
+      "authoredCaseSha256": "sha256:ab2632cffca36120270625964fe7ac7ce19583b075463fd386e5d5a9444933dd",
+      "caseId": "skill-numeric-enum-alias",
+      "failureReason": "ArgumentException: CharacterSkill state.kind has unknown enum name '0'.",
+      "profileId": "CharacterSkill",
+      "scenarioFamilyId": "authored:riverbank-rescue"
+    },
+    {
+      "accepted": false,
+      "authoredCaseSha256": "sha256:3ecb3ab118820bcbef2b10c6fcd7ab48d896b648916247b89984729fdadb7d50",
+      "caseId": "facility-numeric-domain-alias",
+      "failureReason": "controlled-facility-event-domain-unknown: Facility events.domain must name an authored CharacterNarrativeDomain: 1.",
+      "profileId": "FacilityEvolution",
+      "scenarioFamilyId": "authored:market-hearth"
+    },
+    {
+      "accepted": false,
+      "authoredCaseSha256": "sha256:c99eed76fac7b684a8e447120d91376adcd4570338f2cd965632b7478ede6a58",
+      "caseId": "facility-unknown-definition",
+      "failureReason": "controlled-facility-source-unknown: state.sourceFacilityId does not resolve to one authored BuildingSO: building:2147483647.",
+      "profileId": "FacilityEvolution",
+      "scenarioFamilyId": "authored:market-hearth"
+    },
+    {
+      "accepted": false,
+      "authoredCaseSha256": "sha256:0b3206d2010ea49291b476d389df3b0426b24e284de7534d0509809f3275434b",
+      "caseId": "equipment-invalid-day",
+      "failureReason": "controlled-equipment-integer-out-of-range: events[1].day must be within 0..2147483647.",
+      "profileId": "EquipmentChoice",
+      "scenarioFamilyId": "authored:bridge-shield-return"
+    },
+    {
+      "accepted": false,
+      "authoredCaseSha256": "sha256:21945ab9ee3f5ce8ba399ea52af8d0cf301698cb5bac6bdcf1598715575479d5",
+      "caseId": "equipment-numeric-evidence-alias",
+      "failureReason": "controlled-equipment-evidence-kind-unknown: Case 'equipment-numeric-evidence-alias' event 'combat:block' has unknown HistoricalEvidenceKind '1'.",
+      "profileId": "EquipmentChoice",
+      "scenarioFamilyId": "authored:bridge-shield-return"
+    },
+    {
+      "accepted": false,
+      "authoredCaseSha256": "sha256:31ef39fd80aa37f12e450fd60c71a03e79c6efd40ec9d57141fe2ee49e5cfe91",
+      "caseId": "equipment-frozen-evidence-cap",
+      "failureReason": "controlled-equipment-events-exceed-locked-request-capacity: Case 'equipment-frozen-evidence-cap' has 9 events, but the production locked request can preserve at most 8 current events. This explicit no-truncation slice rejects the case instead of silently omitting ledger evidence.",
+      "profileId": "EquipmentChoice",
+      "scenarioFamilyId": "authored:bridge-shield-return"
+    },
+    {
+      "accepted": false,
+      "authoredCaseSha256": "sha256:a4158e41283697269e995e4b8485a2b64bcd99ed7d7a9451ddba2246afb96d88",
+      "caseId": "history-wrong-choice-binding",
+      "failureReason": "controlled-equipment-choice-input-hash-mismatch: EvolutionHistory case 'history-wrong-choice-binding' supplied choiceInputHash 'sha256:0000000000000000000000000000000000000000000000000000000000000000', but its exact same-input EquipmentChoice projection hashes to 'sha256:c1131936a5d84420476cb61e9e728bf290d1e1269289b415581e1d6790ac770c'.",
+      "profileId": "EvolutionHistory",
+      "scenarioFamilyId": "authored:bridge-shield-return"
+    },
+    {
+      "accepted": false,
+      "authoredCaseSha256": "sha256:1305418947a8b85be94947dd3a1e05febd2c59a62685061acb23ccde95d4757c",
+      "caseId": "history-invalid-selected-index",
+      "failureReason": "controlled-equipment-selected-index-out-of-range: EvolutionHistory case 'history-invalid-selected-index' selectedIndex 999 is outside the exact same-input legal candidate range 0..1.",
+      "profileId": "EvolutionHistory",
+      "scenarioFamilyId": "authored:bridge-shield-return"
+    }
+  ],
+  "result": {
+    "checks": [
+      {
+        "failure": "controlled-output-collision: Output path already exists and will not be overwritten: 'F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Artifacts\\Exports\\NarrativeControlledInputs\\20260915-v26-controlled-bridge-r3'.",
+        "name": "export-create-only",
+        "rejected": true
+      },
+      {
+        "failure": "controlled-input-case-id-duplicate: caseId 'skill-riverbank-rope' occurs more than once.",
+        "name": "duplicate-case-id",
+        "rejected": true
+      }
+    ],
+    "history": "{\"acceptedCount\":3,\"manifestPath\":\"F:/01_Programming/01_Project/02_Unity/DungeonStory/Artifacts/Exports/NarrativeControlledInputs/20260915-v26-controlled-bridge-history-r1/manifest.json\",\"outputDirectory\":\"F:/01_Programming/01_Project/02_Unity/DungeonStory/Artifacts/Exports/NarrativeControlledInputs/20260915-v26-controlled-bridge-history-r1\",\"rejectedCount\":0,\"schemaVersion\":1}",
+    "negative": "{\"acceptedCount\":0,\"manifestPath\":\"F:/01_Programming/01_Project/02_Unity/DungeonStory/Artifacts/Exports/NarrativeControlledInputs/20260915-v26-controlled-bridge-negative-r1/manifest.json\",\"outputDirectory\":\"F:/01_Programming/01_Project/02_Unity/DungeonStory/Artifacts/Exports/NarrativeControlledInputs/20260915-v26-controlled-bridge-negative-r1\",\"rejectedCount\":9,\"schemaVersion\":1}",
+    "replay": "{\"acceptedCount\":9,\"manifestPath\":\"F:/01_Programming/01_Project/02_Unity/DungeonStory/Artifacts/Exports/NarrativeControlledInputs/20260915-v26-controlled-bridge-replay-r1/manifest.json\",\"outputDirectory\":\"F:/01_Programming/01_Project/02_Unity/DungeonStory/Artifacts/Exports/NarrativeControlledInputs/20260915-v26-controlled-bridge-replay-r1\",\"rejectedCount\":0,\"schemaVersion\":1}"
+  },
+  "trainingEligible": false
+}

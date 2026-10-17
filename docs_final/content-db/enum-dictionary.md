@@ -338,6 +338,16 @@
 | 4 | `Vine` | Vine |
 | 5 | `Fungus` | Fungus |
 
+## CropLightProfile
+
+| 값 | 이름 | 문서 표기 |
+|---:|---|---|
+| 0 | `Unspecified` | Unspecified |
+| 1 | `LightIndependent` | Light Independent |
+| 2 | `Shade` | Shade |
+| 3 | `Medium` | Medium |
+| 4 | `High` | High |
+
 ## CulturalPracticeKind
 
 | 값 | 이름 | 문서 표기 |
@@ -418,6 +428,15 @@
 | 0 | `Weapon` | Weapon |
 | 1 | `Armor` | Armor |
 | 2 | `Shield` | Shield |
+
+## ExperienceEventRiskTier
+
+| 값 | 이름 | 문서 표기 |
+|---:|---|---|
+| 0 | `None` | None |
+| 1 | `Recoverable` | Recoverable |
+| 2 | `Serious` | Serious |
+| 3 | `Lethal` | Lethal |
 
 ## FacilityEvolutionRecordTokenConsumePolicy
 
@@ -550,7 +569,9 @@
 | 8 | `EquipmentModule` | Equipment Module |
 | 16 | `Status` | Status |
 | 32 | `Research` | Research |
-| 63 | `All` | All |
+| 64 | `SurgicalPart` | Surgical Part |
+| 128 | `AcquiredTrait` | Acquired Trait |
+| 255 | `All` | All |
 
 ## GameplayEffectStackingPolicy
 
@@ -637,6 +658,13 @@
 | 1 | `OncePerCharacter` | Once Per Character |
 | 2 | `OncePerGeneration` | Once Per Generation |
 | 3 | `OncePerRun` | Once Per Run |
+
+## LifeEventOccurrencePolicy
+
+| 값 | 이름 | 문서 표기 |
+|---:|---|---|
+| 0 | `ExternalObservedOnly` | External Observed Only |
+| 1 | `DailyCadence` | Daily Cadence |
 
 ## MealDietClass
 
@@ -976,6 +1004,22 @@
 | 2 | `Autumn` | Autumn |
 | 3 | `Winter` | Winter |
 
+## SeasonalSpecialExpeditionPurpose
+
+| 값 | 이름 | 문서 표기 |
+|---:|---|---|
+| 0 | `None` | None |
+| 1 | `ManaCrystalYield` | Mana Crystal Yield |
+| 2 | `TruthGuardianEcho` | Truth Guardian Echo |
+
+## SeasonalWildlifeArrivalQualification
+
+| 값 | 이름 | 문서 표기 |
+|---:|---|---|
+| 0 | `None` | None |
+| 1 | `Predatory` | Predatory |
+| 2 | `NonHostile` | Non Hostile |
+
 ## ServiceCategory
 
 | 값 | 이름 | 문서 표기 |
@@ -1142,6 +1186,7 @@
 | 15 | `DiseaseExposure` | DiseaseExposure (질병 노출) |
 | 16 | `AmbitionProgress` | AmbitionProgress (야망 진행) |
 | 17 | `MilestonePressure` | MilestonePressure (이정표 압력) |
+| 18 | `RetirementSchedule` | Retirement Schedule |
 
 ## V20FactionContractKind
 

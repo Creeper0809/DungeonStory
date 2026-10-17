@@ -46,7 +46,8 @@ internal static class OffenseEditorTestDependencies
             evolutionModules: EmptyEvolutionModuleRegistry.Instance,
             researchProvider: EditorAllResearchRuntimeProvider.Instance,
             moduleCatalog: EmptyEquipmentModuleCatalog.Instance,
-            itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance,
+            calendar: new EditorFixedGameCalendar(137, 9));
     }
 
     public static IEnemyEncounterFactory CreateEnemyEncounterFactory(

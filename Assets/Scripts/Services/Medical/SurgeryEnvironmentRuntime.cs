@@ -107,27 +107,24 @@ internal sealed class SurgeryEnvironmentRuntime
 
     public bool IsEmergency(SurgeryOrder order)
     {
-        if (order != null
-            && procedures.TryGet(order.procedureId, out SurgicalProcedureSO procedure)
-            && procedure.Urgency == MedicalProcedureUrgency.Emergency)
-        {
-            return true;
-        }
-
-        return order?.subject?.automaticEmergencyDefault == true
-            || (order?.procedureId?.IndexOf(
-                "emergency",
-                StringComparison.OrdinalIgnoreCase) ?? -1) >= 0;
+        return order != null
+            && order.emergencyCause != SurgeryEmergencyCause.None
+            && procedures.TryGet(
+                order.procedureId,
+                out SurgicalProcedureSO procedure)
+            && SurgeryEmergencyCauseRules.IsValidCauseForProcedure(
+                order.emergencyCause,
+                procedure);
     }
 
     public int GetUrgency(SurgeryOrder order)
     {
         return order != null
             && procedures.TryGet(order.procedureId, out SurgicalProcedureSO procedure)
-                ? (int)procedure.Urgency
-                : IsEmergency(order)
-                    ? (int)MedicalProcedureUrgency.Emergency
-                    : (int)MedicalProcedureUrgency.Required;
+                ? (int)SurgeryEmergencyCauseRules.GetEffectiveUrgency(
+                    order,
+                    procedure)
+                : (int)MedicalProcedureUrgency.Required;
     }
 
     public bool IsProcedureFamily(
@@ -190,7 +187,7 @@ internal sealed class SurgeryEnvironmentRuntime
         }
     }
 
-    public void ApplyRisk(
+    public bool ApplyRisk(
         SurgeryOrder order,
         CharacterActor doctor,
         BuildableObject facility)
@@ -209,7 +206,7 @@ internal sealed class SurgeryEnvironmentRuntime
         order.risk = riskEvaluator.Apply(order.risk, snapshot, 0.25f);
         if (snapshot.Normal)
         {
-            return;
+            return false;
         }
 
         RequestRecovery(order, snapshot);
@@ -217,11 +214,15 @@ internal sealed class SurgeryEnvironmentRuntime
         {
             order.statusData.Set(
                 SurgeryStatusCode.EmergencyProcedureContinuing,
+                nextPrimaryId: order.emergencyCause.ToString(),
                 nextScalarValue: snapshot.Environment.TemperatureC,
                 nextSecondaryScalarValue: snapshot.Environment.AirQuality,
                 nextTertiaryScalarValue: snapshot.Environment.LightLevel,
                 nextStage: order.state);
+            return true;
         }
+
+        return false;
     }
 
     private void RequestRecovery(

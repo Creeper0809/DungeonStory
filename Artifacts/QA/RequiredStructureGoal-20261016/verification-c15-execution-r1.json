@@ -1,0 +1,17 @@
+{
+  "entry": "ArchitectureRefactorVerificationBatch.RunCore -> GameplayOutcomeLedgerDebugScenarios.RunLedgerStorageContractsForBatch",
+  "evidence": [
+    "native-core-current-r4/unity.log",
+    "native-core-fixture-fix/core-target-coverage-review.txt"
+  ],
+  "scope": "Full native storage/query/retention/restore suite and JsonUtility with real ledger/registry/recorder: pre-admission and foreign-owner rejection preserves candidates, active reservation fences, staged/published duplicate rejection, rollback/same-candidate retry, identity/evidence/tamper/replay, deterministic consolidation, retention/capacity-before-mutation. Existing unrelated usage-formula budget fixture remains separate.",
+  "parentBatch": "Explicit storage suite PASS marker completed before the later memory-guard interruption; whole Core is NOT PASS.",
+  "target": "C15",
+  "status": "implemented_and_targeted_actual_verified",
+  "currentCompile": "verification-native-current-source-r2.json",
+  "limitations": [
+    "Controlled native fixture scope; no natural UI/AI claim.",
+    "Cold official whole-world integration remains a separate final goal gate."
+  ],
+  "goalStatus": "active"
+}

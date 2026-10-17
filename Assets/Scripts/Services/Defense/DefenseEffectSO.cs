@@ -12,67 +12,6 @@ public static class DefenseEffectIds
     public const string GuardAttack = "defense.guard-attack";
 }
 
-public sealed class DefenseEffectContext
-{
-    public DefenseEffectContext(
-        CharacterActor target,
-        DefenseStatusRuntime statusRuntime,
-        DefenseActivationReport report,
-        DefenseFacilityData defense,
-        float effectMultiplier = 1f)
-    {
-        Target = target ?? throw new ArgumentNullException(nameof(target));
-        StatusRuntime = statusRuntime ?? throw new ArgumentNullException(nameof(statusRuntime));
-        Report = report ?? throw new ArgumentNullException(nameof(report));
-        Defense = defense ?? throw new ArgumentNullException(nameof(defense));
-        EffectMultiplier = Mathf.Clamp(effectMultiplier, 0.1f, 2f);
-    }
-
-    public CharacterActor Target { get; }
-    public DefenseStatusRuntime StatusRuntime { get; }
-    public DefenseActivationReport Report { get; }
-    public DefenseFacilityData Defense { get; }
-    public float EffectMultiplier { get; }
-
-    public void ApplyDamage(float amount, string reason)
-    {
-        if (amount <= 0f || Target.IsDead)
-        {
-            return;
-        }
-
-        float finalDamage = amount
-            * EffectMultiplier
-            * StatusRuntime.GetIncomingDamageMultiplier();
-        Target.ApplyDamage(finalDamage, reason);
-        Report.AddDamage(finalDamage);
-    }
-
-    public int ApplyStatus(DefenseStatusKind kind, float value, float duration, int stacks)
-    {
-        return StatusRuntime.ApplyStatus(
-            kind,
-            value * EffectMultiplier,
-            duration * EffectMultiplier,
-            stacks);
-    }
-
-    public void ClearStatus(DefenseStatusKind kind)
-    {
-        StatusRuntime.ClearStatus(kind);
-    }
-
-    public void AddMovementDelay(float seconds)
-    {
-        Report.AddMovementDelay(seconds * EffectMultiplier);
-    }
-
-    public void AddEffectTag(string tag)
-    {
-        Report.AddEffectTag(tag);
-    }
-}
-
 public abstract class DefenseEffectSO : ScriptableObject
 {
     [SerializeField, Min(0f)] private float amount;
@@ -117,7 +56,7 @@ public abstract class DefenseEffectSO : ScriptableObject
         LogTag = configuredLogTag;
     }
 
-    public abstract void Apply(DefenseEffectContext context);
+    public abstract void Apply(IDefenseEffectCommands context);
 
     public virtual string FormatSummary()
     {

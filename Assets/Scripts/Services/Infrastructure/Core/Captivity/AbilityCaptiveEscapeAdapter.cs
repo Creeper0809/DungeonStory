@@ -92,7 +92,14 @@ public sealed class AbilityCaptiveEscape : MonoBehaviour
             activeCaptiveId = string.Empty;
             routine = null;
             ReleaseEscapePass();
-            port.CompleteEscape(captiveId);
+            if (!port.CompleteEscape(captiveId, out failureReason))
+            {
+                port.SetActionPhase(
+                    string.IsNullOrWhiteSpace(failureReason)
+                        ? "탈출 결과 기록 대기"
+                        : "탈출 결과 기록 대기: " + failureReason,
+                    destination);
+            }
             yield break;
         }
 

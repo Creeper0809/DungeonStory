@@ -16,6 +16,6 @@
   "schema_version": 1,
   "slug": "building-landmark-temporal-sanctum",
   "spoiler_tier": "none",
-  "summary": "V20 hand-authored milestone landmark.",
+  "summary": "시설 동작은 BuildingStructuralIntegrityAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 5553 WU, 재료 석재 블록×40, 강철×20, 정밀 부품×10, 룬 도체×10, 마나 결정×12이 필요하다. V20 hand-authored milestone landmark.",
   "title": "시간 고정 성소"
 }

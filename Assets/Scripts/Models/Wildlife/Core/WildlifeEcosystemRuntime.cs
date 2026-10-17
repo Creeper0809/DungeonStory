@@ -350,6 +350,9 @@ public sealed partial class WildlifeEcosystemRuntime :
         }
 
         EnsureInitialized(grid);
+        int detectionRadius = actor.Species?.MigrationProfile?.DetectionRadiusCells
+            ?? throw new InvalidOperationException(
+                $"Wildlife '{actor.WildlifeId}' has no migration profile.");
         if (actor.Fear >= 4f || (actor.HasLastThreatPosition && actor.LastThreatAge < 14f))
         {
             target = ChooseFleeSurfaceTarget(actor, grid);
@@ -358,8 +361,29 @@ public sealed partial class WildlifeEcosystemRuntime :
             return target != actor.GridPosition;
         }
 
+        if (actor.Intent == WildlifeIntent.LeaveMap)
+        {
+            intent = WildlifeIntent.LeaveMap;
+            if (TryFindMapExitTarget(actor, grid, out target))
+            {
+                reason = "비활동 계절 이동";
+            }
+            else
+            {
+                target = actor.GridPosition;
+                reason = "비활동 계절 이동 — 합법적인 출구를 기다리는 중";
+            }
+            return true;
+        }
+
         if (actor.Thirst >= 0.52f
-            && TryFindPatchTarget(actor, grid, patch => patch.HabitatType == WildlifeHabitatType.Water && !patch.IsDepleted, out target))
+            && TryFindPatchTarget(
+                actor,
+                grid,
+                detectionRadius,
+                patch => patch.HabitatType == WildlifeHabitatType.Water
+                    && !patch.IsDepleted,
+                out target))
         {
             intent = WildlifeIntent.Drink;
             reason = "물가로 이동";
@@ -371,7 +395,12 @@ public sealed partial class WildlifeEcosystemRuntime :
             if (actor.Species != null
                 && (actor.Species.Diet == WildlifeDietType.Carnivore
                     || actor.Species.Diet == WildlifeDietType.Scavenger)
-                && TryFindCarcassTarget(actor, grid, itemStacks, out target))
+                && TryFindCarcassTarget(
+                    actor,
+                    grid,
+                    itemStacks,
+                    detectionRadius,
+                    out target))
             {
                 intent = WildlifeIntent.Forage;
                 reason = "사체 냄새를 따라감";
@@ -380,7 +409,12 @@ public sealed partial class WildlifeEcosystemRuntime :
 
             if (actor.Species != null
                 && actor.Species.Diet == WildlifeDietType.Carnivore
-                && TryFindPreyTarget(actor, grid, wildlife, out target))
+                && TryFindPreyTarget(
+                    actor,
+                    grid,
+                    wildlife,
+                    detectionRadius,
+                    out target))
             {
                 intent = WildlifeIntent.HuntPrey;
                 reason = "작은 먹잇감을 추적";
@@ -388,7 +422,7 @@ public sealed partial class WildlifeEcosystemRuntime :
             }
 
             if (CanForage(actor.Species)
-                && TryFindPatchTarget(actor, grid, patch =>
+                && TryFindPatchTarget(actor, grid, detectionRadius, patch =>
                         (patch.HabitatType == WildlifeHabitatType.Grass || patch.HabitatType == WildlifeHabitatType.Brush)
                         && !patch.IsDepleted
                         && patch.IsPreferredBy(actor.Species),
@@ -411,11 +445,32 @@ public sealed partial class WildlifeEcosystemRuntime :
             return true;
         }
 
-        if ((actor.Hunger >= 0.9f || actor.Thirst >= 0.9f)
-            && TryFindMapExitTarget(actor, grid, out target))
+        if (actor.Hunger >= 0.9f || actor.Thirst >= 0.9f)
         {
             intent = WildlifeIntent.LeaveMap;
-            reason = "먹이와 물을 찾아 지역을 떠남";
+            if (TryFindMapExitTarget(actor, grid, out target))
+            {
+                reason = "먹이와 물을 찾아 지역을 떠남";
+            }
+            else
+            {
+                target = actor.GridPosition;
+                reason = "먹이와 물을 찾을 합법적인 출구를 기다리는 중";
+            }
+            return true;
+        }
+
+        bool migrationTargetFound = TryFindMigrationPreferenceTarget(
+            actor,
+            grid,
+            itemStacks,
+            out Vector2Int migrationTarget,
+            out string migrationReason);
+        if (migrationTargetFound)
+        {
+            target = migrationTarget;
+            intent = WildlifeIntent.Wander;
+            reason = migrationReason;
             return true;
         }
 
@@ -423,28 +478,38 @@ public sealed partial class WildlifeEcosystemRuntime :
         if (actor.Hunger < 0.65f
             && actor.Thirst < 0.7f
             && randomStream.Chance(restChance)
-            && TryFindPatchTarget(actor, grid, patch =>
+            && TryFindPatchTarget(actor, grid, detectionRadius, patch =>
                     patch.HabitatType is WildlifeHabitatType.Burrow or WildlifeHabitatType.Brush or WildlifeHabitatType.Lair
                     && patch.IsPreferredBy(actor.Species),
                 out target))
         {
             intent = WildlifeIntent.Rest;
-            reason = "은신처로 이동";
+            reason = CombineMigrationFallbackReason(migrationReason, "은신처로 이동");
             return true;
         }
 
-        if (TryFindPatchTarget(actor, grid, patch => patch.IsPreferredBy(actor.Species), out target))
+        if (TryFindPatchTarget(
+                actor,
+                grid,
+                detectionRadius,
+                patch => patch.IsPreferredBy(actor.Species),
+                out target))
         {
             if (target == actor.GridPosition && randomStream.Chance(0.7f))
             {
-                return false;
+                intent = WildlifeIntent.Wander;
+                reason = migrationReason;
+                return true;
             }
 
             intent = WildlifeIntent.Wander;
-            reason = "영역 안을 배회";
+            reason = CombineMigrationFallbackReason(migrationReason, "영역 안을 배회");
             return true;
         }
 
+        target = actor.GridPosition;
+        intent = WildlifeIntent.Wander;
+        reason = migrationReason;
         return false;
     }
 
@@ -811,6 +876,7 @@ public sealed partial class WildlifeEcosystemRuntime :
     private bool TryFindPatchTarget(
         IWildlifeAnimalPort actor,
         IWildlifeGridPort grid,
+        int detectionRadius,
         Func<WildlifeHabitatPatch, bool> predicate,
         out Vector2Int target)
     {
@@ -819,18 +885,30 @@ public sealed partial class WildlifeEcosystemRuntime :
         float bestScore = float.NegativeInfinity;
         foreach (WildlifeHabitatPatch patch in patches)
         {
-            if (patch == null || predicate == null || !predicate(patch))
+            if (patch == null
+                || predicate == null
+                || !predicate(patch)
+                || Manhattan(actor.GridPosition, patch.Center) > detectionRadius)
             {
                 continue;
             }
 
-            if (!TryFindSurfaceNear(grid, actor, patch.Center, out Vector2Int patchTarget))
+            Vector2Int patchTarget;
+            if (patch.Contains(actor.GridPosition))
+            {
+                patchTarget = actor.GridPosition;
+            }
+            else if (!TryFindSurfaceNear(grid, actor, patch.Center, out patchTarget))
             {
                 continue;
             }
 
             int distance = Mathf.Abs(actor.GridPosition.x - patchTarget.x)
                 + Mathf.Abs(actor.GridPosition.y - patchTarget.y);
+            if (distance > detectionRadius)
+            {
+                continue;
+            }
             float score = patch.Resource01 * 10f
                 - distance * 0.35f
                 - patch.Danger * (actor.Species != null && actor.Species.IsPredator ? 1.2f : 4f);
@@ -909,6 +987,7 @@ public sealed partial class WildlifeEcosystemRuntime :
         IWildlifeAnimalPort actor,
         IWildlifeGridPort grid,
         IReadOnlyList<WildlifeCarcassStackSnapshot> itemStacks,
+        int detectionRadius,
         out Vector2Int target)
     {
         target = actor.GridPosition;
@@ -924,13 +1003,17 @@ public sealed partial class WildlifeEcosystemRuntime :
             if (stack.Quantity <= 0
                 || stack.Forbidden
                 || !WildlifeItemDefinitions.TryGetSpeciesIdFromCarcass(stack.ItemId, out _)
-                || !CanAnimalUseCell(grid, actor, stack.Position))
+                || !CanUsePreferenceTarget(grid, actor, stack.Position))
             {
                 continue;
             }
 
             int distance = Mathf.Abs(stack.Position.x - actor.GridPosition.x)
                 + Mathf.Abs(stack.Position.y - actor.GridPosition.y);
+            if (distance > detectionRadius)
+            {
+                continue;
+            }
             float score = 12f - distance + actor.Hunger * 8f;
             if (best == null || score > bestScore)
             {
@@ -947,6 +1030,7 @@ public sealed partial class WildlifeEcosystemRuntime :
         IWildlifeAnimalPort predator,
         IWildlifeGridPort grid,
         IReadOnlyList<IWildlifeAnimalPort> wildlife,
+        int detectionRadius,
         out Vector2Int target)
     {
         target = predator.GridPosition;
@@ -980,7 +1064,8 @@ public sealed partial class WildlifeEcosystemRuntime :
 
             int distance = Mathf.Abs(prey.GridPosition.x - predator.GridPosition.x)
                 + Mathf.Abs(prey.GridPosition.y - predator.GridPosition.y);
-            if (distance > 12)
+            if (distance > Mathf.Min(12, detectionRadius)
+                || Manhattan(predator.GridPosition, stand) > detectionRadius)
             {
                 continue;
             }
@@ -1002,6 +1087,13 @@ public sealed partial class WildlifeEcosystemRuntime :
         target = bestStand;
         return best != null;
     }
+
+    private static string CombineMigrationFallbackReason(
+        string migrationReason,
+        string fallbackReason) =>
+        string.IsNullOrWhiteSpace(migrationReason)
+            ? fallbackReason
+            : $"{migrationReason} — {fallbackReason}";
 
     private bool TryFindAdjacentOpenCell(
         IWildlifeGridPort grid,

@@ -1,0 +1,45 @@
+{
+  "status": "static-source-audit",
+  "unityExecuted": false,
+  "publicWikiMutated": false,
+  "counts": {
+    "lifeEvents": 32,
+    "guestRequests": 14,
+    "serviceIncidents": 8,
+    "publicLifeEvents": 32,
+    "publicGuestRequests": 14,
+    "publicServiceIncidents": 8,
+    "lifeAutomatic": 12,
+    "lifeMajor": 20,
+    "lifeEmergency": 0,
+    "lifeChoices": 40,
+    "guestItemRequirements": 13,
+    "guestFacilityRequirements": 14,
+    "incidentResponses": 24,
+    "ordinaryConcurrentThroughDay30": 1,
+    "ordinaryConcurrentAfterDay30": 2,
+    "emergencyConcurrent": 1,
+    "automaticDailyMaximum": 6,
+    "recentResolvedMaximum": 256,
+    "eventAlertImportanceKinds": 3
+  },
+  "authoringManifest": {
+    "fileCount": 54,
+    "sha256": "32a2cdf1bc2140679c06bf24600fa7abed40aa7cc16bc909aaf65114141f02c2"
+  },
+  "publicEntityManifest": {
+    "fileCount": 54,
+    "sha256": "1fa3fa0ebbcaac583f9ae8bcf9609534dba1370c2201ae44b5b315bd44cfaf87"
+  },
+  "sources": [
+    {"path":"wiki/game-versions/0.0.1v/content/guides/events-and-choices.md","sha256":"8ede398c74a678aaccec8eb702df6658e4cf872cd1c3e3241da6a7a5cc9ab925"},
+    {"path":"Assets/Scripts/Services/Run/V20CampaignRuntime.cs","sha256":"30e12b6482144b873b0fe9868c9e5e9f065c91651b6097c2248073f32a539c3c"},
+    {"path":"Assets/Scripts/Services/Run/V20ContentResolutionService.cs","sha256":"bef15f462d70d2e4cdbd531613752b99e40f765c099153dac41f9bbaa68d731f"},
+    {"path":"Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs","sha256":"51bd1be0f08336e117a2e359871868374f796ff15b91351a0e9b270cc254b4ce"},
+    {"path":"Assets/Scripts/Content/V20AuthoredContentContracts.cs","sha256":"4323ecde25aa0a307621e46472849aaeef83cc0d7f54bed7c8f50e3a1d07452a"},
+    {"path":"Assets/Scripts/Content/LifeEventDefinitionSO.cs","sha256":"4d0a3b1ca86754160fb3d4f9202acfc043496f27ec0e798305127ee555329066"},
+    {"path":"Assets/Scripts/Content/GuestRequestDefinitionSO.cs","sha256":"3083c4bb7de6e3813ef2ee82b6892c283053c2488dfc4c4b1ae1cff3490d40ba"},
+    {"path":"Assets/Scripts/Content/ServiceIncidentDefinitionSO.cs","sha256":"09e91cebb65a25d5ecb262abb404eed86bfd2a3ea14b37e9a1b4deb54a4b2b48"},
+    {"path":"Assets/Scripts/Views/UI/Core/EventAlertRuntime.cs","sha256":"6bdd2499d0a8096065e0137acf52036a5987fcf88e11a4a6d3e8d38b519b4cdc"}
+  ]
+}

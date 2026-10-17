@@ -21,11 +21,13 @@ public sealed class AnimalHusbandryBuildingPanelPresenter :
     private readonly IAnimalHusbandryQuery husbandryQuery;
     private readonly IAnimalHusbandryCommand husbandryCommands;
     private readonly IWildlifeSpeciesCatalogProvider species;
+    private readonly IGameCalendar calendar;
 
     public AnimalHusbandryBuildingPanelPresenter(
         IAnimalHusbandryQuery husbandryQuery,
         IAnimalHusbandryCommand husbandryCommands,
-        IWildlifeSpeciesCatalogProvider species)
+        IWildlifeSpeciesCatalogProvider species,
+        IGameCalendar calendar)
     {
         this.husbandryQuery = husbandryQuery
             ?? throw new ArgumentNullException(nameof(husbandryQuery));
@@ -33,6 +35,8 @@ public sealed class AnimalHusbandryBuildingPanelPresenter :
             ?? throw new ArgumentNullException(nameof(husbandryCommands));
         this.species = species
             ?? throw new ArgumentNullException(nameof(species));
+        this.calendar = calendar
+            ?? throw new ArgumentNullException(nameof(calendar));
     }
 
     public IReadOnlyList<GameObject> Render(
@@ -161,9 +165,10 @@ public sealed class AnimalHusbandryBuildingPanelPresenter :
                      .OrderBy(state => state.SpeciesId.Value, StringComparer.Ordinal)
                      .ThenBy(state => state.AnimalId.Value, StringComparer.Ordinal))
         {
-            string speciesName = species.TryGetSpecies(
+            bool hasDefinition = species.TryGetSpecies(
                 animal.SpeciesId.Value,
-                out WildlifeSpeciesDefinition definition)
+                out WildlifeSpeciesDefinition definition);
+            string speciesName = hasDefinition
                     ? definition.DisplayName
                     : animal.SpeciesId.Value;
             string sex = animal.Sex == AnimalSex.Female ? "암" : "수";
@@ -172,17 +177,35 @@ public sealed class AnimalHusbandryBuildingPanelPresenter :
                     ? "번식 중"
                     : "길들임"
                 : $"길들이기 {animal.TamingProgress:P0}";
+            string breedingSeasonWait = hasDefinition
+                && animal.Tamed
+                && !animal.Pregnant
+                && animal.Sex == AnimalSex.Female
+                && definition.BreedingSeason != calendar.Season
+                    ? $" · {FormatSeason(definition.BreedingSeason)} 번식기 대기"
+                    : string.Empty;
+            string productThermal = string.Empty;
+            if (hasDefinition && definition.Husbandry.Products.Count > 0)
+            {
+                productThermal = husbandryQuery.TryGetProductThermalSnapshot(
+                    animal.AnimalId,
+                    out AnimalProductThermalSnapshot thermal)
+                        ? $"\n{FormatProductThermal(thermal)}"
+                        : "\n사육 온도 상태를 확인할 수 없습니다.";
+            }
             AddText(
                 parent,
                 $"{speciesName} · {sex} · {animal.AgeDays:0.0}일 · {status}"
+                + breedingSeasonWait
                 + (animal.SlaughterDesignated ? " · 도축 지정" : string.Empty)
-                + $"\n{FormatStatus(animal.StatusCode)}",
+                + $"\n{FormatStatus(animal.StatusCode)}"
+                + productThermal,
                 font,
                 14f,
                 animal.SlaughterDesignated
                     ? DungeonUiTheme.Danger
                     : DungeonUiTheme.TextPrimary,
-                48f,
+                string.IsNullOrEmpty(productThermal) ? 48f : 68f,
                 created);
         }
 
@@ -240,6 +263,49 @@ public sealed class AnimalHusbandryBuildingPanelPresenter :
         AnimalHusbandryStatusCode.AutoSlaughterPolicyTarget => "자동 도축 정책 대상",
         _ => "상태 확인 필요"
     };
+
+    private static string FormatSeason(Season season) => season switch
+    {
+        Season.Spring => "봄",
+        Season.Summer => "여름",
+        Season.Autumn => "가을",
+        Season.Winter => "겨울",
+        _ => season.ToString()
+    };
+
+    private static string FormatProductThermal(
+        AnimalProductThermalSnapshot thermal)
+    {
+        if (thermal.StatusCode
+            == AnimalProductThermalStatusCode.PenPositionUnavailable)
+        {
+            return "사육 위치 확인 불가 · 산물 진행 보류";
+        }
+        if (thermal.StatusCode
+            == AnimalProductThermalStatusCode.EnvironmentalFieldUnavailable)
+        {
+            return "온도 확인 불가 · 산물 진행 보류";
+        }
+
+        string progress;
+        if (thermal.ProductDelayRatio <= 0.0001f)
+        {
+            progress = "산물 정상";
+        }
+        else
+        {
+            string cause = thermal.TemperatureC
+                < thermal.ComfortMinimumTemperatureC
+                    ? "저온"
+                    : "고온";
+            progress = $"산물 속도 {thermal.ProductProgressMultiplier:P0}"
+                + $" · {cause}";
+        }
+        return $"온도 {thermal.TemperatureC:0.#}°C"
+            + $" · 적정 {thermal.ComfortMinimumTemperatureC:0.#}"
+            + $"–{thermal.ComfortMaximumTemperatureC:0.#}°C"
+            + $" · {progress}";
+    }
 
     private static int NextLimit(int current)
     {

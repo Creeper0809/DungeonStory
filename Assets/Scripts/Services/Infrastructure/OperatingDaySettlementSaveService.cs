@@ -21,6 +21,8 @@ public sealed class DungeonOperatingDaySettlementSaveData
     public int totalVisits;
     public int restockFailureCount;
     public List<DungeonStringIntSaveEntry> facilityRevenue = new List<DungeonStringIntSaveEntry>();
+    public List<DungeonOperatingDayFacilityDetailSaveData> facilityDetails =
+        new List<DungeonOperatingDayFacilityDetailSaveData>();
     public List<DungeonStringIntSaveEntry> speciesVisits = new List<DungeonStringIntSaveEntry>();
     public List<DungeonStockAmountSaveData> consumedStock = new List<DungeonStockAmountSaveData>();
     public List<float> visitorMoodSamples = new List<float>();
@@ -38,6 +40,19 @@ public sealed class DungeonStockAmountSaveData
 {
     public StockCategory category;
     public int amount;
+}
+
+[Serializable]
+public sealed class DungeonOperatingDayFacilityDetailSaveData
+{
+    public string facilityId = string.Empty;
+    public string facilityName = string.Empty;
+    public int revenue;
+    public int visitCount;
+    public int operatingCost;
+    public List<DungeonStockAmountSaveData> consumedStock =
+        new List<DungeonStockAmountSaveData>();
+    public List<float> visitorMoodSamples = new List<float>();
 }
 
 [Serializable]
@@ -97,10 +112,13 @@ public sealed class DungeonOperatingDayReportSaveData
     public int previousDebt;
     public int paidOperatingCost;
     public int unpaidOperatingCost;
+    public int terminatedContractCost;
     public int closingBalance;
     public int consecutiveShortfallDays;
     public int restockFailureCount;
     public List<DungeonStringIntSaveEntry> facilityRevenues = new List<DungeonStringIntSaveEntry>();
+    public List<DungeonOperatingDayFacilityDetailSaveData> facilityDetails =
+        new List<DungeonOperatingDayFacilityDetailSaveData>();
     public List<DungeonStringIntSaveEntry> speciesVisits = new List<DungeonStringIntSaveEntry>();
     public List<string> incidents = new List<string>();
     public List<string> damagedFacilities = new List<string>();
@@ -119,6 +137,29 @@ public sealed class DungeonOperatingDayReportSaveData
     public List<DungeonStockDeliveryOfferSaveData> refreshedDailyShopOffers = new List<DungeonStockDeliveryOfferSaveData>();
     public List<DungeonFacilityShopOfferSummarySaveData> refreshedFacilityShopOffers =
         new List<DungeonFacilityShopOfferSummarySaveData>();
+    public List<DungeonEmploymentSettlementLineSaveData> employmentSettlements =
+        new List<DungeonEmploymentSettlementLineSaveData>();
+}
+
+[Serializable]
+public sealed class DungeonEmploymentSettlementLineSaveData
+{
+    public int day;
+    public string characterId = string.Empty;
+    public OperatingDayEmploymentContractKind contractKind;
+    public int due;
+    public int paid;
+    public int unpaidDebtBefore;
+    public int unpaidDebtAfter;
+    public bool moodPenaltyApplied;
+    public bool contractEnded;
+    public bool departureAttempted;
+    public bool departureStarted;
+    public bool departurePending;
+    public string departureFailureReason = string.Empty;
+    public string financeSourceId = string.Empty;
+    public string financeTransactionId = string.Empty;
+    public bool financeSucceeded;
 }
 
 internal static class OperatingDaySettlementSaveValidation
@@ -159,6 +200,16 @@ internal static class OperatingDaySettlementSaveValidation
             payload.facilityRevenue,
             "facility revenue",
             report);
+        ValidateFacilityDetails(
+            payload.facilityDetails,
+            "current facility detail",
+            payload.totalRevenue,
+            payload.totalVisits,
+            expectedOperatingCost: 0,
+            expectedRevenueByName: payload.facilityRevenue,
+            expectedStock: payload.consumedStock,
+            expectedMoodSamples: payload.visitorMoodSamples,
+            report: report);
         ValidateStringIntEntries(
             payload.speciesVisits,
             "species visits",
@@ -243,6 +294,10 @@ internal static class OperatingDaySettlementSaveValidation
         ValidateNonNegative(saved.previousDebt, $"{prefix} previous debt", report);
         ValidateNonNegative(saved.paidOperatingCost, $"{prefix} paid cost", report);
         ValidateNonNegative(saved.unpaidOperatingCost, $"{prefix} unpaid cost", report);
+        ValidateNonNegative(
+            saved.terminatedContractCost,
+            $"{prefix} terminated contract cost",
+            report);
         ValidateNonNegative(saved.closingBalance, $"{prefix} closing balance", report);
         ValidateNonNegative(
             saved.consecutiveShortfallDays,
@@ -261,6 +316,21 @@ internal static class OperatingDaySettlementSaveValidation
         }
 
         ValidateStringIntEntries(saved.facilityRevenues, $"{prefix} facility revenue", report);
+        ValidateFacilityDetails(
+            saved.facilityDetails,
+            $"{prefix} facility detail",
+            saved.totalRevenue,
+            saved.totalVisits,
+            saved.maintenanceCost,
+            saved.facilityRevenues,
+            saved.stockConsumed,
+            expectedMoodSamples: null,
+            report: report);
+        ValidateFacilitySatisfaction(
+            saved.facilityDetails,
+            saved.averageSatisfaction,
+            prefix,
+            report);
         ValidateStringIntEntries(saved.speciesVisits, $"{prefix} species visits", report);
         ValidateTextList(saved.incidents, $"{prefix} incidents", report);
         ValidateTextList(saved.damagedFacilities, $"{prefix} damaged facilities", report);
@@ -273,6 +343,104 @@ internal static class OperatingDaySettlementSaveValidation
         ValidateSupplyResults(saved.stockSupplyResults, $"{prefix} stock supply", report);
         ValidateDeliveryOffers(saved.refreshedDailyShopOffers, prefix, report);
         ValidateFacilityOffers(saved.refreshedFacilityShopOffers, prefix, report);
+        ValidateEmploymentSettlements(saved, prefix, report);
+    }
+
+    private static void ValidateEmploymentSettlements(
+        DungeonOperatingDayReportSaveData saved,
+        string prefix,
+        DungeonGameRestoreReport report)
+    {
+        if (saved.employmentSettlements == null)
+        {
+            report.AddError($"{prefix} employment settlements are missing.");
+            return;
+        }
+
+        HashSet<string> characters = new HashSet<string>(StringComparer.Ordinal);
+        int due = 0;
+        int paid = 0;
+        int debt = 0;
+        int terminated = 0;
+        for (int index = 0; index < saved.employmentSettlements.Count; index++)
+        {
+            DungeonEmploymentSettlementLineSaveData line =
+                saved.employmentSettlements[index];
+            string label = $"{prefix} employment settlement {index}";
+            if (line == null
+                || line.day != saved.day
+                || string.IsNullOrWhiteSpace(line.characterId)
+                || !string.Equals(
+                    line.characterId,
+                    line.characterId.Trim(),
+                    StringComparison.Ordinal)
+                || !characters.Add(line.characterId)
+                || !Enum.IsDefined(
+                    typeof(OperatingDayEmploymentContractKind),
+                    line.contractKind)
+                || line.due < 0
+                || line.paid < 0
+                || line.paid > line.due
+                || line.unpaidDebtBefore < 0
+                || line.unpaidDebtAfter < 0
+                || line.departureStarted && line.departurePending
+                || line.departurePending
+                    && string.IsNullOrWhiteSpace(
+                        line.departureFailureReason)
+                || !line.departurePending
+                    && !string.IsNullOrEmpty(
+                        line.departureFailureReason)
+                || (line.due > 0 || line.contractEnded)
+                    && (string.IsNullOrWhiteSpace(line.financeSourceId)
+                        || string.IsNullOrWhiteSpace(
+                            line.financeTransactionId))
+                || line.contractKind
+                    == OperatingDayEmploymentContractKind.Employee
+                    && (line.contractEnded
+                        || line.departureAttempted
+                        || line.departureStarted
+                        || line.departurePending)
+                || line.contractKind
+                    == OperatingDayEmploymentContractKind.Mercenary
+                    && (line.unpaidDebtBefore != 0
+                        || line.unpaidDebtAfter != 0
+                        || line.moodPenaltyApplied)
+                || line.contractEnded
+                    && (!line.departureAttempted
+                        || line.departureStarted == line.departurePending)
+                || !line.contractEnded
+                    && (line.departureAttempted
+                        || line.departureStarted
+                        || line.departurePending)
+                || line.due > 0
+                    && line.financeSucceeded != (line.paid == line.due))
+            {
+                report.AddError($"{label} is invalid or duplicated.");
+                continue;
+            }
+
+            due = checked(due + line.due);
+            paid = checked(paid + line.paid);
+            if (line.contractKind
+                == OperatingDayEmploymentContractKind.Employee)
+            {
+                debt = checked(debt + line.unpaidDebtAfter);
+            }
+            if (line.contractEnded)
+            {
+                terminated = checked(terminated + line.due - line.paid);
+            }
+        }
+
+        if (due != saved.payrollCost + saved.previousDebt
+            || paid + debt + terminated != due
+            || debt != saved.unpaidOperatingCost
+            || terminated != saved.terminatedContractCost
+            || paid > saved.paidOperatingCost)
+        {
+            report.AddError(
+                $"{prefix} employment settlement totals do not match the report.");
+        }
     }
 
     private static void ValidateStringIntEntries(
@@ -468,6 +636,157 @@ internal static class OperatingDaySettlementSaveValidation
         }
     }
 
+    private static void ValidateFacilityDetails(
+        IReadOnlyList<DungeonOperatingDayFacilityDetailSaveData> entries,
+        string label,
+        int expectedRevenue,
+        int expectedVisits,
+        int expectedOperatingCost,
+        IReadOnlyList<DungeonStringIntSaveEntry> expectedRevenueByName,
+        IReadOnlyList<DungeonStockAmountSaveData> expectedStock,
+        IReadOnlyList<float> expectedMoodSamples,
+        DungeonGameRestoreReport report)
+    {
+        if (entries == null)
+        {
+            report.AddError($"{label} entries are missing.");
+            return;
+        }
+
+        HashSet<string> ids = new HashSet<string>(StringComparer.Ordinal);
+        for (int index = 0; index < entries.Count; index++)
+        {
+            DungeonOperatingDayFacilityDetailSaveData entry = entries[index];
+            if (entry == null
+                || string.IsNullOrWhiteSpace(entry.facilityId)
+                || string.IsNullOrWhiteSpace(entry.facilityName)
+                || entry.revenue < 0
+                || entry.visitCount < 0
+                || entry.operatingCost < 0
+                || !ids.Add(entry.facilityId))
+            {
+                report.AddError($"{label} entry {index} is invalid or duplicate.");
+                continue;
+            }
+            ValidateStockAmounts(
+                entry.consumedStock,
+                $"{label} entry {index} stock",
+                report);
+            if (entry.visitorMoodSamples == null)
+            {
+                report.AddError($"{label} entry {index} mood samples are missing.");
+                continue;
+            }
+            for (int moodIndex = 0;
+                 moodIndex < entry.visitorMoodSamples.Count;
+                 moodIndex++)
+            {
+                float mood = entry.visitorMoodSamples[moodIndex];
+                if (!IsFinite(mood) || mood < 0f || mood > 100f)
+                {
+                    report.AddError(
+                        $"{label} entry {index} mood sample {moodIndex} is invalid.");
+                }
+            }
+        }
+
+        if (entries.Any(entry => entry == null
+                || entry.consumedStock == null
+                || entry.visitorMoodSamples == null
+                || entry.consumedStock.Any(stock => stock == null)))
+        {
+            return;
+        }
+        if (entries.Sum(entry => entry.revenue) != expectedRevenue
+            || entries.Sum(entry => entry.visitCount) != expectedVisits
+            || entries.Sum(entry => entry.operatingCost) != expectedOperatingCost)
+        {
+            report.AddError($"{label} totals do not match the operating-day totals.");
+        }
+
+        Dictionary<string, int> projectedRevenue = entries
+            .Where(entry => entry.revenue > 0)
+            .GroupBy(entry => entry.facilityName, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Sum(entry => entry.revenue),
+                StringComparer.Ordinal);
+        Dictionary<string, int> expectedRevenueMap = expectedRevenueByName?
+            .Where(entry => entry != null
+                && !string.IsNullOrWhiteSpace(entry.key))
+            .GroupBy(entry => entry.key, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Last().value,
+                StringComparer.Ordinal)
+            ?? new Dictionary<string, int>(StringComparer.Ordinal);
+        if (!DictionaryEquals(projectedRevenue, expectedRevenueMap))
+        {
+            report.AddError($"{label} revenue projection does not match.");
+        }
+
+        Dictionary<int, int> projectedStock = entries
+            .SelectMany(entry => entry.consumedStock)
+            .GroupBy(entry => (int)entry.category)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Sum(entry => entry.amount));
+        Dictionary<int, int> expectedStockMap = expectedStock?
+            .Where(entry => entry != null)
+            .GroupBy(entry => (int)entry.category)
+            .ToDictionary(group => group.Key, group => group.Last().amount)
+            ?? new Dictionary<int, int>();
+        if (!DictionaryEquals(projectedStock, expectedStockMap))
+        {
+            report.AddError($"{label} stock projection does not match.");
+        }
+
+        if (expectedMoodSamples != null)
+        {
+            float[] projectedMood = entries
+                .SelectMany(entry => entry.visitorMoodSamples)
+                .OrderBy(value => value)
+                .ToArray();
+            float[] expectedMood = expectedMoodSamples
+                .OrderBy(value => value)
+                .ToArray();
+            if (projectedMood.Length != expectedMood.Length
+                || projectedMood.Where((value, index) =>
+                    Math.Abs(value - expectedMood[index]) > 0.0001f).Any())
+            {
+                report.AddError($"{label} mood projection does not match.");
+            }
+        }
+    }
+
+    private static void ValidateFacilitySatisfaction(
+        IReadOnlyList<DungeonOperatingDayFacilityDetailSaveData> entries,
+        float expectedAverage,
+        string prefix,
+        DungeonGameRestoreReport report)
+    {
+        if (entries == null || entries.Any(entry => entry == null))
+        {
+            return;
+        }
+        float[] samples = entries
+            .SelectMany(entry => entry.visitorMoodSamples
+                ?? Enumerable.Empty<float>())
+            .ToArray();
+        float actual = samples.Length == 0 ? 0f : samples.Average();
+        if (Math.Abs(actual - expectedAverage) > 0.0001f)
+        {
+            report.AddError($"{prefix} facility satisfaction does not match.");
+        }
+    }
+
+    private static bool DictionaryEquals<TKey>(
+        IReadOnlyDictionary<TKey, int> left,
+        IReadOnlyDictionary<TKey, int> right)
+    {
+        return left.Count == right.Count
+            && left.All(pair => right.TryGetValue(pair.Key, out int value)
+                && value == pair.Value);
+    }
+
     private static bool IsFinite(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value);
 }
@@ -496,6 +815,9 @@ public sealed class OperatingDaySettlementSaveService : IOperatingDaySettlementS
             totalVisits = state.TotalVisits,
             restockFailureCount = state.RestockFailureCount,
             facilityRevenue = ToStringIntEntries(state.FacilityRevenue),
+            facilityDetails = state.FacilityDetails
+                .Select(ToSaveData)
+                .ToList(),
             speciesVisits = ToStringIntEntries(state.SpeciesVisits),
             consumedStock = state.ConsumedStock
                 .OrderBy(pair => pair.Key)
@@ -526,7 +848,7 @@ public sealed class OperatingDaySettlementSaveService : IOperatingDaySettlementS
             source.totalRevenue,
             source.totalVisits,
             source.restockFailureCount,
-            ToStringIntDictionary(source.facilityRevenue),
+            source.facilityDetails.Select(FromSaveData).ToList(),
             ToStringIntDictionary(source.speciesVisits),
             source.consumedStock
                 .GroupBy(entry => entry.category)
@@ -613,11 +935,15 @@ public sealed class OperatingDaySettlementSaveService : IOperatingDaySettlementS
             previousDebt = source.previousDebt,
             paidOperatingCost = source.paidOperatingCost,
             unpaidOperatingCost = source.unpaidOperatingCost,
+            terminatedContractCost = source.terminatedContractCost,
             closingBalance = source.closingBalance,
             consecutiveShortfallDays = source.consecutiveShortfallDays,
             restockFailureCount = source.restockFailureCount,
             facilityRevenues = source.facilityRevenues.Select(item =>
                 new DungeonStringIntSaveEntry { key = item.facilityName, value = item.revenue }).ToList(),
+            facilityDetails = source.facilityDetails
+                .Select(ToSaveData)
+                .ToList(),
             speciesVisits = source.speciesVisits.Select(item =>
                 new DungeonStringIntSaveEntry { key = item.speciesTag, value = item.visitCount }).ToList(),
             incidents = source.incidents.ToList(),
@@ -662,7 +988,10 @@ public sealed class OperatingDaySettlementSaveService : IOperatingDaySettlementS
                     cost = offer.cost,
                     star = offer.star,
                     basicPurchase = offer.basicPurchase
-                }).ToList()
+                }).ToList(),
+            employmentSettlements = source.employmentSettlements
+                .Select(ToSaveData)
+                .ToList()
         };
     }
 
@@ -726,7 +1055,93 @@ public sealed class OperatingDaySettlementSaveService : IOperatingDaySettlementS
             paidOperatingCost: source.paidOperatingCost,
             unpaidOperatingCost: source.unpaidOperatingCost,
             closingBalance: source.closingBalance,
-            consecutiveShortfallDays: source.consecutiveShortfallDays);
+            consecutiveShortfallDays: source.consecutiveShortfallDays,
+            facilityDetails: source.facilityDetails
+                .Select(FromSaveData)
+                .ToList(),
+            terminatedContractCost: source.terminatedContractCost,
+            employmentSettlements: source.employmentSettlements
+                .Select(FromSaveData)
+                .ToList());
+    }
+
+    private static DungeonEmploymentSettlementLineSaveData ToSaveData(
+        OperatingDayEmploymentSettlementLine source) => new()
+    {
+        day = source.day,
+        characterId = source.characterId,
+        contractKind = source.contractKind,
+        due = source.due,
+        paid = source.paid,
+        unpaidDebtBefore = source.unpaidDebtBefore,
+        unpaidDebtAfter = source.unpaidDebtAfter,
+        moodPenaltyApplied = source.moodPenaltyApplied,
+        contractEnded = source.contractEnded,
+        departureAttempted = source.departureAttempted,
+        departureStarted = source.departureStarted,
+        departurePending = source.departurePending,
+        departureFailureReason = source.departureFailureReason,
+        financeSourceId = source.financeSourceId,
+        financeTransactionId = source.financeTransactionId,
+        financeSucceeded = source.financeSucceeded
+    };
+
+    private static OperatingDayEmploymentSettlementLine FromSaveData(
+        DungeonEmploymentSettlementLineSaveData source) => new()
+    {
+        day = source.day,
+        characterId = source.characterId,
+        contractKind = source.contractKind,
+        due = source.due,
+        paid = source.paid,
+        unpaidDebtBefore = source.unpaidDebtBefore,
+        unpaidDebtAfter = source.unpaidDebtAfter,
+        moodPenaltyApplied = source.moodPenaltyApplied,
+        contractEnded = source.contractEnded,
+        departureAttempted = source.departureAttempted,
+        departureStarted = source.departureStarted,
+        departurePending = source.departurePending,
+        departureFailureReason = source.departureFailureReason,
+        financeSourceId = source.financeSourceId,
+        financeTransactionId = source.financeTransactionId,
+        financeSucceeded = source.financeSucceeded
+    };
+
+    private static DungeonOperatingDayFacilityDetailSaveData ToSaveData(
+        OperatingDayFacilityLedgerEntry source)
+    {
+        return new DungeonOperatingDayFacilityDetailSaveData
+        {
+            facilityId = source.FacilityId,
+            facilityName = source.FacilityName,
+            revenue = source.Revenue,
+            visitCount = source.VisitCount,
+            operatingCost = source.OperatingCost,
+            consumedStock = source.ConsumedStock
+                .OrderBy(pair => pair.Key)
+                .Select(pair => new DungeonStockAmountSaveData
+                {
+                    category = (StockCategory)pair.Key,
+                    amount = pair.Value
+                })
+                .ToList(),
+            visitorMoodSamples = source.VisitorMoodSamples.ToList()
+        };
+    }
+
+    private static OperatingDayFacilityLedgerEntry FromSaveData(
+        DungeonOperatingDayFacilityDetailSaveData source)
+    {
+        return new OperatingDayFacilityLedgerEntry(
+            source.facilityId,
+            source.facilityName,
+            source.revenue,
+            source.visitCount,
+            source.operatingCost,
+            source.consumedStock.ToDictionary(
+                entry => (int)entry.category,
+                entry => entry.amount),
+            source.visitorMoodSamples);
     }
 }
 

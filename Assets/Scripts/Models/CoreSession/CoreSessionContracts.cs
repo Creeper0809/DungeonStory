@@ -251,6 +251,7 @@ public interface IDungeonRunFlowRuntime
 
 public interface IDungeonRunFlowRestorePublisher
 {
+    OwnerRunCompletionPendingData CapturePendingCompletion();
     void PublishRestoreState(DungeonRunFlowAggregateState candidate);
 }
 

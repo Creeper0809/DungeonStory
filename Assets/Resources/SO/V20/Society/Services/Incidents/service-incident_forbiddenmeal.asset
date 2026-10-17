@@ -19,6 +19,8 @@ MonoBehaviour:
   authoringRevision: 1
   sourceNote: V20 hand-authored faction/service manifest.
   kind: 4
+  riskTier: 1
+  riskReason: 작성된 대응에 돈 -60 또는 세력 원한 5가 있다.
   triggerRequirements:
     items: []
     facilities: []

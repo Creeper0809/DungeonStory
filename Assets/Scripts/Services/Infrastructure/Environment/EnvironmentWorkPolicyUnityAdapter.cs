@@ -14,6 +14,7 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
     private readonly IEnvironmentalFieldQuery field;
     private readonly ICharacterEnvironmentStatusQuery status;
     private readonly ICharacterEnvironmentProtectionResolver protection;
+    private readonly IEnvironmentalWorkwearQuery workwearQuery;
     private readonly IEnvironmentalWorkwearCommand workwear;
     private readonly ICharacterSpeciesEnvironmentCatalog speciesEnvironment;
     private readonly ICharacterPerformanceQuery performance;
@@ -22,6 +23,7 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
         IEnvironmentalFieldQuery field,
         ICharacterEnvironmentStatusQuery status,
         ICharacterEnvironmentProtectionResolver protection,
+        IEnvironmentalWorkwearQuery workwearQuery,
         IEnvironmentalWorkwearCommand workwear,
         ICharacterSpeciesEnvironmentCatalog speciesEnvironment,
         ICharacterPerformanceQuery performance)
@@ -30,6 +32,8 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
         this.status = status ?? throw new ArgumentNullException(nameof(status));
         this.protection = protection
             ?? throw new ArgumentNullException(nameof(protection));
+        this.workwearQuery = workwearQuery
+            ?? throw new ArgumentNullException(nameof(workwearQuery));
         this.workwear = workwear
             ?? throw new ArgumentNullException(nameof(workwear));
         this.speciesEnvironment = speciesEnvironment
@@ -62,7 +66,48 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
         EnvironmentalWorkKind workKind,
         bool forced)
     {
-        if (actor == null || !field.TryGetCell(destination, out _))
+        return AssessCore(
+            actor,
+            destination,
+            route,
+            expectedSeconds,
+            workKind,
+            forced,
+            allowWorkwearChange: false);
+    }
+
+    [GameplayEntryPoint("WorkTaskExecutor confirmed approach/start apparel commit")]
+    public WorkEnvironmentAssessment PrepareActiveWork(
+        CharacterActor actor,
+        Vector2Int destination,
+        IReadOnlyList<GridMoveStep> route,
+        float expectedSeconds,
+        EnvironmentalWorkKind workKind,
+        bool forced)
+    {
+        return AssessCore(
+            actor,
+            destination,
+            route,
+            expectedSeconds,
+            workKind,
+            forced,
+            allowWorkwearChange: true);
+    }
+
+    private WorkEnvironmentAssessment AssessCore(
+        CharacterActor actor,
+        Vector2Int destination,
+        IReadOnlyList<GridMoveStep> route,
+        float expectedSeconds,
+        EnvironmentalWorkKind workKind,
+        bool forced,
+        bool allowWorkwearChange)
+    {
+        if (actor == null
+            || !field.TryGetCell(
+                destination,
+                out EnvironmentalCellSnapshot destinationEnvironment))
         {
             return new WorkEnvironmentAssessment(
                 false,
@@ -78,7 +123,11 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
         bool exception = DungeonStory.Environment.EnvironmentWorkRules
             .IsSafetyException(
                 (DungeonStory.Environment.EnvironmentalWorkKind)workKind);
-        UpdateColdCooldown(current);
+        bool coldCooldownActive = ResolveColdCooldown(current);
+        if (allowWorkwearChange && current != null)
+        {
+            current.coldWorkCooldownActive = coldCooldownActive;
+        }
         EnvironmentExposureProjection projection = Project(
             actor,
             destination,
@@ -87,6 +136,8 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
             workKind,
             protectionApplied: false,
             protectionFailure: DomainFailure.None);
+        DungeonStory.Environment.LightAdaptationProjection lightAdaptation =
+            ResolveLightAdaptation(actor, destinationEnvironment.LightLevel);
 
         DomainFailure protectionFailure = DomainFailure.None;
         bool protectionApplied = false;
@@ -95,10 +146,15 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
             && !exception
             && projection.Cold.WorkEnd >= 25f)
         {
-            protectionApplied = workwear.TryAutoEquipForCold(
-                actor,
-                destination,
-                out protectionFailure);
+            protectionApplied = allowWorkwearChange
+                ? workwear.TryAutoEquipForCold(
+                    actor,
+                    destination,
+                    out protectionFailure)
+                : workwearQuery.CanAutoEquipForCold(
+                    actor,
+                    destination,
+                    out protectionFailure);
             if (protectionApplied)
             {
                 projection = Project(
@@ -125,7 +181,7 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
 
         bool coldCooldownBlocks = !forced
             && !exception
-            && current?.coldWorkCooldownActive == true
+            && coldCooldownActive
             && projection.Cold.RouteHighestRate > 0f;
         DungeonStory.Environment.EnvironmentWorkDecision decision =
             DungeonStory.Environment.EnvironmentWorkRules.Decide(
@@ -134,7 +190,7 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
                     projection.HasLethalChannel,
                     projection.NeedsProtection,
                     protectionApplied,
-                    current?.coldWorkCooldownActive == true,
+                    coldCooldownActive,
                     projection.Cold.WorkEnd,
                     projection.Cold.RouteHighestRate),
                 (DungeonStory.Environment.EnvironmentalWorkKind)workKind,
@@ -156,7 +212,10 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
                     Mathf.Max(
                         projection.Air.WorkEnd,
                         projection.Visual.WorkEnd))),
-            decision.WorkSpeedMultiplier,
+            ResolveProjectedWorkSpeed(
+                projection,
+                workKind,
+                lightAdaptation.WorkSpeedMultiplier),
             failure,
             projection);
     }
@@ -168,13 +227,14 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
         EnvironmentalWorkKind workKind,
         bool forced)
     {
-        return AssessStart(
+        return AssessCore(
             actor,
             currentPosition,
             Array.Empty<GridMoveStep>(),
             Mathf.Max(0f, remainingSeconds),
             workKind,
-            forced);
+            forced,
+            allowWorkwearChange: true);
     }
 
     public bool TryFindEvacuationCell(
@@ -279,6 +339,8 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
                 .GetRequiredThermalProfile(
                     new CharacterSpeciesId(actor.SpeciesTag))
                 .Apply(resolvedProtection);
+        DungeonStory.Environment.LightAdaptationProjection lightAdaptation =
+            ResolveLightAdaptation(actor, environment.LightLevel);
         CalculateTemperatureRates(
             environment.TemperatureC,
             thermal,
@@ -304,11 +366,13 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
                 * Mathf.Max(0f, expectedSeconds),
             0f,
             100f);
-        EnvironmentalExposureBand projectedBand =
+        EnvironmentalExposureBand physiologicalProjectedBand =
             EnvironmentalThresholdRules.ResolveBand(
                 projected,
                 current?.physiologicalBand
                     ?? EnvironmentalExposureBand.Stable);
+        EnvironmentalExposureBand projectedBand =
+            physiologicalProjectedBand;
         bool precision = workKind is EnvironmentalWorkKind.Precision
             or EnvironmentalWorkKind.Surgery
             or EnvironmentalWorkKind.EmergencySurgery;
@@ -319,9 +383,11 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
         {
             projectedVisual = Mathf.Clamp(
                 (current?.visualStrain ?? 0f)
-                + DungeonStory.Environment.CharacterEnvironmentRules
-                    .CalculateVisualStrainRate(
-                    environment.LightLevel)
+                + (lightAdaptation.Enabled
+                    ? 0f
+                    : DungeonStory.Environment.CharacterEnvironmentRules
+                        .CalculateVisualStrainRate(
+                            environment.LightLevel))
                     * Mathf.Max(0f, expectedSeconds),
                 0f,
                 100f);
@@ -348,9 +414,13 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
                 false,
                 false,
                 current.coldExposure,
-                ResolveLegacyWorkSpeed(
+                ResolveLegacyLightAdaptedWorkSpeed(
                     current.physiologicalBand,
-                    workKind),
+                    (EnvironmentalExposureBand)Mathf.Max(
+                        (int)current.physiologicalBand,
+                        (int)current.visualBand),
+                    workKind,
+                    lightAdaptation.WorkSpeedMultiplier),
                 new DomainFailure(
                     FailureCode.EnvironmentColdWorkCooldownActive,
                     current.coldExposure.ToString(
@@ -401,12 +471,13 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
                         * Mathf.Max(0f, expectedSeconds),
                     0f,
                     100f);
-                projectedBand = EnvironmentalThresholdRules.ResolveBand(
+                physiologicalProjectedBand =
+                    EnvironmentalThresholdRules.ResolveBand(
                     projected,
                     current?.physiologicalBand
                         ?? EnvironmentalExposureBand.Stable);
                 projectedBand = (EnvironmentalExposureBand)Mathf.Max(
-                    (int)projectedBand,
+                    (int)physiologicalProjectedBand,
                     (int)projectedVisualBand);
                 projectedThermal = Mathf.Clamp(
                     Mathf.Max(
@@ -426,9 +497,11 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
                         canStart,
                         false,
                         projected,
-                        ResolveLegacyWorkSpeed(
+                        ResolveLegacyLightAdaptedWorkSpeed(
+                            physiologicalProjectedBand,
                             projectedBand,
-                            workKind),
+                            workKind,
+                            lightAdaptation.WorkSpeedMultiplier),
                         canStart
                             ? DomainFailure.None
                             : new DomainFailure(
@@ -444,7 +517,11 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
                 false,
                 true,
                 projected,
-                ResolveLegacyWorkSpeed(projectedBand, workKind),
+                ResolveLegacyLightAdaptedWorkSpeed(
+                    physiologicalProjectedBand,
+                    projectedBand,
+                    workKind,
+                    lightAdaptation.WorkSpeedMultiplier),
                 equipmentFailure);
         }
 
@@ -467,7 +544,11 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
             canStart,
             needsProtection,
             projected,
-            ResolveLegacyWorkSpeed(projectedBand, workKind),
+            ResolveLegacyLightAdaptedWorkSpeed(
+                physiologicalProjectedBand,
+                projectedBand,
+                workKind,
+                lightAdaptation.WorkSpeedMultiplier),
             canStart
                 ? DomainFailure.None
                 : new DomainFailure(
@@ -710,6 +791,8 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
             .GetRequiredThermalProfile(
                 new CharacterSpeciesId(actor.SpeciesTag))
             .Apply(resolvedProtection);
+        DungeonStory.Environment.LightAdaptationProjection lightAdaptation =
+            ResolveLightAdaptation(actor, cell.LightLevel);
         CalculateTemperatureRates(
             cell.TemperatureC,
             thermal,
@@ -719,9 +802,10 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
             out bool lethalTemperature);
         airRate = DungeonStory.Environment.CharacterEnvironmentRules
             .CalculateAirExposureRate(cell.AirQuality);
-        visualRate = workKind is EnvironmentalWorkKind.Precision
-            or EnvironmentalWorkKind.Surgery
-            or EnvironmentalWorkKind.EmergencySurgery
+        visualRate = !lightAdaptation.Enabled
+            && (workKind is EnvironmentalWorkKind.Precision
+                or EnvironmentalWorkKind.Surgery
+                or EnvironmentalWorkKind.EmergencySurgery)
                 ? DungeonStory.Environment.CharacterEnvironmentRules
                     .CalculateVisualStrainRate(cell.LightLevel)
                 : 0f;
@@ -801,18 +885,56 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
         highestCell = position;
     }
 
-    private static void UpdateColdCooldown(
-        CharacterEnvironmentExposure current)
-    {
-        if (current == null)
-        {
-            return;
-        }
+    private static bool ResolveColdCooldown(
+        CharacterEnvironmentExposure current) =>
+        current != null
+        && DungeonStory.Environment.EnvironmentWorkRules.ResolveColdCooldown(
+            current.coldExposure,
+            current.coldWorkCooldownActive);
 
-        current.coldWorkCooldownActive =
-            DungeonStory.Environment.EnvironmentWorkRules.ResolveColdCooldown(
-                current.coldExposure,
-                current.coldWorkCooldownActive);
+    private DungeonStory.Environment.LightAdaptationProjection
+        ResolveLightAdaptation(CharacterActor actor, float actualLight)
+    {
+        SpeciesLightAdaptationProfile profile = speciesEnvironment
+            .GetRequiredLightAdaptationProfile(
+                new CharacterSpeciesId(actor?.SpeciesTag));
+        return DungeonStory.Environment.CharacterEnvironmentRules
+            .ResolveLightAdaptation(
+                profile.Enabled,
+                actualLight,
+                profile.ComfortableMinimum,
+                profile.ComfortableMaximum,
+                profile.Sensitivity);
+    }
+
+    private static float ResolveProjectedWorkSpeed(
+        EnvironmentExposureProjection projection,
+        EnvironmentalWorkKind workKind,
+        float lightAdaptationMultiplier)
+    {
+        EnvironmentalExposureBand physiologicalBand =
+            (EnvironmentalExposureBand)Mathf.Max(
+                (int)projection.Cold.EndBand,
+                Mathf.Max(
+                    (int)projection.Heat.EndBand,
+                    (int)projection.Air.EndBand));
+        bool precision = workKind is EnvironmentalWorkKind.Precision
+            or EnvironmentalWorkKind.Surgery
+            or EnvironmentalWorkKind.EmergencySurgery;
+        float physiological =
+            DungeonStory.Environment.EnvironmentWorkRules.ResolveWorkSpeed(
+                (DungeonStory.Environment.ExposureBand)physiologicalBand,
+                (DungeonStory.Environment.EnvironmentalWorkKind)workKind);
+        float combined =
+            DungeonStory.Environment.EnvironmentWorkRules.ResolveWorkSpeed(
+                (DungeonStory.Environment.ExposureBand)projection.WorstBand,
+                (DungeonStory.Environment.EnvironmentalWorkKind)workKind);
+        return DungeonStory.Environment.CharacterEnvironmentRules
+            .ResolveLightAdaptedWorkSpeed(
+                physiological,
+                combined,
+                lightAdaptationMultiplier,
+                precision);
     }
 
     private static DomainFailure BuildProjectionFailure(
@@ -890,6 +1012,23 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
             .ResolveLegacyWorkSpeed(
                 (DungeonStory.Environment.ExposureBand)band,
                 (DungeonStory.Environment.EnvironmentalWorkKind)workKind);
+    }
+
+    private static float ResolveLegacyLightAdaptedWorkSpeed(
+        EnvironmentalExposureBand physiologicalBand,
+        EnvironmentalExposureBand combinedBand,
+        EnvironmentalWorkKind workKind,
+        float lightAdaptationMultiplier)
+    {
+        bool precision = workKind is EnvironmentalWorkKind.Precision
+            or EnvironmentalWorkKind.Surgery
+            or EnvironmentalWorkKind.EmergencySurgery;
+        return DungeonStory.Environment.CharacterEnvironmentRules
+            .ResolveLightAdaptedWorkSpeed(
+                ResolveLegacyWorkSpeed(physiologicalBand, workKind),
+                ResolveLegacyWorkSpeed(combinedBand, workKind),
+                lightAdaptationMultiplier,
+                precision);
     }
 
 }

@@ -1,0 +1,15 @@
+{
+  "arguments": [
+    "C:\\Users\\vulpo\\AppData\\Local\\Microsoft\\WindowsApps\\unity.EXE",
+    "command",
+    "eval",
+    "--project-path",
+    "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory",
+    "--format",
+    "json",
+    "--detach",
+    "--code",
+    "var r = NarrativeMechanicCatalogExporter.Export(\n            new NarrativeMechanicCatalogUnityAssetSource(),\n            new NarrativeMechanicCatalogExportRequest(\"20260916-v27-character-skill-capability-preflight-r1\", false, new NarrativeMechanicCatalogTestEvidence(\"sha256:36231ec549f97b53c3d0a33cd31386d818efaa79e8e36bd00d3ffb264c00c185\", new NarrativeMechanicCatalogEvidenceGate[] { new NarrativeMechanicCatalogEvidenceGate(\"canonical-json-python-parity\",true,\"sha256:36231ec549f97b53c3d0a33cd31386d818efaa79e8e36bd00d3ffb264c00c185\",\"Artifacts/QA/NarrativeTrainingPreflight/20260916-v27-character-skill-capability-preflight-r1/canonical-json-python-parity.json\",\"sha256:27536df52eaab4dbbd5dc89d8ca3ef39b0b74f6f3a27ba7263febc8058575f82\",\"Actual execution; see hashed artifact and raw command records.\"),new NarrativeMechanicCatalogEvidenceGate(\"catalog-byte-determinism\",true,\"sha256:36231ec549f97b53c3d0a33cd31386d818efaa79e8e36bd00d3ffb264c00c185\",\"Artifacts/QA/NarrativeTrainingPreflight/20260916-v27-character-skill-capability-preflight-r1/catalog-byte-determinism.json\",\"sha256:1d1e110e06f93b23016ff73d5ec55ee9025952203c63a3dc945d3437ce70368b\",\"Actual execution; see hashed artifact and raw command records.\"),new NarrativeMechanicCatalogEvidenceGate(\"packet-parity\",true,\"sha256:36231ec549f97b53c3d0a33cd31386d818efaa79e8e36bd00d3ffb264c00c185\",\"Artifacts/QA/NarrativeTrainingPreflight/20260916-v27-character-skill-capability-preflight-r1/packet-parity.json\",\"sha256:62bec1ffa609cb4cf6d6f9180134bffcfea3f0932a90cb4662c31d6042c95933\",\"Actual execution; see hashed artifact and raw command records.\"),new NarrativeMechanicCatalogEvidenceGate(\"v25-focused-unity-regression\",true,\"sha256:36231ec549f97b53c3d0a33cd31386d818efaa79e8e36bd00d3ffb264c00c185\",\"Artifacts/QA/NarrativeTrainingPreflight/20260916-v27-character-skill-capability-preflight-r1/v25-focused-unity-regression.json\",\"sha256:029f64bf26f0226aa223b781fb7427bf84c76aad2a58e55b29b83b6af74585c2\",\"Actual execution; see hashed artifact and raw command records.\") })));\n            return new { directory = r.DirectoryPath, inputDigest = r.InputDigest,\n                catalogHash = r.CatalogHash, trainingEligible = r.TrainingEligible };"
+  ],
+  "cwd": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory"
+}

@@ -1,0 +1,17 @@
+schemaVersion=1
+sourceBranch=codex/wim-implementation
+sourceBaseline=c03d2e0a1c68067de48840f3851b388483966a6e
+candidateExport=Artifacts/Exports/NarrativeMechanicCatalog/20260914-v25-unity-cross-workspace-candidate-v4
+candidateCatalogHash=sha256:e36019d4cd95cc343091cfc918310d2113714c008a78bf62c5a3387746fe63a9
+candidateInputDigest=sha256:ce7d9e4eae37ca834777320af783566e0970549e9db4367bd79bea61ee8bfe2b
+unityCompile=PASS;recompileStatus=completed;failed=false;errors=0
+focusedUnityRegression=PASS;v25NarrativeInference=PASS;characterProgression=True;offenseReward=True
+focusedUnityConsole=PASS;errors=0;warnings=0
+packetParity=PASS;profiles=CharacterSkill:2,FacilityEvolution:2,EquipmentChoice:2,EvolutionHistory:2,AcquiredTrait:6,Persona:2
+narrativeAiImport=PASS;loader=DungeonStoryNarrativeAI/src/dungeon_story_narrative_ai/mechanic_catalog.py:load_catalog;report=Artifacts/QA/v25-narrative-mechanic-cross-workspace-candidate-v4.json;reportHash=sha256:3d23f3972f27887bbe8541502a3bb926e20223e79be22b814ebfaf11bb093404
+manifestClosure=PASS;manifestFileCount=255;requiredProvenanceCount=156
+physicalItemPilePlayMode=PASS;reusedUnchangedRuntimeEvidence=true;rerunThisCorrection=false;errors=0;warnings=0;artifact=Artifacts/QA/physical-item-pile-playmode-report.txt;artifactHash=sha256:4feb41e912b90028c71771c9173f5754f2c26d37d808e576219e8533e5c8977d
+evidenceScope=Fresh Unity compilation, six-profile catalog/parity regression, character progression regression, full offense reward regression, current-source provenance hashing, and real NarrativeAI catalog import were executed after the correction. The stored-item UI PlayMode witness is reused because no runtime manifestation, custody, save, or UI production source changed in this correction.
+unityCompileCommand=unity --format json command recompile --project-path F:/01_Programming/01_Project/02_Unity/DungeonStory --timeout 180
+focusedUnityCommand=V25NarrativeInferenceDebugScenarios.RunAll(); CharacterProgressionDebugScenarios.RunAll(true); OffenseRewardDebugScenarios.RunAll(true)
+narrativeAiVerifierCommand=python tools/Documentation/verify_v25_narrative_mechanic_handoff.py --export-dir Artifacts/Exports/NarrativeMechanicCatalog/20260914-v25-unity-cross-workspace-candidate-v4 --narrative-ai-root F:/01_Programming/01_Project/02_Unity/DungeonStoryNarrativeAI --report Artifacts/QA/v25-narrative-mechanic-cross-workspace-candidate-v4.json

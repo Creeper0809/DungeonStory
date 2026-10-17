@@ -234,21 +234,6 @@ public class FacilityEvolutionRecordComponent : MonoBehaviour, IFacilityEvolutio
     }
 }
 
-public sealed class ComponentFacilityEvolutionRecordProvider : IFacilityEvolutionRecordProvider
-{
-    public FacilityEvolutionRecord GetRecord(BuildableObject facility)
-    {
-        if (facility == null)
-        {
-            return new FacilityEvolutionRecord();
-        }
-
-        FacilityEvolutionStateComponent state =
-            facility.GetComponent<FacilityEvolutionStateComponent>();
-        return state != null ? state.GetRecord() : new FacilityEvolutionRecord();
-    }
-}
-
 public sealed class FacilityEvolutionRecordComponentService : IFacilityEvolutionRecordComponentService
 {
     private readonly IFacilityEvolutionRecordComponentFactory recordComponentFactory;

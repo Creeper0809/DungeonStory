@@ -1,0 +1,1 @@
+G5_TREATMENT_PARITY=PASS; medical29(loop1 separated from fuel); consumer3; identity1/interfaces2/literals3; retained=62; public=41; ctor/DTO/root access/work-map reset/health-stock-session-fuel phases preserved; Unity=NOT_RUN

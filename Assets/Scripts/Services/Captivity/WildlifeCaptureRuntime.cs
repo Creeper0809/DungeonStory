@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Foundation.Facts;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
@@ -44,7 +45,8 @@ public sealed class WildlifeCaptureCareContext
         IWildlifeSpeciesCatalogProvider speciesCatalog,
         IWasteFeedCommand wasteProcessing,
         IWasteFeedCandidateQuery wasteFeedCandidates,
-        IPhysicalItemBatchDispositionService batchDispositions)
+        IPhysicalItemBatchDispositionService batchDispositions,
+        IWildlifeHaulItemRuntime wildlifeHaulItems)
     {
         ItemRuntime = itemRuntime
             ?? throw new ArgumentNullException(nameof(itemRuntime));
@@ -59,6 +61,8 @@ public sealed class WildlifeCaptureCareContext
             ?? throw new ArgumentNullException(nameof(wasteFeedCandidates));
         BatchDispositions = batchDispositions
             ?? throw new ArgumentNullException(nameof(batchDispositions));
+        WildlifeHaulItems = wildlifeHaulItems
+            ?? throw new ArgumentNullException(nameof(wildlifeHaulItems));
     }
 
     public IWorldItemStackRuntime ItemRuntime { get; }
@@ -68,16 +72,23 @@ public sealed class WildlifeCaptureCareContext
     public IWasteFeedCommand WasteProcessing { get; }
     public IWasteFeedCandidateQuery WasteFeedCandidates { get; }
     public IPhysicalItemBatchDispositionService BatchDispositions { get; }
+    public IWildlifeHaulItemRuntime WildlifeHaulItems { get; }
 }
 
 public sealed class WildlifeCaptureSessionContext
 {
     public WildlifeCaptureSessionContext(
         IGameClock clock,
+        IGameCalendar calendar,
+        IDomainFactPublisher facts,
+        IDomainFactRecoveryPublisher factRecovery,
         IRandomStreamProvider randomStreamProvider,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         Clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        Calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        Facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        FactRecovery = factRecovery ?? throw new ArgumentNullException(nameof(factRecovery));
         RandomStreamProvider = randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider));
         AggregateRootStore = aggregateRootStore
@@ -85,6 +96,9 @@ public sealed class WildlifeCaptureSessionContext
     }
 
     public IGameClock Clock { get; }
+    public IGameCalendar Calendar { get; }
+    public IDomainFactPublisher Facts { get; }
+    public IDomainFactRecoveryPublisher FactRecovery { get; }
     public IRandomStreamProvider RandomStreamProvider { get; }
     public DungeonRuntimeAggregateRootStore AggregateRootStore { get; }
 }
@@ -92,10 +106,15 @@ public sealed class WildlifeCaptureSessionContext
 public sealed partial class WildlifeCaptureRuntime :
     IWildlifeCaptureRuntime,
     IWildlifeCaptureTransportRuntime,
+    IWildlifeCompanionRoleQuery,
+    IWildlifeCompanionRoleCommand,
+    IWildlifeCompanionAffiliationQuery,
+    IWildlifeCompanionRoleStateCommand,
+    IWildlifeHaulRoleQuery,
+    IWildlifeHaulRoleCommand,
+    IWildlifeHaulRoleStateCommand,
     ITickable
 {
-    private static readonly IReadOnlyDictionary<StockCategory, int> WaterCost =
-        new Dictionary<StockCategory, int> { [StockCategory.Water] = 1 };
 
     private readonly ICharacterAiWorldRegistry world;
     private readonly IRoomLayoutCache rooms;
@@ -103,19 +122,24 @@ public sealed partial class WildlifeCaptureRuntime :
     private readonly IGridPathSearchBroker pathSearchBroker;
     private readonly IDoorAccessCommandService doorAccessCommands;
     private readonly IDoorAccessSubjectRegistry doorSubjects;
-    private readonly IWorldItemStackRuntime itemRuntime;
     private readonly IWorldFilthQuery filth;
     private readonly IResourceEconomyContentCatalog contentCatalog;
     private readonly IWildlifeSpeciesCatalogProvider speciesCatalog;
-    private readonly IWasteFeedCommand wasteProcessing;
-    private readonly IWasteFeedCandidateQuery wasteFeedCandidates;
-    private readonly IPhysicalItemBatchDispositionService batchDispositions;
+    private readonly IWildlifeHaulItemRuntime wildlifeHaulItems;
     private readonly IGameClock clock;
     private readonly IRandomStream random;
     private readonly DungeonRuntimeAggregateRootStore sessionAggregateRootStore;
     private readonly CapturedWildlifeStateSession stateSession;
+    private readonly CapturedWildlifeFeedingRuntime feeding;
+    private readonly IDomainFactPublisher facts;
+    private readonly IDomainFactRecoveryPublisher factRecovery;
+    private readonly IGameCalendar calendar;
+    private IWildlifeGameplayOutcomeOwner gameplayOutcomeOwner;
+    private WildlifeGameplayOutcomeRuntime gameplayOutcomes;
     private readonly Dictionary<string, Transform> carriedParents =
         new Dictionary<string, Transform>(StringComparer.Ordinal);
+    private readonly Dictionary<string, float> nextPenReturnPathAt =
+        new Dictionary<string, float>(StringComparer.Ordinal);
     private readonly List<CapturedWildlifeState> tickBuffer =
         new List<CapturedWildlifeState>();
 
@@ -134,22 +158,30 @@ public sealed partial class WildlifeCaptureRuntime :
         pathSearchBroker = worldContext.PathSearchBroker;
         doorAccessCommands = worldContext.DoorAccessCommands;
         doorSubjects = worldContext.DoorSubjects;
-        itemRuntime = care.ItemRuntime;
         filth = care.Filth;
         contentCatalog = care.ContentCatalog;
         speciesCatalog = care.SpeciesCatalog;
-        wasteProcessing = care.WasteProcessing;
-        wasteFeedCandidates = care.WasteFeedCandidates;
-        batchDispositions = care.BatchDispositions;
+        wildlifeHaulItems = care.WildlifeHaulItems;
         clock = session.Clock;
+        calendar = session.Calendar;
+        facts = session.Facts;
+        factRecovery = session.FactRecovery;
         sessionAggregateRootStore = session.AggregateRootStore;
         stateSession = new CapturedWildlifeStateSession(sessionAggregateRootStore);
+        RebindGameplayOutcomeRuntime();
         random = session.RandomStreamProvider
             .Get("captivity.wildlife-care");
+        feeding = new CapturedWildlifeFeedingRuntime(stateSession, world, care, random);
     }
 
     public IReadOnlyList<CapturedWildlifeState> CapturedAnimals =>
         stateSession.Capture();
+
+    public int NextGameplayOutcomeSequence =>
+        stateSession.NextGameplayOutcomeSequence;
+
+    public IReadOnlyList<WildlifeGameplayOutcomeSaveData>
+        CaptureGameplayOutcomes() => stateSession.CaptureGameplayOutcomes();
 
     public void CopyCapturedAnimalReferences(
         List<CapturedWildlifeState> destination)
@@ -178,6 +210,8 @@ public sealed partial class WildlifeCaptureRuntime :
     public void Tick()
     {
         EnsureProjectionCurrent();
+        EnsureGameplayOutcomeRuntimeCurrent();
+        gameplayOutcomes.AdvancePending();
         if (clock.IsPaused || clock.DeltaTime <= 0f)
         {
             return;
@@ -185,6 +219,7 @@ public sealed partial class WildlifeCaptureRuntime :
 
         if (stateSession.Count == 0)
         {
+            nextPenReturnPathAt.Clear();
             return;
         }
 
@@ -193,6 +228,12 @@ public sealed partial class WildlifeCaptureRuntime :
         {
             tickBuffer.Add(state);
         }
+        foreach (string stale in nextPenReturnPathAt.Keys
+                     .Where(id => !stateSession.TryGet(id, out _))
+                     .ToArray())
+        {
+            nextPenReturnPathAt.Remove(stale);
+        }
 
         for (int index = 0; index < tickBuffer.Count; index++)
         {
@@ -200,18 +241,46 @@ public sealed partial class WildlifeCaptureRuntime :
             WildlifeActor actor = FindActor(state.wildlifeId);
             if (actor == null || !actor.IsAlive)
             {
+                nextPenReturnPathAt.Remove(state.wildlifeId);
                 continue;
             }
 
             if (state.transportState == CapturedWildlifeTransportState.Escaped)
             {
+                nextPenReturnPathAt.Remove(state.wildlifeId);
                 TickEscapingAnimal(state, actor);
                 continue;
             }
 
             if (state.transportState != CapturedWildlifeTransportState.Penned)
             {
+                nextPenReturnPathAt.Remove(state.wildlifeId);
                 continue;
+            }
+
+            if (!TryReadRole(state, out CapturedWildlifeRoleId roleId))
+            {
+                throw new InvalidOperationException(
+                    $"Captured wildlife '{state.wildlifeId}' has an invalid role state.");
+            }
+            bool returningToPen = roleId.Equals(CapturedWildlifeRoleIds.None)
+                && actor.GridPosition != state.penPosition;
+            if (returningToPen)
+            {
+                if (!nextPenReturnPathAt.TryGetValue(
+                        state.wildlifeId,
+                        out float nextPathAt)
+                    || clock.Time + 0.0001f >= nextPathAt)
+                {
+                    nextPenReturnPathAt[state.wildlifeId] = clock.Time + 0.5f;
+                    actor.RequestManagedCaptivePath(
+                        state.penPosition,
+                        clock.Time);
+                }
+            }
+            else
+            {
+                nextPenReturnPathAt.Remove(state.wildlifeId);
             }
 
             actor.AdvanceCaptiveNeeds(
@@ -223,7 +292,7 @@ public sealed partial class WildlifeCaptureRuntime :
                 continue;
             }
 
-            state.nextCareAt = clock.Time + 5f;
+            state.nextCareAt = clock.Time + CapturedWildlifeState.CareIntervalSeconds;
             TickAnimalCare(state, actor);
         }
     }
@@ -341,24 +410,55 @@ public sealed partial class WildlifeCaptureRuntime :
             reservedCarrierId = GetCharacterId(carrier),
             transportState = CapturedWildlifeTransportState.AwaitingTransport
             ,
-            nextCareAt = clock.Time + 5f,
+            nextCareAt = clock.Time + CapturedWildlifeState.CareIntervalSeconds,
             lastCareStatus = "우리 수용 준비"
         };
-        stateSession.Set(state);
-        doorSubjects.SetCapturedWildlife(state.wildlifeId, true);
         AbilityWildlifeCaptureTransport transport =
             CaptivityAbilityAdapterFactory.EnsureWildlifeTransport(
                 carrier,
                 this);
         if (transport == null)
         {
-            stateSession.Remove(state.wildlifeId);
-            doorSubjects.SetCapturedWildlife(state.wildlifeId, false);
             failureReason = "동물 운반 행동을 시작할 수 없습니다.";
             return false;
         }
 
-        transport.StartTransport(state.wildlifeId);
+        if (!TryReserveCaptureAction(
+                state,
+                wildlife,
+                carrier,
+                "capture-order",
+                stateBefore: (int)CapturedWildlifeTransportState.AwaitingTransport,
+                stateAfter: (int)CapturedWildlifeTransportState.AwaitingTransport,
+                reasonCode: "capture-transport-ordered",
+                out WildlifeGameplayOutcomeSaveData outcome,
+                out DomainFactLease reserved,
+                out failureReason))
+        {
+            failureReason = "생포 명령 결과 관찰을 예약하지 못했습니다: "
+                + failureReason;
+            return false;
+        }
+
+        try
+        {
+            stateSession.Set(state);
+            doorSubjects.SetCapturedWildlife(state.wildlifeId, true);
+            transport.StartTransport(state.wildlifeId);
+        }
+        catch (Exception exception)
+        {
+            stateSession.Remove(state.wildlifeId);
+            doorSubjects.SetCapturedWildlife(state.wildlifeId, false);
+            gameplayOutcomes.Cancel(reserved);
+            failureReason = "동물 운반 행동을 시작할 수 없습니다: "
+                + exception.GetType().Name;
+            return false;
+        }
+
+        outcome.flagBefore = false;
+        outcome.flagAfter = true;
+        CommitCaptureOutcome(outcome, reserved);
         return true;
     }
 
@@ -395,6 +495,11 @@ public sealed partial class WildlifeCaptureRuntime :
         {
             state.escapeRisk = Mathf.Min(state.escapeRisk, 12f);
             state.lastCareStatus = "길들임 완료";
+        }
+        else if (TryReadRole(state, out CapturedWildlifeRoleId roleId)
+            && roleId.Equals(CapturedWildlifeRoleIds.Companion))
+        {
+            ClearCompanionRole(state, "길들임 해제로 동행 역할 취소");
         }
 
         return true;
@@ -451,7 +556,7 @@ public sealed partial class WildlifeCaptureRuntime :
             penPosition = penPosition,
             capturePosition = penPosition,
             transportState = CapturedWildlifeTransportState.Penned,
-            nextCareAt = clock.Time + 5f,
+            nextCareAt = clock.Time + CapturedWildlifeState.CareIntervalSeconds,
             isTamed = true,
             lastCareStatus = "우리에서 태어난 새끼"
         };
@@ -466,9 +571,56 @@ public sealed partial class WildlifeCaptureRuntime :
     {
         failureReason = string.Empty;
         string id = wildlifeId?.Trim() ?? string.Empty;
-        if (!stateSession.Remove(id, out CapturedWildlifeState state))
+        if (!stateSession.TryGet(id, out CapturedWildlifeState state))
         {
             failureReason = "포획 동물을 찾을 수 없습니다.";
+            return false;
+        }
+        if (TryGetHaul(id, out WildlifeHaulAssignmentSnapshot haul))
+        {
+            if (haul.Phase is CapturedWildlifeHaulPhase.CargoOwned
+                    or CapturedWildlifeHaulPhase.ReleasePending)
+            {
+                TryClearHaul(id, out _);
+                failureReason = "보유 화물을 배송한 뒤 방생할 수 있습니다.";
+                return false;
+            }
+        }
+
+        CharacterActor relatedActor = null;
+        if (CapturedWildlifeCapabilityStateCodec.TryReadCompanion(
+                state.capabilityState,
+                out CharacterId ownerId,
+                out _,
+                out _))
+        {
+            relatedActor = FindOwner(ownerId);
+        }
+        if (!TryReserveCaptureCommand(
+                state,
+                "capture-release",
+                flagBefore: true,
+                flagAfter: false,
+                reasonCode: "captured-wildlife-released",
+                relatedActor: relatedActor,
+                out WildlifeGameplayOutcomeSaveData outcome,
+                out DomainFactLease reserved,
+                out failureReason))
+        {
+            failureReason = "방생 결과 관찰을 예약하지 못했습니다: "
+                + failureReason;
+            return false;
+        }
+        outcome.stateAfter = (int)CapturedWildlifeTransportState.Released;
+        if (TryGetHaul(id, out WildlifeHaulAssignmentSnapshot reservedHaul)
+            && reservedHaul.Phase == CapturedWildlifeHaulPhase.Reserved)
+        {
+            wildlifeHaulItems.ReleaseUnpicked(reservedHaul);
+        }
+        if (!stateSession.Remove(id, out state))
+        {
+            gameplayOutcomes.Cancel(reserved);
+            failureReason = "포획 동물 상태가 변경되었습니다.";
             return false;
         }
 
@@ -483,6 +635,8 @@ public sealed partial class WildlifeCaptureRuntime :
         {
             actor.SatisfyCaptiveNeeds(0.15f, 0.15f);
         }
+        outcome.stateAfter = (int)CapturedWildlifeTransportState.Released;
+        CommitCaptureOutcome(outcome, reserved);
         return true;
     }
 
@@ -502,6 +656,13 @@ public sealed partial class WildlifeCaptureRuntime :
         if (state.transportState != CapturedWildlifeTransportState.Penned)
         {
             failureReason = "우리 수용이 끝난 동물만 공연에 편성할 수 있습니다.";
+            return false;
+        }
+
+        if (!TryReadRole(state, out CapturedWildlifeRoleId roleId)
+            || !roleId.Equals(CapturedWildlifeRoleIds.None))
+        {
+            failureReason = "역할 수행 중인 동물은 공연에 편성할 수 없습니다.";
             return false;
         }
 
@@ -632,9 +793,37 @@ public sealed partial class WildlifeCaptureRuntime :
             return false;
         }
 
-        carriedParents[state.wildlifeId] = wildlife.transform.parent;
-        wildlife.BeginManagedCarry(carrier.transform);
-        state.transportState = CapturedWildlifeTransportState.Transporting;
+        if (!TryReserveCaptureAction(
+                state,
+                wildlife,
+                carrier,
+                "capture-carry-started",
+                (int)CapturedWildlifeTransportState.AwaitingTransport,
+                (int)CapturedWildlifeTransportState.Transporting,
+                "capture-carrier-picked-up",
+                out WildlifeGameplayOutcomeSaveData outcome,
+                out DomainFactLease reserved,
+                out failureReason))
+        {
+            failureReason = "생포 운반 시작 결과 관찰을 예약하지 못했습니다: "
+                + failureReason;
+            return false;
+        }
+
+        try
+        {
+            carriedParents[state.wildlifeId] = wildlife.transform.parent;
+            wildlife.BeginManagedCarry(carrier.transform);
+            state.transportState = CapturedWildlifeTransportState.Transporting;
+        }
+        catch
+        {
+            carriedParents.Remove(state.wildlifeId);
+            gameplayOutcomes.Cancel(reserved);
+            throw;
+        }
+        outcome.stateAfter = (int)state.transportState;
+        CommitCaptureOutcome(outcome, reserved);
         return true;
     }
 
@@ -769,12 +958,29 @@ public sealed partial class WildlifeCaptureRuntime :
             failureReason = "Wildlife carry parent authority is unavailable.";
             return false;
         }
+        if (!TryReserveCaptureAction(
+                state,
+                wildlife,
+                carrier,
+                "capture-penned",
+                (int)CapturedWildlifeTransportState.Transporting,
+                (int)CapturedWildlifeTransportState.Penned,
+                "capture-transport-completed",
+                out WildlifeGameplayOutcomeSaveData outcome,
+                out DomainFactLease reserved,
+                out failureReason))
+        {
+            failureReason = "우리 수용 결과 관찰을 예약하지 못했습니다: "
+                + failureReason;
+            return false;
+        }
         if (!wildlife.TryEndManagedCarry(
                 state.penPosition,
                 carrier.transform,
                 parent,
                 out failureReason))
         {
+            gameplayOutcomes.Cancel(reserved);
             return false;
         }
 
@@ -783,6 +989,8 @@ public sealed partial class WildlifeCaptureRuntime :
         state.transportState = CapturedWildlifeTransportState.Penned;
         state.nextCareAt = clock.Time + 1f;
         state.lastCareStatus = "우리 수용 완료";
+        outcome.stateAfter = (int)state.transportState;
+        CommitCaptureOutcome(outcome, reserved);
         return true;
     }
 
@@ -903,7 +1111,40 @@ public sealed partial class WildlifeCaptureRuntime :
 
     public IReadOnlyList<CapturedWildlifeState> Capture()
     {
-        return CapturedAnimals;
+        feeding.ValidateBeforeCapture();
+        float capturedAt = clock.Time;
+        if (float.IsNaN(capturedAt) || float.IsInfinity(capturedAt)
+            || capturedAt < 0f)
+            throw new InvalidOperationException("Captured wildlife requires a finite non-negative save clock.");
+
+        IReadOnlyList<CapturedWildlifeState> saved = stateSession.Capture();
+        foreach (CapturedWildlifeState state in saved)
+        {
+            state.remainingCareSeconds = CaptureRemainingCareDelay(state, capturedAt);
+        }
+        return saved;
+    }
+
+    private static float CaptureRemainingCareDelay(CapturedWildlifeState state, float capturedAt)
+    {
+        if (float.IsNaN(state.nextCareAt) || float.IsInfinity(state.nextCareAt)
+            || state.nextCareAt < 0f)
+            throw new InvalidOperationException(
+                $"Captured wildlife '{state.wildlifeId}' has an invalid care deadline.");
+        // A scheduled deadline is stored as float32. Explicitly round the
+        // same scheduling bound: Mono may otherwise compare it with a wider
+        // intermediate and reject its own legitimate (now + interval) value.
+        float maximumCareAt = (float)(capturedAt + CapturedWildlifeState.CareIntervalSeconds);
+        if (state.nextCareAt > maximumCareAt)
+            throw new InvalidOperationException(
+                $"Captured wildlife '{state.wildlifeId}' care delay exceeds its normal interval; "
+                + $"deadline={state.nextCareAt:R};clock={capturedAt:R};"
+                + $"maximum={maximumCareAt:R};"
+                + $"delay64={(double)state.nextCareAt - capturedAt:R}.");
+        // Overdue care is ready for normal Tick, not offline catch-up. The
+        // existing DTO bound applies only after the strict deadline check.
+        return Math.Min(CapturedWildlifeState.CareIntervalSeconds,
+            Math.Max(0f, state.nextCareAt - capturedAt));
     }
 
     public void ValidateRestore(
@@ -923,6 +1164,7 @@ public sealed partial class WildlifeCaptureRuntime :
 
     public void StageRestore(CircusRestoreCandidate candidate)
     {
+        feeding.ValidateBeforeCapture();
         if (candidate == null)
         {
             throw new ArgumentNullException(nameof(candidate));
@@ -933,7 +1175,26 @@ public sealed partial class WildlifeCaptureRuntime :
                 "Captured wildlife restore requires the V18 aggregate staging boundary.");
         }
 
+        float restoredAt = clock.Time;
+        if (float.IsNaN(restoredAt) || float.IsInfinity(restoredAt)
+            || restoredAt < 0f)
+            throw new InvalidOperationException("Captured wildlife requires a finite non-negative restore clock.");
+        foreach (CapturedWildlifeState state in candidate.CapturedWildlifeStates)
+        {
+            if (float.IsNaN(state.remainingCareSeconds)
+                || float.IsInfinity(state.remainingCareSeconds)
+                || state.remainingCareSeconds < 0f
+                || state.remainingCareSeconds > CapturedWildlifeState.CareIntervalSeconds)
+                throw new InvalidOperationException(
+                    $"Captured wildlife '{state.wildlifeId}' has an invalid saved care delay.");
+        }
         stateSession.Stage(candidate);
+        foreach (CapturedWildlifeState state in stateSession.Values)
+        {
+            // Only the detached staged root is changed. Publication failure
+            // discards this root and preserves the prior live deadline.
+            state.nextCareAt = restoredAt + state.remainingCareSeconds;
+        }
     }
 
     public void PublishRestoreProjection()
@@ -951,11 +1212,15 @@ public sealed partial class WildlifeCaptureRuntime :
     public WildlifeCaptureProjectionPublication
         BeginRestoreProjectionPublication()
     {
+        feeding.ValidateBeforeCapture();
         CapturedWildlifeProjectionPublication projection =
             stateSession.BeginProjectionPublication();
+        WildlifeGameplayOutcomeRuntime candidateOutcomes =
+            CreateGameplayOutcomeRuntime(stateSession.OutcomeOwner);
         try
         {
-            ReconcilePendingFeedsOrThrow();
+            candidateOutcomes.AdvancePending();
+            feeding.ReconcilePendingFeedsOrThrow();
         }
         catch
         {
@@ -968,6 +1233,8 @@ public sealed partial class WildlifeCaptureRuntime :
                 stateSession.RollbackProjectionPublication(projection),
             complete: () =>
             {
+                gameplayOutcomeOwner = stateSession.OutcomeOwner;
+                gameplayOutcomes = candidateOutcomes;
                 if (projection.Changed)
                 {
                     FinalizeProjectionBestEffort();
@@ -979,6 +1246,7 @@ public sealed partial class WildlifeCaptureRuntime :
     public void RollbackRestoreProjection(
         WildlifeCaptureProjectionPublication publication)
     {
+        feeding.ValidateBeforeCapture();
         (publication ?? throw new ArgumentNullException(nameof(publication)))
             .Rollback(this);
     }
@@ -986,6 +1254,7 @@ public sealed partial class WildlifeCaptureRuntime :
     public void CompleteRestoreProjection(
         WildlifeCaptureProjectionPublication publication)
     {
+        feeding.ValidateBeforeCapture();
         (publication ?? throw new ArgumentNullException(nameof(publication)))
             .Complete(this);
     }
@@ -993,6 +1262,25 @@ public sealed partial class WildlifeCaptureRuntime :
     private void EnsureProjectionCurrent()
     {
         PublishRestoreProjection();
+    }
+
+    private WildlifeGameplayOutcomeRuntime CreateGameplayOutcomeRuntime(
+        IWildlifeGameplayOutcomeOwner owner) => new(
+        owner,
+        facts,
+        factRecovery,
+        calendar);
+
+    private void RebindGameplayOutcomeRuntime()
+    {
+        gameplayOutcomeOwner = stateSession.OutcomeOwner;
+        gameplayOutcomes = CreateGameplayOutcomeRuntime(gameplayOutcomeOwner);
+    }
+
+    private void EnsureGameplayOutcomeRuntimeCurrent()
+    {
+        if (!ReferenceEquals(gameplayOutcomeOwner, stateSession.OutcomeOwner))
+            RebindGameplayOutcomeRuntime();
     }
 
     private void FinalizeProjectionBestEffort()
@@ -1060,7 +1348,11 @@ public sealed partial class WildlifeCaptureRuntime :
                 Vector2Int target = restored.transportState
                     == CapturedWildlifeTransportState.Escaped
                         ? restored.escapeDestination
-                        : restored.penPosition;
+                        : TryReadRole(restored, out CapturedWildlifeRoleId roleId)
+                            && (roleId.Equals(CapturedWildlifeRoleIds.Companion)
+                                || roleId.Equals(CapturedWildlifeRoleIds.Haul))
+                                ? actor.GridPosition
+                                : restored.penPosition;
                 if (actor.GridPosition != target)
                 {
                     actor.WarpTo(target);
@@ -1105,29 +1397,16 @@ public sealed partial class WildlifeCaptureRuntime :
 
         string careDestinationId = WildlifeCareInputOwnerAuthority
             .FormatDestinationId(state.penId);
-        Vector2Int carePosition = pen.centerPos;
-        RefreshDeliveryPending(state, careDestinationId);
-        state.feedSicknessSeverity = Mathf.Max(
-            0f,
-            state.feedSicknessSeverity - 1.5f);
-        bool fed = TrySatisfyFoodNeed(
-            state,
-            actor,
-            ability.dailyFood,
-            actor.Hunger,
-            carePosition,
-            careDestinationId,
-            ref state.foodDeliveryPending);
-        bool watered = TrySatisfyNeed(
-            state,
-            actor,
-            StockCategory.Water,
-            ability.dailyWater,
-            actor.Thirst,
-            WaterCost,
-            carePosition,
-            careDestinationId,
-            ref state.waterDeliveryPending);
+        Vector2Int carePosition = state.penPosition;
+        bool companionReturningForCare =
+            TryReadRole(state, out CapturedWildlifeRoleId roleId)
+            && roleId.Equals(CapturedWildlifeRoleIds.Companion)
+            && (actor.Hunger >= 0.45f || actor.Thirst >= 0.45f)
+            && actor.GridPosition != carePosition;
+        bool awayFromCarePosition = actor.GridPosition != carePosition;
+        feeding.SatisfyNeeds(state, actor, ability.dailyFood, ability.dailyWater,
+            carePosition, careDestinationId, !awayFromCarePosition,
+            out bool fed, out bool watered);
         bool insecure = !rooms.TryGetRoom(pen, out RoomInstance room)
             || !room.IsUsable
             || room.Doors.OfType<Door>().Any(CaptiveWildlifeCanUse);
@@ -1144,8 +1423,13 @@ public sealed partial class WildlifeCaptureRuntime :
             + (insecure ? 45f : 0f),
             0f,
             100f);
-        state.lastCareStatus =
-            $"{(fed ? "먹이 섭취" : "먹이 대기")} · "
+        string returnStatus = companionReturningForCare
+            ? "동행 중단 · 우리로 복귀 중 · "
+            : awayFromCarePosition
+                ? "우리로 복귀 중 · "
+                : string.Empty;
+        state.lastCareStatus = returnStatus
+            + $"{(fed ? "먹이 섭취" : "먹이 대기")} · "
             + $"{(watered ? "급수" : "물 대기")} · "
             + $"탈출 위험 {state.escapeRisk:0}";
 
@@ -1166,350 +1450,6 @@ public sealed partial class WildlifeCaptureRuntime :
                 TryBeginEscape(state, actor);
             }
         }
-    }
-
-    private bool TrySatisfyNeed(
-        CapturedWildlifeState state,
-        WildlifeActor actor,
-        StockCategory category,
-        float dailyNeed,
-        float currentNeed,
-        IReadOnlyDictionary<StockCategory, int> cost,
-        Vector2Int carePosition,
-        string careDestinationId,
-        ref bool deliveryPending)
-    {
-        if (dailyNeed <= 0f || currentNeed < 0.45f)
-        {
-            return currentNeed < 0.45f;
-        }
-
-        if (itemRuntime.TryConsumeFacilityBuffer(
-                careDestinationId,
-                cost,
-                out _))
-        {
-            if (category == StockCategory.Food)
-            {
-                actor.SatisfyCaptiveNeeds(0.72f, 0f);
-            }
-            else
-            {
-                actor.SatisfyCaptiveNeeds(0f, 0.8f);
-            }
-
-            deliveryPending = false;
-            return true;
-        }
-
-        if (!deliveryPending)
-        {
-            int amount = Mathf.Max(1, Mathf.CeilToInt(dailyNeed));
-            deliveryPending = itemRuntime.TryRequestFacilityDelivery(
-                category,
-                amount,
-                carePosition,
-                careDestinationId,
-                out int requested,
-                out _)
-                && requested > 0;
-        }
-
-        return false;
-    }
-
-    private bool TrySatisfyFoodNeed(
-        CapturedWildlifeState state,
-        WildlifeActor actor,
-        float dailyNeed,
-        float currentNeed,
-        Vector2Int carePosition,
-        string careDestinationId,
-        ref bool deliveryPending)
-    {
-        if (CapturedWildlifeFeedOutbox.HasPending(state))
-        {
-            if (!CapturedWildlifeFeedOutbox.TryFinalizePending(
-                    state,
-                    actor,
-                    batchDispositions,
-                    out _,
-                    out _))
-            {
-                return false;
-            }
-            deliveryPending = false;
-            return true;
-        }
-        if (dailyNeed <= 0f || currentNeed < 0.45f)
-        {
-            return currentNeed < 0.45f;
-        }
-
-        WildlifeDietType diet = speciesCatalog.TryGetSpecies(
-                state.speciesId,
-                out WildlifeSpeciesDefinition species)
-            ? species.Diet
-            : WildlifeDietType.Omnivore;
-        ResourceItemDefinitionSO[] candidates = contentCatalog.Items
-            .Where(item => item != null
-                && WildlifeFeedSelectionRules.IsAllowed(diet, item))
-            .OrderBy(item => WildlifeFeedSelectionRules.GetPreference(
-                diet,
-                item))
-            .ThenBy(item => item.UnitPrice)
-            .ThenBy(item => item.ItemId, StringComparer.Ordinal)
-            .ToArray();
-
-        foreach (ResourceItemDefinitionSO candidate in candidates)
-        {
-            WorldItemStackSnapshot source = itemRuntime.GetAllStacks()
-                .Where(stack => stack != null
-                    && stack.State == WorldItemStackState.FacilityBuffer
-                    && string.Equals(
-                        stack.DestinationId,
-                        careDestinationId,
-                        StringComparison.Ordinal)
-                    && string.Equals(
-                        stack.ItemId,
-                        candidate.ItemId,
-                        StringComparison.Ordinal)
-                    && stack.AvailableQuantity > 0
-                    && stack.ReservedQuantity == 0
-                    && string.IsNullOrEmpty(stack.ReservedByPersistentId)
-                    && !stack.Forbidden)
-                .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
-                .FirstOrDefault();
-            if (source == null)
-            {
-                continue;
-            }
-            if (TryBeginCapturedFeed(
-                    state,
-                    actor,
-                    source.StackId,
-                    candidate.ItemId,
-                    0.72f,
-                    diseaseChance: 0f,
-                    diseaseTriggered: false,
-                    ref deliveryPending))
-            {
-                return true;
-            }
-            if (CapturedWildlifeFeedOutbox.HasPending(state))
-            {
-                return false;
-            }
-        }
-
-        if (wasteFeedCandidates.TryGetDirectFeedCandidate(
-                diet,
-                careDestinationId,
-                out WasteDirectFeedCandidate wasteFeed,
-                out _))
-        {
-            bool diseaseTriggered = wasteFeed.DiseaseChance > 0f
-                && random.Chance(wasteFeed.DiseaseChance);
-            if (TryBeginCapturedFeed(
-                    state,
-                    actor,
-                    wasteFeed.StackId.Value,
-                    wasteFeed.ItemId,
-                    Mathf.Clamp(wasteFeed.Nutrition * 0.9f, 0.35f, 0.8f),
-                    wasteFeed.DiseaseChance,
-                    diseaseTriggered,
-                    ref deliveryPending))
-            {
-                return true;
-            }
-            if (CapturedWildlifeFeedOutbox.HasPending(state))
-            {
-                return false;
-            }
-        }
-
-        if (!deliveryPending)
-        {
-            int amount = Mathf.Max(1, Mathf.CeilToInt(dailyNeed));
-            foreach (ResourceItemDefinitionSO candidate in candidates
-                         .Where(candidate => WildlifeFeedSelectionRules
-                             .GetPreference(diet, candidate) <= 1))
-            {
-                if (!itemRuntime.TryRequestItemDelivery(
-                        candidate.ItemId,
-                        amount,
-                        carePosition,
-                        careDestinationId,
-                        out int requested,
-                        out _)
-                    || requested <= 0)
-                {
-                    continue;
-                }
-
-                state.lastFeedItemId = candidate.ItemId;
-                deliveryPending = true;
-                break;
-            }
-
-            if (!deliveryPending)
-            {
-                WasteFeedRequestResult wasteRequest =
-                    wasteProcessing.RequestDirectFeed(
-                        diet,
-                        carePosition,
-                        careDestinationId);
-                if (wasteRequest.Succeeded)
-                {
-                    state.lastFeedItemId = wasteRequest.ItemId;
-                    deliveryPending = true;
-                }
-            }
-
-            if (!deliveryPending)
-            {
-                foreach (ResourceItemDefinitionSO candidate in candidates
-                             .Where(candidate => WildlifeFeedSelectionRules
-                                 .GetPreference(diet, candidate) > 1))
-                {
-                    if (!itemRuntime.TryRequestItemDelivery(
-                            candidate.ItemId,
-                            amount,
-                            carePosition,
-                            careDestinationId,
-                            out int requested,
-                            out _)
-                        || requested <= 0)
-                    {
-                        continue;
-                    }
-
-                    state.lastFeedItemId = candidate.ItemId;
-                    deliveryPending = true;
-                    break;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private bool TryBeginCapturedFeed(
-        CapturedWildlifeState state,
-        WildlifeActor actor,
-        string sourceStackId,
-        string itemId,
-        float nutrition,
-        float diseaseChance,
-        bool diseaseTriggered,
-        ref bool deliveryPending)
-    {
-        if (state == null
-            || actor == null
-            || string.IsNullOrWhiteSpace(sourceStackId)
-            || state.nextFeedOperationSequence == int.MaxValue)
-        {
-            return false;
-        }
-
-        int sequence = checked(state.nextFeedOperationSequence + 1);
-        state.nextFeedOperationSequence = sequence;
-        string operationId = CapturedWildlifeFeedOutbox.FormatOperationId(
-            state.wildlifeId,
-            sequence);
-        if (!batchDispositions.TryCommitPending(
-                new[]
-                {
-                    new PhysicalItemTransformInput(sourceStackId, 1)
-                },
-                PhysicalItemDispositionKind.Sink,
-                operationId,
-                CapturedWildlifeFeedOutbox.ReasonCode,
-                out PhysicalItemBatchDispositionReceipt receipt,
-                out _))
-        {
-            return false;
-        }
-
-        CapturedWildlifeFeedOutbox.RecordPending(
-            state,
-            sequence,
-            receipt,
-            itemId,
-            nutrition,
-            diseaseChance,
-            diseaseTriggered,
-            actor);
-        if (!CapturedWildlifeFeedOutbox.TryFinalizePending(
-                state,
-                actor,
-                batchDispositions,
-                out _,
-                out _))
-        {
-            return false;
-        }
-        deliveryPending = false;
-        return true;
-    }
-
-    private void ReconcilePendingFeedsOrThrow()
-    {
-        foreach (CapturedWildlifeState state in stateSession.Values
-                     .OrderBy(value => value.wildlifeId, StringComparer.Ordinal))
-        {
-            if (!CapturedWildlifeFeedOutbox.HasPending(state))
-            {
-                continue;
-            }
-            WildlifeActor actor = FindActor(state.wildlifeId);
-            if (actor == null)
-            {
-                throw new InvalidOperationException(
-                    $"Captured wildlife feed restore reconciliation failed for '{state.wildlifeId}': actor-missing");
-            }
-            if (!CapturedWildlifeFeedOutbox.TryFinalizePending(
-                    state,
-                    actor,
-                    batchDispositions,
-                    out _,
-                    out string failureReason))
-            {
-                throw new InvalidOperationException(
-                    $"Captured wildlife feed restore reconciliation failed for '{state.wildlifeId}': {failureReason}");
-            }
-        }
-    }
-
-    private void RefreshDeliveryPending(
-        CapturedWildlifeState state,
-        string careDestinationId)
-    {
-        bool hasFood = false;
-        bool hasWater = false;
-        foreach (WorldItemStackSnapshot stack in itemRuntime.GetAllStacks())
-        {
-            if (!string.Equals(
-                    stack.DestinationId,
-                    careDestinationId,
-                    StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            DungeonItemDefinition definition =
-                itemRuntime.CatalogProvider.GetDefinition(stack.ItemId);
-            hasFood |= string.IsNullOrWhiteSpace(state.lastFeedItemId)
-                ? definition?.StockCategory == StockCategory.Food
-                : string.Equals(
-                    stack.ItemId,
-                    state.lastFeedItemId,
-                    StringComparison.Ordinal);
-            hasWater |= definition?.StockCategory == StockCategory.Water;
-        }
-
-        state.foodDeliveryPending &= hasFood;
-        state.waterDeliveryPending &= hasWater;
     }
 
     private void TryBeginEscape(
@@ -1547,6 +1487,37 @@ public sealed partial class WildlifeCaptureRuntime :
             }
 
             state.escapeDestination = destination;
+            if (TryReadRole(state, out CapturedWildlifeRoleId roleId)
+                && roleId.Equals(CapturedWildlifeRoleIds.Companion))
+            {
+                ClearCompanionRole(state, "도주로 동행 역할 취소");
+            }
+            else if (roleId.Equals(CapturedWildlifeRoleIds.Haul)
+                && TryGetHaul(
+                    state.wildlifeId,
+                    out WildlifeHaulAssignmentSnapshot haul))
+            {
+                if (haul.Phase == CapturedWildlifeHaulPhase.Reserved)
+                {
+                    wildlifeHaulItems.ReleaseUnpicked(haul);
+                }
+                else if (haul.Phase is CapturedWildlifeHaulPhase.CargoOwned
+                        or CapturedWildlifeHaulPhase.ReleasePending)
+                {
+                    if (!wildlifeHaulItems.TryCommitRecoveryPending(
+                            haul,
+                            actor.GridPosition,
+                            WorldItemCarryInterruptionKind.Disabled,
+                            out string recoveryFailure))
+                    {
+                        state.lastCareStatus =
+                            "탈출 화물 회수 준비 실패 · " + recoveryFailure;
+                        return;
+                    }
+                }
+                state.capabilityState =
+                    CapturedWildlifeCapabilityStateCodec.CreateNone();
+            }
             state.transportState = CapturedWildlifeTransportState.Escaped;
             state.escaped = true;
             state.lastCareStatus = "우리 문을 빠져나가 도주 중";

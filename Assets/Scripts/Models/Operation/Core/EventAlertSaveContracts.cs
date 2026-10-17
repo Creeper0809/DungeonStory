@@ -33,6 +33,7 @@ namespace DungeonStory.Infrastructure
         public long coverageStableSinceAbsoluteHour = -1L;
         public List<SettlementIncidentSaveData> incidents = new();
         public List<SettlementSuspendedWorkSaveData> suspendedWork = new();
+        public List<EmergencyWorkSuspensionObservationSaveData> suspensionObservations = new();
     }
 
     [Serializable]
@@ -57,6 +58,7 @@ namespace DungeonStory.Infrastructure
         public bool progressExternallyPersisted;
         public float inlineCompletedWork;
         public float inlineRequiredWork;
+        public long outcomeOwnerRevision;
     }
 
     [Serializable]
@@ -103,6 +105,9 @@ namespace DungeonStory.Infrastructure
         public string sourceId = string.Empty;
         public int count = 1;
         public bool dismissed;
+        public bool resolved;
+        public string resultSummary = string.Empty;
+        public string choiceFailureDetail = string.Empty;
         public List<DungeonEventAlertChoiceSaveData> choices = new();
     }
 
@@ -176,9 +181,29 @@ namespace DungeonStory.Operation
 
                 if (record.detail == null
                     || record.category == null
-                    || record.sourceId == null)
+                    || record.sourceId == null
+                    || record.resultSummary == null
+                    || record.choiceFailureDetail == null)
                 {
                     errors.Add($"Event-alert record {record.id} has null text fields.");
+                }
+
+                if (record.resolved
+                        && (string.IsNullOrWhiteSpace(record.sourceId)
+                            || string.IsNullOrWhiteSpace(record.resultSummary)
+                            || (record.choices?.Count ?? 0) > 0
+                            || !string.IsNullOrEmpty(
+                                record.choiceFailureDetail))
+                    || !record.resolved
+                        && !string.IsNullOrEmpty(record.resultSummary)
+                    || !string.IsNullOrEmpty(record.choiceFailureDetail)
+                        && !string.Equals(
+                            record.choiceFailureDetail,
+                            record.choiceFailureDetail.Trim(),
+                            StringComparison.Ordinal))
+                {
+                    errors.Add(
+                        $"Event-alert record {record.id} has an invalid result or choice failure.");
                 }
 
                 ValidateChoices(record, errors);
@@ -313,6 +338,9 @@ namespace DungeonStory.Operation
                     || suspended.alertEpochId <= 0L
                     || suspended.alertEpochId > threatAlert.alertEpochId
                     || suspended.suspendedAtAbsoluteHour < 0L
+                    || suspended.outcomeOwnerRevision <= 0L
+                    || (suspended.progressExternallyPersisted
+                        && (suspended.inlineCompletedWork != 0f || suspended.inlineRequiredWork != 0f))
                     || (!suspended.progressExternallyPersisted
                         && (!IsFinite(suspended.inlineCompletedWork)
                             || !IsFinite(suspended.inlineRequiredWork)
@@ -324,6 +352,30 @@ namespace DungeonStory.Operation
                     errors.Add(
                         $"Settlement suspended work {index} is invalid or duplicated.");
                 }
+            }
+            if (threatAlert.suspensionObservations == null)
+                errors.Add("Settlement suspension observations are missing.");
+            else
+            {
+                var observationCharacters = new HashSet<string>(StringComparer.Ordinal);
+                var observationKeys = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var observation in threatAlert.suspensionObservations)
+                {
+                    try
+                    {
+                        if (observation == null) throw new InvalidOperationException("null observation");
+                        observation.Validate();
+                        if (!observationCharacters.Add(observation.fact.characterId)
+                            || !observationKeys.Add(observation.publicationKey)
+                            || observation.fact.alertEpochId > threatAlert.alertEpochId)
+                            throw new InvalidOperationException("duplicate observation or future epoch");
+                    }
+                    catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+                    { errors.Add("Settlement suspension observation invalid: " + exception.Message); }
+                }
+                foreach (var suspended in threatAlert.suspendedWork)
+                    if (suspended != null && !observationCharacters.Contains(suspended.characterId))
+                        errors.Add("Settlement suspended work has no frozen observation: " + suspended.characterId);
             }
         }
 

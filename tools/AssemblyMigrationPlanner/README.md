@@ -5,13 +5,13 @@ This independent Roslyn CLI reads the newest Unity Bee `Assembly-CSharp.rsp`, bi
 Run the semantic self-test:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File Tools/AssemblyMigrationPlanner/Run-AssemblyMigrationPlanner.ps1 -SelfTest
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/AssemblyMigrationPlanner/Run-AssemblyMigrationPlanner.ps1 -SelfTest
 ```
 
 Generate `Library/AssemblyMigrationPlanner/assembly-migration-plan.json`:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File Tools/AssemblyMigrationPlanner/Run-AssemblyMigrationPlanner.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/AssemblyMigrationPlanner/Run-AssemblyMigrationPlanner.ps1
 ```
 
 Use `-ResponseFile` or `-ReportPath` to override either path. If no Bee response file exists, the analyzer falls back to project sources selected by nearest `.asmdef`/`.asmref` ownership and metadata from Unity/`Library/ScriptAssemblies`.

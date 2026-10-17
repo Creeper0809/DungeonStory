@@ -1012,7 +1012,6 @@ public sealed class ProductionInputDestinationCustodyDrainService :
                     || !live.TryGetValue(stackId, out WorldItemStackSnapshot stack)
                     || !StackInvariantMatches(row, stack)
                     || stack.State != WorldItemStackState.Carried
-                    || stack.Position != actor.GetNowXY()
                     || !string.Equals(
                         stack.DestinationId,
                         ActorId(actor),

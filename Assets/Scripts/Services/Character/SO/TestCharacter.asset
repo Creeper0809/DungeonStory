@@ -77,7 +77,7 @@ MonoBehaviour:
   ownerPreferredWorkTypes: 0
   characterSprite: {fileID: -7880743687467962618, guid: 10947ec9a8d2243f58638b352fee8956, type: 3}
   favoriteStore:
-  - {fileID: 11400000, guid: 183b18c5841fb7a438bab789f642e364, type: 2}
+  - {fileID: 11400000, guid: 62d4904157bfda64a8169635bf3c3be5, type: 2}
   frequencyVisitMax: 1
   frequencyVisitMin: 3
   maxHoldingMoney: 1000

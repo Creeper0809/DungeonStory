@@ -26,6 +26,7 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
         VerifyEffectPreflightCannotWearEquipment();
         VerifyFailedAndThrownEffectsRollbackAcrossUnrelatedRevisionChanges();
         VerifyExhaustionDelegatesToTheCommonSlotDrain();
+        VerifyCommittedEffectSurvivesPostCommitSlotFaults();
         VerifyAssignedDeliveryAndCommitmentAreNotDoubleCounted();
 
         Debug.Log(
@@ -33,7 +34,8 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
             + "exact component-usable stack, fails loud on malformed custody, "
             + "commits wear before one effect, rolls wear back exactly across "
             + "unrelated revision changes, delegates exhaustion to the common "
-            + "slot drain, and does not double-count one routed delivery.");
+            + "slot drain, retains committed work across post-commit slot faults, "
+            + "and does not double-count one routed delivery.");
     }
 
     private static void VerifyComponentAwareSelectionAndMissingComponentFailure()
@@ -112,6 +114,14 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
 
         Require(
             result.Status == DurableFacilityEquipmentUseStatus.Applied
+            && result.CommittedContext != null
+            && string.Equals(
+                result.CommittedContext.Before.StackId,
+                "stack:atomic",
+                StringComparison.Ordinal)
+            && Nearly(ReadDurability(result.CommittedContext.Before), 40d)
+            && Nearly(ReadDurability(result.CommittedContext.After), 34d)
+            && Nearly(result.CommittedContext.WearAmount, 6d)
             && fixture.Physical.ReplaceCalls == 1
             && fixture.Physical.RestoreCalls == 0
             && effect.PreflightCalls == 1
@@ -205,6 +215,7 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
                 : DurableFacilityEquipmentUseStatus.Deferred;
         Require(
             result.Status == expected
+            && result.CommittedContext == null
             && fixture.Physical.ReplaceCalls == 1
             && fixture.Physical.RestoreCalls == 1
             && fixture.Physical.UnrelatedGlobalRevisionAdvances == 1
@@ -230,6 +241,9 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
         Require(
             result.Status ==
                 DurableFacilityEquipmentUseStatus.AppliedDrainPending
+            && result.CommittedContext != null
+            && Nearly(ReadDurability(result.CommittedContext.Before), 5d)
+            && Nearly(ReadDurability(result.CommittedContext.After), 0d)
             && fixture.Slot.CloseCalls == 1
             && string.Equals(
                 fixture.Slot.LastCloseReason,
@@ -238,6 +252,166 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
             && effect.CommitCalls == 1
             && Nearly(ReadDurability(fixture.Physical, "stack:last-use"), 0d),
             "Wear-to-zero did not commit the effect and enter the common slot drain exactly once.");
+    }
+
+    private static void VerifyCommittedEffectSurvivesPostCommitSlotFaults()
+    {
+        VerifyCommittedEffectSurvivesCloseThrow();
+        VerifyCommittedEffectSurvivesCloseRejection();
+        VerifyCommittedEffectSurvivesLatestCaptureThrow();
+        VerifyCommittedEffectSurvivesLatestCaptureMissing();
+        VerifyCommittedEffectSurvivesCloseAndCaptureThrow();
+    }
+
+    private static void VerifyCommittedEffectSurvivesCloseThrow()
+    {
+        Fixture fixture = CreateFixture(CreateStack("stack:close-throw", 5d));
+        RecordingEffect effect = new()
+        {
+            OnCommit = _ => fixture.Slot.CloseThrows = true
+        };
+
+        DurableFacilityEquipmentUseResult result = fixture.Runtime
+            .TryApplyWearAndEffect(
+                fixture.Slot.Snapshot.Key,
+                RequirementId,
+                5d,
+                effect);
+
+        RequireCommittedPostCommitFault(
+            result,
+            DurableFacilityEquipmentUseStatus.AppliedDrainPending,
+            "stack:close-throw",
+            fixture,
+            effect,
+            0d,
+            "A throwing exhausted-slot close cancelled committed wear or work.");
+    }
+
+    private static void VerifyCommittedEffectSurvivesCloseRejection()
+    {
+        Fixture fixture = CreateFixture(CreateStack("stack:close-reject", 5d));
+        RecordingEffect effect = new()
+        {
+            OnCommit = _ => fixture.Slot.CloseRejects = true
+        };
+
+        DurableFacilityEquipmentUseResult result = fixture.Runtime
+            .TryApplyWearAndEffect(
+                fixture.Slot.Snapshot.Key,
+                RequirementId,
+                5d,
+                effect);
+
+        RequireCommittedPostCommitFault(
+            result,
+            DurableFacilityEquipmentUseStatus.AppliedDrainPending,
+            "stack:close-reject",
+            fixture,
+            effect,
+            0d,
+            "A rejected exhausted-slot close cancelled committed wear or work.");
+    }
+
+    private static void VerifyCommittedEffectSurvivesLatestCaptureThrow()
+    {
+        Fixture fixture = CreateFixture(CreateStack("stack:capture-throw", 40d));
+        RecordingEffect effect = new()
+        {
+            OnCommit = _ => fixture.Slot.CaptureThrows = true
+        };
+
+        DurableFacilityEquipmentUseResult result = fixture.Runtime
+            .TryApplyWearAndEffect(
+                fixture.Slot.Snapshot.Key,
+                RequirementId,
+                6d,
+                effect);
+
+        RequireCommittedPostCommitFault(
+            result,
+            DurableFacilityEquipmentUseStatus.Applied,
+            "stack:capture-throw",
+            fixture,
+            effect,
+            34d,
+            "A latest-slot capture throw cancelled committed non-exhausting work.");
+    }
+
+    private static void VerifyCommittedEffectSurvivesLatestCaptureMissing()
+    {
+        Fixture fixture = CreateFixture(CreateStack("stack:capture-missing", 40d));
+        RecordingEffect effect = new()
+        {
+            OnCommit = _ => fixture.Slot.CaptureMissing = true
+        };
+
+        DurableFacilityEquipmentUseResult result = fixture.Runtime
+            .TryApplyWearAndEffect(
+                fixture.Slot.Snapshot.Key,
+                RequirementId,
+                6d,
+                effect);
+
+        RequireCommittedPostCommitFault(
+            result,
+            DurableFacilityEquipmentUseStatus.Applied,
+            "stack:capture-missing",
+            fixture,
+            effect,
+            34d,
+            "A missing latest-slot capture cancelled committed non-exhausting work.");
+    }
+
+    private static void VerifyCommittedEffectSurvivesCloseAndCaptureThrow()
+    {
+        Fixture fixture = CreateFixture(CreateStack("stack:close-capture-throw", 5d));
+        RecordingEffect effect = new()
+        {
+            OnCommit = _ =>
+            {
+                fixture.Slot.CloseThrows = true;
+                fixture.Slot.CaptureThrows = true;
+            }
+        };
+
+        DurableFacilityEquipmentUseResult result = fixture.Runtime
+            .TryApplyWearAndEffect(
+                fixture.Slot.Snapshot.Key,
+                RequirementId,
+                5d,
+                effect);
+
+        RequireCommittedPostCommitFault(
+            result,
+            DurableFacilityEquipmentUseStatus.AppliedDrainPending,
+            "stack:close-capture-throw",
+            fixture,
+            effect,
+            0d,
+            "Combined exhausted close/capture faults cancelled committed work.");
+    }
+
+    private static void RequireCommittedPostCommitFault(
+        DurableFacilityEquipmentUseResult result,
+        DurableFacilityEquipmentUseStatus expectedStatus,
+        string stackId,
+        Fixture fixture,
+        RecordingEffect effect,
+        double expectedDurability,
+        string message)
+    {
+        Require(
+            result.Succeeded
+            && result.Status == expectedStatus
+            && string.Equals(result.StackId, stackId, StringComparison.Ordinal)
+            && result.CommittedContext != null
+            && !string.IsNullOrWhiteSpace(result.PostCommitFaultCode)
+            && effect.CommitCalls == 1
+            && fixture.Physical.ReplaceCalls == 1
+            && fixture.Physical.RestoreCalls == 0
+            && Nearly(ReadDurability(fixture.Physical, stackId), expectedDurability),
+            message);
     }
 
     private static void VerifyAssignedDeliveryAndCommitmentAreNotDoubleCounted()
@@ -522,12 +696,20 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
         internal DurableFacilityEquipmentSlotSnapshot Snapshot { get; }
         internal int CloseCalls { get; private set; }
         internal string LastCloseReason { get; private set; } = string.Empty;
+        internal bool CloseThrows { get; set; }
+        internal bool CloseRejects { get; set; }
+        internal bool CaptureThrows { get; set; }
+        internal bool CaptureMissing { get; set; }
 
         public bool TryCapture(
             DurableFacilityEquipmentSlotKey key,
             out DurableFacilityEquipmentSlotSnapshot snapshot)
         {
-            snapshot = key.Equals(Snapshot.Key) ? Snapshot : null;
+            if (CaptureThrows)
+                throw new InvalidOperationException("qa-slot-capture-threw");
+            snapshot = !CaptureMissing && key.Equals(Snapshot.Key)
+                ? Snapshot
+                : null;
             return snapshot != null;
         }
 
@@ -545,6 +727,15 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
             Require(key.Equals(Snapshot.Key), "The use runtime closed another slot.");
             CloseCalls++;
             LastCloseReason = reasonCode;
+            if (CloseThrows)
+                throw new InvalidOperationException("qa-slot-close-threw");
+            if (CloseRejects)
+            {
+                return new DurableFacilityEquipmentSlotResult(
+                    DurableFacilityEquipmentSlotStatus.Conflict,
+                    Snapshot,
+                    "qa-slot-close-rejected");
+            }
             return new DurableFacilityEquipmentSlotResult(
                 DurableFacilityEquipmentSlotStatus.Applied,
                 Snapshot,
@@ -559,7 +750,7 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
             TryAdvancePending() => Array.Empty<DurableFacilityEquipmentSlotResult>();
     }
 
-    private sealed class FakePhysicalPort :
+    internal sealed class FakePhysicalPort :
         IDurableFacilityEquipmentPhysicalPort,
         IDurableFacilityEquipmentComponentMutationPort
     {

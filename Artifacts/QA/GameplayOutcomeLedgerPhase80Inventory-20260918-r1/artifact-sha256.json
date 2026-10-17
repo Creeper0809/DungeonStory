@@ -1,0 +1,13 @@
+{
+  "sha256": {
+    "build_inventory.py": "e3991cc5f4f705c5003ba1370bda249b2ff74159a5e40c8d6e100c837fc0c12f",
+    "REVIEW.md": "d03a39a4ce4ad149515ea1c3feccd5fd8d95a00e001f5fe3a7fa28f546914af6",
+    "metadata.json": "65e2c8161bddaeb2ae5c4301f519bfd16a975881af8c1c7954f3e4938c1d2299",
+    "producer-inventory.csv": "4b546ec8e995715b271f8790e96058f8c25e6c95342988a8526a794b7c0f54e5",
+    "producer-inventory.json": "b116be41dd12114e11ff6a4712606a99a02182ca67626a36eb559cd04de0411d",
+    "publish-calls.csv": "d789b5089911edd9e4ec00144977088f084ff8e622e26d14bddaa80522e95a3d",
+    "publish-calls.json": "e582c9020ea95faf458520ce354014bea6c221393a4136a7f3eb9edf70f2f2ab",
+    "record-integration-input.csv": "ecaf791dc3a917518d48cf44105e4312303575990ab06927cc38d8ff5dbc3203",
+    "save-section-catalog.json": "84c2845290347308c7f423518535cab8c6db4de89bf147c13afebcea5bcbcb11"
+  }
+}

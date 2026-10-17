@@ -12,6 +12,7 @@ public sealed class WildlifeEcosystemApplicationPorts :
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IWorldWaterQuery worldWaterQuery;
     private readonly IWildlifeHabitatMarkerQuery habitatMarkerQuery;
+    private readonly IEnvironmentalFieldQuery environmentalField;
     private readonly Dictionary<Grid, WildlifeGridPort> grids =
         new Dictionary<Grid, WildlifeGridPort>();
     private readonly WildlifeHabitatDecorationRuntime decorations;
@@ -22,12 +23,15 @@ public sealed class WildlifeEcosystemApplicationPorts :
         IWorldWaterQuery worldWaterQuery,
         IWildlifeHabitatMarkerQuery habitatMarkerQuery,
         IGameContentCatalog content,
-        IWildlifeOverlayRootPort overlayRoot)
+        IWildlifeOverlayRootPort overlayRoot,
+        IEnvironmentalFieldQuery environmentalField)
     {
         this.gridSystemProvider = gridSystemProvider;
         this.worldWaterQuery = worldWaterQuery;
         this.habitatMarkerQuery = habitatMarkerQuery
             ?? throw new ArgumentNullException(nameof(habitatMarkerQuery));
+        this.environmentalField = environmentalField
+            ?? throw new ArgumentNullException(nameof(environmentalField));
         decorations = new WildlifeHabitatDecorationRuntime(
             content ?? throw new ArgumentNullException(nameof(content)));
         overlay = new WildlifeHabitatOverlay(
@@ -111,6 +115,29 @@ public sealed class WildlifeEcosystemApplicationPorts :
         float amount,
         out float consumed) =>
         TryDrinkWorldWater(sourceId, amount, out consumed);
+
+    public bool TryGetTemperatureC(
+        Vector2Int position,
+        out float temperatureC)
+    {
+        temperatureC = 0f;
+        if (!environmentalField.TryGetCell(
+                position,
+                out EnvironmentalCellSnapshot cell))
+        {
+            return false;
+        }
+
+        if (float.IsNaN(cell.TemperatureC)
+            || float.IsInfinity(cell.TemperatureC))
+        {
+            throw new InvalidOperationException(
+                $"Environmental temperature at {position} must be finite.");
+        }
+
+        temperatureC = cell.TemperatureC;
+        return true;
+    }
 
     private bool TryDrinkWorldWater(
         string sourceId,

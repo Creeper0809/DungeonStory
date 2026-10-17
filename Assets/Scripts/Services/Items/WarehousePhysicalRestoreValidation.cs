@@ -83,11 +83,19 @@ internal static class WarehousePhysicalRestoreValidation
                     StringComparison.Ordinal))
             {
                 RequireCategory(sourceOwner, definition, record.stackId);
-                RequirePosition(
-                    sourceOwner,
-                    record.position,
-                    record.stackId,
-                    "source-storage");
+                if (record.state == WorldItemStackState.Stored)
+                {
+                    RequirePosition(
+                        sourceOwner,
+                        record.position,
+                        record.stackId,
+                        "source-storage");
+                }
+                else if (record.state != WorldItemStackState.Carried)
+                {
+                    throw new InvalidOperationException(
+                        $"{PositionMismatchCode}: stack '{record.stackId}' preserves source-storage provenance outside Stored/Carried custody.");
+                }
             }
 
             if (destinationId.StartsWith(

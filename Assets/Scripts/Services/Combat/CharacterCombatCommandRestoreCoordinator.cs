@@ -32,6 +32,7 @@ internal sealed class CharacterCombatCommandRestoreCoordinator
     }
 
     internal string ParticipantId => RestoreParticipantId;
+    internal bool IsRestoring => restoreTransactionActive || publicationPendingCompletion;
 
     internal CharacterCombatCommandRestoreCandidate PrepareRestore(
         CharacterCombatCommandSaveData payload)

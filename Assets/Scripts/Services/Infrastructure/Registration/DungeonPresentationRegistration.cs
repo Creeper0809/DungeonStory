@@ -180,6 +180,22 @@ public static class DungeonPresentationRegistration
             .As<INoticeFeedItemFactory>();
         builder.Register<NoticeFeedPresenter>(Lifetime.Singleton)
             .As<INoticeFeedPresenter>();
+        builder.Register<CharacterGameplayOutcomeEntityNameResolver>(
+                Lifetime.Singleton)
+            .As<IGameplayOutcomeEntityNameResolver>();
+        builder.Register<FacilityGameplayOutcomeEntityNameResolver>(
+                Lifetime.Singleton)
+            .As<IGameplayOutcomeEntityNameResolver>();
+        builder.Register<GameplayOutcomeDisplayNameQuery>(Lifetime.Singleton)
+            .As<IGameplayOutcomeDisplayNameQuery>();
+        builder.Register<GameplayOutcomePresentationQuery>(Lifetime.Singleton)
+            .As<IGameplayOutcomePresentationQuery>();
+        builder.Register<GameplayOutcomeNarrativeEvidenceQuery>(
+                Lifetime.Singleton)
+            .As<IGameplayOutcomeNarrativeEvidenceQuery>();
+        builder.Register<GameplayOutcomeEvidenceUseTransaction>(
+                Lifetime.Singleton)
+            .As<IGameplayOutcomeEvidenceUseTransaction>();
         builder.Register<DomainFailureLocalizer>(Lifetime.Singleton)
             .As<IDomainFailureLocalizer>()
             .As<IDefenseUiTextQuery>();

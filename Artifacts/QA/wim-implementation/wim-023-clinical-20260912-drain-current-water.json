@@ -1,0 +1,38 @@
+{
+  "success": true,
+  "command": "command eval",
+  "data": {
+    "command": "eval",
+    "parameters": {
+      "code": "var s = UnityEngine.Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>(); var items = (IWorldItemStackRuntime)s.Container.Resolve(typeof(IWorldItemStackRuntime)); return System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(System.Linq.Enumerable.Where(items.GetAllStacks(), x => x.StackId == \"stack:3498dda171774831961b9c453c987071\" || x.DestinationId == \"surgery-materials:surgery:1\"), x => new { x.StackId, x.ItemId, x.Quantity, x.State, x.DestinationId, x.Position }));"
+    },
+    "result": {
+      "output": null,
+      "diagnostics": [],
+      "success": true,
+      "result": [
+        {
+          "StackId": "stack:3498dda171774831961b9c453c987071",
+          "ItemId": "resource:clean-water",
+          "Quantity": 1,
+          "State": 2,
+          "DestinationId": "surgery-materials:surgery:1",
+          "Position": {
+            "x": 36,
+            "y": 0,
+            "magnitude": 36,
+            "sqrMagnitude": 1296
+          }
+        }
+      ]
+    },
+    "target": {
+      "host": "127.0.0.1",
+      "port": 7801,
+      "projectPath": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory"
+    },
+    "success": true
+  },
+  "errors": [],
+  "warnings": []
+}

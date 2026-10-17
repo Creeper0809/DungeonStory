@@ -4,10 +4,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEngine;
 
-public static class ProductionEconomyDebugScenarios
+public static partial class ProductionEconomyDebugScenarios
 {
     [MenuItem("DungeonStory/Debug/Economy/Run Production Economy Contracts")]
     public static void RunFromMenu()
@@ -46,6 +47,33 @@ public static class ProductionEconomyDebugScenarios
         Debug.Log("Production economy contracts passed.");
     }
 
+    public static void RunNonProductionRetargetFocused()
+    {
+        string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        if (string.IsNullOrWhiteSpace(output) || Directory.Exists(output))
+            throw new InvalidOperationException("A new retarget evidence directory is required.");
+        Directory.CreateDirectory(output);
+        string failure = string.Empty;
+        try
+        {
+            ValidateProductionFacilityEnumerationBoundary();
+            ProductionActiveMultiFacilityRetargetDebugScenarios.VerifyFromMenu();
+        }
+        catch (Exception error) { failure = error.ToString(); }
+        using (FileStream stream = new(Path.Combine(output, "report.json"), FileMode.CreateNew))
+        using (StreamWriter writer = new(stream))
+            writer.Write(Newtonsoft.Json.JsonConvert.SerializeObject(new
+            {
+                passed = failure.Length == 0, failure,
+                checks = new[] { "non-production-retarget-apply", "non-production-exact-rollback",
+                    "non-production-restore", "malformed-workstation-rejected",
+                    "active-production-identity-and-rollback" },
+                trainingEligible = false, humanApprovalClaimed = false
+            }));
+        if (failure.Length > 0) throw new InvalidOperationException(failure);
+        Debug.Log("Non-production facility retarget contracts PASS.");
+    }
+
     [MenuItem("DungeonStory/V27/Production/Verify Frozen Standard Output")]
     public static void RunFrozenStandardOutputFocused()
     {
@@ -53,10 +81,37 @@ public static class ProductionEconomyDebugScenarios
         Debug.Log("Frozen standard production output contracts passed.");
     }
 
+    public static void RunWim006ProductionQualityFocused()
+    {
+        ValidatePhysicalProductionBill(verifyAutomaticQuality: true);
+        ValidatePassiveBatchProduction();
+        Debug.Log("WIM006 production aggregate automatic/mixed/frozen output and passive batch PASS.");
+    }
+
+    public static void RunWimSharedProductionQualityTargetFocused()
+    {
+        ValidatePhysicalProductionBill(verifyAutomaticQuality: true);
+        Directory.CreateDirectory("Artifacts/QA/wim-implementation");
+        File.WriteAllText("Artifacts/QA/wim-implementation/wim-006-shared-quality-target.txt",
+            "PASS\nshared-command-and-current-format-restore=PASS\ninvalid-target-restore-atomic-rejection=PASS"
+            + "\nautomatic-unreachable-before-inputs-and-utilities=PASS\nmanual-versus-automatic-current-grade=PASS"
+            + "\nin-progress-target-mutation-rejected=PASS\nfrozen-output-regression=PASS"
+            + "\nmain-live-ui-automatic-tick=NOT_RUN\n", new System.Text.UTF8Encoding(false));
+    }
+
     public static void RunPreparedOutputRealAdapterFocused()
     {
         ValidateProcessLossPreparedOutputRealAdapter();
         Debug.Log("Prepared-output real adapter contracts passed.");
+    }
+
+    public static void RunPreparedOutputResolutionForBatch()
+    {
+        if (!Application.isBatchMode)
+            throw new InvalidOperationException("Production resolution verification requires isolated batch execution.");
+        ValidateProcessLossPreparedOutputRealAdapter();
+        ValidateRuinedPreparedOutputMaximumProof();
+        Debug.Log("ARCHITECTURE_PRODUCTION_RESOLUTION=PASS; normal; declared loss; ruined; source proof; JSON restore; replay");
     }
 
     public static void RunZeroInputSourceBillFocused()
@@ -1596,16 +1651,16 @@ public static class ProductionEconomyDebugScenarios
                 warehouseSource,
                 "facilityBufferMassAdmission.TryReserveExactLot(") == 1,
             "production item retargeting must use one preflighted exact transaction and retain no partial spawn path");
-        string billRuntimeSource = File.ReadAllText(Path.Combine(
+        string billTerminalRuntimeSource = File.ReadAllText(Path.Combine(
             Application.dataPath,
             "Scripts",
             "Models",
             "Economy",
             "Content",
-            "ProductionBillRuntime.cs"));
+            "ProductionBillTerminalRuntime.cs"));
         Require(
             CountOrdinalOccurrences(
-                billRuntimeSource,
+                billTerminalRuntimeSource,
                 "items.TryReleaseDestinationAtomically(") == 4,
             "every production-bill claim-revocation path must close carried delivery ownership atomically");
 
@@ -2625,6 +2680,36 @@ public static class ProductionEconomyDebugScenarios
                 && !nonProductionRuntime.HasStockSensor(nonProduction),
                 "read-only production queries did not safely ignore a non-production entry");
 
+            using (WorldItemStackRuntime physical = PhysicalItemDebugScenarios
+                       .CreateRuntimeForCrossDomainFixture(out WorldItemRepository repository, out _))
+            {
+                nonProductionDefinition.ConfigureAuthoredContentIdentity(
+                    "building:qa:non-production-retarget", 1,
+                    "QA non-production facility retarget identity.");
+                ProductionOnlyRetargetPersistence persistence = new(nonProductionRuntime.Core);
+                ProductionActiveFacilityRetargetStateStore retarget = new(
+                    persistence, physical, repository.HaulDeliveryIntents, nonProductionRuntime.Bridge);
+                ProductionFacilityHandle source = nonProductionRuntime.Bridge.CaptureFacility(nonProduction);
+                ProductionFacilityRetargetRequest[] requests =
+                    { new(source, ProductionFacilityMutationKind.Evolution) };
+                ProductionFacilityRetargetBinding[] bindings =
+                    { new(source.InstanceId, source) };
+                Require(retarget.TryCapture(requests, out ProductionActiveFacilityRetargetSnapshot before,
+                    out string captureFailure), "Non-production retarget capture failed: " + captureFailure);
+                Require(retarget.TryApply(before, requests, bindings, out var applied, out string applyFailure)
+                    && applied.Fingerprint == before.Fingerprint,
+                    "Non-production retarget mutated production authority: " + applyFailure);
+                persistence.FailNextRestore = true;
+                Require(!retarget.TryApply(before, requests, bindings, out _, out string rejected)
+                    && rejected.StartsWith("active-retarget-apply-failed:", StringComparison.Ordinal)
+                    && retarget.TryCaptureCurrentFingerprint(out string afterFailure, out _)
+                    && afterFailure == before.Fingerprint,
+                    "Failed non-production retarget did not restore exact authority: " + rejected);
+                Require(retarget.TryRestore(before, requests, out string restored, out string restoreFailure)
+                    && restored == before.Fingerprint && persistence.RestoreCount == 4,
+                    "Non-production source restore failed: " + restoreFailure);
+            }
+
             ProductionRuntimeFixture invalidRuntime = CreateRuntime(
                 catalog,
                 new FakeProductionItemGateway(),
@@ -2687,7 +2772,7 @@ public static class ProductionEconomyDebugScenarios
         }
     }
 
-    private static void ValidatePhysicalProductionBill()
+    private static void ValidatePhysicalProductionBill(bool verifyAutomaticQuality = false)
     {
         ProductionRecipeSO recipe = ScriptableObject.CreateInstance<ProductionRecipeSO>();
         ResourceItemDefinitionSO grain =
@@ -2785,6 +2870,8 @@ public static class ProductionEconomyDebugScenarios
             });
             building.id = 99101;
             building.objectName = "시험 제분소";
+            if (verifyAutomaticQuality)
+                abilities.Add(new BuildingAutomationAbility { automaticQualityCap = 0.75f });
             building.ReplaceAbilities(abilities);
 
             BuildableObject facility =
@@ -2801,6 +2888,7 @@ public static class ProductionEconomyDebugScenarios
             BufferedExactOutputTestHandler testOutputHandler = new(
                 items,
                 "material:test-flour");
+            testOutputHandler.TracksQualityCeiling = verifyAutomaticQuality;
             ProductionRuntimeFixture runtime = CreateRuntime(
                 catalog,
                 items,
@@ -2815,6 +2903,32 @@ public static class ProductionEconomyDebugScenarios
             Require(added.Succeeded, added.Failure.Code.ToString());
             string inputDestination = ProductionBillRuntime.DestinationPrefix
                 + added.BillId.Value;
+            if (verifyAutomaticQuality)
+            {
+                Require(runtime.Core.SetMinimumCraftQuality(added.BillId, 6).Succeeded,
+                    "Shared quality target command rejected a supported grade.");
+                ProductionBillSnapshot preview = runtime.GetBills(facility).Single();
+                Require(preview.MinimumCraftQuality == 6 && preview.CurrentManualCraftQuality == 6
+                    && preview.CurrentAutomaticCraftQuality == 4, "Manual/automatic target preview disagrees with handler.");
+                var savedTarget = runtime.Core.Capture();
+                Require(savedTarget.bills.Single().minimumCraftQuality == 6, "Target missing from save.");
+                runtime.Core.Restore(runtime.Core.BuildRestore(savedTarget));
+                Require(runtime.GetBills(facility).Single().MinimumCraftQuality == 6, "Target lost across restore.");
+                string before = JsonUtility.ToJson(runtime.Core.Capture());
+                ProductionWorkBeginResult unavailable = runtime.Core.BeginWork(null,
+                    runtime.Bridge.CaptureFacility(facility), recipe.WorkTypeId);
+                Require(!unavailable.Succeeded && unavailable.Failure.Code == FailureCode.QualityTargetUnreachable
+                    && JsonUtility.ToJson(runtime.Core.Capture()) == before,
+                    "Unreachable automatic target consumed input/utility or mutated the cycle.");
+                savedTarget.bills[0].minimumCraftQuality = 8;
+                bool rejected = false;
+                try { runtime.Core.BuildRestore(savedTarget); }
+                catch (InvalidOperationException) { rejected = true; }
+                Require(rejected && JsonUtility.ToJson(runtime.Core.Capture()) == before,
+                    "Invalid target restore was accepted or partially published.");
+                Require(runtime.Core.SetMinimumCraftQuality(added.BillId, -1).Succeeded,
+                    "Quality condition could not be disabled before production.");
+            }
             Require(
                 runtime.DestinationClaims.TryGetClaim(
                     inputDestination,
@@ -2884,6 +2998,13 @@ public static class ProductionEconomyDebugScenarios
                 BuiltInWorkTypeIds.Craft);
             Require(begin.Succeeded,
                 $"could not begin production: {begin.Failure.Code}");
+            if (verifyAutomaticQuality)
+            {
+                string before = JsonUtility.ToJson(runtime.Core.Capture());
+                Require(!runtime.Core.SetMinimumCraftQuality(added.BillId, 3).Succeeded
+                    && before == JsonUtility.ToJson(runtime.Core.Capture()),
+                    "Changing target during production mutated WIP or order state.");
+            }
             ProductionBillSnapshot started = begin.Bill;
             Require(items.GetDelivered("resource:test-grain") == 0,
                 "delivered materials were not consumed at work start");
@@ -3145,11 +3266,13 @@ public static class ProductionEconomyDebugScenarios
                 "invalid production WIP receipt was not rejected atomically");
 
             items.FailBufferedOutputAfterSuccesses(1);
-            ProductionWorkExecutionResult blockedOutput = restored.ExecuteWork(
-                worker,
-                facility,
-                restoredBill.BillId,
-                6f);
+            if (verifyAutomaticQuality)
+                Require(restored.Core.SetWorkerPolicy(restoredBill.BillId,
+                    new WorkerSelectionPolicySaveData()).Succeeded, "Could not release worker for mixed contribution test.");
+            ProductionWorkExecutionResult blockedOutput = verifyAutomaticQuality
+                ? restored.Core.ExecuteWork(ProductionWorkerHandle.AutomaticExecutor,
+                    restored.Bridge.CaptureFacility(facility), restoredBill.BillId, 6f)
+                : restored.ExecuteWork(worker, facility, restoredBill.BillId, 6f);
             Require(!blockedOutput.Succeeded && !blockedOutput.CycleCompleted,
                 "blocked production output unexpectedly completed");
             Require(items.GetAvailable("material:test-flour") == 1,
@@ -3158,6 +3281,14 @@ public static class ProductionEconomyDebugScenarios
             DungeonProductionBillSaveData resolvedOutputPayload =
                 JsonUtility.FromJson<DungeonProductionBillSaveData>(
                     resolvedOutputSave);
+            if (verifyAutomaticQuality)
+            {
+                Require(testOutputHandler.QualityCeilingCallCount == 1
+                    && testOutputHandler.LastMaximumScore == 75f
+                    && resolvedOutputPayload.bills[0].resolvedOutputs[0].qualityModifier == 0.75f,
+                    "Mixed work ceiling was not applied exactly once and frozen in the output authority.");
+                building.GetAbility<BuildingAutomationAbility>().automaticQualityCap = 0.50f;
+            }
             Require(resolvedOutputPayload.bills[0].outputOutcomeResolved
                     && resolvedOutputPayload.bills[0].resolvedOutputs.Count == 1
                     && resolvedOutputPayload.bills[0].resolvedOutputs[0].itemId
@@ -3384,6 +3515,9 @@ public static class ProductionEconomyDebugScenarios
                 1f);
             Require(restoredWork.Succeeded && restoredWork.CycleCompleted,
                 "restored resolved production output did not complete");
+            if (verifyAutomaticQuality)
+                Require(testOutputHandler.QualityCeilingCallCount == 1,
+                    "Restored output reran quality resolution after authored cap changed.");
             Require(items.GetAvailable("material:test-flour") == 2,
                 "production output was not spawned as a physical stack");
             ProductionBillSnapshot repeated = outputRestored
@@ -5246,14 +5380,30 @@ public static class ProductionEconomyDebugScenarios
         IGameClock clock = null,
         IProductionPreparedOutputExecutionPort preparedOutputExecution = null,
         IProductionPreparedOutputRoutingAuthority preparedOutputRouting = null,
-        IEnumerable<IProductionOutputHandler> outputHandlers = null)
+        IEnumerable<IProductionOutputHandler> outputHandlers = null,
+        Func<IProductionAssemblyBridge, IProductionPreparedOutputExecutionPort>
+            preparedOutputFactory = null,
+        IProductionRecipeExecutionReceiptAuthority recipeExecutionReceipts = null,
+        IDomainFactStagingPublisher commandObservations = null,
+        IDomainFactRecoveryPublisher commandRecovery = null,
+        IGameCalendar calendar = null,
+        Func<
+            ProductionAggregateStateStore,
+            IProductionRecipeExecutionReceiptAuthority>
+            recipeExecutionReceiptsFactory = null)
     {
+        if (recipeExecutionReceipts != null
+            && recipeExecutionReceiptsFactory != null)
+        {
+            throw new InvalidOperationException(
+                "Production fixture cannot accept both a recipe-execution receipt instance and factory.");
+        }
         workshops ??= EmptyProductionWorkshopRuntime.Instance;
         buildingWorld ??= new FixedBuildingWorldQuery();
         power ??= new MutablePowerRuntime();
         clock ??= new MutableGameClock();
-        preparedOutputExecution ??=
-            FailLoudPreparedOutputExecutionPort.Instance;
+        // Each isolated production fixture uses one explicit session date.
+        calendar ??= new EditorFixedGameCalendar(137, 9);
         NoOpWorkforceReplanService workforce =
             NoOpWorkforceReplanService.Instance;
         IProductionInputLogisticsService inputLogistics =
@@ -5290,6 +5440,22 @@ public static class ProductionEconomyDebugScenarios
                 CharacterAiEditorTestDependencies.NeutralPerformance);
         IProductionOutputPlanningService outputPlanning =
             new ProductionOutputPlanningService(catalog, bridge);
+        if (preparedOutputFactory != null)
+        {
+            if (preparedOutputExecution != null)
+            {
+                throw new InvalidOperationException(
+                    "Production fixture cannot accept both a prepared-output instance and factory.");
+            }
+            preparedOutputExecution = preparedOutputFactory(bridge)
+                ?? throw new InvalidOperationException(
+                    "Production fixture prepared-output factory returned null.");
+        }
+        preparedOutputExecution ??=
+            FailLoudPreparedOutputExecutionPort.Instance;
+        IProductionRuinedBatchExecutionPort ruinedBatchExecution =
+            preparedOutputExecution as IProductionRuinedBatchExecutionPort
+            ?? FailLoudPreparedOutputExecutionPort.Instance;
         IProductionOutputExecutionService outputExecution =
             new ProductionOutputExecutionService(
                 bridge,
@@ -5299,6 +5465,13 @@ public static class ProductionEconomyDebugScenarios
         DungeonRuntimeAggregateRootStore productionRoots = new();
         ProductionAggregateStateStore stateStore =
             new ProductionAggregateStateStore(productionRoots);
+        if (recipeExecutionReceiptsFactory != null)
+        {
+            recipeExecutionReceipts = recipeExecutionReceiptsFactory(
+                    stateStore)
+                ?? throw new InvalidOperationException(
+                    "Production fixture recipe-execution receipt factory returned null.");
+        }
         FacilityBufferDestinationClaimRegistry destinationClaims = new();
         EmptyFacilityBufferPhysicalOccupancyQuery occupancy = new();
         FacilityBufferMassAdmissionService destinationCapacities = new(
@@ -5347,16 +5520,20 @@ public static class ProductionEconomyDebugScenarios
             stockSensors,
             stateStore,
             inputDestinationClaims,
-            new ProductionFacilityMutationEpochRuntime());
+            new ProductionFacilityMutationEpochRuntime(),
+            commandObservations: commandObservations,
+            commandRecovery: commandRecovery,
+            calendar: calendar);
         ProductionBillExecutionDependencies execution = new(
             outputPlanning,
             outputExecution,
             preparedOutputExecution,
-            FailLoudPreparedOutputExecutionPort.Instance,
+            ruinedBatchExecution,
             snapshots,
             bridge,
             clock,
-            preparedOutputRouting);
+            preparedOutputRouting,
+            recipeExecutionReceipts);
         ProductionBillRuntime core = new(order, execution);
         ProductionBillSceneFacade scene = new(
             core,
@@ -5366,6 +5543,7 @@ public static class ProductionEconomyDebugScenarios
             ManualExecutionModeQuery.Instance,
             new ExtremeTraitRuntime(new CharacterIdentityStateStore()),
             clock,
+            calendar,
             new CharacterIdentityEventPublisher(new GameEventBus()));
         return new ProductionRuntimeFixture(
             core,
@@ -5674,6 +5852,31 @@ public static class ProductionEconomyDebugScenarios
             ProductionRecipeSO recipe) => new(
             "The production Economy fixture cannot execute migrated prepared-output recipe "
             + $"'{recipe?.RecipeId ?? "null"}' without an explicit Items adapter.");
+    }
+
+    private sealed class ProductionOnlyRetargetPersistence : IProductionBillDetachedFacilityPersistence
+    {
+        private readonly ProductionBillRuntime core;
+        public ProductionOnlyRetargetPersistence(ProductionBillRuntime core) => this.core = core;
+        public bool FailNextRestore { get; set; }
+        public int RestoreCount { get; private set; }
+        public DungeonProductionBillSaveData Capture() => core.Capture();
+        public ProductionBillRestoreCandidate BuildRestore(DungeonProductionBillSaveData snapshot) =>
+            core.BuildRestore(snapshot);
+        public void Restore(ProductionBillRestoreCandidate candidate) => core.Restore(candidate);
+        public void Restore(ProductionBillRestoreCandidate candidate,
+            IReadOnlyList<ProductionFacilityHandle> detachedFacilities)
+        {
+            RestoreCount++;
+            Require(detachedFacilities.Count == 0,
+                "Non-production replacement leaked into production capacity restore.");
+            if (FailNextRestore)
+            {
+                FailNextRestore = false;
+                throw new InvalidOperationException("Injected retarget publication failure.");
+            }
+            core.Restore(candidate, detachedFacilities);
+        }
     }
 
     private sealed class ProductionRuntimeFixture
@@ -6219,7 +6422,9 @@ public static class ProductionEconomyDebugScenarios
     /// </summary>
     private sealed class BufferedExactOutputTestHandler :
         IProductionOutputHandler,
-        IIdempotentProductionOutputHandler
+        IIdempotentProductionOutputHandler,
+        IProductionCraftQualityCeilingCapability,
+        IProductionDeterministicCraftQualityCapability
     {
         public const string Capability =
             "production-output:qa-buffered-exact";
@@ -6230,6 +6435,20 @@ public static class ProductionEconomyDebugScenarios
 
         private readonly IProductionOutputBufferGateway outputBuffer;
         private readonly HashSet<string> itemIds;
+        public bool TracksQualityCeiling;
+        public int QualityCeilingCallCount;
+        public float LastMaximumScore;
+
+        public int ResolveCraftQualityTier(float qualityModifier, float maximumScore) =>
+            (int)DeterministicCraftQualityResolver.FromScore(TracksQualityCeiling
+                ? Math.Min(95f, maximumScore) : 50f);
+
+        public float ApplyCraftQualityCeiling(float qualityModifier, float maximumScore)
+        {
+            QualityCeilingCallCount++;
+            LastMaximumScore = maximumScore;
+            return TracksQualityCeiling ? Math.Min(0.95f, maximumScore / 100f) : qualityModifier;
+        }
 
         public BufferedExactOutputTestHandler(
             IProductionOutputBufferGateway outputBuffer,
@@ -6592,10 +6811,16 @@ public static class ProductionEconomyDebugScenarios
                 return false;
             }
             int quantity = costs.Values.Sum();
+            long massGrams = costs.Aggregate(
+                0L,
+                (current, cost) => checked(
+                    current + GetDefinitionQuantityMassGrams(
+                        cost.Key,
+                        cost.Value)));
             receipt = new ProductionWipInputReceipt(
                 "test-wip:" + operationId,
                 quantity,
-                quantity * 1000L);
+                massGrams);
             return true;
         }
 

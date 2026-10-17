@@ -1,0 +1,16 @@
+case	result
+controlled-success-applied	PASS
+controlled-unapplied-rejection-retry	PASS
+controlled-publish-rollback-same-request-retry	PASS
+controlled-rollback-failure-requires-recovery	PASS
+controlled-legacy-rollback-image-failure-block	PASS
+controlled-completion-failure-all-cleanup-and-block	PASS
+controlled-hook-failure-remaining-hook-and-block	PASS
+controlled-fresh-container-recovery	PASS
+actual-observed-generation-matches-milestone-query	PASS
+actual-world-applied-hook-failure-and-single-safety-owner	PASS
+actual-pause-speed-save-and-rerestore-blocked	PASS
+actual-result-overlay-and-defense-cannot-resume	PASS
+actual-ui-applied-message-modal-and-disabled-commands	PASS
+actual-title-recovery-no-autosave-and-title-clock	PASS
+actual-fresh-gameplay-same-save-load-and-capture	PASS

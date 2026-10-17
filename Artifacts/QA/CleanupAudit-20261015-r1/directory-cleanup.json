@@ -1,0 +1,82 @@
+[
+  {
+    "path": "Assets/Sounds",
+    "meta": "Assets/Sounds.meta",
+    "metaSha256": "c11a174804303c1abf07a24168fc98bab5b68f0ca67505e0d96683024f7fb001"
+  },
+  {
+    "path": "Assets/Resources/SO/Stock/P1",
+    "meta": "Assets/Resources/SO/Stock/P1.meta",
+    "metaSha256": "5b3e2e246a77649aaf8d7f7cd8f03797a948f536c8fd13475e1d30f9c897d78c"
+  },
+  {
+    "path": "Assets/Scripts/Models/Economy/Treasury",
+    "meta": "Assets/Scripts/Models/Economy/Treasury.meta",
+    "metaSha256": "6ec2fc0d3ef46caa80a94dbcc3bc14234419b400eb4866b7dbb58b3e6092b6ae"
+  },
+  {
+    "path": "Assets/Scripts/Models/Survival/Core/Save",
+    "meta": "Assets/Scripts/Models/Survival/Core/Save.meta",
+    "metaSha256": "d3f9c6911732386480aa2465f92a786a21889274db44cad280a426bd49bdb2c6"
+  },
+  {
+    "path": "Assets/Scripts/Services/AI",
+    "meta": "Assets/Scripts/Services/AI.meta",
+    "metaSha256": "d0d2441c7a3e1963c02344854c1f88215c20a2c177681dd51eaceea81c27b6ce"
+  },
+  {
+    "path": "Assets/Scripts/Services/MetaIdentityRefresh",
+    "meta": "Assets/Scripts/Services/MetaIdentityRefresh.meta",
+    "metaSha256": "1d2e7b2d979668f4ec7e613f8c48db1ac25ce28cbf0d40802c3612fa664f1a56"
+  },
+  {
+    "path": "Assets/Scripts/Services/UI",
+    "meta": "Assets/Scripts/Services/UI.meta",
+    "metaSha256": "f2a7a32383d36dbb9ce1edfec1e91a1e89b8e362f9937a2ee366482a2b05e6a3"
+  },
+  {
+    "path": "Assets/Scripts/Services/Buildings/Work",
+    "meta": "Assets/Scripts/Services/Buildings/Work.meta",
+    "metaSha256": "abbb15dfd766c7c0c9393ac3bc8ec73b613deef6a1a7ae3452bd8c2618b451ad"
+  },
+  {
+    "path": "Assets/Scripts/Services/Character/Identity/Core",
+    "meta": "Assets/Scripts/Services/Character/Identity/Core.meta",
+    "metaSha256": "aa7378747a6eac9e498ae808a5c9125d794d9a95448cf8528847a4ac4d48932c"
+  },
+  {
+    "path": "Assets/Scripts/Services/Effects/Core",
+    "meta": "Assets/Scripts/Services/Effects/Core.meta",
+    "metaSha256": "763426a9d67c0bfeb1c0bebe8886b903e9165ee309b7ef001c0a8097b02fb26f"
+  },
+  {
+    "path": "Assets/Scripts/Services/Environment/Editor",
+    "meta": "Assets/Scripts/Services/Environment/Editor.meta",
+    "metaSha256": "0179fa3f7da8dad1b11e60b2b2a470af97c2702e69dc4fbd2f1924e662fd2c76"
+  },
+  {
+    "path": "Assets/Scripts/Services/Exterior/Editor",
+    "meta": "Assets/Scripts/Services/Exterior/Editor.meta",
+    "metaSha256": "cf50ee96e7ce9102d42da7a6e26e95310b2cc6c35ae2328fa1672a5e556a7c12"
+  },
+  {
+    "path": "Assets/Scripts/Services/Research/Work",
+    "meta": "Assets/Scripts/Services/Research/Work.meta",
+    "metaSha256": "955ac6881f52ee55b25e011f3291cb14ba7099b50bdd6f2311fc9dbba53057c5"
+  },
+  {
+    "path": "AgentScripts",
+    "meta": null,
+    "metaSha256": null
+  },
+  {
+    "path": "Assets/Scripts/Services/Environment",
+    "meta": "Assets/Scripts/Services/Environment.meta",
+    "metaSha256": "145a1de6ffb10537c1e1608ea4b2610640251719a778841278e196adb54cd055"
+  },
+  {
+    "path": "Assets/Scripts/Services/Exterior",
+    "meta": "Assets/Scripts/Services/Exterior.meta",
+    "metaSha256": "4abab0ad554f4153fe7cc0c13beb20a17b3731999642f4396dfdf6f740f21d32"
+  }
+]

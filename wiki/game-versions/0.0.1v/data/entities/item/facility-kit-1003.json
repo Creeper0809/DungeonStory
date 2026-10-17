@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "배식카운터에서 식재료를 손질하고 조리해 끼니를 내는 데 필요한 설치 부품이며, 이 규격은 큰솥의 몫에 쓰는 시설에도 맞는다.",
+  "in_game_description": "배식카운터에서 식재료를 손질하고 조리해 끼니를 내는 데 필요한 설치 부품이다. 하르나크의 큰솥의 몫은 배식카운터의 불을 올리기 전 밤 경비와 어린 주민의 그릇부터 늘어놓는다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

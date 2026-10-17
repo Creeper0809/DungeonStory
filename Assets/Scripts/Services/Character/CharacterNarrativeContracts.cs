@@ -1,50 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
-public readonly struct CharacterBackgroundId : IEquatable<CharacterBackgroundId>
-{
-    public CharacterBackgroundId(string value) => Value = value?.Trim() ?? string.Empty;
-    public string Value { get; }
-    public bool IsValid => Value.StartsWith("background:", StringComparison.Ordinal);
-    public bool Equals(CharacterBackgroundId other) => string.Equals(Value, other.Value, StringComparison.Ordinal);
-    public override bool Equals(object obj) => obj is CharacterBackgroundId other && Equals(other);
-    public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Value ?? string.Empty);
-    public override string ToString() => Value;
-}
-
-public readonly struct CharacterAmbitionId : IEquatable<CharacterAmbitionId>
-{
-    public CharacterAmbitionId(string value) => Value = value?.Trim() ?? string.Empty;
-    public string Value { get; }
-    public bool IsValid => Value.StartsWith("ambition:", StringComparison.Ordinal);
-    public bool Equals(CharacterAmbitionId other) => string.Equals(Value, other.Value, StringComparison.Ordinal);
-    public override bool Equals(object obj) => obj is CharacterAmbitionId other && Equals(other);
-    public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Value ?? string.Empty);
-    public override string ToString() => Value;
-}
-
-public readonly struct SpeciesCultureId : IEquatable<SpeciesCultureId>
-{
-    public SpeciesCultureId(string value) => Value = value?.Trim() ?? string.Empty;
-    public string Value { get; }
-    public bool IsValid => Value.StartsWith("culture:", StringComparison.Ordinal);
-    public bool Equals(SpeciesCultureId other) => string.Equals(Value, other.Value, StringComparison.Ordinal);
-    public override bool Equals(object obj) => obj is SpeciesCultureId other && Equals(other);
-    public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Value ?? string.Empty);
-    public override string ToString() => Value;
-}
-
-public readonly struct NarrativeEventId : IEquatable<NarrativeEventId>
-{
-    public NarrativeEventId(string value) => Value = value?.Trim() ?? string.Empty;
-    public string Value { get; }
-    public bool IsValid => Value.StartsWith("life-event:", StringComparison.Ordinal);
-    public bool Equals(NarrativeEventId other) => string.Equals(Value, other.Value, StringComparison.Ordinal);
-    public override bool Equals(object obj) => obj is NarrativeEventId other && Equals(other);
-    public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Value ?? string.Empty);
-    public override string ToString() => Value;
-}
+using DungeonStory.Foundation.Facts;
 
 public enum CharacterAmbitionStatus
 {
@@ -196,6 +153,8 @@ public sealed class CharacterNarrativeSnapshot
     public SpeciesCultureId CultureId { get; internal set; }
     public CharacterAmbitionId ActiveAmbitionId { get; internal set; }
     public CharacterAmbitionStatus AmbitionStatus { get; internal set; }
+    public int AmbitionStartedAbsoluteDay { get; internal set; }
+    public int AmbitionDueAbsoluteDay { get; internal set; }
     public int AmbitionProgress { get; internal set; }
     public int NextAmbitionAllowedAbsoluteDay { get; internal set; }
     public SpeciesCultureId AssimilationTargetCultureId { get; internal set; }
@@ -276,12 +235,95 @@ public static class BackgroundFactionReactionRules
 [Serializable]
 public sealed class CharacterNarrativeWorldSaveData
 {
-    public const int CurrentVersion = 9;
+    public const int CurrentVersion = 14;
     public int version = CurrentVersion;
     public List<CharacterNarrativeSaveData> characters = new();
     public List<CharacterIdentityRuntimeStateSaveData> identityStates = new();
     public List<WorkCompletionIdentityDeliveryCursorSaveData>
         workCompletionDeliveries = new();
+    public int nextTraitAnalysisOperationSequence;
+    public TraitAnalysisCommitSaveData pendingTraitAnalysis = new();
+    public List<CharacterAmbitionTransitionObservationSaveData> ambitionTransitionObservations = new();
+}
+
+public enum TraitAnalysisCommitPhase
+{
+    None = 0,
+    IntentRecorded = 1,
+    RevealPublished = 2,
+    OutcomePublished = 3
+}
+
+[Serializable]
+public sealed class TraitAnalysisCommitSaveData
+{
+    public int phase;
+    public int operationSequence;
+    public string operationId = string.Empty;
+    public string characterId = string.Empty;
+    public string characterDisplayName = string.Empty;
+    public string facilityInstanceId = string.Empty;
+    public string facilityDefinitionId = string.Empty;
+    public string facilityDisplayName = string.Empty;
+    public string itemId = string.Empty;
+    public string sourceStackId = string.Empty;
+    public int absoluteDay;
+    public List<string> latentTraitIds = new();
+    public string physicalCommitId = string.Empty;
+    public List<string> physicalSourceStackIds = new();
+    public long physicalInputMassGrams;
+    public string publicationKey = string.Empty;
+    public string publicationId = string.Empty;
+    public string publicationFingerprint = string.Empty;
+
+    public HeritableTraitsAnalyzedFact CreateCompletedFact() => new(new HeritableTraitsAnalyzedFactData
+    {
+        operationId = operationId, operationSequence = operationSequence,
+        characterId = characterId, characterDisplayName = characterDisplayName,
+        facilityInstanceId = facilityInstanceId, facilityDefinitionId = facilityDefinitionId,
+        kitItemId = itemId, physicalCommitId = physicalCommitId,
+        sourceStackIds = physicalSourceStackIds?.ToArray(), inputMassGrams = physicalInputMassGrams,
+        latentTraitIds = latentTraitIds?.ToArray(), absoluteDay = absoluteDay
+    });
+
+    public void ValidateObservationState()
+    {
+        bool Text(string value) => DomainFactValueSyntax.IsText(value, 4096, true)
+            && value == value.Trim();
+        if (!Text(publicationKey) || !Text(publicationId) || !Text(publicationFingerprint))
+            throw new InvalidOperationException("Trait-analysis observation metadata is invalid.");
+        bool key = publicationKey.Length > 0;
+        bool proof = publicationId.Length > 0;
+        if (proof != (publicationFingerprint.Length > 0)
+            || proof && !key
+            || phase < (int)TraitAnalysisCommitPhase.RevealPublished && (key || proof)
+            || phase == (int)TraitAnalysisCommitPhase.OutcomePublished && (!key || !proof))
+            throw new InvalidOperationException("Trait-analysis observation phase is inconsistent.");
+    }
+
+    public TraitAnalysisCommitSaveData Clone() => new()
+    {
+        phase = phase,
+        operationSequence = operationSequence,
+        operationId = operationId ?? string.Empty,
+        characterId = characterId ?? string.Empty,
+        characterDisplayName = characterDisplayName ?? string.Empty,
+        facilityInstanceId = facilityInstanceId ?? string.Empty,
+        facilityDefinitionId = facilityDefinitionId ?? string.Empty,
+        facilityDisplayName = facilityDisplayName ?? string.Empty,
+        itemId = itemId ?? string.Empty,
+        sourceStackId = sourceStackId ?? string.Empty,
+        absoluteDay = absoluteDay,
+        latentTraitIds = (latentTraitIds ?? new List<string>()).ToList(),
+        physicalCommitId = physicalCommitId ?? string.Empty,
+        physicalSourceStackIds = (physicalSourceStackIds
+                ?? new List<string>())
+            .ToList(),
+        physicalInputMassGrams = physicalInputMassGrams,
+        publicationKey = publicationKey,
+        publicationId = publicationId,
+        publicationFingerprint = publicationFingerprint
+    };
 }
 
 [Serializable]
@@ -292,6 +334,9 @@ public sealed class WorkCompletionIdentityDeliveryCursorSaveData
     public string deliveryId = string.Empty;
     public string payloadFingerprint = string.Empty;
     public WorkCompletionIdentityDeliveryDisposition disposition;
+    public bool notificationAttempted;
+    public WorkIdentityAppliedFactData observation = new();
+    public string publicationKey = string.Empty, publicationId = string.Empty, publicationFingerprint = string.Empty;
 
     public WorkCompletionIdentityDeliveryCursorSaveData Clone() => new()
     {
@@ -299,14 +344,21 @@ public sealed class WorkCompletionIdentityDeliveryCursorSaveData
         operationSequence = operationSequence,
         deliveryId = deliveryId ?? string.Empty,
         payloadFingerprint = payloadFingerprint ?? string.Empty,
-        disposition = disposition
+        disposition = disposition,
+        notificationAttempted = notificationAttempted,
+        observation = observation?.Clone(),
+        publicationKey = publicationKey,
+        publicationId = publicationId,
+        publicationFingerprint = publicationFingerprint
     };
 }
 
 public enum WorkCompletionIdentityDeliveryDisposition
 {
     EffectsApplied = 0,
-    TerminalRecipientUnavailable = 1
+    TerminalRecipientUnavailable = 1,
+    EffectsAppliedWithOutcome = 2,
+    EffectsAppliedPendingObservation = 3
 }
 
 [Serializable]
@@ -318,6 +370,8 @@ public sealed class CharacterNarrativeSaveData
     public string cultureId = string.Empty;
     public string activeAmbitionId = string.Empty;
     public CharacterAmbitionStatus ambitionStatus;
+    public int ambitionStartedAbsoluteDay;
+    public int ambitionDueAbsoluteDay;
     public int ambitionProgress;
     public int nextAmbitionAllowedAbsoluteDay;
     public string assimilationTargetCultureId = string.Empty;

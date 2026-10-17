@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "부패물과 분뇨를 굳힌 냄새나는 연료이다. 밀로세아 가도에서는 저급 연료 벽돌을 젖은 짐과 떨어뜨려 싣고, 냄새가 새면 가장 가까운 검문소에서 다시 말린다.",
+  "in_game_description": "부패물과 분뇨를 굳힌 냄새나는 연료이다. 밀로세아 가도를 지난 저급 연료 묶음에는 마지막 검문소의 색실이 하나씩 더해진다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

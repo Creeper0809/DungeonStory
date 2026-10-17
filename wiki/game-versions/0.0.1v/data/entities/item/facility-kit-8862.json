@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "가족 관계와 계승 기록을 정리하고 열람하도록 꾸린 계보 관리실 설치 부품이며, 베르사디온의 시설과도 체결 규격이 맞는다.",
+  "in_game_description": "계보 관리실에서 표본과 기록을 조사하는 공정을 맡기 위해 준비한 설치 부품이다. 베르사디온의 계보 관리실은 계약자가 손을 떼면 마나빛도 천천히 사라진다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

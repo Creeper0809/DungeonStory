@@ -1,0 +1,7 @@
+result=PASS
+authored=18 ordinary + 6 seasonal; charcoal8; no remote seasonal debit
+actual campaign occurrence/acceptance=exact faction+occurrence+deadline; ordinary/stale/wrong-target/duplicate reject
+controlled receipt -> staged seasonal/faction candidate restore -> reward once; cleanup and same-occurrence replay reject
+next-year same-faction authored occurrence: fresh destination/operation; old receipt rejected
+accepted deadline expiry: grievance+7 once; expired action rejected
+scope=isolated production campaign/catalog, controlled eligibility and receipt; real physical haul/UI/full-world coordinator NOT_RUN

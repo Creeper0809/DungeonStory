@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "surgery-prosthetic-brain-variant-human-neural-assist",
+    "spoiler_tier": "none",
+    "title": "인간 신경 보조기"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-brain-assist",
+      "label": "생산·해금",
+      "to": "item/surgery-prosthetic-brain-variant-human-neural-assist",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

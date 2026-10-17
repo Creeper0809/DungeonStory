@@ -92,8 +92,8 @@ public sealed class CombatEquipmentCraftTerminalAuthority :
 
         if (!TryCaptureExactOrder(ownerStableId, out var after, out failureReason)
             || !string.Equals(
-                JsonUtility.ToJson(before),
-                JsonUtility.ToJson(after),
+                CombatEquipmentSaveJson.SerializeOrder(before),
+                CombatEquipmentSaveJson.SerializeOrder(after),
                 StringComparison.Ordinal))
         {
             failureReason = "combat-craft-terminal-order-changed-during-capture";
@@ -310,7 +310,7 @@ public sealed class CombatEquipmentCraftTerminalAuthority :
                     out CombatEquipmentCraftOrderSaveData live,
                     out string missingFailure)
                 || !string.Equals(
-                    JsonUtility.ToJson(live),
+                    CombatEquipmentSaveJson.SerializeOrder(live),
                     source.SourcePayload,
                     StringComparison.Ordinal))
             {
@@ -375,7 +375,7 @@ public sealed class CombatEquipmentCraftTerminalAuthority :
                 StringComparison.Ordinal)).ToArray();
         if (matchingOrders.Length != 1
             || !string.Equals(
-                JsonUtility.ToJson(matchingOrders[0]),
+                CombatEquipmentSaveJson.SerializeOrder(matchingOrders[0]),
                 source.SourcePayload,
                 StringComparison.Ordinal))
         {
@@ -922,7 +922,7 @@ public sealed class CombatEquipmentCraftTerminalAuthority :
         CombatEquipmentCraftOrderSaveData order;
         try
         {
-            order = JsonUtility.FromJson<CombatEquipmentCraftOrderSaveData>(
+            order = DungeonSaveJson.Deserialize<CombatEquipmentCraftOrderSaveData>(
                 source.SourcePayload);
         }
         catch (Exception exception)
@@ -1131,7 +1131,7 @@ public sealed class CombatEquipmentCraftTerminalAuthority :
         CombatEquipmentCraftOrderSaveData order;
         try
         {
-            order = JsonUtility.FromJson<CombatEquipmentCraftOrderSaveData>(
+            order = DungeonSaveJson.Deserialize<CombatEquipmentCraftOrderSaveData>(
                 row.frozenSourcePayload);
         }
         catch (Exception exception)

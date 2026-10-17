@@ -1,0 +1,58 @@
+# WIM-063 retired facility removal — static implementation evidence
+
+Date: 2026-09-12
+Scope: approved retired facility reference transition and removal only.
+
+Removed content:
+- 21 `BuildingSO` asset/meta pairs with numeric IDs
+  `3,5,6,10,11,12,13,14,15,16,17,18,35,50,51,54,55,56,59,60,61`.
+- 21 corresponding `facility-kit:<id>` item asset/meta pairs.
+- 10 dedicated legacy `StockInfo` asset/meta pairs for shop IDs
+  `5,6,10,11,12,13,50,51,55,56`.
+- 3 retired-only guard-effect asset/meta pairs.
+- `ModularFacilityInitialPlacementMigrator.cs` and its meta.
+
+Reference transition:
+- `GameplayScene` and `SampleScene` nine retired initial rooms were serialized
+  directly as their established active modular parts plus de-duplicated interior
+  doors. Each scene has 138 unique initial rows; their sorted placement
+  multisets are identical; all 54 expected replacement rows are present.
+- `TestCharacter.favoriteStore` moved from retired building ID 5 to active
+  `S07_무기보관함` (ID 1018).
+- Domain, item, and narrative catalog entries for removed definitions were
+  removed. A post-review correction also removed the three deleted retired-only
+  guard-effect GUIDs from `GameDomainContentCatalog.asset`. Current Editor
+  fixtures reference active modular definitions.
+- Retired-only generation, conversion, and legacy-recipe verification paths
+  were removed; the supply-guard scenario now creates an in-memory deprecated
+  clone and no longer needs a retired static asset.
+
+Static results:
+- retired BuildingSO paths: 0
+- retired kit paths: 0
+- retired stock paths: 0
+- supported-source retired names: 0
+- one-regex scan of all 56 deleted meta GUIDs across supported `Assets`
+  (21 building + 21 kit + 10 stock + 3 guard effect + 1 migrator;
+  root-relative `!_Recovery/**` exclusion): 0 live references
+- retired `building:<id>` / `facility-kit:<id>` stable IDs: 0
+- `deprecatedCompatibilityAsset: 1` BuildingSO assets: 0
+- `ModularFacilityInitialPlacementMigrator` C# references: 0
+- key edited C# brace audit: balanced
+- modified item/narrative catalog and TestCharacter GUIDs missing from Assets: 0
+
+Preserved exclusions:
+- Shared prefabs, sprites, tactical sprites, materials, and sale-item assets.
+- Locked but active facilities.
+- 28 historical `Assets/_Recovery/*.unity` backups containing retired GUIDs;
+  these are not supported current scenes and were not rewritten or deleted.
+- Generated architecture/content-db snapshots still naming the deleted source;
+  KB/architecture regeneration was prohibited and they were not hand-edited.
+
+NOT_RUN by explicit task constraint:
+- Unity import/compile and Console gate
+- PlayMode / new-game placement and room usability
+- shop/basic purchase and facility-kit regeneration focused verification
+- Unity Missing-reference scan
+- knowledge-base or architecture/content-db regeneration
+- Git commands

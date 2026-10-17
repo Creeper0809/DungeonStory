@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "발을 감싸 땀을 흡수하고 신발 안쪽의 쓸림을 줄이는 얇은 의복이다. 하르나크에서 만든 양말은 발끝과 발목 둘레를 덧대기 쉽도록 여유 천을 남긴다.",
+  "in_game_description": "발을 감싸 땀을 흡수하고 신발 안쪽의 쓸림을 줄이는 얇은 의복이다. 하르나크제 양말의 솔기 안에는 뿔, 날개와 꼬리를 위한 여유 천이 접혀 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

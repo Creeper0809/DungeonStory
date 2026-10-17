@@ -62,16 +62,20 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         "머쓱", "다시", "딴생각", "퍼뜩", "깨어", "뒤늦", "정신", "차리", "헤매",
         "이리저리", "갈팡질팡", "괜히"
     };
+    private readonly NarrativeRequestContextBuilder requestContexts;
     private readonly ILocalLlmRuntimeProvider llmRuntimeProvider;
     private readonly CharacterRecordTemplateBank templateBank;
     private readonly ICharacterNarrativeTextQuery text;
     private readonly Dictionary<int, int> pendingRequestsByLog = new Dictionary<int, int>();
 
     public CharacterLogNarrativeService(
+        NarrativeRequestContextBuilder requestContexts,
         ILocalLlmRuntimeProvider llmRuntimeProvider,
         CharacterRecordTemplateBank templateBank,
         ICharacterNarrativeTextQuery text)
     {
+        this.requestContexts = requestContexts
+            ?? throw new ArgumentNullException(nameof(requestContexts));
         this.llmRuntimeProvider = llmRuntimeProvider
             ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));
         this.templateBank = templateBank
@@ -130,6 +134,7 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         CharacterActor actor = characterLog.GetComponent<CharacterActor>();
         string requiredSubject = BuildRequiredSubject(ResolveDisplayName(actor, characterLog));
         string prompt = BuildPrompt(
+            requestContexts,
             actor,
             characterLog,
             entry,
@@ -171,22 +176,32 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
     }
 
     public static string BuildPrompt(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterActor actor,
         CharacterLog characterLog,
         CharacterLogEntry entry,
         ICharacterNarrativeTextQuery text)
     {
         string requiredSubject = BuildRequiredSubject(ResolveDisplayName(actor, characterLog));
-        return BuildPrompt(actor, characterLog, entry, requiredSubject, text);
+        return BuildPrompt(
+            requestContexts,
+            actor,
+            characterLog,
+            entry,
+            requiredSubject,
+            text);
     }
 
     private static string BuildPrompt(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterActor actor,
         CharacterLog characterLog,
         CharacterLogEntry entry,
         string requiredSubject,
         ICharacterNarrativeTextQuery text)
     {
+        if (requestContexts == null)
+            throw new ArgumentNullException(nameof(requestContexts));
         CustomerPersonaData persona = actor != null && actor.PersonaRuntime != null
             ? actor.PersonaRuntime.Persona
             : null;
@@ -259,7 +274,7 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         builder.AppendLine($"requiredAnchorWords: {string.Join(", ", ExtractRequiredAnchors(entry.OriginalMessage))}");
         builder.AppendLine("Recent visible records to avoid repeating their phrasing:");
         AppendRecentLines(builder, characterLog, entry.DisplayLine);
-        return NarrativeRequestContextBuilder.ForActor(
+        return requestContexts.ForActor(
                 LocalLlmRequestProfiles.CharacterRecord.Id,
                 actor,
                 requireCharacterFact: true,
@@ -483,6 +498,7 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
 
         CharacterActor actor = characterLog.GetComponent<CharacterActor>();
         string prompt = BuildCorrectionPrompt(
+            requestContexts,
             actor,
             entry,
             requiredSubject,
@@ -513,12 +529,14 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
     }
 
     public static string BuildCorrectionPrompt(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterLogEntry entry,
         string rejectedResponse,
         string rejectionReason,
         ICharacterNarrativeTextQuery text)
     {
         return BuildCorrectionPrompt(
+            requestContexts,
             entry,
             string.Empty,
             rejectedResponse,
@@ -527,6 +545,7 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
     }
 
     public static string BuildCorrectionPrompt(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterLogEntry entry,
         string requiredSubject,
         string rejectedResponse,
@@ -534,6 +553,7 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         ICharacterNarrativeTextQuery text)
     {
         return BuildCorrectionPrompt(
+            requestContexts,
             null,
             entry,
             requiredSubject,
@@ -543,6 +563,7 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
     }
 
     private static string BuildCorrectionPrompt(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterActor actor,
         CharacterLogEntry entry,
         string requiredSubject,
@@ -550,6 +571,8 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         string rejectionReason,
         ICharacterNarrativeTextQuery text)
     {
+        if (requestContexts == null)
+            throw new ArgumentNullException(nameof(requestContexts));
         CustomerPersonaData persona = actor != null && actor.PersonaRuntime != null
             ? actor.PersonaRuntime.Persona
             : null;
@@ -598,7 +621,12 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
             builder.AppendLine($"Grounded base only; add the required harmless moment and do not return it unchanged: {groundedExample}");
         }
         builder.AppendLine($"Rejected response: {rejectedResponse}");
-        return builder.ToString();
+        return requestContexts.ForActor(
+                LocalLlmRequestProfiles.CharacterRecord.Id,
+                actor,
+                requireCharacterFact: true,
+                requireMotif: true)
+            .AppendToPrompt(builder.ToString());
     }
 
     public static string BuildControlledFallbackLine(

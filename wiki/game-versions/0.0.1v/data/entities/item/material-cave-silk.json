@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "동굴 비단은 의복과 안감, 생활용 천을 재단하는 직물 재료다. 특히 아일라세라산 동굴 비단에는 바람 절벽의 세 횡풍을 견뎠다는 푸른 깃매듭이 달려 있다.",
+  "in_game_description": "동굴 비단은 의복과 안감, 생활용 천을 재단하는 직물 재료다. 아일라세라산 동굴 비단에는 바람 절벽의 세 횡풍을 견뎠다는 푸른 깃매듭이 달려 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

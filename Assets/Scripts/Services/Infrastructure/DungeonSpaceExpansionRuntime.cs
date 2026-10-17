@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -9,18 +10,25 @@ public readonly struct DungeonSpaceExpansionDefinition
 {
     public DungeonSpaceExpansionDefinition(
         string researchProjectId,
+        string displayName,
         int tier,
         int targetInteriorColumns,
         int expectedPopulation)
     {
         ResearchProjectId = researchProjectId
             ?? throw new ArgumentNullException(nameof(researchProjectId));
+        DisplayName = string.IsNullOrWhiteSpace(displayName)
+            ? throw new ArgumentException(
+                "A dungeon-space expansion display name is required.",
+                nameof(displayName))
+            : displayName.Trim();
         Tier = tier;
         TargetInteriorColumns = targetInteriorColumns;
         ExpectedPopulation = expectedPopulation;
     }
 
     public string ResearchProjectId { get; }
+    public string DisplayName { get; }
     public int Tier { get; }
     public int TargetInteriorColumns { get; }
     public int ExpectedPopulation { get; }
@@ -53,7 +61,9 @@ public readonly struct DungeonSpaceExpansionResult
         int currentInteriorColumns,
         int previousGridWidth,
         int currentGridWidth,
-        bool changed)
+        bool changed,
+        long outcomeOwnerRevision = 0L,
+        bool publicationPending = false)
     {
         ResearchProjectId = researchProjectId ?? string.Empty;
         Tier = tier;
@@ -62,6 +72,8 @@ public readonly struct DungeonSpaceExpansionResult
         PreviousGridWidth = previousGridWidth;
         CurrentGridWidth = currentGridWidth;
         Changed = changed;
+        OutcomeOwnerRevision = outcomeOwnerRevision;
+        PublicationPending = publicationPending;
     }
 
     public string ResearchProjectId { get; }
@@ -72,6 +84,8 @@ public readonly struct DungeonSpaceExpansionResult
     public int PreviousGridWidth { get; }
     public int CurrentGridWidth { get; }
     public bool Changed { get; }
+    public long OutcomeOwnerRevision { get; }
+    public bool PublicationPending { get; }
 }
 
 public static class DungeonSpaceExpansionCatalog
@@ -93,16 +107,19 @@ public static class DungeonSpaceExpansionCatalog
     {
         new DungeonSpaceExpansionDefinition(
             QuarryResearchId,
+            "채석장",
             tier: 1,
             targetInteriorColumns: BasicSectorTargetColumns,
             expectedPopulation: 12),
         new DungeonSpaceExpansionDefinition(
             StonecuttingResearchId,
+            "석재 가공",
             tier: 2,
             targetInteriorColumns: SupportedSectorTargetColumns,
             expectedPopulation: 18),
         new DungeonSpaceExpansionDefinition(
             DeepMiningResearchId,
+            "심부 채굴",
             tier: 3,
             targetInteriorColumns: DeepSectorTargetColumns,
             expectedPopulation: 24)
@@ -113,6 +130,7 @@ public static class DungeonSpaceExpansionCatalog
     public static DungeonSpaceExpansionDefinition TierZeroInitialization =>
         new(
             TierZeroInitializationId,
+            "초기 지하 정비",
             tier: 0,
             targetInteriorColumns: InitialInteriorColumns,
             expectedPopulation: 6);
@@ -330,6 +348,9 @@ public interface IDungeonSpaceExpansionQuery
         out string failureReason);
     IReadOnlyList<DungeonSpaceExpansionDefinition> Definitions { get; }
     DungeonSpaceExpansionResult LastResult { get; }
+    bool HasPendingExpansion { get; }
+    string PendingResearchProjectId { get; }
+    string PendingFailureReason { get; }
 }
 
 public interface IDungeonSpaceExpansionCommand
@@ -341,19 +362,33 @@ public interface IDungeonSpaceExpansionCommand
 
 public sealed class DungeonSpaceExpansionRuntime :
     IStartable,
+    ITickable,
     IDisposable,
+    IDungeonSaveRestoreCompletedHook,
     IDungeonSpaceExpansionQuery,
     IDungeonSpaceExpansionCommand
 {
+    private const int RetryIntervalTicks = 60;
+
     private readonly IGameEventBus gameEvents;
     private readonly IGridSystemProvider gridSystem;
     private readonly IGridSystemPublisher gridPublisher;
+    private readonly IGameCalendar gameCalendar;
+    private readonly IDomainFactStagingPublisher facts;
+    private readonly IDomainFactRecoveryPublisher recovery;
+    private readonly IBlueprintResearchStateService researchStateService;
     private IDisposable researchCompletedSubscription;
+    private bool reconciliationRequested;
+    private int retryTicksRemaining;
 
     public DungeonSpaceExpansionRuntime(
         IGameEventBus gameEvents,
         IGridSystemProvider gridSystem,
-        IGridSystemPublisher gridPublisher)
+        IGridSystemPublisher gridPublisher,
+        IGameCalendar gameCalendar,
+        IDomainFactStagingPublisher facts,
+        IDomainFactRecoveryPublisher recovery,
+        IBlueprintResearchStateService researchStateService)
     {
         this.gameEvents = gameEvents
             ?? throw new ArgumentNullException(nameof(gameEvents));
@@ -361,11 +396,20 @@ public sealed class DungeonSpaceExpansionRuntime :
             ?? throw new ArgumentNullException(nameof(gridSystem));
         this.gridPublisher = gridPublisher
             ?? throw new ArgumentNullException(nameof(gridPublisher));
+        this.gameCalendar = gameCalendar
+            ?? throw new ArgumentNullException(nameof(gameCalendar));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
+        this.researchStateService = researchStateService
+            ?? throw new ArgumentNullException(nameof(researchStateService));
     }
 
     public IReadOnlyList<DungeonSpaceExpansionDefinition> Definitions =>
         DungeonSpaceExpansionCatalog.All;
     public DungeonSpaceExpansionResult LastResult { get; private set; }
+    public bool HasPendingExpansion { get; private set; }
+    public string PendingResearchProjectId { get; private set; } = string.Empty;
+    public string PendingFailureReason { get; private set; } = string.Empty;
 
     public void Start()
     {
@@ -376,6 +420,36 @@ public sealed class DungeonSpaceExpansionRuntime :
 
         researchCompletedSubscription = gameEvents
             .Subscribe<BlueprintResearchCompletedEvent>(OnResearchCompleted);
+    }
+
+    public void OnRestoreCompleted()
+    {
+        reconciliationRequested = true;
+        retryTicksRemaining = 0;
+    }
+
+    public void Tick()
+    {
+        if (!reconciliationRequested)
+        {
+            return;
+        }
+        if (retryTicksRemaining > 0)
+        {
+            retryTicksRemaining--;
+            return;
+        }
+
+        if (TryRecoverPendingPublication(out string failureReason)
+            && TryReconcileCompletedResearch(out failureReason))
+        {
+            reconciliationRequested = false;
+            ClearPendingExpansion();
+            return;
+        }
+
+        SetPendingExpansion(PendingResearchProjectId, failureReason, logFailure: false);
+        retryTicksRemaining = RetryIntervalTicks;
     }
 
     public void Dispose()
@@ -403,10 +477,13 @@ public sealed class DungeonSpaceExpansionRuntime :
 
     public bool TryApply(
         DungeonSpaceExpansionDefinition definition,
+        DungeonSpaceExpansionTrigger trigger,
+        string parentResearchPublicationKey,
         out DungeonSpaceExpansionResult result,
         out string failureReason)
     {
         result = default;
+        if (!TryRecoverPendingPublication(out failureReason)) return false;
         if (!gridSystem.TryGetGrid(out Grid liveGrid))
         {
             failureReason = "The live dungeon grid is unavailable.";
@@ -437,10 +514,35 @@ public sealed class DungeonSpaceExpansionRuntime :
                 current.ColumnCount,
                 liveGrid.width,
                 liveGrid.width,
-                changed: false);
+                changed: false,
+                outcomeOwnerRevision: current.ColumnCount);
             LastResult = result;
             failureReason = string.Empty;
             return true;
+        }
+
+        if (trigger == DungeonSpaceExpansionTrigger.ResearchCompletion)
+        {
+            if (string.IsNullOrWhiteSpace(parentResearchPublicationKey))
+            {
+                failureReason = "Dungeon-space research parent result key is invalid.";
+                return false;
+            }
+            BlueprintResearchState research = researchStateService.GetState();
+            if (research == null
+                || !research.Projects.CompletedProjectIds.Contains(definition.ResearchProjectId)
+                || !research.TryGetCompletedProjectResultKey(definition.ResearchProjectId, out string savedParent)
+                || savedParent != parentResearchPublicationKey)
+            {
+                failureReason = "Dungeon-space research parent differs from the completed project owner.";
+                return false;
+            }
+        }
+        else if (trigger != DungeonSpaceExpansionTrigger.NewRunInitialization
+            || definition.Tier != 0)
+        {
+            failureReason = "Dungeon-space expansion trigger does not match its tier.";
+            return false;
         }
 
         int targetEndExclusive = current.StartX + definition.TargetInteriorColumns;
@@ -511,12 +613,65 @@ public sealed class DungeonSpaceExpansionRuntime :
             return false;
         }
 
-        if (!gridPublisher.TryPublishGrid(liveGrid, replacement, out failureReason))
+        long outcomeOwnerRevision = expanded.ColumnCount;
+        var pending = new DungeonSpaceExpansionPublicationData
+        {
+            projectId = definition.ResearchProjectId, projectName = definition.DisplayName,
+            tier = definition.Tier, previousColumns = current.ColumnCount,
+            currentColumns = expanded.ColumnCount, previousWidth = liveGrid.width,
+            currentWidth = replacement.width, absoluteDay = Math.Max(0, gameCalendar.Current.AbsoluteDay),
+            entranceX = current.EntrancePosition.x, entranceY = current.EntrancePosition.y,
+            trigger = trigger, parentResearchPublicationKey = parentResearchPublicationKey ?? string.Empty
+        };
+        var fact = new DungeonSpaceExpandedFact(pending);
+        if (!TryStageFact(fact, out IDomainFactStage stage, out failureReason))
         {
             return false;
         }
+        if (stage.IsReplay)
+        {
+            stage.Cancel();
+            failureReason =
+                "A committed dungeon-space expansion outcome exists while the live grid is still behind its target.";
+            return false;
+        }
 
-        gridPublisher.CompleteGridPublication();
+        pending.active = true;
+        pending.publicationKey = stage.OperationKey;
+        replacement.SetSpaceExpansionPublication(pending);
+        if (!gridPublisher.TryPublishGrid(liveGrid, replacement, out failureReason))
+        {
+            stage.Cancel();
+            return false;
+        }
+
+        DomainFactDelivery delivery = stage.Commit();
+        if (!delivery.MayBeCommitted)
+        {
+            if (!gridPublisher.TryPublishGrid(
+                    replacement,
+                    liveGrid,
+                    out string rollbackFailure))
+            {
+                throw new InvalidOperationException(
+                    "Dungeon-space outcome commit failed and the published grid could not be rolled back: "
+                    + rollbackFailure);
+            }
+            result = default;
+            failureReason = "Dungeon-space outcome commit failed: "
+                + delivery.Detail;
+            return false;
+        }
+
+        bool uncertain = delivery.Phase == DomainFactDeliveryPhase.InDoubt;
+        if (!uncertain) replacement.ConfirmSpaceExpansionPublication(pending.publicationKey);
+        else
+        {
+            SetPendingExpansion(definition.ResearchProjectId, "space-publication-in-doubt:" + delivery.Detail, false);
+            reconciliationRequested = true;
+            retryTicksRemaining = RetryIntervalTicks;
+        }
+
         result = new DungeonSpaceExpansionResult(
             definition.ResearchProjectId,
             definition.Tier,
@@ -524,8 +679,56 @@ public sealed class DungeonSpaceExpansionRuntime :
             expanded.ColumnCount,
             liveGrid.width,
             replacement.width,
-            changed: true);
+            changed: true,
+            outcomeOwnerRevision: outcomeOwnerRevision,
+            publicationPending: uncertain);
         LastResult = result;
+        CompletePublicationSafely();
+        failureReason = uncertain ? PendingFailureReason : string.Empty;
+        return true;
+    }
+
+    private bool TryStageFact(DungeonSpaceExpandedFact fact, out IDomainFactStage stage, out string failure)
+    {
+        try { return facts.TryStage(fact, out stage, out failure); }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            stage = null;
+            failure = "space-observer-prepare-failed:" + exception.Message;
+            return false;
+        }
+    }
+
+    public bool TryRecoverPendingPublication(out string failureReason)
+    {
+        if (!gridSystem.TryGetGrid(out Grid grid))
+        { failureReason = "The live dungeon grid is unavailable."; return false; }
+        var pending = grid.CaptureSpaceExpansionPublication();
+        if (!pending.active) { failureReason = string.Empty; return true; }
+        var fact = new DungeonSpaceExpandedFact(pending);
+        fact.ValidateAppliedGrid(grid);
+        var results = new DomainFactDelivery[1];
+        bool published;
+        try
+        {
+            published = recovery.ReplayBatch(new[] { DomainFactReplay.Create(pending.publicationKey, fact) },
+                results, out failureReason);
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        { published = false; failureReason = "space-observer-recovery-failed:" + exception.Message; }
+        if (!published
+            || !results[0].MayBeCommitted || results[0].Phase == DomainFactDeliveryPhase.InDoubt)
+        {
+            if (string.IsNullOrEmpty(failureReason)) failureReason = "space-publication-pending:" + results[0].Detail;
+            SetPendingExpansion(pending.projectId, failureReason, false);
+            reconciliationRequested = true;
+            return false;
+        }
+        grid.ConfirmSpaceExpansionPublication(pending.publicationKey);
+        LastResult = new DungeonSpaceExpansionResult(pending.projectId, pending.tier,
+            pending.previousColumns, pending.currentColumns, pending.previousWidth, pending.currentWidth,
+            changed: false, outcomeOwnerRevision: fact.Revision);
+        ClearPendingExpansion();
         failureReason = string.Empty;
         return true;
     }
@@ -557,6 +760,8 @@ public sealed class DungeonSpaceExpansionRuntime :
 
         return TryApply(
             DungeonSpaceExpansionCatalog.TierZeroInitialization,
+            DungeonSpaceExpansionTrigger.NewRunInitialization,
+            default,
             out result,
             out failureReason);
     }
@@ -586,6 +791,25 @@ public sealed class DungeonSpaceExpansionRuntime :
         return blocking.Length > 0;
     }
 
+    private void CompletePublicationSafely()
+    {
+        try
+        {
+            gridPublisher.CompleteGridPublication();
+        }
+        catch (Exception exception) when (IsRecoverableObserverException(exception))
+        {
+            Debug.LogError(
+                "Dungeon-space publication observer failed after the domain/outbox commit: "
+                + exception.GetType().Name + ":" + exception.Message);
+        }
+    }
+
+    private static bool IsRecoverableObserverException(Exception exception) =>
+        exception is not OutOfMemoryException
+        && exception is not StackOverflowException
+        && exception is not AccessViolationException;
+
     private void OnResearchCompleted(BlueprintResearchCompletedEvent completed)
     {
         string projectId = completed.project != null
@@ -596,10 +820,109 @@ public sealed class DungeonSpaceExpansionRuntime :
             return;
         }
 
-        if (!TryApply(definition, out _, out string failureReason))
+        if (TryApply(definition,
+                DungeonSpaceExpansionTrigger.ResearchCompletion,
+                completed.committedResearchResultKey,
+                out var result, out string failureReason) && !result.PublicationPending)
         {
-            throw new InvalidOperationException(
-                $"Research '{projectId}' completed but its dungeon expansion failed: {failureReason}");
+            ClearPendingExpansion();
+            return;
         }
+
+        SetPendingExpansion(projectId, failureReason, logFailure: true);
+        reconciliationRequested = true;
+        retryTicksRemaining = RetryIntervalTicks;
+    }
+
+    private bool TryReconcileCompletedResearch(out string failureReason)
+    {
+        BlueprintResearchState researchState = researchStateService.GetState();
+        if (researchState == null)
+        {
+            failureReason = "The blueprint-research state is unavailable for dungeon-space reconciliation.";
+            return false;
+        }
+
+        IReadOnlyCollection<string> completed = researchState.Projects.CompletedProjectIds;
+        DungeonSpaceExpansionDefinition target = default;
+        bool hasTarget = false;
+        foreach (DungeonSpaceExpansionDefinition definition in
+                 DungeonSpaceExpansionCatalog.All)
+        {
+            if (!completed.Contains(definition.ResearchProjectId))
+            {
+                continue;
+            }
+
+            target = definition;
+            hasTarget = true;
+        }
+
+        if (!hasTarget)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        PendingResearchProjectId = target.ResearchProjectId;
+        if (!TryCaptureLayout(
+                out DungeonInteriorLayoutSnapshot layout,
+                out failureReason))
+        {
+            return false;
+        }
+        if (layout.ColumnCount >= target.TargetInteriorColumns)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        if (!researchState.TryGetCompletedProjectResultKey(
+                target.ResearchProjectId,
+                out string parentResearchResultKey))
+        {
+            failureReason = "Completed research has no saved result key for expansion reconciliation.";
+            return false;
+        }
+        return TryApply(target,
+            DungeonSpaceExpansionTrigger.ResearchCompletion,
+            parentResearchResultKey,
+            out var result, out failureReason) && !result.PublicationPending;
+    }
+
+    private void SetPendingExpansion(
+        string researchProjectId,
+        string failureReason,
+        bool logFailure)
+    {
+        string normalizedProjectId = researchProjectId ?? string.Empty;
+        string normalizedFailure = string.IsNullOrWhiteSpace(failureReason)
+            ? "Dungeon-space reconciliation failed without a reason."
+            : failureReason.Trim();
+        bool changed = !HasPendingExpansion
+            || !string.Equals(
+                PendingResearchProjectId,
+                normalizedProjectId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                PendingFailureReason,
+                normalizedFailure,
+                StringComparison.Ordinal);
+
+        HasPendingExpansion = true;
+        PendingResearchProjectId = normalizedProjectId;
+        PendingFailureReason = normalizedFailure;
+        if (logFailure && changed)
+        {
+            Debug.LogError(
+                $"Research '{normalizedProjectId}' completed but its dungeon expansion is pending retry: {normalizedFailure}");
+        }
+    }
+
+    private void ClearPendingExpansion()
+    {
+        HasPendingExpansion = false;
+        PendingResearchProjectId = string.Empty;
+        PendingFailureReason = string.Empty;
     }
 }

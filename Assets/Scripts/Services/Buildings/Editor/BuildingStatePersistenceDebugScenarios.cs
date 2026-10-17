@@ -20,6 +20,7 @@ public static class BuildingStatePersistenceDebugScenarios
         Run("generic_stock_categories", VerifyGenericStockCategories, lines, errors);
         Run("component_module_round_trip", VerifyComponentModuleRoundTrip, lines, errors);
         Run("unlisted_ability_dispatch", VerifyUnlistedAbilityDispatch, lines, errors);
+        Run("approved_apparel_work", VerifyApprovedApparelWork, lines, errors);
         Run("module_restore_diagnostics", VerifyModuleRestoreDiagnostics, lines, errors);
         Run("world_v1_rejected", VerifyWorldV1Rejection, lines, errors);
         Run("legacy_module_version_rejected", VerifyLegacyModuleVersionRejected, lines, errors);
@@ -36,6 +37,23 @@ public static class BuildingStatePersistenceDebugScenarios
                 $"Building state persistence contracts FAIL ({errors.Count}): {string.Join(" | ", errors)}. "
                 + $"Report: {ReportPath}");
         }
+    }
+
+    public static string RunForArchitectureBatch()
+    {
+        if (!Application.isBatchMode) throw new InvalidOperationException("Building state verification requires isolated batch mode.");
+        List<string> lines = new();
+        List<string> errors = new();
+        Run("generic_stock_categories", VerifyGenericStockCategories, lines, errors);
+        Run("component_module_round_trip", VerifyComponentModuleRoundTrip, lines, errors);
+        Run("unlisted_ability_dispatch", VerifyUnlistedAbilityDispatch, lines, errors);
+        Run("approved_apparel_work", VerifyApprovedApparelWork, lines, errors);
+        Run("module_restore_diagnostics", VerifyModuleRestoreDiagnostics, lines, errors);
+        Run("world_v1_rejected", VerifyWorldV1Rejection, lines, errors);
+        Run("legacy_module_version_rejected", VerifyLegacyModuleVersionRejected, lines, errors);
+        Run("v2_writer_schema", VerifyV2WriterSchema, lines, errors);
+        if (errors.Count > 0) throw new InvalidOperationException(string.Join(" | ", errors));
+        return "ARCHITECTURE_BUILDING_STATE=PASS; cases=8; custom registered runtime; module IDs; JSON roundtrip; reject; approved work";
     }
 
     private static string VerifyGenericStockCategories()
@@ -164,12 +182,15 @@ public static class BuildingStatePersistenceDebugScenarios
                     {
                         new UnlistedWorkAbilityHandler()
                     },
-                    Array.Empty<IBuildingWorkCompletionFallbackHandler>()));
+                    Array.Empty<IBuildingWorkCompletionFallbackHandler>(),
+                    BuildingAbilityRuntimeCatalog.CreateBuiltIns(
+                        new BuildingAbilityRuntimeFactory<UnlistedWorkAbility, UnlistedWorkAbilityRuntime>(d => new(d)))));
             building.Initialization(data, Vector2Int.zero);
             int output = ModularFacilityRuntimeEffects.ApplyWorkCompleted(
                 null,
                 building,
-                BuiltInWorkTypeIds.Operate);
+                BuiltInWorkTypeIds.Operate,
+                0f);
             UnlistedWorkStateModule state = building.RequireStateModule<UnlistedWorkStateModule>(
                 BuildingStateModuleIds.ForAbility("contract", ability.AbilityId));
 
@@ -179,6 +200,88 @@ public static class BuildingStatePersistenceDebugScenarios
                     .Any(module => module.moduleId == state.ModuleId),
                 "unlisted ability state did not enter persistence");
             return $"output={output}; executions={state.ExecutionCount}; module={state.ModuleId}";
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(gameObject);
+            UnityEngine.Object.DestroyImmediate(data);
+        }
+    }
+
+    private static string VerifyApprovedApparelWork()
+    {
+        BuildingSO data = ScriptableObject.CreateInstance<BuildingSO>();
+        GameObject gameObject = new GameObject("ApprovedApparelWork");
+        try
+        {
+            data.objectName = "Approved Apparel Work Fixture";
+            data.width = 1;
+            data.height = 1;
+            data.layer = GridLayer.Building;
+            data.category = BuildingCategory.Crafting;
+            data.runtimeArchetype = BuildingRuntimeArchetypeKind.Generic;
+            data.ReplaceAbilities(new BuildingAbilityCollection());
+            data.ConfigureGameplayExecution(
+                FacilityUseClassification.DomainCommand,
+                ResearchFacilityCommandKind.HandLaundry);
+
+            BuildableObject building = gameObject.AddComponent<BuildableObject>();
+            building.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+            CharacterAiEditorTestDependencies.Inject(building);
+            building.Initialization(data, Vector2Int.zero);
+            RecordingApparelOrders orders = new(
+                new ApparelWorkOrderSaveData
+                {
+                    orderId = "apparel-order:qa:approved-work",
+                    kind = ApparelWorkOrderKind.Laundry,
+                    state = ApparelWorkOrderState.Ready,
+                    facilityInstanceId = building.RequirePersistentInstanceId().Value,
+                    requiredWork = 10f,
+                    completedWork = 4f
+                });
+            ResearchFacilityOperationFallbackHandler handler = new(orders, orders);
+            IBuildingVisitorPort visitor = CreateActivityVisitor(
+                out ActivityRecordingVisitor activityVisitor);
+            SetAbilityDispatcher(
+                building,
+                new BuildingAbilityRuntimeDispatcher(
+                    Array.Empty<IBuildingAbilityWorkCompletedHandler>(),
+                    new IBuildingWorkCompletionFallbackHandler[] { handler }));
+
+            ModularFacilityRuntimeEffects.ApplyWorkCompleted(
+                visitor,
+                building,
+                BuiltInWorkTypeIds.Operate,
+                2f);
+            ApparelWorkOrderSaveData order = orders.Orders.Single();
+            Require(Mathf.Approximately(order.completedWork, 6f)
+                    && order.state == ApparelWorkOrderState.Ready
+                    && orders.AppliedAmounts.SequenceEqual(new[] { 2f })
+                    && activityVisitor.Activities.Count == 0,
+                "Partial approved work completed an apparel order or emitted completion activity.");
+
+            ModularFacilityRuntimeEffects.ApplyWorkCompleted(
+                visitor,
+                building,
+                BuiltInWorkTypeIds.Operate,
+                4f);
+            Require(Mathf.Approximately(order.completedWork, 10f)
+                    && order.state == ApparelWorkOrderState.Completed
+                    && orders.AppliedAmounts.SequenceEqual(new[] { 2f, 4f })
+                    && activityVisitor.Activities.Count == 1
+                    && activityVisitor.Activities[0].OutcomeId
+                        == BuildingActivityOutcomes.Completed,
+                "Remaining approved work did not complete exactly once with one completion activity.");
+
+            ModularFacilityRuntimeEffects.ApplyWorkCompleted(
+                visitor,
+                building,
+                BuiltInWorkTypeIds.Operate,
+                4f);
+            Require(orders.AppliedAmounts.SequenceEqual(new[] { 2f, 4f })
+                    && activityVisitor.Activities.Count == 1,
+                "Completed apparel work accepted a duplicate completion callback.");
+            return "approved=2+4; remaining=4; completed=1; duplicate=0; activity=1";
         }
         finally
         {
@@ -202,7 +305,8 @@ public static class BuildingStatePersistenceDebugScenarios
         }
         catch (InvalidOperationException exception)
         {
-            Require(exception.Message.Contains("V5", StringComparison.Ordinal),
+            Require(exception.Message.StartsWith("Unsupported modular facility save version 1; ", StringComparison.Ordinal)
+                    && exception.Message.Contains($"V{ModularFacilityWorldSaveService.CurrentVersion} is required", StringComparison.Ordinal),
                 "rejection did not identify the required facility save version");
             return "V1 rejected; no migration or partial state projection";
         }
@@ -344,6 +448,135 @@ public static class BuildingStatePersistenceDebugScenarios
         field.SetValue(building, dispatcher);
     }
 
+    private static IBuildingVisitorPort CreateActivityVisitor(
+        out ActivityRecordingVisitor activityVisitor)
+    {
+        IBuildingVisitorPort visitor = DispatchProxy.Create<
+            IBuildingVisitorPort,
+            ActivityRecordingVisitor>();
+        activityVisitor = (ActivityRecordingVisitor)(object)visitor;
+        return visitor;
+    }
+
+    public class ActivityRecordingVisitor : DispatchProxy
+    {
+        public List<BuildingActivitySnapshot> Activities { get; } = new();
+
+        public ActivityRecordingVisitor()
+        {
+        }
+
+        protected override object Invoke(MethodInfo targetMethod, object[] args)
+        {
+            if (targetMethod?.Name == nameof(IBuildingVisitorPort.RecordActivity)
+                && args?.Length == 2
+                && args[1] is BuildingActivitySnapshot activity)
+            {
+                Activities.Add(activity);
+            }
+
+            if (targetMethod == null || targetMethod.ReturnType == typeof(void))
+            {
+                return null;
+            }
+            return targetMethod.ReturnType.IsValueType
+                ? Activator.CreateInstance(targetMethod.ReturnType)
+                : null;
+        }
+    }
+
+    private sealed class RecordingApparelOrders :
+        IApparelWorkOrderCommand,
+        IApparelWorkOrderQuery
+    {
+        private readonly List<ApparelWorkOrderSaveData> orders;
+
+        public RecordingApparelOrders(ApparelWorkOrderSaveData order)
+        {
+            orders = new List<ApparelWorkOrderSaveData> { order };
+        }
+
+        public List<float> AppliedAmounts { get; } = new();
+        public int Version => 1;
+        public IReadOnlyList<ApparelWorkOrderSaveData> Orders => orders;
+
+        public bool ApplyWork(
+            string orderId,
+            float amount,
+            out DomainFailure failure) => ApplyWork(
+            orderId,
+            null,
+            amount,
+            out failure);
+
+        public bool ApplyWork(
+            string orderId,
+            CharacterActor worker,
+            float amount,
+            out DomainFailure failure)
+        {
+            ApparelWorkOrderSaveData order = orders.SingleOrDefault(value =>
+                string.Equals(value.orderId, orderId, StringComparison.Ordinal));
+            if (order == null
+                || order.state == ApparelWorkOrderState.Completed
+                || order.state == ApparelWorkOrderState.Failed
+                || amount <= 0f)
+            {
+                failure = DomainFailure.None;
+                return false;
+            }
+
+            AppliedAmounts.Add(amount);
+            order.completedWork += Mathf.Min(
+                amount,
+                Mathf.Max(0f, order.requiredWork - order.completedWork));
+            if (order.completedWork >= order.requiredWork)
+            {
+                order.completedWork = order.requiredWork;
+                order.state = ApparelWorkOrderState.Completed;
+            }
+            failure = DomainFailure.None;
+            return true;
+        }
+
+        public bool CreateCraft(
+            ApparelCraftOrderRequest request,
+            out string orderId,
+            out DomainFailure failure) => throw new NotSupportedException();
+
+        public bool CreateLaundry(
+            IReadOnlyList<ItemInstanceId> items,
+            bool powered,
+            out string orderId,
+            out DomainFailure failure) => throw new NotSupportedException();
+
+        public bool CreateDrying(
+            IReadOnlyList<ItemInstanceId> items,
+            out string orderId,
+            out DomainFailure failure) => throw new NotSupportedException();
+
+        public bool CreateRepair(
+            ItemInstanceId item,
+            out string orderId,
+            out DomainFailure failure) => throw new NotSupportedException();
+
+        public bool CreateAlteration(
+            ItemInstanceId item,
+            ApparelSizeClass size,
+            ApparelModificationKind modifications,
+            bool shortWardrobeOperation,
+            out string orderId,
+            out DomainFailure failure) => throw new NotSupportedException();
+
+        public bool Cancel(string orderId) => throw new NotSupportedException();
+
+        public bool Cancel(string orderId, out DomainFailure failure) =>
+            throw new NotSupportedException();
+
+        public CraftQualityAttemptEstimate CaptureQualityEstimate(string orderId) =>
+            default;
+    }
+
     [Serializable]
     private sealed class LegacyWorldV1
     {
@@ -359,7 +592,7 @@ public static class BuildingStatePersistenceDebugScenarios
 [Serializable]
 internal sealed class UnlistedWorkAbility : BuildingAbility,
     IBuildingWorkCompletionAbility,
-    IBuildingRuntimeStateAbility
+    IBuildingRuntimeAbilityDefinition
 {
     private UnlistedWorkAbility()
     {
@@ -370,9 +603,19 @@ internal sealed class UnlistedWorkAbility : BuildingAbility,
         return new UnlistedWorkAbility();
     }
 
+}
+
+internal sealed class UnlistedWorkAbilityRuntime : IBuildingRuntimeStateAbility
+{
+    private readonly UnlistedWorkAbility definition;
+    public UnlistedWorkAbilityRuntime(UnlistedWorkAbility definition)
+    {
+        this.definition = definition ?? throw new ArgumentNullException(nameof(definition));
+    }
+
     public IBuildingStateModule CreateStateModule(BuildableObject building)
     {
-        return new UnlistedWorkStateModule(AbilityId);
+        return new UnlistedWorkStateModule(definition.AbilityId);
     }
 }
 

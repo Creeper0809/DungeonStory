@@ -38,19 +38,26 @@ public static class ReproductionDurableEquipmentDebugScenarios
             slots,
             use);
         int planCalls = 0;
+        DurableFacilityEquipmentUseContext observed = null;
 
         bool committed = runtime.TryCommitPlan(
             FacilityId,
             Position,
-            () =>
+            context =>
             {
+                observed = context;
                 planCalls++;
                 return true;
-            });
+            },
+            out DurableFacilityEquipmentUseResult useResult);
 
         DurableFacilityEquipmentAssignment assignment = slots.Assignment;
-        Require(committed && planCalls == 1,
-            "The reproduction process was not committed exactly once.");
+        Require(committed
+            && planCalls == 1
+            && ReferenceEquals(observed, useResult.CommittedContext)
+            && observed.Before.ItemId.Equals(
+                (ItemDefinitionId)DurableToolItemRules.BreedingLedger),
+            "The reproduction process did not return its exact wear context.");
         Require(slots.ReconcileCalls == 1 && slots.EnsureCalls == 1,
             "The reproduction path did not reconcile and supply one slot.");
         Require(assignment != null
@@ -236,14 +243,13 @@ public static class ReproductionDurableEquipmentDebugScenarios
                 requirement.ItemId,
                 1,
                 Array.Empty<DurableFacilityEquipmentComponentSnapshot>());
-            if (!effect.TryCommit(
-                    new DurableFacilityEquipmentUseContext(
-                        snapshot,
-                        requirement,
-                        before,
-                        after,
-                        wearAmount),
-                    out failure))
+            DurableFacilityEquipmentUseContext context = new(
+                snapshot,
+                requirement,
+                before,
+                after,
+                wearAmount);
+            if (!effect.TryCommit(context, out failure))
             {
                 LastFailure = failure;
                 return Failed(snapshot, failure);
@@ -253,7 +259,8 @@ public static class ReproductionDurableEquipmentDebugScenarios
                 DurableFacilityEquipmentUseStatus.Applied,
                 snapshot,
                 "stack:breeding-ledger",
-                string.Empty);
+                string.Empty,
+                committedContext: context);
         }
 
         private static DurableFacilityEquipmentUseResult Failed(

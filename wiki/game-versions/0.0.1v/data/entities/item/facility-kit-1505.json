@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "배기팬을 이어 방 사이로 공기가 흐르게 하는 덕트 설치 부품이며, 아일라세라에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "배기팬을 이어 방 사이로 공기가 흐르게 하는 덕트 설치 부품이다. 아일라세라의 하피는 배기팬을 놓기 전 연기 흐름과 날개가 펴질 폭을 바람 절벽에서 시험한다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

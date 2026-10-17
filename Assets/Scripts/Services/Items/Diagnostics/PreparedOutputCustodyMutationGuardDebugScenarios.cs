@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
+using DungeonStory.Narrative.Korean;
 using UnityEditor;
 using UnityEngine;
 
@@ -330,10 +332,11 @@ public static class PreparedOutputCustodyMutationGuardDebugScenarios
             components: custody);
         WorldItemStackRecord source = repository.RecordsById[stackId];
         string signature = ItemStackSignature.Create(source.itemId, source.components);
-        PhysicalItemRelocationService relocation = new(
+        using DeterministicPhysicalItemRelocationOutcomeFixture outcomeFixture = new();
+        IPhysicalItemRelocationService relocation = outcomeFixture.CreateService(
             repository,
-            spawner,
             mass,
+            catalog,
             EditorNullItemMarkerPresenter.Instance);
 
         Require(!relocation.TryRelocateQuantity(
@@ -350,6 +353,7 @@ public static class PreparedOutputCustodyMutationGuardDebugScenarios
                 StringComparison.Ordinal)
             && source.position == new Vector2Int(2, 3)
             && source.quantity == 2
+            && outcomeFixture.PreparedCount == 0
             && ItemStackSignature.Create(source.itemId, source.components) == signature,
             "Whole-stack relocation mutated protected custody.");
         Require(!relocation.TryRelocateQuantity(
@@ -554,6 +558,120 @@ public static class PreparedOutputCustodyMutationGuardDebugScenarios
         {
             grid = null;
             return false;
+        }
+    }
+}
+
+/// <summary>
+/// Deterministic Editor-only fact-observer fixture for physical relocation
+/// tests. It keeps the real registry, ledger, recorder, and typed observer;
+/// callers never replace mandatory outcome capture with a null publisher.
+/// </summary>
+public sealed class DeterministicPhysicalItemRelocationOutcomeFixture : IDisposable
+{
+    private readonly GameplayOutcomeLedger ledger;
+    private readonly DomainFactDispatcher dispatcher;
+    private readonly CountingStagingPublisher publisher;
+
+    public DeterministicPhysicalItemRelocationOutcomeFixture()
+    {
+        GameplayOutcomeRegistry registry = new(
+            new IGameplayOutcomeDescriptor[]
+            {
+                new TradeInventoryOutcomeDescriptor(new KoreanJosaFormatter())
+            },
+            new IGameplayOutcomeAdapterRegistration[]
+            {
+                new TradeInventoryOutcomeAdapter()
+            });
+        ledger = new GameplayOutcomeLedger(
+            registry,
+            GameplayOutcomeBufferLimits.Default);
+        GameplayOutcomeRecorder recorder = new(
+            ledger,
+            registry,
+            new GameEventBus());
+        dispatcher = new DomainFactDispatcher();
+        dispatcher.Subscribe(
+            "physical-relocation",
+            new GameplayDomainFactObserver<
+                PhysicalItemRelocatedFact,
+                TradeInventoryOutcomeReceipt>(
+                PhysicalItemRelocationFactObservation.Capture,
+                registry,
+                ledger,
+                recorder,
+                new GameplayDomainFactCommitGroup(recorder, ledger)));
+        publisher = new CountingStagingPublisher(dispatcher);
+    }
+
+    public int PreparedCount => publisher.StageCount;
+    public int CommittedCount
+    {
+        get
+        {
+            var saved = ledger.CaptureGameplayOutcomes();
+            return saved.outbox.Count + saved.exactOutcomes.Count + saved.tombstones.Count;
+        }
+    }
+
+    public IPhysicalItemRelocationService CreateService(
+        WorldItemRepository repository,
+        IPhysicalItemMassQuery mass,
+        IDungeonItemCatalogProvider catalog,
+        IItemMarkerPresenter markers) => new PhysicalItemRelocationService(
+        repository,
+        new PreparedPhysicalItemRelocationService(
+            repository,
+            mass,
+            catalog,
+            markers),
+        publisher,
+        dispatcher,
+        new RelocationFixtureCalendar());
+
+    public void Dispose() => dispatcher.Dispose();
+
+    // This diagnostic lives in the runtime assembly under UNITY_EDITOR, so it
+    // cannot reference a test double from Assembly-CSharp-Editor.
+    private sealed class RelocationFixtureCalendar : IGameCalendar
+    {
+        public int Day { get; private set; } = 1;
+        public int Hour { get; private set; }
+        public CalendarDateTime Current => GameCalendarRules.Project(Day, Hour);
+        public int Year => Current.Year;
+        public int DayOfYear => Current.DayOfYear;
+        public Season Season => Current.Season;
+        public int DayOfSeason => Current.DayOfSeason;
+        public long AbsoluteHour => Current.AbsoluteHour;
+        public float ElapsedSeconds => 0f;
+        public TimeOfDay TimeOfDay => default;
+        public bool IsRunning { get; private set; }
+        public CalendarDateTime GetRegionalTime(int offset) => GameCalendarRules.ProjectRegional(Day, Hour, offset);
+        public void Start() => IsRunning = true;
+        public void SetDateTime(int day, int hour)
+        {
+            if (day < 1 || hour < 0 || hour >= GameCalendarRules.HoursPerDay) throw new ArgumentOutOfRangeException(nameof(day));
+            Day = day; Hour = hour;
+        }
+    }
+
+    private sealed class CountingStagingPublisher : IDomainFactStagingPublisher
+    {
+        private readonly IDomainFactStagingPublisher inner;
+
+        internal CountingStagingPublisher(IDomainFactStagingPublisher inner) =>
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+
+        internal int StageCount { get; private set; }
+
+        public bool TryStage<TFact>(
+            in TFact fact,
+            out IDomainFactStage stage,
+            out string failure)
+        {
+            StageCount++;
+            return inner.TryStage(fact, out stage, out failure);
         }
     }
 }

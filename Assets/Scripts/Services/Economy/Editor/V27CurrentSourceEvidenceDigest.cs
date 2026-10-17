@@ -16,7 +16,7 @@ public static class V27CurrentSourceEvidenceDigest
 {
     public const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
     public const string OfficialGameplaySceneSha256 =
-        "6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40";
+        "e1181c098cb05dc0cd87cf47861831835f95bd4740026cc0c50d9e34288ad10f";
 
     public static string ComputeAllScriptsDigest()
         => Capture().Digest;

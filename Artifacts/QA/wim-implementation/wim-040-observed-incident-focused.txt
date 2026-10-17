@@ -1,0 +1,15 @@
+result=PASS
+PASS no observed incident generated from ordinary daily cadence; seed=157181
+PASS no observed incident generated from ordinary daily cadence; seed=157182
+PASS no observed incident generated from ordinary daily cadence; seed=157183
+scope=local actual catalog/campaign daily eligibility with other definitions on valid cooldown; not physical meal callback, Customer lifetime, whole-world restore, response work or full WIM040 completion
+PASS actual seasonal/guest occurrence JSON round-trip keeps absent evidence absent; populated unexpected evidence rejected
+PASS no observed violation/collapse and already-dead target are no-op, not cadence fillers
+PASS exact captured target/meal/field location; exact replay no-op; changed target rejected without state mutation
+PASS current JSON preserves frozen evidence/owner; missing evidence and duplicate operation reject atomically
+PASS death terminal releases owner without effects; durable operation replay remains blocked after recent-history pruning
+PASS both observed risks create medical incident only; no diagnosis invention; existing cooldown remains no-op without pending queue
+PASS FacilityCrimeEvent freezes its exact post-Sink shoplifting lot and unit operation receipt
+PASS exact committed shop lot creates Theft only; frozen lot/target/facility survives JSON; replay/conflict/death lifetime remain fail-closed
+PASS committed Brawl evidence freezes attack/damage/participants/facility; current JSON and replay/conflict boundaries hold
+scope=controlled immutable observed inputs into production command/current Society state; not proof of actual Customer meal/combat callbacks, exit behavior, whole-world restore or medical treatment

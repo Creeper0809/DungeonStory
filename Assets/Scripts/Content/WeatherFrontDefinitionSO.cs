@@ -12,6 +12,7 @@ public sealed class WeatherFrontDefinitionSO : ScriptableObject
     [Min(1)] public int minimumDurationDays = 1;
     [Min(1)] public int maximumDurationDays = 1;
     public float temperatureModifierC;
+    [Min(0.1f)] public float expeditionTravelMultiplier = 1f;
     [Min(0f)] public float springWeight;
     [Min(0f)] public float summerWeight;
     [Min(0f)] public float autumnWeight;
@@ -23,6 +24,7 @@ public sealed class WeatherFrontDefinitionSO : ScriptableObject
         minimumDurationDays,
         maximumDurationDays,
         temperatureModifierC,
+        expeditionTravelMultiplier,
         new[] { springWeight, summerWeight, autumnWeight, winterWeight });
 
     public IReadOnlyList<string> ValidateDefinition()

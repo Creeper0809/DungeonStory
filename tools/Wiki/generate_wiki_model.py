@@ -156,6 +156,44 @@ PUBLIC_TITLE_OVERRIDES = {
     "service:retail:sale": "판매 서비스",
 }
 
+PUBLIC_SUMMARY_OVERRIDES = {
+    "building:landmark:truth-observatory": (
+        "진실 관측소다. 건설에는 작업량 3660 WU, 재료 석재 블록×24, "
+        "강철×17, 정밀 부품×9, 시제품 설계 묶음×4가 필요하다."
+    ),
+    "building:runtime:world-resource-node": "외부 구역의 자원 지점을 표시하는 항목이다.",
+}
+
+DEFERRED_LIFE_EVENT_IDS = frozenset({
+    "life-event:newborn-welcome",
+    "life-event:family-room",
+    "life-event:first-forbidden-door",
+    "life-event:foundling-question",
+    "life-event:dangerous-friendship",
+    "life-event:childhood-bully",
+    "life-event:stolen-design",
+    "life-event:mentor-favor",
+    "life-event:masterpiece-commission",
+    "life-event:guardian-oath",
+    "life-event:inherited-debt",
+    "life-event:cultural-petition",
+    "life-event:position-rivalry",
+    "life-event:captains-test",
+    "life-event:disputed-thesis",
+    "life-event:clinic-shortage",
+    "life-event:lineage-relic",
+    "life-event:killer-sighted",
+    "life-event:first-lost-tooth",
+    "life-event:shared-lullaby",
+    "life-event:first-safe-task",
+    "life-event:tool-inheritance",
+    "life-event:household-meal",
+    "life-event:shift-saved",
+    "life-event:retiree-story",
+    "life-event:elder-birthday",
+})
+DEFERRED_LIFE_EVENT_NOTE = "현재 비활성화 — 원인 시스템 구현 후 활성화 예정"
+
 PUBLIC_TOKEN_LABELS = {
     "workstation:v19:mentor-academy": "멘토 교육",
     "service:bathing": "목욕 서비스",
@@ -529,17 +567,54 @@ def reference_tone(value: str) -> str:
     return output
 
 
+def climate_zone_summary(row: SourceRow) -> str | None:
+    """Render the climate amplitude with its runtime, rather than CSV, meaning."""
+    if row.content_type != "ClimateZoneDefinitionSO":
+        return None
+    raw = row.raw
+    try:
+        mean = float((raw.get("authored__meanTemperatureC") or "").strip())
+        amplitude = float((raw.get("authored__annualAmplitudeC") or "").strip())
+        local_hour_offset = int((raw.get("authored__localHourOffset") or "").strip())
+    except ValueError as error:
+        raise ValueError(
+            f"Climate zone '{row.stable_id}' has invalid temperature authoring."
+        ) from error
+
+    return (
+        f"평균 기온 {mean:g}℃를 중심으로 계절 기온 진폭 {amplitude:g}℃가 적용되며, "
+        f"날씨·일일 잡음 제외 최고-최저차는 {amplitude * 2:g}℃이다. "
+        f"현지 시각 보정은 {local_hour_offset}시간이다."
+    )
+
+
 def safe_summary(row: SourceRow, title_by_stable_id: dict[str, str]) -> str:
+    if row.stable_id in PUBLIC_SUMMARY_OVERRIDES:
+        return PUBLIC_SUMMARY_OVERRIDES[row.stable_id]
+    climate_summary = climate_zone_summary(row)
+    if climate_summary:
+        return climate_summary
+    source_candidates = (
+        (
+            row.raw.get("system_role"),
+            row.raw.get("existence_reason"),
+            row.description,
+            row.raw.get("authored__description"),
+            row.mechanics,
+        )
+        if row.content_type == "BuildingSO"
+        else (
+            row.description,
+            row.raw.get("authored__description"),
+            row.raw.get("system_role"),
+            row.raw.get("existence_reason"),
+            row.mechanics,
+        )
+    )
     source = next(
         (
             value
-            for value in (
-                row.description,
-                row.raw.get("authored__description"),
-                row.raw.get("system_role"),
-                row.raw.get("existence_reason"),
-                row.mechanics,
-            )
+            for value in source_candidates
             if value and value.strip()
         ),
         "",
@@ -547,6 +622,8 @@ def safe_summary(row: SourceRow, title_by_stable_id: dict[str, str]) -> str:
     source = reference_tone(display_text(source, title_by_stable_id))
     source = re.sub(r"^(.+ 서비스)에서 서비스 방식 3개를 제공하며", r"\1는 세 가지 방식을 제공하며", source)
     source = source.replace("1회 처리마다 깨끗한 물 0를 소비하고 폐수 0를 배출한다. ", "")
+    if row.content_type == "BuildingSO" and source:
+        return source
     return source[:500] if source else "이 게임 버전에서 확인된 공개 정보입니다."
 
 
@@ -631,6 +708,9 @@ def fact_rows(row: SourceRow, title_by_stable_id: dict[str, str]) -> list[dict[s
             continue
         seen.add(label)
         facts.append({"label": label, "value": rendered[:180]})
+    if (row.content_type == "LifeEventDefinitionSO"
+            and row.stable_id in DEFERRED_LIFE_EVENT_IDS):
+        facts.append({"label": "비고", "value": DEFERRED_LIFE_EVENT_NOTE})
     return facts
 
 
@@ -885,22 +965,23 @@ def build_snapshot(repo_root: Path, game_version: str, destination: Path | None 
         public_entity = {key: value for key, value in entity.items() if key != "id"}
         write_json(output_root / "entities" / entity["kind"] / f"{entity['slug']}.json", public_entity)
 
-    spoiler_root = repo_root / "wiki" / "public" / "spoiler-data" / game_version
-    if spoiler_root.exists():
-        shutil.rmtree(spoiler_root)
-    for entity in entities:
-        if entity["spoiler_tier"] != "warning":
-            continue
-        write_json(
-            spoiler_root / entity["kind"] / f"{entity['slug']}.json",
-            {
-                "schema_version": SCHEMA_VERSION,
-                "title": entity["title"],
-                "summary": entity["summary"],
-                "facts": entity["facts"],
-                "relations": [relation for relation in entity["relations"] if relation["target_spoiler_tier"] == "none"],
-            },
-        )
+    if destination is None:
+        spoiler_root = repo_root / "wiki" / "public" / "spoiler-data" / game_version
+        if spoiler_root.exists():
+            shutil.rmtree(spoiler_root)
+        for entity in entities:
+            if entity["spoiler_tier"] != "warning":
+                continue
+            write_json(
+                spoiler_root / entity["kind"] / f"{entity['slug']}.json",
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "title": entity["title"],
+                    "summary": entity["summary"],
+                    "facts": entity["facts"],
+                    "relations": [relation for relation in entity["relations"] if relation["target_spoiler_tier"] == "none"],
+                },
+            )
 
     write_json(output_root / "relations" / "forward.json", dict(sorted(forward.items())))
     write_json(output_root / "relations" / "backlinks.json", dict(sorted(backlinks.items())))
@@ -1004,14 +1085,15 @@ def build_snapshot(repo_root: Path, game_version: str, destination: Path | None 
     }
     write_json(output_root / "qa" / "publication-report.json", report)
 
-    write_csv(
-        version_root / "content" / "slug-registry.csv",
-        [
-            {"kind": entity["kind"], "slug": entity["slug"], "title": entity["title"], "game_version": game_version}
-            for entity in entities
-        ],
-        ["kind", "slug", "title", "game_version"],
-    )
+    if destination is None:
+        write_csv(
+            version_root / "content" / "slug-registry.csv",
+            [
+                {"kind": entity["kind"], "slug": entity["slug"], "title": entity["title"], "game_version": game_version}
+                for entity in entities
+            ],
+            ["kind", "slug", "title", "game_version"],
+        )
 
     manifest = {
         "schema_version": SCHEMA_VERSION,
@@ -1027,18 +1109,19 @@ def build_snapshot(repo_root: Path, game_version: str, destination: Path | None 
     manifest["content_digest"] = tree_digest(output_root, {"manifest.json"})
     write_json(output_root / "manifest.json", manifest)
 
-    version_meta["source_digests"] = manifest["source_digests"]
-    version_meta["content_digest"] = manifest["content_digest"]
-    write_json(version_root / "game-version.json", version_meta)
-    registry["current_game_version"] = game_version
-    registry["versions"] = [
-        {
-            **entry,
-            "content_digest": manifest["content_digest"] if entry.get("game_version") == game_version else entry.get("content_digest"),
-        }
-        for entry in registry.get("versions", [])
-    ]
-    write_json(repo_root / "wiki" / "game-versions" / "registry.json", registry)
+    if destination is None:
+        version_meta["source_digests"] = manifest["source_digests"]
+        version_meta["content_digest"] = manifest["content_digest"]
+        write_json(version_root / "game-version.json", version_meta)
+        registry["current_game_version"] = game_version
+        registry["versions"] = [
+            {
+                **entry,
+                "content_digest": manifest["content_digest"] if entry.get("game_version") == game_version else entry.get("content_digest"),
+            }
+            for entry in registry.get("versions", [])
+        ]
+        write_json(repo_root / "wiki" / "game-versions" / "registry.json", registry)
     return {**report, "content_digest": manifest["content_digest"], "output_root": str(output_root)}
 
 

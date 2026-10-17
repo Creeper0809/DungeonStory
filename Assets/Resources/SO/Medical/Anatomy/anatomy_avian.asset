@@ -150,4 +150,16 @@ MonoBehaviour:
     pairedGroupId: legs
     legacyBodyPart: 5
     mapsToLegacyBodyPart: 1
+  - nodeId: balance-tail
+    displayName: "\uD3C9\uD615 \uAF2C\uB9AC\uAE43"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 18
+    capacityWeight: 0.2
+    vital: 0
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
   notApplicableCapacities: []

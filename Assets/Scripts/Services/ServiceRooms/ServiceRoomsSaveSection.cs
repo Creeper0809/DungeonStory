@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DungeonStory.ServiceRooms;
 
 public sealed class ServiceRoomsSaveSection :
     DungeonStrictJsonSaveSection<
@@ -34,6 +35,57 @@ public sealed class ServiceRoomsSaveSection :
 
     protected override ServiceRoomsSaveData CapturePayload() =>
         runtime.Capture();
+
+    protected override void ValidateRawPayload(string payloadJson)
+    {
+        ValidateModeFactJson(payloadJson);
+        ValidateTerminalFactJson(payloadJson);
+    }
+
+    internal static void ValidateTerminalFactJson(string payloadJson)
+    {
+        var root = Newtonsoft.Json.Linq.JObject.Parse(payloadJson);
+        if (root["sessions"] is not Newtonsoft.Json.Linq.JArray rows)
+            throw new InvalidOperationException("Service-rooms V7 sessions are missing.");
+        foreach (var row in rows)
+        {
+            if (row is not Newtonsoft.Json.Linq.JObject)
+                throw new InvalidOperationException("Service session object is missing.");
+            foreach (string field in new[] { "terminalHubName", "terminalPublicationKey", "terminalPublicationId",
+                "terminalPublicationFingerprint", "economyTransactionId", "economyTransactionSourceId", "cancellationReason" })
+                if (row[field]?.Type != Newtonsoft.Json.Linq.JTokenType.String)
+                    throw new InvalidOperationException("Service terminal field is missing or malformed: " + field);
+            foreach (string field in new[] { "terminalPhase", "previousStage", "terminalAbsoluteDay", "terminalOwnerRevision",
+                "paymentAmount", "balanceBefore", "balanceAfter" })
+                if (row[field]?.Type != Newtonsoft.Json.Linq.JTokenType.Integer)
+                    throw new InvalidOperationException("Service terminal field is missing or malformed: " + field);
+        }
+    }
+
+    internal static void ValidateModeFactJson(string payloadJson)
+    {
+        var root = Newtonsoft.Json.Linq.JObject.Parse(payloadJson);
+        if (root["pendingModeFacts"] is not Newtonsoft.Json.Linq.JArray rows)
+            throw new InvalidOperationException("Service-rooms V7 pending mode facts are missing.");
+        foreach (var row in rows)
+        {
+            RequireFields(row, typeof(ServiceModePendingFactData));
+            RequireFields(row["fact"], typeof(ServiceModeChangedFactData));
+        }
+        static void RequireFields(Newtonsoft.Json.Linq.JToken value, Type type)
+        {
+            if (value is not Newtonsoft.Json.Linq.JObject)
+                throw new InvalidOperationException("Service mode fact object is missing.");
+            foreach (var field in type.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public))
+            {
+                var expected = field.FieldType == typeof(string) ? Newtonsoft.Json.Linq.JTokenType.String
+                    : field.FieldType == typeof(int) || field.FieldType.IsEnum ? Newtonsoft.Json.Linq.JTokenType.Integer
+                    : Newtonsoft.Json.Linq.JTokenType.Object;
+                if (value[field.Name]?.Type != expected)
+                    throw new InvalidOperationException("Service mode fact field is missing or malformed: " + field.Name);
+            }
+        }
+    }
 
     protected override void NormalizeRestorePayload(
         ServiceRoomsSaveData payload,
@@ -70,6 +122,9 @@ public sealed class ServiceRoomsSaveSection :
                 "Service-rooms restore payload is invalid: "
                 + string.Join(" | ", report.Errors));
         }
+        // Share the exact active/pending-terminal and captured-clock contract
+        // with runtime reconstruction; this path does not publish any owner.
+        _ = ServiceSessionAggregate.CreateRestored(payload, 0);
     }
 
     private void ValidatePayload(
@@ -84,7 +139,7 @@ public sealed class ServiceRoomsSaveSection :
             report.AddError("Service-rooms payload or required list is null.");
             return;
         }
-        if (payload.version != ServiceRoomsSaveData.CurrentVersion)
+        if (payload.version != ServiceRoomsSaveData.CurrentVersion || !IsFiniteNonNegative(payload.timelineTime))
         {
             report.AddError(
                 $"Service-rooms payload version {payload.version} is unsupported.");
@@ -138,6 +193,8 @@ public sealed class ServiceRoomsSaveSection :
                 report);
             if (session != null)
             {
+                if (session.stageStartedAt > payload.timelineTime)
+                    report.AddError("Service session timestamp exceeds the captured timeline.");
                 previousStartedAt = session.startedAt;
                 previousSessionId = session.sessionId;
             }
@@ -160,19 +217,17 @@ public sealed class ServiceRoomsSaveSection :
             || !IsCanonicalRequired(session.processId)
             || !Enum.IsDefined(typeof(ServiceCategory), session.category)
             || session.stage < ServiceSessionStage.Reception
-            || session.stage > ServiceSessionStage.Cleanup
+            || session.stage > ServiceSessionStage.Cancelled
             || !IsFiniteNonNegative(session.startedAt)
             || !IsFiniteNonNegative(session.stageStartedAt)
             || session.stageStartedAt < session.startedAt
-            || session.paymentCommitted
-            || !string.IsNullOrEmpty(session.cancellationReason)
             || session.startedAt < previousStartedAt
             || session.startedAt == previousStartedAt
                 && previousSessionId != null
                 && string.CompareOrdinal(previousSessionId, session.sessionId) >= 0)
         {
             report.AddError(
-                "Service-rooms payload contains an invalid or unordered active session.");
+                "Service-rooms payload contains an invalid or unordered session.");
             return;
         }
 
@@ -187,8 +242,8 @@ public sealed class ServiceRoomsSaveSection :
         if (process == null
             || process.ServiceCategory != session.category
             || session.contract == null
-            || session.contract.mode != mode
-            || !process.TryGetContract(mode, out _))
+            || session.stage <= ServiceSessionStage.Cleanup && session.contract.mode != mode
+            || !process.TryGetContract(session.contract.mode, out _))
         {
             report.AddError(
                 $"Service session '{session.sessionId}' has invalid authored process or mode data.");
@@ -204,7 +259,7 @@ public sealed class ServiceRoomsSaveSection :
             | ServiceProcessStageMask.Cleanup;
         if ((contract.activeStages & ~knownStages) != 0
             || (contract.activeStages & ServiceProcessStageMask.Service) == 0
-            || (contract.activeStages & ToStageMask(session.stage)) == 0
+            || session.stage <= ServiceSessionStage.Cleanup && (contract.activeStages & ToStageMask(session.stage)) == 0
             || !IsFiniteNonNegative(contract.receptionSeconds)
             || !IsFiniteNonNegative(contract.waitingSeconds)
             || !IsFinitePositive(contract.serviceSeconds)

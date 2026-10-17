@@ -5,8 +5,8 @@ using DungeonStory.Foundation;
 using UnityEngine;
 
 /// <summary>
-/// Owns equipment crafting orders, concrete material policies, unlock checks,
-/// and creation of repository-owned equipment instances.
+/// Owns equipment crafting orders and concrete material policies, and coordinates
+/// definition rules, repository-owned instance creation and output recovery.
 /// </summary>
 public sealed class CombatEquipmentCraftingRuntime
 {
@@ -19,6 +19,7 @@ public sealed class CombatEquipmentCraftingRuntime
     private readonly CombatEquipmentPhysicalStateWriter physicalState;
     private readonly CombatEquipmentRuntimeStateStore stateStore;
     private readonly IProductionFacilityMutationEpochQuery facilityMutations;
+    private readonly IGameCalendar calendar;
     private readonly IFacilityCapabilityQuery facilities;
     private readonly IBalanceWorkCalculator balanceWorkCalculator;
     private readonly ICraftQualityResolver qualityResolver;
@@ -33,6 +34,8 @@ public sealed class CombatEquipmentCraftingRuntime
     private readonly ICombatCraftDefinitionCatalog craftDefinitions;
     private readonly ICombatEquipmentCraftInputDestinationRuntime
         inputDestinations;
+    private readonly CombatEquipmentCraftDefinitionRules definitionRules;
+    private readonly CombatEquipmentInstanceFactory instanceFactory;
 
     private List<CombatEquipmentCraftOrderSaveData> orders =>
         stateStore.Current.CraftOrders;
@@ -53,6 +56,7 @@ public sealed class CombatEquipmentCraftingRuntime
         IFacilityCapabilityQuery facilities,
         CombatEquipmentRuntimeStateStore stateStore,
         IProductionFacilityMutationEpochQuery facilityMutations,
+        IGameCalendar calendar,
         IBalanceWorkCalculator balanceWorkCalculator = null,
         ICraftQualityResolver qualityResolver = null,
         IRunSeedProvider runSeedProvider = null,
@@ -88,6 +92,8 @@ public sealed class CombatEquipmentCraftingRuntime
             ?? throw new ArgumentNullException(nameof(stateStore));
         this.facilityMutations = facilityMutations
             ?? throw new ArgumentNullException(nameof(facilityMutations));
+        this.calendar = calendar
+            ?? throw new ArgumentNullException(nameof(calendar));
         this.balanceWorkCalculator = balanceWorkCalculator;
         this.qualityResolver = qualityResolver
             ?? new DeterministicCraftQualityResolver();
@@ -102,50 +108,64 @@ public sealed class CombatEquipmentCraftingRuntime
         this.craftDefinitions = craftDefinitions
             ?? new CombatCraftDefinitionCatalog(catalog);
         this.inputDestinations = inputDestinations;
+        definitionRules = new CombatEquipmentCraftDefinitionRules(
+            this.catalog,
+            this.materialCatalog,
+            research);
+        instanceFactory = new CombatEquipmentInstanceFactory(
+            this.catalog,
+            definitionRules,
+            this.itemInstances);
     }
 
     public IReadOnlyList<CombatEquipmentCraftOrderSaveData> Queue =>
         orders.AsReadOnly();
 
-    public bool IsDefinitionUnlocked(string definitionId, out string failureReason)
+    public CraftQualityAttemptEstimate CaptureQualityEstimate(string orderId)
     {
-        failureReason = string.Empty;
-        if (!catalog.TryGet(
-                definitionId?.Trim() ?? string.Empty,
-                out CombatEquipmentDefinitionSO definition))
+        CombatEquipmentCraftOrderSaveData order = orders.FirstOrDefault(value => value.orderId == orderId);
+        if (order == null || IsAmmunitionRecipe(order.definitionId))
+            return CraftQualityAttemptEstimate.Unavailable("품질 반복 대상 장비 주문 없음");
+        if (qualityResolver is not ICraftQualityProbabilityQuery probabilityQuery)
+            return CraftQualityAttemptEstimate.Unavailable("현재 품질 계산기가 확률 미리보기를 제공하지 않음");
+        if (!catalog.TryGet(order.definitionId, out CombatEquipmentDefinitionSO definition)
+            || !TryGetConcreteMaterials(order, out IReadOnlyDictionary<string, int> inputs))
+            return CraftQualityAttemptEstimate.Unavailable("장비·물리 재료 정의 확인 필요");
+        double bestProbability = -1d;
+        foreach (CharacterActor actor in characterWorld?.Characters ?? Array.Empty<CharacterActor>())
         {
-            failureReason = "equipment.definition.unknown";
-            return false;
+            if (actor == null || !WorkerSelectionPolicyRules.IsEligible(
+                    order.workerPolicy, actor, narrativeQualification, out _)) continue;
+            double probability = probabilityQuery.EstimateSuccessProbability(order.minimumQuality,
+                GetEquipmentQualitySkill(actor), order.facilityQualityBonus, 0f,
+                Mathf.Clamp(order.craftWorkPerAttempt / 20f, 0f, 25f));
+            if (definition.AllowMythicInspiration
+                && ExtremeCraftInspirationRuntime.TryResolveRule(actor, out ExtremeCraftInspirationRule rule))
+            {
+                double mythic = Math.Round(Mathf.Clamp01(rule.mythicChance)
+                    * MythicCraftInspirationRules.RollScale, MidpointRounding.AwayFromZero)
+                    / MythicCraftInspirationRules.RollScale;
+                probability += (1d - probability) * mythic;
+            }
+            bestProbability = Math.Max(bestProbability, probability);
         }
-        if (string.IsNullOrWhiteSpace(definition.RequiredResearchId))
-        {
-            return true;
-        }
-        if (research.State.Projects.IsCompleted(
-                new ResearchProjectId(definition.RequiredResearchId)))
-        {
-            return true;
-        }
-        failureReason = $"equipment.research.required:{definition.RequiredResearchId}";
-        return false;
+        if (bestProbability < 0d)
+            return CraftQualityAttemptEstimate.Unavailable("조건에 맞는 작업자 미정 — 확률 산정 보류");
+        if (bestProbability > 0d && order.qualityStage == QualityTargetPipelineStage.TargetCurrentlyUnreachable)
+            return CraftQualityAttemptEstimate.Unavailable("주문은 현재 도달 불가 상태 — 특수 품질 조건 재검증 필요");
+        return CraftQualityAttemptEstimate.Create(bestProbability,
+            order.repeatLimitMode == QualityRepeatLimitMode.SafeLimits ? Mathf.Max(1, order.maximumAttempts) : null,
+            order.craftWorkPerAttempt, string.Empty, inputs.Values.Sum(),
+            "현재 적격 작업자 중 최고 성공률·단독 새 시도·주문 시설 보정 고정 추정 / 재료는 BOM 개수 합계"
+            + (order.workBudget > 0f ? " / WU 예산으로 조기 종료 가능" : string.Empty));
     }
+
+    public bool IsDefinitionUnlocked(string definitionId, out string failureReason)
+        => definitionRules.IsDefinitionUnlocked(definitionId, out failureReason);
 
     public IReadOnlyList<CraftMaterialDefinitionSO> GetAllowedMaterials(
         string definitionId)
-    {
-        if (!catalog.TryGet(
-                definitionId?.Trim() ?? string.Empty,
-                out CombatEquipmentDefinitionSO definition))
-        {
-            return Array.Empty<CraftMaterialDefinitionSO>();
-        }
-
-        return materialCatalog.Materials
-            .Where(definition.AllowsMaterial)
-            .OrderBy(material => material.RareMaterial ? 1 : 0)
-            .ThenBy(material => material.DisplayName, StringComparer.Ordinal)
-            .ToArray();
-    }
+        => definitionRules.GetAllowedMaterials(definitionId);
 
     public CombatEquipmentCraftMaterialPolicySaveData GetMaterialPolicy(
         string definitionId,
@@ -185,6 +205,9 @@ public sealed class CombatEquipmentCraftingRuntime
             return false;
         }
 
+        bool beforeAllowed = policy.allowedMaterialIds.Contains(
+            normalizedMaterialId,
+            StringComparer.Ordinal);
         if (allowed)
         {
             if (!policy.allowedMaterialIds.Contains(
@@ -198,6 +221,15 @@ public sealed class CombatEquipmentCraftingRuntime
         {
             policy.allowedMaterialIds.RemoveAll(id =>
                 string.Equals(id, normalizedMaterialId, StringComparison.Ordinal));
+        }
+
+        if (beforeAllowed != allowed)
+        {
+            RecordPolicyCommand(
+                policy,
+                "material-allowed",
+                normalizedMaterialId + "=" + beforeAllowed,
+                normalizedMaterialId + "=" + allowed);
         }
 
         failureReason = string.Empty;
@@ -237,6 +269,11 @@ public sealed class CombatEquipmentCraftingRuntime
         {
             policy.priorityMaterialIds.RemoveAt(currentIndex);
             policy.priorityMaterialIds.Insert(targetIndex, normalizedMaterialId);
+            RecordPolicyCommand(
+                policy,
+                "material-priority",
+                normalizedMaterialId + "=" + currentIndex,
+                normalizedMaterialId + "=" + targetIndex);
         }
         failureReason = string.Empty;
         return true;
@@ -251,7 +288,11 @@ public sealed class CombatEquipmentCraftingRuntime
         if (!catalog.TryGet(
                 definitionId?.Trim() ?? string.Empty,
                 out CombatEquipmentDefinitionSO definition)
-            || !TryResolveMaterial(definition, materialId, out CraftMaterialDefinitionSO material, out _))
+            || !definitionRules.TryResolveMaterial(
+                definition,
+                materialId,
+                out CraftMaterialDefinitionSO material,
+                out _))
         {
             return false;
         }
@@ -360,7 +401,11 @@ public sealed class CombatEquipmentCraftingRuntime
 
         CraftMaterialDefinitionSO material = null;
         if (!ammunitionRecipe
-            && !TryResolveMaterial(definition, materialId, out material, out failureReason))
+            && !definitionRules.TryResolveMaterial(
+                definition,
+                materialId,
+                out material,
+                out failureReason))
         {
             return false;
         }
@@ -393,6 +438,16 @@ public sealed class CombatEquipmentCraftingRuntime
         }
 
         int orderSequence = Math.Max(0, stateStore.Current.NextCraftSequence);
+        int nextOrderSequence;
+        try
+        {
+            nextOrderSequence = checked(orderSequence + 1);
+        }
+        catch (OverflowException)
+        {
+            failureReason = "equipment.craft.sequence_exhausted";
+            return false;
+        }
         string orderId = $"combat-craft:{orderSequence:D8}";
         string destinationId = CombatEquipmentCraftInputDestinationAuthority
             .FormatDestinationId(orderId);
@@ -409,7 +464,9 @@ public sealed class CombatEquipmentCraftingRuntime
             orderId = orderId,
             definitionId = normalizedId,
             materialId = material?.MaterialId
-                ?? ResolveRequestedMaterialId(definition, materialId),
+                ?? CombatEquipmentCraftDefinitionRules.ResolveRequestedMaterialId(
+                    definition,
+                    materialId),
             requiredWork = requiredWork,
             craftWorkPerAttempt = requiredWork,
             completedWork = 0f,
@@ -466,7 +523,26 @@ public sealed class CombatEquipmentCraftingRuntime
                 : requestFailure;
             return false;
         }
-        stateStore.Current.NextCraftSequence = checked(orderSequence + 1);
+        string policyKey = BuildMaterialPolicyKey(
+            order.facilityPersistentId,
+            normalizedId);
+        if (materialPolicies.TryGetValue(
+                policyKey,
+                out CombatEquipmentCraftMaterialPolicySaveData queuedPolicy))
+        {
+            order.commandRevision = Math.Max(0L, queuedPolicy.commandRevision);
+            order.commandReceipts = queuedPolicy.commandReceipts
+                .Where(value => value != null)
+                .Select(value => value.Clone())
+                .ToList();
+        }
+        RecordOrderCommand(
+            order,
+            "order-queued",
+            "none",
+            order.definitionId + "|" + order.materialId + "|"
+            + order.facilityPersistentId);
+        stateStore.Current.NextCraftSequence = nextOrderSequence;
         orders.Add(order);
         return true;
     }
@@ -502,8 +578,13 @@ public sealed class CombatEquipmentCraftingRuntime
         {
             return false;
         }
-        order.workerPolicy = policy?.CloneNormalized()
+        string before = CanonicalWorkerPolicy(order.workerPolicy);
+        WorkerSelectionPolicySaveData normalized = policy?.CloneNormalized()
             ?? WorkerSelectionPolicySaveData.Anyone();
+        string after = CanonicalWorkerPolicy(normalized);
+        order.workerPolicy = normalized;
+        if (!string.Equals(before, after, StringComparison.Ordinal))
+            RecordOrderCommand(order, "worker-policy", before, after);
         RevalidateQualityBlocker(order);
         failureReason = string.Empty;
         return true;
@@ -546,12 +627,16 @@ public sealed class CombatEquipmentCraftingRuntime
             failureReason = "equipment.craft.quality_target_invalid";
             return false;
         }
+        string before = CanonicalQualityTarget(order);
         order.minimumQuality = minimumQuality;
         order.rejectedDisposition = rejectedDisposition;
         order.repeatLimitMode = repeatLimitMode;
         order.maximumAttempts = maximumAttempts;
         order.workBudget = Mathf.Max(0f, workBudget);
         order.requiredAcceptedCount = requiredAcceptedCount;
+        string after = CanonicalQualityTarget(order);
+        if (!string.Equals(before, after, StringComparison.Ordinal))
+            RecordOrderCommand(order, "quality-target", before, after);
         RevalidateQualityBlocker(order);
         failureReason = string.Empty;
         return true;
@@ -641,7 +726,11 @@ public sealed class CombatEquipmentCraftingRuntime
         }
         CraftMaterialDefinitionSO material = null;
         if (definition != null
-            && !TryResolveMaterial(definition, order.materialId, out material, out _))
+            && !definitionRules.TryResolveMaterial(
+                definition,
+                order.materialId,
+                out material,
+                out _))
         {
             return false;
         }
@@ -918,9 +1007,7 @@ public sealed class CombatEquipmentCraftingRuntime
                     sourceTraitId = MythicCraftInspirationRules.SourceTraitId,
                     originalQuality = resolution.Tier,
                     fixedRollHash = fixedRollHash,
-                    createdDay = Mathf.FloorToInt(
-                        (gameClock?.Time ?? 0f)
-                        / GameCalendarRules.SecondsPerDay),
+                    createdDay = calendar.Day,
                     createdFacilityId = order.facilityPersistentId
                 };
             }
@@ -929,7 +1016,12 @@ public sealed class CombatEquipmentCraftingRuntime
         order.resolvedQuality = resolvedQuality;
         order.resolvedMythicProvenance = mythicProvenance;
         order.resolvedMakerCharacterId = makerCharacterId;
+        order.resolvedMakerDisplayName =
+            worker?.Identity?.DisplayName?.Trim() ?? string.Empty;
+        order.resolvedAbsoluteDay = calendar.Day;
         order.resolvedHadInspiration = hasInspiration;
+        order.qualityOutcomeSchemaVersion = outputTransaction != null ? 1 : 0;
+        order.qualityOutcomeCommitted = false;
         order.outputOperationId = CombatEquipmentCraftOutputOutbox
             .FormatOperationId(order.orderId, order.qualityAttemptIndex);
         if (CombatAmmunitionCraftDefinitions.TryGetExact(
@@ -947,7 +1039,7 @@ public sealed class CombatEquipmentCraftingRuntime
         bool ammunitionOutput = IsAmmunitionRecipe(order.definitionId);
         if (!ammunitionOutput && outputTransaction != null)
         {
-            CombatEquipmentInstance prepared = BuildPreparedInstance(
+            CombatEquipmentInstance prepared = instanceFactory.BuildPreparedInstance(
                 order.definitionId,
                 order.resolvedQuality,
                 CombatEquipmentWorldState.Loose,
@@ -973,34 +1065,6 @@ public sealed class CombatEquipmentCraftingRuntime
             ? CombatEquipmentCraftOutputPhase.ResolvedWaitingForPublication
             : CombatEquipmentCraftOutputPhase.LegacyUniqueOutput;
         order.attemptOutcomeResolved = true;
-
-        // Quality resolution is a deterministic authored outcome. Publish its
-        // side effects once and persist the marker before output retries.
-        if (hasInspiration)
-        {
-            inspirationRuntime?.RecordEligibleCompletion(
-                worker,
-                order.definitionId,
-                resolvedQuality == CombatEquipmentQuality.Mythic,
-                gameClock?.Time ?? 0f);
-        }
-        if (identityEvents != null
-            && CharacterPersistentIdentity.TryGet(
-                worker,
-                out CharacterId qualityMakerId))
-        {
-            identityEvents.Publish(new ProductQualityResolvedEvent(
-                qualityMakerId,
-                order.definitionId,
-                (CraftsmanshipQualityTier)(int)resolvedQuality,
-                order.qualityRoll?.attemptIndex ?? order.qualityAttemptIndex,
-                Mathf.FloorToInt(
-                    (gameClock?.Time ?? 0f)
-                    / GameCalendarRules.SecondsPerDay),
-                rejectedBelowMinimum: (int)resolvedQuality
-                    < (int)order.minimumQuality));
-        }
-        order.completionEffectsPublished = true;
     }
 
     private bool TryFinalizeResolvedAttempt(
@@ -1017,7 +1081,6 @@ public sealed class CombatEquipmentCraftingRuntime
         completedMythicProvenance = null;
         if (order == null
             || !order.attemptOutcomeResolved
-            || !order.completionEffectsPublished
             || !TryValidateResolvedOutputCapability(order, out _)
             || !TryGetConcreteMaterials(
                 order,
@@ -1031,7 +1094,7 @@ public sealed class CombatEquipmentCraftingRuntime
             && order.rejectedDisposition == RejectedOutputDisposition.MarkForSale;
         string outputDestination = markForSale
             ? QualityRejectedOutputRules.MarketDestinationId
-            : ProductionBillRuntime.OutputDestinationPrefix
+            : ProductionBillIdentity.OutputDestinationPrefix
                 + order.facilityPersistentId;
         Vector2Int position = new(order.destinationX, order.destinationY);
         bool commonOutput = outputTransaction != null
@@ -1059,6 +1122,12 @@ public sealed class CombatEquipmentCraftingRuntime
         {
             return false;
         }
+        if (commonOutput
+            && !outputTransaction.TryEnsureObservationDelivered(order, out _))
+        {
+            return false;
+        }
+        PublishCompletionEffects(order);
 
         if (materials.Count > 0
             && !CombatEquipmentCraftMaterialOutbox.TryAcknowledgeOutcome(
@@ -1120,6 +1189,61 @@ public sealed class CombatEquipmentCraftingRuntime
             PrepareNextEquipmentAttempt(order);
         }
         return true;
+    }
+
+    private void PublishCompletionEffects(
+        CombatEquipmentCraftOrderSaveData order)
+    {
+        if (order == null || order.completionEffectsPublished)
+            return;
+        CharacterActor maker = characterWorld?.Characters.FirstOrDefault(
+            actor => actor != null && string.Equals(
+                actor.Identity?.PersistentId,
+                order.resolvedMakerCharacterId,
+                StringComparison.Ordinal));
+        try
+        {
+            if (order.resolvedHadInspiration)
+            {
+                inspirationRuntime?.RecordEligibleCompletion(
+                    maker,
+                    order.definitionId,
+                    order.resolvedQuality == CombatEquipmentQuality.Mythic,
+                    gameClock?.Time ?? 0f,
+                    order.outputOperationId);
+            }
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                "Post-commit equipment inspiration notification failed: "
+                + exception.Message);
+        }
+        try
+        {
+            if (identityEvents != null
+                && CharacterPersistentIdentity.TryGet(
+                    maker,
+                    out CharacterId qualityMakerId))
+            {
+                identityEvents.Publish(new ProductQualityResolvedEvent(
+                    qualityMakerId,
+                    order.definitionId,
+                    (CraftsmanshipQualityTier)(int)order.resolvedQuality,
+                    order.qualityRoll?.attemptIndex
+                        ?? order.qualityAttemptIndex,
+                    order.resolvedAbsoluteDay,
+                    rejectedBelowMinimum: (int)order.resolvedQuality
+                        < (int)order.minimumQuality));
+            }
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                "Post-commit product-quality identity notification failed: "
+                + exception.Message);
+        }
+        order.completionEffectsPublished = true;
     }
 
     internal bool TryValidateResolvedOutputCapability(
@@ -1294,7 +1418,7 @@ public sealed class CombatEquipmentCraftingRuntime
         }
         CraftMaterialDefinitionSO material = null;
         return (definition == null
-                || TryResolveMaterial(
+                || definitionRules.TryResolveMaterial(
                     definition,
                     order.materialId,
                     out material,
@@ -1313,7 +1437,7 @@ public sealed class CombatEquipmentCraftingRuntime
         CombatEquipmentWorldState worldState,
         string materialId)
     {
-        return CreateInstance(
+        return instanceFactory.CreateInstance(
             definitionId,
             quality,
             worldState,
@@ -1328,72 +1452,12 @@ public sealed class CombatEquipmentCraftingRuntime
         string materialId,
         MythicProvenanceSaveData mythicProvenance)
     {
-        CombatEquipmentInstance instance = BuildPreparedInstance(
+        return instanceFactory.CreateInstance(
             definitionId,
             quality,
             worldState,
             materialId,
-            mythicProvenance,
-            itemInstances.AllocateItemInstanceId().Value);
-        Instances.Add(instance.instanceId, instance);
-        return instance.Clone();
-    }
-
-    private CombatEquipmentInstance BuildPreparedInstance(
-        string definitionId,
-        CombatEquipmentQuality quality,
-        CombatEquipmentWorldState worldState,
-        string materialId,
-        MythicProvenanceSaveData mythicProvenance,
-        string instanceId)
-    {
-        if (!catalog.TryGet(definitionId, out CombatEquipmentDefinitionSO definition))
-        {
-            throw new KeyNotFoundException(
-                $"Unknown combat equipment definition '{definitionId}'.");
-        }
-        if (!IsDefinitionUnlocked(definitionId, out string lockedReason))
-        {
-            throw new InvalidOperationException(lockedReason);
-        }
-        if (!TryResolveMaterial(
-                definition,
-                materialId,
-                out CraftMaterialDefinitionSO material,
-                out string failureReason))
-        {
-            throw new ArgumentException(failureReason, nameof(materialId));
-        }
-
-        CombatEquipmentInstance instance = new CombatEquipmentInstance
-        {
-            instanceId = instanceId,
-            definitionId = definition.EquipmentId,
-            materialId = material?.MaterialId
-                ?? ResolveRequestedMaterialId(definition, materialId),
-            quality = quality,
-            mythicProvenance = mythicProvenance?.Clone(),
-            durabilityRatio = 1f,
-            powerCharge = 100f,
-            loadedAmmunition = new LoadedAmmunitionBatch(),
-            worldState = worldState,
-            moduleSlots = Enumerable.Range(0, definition.ModuleSlotCount)
-                .Select(index => new EquipmentModuleSlotState { slotIndex = index })
-                .ToList()
-        };
-        if (quality == CombatEquipmentQuality.Mythic
-            && (instance.mythicProvenance == null
-                || instance.mythicProvenance.sourceTraitId
-                    != MythicCraftInspirationRules.SourceTraitId
-                || string.IsNullOrWhiteSpace(
-                    instance.mythicProvenance.makerCharacterId)))
-            throw new InvalidOperationException(
-                "Mythic equipment requires trait-300 provenance.");
-        if (quality != CombatEquipmentQuality.Mythic
-            && instance.mythicProvenance != null)
-            throw new InvalidOperationException(
-                "Non-Mythic equipment cannot carry Mythic provenance.");
-        return instance;
+            mythicProvenance);
     }
 
     private void PrepareRejectedEquipmentDismantle(
@@ -1451,7 +1515,7 @@ public sealed class CombatEquipmentCraftingRuntime
         }
         Instances.Remove(order.rejectedInstanceId);
         Vector2Int position = new(order.destinationX, order.destinationY);
-        string destination = ProductionBillRuntime.OutputDestinationPrefix
+        string destination = ProductionBillIdentity.OutputDestinationPrefix
             + order.facilityPersistentId;
         for (int outputIndex = 0;
              outputIndex < order.recoveryOutputs.Count;
@@ -1927,70 +1991,21 @@ public sealed class CombatEquipmentCraftingRuntime
         CombatEquipmentQuality quality,
         string materialId)
     {
-        if (!catalog.TryGet(
-                definitionId?.Trim() ?? string.Empty,
-                out CombatEquipmentDefinitionSO definition))
-        {
-            throw new KeyNotFoundException(
-                $"Unknown external combat equipment definition '{definitionId}'.");
-        }
-        if (!TryResolveMaterial(
-                definition,
-                materialId,
-                out CraftMaterialDefinitionSO material,
-                out string failureReason))
-        {
-            throw new ArgumentException(failureReason, nameof(materialId));
-        }
-
-        CombatEquipmentInstance instance = new CombatEquipmentInstance
-        {
-            instanceId = itemInstances.AllocateItemInstanceId().Value,
-            definitionId = definition.EquipmentId,
-            materialId = material?.MaterialId
-                ?? ResolveRequestedMaterialId(definition, materialId),
-            quality = quality,
-            durabilityRatio = 1f,
-            powerCharge = 100f,
-            loadedAmmunition = new LoadedAmmunitionBatch(),
-            worldState = CombatEquipmentWorldState.Equipped,
-            moduleSlots = Enumerable.Range(0, definition.ModuleSlotCount)
-                .Select(index => new EquipmentModuleSlotState { slotIndex = index })
-                .ToList()
-        };
-        Instances.Add(instance.instanceId, instance);
-        return instance.Clone();
+        return instanceFactory.CreateExternalInstance(
+            definitionId,
+            quality,
+            materialId);
     }
 
     public CraftMaterialDefinitionSO ResolveInstanceMaterial(
         CombatEquipmentInstance instance,
         CombatEquipmentDefinitionSO definition)
-    {
-        if (materialCatalog.Materials.Count == 0 || definition == null)
-        {
-            return null;
-        }
-        string materialId = ResolveRequestedMaterialId(definition, instance?.materialId);
-        return materialCatalog.TryGetMaterial(materialId, out CraftMaterialDefinitionSO material)
-            && definition.AllowsMaterial(material)
-                ? material
-                : null;
-    }
+        => definitionRules.ResolveInstanceMaterial(instance, definition);
 
     public string NormalizeRestoredMaterialId(
         CombatEquipmentDefinitionSO definition,
         string materialId)
-    {
-        string normalized = ResolveRequestedMaterialId(definition, materialId);
-        if (materialCatalog.Materials.Count == 0)
-        {
-            return normalized;
-        }
-        return materialCatalog.TryGetMaterial(normalized, out CraftMaterialDefinitionSO material)
-            && definition.AllowsMaterial(material)
-                ? material.MaterialId
-                : definition.DefaultMaterialId;
-    }
+        => definitionRules.NormalizeRestoredMaterialId(definition, materialId);
 
     public IReadOnlyList<CombatEquipmentCraftOrderSaveData> CaptureOrders() =>
         orders
@@ -2111,7 +2126,7 @@ public sealed class CombatEquipmentCraftingRuntime
                      ?? Array.Empty<CombatEquipmentCraftMaterialPolicySaveData>())
         {
             CombatEquipmentCraftMaterialPolicySaveData restored =
-                NormalizeMaterialPolicy(source);
+                definitionRules.NormalizeMaterialPolicy(source);
             string key = BuildMaterialPolicyKey(
                 restored.facilityKey,
                 restored.definitionId);
@@ -2144,7 +2159,11 @@ public sealed class CombatEquipmentCraftingRuntime
         }
         CraftMaterialDefinitionSO material = null;
         if (definition != null
-            && !TryResolveMaterial(definition, order.materialId, out material, out _))
+            && !definitionRules.TryResolveMaterial(
+                definition,
+                order.materialId,
+                out material,
+                out _))
         {
             return false;
         }
@@ -2199,41 +2218,6 @@ public sealed class CombatEquipmentCraftingRuntime
         return true;
     }
 
-    private bool TryResolveMaterial(
-        CombatEquipmentDefinitionSO definition,
-        string requestedMaterialId,
-        out CraftMaterialDefinitionSO material,
-        out string failureReason)
-    {
-        material = null;
-        failureReason = string.Empty;
-        if (definition == null)
-        {
-            failureReason = "equipment.definition.unknown";
-            return false;
-        }
-        string normalizedId = ResolveRequestedMaterialId(
-            definition,
-            requestedMaterialId);
-        if (materialCatalog.Materials.Count == 0)
-        {
-            return true;
-        }
-        if (string.IsNullOrWhiteSpace(normalizedId)
-            || !materialCatalog.TryGetMaterial(normalizedId, out material))
-        {
-            failureReason = "equipment.material.unknown";
-            return false;
-        }
-        if (!definition.AllowsMaterial(material))
-        {
-            failureReason = "equipment.material.not_allowed";
-            material = null;
-            return false;
-        }
-        return true;
-    }
-
     private bool TryGetOrCreateMaterialPolicy(
         string definitionId,
         BuildableObject craftingFacility,
@@ -2269,7 +2253,7 @@ public sealed class CombatEquipmentCraftingRuntime
         string policyKey = BuildMaterialPolicyKey(facilityKey, normalizedDefinitionId);
         if (materialPolicies.TryGetValue(policyKey, out policy))
         {
-            policy = NormalizeMaterialPolicy(policy);
+            policy = definitionRules.NormalizeMaterialPolicy(policy);
             materialPolicies[policyKey] = policy;
             return true;
         }
@@ -2366,60 +2350,78 @@ public sealed class CombatEquipmentCraftingRuntime
                 && order.completedWork + 0.0001f
                     >= Mathf.Max(0f, order.requiredWork)));
 
-    private CombatEquipmentCraftMaterialPolicySaveData NormalizeMaterialPolicy(
-        CombatEquipmentCraftMaterialPolicySaveData source)
+    private void RecordPolicyCommand(
+        CombatEquipmentCraftMaterialPolicySaveData policy,
+        string commandKind,
+        string beforeValue,
+        string afterValue)
     {
-        CombatEquipmentCraftMaterialPolicySaveData clone =
-            source?.Clone() ?? new CombatEquipmentCraftMaterialPolicySaveData();
-        if (!catalog.TryGet(clone.definitionId, out CombatEquipmentDefinitionSO definition))
-        {
-            return new CombatEquipmentCraftMaterialPolicySaveData();
-        }
-        Dictionary<string, CraftMaterialDefinitionSO> allowedById =
-            GetAllowedMaterials(definition.EquipmentId)
-                .ToDictionary(
-                    material => material.MaterialId,
-                    material => material,
-                    StringComparer.Ordinal);
-        List<string> priority = clone.priorityMaterialIds
-            .Where(allowedById.ContainsKey)
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
-        foreach (CraftMaterialDefinitionSO material in allowedById.Values
-                     .OrderBy(candidate => string.Equals(
-                             candidate.MaterialId,
-                             definition.DefaultMaterialId,
-                             StringComparison.Ordinal)
-                         ? 0
-                         : 1)
-                     .ThenBy(candidate => candidate.RareMaterial ? 1 : 0)
-                     .ThenBy(candidate => candidate.DisplayName, StringComparer.Ordinal))
-        {
-            if (!priority.Contains(material.MaterialId, StringComparer.Ordinal))
-            {
-                priority.Add(material.MaterialId);
-            }
-        }
-        return new CombatEquipmentCraftMaterialPolicySaveData
-        {
-            facilityKey = clone.facilityKey,
-            definitionId = definition.EquipmentId,
-            priorityMaterialIds = priority,
-            allowedMaterialIds = clone.allowedMaterialIds
-                .Where(allowedById.ContainsKey)
-                .Distinct(StringComparer.Ordinal)
-                .ToList()
-        };
+        if (policy == null)
+            throw new ArgumentNullException(nameof(policy));
+        policy.commandRevision = checked(policy.commandRevision + 1L);
+        AppendCommandReceipt(
+            policy.commandReceipts,
+            policy.commandRevision,
+            commandKind,
+            beforeValue,
+            afterValue);
     }
 
-    private static string ResolveRequestedMaterialId(
-        CombatEquipmentDefinitionSO definition,
-        string requestedMaterialId)
+    private void RecordOrderCommand(
+        CombatEquipmentCraftOrderSaveData order,
+        string commandKind,
+        string beforeValue,
+        string afterValue)
     {
-        return string.IsNullOrWhiteSpace(requestedMaterialId)
-            ? definition?.DefaultMaterialId ?? string.Empty
-            : requestedMaterialId.Trim();
+        if (order == null)
+            throw new ArgumentNullException(nameof(order));
+        order.commandRevision = checked(order.commandRevision + 1L);
+        AppendCommandReceipt(
+            order.commandReceipts,
+            order.commandRevision,
+            commandKind,
+            beforeValue,
+            afterValue);
     }
+
+    private void AppendCommandReceipt(
+        List<CombatCraftCommandReceiptSaveData> target,
+        long revision,
+        string commandKind,
+        string beforeValue,
+        string afterValue)
+    {
+        if (target == null)
+            throw new ArgumentNullException(nameof(target));
+        target.Add(new CombatCraftCommandReceiptSaveData
+        {
+            commandKind = commandKind ?? string.Empty,
+            revision = revision,
+            beforeValue = beforeValue ?? string.Empty,
+            afterValue = afterValue ?? string.Empty,
+            absoluteDay = calendar.Day
+        });
+    }
+
+    private static string CanonicalWorkerPolicy(
+        WorkerSelectionPolicySaveData source)
+    {
+        WorkerSelectionPolicySaveData value = source?.CloneNormalized()
+            ?? WorkerSelectionPolicySaveData.Anyone();
+        return JsonUtility.ToJson(value);
+    }
+
+    private static string CanonicalQualityTarget(
+        CombatEquipmentCraftOrderSaveData order) => string.Join(
+        "|",
+        order.minimumQuality,
+        order.rejectedDisposition,
+        order.repeatLimitMode,
+        order.maximumAttempts,
+        order.workBudget.ToString(
+            "R",
+            System.Globalization.CultureInfo.InvariantCulture),
+        order.requiredAcceptedCount);
 
     private static string BuildMaterialPolicyKey(string facilityKey, string definitionId)
     {

@@ -36,7 +36,7 @@ public enum MealServingRole
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonSurvivalSaveData
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 8;
 
     public int version = CurrentVersion;
     public int lastProcessedDay;
@@ -48,8 +48,6 @@ public sealed class DungeonSurvivalSaveData
     public int lastMissingWater;
     public int consecutiveFoodShortageDays;
     public int consecutiveWaterShortageDays;
-    public int lastConsumedFuel;
-    public int lastMissingFuel;
     public float sanitationRisk;
     public float diseaseRisk;
     public float exteriorNightDanger;
@@ -57,6 +55,92 @@ public sealed class DungeonSurvivalSaveData
         new List<SurvivalHealthSaveData>();
     public List<CharacterMealLedgerSaveData> mealLedger =
         new List<CharacterMealLedgerSaveData>();
+    public List<SurvivalTreatmentPlanSaveData> activeTreatmentPlans =
+        new List<SurvivalTreatmentPlanSaveData>();
+    public List<string> completedTreatmentOperationIds = new List<string>();
+    public List<SurvivalMealMissedCohortSaveData> missedMealCohorts = new();
+}
+
+public enum SurvivalTreatmentPlanPhase
+{
+    IntentRecorded = 0,
+    ItemCommitted = 1,
+    EffectsPublished = 2,
+    ServiceCompleted = 3
+}
+
+public enum SurvivalTreatmentSupplyState
+{
+    Ready = 0,
+    Requested = 1,
+    InTransit = 2,
+    StockMissing = 3,
+    CapacityUnavailable = 4,
+    NoPath = 5,
+    Processing = 6,
+    AwaitingRequest = 7
+}
+
+public enum SurvivalTreatmentKind
+{
+    Standard = 0,
+    Detox = 1
+}
+
+public readonly struct SurvivalTreatmentSupplySnapshot
+{
+    public SurvivalTreatmentSupplySnapshot(
+        CharacterId patientId,
+        BuildingInstanceId facilityId,
+        ConsumableItemDefinitionId itemId,
+        string destinationId,
+        SurvivalTreatmentKind kind,
+        SurvivalTreatmentSupplyState state)
+    {
+        PatientId = patientId;
+        FacilityId = facilityId;
+        ItemId = itemId;
+        DestinationId = destinationId ?? string.Empty;
+        Kind = kind;
+        State = state;
+    }
+
+    public CharacterId PatientId { get; }
+    public BuildingInstanceId FacilityId { get; }
+    public ConsumableItemDefinitionId ItemId { get; }
+    public string DestinationId { get; }
+    public SurvivalTreatmentKind Kind { get; }
+    public SurvivalTreatmentSupplyState State { get; }
+}
+
+public interface ISurvivalTreatmentSupplyQuery
+{
+    bool TryGetTreatmentSupply(
+        CharacterId patientId,
+        out SurvivalTreatmentSupplySnapshot snapshot);
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class SurvivalTreatmentPlanSaveData
+{
+    public string operationId = string.Empty;
+    public string patientId = string.Empty;
+    public string facilityInstanceId = string.Empty;
+    public string serviceSessionId = string.Empty;
+    public string itemDefinitionId = string.Empty;
+    public string sourceStackId = string.Empty;
+    public string destinationId = string.Empty;
+    public bool usedBloodSubstitute;
+    public SurvivalTreatmentPlanPhase phase;
+    public string physicalCommitOperationId = string.Empty;
+    public string physicalCommitReasonCode = string.Empty;
+    public string physicalCommitId = string.Empty;
+    public List<string> physicalCommitSourceStackIds = new List<string>();
+    public int physicalCommitQuantity;
+    public long physicalCommitInputMassGrams;
+    public int physicalCommitPositionX;
+    public int physicalCommitPositionY;
 }
 
 [Serializable]
@@ -442,6 +526,54 @@ public sealed class CharacterBreakdownState
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class PrimitiveSurvivalPendingSaveData
+{
+    public const int CurrentVersion = 2;
+
+    public int version = CurrentVersion;
+    public string actionId = string.Empty;
+    public string operationId = string.Empty;
+    public string characterId = string.Empty;
+    public string characterName = string.Empty;
+    public string publicationKey = string.Empty;
+    public string waterStackId = string.Empty;
+    public string restPublicationKey = string.Empty;
+    // Zero or one child. Inline nullable classes become fabricated empty objects
+    // in Unity's JSON writer, so absence is represented by an empty collection.
+    public List<CharacterRestObservationSaveData> restObservations = new();
+    public bool rollbackBlocked;
+    public string rollbackFailure = string.Empty;
+    public int absoluteDay;
+    public float recovery;
+    public int physicalItemCount;
+    public float sleepAfter;
+    public float hygieneAfter;
+    public float excretionAfter;
+    public int targetGridX;
+    public int targetGridY;
+    public string wasteFilthId = string.Empty;
+    public float wasteAmountAfter;
+    public string stainFilthId = string.Empty;
+    public float stainAmountAfter;
+
+    public bool IsPending => !string.IsNullOrEmpty(actionId);
+    public PrimitiveSurvivalPendingSaveData Clone()
+    {
+        var copy = (PrimitiveSurvivalPendingSaveData)MemberwiseClone();
+        copy.restObservations = restObservations?.ConvertAll(row => row?.Clone());
+        return copy;
+    }
+    public CharacterRestObservationSaveData GetRestObservation()
+    {
+        if (restObservations == null || restObservations.Count > 1
+            || restObservations.Count == 1 && restObservations[0] == null)
+            throw new InvalidOperationException("primitive-survival-rest-collection-invalid");
+        return restObservations.Count == 0 ? null : restObservations[0];
+    }
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CharacterDeprivationState
 {
     public string characterId = string.Empty;
@@ -454,6 +586,8 @@ public sealed class CharacterDeprivationState
     public float nextSafeReliefAttemptAt;
     public int breakdownGeneration;
     public int dispatchedBreakdownGeneration;
+    public PrimitiveSurvivalPendingSaveData primitiveSurvivalPending =
+        new PrimitiveSurvivalPendingSaveData();
 }
 
 [Serializable]
@@ -489,13 +623,16 @@ public sealed class WorldWaterSourceSaveData
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonDarkSurvivalSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 7;
 
     public int version = CurrentVersion;
     public int nextFilthSequence = 1;
     public int nextWaterSequence = 1;
     public List<CharacterDeprivationState> characters =
         new List<CharacterDeprivationState>();
+    public List<CharacterCorpseConsumptionPublicationData> pendingCorpsePublications = new();
+    public List<CharacterWaterPublicationData> pendingWaterPublications = new();
+    public List<PrimitiveSurvivalPendingSaveData> pendingPrimitivePublications = new();
     public List<WorldFilthSaveData> filth = new List<WorldFilthSaveData>();
     public List<WorldWaterSourceSaveData> waterSources =
         new List<WorldWaterSourceSaveData>();

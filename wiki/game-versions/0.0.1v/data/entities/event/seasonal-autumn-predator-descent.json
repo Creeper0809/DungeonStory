@@ -16,10 +16,20 @@
   "game_version": "0.0.1v",
   "group": "events-campaign",
   "kind": "event",
-  "relations": [],
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "carrion-drake",
+      "target_spoiler_tier": "none",
+      "target_title": "시체청소 비룡",
+      "type": "references"
+    }
+  ],
   "schema_version": 1,
   "slug": "seasonal-autumn-predator-descent",
   "spoiler_tier": "warning",
-  "summary": "먹이를 쫓는 포식자가 축사와 외곽 운반로를 노린다.",
+  "summary": "가을 외곽 둥지에 시체청소 비룡 두 마리가 내려와 실제 먹잇감을 탐색한다.",
   "title": "포식자 하산"
 }

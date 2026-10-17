@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 public enum ProductionDomainOutputPublicationStatus
@@ -126,6 +127,28 @@ public interface IProductionDomainOutputPublicationService
         out string failureReason);
 }
 
+public readonly struct ProductionDomainOutputFactPreview
+{
+    public ProductionDomainOutputFactPreview(string ownerId, string fingerprint,
+        PreparedFacilityBufferOutputPublicationPreview physical)
+    { OwnerId = ownerId; Fingerprint = fingerprint; Physical = physical; }
+    public string OwnerId { get; }
+    public string Fingerprint { get; }
+    public PreparedFacilityBufferOutputPublicationPreview Physical { get; }
+}
+
+/// <summary>The output owner captures facts from the exact preallocated physical batch.</summary>
+public interface IObservedProductionDomainOutputPublicationService
+{
+    ProductionDomainOutputPublicationResult EnsureCommitted<TFact>(
+        ProductionDomainOutputPublicationSaveData owner,
+        ProductionDomainOutputPublicationPlan plan,
+        Func<ProductionDomainOutputFactPreview, TFact> capture);
+
+    bool TryRecover<TFact>(ProductionDomainOutputPublicationSaveData owner, string ownerId,
+        Func<ProductionDomainOutputFactPreview, TFact> capture, out string failureReason);
+}
+
 /// <summary>
 /// Shared output transaction for domain-owned producers. It reserves the whole
 /// resolved batch by authoritative grams, atomically publishes it, and commits
@@ -133,7 +156,8 @@ public interface IProductionDomainOutputPublicationService
 /// service to acknowledge output provenance.
 /// </summary>
 public sealed class ProductionDomainOutputPublicationService :
-    IProductionDomainOutputPublicationService
+    IProductionDomainOutputPublicationService,
+    IObservedProductionDomainOutputPublicationService
 {
     private const string ComponentFingerprintSchema =
         "production-domain-output-components@1";
@@ -145,6 +169,13 @@ public sealed class ProductionDomainOutputPublicationService :
     private readonly IFacilityBufferMassAdmissionService admission;
     private readonly IFacilityBufferPlannedOutputPublicationService publication;
     private readonly IPhysicalItemMassQuery massQuery;
+    private readonly IPreparedFacilityBufferOutputPublicationService
+        preparedPublication;
+    private readonly IReversibleFacilityBufferPlannedOutputAdmissionService
+        reversibleAdmission;
+    private readonly IDomainFactStagingPublisher facts;
+    private readonly IDomainFactRecoveryPublisher recovery;
+    private readonly IDomainFactDeliveryQuery deliveries;
 
     public ProductionDomainOutputPublicationService(
         IProductionFacilityHandleQuery facilities,
@@ -153,7 +184,14 @@ public sealed class ProductionDomainOutputPublicationService :
         IProductionOutputMaximumMassRegistry maximumMassRegistry,
         IFacilityBufferMassAdmissionService admission,
         IFacilityBufferPlannedOutputPublicationService publication,
-        IPhysicalItemMassQuery massQuery)
+        IPhysicalItemMassQuery massQuery,
+        IPreparedFacilityBufferOutputPublicationService
+            preparedPublication = null,
+        IReversibleFacilityBufferPlannedOutputAdmissionService
+            reversibleAdmission = null,
+        IDomainFactStagingPublisher facts = null,
+        IDomainFactRecoveryPublisher recovery = null,
+        IDomainFactDeliveryQuery deliveries = null)
     {
         this.facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
@@ -169,11 +207,69 @@ public sealed class ProductionDomainOutputPublicationService :
             ?? throw new ArgumentNullException(nameof(publication));
         this.massQuery = massQuery
             ?? throw new ArgumentNullException(nameof(massQuery));
+        this.preparedPublication = preparedPublication;
+        this.reversibleAdmission = reversibleAdmission;
+        this.facts = facts;
+        this.recovery = recovery;
+        this.deliveries = deliveries;
     }
 
     public ProductionDomainOutputPublicationResult EnsureCommitted(
         ProductionDomainOutputPublicationSaveData owner,
-        ProductionDomainOutputPublicationPlan plan)
+        ProductionDomainOutputPublicationPlan plan) => EnsureCommittedCore(
+        owner,
+        plan,
+        null);
+
+    public ProductionDomainOutputPublicationResult EnsureCommitted<TFact>(
+        ProductionDomainOutputPublicationSaveData owner, ProductionDomainOutputPublicationPlan plan,
+        Func<ProductionDomainOutputFactPreview, TFact> capture)
+    {
+        if (facts == null || recovery == null || deliveries == null)
+            return Conflict("domain-output-fact-publication-unavailable");
+        if (capture == null) throw new ArgumentNullException(nameof(capture));
+        return EnsureCommittedCore(owner, plan, new FactOperation<TFact>(facts, recovery, capture));
+    }
+
+    public bool TryRecover<TFact>(ProductionDomainOutputPublicationSaveData owner, string ownerId,
+        Func<ProductionDomainOutputFactPreview, TFact> capture, out string failureReason)
+    {
+        if (capture == null) throw new ArgumentNullException(nameof(capture));
+        if (recovery == null)
+        { failureReason = "domain-output-fact-recovery-unavailable"; return false; }
+        return TryRecoverObserved(owner, ownerId, new FactOperation<TFact>(facts, recovery, capture), out failureReason);
+    }
+
+    private interface IFactOperation
+    {
+        bool TryStage(in ProductionDomainOutputFactPreview preview, out IDomainFactStage stage, out string failure);
+        DomainFactDelivery Replay(string key, in ProductionDomainOutputFactPreview preview);
+    }
+
+    private sealed class FactOperation<TFact> : IFactOperation
+    {
+        private readonly IDomainFactStagingPublisher facts;
+        private readonly IDomainFactRecoveryPublisher recovery;
+        private readonly Func<ProductionDomainOutputFactPreview, TFact> capture;
+        public FactOperation(IDomainFactStagingPublisher facts, IDomainFactRecoveryPublisher recovery,
+            Func<ProductionDomainOutputFactPreview, TFact> capture)
+        { this.facts = facts; this.recovery = recovery; this.capture = capture; }
+        public bool TryStage(in ProductionDomainOutputFactPreview preview,
+            out IDomainFactStage stage, out string failure) =>
+            facts.TryStage(capture(preview), out stage, out failure);
+        public DomainFactDelivery Replay(string key, in ProductionDomainOutputFactPreview preview)
+        {
+            TFact fact = capture(preview);
+            var results = new DomainFactDelivery[1];
+            return recovery.ReplayBatch(new[] { DomainFactReplay.Create(key, fact) }, results, out string failure)
+                ? results[0] : DomainFactDelivery.Uncertain("domain-output-fact-recovery:" + failure);
+        }
+    }
+
+    private ProductionDomainOutputPublicationResult EnsureCommittedCore(
+        ProductionDomainOutputPublicationSaveData owner,
+        ProductionDomainOutputPublicationPlan plan,
+        IFactOperation observation)
     {
         if (owner == null)
             return Conflict("domain-output-owner-missing");
@@ -293,6 +389,21 @@ public sealed class ProductionDomainOutputPublicationService :
                     : Pending(reserveFailure);
             }
 
+            if (owner.observationExpected && observation == null)
+            {
+                return Conflict(
+                    "domain-output-outcome-participant-required-for-replay");
+            }
+
+            if (observation != null)
+            {
+                return EnsureObservedCommitted(
+                    owner,
+                    plan,
+                    token,
+                    observation);
+            }
+
             if (!publication.TryPublishFullBatch(
                     token,
                     out FacilityBufferPlannedOutputPublicationReceipt published,
@@ -363,30 +474,32 @@ public sealed class ProductionDomainOutputPublicationService :
             return false;
         if (owner.outputAcknowledged)
             return true;
-        FacilityBufferPlannedOutputPublicationReceipt receipt = new(
-            owner.admissionTokenId,
-            owner.batchCommitId,
-            owner.outcomeFingerprint,
-            owner.destinationId,
-            new Vector2Int(owner.destinationX, owner.destinationY),
-            owner.ownerDomain,
-            owner.ownerOperationId,
-            owner.ownerFacilityId,
-            owner.capacityRevision,
-            owner.plannedOutputFingerprint,
-            owner.stacks.Select(value =>
-                new FacilityBufferPublishedOutputStackReceipt(
-                    value.stackId,
-                    value.outputLineId,
-                    (ItemDefinitionId)value.itemId,
-                    value.quantity,
-                    new PhysicalMassGrams(value.massGrams),
-                    value.itemInstanceId))
-                .ToArray());
+        if (owner.observationExpected
+            && !TryRefreshDeliveredObservation(owner, out failureReason))
+        {
+            return false;
+        }
+        FacilityBufferPlannedOutputPublicationReceipt receipt = RestorePublicationReceipt(owner);
         if (!TryCaptureReleaseTarget(owner, out FacilityBufferAcknowledgedOutputReleaseTarget releaseTarget))
         {
             failureReason = "domain-output-release-target-invalid";
             return false;
+        }
+        if (owner.observationExpected)
+        {
+            // The physical marker and delivered observation are durable across sessions;
+            // the original admission token is intentionally not a restore authority.
+            if (!publication.TryCapturePendingBatch(owner.batchCommitId, out var candidate, out _, out failureReason))
+                return false;
+            try { ProductionDomainOutputRestoreGuard.ValidateIncoming(owner, candidate); }
+            catch (Exception exception) when (IsRecoverable(exception))
+            { failureReason = "domain-output-observed-acknowledgement:" + exception.Message; return false; }
+            bool released = owner.acknowledgementDisposition ==
+                    ProductionDomainOutputAcknowledgementDisposition.RetainFacilityOutputBuffer
+                ? publication.TryAcknowledgeRestoreCandidate(candidate, out _, out failureReason)
+                : publication.TryAcknowledgeAndReleaseRestoreCandidate(candidate, releaseTarget, out _, out failureReason);
+            if (released) owner.outputAcknowledged = true;
+            return released;
         }
         bool acknowledged = owner.acknowledgementDisposition ==
                 ProductionDomainOutputAcknowledgementDisposition
@@ -480,7 +593,8 @@ public sealed class ProductionDomainOutputPublicationService :
             && owner.stacks.Aggregate(
                     0L,
                     (sum, value) => checked(sum + value.massGrams))
-                == owner.outputMassGrams;
+                == owner.outputMassGrams
+            && ValidateObservation(owner);
         }
         catch (OverflowException)
         {
@@ -538,7 +652,9 @@ public sealed class ProductionDomainOutputPublicationService :
             && !owner.outputPublished
             && !owner.admissionCommitted
             && !owner.outputAcknowledged
-            && (owner.stacks == null || owner.stacks.Count == 0);
+            && !owner.observationExpected
+            && (owner.stacks == null || owner.stacks.Count == 0)
+            && ValidateObservation(owner);
         failureReason = frozenAwaitingReservation
             ? string.Empty
             : "domain-output-owner-not-restorable";
@@ -570,6 +686,8 @@ public sealed class ProductionDomainOutputPublicationService :
             }
             if (status != FacilityBufferMassAdmissionTokenStatus.Released)
                 return TokenMatchesOwner(owner, token, out failureReason);
+            if (owner.outputPublished || owner.admissionCommitted || owner.observationExpected)
+            { failureReason = "domain-output-applied-admission-released"; return false; }
             ResetReleasedAttempt(owner);
         }
 
@@ -729,9 +847,253 @@ public sealed class ProductionDomainOutputPublicationService :
         owner.outputPublished = false;
         owner.admissionCommitted = false;
         owner.outputAcknowledged = false;
+        owner.observationExpected = false;
+        owner.observationOwnerRevision = 0;
+        owner.observationKey = owner.observationId = owner.observationFingerprint = string.Empty;
+        owner.observationDelivered = false;
         (owner.stacks ??= new List<ProductionDomainPublishedStackSaveData>())
             .Clear();
     }
+
+    private static bool ValidateObservation(ProductionDomainOutputPublicationSaveData owner)
+    {
+        if (!owner.observationExpected)
+            return owner.observationOwnerRevision == 0 && owner.observationKey == string.Empty
+                && owner.observationId == string.Empty && owner.observationFingerprint == string.Empty
+                && !owner.observationDelivered;
+        if (owner.observationOwnerRevision <= 0 || !Canonical(owner.observationKey)
+            || !owner.outputPublished || !owner.admissionCommitted || owner.stacks == null
+            || owner.stacks.Count == 0 || owner.stacks.Any(value => value == null
+                || !DomainFactValueSyntax.IsText(value.displayText, DomainFactValueSyntax.MaximumNameCharacters, false))
+            || owner.outputAcknowledged && !owner.observationDelivered)
+            return false;
+        bool noProof = owner.observationId == string.Empty && owner.observationFingerprint == string.Empty;
+        return noProof ? !owner.observationDelivered
+            : Canonical(owner.observationId) && Sha(owner.observationFingerprint);
+    }
+
+    private ProductionDomainOutputPublicationResult EnsureObservedCommitted(
+        ProductionDomainOutputPublicationSaveData owner, ProductionDomainOutputPublicationPlan plan,
+        FacilityBufferPlannedOutputToken token, IFactOperation observation)
+    {
+        if (preparedPublication == null || reversibleAdmission == null)
+        {
+            ReleaseReserved(owner, token);
+            return Conflict("domain-output-fact-transaction-unavailable");
+        }
+        if (owner.observationExpected)
+        {
+            if (!TryValidateCommittedOwner(owner, out string invalid)) return Conflict(invalid);
+            bool delivered = TryRecoverObserved(owner, plan.OwnerId, observation, out string pending);
+            return new ProductionDomainOutputPublicationResult(
+                ProductionDomainOutputPublicationStatus.CommittedAwaitingOwnerAcknowledgement,
+                delivered ? string.Empty : pending);
+        }
+        if (!preparedPublication.TryPrepareFullBatch(token, out var preparedPhysical, out _, out string failure))
+        {
+            ReleaseReserved(owner, token);
+            return Pending("domain-output-physical-prepare:" + failure);
+        }
+        IDomainFactStage stage = null;
+        List<ProductionDomainPublishedStackSaveData> frozen;
+        try
+        {
+            frozen = CapturePublishedStacks(preparedPhysical.Preview);
+            var preview = new ProductionDomainOutputFactPreview(plan.OwnerId, plan.OutcomeFingerprint, preparedPhysical.Preview);
+            if (!preview.Physical.IsValid || !observation.TryStage(preview, out stage, out failure)
+                || stage == null || stage.IsReplay || stage.OwnerRevision != preview.Physical.OwnerRevision
+                || !Canonical(stage.OperationKey))
+            {
+                stage?.Cancel(); preparedPhysical.Cancel(); ReleaseReserved(owner, token);
+                return Pending("domain-output-fact-prepare:" + failure);
+            }
+        }
+        catch (Exception exception) when (IsRecoverable(exception))
+        {
+            stage?.Cancel(); preparedPhysical.Cancel(); ReleaseReserved(owner, token);
+            return Pending("domain-output-fact-prepare-exception:" + exception.Message);
+        }
+
+        owner.observationExpected = true;
+        owner.observationOwnerRevision = preparedPhysical.Preview.OwnerRevision;
+        owner.observationKey = stage.OperationKey;
+        owner.observationId = owner.observationFingerprint = string.Empty;
+        owner.observationDelivered = false;
+        if (!preparedPhysical.TryApply(out var physicalTx, out _, out string physicalFailure))
+        {
+            stage.Cancel(); preparedPhysical.Cancel(); ReleaseReserved(owner, token);
+            return Pending("domain-output-physical-apply:" + physicalFailure);
+        }
+        owner.outputPublished = true;
+        owner.plannedOutputFingerprint = preparedPhysical.Preview.Receipt.PlannedOutputFingerprint;
+        if (!reversibleAdmission.TryCommitPlannedOutputReversible(token, preparedPhysical.Preview.Receipt,
+                out var admissionTx, out _, out string admissionFailure))
+        {
+            stage.Cancel();
+            if (!physicalTx.TryRollback(out _, out string rollback))
+                return Conflict("domain-output-admission-physical-rollback:" + admissionFailure + ":" + rollback);
+            owner.outputPublished = false;
+            ReleaseReserved(owner, token);
+            return Pending("domain-output-admission:" + admissionFailure);
+        }
+        owner.admissionCommitted = true;
+        owner.stacks = frozen;
+        DomainFactDelivery delivery;
+        try { delivery = stage.Commit(); }
+        catch (Exception exception) when (IsRecoverable(exception))
+        {
+            stage.Cancel();
+            delivery = DomainFactDelivery.Uncertain("domain-output-commit-reply:" + exception.GetType().Name);
+        }
+        if (!delivery.MayBeCommitted)
+        {
+            stage.Cancel();
+            return RollbackObservedOutput(owner, token, preparedPhysical.Preview.Receipt,
+                physicalTx, admissionTx, delivery.Detail);
+        }
+        // Applied output and its admission remain durable even if no recording proof is yet observable.
+        TryRecordObservation(owner, delivery, out string detail);
+        physicalTx.TryAcknowledge(out _);
+        admissionTx.TryAcknowledge(out _);
+        return new ProductionDomainOutputPublicationResult(
+            ProductionDomainOutputPublicationStatus.CommittedAwaitingOwnerAcknowledgement, detail);
+    }
+
+    private bool TryRecoverObserved(ProductionDomainOutputPublicationSaveData owner, string ownerId,
+        IFactOperation observation, out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!TryValidateCommittedOwner(owner, out failureReason) || !owner.observationExpected
+            || owner.outputAcknowledged || !Canonical(ownerId))
+        { failureReason = "domain-output-recovery-owner-invalid:" + failureReason; return false; }
+        try
+        {
+            // Admission tokens are session-local and cleared after restore. The exact persisted
+            // physical marker is the replay authority; do not reserve/apply a replacement token.
+            if (!publication.TryCapturePendingBatch(owner.batchCommitId, out var physical, out _, out failureReason))
+            { failureReason = "domain-output-recovery-physical-missing:" + failureReason; return false; }
+            ProductionDomainOutputRestoreGuard.ValidateIncoming(owner, physical);
+            var receipt = RestorePublicationReceipt(owner);
+            var preview = new ProductionDomainOutputFactPreview(ownerId, owner.outcomeFingerprint,
+                new PreparedFacilityBufferOutputPublicationPreview(receipt, owner.observationOwnerRevision,
+                    RestorePreparedOutputFacts(owner, receipt)));
+            if (!preview.Physical.IsValid)
+            { failureReason = "domain-output-recovery-physical-fact-invalid"; return false; }
+            var delivery = observation.Replay(owner.observationKey, preview);
+            return TryRecordObservation(owner, delivery, out failureReason) && owner.observationDelivered;
+        }
+        catch (Exception exception) when (IsRecoverable(exception))
+        { failureReason = "domain-output-recovery:" + exception.Message; return false; }
+    }
+
+    private ProductionDomainOutputPublicationResult RollbackObservedOutput(
+        ProductionDomainOutputPublicationSaveData owner,
+        FacilityBufferPlannedOutputToken token,
+        FacilityBufferPlannedOutputPublicationReceipt publicationReceipt,
+        IReversibleFacilityBufferOutputPublication physicalTx,
+        IReversibleFacilityBufferPlannedOutputAdmission admissionTx,
+        string outcomeFailure)
+    {
+        if (!admissionTx.TryRollback(out _, out string admissionRollback))
+        {
+            return Conflict(
+                "domain-output-outcome-admission-rollback:"
+                + outcomeFailure + ":" + admissionRollback);
+        }
+        if (!physicalTx.TryRollback(out _, out string physicalRollback))
+        {
+            // Restore the routed admission if physical removal failed so the
+            // two physical authorities remain mutually consistent.
+            admission.TryCommitPlannedOutput(
+                token,
+                publicationReceipt,
+                out _,
+                out _,
+                out string restoreFailure);
+            return Conflict(
+                "domain-output-outcome-physical-rollback:"
+                + outcomeFailure + ":" + physicalRollback
+                + ":" + restoreFailure);
+        }
+        owner.outputPublished = false;
+        owner.admissionCommitted = false;
+        owner.stacks.Clear();
+        if (!admission.TryReleasePlannedOutput(
+                token,
+                FacilityBufferMassAdmissionReleaseReason.TransactionRollback,
+                out _,
+                out string releaseFailure))
+        {
+            return Conflict(
+                "domain-output-outcome-release-rollback:"
+                + outcomeFailure + ":" + releaseFailure);
+        }
+        ResetReleasedAttempt(owner);
+        return Pending("domain-output-outcome-commit:" + outcomeFailure);
+    }
+
+    private static List<ProductionDomainPublishedStackSaveData> CapturePublishedStacks(
+        in PreparedFacilityBufferOutputPublicationPreview preview) => preview.Facts
+        .OrderBy(value => value.Stack.OutputLineId, StringComparer.Ordinal)
+        .ThenBy(value => value.Stack.StackId, StringComparer.Ordinal)
+        .Select(value => new ProductionDomainPublishedStackSaveData
+        {
+            outputLineId = value.Stack.OutputLineId, itemId = value.Stack.ItemDefinitionId.Value,
+            itemInstanceId = value.Stack.ItemInstanceId, stackId = value.Stack.StackId,
+            quantity = value.Stack.Quantity, massGrams = value.Stack.MassGrams, displayText = value.DisplayName
+        }).ToList();
+
+    private static IReadOnlyList<PreparedFacilityBufferOutputFact> RestorePreparedOutputFacts(
+        ProductionDomainOutputPublicationSaveData owner, FacilityBufferPlannedOutputPublicationReceipt receipt)
+    {
+        var saved = owner.stacks.ToDictionary(value => value.stackId, StringComparer.Ordinal);
+        return receipt.Stacks.Select(stack => new PreparedFacilityBufferOutputFact(
+            stack, saved[stack.StackId].displayText)).ToArray();
+    }
+
+    private static FacilityBufferPlannedOutputPublicationReceipt RestorePublicationReceipt(
+        ProductionDomainOutputPublicationSaveData owner) => new(
+        owner.admissionTokenId, owner.batchCommitId, owner.outcomeFingerprint, owner.destinationId,
+        new Vector2Int(owner.destinationX, owner.destinationY), owner.ownerDomain, owner.ownerOperationId,
+        owner.ownerFacilityId, owner.capacityRevision, owner.plannedOutputFingerprint,
+        owner.stacks.Select(value => new FacilityBufferPublishedOutputStackReceipt(
+            value.stackId, value.outputLineId, (ItemDefinitionId)value.itemId, value.quantity,
+            new PhysicalMassGrams(value.massGrams), value.itemInstanceId)).ToArray());
+
+    private bool TryRefreshDeliveredObservation(ProductionDomainOutputPublicationSaveData owner, out string failure)
+    {
+        if (deliveries == null) { failure = "domain-output-observation-query-unavailable"; return false; }
+        try
+        {
+            return TryRecordObservation(owner, deliveries.Reconcile(owner.observationKey), out failure)
+                && owner.observationDelivered;
+        }
+        catch (Exception exception) when (IsRecoverable(exception))
+        { failure = "domain-output-observation-query:" + exception.Message; return false; }
+    }
+
+    private static bool TryRecordObservation(ProductionDomainOutputPublicationSaveData owner,
+        in DomainFactDelivery delivery, out string failure)
+    {
+        failure = delivery.Detail;
+        if (!delivery.MayBeCommitted || delivery.OperationKey != owner.observationKey
+            || !Canonical(delivery.PublicationId) || !Sha(delivery.Fingerprint))
+        { failure = "domain-output-observation-pending:" + failure; return false; }
+        if (owner.observationId.Length > 0 && owner.observationId != delivery.PublicationId
+            || owner.observationFingerprint.Length > 0 && owner.observationFingerprint != delivery.Fingerprint
+            || owner.observationDelivered && !delivery.Completed)
+        { failure = "domain-output-observation-proof-conflict"; return false; }
+        owner.observationId = delivery.PublicationId;
+        owner.observationFingerprint = delivery.Fingerprint;
+        owner.observationDelivered = delivery.Completed;
+        if (!delivery.Completed) failure = "domain-output-observation-pending:" + delivery.Detail;
+        return true;
+    }
+
+    private static bool IsRecoverable(Exception exception) =>
+        exception is not OutOfMemoryException
+        && exception is not StackOverflowException
+        && exception is not AccessViolationException;
 
     private static bool TokenMatchesOwner(
         ProductionDomainOutputPublicationSaveData owner,
@@ -1386,6 +1748,41 @@ public sealed class ProductionDomainOutputRestoreGuard :
         ProductionDomainOutputPublicationSaveData owner,
         FacilityBufferPlannedOutputRestoreBatchSnapshot incoming)
     {
+        ValidatePhysicalBatch(owner, incoming,
+            WorldItemStackState.FacilityOutputBuffer, owner.destinationId);
+    }
+
+    public static void ValidateAcknowledged(
+        ProductionDomainOutputPublicationSaveData owner,
+        FacilityBufferPlannedOutputRestoreBatchSnapshot incoming)
+    {
+        if (!ProductionDomainOutputPublicationService.TryValidateCommittedOwner(
+                owner, out string failureReason)
+            || !owner.outputAcknowledged
+            || !ProductionDomainOutputPublicationService.TryCaptureReleaseTarget(
+                owner, out FacilityBufferAcknowledgedOutputReleaseTarget target))
+            throw new InvalidOperationException(
+                "Domain-output acknowledged restore owner is invalid: "
+                + failureReason);
+
+        bool retained = owner.acknowledgementDisposition ==
+            ProductionDomainOutputAcknowledgementDisposition
+                .RetainFacilityOutputBuffer;
+        // ACK has already released loose outputs; their publication identity
+        // remains exact, but their custody is no longer the pending buffer.
+        ValidatePhysicalBatch(owner, incoming,
+            retained ? WorldItemStackState.FacilityOutputBuffer
+                : WorldItemStackState.Loose,
+            retained ? owner.destinationId
+                : target.HasDestination ? target.DestinationId : string.Empty);
+    }
+
+    private static void ValidatePhysicalBatch(
+        ProductionDomainOutputPublicationSaveData owner,
+        FacilityBufferPlannedOutputRestoreBatchSnapshot incoming,
+        WorldItemStackState expectedState,
+        string expectedDestination)
+    {
         Dictionary<string, ProductionDomainPublishedStackSaveData> expected =
             owner.stacks.ToDictionary(value => value.stackId,
                 StringComparer.Ordinal);
@@ -1421,13 +1818,13 @@ public sealed class ProductionDomainOutputRestoreGuard :
                     StringComparison.Ordinal)
                 && value.Quantity == stack.quantity
                 && value.MassGrams == stack.massGrams
-                && value.State == WorldItemStackState.FacilityOutputBuffer
+                && value.State == expectedState
                 && value.Position == new Vector2Int(
                     owner.destinationX,
                     owner.destinationY)
                 && string.Equals(
                     value.DestinationId,
-                    owner.destinationId,
+                    expectedDestination,
                     StringComparison.Ordinal));
         if (!matches)
         {

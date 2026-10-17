@@ -6,6 +6,7 @@ using System.Reflection;
 using DungeonStory.Content.CoreSession;
 using DungeonStory.CoreSession;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using DungeonStory.ServiceRooms;
 using UnityEditor;
 using UnityEngine;
@@ -210,6 +211,11 @@ public static class BatchACoreSessionSaveDebugScenarios
             InvasionThreatRuntime threat =
                 host.AddComponent<InvasionThreatRuntime>();
             RunVariableRuntime runtime = host.AddComponent<RunVariableRuntime>();
+            MigratedProducerOutcomeEditorFixture outcomeFixture = new(
+                "run:batch-a-run-variable-preflight",
+                store);
+            using DomainFactDispatcher runVariableFacts =
+                outcomeFixture.CreateRunVariableFacts();
             runtime.Construct(
                 EmptyOwnerRunDataProvider.Instance,
                 new InvasionSceneRuntimeReferences(threat, null, null),
@@ -218,7 +224,9 @@ public static class BatchACoreSessionSaveDebugScenarios
                 new GameEventBus(),
                 EmptyRunVariableCatalog.Instance,
                 EmptyDoctrineCatalog.Instance,
-                store);
+                store,
+                runVariableFacts,
+                runVariableFacts);
             RunVariableSaveSection section = new(
                 runtime,
                 EmptyRunVariableCatalog.Instance,
@@ -257,17 +265,18 @@ public static class BatchACoreSessionSaveDebugScenarios
             }
 
             string committed = section.Capture();
-            string legacyPayload = WithPayloadVersion(
+            const int OldRunVariableVersion = 3;
+            string oldVersionPayload = WithPayloadVersion(
                 canonicalJson,
                 section.SectionVersion,
-                section.SectionVersion - 1);
+                OldRunVariableVersion);
             if (!RejectsStrictRestore(
                     section,
                     canonicalJson,
-                    section.SectionVersion - 1)
+                    OldRunVariableVersion)
                 || !RejectsStrictRestore(
                     section,
-                    legacyPayload,
+                    oldVersionPayload,
                     section.SectionVersion)
                 || !RejectsStrictRestore(
                     section,
@@ -493,6 +502,11 @@ public static class BatchACoreSessionSaveDebugScenarios
                 host.AddComponent<InvasionThreatRuntime>();
             RunVariableRuntime runVariables =
                 host.AddComponent<RunVariableRuntime>();
+            MigratedProducerOutcomeEditorFixture outcomeFixture = new(
+                "run:batch-a-core-session",
+                store);
+            using DomainFactDispatcher runVariableFacts =
+                outcomeFixture.CreateRunVariableFacts();
             runVariables.Construct(
                 EmptyOwnerRunDataProvider.Instance,
                 new InvasionSceneRuntimeReferences(threat, null, null),
@@ -501,7 +515,9 @@ public static class BatchACoreSessionSaveDebugScenarios
                 new GameEventBus(),
                 EmptyRunVariableCatalog.Instance,
                 EmptyDoctrineCatalog.Instance,
-                store);
+                store,
+                runVariableFacts,
+                runVariableFacts);
             DungeonSceneRuntimeReferences references =
                 new DungeonSceneRuntimeReferences(
                     new DungeonSceneServiceReferences(null, null, null, runVariables),
@@ -730,6 +746,11 @@ public static class BatchACoreSessionSaveDebugScenarios
 
             RunVariableRuntime runVariables =
                 host.AddComponent<RunVariableRuntime>();
+            MigratedProducerOutcomeEditorFixture outcomeFixture = new(
+                "run:batch-a-integrated",
+                store);
+            using DomainFactDispatcher runVariableFacts =
+                outcomeFixture.CreateRunVariableFacts();
             runVariables.Construct(
                 EmptyOwnerRunDataProvider.Instance,
                 invasion,
@@ -738,7 +759,9 @@ public static class BatchACoreSessionSaveDebugScenarios
                 events,
                 authored,
                 authored,
-                store);
+                store,
+                runVariableFacts,
+                runVariableFacts);
             runVariables.RestoreRun(
                 23,
                 4,
@@ -761,7 +784,14 @@ public static class BatchACoreSessionSaveDebugScenarios
                     new IntegratedMoneyAccount(1000),
                     DefaultInterfaceProxy.Create<IPowerInfrastructureQuery>(),
                     DefaultInterfaceProxy.Create<IServiceRoomResearchQuery>(),
-                    rulesProvider),
+                    rulesProvider,
+                    DefaultInterfaceProxy.Create<IGameSessionStateProvider>(),
+                    // This save fixture only toggles advertising and never
+                    // invokes a service-mode command.
+                    DefaultInterfaceProxy.Create<
+                        IDomainFactPublisher>(),
+                    DefaultInterfaceProxy.Create<
+                        IDomainFactRecoveryPublisher>()),
                 store,
                 DefaultInterfaceProxy.Create<IRestoreWorldCandidateQuery>(),
                 DefaultInterfaceProxy.Create<ICharacterWorldPersistenceIdentityQuery>());
@@ -1304,7 +1334,10 @@ public static class BatchACoreSessionSaveDebugScenarios
         public void AddDread(float amount, string source) { }
         public void AddHostileRumor(float amount, string source) { }
         public void AddEcologyPressure(float amount, string source) { }
-        public void AddScoutingLabor(float amount) { }
+        public void AddScoutingLabor(
+            float amount,
+            int reconLevel,
+            int newlyRevealed) { }
         public bool TryMitigateHostileRumor(
             HostileRumorMitigationMethod method,
             out float reducedAmount,
@@ -1398,6 +1431,7 @@ public static class BatchACoreSessionSaveDebugScenarios
         public int BossCycle => State.BossCycle;
         public bool IsBossArmed => State.BossArmed;
         public bool IsBossActive => State.BossActive;
+        public OwnerRunCompletionPendingData CapturePendingCompletion() => State.PendingCompletion?.Clone();
 
         internal DungeonRunFlowSaveData CaptureState() => new()
         {

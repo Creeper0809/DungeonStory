@@ -66,12 +66,34 @@ public static class V27PairedClutterPlayModeVerifier
             "Assets/Scripts/Services/Foundation/Random/RandomStreamProvider.cs",
              "Assets/Scripts/Services/Character/AI/CharacterAiScheduler.cs",
              "Assets/Scripts/Services/Character/AI/AIBrain.cs",
+             "Assets/Scripts/Services/Character/AI/CharacterAiExecutionLedger.cs",
+             "Assets/Scripts/Services/Character/AI/CharacterAiDecisionScheduleObservation.cs",
+             "Assets/Scripts/Services/Character/AI/CharacterAiPreferredActionRuntime.cs",
+             "Assets/Scripts/Services/Character/AI/CharacterExternalActionIntentRuntime.cs",
+             "Assets/Scripts/Services/Character/AI/CharacterAiFailureDiagnosticsRuntime.cs",
+             "Assets/Scripts/Services/Character/AI/CharacterOperationBlockSnapshot.cs",
+             "Assets/Scripts/Services/Character/AI/CharacterOperationBlockObservationRuntime.cs",
+             "Assets/Scripts/Services/Character/AI/CharacterAiDecisionObservationCache.cs",
+             "Assets/Scripts/Services/Infrastructure/IMainCameraProvider.cs",
+             "Assets/Scripts/Services/Infrastructure/IWorldPointerPositionProvider.cs",
+             "Assets/Scripts/Services/Character/Core/ICharacterIdRegistry.cs",
+             "Assets/Scripts/Services/Character/AI/ICharacterAiSchedulingService.cs",
+             "Assets/Scripts/Services/Character/AI/ICharacterAiDiagnosticsQuery.cs",
+             "Assets/Scripts/Services/Character/Core/ICharacterMoodImpulseQuery.cs",
+             "Assets/Scripts/Services/Character/AI/ICharacterSocialMemoryFactory.cs",
+             "Assets/Scripts/Services/Character/AI/Idle/IIdleSocialInteractionCommand.cs",
+             "Assets/Scripts/Services/Character/Core/ICharacterRuntimeTransientStateRegistry.cs",
+             "Assets/Scripts/Services/Character/Work/IWorkAmountCalculator.cs",
              "Assets/Scripts/Services/Character/AI/Action/AIHaul.cs",
              "Assets/Scripts/Services/Character/Ability/AbilityMove.cs",
              "Assets/Scripts/Services/Items/AbilityHaul.cs",
              "Assets/Scripts/Services/Items/WarehouseMassAdmissionService.cs",
              "Assets/Scripts/Services/Items/WorldItemWarehouseService.cs",
+             "Assets/Scripts/Services/Items/WorldItemDestinationAdmissionService.cs",
+             "Assets/Scripts/Services/Items/PreparedOutputPickupBoundaryContracts.cs",
+             "Assets/Scripts/Models/Items/Core/WarehouseStorageIdentity.cs",
              "Assets/Scripts/Services/Items/WorldItemHaulPlanningService.cs",
+             "Assets/Scripts/Services/Items/HaulRouteEligibilityRules.cs",
              "Assets/Scripts/Services/Items/Editor/SyntheticPreparedOutputCanaryGameplaySceneLease.cs"
          });
     static V27PairedClutterPlayModeVerifier()
@@ -1425,15 +1447,15 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         {
             ResearchProjectSO expansionProject =
                 expansionProjects[expansionResearchId];
-            BlueprintResearchUnlockResult expansionUnlock =
-                BlueprintResearchService.ApplyCompletion(
-                    expansionProject,
-                    progression.BlueprintResearch.State,
-                    progression.BlueprintResearch.ShopUnlockState,
-                    facilityCatalog);
-            gameEvents.Publish(new BlueprintResearchCompletedEvent(
-                expansionProject,
-                expansionUnlock));
+            bool completed = progression.BlueprintResearch
+                .TryCompleteProjectImmediatelyForVerification(
+                    expansionProject.ProjectId,
+                    out string completionFailure);
+            Check(completed,
+                "PAIRED_MINING_EXPANSION_RESEARCH_COMMITTED",
+                expansionResearchId + ":" + completionFailure);
+            if (!completed)
+                yield break;
             for (int frame = 0; frame < 4; frame++)
                 yield return null;
         }

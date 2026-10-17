@@ -343,7 +343,8 @@ public sealed class BuildingCraftWorkRuntimeAdapter :
         return ModularFacilityRuntimeEffects.ApplyWorkCompleted(
             RequireVisitor(worker),
             RequireFacility(facility),
-            BuiltInWorkTypeIds.Craft);
+            BuiltInWorkTypeIds.Craft,
+            0f);
     }
 
     private static IBuildingVisitorPort RequireVisitor(CraftWorkerHandle worker)

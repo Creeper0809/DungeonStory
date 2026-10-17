@@ -308,6 +308,9 @@ public sealed class SubstanceItemFeature : ItemFeatureDefinition
     public float moodEffect;
     public float workSpeedEffect;
     public float combatEffect;
+    [Range(0f, 1f)] public float fatigueAccumulationReduction;
+    [Min(0f)] public float researchSpeedEffect;
+    public bool suppressesPerceivedPain;
     [Min(1f)] public float durationSeconds = 120f;
 
     public override string FeatureId => "substance";
@@ -328,6 +331,19 @@ public sealed class SubstanceItemFeature : ItemFeatureDefinition
         if (durationSeconds < 1f)
         {
             yield return "Substance duration must be at least one second.";
+        }
+        if (float.IsNaN(fatigueAccumulationReduction)
+            || float.IsInfinity(fatigueAccumulationReduction)
+            || fatigueAccumulationReduction < 0f
+            || fatigueAccumulationReduction > 1f)
+        {
+            yield return "Substance fatigue accumulation reduction must be finite and between zero and one.";
+        }
+        if (float.IsNaN(researchSpeedEffect)
+            || float.IsInfinity(researchSpeedEffect)
+            || researchSpeedEffect < 0f)
+        {
+            yield return "Substance research speed effect must be finite and nonnegative.";
         }
     }
 }
@@ -369,6 +385,59 @@ public sealed class EquipmentItemFeature : ItemFeatureDefinition
         if (owner.MaxStack != 1)
         {
             yield return "Equipment items must have a max stack of one.";
+        }
+    }
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class InstalledSurgicalPartEffectItemFeature : ItemFeatureDefinition
+{
+    public List<GameplayEffectBinding> effects = new();
+
+    public override string FeatureId => "installed-surgical-part-effects";
+    public override bool RequiresProductionOutputInstanceState => true;
+
+    public override IEnumerable<string> Validate(ItemDefinitionSO owner)
+    {
+        if (owner.MaxStack != 1)
+        {
+            yield return "Surgical parts with installed effects must have a max stack of one.";
+        }
+
+        GameplayEffectSourceRef source = new(
+            GameplayEffectSourceKind.SurgicalPart,
+            owner.ItemId);
+        HashSet<string> bindings = new(StringComparer.Ordinal);
+        foreach (GameplayEffectBinding binding in effects
+                     ?? new List<GameplayEffectBinding>())
+        {
+            if (binding == null)
+            {
+                yield return "Installed surgical-part effect binding is null.";
+                continue;
+            }
+            if (!binding.IsValidFor(source, out string reason))
+            {
+                yield return reason;
+            }
+            if (!bindings.Add(binding.bindingId?.Trim() ?? string.Empty))
+            {
+                yield return $"Duplicate installed surgical-part binding '{binding.bindingId}'.";
+            }
+            if (binding.definition != null
+                && binding.definition.Operation is not (
+                    GameplayEffectOperation.AddFlat
+                    or GameplayEffectOperation.AddPercent
+                    or GameplayEffectOperation.Multiply))
+            {
+                yield return $"Installed surgical-part binding '{binding.bindingId}' uses an unsupported operation.";
+            }
+        }
+
+        if (bindings.Count == 0)
+        {
+            yield return "Installed surgical-part effects feature has no bindings.";
         }
     }
 }

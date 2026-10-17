@@ -44,6 +44,23 @@ public sealed class ClimateDurableEquipmentRuntime
         Vector2Int towerPosition,
         bool applyDailyWear)
     {
+        return TryMaintain(
+            towerId,
+            towerPosition,
+            applyDailyWear,
+            out _,
+            out _);
+    }
+
+    public bool TryMaintain(
+        BuildingInstanceId towerId,
+        Vector2Int towerPosition,
+        bool applyDailyWear,
+        out DurableFacilityEquipmentUseResult almanacUse,
+        out DurableFacilityEquipmentUseResult observationKitUse)
+    {
+        almanacUse = default;
+        observationKitUse = default;
         DurableFacilityEquipmentPolicy policy = RequirePolicy();
         DurableFacilityEquipmentAssignment assignment = policy.CreateAssignment(
             towerId.Value,
@@ -63,12 +80,16 @@ public sealed class ClimateDurableEquipmentRuntime
         if (!applyDailyWear)
             return true;
 
-        DurableFacilityEquipmentUseResult result = use.TryApplyWearAndEffect(
+        var pairedEffect = new PairedObservationKitWearEffect(
+            use,
+            assignment.Key);
+        almanacUse = use.TryApplyWearAndEffect(
             assignment.Key,
             ClimateDurableEquipmentPolicySource.AlmanacRequirementId,
             AlmanacWearPerObservationDay,
-            new PairedObservationKitWearEffect(use, assignment.Key));
-        return result.Succeeded;
+            pairedEffect);
+        observationKitUse = pairedEffect.ObservationKitUse;
+        return almanacUse.Succeeded;
     }
 
     private DurableFacilityEquipmentPolicy RequirePolicy()
@@ -114,6 +135,12 @@ public sealed class ClimateDurableEquipmentRuntime
         private readonly IDurableFacilityEquipmentUseCommand use;
         private readonly DurableFacilityEquipmentSlotKey key;
 
+        internal DurableFacilityEquipmentUseResult ObservationKitUse
+        {
+            get;
+            private set;
+        }
+
         internal PairedObservationKitWearEffect(
             IDurableFacilityEquipmentUseCommand use,
             DurableFacilityEquipmentSlotKey key)
@@ -157,17 +184,17 @@ public sealed class ClimateDurableEquipmentRuntime
             DurableFacilityEquipmentUseContext context,
             out string failureReason)
         {
-            DurableFacilityEquipmentUseResult kit = use.TryApplyWearAndEffect(
+            ObservationKitUse = use.TryApplyWearAndEffect(
                 key,
                 ClimateDurableEquipmentPolicySource.ObservationKitRequirementId,
                 ObservationKitWearPerObservationDay,
                 new ObservationKitWearEffect(key));
-            failureReason = kit.Succeeded
+            failureReason = ObservationKitUse.Succeeded
                 ? string.Empty
-                : string.IsNullOrWhiteSpace(kit.FailureReason)
+                : string.IsNullOrWhiteSpace(ObservationKitUse.FailureReason)
                     ? "climate-observation-kit-wear-failed"
-                    : kit.FailureReason;
-            return kit.Succeeded;
+                    : ObservationKitUse.FailureReason;
+            return ObservationKitUse.Succeeded;
         }
     }
 

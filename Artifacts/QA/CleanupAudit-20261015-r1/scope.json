@@ -1,0 +1,103 @@
+{
+  "firstPartyCSharpFiles": 3717,
+  "sourceLines": 1809556,
+  "editorPathFiles": 1001,
+  "editorGuardedOutsideEditor": [
+    "Assets/Scripts/Services/Combat/CharacterMedicalOutcomeProductionEntryDebugScenarios.cs",
+    "Assets/Scripts/Services/Combat/CharacterMedicalSupplyDestinationDrainRuntimeDebugScenarios.cs",
+    "Assets/Scripts/Services/Combat/CharacterMedicalSupplyDestinationRuntimeDebugScenarios.cs",
+    "Assets/Scripts/Services/Combat/CharacterMedicalSupplyOutboxDebugScenarios.cs",
+    "Assets/Scripts/Services/Economy/ProductionOutputClearanceNaturalProjectionEditorTestFactory.cs",
+    "Assets/Scripts/Services/Items/FacilityOutputExactRouteEditorTestFactory.cs",
+    "Assets/Scripts/Services/Medical/SurgicalPartPreparedOutputDebugScenarios.cs",
+    "Assets/Scripts/Services/Medical/SurgicalPartProductionOutputCrossAggregateSaveValidationDebugScenarios.cs",
+    "Assets/Scripts/Services/Medical/SurgicalPartProductionOutputRestoreCapabilityValidatorDebugScenarios.cs",
+    "Assets/Scripts/Services/Run/Wim040ObservedLifeEventReceiptDebugFixture.cs",
+    "Assets/Scripts/Services/Utils/EditorVerificationSceneFixtureScope.cs",
+    "Assets/Scripts/Services/Items/Diagnostics/EditorItemCatalogFactory.cs",
+    "Assets/Scripts/Services/Items/Diagnostics/EditorNullItemMarkerPresenter.cs",
+    "Assets/Scripts/Services/Items/Diagnostics/ExactWarehouseHaulAdmissionJoinDebugScenarios.cs",
+    "Assets/Scripts/Services/Items/Diagnostics/FacilityOutputExactRouteDebugScenarios.cs",
+    "Assets/Scripts/Services/Items/Diagnostics/PreparedOutputBufferAggregationGuardDebugScenarios.cs",
+    "Assets/Scripts/Services/Items/Diagnostics/PreparedOutputCustodyCarryBoundaryDebugScenarios.cs",
+    "Assets/Scripts/Services/Items/Diagnostics/PreparedOutputCustodyMutationGuardDebugScenarios.cs",
+    "Assets/Scripts/Services/Items/Diagnostics/PreparedOutputExactDestinationAdmissionCandidateDebugScenarios.cs",
+    "Assets/Scripts/Services/Items/Diagnostics/PreparedOutputHaulPlannerGateDebugScenarios.cs",
+    "Assets/Scripts/Services/Items/Diagnostics/WorldItemRepositoryEditorAccess.cs",
+    "Assets/Scripts/Services/Items/Verification/PlayModeVerificationCoroutineHost.cs",
+    "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputRestoreCapabilityValidatorDebugScenarios.cs",
+    "Assets/Scripts/Services/Infrastructure/Industrial/FluidAutonomousOutcomeContractProbe.cs",
+    "Assets/Scripts/Services/Infrastructure/Industrial/FluidFacilityInputOwnerDebugContract.cs",
+    "Assets/Scripts/Services/Infrastructure/Industrial/FluidNetworkBatchDebugContract.cs",
+    "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialPowerFuelOutboxContractProbe.cs",
+    "Assets/Scripts/Services/Infrastructure/Industrial/WimPowerFlowDebugScenarios.cs",
+    "Assets/Scripts/Services/Infrastructure/Industrial/WimWetVenueWaterDebugContract.cs",
+    "Assets/Scripts/Services/Economy/Diagnostics/ProductionOutputDestinationLifecycleDebugScenarios.cs",
+    "Assets/Scripts/Services/Economy/Diagnostics/ProductionPreparedOutputDeliveryCoordinatorDebugScenarios.cs",
+    "Assets/Scripts/Services/Combat/Diagnostics/CombatEquipmentCraftTerminalAuthorityEditorAccess.cs",
+    "Assets/Scripts/Services/Combat/Diagnostics/CombatEquipmentOutputRestorePreflightDebugScenarios.cs",
+    "Assets/Scripts/Models/Economy/Content/Diagnostics/ProductionPreparedOutputDeliveryCallerDebugScenarios.cs"
+  ],
+  "cyclicSccSizes": [
+    {
+      "id": "scc-0001",
+      "files": 1054
+    },
+    {
+      "id": "scc-0040",
+      "files": 4
+    },
+    {
+      "id": "scc-0008",
+      "files": 3
+    },
+    {
+      "id": "scc-0021",
+      "files": 3
+    },
+    {
+      "id": "scc-0459",
+      "files": 3
+    },
+    {
+      "id": "scc-0079",
+      "files": 2
+    },
+    {
+      "id": "scc-0084",
+      "files": 2
+    },
+    {
+      "id": "scc-0094",
+      "files": 2
+    },
+    {
+      "id": "scc-0100",
+      "files": 2
+    },
+    {
+      "id": "scc-0125",
+      "files": 2
+    },
+    {
+      "id": "scc-0250",
+      "files": 2
+    },
+    {
+      "id": "scc-0256",
+      "files": 2
+    },
+    {
+      "id": "scc-0365",
+      "files": 2
+    },
+    {
+      "id": "scc-0745",
+      "files": 2
+    },
+    {
+      "id": "scc-0832",
+      "files": 2
+    }
+  ]
+}

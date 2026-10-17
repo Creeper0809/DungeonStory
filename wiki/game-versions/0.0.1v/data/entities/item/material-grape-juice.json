@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "포도즙은 음료, 조리와 약품 제조에 나눠 쓰는 액체 재료다. 베르사디온의 포도즙 병은 의식용 혈액과 섞이지 않도록 흰 실로 묶고, 동의의 잔 표식과 나란히 두지 않는다.",
+  "in_game_description": "포도즙은 음료, 조리와 약품 제조에 나눠 쓰는 액체 재료다. 베르사디온의 포도즙 병목에는 동의의 잔에서 떼어 낸 검은 실이 감겨 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

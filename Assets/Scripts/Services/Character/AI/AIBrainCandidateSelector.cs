@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using DungeonStory.Foundation;
 using Unity.Profiling;
 using UnityEngine;
@@ -21,6 +22,31 @@ internal sealed class AIBrainCandidateSelector
 #if UNITY_EDITOR
     private bool deterministicFullPassForDiagnostics;
     private bool logisticsMeasurementOnlyForDiagnostics;
+    private AIAction[] pendingActionsForDiagnostics;
+    private long nextContinuationIdentityForDiagnostics;
+    public long ResetCountForDiagnostics { get; private set; }
+    public long PendingResetCountForDiagnostics { get; private set; }
+    public string LastResetCallerForDiagnostics { get; private set; } = string.Empty;
+    public string LastPendingResetDetailForDiagnostics { get; private set; } = string.Empty;
+
+    public string GetPendingDetailForDiagnostics(AIAction[] actions)
+    {
+        var details = new List<string>(continuations.Count);
+        foreach (AIBrainActionScoringContinuation continuation in continuations)
+        {
+            int index = continuation.NextActionIndex;
+            AIAction action = actions != null && index >= 0 && index < actions.Length
+                ? actions[index] : null;
+            details.Add($"id={continuation.IdentityForDiagnostics}; slices={continuation.SliceCountForDiagnostics}; "
+                + $"predicate={continuation.Predicate?.Target?.GetType().Name}."
+                + $"{continuation.Predicate?.Method.Name}; context={continuation.HasDecisionContext}; "
+                + $"index={index}/{actions?.Length ?? 0}; "
+                + $"action={action?.actionset?.GetType().Name}; "
+                + $"lastEvaluatedIndex={continuation.LastEvaluatedIndexForDiagnostics}; "
+                + $"lastEvaluation={continuation.LastEvaluationFailureForDiagnostics}");
+        }
+        return string.Join(" | ", details);
+    }
 #endif
 
     public AIBrainCandidateSelector(
@@ -60,8 +86,17 @@ internal sealed class AIBrainCandidateSelector
         return FindContinuation(predicate, hasDecisionContext) != null;
     }
 
-    public void Reset()
+    public void Reset([CallerMemberName] string callerMember = "")
     {
+#if UNITY_EDITOR
+        ResetCountForDiagnostics++;
+        LastResetCallerForDiagnostics = callerMember ?? string.Empty;
+        if (IsPending)
+        {
+            PendingResetCountForDiagnostics++;
+            LastPendingResetDetailForDiagnostics = GetPendingDetailForDiagnostics(pendingActionsForDiagnostics);
+        }
+#endif
         continuations.Clear();
     }
 
@@ -141,12 +176,21 @@ internal sealed class AIBrainCandidateSelector
 
         AIBrainActionScoringContinuation continuation =
             FindContinuation(predicate, hasDecisionContext);
+#if UNITY_EDITOR
+        pendingActionsForDiagnostics = actions;
+#endif
         if (continuation == null)
         {
             continuation = new AIBrainActionScoringContinuation();
             continuation.Reset(predicate, hasDecisionContext);
+#if UNITY_EDITOR
+            continuation.IdentityForDiagnostics = ++nextContinuationIdentityForDiagnostics;
+#endif
             continuations.Add(continuation);
         }
+#if UNITY_EDITOR
+        continuation.SliceCountForDiagnostics++;
+#endif
 
         double sliceMilliseconds = scheduling.GetDecisionWorkSliceMilliseconds(actor);
         long sliceStarted = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -174,6 +218,10 @@ internal sealed class AIBrainCandidateSelector
             bool canConsider = hasDecisionContext
                 ? evaluator.TryEvaluate(actor, action, in context, out evaluation)
                 : evaluator.TryEvaluate(actor, action, out evaluation);
+#if UNITY_EDITOR
+            continuation.LastEvaluationFailureForDiagnostics = evaluation.Failure;
+            continuation.LastEvaluatedIndexForDiagnostics = continuation.NextActionIndex;
+#endif
             if (action == null)
             {
                 continuation.NextActionIndex++;

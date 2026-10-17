@@ -1,0 +1,209 @@
+{
+  "status": "CONDITIONAL_C1_C20_REVIEW_READY_FROZEN",
+  "scope": "Read-only current-source review of conditional targets C1-C20. This is not a whole-goal completion decision.",
+  "currentBinding": {
+    "sourcePin": "source-pin-final-integration-r3.json",
+    "sourceFiles": 1430,
+    "fullNativeInputPin": "native-input-pin-r43.json",
+    "fullNativeInputFiles": 3880,
+    "toolPin": "tool-pin-final-integration-r2.json",
+    "toolFiles": 9,
+    "factionPin": "g4-faction-assembly-input-pin-r2.json",
+    "factionFiles": 18,
+    "conditionalFacadeHashesMatchCurrentPin": "20/20",
+    "nativeCompile": "verification-final-integration-r4.json: Runtime+Editor 40.446704s, CS0",
+    "latestActual": [
+      "verification-final-integration-r4.json",
+      "native-final-faction-world-current-r4/faction-reinforcement-actual.txt",
+      "verification-final-restock-regression-r1.json"
+    ]
+  },
+  "reviewLimits": [
+    "Controlled fixtures prove only their stated production boundary; they do not imply natural UI, natural AI, model inference, or every gameplay combination.",
+    "Retained cohesive owners are accepted where one caller/state/failure transaction remains clear; no class-size, line-count, or SCC target was imposed.",
+    "Historical NOT_RUN receipts were not used as completion evidence."
+  ],
+  "targets": [
+    {
+      "id": "C1",
+      "name": "OwnerCommandController",
+      "decision": "verified",
+      "requirement": "Resolve combat/manual targeting lifetime collisions with one cancellable session while retaining selection, drag, info, and domain command owners.",
+      "currentBoundary": "Assets/Scripts/Controllers/Character/Input/OwnerCommandController.cs owns one OwnerCommandTargetingSession and routes TryIssueCombatPointerCommand/TryIssuePriorityWorkCommand; Assets/Scripts/Controllers/Character/Input/OwnerCommandTargetingSession.cs owns BeginCombat, BeginManual, TryBeginManualCompletion, FinishManualCompletion, Consume, SynchronizeSelection, and Cancel.",
+      "actualProof": "verification-c1-play-execution-r1.json: actual staff Button, Play lifecycle/Update, camera/collider/raycaster/UI blocker, invalid retry, exactly-one effect, cancel, baseline restore, console0/terminal0; controlled input, not hardware or natural AI."
+    },
+    {
+      "id": "C2",
+      "name": "ProductionBillRuntime",
+      "decision": "verified",
+      "requirement": "Move the remaining BeginWork/ExecuteWork/Tick execution lifecycle behind the existing query/input/command/terminal owners without adding a second saved authority.",
+      "currentBoundary": "Assets/Scripts/Models/Economy/Content/ProductionBillRuntime.cs delegates BeginWork, ExecuteWork, Tick, and restored output-authority cache handoff to Assets/Scripts/Models/Economy/Content/ProductionBillExecutionRuntime.cs while the facade retains capture/restore and the shared aggregate store.",
+      "actualProof": "verification-c2-execution-r1.json: production commands, capture/restore fences, lost ACK before/after commit, fresh-owner JSON retry, authored sawmill/perishable round trips, normal/loss/ruin, exact WIP terminal GC, final markers and exit0; controlled native scope."
+    },
+    {
+      "id": "C3",
+      "name": "BuildableObject",
+      "decision": "verified",
+      "requirement": "Keep the building/component facade but make local teardown and durable world-removal retry own exact lifetimes and reject replacement-owner confusion.",
+      "currentBoundary": "Assets/Scripts/Services/Buildings/BuildableObject.cs keeps Initialization, admission, DestroySelf, and local TeardownRuntimeState; Assets/Scripts/Services/Buildings/ProductionFacilityDestructiveDrainRecoveryRuntime.cs RequestAndDrive plus ProductionFacilityDestructiveDrainWorldRemovalPort retain incomplete post-grid/fuel/visual teardown and clear stale references on restore.",
+      "actualProof": "verification-c3-execution-r1.json: 53 checks on actual P03 physical drain, six-attempt same operation, notification failure, quantity/mass conservation, terminal checkpoint GC and official slot restore, errors0/warnings0/exit0; intermediate deferred checkpoint was committed but not cold-loaded."
+    },
+    {
+      "id": "C4",
+      "name": "Facility",
+      "decision": "verified",
+      "requirement": "Retain the single saved Facility.Interact/service phase and separate worker admission, approach, pose, and exact disposal lifetime.",
+      "currentBoundary": "Assets/Scripts/Services/Buildings/Facility.cs Interact/TryAcquireWorker and Assets/Scripts/Services/Buildings/BuildingWorkerAllocation.cs own the admitted handle; Shop.cs and Services/Grid/Building/ConstructionSite.cs use the same allocation while each facility keeps capacity/slot authority.",
+      "actualProof": "verification-c4-execution-r1.json: native facility/actor/pose/registry with controlled movement covers rejected admission/approach, cancel/retry, exact disposal, stale disposal preserving replacement/new pose, registered bindings/state JSON, final marker and exit0; no natural AI claim."
+    },
+    {
+      "id": "C5",
+      "name": "CaptivityRuntime",
+      "decision": "verified",
+      "requirement": "Give labor permission and tool delivery/assignment/wear/return one owner while retaining rehabilitation/release and other captivity terminal transactions.",
+      "currentBoundary": "Assets/Scripts/Services/Captivity/CaptivityRuntime.cs constructs CaptivityLaborRuntime and delegates Tick, ReturnAssignedCaptivityTools, IsWorkAllowed, and TrySetLaborPermissions; Assets/Scripts/Services/Captivity/CaptivityLaborRuntime.cs owns the shared-session capture fence and explicit return failure/retry.",
+      "actualProof": "verification-c5-execution-r1.json: actual actor/work plus real physical repository/spawner/disposition covers delivery rollback, permission/employment, wear, JSON close retry, broken return and exact unique return, original D09/shared-care paths, compile CS0 and terminal0; controlled ports, not natural hauling or official labor-world restore."
+    },
+    {
+      "id": "C6",
+      "name": "WildlifeCaptureRuntime",
+      "decision": "verified",
+      "requirement": "Separate captured-wildlife food/water delivery, consumption, acknowledgement, and pending-feed recovery while retaining capture, roles, security, escape, and projection owners.",
+      "currentBoundary": "Assets/Scripts/Services/Captivity/WildlifeCaptureRuntime.cs constructs CapturedWildlifeFeedingRuntime on the same CapturedWildlifeStateSession; Assets/Scripts/Services/Captivity/CapturedWildlifeFeedingRuntime.cs ValidateBeforeCapture/TrySatisfyFoodNeed/TryBeginCapturedFeed own feed phases and fences while TryOrderCapture remains in the facade.",
+      "actualProof": "verification-c6-execution-complete-r1.json plus its three receipts: producer218, fresh-process29, owner ACK/JSON replacement/display-change retry, official104-section fresh restore, invalid reference, replay inert, cadence, console0/terminal0; no natural selection/AI/LLM claim."
+    },
+    {
+      "id": "C7",
+      "name": "AIBrain",
+      "decision": "verified",
+      "requirement": "Retain cohesive Unity action orchestration because execution ledger, preferred intent, external intent, failure diagnostics, operation observation, and decision cache already own distinct state; change only concrete lifecycle faults.",
+      "currentBoundary": "Assets/Scripts/Services/Character/AI/AIBrain.cs keeps DecideAction and RequestImmediateReplan while delegating state to CharacterAiExecutionLedger, CharacterAiPreferredActionRuntime, CharacterExternalActionIntentRuntime, CharacterAiFailureDiagnosticsRuntime, CharacterOperationBlockObservationRuntime, and CharacterAiDecisionObservationCache; production abilities/work remain callers.",
+      "actualProof": "verification-c7-c8-execution-r1.json, verification-movement-work-graph-execution-r1.json, and verification-final-restock-regression-r1.json: live Gameplay Brain/scheduler/BT destinationless/deprivation/primitive groups, actual movement/work graph, official actor/work restore and restock replacement/cancel paths all terminal0; controlled prerequisites, not every spontaneous AI combination."
+    },
+    {
+      "id": "C8",
+      "name": "AbilityMove",
+      "decision": "verified",
+      "requirement": "Keep the movement facade but separate movement ownership/provenance and dungeon-departure failure lifetime; review any later movement-related boundary change directly.",
+      "currentBoundary": "Assets/Scripts/Services/Character/Ability/AbilityMove.cs delegates to CharacterMovementOperationRuntime, SocietyResponseMovementProvenanceRuntime, and CharacterDungeonDepartureRuntime; current internal HasActiveMovement is read by Assets/Scripts/Services/Factions/FactionReinforcementMaterializer.cs so restore adds only missing entry movement.",
+      "actualProof": "verification-c7-c8-execution-r1.json and verification-movement-work-graph-execution-r1.json cover movement/exit fault and fresh-owner arbitration; verification-final-integration-r4.json plus native-final-faction-world-current-r4/faction-reinforcement-actual.txt prove current HasActiveMovement restore-hook idempotence, restored missing movement, current-root completion and no duplicate actors; verification-final-restock-regression-r1.json covers current-source cancellation/replacement.",
+      "issue": "targets.json latestSourceDelta still says production Runtime is unchanged, but AbilityMove gained HasActiveMovement for final integration; the code and current receipt are sound, while this ledger sentence is stale."
+    },
+    {
+      "id": "C9",
+      "name": "ExtremeTraitRuntime",
+      "decision": "verified",
+      "requirement": "Separate the six capability-specific command/state/rollback lifetimes while preserving one identity store, stable public facade, IDs, clock/hash, DTOs, and compatibility entry points.",
+      "currentBoundary": "Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntime.cs constructs/delegates to LastStandTraitRuntime, ForbiddenResearchLeapTraitRuntime, MiracleSurgeryTraitRuntime, GoldenHarvestTraitRuntime, ProductionLimitBreakTraitRuntime, and ArcaneOverchargeTraitRuntime over the shared CharacterIdentityStateStore.",
+      "actualProof": "verification-c9-execution-r1.json: six capabilities/shared store, Golden actual crop/physical active+terminal fresh JSON retry and A07 body/equipment/identity rejection/partial fresh restore/missing-only resume, compile CS0 and both exits0; controlled components, no natural UI/AI or pending capability whole-world claim."
+    },
+    {
+      "id": "C10",
+      "name": "CombatEquipmentCraftingRuntime",
+      "decision": "verified",
+      "requirement": "Separate definition/material rules and instance construction while keeping the cohesive order, quality, WIP, terminal output, and recovery transaction in the runtime.",
+      "currentBoundary": "Assets/Scripts/Services/Combat/CombatEquipmentCraftingRuntime.cs TryQueue/ResolveAttemptOutcome uses CombatEquipmentCraftDefinitionRules and CombatEquipmentInstanceFactory.BuildPreparedInstance/CreateInstance, with CombatEquipmentCraftOutputTransaction and terminal authority retaining physical completion/recovery.",
+      "actualProof": "verification-c10-execution-r9.json plus c10-factory/result.txt: current EEC06 uses authored definitions, real worker/facility/repository, sequence exhaustion no mutation and retry, actual materials2/output1, WIP JSON fresh restore, crash-ahead/zero-WIP/exact replay; factory11/rules7 managed checks, exit0; no natural smith UI/AI or final cold-world claim."
+    },
+    {
+      "id": "C11",
+      "name": "EquipmentEvolutionRuntime",
+      "decision": "verified",
+      "requirement": "Retain reforge/reattunement as one aggregate transaction, but fix repeated terminal cancellation and invalid full-progress restore gates and prove queue/apply/cancel recovery.",
+      "currentBoundary": "Assets/Scripts/Services/Combat/EquipmentEvolutionRuntime.cs remains the registered singleton/restore participant; CancelReforge, CancelReattunement, BuildRestoreCandidate, and PublishRestoreCandidate share the same state/input owner and material child receipt service, with terminal guards rejecting Completed/Cancelled replay.",
+      "actualProof": "verification-c11-r6.json and c11-equipment-evolution-r6/equipment-evolution-lifecycle.tsv: actual runtime contracts10, invalid pending progress16, valid blocked full-progress2, fresh parent/root/input-owner restore, real material disposition/ACK replay, CS0 and exit0; controlled ports, no complete cold world or natural UI/AI claim.",
+      "issue": "targets.json disposition still says the cancellation guard and orchestration coverage need fixes, although its status/verificationLimit and verification-c11-r6.json show both fixed and passing; reconcile the stale disposition text."
+    },
+    {
+      "id": "C12",
+      "name": "FacilityOutputExactRouteService",
+      "decision": "verified",
+      "requirement": "Retain one exact physical route/restore/overlay/checkpoint-GC conservation authority and remove only the unused destructive-retire capability rather than splitting shared invariants.",
+      "currentBoundary": "Assets/Scripts/Services/Items/FacilityOutputExactRouteService.cs implements the exact-route port, outbox persistence, delivery-overlay participant, restore reconciler, checkpoint-GC participant, and restore transaction participant; DungeonWorldSimulationRegistration exposes those interfaces to production callers.",
+      "actualProof": "verification-c12-execution-r1.json: 14 unconditional native groups cover partition/mass, replay/conflict, ACK, stateful/perishable route, malformed/stale restore, overlay lifecycle, checkpoint-GC publish/rollback/replay and physical deferral with the real service/repository; controlled collaborators and no natural UI/AI claim."
+    },
+    {
+      "id": "C13",
+      "name": "WorldItemStackRuntime",
+      "decision": "verified",
+      "requirement": "Keep the physical repository facade and move its directly held restore-candidate identity/index/participant lifetime to one detached session.",
+      "currentBoundary": "Assets/Scripts/Services/Items/WorldItemStackRuntime.cs constructs PhysicalItemRestoreCandidateSession and delegates Begin/Publish/Rollback/Complete/Discard plus candidate queries; Assets/Scripts/Services/Items/PhysicalItemRestoreCandidateSession.cs owns current candidate identity and stale DiscardIfCurrent behavior while repository mutations such as TryCommitHaulPickup stay in the facade.",
+      "actualProof": "verification-c13-execution-r1.json: explicit native target markers on real runtime/repository and JsonUtility snapshots cover stale commit no mutation, stale discard preserving replacement, publication/complete, rollback/replacement/same-candidate retry and five physical-save groups; later unrelated Core memory abort is not a whole-Core PASS."
+    },
+    {
+      "id": "C14",
+      "name": "SurgicalPartRuntime",
+      "decision": "verified",
+      "requirement": "Separate installation/transfer and replacement transactions while preserving one surgery aggregate, physical authority, creation/quality/preservation facade, and failure/restore order.",
+      "currentBoundary": "Assets/Scripts/Services/Medical/SurgicalPartRuntime.cs constructs SurgicalPartInstallationRuntime and SurgicalPartReplacementTransaction, delegates reservation/installation and ISurgicalPartReplacementRuntime.TryCommitReplacement, and keeps shared store/facade queries.",
+      "actualProof": "verification-c14-execution-r1.json: 19/19 native surgery contracts include pending physical receipt/ACK exactly once, strict material sink, replacement identity, stale body-CAS rejection, JSON refreshed output admission, post-CAS publication retry, late rollback and organ-preservation joins; controlled native scope."
+    },
+    {
+      "id": "C15",
+      "name": "GameplayOutcomeLedger",
+      "decision": "verified",
+      "requirement": "Retain one ledger authority across its partials because reservation, sequence, result-key, ACK, retention, compaction, and restore invariants are shared; fix restore-candidate ownership/admission only.",
+      "currentBoundary": "GameplayOutcomeLedger.cs/Memory.cs/Query.cs remain one partial type with registry/recorder/state/codec roles already separated; Assets/Scripts/Services/Narrative/GameplayOutcomes/GameplayOutcomePersistence.cs PrepareGameplayOutcomeRestore/PublishGameplayOutcomeRestore validates before one-time Take using restoreCandidateOwnerIdentity.",
+      "actualProof": "verification-c15-execution-r1.json: full native storage/query/retention/restore and JsonUtility suite on real ledger/registry/recorder covers pre-admission/foreign owner, reservations, duplicates, rollback/retry, tamper/replay, deterministic consolidation and capacity-before-mutation; explicit suite PASS preceded an unrelated later Core memory abort."
+    },
+    {
+      "id": "C16",
+      "name": "V20CampaignApplicationAdapter",
+      "decision": "verified",
+      "requirement": "Separate incident response/transfer lifetime from campaign observation and daily evaluation, with exact mover/provenance and restore cleanup.",
+      "currentBoundary": "Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs constructs V20ObservedIncidentResponseRuntime, delegates Tick, receipt capture and response provenance, and resets transfer attempts on restore while retaining observation callbacks and daily milestone evaluation.",
+      "actualProof": "verification-c16-medical-execution-r8.json: production ordinary/Society visitor world restore, meal/replay/compensation/contamination, returning visitor/tamper rejection, MedicalCollapse+AIRescue stabilization/carry to M11 and receipt once, terminal0; controlled preparation/spawn and in-memory official JSON, no disk cold-load or completed-treatment claim."
+    },
+    {
+      "id": "C17",
+      "name": "V20ContentResolutionService",
+      "decision": "verified",
+      "requirement": "Retain the cohesive application transaction coordinating one plan, rollback snapshot, child receipt, and recovery journal; remove the concrete reentrant constructor dependency through an IKinshipQuery boundary.",
+      "currentBoundary": "Assets/Scripts/Services/Run/V20ContentResolutionService.cs builds request planner, typed effect transaction/rollback, retirement planner, journal and observed-life commands over existing mutable owners; TryExecute/AdvanceFactionContractDelivery stay the transaction coordinator. DungeonCharacterRegistration supplies IKinshipQuery and FuneralFestivalRuntime calls RequireCanCommitObservedFuneralLifeEvent/CommitObservedFuneralLifeEvent.",
+      "actualProof": "f2-recovery-r9/restore-outcome.tsv and f1-f2-world-r2/world-lineage-report.json: actual container construction, observed generation/milestone parity, official104-section restore, Title-to-fresh-Gameplay same-save load and recovery all pass. This proves the changed constructor/restore boundary, not exhaustive TryExecute or faction-delivery behavior."
+    },
+    {
+      "id": "C18",
+      "name": "CharacterBreakdownActionRunner",
+      "decision": "verified",
+      "requirement": "Keep five action runners together while extracting corpse consumption transaction and binding cleanup to the exact run/actor/kind/generation/lease across nested coroutine cancellation.",
+      "currentBoundary": "Assets/Scripts/Services/Survival/CharacterBreakdownActionRunner.cs TryStart/IsCurrentRun owns scheduler/action lifecycle and delegates corpse effect/physical commit/ACK/publication to CharacterCorpseConsumptionTransaction.TryConsumeHumanoidCorpse; CharacterDeprivationStateStore/Runtime construct and call the runner.",
+      "actualProof": "verification-c18-execution-r1.json: five real BT routes, typed terminals and cleanup, actual corpse selection/physical consume/rollback, taboo parent once, official whole-world JSON fresh actor/causal identity, stale restore no mutation and duplicate inert; controlled prerequisites, no natural trigger claim."
+    },
+    {
+      "id": "C19",
+      "name": "CharacterConsumablesApplicationPorts",
+      "decision": "verified",
+      "requirement": "Extract physical quantity reservation, consumption, receipt, tare-return, and restore-candidate facility lookup while keeping effect/slot facade authority and public contracts.",
+      "currentBoundary": "Assets/Scripts/Services/Survival/CharacterConsumablesApplicationAdapters.cs constructs CharacterConsumablesWorldReferences and CharacterConsumablesPhysicalInventory, then delegates TryConsume, reserved meal/substance/detox pending/ACK and release; DungeonWorldSimulationRegistration exposes the facade to core runtime/callers.",
+      "actualProof": "verification-c19-execution-r1.json: 10 groups on real actors/physical ports cover candidate facility exclusion, slot retry, carried consumption, missing tare pending, fresh-owner exactly-once return, meal/substance/detox failure and JSON section retry, exit0; no natural UI/AI or cold official whole-world claim."
+    },
+    {
+      "id": "C20",
+      "name": "CharacterPrimitiveSurvivalRunner",
+      "decision": "verified",
+      "requirement": "Separate completion reservation/frozen result/publication recovery from the runner and bind start/disposal/nested work to the exact run so old cleanup cannot erase a replacement.",
+      "currentBoundary": "Assets/Scripts/Services/Survival/CharacterPrimitiveSurvivalRunner.cs owns TryStart/Run and exact coroutine disposal, delegates ReserveCompletion, pending creation/publication/retirement recovery to CharacterPrimitiveSurvivalCompletion, and is constructed by CharacterDeprivationRuntime.",
+      "actualProof": "verification-c20-execution-r1.json and verification-c20-native-completion-r1.json: actual Gameplay Brain/BT failure rows6/checks53, completion/notification/pending recovery, start-event/scheduler failure and same-epoch replacement, plus four production survival paths with rollback/retry/dedup, all exits0; controlled faults, no broad natural AI/UI or cold-world claim."
+    }
+  ],
+  "summary": {
+    "verified": 20,
+    "needsWork": 0,
+    "uncertain": 0,
+    "confirmedProductionDefects": [],
+    "evidenceLedgerIssues": [
+      "C8 targets.json latestSourceDelta predates the current AbilityMove HasActiveMovement integration.",
+      "C11 targets.json disposition describes already-fixed work as still required."
+    ],
+    "goalCompletionDecision": "NOT_MADE_BY_THIS_SCOPED_REVIEW"
+  },
+  "evidenceLedgerResolution": {
+    "status": "RECONCILED",
+    "file": "targets.json",
+    "items": [
+      "C8 current HasActiveMovement source delta + final native proof appended",
+      "C11 fixed cancellation/restore disposition corrected"
+    ]
+  }
+}

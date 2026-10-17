@@ -1,0 +1,5 @@
+invasion-denied-arrival-no-success-event=PASS;events=0;failure=DoorDenied;position=(16, 0)
+invasion-existing-planner-actual-interior-breach-once=PASS;events=1;position=(18, 0)
+cleanup=exact-except-meta-elapsed-float-rounding-under-0.00001s
+result=FAIL
+failure=Could not publish an authored physical-stock shop.

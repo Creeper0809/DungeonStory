@@ -792,6 +792,59 @@ MonoBehaviour:
     m_Localized: Unknown intruder
     m_Metadata:
       m_Items: []
+  - m_Id: 12292361857355776
+    m_Localized: Actual phase {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493120
+    m_Localized: 'Invasion information / Entry {0} / Approach {1}
+
+      {2} / Enemy
+      nature {3}
+
+      Operation {4} / Operation objective {5} / Actual target {6}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493121
+    m_Localized: East
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493122
+    m_Localized: North
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493123
+    m_Localized: South
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493124
+    m_Localized: Unknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493125
+    m_Localized: West
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493126
+    m_Localized: Entry completed / Actual phase {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493127
+    m_Localized: Entering
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493128
+    m_Localized: Rally end / entry attempt estimate {0}s
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493129
+    m_Localized: 'Invasion information: unknown'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12292361903493130
+    m_Localized: Unknown
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

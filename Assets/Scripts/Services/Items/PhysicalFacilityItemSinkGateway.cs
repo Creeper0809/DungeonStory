@@ -20,6 +20,51 @@ public interface IPhysicalFacilityItemSinkGateway
     bool Acknowledge(string commitId, out string failureReason);
 }
 
+/// <summary>
+/// Facility-buffer Sink boundary for an independently staged domain effect
+/// joined to the exact physical debit.
+/// </summary>
+public interface IJointPhysicalFacilityItemSinkGateway
+{
+    bool TryCommitSinkPending(
+        string destinationId,
+        string itemId,
+        int quantity,
+        string operationId,
+        string reasonCode,
+        IPhysicalItemDispositionEffect effect,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason);
+
+    bool Acknowledge(
+        string commitId,
+        IPhysicalItemDispositionAcknowledgementParticipant participant,
+        out string failureReason);
+}
+
+/// <summary>
+/// Facility-buffer terminal Sink boundary for callers that own an exact typed
+/// gameplay outcome. The participant is required so this path cannot silently
+/// use the default physical-disposition outcome participant.
+/// </summary>
+public interface IOutcomeAwarePhysicalFacilityItemSinkGateway
+{
+    bool TryCommitSinkPending(
+        string destinationId,
+        string itemId,
+        int quantity,
+        string operationId,
+        string reasonCode,
+        IPhysicalItemBatchDispositionOutcomeParticipant outcomeParticipant,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason);
+
+    bool Acknowledge(
+        string commitId,
+        IPhysicalItemDispositionAcknowledgementParticipant participant,
+        out string failureReason);
+}
+
 public interface IPhysicalFacilityItemBatchSinkGateway
 {
     bool TryCommitSinkPending(
@@ -62,6 +107,8 @@ public interface IPhysicalFacilityItemBatchTransferGateway
 /// </summary>
 public sealed class PhysicalFacilityItemSinkGateway :
     IPhysicalFacilityItemSinkGateway,
+    IJointPhysicalFacilityItemSinkGateway,
+    IOutcomeAwarePhysicalFacilityItemSinkGateway,
     IPhysicalFacilityItemBatchSinkGateway,
     IPhysicalFacilityItemBatchTransferGateway
 {
@@ -100,6 +147,106 @@ public sealed class PhysicalFacilityItemSinkGateway :
 
     public bool TryCommitSinkPending(
         string destinationId,
+        string itemId,
+        int quantity,
+        string operationId,
+        string reasonCode,
+        IPhysicalItemDispositionEffect effect,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason)
+    {
+        receipt = default;
+        if (effect == null)
+        {
+            failureReason = "facility joint sink effect missing";
+            return false;
+        }
+        if (batchDispositions is not
+            IJointPhysicalItemBatchDispositionService jointDispositions)
+        {
+            failureReason = "facility joint sink capability unavailable";
+            return false;
+        }
+
+        return TryCommitPending(
+            destinationId,
+            new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                [itemId ?? string.Empty] = quantity
+            },
+            PhysicalItemDispositionKind.Sink,
+            operationId,
+            reasonCode,
+            jointDispositions,
+            effect,
+            out receipt,
+            out failureReason);
+    }
+
+    public bool TryCommitSinkPending(
+        string destinationId,
+        string itemId,
+        int quantity,
+        string operationId,
+        string reasonCode,
+        IPhysicalItemBatchDispositionOutcomeParticipant outcomeParticipant,
+        out PhysicalItemBatchDispositionReceipt receipt,
+        out string failureReason)
+    {
+        receipt = default;
+        if (outcomeParticipant == null)
+        {
+            failureReason = "facility outcome sink participant missing";
+            return false;
+        }
+        if (batchDispositions is not
+            IJointPhysicalItemBatchDispositionService outcomeDispositions)
+        {
+            failureReason = "facility outcome sink capability unavailable";
+            return false;
+        }
+
+        return TryCommitPending(
+            destinationId,
+            new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                [itemId ?? string.Empty] = quantity
+            },
+            PhysicalItemDispositionKind.Sink,
+            operationId,
+            reasonCode,
+            outcomeDispositions,
+            new PhysicalItemLegacyOutcomeEffect(outcomeParticipant),
+            out receipt,
+            out failureReason);
+    }
+
+    public bool Acknowledge(
+        string commitId,
+        IPhysicalItemDispositionAcknowledgementParticipant participant,
+        out string failureReason)
+    {
+        if (participant == null)
+        {
+            failureReason = "facility outcome acknowledgement participant missing";
+            return false;
+        }
+        if (batchDispositions is not
+            IOutcomeAwarePhysicalItemDispositionAcknowledgementService
+                outcomeAcknowledgements)
+        {
+            failureReason = "facility outcome acknowledgement capability unavailable";
+            return false;
+        }
+
+        return outcomeAcknowledgements.Acknowledge(
+            commitId,
+            participant,
+            out failureReason);
+    }
+
+    public bool TryCommitSinkPending(
+        string destinationId,
         IReadOnlyDictionary<string, int> itemQuantities,
         string operationId,
         string reasonCode,
@@ -112,6 +259,8 @@ public sealed class PhysicalFacilityItemSinkGateway :
             PhysicalItemDispositionKind.Sink,
             operationId,
             reasonCode,
+            null,
+            null,
             out receipt,
             out failureReason);
     }
@@ -130,6 +279,8 @@ public sealed class PhysicalFacilityItemSinkGateway :
             PhysicalItemDispositionKind.Transfer,
             operationId,
             reasonCode,
+            null,
+            null,
             out receipt,
             out failureReason);
     }
@@ -140,6 +291,8 @@ public sealed class PhysicalFacilityItemSinkGateway :
         PhysicalItemDispositionKind kind,
         string operationId,
         string reasonCode,
+        IJointPhysicalItemBatchDispositionService jointDispositions,
+        IPhysicalItemDispositionEffect effect,
         out PhysicalItemBatchDispositionReceipt receipt,
         out string failureReason)
     {
@@ -175,13 +328,22 @@ public sealed class PhysicalFacilityItemSinkGateway :
             combined.AddRange(inputs);
         }
 
-        return batchDispositions.TryCommitPending(
-            combined,
-            kind,
-            operationId,
-            reasonCode,
-            out receipt,
-            out failureReason);
+        return effect == null
+            ? batchDispositions.TryCommitPending(
+                combined,
+                kind,
+                operationId,
+                reasonCode,
+                out receipt,
+                out failureReason)
+            : jointDispositions.TryCommitPending(
+                combined,
+                kind,
+                operationId,
+                reasonCode,
+                effect,
+                out receipt,
+                out failureReason);
     }
 
     public bool TryGetPending(

@@ -22,7 +22,21 @@ MonoBehaviour:
   dayOfSeason: 28
   convertsActiveGrief: 0
   cultureId: 
-  requiredBuildingDefinitionId: building:festival-common-hall
+  requiredBuildingDefinitionId: ""
+  venueRequirements:
+    anchor:
+      exactBuildingDefinitionIds: []
+      facilityRoles: 1
+    requiredRoomFacilityRoles: 1
+    requiredRoomFacilities: []
+    minimumSeats: 20
+    minimumTables: 20
+    minimumServiceCapacity: 1
+    minimumEventCells: 20
+    minimumVacantBeds: 0
+    requireResidentHeadroom: 0
+    requireWetBath: 0
+    requireEmergencySurgeryFacility: 0
   requiredItems:
   - itemDefinitionId: food:lavish-vegan
     amount: 8

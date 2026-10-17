@@ -7,7 +7,7 @@ using UnityEngine;
 public sealed class WorkCommandHandler
 {
     private readonly AbilityWork work;
-    private readonly WorkTargetSelector targetSelector;
+    private WorkTargetSelector targetSelector;
     private readonly IDefenseEngagementRuntime defenseEngagementRuntime;
     private BuildableObject priorityWorkTarget;
     private CharacterActor prioritySuppressTarget;
@@ -25,6 +25,9 @@ public sealed class WorkCommandHandler
         this.targetSelector = targetSelector;
         this.defenseEngagementRuntime = defenseEngagementRuntime;
     }
+
+    internal void RebindTargetSelector(WorkTargetSelector selector) =>
+        targetSelector = selector ?? throw new ArgumentNullException(nameof(selector));
 
     public BuildableObject PriorityWorkTarget => priorityWorkTarget != null ? priorityWorkTarget : null;
     public CharacterActor PrioritySuppressActor => prioritySuppressTarget != null ? prioritySuppressTarget : null;
@@ -108,6 +111,18 @@ public sealed class WorkCommandHandler
             return false;
         }
 
+        AIBrain brain = work.WorkerActor?.Brain;
+        if (brain?.IsExternallyDrivenActionActive == true)
+        {
+            errorMessage = "A domain-owned action must finish before a priority work command can replace it.";
+            return false;
+        }
+        // Replanning alone preserves an in-flight action. End its old typed
+        // lifecycle before changing the assignment the executor reads. A repeat
+        // of the same target/type must not restart the current work run.
+        if (work.assignedShop != building || !work.IsAssignedWork(candidate.WorkTypeId))
+            brain?.StopCurrentActionForReplan("priority-work-command");
+
         priorityWorkTarget = building;
         prioritySuppressTarget = null;
         prioritySuppressGrid = null;
@@ -121,12 +136,9 @@ public sealed class WorkCommandHandler
         work.SetDutyState(AbilityWork.DutyState.OnDuty);
         work.AssignWork(building, candidate.WorkTypeId);
         work.WorkerActor?.Brain?.RequestImmediateReplan(clearFailures: true);
-        work.WorkerActor?.AddActivity(CharacterActivityEvent.Work(
-            candidate.WorkTypeId,
-            CharacterActivityOutcomes.Changed,
-            $"우선 작업 지정: {building.name} - {candidate.DisplayName}",
-            building,
-            reasonCode: "priority-command"));
+        WorkControlChangedEvent.Publish(work, work.WorkerActor,
+            WorkControlTransition.PriorityWorkAssigned,
+            candidate.WorkTypeId, building, workLabel: candidate.DisplayName);
         errorMessage = string.Empty;
         return true;
     }
@@ -150,6 +162,15 @@ public sealed class WorkCommandHandler
             return false;
         }
 
+        AIBrain brain = work.WorkerActor?.Brain;
+        if (brain?.IsExternallyDrivenActionActive == true)
+        {
+            errorMessage = "A domain-owned action must finish before a priority suppress command can replace it.";
+            return false;
+        }
+        if (prioritySuppressTarget != target || !work.IsAssignedWork(BuiltInWorkTypeIds.Guard))
+            brain?.StopCurrentActionForReplan("priority-suppress-command");
+
         prioritySuppressTarget = target;
         prioritySuppressGrid = work.WorkGridResolver.ResolveActiveGrid(work, searchResult);
         priorityWorkTarget = null;
@@ -157,13 +178,8 @@ public sealed class WorkCommandHandler
         work.AssignWork(null, BuiltInWorkTypeIds.Guard);
         work.SetDutyState(AbilityWork.DutyState.OnDuty);
         work.WorkerActor?.Brain?.RequestImmediateReplan(clearFailures: true);
-        work.WorkerActor?.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Command,
-            CharacterActivityOutcomes.Changed,
-            $"우선 제압 지정: {target.name}",
-            actionId: "command:suppress",
-            targetId: CharacterPersistentIdentity.Require(target).Value,
-            targetName: target.name));
+        WorkControlChangedEvent.PublishToCharacter(work, work.WorkerActor,
+            WorkControlTransition.PrioritySuppressionAssigned, target);
         errorMessage = string.Empty;
         return true;
     }
@@ -241,18 +257,8 @@ public sealed class WorkCommandHandler
                 work.StaffDiscontentRuntimeService.IsRebellionTarget,
                 out string errorMessage))
         {
-            actor.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Combat,
-                CharacterActivityOutcomes.Failed,
-                $"제압 실패: {errorMessage}",
-                actionId: "combat:suppress",
-                targetId: target != null
-                    ? CharacterPersistentIdentity.Require(target).Value
-                    : string.Empty,
-                targetName: target != null ? target.name : string.Empty,
-                reasonCode: errorMessage,
-                sentiment: -0.7f,
-                bubbleEligible: true));
+            WorkControlChangedEvent.PublishToCharacter(work, actor,
+                WorkControlTransition.SuppressionRejected, target, detail: errorMessage);
             if (OwnsAction())
             {
                 ClearPriorityWorkTarget();
@@ -264,14 +270,8 @@ public sealed class WorkCommandHandler
         Grid activeGrid = work.WorkGridResolver.ResolveActiveGrid(work, null, prioritySuppressGrid);
         if (move == null || activeGrid == null)
         {
-            actor.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Combat,
-                CharacterActivityOutcomes.Failed,
-                "제압 실패: 이동 정보 없음",
-                actionId: "combat:suppress",
-                reasonCode: "missing-movement",
-                sentiment: -0.7f,
-                bubbleEligible: true));
+            WorkControlChangedEvent.Publish(work, actor,
+                WorkControlTransition.SuppressionMovementUnavailable);
             if (OwnsAction())
             {
                 ClearPriorityWorkTarget();
@@ -287,16 +287,9 @@ public sealed class WorkCommandHandler
             if (defenseRuntime == null
                 || !defenseRuntime.TryAssignManual(actor, invasionIntruder, out failureReason))
             {
-                actor.AddActivity(CharacterActivityEvent.Create(
-                    CharacterActivityKinds.Combat,
-                    CharacterActivityOutcomes.Failed,
-                    $"저지 실패: {failureReason ?? "방어 지휘 체계 없음"}",
-                    actionId: "combat:suppress",
-                    targetId: target.Identity?.PersistentId ?? string.Empty,
-                    targetName: target.Identity?.DisplayName ?? target.name,
-                    reasonCode: failureReason,
-                    sentiment: -0.7f,
-                    bubbleEligible: true));
+                WorkControlChangedEvent.PublishToCharacter(work, actor,
+                    WorkControlTransition.InterceptionRejected, target,
+                    detail: failureReason, requireTargetIdentity: false);
                 if (OwnsAction())
                 {
                     ClearPriorityWorkTarget();
@@ -305,13 +298,8 @@ public sealed class WorkCommandHandler
                 yield break;
             }
 
-            actor.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Combat,
-                CharacterActivityOutcomes.Started,
-                $"{target.Identity?.DisplayName ?? target.name} 저지하러 이동",
-                actionId: "defense:manual-intercept",
-                targetId: target.Identity?.PersistentId ?? string.Empty,
-                targetName: target.Identity?.DisplayName ?? target.name));
+            WorkControlChangedEvent.PublishToCharacter(work, actor,
+                WorkControlTransition.InterceptionStarted, target, requireTargetIdentity: false);
             while (target != null
                 && !target.IsDead
                 && actor != null
@@ -330,13 +318,8 @@ public sealed class WorkCommandHandler
             yield break;
         }
 
-        actor.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Combat,
-            CharacterActivityOutcomes.Started,
-            $"제압 시작: {target.name}",
-            actionId: "combat:suppress",
-            targetId: CharacterPersistentIdentity.Require(target).Value,
-            targetName: target.name));
+        WorkControlChangedEvent.PublishToCharacter(work, actor,
+            WorkControlTransition.SuppressionStarted, target);
         while (target != null
             && !target.IsDead
             && actor != null
@@ -350,16 +333,8 @@ public sealed class WorkCommandHandler
                 Queue<GridMoveStep> path = activeGrid.GetMovePathTo(actorPos, targetPos);
                 if (path == null || path.Count == 0)
                 {
-                    actor.AddActivity(CharacterActivityEvent.Create(
-                        CharacterActivityKinds.Combat,
-                        CharacterActivityOutcomes.Blocked,
-                        "제압 실패: 도달할 수 없는 대상",
-                        actionId: "combat:suppress",
-                        targetId: CharacterPersistentIdentity.Require(target).Value,
-                        targetName: target.name,
-                        reasonCode: "target-unreachable",
-                        sentiment: -0.7f,
-                        bubbleEligible: true));
+                    WorkControlChangedEvent.PublishToCharacter(work, actor,
+                        WorkControlTransition.SuppressionTargetUnreachable, target);
                     break;
                 }
 
@@ -390,17 +365,9 @@ public sealed class WorkCommandHandler
             {
                 target.ApplyDamage(damage, $"제압: {actor.name}");
             }
-            actor.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Combat,
-                target.IsDead || suppressionEnded ? CharacterActivityOutcomes.Completed : CharacterActivityOutcomes.Progress,
-                target.IsDead || suppressionEnded
-                    ? $"제압 완료: {target.name}"
-                    : $"저항을 누르는 중: {target.name}",
-                actionId: "combat:suppress",
-                targetId: CharacterPersistentIdentity.Require(target).Value,
-                targetName: target.name,
-                value: damage,
-                sentiment: target.IsDead || suppressionEnded ? 0.2f : -0.3f));
+            WorkControlChangedEvent.PublishToCharacter(work, actor,
+                WorkControlTransition.SuppressionApplied, target,
+                amount: damage, state: target.IsDead || suppressionEnded);
 
             if (suppressionEnded)
             {

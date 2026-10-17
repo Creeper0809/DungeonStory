@@ -1,0 +1,9 @@
+2026-09-12 main Unity current-source compile attempt1
+Result: FAIL (13 Editor-test compilation errors, not runtime validation PASS).
+Source edit ended10:11:08Z; main recompile only; completed before10:12:25Z.
+Runtime Assembly-CSharp SHA256 08E36C55F0B326B47B90C813600EB85FE0CFDA8D0CFC8AEA80EF8253D512500E
+Medical model DLL SHA256 CEEA84EE5750993188C546C4688E5F75F8EC2FC09CC74E1C49BD70324CE17233
+Failures: CS1061 CharacterStats.ApplyVitalsProjection is internal; CS0122 SurgeryEnvironmentRuntime/internal class across Editor assembly (11 references); CS0103 test used source filename CharacterSurgeryUiPresentation instead of actual public CharacterSurgeryUiText type.
+Cause: root-owned important test assembly/API assumptions. No production feature/API fix required.
+Correction: exact existing internal members invoked via test-only reflection with inner exceptions preserved; actual public CharacterSurgeryUiText used. No production visibility relaxation, assertions removed, or fixture-to-natural-play claim.
+Fresh stopped/ready state10:12:25Z before two test-file corrections. Next verification is the corrected focused test compile/run only.

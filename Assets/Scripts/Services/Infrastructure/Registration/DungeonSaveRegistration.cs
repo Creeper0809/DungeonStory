@@ -8,6 +8,12 @@ public static class DungeonSaveRegistration
         this IContainerBuilder builder)
     {
         builder.Register<InvasionAggregateStateStore>(Lifetime.Singleton);
+        builder.Register<GameWorldLineageRuntime>(Lifetime.Singleton).AsSelf()
+            .As<IGameWorldLineageQuery>().As<IGameWorldLineageCommands>()
+            .As<IDungeonRestoreTransactionParticipant>();
+        builder.Register<GameWorldLineageSaveValidation>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>()
+            .As<IDungeonSaveRegistryPreflightValidator>();
         builder.Register<CharacterWorldSpawnDependencies>(Lifetime.Singleton);
         builder.Register<ProductionOutputLifecycleRestoreCandidateIndex>(
                 Lifetime.Singleton)
@@ -21,8 +27,25 @@ public static class DungeonSaveRegistration
         builder.Register<DungeonAggregateReferencePreflight>(Lifetime.Singleton)
             .As<IDungeonSavePreflightValidator>()
             .As<IDungeonCapturedSavePreflightValidator>();
+        builder.Register<ServiceExecutionOwnerSaveValidation>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>()
+            .As<IDungeonCapturedSavePreflightValidator>()
+            .As<IDungeonSaveRegistryPreflightValidator>();
+        builder.Register<ResearchOutcomeSavePreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>()
+            .As<IDungeonCapturedSavePreflightValidator>();
+        builder.Register<
+                SocietyObservedIncidentResponseCrossAggregateSaveValidation>(
+                Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>()
+            .As<IDungeonSaveRegistryPreflightValidator>()
+            .As<IDungeonCapturedSavePreflightValidator>();
         builder.Register<ConveyorPhysicalCustodySaveValidation>(Lifetime.Singleton)
             .As<IDungeonSavePreflightValidator>()
+            .As<IDungeonSaveRegistryPreflightValidator>();
+        builder.Register<WildlifeHaulCargoSaveValidation>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>()
+            .As<IDungeonCapturedSavePreflightValidator>()
             .As<IDungeonSaveRegistryPreflightValidator>();
         builder.Register<ProductionGenericBillTerminalDrainSaveValidation>(
             Lifetime.Singleton);
@@ -40,7 +63,8 @@ public static class DungeonSaveRegistration
                 SurgicalPartProductionOutputCrossAggregateSaveValidation>(
                 Lifetime.Singleton)
             .As<IDungeonSavePreflightValidator>()
-            .As<IDungeonSaveRegistryPreflightValidator>();
+            .As<IDungeonSaveRegistryPreflightValidator>()
+            .As<IDungeonCapturedSavePreflightValidator>();
         builder.Register<
                 SurgeryMaterialTerminalCrossAggregateSaveValidation>(
                 Lifetime.Singleton)
@@ -62,6 +86,7 @@ public static class DungeonSaveRegistration
         builder.Register<ProductionAcknowledgedOutputLifecycleSaveValidation>(
                 Lifetime.Singleton)
             .As<IDungeonSavePreflightValidator>()
+            .As<IDungeonCapturedSavePreflightValidator>()
             .As<IDungeonSaveRegistryPreflightValidator>();
         builder.Register<DungeonGameSaveService>(Lifetime.Singleton)
             .As<IDungeonGameSaveService>();
@@ -122,6 +147,7 @@ public static class DungeonSaveRegistration
 
     private static void RegisterSections(IContainerBuilder builder)
     {
+        builder.Register<GameWorldLineageSaveSection>(Lifetime.Singleton).As<IDungeonSaveSection>();
         builder.Register<FoundationSessionSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<RandomStreamSaveSection>(Lifetime.Singleton)
@@ -158,10 +184,13 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<ServiceRoomsSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<FacilityVandalismPendingSaveSection>(Lifetime.Singleton).As<IDungeonSaveSection>();
         builder.Register<AutomationInfrastructureSaveSection>(
                 Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<EnvironmentalFieldSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<EnvironmentalFireSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<ApparelRejectedDismantleRestoreGuard>(
             Lifetime.Singleton);
@@ -169,6 +198,10 @@ public static class DungeonSaveRegistration
                 Lifetime.Singleton)
             .As<IApparelOutputDetachedCapacityRestoreGuard>();
         builder.Register<CharacterEnvironmentSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<ApparelChangePublicationSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<ApparelPhysicalPublicationSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<SpeciesRuntimeSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
@@ -207,6 +240,8 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<CombatEquipmentSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<EquipmentModuleSelectionPublicationSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
         builder.Register<EquipmentEvolutionSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<CharacterMedicalSaveSection>(Lifetime.Singleton)
@@ -217,9 +252,17 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<DefenseFacilitySaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<DefenseServicePublicationSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<DefenseActivationPublicationSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
         builder.Register<EquipmentMaintenanceSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<CharacterCombatCommandSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CombatActionPendingSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<IdleSocialInteractionPendingSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<CaptivitySaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
@@ -235,6 +278,17 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<InvasionSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<InvasionFactPublicationSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<FacilitySynthesisFactSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<SocialRitualFactSaveSection>(Lifetime.Singleton).As<IDungeonSaveSection>();
+        builder.Register<SocialRitualFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
+        builder.Register<FacilitySynthesisFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
+        builder.Register<InvasionFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
         builder.Register<OperatingDaySettlementSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<TreasuryEconomySaveSection>(Lifetime.Singleton)
@@ -249,10 +303,32 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<BlueprintResearchSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<FacilityShopPurchaseFactSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<FacilityShopPurchaseFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
+        builder.Register<OperatingDayFactSaveSection>(Lifetime.Singleton).As<IDungeonSaveSection>();
+        builder.Register<OperatingDayFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
+        builder.Register<StockSupplyFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>()
+            .As<IDungeonSaveRegistryPreflightValidator>();
+        builder.Register<ShopliftingFactSaveSection>(Lifetime.Singleton).As<IDungeonSaveSection>();
+        builder.Register<ShopliftingFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
+        builder.Register<RetailPurchaseFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>()
+            .As<IDungeonSaveRegistryPreflightValidator>();
         builder.Register<FacilityShopSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<RegularCustomerSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<RegularCustomerFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>()
+            .As<IDungeonSaveRegistryPreflightValidator>();
+        builder.Register<OwnerRunCompletionFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>()
+            .As<IDungeonSaveRegistryPreflightValidator>();
         builder.Register<StaffDiscontentSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<CodexSaveApplicationAdapter>(Lifetime.Singleton)
@@ -263,12 +339,33 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<RunVariableSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<RunVariableFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>()
+            .As<IDungeonSaveRegistryPreflightValidator>();
         builder.Register<MetaProgressionSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<ModularFacilityWorldSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<CharacterWorldSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<VisitorExitPublicationSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<SocialInteractionPublicationSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CharacterSkillActivationPublicationSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CharacterSkillAcquisitionPublicationSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CharacterTraitInferencePublicationSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CharacterTraitReactionPublicationSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<MemoryErasurePublicationSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<MemoryErasureBossAwardPublicationSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CharacterSkillActivationFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
         builder.Register<CharacterLifeSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<KinshipHouseholdSaveSection>(Lifetime.Singleton)
@@ -281,11 +378,23 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<CharacterNarrativeSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<GameplayOutcomeLedgerSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<MigratedProducerOutcomeSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<InfrastructureCommandOutcomeSaveSection>(
+                Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<RoomEnvironmentOutcomeSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
         builder.Register<SeasonalWorldEventsSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<SocietyEventsSaveSection>(Lifetime.Singleton)
-            .As<IDungeonSaveSection>();
+            .As<IDungeonSaveSection>()
+            .As<ISocietyIncidentRestoreOwnedCharacterIdQuery>();
         builder.Register<FactionCampaignSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<FestivalExecutionSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<RunMilestonesSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();

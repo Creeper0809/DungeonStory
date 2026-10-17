@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 public sealed class SpeciesRuntimeSaveSection :
@@ -88,6 +89,7 @@ public sealed class SpeciesRuntimeSaveSection :
         }
         try
         {
+            ValidateRawPayload(payloadJson);
             CharacterSpeciesRuntimeSaveData payload =
                 JsonUtility.FromJson<CharacterSpeciesRuntimeSaveData>(payloadJson)
                 ?? throw new InvalidOperationException(
@@ -108,6 +110,52 @@ public sealed class SpeciesRuntimeSaveSection :
             throw new InvalidOperationException(
                 $"{SectionId} payload JSON is invalid: {exception.Message}",
                 exception);
+        }
+    }
+
+    internal static void ValidateRawPayload(string json)
+    {
+        var root = JObject.Parse(json);
+        if (root["version"]?.Type != JTokenType.Integer
+            || root.Value<int>("version") != CharacterSpeciesRuntimeSaveData.CurrentVersion
+            || root["characters"] is not JArray characters || root["pendingObservations"] is not JArray observations)
+            throw new InvalidOperationException("species-current-save-fields-missing");
+        foreach (var token in characters)
+            if (token is not JObject row || row["rechargeObservationCompleted"]?.Type != JTokenType.Boolean)
+                throw new InvalidOperationException("species-recharge-completion-field-missing");
+        foreach (var token in observations)
+        {
+            if (token is not JObject row || row["actionType"]?.Type != JTokenType.Integer
+                || row["publicationKey"]?.Type != JTokenType.String
+                || row["rollbackBlocked"]?.Type != JTokenType.Boolean || row["rollbackFailure"]?.Type != JTokenType.String)
+                throw new InvalidOperationException("species-observation-save-fields-missing");
+            int kind = row.Value<int>("actionType");
+            string member = kind == 0 ? "golem" : kind == 1 ? "incident" : kind == 2 ? "harpy" : null;
+            if (member == null || row[member] is not JObject fact)
+                throw new InvalidOperationException("species-observation-active-fact-missing");
+            Require(fact, JTokenType.String, "operationId characterId characterDisplayName speciesId speciesDisplayName");
+            Require(fact, JTokenType.Integer, "revision absoluteDay x y");
+            if (kind == 0)
+            {
+                Require(fact, JTokenType.String, "kind physicalEvidence workSourceId workTypeId");
+                Require(fact, JTokenType.Float, "chargeBefore chargeAfter integrityBefore integrityAfter healthBefore healthAfter completedWork requestedDamage appliedDamage");
+                if (fact["wornNodes"] is not JArray nodes)
+                    throw new InvalidOperationException("species-wear-nodes-missing");
+                foreach (var node in nodes)
+                    if (node.Type != JTokenType.String) throw new InvalidOperationException("species-wear-node-invalid");
+            }
+            else if (kind == 1) Require(fact, JTokenType.String, "incidentId summary");
+            else
+            {
+                Require(fact, JTokenType.String, "sourceStackId destinationStackId itemId itemInstanceId itemDisplayName reasonCode");
+                Require(fact, JTokenType.Integer, "quantity sourceX sourceY destinationX destinationY massGrams physicalRevision");
+            }
+        }
+        static void Require(JObject value, JTokenType type, string names)
+        {
+            foreach (string name in names.Split(' '))
+                if (value[name]?.Type != type && !(type == JTokenType.Float && value[name]?.Type == JTokenType.Integer))
+                    throw new InvalidOperationException("species-fact-field-missing:" + name);
         }
     }
 }

@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "내벽으로 방의 경계와 지지 구조를 세울 때 쓰는 설치 부품이며, 하르나크의 시설과도 체결 규격이 맞는다.",
+  "in_game_description": "내벽으로 방의 경계와 지지 구조를 세울 때 쓰는 설치 부품이다. 하르나크 주민은 내벽의 수리 구역을 여섯 도시가 나눠 맡아 한 도시가 봉쇄돼도 길이 끊기지 않게 한다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

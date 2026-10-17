@@ -16,6 +16,6 @@
   "schema_version": 1,
   "slug": "building-1005",
   "spoiler_tier": "none",
-  "summary": "시설 동작은 BuildingEconomyAbility, BuildingEvolutionAbility, BuildingFacilityPartAbility, BuildingTableAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 566, 재료 목재×12이 필요하다.",
+  "summary": "시설 동작은 BuildingEconomyAbility, BuildingEvolutionAbility, BuildingFacilityPartAbility, BuildingTableAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 566 WU, 재료 목재×12이 필요하다.",
   "title": "대형연회식탁"
 }

@@ -15,7 +15,8 @@ public sealed class ExteriorActivitySaveSection :
         PhysicalItemsSaveSection.Id,
         WorkOrdersSaveSection.Id,
         CharacterWorldSaveSection.Id,
-        WildlifeSaveSection.Id
+        WildlifeSaveSection.Id,
+        SocietyEventsSaveSection.Id
     };
 
     private readonly IExteriorActivityRuntime runtime;

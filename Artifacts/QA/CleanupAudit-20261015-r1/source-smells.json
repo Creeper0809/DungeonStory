@@ -1,0 +1,62 @@
+[
+  {
+    "path": "Assets/Scripts/Editor/DungeonFinalPlayModeAcceptanceRequestFacade.cs",
+    "line": 1613,
+    "match": "catch { }"
+  },
+  {
+    "path": "Assets/Scripts/Editor/DungeonFinalPlayModeAcceptanceRequestFacade.cs",
+    "line": 1627,
+    "match": "catch { }"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/DungeonPlayerAutomationBridge.cs",
+    "line": 526,
+    "match": "catch (SocketException)\n        {\n        }"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/DungeonPlayerAutomationBridge.cs",
+    "line": 961,
+    "match": "catch (IOException)\n        {\n        }"
+  },
+  {
+    "path": "Assets/Scripts/Services/Infrastructure/DungeonPlayerAutomationBridge.cs",
+    "line": 964,
+    "match": "catch (UnauthorizedAccessException)\n        {\n        }"
+  },
+  {
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerCharacterSurvivalEntryE2EDebugScenarios.cs",
+    "line": 1791,
+    "match": "catch (InvalidOperationException)\n            {\n            }"
+  },
+  {
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerRunOffenseEntryE2EDebugScenarios.cs",
+    "line": 1332,
+    "match": "catch (InvalidOperationException)\n            {\n            }"
+  },
+  {
+    "path": "Assets/Scripts/Services/Invasion/Editor/InvasionIntruderDebugScenarios.cs",
+    "line": 899,
+    "match": "catch (InvalidOperationException)\n                    {\n                    }"
+  },
+  {
+    "path": "Assets/Scripts/Services/Invasion/Editor/InvasionIntruderDebugScenarios.cs",
+    "line": 948,
+    "match": "catch (InvalidOperationException)\n                {\n                }"
+  },
+  {
+    "path": "Assets/Scripts/Services/Economy/Editor/CropPhysicalTransactionFixture.cs",
+    "line": 241,
+    "match": "catch (InvalidOperationException)\n        {\n        }"
+  },
+  {
+    "path": "Assets/Scripts/Services/Buildings/Editor/ShopPurchaseOwnerSaveValidationDebugScenarios.cs",
+    "line": 327,
+    "match": "catch (InvalidOperationException)\n        {\n        }"
+  },
+  {
+    "path": "Assets/Scripts/Models/AI/Core/DungeonStoryLlmHostProcess.cs",
+    "line": 428,
+    "match": "catch (ApplicationException)\n        {\n        }"
+  }
+]

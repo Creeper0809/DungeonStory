@@ -1,0 +1,508 @@
+[Licensing::Module] Trying to connect to existing licensing client channel...
+Built from '6000.3/staging' branch; Version is '6000.3.8f1 (1c7db571dde0) revision 1867189'; Using compiler version '194234433'; Build Type 'Release'
+[Licensing::IpcConnector] Channel LicenseClient-vulpo doesn't exist
+OS: 'Windows 11  (10.0.22631) Core' Language: 'ko' Physical Memory: 32491 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+System  architecture: x64
+Process architecture: x64
+Date: 2026-09-20T04:52:04Z
+[Licensing::Module] Successfully launched the LicensingClient (PId: 37904)
+
+COMMAND LINE ARGUMENTS:
+C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Unity.exe
+-batchmode
+-nographics
+-quit
+-projectPath
+F:\01_Programming\01_Project\02_Unity\DungeonStory
+-logFile
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Artifacts\QA\GameplayOutcomeLedgerPhase80Compile-20260920-r171\unity-compile.log
+Successfully changed project path to: F:\01_Programming\01_Project\02_Unity\DungeonStory
+F:/01_Programming/01_Project/02_Unity/DungeonStory
+[UnityMemory] Configuration Parameters - Can be set up in boot.config
+    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+    "memorysetup-temp-allocator-size-audio-worker=65536"
+    "memorysetup-temp-allocator-size-gfx=262144"
+    "memorysetup-allocator-temp-initial-block-size-main=262144"
+    "memorysetup-allocator-temp-initial-block-size-worker=262144"
+    "memorysetup-temp-allocator-size-background-worker=32768"
+    "memorysetup-temp-allocator-size-job-worker=262144"
+    "memorysetup-temp-allocator-size-preload-manager=33554432"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-bucket-allocator-granularity=16"
+    "memorysetup-bucket-allocator-bucket-count=8"
+    "memorysetup-bucket-allocator-block-size=33554432"
+    "memorysetup-bucket-allocator-block-count=8"
+    "memorysetup-main-allocator-block-size=16777216"
+    "memorysetup-thread-allocator-block-size=16777216"
+    "memorysetup-gfx-main-allocator-block-size=16777216"
+    "memorysetup-gfx-thread-allocator-block-size=16777216"
+    "memorysetup-cache-allocator-block-size=4194304"
+    "memorysetup-typetree-allocator-block-size=2097152"
+    "memorysetup-profiler-bucket-allocator-granularity=16"
+    "memorysetup-profiler-bucket-allocator-bucket-count=8"
+    "memorysetup-profiler-bucket-allocator-block-size=33554432"
+    "memorysetup-profiler-bucket-allocator-block-count=8"
+    "memorysetup-profiler-allocator-block-size=16777216"
+    "memorysetup-profiler-editor-allocator-block-size=1048576"
+    "memorysetup-temp-allocator-size-main=16777216"
+    "memorysetup-job-temp-allocator-block-size=2097152"
+    "memorysetup-job-temp-allocator-block-size-background=1048576"
+    "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
+    "memorysetup-temp-allocator-size-cloud-worker=32768"
+Player connection [30504]  Target information:
+
+Player connection [30504]  * "[IP] 169.254.8.177 [Port] 55504 [Flags] 2 [Guid] 4055588341 [EditorId] 4055588341 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-62DPLNE) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [30504]  * "[IP] 192.168.45.172 [Port] 55504 [Flags] 2 [Guid] 4055588341 [EditorId] 4055588341 [Version] 1048832 [Id] WindowsEditor(7,DESKTOP-62DPLNE) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [30504] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [30504] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+[Package Manager] Connected to IPC stream "Upm-36160" after 0.2 seconds.
+[Licensing::Module] Licensing is not yet initialized.
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo" at "2026-09-20T04:52:05.0457952Z"
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.17.4+4293ba1
+  Session Id:              6f4c318915c641278aca039f124ca246
+  Correlation Id:          b02980f70a1c629b497effda06e93555
+  External correlation Id: 7851750757480392965
+  Machine Id:              kDq4OT25Uq/bZNXVkGQKRllWkX0=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-vulpo" (connect: 0.57s, validation: 0.04s, handshake: 0.85s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-notifications" at "2026-09-20T04:52:05.9302046Z"
+[Licensing::Module] Connected to LicensingClient (PId: 37904, launch time: 0.01, total connection time: 1.45s)
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: 14568616876292-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.01
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] Licensing Background thread has ended after 1.48s
+[Licensing::Module] Licensing is initialized (took 0.97s).
+[Licensing::Client] Successfully resolved entitlement details
+Library Redirect Path: Library/
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Refreshing native plugins compatible for Editor in 0.11 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Initialize engine version: 6000.3.8f1 (1c7db571dde0)
+[Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/Resources/UnitySubsystems
+[Subsystems] Discovering subsystems at path F:/01_Programming/01_Project/02_Unity/DungeonStory/Assets
+Forcing GfxDevice: Null
+GfxDevice: creating device client; kGfxThreadingModeNonThreaded
+NullGfxDevice:
+    Version:  NULL 1.0 [1.0]
+    Renderer: Null Device
+    Vendor:   Unity Technologies
+Initialize mono
+Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/Managed'
+Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
+Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/MonoBleedingEdge/etc'
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56160
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+ImportWorker Server TCP listen port: 0
+AcceleratorClientConnectionCallback - disconnected - :0
+Begin MonoManager ReloadAssembly
+Registering precompiled unity dll's ...
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
+[Licensing::Client] Successfully resolved entitlement details
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll
+[Licensing::Client] Successfully resolved entitlement details
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/PlaybackEngines/iOSSupport/UnityEditor.iOS.Extensions.dll
+Registered in 0.006551 seconds.
+- Loaded All Assemblies, in  0.350 seconds
+Native extension for iOS target not found
+Native extension for Android target not found
+Android Extension - Scanning For ADB Devices 2226 ms
+Native extension for WindowsStandalone target not found
+ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  2.564 seconds
+Domain Reload Profiling: 2910ms
+	BeginReloadAssembly (126ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (0ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (3ms)
+	RebuildCommonClasses (27ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (41ms)
+	LoadAllAssembliesAndSetupDomain (143ms)
+		LoadAssemblies (119ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (139ms)
+			TypeCache.Refresh (138ms)
+				TypeCache.ScanAssembly (126ms)
+			BuildScriptInfoCaches (0ms)
+			ResolveRequiredComponents (0ms)
+	FinalizeReload (2564ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (2537ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (2303ms)
+			SetLoadedEditorAssemblies (3ms)
+			BeforeProcessingInitializeOnLoad (62ms)
+			ProcessInitializeOnLoadAttributes (114ms)
+			ProcessInitializeOnLoadMethodAttributes (57ms)
+			AfterProcessingInitializeOnLoad (0ms)
+			EditorAssembliesLoaded (0ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (0ms)
+[Licensing::Client] Successfully resolved entitlement details
+Application.AssetDatabase Initial Refresh Start
+Package Manager log level set to [2]
+[Package Manager] Restoring resolved packages state from cache
+[Licensing::Client] Successfully resolved entitlement details
+[Package Manager] Registered 78 packages:
+  Packages from [https://packages.unity.com]:
+    com.unity.ai.assistant@2.13.0-pre.2 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.ai.assistant@6fee27370e6a)
+    com.unity.cinemachine@2.10.5 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.cinemachine@f26b20ca78a2)
+    com.unity.ide.rider@3.0.39 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.ide.rider@4504839d03f7)
+    com.unity.ide.visualstudio@2.0.26 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.ide.visualstudio@a99d56dec63f)
+    com.unity.inputsystem@1.18.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.inputsystem@57d0e36f6123)
+    com.unity.localization@1.5.9 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.localization@62db12c43c5c)
+    com.unity.sdk.linux-x86_64@1.1.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.sdk.linux-x86_64@6d12be270055)
+    com.unity.timeline@1.8.10 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.timeline@7f8b2fb101b6)
+    com.unity.toolchain.linux-x86_64-linux@1.1.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.toolchain.linux-x86_64-linux@d0308bf9d559)
+    com.unity.visualscripting@1.9.9 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.visualscripting@191c0d7e3b69)
+    com.unity.pipeline@0.6.0-exp.1 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.pipeline@9bb4172c603c)
+    com.unity.nuget.mono-cecil@1.11.6 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff)
+    com.unity.nuget.newtonsoft-json@3.2.2 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.nuget.newtonsoft-json@4dfd81071c64)
+    com.unity.sysroot.base@1.1.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.sysroot.base@3559fe1aa613)
+    com.unity.addressables@2.8.1 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.addressables@2dc42e61a5f5)
+    com.unity.2d.animation@13.0.4 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.2d.animation@7396d8477ca9)
+    com.unity.2d.pixel-perfect@5.1.1 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.2d.pixel-perfect@09d99455b901)
+    com.unity.2d.psdimporter@12.0.1 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.2d.psdimporter@9abe0f7cac7e)
+    com.unity.2d.spriteshape@13.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.2d.spriteshape@0738bab11647)
+    com.unity.2d.tilemap.extras@6.0.1 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.2d.tilemap.extras@3dde84bf3867)
+    com.unity.2d.aseprite@3.0.1 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.2d.aseprite@809e3a168ff7)
+    com.unity.2d.tooling@1.0.3 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.2d.tooling@127d960d4dc1)
+    com.unity.mathematics@1.3.3 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.mathematics@19a9377c4ffa)
+    com.unity.searcher@4.9.4 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.searcher@d45a78918735)
+    com.unity.burst@1.8.27 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.burst@973857688024)
+    com.unity.collections@2.6.2 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.collections@aea9d3bd5e19)
+    com.unity.profiling.core@1.0.3 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.profiling.core@8a49f7027d06)
+    com.unity.scriptablebuildpipeline@2.5.2 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.scriptablebuildpipeline@418957ab75a6)
+    com.unity.2d.common@12.0.3 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.2d.common@2af7c9b44b5c)
+    com.unity.test-framework.performance@3.2.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.test-framework.performance@0840f58e4562)
+  Built-in packages:
+    com.unity.feature.2d@2.0.2 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.feature.2d@0309d34ea7f2)
+    com.unity.multiplayer.center@1.0.1 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.multiplayer.center@f01f4ba8d00a)
+    com.unity.render-pipelines.universal@17.3.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.render-pipelines.universal@a6e30d1f59f5)
+    com.unity.test-framework@1.6.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.test-framework@0b7a23ab2e1d)
+    com.unity.ugui@2.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.ugui@bb329a87fcdc)
+    com.unity.modules.accessibility@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.accessibility)
+    com.unity.modules.adaptiveperformance@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.adaptiveperformance)
+    com.unity.modules.ai@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.ai)
+    com.unity.modules.androidjni@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.audio)
+    com.unity.modules.cloth@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.cloth)
+    com.unity.modules.director@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.director)
+    com.unity.modules.imageconversion@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.physics)
+    com.unity.modules.physics2d@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.physics2d)
+    com.unity.modules.screencapture@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.screencapture)
+    com.unity.modules.terrain@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.terrain)
+    com.unity.modules.terrainphysics@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.terrainphysics)
+    com.unity.modules.tilemap@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.tilemap)
+    com.unity.modules.ui@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.uielements)
+    com.unity.modules.umbra@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.umbra)
+    com.unity.modules.unityanalytics@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.unityanalytics)
+    com.unity.modules.unitywebrequest@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestassetbundle)
+    com.unity.modules.unitywebrequestaudio@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestaudio)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.unitywebrequestwww@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestwww)
+    com.unity.modules.vectorgraphics@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.vectorgraphics)
+    com.unity.modules.vehicles@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.vehicles)
+    com.unity.modules.video@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.video)
+    com.unity.modules.vr@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.vr)
+    com.unity.modules.wind@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.wind)
+    com.unity.modules.xr@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.modules.hierarchycore)
+    com.unity.ext.nunit@2.0.5 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.ext.nunit@d8c07649098d)
+    com.unity.render-pipelines.core@17.3.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.render-pipelines.core@d6dfd1e235d5)
+    com.unity.shadergraph@17.3.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.shadergraph@d44b48771ebb)
+    com.unity.render-pipelines.universal-config@17.0.3 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.render-pipelines.universal-config@8dc1aab4af1d)
+    com.unity.2d.sprite@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.2d.sprite@08e067ec1643)
+    com.unity.2d.tilemap@1.0.0 (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\PackageCache\com.unity.2d.tilemap@2394479dc113)
+  Embedded packages:
+    jp.hadashikick.vcontainer@file:F:\01_Programming\01_Project\02_Unity\DungeonStory\Packages\jp.hadashikick.vcontainer (location: F:\01_Programming\01_Project\02_Unity\DungeonStory\Packages\jp.hadashikick.vcontainer)
+[Subsystems] No new subsystems found in resolved package list.
+[Package Manager] Done registering packages in 0.02 seconds
+[ScriptCompilation] Requested script compilation because: Assetdatabase observed changes in script compilation related files
+Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected, using 'Packages/com.unity.collections/Unity.Collections.Tests/System.Runtime.CompilerServices.Unsafe/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a' and ignoring 'Packages/com.unity.pipeline/Runtime/Plugins/CodeAnalysis/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.Refreshing native plugins compatible for Editor in 1.16 ms, found 2 plugins.
+Starting: C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Data\Tools\BuildPipeline\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
+WorkingDir: F:/01_Programming/01_Project/02_Unity/DungeonStory
+DisplayProgressbar: Compiling Scripts
+ExitCode: 0 Duration: 11s
+[1650/2213  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
+[BUSY       6s] Csc Library/Bee/artifacts/1900b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
+[2209/2213  7s] Csc Library/Bee/artifacts/1900b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
+Assets\Scripts\Services\Character\AI\Editor\V25NarrativeInferenceDebugScenarios.cs(1488,24): warning CS0618: 'NarrativeMechanicScenario.NarrativeMechanicScenario(string, string, NarrativeMechanicCatalogCanonicalJsonObject, NarrativeMechanicCatalogCanonicalJsonArray, NarrativeMechanicCatalogCanonicalJsonArray, IEnumerable<string>, NarrativeMechanicCatalogCanonicalJsonObject, NarrativeMechanicCatalogCanonicalJsonObject, string, string, bool, string, IEnumerable<KeyValuePair<string, string>>)' is obsolete: 'Narrative scenarios require a production public narrative context.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3417,36): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3423,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3434,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3434,44): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3479,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3489,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3498,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3503,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3503,55): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3508,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3509,23): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3518,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3518,50): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3551,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3552,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(4434,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(4740,17): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(4832,21): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+
+Assets\Scripts\Services\Character\AI\Editor\FormulaPresentationPilotExporter.cs(1539,58): warning CS0618: 'OffenseWorldMapService.CreateDefaultTargets()' is obsolete: 'Editor-only migration seed. Runtime campaign content must come from OffenseCampaignCatalogSO.'
+[2210/2213  2s] ILPostProcess Library/Bee/artifacts/1900b0aE.dag/post-processed/Assembly-CSharp-Editor.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1900b0aE.dag/Assembly-CSharp-Editor.dll, with 141 defines and 451 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, Unity.Pipeline.CodeGen.HotReloadInPlaceILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running Unity.Pipeline.CodeGen.HotReloadInPlaceILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[2211/2213  0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp-Editor.pdb
+[2212/2213  0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp-Editor.dll
+*** Tundra build success (11.35 seconds), 5 items updated, 2213 evaluated
+Assets\Scripts\Services\Character\AI\Editor\V25NarrativeInferenceDebugScenarios.cs(1488,24): warning CS0618: 'NarrativeMechanicScenario.NarrativeMechanicScenario(string, string, NarrativeMechanicCatalogCanonicalJsonObject, NarrativeMechanicCatalogCanonicalJsonArray, NarrativeMechanicCatalogCanonicalJsonArray, IEnumerable<string>, NarrativeMechanicCatalogCanonicalJsonObject, NarrativeMechanicCatalogCanonicalJsonObject, string, string, bool, string, IEnumerable<KeyValuePair<string, string>>)' is obsolete: 'Narrative scenarios require a production public narrative context.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3417,36): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3423,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3434,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3434,44): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3479,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3489,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3498,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3503,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3503,55): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3508,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3509,23): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3518,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3518,50): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3551,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(3552,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(4434,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(4740,17): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\CharacterProgressionDebugScenarios.cs(4832,21): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets\Scripts\Services\Character\AI\Editor\FormulaPresentationPilotExporter.cs(1539,58): warning CS0618: 'OffenseWorldMapService.CreateDefaultTargets()' is obsolete: 'Editor-only migration seed. Runtime campaign content must come from OffenseCampaignCatalogSO.'
+AssetDatabase: script compilation time: 11.840603s
+Begin MonoManager ReloadAssembly
+Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected, using 'Packages/com.unity.collections/Unity.Collections.Tests/System.Runtime.CompilerServices.Unsafe/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a' and ignoring 'Packages/com.unity.pipeline/Runtime/Plugins/CodeAnalysis/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.- Loaded All Assemblies, in  2.380 seconds
+Refreshing native plugins compatible for Editor in 1.23 ms, found 2 plugins.
+Native extension for iOS target not found
+Native extension for Android target not found
+Native extension for WindowsStandalone target not found
+Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected, using 'Packages/com.unity.collections/Unity.Collections.Tests/System.Runtime.CompilerServices.Unsafe/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a' and ignoring 'Packages/com.unity.pipeline/Runtime/Plugins/CodeAnalysis/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected, using 'Packages/com.unity.collections/Unity.Collections.Tests/System.Runtime.CompilerServices.Unsafe/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a' and ignoring 'Packages/com.unity.pipeline/Runtime/Plugins/CodeAnalysis/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.Start HTTP server: port:7800
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+[Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
+[McpToolRegistry] Discovered 20 MCP tools
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+Unity.AI.Tracing.ConsoleSink:LogToConsole (string,string,System.Exception) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceSinks.cs:313)
+Unity.AI.Tracing.ConsoleSink:Write (Unity.AI.Tracing.TraceEvent) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceSinks.cs:277)
+Unity.AI.Tracing.TraceWriter:WriteEventInternal (string,string,Unity.AI.Tracing.TraceEventOptions,string,System.Nullable`1<int>) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceWriter.cs:373)
+Unity.AI.Tracing.TraceWriter:Event (string,Unity.AI.Tracing.TraceEventOptions) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceWriter.cs:297)
+Unity.AI.Tracing.TraceLogger:Emit (string,string,string,string,Unity.AI.Tracing.TraceEventOptions,object,System.Exception) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceLogger.cs:105)
+Unity.AI.Tracing.TraceLogger:Info (string,string,string,Unity.AI.Tracing.TraceEventOptions) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceLogger.cs:35)
+Unity.AI.MCP.Editor.Helpers.McpLog:Log (string,Unity.AI.Tracing.TraceEventOptions) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.MCP.Editor/Helpers/McpLog.cs:15)
+Unity.AI.MCP.Editor.ToolRegistry.McpToolRegistry:RefreshTools () (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.MCP.Editor/ToolRegistry/McpToolRegistry.cs:201)
+Unity.AI.MCP.Editor.ToolRegistry.McpToolRegistry:Initialize () (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.MCP.Editor/ToolRegistry/McpToolRegistry.cs:177)
+System.Reflection.RuntimeMethodInfo:Invoke (object,System.Reflection.BindingFlags,System.Reflection.Binder,object[],System.Globalization.CultureInfo)
+System.Reflection.MethodBase:Invoke (object,object[])
+UnityEditor.EditorAssemblies:ProcessInitializeOnLoadMethodAttributes ()
+
+(Filename: ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceSinks.cs Line: 313)
+
+[McpToolRegistry] Available tools: Unity_ApplyTextEdits, Unity_CreateScript, Unity_DeleteScript, Unity_FindInFile, Unity_GetSha, Unity_ImportExternalModel, Unity_ListResources, Unity_ManageAsset, Unity_ManageEditor, Unity_ManageGameObject, Unity_ManageMenuItem, Unity_ManageScene, Unity_ManageScript, Unity_ManageScript_capabilities, Unity_ManageShader, Unity_ReadConsole, Unity_ReadResource, Unity_RunCommand, Unity_ScriptApplyEdits, Unity_ValidateScript
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+Unity.AI.Tracing.ConsoleSink:LogToConsole (string,string,System.Exception) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceSinks.cs:313)
+Unity.AI.Tracing.ConsoleSink:Write (Unity.AI.Tracing.TraceEvent) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceSinks.cs:277)
+Unity.AI.Tracing.TraceWriter:WriteEventInternal (string,string,Unity.AI.Tracing.TraceEventOptions,string,System.Nullable`1<int>) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceWriter.cs:373)
+Unity.AI.Tracing.TraceWriter:Event (string,Unity.AI.Tracing.TraceEventOptions) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceWriter.cs:297)
+Unity.AI.Tracing.TraceLogger:Emit (string,string,string,string,Unity.AI.Tracing.TraceEventOptions,object,System.Exception) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceLogger.cs:105)
+Unity.AI.Tracing.TraceLogger:Info (string,string,string,Unity.AI.Tracing.TraceEventOptions) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceLogger.cs:35)
+Unity.AI.MCP.Editor.Helpers.McpLog:Log (string,Unity.AI.Tracing.TraceEventOptions) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.MCP.Editor/Helpers/McpLog.cs:15)
+Unity.AI.MCP.Editor.ToolRegistry.McpToolRegistry:RefreshTools () (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.MCP.Editor/ToolRegistry/McpToolRegistry.cs:204)
+Unity.AI.MCP.Editor.ToolRegistry.McpToolRegistry:Initialize () (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.MCP.Editor/ToolRegistry/McpToolRegistry.cs:177)
+System.Reflection.RuntimeMethodInfo:Invoke (object,System.Reflection.BindingFlags,System.Reflection.Binder,object[],System.Globalization.CultureInfo)
+System.Reflection.MethodBase:Invoke (object,object[])
+UnityEditor.EditorAssemblies:ProcessInitializeOnLoadMethodAttributes ()
+
+(Filename: ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceSinks.cs Line: 313)
+
+ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
+Mono: successfully reloaded assembly
+[Idle]
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+Unity.AI.Tracing.ConsoleSink:LogToConsole (string,string,System.Exception) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceSinks.cs:313)
+Unity.AI.Tracing.ConsoleSink:Write (Unity.AI.Tracing.TraceEvent) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceSinks.cs:277)
+Unity.AI.Tracing.TraceWriter:WriteEventInternal (string,string,Unity.AI.Tracing.TraceEventOptions,string,System.Nullable`1<int>) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceWriter.cs:373)
+Unity.AI.Tracing.TraceWriter:Event (string,Unity.AI.Tracing.TraceEventOptions) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceWriter.cs:297)
+Unity.AI.Tracing.TraceLogger:Emit (string,string,string,string,Unity.AI.Tracing.TraceEventOptions,object,System.Exception) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceLogger.cs:105)
+Unity.AI.Tracing.TraceLogger:Info (string,string,string,Unity.AI.Tracing.TraceEventOptions) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceLogger.cs:35)
+Unity.AI.MCP.Editor.Helpers.McpLog:Log (string,Unity.AI.Tracing.TraceEventOptions) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.MCP.Editor/Helpers/McpLog.cs:15)
+Unity.AI.MCP.Editor.Bridge:LogBreadcrumb (string) (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.MCP.Editor/Bridge.cs:2055)
+Unity.AI.MCP.Editor.Bridge:OnAfterAssemblyReload () (at ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.MCP.Editor/Bridge.cs:1899)
+UnityEditor.AssemblyReloadEvents:OnAfterAssemblyReload ()
+
+(Filename: ./Library/PackageCache/com.unity.ai.assistant@6fee27370e6a/Modules/Unity.AI.Tracing/TraceSinks.cs Line: 313)
+
+- Finished resetting the current domain, in  5.790 seconds
+Domain Reload Profiling: 8165ms
+	BeginReloadAssembly (276ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (9ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (140ms)
+	RebuildCommonClasses (34ms)
+	RebuildNativeTypeToScriptingClass (11ms)
+	initialDomainReloadingComplete (49ms)
+	LoadAllAssembliesAndSetupDomain (2005ms)
+		LoadAssemblies (1400ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (702ms)
+			TypeCache.Refresh (567ms)
+				TypeCache.ScanAssembly (544ms)
+			BuildScriptInfoCaches (115ms)
+			ResolveRequiredComponents (14ms)
+	FinalizeReload (5791ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (5626ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (34ms)
+			SetLoadedEditorAssemblies (4ms)
+			BeforeProcessingInitializeOnLoad (196ms)
+			ProcessInitializeOnLoadAttributes (5035ms)
+			ProcessInitializeOnLoadMethodAttributes (346ms)
+			AfterProcessingInitializeOnLoad (9ms)
+			EditorAssembliesLoaded (0ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (10ms)
+Refreshing native plugins compatible for Editor in 1.48 ms, found 2 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=3527b02ca3da7e24a99c805b8f3a9785): Total: 21.328 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+	Summary:
+		Imports: total=0 (actual=0, local cache=0, cache server=0)
+		Asset DB Process Time: managed=0 ms, native=6573 ms
+		Asset DB Callback time: managed=427 ms, native=28 ms
+		Scripting: domain reloads=1, domain reload time=2381 ms, compile time=11842 ms, other=74 ms
+		Project Asset Count: scripts=3044, non-scripts=9596
+		Asset File Changes: new=0, changed=3, moved=0, deleted=0
+		Scan Filter Count: 0
+	InvokeCustomDependenciesCallbacks: 0.001ms
+	InvokePackagesCallback: 25.752ms
+	ApplyChangesToAssetFolders: 0.847ms
+	Scan: 238.269ms
+	OnSourceAssetsModified: 0.741ms
+	CategorizeAssetsWithTransientArtifact: 73.664ms
+	ProcessAssetsWithTransientArtifactChanges: 152.280ms
+	CategorizeAssets: 107.870ms
+	ImportOutOfDateAssets: 5804.813ms (-6041.819ms without children)
+		CompileScripts: 11841.763ms
+		ReloadNativeAssets: 0.046ms
+		UnloadImportedAssets: 1.844ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 1.692ms
+		InitializingProgressBar: 0.001ms
+		PostProcessAllAssetNotificationsAddChangedAssets: 0.000ms
+		OnDemandSchedulerStart: 1.287ms
+	PostProcessAllAssets: 428.274ms
+	Hotreload: 3.779ms
+	GatherAllCurrentPrimaryArtifactRevisions: 0.001ms
+	UnloadStreamsBegin: 1.889ms
+	PersistCurrentRevisions: 0.412ms
+	UnloadStreamsEnd: 0.001ms
+	GenerateScriptTypeHashes: 4.134ms
+	Untracked: 14489.242ms
+
+Application.AssetDatabase Initial Refresh End
+Scanning for USB devices : 1.797ms
+Initializing Unity extensions:
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[MODES] Loading mode Default (0) for mode-current-id-DungeonStory
+Unloading 21 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 13489 unused Assets / (4.4 MB). Loaded Objects now: 14421.
+Memory consumption went from 307.9 MB to 303.5 MB.
+Total: 18.961600 ms (FindLiveObjects: 0.769700 ms CreateObjectMapping: 0.861000 ms MarkObjects: 14.925900 ms  DeleteObjects: 2.402800 ms)
+
+Batchmode quit successfully invoked - shutting down!
+Curl error 42: Callback aborted
+Pipeline Server stopped
+Killing ADB server in 0.0670444 seconds.
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
+[Licensing::IpcConnector] LicenseClient-vulpo-notifications channel disconnected successfully.
+[Licensing::IpcConnector] LicenseClient-vulpo channel disconnected successfully.
+AcceleratorClientConnectionCallback - disconnected - :0
+Cleanup mono
+Exiting batchmode successfully now!
+Exiting without the bug reporter. Application will terminate with return code 0

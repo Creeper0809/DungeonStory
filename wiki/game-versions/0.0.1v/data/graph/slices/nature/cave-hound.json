@@ -63,6 +63,13 @@
     },
     {
       "amount": null,
+      "from": "event/seasonal-winter-hungry-pack",
+      "label": "관련",
+      "to": "nature/cave-hound",
+      "type": "references"
+    },
+    {
+      "amount": null,
       "from": "nature/ash-crawler",
       "label": "관련",
       "to": "nature/cave-hound",

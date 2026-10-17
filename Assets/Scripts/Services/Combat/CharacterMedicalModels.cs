@@ -98,6 +98,8 @@ public sealed class CharacterMedicalOrder
 {
     public string orderId = string.Empty;
     public string patientId = string.Empty;
+    public string societyResponseOperationId = string.Empty;
+    public string societyResponseReceiptId = string.Empty;
     public string rescuerId = string.Empty;
     public string treatmentFacilityId = string.Empty;
     public CharacterMedicalOrderState state;
@@ -107,6 +109,12 @@ public sealed class CharacterMedicalOrder
     public float completedStabilizationWork;
     public float requiredTreatmentWork;
     public float completedTreatmentWork;
+    public int nextTerminalOutcomeSequence = 1;
+    public int stabilizationLaborSequence;
+    public int treatmentLaborSequence;
+    public float currentReservationStabilizationWork;
+    public float currentReservationTreatmentWork;
+    public int nextLaborCheckpointSequence = 1;
     public CharacterMedicalSupplyKind treatmentSupply;
     public bool treatmentSupplyConsumed;
     public bool treatmentSupplyDeliveryRequested;
@@ -201,10 +209,11 @@ public readonly struct CharacterMedicalBloodContactEvent
 [Serializable]
 public sealed class DungeonCharacterMedicalSaveData
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 9;
 
     public int version = CurrentVersion;
     public List<CharacterMedicalOrder> orders = new List<CharacterMedicalOrder>();
+    public List<CharacterMedicalPendingFactData> pendingProcedureFacts = new();
     public int orderSequence;
 }
 

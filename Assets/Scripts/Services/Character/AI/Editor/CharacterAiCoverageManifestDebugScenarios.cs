@@ -33,7 +33,8 @@ public static class CharacterAiCoverageManifestDebugScenarios
         "Assets/Scripts/Services/Offense/Strategic/OffenseCommandBattleDirector.cs",
         "Assets/Scripts/Services/Offense/Strategic/OffenseCommandResolutionAdapter.cs",
         "Assets/Scripts/Services/Offense/OffenseBattleRuntime.cs",
-        "Assets/Scripts/Services/Offense/OffenseBattleModel.cs"
+        "Assets/Scripts/Services/Offense/OffenseBattleModel.cs",
+        "Assets/Scripts/Models/Offense/Core/OffenseBattleSessionRules.cs"
     };
 
     private static readonly string[] OffenseJourneyFreshnessDependencyPaths =
@@ -42,12 +43,31 @@ public static class CharacterAiCoverageManifestDebugScenarios
         "Assets/Scripts/Services/Offense/Strategic/OffenseCommandResolutionAdapter.cs",
         "Assets/Scripts/Services/Offense/OffenseBattleRuntime.cs",
         "Assets/Scripts/Services/Offense/OffenseBattleModel.cs",
+        "Assets/Scripts/Models/Offense/Core/OffenseBattleSessionRules.cs",
         "Assets/Scripts/Services/Offense/OffensePreparationService.cs",
         "Assets/Scripts/Services/Economy/ProductionItemGateway.cs",
         "Assets/Scripts/Services/Items/FacilityBufferDestinationClaimRegistry.cs",
         "Assets/Scripts/Services/Items/WorldItemHaulDestinationAuthority.cs",
         "Assets/Scripts/Services/Items/WorldItemHaulPlanningService.cs",
+        "Assets/Scripts/Services/Items/HaulRouteEligibilityRules.cs",
         "Assets/Scripts/Services/Items/ItemTransferService.cs",
+        "Assets/Scripts/Services/Items/WorldItemQuantityTransferService.cs",
+        "Assets/Scripts/Services/Items/StoredCargoReturnService.cs",
+        "Assets/Scripts/Services/Items/ExactOwnedItemReleaseService.cs",
+        "Assets/Scripts/Services/Items/WorldItemTransferLocationRules.cs",
+        "Assets/Scripts/Services/Items/WorldItemTransferMetadataRules.cs",
+        "Assets/Scripts/Services/Items/ReservedItemTransferContracts.cs",
+        "Assets/Scripts/Services/Items/AtomicItemConsumptionContracts.cs",
+        "Assets/Scripts/Services/Items/ItemTransitContracts.cs",
+        "Assets/Scripts/Services/Items/ExactOwnedItemReleaseRequest.cs",
+        "Assets/Scripts/Services/Items/ItemTransferContracts.cs",
+        "Assets/Scripts/Services/Items/AtomicItemConsumptionService.cs",
+        "Assets/Scripts/Services/Items/ReservedRetailStockTransferReceipt.cs",
+        "Assets/Scripts/Services/Items/ProductionCapacityRoutingActorQuiescenceService.cs",
+        "Assets/Scripts/Services/Items/ReservedRetailStockTransferService.cs",
+        "Assets/Scripts/Services/Items/WorldItemTransitService.cs",
+        "Assets/Scripts/Services/Items/WorldItemTransferPhysicalProjection.cs",
+        "Assets/Scripts/Services/Items/WorldItemStackRecord.cs",
         "Assets/Scripts/Services/Items/AbilityHaul.cs"
     };
 

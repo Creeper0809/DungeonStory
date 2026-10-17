@@ -3,6 +3,7 @@
   "rootNamespace": "DungeonStory.Infrastructure",
   "references": [
     "DungeonStory.Automation",
+    "DungeonStory.Combat",
     "DungeonStory.Buildings",
     "DungeonStory.Captivity",
     "DungeonStory.CoreSession",
@@ -13,6 +14,7 @@
     "DungeonStory.Economy",
     "DungeonStory.FacilityShop",
     "DungeonStory.Recruitment",
+    "DungeonStory.Run",
     "DungeonStory.Survival",
     "DungeonStory.Meta",
     "DungeonStory.Invasion",

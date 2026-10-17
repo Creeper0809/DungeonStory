@@ -77,7 +77,12 @@ public static class EquipmentEvolutionRestoreBuilder
                 != (order.stabilizerAmount == 0))
             || !IsPendingState(order.state)
             || !IsFinitePositive(order.requiredWork)
-            || !IsFiniteInRange(order.completedWork, 0f, order.requiredWork, false)
+            || !IsFiniteInRange(order.completedWork, 0f, order.requiredWork, true)
+            || (order.completedWork == order.requiredWork
+                && (!order.materialsConsumed
+                    || !string.IsNullOrEmpty(order.materialTransferOperationId)
+                    || order.state is not EvolutionReforgeOrderState.InProgress
+                        and not EvolutionReforgeOrderState.Blocked))
             || order.precisionGoldCost < 0
             || !IsFiniteInRange(order.resultVariance, 0.01f, 0.5f, true)
             || order.inputBufferCapacityGrams <= 0L
@@ -127,7 +132,12 @@ public static class EquipmentEvolutionRestoreBuilder
                 > EvolutionCatalystProgression.MaximumPotencyGrade
             || !IsPendingState(order.state)
             || !IsFinitePositive(order.requiredWork)
-            || !IsFiniteInRange(order.completedWork, 0f, order.requiredWork, false)
+            || !IsFiniteInRange(order.completedWork, 0f, order.requiredWork, true)
+            || (order.completedWork == order.requiredWork
+                && (!order.materialsConsumed
+                    || !string.IsNullOrEmpty(order.materialTransferOperationId)
+                    || order.state is not EvolutionReforgeOrderState.InProgress
+                        and not EvolutionReforgeOrderState.Blocked))
             || order.inputBufferCapacityGrams <= 0L
             || order.inputMassAuthorityRevision < 0L
             || !string.Equals(

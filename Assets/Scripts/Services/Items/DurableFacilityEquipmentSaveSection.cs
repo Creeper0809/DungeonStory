@@ -7,7 +7,8 @@ public sealed class DurableFacilityEquipmentSaveSection :
         DurableFacilityEquipmentRestoreCandidate>,
     IDungeonRollbackFreeSaveSection
 {
-    public const string Id = "items.durable-facility-equipment";
+    public const string Id =
+        DurableFacilityEquipmentPersistenceContract.SectionId;
 
     private static readonly string[] Dependencies =
     {

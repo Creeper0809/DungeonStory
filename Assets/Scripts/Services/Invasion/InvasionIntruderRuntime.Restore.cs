@@ -23,6 +23,9 @@ internal interface IInvasionIntruderRestorePort
     float NextDamageTime { set; }
     bool Resolved { set; }
     string RuntimeId { set; }
+    void RestorePublicationLineage(
+        string startPublicationKey,
+        string lastPublicationKey);
     InvasionIntruderState State { get; set; }
     IGameClock Clock { get; }
     IInvasionIntruderContext Context { get; }
@@ -39,8 +42,7 @@ internal interface IInvasionIntruderRestorePort
     void RefreshPathRandomStream();
     void StartRestoredInside();
     void StartRestoredEntry(
-        Vector3 doorPosition,
-        Vector2Int gridPosition,
+        InvasionIntruderEntry entry,
         bool includeRally);
 }
 
@@ -50,8 +52,7 @@ internal sealed class InvasionIntruderRestoreCoordinator
     private bool activationPending;
     private bool startsInside;
     private bool includesRally;
-    private Vector3 entryDoorPosition;
-    private Vector2Int entryGridPosition;
+    private InvasionIntruderEntry entry;
     private DefenseRaidAwarenessRestoreCandidate raidAwarenessCandidate;
 
     public InvasionIntruderRestoreCoordinator(
@@ -99,6 +100,9 @@ internal sealed class InvasionIntruderRestoreCoordinator
         port.NextDamageTime = port.Clock.Time + source.DamageDelayRemaining;
         port.Resolved = false;
         port.RuntimeId = source.RuntimeId;
+        port.RestorePublicationLineage(
+            source.InvasionStartPublicationKey,
+            source.LastInvasionStagePublicationKey);
         port.RefreshPathRandomStream();
 
         DefenseRaidAwarenessRestoreCandidate preparedAwareness;
@@ -131,8 +135,7 @@ internal sealed class InvasionIntruderRestoreCoordinator
                 source,
                 out bool preparedStartsInside,
                 out bool preparedIncludesRally,
-                out Vector3 preparedDoorPosition,
-                out Vector2Int preparedGridPosition,
+                out InvasionIntruderEntry preparedEntry,
                 out warning))
         {
             return false;
@@ -140,8 +143,7 @@ internal sealed class InvasionIntruderRestoreCoordinator
 
         startsInside = preparedStartsInside;
         includesRally = preparedIncludesRally;
-        entryDoorPosition = preparedDoorPosition;
-        entryGridPosition = preparedGridPosition;
+        entry = preparedEntry;
         raidAwarenessCandidate = preparedAwareness;
         activationPending = true;
         return true;
@@ -165,8 +167,7 @@ internal sealed class InvasionIntruderRestoreCoordinator
         else
         {
             port.StartRestoredEntry(
-                entryDoorPosition,
-                entryGridPosition,
+                entry,
                 includesRally);
         }
     }
@@ -176,8 +177,7 @@ internal sealed class InvasionIntruderRestoreCoordinator
         activationPending = false;
         startsInside = false;
         includesRally = false;
-        entryDoorPosition = default;
-        entryGridPosition = default;
+        entry = default;
         raidAwarenessCandidate = null;
     }
 
@@ -221,14 +221,12 @@ internal sealed class InvasionIntruderRestoreCoordinator
         InvasionIntruderPersistenceState source,
         out bool preparedStartsInside,
         out bool preparedIncludesRally,
-        out Vector3 preparedDoorPosition,
-        out Vector2Int preparedGridPosition,
+        out InvasionIntruderEntry preparedEntry,
         out string warning)
     {
         preparedStartsInside = false;
         preparedIncludesRally = false;
-        preparedDoorPosition = default;
-        preparedGridPosition = default;
+        preparedEntry = default;
         warning = string.Empty;
         if (source.State is InvasionIntruderState.Rallying
             or InvasionIntruderState.Entering)
@@ -243,8 +241,7 @@ internal sealed class InvasionIntruderRestoreCoordinator
             port.Actor.SetLifecycleState(CharacterLifecycleState.SpawningOutside);
             preparedIncludesRally =
                 source.State == InvasionIntruderState.Rallying;
-            preparedDoorPosition = entry.DoorPosition;
-            preparedGridPosition = entry.GridPosition;
+            preparedEntry = entry;
             return true;
         }
 

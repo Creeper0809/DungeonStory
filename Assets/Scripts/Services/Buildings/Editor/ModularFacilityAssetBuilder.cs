@@ -21,7 +21,6 @@ public static class ModularFacilityAssetBuilder
     private const string SpriteFolder = "Assets/Images/ModularFacilities";
     private const string BuildingFolder = "Assets/Resources/SO/Building/Modular";
     private const string StockFolder = "Assets/Resources/SO/Stock/Modular";
-    private const string GeneralStockSource = "Assets/Resources/SO/Stock/P1/P1_GeneralStoreStock.asset";
     private const string SaleItemFolder = "Assets/Resources/SO/Stock/Item";
     private static readonly string[] DefaultCraftableEquipmentIds =
     {
@@ -46,31 +45,6 @@ public static class ModularFacilityAssetBuilder
         "shield:iron",
         "craft:ammo:arrow",
         "craft:ammo:bolt"
-    };
-
-    private static readonly string[] LegacyRoomAssetPaths =
-    {
-        "Assets/Resources/SO/Building/LordBedroom.asset",
-        "Assets/Resources/SO/Building/HamburgerStore.asset",
-        "Assets/Resources/SO/Building/WeaponStore.asset",
-        "Assets/Resources/SO/Building/P1/P1_LowFoodShop.asset",
-        "Assets/Resources/SO/Building/P1/P1_MeatRestaurant.asset",
-        "Assets/Resources/SO/Building/P1/P1_PremiumMeatRestaurant.asset",
-        "Assets/Resources/SO/Building/P1/P1_BattleDining.asset",
-        "Assets/Resources/SO/Building/P1/P1_BattlefieldDining.asset",
-        "Assets/Resources/SO/Building/P1/P1_NobleDining.asset",
-        "Assets/Resources/SO/Building/P1/P1_GeneralStore.asset",
-        "Assets/Resources/SO/Building/P1/P1_WeaponShop.asset",
-        "Assets/Resources/SO/Building/P1/P1_RestRoom.asset",
-        "Assets/Resources/SO/Building/P1/P1_TrainingRoom.asset",
-        "Assets/Resources/SO/Building/P1/P1_GuardRoom.asset",
-        "Assets/Resources/SO/Building/P1/P1_Barracks.asset",
-        "Assets/Resources/SO/Building/P1/P1_WarBarracks.asset",
-        "Assets/Resources/SO/Building/P1/P1_ResearchLab.asset",
-        "Assets/Resources/SO/Building/P1/P1_ManaStorage.asset",
-        "Assets/Resources/SO/Building/P1/P1_Warehouse.asset",
-        "Assets/Resources/SO/Building/P1/P1_Toilet.asset",
-        "Assets/Resources/SO/Building/P1/P1_Washroom.asset"
     };
 
     [MenuItem("DungeonStory/Content/Build All Modular Facilities")]
@@ -262,7 +236,6 @@ public static class ModularFacilityAssetBuilder
             spec => spec.Code == "S01");
         EnsureShopStock(ResolveBuildingId(specs, shopIndex));
 
-        HideLegacyRoomAssets();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log($"Built {specs.Length} modular facility sprites and BuildingSO assets.");
@@ -514,18 +487,6 @@ public static class ModularFacilityAssetBuilder
                 injuryReduction = 0.12f,
                 stressRecovery = 26f
             },
-            "P1_RestRoom" => new BuildingExpeditionRecoveryAbility
-            {
-                healthHealRatio = 0.18f,
-                injuryReduction = 0.1f,
-                stressRecovery = 18f
-            },
-            "P1_Washroom" => new BuildingExpeditionRecoveryAbility
-            {
-                healthHealRatio = 0.08f,
-                injuryReduction = 0.08f,
-                stressRecovery = 24f
-            },
             _ => null
         };
     }
@@ -614,6 +575,7 @@ public static class ModularFacilityAssetBuilder
         AddAbility(abilities, EnsureNeedRecoveryAbility(spec));
         AddAbility(abilities, EnsureRecreationalSubstanceServiceAbility(spec));
         AddAbility(abilities, EnsureStorageAbility(spec));
+        AddAbility(abilities, EnsureEnvironmentalFireAbility(spec));
         AddAbility(abilities, EnsureSeatingAbility(spec));
         AddAbility(abilities, EnsureTableAbility(spec));
         AddAbility(abilities, EnsureServiceAbility(spec));
@@ -844,7 +806,7 @@ public static class ModularFacilityAssetBuilder
                 Mathf.Clamp(baseWork * 0.06f, 4f, 24f),
                 2f),
             researchWorkRequired = 6f,
-            operateWorkRequired = 10f
+            operateWorkRequired = spec.OperateWorkRequired
         };
         ability.SetConstructionProjectScale(spec.Phase switch
         {
@@ -1340,7 +1302,7 @@ public static class ModularFacilityAssetBuilder
         {
             "H03" => new BuildingWaterSourceAbility { waterPerWork = 4, workSeconds = 0.9f },
             "H04" => new BuildingWaterSourceAbility { waterPerWork = 6, workSeconds = 1.2f },
-            "L03" => new BuildingWaterSourceAbility { waterPerWork = 3, workSeconds = 1.1f, blockedByFreezingWeather = false },
+            "L03" => new BuildingWaterSourceAbility { waterPerWork = 3, workSeconds = 1.1f },
             _ => null
         };
     }
@@ -1389,18 +1351,60 @@ public static class ModularFacilityAssetBuilder
     {
         return code switch
         {
-            "D01" => new BuildingFuelConsumerAbility { fuelPerRefuel = 1, workSeconds = 0.8f, warmth = 8f, lightSafety = 6f },
-            "D02" => new BuildingFuelConsumerAbility { fuelPerRefuel = 1, workSeconds = 0.9f, warmth = 10f, lightSafety = 7f },
-            "E01" => new BuildingFuelConsumerAbility { fuelPerRefuel = 1, workSeconds = 0.6f, warmth = 2f, lightSafety = 14f },
-            "E02" => new BuildingFuelConsumerAbility { fuelPerRefuel = 1, workSeconds = 0.8f, warmth = 14f, lightSafety = 10f },
-            "E03" => new BuildingFuelConsumerAbility { fuelPerRefuel = 1, workSeconds = 0.8f, warmth = 3f, lightSafety = 18f },
-            "E07" => new BuildingFuelConsumerAbility { fuelPerRefuel = 1, workSeconds = 0.5f, warmth = 1f, lightSafety = 8f },
+            "D01" => CreateFuelConsumer(0.8f, 8f, 6f),
+            "D02" => CreateFuelConsumer(0.9f, 10f, 7f),
+            "E01" => CreateFuelConsumer(0.6f, 2f, 14f),
+            "E02" => CreateFuelConsumer(0.8f, 14f, 10f),
+            "E03" => CreateFuelConsumer(0.8f, 3f, 18f),
+            "E07" => CreateFuelConsumer(0.5f, 1f, 8f),
             _ => null
         };
     }
 
+    private static BuildingEnvironmentalFireAbility
+        EnsureEnvironmentalFireAbility(FacilityPartSpec spec)
+    {
+        if (spec.Code != "L01")
+        {
+            return null;
+        }
+
+        return new BuildingEnvironmentalFireAbility
+        {
+            acceptedSources =
+                DungeonStory.Environment.EnvironmentalFireIgnitionSources
+                    .ActiveHeatSource
+                | DungeonStory.Environment.EnvironmentalFireIgnitionSources
+                    .FeedSelfHeating
+                | DungeonStory.Environment.EnvironmentalFireIgnitionSources
+                    .Spread,
+            fuelCapacity = 1f,
+            maximumIntensity = 0.8f,
+            growthPerTick = 0.001f,
+            fuelConsumedPerTick = 0.1f,
+            damagePerTick = 12f,
+            minimumSpreadIntensity = 0.55f,
+            spreadChancePerTick = 0.1f,
+            spreadIgnitionMultiplier = 0.5f,
+            waterSuppressionPerUnit = 0.5f
+        };
+    }
+
+    private static BuildingFuelConsumerAbility CreateFuelConsumer(
+        float workSeconds,
+        float warmth,
+        float lightSafety) => new()
+    {
+        fuelPerRefuel = 1,
+        fuelItemId = "resource:log",
+        fuelSecondsPerRefuel = 180f,
+        workSeconds = workSeconds,
+        warmth = warmth,
+        lightSafety = lightSafety
+    };
+
     private static BuildingGolemRechargeAbility CreateGolemRechargeAbility(
-        string code) => code is "M02" or "P1_ManaStorage"
+        string code) => code == "M02"
             ? new BuildingGolemRechargeAbility
             {
                 materialItemId = "resource:mana-crystal",
@@ -1842,7 +1846,6 @@ public static class ModularFacilityAssetBuilder
             AssetDatabase.CreateAsset(stock, assetPath);
         }
 
-        StockInfo source = AssetDatabase.LoadAssetAtPath<StockInfo>(GeneralStockSource);
         SaleItem generalItem = EnsureGeneralSaleItem();
         SaleItem foodItem = AssetDatabase.LoadAssetAtPath<SaleItem>(SaleItemFolder + "/햄버거.asset");
         SaleItem swordItem = AssetDatabase.LoadAssetAtPath<SaleItem>(SaleItemFolder + "/도란검.asset");
@@ -1858,7 +1861,7 @@ public static class ModularFacilityAssetBuilder
             }
             .Where((tuple) => tuple.Item1 != null)
             .ToList();
-        stock.multifly = source != null ? source.multifly : 1f;
+        stock.multifly = 1f;
         EditorUtility.SetDirty(stock);
     }
 
@@ -1893,22 +1896,6 @@ public static class ModularFacilityAssetBuilder
         item.buyevent = Array.Empty<OnBuyItemSO>();
         EditorUtility.SetDirty(item);
         return item;
-    }
-
-    private static void HideLegacyRoomAssets()
-    {
-        foreach (string assetPath in LegacyRoomAssetPaths)
-        {
-            BuildingSO legacy = AssetDatabase.LoadAssetAtPath<BuildingSO>(assetPath);
-            if (legacy == null)
-            {
-                continue;
-            }
-
-            legacy.unlocked = false;
-            legacy.ConfigureCompatibilityStatus(true);
-            EditorUtility.SetDirty(legacy);
-        }
     }
 
     private static void WriteSprite(FacilityPartSpec spec, string spritePath)
@@ -1966,8 +1953,8 @@ public static class ModularFacilityAssetBuilder
             Core("D12", "술음료장", 1, GridLayer.Building, BuildingCategory.Shop, FacilityRole.Entertainment, FacilityWorkType.Operate | FacilityWorkType.Clean | FacilityWorkType.Repair, VisualForm.Cabinet, Traits(FacilityEvolutionTerms.Service, FacilityEvolutionTerms.Luxury), phase: 2),
 
             Core("S01", "판매카운터", 2, GridLayer.Building, BuildingCategory.Shop, FacilityRole.Purchase, FacilityWorkType.Operate | FacilityWorkType.Restock | FacilityWorkType.Repair, VisualForm.Counter, Traits(FacilityEvolutionTerms.Service), Metrics((FacilityEvolutionTerms.CounterCount, 1f)), runtimeType: typeof(Shop), internalStockCapacity: 24),
-            Support("S02", "잡화진열선반", 2, GridLayer.Building, BuildingCategory.Shop, VisualForm.Shelf, Traits("Shop", FacilityEvolutionTerms.Service)),
-            Support("S03", "잠금진열장", 2, GridLayer.Building, BuildingCategory.Shop, VisualForm.Cabinet, Traits("Shop", FacilityEvolutionTerms.Luxury, FacilityEvolutionTerms.Security), phase: 2),
+            Core("S02", "잡화진열선반", 2, GridLayer.Building, BuildingCategory.Shop, FacilityRole.Purchase, FacilityWorkType.Operate | FacilityWorkType.Restock | FacilityWorkType.Repair, VisualForm.Shelf, Traits("Shop", FacilityEvolutionTerms.Service)),
+            Core("S03", "잠금진열장", 2, GridLayer.Building, BuildingCategory.Shop, FacilityRole.Purchase, FacilityWorkType.Operate | FacilityWorkType.Restock | FacilityWorkType.Repair, VisualForm.Cabinet, Traits("Shop", FacilityEvolutionTerms.Luxury, FacilityEvolutionTerms.Security), phase: 2),
             Support("S04", "잡화상자", 1, GridLayer.Building, BuildingCategory.Shop, VisualForm.Crates, Traits(FacilityEvolutionTerms.Storage)),
             Support("S05", "무기거치대", 1, GridLayer.WallFixture, BuildingCategory.Shop, VisualForm.WallRack, Traits(FacilityEvolutionTerms.Combat)),
             Support("S06", "갑옷거치대", 1, GridLayer.Building, BuildingCategory.Shop, VisualForm.ArmorStand, Traits(FacilityEvolutionTerms.Combat, FacilityEvolutionTerms.Defense)),
@@ -2063,8 +2050,8 @@ public static class ModularFacilityAssetBuilder
             Core("P20", "몽직기", 2, GridLayer.Building, BuildingCategory.Crafting, FacilityRole.Mana, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Rune, Traits("Production", "Textile", FacilityEvolutionTerms.Mana), phase: 3),
             Core("P21", "대장간", 3, GridLayer.Building, BuildingCategory.Crafting, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", FacilityEvolutionTerms.Combat), phase: 1),
             Core("P22", "심부 채석장", 3, GridLayer.Building, BuildingCategory.Resource, FacilityRole.None, FacilityWorkType.Quarry | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", "Mining"), phase: 2),
-            Core("P23", "야외 경작지", 3, GridLayer.FloorOverlay, BuildingCategory.Resource, FacilityRole.None, FacilityWorkType.Sow | FacilityWorkType.Harvest | FacilityWorkType.Treat | FacilityWorkType.Repair, VisualForm.Mat, Traits("Production", "Agriculture"), phase: 1),
-            Core("P24", "실내 재배조", 3, GridLayer.Building, BuildingCategory.Resource, FacilityRole.None, FacilityWorkType.Sow | FacilityWorkType.Harvest | FacilityWorkType.Treat | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", "Agriculture"), phase: 2),
+            Core("P23", "야외 경작지", 3, GridLayer.FloorOverlay, BuildingCategory.Resource, FacilityRole.None, FacilityWorkType.Sow | FacilityWorkType.Harvest | FacilityWorkType.Treat | FacilityWorkType.Repair, VisualForm.Mat, Traits("Production", "Agriculture"), phase: 1, operateWorkRequired: 1f),
+            Core("P24", "실내 재배조", 3, GridLayer.Building, BuildingCategory.Resource, FacilityRole.None, FacilityWorkType.Sow | FacilityWorkType.Harvest | FacilityWorkType.Treat | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", "Agriculture"), phase: 2, operateWorkRequired: 1f),
             Core("P25", "폐기 소각로", 2, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Clean | FacilityWorkType.Repair, VisualForm.Hearth, Traits("Production", "Waste", FacilityEvolutionTerms.Hygiene), phase: 1)
         };
     }
@@ -2082,7 +2069,8 @@ public static class ModularFacilityAssetBuilder
         int capacity = 1,
         int internalStockCapacity = 0,
         int phase = 1,
-        Type runtimeType = null)
+        Type runtimeType = null,
+        float operateWorkRequired = 10f)
     {
         return new FacilityPartSpec(
             code,
@@ -2100,7 +2088,8 @@ public static class ModularFacilityAssetBuilder
             capacity,
             internalStockCapacity,
             phase,
-            true);
+            true,
+            operateWorkRequired);
     }
 
     private static FacilityPartSpec Support(
@@ -2476,7 +2465,8 @@ public static class ModularFacilityAssetBuilder
             int capacity,
             int internalStockCapacity,
             int phase,
-            bool contributesToRoom)
+            bool contributesToRoom,
+            float operateWorkRequired = 10f)
         {
             Code = code;
             DisplayName = displayName;
@@ -2495,6 +2485,7 @@ public static class ModularFacilityAssetBuilder
             InternalStockCapacity = internalStockCapacity;
             Phase = phase;
             ContributesToRoom = contributesToRoom;
+            OperateWorkRequired = operateWorkRequired;
             UseDuration = core ? 1.5f : 0f;
         }
 
@@ -2515,6 +2506,7 @@ public static class ModularFacilityAssetBuilder
         public int InternalStockCapacity { get; }
         public int Phase { get; }
         public bool ContributesToRoom { get; }
+        public float OperateWorkRequired { get; }
         public float UseDuration { get; }
     }
 

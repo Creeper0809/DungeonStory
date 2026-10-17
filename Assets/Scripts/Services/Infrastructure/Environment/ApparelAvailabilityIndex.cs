@@ -40,7 +40,9 @@ public readonly struct ApparelCandidate
         ApparelSizeClass size,
         CraftsmanshipQualityTier quality,
         TextileConditionBand condition,
-        float durability)
+        float durability,
+        float moisture,
+        float contamination)
     {
         ItemInstanceId = itemInstanceId;
         StackId = stackId ?? string.Empty;
@@ -50,6 +52,8 @@ public readonly struct ApparelCandidate
         Quality = quality;
         Condition = condition;
         Durability = durability;
+        Moisture = moisture;
+        Contamination = contamination;
     }
 
     public ItemInstanceId ItemInstanceId { get; }
@@ -60,6 +64,8 @@ public readonly struct ApparelCandidate
     public CraftsmanshipQualityTier Quality { get; }
     public TextileConditionBand Condition { get; }
     public float Durability { get; }
+    public float Moisture { get; }
+    public float Contamination { get; }
 }
 
 public interface IApparelAvailabilityIndex
@@ -129,8 +135,10 @@ public sealed class ApparelAvailabilityIndex : IApparelAvailabilityIndex
                 || query.MaterialTags != TextileMaterialTag.None
                     && (material.Tags & query.MaterialTags) == 0
                 || candidate.Quality < query.MinimumQuality
-                || candidate.Condition == TextileConditionBand.Contaminated
-                || !query.AllowWet && candidate.Condition == TextileConditionBand.Wet)
+                || !ApparelConditionRules.IsReplacementEligible(
+                    candidate.Durability,
+                    candidate.Moisture,
+                    candidate.Contamination))
             {
                 continue;
             }
@@ -177,7 +185,9 @@ public sealed class ApparelAvailabilityIndex : IApparelAvailabilityIndex
                 state.size,
                 state.craftsmanshipQuality,
                 TextileConditionRules.ResolveCondition(state.moisture, state.contamination),
-                state.durability));
+                state.durability,
+                state.moisture,
+                state.contamination));
         }
         foreach (List<ApparelCandidate> list in byLayer)
         {

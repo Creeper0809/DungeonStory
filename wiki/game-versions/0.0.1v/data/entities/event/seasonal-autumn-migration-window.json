@@ -16,10 +16,20 @@
   "game_version": "0.0.1v",
   "group": "events-campaign",
   "kind": "event",
-  "relations": [],
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "spore-elk",
+      "target_spoiler_tier": "none",
+      "target_title": "포자큰사슴",
+      "type": "references"
+    }
+  ],
   "schema_version": 1,
   "slug": "seasonal-autumn-migration-window",
   "spoiler_tier": "warning",
-  "summary": "안정된 날씨가 원정과 야생동물 포획에 모두 좋은 기회를 연다.",
+  "summary": "가을의 짧은 이동창에 외곽 초지로 포자큰사슴 두 마리가 도착해 사냥·포획할 수 있다.",
   "title": "짧은 이동창"
 }

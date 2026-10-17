@@ -1,0 +1,26 @@
+{
+  "status": "PASS",
+  "target": "C20 completion and start-lifetime native regression",
+  "exitCode": 0,
+  "sourcePin": "source-pin-native-fixture-r2.json",
+  "sourceDrift": 0,
+  "probe": "PASS",
+  "log": "native-primitive-completion-r3/unity.log",
+  "groups": {
+    "topLevel": 5,
+    "completionCases": 6,
+    "notificationCases": 6,
+    "startLifetimeCases": 4,
+    "pendingRecoveryCases": 5
+  },
+  "verified": [
+    "native actor/Stats/Brain, original observer errors retained and independent channels delivered once",
+    "original actor disposed before fresh restore; unique same-ID actor asserted; 3 exact results/score3/replay unchanged",
+    "normal and immune mood experience grouping; fresh owner/module evidence",
+    "floor-rest child reservation/commit failures atomic; floor-rest/retired/latrine pending restore/retry",
+    "started-event/changed-event/scheduler exceptions release actual Brain/run before same retry; no effects/outcomes",
+    "Reset/replacement same real Brain epoch survives old Dispose then releases own marker/intent"
+  ],
+  "controlled": "Holding or draining coroutine scheduler; fixture actors/clock/fault injection. Natural AI/whole-world restore not claimed.",
+  "prior": "completion-r1 three old/new same-ID fixture lifetime failures, r2 current Editor compile PASS then memory guard, r3 current cache passes full scope."
+}

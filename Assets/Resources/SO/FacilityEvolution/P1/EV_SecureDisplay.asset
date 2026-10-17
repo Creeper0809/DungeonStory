@@ -71,3 +71,67 @@ MonoBehaviour:
   - key: Security
     value: 0.2
   minimumIdentityScore: 0.1
+  formulaPolicy:
+    formulaVersion: 3
+    catalogSha256: 5bc796fd704ee0c03137554267eb48e1e3bfb8f1a58dff7f59ac21cd145238c8
+    baseBudget: 1
+    powerScale: 4
+    softCapK: 8
+    minimumImportance: 0
+    maximumImportance: 4
+    milestoneWeights:
+    - 1
+    - 1.5
+    - 2
+    - 3
+    drawbackCredit:
+      playerChoiceMaximumBudgetFraction: 0.5
+      automaticMaximumBudgetFraction: 0.35
+      absoluteMaximumCredit: 3
+      requireNegativeEvidenceForAutomatic: 1
+    triggerFrequencyUnits: 0
+    guaranteedProc: 1
+    targetCount: 1
+  formulaCapabilities:
+  - capabilityId: facility-evolution:evolve_shop_display_to_secure_display:facility-service-support
+    evolutionModuleId: facility:service-support
+    baseCost: 1
+    triggerFrequencyCostPerUnit: 0
+    guaranteedProcCost: 0
+    areaCostPerExtraTarget: 0
+    multiEffectCostPerExtraEffect: 0
+    narrativeAffinity: 1
+    affinityKeys:
+    - Luxury
+    - Service
+    - facility:service-support
+    conflictGroups:
+    - facility-module
+    forbiddenSynergies: []
+    formatterId: facility-evolution:evolve_shop_display_to_secure_display:facility-service-support
+    applicatorId: facility-evolution:evolve_shop_display_to_secure_display:facility-service-support
+    parameterRanges:
+    - parameterId: magnitude
+      minimumUnits: 5000
+      maximumUnits: 10000
+      quantumUnits: 1000
+      decimalPlaces: 4
+      costPerQuantum: 1
+    - parameterId: duration
+      minimumUnits: 0
+      maximumUnits: 0
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: count
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: targetCount
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1

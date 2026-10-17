@@ -16,6 +16,6 @@
   "schema_version": 1,
   "slug": "building-1010",
   "spoiler_tier": "none",
-  "summary": "시설 동작은 BuildingEconomyAbility, BuildingEvolutionAbility, BuildingFacilityPartAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 54, 재료 목재×5, 철괴×1이 필요하다.",
+  "summary": "시설 동작은 BuildingEconomyAbility, BuildingEvolutionAbility, BuildingFacilityPartAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 54 WU, 재료 목재×7, 철괴×1이 필요하다.",
   "title": "고기걸이"
 }

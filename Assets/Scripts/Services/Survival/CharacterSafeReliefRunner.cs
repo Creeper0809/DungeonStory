@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 internal sealed class CharacterSafeReliefRunner
@@ -9,12 +10,8 @@ internal sealed class CharacterSafeReliefRunner
     private const string IntentOwnerId = "survival:safe-relief";
     private const int MaximumStartsPerFrame = 2;
 
-    private readonly IWorldItemStackRuntime itemStackRuntime;
-    private readonly IReservedItemTransferService reservedTransfers;
-    private readonly IWorldWaterQuery waterQuery;
     private readonly IGameClock gameClock;
-    private readonly ICharacterNeedBalanceRuntime needBalanceRuntime;
-    private readonly IGameEventBus events;
+    private readonly CharacterWaterConsumptionCoordinator waterConsumption;
     private readonly CharacterDeprivationStateStore stateStore;
     private readonly CharacterSafeDrinkPlanner planner;
     private readonly CharacterEmergencyMovement movement;
@@ -25,6 +22,11 @@ internal sealed class CharacterSafeReliefRunner
         new HashSet<CharacterId>();
     private int startFrame = -1;
     private int startsThisFrame;
+    private int generation;
+
+    private bool IsCurrent(int runGeneration, int restoreRevision) =>
+        runGeneration == generation && restoreRevision == stateStore.PublishedRestoreRevision
+        && !stateStore.IsRestoreStaging;
 
     public CharacterSafeReliefRunner(
         IWorldItemStackRuntime itemStackRuntime,
@@ -32,23 +34,22 @@ internal sealed class CharacterSafeReliefRunner
         IWorldWaterQuery waterQuery,
         IGameClock gameClock,
         ICharacterNeedBalanceRuntime needBalanceRuntime,
-        IGameEventBus events,
         CharacterDeprivationStateStore stateStore,
         CharacterSafeDrinkPlanner planner,
         CharacterEmergencyMovement movement,
-        CharacterDeprivationDiagnostics diagnostics)
+        CharacterDeprivationDiagnostics diagnostics,
+        IGameCalendar calendar,
+        CharacterWaterPublicationOutbox waterPublications)
     {
-        this.itemStackRuntime = itemStackRuntime
-            ?? throw new ArgumentNullException(nameof(itemStackRuntime));
-        this.reservedTransfers = reservedTransfers
-            ?? throw new ArgumentNullException(nameof(reservedTransfers));
-        this.waterQuery = waterQuery
-            ?? throw new ArgumentNullException(nameof(waterQuery));
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
-        this.needBalanceRuntime = needBalanceRuntime
-            ?? throw new ArgumentNullException(nameof(needBalanceRuntime));
-        this.events = events ?? throw new ArgumentNullException(nameof(events));
+        waterConsumption = new CharacterWaterConsumptionCoordinator(
+            itemStackRuntime,
+            reservedTransfers,
+            waterQuery,
+            needBalanceRuntime,
+            calendar,
+            waterPublications);
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
         this.planner = planner
@@ -168,7 +169,7 @@ internal sealed class CharacterSafeReliefRunner
                 actor,
                 actorId,
                 plan,
-                expectedAction));
+                expectedAction, generation, stateStore.PublishedRestoreRevision));
             status = "routine-drink-running";
             return true;
         }
@@ -195,7 +196,8 @@ internal sealed class CharacterSafeReliefRunner
         }
 
         activeActorIds.Add(actorId);
-        actor.StartCoroutine(Run(actor, actorId, plan, intentLease));
+        actor.StartCoroutine(Run(actor, actorId, plan, intentLease,
+            generation, stateStore.PublishedRestoreRevision));
         status = emergency
             ? "심한 갈증 때문에 식수를 찾음"
             : "일상적으로 식수를 이용함";
@@ -223,6 +225,7 @@ internal sealed class CharacterSafeReliefRunner
         CharacterId actorId,
         CharacterActionIntentLease intentLease)
     {
+        int runGeneration = generation, restoreRevision = stateStore.PublishedRestoreRevision;
         bool handedOffToRun = false;
         try
         {
@@ -232,6 +235,7 @@ internal sealed class CharacterSafeReliefRunner
                 && actor.Brain.IsExternalIntentCurrent(intentLease))
             {
                 yield return null;
+                if (!IsCurrent(runGeneration, restoreRevision)) yield break;
                 if (planner.TryCreatePlan(
                         actor,
                         actorId.Value,
@@ -241,7 +245,7 @@ internal sealed class CharacterSafeReliefRunner
                     RecordStart();
                     RecordPlanDiagnostics(actor, plan);
                     handedOffToRun = true;
-                    yield return Run(actor, actorId, plan, intentLease);
+                    yield return Run(actor, actorId, plan, intentLease, runGeneration, restoreRevision);
                     yield break;
                 }
 
@@ -273,7 +277,7 @@ internal sealed class CharacterSafeReliefRunner
         }
         finally
         {
-            if (!handedOffToRun)
+            if (!handedOffToRun && IsCurrent(runGeneration, restoreRevision))
             {
                 activeActorIds.Remove(actorId);
                 planner.ReleaseForActor(actorId.Value);
@@ -292,6 +296,7 @@ internal sealed class CharacterSafeReliefRunner
         CharacterId actorId,
         AIAction expectedAction)
     {
+        int runGeneration = generation, restoreRevision = stateStore.PublishedRestoreRevision;
         bool handedOffToRoutine = false;
         try
         {
@@ -304,6 +309,7 @@ internal sealed class CharacterSafeReliefRunner
                 // resume the same exact request without ending the selected
                 // AIDrink epoch or clearing its incremental search.
                 yield return null;
+                if (!IsCurrent(runGeneration, restoreRevision)) yield break;
                 if (planner.TryCreatePlan(
                         actor,
                         actorId.Value,
@@ -317,7 +323,7 @@ internal sealed class CharacterSafeReliefRunner
                         actor,
                         actorId,
                         plan,
-                        expectedAction);
+                        expectedAction, runGeneration, restoreRevision);
                     yield break;
                 }
 
@@ -344,7 +350,7 @@ internal sealed class CharacterSafeReliefRunner
         }
         finally
         {
-            if (!handedOffToRoutine)
+            if (!handedOffToRoutine && IsCurrent(runGeneration, restoreRevision))
             {
                 activeActorIds.Remove(actorId);
                 planner.ReleaseForActor(actorId.Value);
@@ -374,6 +380,7 @@ internal sealed class CharacterSafeReliefRunner
         CharacterId actorId,
         float retryAt)
     {
+        int runGeneration = generation, restoreRevision = stateStore.PublishedRestoreRevision;
         try
         {
             while (actor != null
@@ -381,14 +388,16 @@ internal sealed class CharacterSafeReliefRunner
                 && gameClock.Time < retryAt)
             {
                 yield return null;
+                if (!IsCurrent(runGeneration, restoreRevision)) yield break;
             }
         }
         finally
         {
-            deferredRetryActorIds.Remove(actorId);
-            if (actor != null && !actor.IsDead)
+            if (IsCurrent(runGeneration, restoreRevision))
             {
-                actor.Brain?.RequestImmediateReplan(clearFailures: false);
+                deferredRetryActorIds.Remove(actorId);
+                if (actor != null && !actor.IsDead)
+                    actor.Brain?.RequestImmediateReplan(clearFailures: false);
             }
         }
     }
@@ -417,6 +426,7 @@ internal sealed class CharacterSafeReliefRunner
 
     public void Reset()
     {
+        unchecked { generation++; }
         activeActorIds.Clear();
         deferredRetryActorIds.Clear();
         startFrame = -1;
@@ -427,12 +437,14 @@ internal sealed class CharacterSafeReliefRunner
         CharacterActor actor,
         CharacterId actorId,
         CharacterSafeDrinkPlan plan,
-        CharacterActionIntentLease intentLease)
+        CharacterActionIntentLease intentLease, int runGeneration, int restoreRevision)
     {
         float startedAt = gameClock.Time;
         try
         {
+            if (!IsCurrent(runGeneration, restoreRevision)) yield break;
             yield return movement.MoveNear(actor, plan.ApproachPosition, 0, plan.Path);
+            if (!IsCurrent(runGeneration, restoreRevision)) yield break;
             if (actor == null
                 || actor.IsDead
                 || actor.Brain == null
@@ -453,22 +465,25 @@ internal sealed class CharacterSafeReliefRunner
         }
         finally
         {
-            float duration = Mathf.Max(0f, gameClock.Time - startedAt);
-            diagnostics.SafeReliefActionsFinished++;
-            diagnostics.SafeReliefCompletedDurationSeconds += duration;
-            diagnostics.SafeReliefMaximumDurationSeconds = Mathf.Max(
-                diagnostics.SafeReliefMaximumDurationSeconds,
-                duration);
-            activeActorIds.Remove(actorId);
-            planner.Release(actorId.Value, plan.ApproachPosition);
-            stateStore.Ensure(actorId).nextSafeReliefAttemptAt =
-                gameClock.Time
-                + CharacterSafeDrinkPlanner.GetRetryDelay(actorId.Value);
-            if (actor?.Brain?.IsExternalIntentCurrent(intentLease) == true)
+            if (IsCurrent(runGeneration, restoreRevision))
             {
-                actor.Brain.EndExternallyDrivenAction(
-                    intentLease,
-                    clearFailures: true);
+                float duration = Mathf.Max(0f, gameClock.Time - startedAt);
+                diagnostics.SafeReliefActionsFinished++;
+                diagnostics.SafeReliefCompletedDurationSeconds += duration;
+                diagnostics.SafeReliefMaximumDurationSeconds = Mathf.Max(
+                    diagnostics.SafeReliefMaximumDurationSeconds,
+                    duration);
+                activeActorIds.Remove(actorId);
+                planner.Release(actorId.Value, plan.ApproachPosition);
+                stateStore.Ensure(actorId).nextSafeReliefAttemptAt =
+                    gameClock.Time
+                    + CharacterSafeDrinkPlanner.GetRetryDelay(actorId.Value);
+                if (actor?.Brain?.IsExternalIntentCurrent(intentLease) == true)
+                {
+                    actor.Brain.EndExternallyDrivenAction(
+                        intentLease,
+                        clearFailures: true);
+                }
             }
         }
     }
@@ -477,7 +492,7 @@ internal sealed class CharacterSafeReliefRunner
         CharacterActor actor,
         CharacterId actorId,
         CharacterSafeDrinkPlan plan,
-        AIAction expectedAction)
+        AIAction expectedAction, int runGeneration, int restoreRevision)
     {
         float startedAt = gameClock.Time;
         bool succeeded = false;
@@ -486,11 +501,13 @@ internal sealed class CharacterSafeReliefRunner
             "The routine drink action was interrupted.");
         try
         {
+            if (!IsCurrent(runGeneration, restoreRevision)) yield break;
             yield return movement.MoveNear(
                 actor,
                 plan.ApproachPosition,
                 0,
                 plan.Path);
+            if (!IsCurrent(runGeneration, restoreRevision)) yield break;
             if (actor == null
                 || actor.IsDead
                 || actor.Brain == null
@@ -510,6 +527,10 @@ internal sealed class CharacterSafeReliefRunner
             if (succeeded)
             {
                 diagnostics.SafeReliefSuccesses++;
+                if (actor.TryGetAbility(out AbilityWork work))
+                {
+                    work.NotifyRoutineNeedServiceCompleted();
+                }
             }
             else
             {
@@ -520,34 +541,37 @@ internal sealed class CharacterSafeReliefRunner
         }
         finally
         {
-            float duration = Mathf.Max(0f, gameClock.Time - startedAt);
-            diagnostics.SafeReliefActionsFinished++;
-            diagnostics.SafeReliefCompletedDurationSeconds += duration;
-            diagnostics.SafeReliefMaximumDurationSeconds = Mathf.Max(
-                diagnostics.SafeReliefMaximumDurationSeconds,
-                duration);
-            activeActorIds.Remove(actorId);
-            planner.Release(actorId.Value, plan.ApproachPosition);
-            stateStore.Ensure(actorId).nextSafeReliefAttemptAt =
-                gameClock.Time
-                + CharacterSafeDrinkPlanner.GetRetryDelay(actorId.Value);
-
-            AIBrain brain = actor?.Brain;
-            if (brain != null
-                && ReferenceEquals(brain.bestAction, expectedAction))
+            if (IsCurrent(runGeneration, restoreRevision))
             {
-                if (!succeeded)
+                float duration = Mathf.Max(0f, gameClock.Time - startedAt);
+                diagnostics.SafeReliefActionsFinished++;
+                diagnostics.SafeReliefCompletedDurationSeconds += duration;
+                diagnostics.SafeReliefMaximumDurationSeconds = Mathf.Max(
+                    diagnostics.SafeReliefMaximumDurationSeconds,
+                    duration);
+                activeActorIds.Remove(actorId);
+                planner.Release(actorId.Value, plan.ApproachPosition);
+                stateStore.Ensure(actorId).nextSafeReliefAttemptAt =
+                    gameClock.Time
+                    + CharacterSafeDrinkPlanner.GetRetryDelay(actorId.Value);
+
+                AIBrain brain = actor?.Brain;
+                if (brain != null
+                    && ReferenceEquals(brain.bestAction, expectedAction))
                 {
-                    brain.ReportRuntimeActionFailure(
-                        failure,
-                        requestImmediateReplan: false);
+                    if (!succeeded)
+                    {
+                        brain.ReportRuntimeActionFailure(
+                            failure,
+                            requestImmediateReplan: false);
+                    }
+                    brain.EndExpectedAction(
+                        expectedAction,
+                        succeeded
+                            ? CharacterAiActionTerminalKind.Completed
+                            : CharacterAiActionTerminalKind.Failed,
+                        clearFailures: succeeded);
                 }
-                brain.EndExpectedAction(
-                    expectedAction,
-                    succeeded
-                        ? CharacterAiActionTerminalKind.Completed
-                        : CharacterAiActionTerminalKind.Failed,
-                    clearFailures: succeeded);
             }
         }
     }
@@ -558,23 +582,11 @@ internal sealed class CharacterSafeReliefRunner
         {
             case CharacterSafeDrinkTargetKind.ItemStack:
                 if (Manhattan(actor.GetNowXY(), plan.TargetPosition) <= 1
-                    && plan.ItemReservation.IsValid
-                    && reservedTransfers.TryConsumeReservedQuantity(
-                        plan.ItemReservation.LeaseId,
-                        1,
-                        out _))
+                    && waterConsumption.TryConsumeReservedItem(actor, plan))
                 {
                     planner.CompleteItemReservation(
                         CharacterPersistentIdentity.Require(actor).Value,
                         plan.ItemReservation.LeaseId);
-                    RecoverThirst(actor, 65f);
-                    actor.ApplyMoodFactor("survival:clean-water", "깨끗한 물을 마심", 2f, 90f, 1);
-                    PublishWaterConsumed(
-                        actor,
-                        plan.TargetId,
-                        WorldWaterQuality.Clean,
-                        1f,
-                        string.Empty);
                     return true;
                 }
                 break;
@@ -583,70 +595,25 @@ internal sealed class CharacterSafeReliefRunner
                 BuildableObject facility = plan.Facility;
                 if (facility != null
                     && !facility.IsGridDestroyed
-                    && Manhattan(actor.GetNowXY(), facility.centerPos) <= 1)
+                    && Manhattan(actor.GetNowXY(), facility.centerPos) <= 1
+                    && waterConsumption.TryConsumeFacility(actor, facility))
                 {
-                    RecoverThirst(actor, 65f);
-                    actor.ApplyMoodFactor("survival:well-water", "우물에서 물을 마심", 1f, 90f, 1);
-                    PublishWaterConsumed(
-                        actor,
-                        facility.RequirePersistentInstanceId().Value,
-                        WorldWaterQuality.Clean,
-                        1f,
-                        string.Empty);
                     return true;
                 }
                 break;
 
             case CharacterSafeDrinkTargetKind.WorldSource:
                 if (Manhattan(actor.GetNowXY(), plan.TargetPosition) <= 1
-                    && waterQuery.TryGetSource(
-                        plan.TargetId,
-                        out WorldWaterSourceSnapshot source)
-                    && waterQuery.TryDrink(
-                        plan.TargetId,
-                        needBalanceRuntime.ApplyPersonalContinuousWaterMultiplier(1f),
-                        out WorldWaterQuality quality,
-                        out float consumed)
-                    && consumed > 0f
-                    && quality == WorldWaterQuality.Clean)
+                    && waterConsumption.TryConsumeWorldSource(
+                        actor,
+                        plan.TargetId))
                 {
-                    RecoverThirst(actor, 65f);
-                    PublishWaterConsumed(actor, source, quality, consumed);
                     return true;
                 }
                 break;
         }
 
         return false;
-    }
-
-    private void PublishWaterConsumed(
-        CharacterActor actor,
-        WorldWaterSourceSnapshot source,
-        WorldWaterQuality quality,
-        float consumed)
-    {
-        PublishWaterConsumed(
-            actor,
-            source.SourceId,
-            quality,
-            consumed,
-            source.PathogenDiseaseId);
-    }
-
-    private void PublishWaterConsumed(
-        CharacterActor actor,
-        string sourceId,
-        WorldWaterQuality quality,
-        float consumed,
-        string pathogenDiseaseId)
-    {
-        events.Publish(new CharacterWaterConsumedEvent(
-            CharacterPersistentIdentity.Require(actor),
-            sourceId,
-            quality,
-            consumed,
-            pathogenDiseaseId));
     }
 
     private void RecordPlanDiagnostics(CharacterActor actor, CharacterSafeDrinkPlan plan)
@@ -785,16 +752,202 @@ internal sealed class CharacterSafeReliefRunner
         startsThisFrame++;
     }
 
-    private static void RecoverThirst(CharacterActor actor, float amount)
-    {
-        actor?.Stats?.RecoverNeed(
-            CharacterCondition.THIRST,
-            amount,
-            CharacterNeedRecoverySource.Emergency);
-    }
-
     private static int Manhattan(Vector2Int a, Vector2Int b)
     {
         return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
     }
+}
+
+internal sealed class CharacterWaterConsumptionCoordinator
+{
+    private readonly IWorldItemStackRuntime itemStackRuntime;
+    private readonly IReservedItemTransferService reservedTransfers;
+    private readonly IWorldWaterQuery waterQuery;
+    private readonly ICharacterNeedBalanceRuntime needBalanceRuntime;
+    private readonly IGameCalendar calendar;
+    private readonly CharacterWaterPublicationOutbox waterPublications;
+
+    internal CharacterWaterConsumptionCoordinator(
+        IWorldItemStackRuntime itemStackRuntime,
+        IReservedItemTransferService reservedTransfers,
+        IWorldWaterQuery waterQuery,
+        ICharacterNeedBalanceRuntime needBalanceRuntime,
+        IGameCalendar calendar,
+        CharacterWaterPublicationOutbox waterPublications)
+    {
+        this.itemStackRuntime = itemStackRuntime
+            ?? throw new ArgumentNullException(nameof(itemStackRuntime));
+        this.reservedTransfers = reservedTransfers
+            ?? throw new ArgumentNullException(nameof(reservedTransfers));
+        this.waterQuery = waterQuery
+            ?? throw new ArgumentNullException(nameof(waterQuery));
+        this.needBalanceRuntime = needBalanceRuntime
+            ?? throw new ArgumentNullException(nameof(needBalanceRuntime));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.waterPublications = waterPublications
+            ?? throw new ArgumentNullException(nameof(waterPublications));
+    }
+
+    internal bool TryConsumeReservedItem(
+        CharacterActor actor,
+        in CharacterSafeDrinkPlan plan)
+    {
+        if (!plan.ItemReservation.IsValid)
+            return false;
+
+        var data = Propose(actor, plan.TargetId, CharacterWaterSourceKind.ItemInstance, string.Empty);
+        DomainFactLease lease = waterPublications.Reserve(new CharacterWaterConsumedFact(data, true));
+        DungeonPhysicalItemSaveData physicalBefore = null;
+        CharacterMoodDeliveryTransactionSnapshot statsBefore = null;
+        bool mayBeCommitted = false;
+        try
+        {
+            physicalBefore = itemStackRuntime.Capture();
+            statsBefore = actor.Stats.CaptureMoodDeliveryTransactionState();
+            data.infectionBefore = waterPublications.ReadInfectionBurden(data.characterId);
+            if (!reservedTransfers.TryConsumeReservedQuantity(plan.ItemReservation.LeaseId, 1, out _))
+                return false;
+            RecoverThirst(actor, 65f);
+            actor.ApplyMoodFactor("survival:clean-water", "깨끗한 물을 마심", 2f, 90f, 1);
+            Publish(lease, data, actor, 1f, statsBefore, ref mayBeCommitted);
+        }
+        finally
+        {
+            if (!mayBeCommitted)
+            {
+                waterPublications.Cancel(lease);
+                if (physicalBefore != null) itemStackRuntime.Restore(physicalBefore);
+                RestoreStats(actor, statsBefore);
+            }
+        }
+        CompleteDelivery(data.characterId);
+        return true;
+    }
+
+    internal bool TryConsumeFacility(
+        CharacterActor actor,
+        BuildableObject facility)
+    {
+        if (facility == null || facility.IsGridDestroyed)
+            return false;
+        string sourceId = facility.RequirePersistentInstanceId().Value;
+        var data = Propose(actor, sourceId, CharacterWaterSourceKind.Facility, string.Empty);
+        DomainFactLease lease = waterPublications.Reserve(new CharacterWaterConsumedFact(data, true));
+        CharacterMoodDeliveryTransactionSnapshot statsBefore = null;
+        bool mayBeCommitted = false;
+        try
+        {
+            statsBefore = actor.Stats.CaptureMoodDeliveryTransactionState();
+            data.infectionBefore = waterPublications.ReadInfectionBurden(data.characterId);
+            RecoverThirst(actor, 65f);
+            actor.ApplyMoodFactor("survival:well-water", "우물에서 물을 마심", 1f, 90f, 1);
+            Publish(lease, data, actor, 1f, statsBefore, ref mayBeCommitted);
+        }
+        finally
+        {
+            if (!mayBeCommitted)
+            {
+                waterPublications.Cancel(lease);
+                RestoreStats(actor, statsBefore);
+            }
+        }
+        CompleteDelivery(data.characterId);
+        return true;
+    }
+
+    internal bool TryConsumeWorldSource(CharacterActor actor, string sourceId)
+    {
+        if (actor == null
+            || !waterQuery.TryGetSource(sourceId, out WorldWaterSourceSnapshot source)
+            || source.Quality != WorldWaterQuality.Clean)
+        {
+            return false;
+        }
+
+        var data = Propose(actor, source.SourceId, CharacterWaterSourceKind.WorldWater, source.PathogenDiseaseId);
+        DomainFactLease lease = waterPublications.Reserve(new CharacterWaterConsumedFact(data, true));
+        List<WorldWaterSourceSaveData> waterBefore = null;
+        int nextWaterSequenceBefore = 0;
+        CharacterMoodDeliveryTransactionSnapshot statsBefore = null;
+        bool mayBeCommitted = false;
+        try
+        {
+            waterBefore = waterQuery.CaptureWaterSources();
+            nextWaterSequenceBefore = waterQuery.NextWaterSequence;
+            statsBefore = actor.Stats.CaptureMoodDeliveryTransactionState();
+            data.infectionBefore = waterPublications.ReadInfectionBurden(data.characterId);
+            if (!waterQuery.TryDrink(sourceId, needBalanceRuntime.ApplyPersonalContinuousWaterMultiplier(1f),
+                    out WorldWaterQuality quality, out float consumed)
+                || consumed <= 0f || quality != WorldWaterQuality.Clean) return false;
+            RecoverThirst(actor, 65f);
+            Publish(lease, data, actor, consumed, statsBefore, ref mayBeCommitted);
+        }
+        finally
+        {
+            if (!mayBeCommitted)
+            {
+                waterPublications.Cancel(lease);
+                if (waterBefore != null) waterQuery.RestoreWaterSources(waterBefore, nextWaterSequenceBefore);
+                RestoreStats(actor, statsBefore);
+            }
+        }
+        CompleteDelivery(data.characterId);
+        return true;
+    }
+
+    private CharacterWaterFactData Propose(CharacterActor actor, string sourceId,
+        CharacterWaterSourceKind kind, string pathogen) => new()
+    {
+        characterId = CharacterPersistentIdentity.Require(actor).Value,
+        characterName = actor.BuildingDisplayName, sourceId = sourceId, sourceKind = kind,
+        quality = WorldWaterQuality.Clean, pathogenDiseaseId = pathogen, absoluteDay = Math.Max(1, calendar.Day)
+    };
+
+    private void Publish(in DomainFactLease lease, CharacterWaterFactData data, CharacterActor actor,
+        float consumed, CharacterMoodDeliveryTransactionSnapshot before, ref bool mayBeCommitted)
+    {
+        data.consumed = consumed;
+        data.thirstBefore = SnapshotStat(before, CharacterCondition.THIRST);
+        data.thirstAfter = actor.Stats.GetConditionValue(CharacterCondition.THIRST);
+        data.healthBefore = before.CurrentHealth;
+        data.healthAfter = actor.CurrentHealth;
+        data.hygieneBefore = SnapshotStat(before, CharacterCondition.HYGIENE);
+        data.hygieneAfter = actor.Stats.GetConditionValue(CharacterCondition.HYGIENE);
+        data.moodBefore = SnapshotStat(before, CharacterCondition.MOOD);
+        data.moodAfter = actor.Stats.Mood;
+        data.infectionAfter = waterPublications.ReadInfectionBurden(data.characterId);
+        var delivery = waterPublications.Publish(lease, new CharacterWaterConsumedFact(data));
+        mayBeCommitted = delivery.MayBeCommitted;
+        if (!mayBeCommitted) throw new InvalidOperationException("water-consumption-publication-rejected:" + delivery.Detail);
+    }
+
+    private void CompleteDelivery(string character)
+    {
+        if (!waterPublications.Deliver(character, out string failure))
+            throw new InvalidOperationException("water-effects-applied-publication-pending:" + failure);
+    }
+
+    private static void RecoverThirst(CharacterActor actor, float amount) =>
+        actor?.Stats?.RecoverNeed(
+            CharacterCondition.THIRST,
+            amount,
+            CharacterNeedRecoverySource.Emergency);
+
+    private static void RestoreStats(
+        CharacterActor actor,
+        CharacterMoodDeliveryTransactionSnapshot snapshot)
+    {
+        if (actor?.Stats != null && snapshot != null)
+            actor.Stats.RestoreMoodDeliveryTransactionState(snapshot);
+    }
+
+    private static float SnapshotStat(
+        CharacterMoodDeliveryTransactionSnapshot snapshot,
+        CharacterCondition condition) =>
+        snapshot != null
+        && snapshot.Stats != null
+        && snapshot.Stats.TryGetValue(condition, out float value)
+            ? value
+            : 0f;
+
 }

@@ -9,6 +9,7 @@ Assets/Scripts/Editor/EditorRuntimeReferenceFixtures.cs,editor,Editor,Editor,edi
 Assets/Scripts/Editor/FinalAcceptanceReportPolicy.cs,editor,Editor,Editor,editor-verification,,2,FinalAcceptanceReportPolicy; CoordinatorAction,class; enum,editor-verification; mutation-boundary-or-orchestration,,
 Assets/Scripts/Editor/FullGameManualQaRuntimeProbe.cs,editor,Editor,Editor,editor-verification,,6,FullGameManualQaRuntimeProbe; CompletionAuditRunner; RootActiveState; CoreGridUiCompletionRunner; TimedGapProbeRunner; CharacterAiLongObservationRunner,class; struct,ai-decision; authored-definition; editor-verification; validation,dictionary-index,
 Assets/Scripts/Editor/ImplementedScenarioDebugRunner.cs,editor,Editor,Editor,editor-verification,,2,ImplementedScenarioDebugRunner; ScenarioSuiteResult,class; struct,editor-verification,,
+Assets/Scripts/Editor/PlayModeVerificationCoroutine.cs,editor,Editor,Editor,editor-verification,,1,PlayModeVerificationCoroutine,class,editor-verification; validation,,
 Assets/Scripts/Editor/ProductionNetworkV3RequestRunner.cs,editor,Editor,Editor,editor-verification,,1,ProductionNetworkV3RequestRunner,class,editor-verification,,
 Assets/Scripts/Editor/RefactorFollowupDebugScenarios.cs,editor,Editor,Editor,editor-verification,,1,RefactorFollowupDebugScenarios,class,editor-verification; validation,,
 Assets/Scripts/Editor/RegularCustomerScenarioRequestRunner.cs,editor,Editor,Editor,editor-verification,,1,RegularCustomerScenarioRequestRunner,class,editor-verification,,

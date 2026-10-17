@@ -1,0 +1,8 @@
+worker=character:staff:1:01; action=; phase=; failure=; hauling=False; delivered=0
+result=FAIL
+VContainer.VContainerException: No such registration of type: SurvivalFoodRuntime
+  at VContainer.Container.Resolve (System.Type type, System.Object key) [0x00014] in .\Packages\jp.hadashikick.vcontainer\Runtime\Container.cs:235 
+  at WimFacilityFuelLiveRunner+<Run>d__16.MoveNext () [0x0035a] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Survival\Editor\WimFacilityFuelLiveRunner.cs:118 
+  at WimFacilityFuelLiveRunner+<Observe>d__15.MoveNext () [0x0004b] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Survival\Editor\WimFacilityFuelLiveRunner.cs:59 
+scope=actual owner/party UI, authored E01, separated physical AI haul and priority Refuel, current full-world JSON; placement/healthy staff/initial stock/request/typed next action are controlled; not natural priority, full-day fuel balance, pending-ACK fault injection or six-adult proof
+cleanup=operator stops disposable Play; no scene/user persistence writes

@@ -31,6 +31,8 @@ ConsiderationWorkNeed,1,AI 의사결정 구성: 콘텐츠 정의가 아니라 �
 DNPPreset,66,AI 의사결정 구성: 콘텐츠 정의가 아니라 행동·고려점 실행 그래프
 DungeonAudioLibrarySO,1,기술 또는 표현 설정: 플레이 규칙 콘텐츠에서 제외
 DungeonStory.Content.CoreSession.CoreSessionRulesSO,1,전역 시스템 규칙·밸런스 설정: 개별 콘텐츠 항목이 아닌 시스템 권위
+EndlessCrisisPolicyDefinitionSO,1,미분류 MonoBehaviour 자산: 콘텐츠 포함 여부 수동 검토
+EquipmentEvolutionFormulaCatalogSO,2,카탈로그·등록 인프라: 개별 콘텐츠가 아니라 다른 자산의 집합 권위
 FacilityCrimeSettingsSO,1,전역 시스템 규칙·밸런스 설정: 개별 콘텐츠 항목이 아닌 시스템 권위
 FactionAllianceBenefitBudgetSO,1,미분류 MonoBehaviour 자산: 콘텐츠 포함 여부 수동 검토
 GameContentCatalogSO,1,카탈로그·등록 인프라: 개별 콘텐츠가 아니라 다른 자산의 집합 권위

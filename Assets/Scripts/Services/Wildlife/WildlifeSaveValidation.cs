@@ -7,7 +7,9 @@ internal static class WildlifeSaveValidation
 {
     internal const int MaxWildlife = 256;
     internal const int MaxCarcasses = 2048;
+    internal const int MaxCarcassProcessing = 16_384;
     internal const int MaxFoodRaidOrders = 128;
+    internal const int MaxGameplayOutcomes = 128;
     internal const int MaxHabitatPatches = 256;
 
     public static void Validate(
@@ -43,7 +45,9 @@ internal static class WildlifeSaveValidation
 
         if (payload.wildlife == null
             || payload.carcasses == null
+            || payload.carcassProcessing == null
             || payload.foodRaidOrders == null
+            || payload.gameplayOutcomes == null
             || payload.ecosystem == null)
         {
             report.AddError("Wildlife payload is missing a required state list.");
@@ -52,14 +56,38 @@ internal static class WildlifeSaveValidation
 
         ValidateAnimals(payload, report, speciesCatalog);
         ValidateCarcasses(payload.carcasses, report, speciesCatalog);
+        ValidateProcessing(payload.carcassProcessing, report);
         ValidateFoodRaids(payload, report);
+        ValidateGameplayOutcomes(payload, report, speciesCatalog);
         ValidateEcosystem(payload.ecosystem, report, speciesCatalog);
+    }
+
+    private static void ValidateProcessing(List<WildlifeCarcassProcessingSaveData> rows, DungeonGameRestoreReport report)
+    {
+        if (rows.Count > MaxCarcassProcessing)
+            report.AddError("Carcass processing journals exceed capacity.");
+        var stacks = new HashSet<string>(StringComparer.Ordinal);
+        string previous = null;
+        foreach (var row in rows)
+        {
+            try
+            {
+                if (row == null) throw new InvalidOperationException("Missing carcass processing journal.");
+                row.Validate();
+                if (!stacks.Add(row.fact.carcassStackId) || previous != null
+                    && string.CompareOrdinal(previous, row.fact.operationId) >= 0)
+                    throw new InvalidOperationException("Duplicate or unordered carcass processing journal.");
+                previous = row.fact.operationId;
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or OverflowException)
+            { report.AddError(exception.Message); }
+        }
     }
 
     public static void ValidateWorldReferences(
         DungeonWildlifeSaveData payload,
         Grid restoreGrid,
-        IWorldItemStackRuntime itemStacks,
+        IPhysicalItemRestoreCandidateStackQuery itemStacks,
         IWildlifeSpeciesCatalogProvider speciesCatalog,
         DungeonGameRestoreReport report)
     {
@@ -80,22 +108,18 @@ internal static class WildlifeSaveValidation
             throw new ArgumentNullException(nameof(report));
         }
 
-        Dictionary<string, WorldItemStackSnapshot> stacksById =
-            itemStacks.GetAllStacks()
-                .Where(stack => stack != null
-                    && !string.IsNullOrWhiteSpace(stack.StackId))
-                .GroupBy(stack => stack.StackId, StringComparer.Ordinal)
-                .ToDictionary(
-                    group => group.Key,
-                    group => group.First(),
-                    StringComparer.Ordinal);
+        if (payload.carcasses.Count > 0 && !itemStacks.IsCandidateAvailable)
+        {
+            report.AddError("Wildlife carcass restore requires the incoming physical-item candidate.");
+            return;
+        }
 
         foreach (WildlifeCarcassFreshnessSaveData carcass in
                  payload.carcasses)
         {
-            if (!stacksById.TryGetValue(
+            if (!itemStacks.TryGetStackById(
                     carcass.stackId,
-                    out WorldItemStackSnapshot stack)
+                    out PhysicalItemRestoreCandidateStackSnapshot stack)
                 || speciesCatalog == null
                 || !speciesCatalog.TryGetSpecies(
                     carcass.speciesId,
@@ -301,6 +325,116 @@ internal static class WildlifeSaveValidation
                 report.AddError(
                     $"Wildlife payload contains invalid raid order for '{wildlifeId}'.");
             }
+        }
+    }
+
+    private static void ValidateGameplayOutcomes(
+        DungeonWildlifeSaveData payload,
+        DungeonGameRestoreReport report,
+        IWildlifeSpeciesCatalogProvider speciesCatalog)
+    {
+        if (payload.nextGameplayOutcomeSequence < 0)
+        {
+            report.AddError(
+                "Wildlife gameplay-outcome sequence cannot be negative.");
+        }
+        if (payload.gameplayOutcomes.Count > MaxGameplayOutcomes)
+        {
+            report.AddError(
+                $"Wildlife payload exceeds the {MaxGameplayOutcomes}-outcome limit.");
+        }
+
+        var operations = new HashSet<string>(StringComparer.Ordinal);
+        var revisions = new HashSet<long>();
+        var publicationKeys = new HashSet<string>(StringComparer.Ordinal);
+        long previousRevision = 0L;
+        foreach (WildlifeGameplayOutcomeSaveData outcome in
+                 payload.gameplayOutcomes)
+        {
+            string operationId = outcome?.operationId?.Trim() ?? string.Empty;
+            string wildlifeId = outcome?.wildlifeId?.Trim() ?? string.Empty;
+            string speciesId = outcome?.wildlifeSpeciesId?.Trim() ?? string.Empty;
+            bool dtoValid = outcome != null;
+            bool dtoFailureReported = false;
+            if (outcome != null)
+            {
+                try
+                {
+                    outcome.Validate();
+                }
+                catch (ArgumentException exception)
+                {
+                    dtoValid = false;
+                    dtoFailureReported = true;
+                    report.AddError(
+                        $"Wildlife gameplay outcome '{operationId}' failed DTO validation: {exception.Message}");
+                }
+            }
+            bool publicationKeyValid = outcome != null
+                && IsCanonicalNonEmpty(outcome.publicationKey)
+                && publicationKeys.Add(outcome.publicationKey);
+            bool action = outcome?.profile == WildlifeGameplayOutcomeProfile.Action;
+            string expectedOperationId = outcome == null
+                ? string.Empty
+                : $"{(action ? "wildlife-action" : "wildlife-command")}:"
+                    + $"{outcome.eventKind}:{wildlifeId}:{outcome.ownerRevision}";
+            bool valid = outcome != null
+                && dtoValid
+                && outcome.schemaVersion
+                    == WildlifeGameplayOutcomeSaveData.CurrentSchemaVersion
+                && Enum.IsDefined(
+                    typeof(WildlifeGameplayOutcomeProfile),
+                    outcome.profile)
+                && IsCanonicalNonEmpty(outcome.operationId)
+                && string.Equals(
+                    operationId,
+                    expectedOperationId,
+                    StringComparison.Ordinal)
+                && operations.Add(operationId)
+                && IsCanonicalNonEmpty(outcome.eventKind)
+                && IsCanonicalNonEmpty(outcome.wildlifeId)
+                && IsCanonicalNonEmpty(outcome.wildlifeSpeciesId)
+                && IsCanonicalNonEmpty(outcome.wildlifeDisplayName)
+                && speciesCatalog != null
+                && speciesCatalog.TryGetSpecies(speciesId, out _)
+                && (!action
+                    || (IsCanonicalNonEmpty(outcome.actorId)
+                        && IsCanonicalNonEmpty(outcome.actorDisplayName)))
+                && IsCanonicalOptional(outcome.actorId)
+                && IsCanonicalOptional(outcome.actorDisplayName)
+                && IsCanonicalOptional(outcome.facilityId)
+                && IsCanonicalOptional(outcome.facilityDisplayName)
+                && Enum.IsDefined(typeof(WildlifeState), outcome.stateBefore)
+                && Enum.IsDefined(typeof(WildlifeState), outcome.stateAfter)
+                && outcome.healthBefore >= 0
+                && outcome.healthAfter >= 0
+                && outcome.damage == outcome.healthBefore - outcome.healthAfter
+                && outcome.ammunitionBefore >= 0
+                && outcome.ammunitionAfter >= 0
+                && outcome.ammunitionConsumed
+                    == outcome.ammunitionBefore - outcome.ammunitionAfter
+                && outcome.coverDamage >= 0
+                && outcome.outputQuantity >= 0
+                && outcome.outputMassGrams >= 0L
+                && IsCanonicalOptional(outcome.weaponDefinitionId)
+                && IsCanonicalOptional(outcome.weaponInstanceId)
+                && IsCanonicalOptional(outcome.ammunitionItemId)
+                && IsCanonicalOptional(outcome.bodyPart)
+                && IsCanonicalOptional(outcome.coverSourceId)
+                && IsCanonicalOptional(outcome.carcassStackId)
+                && IsCanonicalOptional(outcome.physicalChildResultKey)
+                && publicationKeyValid
+                && IsCanonicalNonEmpty(outcome.reasonCode)
+                && outcome.absoluteDay >= 0
+                && outcome.ownerRevision > previousRevision
+                && outcome.ownerRevision <= payload.nextGameplayOutcomeSequence
+                && revisions.Add(outcome.ownerRevision);
+            if (!valid && !dtoFailureReported)
+            {
+                report.AddError(
+                    $"Wildlife payload contains invalid gameplay outcome '{operationId}'.");
+            }
+            previousRevision = Math.Max(previousRevision, outcome?.ownerRevision ?? 0L);
         }
     }
 

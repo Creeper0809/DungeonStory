@@ -19,6 +19,8 @@ MonoBehaviour:
   authoringRevision: 1
   sourceNote: V20 hand-authored faction/service manifest.
   kind: 7
+  riskTier: 2
+  riskReason: 작성된 대응에 활성 압력 식별자를 추가하는 Threat 3이 있다.
   triggerRequirements:
     items: []
     facilities: []

@@ -94,7 +94,7 @@ public static class BuiltInWorkExecutionFailureProfiles
     {
         CommonTimed(BuiltInWorkTypeIds.Operate, typeof(WorkTaskExecutor), "generic timed facility operation"),
         Profile(BuiltInWorkTypeIds.Restock, WorkExecutorRoute.RestockHaul,
-            typeof(WorkTaskExecutor), WorkReservationFailureKinds.Facility | WorkReservationFailureKinds.Item,
+            typeof(RestockWorkExecution), WorkReservationFailureKinds.Facility | WorkReservationFailureKinds.Item,
             Common, Special, Common,
             "stable restock operation owns a quantity Lease; cancellation releases and destination commit consumes exactly once"),
         CommonOrder(BuiltInWorkTypeIds.Construct, WorkReservationFailureKinds.Facility | WorkReservationFailureKinds.Item,

@@ -281,7 +281,9 @@ public static class ProductionFacilityDestructiveDrainRecoveryRuntimeDebugScenar
         public ProductionFacilityDestructiveDrainDriveResult
             DriveToAuthorityRevoke(
                 ProductionFacilityDestructiveDrainCause cause,
-                BuildingInstanceId facilityId)
+                BuildingInstanceId facilityId,
+                ProductionFacilityDestructiveDrainOutcomeSnapshot
+                    outcomeSnapshot = default)
         {
             DriveCount++;
             throw new InvalidOperationException(

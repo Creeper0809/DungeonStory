@@ -976,7 +976,44 @@ public static class InvasionIntruderDebugScenarios
             InterfaceStub<IBuildingStructuralIntegrityRuntime>(),
             InterfaceStub<IDefenseRaidAwarenessRuntime>(),
             InterfaceStub<IDefenseFacilityNetworkRuntime>(),
-            InterfaceStub<IInvasionIntruderPatternDefinitionCatalog>());
+            InterfaceStub<IInvasionIntruderPatternDefinitionCatalog>(),
+            CharacterAiEditorTestDependencies.BodyHealthRuntime);
+    }
+
+    public static void VerifyDefeatAuthority()
+    {
+        using IntruderScenarioWorld world = new IntruderScenarioWorld(10);
+        CharacterActor actor = world.CreateIntruder(new Vector2Int(1, 0));
+        InvasionIntruderRuntime runtime = actor.gameObject.AddComponent<InvasionIntruderRuntime>();
+        var health = CharacterAiEditorTestDependencies.BodyHealthRuntime;
+        runtime.ConfigureDefenseEngagement(InterfaceStub<IDefenseEngagementRuntime>(), health);
+        health.Heal(actor, actor.MaxHealth * 10f, stopBleeding: true);
+        string before = JsonUtility.ToJson(health.Capture());
+        actor.SetLifecycleState(CharacterLifecycleState.Downed);
+        if (runtime.CanResolveDefeat(out string reason) || string.IsNullOrWhiteSpace(reason))
+            throw new InvalidOperationException("Lifecycle-only downing bypassed body-health authority.");
+        bool rejected = false;
+        try { runtime.ResolveSuppressedBy(null); }
+        catch (InvalidOperationException exception) { rejected = exception.Message == reason; }
+        if (!rejected || runtime.State == InvasionIntruderState.Finished
+            || before != JsonUtility.ToJson(health.Capture()))
+            throw new InvalidOperationException("Rejected suppression changed authoritative state.");
+
+        actor.SetLifecycleState(CharacterLifecycleState.Active);
+        CharacterBodyHealthSnapshot source = health.GetSnapshot(actor);
+        var parts = source.Parts.Select(part => new CharacterBodyPartHealthState
+        {
+            bodyPart = part.bodyPart,
+            maxHealth = part.maxHealth,
+            currentHealth = part.bodyPart == CombatBodyPart.LeftLeg
+                || part.bodyPart == CombatBodyPart.RightLeg ? part.maxHealth * 0.18f : part.currentHealth,
+            bleedingPerSecond = part.bleedingPerSecond
+        }).ToArray();
+        health.ApplySnapshot(actor, new CharacterBodyHealthSnapshot(parts, source.BloodLoss,
+            source.Suppression, source.Consciousness, source.Manipulation, 0.18f, true),
+            "Defeat authority regression fixture");
+        if (!health.GetSnapshot(actor).Downed || !runtime.CanResolveDefeat(out _))
+            throw new InvalidOperationException("Committed body-health downing was not accepted.");
     }
 
     private static T InterfaceStub<T>() where T : class
@@ -1071,7 +1108,7 @@ public static class InvasionIntruderDebugScenarios
     private static bool VerifyFacilityDamage()
     {
         using IntruderScenarioWorld world = new IntruderScenarioWorld(10);
-        BuildableObject facility = world.Place("P1_LowFoodShop", new Vector2Int(2, 0));
+        BuildableObject facility = world.Place("S01_판매카운터", new Vector2Int(2, 0));
         BuildableObject secondFacility = world.Place("Q01_연구책상", new Vector2Int(5, 0));
         CharacterActor intruder = world.CreateIntruder(new Vector2Int(1, 0));
         InvasionIntruderRuntime runtime = intruder.gameObject.AddComponent<InvasionIntruderRuntime>();
@@ -1100,7 +1137,7 @@ public static class InvasionIntruderDebugScenarios
     private static bool VerifyPatternDamagePreference()
     {
         using IntruderScenarioWorld world = new IntruderScenarioWorld(10);
-        BuildableObject facility = world.Place("P1_LowFoodShop", new Vector2Int(2, 0));
+        BuildableObject facility = world.Place("S01_판매카운터", new Vector2Int(2, 0));
         BuildableObject defense = world.Place("P1_SpikeTrap", new Vector2Int(6, 0));
 
         bool breakerIgnoredFacility = !InvasionFacilityDamageResolver.TryFindDamageTarget(
@@ -1415,7 +1452,8 @@ public static class InvasionIntruderDebugScenarios
             new DungeonDefenseTimeResponseRuntime(
                 eventBus,
                 timeScale,
-                settings);
+                settings,
+                new SafeRestoreQuery());
         runtime.Initialize();
         eventBus.Publish(new InvasionDungeonBreachedEvent(
             null,
@@ -1450,11 +1488,32 @@ public static class InvasionIntruderDebugScenarios
 
         GameObject managerObject = new GameObject("Intruder Final Combat OwnerRunManager");
         world.Track(managerObject);
+        var ownerStore = new DungeonRuntimeAggregateRootStore();
+        var ownerOutcomes = new MigratedProducerOutcomeEditorFixture(
+            "run:intruder-final-combat-owner",
+            ownerStore);
+        var ownerProbe = new MigratedProducerOutcomeProbeTransaction(
+            ownerOutcomes.Transaction,
+            ownerOutcomes.Recorder)
+        {
+            TargetKind = MigratedProducerOutcomeKind.OwnerRunEndedEvent
+        };
+        using var ownerFacts = new OwnerRunCompletionFactEditorFixture(
+            ownerOutcomes,
+            ownerProbe);
+        var ownerContent = new ResourceGameContentCatalog(
+            new UnityGameContentRootLoader());
         OwnerRunManager manager = managerObject.AddComponent<OwnerRunManager>();
         manager.ConstructOwnerRunManager(
             new FixedOwnerCandidateCatalog(ownerData),
             new ScenarioOwnerCharacterFactory(world),
-            CharacterAiEditorTestDependencies.GameEvents);
+            CharacterAiEditorTestDependencies.GameEvents,
+            ownerFacts.Publisher,
+            new ScenarioRunSeedProvider(104729),
+            ownerStore,
+            ownerContent,
+            ownerFacts.Recovery,
+            EmptyRunCompletionPreparation.Instance);
         manager.SelectOwner(ownerData);
 
         CharacterActor owner = manager.CurrentOwnerActor;
@@ -1513,6 +1572,7 @@ public static class InvasionIntruderDebugScenarios
         GameObject directorObject = new GameObject("Final Invasion Withdrawal Director");
         world.Track(directorObject);
         InvasionDirectorRuntime director = directorObject.AddComponent<InvasionDirectorRuntime>();
+        director.ConfigureEquipment(CharacterAiEditorTestDependencies.CombatEquipment);
         CharacterActor intruder = world.CreateIntruder(new Vector2Int(1, 0));
         InvasionIntruderRuntime runtime = intruder.gameObject.AddComponent<InvasionIntruderRuntime>();
         SetPrivateField(runtime, "intruderActor", CharacterActor.From(intruder));
@@ -1789,12 +1849,28 @@ public static class InvasionIntruderDebugScenarios
         }
     }
 
+    private sealed class ScenarioRunSeedProvider : IRunSeedProvider
+    {
+        private readonly int runSeed;
+
+        internal ScenarioRunSeedProvider(int runSeed) =>
+            this.runSeed = runSeed;
+
+        public int RunSeed => runSeed;
+    }
+
     private sealed class TestHallwayOccupant : IGridOccupant
     {
         public int GridId => 0;
         public bool IsGridDestroyed => false;
         public bool IsGridVisitable => false;
         public bool IsGridMovement => true;
+    }
+
+    private sealed class SafeRestoreQuery : IDungeonRestoreSafetyQuery
+    {
+        public bool RequiresRecovery => false;
+        public string RecoveryMessage => string.Empty;
     }
 
     private sealed class ScenarioTimeScaleController :

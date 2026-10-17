@@ -108,6 +108,9 @@ public interface ISurgicalFacilityQuery
     SurgicalFacilitySnapshot Evaluate(
         BuildableObject primaryFacility,
         SurgeryFacilityTag requiredTags);
+    SurgicalFacilitySnapshot Evaluate(
+        BuildableObject primaryFacility,
+        SurgicalProcedureSO procedure);
     bool TryFindBestFacility(
         SurgicalSubjectRef subject,
         SurgicalProcedureSO procedure,
@@ -199,6 +202,10 @@ public interface ISurgicalPartRuntime
         string partInstanceId,
         string orderId,
         out DomainFailure failure);
+    bool TryValidateReservationForOrder(
+        string partInstanceId,
+        string orderId,
+        out DomainFailure failure);
     void ReleaseReservation(string partInstanceId, string orderId);
     bool TryConsumeForInstallation(
         string partInstanceId,
@@ -206,12 +213,60 @@ public interface ISurgicalPartRuntime
         string subjectId,
         out SurgicalPartInstance part,
         out DomainFailure failure);
+    SurgicalPartDiscardResult TryDiscardOwnedStack(string stackId);
     void TickFreshness(float deltaTime);
     IReadOnlyList<SurgicalPartInstance> CaptureParts();
     IReadOnlyList<SurgicalOrganStorageState> CaptureStorageStates();
     bool TryGetOrganStorageStatus(
         BuildableObject storage,
         out SurgicalOrganStorageSnapshot snapshot);
+}
+
+public enum SurgicalPartDiscardStatus
+{
+    NotOwned = 0,
+    Completed = 1,
+    Pending = 2,
+    Rejected = 3
+}
+
+public readonly struct SurgicalPartDiscardResult
+{
+    public SurgicalPartDiscardResult(
+        SurgicalPartDiscardStatus status,
+        string failureReason)
+    {
+        Status = status;
+        FailureReason = failureReason ?? string.Empty;
+    }
+
+    public SurgicalPartDiscardStatus Status { get; }
+    public string FailureReason { get; }
+    public bool IsOwned => Status != SurgicalPartDiscardStatus.NotOwned;
+    public bool Succeeded => Status == SurgicalPartDiscardStatus.Completed;
+}
+
+internal interface ISurgicalPartReplacementRuntime
+{
+    bool TryReserveReplacementOutput(
+        SurgeryOrder order,
+        AnatomyNodeHealthState currentNode,
+        Vector2Int outputPosition,
+        IFacilityBufferMassAdmissionService admission,
+        out DomainFailure failure);
+    bool TryCommitReplacement(
+        SurgeryOrder order,
+        CharacterActor character,
+        SurgicalPartKind incomingKind,
+        float efficiency,
+        IAnatomyHealthRuntime anatomy,
+        IFacilityBufferMassAdmissionService admission,
+        IFacilityBufferPlannedOutputPublicationService publication,
+        out DomainFailure failure);
+    bool TryAbortReplacement(
+        SurgeryOrder order,
+        IFacilityBufferMassAdmissionService admission,
+        out string failureReason);
 }
 
 public interface ISurgicalAugmentationQuery
@@ -244,6 +299,12 @@ public interface ISurgeryWorkCommand
         CharacterActor doctor,
         out SurgeryOrder order,
         out DomainFailure failure);
+    bool TryReserveWork(
+        BuildableObject facility,
+        CharacterActor doctor,
+        CharacterCommandOrigin origin,
+        out SurgeryOrder order,
+        out DomainFailure failure);
     bool ApplyWork(
         string orderId,
         CharacterActor doctor,
@@ -271,6 +332,10 @@ public sealed class SurgeryRestoreCandidate
 public interface ISurgicalProcedureEffectHandler
 {
     Type EffectType { get; }
+    bool CanApply(
+        SurgeryOrder order,
+        SurgicalProcedureEffect effect,
+        out DomainFailure failure);
     bool Apply(
         SurgeryOrder order,
         SurgicalProcedureEffect effect,

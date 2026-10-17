@@ -35,6 +35,22 @@ public sealed class ReproductionDurableEquipmentUseRuntime
         Vector2Int facilityPosition,
         Func<bool> commitPlan)
     {
+        if (commitPlan == null)
+            throw new ArgumentNullException(nameof(commitPlan));
+        return TryCommitPlan(
+            facilityId,
+            facilityPosition,
+            _ => commitPlan(),
+            out _);
+    }
+
+    public bool TryCommitPlan(
+        BuildingInstanceId facilityId,
+        Vector2Int facilityPosition,
+        Func<DurableFacilityEquipmentUseContext, bool> commitPlan,
+        out DurableFacilityEquipmentUseResult useResult)
+    {
+        useResult = default;
         if (!facilityId.IsValid || commitPlan == null)
         {
             throw new ArgumentException(
@@ -72,20 +88,21 @@ public sealed class ReproductionDurableEquipmentUseRuntime
                 + supplied.FailureReason);
         }
 
-        DurableFacilityEquipmentUseResult result = use.TryApplyWearAndEffect(
+        useResult = use.TryApplyWearAndEffect(
             assignment.Key,
             ReproductionDurableEquipmentPolicySource.RequirementId,
             LedgerWearPerPlan,
             new ReproductionProcessPlanEffect(commitPlan));
-        return result.Succeeded;
+        return useResult.Succeeded;
     }
 
     private sealed class ReproductionProcessPlanEffect :
         IDurableFacilityEquipmentEffectCommit
     {
-        private readonly Func<bool> commit;
+        private readonly Func<DurableFacilityEquipmentUseContext, bool> commit;
 
-        internal ReproductionProcessPlanEffect(Func<bool> commit)
+        internal ReproductionProcessPlanEffect(
+            Func<DurableFacilityEquipmentUseContext, bool> commit)
         {
             this.commit = commit ?? throw new ArgumentNullException(nameof(commit));
         }
@@ -123,7 +140,7 @@ public sealed class ReproductionDurableEquipmentUseRuntime
             DurableFacilityEquipmentUseContext context,
             out string failureReason)
         {
-            if (!commit())
+            if (!commit(context))
             {
                 failureReason = "reproduction-process-plan-rejected";
                 return false;

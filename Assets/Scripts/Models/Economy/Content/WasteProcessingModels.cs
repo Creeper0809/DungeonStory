@@ -77,14 +77,40 @@ public enum WasteFeedOutcomeCode
 public readonly struct WastePolicyCommandResult
 {
     public WastePolicyCommandResult(bool succeeded, DomainFailure failure)
+        : this(
+            succeeded,
+            failure,
+            string.Empty,
+            0L,
+            null,
+            null)
+    {
+    }
+
+    public WastePolicyCommandResult(
+        bool succeeded,
+        DomainFailure failure,
+        string operationId,
+        long ownerRevision,
+        WastePolicyData beforePolicy,
+        WastePolicyData afterPolicy)
     {
         Succeeded = succeeded;
         Failure = failure;
+        OperationId = operationId?.Trim() ?? string.Empty;
+        OwnerRevision = ownerRevision;
+        BeforePolicy = beforePolicy?.Clone();
+        AfterPolicy = afterPolicy?.Clone();
     }
 
     public bool Succeeded { get; }
     public DomainFailure Failure { get; }
+    public string OperationId { get; }
+    public long OwnerRevision { get; }
+    public WastePolicyData BeforePolicy { get; }
+    public WastePolicyData AfterPolicy { get; }
 }
+
 
 public readonly struct WasteFeedRequestResult
 {
@@ -120,11 +146,14 @@ public sealed class WasteProcessingOverview
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonWasteProcessingSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 4;
 
     public int version = CurrentVersion;
     public List<WastePolicyData> policies = new List<WastePolicyData>();
+    public long nextPolicySequence = 1L;
+    public List<WastePolicyObservationSaveData> pendingPolicyChanges = new();
 }
+
 
 public interface IWasteProcessingQuery
 {

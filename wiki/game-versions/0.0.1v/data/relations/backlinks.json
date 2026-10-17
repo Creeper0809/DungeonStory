@@ -39,6 +39,17 @@
       "type": "references"
     }
   ],
+  "character/characterspecies-11": [
+    {
+      "amount": null,
+      "from_kind": "character",
+      "from_slug": "character-archetype-9010",
+      "from_spoiler_tier": "none",
+      "from_title": "아린",
+      "label": "관련",
+      "type": "references"
+    }
+  ],
   "character/characterspecies-2": [
     {
       "amount": null,
@@ -200,6 +211,17 @@
       "type": "references"
     }
   ],
+  "character/funeral-culture-human": [
+    {
+      "amount": null,
+      "from_kind": "character",
+      "from_slug": "characterspecies-11",
+      "from_spoiler_tier": "none",
+      "from_title": "인간",
+      "label": "관련",
+      "type": "references"
+    }
+  ],
   "character/funeral-culture-kobold": [
     {
       "amount": null,
@@ -310,6 +332,17 @@
       "type": "references"
     }
   ],
+  "character/life-history-human": [
+    {
+      "amount": null,
+      "from_kind": "character",
+      "from_slug": "characterspecies-11",
+      "from_spoiler_tier": "none",
+      "from_title": "인간",
+      "label": "관련",
+      "type": "references"
+    }
+  ],
   "character/life-history-kobold": [
     {
       "amount": null,
@@ -416,6 +449,17 @@
       "from_slug": "characterspecies-8",
       "from_spoiler_tier": "none",
       "from_title": "하피",
+      "label": "관련",
+      "type": "references"
+    }
+  ],
+  "character/reproduction-human": [
+    {
+      "amount": null,
+      "from_kind": "character",
+      "from_slug": "characterspecies-11",
+      "from_spoiler_tier": "none",
+      "from_title": "인간",
       "label": "관련",
       "type": "references"
     }
@@ -1561,13 +1605,22 @@
   ],
   "event/life-event-retirement-request": [
     {
-      "amount": "-2",
+      "amount": "0",
       "from_kind": "event",
       "from_slug": "life-event-retirement-request",
       "from_spoiler_tier": "warning",
       "from_title": "도구를 내려놓는 날",
       "label": "연결",
-      "type": "adds-work-delay"
+      "type": "unknown-effect"
+    },
+    {
+      "amount": "0",
+      "from_kind": "event",
+      "from_slug": "life-event-retirement-request",
+      "from_spoiler_tier": "warning",
+      "from_title": "도구를 내려놓는 날",
+      "label": "연결",
+      "type": "unknown-effect"
     },
     {
       "amount": "6",
@@ -2996,6 +3049,15 @@
   "facility/building-1047": [
     {
       "amount": null,
+      "from_kind": "character",
+      "from_slug": "festival-frontier-map-night",
+      "from_spoiler_tier": "none",
+      "from_title": "지도에 불을 밝히는 밤",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
       "from_kind": "facility",
       "from_slug": "facilityevolutionrecipe-9103",
       "from_spoiler_tier": "none",
@@ -3080,6 +3142,15 @@
   "facility/building-1055": [
     {
       "amount": null,
+      "from_kind": "character",
+      "from_slug": "festival-weapon-vigil",
+      "from_spoiler_tier": "none",
+      "from_title": "무기 철야제",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
       "from_kind": "research",
       "from_slug": "research-defense-fortification",
       "from_spoiler_tier": "none",
@@ -3100,6 +3171,15 @@
     }
   ],
   "facility/building-1060": [
+    {
+      "amount": null,
+      "from_kind": "character",
+      "from_slug": "festival-clear-confluence",
+      "from_spoiler_tier": "none",
+      "from_title": "맑은 합류제",
+      "label": "필요 조건",
+      "type": "requires"
+    },
     {
       "amount": null,
       "from_kind": "research",
@@ -4086,6 +4166,15 @@
   "facility/building-8803": [
     {
       "amount": null,
+      "from_kind": "character",
+      "from_slug": "festival-spore-bloom",
+      "from_spoiler_tier": "none",
+      "from_title": "포자 개화제",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
       "from_kind": "research",
       "from_slug": "research-agriculture-subterranean",
       "from_spoiler_tier": "none",
@@ -4328,6 +4417,15 @@
   "facility/building-8825": [
     {
       "amount": null,
+      "from_kind": "event",
+      "from_slug": "guest-request-sealed-archive",
+      "from_spoiler_tier": "none",
+      "from_title": "봉인 기록 판독",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
       "from_kind": "research",
       "from_slug": "research-equipment-prototype-engineering",
       "from_spoiler_tier": "none",
@@ -4381,6 +4479,15 @@
     }
   ],
   "facility/building-8830": [
+    {
+      "amount": null,
+      "from_kind": "character",
+      "from_slug": "festival-weapon-vigil",
+      "from_spoiler_tier": "none",
+      "from_title": "무기 철야제",
+      "label": "필요 조건",
+      "type": "requires"
+    },
     {
       "amount": null,
       "from_kind": "research",
@@ -4614,6 +4721,15 @@
   "facility/building-8851": [
     {
       "amount": null,
+      "from_kind": "character",
+      "from_slug": "festival-open-sky-chorus",
+      "from_spoiler_tier": "none",
+      "from_title": "열린 하늘 합창",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
       "from_kind": "research",
       "from_slug": "research-climate-weather-observation",
       "from_spoiler_tier": "none",
@@ -4722,6 +4838,15 @@
     }
   ],
   "facility/building-8861": [
+    {
+      "amount": null,
+      "from_kind": "character",
+      "from_slug": "festival-tool-clan-fair",
+      "from_spoiler_tier": "none",
+      "from_title": "도구씨족 품평회",
+      "label": "필요 조건",
+      "type": "requires"
+    },
     {
       "amount": null,
       "from_kind": "research",
@@ -4867,6 +4992,15 @@
   "facility/building-8874": [
     {
       "amount": null,
+      "from_kind": "event",
+      "from_slug": "guest-request-plague-screening",
+      "from_spoiler_tier": "none",
+      "from_title": "대상단 검역",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
       "from_kind": "research",
       "from_slug": "research-health-isolation-medicine",
       "from_spoiler_tier": "none",
@@ -4887,6 +5021,15 @@
     }
   ],
   "facility/building-8876": [
+    {
+      "amount": null,
+      "from_kind": "event",
+      "from_slug": "guest-request-disease-sample",
+      "from_spoiler_tier": "none",
+      "from_title": "희귀 병원체 공동연구",
+      "label": "필요 조건",
+      "type": "requires"
+    },
     {
       "amount": null,
       "from_kind": "research",
@@ -4966,6 +5109,15 @@
   "facility/building-8883": [
     {
       "amount": null,
+      "from_kind": "event",
+      "from_slug": "guest-request-persecuted-family",
+      "from_spoiler_tier": "none",
+      "from_title": "추방 가족의 은신",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
       "from_kind": "research",
       "from_slug": "research-housing-room-assignment",
       "from_spoiler_tier": "none",
@@ -5008,6 +5160,24 @@
     }
   ],
   "facility/building-8887": [
+    {
+      "amount": null,
+      "from_kind": "character",
+      "from_slug": "festival-blood-lantern",
+      "from_spoiler_tier": "none",
+      "from_title": "혈향 등불제",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from_kind": "event",
+      "from_slug": "guest-request-memorial-performance",
+      "from_spoiler_tier": "none",
+      "from_title": "전사자 추모 공연",
+      "label": "필요 조건",
+      "type": "requires"
+    },
     {
       "amount": null,
       "from_kind": "research",
@@ -5692,6 +5862,15 @@
   "facility/building-9826": [
     {
       "amount": null,
+      "from_kind": "character",
+      "from_slug": "festival-core-resonance",
+      "from_spoiler_tier": "none",
+      "from_title": "핵 공명일",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
       "from_kind": "research",
       "from_slug": "research-equipment-rune-module-tuning",
       "from_spoiler_tier": "none",
@@ -5707,6 +5886,28 @@
       "from_slug": "research-equipment-lineage-binding",
       "from_spoiler_tier": "none",
       "from_title": "장비 계보 결속",
+      "label": "시설 해금",
+      "type": "unlocks-building"
+    }
+  ],
+  "facility/building-9828": [
+    {
+      "amount": null,
+      "from_kind": "research",
+      "from_slug": "research-industry-electric-lighting",
+      "from_spoiler_tier": "none",
+      "from_title": "산업 조명",
+      "label": "시설 해금",
+      "type": "unlocks-building"
+    }
+  ],
+  "facility/building-9829": [
+    {
+      "amount": null,
+      "from_kind": "research",
+      "from_slug": "research-industry-mana-power",
+      "from_spoiler_tier": "none",
+      "from_title": "마나 동력과 룬 전력망",
       "label": "시설 해금",
       "type": "unlocks-building"
     }
@@ -11133,11 +11334,56 @@
     {
       "amount": "8",
       "from_kind": "event",
-      "from_slug": "seasonal-winter-fuel-demand",
-      "from_spoiler_tier": "warning",
-      "from_title": "연료 쟁탈",
-      "label": "연결",
-      "type": "consumes-item"
+      "from_slug": "faction-contract-beastkin-winter-fuel-demand",
+      "from_spoiler_tier": "none",
+      "from_title": "붉은발톱 교역소 겨울 연료 요청",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from_kind": "event",
+      "from_slug": "faction-contract-demon-winter-fuel-demand",
+      "from_spoiler_tier": "none",
+      "from_title": "잿빛 계약정 겨울 연료 요청",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from_kind": "event",
+      "from_slug": "faction-contract-golem-winter-fuel-demand",
+      "from_spoiler_tier": "none",
+      "from_title": "돌맥 주조소 겨울 연료 요청",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from_kind": "event",
+      "from_slug": "faction-contract-harpy-winter-fuel-demand",
+      "from_spoiler_tier": "none",
+      "from_title": "폭풍둥지 겨울 연료 요청",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from_kind": "event",
+      "from_slug": "faction-contract-kobold-winter-fuel-demand",
+      "from_spoiler_tier": "none",
+      "from_title": "깊은톱니 굴 겨울 연료 요청",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from_kind": "event",
+      "from_slug": "faction-contract-myconid-winter-fuel-demand",
+      "from_spoiler_tier": "none",
+      "from_title": "균사정원 겨울 연료 요청",
+      "label": "필요 조건",
+      "type": "requires"
     }
   ],
   "item/material-cheese": [
@@ -11182,9 +11428,45 @@
     {
       "amount": "1",
       "from_kind": "recipe",
+      "from_slug": "recipe-surgery-precision-hand",
+      "from_spoiler_tier": "none",
+      "from_title": "왼손 정밀 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
       "from_slug": "recipe-surgery-prosthetic-arm",
       "from_spoiler_tier": "none",
       "from_title": "철제 의수 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-pseudopods",
+      "from_spoiler_tier": "none",
+      "from_title": "위족 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-reinforced-torso",
+      "from_spoiler_tier": "none",
+      "from_title": "골격 보강 몸통 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-wing",
+      "from_spoiler_tier": "none",
+      "from_title": "왼날개 보철 조립",
       "label": "필요 조건",
       "type": "requires"
     },
@@ -12743,9 +13025,36 @@
     {
       "amount": "1",
       "from_kind": "recipe",
+      "from_slug": "recipe-surgery-balance-tail",
+      "from_spoiler_tier": "none",
+      "from_title": "평형 꼬리 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
       "from_slug": "recipe-surgery-prosthetic-leg",
       "from_spoiler_tier": "none",
       "from_title": "철제 의족 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-sprint-joint",
+      "from_spoiler_tier": "none",
+      "from_title": "수인 질주 관절 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-tail-balance-augmentation",
+      "from_spoiler_tier": "none",
+      "from_title": "코볼트 평형 꼬리 보강기 조립",
       "label": "필요 조건",
       "type": "requires"
     },
@@ -12918,6 +13227,33 @@
     {
       "amount": "1",
       "from_kind": "recipe",
+      "from_slug": "recipe-surgery-balance-tail",
+      "from_spoiler_tier": "none",
+      "from_title": "평형 꼬리 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-hypha-core",
+      "from_spoiler_tier": "none",
+      "from_title": "균핵 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-precision-hand",
+      "from_spoiler_tier": "none",
+      "from_title": "왼손 정밀 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
       "from_slug": "recipe-surgery-prosthetic-arm",
       "from_spoiler_tier": "none",
       "from_title": "철제 의수 조립",
@@ -12930,6 +13266,51 @@
       "from_slug": "recipe-surgery-prosthetic-leg",
       "from_spoiler_tier": "none",
       "from_title": "철제 의족 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-pseudopods",
+      "from_spoiler_tier": "none",
+      "from_title": "위족 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-reinforced-torso",
+      "from_spoiler_tier": "none",
+      "from_title": "골격 보강 몸통 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-sprint-joint",
+      "from_spoiler_tier": "none",
+      "from_title": "수인 질주 관절 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-tail-balance-augmentation",
+      "from_spoiler_tier": "none",
+      "from_title": "코볼트 평형 꼬리 보강기 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-wing",
+      "from_spoiler_tier": "none",
+      "from_title": "왼날개 보철 조립",
       "label": "필요 조건",
       "type": "requires"
     },
@@ -12977,6 +13358,15 @@
       "from_title": "목재 제재",
       "label": "생산·해금",
       "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from_kind": "event",
+      "from_slug": "seasonal-spring-drift-cargo",
+      "from_spoiler_tier": "warning",
+      "from_title": "해빙 표류 화물",
+      "label": "관련",
+      "type": "references"
     },
     {
       "amount": null,
@@ -14322,6 +14712,42 @@
     {
       "amount": "1",
       "from_kind": "recipe",
+      "from_slug": "recipe-surgery-brain-assist",
+      "from_spoiler_tier": "none",
+      "from_title": "신경 보조기 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-heat-sac",
+      "from_spoiler_tier": "none",
+      "from_title": "열낭 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-hypha-core",
+      "from_spoiler_tier": "none",
+      "from_title": "균핵 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-night-eye",
+      "from_spoiler_tier": "none",
+      "from_title": "왼쪽 야간안 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
       "from_slug": "recipe-tool-alloy-crucible",
       "from_spoiler_tier": "none",
       "from_title": "합금 도가니",
@@ -14376,9 +14802,63 @@
     {
       "amount": "2",
       "from_kind": "recipe",
+      "from_slug": "recipe-surgery-balance-tail",
+      "from_spoiler_tier": "none",
+      "from_title": "평형 꼬리 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-heart-augmentation",
+      "from_spoiler_tier": "none",
+      "from_title": "전투 심장 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-precision-hand",
+      "from_spoiler_tier": "none",
+      "from_title": "왼손 정밀 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from_kind": "recipe",
       "from_slug": "recipe-surgery-prosthetic-arm",
       "from_spoiler_tier": "none",
       "from_title": "철제 의수 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-pseudopods",
+      "from_spoiler_tier": "none",
+      "from_title": "위족 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-tail-balance-augmentation",
+      "from_spoiler_tier": "none",
+      "from_title": "코볼트 평형 꼬리 보강기 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-wing",
+      "from_spoiler_tier": "none",
+      "from_title": "왼날개 보철 조립",
       "label": "필요 조건",
       "type": "requires"
     },
@@ -14397,6 +14877,24 @@
       "from_slug": "recipe-surgery-prosthetic-leg",
       "from_spoiler_tier": "none",
       "from_title": "철제 의족 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-reinforced-torso",
+      "from_spoiler_tier": "none",
+      "from_title": "골격 보강 몸통 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-sprint-joint",
+      "from_spoiler_tier": "none",
+      "from_title": "수인 질주 관절 조립",
       "label": "필요 조건",
       "type": "requires"
     },
@@ -15118,6 +15616,51 @@
       "from_slug": "recipe-surgery-artificial-eye",
       "from_spoiler_tier": "none",
       "from_title": "인공 안구 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-brain-assist",
+      "from_spoiler_tier": "none",
+      "from_title": "신경 보조기 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-heart-augmentation",
+      "from_spoiler_tier": "none",
+      "from_title": "전투 심장 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-heat-sac",
+      "from_spoiler_tier": "none",
+      "from_title": "열낭 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-hypha-core",
+      "from_spoiler_tier": "none",
+      "from_title": "균핵 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-night-eye",
+      "from_spoiler_tier": "none",
+      "from_title": "왼쪽 야간안 보철 조립",
       "label": "필요 조건",
       "type": "requires"
     },
@@ -16400,6 +16943,15 @@
       "from_title": "비전 색인철",
       "label": "생산·해금",
       "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from_kind": "event",
+      "from_slug": "seasonal-winter-deep-echo",
+      "from_spoiler_tier": "warning",
+      "from_title": "심층의 메아리",
+      "label": "생산·해금",
+      "type": "produces-or-unlocks"
     }
   ],
   "item/record-breeding-ledger": [
@@ -17172,15 +17724,6 @@
       "type": "requires"
     },
     {
-      "amount": "6",
-      "from_kind": "event",
-      "from_slug": "seasonal-summer-dry-well",
-      "from_spoiler_tier": "warning",
-      "from_title": "마르는 수원",
-      "label": "연결",
-      "type": "consumes-item"
-    },
-    {
       "amount": "8",
       "from_kind": "recipe",
       "from_slug": "recipe-medical-whole-body-regeneration-medium",
@@ -17244,6 +17787,17 @@
       "from_title": "심부 채석",
       "label": "생산·해금",
       "type": "produces-or-unlocks"
+    }
+  ],
+  "item/resource-crystal-beetle-carapace": [
+    {
+      "amount": "1",
+      "from_kind": "nature",
+      "from_slug": "crystal-beetle",
+      "from_spoiler_tier": "none",
+      "from_title": "수정딱정벌레",
+      "label": "관련",
+      "type": "references"
     }
   ],
   "item/resource-dark-resin": [
@@ -18115,6 +18669,42 @@
     {
       "amount": "1",
       "from_kind": "recipe",
+      "from_slug": "recipe-surgery-brain-assist",
+      "from_spoiler_tier": "none",
+      "from_title": "신경 보조기 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-heart-augmentation",
+      "from_spoiler_tier": "none",
+      "from_title": "전투 심장 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-heat-sac",
+      "from_spoiler_tier": "none",
+      "from_title": "열낭 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-night-eye",
+      "from_spoiler_tier": "none",
+      "from_title": "왼쪽 야간안 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from_kind": "recipe",
       "from_slug": "source-quarry",
       "from_spoiler_tier": "none",
       "from_title": "심부 채석",
@@ -18174,6 +18764,24 @@
       "from_title": "룬 도체",
       "label": "필요 조건",
       "type": "requires"
+    },
+    {
+      "amount": null,
+      "from_kind": "event",
+      "from_slug": "seasonal-summer-mana-lightning",
+      "from_spoiler_tier": "warning",
+      "from_title": "마나 번개",
+      "label": "생산·해금",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from_kind": "event",
+      "from_slug": "seasonal-winter-deep-echo",
+      "from_spoiler_tier": "warning",
+      "from_title": "심층의 메아리",
+      "label": "생산·해금",
+      "type": "produces-or-unlocks"
     },
     {
       "amount": null,
@@ -19250,6 +19858,39 @@
       "type": "produces-or-unlocks"
     }
   ],
+  "item/surgery-prosthetic-balance-tail": [
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-balance-tail",
+      "from_spoiler_tier": "none",
+      "from_title": "평형 꼬리 보철 조립",
+      "label": "생산·해금",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "item/surgery-prosthetic-balance-tail-variant-kobold-tail-balance": [
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-tail-balance-augmentation",
+      "from_spoiler_tier": "none",
+      "from_title": "코볼트 평형 꼬리 보강기 조립",
+      "label": "생산·해금",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "item/surgery-prosthetic-brain-variant-human-neural-assist": [
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-brain-assist",
+      "from_spoiler_tier": "none",
+      "from_title": "신경 보조기 조립",
+      "label": "생산·해금",
+      "type": "produces-or-unlocks"
+    }
+  ],
   "item/surgery-prosthetic-eye-left": [
     {
       "amount": "1",
@@ -19261,6 +19902,50 @@
       "type": "produces-or-unlocks"
     }
   ],
+  "item/surgery-prosthetic-hand-left": [
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-precision-hand",
+      "from_spoiler_tier": "none",
+      "from_title": "왼손 정밀 보철 조립",
+      "label": "생산·해금",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "item/surgery-prosthetic-heart-variant-orc-combat-heart": [
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-heart-augmentation",
+      "from_spoiler_tier": "none",
+      "from_title": "전투 심장 보철 조립",
+      "label": "생산·해금",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "item/surgery-prosthetic-heat-sac-variant-demon-heat-sac": [
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-heat-sac",
+      "from_spoiler_tier": "none",
+      "from_title": "열낭 보철 조립",
+      "label": "생산·해금",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "item/surgery-prosthetic-hypha-core": [
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-hypha-core",
+      "from_spoiler_tier": "none",
+      "from_title": "균핵 보철 조립",
+      "label": "생산·해금",
+      "type": "produces-or-unlocks"
+    }
+  ],
   "item/surgery-prosthetic-leg-left": [
     {
       "amount": "1",
@@ -19268,6 +19953,61 @@
       "from_slug": "recipe-surgery-prosthetic-leg",
       "from_spoiler_tier": "none",
       "from_title": "철제 의족 조립",
+      "label": "생산·해금",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "item/surgery-prosthetic-leg-left-variant-beastkin-sprint-joint": [
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-sprint-joint",
+      "from_spoiler_tier": "none",
+      "from_title": "수인 질주 관절 조립",
+      "label": "생산·해금",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "item/surgery-prosthetic-night-eye-left": [
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-night-eye",
+      "from_spoiler_tier": "none",
+      "from_title": "왼쪽 야간안 보철 조립",
+      "label": "생산·해금",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "item/surgery-prosthetic-pseudopods": [
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-pseudopods",
+      "from_spoiler_tier": "none",
+      "from_title": "위족 보철 조립",
+      "label": "생산·해금",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "item/surgery-prosthetic-torso": [
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-reinforced-torso",
+      "from_spoiler_tier": "none",
+      "from_title": "골격 보강 몸통 조립",
+      "label": "생산·해금",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "item/surgery-prosthetic-wing-left": [
+    {
+      "amount": "1",
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-wing",
+      "from_spoiler_tier": "none",
+      "from_title": "왼날개 보철 조립",
       "label": "생산·해금",
       "type": "produces-or-unlocks"
     }
@@ -20631,6 +21371,15 @@
   "nature/carrion-drake": [
     {
       "amount": null,
+      "from_kind": "event",
+      "from_slug": "seasonal-autumn-predator-descent",
+      "from_spoiler_tier": "warning",
+      "from_title": "포식자 하산",
+      "label": "관련",
+      "type": "references"
+    },
+    {
+      "amount": null,
       "from_kind": "nature",
       "from_slug": "cave-hound",
       "from_spoiler_tier": "none",
@@ -20649,6 +21398,15 @@
     }
   ],
   "nature/cave-hound": [
+    {
+      "amount": null,
+      "from_kind": "event",
+      "from_slug": "seasonal-winter-hungry-pack",
+      "from_spoiler_tier": "warning",
+      "from_title": "굶주린 무리",
+      "label": "관련",
+      "type": "references"
+    },
     {
       "amount": null,
       "from_kind": "nature",
@@ -20790,6 +21548,15 @@
     }
   ],
   "nature/deep-goat": [
+    {
+      "amount": null,
+      "from_kind": "event",
+      "from_slug": "seasonal-spring-migrant-herd",
+      "from_spoiler_tier": "warning",
+      "from_title": "이동 초식군",
+      "label": "관련",
+      "type": "references"
+    },
     {
       "amount": null,
       "from_kind": "nature",
@@ -21156,6 +21923,15 @@
     }
   ],
   "nature/spore-elk": [
+    {
+      "amount": null,
+      "from_kind": "event",
+      "from_slug": "seasonal-autumn-migration-window",
+      "from_spoiler_tier": "warning",
+      "from_title": "짧은 이동창",
+      "label": "관련",
+      "type": "references"
+    },
     {
       "amount": null,
       "from_kind": "nature",
@@ -30412,6 +31188,69 @@
     {
       "amount": null,
       "from_kind": "recipe",
+      "from_slug": "recipe-surgery-balance-tail",
+      "from_spoiler_tier": "none",
+      "from_title": "평형 꼬리 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-brain-assist",
+      "from_spoiler_tier": "none",
+      "from_title": "신경 보조기 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-heart-augmentation",
+      "from_spoiler_tier": "none",
+      "from_title": "전투 심장 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-heat-sac",
+      "from_spoiler_tier": "none",
+      "from_title": "열낭 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-hypha-core",
+      "from_spoiler_tier": "none",
+      "from_title": "균핵 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-night-eye",
+      "from_spoiler_tier": "none",
+      "from_title": "왼쪽 야간안 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-precision-hand",
+      "from_spoiler_tier": "none",
+      "from_title": "왼손 정밀 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from_kind": "recipe",
       "from_slug": "recipe-surgery-prosthetic-arm",
       "from_spoiler_tier": "none",
       "from_title": "철제 의수 조립",
@@ -30424,6 +31263,51 @@
       "from_slug": "recipe-surgery-prosthetic-leg",
       "from_spoiler_tier": "none",
       "from_title": "철제 의족 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-pseudopods",
+      "from_spoiler_tier": "none",
+      "from_title": "위족 보철 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-reinforced-torso",
+      "from_spoiler_tier": "none",
+      "from_title": "골격 보강 몸통 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-sprint-joint",
+      "from_spoiler_tier": "none",
+      "from_title": "수인 질주 관절 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-tail-balance-augmentation",
+      "from_spoiler_tier": "none",
+      "from_title": "코볼트 평형 꼬리 보강기 조립",
+      "label": "필요 조건",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from_kind": "recipe",
+      "from_slug": "recipe-surgery-wing",
+      "from_spoiler_tier": "none",
+      "from_title": "왼날개 보철 조립",
       "label": "필요 조건",
       "type": "requires"
     },

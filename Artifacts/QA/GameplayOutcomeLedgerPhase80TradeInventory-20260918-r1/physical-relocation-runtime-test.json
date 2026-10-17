@@ -1,0 +1,17 @@
+{
+  "schema": "trade-inventory-physical-relocation-runtime-test@1",
+  "status": "BLOCKED_BY_UNRELATED_COMPILE",
+  "candidate": "PhysicalItemRelocationReceipt",
+  "scenario": "TradeInventoryOutcomeDebugScenarios.RunAll",
+  "executed": false,
+  "unityVersion": "6000.3.8f1",
+  "unityMcpUsed": false,
+  "compileFailure": [
+    "Assets/Scripts/Models/Evolution/Equipment/EquipmentEvolutionModels.cs(125,17): CS0246 GameplayOutcomeEvidenceBindingSnapshot",
+    "Assets/Scripts/Models/Evolution/Core/EvolutionHistoryModels.cs(256,17): CS0246 GameplayOutcomeEvidenceBindingSnapshot"
+  ],
+  "failureOwnership": "outside phase80 trade-inventory owned files",
+  "logPath": "Artifacts/QA/GameplayOutcomeLedgerPhase80TradeInventory-20260918-r1/unity-focused.log",
+  "logSha256": "c4c4e8405ce53bb91e3866318f1de5980ec1d10e2d2affd8b5da79fb39b49459",
+  "verificationGate": "NOT_VERIFIED"
+}

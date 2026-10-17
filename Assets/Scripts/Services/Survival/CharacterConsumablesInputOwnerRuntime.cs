@@ -177,6 +177,18 @@ public sealed class CharacterConsumablesInputOwnerDescriptorSource :
                 && feature.useClass == SubstanceUseClass.Recreational)
             .OrderBy(value => value.ItemId, StringComparer.Ordinal)
             .ToArray();
+        ItemDefinitionSO[] medicalItems = catalog.All
+            .Where(value => value != null
+                && (value.StockCategory is StockCategory.Medicine
+                    or StockCategory.Biological
+                    || value.TryGetFeature(out MedicineItemFeature medicine)
+                    && medicine.detoxReduction > 0f
+                    && !float.IsNaN(medicine.detoxReduction)
+                    && !float.IsInfinity(medicine.detoxReduction)))
+            .GroupBy(value => value.ItemId, StringComparer.Ordinal)
+            .Select(group => group.First())
+            .OrderBy(value => value.ItemId, StringComparer.Ordinal)
+            .ToArray();
         List<CharacterConsumablesInputOwnerDescriptor> result = new();
         foreach (BuildableObject facility in (buildings
                      ?? Array.Empty<BuildableObject>())
@@ -206,6 +218,16 @@ public sealed class CharacterConsumablesInputOwnerDescriptorSource :
                     facilityId,
                     facility.centerPos,
                     recreationalItems);
+            }
+            if (facility.BuildingData?
+                    .GetAbility<BuildingMedicalAbility>() != null)
+            {
+                AddDescriptors(
+                    result,
+                    CharacterConsumablesInputKind.MedicalTreatment,
+                    facilityId,
+                    facility.centerPos,
+                    medicalItems);
             }
         }
         return result
@@ -441,16 +463,20 @@ public sealed class CharacterConsumablesInputOwnerLifecycleRuntime :
     private readonly ICharacterConsumablesInputOwnerDescriptorSource source;
     private readonly ICharacterConsumablesInputOwnerRuntime owners;
     private readonly IGameClock clock;
+    private readonly ISurvivalTreatmentTerminalMaintenance
+        treatmentMaintenance;
     private float nextReconcileAt;
 
     public CharacterConsumablesInputOwnerLifecycleRuntime(
         ICharacterConsumablesInputOwnerDescriptorSource source,
         ICharacterConsumablesInputOwnerRuntime owners,
-        IGameClock clock)
+        IGameClock clock,
+        ISurvivalTreatmentTerminalMaintenance treatmentMaintenance = null)
     {
         this.source = source ?? throw new ArgumentNullException(nameof(source));
         this.owners = owners ?? throw new ArgumentNullException(nameof(owners));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.treatmentMaintenance = treatmentMaintenance;
     }
 
     public void Start()
@@ -472,6 +498,10 @@ public sealed class CharacterConsumablesInputOwnerLifecycleRuntime :
 
     public void ReconcileOrThrow()
     {
+        // Terminal acknowledgement is retried on this existing bounded cadence.
+        // A transient failure retains the plan/receipt and must not turn into an
+        // exception every frame or block the input owner's physical release.
+        treatmentMaintenance?.TryReconcileLostTreatmentOwners(out _);
         if (!owners.TryReconcileLive(
                 source.BuildLiveInputOwnerDescriptors(),
                 CharacterConsumablesInputOwnerAuthority

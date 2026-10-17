@@ -170,7 +170,6 @@ MonoBehaviour:
         abilityId: BuildingWaterSourceAbility
         waterPerWork: 4
         workSeconds: 0.9
-        blockedByFreezingWeather: 1
     - rid: 7737211921440178480
       type: {class: BuildingVentilationAbility, ns: , asm: DungeonStory.Survival}
       data:

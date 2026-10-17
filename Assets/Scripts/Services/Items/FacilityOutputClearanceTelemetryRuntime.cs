@@ -32,6 +32,7 @@ public sealed class FacilityOutputClearanceTelemetryRuntime :
     private int restoreInterruptionCount;
     private bool captureActive;
     private string activeScenarioId = string.Empty;
+    private string lastObservationFailure = string.Empty;
 
     public bool IsCaptureActive => captureActive;
     public string ActiveScenarioId => activeScenarioId;
@@ -227,6 +228,18 @@ public sealed class FacilityOutputClearanceTelemetryRuntime :
         active.Remove(batchCommitId);
     }
 
+    public void RecordObservationFailure(string reason)
+    {
+        if (!captureActive)
+            return;
+        // Reuse the existing conflict gate: every consumer already rejects a
+        // session with this counter, including older portfolio serializers.
+        conflictingPublicationCount++;
+        lastObservationFailure = string.IsNullOrWhiteSpace(reason)
+            ? "output-clearance-observation-failed-without-reason"
+            : reason;
+    }
+
     public FacilityOutputClearanceTelemetrySnapshot Capture()
     {
         FacilityOutputClearanceSampleSnapshot[] ordered = completed
@@ -241,7 +254,8 @@ public sealed class FacilityOutputClearanceTelemetryRuntime :
             conflictingPublicationCount,
             overPickupCount,
             capacityExceededCount,
-            restoreInterruptionCount);
+            restoreInterruptionCount,
+            lastObservationFailure);
     }
 
     public void ValidateBeforeCapture()
@@ -272,6 +286,7 @@ public sealed class FacilityOutputClearanceTelemetryRuntime :
         overPickupCount = 0;
         capacityExceededCount = 0;
         restoreInterruptionCount = 0;
+        lastObservationFailure = string.Empty;
     }
 
     private sealed class ActiveBatch

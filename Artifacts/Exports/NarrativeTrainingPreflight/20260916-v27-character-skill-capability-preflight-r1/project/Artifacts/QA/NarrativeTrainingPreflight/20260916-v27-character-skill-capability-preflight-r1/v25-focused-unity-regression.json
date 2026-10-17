@@ -1,0 +1,126 @@
+{
+  "caseCount": 23,
+  "cases": [
+    {
+      "method": "VerifyPublicNarrativeContinuityContract",
+      "owner": "V25NarrativeInferenceDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyChoiceCanonicalizationAndGrammar",
+      "owner": "V25NarrativeInferenceDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyAcquiredTraitExactResponseContract",
+      "owner": "V25NarrativeInferenceDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyContextAwareScheduling",
+      "owner": "V25NarrativeInferenceDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyTypedEquipmentEvidence",
+      "owner": "V25NarrativeInferenceDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyEquipmentChoiceFallbackAudits",
+      "owner": "V25NarrativeInferenceDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyMechanicalNarrativeSeparation",
+      "owner": "V25NarrativeInferenceDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyMultiPerspectiveIdentity",
+      "owner": "V25NarrativeInferenceDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyMissingHostFailsClosed",
+      "owner": "V25NarrativeInferenceDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyCorruptModelFailsClosed",
+      "owner": "V25NarrativeInferenceDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyBundledLlamaCppBackendContract",
+      "owner": "V25NarrativeInferenceDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyCharacterSkillPublicSemanticsContract",
+      "owner": "V25NarrativeInferenceDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyCanonicalCatalogJsonParity",
+      "owner": "V25NarrativeInferenceDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyIndependentCatalogExportBytes",
+      "owner": "V25NarrativeInferenceDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyPermanentChoiceAndPersistence",
+      "owner": "CharacterProgressionDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyModuleValidation",
+      "owner": "CharacterProgressionDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyAcquiredTraitExperienceScore",
+      "owner": "CharacterProgressionDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyAcquiredTraitMilestoneLifecycle",
+      "owner": "CharacterProgressionDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyAuthoredAcquiredTraitEffectProjection",
+      "owner": "CharacterProgressionDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyAcquiredTraitAutomaticProducerResume",
+      "owner": "CharacterProgressionDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyAcquiredTraitWholeRootSaveRoundTrip",
+      "owner": "CharacterProgressionDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyMemoryErasureSealAtomicity",
+      "owner": "CharacterProgressionDebugScenarios",
+      "passed": true
+    },
+    {
+      "method": "VerifyLlmProposalFiltersIdsAndOrdersCandidates",
+      "owner": "FacilityEvolutionDebugScenarios",
+      "passed": true
+    }
+  ],
+  "catalogHash": "sha256:1df2c5a3c57634039c3ff1d9bd77692329205f0c463a1341c5112def43e2c14c",
+  "countUnit": "named focused methods (nested assertions not inflated into test counts)",
+  "failureCount": 0,
+  "humanApprovalClaimed": false,
+  "inputDigest": "sha256:36231ec549f97b53c3d0a33cd31386d818efaa79e8e36bd00d3ffb264c00c185",
+  "passed": true
+}

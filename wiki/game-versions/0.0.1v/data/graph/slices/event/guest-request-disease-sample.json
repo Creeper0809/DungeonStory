@@ -16,6 +16,17 @@
       "target_title": "동굴 독감 항원 표본",
       "to": "item/sample-antigen-cave-flu",
       "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/guest-request-disease-sample",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8876",
+      "target_spoiler_tier": "none",
+      "target_title": "백신 연구실",
+      "to": "facility/building-8876",
+      "type": "requires"
     }
   ],
   "schema_version": 1

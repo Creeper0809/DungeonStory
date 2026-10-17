@@ -43,6 +43,8 @@ MonoBehaviour:
   laysEggs: 0
   bodySize: 1
   manureIntervalDays: 2
+  productComfortMinimumTemperatureC: 5
+  productComfortMaximumTemperatureC: 30
   husbandryProducts: []
   authoringRevision: 1
   preySpeciesIds: []
@@ -52,6 +54,14 @@ MonoBehaviour:
   nestTag: nest:root-burrow
   breedingSeason: 0
   migrationPatternId: migration:soft-soil
+  migrationProfile:
+    capability: 2
+    detectionRadiusCells: 12
+    signalScore: 0
+    minimumWaterRemainingRatio: 0
+    minimumCarcassQuantity: 0
+    minimumTemperatureC: 0
+    maximumTemperatureC: 0
   diseaseVectorIds:
   - disease:deep-parasitosis
   activeSeasons: 0000000002000000

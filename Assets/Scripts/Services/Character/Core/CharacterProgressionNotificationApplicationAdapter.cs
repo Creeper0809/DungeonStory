@@ -81,7 +81,8 @@ public static class CharacterProgressionConstructionApplicationAdapter
             generationService,
             settingsProvider,
             new CharacterProgressionNotificationApplicationAdapter(gameEventBus),
-            profileProjector);
+            profileProjector,
+            gameEventBus);
     }
 }
 

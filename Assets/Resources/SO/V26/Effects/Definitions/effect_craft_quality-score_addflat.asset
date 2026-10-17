@@ -17,7 +17,7 @@ MonoBehaviour:
   targetId: craft:quality-score
   operation: 0
   projectionPhase: 0
-  allowedSources: 63
+  allowedSources: 191
   stackingPolicy: 0
   minimumResult: -3.4028235e+38
   maximumResult: 3.4028235e+38

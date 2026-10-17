@@ -14,6 +14,7 @@ internal sealed class CaptivityRestoreCoordinator
     private readonly IDoorAccessSubjectRegistry doorSubjects;
     private readonly ICaptivityEscortRestoreLifecycle escortRestore;
     private readonly IPhysicalItemBatchDispositionService batchDispositions;
+    private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
     private bool restoreTransactionActive;
     private bool restoreCandidatePrepared;
     private bool restorePublicationPending;
@@ -27,7 +28,8 @@ internal sealed class CaptivityRestoreCoordinator
         CaptivityActorAccess actors,
         IDoorAccessSubjectRegistry doorSubjects,
         ICaptivityEscortRestoreLifecycle escortRestore,
-        IPhysicalItemBatchDispositionService batchDispositions)
+        IPhysicalItemBatchDispositionService batchDispositions,
+        IRestoreWorldCandidateQuery restoreWorldCandidates)
     {
         this.worldRegistry = worldRegistry
             ?? throw new ArgumentNullException(nameof(worldRegistry));
@@ -44,6 +46,8 @@ internal sealed class CaptivityRestoreCoordinator
             ?? throw new ArgumentNullException(nameof(escortRestore));
         this.batchDispositions = batchDispositions
             ?? throw new ArgumentNullException(nameof(batchDispositions));
+        this.restoreWorldCandidates = restoreWorldCandidates
+            ?? throw new ArgumentNullException(nameof(restoreWorldCandidates));
     }
 
     internal string ParticipantId => RestoreParticipantId;
@@ -228,8 +232,23 @@ internal sealed class CaptivityRestoreCoordinator
         IReadOnlyList<CaptiveState> restored,
         DungeonGameRestoreReport report)
     {
-        Dictionary<string, CharacterActor> characters = worldRegistry
-            .AllCharacters
+        bool hasBuildings = restoreWorldCandidates.TryGetBuildings(
+            out IReadOnlyList<BuildableObject> candidateBuildings);
+        bool hasCharacters = restoreWorldCandidates.TryGetCharacters(
+            out IReadOnlyList<CharacterActor> candidateCharacters);
+        // BuildRestore also supports a standalone domain candidate against
+        // the unchanged current world. Once either incoming world is indexed,
+        // both must be available: never mix incoming and live references.
+        if (hasBuildings != hasCharacters)
+        {
+            report.AddError("Captivity restore requires complete detached facility and character worlds; live references cannot substitute a missing incoming candidate.");
+            return;
+        }
+        IEnumerable<CharacterActor> characterSource = hasCharacters
+            ? candidateCharacters : worldRegistry.AllCharacters;
+        IEnumerable<BuildableObject> buildingSource = hasBuildings
+            ? candidateBuildings : worldRegistry.Buildings;
+        Dictionary<string, CharacterActor> characters = characterSource
             .Where(actor => actor != null)
             .GroupBy(
                 actor => CharacterPersistentIdentity.Require(actor).Value,
@@ -238,7 +257,7 @@ internal sealed class CaptivityRestoreCoordinator
                 group => group.Key,
                 group => group.First(),
                 StringComparer.Ordinal);
-        Dictionary<string, BuildableObject> buildings = worldRegistry.Buildings
+        Dictionary<string, BuildableObject> buildings = buildingSource
             .Where(building => building != null
                 && !building.isDestroy
                 && building.PersistentInstanceId.IsValid)

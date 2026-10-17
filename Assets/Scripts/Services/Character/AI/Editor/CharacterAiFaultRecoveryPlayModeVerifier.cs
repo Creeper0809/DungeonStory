@@ -282,6 +282,20 @@ public sealed class CharacterAiFaultRecoveryPlayModeRunner : MonoBehaviour
     private int failuresAtScenarioStart;
     private int selectedScenarioCount;
 
+    private string isolatedEvidenceDirectory;
+    public void ConfigureIsolatedEvidence(string directory)
+    {
+        if (runActive || !Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification)
+            throw new InvalidOperationException("Isolated AI evidence must be bound before the owned batch runner starts.");
+        string path = Path.GetFullPath(directory ?? throw new ArgumentNullException(nameof(directory)));
+        if (!path.StartsWith(Path.GetFullPath("Artifacts/QA") + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+            || !Directory.Exists(path) || Directory.EnumerateFileSystemEntries(path).Any())
+            throw new InvalidOperationException("Isolated AI evidence requires a new empty directory beneath project QA.");
+        isolatedEvidenceDirectory = path;
+    }
+    private string ResolveReportPath(string original) => isolatedEvidenceDirectory == null
+        ? original : Path.Combine(isolatedEvidenceDirectory, Path.GetFileName(original));
+
     public void ConfigureSelector(string value, bool exitPlayModeWhenDone = false)
     {
         selector = string.IsNullOrWhiteSpace(value)
@@ -462,14 +476,42 @@ public sealed class CharacterAiFaultRecoveryPlayModeRunner : MonoBehaviour
         }
 
         long actionStartsBefore = brain.RuntimeActionStartCount;
-        yield return PrepareAction(primary, "repath");
-        AIAction committed = brain.bestAction;
-        long repathsBefore = move.RuntimeActionPathReplanCount;
-        long pathFailuresBefore = move.RuntimeActionPathFailureCount;
-        Vector2Int start = subject.GetNowXY();
-
-        FaultWallOccupant blocker = AddWall(corridor.LowerBlock, "repath-blocker");
-        gridSystem.NotifyGridObjectChanged();
+        AIAction committed = null;
+        long repathsBefore = 0;
+        long pathFailuresBefore = 0;
+        Vector2Int start = default;
+        FaultWallOccupant blocker = null;
+        yield return PrepareAction(primary, "repath", () =>
+        {
+            committed = brain.bestAction;
+            repathsBefore = move.RuntimeActionPathReplanCount;
+            pathFailuresBefore = move.RuntimeActionPathFailureCount;
+            start = subject.GetNowXY();
+            string boundary = "position=" + start
+                + "; world=" + subject.transform.position
+                + "; block=" + corridor.LowerBlock + "; target=" + corridor.Primary
+                + "; starts=" + actionStartsBefore + "->" + brain.RuntimeActionStartCount
+                + "; moving=" + move.HasActiveMovementRoutineForDiagnostics
+                + "; phase=" + brain.CurrentActionPhase
+                + "; path=" + string.Join("|", committed.pathSteps.Select(step => step.From + "->" + step.To));
+            bool beforeBlock = start == corridor.Start
+                && committed.pathSteps.Any(step => step.To == corridor.LowerBlock);
+            Check(beforeBlock, "REPATH_FAULT_BEFORE_BLOCK", boundary);
+            if (!beforeBlock)
+                return;
+            // Inject before returning from the observed-start iterator. Waiting
+            // for its parent to resume adds a frame in which this two-cell
+            // route can already cross the cell the test intends to invalidate.
+            blocker = AddWall(corridor.LowerBlock, "repath-blocker");
+            gridSystem.NotifyGridObjectChanged();
+        });
+        if (blocker == null)
+        {
+            Check(false, "REPATH_FAULT_INJECTED", "The committed route was not observed before its blocked step.");
+            DestroyFacility(primary);
+            yield return ResetBetweenScenarios();
+            yield break;
+        }
         bool switched = false;
         int abaOscillations = 0;
         Vector2Int previous = start;
@@ -490,6 +532,10 @@ public sealed class CharacterAiFaultRecoveryPlayModeRunner : MonoBehaviour
             }
             previousPrevious = previous;
             previous = current;
+            // Arrival is this row's terminal observation. An extra frame can
+            // complete the short Rest use and start a separate valid action.
+            if (reachedTarget)
+                break;
             yield return null;
         }
 
@@ -1128,11 +1174,34 @@ public sealed class CharacterAiFaultRecoveryPlayModeRunner : MonoBehaviour
         }
     }
 
+    private string CaptureDestinationlessEligibility(AIAction action)
+    {
+        bool hasWork = CharacterWorkRoleUtility.TryGetWork(subject, out AbilityWork work);
+        AbilityShopping shopping = subject.GetAbility<AbilityShopping>();
+        return $"canStart={action.actionset.CanStart(subject)}; hasWork={hasWork}; "
+            + $"offDuty={work?.IsOffDuty}; visitCount={shopping?.visitCount}; "
+            + $"lookAroundCount={shopping?.lookAroundCount}; canLookAround={shopping?.CanLookAround()}; actualVisitable={shopping?.IsThereVisitableBuilding()}";
+    }
+
     private void PrepareLookAroundState()
     {
         AbilityShopping shopping = subject.GetAbility<AbilityShopping>();
-        shopping?.RestorePersistentState(1, 0, 0);
-        shopping?.RecordVisitableFacilitySearchResult(false);
+        RequireLookAroundShopping(shopping);
+        shopping.RestorePersistentState(1, 0, 0);
+        // This row requires no eligible visit. A forced cached miss expires as
+        // the real facility index advances, so prepare the authoritative visit
+        // history instead of supplying a fabricated search result.
+        foreach (BuildableObject building in subject.WorldRegistry.Buildings)
+            shopping.RegisterAvoidedVisit(building);
+        bool hasVisitableBuilding = shopping.IsThereVisitableBuilding();
+        Check(!hasVisitableBuilding, "LOOK_AROUND_NO_ELIGIBLE_VISIT",
+            $"visited={shopping.visitedBuilding.Count}; actualVisitable={hasVisitableBuilding}");
+        shopping.RecordVisitableFacilitySearchResult(hasVisitableBuilding);
+    }
+
+    private static void RequireLookAroundShopping(AbilityShopping shopping)
+    {
+        if (shopping == null) throw new InvalidOperationException("Look-around fixture requires shopping ability.");
     }
 
     private void PrepareExitDungeonState()
@@ -1512,6 +1581,7 @@ public sealed class CharacterAiFaultRecoveryPlayModeRunner : MonoBehaviour
         CharacterAiRuntimeGateSnapshot gateBefore = brain.CaptureRuntimeGateSnapshot();
         try
         {
+            checks.Add(prefix + "_INITIAL_ELIGIBILITY: " + CaptureDestinationlessEligibility(authoredAction));
             PreferDestinationlessAction(authoredAction.actionset);
             brain.RequestImmediateReplan(clearFailures: true);
             float startDeadline = Time.realtimeSinceStartup + ActionStartTimeoutRealtime;
@@ -1531,6 +1601,16 @@ public sealed class CharacterAiFaultRecoveryPlayModeRunner : MonoBehaviour
                     break;
                 }
                 yield return null;
+            }
+            if (!productionStarted)
+            {
+                productionDetail = CaptureDestinationlessEligibility(authoredAction) + "; "
+                    + $"starts={startsBefore}->{brain.RuntimeActionStartCount}; "
+                    + $"terminals={gateBefore.ActionTerminals}->{brain.CaptureRuntimeGateSnapshot().ActionTerminals}; "
+                    + $"deferredCalls={faultBroker.DeferredCalls}; failure={brain.LastActionFailure.Kind}/{brain.LastActionFailure.Reason}; "
+                    + $"movementOwner={move.ActiveMovementOperationOwnerForDiagnostics}; "
+                    + $"cancel={move.LastMovementCancellationSourceForDiagnostics}; "
+                    + brain.GetDebugSummary(1);
             }
             Check(productionStarted,
                 prefix + "_PRODUCTION_PIPELINE_SELECTED",
@@ -1840,38 +1920,47 @@ public sealed class CharacterAiFaultRecoveryPlayModeRunner : MonoBehaviour
         yield return ResetBetweenScenarios();
     }
 
-    private IEnumerator PrepareAction(BuildableObject expectedDestination, string label)
+    private IEnumerator PrepareAction(BuildableObject expectedDestination, string label, Action onStarted = null)
     {
-        NeutralizeSubjectAndEndPrimitiveFallback();
-        brain.StopCurrentActionForReplan("fault-verifier-reset-" + label);
-        move.CancelActiveMovement();
-        subject.transform.position = grid.GetWorldPos(corridor.Start);
-        // Facility publication and the incremental candidate cache are frame
-        // driven. Keep all primitive needs neutral until the authored Rest
-        // facility is observable by the real decision pipeline.
-        float publicationDeadline = Time.realtimeSinceStartup +
-            ActionStartTimeoutRealtime;
-        while (Time.realtimeSinceStartup < publicationDeadline)
+        bool wasAiPaused = subject.IsAiPaused();
+        subject.SetAiPaused(true);
+        long setupStarts = brain.RuntimeActionStartCount;
+        try
         {
-            IReadOnlyList<BuildableObject> candidates =
-                facilityCandidates.GetCandidates(grid, FacilityRole.Rest);
-            if (candidates.Any(candidate =>
-                    ReferenceEquals(candidate, expectedDestination)))
+            NeutralizeSubjectAndEndPrimitiveFallback();
+            brain.StopAllAiForLifecycleTransition("fault-verifier-reset-" + label);
+            subject.GetAbility<AbilityWork>()?.StopAssignedWorkFromAi("fault-verifier-reset-" + label);
+            subject.GetAbility<AbilityShopping>()?.StopShopping("fault-verifier-reset-" + label);
+            move.CancelActiveMovement();
+            subject.transform.position = grid.GetWorldPos(corridor.Start);
+            checks.Add("ACTION_RESET_BOUNDARY " + label + ": starts=" + brain.RuntimeActionStartCount
+                + "; position=" + subject.GetNowXY() + "; phase=" + brain.CurrentActionPhase);
+            // Index publication is frame driven. Retire existing owners and
+            // pause decisions until the scenario's own demand is ready, so a
+            // prior/restore activity cannot move the subject during setup.
+            float publicationDeadline = Time.realtimeSinceStartup + ActionStartTimeoutRealtime;
+            while (Time.realtimeSinceStartup < publicationDeadline)
             {
-                break;
+                IReadOnlyList<BuildableObject> candidates = facilityCandidates.GetCandidates(grid, FacilityRole.Rest);
+                if (candidates.Any(candidate => ReferenceEquals(candidate, expectedDestination)))
+                    break;
+                facilityCandidates.AdvanceIndex(1.0);
+                yield return null;
             }
-
-            facilityCandidates.AdvanceIndex(1.0);
-            yield return null;
+            Check(facilityCandidates.GetCandidates(grid, FacilityRole.Rest)
+                    .Any(candidate => ReferenceEquals(candidate, expectedDestination)),
+                "FACILITY_PUBLISHED_" + label.ToUpperInvariant(), Describe(expectedDestination));
+            Check(subject.GetNowXY() == corridor.Start && brain.RuntimeActionStartCount == setupStarts,
+                "ACTION_SETUP_STATIONARY_" + label.ToUpperInvariant(),
+                "position=" + subject.GetNowXY() + "; expected=" + corridor.Start
+                    + "; starts=" + setupStarts + "->" + brain.RuntimeActionStartCount);
+            SetNeutralNeedsWithUrgentSleep();
+            checks.Add("ACTION_PUBLICATION_BOUNDARY " + label + ": starts=" + brain.RuntimeActionStartCount
+                + "; position=" + subject.GetNowXY() + "; phase=" + brain.CurrentActionPhase);
+            brain.PreferActionOnNextDecision<AIRest>(180f);
+            brain.RequestImmediateReplan(clearFailures: true);
         }
-        Check(
-            facilityCandidates.GetCandidates(grid, FacilityRole.Rest)
-                .Any(candidate => ReferenceEquals(candidate, expectedDestination)),
-            "FACILITY_PUBLISHED_" + label.ToUpperInvariant(),
-            Describe(expectedDestination));
-        SetNeutralNeedsWithUrgentSleep();
-        brain.PreferActionOnNextDecision<AIRest>(180f);
-        brain.RequestImmediateReplan(clearFailures: true);
+        finally { subject.SetAiPaused(wasAiPaused); }
 
         float deadline = Time.realtimeSinceStartup + ActionStartTimeoutRealtime;
         while (Time.realtimeSinceStartup < deadline)
@@ -1883,6 +1972,7 @@ public sealed class CharacterAiFaultRecoveryPlayModeRunner : MonoBehaviour
                 && (string.Equals(brain.CurrentActionPhase, "이동", StringComparison.Ordinal)
                     || subject.GetNowXY() != corridor.Start))
             {
+                onStarted?.Invoke();
                 yield break;
             }
             yield return null;
@@ -2811,6 +2901,7 @@ public sealed class CharacterAiFaultRecoveryPlayModeRunner : MonoBehaviour
         {
             string primaryPath = CharacterAiFaultRecoveryPlayModeVerifier
                 .GetReportPathForSelector(selector);
+            primaryPath = ResolveReportPath(primaryPath);
             bool passed = ScopePassed(selector);
             Debug.Log($"Character AI fault recovery verification "
                 + $"{(passed ? "PASS" : "FAIL")}: {primaryPath}");
@@ -2822,6 +2913,7 @@ public sealed class CharacterAiFaultRecoveryPlayModeRunner : MonoBehaviour
         string reportPath,
         bool final)
     {
+        reportPath = ResolveReportPath(reportPath);
         IReadOnlyList<string> expectedRows =
             CharacterAiFaultRecoveryPlayModeVerifier
                 .GetExpectedRowsForSelector(reportSelector);

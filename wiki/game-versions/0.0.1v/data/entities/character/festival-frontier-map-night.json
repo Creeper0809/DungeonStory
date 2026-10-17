@@ -5,6 +5,15 @@
   "kind": "character",
   "relations": [
     {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1047",
+      "target_spoiler_tier": "none",
+      "target_title": "전술지도탁자",
+      "type": "requires"
+    },
+    {
       "amount": "8",
       "label": "필요 조건",
       "target_kind": "item",

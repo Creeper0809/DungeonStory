@@ -1,0 +1,4 @@
+WIM009 seasonal wildlife arrival rules/authoring
+scope=real catalog plus isolated campaign planning/save/expiry; live grid materialization, capture, death, AI behavior, alert merge, and full save coordinator NOT_RUN
+result=PASS
+passed=2; occurrences=4; predatorCounts=2,3; nonHostileCounts=3,2; immutablePlan=true; replayDuplicate=0; currentSaveVersion=3

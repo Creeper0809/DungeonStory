@@ -209,11 +209,136 @@ public sealed class DefenseEngagementSaveData
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class OwnerEvacuationSaveSnapshot
 {
+    public const int ResidentContractVersion = 2;
+
     public bool active;
     public int targetX;
     public int targetY;
     public bool usedAdministrationRoom;
     public string statusText = string.Empty;
+    public ResidentEvacuationZoneSaveData residentZone =
+        new ResidentEvacuationZoneSaveData();
+    public List<ResidentEvacuationParticipantSaveData> residentParticipants =
+        new List<ResidentEvacuationParticipantSaveData>();
+    public int residentContractVersion = ResidentContractVersion;
+    public long nextResidentEvacuationRequestSequence = 1L;
+    public List<ResidentEvacuationTerminalSaveData> pendingResidentOutcomes =
+        new List<ResidentEvacuationTerminalSaveData>();
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum ResidentEvacuationZoneStatus
+{
+    None = 0,
+    Active = 1,
+    LostByTopology = 2
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum ResidentEvacuationParticipantStatus
+{
+    PendingRoute = 0,
+    Moving = 1,
+    Holding = 2,
+    PreemptedEmergency = 3,
+    Unreachable = 4,
+    NoCapacity = 5
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum ResidentEvacuationInitiationKind
+{
+    Manual = 1,
+    Automatic = 2,
+    LegacyRestore = 3
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum ResidentEvacuationThreatKind
+{
+    Invasion = 1,
+    Fire = 2,
+    InvasionAndFire = 3
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum ResidentEvacuationTerminalKind
+{
+    None = 0,
+    Arrived = 1,
+    NoCapacity = 2,
+    Unreachable = 3,
+    ThreatEnded = 4,
+    ZoneCleared = 5,
+    ZoneLost = 6,
+    ReplacedByRequest = 7,
+    ResidentUnavailable = 8
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class ResidentEvacuationRoomCellSpanSaveData
+{
+    public int y;
+    public int startX;
+    public int length;
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class ResidentEvacuationZoneSaveData
+{
+    public ResidentEvacuationZoneStatus status;
+    public int anchorX;
+    public int anchorY;
+    public List<ResidentEvacuationRoomCellSpanSaveData> cellSpans =
+        new List<ResidentEvacuationRoomCellSpanSaveData>();
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class ResidentEvacuationParticipantSaveData
+{
+    public string characterId = string.Empty;
+    public ResidentEvacuationParticipantStatus status;
+    public int targetX;
+    public int targetY;
+    public string operationId = string.Empty;
+    public string requestGroupId = string.Empty;
+    public string characterDisplayName = string.Empty;
+    public ResidentEvacuationInitiationKind initiationKind;
+    public ResidentEvacuationThreatKind threatKind;
+    public int requestedAbsoluteDay;
+    public int originX;
+    public int originY;
+    public List<string> intruderRuntimeIds = new List<string>();
+    public List<string> fireCells = new List<string>();
+    public bool terminalOutcomeQueued;
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class ResidentEvacuationTerminalSaveData
+{
+    public string operationId = string.Empty;
+    public string requestGroupId = string.Empty;
+    public long ownerRevision = 1L;
+    public string characterId = string.Empty;
+    public string characterDisplayName = string.Empty;
+    public ResidentEvacuationInitiationKind initiationKind;
+    public ResidentEvacuationThreatKind threatKind;
+    public ResidentEvacuationTerminalKind terminalKind;
+    public List<string> intruderRuntimeIds = new List<string>();
+    public List<string> fireCells = new List<string>();
+    public int requestedAbsoluteDay;
+    public int terminalAbsoluteDay;
+    public int originX;
+    public int originY;
+    public bool hasTarget;
+    public int targetX;
+    public int targetY;
+    public int finalX;
+    public int finalY;
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

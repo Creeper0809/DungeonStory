@@ -3,6 +3,7 @@ using UnityEngine;
 
 public static class CropHarvestOutputRules
 {
+    public const int MaximumSeasonalPrimaryBatchLossPercent = 10;
     public const string PerformanceFormulaId =
         "performance:work:harvest:yield";
     public const string SeedYieldEffectTargetId = "harvest:seed-yield";
@@ -63,6 +64,23 @@ public static class CropHarvestOutputRules
                 returnedSeedCount * extremeSeedMultiplier))
             + (hasSeedSelection ? SeedSelectionBonus : 0));
     }
+
+    public static int ResolvePrimaryBatchLoss(
+        int primaryBatchQuantity,
+        int lossPercent)
+    {
+        if (primaryBatchQuantity < 0)
+            throw new ArgumentOutOfRangeException(nameof(primaryBatchQuantity));
+        if (lossPercent is < 0 or > MaximumSeasonalPrimaryBatchLossPercent)
+            throw new ArgumentOutOfRangeException(nameof(lossPercent));
+        return checked((int)((long)primaryBatchQuantity * lossPercent / 100L));
+    }
+
+    public static int ApplyPrimaryBatchLoss(
+        int primaryBatchQuantity,
+        int lossPercent) => checked(
+        primaryBatchQuantity
+        - ResolvePrimaryBatchLoss(primaryBatchQuantity, lossPercent));
 
     private static bool FinitePositive(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value) && value > 0f;

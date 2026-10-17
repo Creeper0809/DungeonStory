@@ -227,11 +227,8 @@ public sealed class WorkDutyController
             if (IsOffDuty)
             {
                 SetDutyState(AbilityWork.DutyState.OnDuty);
-                actor?.AddActivity(CharacterActivityEvent.Create(
-                    CharacterActivityKinds.Duty,
-                    CharacterActivityOutcomes.Responded,
-                    "비번 중 제압 명령 대응",
-                    actionId: "command:suppress"));
+                WorkControlChangedEvent.Publish(work, actor,
+                    WorkControlTransition.DutySuppressionResumed);
             }
 
             return true;
@@ -247,11 +244,8 @@ public sealed class WorkDutyController
             if (IsOffDuty)
             {
                 SetDutyState(AbilityWork.DutyState.OnDuty);
-                actor?.AddActivity(CharacterActivityEvent.Create(
-                    CharacterActivityKinds.Duty,
-                    CharacterActivityOutcomes.Responded,
-                    "비번 중 우선 작업 대응",
-                    actionId: "command:priority-work"));
+                WorkControlChangedEvent.Publish(work, actor,
+                    WorkControlTransition.DutyPriorityWorkResumed);
             }
 
             return true;
@@ -270,12 +264,8 @@ public sealed class WorkDutyController
             if (ShouldReturnToWork())
             {
                 SetDutyState(AbilityWork.DutyState.OnDuty);
-                actor?.AddActivity(CharacterActivityEvent.Create(
-                    CharacterActivityKinds.Duty,
-                    CharacterActivityOutcomes.Returned,
-                    "근무 복귀",
-                    reasonCode: "condition-recovered",
-                    sentiment: 0.3f));
+                WorkControlChangedEvent.Publish(work, actor,
+                    WorkControlTransition.DutyConditionRecovered);
                 return true;
             }
 
@@ -349,14 +339,8 @@ public sealed class WorkDutyController
         SetDutyState(AbilityWork.DutyState.OffDuty);
         if (!wasOffDuty)
         {
-            actor.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Duty,
-                CharacterActivityOutcomes.Departed,
-                string.IsNullOrWhiteSpace(reason)
-                    ? "비번 시작"
-                    : $"비번 시작: {reason}",
-                reasonCode: reason,
-                sentiment: -0.2f));
+            WorkControlChangedEvent.Publish(work, actor,
+                WorkControlTransition.DutyOffDutyStarted, detail: reason);
         }
 
         if (!wasOffDuty && actor.TryGetAbility(out AbilityShopping shopping))
@@ -370,11 +354,8 @@ public sealed class WorkDutyController
         work.ReleaseAssignedWorkTarget();
         work.ClearPriorityWorkTarget();
         SetDutyState(AbilityWork.DutyState.OnDuty);
-        work.WorkerActor?.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Duty,
-            CharacterActivityOutcomes.Changed,
-            "원정 준비: 작업 해제",
-            reasonCode: "expedition-preparation"));
+        WorkControlChangedEvent.Publish(work, work.WorkerActor,
+            WorkControlTransition.DutyExpeditionPrepared);
     }
 
     public void SetDutyState(AbilityWork.DutyState nextState)
@@ -495,14 +476,16 @@ public sealed class WorkDutyController
             if (!CanContinueAssignedWork(out string stopReason))
             {
                 endReason = stopReason;
-                WorkDebugLog.LogEnd(actor, stopReason);
+                WorkControlChangedEvent.PublishAssigned(actor,
+                    WorkControlTransition.AssignedWorkStopped, stopReason);
                 break;
             }
 
             if (ShouldInterruptCurrentWork(out string interruptReason))
             {
                 endReason = interruptReason;
-                WorkDebugLog.LogEnd(actor, interruptReason);
+                WorkControlChangedEvent.PublishAssigned(actor,
+                    WorkControlTransition.AssignedWorkStopped, interruptReason);
                 break;
             }
 
@@ -519,12 +502,10 @@ public sealed class WorkDutyController
             {
                 LastWorkRunCompleted = true;
                 endReason = routineShiftReason;
-                WorkDebugLog.LogEnd(actor, $"근무 교대 · {routineShiftReason}");
-                actor.AddActivity(CharacterActivityEvent.Create(
-                    CharacterActivityKinds.Duty,
-                    CharacterActivityOutcomes.Changed,
-                    $"근무 교대: {routineShiftReason}",
-                    reasonCode: routineShiftReason));
+                WorkControlChangedEvent.PublishAssigned(actor,
+                    WorkControlTransition.RoutineShiftFinished, routineShiftReason);
+                WorkControlChangedEvent.Publish(work, actor,
+                    WorkControlTransition.DutyShiftEnded, detail: routineShiftReason);
                 work.BeginRoutineWorkCooldown(work.AssignedWorkTypeId);
                 break;
             }
@@ -542,7 +523,8 @@ public sealed class WorkDutyController
         if (string.IsNullOrWhiteSpace(endReason))
         {
             const string externalStopReason = "외부 작업 상태 해제";
-            WorkDebugLog.LogEnd(actor, externalStopReason);
+            WorkControlChangedEvent.PublishAssigned(actor,
+                WorkControlTransition.AssignedWorkStopped, externalStopReason);
         }
 
         work.ClearActiveWorkCheckRoutine(runId);
@@ -645,6 +627,12 @@ public sealed class WorkDutyController
         return false;
     }
 
+    internal bool RequiresRoutineNeedRecovery(CharacterCondition condition)
+    {
+        return routineNeedBlockingWorkStart == condition
+            && !CharacterNeedAiThresholds.IsSatisfied(work.WorkerActor, condition);
+    }
+
     private bool ShouldInterruptForRoutineNeed(
         CharacterCondition condition,
         string reason,
@@ -693,12 +681,8 @@ public sealed class WorkDutyController
         brain?.PreferWorkActionOnNextDecision(
             resumeWorkTypeId,
             persistenceSeconds: 30f);
-        work.WorkerActor?.AddActivity(CharacterActivityEvent.Work(
-            resumeWorkTypeId,
-            CharacterActivityOutcomes.Returned,
-            "생리 욕구를 해결해 중단했던 작업으로 복귀 준비",
-            resumeTarget,
-            reasonCode: "routine-need-resume"));
+        WorkControlChangedEvent.Publish(work, work.WorkerActor,
+            WorkControlTransition.DutyRoutineNeedResumed, resumeWorkTypeId, resumeTarget);
         return true;
     }
 

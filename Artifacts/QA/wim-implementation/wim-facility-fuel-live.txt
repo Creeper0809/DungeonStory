@@ -1,0 +1,7 @@
+[PASS] actual AI pickup/carry/exact buffer1; source=(26, 0); target=(30, 0); consumed=0; chargeA/B=0; gameSeconds=17.85758; wallSeconds=8.620939
+[PASS] delivered pre-work current full-world JSON restore preserves exact buffer/quantity and zero A/B charge
+[PASS] actual priority Refuel completion1; operation+1/ACK; fuel-1; A=180; B=0; gameSeconds=2.921167; wallSeconds=1.385169
+[PASS] terminal current full-world restore exact; actual clock local-charge drain; no second fuel debit or B activation
+result=PASS
+scope=actual owner/party UI, authored E01, separated physical AI haul and priority Refuel, current full-world JSON; placement/healthy staff/initial stock/request/typed next action are controlled; not natural priority, full-day fuel balance, pending-ACK fault injection or six-adult proof
+cleanup=operator stops disposable Play; no scene/user persistence writes

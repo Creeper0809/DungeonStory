@@ -17,6 +17,7 @@ public interface IProductionBillQuery
 public interface IProductionBillOrderCommand :
     IProductionDistributionPolicyCommand
 {
+    ProductionBillCommandResult SetMinimumCraftQuality(ProductionBillId billId, int minimumTier);
     ProductionBillCommandResult AddBill(
         BuildableObject facility,
         string recipeId,
@@ -144,6 +145,22 @@ public interface IProductionOutputHandler : IProductionOutputCapability
     bool TryProduce(
         ProductionOutputContext context,
         out string failureReason);
+}
+
+/// <summary>
+/// Only outputs with a crafting grade implement this projection. A medical
+/// performance multiplier or a definition-only output is not a crafting score.
+/// The returned modifier is frozen in the existing resolved-output authority.
+/// </summary>
+public interface IProductionCraftQualityCeilingCapability
+{
+    float ApplyCraftQualityCeiling(float qualityModifier, float maximumScore);
+}
+
+/// <summary>Exact deterministic grade, using the same rules as physical publication.</summary>
+public interface IProductionDeterministicCraftQualityCapability
+{
+    int ResolveCraftQualityTier(float qualityModifier, float maximumScore);
 }
 
 public interface IProductionOutputCapabilityRegistry

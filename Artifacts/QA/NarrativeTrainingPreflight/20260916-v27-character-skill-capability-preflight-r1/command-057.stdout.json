@@ -1,0 +1,32 @@
+{
+  "success": true,
+  "command": "job wait",
+  "data": {
+    "jobId": "9ef284b0a2894d309cb4a3cf10d61c8f",
+    "command": "eval",
+    "state": "completed",
+    "cancellationRequested": false,
+    "result": {
+      "output": null,
+      "diagnostics": [],
+      "success": true,
+      "command": "eval",
+      "result": {
+        "directory": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Artifacts\\Exports\\NarrativeMechanicCatalog\\20260916-v27-character-skill-capability-preflight-r1",
+        "inputDigest": "sha256:36231ec549f97b53c3d0a33cd31386d818efaa79e8e36bd00d3ffb264c00c185",
+        "catalogHash": "sha256:1df2c5a3c57634039c3ff1d9bd77692329205f0c463a1341c5112def43e2c14c",
+        "trainingEligible": false
+      },
+      "executionTimeMs": 14689,
+      "message": null,
+      "error": null,
+      "errorDetails": null,
+      "executedAt": "2026-09-15T15:13:36.3556635Z"
+    },
+    "error": null,
+    "errorDetails": null,
+    "progress": null
+  },
+  "errors": [],
+  "warnings": []
+}

@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
+using VContainer;
 
 public interface IPaidFacilityContractRuntime : IBuildingPaidFacilityContractPort
 {
     int ForecastCost(int days);
+    int GetDailyCost(string facilityPersistentId);
     int SettleDay(int day);
     IReadOnlyList<PaidFacilityContractState> Contracts { get; }
     PaidFacilityContractState GetContract(BuildableObject facility);
@@ -346,6 +349,24 @@ public sealed class PaidFacilityContractRuntime : IPaidFacilityContractRuntime
             * Mathf.Max(0, days);
     }
 
+    public int GetDailyCost(string facilityPersistentId)
+    {
+        if (string.IsNullOrWhiteSpace(facilityPersistentId))
+        {
+            throw new ArgumentException(
+                "Facility persistent identity is required.",
+                nameof(facilityPersistentId));
+        }
+        PaidFacilityContractState contract = contracts.FirstOrDefault(value =>
+            value != null
+            && value.active
+            && string.Equals(
+                value.facilityPersistentId,
+                facilityPersistentId,
+                StringComparison.Ordinal));
+        return contract == null ? 0 : ResolveDailyCost(contract.dailyCost);
+    }
+
     public int SettleDay(int day)
     {
         int paid = 0;
@@ -623,10 +644,17 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
     private readonly IRunVariableRuntimeReader runVariables;
     private readonly AutoProcurementStockDependencies stock;
     private readonly TreasuryEconomyAggregateStateStore stateStore;
+    private readonly IDomainFactPublisher domainFacts;
+    private readonly IGameSessionStateStore gameSessionState;
+    private IFacilityShopFulfillmentQuery fulfillmentQuery;
+    private int activeProcessDurableBoundaryCount;
+    private bool processingRefresh;
 
     private List<AutoProcurementRule> stockRules => stateStore.Current.StockRules;
     private List<ProcurementWishlistRule> wishlistRules => stateStore.Current.WishlistRules;
     private List<AutoProcurementResult> lastResults => stateStore.Current.ProcurementResults;
+    private List<AutoProcurementParentSaveData> parentResults =>
+        stateStore.Current.ProcurementParents;
     private HashSet<string> processedOfferKeys => stateStore.Current.ProcessedOfferKeys;
     private int dailyBudget
     {
@@ -650,6 +678,26 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
         IRunVariableRuntimeReader runVariables,
         AutoProcurementStockDependencies stock,
         TreasuryEconomyAggregateStateStore stateStore)
+        : this(
+            gameDataProvider,
+            finance,
+            runVariables,
+            stock,
+            stateStore,
+            domainFacts: null,
+            gameSessionState: null)
+    {
+    }
+
+    [Inject]
+    public AutoProcurementRuntime(
+        IGameSessionStateProvider gameDataProvider,
+        AutoProcurementFinancialDependencies finance,
+        IRunVariableRuntimeReader runVariables,
+        AutoProcurementStockDependencies stock,
+        TreasuryEconomyAggregateStateStore stateStore,
+        IDomainFactPublisher domainFacts,
+        IGameSessionStateStore gameSessionState)
     {
         this.gameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
@@ -661,6 +709,8 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
             ?? throw new ArgumentNullException(nameof(stock));
         this.stateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
+        this.domainFacts = domainFacts;
+        this.gameSessionState = gameSessionState;
     }
 
     public int DailyBudget => dailyBudget;
@@ -672,6 +722,18 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
     public IReadOnlyList<AutoProcurementRule> StockRules => stockRules;
     public IReadOnlyList<ProcurementWishlistRule> WishlistRules => wishlistRules;
     public IReadOnlyList<AutoProcurementResult> LastResults => lastResults;
+
+    [Inject]
+    public void ConstructFulfillmentQuery(
+        ProgressionSceneRuntimeReferences progressionRuntimes)
+    {
+        fulfillmentQuery = progressionRuntimes?.BlueprintResearch
+            ?? throw new ArgumentNullException(nameof(progressionRuntimes));
+    }
+
+    public void SetFulfillmentQuery(IFacilityShopFulfillmentQuery query) =>
+        fulfillmentQuery = query
+            ?? throw new ArgumentNullException(nameof(query));
 
     public void ConfigureBudget(int dailyBudget, int minimumReserve)
     {
@@ -718,37 +780,90 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
         IReadOnlyList<FacilityShopOffer> dailyOffers,
         DailyFacilityShopRuntime shopRuntime)
     {
+        if (processingRefresh)
+            throw new InvalidOperationException("Auto-procurement refresh is already active.");
+        processingRefresh = true;
+        try { ProcessShopRefreshCore(day, dailyOffers, shopRuntime); }
+        finally { processingRefresh = false; }
+    }
+
+    private void ProcessShopRefreshCore(
+        int day,
+        IReadOnlyList<FacilityShopOffer> dailyOffers,
+        DailyFacilityShopRuntime shopRuntime)
+    {
         int refreshDay = Mathf.Max(1, day);
+        if (domainFacts == null || gameSessionState == null)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(AutoProcurementRuntime)} requires "
+                + $"{nameof(IDomainFactPublisher)} and "
+                + $"{nameof(IGameSessionStateStore)} before processing results.");
+        }
+        RetryPendingWishlistParents();
         if (refreshDay <= lastProcessedDay)
         {
             return;
         }
 
-        if (refreshDay > 1)
+        TreasuryEconomyAggregateState processTreasuryBefore =
+            stateStore.Current.Copy();
+        GameSessionSnapshot processSessionBefore = CaptureSessionSnapshot();
+        DungeonPhysicalItemSaveData processPhysicalBefore =
+            stock.ItemStacks.Capture();
+        activeProcessDurableBoundaryCount = 0;
+        using var employmentEffects = finance.Employment.BeginSettlement()
+            ?? throw new InvalidOperationException("Employment settlement scope is required.");
+        bool processCompleted = false;
+        try
         {
-            int settledDay = refreshDay - 1;
-            finance.Employment.SettleDay(settledDay);
-            finance.PaidContracts.SettleDay(settledDay);
-        }
+            if (refreshDay > 1)
+            {
+                int settledDay = refreshDay - 1;
+                finance.Employment.SettleDay(settledDay);
+                finance.PaidContracts.SettleDay(settledDay);
+            }
 
-        lastProcessedDay = refreshDay;
-        lastResults.Clear();
-        int availableBudget = Mathf.Min(
-            dailyBudget,
-            Mathf.Max(0, finance.Money.Balance - ProtectedFunds));
-        if (availableBudget <= 0)
+            lastProcessedDay = refreshDay;
+            lastResults.Clear();
+            int availableBudget = Mathf.Min(
+                dailyBudget,
+                Mathf.Max(0, finance.Money.Balance - ProtectedFunds));
+            if (availableBudget <= 0)
+            {
+                AddSkipped(refreshDay, "budget", "자동 구매", "보호 자금을 제외한 구매 가능액이 없습니다.");
+                processCompleted = true;
+                return;
+            }
+
+            ProcessStockRules(refreshDay, ref availableBudget);
+            ProcessWishlist(
+                refreshDay,
+                dailyOffers ?? Array.Empty<FacilityShopOffer>(),
+                shopRuntime,
+                ref availableBudget);
+            TrimProcessedKeys();
+            processCompleted = true;
+        }
+        catch
         {
-            AddSkipped(refreshDay, "budget", "자동 구매", "보호 자금을 제외한 구매 가능액이 없습니다.");
-            return;
+            if (activeProcessDurableBoundaryCount == 0)
+            {
+                RestorePurchaseOwners(
+                    processTreasuryBefore,
+                    processSessionBefore,
+                    processPhysicalBefore);
+            }
+            throw;
         }
-
-        ProcessStockRules(refreshDay, ref availableBudget);
-        ProcessWishlist(
-            refreshDay,
-            dailyOffers ?? Array.Empty<FacilityShopOffer>(),
-            shopRuntime,
-            ref availableBudget);
-        TrimProcessedKeys();
+        finally
+        {
+            // A committed procurement child cannot be rolled back. Employment
+            // consequences follow that same durable boundary even on later failure.
+            if (processCompleted || activeProcessDurableBoundaryCount > 0)
+                employmentEffects.Commit();
+            activeProcessDurableBoundaryCount = 0;
+        }
     }
 
     public AutoProcurementSaveData Capture()
@@ -763,7 +878,11 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
             processedOfferKeys = processedOfferKeys
                 .OrderBy(key => key, StringComparer.Ordinal)
                 .ToList(),
-            lastResults = lastResults.Select(CloneResult).ToList()
+            lastResults = lastResults.Select(CloneResult).ToList(),
+            parentResults = parentResults.Select(value => value.Clone()).ToList(),
+            pendingFacts = stateStore.Current.ProcurementPendingFact == null
+                ? new List<AutoProcurementPendingFactSaveData>()
+                : new List<AutoProcurementPendingFactSaveData> { stateStore.Current.ProcurementPendingFact.Clone() }
         };
     }
 
@@ -775,6 +894,10 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
         target.StockRules.Clear();
         target.WishlistRules.Clear();
         target.ProcurementResults.Clear();
+        target.ProcurementParents.Clear();
+        if (saveData?.pendingFacts == null || saveData.pendingFacts.Count > 1)
+            throw new InvalidOperationException("Procurement pending fact collection is missing or unbounded.");
+        target.ProcurementPendingFact = saveData.pendingFacts.Count == 0 ? null : saveData.pendingFacts[0].Clone();
         target.ProcessedOfferKeys.Clear();
         target.DailyBudget = Mathf.Max(0, saveData?.dailyBudget ?? 500);
         target.MinimumReserve = Mathf.Max(0, saveData?.minimumReserve ?? 0);
@@ -819,6 +942,10 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
 
         target.ProcurementResults.AddRange((saveData?.lastResults
             ?? new List<AutoProcurementResult>()).Select(CloneResult));
+        target.ProcurementParents.AddRange((saveData?.parentResults
+            ?? new List<AutoProcurementParentSaveData>())
+            .Where(value => value != null)
+            .Select(value => value.Clone()));
         TrimProcessedKeys(target.ProcessedOfferKeys);
     }
 
@@ -883,45 +1010,13 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
             }
 
             string offerKey = $"stock:{day}:{rule.category}";
-            if (!processedOfferKeys.Add(offerKey))
+            if (processedOfferKeys.Contains(offerKey))
             {
                 AddSkipped(day, rule.ruleId, rule.category.ToString(), "오늘 이미 처리한 상품입니다.");
                 continue;
             }
 
-            if (!finance.Money.TrySpend(
-                    cost,
-                    new EconomyTransactionContext(
-                        EconomyTransactionKind.AutoProcurement,
-                        rule.ruleId,
-                        rule.category.ToString(),
-                        "자동 원자재 구매"),
-                    out string failureReason))
-            {
-                AddSkipped(day, rule.ruleId, rule.category.ToString(), failureReason);
-                continue;
-            }
-
-            if (!stock.ItemStacks.SpawnItemAtDropoff(
-                    marketOffer.itemId,
-                    quantity,
-                    "자동 구매",
-                    out int spawned)
-                || spawned != quantity)
-            {
-                finance.Money.Add(
-                    cost,
-                    new EconomyTransactionContext(
-                        EconomyTransactionKind.LegacyIncome,
-                        "auto-procurement-refund",
-                        rule.ruleId,
-                        "배송 실패 환불"));
-                AddSkipped(day, rule.ruleId, rule.category.ToString(), "하차장에 배송할 수 없어 환불했습니다.");
-                continue;
-            }
-
-            availableBudget -= cost;
-            lastResults.Add(new AutoProcurementResult
+            AutoProcurementResult purchased = new AutoProcurementResult
             {
                 day = day,
                 ruleId = rule.ruleId,
@@ -929,8 +1024,132 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
                 quantity = quantity,
                 cost = cost,
                 purchased = true,
-                reason = "하차장 배송 대기"
-            });
+                reason = "하차장 배송 완료",
+                attemptedItemId = marketOffer.itemId,
+                attemptedQuantity = quantity,
+                attemptedCost = cost,
+                committedItemId = marketOffer.itemId,
+                committedQuantity = quantity,
+                committedCost = cost
+            };
+            DomainFactLease prepared = ReserveCompletionFact(
+                purchased,
+                offerKey);
+            int durableBefore = activeProcessDurableBoundaryCount;
+            TreasuryEconomyAggregateState treasuryBefore;
+            GameSessionSnapshot sessionBefore;
+            DungeonPhysicalItemSaveData physicalBefore;
+            Dictionary<string, int> stackQuantitiesBefore;
+            try
+            {
+                treasuryBefore = stateStore.Current.Copy();
+                sessionBefore = CaptureSessionSnapshot();
+                physicalBefore = stock.ItemStacks.Capture();
+                stackQuantitiesBefore = stock.ItemStacks.GetAllStacks()
+                    .Where(value => value != null
+                        && !string.IsNullOrWhiteSpace(value.StackId))
+                    .ToDictionary(value => value.StackId,
+                        value => value.Quantity,
+                        StringComparer.Ordinal);
+            }
+            catch
+            {
+                domainFacts.Cancel(prepared);
+                throw;
+            }
+            try
+            {
+                processedOfferKeys.Add(offerKey);
+                if (!finance.Money.TrySpend(
+                        cost,
+                        new EconomyTransactionContext(
+                            EconomyTransactionKind.AutoProcurement,
+                            rule.ruleId,
+                            rule.category.ToString(),
+                            "자동 원자재 구매"),
+                        out string failureReason))
+                {
+                    domainFacts.Cancel(prepared);
+                    RestorePurchaseOwners(
+                        treasuryBefore,
+                        sessionBefore,
+                        physicalBefore);
+                    RecordProcessedFailure(
+                        offerKey,
+                        new AutoProcurementResult
+                        {
+                            day = day,
+                            ruleId = rule.ruleId,
+                            itemLabel = marketOffer.itemId,
+                            purchased = false,
+                            reason = failureReason,
+                            attemptedItemId = marketOffer.itemId,
+                            attemptedQuantity = quantity,
+                            attemptedCost = cost
+                        });
+                    continue;
+                }
+
+                if (!stock.ItemStacks.SpawnItemAtDropoff(
+                        marketOffer.itemId,
+                        quantity,
+                        "자동 구매",
+                        out int spawned)
+                    || spawned != quantity)
+                {
+                    domainFacts.Cancel(prepared);
+                    RestorePurchaseOwners(
+                        treasuryBefore,
+                        sessionBefore,
+                        physicalBefore);
+                    RecordProcessedFailure(
+                        offerKey,
+                        new AutoProcurementResult
+                        {
+                            day = day,
+                            ruleId = rule.ruleId,
+                            itemLabel = marketOffer.itemId,
+                            purchased = false,
+                            reason = "하차장에 배송할 수 없어 구매 상태를 복원했습니다.",
+                            attemptedItemId = marketOffer.itemId,
+                            attemptedQuantity = quantity,
+                            attemptedCost = cost
+                        });
+                    continue;
+                }
+
+                purchased.physicalStacks = CapturePhysicalSpawnRefs(
+                    marketOffer.itemId,
+                    stackQuantitiesBefore);
+                if (purchased.physicalStacks.Sum(value => value.quantity)
+                    != quantity)
+                {
+                    domainFacts.Cancel(prepared);
+                    RestorePurchaseOwners(
+                        treasuryBefore, sessionBefore, physicalBefore);
+                    RecordProcessedFailure(offerKey, new AutoProcurementResult
+                    {
+                        day = day,
+                        ruleId = rule.ruleId,
+                        itemLabel = marketOffer.itemId,
+                        attemptedItemId = marketOffer.itemId,
+                        attemptedQuantity = quantity,
+                        attemptedCost = cost,
+                        reason = "실제 배송 stack 수량이 구매 수량과 일치하지 않습니다."
+                    });
+                    continue;
+                }
+
+                PublishCompletionFact(prepared, purchased, offerKey);
+                availableBudget -= cost;
+            }
+            catch
+            {
+                domainFacts.Cancel(prepared);
+                if (activeProcessDurableBoundaryCount == durableBefore)
+                    RestorePurchaseOwners(treasuryBefore, sessionBefore, physicalBefore);
+                throw;
+            }
         }
     }
 
@@ -996,22 +1215,107 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
                     transactionContext,
                     out FacilityShopPurchaseResult purchase))
             {
-                AddSkipped(day, rule.ruleId, offer.DisplayName, purchase.message);
+                if (!string.IsNullOrWhiteSpace(purchase.message)
+                    && purchase.message.StartsWith(
+                        "시설 상점 결과",
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        "Auto-procurement facility child transaction failed: "
+                        + purchase.message);
+                }
+                RecordResult(new AutoProcurementResult
+                {
+                    day = day,
+                    ruleId = rule.ruleId,
+                    itemLabel = offer.DisplayName,
+                    attemptedItemId = PhysicalItemIdForOffer(offer),
+                    attemptedQuantity = 1,
+                    attemptedCost = offer.Cost,
+                    reason = purchase.message
+                });
                 continue;
             }
 
+            activeProcessDurableBoundaryCount = checked(
+                activeProcessDurableBoundaryCount + 1);
             availableBudget -= purchase.cost;
-            lastResults.Add(new AutoProcurementResult
+            if (string.IsNullOrWhiteSpace(purchase.purchasePublicationKey))
+                throw new InvalidOperationException(
+                    "Wishlist child purchase has no durable result key.");
+            AutoProcurementParentSaveData parent = new()
             {
-                day = day,
-                ruleId = rule.ruleId,
-                itemLabel = offer.DisplayName,
-                quantity = 1,
-                cost = purchase.cost,
-                purchased = true,
-                reason = "하차장 배송 대기"
-            });
+                offerKey = offerKey,
+                childPurchaseResultKey = purchase.purchasePublicationKey,
+                phase = AutoProcurementParentPhase.ChildCommitted,
+                result = new AutoProcurementResult
+                {
+                    day = day,
+                    ruleId = rule.ruleId,
+                    itemLabel = offer.DisplayName,
+                    quantity = 1,
+                    cost = purchase.cost,
+                    purchased = true,
+                    reason = "하차장 배송 대기",
+                    attemptedItemId = PhysicalItemIdForOffer(offer),
+                    attemptedQuantity = 1,
+                    attemptedCost = offer.Cost,
+                    committedQuantity = 1,
+                    committedCost = purchase.cost,
+                    childPurchaseResultKey = purchase.purchasePublicationKey
+                }
+            };
+            parent.result.committedItemId = parent.result.attemptedItemId;
+            parentResults.Add(parent);
+            TryCommitWishlistParent(parent);
         }
+    }
+
+    public int RetryPendingWishlistParents()
+    {
+        ResumePendingCompletionFact();
+        int committed = 0;
+        foreach (AutoProcurementParentSaveData parent in parentResults
+                     .Where(value => value != null
+                         && value.phase != AutoProcurementParentPhase.ParentCommitted)
+                     .OrderBy(value => value.offerKey, StringComparer.Ordinal)
+                     .ToArray())
+        {
+            if (TryCommitWishlistParent(parent))
+                committed++;
+        }
+        return committed;
+    }
+
+    private bool TryCommitWishlistParent(AutoProcurementParentSaveData parent)
+    {
+        if (parent == null
+            || parent.phase == AutoProcurementParentPhase.ParentCommitted)
+            return false;
+        if (fulfillmentQuery == null
+            || !fulfillmentQuery.TryGetShopFulfillment(
+                parent.childPurchaseResultKey, out var delivery)
+            || delivery.Phase != FacilityShopFulfillmentPhase.Delivered)
+            return false;
+        if (delivery.ItemDefinitionId != parent.result.committedItemId
+            || string.IsNullOrWhiteSpace(delivery.StackId)
+            || string.IsNullOrWhiteSpace(delivery.ItemInstanceId))
+            throw new InvalidOperationException(
+                "Wishlist child delivery does not match its committed purchase.");
+        parent.result.physicalStacks = new List<AutoProcurementPhysicalStackRef>
+        {
+            new AutoProcurementPhysicalStackRef
+            {
+                stackId = delivery.StackId,
+                itemInstanceId = delivery.ItemInstanceId,
+                quantity = 1
+            }
+        };
+        parent.result.reason = "하차장 배송 완료";
+        parent.phase = AutoProcurementParentPhase.ParentPending;
+        RecordResult(parent.result, parent.offerKey);
+        parent.phase = AutoProcurementParentPhase.ParentCommitted;
+        return true;
     }
 
     private int CountOwned(StockCategory category)
@@ -1019,6 +1323,36 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
         return stock.ItemStacks.GetAllStacks()
             .Where(stack => stack != null && stack.StockCategory == category)
             .Sum(stack => Mathf.Max(0, stack.Quantity));
+    }
+
+    private static string PhysicalItemIdForOffer(FacilityShopOffer offer) =>
+        offer switch
+        {
+            FacilityBuildingOffer building =>
+                FacilityInstallationKitItemIds.ForBuilding(building.Building),
+            FacilityBlueprintOffer blueprint => blueprint.Blueprint.PhysicalItemId,
+            _ => throw new InvalidOperationException(
+                "Wishlist offer has no physical item definition.")
+        };
+
+    private List<AutoProcurementPhysicalStackRef> CapturePhysicalSpawnRefs(
+        string itemId,
+        IReadOnlyDictionary<string, int> before)
+    {
+        return stock.ItemStacks.GetAllStacks()
+            .Where(value => value != null
+                && string.Equals(value.ItemId, itemId,
+                    StringComparison.Ordinal))
+            .Select(value => new AutoProcurementPhysicalStackRef
+            {
+                stackId = value.StackId,
+                itemInstanceId = value.ItemInstanceId ?? string.Empty,
+                quantity = value.Quantity - (before.TryGetValue(
+                    value.StackId, out int previous) ? previous : 0)
+            })
+            .Where(value => value.quantity > 0)
+            .OrderBy(value => value.stackId, StringComparer.Ordinal)
+            .ToList();
     }
 
     private int CountOwned(
@@ -1085,7 +1419,7 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
         string label,
         string reason)
     {
-        lastResults.Add(new AutoProcurementResult
+        RecordResult(new AutoProcurementResult
         {
             day = day,
             ruleId = ruleId ?? string.Empty,
@@ -1094,6 +1428,134 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
             reason = reason ?? string.Empty
         });
     }
+
+    private void RecordProcessedFailure(string offerKey, AutoProcurementResult result)
+    {
+        TreasuryEconomyAggregateState before = stateStore.Current.Copy();
+        DomainFactLease lease = ReserveCompletionFact(result, offerKey);
+        int durableBefore = activeProcessDurableBoundaryCount;
+        try
+        {
+            processedOfferKeys.Add(offerKey);
+            PublishCompletionFact(lease, result, offerKey);
+        }
+        catch
+        {
+            domainFacts.Cancel(lease);
+            if (activeProcessDurableBoundaryCount == durableBefore)
+                stateStore.Replace(before);
+            throw;
+        }
+    }
+
+    private void RecordResult(AutoProcurementResult result, string offerKey = null)
+    {
+        DomainFactLease lease = ReserveCompletionFact(result, offerKey);
+        int insertIndex = lastResults.Count;
+        int durableBefore = activeProcessDurableBoundaryCount;
+        try { PublishCompletionFact(lease, result, offerKey); }
+        catch
+        {
+            domainFacts.Cancel(lease);
+            if (activeProcessDurableBoundaryCount == durableBefore && lastResults.Count > insertIndex)
+                lastResults.RemoveAt(insertIndex);
+            throw;
+        }
+    }
+
+    private DomainFactLease ReserveCompletionFact(AutoProcurementResult result, string offerKey)
+    {
+        if (stateStore.Current.ProcurementPendingFact != null)
+            throw new InvalidOperationException("Auto-procurement has an unresolved publication.");
+        var fact = new AutoProcurementCompletedFact(offerKey, result);
+        if (!domainFacts.TryReserve(fact, out var lease, out string failure))
+            throw new InvalidOperationException("Auto-procurement fact reservation failed: " + failure);
+        if (string.IsNullOrWhiteSpace(lease.PublicationKey))
+        {
+            domainFacts.Cancel(lease);
+            throw new InvalidOperationException("Auto-procurement observer supplied no publication identity.");
+        }
+        return lease;
+    }
+
+    private void PublishCompletionFact(DomainFactLease lease, AutoProcurementResult result, string offerKey)
+    {
+        var fact = new AutoProcurementCompletedFact(offerKey, result);
+        var pending = new AutoProcurementPendingFactSaveData
+        {
+            publicationKey = lease.PublicationKey,
+            offerKey = fact.OfferKey,
+            result = fact.CaptureResult()
+        };
+        if (string.IsNullOrWhiteSpace(pending.publicationKey))
+            throw new InvalidOperationException("Auto-procurement publication reservation expired.");
+        lastResults.Add(fact.CaptureResult());
+        stateStore.Current.ProcurementPendingFact = pending;
+        // An exception after invoking the observer cannot authorize refunding
+        // money/removing delivered goods. Preserve the exact fact for recovery.
+        activeProcessDurableBoundaryCount = checked(activeProcessDurableBoundaryCount + 1);
+        var delivery = domainFacts.Publish(lease, fact);
+        if (!delivery.MayBeCommitted)
+        {
+            activeProcessDurableBoundaryCount--;
+            stateStore.Current.ProcurementPendingFact = null;
+            throw new InvalidOperationException("Auto-procurement fact publication rejected: " + delivery.Detail);
+        }
+        if (!IsKnownPublication(delivery, pending.publicationKey))
+            throw new InvalidOperationException("Auto-procurement fact publication pending: " + delivery.Detail);
+        stateStore.Current.ProcurementPendingFact = null;
+    }
+
+    private void ResumePendingCompletionFact()
+    {
+        var pending = stateStore.Current.ProcurementPendingFact;
+        if (pending == null) return;
+        if (domainFacts is not IDomainFactRecoveryPublisher recovery)
+            throw new InvalidOperationException("Auto-procurement fact recovery is unavailable.");
+        var fact = new AutoProcurementCompletedFact(pending.offerKey, pending.result);
+        var results = new DomainFactDelivery[1];
+        recovery.ReplayBatch(new[] { DomainFactReplay.Create(pending.publicationKey, fact) },
+            results, out string failure);
+        if (!IsKnownPublication(results[0], pending.publicationKey))
+            throw new InvalidOperationException("Auto-procurement fact recovery pending: " + failure + ":" + results[0].Detail);
+        if (!string.IsNullOrEmpty(fact.ChildPurchaseResultKey))
+        {
+            var parent = parentResults.SingleOrDefault(value => value.offerKey == pending.offerKey
+                && value.childPurchaseResultKey == fact.ChildPurchaseResultKey);
+            if (parent == null || parent.phase != AutoProcurementParentPhase.ParentPending)
+                throw new InvalidOperationException("Auto-procurement recovered fact has no pending delivery parent.");
+            parent.phase = AutoProcurementParentPhase.ParentCommitted;
+        }
+        stateStore.Current.ProcurementPendingFact = null;
+    }
+
+    private static bool IsKnownPublication(DomainFactDelivery result, string expectedKey) =>
+        result.OperationKey == expectedKey && !string.IsNullOrWhiteSpace(expectedKey)
+        && result.Phase is DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery;
+
+    private void RestorePurchaseOwners(
+        TreasuryEconomyAggregateState treasuryBefore,
+        GameSessionSnapshot sessionBefore,
+        DungeonPhysicalItemSaveData physicalBefore)
+    {
+        stateStore.Replace(treasuryBefore
+            ?? throw new ArgumentNullException(nameof(treasuryBefore)));
+        gameSessionState.Restore(sessionBefore);
+        stock.ItemStacks.Restore(physicalBefore
+            ?? throw new ArgumentNullException(nameof(physicalBefore)));
+    }
+
+    private GameSessionSnapshot CaptureSessionSnapshot()
+    {
+        if (!gameDataProvider.TryGetSessionState(out GameSessionState gameData)
+            || gameData == null)
+        {
+            throw new InvalidOperationException(
+                "Auto-procurement cannot capture the current session owner state.");
+        }
+        return gameData.Capture();
+    }
+
 
     private void TrimProcessedKeys()
     {
@@ -1152,15 +1614,6 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
     {
         return source == null
             ? new AutoProcurementResult()
-            : new AutoProcurementResult
-            {
-                day = source.day,
-                ruleId = source.ruleId,
-                itemLabel = source.itemLabel,
-                quantity = source.quantity,
-                cost = source.cost,
-                purchased = source.purchased,
-                reason = source.reason
-            };
+            : source.Clone();
     }
 }

@@ -1,0 +1,37 @@
+controlledPausedRoster=character:staff:1:01@(19, 0)/Active;character:staff:1:02@(20, 0)/Active;owner@(18, 0)/Active
+controlledEnvironment=22C/air100/light100 every5 game seconds through existing field persistence; original restored during cleanup; character exposure/needs simulation remains active
+preUnpauseWorker=character:staff:1:01; actionTypes=AIDrink,AIEat,AIFacilityRoleAction,AIFacilityRoleAction,AIFacilityRoleAction,AIHaul,AIHunt,AILookAround,AIPrimitiveBucketWash,AIPrimitiveFieldMeal,AIPrimitiveFloorRest,AIPrimitiveLatrine,AIRescue,AIRest,AIShopping,AISubstanceUse,AIWait,AIWork; hasAIWork=True; hasAIDrink=True; duty=OnDuty; priorities={"schemaVersion":2,"priorities":[{"workTypeId":"work:operate","priority":0},{"workTypeId":"work:restock","priority":0},{"workTypeId":"work:repair","priority":0},{"workTypeId":"work:clean","priority":0},{"workTypeId":"work:research","priority":1},{"workTypeId":"work:guard","priority":0},{"workTypeId":"work:rescue","priority":0},{"workTypeId":"work:rest","priority":0},{"workTypeId":"work:construct","priority":0},{"workTypeId":"work:reception","priority":0},{"workTypeId":"work:craft","priority":0},{"workTypeId":"work:haul","priority":0},{"workTypeId":"work:hunt","priority":0},{"workTypeId":"work:butcher","priority":0},{"workTypeId":"work:draw-water","priority":0},{"workTypeId":"work:cook","priority":0},{"workTypeId":"work:treat","priority":0},{"workTypeId":"work:surgery","priority":0},{"workTypeId":"work:refuel","priority":0},{"workTypeId":"work:warden","priority":0},{"workTypeId":"work:perform","priority":0},{"workTypeId":"work:gather","priority":0},{"workTypeId":"work:sow","priority":0},{"workTypeId":"work:harvest","priority":0},{"workTypeId":"work:logging","priority":0},{"workTypeId":"work:quarry","priority":0},{"workTypeId":"work:animal-care","priority":0},{"workTypeId":"work:grand-project","priority":0},{"workTypeId":"work:threat-mitigation","priority":0},{"workTypeId":"work:plumbing","priority":0},{"workTypeId":"work:dismantle","priority":0}],"legacyOperate":1,"legacyRestock":2,"legacyRepair":2,"legacyClean":3,"legacyResearch":2,"legacyGuard":3,"legacyRescue":2,"legacyRest":3}
+[PASS] actual preparation estimate=adult1/45WU/day/0.4day; actual enqueue; cap1/17WU unchanged
+observedStage=Initial normal research/cycle witness; startCell=(19, 0); endCell=(35, 2); cellChanges=32; gameSeconds=53.50686; wallSeconds=26.78449
+duplicateAdmissionWhileParticipating=REJECTED; simultaneousResearchers=1
+perturbation=thirst:60; source=(35, 2); progress=6; partialRaw=0.1640061/6; soleContribution=1
+observedStage=Natural routine drink selection; startCell=(35, 2); endCell=(35, 2); cellChanges=0; gameSeconds=0.414257; wallSeconds=0.198122
+[PASS] routine AI interruption/lease0; drinkGameSeconds=0.1751747; physicalWaterDelta=-1; stableProgress=6; thirstAfter=100
+observedStage=Autonomous same-project research participation after approach; startCell=(35, 2); endCell=(35, 2); cellChanges=2; gameSeconds=2.014633; wallSeconds=1.046787
+observedStage=Remaining actual research completion; startCell=(35, 2); endCell=(33, 2); cellChanges=26; gameSeconds=78.46837; wallSeconds=75.2413
+approachAtFailure=target:@; accessReachable=False; access=(0, 0); accessCost=-1; systemMove=False; systemDestination=; replans=0; pathFailures=0; roster=character:staff:1:01@(33, 2);character:staff:1:02@(30, 0);character:world:1:000001@(20, 1);character:world:1:000002@(29, 2);character:world:1:000003@(27, 1);character:world:1:000004@(25, 2);character:world:1:000005@(22, 2);character:world:1:000006@(26, 2);character:world:1:000007@(23, 2);character:world:1:000008@(26, 2);character:world:1:000009@(29, 2);character:world:1:000010@(24, 2);character:world:1:000011@(25, 2);character:world:1:000012@(24, 2);character:world:1:000013@(25, 2);character:world:1:000014@(25, 2);character:world:1:000015@(24, 2);character:world:1:000016@(29, 2);character:world:1:000017@(24, 2);character:world:1:000018@(24, 2);character:world:1:000019@(28, 2);character:world:1:000020@(25, 2);character:world:1:000021@(22, 1);character:world:1:000022@(23, 2);character:world:1:000023@(24, 2);character:world:1:000024@(30, 1);owner@(18, 0)
+worker=character:staff:1:01; action=Wait (AIWait); research=False; participants=0; progress=12; generic=0/0; thirst=76.6667; cell=(33, 2); gameTime=136.037; wall=107.3145; cancellation=; preWuExit=None/; brain=행동: 대기 (0.7s)
+단계: 짧은 대화 / 다음 행동을 찾으며 움직이는 중
+목표: 없음
+경로: NoDestination / 0칸
+전환완충: 0.1s
+기분: 50.8
+이유: 정상
+운반 계획: 운반 계획 없음
+적재: 0/28.7kg
+정리 사유: 진행 중
+result=FAIL
+System.InvalidOperationException: Remaining actual research completion timed out: worker=character:staff:1:01; action=Wait (AIWait); research=False; participants=0; progress=12; generic=0/0; thirst=76.6667; cell=(33, 2); gameTime=136.037; wall=107.3057; cancellation=; preWuExit=None/; brain=행동: 대기 (0.7s)
+단계: 짧은 대화 / 다음 행동을 찾으며 움직이는 중
+목표: 없음
+경로: NoDestination / 0칸
+전환완충: 0.1s
+기분: 50.8
+이유: 정상
+운반 계획: 운반 계획 없음
+적재: 0/28.7kg
+정리 사유: 진행 중
+  at WimR01ResearchSelfCareLiveRunner+<WaitFor>d__30.MoveNext () [0x001ff] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Economy\Editor\WimR01ResearchSelfCareLiveRunner.cs:435 
+  at WimR01ResearchSelfCareLiveRunner+<Observe>d__27.MoveNext () [0x00051] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Economy\Editor\WimR01ResearchSelfCareLiveRunner.cs:75 
+scope=actual owner/party and research UI; single real staff AI, physical drink and resume; safe environmental field, one initial healthy-needs setup, priorities and one routine-thirst perturbation are controlled. Exposure and needs are NOT repeatedly reset. No action-list replacement, forced drink/stop-work/progress, actual lamp/build-power, daily productivity, paired-run timing or collaborative-research claim.
+cleanup=paused disposable Play; operator stops; user persistence disabled before owner selection

@@ -1,0 +1,15 @@
+{
+  "arguments": [
+    "C:\\Users\\vulpo\\AppData\\Local\\Microsoft\\WindowsApps\\unity.EXE",
+    "command",
+    "eval",
+    "--project-path",
+    "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory",
+    "--format",
+    "json",
+    "--detach",
+    "--code",
+    "return NarrativeControlledInputExporter.Export(\"F:\\\\01_Programming\\\\01_Project\\\\02_Unity\\\\DungeonStoryNarrativeAI\\\\Artifacts\\\\Review\\\\IncrementalReservoir-20260915-r1\\\\source\\\\unity_cases.json\", \"F:\\\\01_Programming\\\\01_Project\\\\02_Unity\\\\DungeonStory\\\\Artifacts\\\\Exports\\\\NarrativeControlledInputs\\\\20260915-v26-incremental-reservoir-r1\", \"F:\\\\01_Programming\\\\01_Project\\\\02_Unity\\\\DungeonStory\\\\Artifacts\\\\Exports\\\\NarrativeMechanicCatalog\\\\20260915-v26-incremental-reservoir-r1\");"
+  ],
+  "cwd": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory"
+}

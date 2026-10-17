@@ -1,51 +1,51 @@
 {
-  "average_description_chars": 88.1,
+  "average_description_chars": 99.9,
   "banned_fragment_count": 0,
-  "description_count": 1075,
-  "distinct_lore_frame_count": 506,
-  "distinct_lore_sentence_count": 1075,
-  "distinct_opening_frame_count": 1024,
+  "description_count": 1069,
+  "distinct_lore_frame_count": 288,
+  "distinct_lore_sentence_count": 1069,
+  "distinct_opening_frame_count": 1016,
   "duplicate_texts": [],
   "largest_lore_frames": [
     {
-      "count": 12,
-      "frame": "하르나크의 조율사는 <항목><조사> 서로 다른 개조 계통을 잇는 범용 계통의 <수치>등급 개조에 쓴다."
+      "count": 17,
+      "frame": "밀로세아 가도를 지난 <항목> 묶음에는 마지막 검문소의 색실이 하나씩 더해진다."
+    },
+    {
+      "count": 14,
+      "frame": "므네실라에서는 <항목> 찌꺼기까지 버리지 않는다. 물기를 빼면 공동 정원의 다음 흙이 된다."
+    },
+    {
+      "count": 14,
+      "frame": "므네실라에서 보존한 <항목> 용기에는 기증자의 이름이 포자 먹물로 떠 있다. 시간이 지나면 글자부터 흐려진다."
+    },
+    {
+      "count": 14,
+      "frame": "제<수치>주조도시의 보철 장인은 <항목><조사> 맞추기 전에 관절의 빈 움직임을 금속판에 옮겨 찍는다. 다음 수리 때 같은 몸의 리듬을 되찾기 위해서다."
+    },
+    {
+      "count": 13,
+      "frame": "라카쉬 세갈래길식 <항목> 주변은 짐수레 두 대와 피난 행렬이 엇갈릴 만큼 넓게 비워 둔다."
+    },
+    {
+      "count": 13,
+      "frame": "제<수치>주조도시의 <항목><조사> 멈춘 부품도 바닥으로 버리지 않고 원래 작업대의 색홈에 걸어 둔다."
     },
     {
       "count": 12,
-      "frame": "<항목>에서 생산 주문을 처리하는 공정을 맡기 위해 준비한 설치 부품이며, 크릭 제<수치>굴의 시설과도 체결 규격이 맞는다."
+      "frame": "하르나크산 <항목><조사> 한 도시가 독점하지 못하도록 여섯 공방의 봉인을 번갈아 받는다."
     },
     {
-      "count": 11,
-      "frame": "베르사디온의 조율사는 <항목><조사> 마나 결을 조율하는 비전 계통의 <수치>등급 개조에 쓴다."
+      "count": 12,
+      "frame": "므네실라식 <항목>의 바닥 홈은 환자, 도구와 세척수가 서로 다른 색으로 흘러 섞인 자리를 드러낸다."
     },
     {
-      "count": 11,
-      "frame": "<항목><조사> 므네실라의 작업대에서 습기와 부패에 견디게 하는 생존 계통의 <수치>등급 개조에 쓴다."
+      "count": 12,
+      "frame": "하르나크의 <항목> 도면에는 뿔, 날개, 꼬리와 골렘의 무게가 부딪히는 지점을 따로 표시한다."
     },
     {
-      "count": 11,
-      "frame": "<항목><조사> 현장에 세워 공간의 용도와 작업 동선을 갖추는 데 쓰는 설치 부품이며, 하르나크에서도 이 부품의 치수를 알아본다."
-    },
-    {
-      "count": 11,
-      "frame": "<항목><조사> 현장에 세워 공간의 용도와 작업 동선을 갖추는 데 쓰는 설치 부품이며, 하르나크에서도 같은 규격으로 조립한다."
-    },
-    {
-      "count": 10,
-      "frame": "하르나크에서 만든 <항목><조사> 날개와 넓은 어깨에 맞춰 등솔기를 고치기 쉽도록 여유 천을 남긴다."
-    },
-    {
-      "count": 10,
-      "frame": "<항목><조사> 크릭 제<수치>굴의 작업대에서 열과 압력에 반응하는 산업 계통의 <수치>등급 개조에 쓴다."
-    },
-    {
-      "count": 10,
-      "frame": "<항목><조사> 아일라세라의 작업대에서 날과 발사 장치를 맞추는 공세 계통의 <수치>등급 개조에 쓴다."
-    },
-    {
-      "count": 9,
-      "frame": "오르데나에서는 <항목>으로 명령 인장을 새기는 권위 계통의 <수치>등급 개조에 쓴다."
+      "count": 12,
+      "frame": "하르나크 주민은 <항목><조사> 어느 한 도시의 소유로 두지 않고 정비 교대를 나눠 맡는다."
     }
   ],
   "largest_opening_frames": [
@@ -92,60 +92,60 @@
   ],
   "lore_anchor_counts": {
     "place:ailasera": 68,
-    "place:fourth-foundry": 105,
-    "place:harnak": 140,
-    "place:krik-seventh": 168,
-    "place:mnesila": 167,
-    "place:rakash-crossroads": 81,
-    "place:versadion": 96,
+    "place:fourth-foundry": 104,
+    "place:harnak": 137,
+    "place:krik-seventh": 145,
+    "place:mnesila": 172,
+    "place:rakash-crossroads": 80,
+    "place:versadion": 95,
     "practice:adventurer-table": 3,
     "practice:beastkin-meal": 1,
-    "practice:golem-memory": 6,
+    "practice:golem-memory": 14,
     "practice:harpy-chorus": 3,
-    "practice:kobold-tool-name": 5,
-    "practice:orc-cauldron": 38,
+    "practice:kobold-tool-name": 21,
+    "practice:orc-cauldron": 33,
     "practice:orc-vigil": 15,
-    "practice:slime-water": 10,
+    "practice:slime-water": 8,
     "practice:vampire-consent": 20,
     "range:norkandra": 38,
-    "route:milosia": 25,
+    "route:milosia": 26,
     "sea:sarvenia": 24,
     "state:ordena": 62
   },
   "lore_connection_counts": {
     "animal": 34,
     "arcane": 24,
-    "care": 74,
-    "craft": 270,
+    "care": 99,
+    "craft": 256,
     "dress": 52,
-    "ecology": 44,
-    "facility": 373,
+    "ecology": 43,
+    "facility": 355,
     "food": 24,
     "heritage": 19,
     "military": 44,
     "origin": 8,
     "ranged": 20,
     "record": 20,
-    "settlement": 10,
-    "trade": 59
+    "settlement": 11,
+    "trade": 60
   },
   "max_description_chars": 145,
   "missing_ids": [],
   "missing_lore_count": 0,
   "orphan_ids": [],
   "reporting_style_term_counts": {
-    "기록": 19,
+    "기록": 21,
     "소유권": 3,
     "장부": 7,
-    "적는다": 5,
-    "책임": 2
+    "적는다": 13,
+    "책임": 3
   },
   "schema_version": 1,
   "story_layer_counts": {
     "clue": 45,
-    "everyday": 1030
+    "everyday": 1024
   },
-  "target_count": 1075,
-  "unique_description_count": 1075,
-  "world_grounded_count": 1075
+  "target_count": 1069,
+  "unique_description_count": 1069,
+  "world_grounded_count": 1069
 }

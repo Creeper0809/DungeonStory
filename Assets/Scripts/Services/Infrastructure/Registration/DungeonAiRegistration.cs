@@ -66,7 +66,8 @@ public static class DungeonAiRegistration
             .As<IRoomEnvironmentQuery>()
             .As<IWorkEnvironmentDefinitionMaximumQuery>();
         builder.Register<RoomEnvironmentExperienceService>(Lifetime.Singleton)
-            .As<IRoomEnvironmentExperienceService>();
+            .As<IRoomEnvironmentExperienceService>()
+            .As<IRoomEnvironmentOutcomePersistence>();
         builder.Register<RoomInspectionInteractionContext>(Lifetime.Singleton)
             .As<IRoomInspectionInteractionContext>();
         builder.RegisterEntryPoint<RoomInspectionRuntime>(Lifetime.Singleton)
@@ -105,9 +106,23 @@ public static class DungeonAiRegistration
 
         builder.Register<SocialReputationBiasService>(Lifetime.Singleton)
             .As<ISocialReputationBiasService>();
+        builder.RegisterMigratedDomainFact<OwnerRunCompletionFact>(OwnerRunCompletionFactMapping.ObserverId, OwnerRunCompletionFactMapping.Capture);
+        builder.RegisterMigratedDomainFact<RunVariableFact>("log:run.variable", RunVariableFactMapping.Capture);
+        builder.RegisterMigratedDomainFact<FestivalResolutionFact>("log:social.festival", SocialRitualFactMapping.Capture);
+        builder.RegisterMigratedDomainFact<ObservedFuneralLifeEventReceipt>("log:social.funeral", SocialRitualFactMapping.Capture);
+        builder.RegisterMigratedDomainFact<ObservedLineageCompressionLifeEventReceipt>("log:social.lineage", SocialRitualFactMapping.Capture);
+        builder.RegisterMigratedDomainFact<ObservedProductionLossLifeEventReceipt>("log:social.production-loss", SocialRitualFactMapping.Capture);
+        builder.RegisterMigratedDomainFact<ObservedLastLessonLifeEventReceipt>("log:social.last-lesson", SocialRitualFactMapping.Capture);
+        builder.RegisterMigratedDomainFact<ObservedQuietPromotionLifeEventReceipt>("log:social.promotion", SocialRitualFactMapping.Capture);
+        builder.RegisterMigratedDomainFact<ContentResolutionFact>("log:campaign.resolution", ContentResolutionFactMapping.Capture);
+        builder.RegisterMigratedDomainFact<ObservedServiceIncidentFact>("log:campaign.service-incident", ObservedServiceIncidentFactMapping.Capture);
+        builder.RegisterMigratedDomainFact<CareerMentorshipAwardFact>("log:career.mentorship-award", CareerMentorshipAwardFactMapping.Capture);
+        builder.RegisterEntryPoint<OwnerRunObservationObserver>(Lifetime.Singleton);
         builder.Register<SettlementPopulationCapacityRuntime>(Lifetime.Singleton)
             .As<ISettlementPopulationCapacityQuery>();
         RegularCustomerRuntime sceneRuntime = runtimeReferences.RegularCustomers;
+        builder.RegisterMigratedDomainFact<RegularCustomerFact>(RegularCustomerFactMapping.ObserverId, RegularCustomerFactMapping.Capture);
+        builder.RegisterEntryPoint<RegularCustomerObservationObserver>(Lifetime.Singleton);
         if (sceneRuntime != null)
         {
             builder.RegisterComponent(sceneRuntime);

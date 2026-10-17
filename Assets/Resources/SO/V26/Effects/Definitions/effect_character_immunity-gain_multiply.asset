@@ -17,7 +17,7 @@ MonoBehaviour:
   targetId: character:immunity-gain
   operation: 2
   projectionPhase: 2
-  allowedSources: 63
+  allowedSources: 191
   stackingPolicy: 0
   minimumResult: 0
   maximumResult: 10

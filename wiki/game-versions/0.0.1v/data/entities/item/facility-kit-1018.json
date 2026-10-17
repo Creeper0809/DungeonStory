@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "무기보관함에 재고를 모아 두고 반출 순서를 관리하도록 만든 설치 부품이며, 라카쉬 세갈래길에서도 같은 규격으로 조립한다.",
+  "in_game_description": "무기보관함에 재고를 모아 두고 반출 순서를 관리하도록 만든 설치 부품이다. 라카쉬 세갈래길의 무기보관함 가격판에는 동전 옆에 운반과 길 안내로 값을 치르는 빈칸이 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

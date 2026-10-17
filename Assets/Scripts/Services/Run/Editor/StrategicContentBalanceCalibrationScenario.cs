@@ -70,8 +70,12 @@ public static class StrategicContentBalanceCalibrationScenario
         report.AppendLine("CONTRACTS");
         report.AppendLine(
             "id | faction | kind | deadline | item EWU | reference EWU | burden | target band");
-        Require(contracts.Length == 18,
-            $"Expected 18 contracts, found {contracts.Length}.", failures);
+        Require(contracts.Length == 24,
+            $"Expected 24 contracts, found {contracts.Length}.", failures);
+        Require(contracts.Count(value => string.IsNullOrEmpty(value.seasonalEventId)) == 18,
+            "Expected 18 ordinary contracts.", failures);
+        Require(contracts.Count(value => value.seasonalEventId == "seasonal:winter-fuel-demand") == 6,
+            "Expected 6 winter-fuel-demand seasonal contracts.", failures);
         foreach (FactionContractDefinitionSO contract in contracts)
         {
             float itemEwu = RequirementWork(

@@ -1,0 +1,12 @@
+WIM016 finite real-network / actual-clock witness
+status=PASS
+setup=persistence disposed before actual owner/party UI; normal TierZero; re-paused; no save writes
+setup=existing usable room; RF02=(27, 2); I08=(29, 2); P23=(31, 2); factory placement/research/input are controlled preparation
+[PASS] empty actual network -> unavailable UI; repeated assess/capture leaves crop and fluid byte-equivalent
+[PASS] positive-time real scheduler with manual refill owner + recovered tank1 -> auto debit0/crop credit0; presenter=manual active
+[PASS] current whole-save low-water restore: crop0/owner none/tank1 exact; presenter unavailable->manual->available
+[PASS] real registered room/network/access; paused query/capture leaves crop and tank1 unchanged
+[PASS] actual clock 0.333333s / wall 0.587s: tank1->0, crop=1, no competing owner/replay
+[PASS] terminal current whole-save restore preserves tank0/crop credit and does not replay supply
+scope=controlled dry checkpoint + real main clock/crop scheduler/fluid network/current whole-save/presenter; not natural staff haul, full cycle or six-adult proof
+Operator must stop protected disposable Play; no save-section/full-cycle/AI completion claimed.

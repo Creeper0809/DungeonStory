@@ -47,6 +47,14 @@ public static class WorkExecutionFailureMatrixDebugScenarios
         return result.Report;
     }
 
+    public static string RunForArchitectureBatch()
+    {
+        MatrixEvaluation result = Evaluate();
+        if (!result.Passed)
+            throw new InvalidOperationException(result.Summary + "\n" + result.Report);
+        return result.Report;
+    }
+
     private static MatrixEvaluation Evaluate()
     {
         List<string> structuralFailures = new List<string>();
@@ -160,7 +168,12 @@ public static class WorkExecutionFailureMatrixDebugScenarios
     private static bool ValidateCommonExecutorContract(List<string> failures)
     {
         const BindingFlags instancePrivate = BindingFlags.Instance | BindingFlags.NonPublic;
-        Type executor = typeof(WorkTaskExecutor);
+        Type executor = typeof(WorkTaskExecutor).GetField("run", instancePrivate)?.FieldType;
+        if (executor == null)
+        {
+            failures.Add("Common work-run authority is absent.");
+            return false;
+        }
         bool targetGuard = executor.GetMethod(
                 "CanContinueTimedWork",
                 instancePrivate,

@@ -14,6 +14,15 @@
   "kind": "event",
   "relations": [
     {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8874",
+      "target_spoiler_tier": "none",
+      "target_title": "격리 병동",
+      "type": "requires"
+    },
+    {
       "amount": "6",
       "label": "필요 조건",
       "target_kind": "item",

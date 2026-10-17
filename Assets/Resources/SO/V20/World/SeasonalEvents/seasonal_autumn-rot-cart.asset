@@ -21,6 +21,7 @@ MonoBehaviour:
   season: 2
   minimumDurationDays: 1
   maximumDurationDays: 2
+  worldWaterRegenerationMultiplier: 1
   affectedDomainIds:
   - logistics
   - disease

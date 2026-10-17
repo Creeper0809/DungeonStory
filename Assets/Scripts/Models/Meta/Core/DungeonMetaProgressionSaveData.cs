@@ -6,6 +6,7 @@ using UnityEngine.Scripting.APIUpdating;
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonMetaProgressionSaveData
 {
+    public const int CurrentVersion = 3;
     public int lifetimeEarnedCurrency;
     public int spentCurrency;
     public int completedRunCount;
@@ -18,6 +19,18 @@ public sealed class DungeonMetaProgressionSaveData
     public bool hasLatestResult;
     public DungeonRunResultSaveData latestResult =
         new DungeonRunResultSaveData();
+    public bool hasPendingCompletion;
+    public MetaRunCompletionSnapshotSaveData pendingCompletion = new();
+}
+
+[Serializable]
+public sealed class MetaRunCompletionSnapshotSaveData
+{
+    public OwnerRunCompletionFactData fact = new();
+    public int runSequence;
+    public int preservedRecipeSlots;
+    public DungeonRunResultSaveData result = new();
+    public List<string> recipeCandidates = new();
 }
 
 [Serializable]
@@ -56,4 +69,20 @@ public sealed class DungeonRunResultSaveData
         DungeonSurvivalPressure.Standard;
     public int legacyCurrency;
     public DungeonRunOutcome outcome = DungeonRunOutcome.Defeat;
+    public List<string> completedMilestoneIds = new List<string>();
+    public List<DungeonCommittedRunChoiceSaveData> committedChoices =
+        new List<DungeonCommittedRunChoiceSaveData>();
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class DungeonCommittedRunChoiceSaveData
+{
+    public CommittedRunChoiceKind kind;
+    public string ownerId = string.Empty;
+    public string definitionId = string.Empty;
+    public string instanceId = string.Empty;
+    public string choiceId = string.Empty;
+    public string operationId = string.Empty;
+    public long ordinal;
 }

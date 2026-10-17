@@ -22,7 +22,21 @@ MonoBehaviour:
   dayOfSeason: 8
   convertsActiveGrief: 0
   cultureId: culture:beastkin-pack
-  requiredBuildingDefinitionId: building:festival-common-hall
+  requiredBuildingDefinitionId: ""
+  venueRequirements:
+    anchor:
+      exactBuildingDefinitionIds: []
+      facilityRoles: 1
+    requiredRoomFacilityRoles: 1
+    requiredRoomFacilities: []
+    minimumSeats: 8
+    minimumTables: 8
+    minimumServiceCapacity: 1
+    minimumEventCells: 8
+    minimumVacantBeds: 0
+    requireResidentHeadroom: 0
+    requireWetBath: 0
+    requireEmergencySurgeryFacility: 0
   requiredItems:
   - itemDefinitionId: resource:meat
     amount: 18

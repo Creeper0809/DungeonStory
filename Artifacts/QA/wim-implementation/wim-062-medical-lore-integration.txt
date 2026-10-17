@@ -1,0 +1,53 @@
+WIM medical delivery / Kobold lore main-editor integration evidence
+Evidence source: main Unity MCP results and scoped filesystem observations, 2026-09-10.
+Project: F:/01_Programming/01_Project/02_Unity/DungeonStory
+Mode: EditMode controlled fixture, not natural hauling AI or full-world restore.
+
+Current-source compile:
+- Assembly-CSharp.dll UTC=2026-09-10T04:22:22.1593332Z
+- Assembly-CSharp-Editor.dll UTC=2026-09-10T04:22:24.5157953Z
+- DungeonStory.Survival.dll UTC=2026-09-10T04:22:10.5377229Z
+- Relevant source files older than these compiled outputs.
+- EditorUtility.scriptCompilationFailed=False; compile/update/play=False.
+- Executed new compiled API: DungeonSurvivalSaveData.CurrentVersion=7; ISurvivalTreatmentTerminalMaintenance loaded.
+- Before focused execution Console errors=0, warnings=0.
+
+Kobold:
+PASS: WimKoboldLoreDebugScenarios.RunFromMenu executed.
+MCP marker: KOBOLD_FOCUSED=PASS.
+Actual Kobold asset stable incident ID + both approved lore descriptions checked.
+Registry dispatch has no live Kobold hoarding handler. Source review confirms early exclusion before incident timer/hash writes; other handlers preserved.
+This is focused authored-data/dispatch proof, not a multi-day species simulation.
+
+Medical first execution:
+FAIL at SurvivalDebugScenarios.cs:4085 before delivery tests: CharacterCarryInventory.Ensure returns null in EditMode unless the fixture adds the component.
+Classified TEST SETUP ERROR, not production delivery failure.
+Fixture corrected using the existing PhysicalItemDebugScenarios EditMode pattern: Ensure(actor) ?? AddComponent<CharacterCarryInventory>().
+Medical subsequent focused executions and production corrections:
+- Restore staging rejected incorrectly: cross-section receipt joins were in preflight-only ValidateParsedPayload, bypassed by StageRestore. Moved joins into detached BuildRestoreCandidate; preflight remains shape-only. Corrected source subsequently passed missing/orphan receipt rejection.
+- Same-work retry blocked by generic availability after medicine was already consumed. Moved existing typed completion-only gate ahead of fresh work availability; no new-treatment eligibility bypass. Corrected source subsequently passed replay-once.
+- Second ordinary treatment reached ItemCommitted with a legitimate Recovering patient but did not apply. Existing primary eligibility used IsActiveIssue; new plan/restore checks only allowed Sick/Infected. Reused the existing shared predicate in both checks, retaining exact patient identity. No authored severity/effect/WU/billing change.
+- Final current-source focused execution UTC=2026-09-10T04:40:34.6068890Z: PASS, failures=0.
+- Actual transcript: wim-062-treatment-delivery-focused.txt.
+- Verified warehouse-only wait/no effect/no billing; controlled reserved pickup/carry commit/deposit; cancellation before delivery no consumption; detox ack failure + restore once; ordinary ack failure + section restore + invalid owner/missing/orphan receipt reject + same-work replay once; lost facility ack failure retry/no refund/no duplicate.
+- Current runtime compiled after final three-file predicate correction: Assembly-CSharp.dll UTC=2026-09-10T04:36:55Z (source UTC04:35:50).
+- Final main MCP command rejected stale/error/play/update states before running. Console after final execution errors=0, warnings=0.
+
+Preservation:
+- Active GameplayScene was already dirty=True; never saved or restarted.
+- Pre-run scene file SHA256=6C35A17693D3CEDCA2C85B89B22A8BFF9B5BAE6DE88C01B255481C058D2AEE40.
+- Post-run scene file SHA256 matches exactly; active scene remained dirty=True. No scene save, restart or PlayMode was performed by these focused executions.
+- Initial diagnostic-only MCP code did not execute because System.Diagnostics.Process was unavailable to its compiler; removed that unused diagnostic before the successful refresh.
+
+Still open: player-visible supply status/no-path correlation and natural AI/integrated062 closure. These are controlled real-service/physical-item proofs, not natural movement/AI or full-world restore. One062 consumption/exact-once subcheck is closed; whole062 remains open. Kobold lore-only subcheck is independently closed. Original WIM30/47 remains unchanged.
+
+Final source SHA256:
+- SurvivalFoodRuntime.cs F283BA421954D5C0EAA7E2C0A69DB7C19BADA114AC0251480E6F2B8809005C18
+- SurvivalSaveSections.cs ADC7F715AA8A6B96AE44207CFA8B69FDB8608DF7DC3AFC746FF686FB2F748F93
+- SurvivalFoodStockRuntime.cs 892B24D98EF01E6706B5F59A32649B6D0C070141B062CCCD193C143F32A7AF11
+- SurvivalWorkExecutionHandler.cs 4FC1EE778A64C2803223C07D86470AA730A4C5746B365A9A7A7EA7DCED1071C5
+- SurvivalDebugScenarios.cs E953A4D836C74F0A91FF5229792B75311D1575061941B89269370C0F5BA646BB
+- Runtime DLL 6F4BCFAB4161841C30B9639BB665440BB609DC756FB933752D5957E18F20C417
+- Editor DLL D1D2E03768A98C4D12663D7BFC643164779BAD25A16BC93E6CDFA5603CC46472
+
+Batch index regeneration: session99390 exit0; query tests5PASS; content/system validation and source freshness failures0. Content definitions3477/relations6348/C#2536. Existing unresolved references43/manual review49/duplicate groups10 remain disclosed, not new WIM blockers. Content source2b1d8447933285db59d0c256ac2b6ecec1335924508c82a33e18c3a9b6e56236; knowledge source52360c2546e5e244b827e4c5c4877aea0cae31d79847280026980bff63b1c9b3.

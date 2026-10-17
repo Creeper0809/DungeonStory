@@ -8,6 +8,22 @@ public class Door : BuildableObject
     protected virtual bool ChangesCharacterLayerDuringTraversal => true;
     public DoorAccessStateModule AccessStateModule { get; private set; }
     public DoorAccessPolicyState AccessPolicy => AccessStateModule?.State;
+    public DoorOperationStateModule OperationStateModule { get; private set; }
+    public bool IsOpen => OperationStateModule?.IsOpen == true;
+    public bool IsHeldOpen => OperationStateModule?.IsHeldOpen == true;
+    public int OperationRevision => OperationStateModule?.Revision ?? 0;
+    public long ManualOperationRevision =>
+        OperationStateModule?.ManualRevision ?? 0L;
+    internal bool CanAcceptManualOperation => isActiveAndEnabled
+        && !isDestroy
+        && !IsDetachedRestoreCandidate
+        && OperationStateModule != null
+        && PersistentInstanceId.IsValid;
+    public bool ContainsCell(Vector2Int position)
+    {
+        for (int i = 0; i < buildPoses.Count; i++) if (buildPoses[i] == position) return true;
+        return false;
+    }
 
     private readonly HashSet<object> traversalSubjects = new HashSet<object>();
     private readonly Dictionary<int, BuildingDoorTraversalSubjects> traversalSubjectCache =
@@ -69,6 +85,8 @@ public class Door : BuildableObject
                 RefreshAccessIndicator();
             });
         RegisterStateModule(AccessStateModule);
+        OperationStateModule = new DoorOperationStateModule(RefreshOperationVisual);
+        RegisterStateModule(OperationStateModule);
         RefreshAccessIndicator();
         if (IsDungeonEntrance)
         {
@@ -96,6 +114,66 @@ public class Door : BuildableObject
         }
 
         accessLockIndicator.Refresh(AccessPolicy?.IsRestricted == true);
+    }
+
+    [GameplayInternalOnly("Actual movement admission, never path enumeration", "AbilityMoveTraversalGuard;WildlifeActor")]
+    internal bool TryOpenForTraversal(GridTraversalContext context, IDoorAccessQuery access, out string reason)
+    {
+        if (!isActiveAndEnabled || isDestroy || IsDetachedRestoreCandidate || OperationStateModule == null)
+        { reason = "door-unavailable"; return false; }
+        if (!access.CanUse(this, context, out reason)) return false;
+        OperationStateModule.Set(true, IsHeldOpen);
+        return true;
+    }
+
+    [GameplayInternalOnly("Existing player door command adapter", "DoorAccessUnityAdapter")]
+    internal bool TryPreviewHeldOpen(bool held, out bool afterOpen)
+    {
+        afterOpen = false;
+        if (!CanAcceptManualOperation)
+        {
+            return false;
+        }
+        afterOpen = held || IsOccupied();
+        return true;
+    }
+
+    [GameplayInternalOnly("Prepared manual door command", "DoorAccessUnityAdapter")]
+    internal bool SetHeldOpen(
+        bool held,
+        DoorHeldOpenPendingSaveData pending)
+    {
+        return TryPreviewHeldOpen(held, out bool afterOpen)
+            && OperationStateModule.TryApplyManualChange(
+                afterOpen,
+                held,
+                pending);
+    }
+
+    private bool IsOccupied()
+    {
+        if (Grid == null) return true; // Cannot safely close until bound to a world.
+        foreach (Vector2Int position in buildPoses)
+        {
+            GridCell cell = Grid.GetGridCell(position);
+            if (cell?.GetOccupant(GridLayer.Character) != null
+                || cell?.GetOccupant(GridLayer.DownedCharacter) != null
+                || cell?.GetOccupant(GridLayer.Wildlife) != null) return true;
+        }
+        return traversalSubjectPort.IsDoorPassageOccupied(this);
+    }
+
+    private void LateUpdate()
+    {
+        if (!Application.isPlaying || IsDetachedRestoreCandidate || OperationStateModule == null) return;
+        if (IsOpen && !IsHeldOpen && !IsOccupied()) OperationStateModule.Set(false, false);
+        RefreshOperationVisual();
+    }
+
+    private void RefreshOperationVisual()
+    {
+        if (VisualRenderer != null)
+            VisualRenderer.transform.localRotation = Quaternion.Euler(0f, IsOpen ? 70f : 0f, 0f);
     }
 
     private void ConfigureTraversalCollider()

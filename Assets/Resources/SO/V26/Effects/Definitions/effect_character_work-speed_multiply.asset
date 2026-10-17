@@ -17,7 +17,7 @@ MonoBehaviour:
   targetId: character:work-speed
   operation: 2
   projectionPhase: 2
-  allowedSources: 63
+  allowedSources: 255
   stackingPolicy: 0
   minimumResult: 0
   maximumResult: 10

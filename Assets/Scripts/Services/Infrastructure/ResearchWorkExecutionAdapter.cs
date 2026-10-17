@@ -126,10 +126,13 @@ public sealed class ResearchWorkExecutionHandler :
             return false;
         }
 
-        bool available = projectWorkforce.CanJoin(
-            projectId,
-            characterId.Value,
-            maximumResearchers);
+        bool available = projectWorkforce.GetContributionMultiplier(
+                projectId,
+                characterId.Value) > 0f
+            || projectWorkforce.CanJoin(
+                projectId,
+                characterId.Value,
+                maximumResearchers);
         reason = available ? string.Empty : "연구 프로젝트의 동시 연구자 슬롯이 가득 찼습니다.";
         return available;
     }
@@ -163,49 +166,58 @@ public sealed class ResearchWorkExecutionHandler :
 
         using (workforceLease)
         {
-        ResearchWorkerHandle worker = runtime.CaptureWorker(context.Actor);
-        ResearchFacilityHandle facility = runtime.CaptureFacility(context.Target);
-        ResearchWorkPlan plan = core.CreatePlan(facility);
-        yield return context.ExecuteWorkAmount(plan.RequiredWork, "연구");
-        if (!context.CanContinue)
-        {
-            result.CompletedSuccessfully = false;
-            yield break;
-        }
+            // Unity may stop the work coroutine before this iterator advances
+            // again, so the executor must also own the joined project slot.
+            context.RegisterCancellationResource(workforceLease);
+            ResearchWorkerHandle worker = runtime.CaptureWorker(context.Actor);
+            ResearchFacilityHandle facility = runtime.CaptureFacility(context.Target);
+            ResearchWorkPlan plan = core.CreatePlan(facility);
+            yield return context.ExecuteWorkAmount(plan.RequiredWork, "연구");
+            if (!context.CanContinue)
+            {
+                result.CompletedSuccessfully = false;
+                yield break;
+            }
 
-        float contribution = projectWorkforce.GetContributionMultiplier(
-            projectId,
-            characterId.Value);
-        ResearchWorkProgressResult work = core.ApplyApprovedWork(
-            worker,
-            facility,
-            plan.RequiredWork * contribution);
-        result.CompletedSuccessfully = work.Succeeded;
-        if (!work.Succeeded)
-        {
-            context.Actor?.AddActivity(CharacterActivityEvent.Work(
-                FacilityWorkType.Research,
-                CharacterActivityOutcomes.Failed,
-                $"연구 실패: {work.FailureCode}",
-                context.Target,
-                reasonCode: work.FailureCode,
-                bubbleEligible: true));
-            yield return new WaitForSeconds(0.2f);
-            yield break;
-        }
+            float contribution = projectWorkforce.GetContributionMultiplier(
+                projectId,
+                characterId.Value);
+            ResearchWorkProgressResult work = core.ApplyApprovedWork(
+                worker,
+                facility,
+                plan.RequiredWork * contribution);
+            result.CompletedSuccessfully = work.Succeeded;
+            if (!work.Succeeded)
+            {
+                if (work.CapacityDeferred)
+                {
+                    // Ledger backpressure is retryable, not a fictional failed research event.
+                    yield return new WaitForSeconds(0.2f);
+                    yield break;
+                }
+                PublishResearchProgress(context, work, WorkExecutionTransition.ResearchRejected);
+                yield return new WaitForSeconds(0.2f);
+                yield break;
+            }
 
-        context.Actor?.AddActivity(CharacterActivityEvent.Work(
-            FacilityWorkType.Research,
-            work.Completed
-                ? CharacterActivityOutcomes.Completed
-                : CharacterActivityOutcomes.Progress,
-            work.Completed
-                ? $"연구 완료: {work.Label}"
-                : $"연구 진행: {work.Label}",
-            context.Target,
-            reasonCode: work.Completed ? "blueprint-completed" : "research-progress",
-            value: work.ProgressRatio));
+            PublishResearchProgress(context, work, work.Completed
+                ? WorkExecutionTransition.ResearchCompleted : WorkExecutionTransition.ResearchProgressed);
         }
+    }
+
+    private static void PublishResearchProgress(WorkExecutionContext context,
+        ResearchWorkProgressResult work, WorkExecutionTransition transition)
+    {
+        if (context.Actor == null) return;
+        BuildableObject target = context.Target;
+        context.Actor.PublishDomainEvent(new WorkExecutionChangedEvent(
+            transition, CharacterPersistentIdentity.Require(context.Actor), BuiltInWorkTypeIds.Research,
+            target == null ? string.Empty : target.RequirePersistentInstanceId().Value,
+            target == null ? string.Empty : target.BuildingData != null && !string.IsNullOrWhiteSpace(target.BuildingData.objectName)
+                ? target.BuildingData.objectName : target.name,
+            target == null ? -1 : target.id, workLabel: work.Label ?? string.Empty,
+            detail: work.FailureCode ?? string.Empty, progress: work.ProgressRatio,
+            origin: context.CommandOrigin));
     }
 
     private static ProjectScale ResolveResearchScale(int maximumResearchers) =>
@@ -346,7 +358,8 @@ public sealed class DefaultResearchWorkRuntimePort : IResearchWorkRuntimePort
                 false,
                 0f,
                 equipmentFailure,
-                equipmentFailure);
+                equipmentFailure,
+                result.CapacityDeferred);
         }
         string label = result.Blueprint != null
             ? result.Blueprint.DisplayName
@@ -356,7 +369,8 @@ public sealed class DefaultResearchWorkRuntimePort : IResearchWorkRuntimePort
             result.Completed,
             result.ProgressRatio,
             label,
-            result.Success ? string.Empty : result.Message);
+            result.Success ? string.Empty : result.Message,
+            result.CapacityDeferred);
     }
 
     private bool TryApplyRegisteredEquipmentWork(
@@ -449,6 +463,7 @@ public sealed class DefaultResearchWorkRuntimePort : IResearchWorkRuntimePort
                 effect);
         if (!use.Succeeded)
         {
+            result = effect.Result;
             failureReason = Canonical(use.FailureReason)
                 ? use.FailureReason
                 : "research-durable-equipment-use-failed";
@@ -529,7 +544,8 @@ public sealed class DefaultResearchWorkRuntimePort : IResearchWorkRuntimePort
             Result = service.ApplyApprovedResearchWork(
                 researcher,
                 facility,
-                boosted);
+                boosted,
+                context);
             if (!Result.Success)
             {
                 failureReason = Canonical(Result.Message)

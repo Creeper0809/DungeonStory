@@ -1,0 +1,67 @@
+{
+  "target": "C18 CharacterBreakdownActionRunner",
+  "status": "CORPSE_TRANSACTION_OWNER_AND_EXACT_RUN_LIFETIME_FIXED_SOURCE_VERIFIED_ACTUAL_PENDING",
+  "goalStatus": "active",
+  "completedTargets": 6,
+  "totalTargets": 32,
+  "sourceEdit": "CLOSED",
+  "authors": "READY/FROZEN",
+  "contract": "Corpse effects/exact physical commit/precommit rollback/ACK/publication owned by one transaction with same current world/state/consequences/calendar. Actor coroutine admission, exact run object+actor/kind/generation/lease and child lifetime stay in runner. Old completion/disposal cannot remove replacement or end its renewed lease. Recursive current-run+original CanCommit guard gates nested steps and cascades child disposal. Ordinary rejected admission returns false; scheduler/transaction exceptions propagate after exact cleanup. Null handle is failure only while own marker remains current. Movement path/step outer iterators own child disposal and complete only their exact version/owner in finally; older cleanup cannot clear newer operation.",
+  "unchanged": {
+    "corpseMethods": 4,
+    "pureQueriesCopied": 3,
+    "retainedRunnerMethods": 31,
+    "facadeApi": 9,
+    "constructorDependencies": "original plus same-collaborator transaction",
+    "privateVandalismEntrypoints": "exact",
+    "dtoVersionBalanceGuidScenePrefab": "untouched",
+    "retainedMovementMethods": 68
+  },
+  "controlled": {
+    "baselineActualIteratorDefectsReproduced": 4,
+    "currentChecks": 36,
+    "baseline": "c18-breakdown-runs/controlled-baseline-r2/result.json",
+    "current": "c18-breakdown-runs/controlled-r4/result.json",
+    "scope": "Full current runtime/real Editor run-lifetime fixture; baseline full C16 runtime actual old iterators and movement wrappers. Null actors/explicit child enumerator test marker/finally/lease identity plus constructor-free movement shell outer wrapper disposal (inner path/step unstarted); no native Brain/admission scheduler, corpse effect transaction or official world restore.",
+    "runChecks": 28,
+    "movementWrapperChecks": 8
+  },
+  "parity": "c18-breakdown-runs/static-parity-r1.txt",
+  "syntax": {
+    "files": 172,
+    "errors": 0
+  },
+  "currentManagedCompilation": {
+    "evidence": "c18-breakdown-runs/managed-final.json",
+    "runtime": 2719,
+    "editor": 1021,
+    "errors": 0,
+    "warnings": [
+      3,
+      23
+    ],
+    "sourceFiles": 3867,
+    "inputReferenceDrift": 0,
+    "scope": "Current runtime2719/Editor1021 r4, existing Unity defines/references/analyzers and Artifacts outputs. Buildings32/Economy95 validated C4 outputs, other named assemblies cached. Unity import/ILPP/native execution NOT_RUN."
+  },
+  "nativeFixture": {
+    "entry": "CharacterDeprivationExperienceFactDebugScenarios.Run -> RunBreakdownRunLifetimeContracts (existing ResearchWorkObserverDebugScenarios consumer) and RunBreakdownMovementDisposalContracts (actual component entry compiled, not run)",
+    "compiled": true,
+    "managedFixtureExecuted": true,
+    "UnityExecuted": false,
+    "pending": "Native Brain/admission scheduler, actual five production BT actions, corpse stat/physical/ACK failures and official whole-world restore. Existing CharacterDeprivationProductionBtPlayModeVerifier corpse failure/JSON restore fixtures compiled, not run."
+  },
+  "reviewHistory": [
+    "Read-only r1 corpse body/identity/API review, clarified explicit scheduler exceptions must propagate instead of false",
+    "Main deeper review found same-lease old nested coroutine could still step; r2 recursive identity/CanCommit gate and owned child Dispose added, current r2 compile and controlled28 PASS",
+    "r3 null handle requires still-current marker so synchronous completed/retired run is accepted; current compile/controlled28 PASS",
+    "r3 independent review found disposed raw-path owner could remain; main reproduced actual old path and step outer-wrapper leaks",
+    "r4 exact version/owner finally cleanup plus 8 real outer-wrapper shell checks; old iterator4/current36 PASS, current Csc0/source/reference drift0",
+    "Final independent r4 static review READY/FROZEN, no further concrete defect; no native execution"
+  ],
+  "sourcePin": "source-pin-c18-r2.json",
+  "toolPin": "tool-pin-c18-r2.json",
+  "Unity": "NOT_RUN_USER_CODE_CLEANUP_PRIORITY",
+  "knowledgeBase": "stale271/original source; related generation batch remains open",
+  "independentReview": "c18-breakdown-runs/independent-review-r4.txt"
+}

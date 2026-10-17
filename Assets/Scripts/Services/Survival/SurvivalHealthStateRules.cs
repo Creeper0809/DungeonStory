@@ -125,7 +125,7 @@ internal static class SurvivalHealthStateRules
                 && string.Equals(entry.persistentId, persistentId, StringComparison.Ordinal));
     }
 
-    private static bool IsActiveIssue(SurvivalHealthSaveData entry)
+    internal static bool IsActiveIssue(SurvivalHealthSaveData entry)
     {
         return entry != null
             && entry.remainingSeconds > 0f

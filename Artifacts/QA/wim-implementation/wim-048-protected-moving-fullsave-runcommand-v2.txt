@@ -1,0 +1,2069 @@
+# WIM-048 protected Moving/full-save RunCommand v2
+
+status=READY_NOT_EXECUTED
+productionChange=false
+scope=Run only inside an already protected Play after public persistence Dispose, TierZero reconciliation, and actual Owner/party UI commit.
+correction=The first rejected setup input is unchanged except that direct GetComponent<AbilityWork>() is replaced by exact public CharacterWorkRoleUtility.TryGetWork access. No new actor, room, intruder, or save path is introduced.
+safetyCorrection=Command B reacquires only a loaded activeInHierarchy actor and fails if more than one active actor has the same stable ID.
+restorePauseCorrection=Command B wraps only TryRestore in try/finally and restores Time.timeScale=0 inside the same synchronous command on success or exception; successful readback requires paused=true.
+patientFixtureCorrection=Command C uses a temporary clone of the existing regular Orc archetype for the rescue patient only, following the existing Editor fixture NPC composition contract. Before frames and before damage, verify the live Orc/profile join and both authored non-vital mobility legs. AD28's actual pickup evidence is retained; its Slime leg assumption was a fixture error, not a production anatomy defect. No asset/species/lifecycle rule is changed and all six-role/cargo/release assertions remain required.
+retentionObservationCorrection=Command C captures each ownership/retention condition after threat preparation, immediately before/after the actual evacuation click, and at first hauler participation. Exact cargo ownership is a pre-click fixture requirement; post-click retention keeps all original conditions. A previously observed engagement ending before required evidence is reported separately from never reaching Engaged. This revision has not run.
+retentionTimingCorrection=Prepare the actual Defense tab and evacuation button before enabling cargo work. When pickup is observed, pause, prepare rescue/threat, click evacuation and capture the result within the same callback; no intervening player frame can resume the hauling coroutine or the two-frame automatic evacuation request. This is fixture ordering only, not a gameplay pause/AI change.
+conservationQueryCorrection=The world registry already includes Carried stacks. Sum each world StackId once; validate each active actor's carried slice against that same world entry instead of adding the carry projection a second time. The previous B497 run's physicalTotal=2 for one carried stack was verifier double-counting, not evidence of production duplication. Exact quantities/operation/intent and final Stored+1 remain required.
+
+## Command A: existing prepared residents -> GuardOff -> room/Defense actual UI -> Moving
+
+```csharp
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+using UnityEditor;
+using UnityEngine.EventSystems;
+
+internal class CommandScript : IRunCommand
+{
+    static Type T(string n) => Type.GetType(n + ", Assembly-CSharp");
+    static object P(object o, string n) => o.GetType().GetProperty(n).GetValue(o);
+    static object Resolve(string n)
+    {
+        Type st = T("DungeonRuntimeLifetimeScope"), target = T(n);
+        var scope = Resources.FindObjectsOfTypeAll(st).Cast<UnityEngine.Object>()
+            .First(o => o is Component c && c.gameObject.scene.isLoaded);
+        object container = st.GetProperty("Container").GetValue(scope);
+        return container.GetType()
+            .GetMethod("Resolve", new[] { typeof(Type), typeof(object) })
+            .Invoke(container, new object[] { target, null });
+    }
+    static bool Click(string name)
+    {
+        GameObject go = Resources.FindObjectsOfTypeAll<GameObject>()
+            .FirstOrDefault(value => value.scene.isLoaded
+                && value.activeInHierarchy
+                && value.name == name);
+        if (go == null || EventSystem.current == null) return false;
+        PointerEventData pointer = new PointerEventData(EventSystem.current);
+        ExecuteEvents.Execute(go, pointer, ExecuteEvents.pointerEnterHandler);
+        ExecuteEvents.Execute(go, pointer, ExecuteEvents.pointerDownHandler);
+        ExecuteEvents.Execute(go, pointer, ExecuteEvents.pointerUpHandler);
+        ExecuteEvents.Execute(go, pointer, ExecuteEvents.pointerClickHandler);
+        return true;
+    }
+    static string Id(object actor)
+    {
+        object identity = P(actor, "Identity");
+        return identity == null ? string.Empty : Convert.ToString(P(identity, "PersistentId"));
+    }
+    static bool TryGetPublicWork(object actor, out object work)
+    {
+        object[] args = { actor, null };
+        bool success = (bool)T("CharacterWorkRoleUtility")
+            .GetMethod("TryGetWork", new[] { T("CharacterActor"), T("AbilityWork").MakeByRefType() })
+            .Invoke(null, args);
+        work = args[1];
+        return success && work != null;
+    }
+    static object GetGuardPriority(object work)
+    {
+        object profile = P(work, "WorkPriorities");
+        return profile.GetType().GetMethod("GetPriority", new[] { typeof(WorkTypeId) })
+            .Invoke(profile, new object[] { BuiltInWorkTypeIds.Guard });
+    }
+    public void Execute(ExecutionResult result)
+    {
+        Time.timeScale = 0f;
+        Type actorType = T("CharacterActor");
+        var staff = Resources.FindObjectsOfTypeAll(actorType).Cast<UnityEngine.Object>()
+            .Where(value => value is Component c
+                && c.gameObject.scene.isLoaded
+                && c.gameObject.activeInHierarchy)
+            .Where(value => !(bool)P(value, "IsOwner"))
+            .OrderBy(Id, StringComparer.Ordinal)
+            .ToList();
+        if (staff.Count < 2) throw new InvalidOperationException("Expected two prepared staff.");
+
+        object subject = staff[0], excluded = staff[1];
+        if (!TryGetPublicWork(subject, out object subjectWork))
+            throw new InvalidOperationException("Public work helper rejected the subject.");
+        subjectWork.GetType()
+            .GetMethod("SetWorkPriority", new[] { typeof(WorkTypeId), typeof(WorkPriorityLevel) })
+            .Invoke(subjectWork, new object[] { BuiltInWorkTypeIds.Guard, WorkPriorityLevel.Off });
+
+        object combat = Resolve("ICharacterCombatCommandRuntime");
+        object[] stanceArgs = { excluded, true, null };
+        bool stance = (bool)combat.GetType().GetMethod("SetCombatStance").Invoke(combat, stanceArgs);
+
+        bool buildings = Click("Button (1)");
+        bool room = Click("P1Action_RoomInspect_1_Evacuation");
+
+        Type factorsType = T("InvasionThreatFactors");
+        object factors = Activator.CreateInstance(factorsType, new object[] { 6f, 4f, 3f, 1f });
+        Type stageType = T("InvasionThreatStage");
+        object stage = Enum.Parse(stageType, "Candidate");
+        Type snapshotType = T("InvasionThreatSnapshot");
+        object snapshot = Activator.CreateInstance(snapshotType,
+            new object[] { 125f, stage, factors, 0f, 0f });
+        object director = Resources.FindObjectsOfTypeAll(T("InvasionDirectorRuntime"))
+            .Cast<UnityEngine.Object>()
+            .First(value => value is Component c && c.gameObject.scene.isLoaded);
+        object[] spawnArgs = { snapshot, null };
+        bool spawned = (bool)director.GetType().GetMethod("TrySpawnIntruder")
+            .Invoke(director, spawnArgs);
+        string intruderId = spawnArgs[1] == null ? string.Empty : Id(spawnArgs[1]);
+
+        bool defense = Click("TopTabButton_Defense_방어");
+        bool request = Click("P1Action_ResidentEvacuationRequest");
+        object evacuation = Resolve("IInvasionOwnerEvacuationService");
+        List<string> participants = new List<string>();
+        foreach (object participant in (IEnumerable)P(evacuation, "ResidentEvacuationParticipants"))
+            participants.Add(string.Format("{0}:{1}:has={2}:target={3}:reason={4}",
+                P(participant, "CharacterId"), P(participant, "Status"),
+                P(participant, "HasTarget"), P(participant, "Target"), P(participant, "Reason")));
+
+        result.Log("WIM048 MOVING subject={0};guard={1};excluded={2};combat={3}/{4};buildings={5};room={6};spawned={7};intruder={8};defense={9};request={10};zone={11};participants={12};timeScale={13}",
+            Id(subject), GetGuardPriority(subjectWork), Id(excluded), stance, stanceArgs[2],
+            buildings, room, spawned, intruderId, defense, request,
+            P(evacuation, "ResidentZoneStatus"), string.Join(" || ", participants), Time.timeScale);
+    }
+}
+```
+
+## Command B: whole game-save-service JSON round trip at active Moving checkpoint
+
+```csharp
+using System;
+using System.Collections;
+using System.Linq;
+using UnityEngine;
+using UnityEditor;
+
+internal class CommandScript : IRunCommand
+{
+    static Type T(string n) => Type.GetType(n + ", Assembly-CSharp");
+    static object P(object o, string n) => o.GetType().GetProperty(n).GetValue(o);
+    static object Resolve(string n)
+    {
+        Type st = T("DungeonRuntimeLifetimeScope"), target = T(n);
+        var scope = Resources.FindObjectsOfTypeAll(st).Cast<UnityEngine.Object>()
+            .First(o => o is Component c && c.gameObject.scene.isLoaded);
+        object container = st.GetProperty("Container").GetValue(scope);
+        return container.GetType()
+            .GetMethod("Resolve", new[] { typeof(Type), typeof(object) })
+            .Invoke(container, new object[] { target, null });
+    }
+    static object FindParticipant(object evacuation, string id)
+    {
+        foreach (object participant in (IEnumerable)P(evacuation, "ResidentEvacuationParticipants"))
+            if (string.Equals(Convert.ToString(P(participant, "CharacterId")), id, StringComparison.Ordinal))
+                return participant;
+        return null;
+    }
+    static object FindActor(string id)
+    {
+        object match = null;
+        foreach (UnityEngine.Object actor in Resources.FindObjectsOfTypeAll(T("CharacterActor")))
+        {
+            if (!(actor is Component component)
+                || !component.gameObject.scene.isLoaded
+                || !component.gameObject.activeInHierarchy) continue;
+            object identity = P(actor, "Identity");
+            if (identity != null && string.Equals(Convert.ToString(P(identity, "PersistentId")), id, StringComparison.Ordinal))
+            {
+                if (match != null)
+                    throw new InvalidOperationException("Multiple active actors share resident stable ID: " + id);
+                match = actor;
+            }
+        }
+        return match;
+    }
+    static bool TryGetPublicWork(object actor, out object work)
+    {
+        object[] args = { actor, null };
+        bool success = (bool)T("CharacterWorkRoleUtility")
+            .GetMethod("TryGetWork", new[] { T("CharacterActor"), T("AbilityWork").MakeByRefType() })
+            .Invoke(null, args);
+        work = args[1];
+        return success && work != null;
+    }
+    static bool IsGuardOff(object work)
+    {
+        object profile = P(work, "WorkPriorities");
+        object priority = profile.GetType().GetMethod("GetPriority", new[] { typeof(WorkTypeId) })
+            .Invoke(profile, new object[] { BuiltInWorkTypeIds.Guard });
+        return Equals(priority, WorkPriorityLevel.Off);
+    }
+    public void Execute(ExecutionResult result)
+    {
+        Time.timeScale = 0f;
+        object evacuation = Resolve("IInvasionOwnerEvacuationService");
+        object before = null;
+        foreach (object participant in (IEnumerable)P(evacuation, "ResidentEvacuationParticipants"))
+        {
+            string status = Convert.ToString(P(participant, "Status"));
+            if ((status == "Moving" || status == "PendingRoute" || status == "Holding")
+                && (bool)P(participant, "HasTarget")) { before = participant; break; }
+        }
+        if (before == null) throw new InvalidOperationException("No active targeted resident participant.");
+        string id = Convert.ToString(P(before, "CharacterId"));
+        string target = Convert.ToString(P(before, "Target"));
+        string zone = Convert.ToString(P(evacuation, "ResidentZoneStatus"));
+
+        IDungeonGameSaveService saves = (IDungeonGameSaveService)Resolve("IDungeonGameSaveService");
+        DungeonGameSaveData captured = saves.Capture();
+        string json = saves.ToJson(captured);
+        DungeonGameSaveData parsed = saves.FromJson(json);
+        bool restored = false;
+        DungeonGameRestoreReport report = default;
+        try
+        {
+            restored = saves.TryRestore(parsed, out report);
+        }
+        finally
+        {
+            Time.timeScale = 0f;
+        }
+
+        evacuation = Resolve("IInvasionOwnerEvacuationService");
+        object after = FindParticipant(evacuation, id);
+        object actor = FindActor(id);
+        bool actorActive = actor is Component component && component.gameObject.activeInHierarchy;
+        bool workValid = actor != null && TryGetPublicWork(actor, out object work) && IsGuardOff(work);
+        bool sameTarget = after != null && target == Convert.ToString(P(after, "Target"));
+        bool sameZone = zone == Convert.ToString(P(evacuation, "ResidentZoneStatus"));
+        bool paused = Mathf.Approximately(Time.timeScale, 0f);
+        result.Log("WIM048 FULLSAVE id={0};bytes={1};restored={2};reportSuccess={3};actorActive={4};guardOff={5};sameZone={6};sameTarget={7};postStatus={8};postHasTarget={9};paused={10}",
+            id, json.Length, restored, report.Success, actorActive, workValid, sameZone, sameTarget,
+            after == null ? "<absent>" : Convert.ToString(P(after, "Status")),
+            after != null && (bool)P(after, "HasTarget"), paused);
+        if (!restored || !report.Success || !actorActive || !workValid || !sameZone || !sameTarget || !paused)
+            throw new InvalidOperationException("WIM048 whole-save completed-hook authority mismatch.");
+    }
+}
+```
+
+## Execution contract
+
+- Command A may run only after the already proven protected setup command has disposed persistence, reconciled TierZero, and committed the actual party UI.
+- Command B may run exactly once only when Command A reports `stance=true`, `buildings=true`, `room=true`, `spawned=true`, `defense=true`, `request=true`, and the intended subject is an active participant with `Status=Moving` and `HasTarget=true`. Any false click/spawn/stance result or missing Moving/target authority stops before Command B. It uses no slot IO and no raw `IDungeonSaveSectionRegistry.RestoreAll`.
+- A separate read-only public participant/actor query on the next normal frame is still required before any bounded Holding/terminal observation.
+- Any compile/policy/runtime failure stops the batch; neither command is varied or retried.
+
+execution=NOT_RUN_PENDING_ROOT_REVIEW
+
+## Remaining role/cargo flow: six-person minion, rescue/guard exclusion, retained delivery
+
+status=READY_FROZEN_NOT_EXECUTED
+scope=Run this Command C in a fresh protected Play after `wim-048-protected-setup-runcommand.txt` Stage A/B only. It does not invoke Commands A/B above and does not repeat the already-PASS full-JSON, Holding, emergency-gate, or topology checks.
+readyBoundary=READY/FROZEN: protected public compose creates two residents and one initially active Minion, then one short x1 run observes actual room/Defense UI, exact role selection/exclusion, cargo interruption, controlled terminal input, release replan, and exact deposit.
+initialMinionLimit=The initial actor uses the existing public `ICharacterPopulationService.PromoteToMinion` standing authority. It is valid WIM048 evacuation-selection fixture setup only; it is not evidence of captivity conversion, three-day eligibility, `CaptiveState`, rehabilitation, or daily captive/minion social effects. `GetSettlementPopulation` counts alive `CharacterPopulationService` profiles, not the complete live `ActiveActors` set: the prepared owner/staff path does not bind those three actors to this population profile store, while Command C explicitly creates profiles for its two Residents and one Minion. Its aggregate is recorded as profile-store diagnostics only; the six-role gate uses each exact live actor's public standing/minion/combat/work/lifecycle authority.
+authoredPrerequisites=Only the protected three-person party, one authored regular NPC `CharacterSO`, a live public grid/dropoff, the existing evacuation room UI target, and one physical `material:stone-block` are required. No CP01, restraint, ritual material, research, calendar wait, DTO mutation, or slot IO is used.
+runtimeBound=All movement, pickup, rescue, threat, evacuation, release and delivery observations run at speed x1. The command stops after 360 game seconds or 360 wall seconds; no multi-day survival preparation remains.
+fixtureVersusEvidence=Three public-composed actors, two typed threats, one source-current-health patient injury, and the public defense terminal command are controlled disposable-world integration inputs. Initial Minion standing is fixture authority, not conversion evidence. Actual room/Defense UI request, resident+Minion selection, Guard/rescue-owner exclusion, normal pickup interruption, retained commitment, release replan, and the promised Warehouse destination's merge-safe Stored quantity delta are gameplay evidence. The terminal command is never evidence of a natural combat win.
+destinationEvidence=The operation intent must name this hauler, exact source/carried IDs, one stone, and a Warehouse destination. PASS then requires that intent and carried entry to retire, `LastTerminalDiagnostics` to be `Completed`, global physical quantity to remain conserved, and that exact destination's public Stored quantity to increase by exactly one; a Loose drop cannot satisfy this predicate.
+ownershipCorrection=The prior source-stack `Stored` observation proves only that the exact stack reached storage; no delivery actor ID was captured. Command C therefore treats enabled ordinary haulers as a real contention policy and requires exclusive subject eligibility before it can claim subject-owned pickup, retention, or delivery.
+priorTraceInterpretation=Artifact `Logs/artifacts/bef015f3c898d736-data.json` (SHA-256 `AB97DF76FF2D6705BAC542F4CA2CDDFE88C90B5C3233428C0FD99B2E640D1C4`) records `AbilityHaul.ActivePathDebug`, whose source formatter prints `GridMoveStep.From/To`, not world positions. The selected actor started at grid `(21,0)`, later completed an unrelated movement by t=69.744, then progressed normally on another 29-step grid path `(1,0)->(30,0)` from t=70.045 through t=89.634 at positive speed; it does not evidence a wrong actor reference or a stalled movement. The exact source independently became Stored, but the delivering actor remains unknown.
+typeMap=`IGameClock` is `DungeonStory.Foundation`; `IGameSpeedController` is `DungeonStory.CoreSession`; `Grid` is `DungeonStory.Grid`; `WorkTypeId`/`WorkPriorityLevel`/`BuiltInWorkTypeIds` are `DungeonStory.Work`; `WorldItemStackState`/haul commitment DTOs are `DungeonStory.Items`; `CharacterType`/`CharacterLifecycleState`/`CharacterSettlementStanding` are `DungeonStory.Characters`; `InvasionThreatStage`/`InvasionThreatFactors`/`InvasionThreatSnapshot` are `DungeonStory.Invasion`; `TabId`/`UITabButtonBinding`/`UITabIdentity`/`P0FeatureSurfacePanel` are `DungeonStory.Presentation`; `TMP_Text` is `Unity.TextMeshPro`; remaining runtime/service/actor types are `Assembly-CSharp`.
+
+### Command C: one bounded public-production flow
+
+```csharp
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+using UnityEditor;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+internal class CommandScript : IRunCommand
+{
+    const string HaulResidentId = "character:wim048:resident:haul";
+    const string PatientResidentId = "character:wim048:resident:patient";
+    const string MinionResidentId = "character:wim048:minion:noncombat";
+    const string CargoItemId = "material:stone-block";
+    const double MaximumWallSeconds = 360d;
+    const float MaximumGameSeconds = 360f;
+
+    bool installed;
+    int phase;
+    int earliestPlayerFrame;
+    double wallStarted;
+    float gameStarted;
+    float phaseStarted;
+
+    object speed;
+    object clock;
+    object items;
+    object grid;
+    object defense;
+    object evacuation;
+    object combatCommands;
+    object anatomy;
+    object settlement;
+    object secondIntruderRuntime;
+    object secondEngagement;
+
+    Component owner;
+    Component guard;
+    Component rescuer;
+    Component hauler;
+    Component patient;
+    Component minion;
+    object guardWork;
+    object rescuerWork;
+    object haulerWork;
+    object minionWork;
+    object haulerInventory;
+    object haulerAbility;
+
+    string cargoSourceStackId = string.Empty;
+    string cargoCarriedStackId = string.Empty;
+    string cargoOperationId = string.Empty;
+    string cargoDestinationId = string.Empty;
+    string cargoDestinationKind = string.Empty;
+    int stoneBefore;
+    int cargoStoredBefore;
+    int cargoStoredAfter;
+    long haulStartsAtPickup;
+    bool rescueObserved;
+    bool guardObserved;
+    bool exclusionObserved;
+    bool retainedObserved;
+    bool retentionParticipantObserved;
+    bool secondEngagedObserved;
+    bool releaseReplanObserved;
+    bool uiRoomClicked;
+    bool uiDefenseClicked;
+    bool uiEvacuationClicked;
+    string participantEvidence = string.Empty;
+    string minionSetupEvidence = string.Empty;
+    string terminalEvidence = string.Empty;
+    string selectorEvidence = string.Empty;
+    string phase6StartEvidence = string.Empty;
+    string phase6TerminalEvidence = string.Empty;
+    string retentionBoundaryEvidence = string.Empty;
+
+    static Type T(string name, string assemblyName = "Assembly-CSharp")
+    {
+        Type type = Type.GetType(name + ", " + assemblyName);
+        return type ?? throw new InvalidOperationException(
+            "Missing exact public type: " + name + " @ " + assemblyName);
+    }
+
+    static object V(object value, string name)
+    {
+        if (value == null)
+            throw new InvalidOperationException("Public member owner is null: " + name);
+        var property = value.GetType().GetProperty(name);
+        if (property != null && property.GetMethod != null
+            && property.GetMethod.IsPublic)
+            return property.GetValue(value);
+        var field = value.GetType().GetField(name);
+        if (field != null && field.IsPublic)
+            return field.GetValue(value);
+        throw new InvalidOperationException(
+            "Missing public property/field: " + value.GetType().FullName + "." + name);
+    }
+
+    static void SetV(object value, string name, object memberValue)
+    {
+        var property = value.GetType().GetProperty(name);
+        if (property != null && property.SetMethod != null
+            && property.SetMethod.IsPublic)
+        {
+            property.SetValue(value, memberValue);
+            return;
+        }
+        var field = value.GetType().GetField(name);
+        if (field != null && field.IsPublic)
+        {
+            field.SetValue(value, memberValue);
+            return;
+        }
+        throw new InvalidOperationException(
+            "Missing public writable member: " + value.GetType().FullName + "." + name);
+    }
+
+    static Component RuntimeScope()
+    {
+        Component[] scopes = Resources.FindObjectsOfTypeAll(
+                T("DungeonRuntimeLifetimeScope"))
+            .Cast<UnityEngine.Object>().OfType<Component>()
+            .Where(value => value.gameObject.scene.isLoaded).ToArray();
+        if (scopes.Length != 1)
+            throw new InvalidOperationException(
+                "Expected one loaded runtime scope; count=" + scopes.Length);
+        return scopes[0];
+    }
+
+    static object Resolve(string typeName, string assemblyName = "Assembly-CSharp")
+    {
+        object container = V(RuntimeScope(), "Container");
+        var resolve = container.GetType().GetMethod(
+            "Resolve", new[] { typeof(Type), typeof(object) });
+        if (resolve == null || !resolve.IsPublic)
+            throw new InvalidOperationException(
+                "Public Resolve(Type, object) is unavailable.");
+        return resolve.Invoke(container,
+            new object[] { T(typeName, assemblyName), null });
+    }
+
+    static Component[] ActiveActors()
+    {
+        return Resources.FindObjectsOfTypeAll(T("CharacterActor"))
+            .Cast<UnityEngine.Object>().OfType<Component>()
+            .Where(value => value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy)
+            .OrderBy(ActorId, StringComparer.Ordinal).ToArray();
+    }
+
+    static string ActorId(object actor)
+    {
+        object identity = V(actor, "Identity");
+        return identity == null ? string.Empty
+            : Convert.ToString(V(identity, "PersistentId"));
+    }
+
+    static bool TryGetWork(object actor, out object work)
+    {
+        Type workType = T("AbilityWork");
+        var method = T("CharacterWorkRoleUtility").GetMethod(
+            "TryGetWork", new[]
+            {
+                T("CharacterActor"), workType.MakeByRefType()
+            });
+        if (method == null || !method.IsPublic || !method.IsStatic)
+            throw new InvalidOperationException(
+                "Public CharacterWorkRoleUtility.TryGetWork is unavailable.");
+        object[] arguments = { actor, null };
+        bool success = (bool)method.Invoke(null, arguments);
+        work = arguments[1];
+        return success && work != null;
+    }
+
+    static object WorkType(string name)
+    {
+        var field = T("BuiltInWorkTypeIds", "DungeonStory.Work")
+            .GetField(name);
+        if (field == null || !field.IsPublic || !field.IsStatic)
+            throw new InvalidOperationException("Missing work type: " + name);
+        return field.GetValue(null);
+    }
+
+    static void SetPriority(object work, string workName, string priorityName)
+    {
+        object workType = WorkType(workName);
+        Type priorityType = T("WorkPriorityLevel", "DungeonStory.Work");
+        var method = work.GetType().GetMethod("SetWorkPriority", new[]
+        {
+            T("WorkTypeId", "DungeonStory.Work"), priorityType
+        });
+        if (method == null || !method.IsPublic)
+            throw new InvalidOperationException(
+                "Public SetWorkPriority is unavailable.");
+        method.Invoke(work, new[]
+        {
+            workType, Enum.Parse(priorityType, priorityName, false)
+        });
+    }
+
+    static string GetPriorityName(object work, string workName)
+    {
+        object profile = V(work, "WorkPriorities");
+        var method = profile.GetType().GetMethod("GetPriority", new[]
+        {
+            T("WorkTypeId", "DungeonStory.Work")
+        });
+        if (method == null || !method.IsPublic)
+            throw new InvalidOperationException(
+                "Public WorkPriorities.GetPriority is unavailable.");
+        return Convert.ToString(method.Invoke(
+            profile, new[] { WorkType(workName) }));
+    }
+
+    static void SetOnDuty(object work)
+    {
+        var method = work.GetType().GetMethods().Single(candidate =>
+            candidate.IsPublic
+            && string.Equals(candidate.Name, "SetDutyState", StringComparison.Ordinal)
+            && candidate.GetParameters().Length == 1);
+        Type dutyType = method.GetParameters()[0].ParameterType;
+        method.Invoke(work, new[] { Enum.Parse(dutyType, "OnDuty", false) });
+    }
+
+    static void RequestReplan(Component actor, bool clear, string reason)
+    {
+        object brain = V(actor, "Brain");
+        var method = brain.GetType().GetMethod(
+            "RequestImmediateReplan", new[] { typeof(bool), typeof(string) });
+        if (method == null || !method.IsPublic)
+            throw new InvalidOperationException(
+                "Public RequestImmediateReplan(bool,string) is unavailable.");
+        method.Invoke(brain, new object[] { clear, reason });
+    }
+
+    static string FullHierarchy(Component value)
+    {
+        if (value == null) return "<null>";
+        List<string> names = new List<string>();
+        for (Transform cursor = value.transform; cursor != null;
+             cursor = cursor.parent)
+            names.Add(cursor.name);
+        names.Reverse();
+        return string.Join("/", names);
+    }
+
+    static string ButtonLabel(Button button)
+    {
+        if (button == null) return "<null>";
+        Type textType = T("TMPro.TMP_Text", "Unity.TextMeshPro");
+        string[] labels = button.GetComponentsInChildren(textType, true)
+            .Cast<Component>()
+            .Select(value => Convert.ToString(V(value, "text")))
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .ToArray();
+        return labels.Length == 0 ? "<none>" : string.Join("|", labels);
+    }
+
+    static string DescribeButton(Button button)
+    {
+        if (button == null) return "<null>";
+        int persistentCount = button.onClick == null
+            ? -1 : button.onClick.GetPersistentEventCount();
+        string listeners = button.onClick == null
+            ? "<null-event>"
+            : string.Join("|", Enumerable.Range(0, persistentCount)
+                .Select(index =>
+                {
+                    UnityEngine.Object target =
+                        button.onClick.GetPersistentTarget(index);
+                    return (target == null ? "<null>"
+                        : target.GetType().FullName)
+                        + "." + button.onClick.GetPersistentMethodName(index);
+                }));
+        return FullHierarchy(button)
+            + ";label=" + ButtonLabel(button)
+            + ";active=" + button.gameObject.activeInHierarchy
+            + ";interactable=" + button.IsInteractable()
+            + ";persistentCount=" + persistentCount
+            + ";persistent=" + listeners;
+    }
+
+    static Button RequireTopTabButton(string tabName, string expectedLabel)
+    {
+        Type bindingType = T(
+            "UITabButtonBinding", "DungeonStory.Presentation");
+        Type tabType = T("TabId", "DungeonStory.Presentation");
+        object expected = Enum.Parse(tabType, tabName, false);
+        Component[] bindings = Resources.FindObjectsOfTypeAll(bindingType)
+            .Cast<UnityEngine.Object>().OfType<Component>()
+            .Where(value => value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy)
+            .ToArray();
+        Button[] matches = bindings
+            .Where(value => Equals(V(value, "Id"), expected))
+            .Select(value => value.GetComponent<Button>())
+            .Where(value => value != null).ToArray();
+        if (matches.Length != 1
+            || !string.Equals(ButtonLabel(matches.SingleOrDefault()),
+                expectedLabel, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Expected one active top-tab binding " + tabName
+                + " label='" + expectedLabel + "';matches="
+                + string.Join(" || ", matches.Select(DescribeButton))
+                + ";allBindings="
+                + string.Join(" || ", bindings.Select(value =>
+                    Convert.ToString(V(value, "Id")) + "@"
+                    + DescribeButton(value.GetComponent<Button>()))));
+        return matches[0];
+    }
+
+    static Button RequireFeatureActionButton(
+        string name,
+        string namePrefix,
+        string tabName,
+        string expectedLabel)
+    {
+        Type panelType = T(
+            "P0FeatureSurfacePanel", "DungeonStory.Presentation");
+        Type identityType = T(
+            "UITabIdentity", "DungeonStory.Presentation");
+        Type tabType = T("TabId", "DungeonStory.Presentation");
+        object expectedTab = Enum.Parse(tabType, tabName, false);
+        Button[] exact = Resources.FindObjectsOfTypeAll<Button>()
+            .Where(value => value != null
+                && value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy
+                && string.Equals(value.name, name, StringComparison.Ordinal))
+            .ToArray();
+        Button[] matches = exact.Where(value =>
+        {
+            Component[] parents =
+                value.GetComponentsInParent<Component>(true);
+            Component panel = parents.FirstOrDefault(candidate =>
+                candidate != null && candidate.GetType() == panelType);
+            Component identity = parents.FirstOrDefault(candidate =>
+                candidate != null && candidate.GetType() == identityType);
+            return panel != null && identity != null
+                && Equals(V(identity, "Id"), expectedTab);
+        }).ToArray();
+        if (matches.Length != 1
+            || !string.Equals(ButtonLabel(matches.SingleOrDefault()),
+                expectedLabel, StringComparison.Ordinal))
+        {
+            Button[] related = Resources.FindObjectsOfTypeAll<Button>()
+                .Where(value => value != null
+                    && value.gameObject.scene.isLoaded
+                    && value.gameObject.activeInHierarchy
+                    && value.name.StartsWith(
+                        namePrefix, StringComparison.Ordinal))
+                .ToArray();
+            throw new InvalidOperationException(
+                "Expected one " + tabName + " feature action '" + name
+                + "' label='" + expectedLabel + "';exact="
+                + string.Join(" || ", exact.Select(DescribeButton))
+                + ";related="
+                + string.Join(" || ", related.Select(DescribeButton)));
+        }
+        return matches[0];
+    }
+
+    static void Click(Button button, string selector)
+    {
+        if (button == null || !button.gameObject.scene.isLoaded
+            || !button.gameObject.activeInHierarchy
+            || !button.IsInteractable() || EventSystem.current == null)
+            throw new InvalidOperationException(
+                "Actual UI target is gated or has no EventSystem: "
+                + selector + ";matched=" + DescribeButton(button));
+        PointerEventData pointer = new PointerEventData(EventSystem.current);
+        ExecuteEvents.Execute(button.gameObject, pointer,
+            ExecuteEvents.pointerEnterHandler);
+        ExecuteEvents.Execute(button.gameObject, pointer,
+            ExecuteEvents.pointerDownHandler);
+        ExecuteEvents.Execute(button.gameObject, pointer,
+            ExecuteEvents.pointerUpHandler);
+        ExecuteEvents.Execute(button.gameObject, pointer,
+            ExecuteEvents.pointerClickHandler);
+    }
+
+    string ValidateTerminalAuthority()
+    {
+        var method = defense.GetType().GetMethod(
+            "TryResolveIntruderDefeated", new[]
+            {
+                T("InvasionIntruderRuntime"),
+                typeof(string).MakeByRefType()
+            });
+        if (method == null || !method.IsPublic || method.IsStatic
+            || method.ReturnType != typeof(bool))
+            throw new InvalidOperationException(
+                "Missing exact public defense terminal signature: "
+                + "TryResolveIntruderDefeated(InvasionIntruderRuntime,out string).");
+        return method.DeclaringType.FullName + "." + method.Name
+            + "(InvasionIntruderRuntime,out string)->Boolean";
+    }
+
+    static object InvokePublicNoArgs(object value, string methodName)
+    {
+        var method = value.GetType().GetMethod(methodName, Type.EmptyTypes);
+        if (method == null || !method.IsPublic)
+            throw new InvalidOperationException(
+                "Missing public no-argument method: " + methodName);
+        return method.Invoke(value, null);
+    }
+
+    float GameTime() => Convert.ToSingle(V(clock, "Time"));
+
+    static Vector2Int ActorPosition(object actor)
+    {
+        var method = actor.GetType().GetMethod("GetNowXY", Type.EmptyTypes);
+        if (method == null || !method.IsPublic)
+            throw new InvalidOperationException(
+                "Public CharacterActor.GetNowXY is unavailable.");
+        return (Vector2Int)method.Invoke(actor, null);
+    }
+
+    void SetPaused(bool paused, int requestedSpeed)
+    {
+        var setSpeed = speed.GetType().GetMethod(
+            "SetSpeed", new[] { typeof(int) });
+        var setPaused = speed.GetType().GetMethod(
+            "SetPaused", new[] { typeof(bool) });
+        if (setSpeed == null || setPaused == null
+            || !setSpeed.IsPublic || !setPaused.IsPublic)
+            throw new InvalidOperationException(
+                "Public game-speed command is unavailable.");
+        setSpeed.Invoke(speed, new object[] { requestedSpeed });
+        setPaused.Invoke(speed, new object[] { paused });
+        if (paused && !Mathf.Approximately(Time.timeScale, 0f))
+            throw new InvalidOperationException("Game-speed pause did not commit.");
+    }
+
+    void Advance(int next)
+    {
+        phase = next;
+        phaseStarted = GameTime();
+        earliestPlayerFrame = Time.frameCount + 1;
+    }
+
+    public void Execute(ExecutionResult result)
+    {
+        if (!EditorApplication.isPlaying || !Application.isPlaying
+            || !EditorApplication.isPaused
+            || !Mathf.Approximately(Time.timeScale, 0f))
+            throw new InvalidOperationException(
+                "Command C requires the paused protected Play after setup Stage B.");
+
+        Component[] initial = ActiveActors();
+        if (initial.Length != 3)
+            throw new InvalidOperationException(
+                "Expected the protected three-person party; actors=" + initial.Length);
+        owner = initial.Single(value => Convert.ToBoolean(V(value, "IsOwner")));
+        Component[] staff = initial.Where(value =>
+            !Convert.ToBoolean(V(value, "IsOwner"))).ToArray();
+        if (staff.Length != 2)
+            throw new InvalidOperationException("Expected exactly two initial staff.");
+        guard = staff[0];
+        rescuer = staff[1];
+        if (!TryGetWork(guard, out guardWork)
+            || !TryGetWork(rescuer, out rescuerWork))
+            throw new InvalidOperationException(
+                "Initial staff do not expose public AbilityWork authority.");
+
+        speed = Resolve("IGameSpeedController", "DungeonStory.CoreSession");
+        clock = Resolve("DungeonStory.Foundation.IGameClock",
+            "DungeonStory.Foundation");
+        items = Resolve("IWorldItemStackRuntime");
+        defense = Resolve("IDefenseEngagementRuntime");
+        evacuation = Resolve("IInvasionOwnerEvacuationService");
+        combatCommands = Resolve("ICharacterCombatCommandRuntime");
+        anatomy = Resolve("IAnatomyHealthRuntime");
+        settlement = Resolve("ICharacterSettlementStandingQuery");
+
+        grid = ResolveGrid();
+        Button buildingsPreflight = RequireTopTabButton("Buildings", "건물");
+        Button defensePreflight = RequireTopTabButton("Defense", "방어");
+        selectorEvidence = "preflightBuildings=["
+            + DescribeButton(buildingsPreflight)
+            + "];preflightDefense=[" + DescribeButton(defensePreflight)
+            + "];terminal=[" + ValidateTerminalAuthority() + "]";
+        string preludeHaul = CaptureHaulActivity(
+            new[] { owner, guard, rescuer }, out bool preludeHaulIdle);
+        if (!preludeHaulIdle)
+            throw new InvalidOperationException(
+                "Protected prelude already owns active hauling: "
+                + preludeHaul);
+        hauler = CreateSettlementActor(
+            HaulResidentId, "WIM048 Cargo Resident", 0, "Resident");
+        patient = CreateSettlementActor(
+            PatientResidentId, "WIM048 Rescue Patient", 1, "Resident", "Orc");
+        RequirePatientLegs(patient);
+        minion = CreateSettlementActor(
+            MinionResidentId, "WIM048 Noncombat Minion", 2, "Minion");
+        bool ownerHasWork = TryGetWork(owner, out object ownerWork);
+        bool haulerHasWork = TryGetWork(hauler, out haulerWork);
+        bool patientHasWork = TryGetWork(patient, out object patientWork);
+        bool minionHasWork = TryGetWork(minion, out minionWork);
+        bool exactRolesHaveWork = ownerHasWork
+            && guardWork != null && rescuerWork != null
+            && haulerHasWork && patientHasWork && minionHasWork;
+        string prePriorityHaul = CaptureHaulActivity(
+            new[] { owner, guard, rescuer, hauler, patient, minion },
+            out bool exactRolesHaulIdle);
+        if (!exactRolesHaulIdle)
+            throw new InvalidOperationException(
+                "Six-role setup already owns active hauling: "
+                + prePriorityHaul);
+        if (exactRolesHaveWork)
+        {
+            SetOnDuty(guardWork);
+            SetOnDuty(rescuerWork);
+            SetOnDuty(haulerWork);
+            SetOnDuty(patientWork);
+            SetOnDuty(minionWork);
+            SetPriority(guardWork, "Guard", "Priority1");
+            SetPriority(rescuerWork, "Guard", "Off");
+            SetPriority(haulerWork, "Guard", "Off");
+            SetPriority(haulerWork, "Rescue", "Off");
+            SetPriority(patientWork, "Guard", "Off");
+            SetPriority(minionWork, "Guard", "Off");
+            SetPriority(minionWork, "Rescue", "Off");
+            SetPriority(ownerWork, "Haul", "Off");
+            SetPriority(guardWork, "Haul", "Off");
+            SetPriority(rescuerWork, "Haul", "Off");
+            SetPriority(haulerWork, "Haul", "Off");
+            SetPriority(patientWork, "Haul", "Off");
+            SetPriority(minionWork, "Haul", "Off");
+        }
+
+        minionSetupEvidence = CaptureInitialRoleAuthority(
+            out bool exactInitialComposition)
+            + ";preludeHaul=[" + preludeHaul + "]"
+            + ";prePriorityHaul=[" + prePriorityHaul + "]";
+        if (!exactRolesHaveWork || !exactInitialComposition)
+            throw new InvalidOperationException(
+                "Initial public six-role authority mismatch: "
+                + minionSetupEvidence);
+
+        wallStarted = EditorApplication.timeSinceStartup;
+        gameStarted = GameTime();
+        phaseStarted = gameStarted;
+        installed = true;
+        EditorApplication.update += OnEditorUpdate;
+        EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        try
+        {
+            Button buildings = RequireTopTabButton("Buildings", "건물");
+            Click(buildings, "UITabButtonBinding.Id=Buildings");
+            Advance(4);
+            SetPaused(true, 1);
+            EditorApplication.isPaused = false;
+            result.Log(
+                "WIM048 REMAINING_INSTALLED residents={0},{1};minion=[{2}];guard={3};rescuer={4};actors={5};speed={6};gameTime={7:0.###};selectors={8}",
+                ActorId(hauler), ActorId(patient), minionSetupEvidence,
+                ActorId(guard), ActorId(rescuer), ActiveActors().Length,
+                Convert.ToInt32(V(speed, "Speed")), GameTime(),
+                selectorEvidence);
+        }
+        catch (Exception exception)
+        {
+            Finish("FAILED_INSTALL", true,
+                exception.GetType().Name + ": " + exception.Message);
+        }
+    }
+
+    string CaptureHaulActivity(
+        IEnumerable<Component> actors,
+        out bool allIdle)
+    {
+        allIdle = true;
+        List<string> rows = new List<string>();
+        foreach (Component actor in actors)
+        {
+            Component haul = actor == null
+                ? null : actor.GetComponent(T("AbilityHaul"));
+            bool isHauling = haul != null
+                && Convert.ToBoolean(V(haul, "IsHauling"));
+            string plan = haul == null
+                ? "<no-haul>"
+                : Convert.ToString(V(haul, "CurrentPlanSummary"));
+            allIdle &= actor != null && haul != null && !isHauling;
+            rows.Add((actor == null ? "<missing>" : ActorId(actor))
+                + ":ability=" + (haul != null)
+                + ":isHauling=" + isHauling
+                + ":plan=" + plan);
+        }
+        return string.Join("|", rows);
+    }
+
+    string CaptureInitialRoleAuthority(out bool exactComposition)
+    {
+        Component[] live = ActiveActors();
+        Component[] roleActors =
+        {
+            owner, guard, rescuer, hauler, patient, minion
+        };
+        string[] roleNames =
+        {
+            "owner", "guard", "rescuer", "hauler", "patient", "minion"
+        };
+        string[] expectedStandings =
+        {
+            "Resident", "Resident", "Resident", "Resident", "Resident",
+            "Minion"
+        };
+        string[] expectedGuardPriorities =
+        {
+            string.Empty, "Priority1", "Off", "Off", "Off", "Off"
+        };
+        var getStanding = settlement.GetType().GetMethod(
+            "GetStanding", new[] { T("CharacterActor") });
+        var isMinion = settlement.GetType().GetMethod(
+            "IsMinion", new[] { T("CharacterActor") });
+        var combatStance = combatCommands.GetType().GetMethod(
+            "IsInCombatStance", new[] { T("CharacterActor") });
+        if (getStanding == null || !getStanding.IsPublic
+            || isMinion == null || !isMinion.IsPublic
+            || combatStance == null || !combatStance.IsPublic)
+            throw new InvalidOperationException(
+                "Public standing/minion/combat queries are unavailable.");
+
+        object profilePopulation = InvokePublicNoArgs(
+            settlement, "GetSettlementPopulation");
+        string[] liveIds = live.Select(ActorId).ToArray();
+        exactComposition = live.Length == roleActors.Length
+            && liveIds.All(value => !string.IsNullOrWhiteSpace(value))
+            && liveIds.Distinct(StringComparer.Ordinal).Count()
+                == roleActors.Length
+            && live.Count(value => Convert.ToBoolean(V(value, "IsOwner"))) == 1
+            && string.Equals(ActorId(hauler), HaulResidentId,
+                StringComparison.Ordinal)
+            && string.Equals(ActorId(patient), PatientResidentId,
+                StringComparison.Ordinal)
+            && string.Equals(ActorId(minion), MinionResidentId,
+                StringComparison.Ordinal);
+
+        int nonOwnerResidents = 0;
+        int liveMinions = 0;
+        List<string> rows = new List<string>();
+        for (int index = 0; index < roleActors.Length; index++)
+        {
+            Component actor = roleActors[index];
+            if (actor == null)
+            {
+                exactComposition = false;
+                rows.Add(roleNames[index] + "=<missing>");
+                continue;
+            }
+            string id = ActorId(actor);
+            string standing = Convert.ToString(getStanding.Invoke(
+                settlement, new object[] { actor }));
+            bool minionAuthority = (bool)isMinion.Invoke(
+                settlement, new object[] { actor });
+            bool combat = (bool)combatStance.Invoke(
+                combatCommands, new object[] { actor });
+            bool hasAbilityComponent =
+                actor.GetComponent(T("AbilityWork")) != null;
+            bool hasWorkAuthority = TryGetWork(actor, out object work);
+            string guardPriority = hasWorkAuthority
+                ? GetPriorityName(work, "Guard") : "<no-work>";
+            string haulPriority = hasWorkAuthority
+                ? GetPriorityName(work, "Haul") : "<no-work>";
+            Component haul = actor.GetComponent(T("AbilityHaul"));
+            bool isHauling = haul != null
+                && Convert.ToBoolean(V(haul, "IsHauling"));
+            string haulPlan = haul == null
+                ? "<no-haul>"
+                : Convert.ToString(V(haul, "CurrentPlanSummary"));
+            bool active = actor.gameObject.scene.isLoaded
+                && actor.gameObject.activeInHierarchy;
+            bool alive = !Convert.ToBoolean(V(actor, "IsDead"));
+            string lifecycle = Convert.ToString(V(
+                actor, "CurrentLifecycleState"));
+            bool isOwner = Convert.ToBoolean(V(actor, "IsOwner"));
+            if (index > 0 && index < roleActors.Length - 1
+                && string.Equals(standing, "Resident",
+                    StringComparison.Ordinal))
+                nonOwnerResidents++;
+            if (minionAuthority)
+                liveMinions++;
+
+            bool roleMatches = live.Any(value => ReferenceEquals(value, actor))
+                && active && alive
+                && string.Equals(lifecycle, "Active", StringComparison.Ordinal)
+                && isOwner == (index == 0)
+                && string.Equals(standing, expectedStandings[index],
+                    StringComparison.Ordinal)
+                && minionAuthority == (index == roleActors.Length - 1)
+                && hasAbilityComponent && hasWorkAuthority
+                && haul != null
+                && string.Equals(haulPriority, "Off", StringComparison.Ordinal)
+                && !isHauling
+                && (string.IsNullOrEmpty(expectedGuardPriorities[index])
+                    || string.Equals(guardPriority,
+                        expectedGuardPriorities[index],
+                        StringComparison.Ordinal))
+                && (index != roleActors.Length - 1 || !combat);
+            exactComposition &= roleMatches;
+            rows.Add(roleNames[index] + "=" + id
+                + ":owner=" + isOwner
+                + ":standing=" + standing
+                + ":minion=" + minionAuthority
+                + ":guard=" + guardPriority
+                + ":haul=" + haulPriority
+                + ":isHauling=" + isHauling
+                + ":haulPlan=" + haulPlan
+                + ":combat=" + combat
+                + ":ability=" + hasAbilityComponent
+                + ":workQuery=" + hasWorkAuthority
+                + ":lifecycle=" + lifecycle
+                + ":active=" + active + ":alive=" + alive);
+        }
+        exactComposition &= nonOwnerResidents == 4 && liveMinions == 1;
+        return "activeCount=" + live.Length
+            + ";profilePopulation="
+            + Convert.ToInt32(V(profilePopulation, "Residents")) + "R/"
+            + Convert.ToInt32(V(profilePopulation, "Minions")) + "M"
+            + ";liveComposition=1owner/" + nonOwnerResidents
+            + "nonOwnerResidents/" + liveMinions + "minion"
+            + ";roles=[" + string.Join("|", rows) + "]";
+    }
+
+    object ResolveGrid()
+    {
+        object provider = Resolve("IGridSystemProvider");
+        Type gridType = T("Grid", "DungeonStory.Grid");
+        var method = provider.GetType().GetMethod(
+            "TryGetGrid", new[] { gridType.MakeByRefType() });
+        object[] arguments = { null };
+        if (method == null || !method.IsPublic
+            || !(bool)method.Invoke(provider, arguments)
+            || arguments[0] == null)
+            throw new InvalidOperationException("Public live grid is unavailable.");
+        return arguments[0];
+    }
+
+    Vector2Int ResolveDropoff()
+    {
+        object query = Resolve("IWorldDropZoneQuery");
+        var method = query.GetType().GetMethod(
+            "TryGetDeliveryDropoff",
+            new[] { typeof(Vector2Int).MakeByRefType() });
+        object[] arguments = { default(Vector2Int) };
+        if (method == null || !method.IsPublic
+            || !(bool)method.Invoke(query, arguments))
+            throw new InvalidOperationException(
+                "Public delivery dropoff is unavailable.");
+        return (Vector2Int)arguments[0];
+    }
+
+    object[] AllStacks() => ((IEnumerable)items.GetType()
+        .GetMethod("GetAllStacks", Type.EmptyTypes).Invoke(items, null))
+        .Cast<object>().ToArray();
+
+    int PhysicalTotal(string itemId)
+    {
+        object[] world = AllStacks();
+        var byId = world.ToDictionary(
+            value => Convert.ToString(V(value, "StackId")),
+            StringComparer.Ordinal);
+        int worldTotal = world.Where(value =>
+                string.Equals(Convert.ToString(V(value, "ItemId")), itemId,
+                    StringComparison.Ordinal))
+            .Sum(value => Convert.ToInt32(V(value, "Quantity")));
+        var seenCarriedIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Component actor in ActiveActors())
+        {
+            object inventory = V(actor, "CarryInventory");
+            if (inventory == null) continue;
+            object snapshot = InvokePublicNoArgs(inventory, "Capture");
+            foreach (object carried in ((IEnumerable)V(snapshot, "items")).Cast<object>()
+                .Where(value => value != null
+                    && string.Equals(Convert.ToString(V(value, "itemId")),
+                        itemId, StringComparison.Ordinal)))
+            {
+                string id = Convert.ToString(V(carried, "carriedStackId"));
+                if (string.IsNullOrWhiteSpace(id) || !seenCarriedIds.Add(id)
+                    || !byId.TryGetValue(id, out object canonical)
+                    || !string.Equals(Convert.ToString(V(canonical, "State")),
+                        "Carried", StringComparison.Ordinal)
+                    || !string.Equals(Convert.ToString(V(canonical, "DestinationId")),
+                        ActorId(actor), StringComparison.Ordinal)
+                    || !string.Equals(Convert.ToString(V(canonical, "ItemId")),
+                        itemId, StringComparison.Ordinal)
+                    || Convert.ToInt32(V(canonical, "Quantity"))
+                        != Convert.ToInt32(V(carried, "quantity")))
+                    throw new InvalidOperationException(
+                        "Carried inventory/world registry ownership join failed: "
+                        + ActorId(actor) + "/" + id);
+            }
+        }
+        return worldTotal;
+    }
+
+    int StoredQuantityAtDestination(string itemId, string destinationId)
+    {
+        return AllStacks().Where(value =>
+                string.Equals(Convert.ToString(V(value, "ItemId")), itemId,
+                    StringComparison.Ordinal)
+                && string.Equals(Convert.ToString(V(value, "State")),
+                    "Stored", StringComparison.Ordinal)
+                && string.Equals(Convert.ToString(V(value, "DestinationId")),
+                    destinationId, StringComparison.Ordinal))
+            .Sum(value => Convert.ToInt32(V(value, "Quantity")));
+    }
+
+    void Spawn(string itemId, int quantity, Vector2Int position,
+        string stateName, string destinationId)
+    {
+        Type stateType = T("WorldItemStackState", "DungeonStory.Items");
+        var method = items.GetType().GetMethod("SpawnItemAt", new[]
+        {
+            typeof(string), typeof(int), typeof(Vector2Int), stateType,
+            typeof(string), typeof(int).MakeByRefType()
+        });
+        object[] arguments =
+        {
+            itemId, quantity, position,
+            Enum.Parse(stateType, stateName, false), destinationId, 0
+        };
+        if (method == null || !method.IsPublic
+            || !(bool)method.Invoke(items, arguments)
+            || Convert.ToInt32(arguments[5]) != quantity)
+            throw new InvalidOperationException(
+                "Physical spawn failed: " + itemId + "x" + quantity);
+    }
+
+    Component CreateSettlementActor(
+        string id,
+        string displayName,
+        int ordinal,
+        string standingName,
+        string fixtureSpecies = null)
+    {
+        object catalog = Resolve("IRunCharacterCatalog");
+        object data = ((IEnumerable)V(catalog, "Characters")).Cast<object>()
+            .Where(value => value != null
+                && (fixtureSpecies == null
+                    ? string.Equals(Convert.ToString(V(value, "characterType")),
+                        "NPC", StringComparison.Ordinal)
+                        && !string.Equals(Convert.ToString(V(value, "role")),
+                            "Owner", StringComparison.Ordinal)
+                    : string.Equals(Convert.ToString(V(value, "SpeciesTag")),
+                        fixtureSpecies, StringComparison.Ordinal)
+                        && string.Equals(Convert.ToString(V(value, "role")),
+                            "Regular", StringComparison.Ordinal)))
+            .OrderBy(value => Convert.ToInt32(V(value, "id")))
+            .FirstOrDefault();
+        if (data == null)
+            throw new InvalidOperationException(
+                "No authored regular NPC CharacterSO is available.");
+        if (fixtureSpecies != null)
+        {
+            UnityEngine.Object fixture = UnityEngine.Object.Instantiate(
+                (UnityEngine.Object)data);
+            fixture.hideFlags = HideFlags.HideAndDontSave;
+            SetV(fixture, "characterType", Enum.Parse(
+                V(fixture, "characterType").GetType(), "NPC", false));
+            SetV(fixture, "characterName", displayName);
+            data = fixture;
+        }
+        object spawnerProvider = Resolve("ICharacterSpawnerProvider");
+        var trySpawner = spawnerProvider.GetType().GetMethod(
+            "TryGetSpawner", new[] { T("CharacterSpawner").MakeByRefType() });
+        object[] spawnerArguments = { null };
+        if (trySpawner == null || !trySpawner.IsPublic
+            || !(bool)trySpawner.Invoke(spawnerProvider, spawnerArguments)
+            || spawnerArguments[0] == null)
+            throw new InvalidOperationException("Public CharacterSpawner is unavailable.");
+        GameObject prefab = (GameObject)V(spawnerArguments[0], "characterPrefab");
+        object factory = Resolve("ICharacterSpawnObjectFactory");
+        Action<GameObject> compose = candidate =>
+        {
+            Component identity = candidate.GetComponent(T("CharacterIdentity"));
+            if (identity == null)
+                throw new InvalidOperationException(
+                    "Settlement candidate has no CharacterIdentity.");
+            identity.GetType().GetMethod(
+                "SetPersistentId", new[] { typeof(string) })
+                .Invoke(identity, new object[] { id });
+            if (candidate.GetComponent(T("AbilityWork")) == null)
+                candidate.AddComponent(T("AbilityWork"));
+        };
+        var create = factory.GetType().GetMethod("CreateInactive", new[]
+        {
+            typeof(GameObject), typeof(Action<GameObject>)
+        });
+        GameObject actorObject = (GameObject)create.Invoke(factory,
+            new object[] { prefab, compose });
+        Component actor = actorObject.GetComponent(T("CharacterActor"));
+        if (actor == null)
+            throw new InvalidOperationException(
+                "Settlement candidate has no CharacterActor.");
+        actorObject.name = displayName;
+        actor.GetType().GetMethod("Initialize", new[] { T("CharacterSO") })
+            .Invoke(actor, new[] { data });
+        if (!string.Equals(ActorId(actor), id, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Settlement ID changed during composition: " + ActorId(actor));
+        Type characterType = T("CharacterType", "DungeonStory.Characters");
+        object npc = Enum.Parse(characterType, "NPC", false);
+        SetV(actor, "characterType", npc);
+        V(actor, "Identity").GetType().GetMethod(
+            "SetCharacterType", new[] { characterType })
+            .Invoke(V(actor, "Identity"), new[] { npc });
+        InvokePublicNoArgs(actor, "RefreshAbilityCache");
+        InvokePublicNoArgs(actor, "PrepareForPersistentRestore");
+        actorObject.transform.position = GridWorldPosition(FindSpawnCell(ordinal));
+        object life = Resolve("ICharacterLifePublicationService");
+        life.GetType().GetMethod(
+            "EnsureRegistered", new[] { T("CharacterActor") })
+            .Invoke(life, new object[] { actor });
+        factory.GetType().GetMethod(
+            "Publish", new[] { typeof(GameObject) })
+            .Invoke(factory, new object[] { actorObject });
+        actor.GetType().GetMethod("SetLifecycleState", new[]
+        {
+            T("CharacterLifecycleState", "DungeonStory.Characters")
+        }).Invoke(actor, new[]
+        {
+            Enum.Parse(T("CharacterLifecycleState", "DungeonStory.Characters"),
+                "Active", false)
+        });
+        object population = Resolve("ICharacterPopulationService");
+        if (string.Equals(standingName, "Minion", StringComparison.Ordinal))
+        {
+            var promote = population.GetType().GetMethod(
+                "PromoteToMinion", new[] { T("CharacterActor") });
+            if (promote == null || !promote.IsPublic)
+                throw new InvalidOperationException(
+                    "Public ICharacterPopulationService.PromoteToMinion is unavailable.");
+            promote.Invoke(population, new object[] { actor });
+        }
+        else
+        {
+            var standingMethod = population.GetType().GetMethod(
+                "SetSettlementStanding", new[]
+                {
+                    T("CharacterActor"),
+                    T("CharacterSettlementStanding", "DungeonStory.Characters")
+                });
+            standingMethod.Invoke(population, new[]
+            {
+                actor, Enum.Parse(
+                    T("CharacterSettlementStanding", "DungeonStory.Characters"),
+                    standingName, false)
+            });
+        }
+        InvokePublicNoArgs(V(actor, "Brain"), "UseStaffWorkActions");
+        RequestReplan(actor, true, "wim048-remaining-settlement-compose");
+        return actor;
+    }
+
+    Vector2Int FindSpawnCell(int ordinal)
+    {
+        HashSet<Vector2Int> occupied = ActiveActors()
+            .Select(ActorPosition)
+            .ToHashSet();
+        var cells = ((IEnumerable)InvokePublicNoArgs(grid, "GetCells"))
+            .Cast<object>()
+            .Where(value => value != null
+                && Convert.ToString(V(value, "AreaType"))
+                    .IndexOf("DungeonInterior", StringComparison.Ordinal) >= 0)
+            .Select(value => (Vector2Int)V(value, "Position"))
+            .Where(value => !occupied.Contains(value)
+                && (bool)grid.GetType().GetMethod(
+                    "IsWalkable", new[] { typeof(Vector2Int) })
+                    .Invoke(grid, new object[] { value }))
+            .OrderBy(value => value.y).ThenBy(value => value.x).ToArray();
+        if (cells.Length <= ordinal)
+            throw new InvalidOperationException(
+                "No legal public initial resident cell remains.");
+        return cells[ordinal];
+    }
+
+    Vector3 GridWorldPosition(Vector2Int position)
+    {
+        return (Vector3)grid.GetType().GetMethod(
+            "GetWorldPos", new[] { typeof(Vector2Int) })
+            .Invoke(grid, new object[] { position });
+    }
+
+    object SpawnThreat(out Component actor)
+    {
+        Type factorsType = T("InvasionThreatFactors", "DungeonStory.Invasion");
+        object factors = Activator.CreateInstance(
+            factorsType, new object[] { 6f, 4f, 3f, 1f });
+        Type stageType = T("InvasionThreatStage", "DungeonStory.Invasion");
+        object stage = Enum.Parse(stageType, "Candidate", false);
+        object snapshot = Activator.CreateInstance(
+            T("InvasionThreatSnapshot", "DungeonStory.Invasion"),
+            new object[] { 125f, stage, factors, 0f, 0f });
+        Component director = Resources.FindObjectsOfTypeAll(
+                T("InvasionDirectorRuntime"))
+            .Cast<UnityEngine.Object>().OfType<Component>()
+            .Single(value => value.gameObject.scene.isLoaded);
+        var spawn = director.GetType().GetMethods().Single(method =>
+            method.IsPublic
+            && string.Equals(method.Name, "TrySpawnIntruder",
+                StringComparison.Ordinal)
+            && method.GetParameters().Length == 2);
+        object[] arguments = { snapshot, null };
+        if (!(bool)spawn.Invoke(director, arguments) || arguments[1] == null)
+            throw new InvalidOperationException(
+                "Public typed intruder spawn failed.");
+        actor = (Component)arguments[1];
+        Component runtime = actor.GetComponent(T("InvasionIntruderRuntime"));
+        if (runtime == null)
+            throw new InvalidOperationException(
+                "Spawned intruder lacks InvasionIntruderRuntime.");
+        return runtime;
+    }
+
+    bool TryEngagement(object intruderRuntime, out object engagement)
+    {
+        var method = defense.GetType().GetMethods().Single(candidate =>
+            candidate.IsPublic
+            && string.Equals(candidate.Name, "TryGetEngagement",
+                StringComparison.Ordinal)
+            && candidate.GetParameters().Length == 2
+            && candidate.GetParameters()[0].ParameterType
+                == T("InvasionIntruderRuntime"));
+        object[] arguments = { intruderRuntime, null };
+        bool found = (bool)method.Invoke(defense, arguments);
+        engagement = arguments[1];
+        return found && engagement != null;
+    }
+
+    object[] RequirePatientLegs(Component actor)
+    {
+        var snapshotMethod = anatomy.GetType().GetMethod(
+            "GetAnatomySnapshot", new[] { T("CharacterActor") });
+        object snapshot = snapshotMethod.Invoke(anatomy, new object[] { actor });
+        string species = Convert.ToString(V(actor, "SpeciesTag"));
+        string profileId = Convert.ToString(V(snapshot, "ProfileId"));
+        if (!string.Equals(species, "Orc", StringComparison.Ordinal)
+            || !string.Equals(profileId, "anatomy:orc", StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Patient fixture species/profile mismatch: " + species + "/" + profileId);
+        object profiles = Resolve("IAnatomyProfileCatalog");
+        object profile = profiles.GetType().GetMethod(
+            "GetForSpecies", new[] { typeof(string) })
+            .Invoke(profiles, new object[] { species });
+        if (!string.Equals(Convert.ToString(V(profile, "ProfileId")),
+                profileId, StringComparison.Ordinal))
+            throw new InvalidOperationException("Patient authored/live profile mismatch.");
+        object[] definitions = ((IEnumerable)V(profile, "Nodes")).Cast<object>().ToArray();
+        object[] legs = ((IEnumerable)V(snapshot, "Nodes")).Cast<object>()
+            .Where(value => value != null
+                && (string.Equals(Convert.ToString(V(value, "nodeId")),
+                        "leg:left", StringComparison.Ordinal)
+                    || string.Equals(Convert.ToString(V(value, "nodeId")),
+                        "leg:right", StringComparison.Ordinal)))
+            .OrderBy(value => Convert.ToString(V(value, "nodeId")),
+                StringComparer.Ordinal).ToArray();
+        if (legs.Length != 2)
+            throw new InvalidOperationException(
+                "Patient Orc snapshot does not expose both expected legs.");
+        foreach (object leg in legs)
+        {
+            string nodeId = Convert.ToString(V(leg, "nodeId"));
+            object definition = definitions.Single(value => string.Equals(
+                Convert.ToString(V(value, "NodeId")), nodeId, StringComparison.Ordinal));
+            object functions = V(definition, "Functions");
+            long mobility = Convert.ToInt64(Enum.Parse(functions.GetType(), "Mobility", false));
+            if (Convert.ToBoolean(V(definition, "Vital"))
+                || (Convert.ToInt64(functions) & mobility) == 0
+                || Convert.ToBoolean(V(leg, "missing")))
+                throw new InvalidOperationException(
+                    "Patient damage target is not an intact non-vital mobility leg: " + nodeId);
+        }
+        Debug.Log("WIM048_PATIENT_ANATOMY_PREFLIGHT;actor=" + ActorId(actor)
+            + ";species=" + species + ";profile=" + profileId
+            + ";nonVitalMobilityLegs=2;fixtureOnly=true");
+        return legs;
+    }
+
+    void DamageLegsToDowned(Component actor, string reason)
+    {
+        object[] legs = RequirePatientLegs(actor);
+        var damagedNodeIds = new List<string>();
+        var damage = anatomy.GetType().GetMethod("TryDamageNode", new[]
+        {
+            T("CharacterActor"), typeof(string), typeof(float), typeof(float),
+            typeof(string)
+        });
+        foreach (object leg in legs)
+        {
+            float current = Convert.ToSingle(V(leg, "currentHealth"));
+            if (current > 0f && !(bool)damage.Invoke(anatomy,
+                    new object[]
+                    {
+                        actor, Convert.ToString(V(leg, "nodeId")),
+                        current, 0f, reason
+                    }))
+                throw new InvalidOperationException(
+                    "Public typed leg damage was rejected.");
+            damagedNodeIds.Add(Convert.ToString(V(leg, "nodeId")));
+            object[] reread = RequirePatientLegs(actor);
+            foreach (string damagedId in damagedNodeIds)
+            {
+                object rereadLeg = reread.Single(value => string.Equals(
+                    Convert.ToString(V(value, "nodeId")), damagedId,
+                    StringComparison.Ordinal));
+                if (!Mathf.Approximately(Convert.ToSingle(V(rereadLeg, "currentHealth")), 0f))
+                    throw new InvalidOperationException(
+                        "Typed leg damage was lost across aggregate side effects/public query: "
+                        + damagedId + ";health=" + V(rereadLeg, "currentHealth"));
+            }
+            Debug.Log("WIM048_TYPED_DAMAGE_QUERY_PRESERVED;actor=" + ActorId(actor)
+                + ";zeroHealthNodes=" + string.Join(",", damagedNodeIds));
+        }
+        if (!string.Equals(Convert.ToString(V(actor, "CurrentLifecycleState")),
+                "Downed", StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Source-current-health non-vital damage did not produce Downed.");
+        Debug.Log("WIM048_PATIENT_DOWNED_PASS;actor=" + ActorId(actor)
+            + ";via=TryDamageNode;gameTime=" + GameTime().ToString("0.###"));
+    }
+
+    void OnEditorUpdate()
+    {
+        if (!installed) return;
+        if (EditorApplication.timeSinceStartup - wallStarted > MaximumWallSeconds)
+        {
+            Finish("INCOMPLETE_WALL_TIMEOUT", false,
+                "Bounded remaining flow exceeded 360 wall seconds.");
+            return;
+        }
+        if (Time.frameCount < earliestPlayerFrame) return;
+        try
+        {
+            if (!EditorApplication.isPlaying || !Application.isPlaying)
+            {
+                Unsubscribe();
+                return;
+            }
+            if (GameTime() - gameStarted > MaximumGameSeconds)
+                throw new InvalidOperationException(
+                    "Remaining flow exceeded 360 normal game seconds.");
+            string roleFailure = RequiredRoleFailure();
+            if (!string.IsNullOrEmpty(roleFailure))
+            {
+                Finish("FAILED_ROLE_CONTINUITY", true,
+                    "roles=" + roleFailure
+                    + ";gameTime=" + GameTime().ToString("0.###"));
+                return;
+            }
+            Step();
+        }
+        catch (Exception exception)
+        {
+            if (phase == 6
+                && string.IsNullOrEmpty(phase6TerminalEvidence))
+                phase6TerminalEvidence =
+                    CaptureCargoMovementEvidenceSafely("terminal-exception");
+            string detail = exception.GetType().Name + ": " + exception.Message;
+            Finish("FAILED_PHASE_" + phase, true, detail);
+        }
+    }
+
+    void Step()
+    {
+        if (phase == 4)
+        {
+            Canvas.ForceUpdateCanvases();
+            Button room = RequireFeatureActionButton(
+                "P1Action_RoomInspect_1_Evacuation",
+                "P1Action_RoomInspect_", "Buildings", "대피 구역 지정");
+            selectorEvidence += ";room=[" + DescribeButton(room) + "]";
+            Click(room,
+                "Buildings/P1Action_RoomInspect_1_Evacuation");
+            uiRoomClicked = true;
+            Advance(5);
+            return;
+        }
+        if (phase == 5)
+        {
+            string zone = Convert.ToString(V(evacuation, "ResidentZoneStatus"));
+            if (string.Equals(zone, "None", StringComparison.Ordinal)
+                || string.Equals(zone, "LostByTopology", StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    "Actual room UI did not commit a usable evacuation zone: " + zone);
+            Button defenseButton = RequireTopTabButton("Defense", "방어");
+            selectorEvidence += ";defense=[" + DescribeButton(defenseButton) + "]";
+            Click(defenseButton, "UITabButtonBinding.Id=Defense");
+            uiDefenseClicked = true;
+            Advance(50);
+            return;
+        }
+        if (phase == 50)
+        {
+            Canvas.ForceUpdateCanvases();
+            Button preparedEvacuation = RequireFeatureActionButton(
+                "P1Action_ResidentEvacuationRequest",
+                "P1Action_ResidentEvacuationRequest", "Defense", "대피 명령");
+            selectorEvidence += ";evacPrepared=[" + DescribeButton(preparedEvacuation) + "]";
+            PrepareCargo();
+            SetPaused(false, 1);
+            Advance(6);
+            return;
+        }
+        if (phase == 6)
+        {
+            if (string.IsNullOrEmpty(phase6StartEvidence))
+                phase6StartEvidence =
+                    CaptureCargoMovementEvidenceSafely("phase6-start");
+            object carried = FindExactCarriedCargo();
+            if (carried == null)
+            {
+                if (GameTime() - phaseStarted > 90f)
+                {
+                    phase6TerminalEvidence =
+                        CaptureCargoMovementEvidenceSafely("phase6-timeout");
+                    throw new InvalidOperationException(
+                        "Normal AI did not pick the exact prioritized cargo: "
+                        + Convert.ToString(V(haulerAbility, "CurrentExecutionStage"))
+                        + "/" + Convert.ToString(V(haulerAbility, "LastFailureReason"))
+                        + ";start=[" + phase6StartEvidence + "]"
+                        + ";terminal=[" + phase6TerminalEvidence + "]");
+                }
+                return;
+            }
+            phase6TerminalEvidence =
+                CaptureCargoMovementEvidenceSafely("phase6-pickup");
+            SetPaused(true, 1);
+            cargoCarriedStackId = Convert.ToString(V(carried, "carriedStackId"));
+            cargoOperationId = Convert.ToString(V(carried, "ownerOperationId"));
+            if (string.IsNullOrWhiteSpace(cargoCarriedStackId)
+                || string.IsNullOrWhiteSpace(cargoOperationId)
+                || Convert.ToInt32(V(carried, "quantity")) != 1
+                || !string.Equals(Convert.ToString(V(carried, "sourceStackId")),
+                    cargoSourceStackId, StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    "Picked cargo lacks exact source/operation/quantity authority.");
+            object intent = RequireDeliveryIntent(cargoOperationId);
+            cargoDestinationId = Convert.ToString(V(intent, "destinationId"));
+            cargoDestinationKind = Convert.ToString(V(intent, "destinationKind"));
+            object[] commitments = ((IEnumerable)V(intent, "commitments"))
+                .Cast<object>().Where(value => value != null).ToArray();
+            if (!string.Equals(Convert.ToString(V(intent, "operationId")),
+                    cargoOperationId, StringComparison.Ordinal)
+                || !string.Equals(Convert.ToString(V(intent, "ownerCharacterId")),
+                    ActorId(hauler), StringComparison.Ordinal)
+                || string.IsNullOrWhiteSpace(cargoDestinationId)
+                || !string.Equals(cargoDestinationKind, "Warehouse",
+                    StringComparison.Ordinal)
+                || commitments.Length != 1
+                || !string.Equals(Convert.ToString(V(commitments[0], "carriedStackId")),
+                    cargoCarriedStackId, StringComparison.Ordinal)
+                || !string.Equals(Convert.ToString(V(commitments[0], "sourceStackId")),
+                    cargoSourceStackId, StringComparison.Ordinal)
+                || !string.Equals(Convert.ToString(V(commitments[0], "itemId")),
+                    CargoItemId, StringComparison.Ordinal)
+                || Convert.ToInt32(V(commitments[0], "quantity")) != 1)
+                throw new InvalidOperationException(
+                    "Delivery intent does not own the exact carried commitment.");
+            cargoStoredBefore = StoredQuantityAtDestination(
+                CargoItemId, cargoDestinationId);
+            haulStartsAtPickup = Convert.ToInt64(V(
+                haulerAbility, "RuntimeHaulStartCount"));
+            BeginRescueAndThreat();
+            CaptureRetentionBoundary("after-rescue-threat-before-ui", true, true);
+            Canvas.ForceUpdateCanvases();
+            Button evacuationButton = RequireFeatureActionButton(
+                "P1Action_ResidentEvacuationRequest",
+                "P1Action_ResidentEvacuationRequest",
+                "Defense", "대피 명령");
+            selectorEvidence += ";evac=["
+                + DescribeButton(evacuationButton) + "]";
+            CaptureRetentionBoundary("before-evacuation-click", true, true);
+            Click(evacuationButton,
+                "Defense/P1Action_ResidentEvacuationRequest");
+            uiEvacuationClicked = true;
+            retainedObserved |= CaptureRetentionBoundary(
+                "after-evacuation-click", true, false);
+            SetPaused(false, 1);
+            Advance(8);
+            return;
+        }
+        if (phase == 8)
+        {
+            ObserveRoleAndCargoInterruption();
+            bool engagedNow = TryEngagement(secondIntruderRuntime, out secondEngagement)
+                && string.Equals(Convert.ToString(V(secondEngagement, "State")),
+                    "Engaged", StringComparison.Ordinal);
+            object rescue = rescuer.GetComponent(T("AbilityRescue"));
+            rescueObserved |= rescue != null
+                && Convert.ToBoolean(V(rescue, "IsRescuing"));
+            if (!engagedNow)
+            {
+                if (secondEngagedObserved)
+                {
+                    CaptureRetentionBoundary("engagement-ended-before-terminal", true, false);
+                    throw new InvalidOperationException(
+                        "Observed defense ended before required role/cargo evidence and controlled terminal: "
+                        + "guard=" + guardObserved + ";rescue=" + rescueObserved
+                        + ";excluded=" + exclusionObserved + ";retained=" + retainedObserved
+                        + ";state=" + (secondEngagement == null ? "absent"
+                            : Convert.ToString(V(secondEngagement, "State"))));
+                }
+                if (GameTime() - phaseStarted > 90f)
+                    throw new InvalidOperationException(
+                        "Second real defense did not reach Engaged.");
+                return;
+            }
+            secondEngagedObserved = true;
+            guardObserved |= EngagementGuardIds(secondEngagement)
+                .Contains(ActorId(guard), StringComparer.Ordinal);
+            if (!guardObserved || !rescueObserved || !exclusionObserved
+                || !retainedObserved)
+            {
+                if (GameTime() - phaseStarted > 90f)
+                    throw new InvalidOperationException(
+                        "Role/cargo evidence incomplete: guard=" + guardObserved
+                        + ";rescue=" + rescueObserved
+                        + ";exclusion=" + exclusionObserved
+                        + ";retained=" + retainedObserved
+                        + ";participants=" + participantEvidence);
+                return;
+            }
+            SetPaused(true, 1);
+            var terminal = defense.GetType().GetMethod(
+                "TryResolveIntruderDefeated", new[]
+                {
+                    T("InvasionIntruderRuntime"),
+                    typeof(string).MakeByRefType()
+                });
+            if (terminal == null || !terminal.IsPublic
+                || terminal.IsStatic || terminal.ReturnType != typeof(bool))
+                throw new InvalidOperationException(
+                    "Exact public controlled defense terminal disappeared.");
+            object[] terminalArguments = { secondIntruderRuntime, null };
+            if (!(bool)terminal.Invoke(defense, terminalArguments))
+                throw new InvalidOperationException(
+                    "Public controlled defense terminal failed: "
+                    + Convert.ToString(terminalArguments[1]));
+            terminalEvidence = "public TryResolveIntruderDefeated=true;naturalVictory=false";
+            SetPaused(false, 1);
+            Advance(9);
+            return;
+        }
+        if (phase == 9)
+        {
+            bool isHauling = Convert.ToBoolean(V(haulerAbility, "IsHauling"));
+            bool bound = Convert.ToBoolean(V(haulerAbility,
+                "HasBoundDeliveryIntent"));
+            long starts = Convert.ToInt64(V(haulerAbility,
+                "RuntimeHaulStartCount"));
+            releaseReplanObserved |= isHauling && bound
+                || starts > haulStartsAtPickup;
+            object carried = FindExactCarriedCargo();
+            bool hasIntent = TryDeliveryIntent(cargoOperationId, out _);
+            bool participantsClear = !((IEnumerable)V(
+                    evacuation, "ResidentEvacuationParticipants"))
+                .Cast<object>().Any();
+            cargoStoredAfter = StoredQuantityAtDestination(
+                CargoItemId, cargoDestinationId);
+            bool exactDestinationDeposit = cargoStoredAfter
+                == cargoStoredBefore + 1;
+            bool delivered = carried == null && !hasIntent
+                && exactDestinationDeposit
+                && PhysicalTotal(CargoItemId) == stoneBefore + 1
+                && Convert.ToString(V(haulerAbility, "LastTerminalDiagnostics"))
+                    .StartsWith("Completed:", StringComparison.Ordinal);
+            if (delivered && participantsClear && releaseReplanObserved)
+            {
+                Finish("PASS", false,
+                    "six=1owner+4nonOwnerResidents+1minion;initialMinionFixture=true;uiRoom=" + uiRoomClicked
+                    + ";uiDefense=" + uiDefenseClicked
+                    + ";uiEvac=" + uiEvacuationClicked
+                    + ";guardExcluded=" + guardObserved
+                    + ";rescueOwnerExcluded=" + rescueObserved
+                    + ";cargoRetained=" + retainedObserved
+                    + ";sameOperation=" + cargoOperationId
+                    + ";sameCarriedStack=" + cargoCarriedStackId
+                    + ";destination=" + cargoDestinationKind + ":"
+                    + cargoDestinationId
+                    + ";storedDelta=" + cargoStoredBefore + "->"
+                    + cargoStoredAfter
+                    + ";releaseReplan=" + releaseReplanObserved
+                    + ";terminal=" + terminalEvidence);
+                return;
+            }
+            if (GameTime() - phaseStarted > 120f)
+                throw new InvalidOperationException(
+                    "Post-threat bound delivery did not complete: carried="
+                    + (carried != null) + ";intent=" + hasIntent
+                    + ";destination=" + cargoDestinationKind + ":"
+                    + cargoDestinationId
+                    + ";stored=" + cargoStoredBefore + "->"
+                    + cargoStoredAfter
+                    + ";participantsClear=" + participantsClear
+                    + ";releaseReplan=" + releaseReplanObserved
+                    + ";stage=" + Convert.ToString(V(
+                        haulerAbility, "CurrentExecutionStage"))
+                    + ";terminal=" + Convert.ToString(V(
+                        haulerAbility, "LastTerminalDiagnostics")));
+        }
+    }
+
+    void PrepareCargo()
+    {
+        stoneBefore = PhysicalTotal(CargoItemId);
+        HashSet<string> beforeIds = AllStacks()
+            .Select(value => Convert.ToString(V(value, "StackId")))
+            .ToHashSet(StringComparer.Ordinal);
+        Vector2Int origin = ActorPosition(hauler);
+        HashSet<Vector2Int> occupied = ActiveActors()
+            .Select(ActorPosition).ToHashSet();
+        Vector2Int[] candidates = ((IEnumerable)InvokePublicNoArgs(grid, "GetCells"))
+            .Cast<object>()
+            .Select(value => (Vector2Int)V(value, "Position"))
+            .Where(value => (bool)grid.GetType().GetMethod(
+                    "IsWalkable", new[] { typeof(Vector2Int) })
+                .Invoke(grid, new object[] { value }))
+            .Where(value => !AllStacks().Any(stack =>
+                (Vector2Int)V(stack, "Position") == value))
+            .Where(value => !occupied.Contains(value))
+            .OrderBy(value => Mathf.Abs(value.x - origin.x)
+                + Mathf.Abs(value.y - origin.y))
+            .ThenBy(value => value.y).ThenBy(value => value.x).ToArray();
+        if (candidates.Length == 0)
+            throw new InvalidOperationException(
+                "No legal unoccupied cell exists for exact loose cargo.");
+        Vector2Int position = candidates[0];
+        Spawn(CargoItemId, 1, position, "Loose", string.Empty);
+        object[] created = AllStacks().Where(value =>
+                !beforeIds.Contains(Convert.ToString(V(value, "StackId")))
+                && string.Equals(Convert.ToString(V(value, "ItemId")),
+                    CargoItemId, StringComparison.Ordinal)
+                && (Vector2Int)V(value, "Position") == position)
+            .ToArray();
+        if (created.Length != 1
+            || Convert.ToInt32(V(created[0], "Quantity")) != 1)
+            throw new InvalidOperationException(
+                "Exact loose cargo stack did not materialize once.");
+        cargoSourceStackId = Convert.ToString(V(created[0], "StackId"));
+        SetOnDuty(haulerWork);
+        SetPriority(haulerWork, "Haul", "Priority1");
+        var prioritize = items.GetType().GetMethod(
+            "PrioritizeHaul", new[] { typeof(string) });
+        if (prioritize == null || !prioritize.IsPublic
+            || !(bool)prioritize.Invoke(items,
+                new object[] { cargoSourceStackId }))
+            throw new InvalidOperationException(
+                "Public exact-stack haul priority was rejected.");
+        haulerInventory = V(hauler, "CarryInventory");
+        haulerAbility = hauler.GetComponent(T("AbilityHaul"));
+        if (haulerInventory == null || haulerAbility == null)
+            throw new InvalidOperationException(
+                "Hauler lacks public carry/haul authority.");
+        RequestReplan(hauler, true, "wim048-exact-cargo-pickup");
+    }
+
+    string CaptureCargoMovementEvidenceSafely(string boundary)
+    {
+        try
+        {
+            return CaptureCargoMovementEvidence(boundary);
+        }
+        catch (Exception exception)
+        {
+            return boundary + ":diagnostic-unavailable="
+                + exception.GetType().Name + ":" + exception.Message;
+        }
+    }
+
+    string CaptureCargoMovementEvidence(string boundary)
+    {
+        object source = AllStacks().SingleOrDefault(value =>
+            string.Equals(Convert.ToString(V(value, "StackId")),
+                cargoSourceStackId, StringComparison.Ordinal));
+        Component movement = hauler == null
+            ? null : hauler.GetComponent(T("AbilityMove"));
+        object brain = hauler == null ? null : V(hauler, "Brain");
+        object diagnostics = brain == null
+            ? null : InvokePublicNoArgs(brain, "CaptureRuntimeDiagnostics");
+        string trace = diagnostics == null
+            ? "<none>"
+            : Convert.ToString(InvokePublicNoArgs(
+                diagnostics, "FormatRecentTrace"));
+        float moveSpeed = hauler == null
+            ? -1f
+            : Convert.ToSingle(InvokePublicNoArgs(hauler, "GetMoveSpeed"));
+        return boundary
+            + ":actor=" + ActorId(hauler)
+            + "@" + (hauler == null
+                ? "<missing>" : ActorPosition(hauler).ToString())
+            + ";source=" + cargoSourceStackId
+            + "@" + (source == null
+                ? "<missing>" : Convert.ToString(V(source, "Position")))
+            + ";sourceState=" + (source == null
+                ? "<missing>" : Convert.ToString(V(source, "State")))
+            + ";reserved=" + (source == null
+                ? "<missing>"
+                : Convert.ToString(V(source, "ReservedByPersistentId"))
+                    + "/" + Convert.ToString(V(source, "ReservedQuantity")))
+            + ";moveSpeed=" + moveSpeed.ToString("0.###")
+            + ";haul=" + Convert.ToString(V(
+                haulerAbility, "CurrentExecutionStage"))
+            + "/plan=" + Convert.ToString(V(
+                haulerAbility, "CurrentPlanSummary"))
+            + "/heartbeat=" + Convert.ToString(V(
+                haulerAbility, "RoutineHeartbeat"))
+            + "/path=" + Convert.ToString(V(
+                haulerAbility, "ActivePathDebug"))
+            + "/failure=" + Convert.ToString(V(
+                haulerAbility, "LastFailureReason"))
+            + ";movementOwner=" + (movement == null
+                ? "<missing>" : Convert.ToString(V(
+                    movement, "ActiveMovementOperationOwnerForDiagnostics")))
+            + ";movementActive=" + (movement != null
+                && Convert.ToBoolean(V(
+                    movement, "HasActiveMovementRoutineForDiagnostics")))
+            + ";moveBlocked=" + (movement != null
+                && Convert.ToBoolean(V(movement, "LastGridMoveWasBlocked")))
+            + ";moveFailure=" + (movement == null
+                ? "<missing>" : Convert.ToString(V(
+                    movement, "LastGridMoveFailureReason")))
+            + ";replans=" + (movement == null
+                ? "<missing>" : Convert.ToString(V(
+                    movement, "RuntimeActionPathReplanCount")))
+            + ";pathFailures=" + (movement == null
+                ? "<missing>" : Convert.ToString(V(
+                    movement, "RuntimeActionPathFailureCount")))
+            + ";action=" + (brain == null
+                ? "<missing>" : Convert.ToString(V(
+                    brain, "CurrentActionDebugLabel")))
+            + ";phase=" + (brain == null
+                ? "<missing>" : Convert.ToString(V(
+                    brain, "CurrentActionPhase")))
+            + ";runtimePhase=" + (brain == null
+                ? "<missing>" : Convert.ToString(V(
+                    brain, "CurrentRuntimePhase")))
+            + ";trace=[" + trace + "]";
+    }
+
+    object FindExactCarriedCargo()
+    {
+        if (haulerInventory == null) return null;
+        object snapshot = InvokePublicNoArgs(haulerInventory, "Capture");
+        object[] matches = ((IEnumerable)V(snapshot, "items")).Cast<object>()
+            .Where(value => value != null
+                && string.Equals(Convert.ToString(V(value, "itemId")),
+                    CargoItemId, StringComparison.Ordinal)
+                && string.Equals(Convert.ToString(V(value, "sourceStackId")),
+                    cargoSourceStackId, StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length > 1)
+            throw new InvalidOperationException(
+                "Exact cargo source produced duplicate carried entries.");
+        return matches.SingleOrDefault();
+    }
+
+    bool TryDeliveryIntent(string operationId, out object intent)
+    {
+        var method = items.GetType().GetMethods().Single(candidate =>
+            candidate.IsPublic
+            && string.Equals(candidate.Name, "TryCaptureHaulDeliveryIntent",
+                StringComparison.Ordinal)
+            && candidate.GetParameters().Length == 2);
+        object[] arguments = { operationId, null };
+        bool success = (bool)method.Invoke(items, arguments);
+        intent = arguments[1];
+        return success && intent != null;
+    }
+
+    object RequireDeliveryIntent(string operationId)
+    {
+        if (!TryDeliveryIntent(operationId, out object intent))
+            throw new InvalidOperationException(
+                "Committed pickup has no delivery-intent authority.");
+        return intent;
+    }
+
+    void BeginRescueAndThreat()
+    {
+        DamageLegsToDowned(patient, "wim048-rescue-role-preparation");
+        var stance = combatCommands.GetType().GetMethod("SetCombatStance", new[]
+        {
+            T("CharacterActor"), typeof(bool), typeof(string).MakeByRefType()
+        });
+        object[] stanceArguments = { rescuer, true, null };
+        if (!(bool)stance.Invoke(combatCommands, stanceArguments))
+            throw new InvalidOperationException(
+                "Rescuer combat stance failed: "
+                + Convert.ToString(stanceArguments[2]));
+        var rescue = combatCommands.GetType().GetMethod("TryIssueRescue", new[]
+        {
+            T("CharacterActor"), T("CharacterActor"), typeof(string).MakeByRefType()
+        });
+        object[] rescueArguments = { rescuer, patient, null };
+        if (!(bool)rescue.Invoke(combatCommands, rescueArguments))
+            throw new InvalidOperationException(
+                "Public rescue command failed: "
+                + Convert.ToString(rescueArguments[2]));
+        Debug.Log("WIM048_RESCUE_COMMAND_ACCEPTED;rescuer=" + ActorId(rescuer)
+            + ";patient=" + ActorId(patient) + ";completedRescueEvidence=false");
+        secondIntruderRuntime = SpawnThreat(out Component secondActor);
+        if (secondActor == null)
+            throw new InvalidOperationException("Second threat actor is absent.");
+    }
+
+    void ObserveRoleAndCargoInterruption()
+    {
+        object[] participants = ((IEnumerable)V(
+                evacuation, "ResidentEvacuationParticipants"))
+            .Cast<object>().ToArray();
+        string[] ids = participants.Select(value =>
+                Convert.ToString(V(value, "CharacterId")))
+            .OrderBy(value => value, StringComparer.Ordinal).ToArray();
+        participantEvidence = string.Join("|", participants.Select(value =>
+            Convert.ToString(V(value, "CharacterId")) + ":"
+            + Convert.ToString(V(value, "Status")) + ":"
+            + Convert.ToString(V(value, "Target"))));
+        string[] required = { ActorId(hauler), ActorId(minion) };
+        string[] excluded =
+        {
+            ActorId(owner), ActorId(guard), ActorId(rescuer), ActorId(patient)
+        };
+        exclusionObserved |= ids.Length == required.Length
+            && required.All(id => ids.Contains(id, StringComparer.Ordinal))
+            && excluded.All(id => !ids.Contains(id, StringComparer.Ordinal));
+        bool firstParticipant = !retentionParticipantObserved
+            && ids.Contains(ActorId(hauler), StringComparer.Ordinal);
+        retentionParticipantObserved |= firstParticipant;
+        retainedObserved |= CaptureRetentionBoundary(
+            firstParticipant ? "first-hauler-participant" : "participant-poll",
+            firstParticipant, false);
+    }
+
+    bool CaptureRetentionBoundary(string boundary, bool record, bool requireOwnership)
+    {
+        object carried = FindExactCarriedCargo();
+        string stackId = carried == null ? "absent"
+            : Convert.ToString(V(carried, "carriedStackId"));
+        string operationId = carried == null ? "absent"
+            : Convert.ToString(V(carried, "ownerOperationId"));
+        int quantity = carried == null ? 0 : Convert.ToInt32(V(carried, "quantity"));
+        string disposition = Convert.ToString(V(haulerAbility, "LastInterruptionDisposition"));
+        bool sameStack = carried != null && string.Equals(
+            stackId, cargoCarriedStackId, StringComparison.Ordinal);
+        bool sameOperation = carried != null && string.Equals(
+            operationId, cargoOperationId, StringComparison.Ordinal);
+        bool exactQuantity = quantity == 1;
+        bool retainedDisposition = string.Equals(disposition,
+            "ReleaseUnpickedAndRetainCarriedForReplan", StringComparison.Ordinal);
+        bool bound = Convert.ToBoolean(V(haulerAbility, "HasBoundDeliveryIntent"));
+        bool hasIntent = TryDeliveryIntent(cargoOperationId, out _);
+        int physicalTotal = PhysicalTotal(CargoItemId);
+        bool conserved = physicalTotal == stoneBefore + 1;
+        bool owned = sameStack && sameOperation && exactQuantity && hasIntent && conserved;
+        if (record)
+        {
+            string evidence = boundary + ";gameTime=" + GameTime().ToString("0.###")
+                + ";frame=" + Time.frameCount + ";actorCell=" + ActorPosition(hauler)
+                + ";carried=" + (carried != null) + ";sameStack=" + sameStack
+                + ";sameOperation=" + sameOperation + ";exactQuantity=" + exactQuantity
+                + ";retainedDisposition=" + retainedDisposition + ";bound=" + bound
+                + ";intent=" + hasIntent + ";conserved=" + conserved
+                + ";stack=" + stackId + ";operation=" + operationId
+                + ";quantity=" + quantity + ";disposition=" + disposition
+                + ";physicalTotal=" + physicalTotal
+                + ";storedNow=" + StoredQuantityAtDestination(CargoItemId, cargoDestinationId)
+                + ";stage=" + Convert.ToString(V(haulerAbility, "CurrentExecutionStage"))
+                + ";failure=" + Convert.ToString(V(haulerAbility, "LastFailureReason"))
+                + ";terminal=" + Convert.ToString(V(haulerAbility, "LastTerminalDiagnostics"))
+                + ";participants=" + participantEvidence;
+            retentionBoundaryEvidence += "[" + evidence + "]";
+            Debug.Log("WIM048_RETENTION_BOUNDARY;" + evidence);
+        }
+        if (requireOwnership && !owned)
+            throw new InvalidOperationException(
+                "Evacuation fixture no longer owns exact carried cargo before command: " + boundary);
+        return uiEvacuationClicked && owned && retainedDisposition && bound;
+    }
+
+    string[] EngagementGuardIds(object engagement)
+    {
+        return new[]
+        {
+            V(engagement, "LeadGuard"), V(engagement, "ReserveGuard"),
+            V(engagement, "RangedGuard"), V(engagement, "SecondaryRangedGuard")
+        }.Where(value => value != null).Select(ActorId)
+        .Where(value => !string.IsNullOrWhiteSpace(value)).ToArray();
+    }
+
+    void OnPlayModeStateChanged(PlayModeStateChange state)
+    {
+        if (state is PlayModeStateChange.ExitingPlayMode
+            or PlayModeStateChange.EnteredEditMode)
+            Unsubscribe();
+    }
+
+    void Finish(string outcome, bool error, string detail)
+    {
+        if (!installed) return;
+        Unsubscribe();
+        try
+        {
+            if (Application.isPlaying)
+                SetPaused(true, 1);
+        }
+        catch
+        {
+            Time.timeScale = 0f;
+        }
+        EditorApplication.isPaused = true;
+        string message = "WIM048 REMAINING_" + outcome
+            + ";phase=" + phase
+            + ";minionSetup=[" + minionSetupEvidence + "]"
+            + ";selectors=[" + selectorEvidence + "]"
+            + ";phase6Start=[" + phase6StartEvidence + "]"
+            + ";phase6Terminal=[" + phase6TerminalEvidence + "]"
+            + ";retentionBoundaries=" + retentionBoundaryEvidence
+            + ";participants=[" + participantEvidence + "]"
+            + ";cargo=" + cargoSourceStackId + "/" + cargoCarriedStackId
+            + "/" + cargoOperationId
+            + ";destination=" + cargoDestinationKind + ":"
+            + cargoDestinationId + ";stored=" + cargoStoredBefore
+            + "->" + cargoStoredAfter
+            + ";guard=" + guardObserved + ";rescue=" + rescueObserved
+            + ";excluded=" + exclusionObserved
+            + ";retained=" + retainedObserved
+            + ";releaseReplan=" + releaseReplanObserved
+            + ";speed=" + SafeSpeed()
+            + ";gameTime=" + SafeGameTime().ToString("0.###")
+            + ";gameElapsed=" + (SafeGameTime() - gameStarted).ToString("0.###")
+            + ";wallElapsedIncludingSetup="
+            + (EditorApplication.timeSinceStartup - wallStarted).ToString("0.###")
+            + ";paused=" + (Application.isPlaying
+                && Mathf.Approximately(Time.timeScale, 0f))
+            + ";detail=" + detail;
+        if (error) Debug.LogError(message);
+        else if (string.Equals(outcome, "PASS", StringComparison.Ordinal))
+            Debug.Log(message);
+        else Debug.LogWarning(message);
+    }
+
+    int SafeSpeed()
+    {
+        try { return speed == null ? -1 : Convert.ToInt32(V(speed, "Speed")); }
+        catch { return -1; }
+    }
+
+    float SafeGameTime()
+    {
+        try { return clock == null ? -1f : GameTime(); }
+        catch { return -1f; }
+    }
+
+    string RequiredRoleFailure()
+    {
+        Component[] roles = phase < 6
+            ? new[] { owner, guard, rescuer, hauler, patient }
+            : new[] { owner, guard, rescuer, hauler };
+        foreach (Component role in roles)
+        {
+            if (role == null || !role.gameObject.scene.isLoaded
+                || !role.gameObject.activeInHierarchy
+                || Convert.ToBoolean(V(role, "IsDead"))
+                || !string.Equals(
+                    Convert.ToString(V(role, "CurrentLifecycleState")),
+                    "Active", StringComparison.Ordinal))
+                return role == null ? "missing"
+                    : ActorId(role) + ":"
+                        + Convert.ToString(V(role, "CurrentLifecycleState"));
+        }
+        if (phase >= 6 && (patient == null
+            || Convert.ToBoolean(V(patient, "IsDead"))))
+            return patient == null ? "patient-missing" : ActorId(patient) + ":dead";
+        if (phase >= 4 && (minion == null
+            || !minion.gameObject.scene.isLoaded
+            || !minion.gameObject.activeInHierarchy
+            || Convert.ToBoolean(V(minion, "IsDead"))
+            || !string.Equals(
+                Convert.ToString(V(minion, "CurrentLifecycleState")),
+                "Active", StringComparison.Ordinal)))
+            return minion == null ? "minion-missing"
+                : ActorId(minion) + ":"
+                    + Convert.ToString(V(minion, "CurrentLifecycleState"));
+        return string.Empty;
+    }
+
+    void Unsubscribe()
+    {
+        EditorApplication.update -= OnEditorUpdate;
+        EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+        installed = false;
+    }
+}
+```
+
+Expected success terminal is exactly `WIM048 REMAINING_PASS`. The initial active Minion is a public population-standing fixture for WIM048 selection evidence only; it is not evidence for captive conversion, three-day waiting, ritual effects, or daily `CaptiveState` behavior. Any `INCOMPLETE_*`, `FAILED_PHASE_*`, missing public UI target, non-six-role live composition, standing/ability mismatch, role-continuity failure, exclusion mismatch, changed cargo commitment, missing release replan, or missing exact promised-destination Stored delta stops the disposable Play; do not retry a variant in that Play. `GetSettlementPopulation` profile counts are diagnostic and are not substituted for the exact active actor-role join. The operator exits Play without saving after copying the terminal line. Commands A/B above remain preserved historical inputs and are not prerequisites for Command C.
+
+remainingExecution=NOT_RUN_READY_FOR_ROOT_REVIEW

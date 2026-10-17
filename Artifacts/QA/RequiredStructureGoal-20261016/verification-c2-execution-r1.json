@@ -1,0 +1,15 @@
+{
+  "entry": "ArchitectureRefactorVerificationBatch.RunBuildings -> RunProductionBills",
+  "evidence": [
+    "native-buildings-current-r1/unity.log"
+  ],
+  "scope": "Native production command transactions and capture/restore/reentrant-command fences, ACK lost before/after commit with JSON fresh-owner retry, causal owner restore, authored sawmill/perishable full-current-format round trips, normal/loss/ruin resolution, exact WIP terminal receipt GC with foreign/stale/root/revision guards and rollback/retry. Final production-bills and buildings markers PASS, exit 0.",
+  "target": "C2",
+  "status": "implemented_and_targeted_actual_verified",
+  "currentCompile": "verification-native-current-source-r2.json",
+  "limitations": [
+    "Controlled native fixture scope; no natural UI/AI claim.",
+    "Cold official whole-world integration remains a separate final goal gate."
+  ],
+  "goalStatus": "active"
+}

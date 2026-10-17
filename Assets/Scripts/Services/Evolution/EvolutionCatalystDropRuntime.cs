@@ -110,17 +110,7 @@ public sealed class EvolutionCatalystDropRuntime :
             return;
         }
 
-        if (TryGrantOffenseCatalyst(
-                eventType.expeditionResult.danger,
-                out string itemId,
-                out _))
-        {
-            events.RaiseAlert(
-                "원정 촉매 회수",
-                $"{GetDisplayName(itemId)}이 하차장에 도착했습니다.",
-                EventAlertImportance.Medium,
-                "진화");
-        }
+        TryGrantOffenseCatalyst(eventType.expeditionResult.danger, out _, out _);
     }
 
     private void OnInvasionStarted(InvasionStartedEvent eventType)
@@ -137,17 +127,7 @@ public sealed class EvolutionCatalystDropRuntime :
             return;
         }
 
-        if (TryGrantDefenseCatalyst(
-                resolvedThreat,
-                out string itemId,
-                out _))
-        {
-            events.RaiseAlert(
-                "침공 촉매 회수",
-                $"{GetDisplayName(itemId)}이 하차장에 남았습니다.",
-                EventAlertImportance.Medium,
-                "진화");
-        }
+        TryGrantDefenseCatalyst(resolvedThreat, out _, out _);
     }
 
     private bool TryDrop(
@@ -192,11 +172,18 @@ public sealed class EvolutionCatalystDropRuntime :
             return false;
         }
 
+        // The physical owner has committed. A display subscriber cannot turn
+        // an actual drop into a failed grant or cause its caller to spawn again.
+        try
+        {
+            events.Publish(new EvolutionCatalystDroppedEvent(itemId, spawned, dropoff,
+                expeditionDrop ? EvolutionCatalystDropOrigin.Expedition : EvolutionCatalystDropOrigin.Defense));
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException && exception is not AccessViolationException)
+        {
+            Debug.LogWarning("catalyst-drop-observation:" + exception.GetType().Name + ":" + exception.Message);
+        }
         return true;
-    }
-
-    private string GetDisplayName(string itemId)
-    {
-        return items.CatalogProvider.GetDefinition(itemId).DisplayName;
     }
 }

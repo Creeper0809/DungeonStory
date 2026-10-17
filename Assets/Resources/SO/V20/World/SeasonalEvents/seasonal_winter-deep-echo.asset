@@ -14,34 +14,71 @@ MonoBehaviour:
   m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
   stableId: seasonal:winter-deep-echo
   displayName: "\uC2EC\uCE35\uC758 \uBA54\uC544\uB9AC"
-  description: "\uC870\uC6A9\uD574\uC9C4 \uB3D9\uAD74\uC5D0\uC11C \uC9C4\uC2E4 \uC218\uD638\uC790\uC758
-    \uC774\uB3D9\uACFC \uD76C\uADC0 \uC57C\uC0DD\uB3D9\uBB3C\uC758 \uD754\uC801\uC774
-    \uD568\uAED8 \uB4DC\uB7EC\uB09C\uB2E4."
-  authoringRevision: 1
-  sourceNote: V20 hand-authored seasonal world event manifest.
+  description: "진행 자격을 갖춘 원정대가 진실 수호자의 심층 봉인소를 선택해 출발할 수 있다. 위험·확정 조우·실물 보상을 확인한 뒤 비용 없이 무시할 수 있다."
+  authoringRevision: 2
+  sourceNote: WIM-009 authored seasonal arcane facility/expedition contract.
   season: 3
   minimumDurationDays: 1
   maximumDurationDays: 2
+  worldWaterRegenerationMultiplier: 1
+  powerAvailableSupplyCapacityMultiplier: 1
+  pipedWaterThroughputMultiplier: 1
+  pipedWaterFreezeThresholdC: 0
+  pipedWaterRecoveryThresholdC: 2
+  cropPrimaryBatchLossPercent: 0
+  requiredWeatherFrontId: 
+  wildlifeArrivalProfile:
+    speciesId: 
+    exactCount: 0
+    requiredHabitatId: 
+    qualification: 0
+  driftCargoProfile:
+    itemId: 
+    exactQuantity: 0
+  manaLightningProfile:
+    eligibleBuildingDefinitionIds: []
+    minimumHeat: 0
+    minimumFault: 0
+    riskWindowSeconds: 30
+    additionalIgnitionChancePerWindow: 0
+    ignitionIntensity: 0
+  specialExpeditionProfile:
+    purpose: 2
+    siteArchetypeId: archive
+    title: "심층의 메아리 원정"
+    description: "심층 봉인소에서 진실 봉인수호자와 무효감시자가 기다린다. 출발 뒤 제안 기한이 지나도 확정 조우와 보상은 바뀌지 않는다."
+    minimumDistanceSteps: 6
+    maximumDistanceSteps: 8
+    recommendedDanger: 96
+    durationSeconds: 180
+    requiredMembers: 4
+    recommendedPower: 84
+    campaignOrder: 6
+    authoredEncounterId: encounter:31
+    encounterPreviewText: "진실 봉인수호자·진실 무효감시자"
+    encounterRewardPreviewText: "미감정 전리품 x1"
+    factionId: truth:guardian
+    physicalRewards:
+    - itemId: record:arcane-index
+      displayLabel: "비전 색인"
+      exactQuantity: 1
+    - itemId: resource:mana-crystal
+      displayLabel: "마나 결정"
+      exactQuantity: 2
   affectedDomainIds:
   - expedition
-  - wildlife
+  - combat
   triggerRequirements:
     items: []
     facilities: []
     research: []
     characters: []
     factions: []
-    worldMetrics: []
+    worldMetrics:
+    - kind: 9
+      minimumValue: 4
     requiredFlags: []
     excludedFlags: []
-  startEffects:
-  - kind: 14
-    targetId: truth-guardian
-    amount: 5
-    durationDays: 2
+  startEffects: []
   dailyEffects: []
-  endEffects:
-  - kind: 12
-    targetId: resolved:seasonal:winter-deep-echo
-    amount: 1
-    durationDays: 0
+  endEffects: []

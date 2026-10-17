@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "domainGroup": 7,
+  "domainGroupName": "환경·농업·야생동물·질병·재난",
+  "candidateCount": 9,
+  "sourceEditState": "BLOCKED_FROZEN",
+  "humanApprovalClaimed": false,
+  "completedCount": 5,
+  "blockedCount": 4,
+  "candidates": [
+    {
+      "type": "CertifiedSeedPlanExecutionReceipt",
+      "disposition": "NonResultWithTerminalSubstitutePending",
+      "terminalOutcomeType": "environment.certified-seed-completed",
+      "status": "BLOCKED",
+      "reason": "The plan receipt is not terminal. CertifiedSeedCompletionOutcomeReceipt requires a prepared gameplay attachment at production-output publication and canonical acknowledgement before order removal. That output-publication participant seam is not frozen."
+    },
+    {
+      "type": "CropPlanExecutionReceipt",
+      "disposition": "Record",
+      "terminalOutcomeType": "environment.crop-plan-terminal",
+      "status": "COMPLETE_SOURCE",
+      "ownerSeam": "CropPlotRuntime.TryAdvancePendingHarvest",
+      "atomicity": "the exact terminal receipt is computed from the authoritative harvest owner before outcome preparation; the owner remains pending until the canonical result is PublishedAcknowledged; a failed prepare/commit leaves the harvest owner intact",
+      "saveRestore": "CropHarvestOutputSaveData and CropCycleExecutionReceiptSaveData preserve the exact terminal inputs while GameplayOutcomeLedgerSaveSection preserves committed pending delivery; canonical acknowledgement is required before owner cleanup",
+      "replay": "operation-sequence result key, exact input/output vector digests, output batch commit ID, outcome fingerprint, and source digest are rebuilt identically; acknowledged replay resumes cleanup",
+      "postCommitInvariant": "checked next sequence is computed before commit; cleanup failure is converted to a save-backed deferred owner state and never rolls the domain behind the committed ledger result"
+    },
+    {
+      "type": "EnvironmentalFireFuelLossReceipt",
+      "disposition": "Record",
+      "terminalOutcomeType": "environment.fire-fuel-loss",
+      "status": "BLOCKED",
+      "reason": "Physical fuel disposition participant API is still SOURCE_EDIT in the physical owner and has not been frozen for the fire transaction."
+    },
+    {
+      "type": "EnvironmentalFireWaterReceipt",
+      "disposition": "Record",
+      "terminalOutcomeType": "environment.fire-water-consumed",
+      "status": "BLOCKED",
+      "reason": "Physical water disposition participant API is still SOURCE_EDIT in the physical owner and has not been frozen for the suppression transaction."
+    },
+    {
+      "type": "PopulationDiseaseRouteExposureEvent",
+      "disposition": "Record",
+      "terminalOutcomeType": "environment.disease-route-exposure",
+      "status": "COMPLETE_SOURCE",
+      "ownerSeam": "PopulationHealthApplicationAdapter.RecordPhysicalExposure",
+      "atomicity": "exact receipt prepared before PopulationHealthRuntime mutation; exact version snapshot rollback on failed commit",
+      "saveRestore": "PopulationHealthSaveSection plus GameplayOutcomeLedgerSaveSection durable outbox",
+      "replay": "stable health revision result key and canonical digest reconciliation"
+    },
+    {
+      "type": "ProcessAccidentFireReceipt",
+      "disposition": "NonResultWithIntegratedSameOperationSubstitute",
+      "terminalOutcomeType": "environment.process-accident",
+      "status": "COMPLETE_SOURCE",
+      "ownerSeam": "WorkTaskExecutor.TryTriggerWorkAccident",
+      "atomicity": "expected anatomy damage receipt prepared before mutation; body snapshot rollback on failed commit; fire is a later causal follow-up",
+      "saveRestore": "character body save plus GameplayOutcomeLedgerSaveSection durable outbox",
+      "replay": "persistent work-operation ID result key and canonical digest reconciliation"
+    },
+    {
+      "type": "RoomConditionChangedEvent",
+      "disposition": "Record",
+      "terminalOutcomeType": "environment.room-condition-changed",
+      "status": "COMPLETE_SOURCE",
+      "ownerSeam": "RoomEnvironmentExperienceService.CommitRoomCondition",
+      "atomicity": "receipt prepared before observer-room state mutation; prior value restored on failed commit; event publishes only after commit",
+      "saveRestore": "RoomEnvironmentOutcomeSaveSection plus GameplayOutcomeLedgerSaveSection durable outbox",
+      "replay": "saved monotonic sequence result key and canonical digest reconciliation"
+    },
+    {
+      "type": "RoomEnvironmentExperienceEvent",
+      "disposition": "NonResultWithIntegratedSameOperationSubstitute",
+      "terminalOutcomeType": "environment.room-experience-applied",
+      "status": "COMPLETE_SOURCE",
+      "ownerSeam": "RoomEnvironmentExperienceService.Apply",
+      "atomicity": "terminal mechanics and presentation facts prepared before mood mutation; exact mood transaction snapshot rollback on failed commit",
+      "saveRestore": "RoomEnvironmentOutcomeSaveSection sequence plus character mood save plus GameplayOutcomeLedgerSaveSection durable outbox",
+      "replay": "saved monotonic sequence result key and canonical digest reconciliation"
+    },
+    {
+      "type": "SpeciesIncidentTriggeredEvent",
+      "disposition": "Record",
+      "terminalOutcomeType": "environment.species-incident-triggered",
+      "status": "BLOCKED",
+      "reason": "Slime, beastkin, demon, myconid, and golem paths have reserve-before-mutation and aggregate rollback. Harpy is fail-closed until a reversible physical relocation participant is frozen; therefore the candidate is not closed."
+    }
+  ]
+}

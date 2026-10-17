@@ -59,7 +59,9 @@ internal sealed class WildlifeDiseaseVectorRuntime
                         diseaseId,
                         route,
                         exposureHours: distance == 0 ? 1f : 0.5f,
-                        environmentCoefficient: 1f));
+                        environmentCoefficient: 1f,
+                        sourceKind: "wildlife-vector",
+                        sourceId: vector.WildlifeId));
                 }
             }
         }

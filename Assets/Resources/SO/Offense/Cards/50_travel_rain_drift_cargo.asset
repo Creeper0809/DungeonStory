@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb1545c617046a479f6260685aafe1a, type: 3}
+  m_Name: 50_travel_rain_drift_cargo
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseDecisionCardSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170349
+  cardId: travel_rain_drift_cargo
+  stage: 0
+  title: "빗속의 떠내려온 짐"
+  situation: "불어난 빗물에 묶음 짐 하나가 떠내려와 바위틈에 걸렸습니다."
+  requiredWorldTags:
+  - weather:rain
+  choices:
+  - choiceId: left
+    label: "짐을 건져 낸다"
+    description: "한 시간 반을 들여 급류에 접근해 쓸 만한 식량을 건집니다."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "대기 1.5시간·노출 +8·식량 +2"
+    severity: 1
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7170170000000000050
+    - rid: 7170170000000000051
+    - rid: 7170170000000000052
+  - choiceId: right
+    label: "그대로 지나간다"
+    description: "급류에 가까이 가지 않고 원래 행군을 계속합니다."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "변화 없음"
+    severity: 0
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 7170170000000000050
+      type: {class: OffenseTimeDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        elapsedHours: 1.5
+    - rid: 7170170000000000051
+      type: {class: OffenseExposureDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        amount: 8
+    - rid: 7170170000000000052
+      type: {class: OffenseSupplyDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        supplyType: 0
+        amount: 2
+

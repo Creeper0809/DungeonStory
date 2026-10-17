@@ -16,7 +16,61 @@ public enum KnowledgeResidueDispositionPhase
 {
     AwaitingInput = 0,
     InputCommitted = 1,
-    OutcomePublished = 2
+    RewardsApplied = 2
+}
+
+public static class KnowledgeResidueTaskIdentity
+{
+    public const int OriginalGeneration = 1;
+    public const int MigratedGeneration = 2;
+
+    public static string Format(int generation, int sequence)
+    {
+        if (!IsSupportedGeneration(generation) || sequence < 1)
+            throw new ArgumentOutOfRangeException(nameof(sequence));
+        return generation == OriginalGeneration
+            ? $"knowledge-{sequence:D5}"
+            : $"knowledge-g{generation}-{sequence:D5}";
+    }
+
+    public static bool TryParse(
+        string taskId,
+        out int generation,
+        out int sequence)
+    {
+        generation = 0;
+        sequence = 0;
+        string value = taskId ?? string.Empty;
+        if (value.StartsWith("knowledge-g", StringComparison.Ordinal))
+        {
+            string[] parts = value.Split('-');
+            if (parts.Length != 3
+                || parts[1].Length < 2
+                || parts[1][0] != 'g'
+                || !int.TryParse(parts[1].Substring(1), out generation)
+                || !int.TryParse(parts[2], out sequence))
+                return false;
+        }
+        else
+        {
+            const string prefix = "knowledge-";
+            if (!value.StartsWith(prefix, StringComparison.Ordinal)
+                || !int.TryParse(value.Substring(prefix.Length), out sequence))
+                return false;
+            generation = OriginalGeneration;
+        }
+
+        return IsSupportedGeneration(generation)
+            && sequence > 0
+            && string.Equals(
+                value,
+                Format(generation, sequence),
+                StringComparison.Ordinal);
+    }
+
+    public static bool IsSupportedGeneration(int generation) =>
+        generation == OriginalGeneration
+        || generation == MigratedGeneration;
 }
 
 [Serializable]
@@ -46,6 +100,9 @@ public sealed class KnowledgeResidueTaskSaveData
     public string sinkCommitId = string.Empty;
     public string codexCluePayload = string.Empty;
     public float appliedReconnaissanceAmount;
+    public long completionOwnerRevision;
+    public string completionPublicationKey = string.Empty;
+    public KnowledgeCompletionFactData completionFact = new();
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -92,6 +149,8 @@ public sealed class KnowledgeResidueAggregateState
     private readonly List<KnowledgeResidueTaskSaveData> tasks =
         new List<KnowledgeResidueTaskSaveData>();
     private int nextTaskSequence = 1;
+    private int taskIdentityGeneration =
+        KnowledgeResidueTaskIdentity.OriginalGeneration;
     private float nextDeliveryCheckAt;
     private string readySignaledTaskId = string.Empty;
 
@@ -100,6 +159,9 @@ public sealed class KnowledgeResidueAggregateState
     public KnowledgeResidueTaskSaveData FirstTask =>
         tasks.Count > 0 ? tasks[0] : null;
     public string ReadySignaledTaskId => readySignaledTaskId;
+    public int CaptureNextTaskSequence => nextTaskSequence;
+    public int CaptureTaskIdentityGeneration => taskIdentityGeneration;
+    public bool CanAllocateTaskSequence => nextTaskSequence < int.MaxValue;
 
     public bool IsDeliveryCheckDue(float time) =>
         time >= nextDeliveryCheckAt;
@@ -129,19 +191,68 @@ public sealed class KnowledgeResidueAggregateState
         readySignaledTaskId = string.Empty;
     }
 
-    public int AllocateTaskSequence() => nextTaskSequence++;
+    public int AllocateTaskSequence()
+    {
+        if (!CanAllocateTaskSequence)
+            throw new InvalidOperationException("knowledge-task-identity-unavailable-or-exhausted");
+        int allocated = nextTaskSequence;
+        nextTaskSequence = checked(nextTaskSequence + 1);
+        return allocated;
+    }
+
+    public string AllocateTaskId() => KnowledgeResidueTaskIdentity.Format(
+        taskIdentityGeneration,
+        AllocateTaskSequence());
+
+    public void RestoreAllocationIdentity(
+        int savedNextSequence,
+        int savedGeneration = 0)
+    {
+        if (savedNextSequence < 0)
+            throw new InvalidOperationException("knowledge-task-identity-high-water-invalid");
+
+        int generation;
+        int next;
+        if (savedNextSequence == 0)
+        {
+            generation = KnowledgeResidueTaskIdentity.MigratedGeneration;
+            next = 1;
+        }
+        else
+        {
+            generation = savedGeneration == 0
+                ? KnowledgeResidueTaskIdentity.OriginalGeneration
+                : savedGeneration;
+            next = savedNextSequence;
+        }
+        if (!KnowledgeResidueTaskIdentity.IsSupportedGeneration(generation))
+            throw new InvalidOperationException("knowledge-task-identity-generation-invalid");
+
+        int retainedHighWater = tasks
+            .Select(task => KnowledgeResidueTaskIdentity.TryParse(
+                    task?.taskId,
+                    out int taskGeneration,
+                    out int taskSequence)
+                && taskGeneration == generation
+                    ? taskSequence
+                    : 0)
+            .DefaultIfEmpty(0)
+            .Max();
+        if (next <= retainedHighWater)
+            throw new InvalidOperationException("knowledge-task-identity-high-water-invalid");
+
+        taskIdentityGeneration = generation;
+        nextTaskSequence = next;
+    }
 
     public void AddTask(KnowledgeResidueTaskSaveData task)
     {
         tasks.Add(task ?? throw new ArgumentNullException(nameof(task)));
     }
 
-    public void AddRestoredTask(
-        KnowledgeResidueTaskSaveData task,
-        int sequence)
+    public void AddRestoredTask(KnowledgeResidueTaskSaveData task)
     {
         AddTask(task);
-        nextTaskSequence = Math.Max(nextTaskSequence, sequence + 1);
     }
 
     public bool RemoveFirstTask()
@@ -160,6 +271,7 @@ public sealed class KnowledgeResidueAggregateState
         KnowledgeResidueAggregateState clone = new KnowledgeResidueAggregateState
         {
             nextTaskSequence = nextTaskSequence,
+            taskIdentityGeneration = taskIdentityGeneration,
             nextDeliveryCheckAt = nextDeliveryCheckAt,
             readySignaledTaskId = readySignaledTaskId
         };
@@ -198,6 +310,9 @@ public sealed class KnowledgeResidueAggregateState
             sinkInputMassGrams = source?.sinkInputMassGrams ?? 0L,
             sinkCommitId = source?.sinkCommitId ?? string.Empty,
             codexCluePayload = source?.codexCluePayload ?? string.Empty,
+            completionOwnerRevision = source?.completionOwnerRevision ?? 0,
+            completionPublicationKey = source?.completionPublicationKey ?? string.Empty,
+            completionFact = source?.completionFact?.Clone(),
             appliedReconnaissanceAmount =
                 source?.appliedReconnaissanceAmount ?? 0f
         };

@@ -1,0 +1,32 @@
+{
+  "status": "READY/FROZEN",
+  "phase": "SOURCE_EDIT CLOSED; main UNITY_VERIFY",
+  "sourcePin": "source-pin-final-integration-r3.json",
+  "sourceFiles": 1430,
+  "expanded": [
+    "Assets/Scripts/Services/Infrastructure/Registration/DungeonFactionWarRegistration.cs",
+    "Assets/Scripts/Services/Infrastructure/Registration/DungeonFactionWarRegistration.cs.meta"
+  ],
+  "fullPin": "native-input-pin-r43.json",
+  "fullFiles": 3880,
+  "toolPin": "tool-pin-final-integration-r2.json",
+  "runtimeChanged": [
+    "Assets/Scripts/Services/Character/Core/CharacterActor.cs",
+    "Assets/Scripts/Services/Character/Ability/AbilityMove.cs",
+    "Assets/Scripts/Services/Factions/FactionReinforcementMaterializer.cs",
+    "Assets/Scripts/Services/Factions/FactionRuntime.cs",
+    "Assets/Scripts/Services/Infrastructure/Registration/DungeonFactionWarRegistration.cs"
+  ],
+  "editorChanged": [
+    "Assets/Scripts/Services/Factions/Editor/FactionCargoPublicationDebugScenarios.cs"
+  ],
+  "dtoSchemaAssetGuidChanges": 0,
+  "fixes": [
+    "Outgoing scene actor deregisters scheduler/live/lifetime immediately after authority handoff; deferred OnDestroy is idempotent and cannot remove fresh same-ID actor",
+    "Existing faction owner rebuilds marker from route receipts after full world publication, resumes restored SpawningOutside/EnteringDungeon only without active movement; repeated hook must not restart movement",
+    "Same Faction adapter instance registered as existing restore-completed hook; no new owner/DTO authority"
+  ],
+  "observedFailure": "verification-final-integration-r2.json",
+  "actual": "NOT_RUN",
+  "requiredRelatedRegression": "After current official faction tests, rerun existing native restock pending/carried/live-owner replacement because retirement registration changed."
+}

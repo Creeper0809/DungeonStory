@@ -1,0 +1,6 @@
+result=FAIL
+System.InvalidOperationException: Test requires all five real primary facilities in one usable room.
+  at WimAgeFacilityLiveRunner+<Run>d__12.MoveNext () [0x00d34] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Medical\Editor\WimAgeFacilityLiveRunner.cs:224 
+  at WimAgeFacilityLiveRunner+<Observe>d__11.MoveNext () [0x0004b] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Medical\Editor\WimAgeFacilityLiveRunner.cs:62 
+scope=actual owner/party and surgery selector UI, actual AgeTreatmentCommand and direct Schedule, current full-world JSON; authored placement/research are controlled setup; no clinical work/effect/automatic emergency or whole-WIM023 completion claim
+cleanup=operator stops disposable Play; no scene/user persistence writes

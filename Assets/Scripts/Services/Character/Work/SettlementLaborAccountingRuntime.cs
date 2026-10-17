@@ -133,6 +133,7 @@ public interface ISettlementLaborPersistence
 public sealed class SettlementLaborAccountingRuntime :
     ISettlementLaborAccountingService,
     ISettlementLaborPersistence,
+    IDungeonRestoreTransactionParticipant,
     IStartable,
     IDisposable
 {
@@ -153,6 +154,56 @@ public sealed class SettlementLaborAccountingRuntime :
     private float rollingMedian;
     private SettlementLaborDailyRecord latest;
     private long revision;
+    private Action restorePreviousState;
+    private DungeonStory.Infrastructure.SettlementLaborSaveData restoreCandidate;
+
+    public string ParticipantId => "210.operation.settlement-labor";
+
+    public void BeginRestoreCandidate()
+    {
+        // The ring layout, idempotency sequences and revision belong to this
+        // live runtime, not to the DTO. A late publication failure restores all.
+        if (restorePreviousState != null)
+            throw new InvalidOperationException("Settlement labor restore is already staged.");
+        var previousCurrent = current;
+        var previousDaily = (SettlementLaborDailyRecord[])daily.Clone();
+        var previousSequences = new Dictionary<ContributionKey, long>(lastSequenceByContribution);
+        int previousHead = dailyHead, previousCount = dailyCount;
+        float previousMedian = rollingMedian;
+        var previousLatest = latest;
+        long previousRevision = revision;
+        restorePreviousState = () =>
+        {
+            current = previousCurrent;
+            Array.Copy(previousDaily, daily, daily.Length);
+            lastSequenceByContribution.Clear();
+            foreach (var pair in previousSequences) lastSequenceByContribution.Add(pair.Key, pair.Value);
+            dailyHead = previousHead;
+            dailyCount = previousCount;
+            rollingMedian = previousMedian;
+            latest = previousLatest;
+            revision = previousRevision;
+        };
+    }
+
+    public void PublishRestoreCandidate()
+    {
+        if (restoreCandidate != null) ApplyLaborSaveData(restoreCandidate);
+    }
+
+    public void RollbackPublishedRestoreCandidate() => DiscardRestoreCandidate();
+
+    public void DiscardRestoreCandidate()
+    {
+        restorePreviousState?.Invoke();
+        CompleteRestoreCandidate();
+    }
+
+    public void CompleteRestoreCandidate()
+    {
+        restorePreviousState = null;
+        restoreCandidate = null;
+    }
 
     public SettlementLaborAccountingRuntime(
         IGameEventBus events,
@@ -292,6 +343,18 @@ public sealed class SettlementLaborAccountingRuntime :
     }
 
     public void RestoreLaborSaveData(
+        DungeonStory.Infrastructure.SettlementLaborSaveData saveData)
+    {
+        if (saveData == null) throw new ArgumentNullException(nameof(saveData));
+        if (restorePreviousState != null)
+        {
+            restoreCandidate = saveData;
+            return;
+        }
+        ApplyLaborSaveData(saveData);
+    }
+
+    private void ApplyLaborSaveData(
         DungeonStory.Infrastructure.SettlementLaborSaveData saveData)
     {
         if (saveData == null)

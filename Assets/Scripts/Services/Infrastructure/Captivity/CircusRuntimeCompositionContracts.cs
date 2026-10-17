@@ -67,7 +67,8 @@ public sealed class CircusCombatContext
         ICombatEquipmentRuntime equipment,
         ICharacterMedicalQuery medicalQuery,
         ICharacterMedicalCommand medicalCommands,
-        ICharacterPerformanceQuery performance)
+        ICharacterPerformanceQuery performance,
+        CharacterCombatTransactionFacade combatTransactions)
     {
         BodyHealthQuery = bodyHealthQuery
             ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
@@ -81,6 +82,8 @@ public sealed class CircusCombatContext
             ?? throw new ArgumentNullException(nameof(medicalCommands));
         Performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
+        CombatTransactions = combatTransactions
+            ?? throw new ArgumentNullException(nameof(combatTransactions));
     }
 
     public ICharacterBodyHealthQuery BodyHealthQuery { get; }
@@ -90,6 +93,7 @@ public sealed class CircusCombatContext
     public ICharacterMedicalQuery MedicalQuery { get; }
     public ICharacterMedicalCommand MedicalCommands { get; }
     public ICharacterPerformanceQuery Performance { get; }
+    public CharacterCombatTransactionFacade CombatTransactions { get; }
 }
 
 public sealed class CircusSessionContext

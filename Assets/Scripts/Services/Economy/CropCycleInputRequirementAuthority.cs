@@ -96,7 +96,7 @@ public interface ICropCycleInputRequirementQuery
 public sealed class CropCycleInputRequirementAuthority :
     ICropCycleInputRequirementQuery
 {
-    public const string Schema = "crop-cycle-input-requirements@1";
+    public const string Schema = "crop-cycle-input-requirements@2";
     public const string CompostItemId = "material:compost";
     public const string CleanWaterItemId = "resource:clean-water";
 
@@ -148,22 +148,9 @@ public sealed class CropCycleInputRequirementAuthority :
         }
         requirements[crop.SeedItemId] = 1;
 
-        float waterRate = ability.WaterMultiplier;
-        if (!ability.Indoor
-            && weather is SurvivalWeatherType.Rain
-                or SurvivalWeatherType.Storm)
-        {
-            waterRate *= 0.5f;
-        }
-        int water = crop.DailyWater <= 0f
+        int water = CropWaterRules.ResolveDailyDemand(crop, ability) <= 0f
             ? 0
-            : Mathf.Max(
-                1,
-                Mathf.CeilToInt(
-                    crop.DailyWater
-                    * (crop.GrowthHours / 24f)
-                    * waterRate
-                    * consumptionMultiplier));
+            : (int)CropWaterRules.InitialWaterQuantity;
         if (water > 0)
         {
             RequireItem(CleanWaterItemId, crop.CropId);

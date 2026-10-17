@@ -189,7 +189,7 @@ public sealed class ProductionOutputPlanningService :
 
     public string ResolveDestinationId(ProductionFacilityHandle facility)
     {
-        return ProductionBillRuntime.OutputDestinationPrefix
+        return ProductionBillIdentity.OutputDestinationPrefix
             + (facility == null
                 ? string.Empty
                 : facility.InstanceId.Value);

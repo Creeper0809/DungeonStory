@@ -8,16 +8,19 @@ public sealed class WildlifeRestoreCandidate :
     private WildlifeRestoreCandidate(
         WildlifePopulationState population,
         WildlifeEcosystemRestoreCandidate ecosystem,
-        List<WildlifeCarcassFreshnessSaveData> carcasses)
+        List<WildlifeCarcassFreshnessSaveData> carcasses,
+        List<WildlifeCarcassProcessingSaveData> processing)
     {
         Population = population ?? throw new ArgumentNullException(nameof(population));
         Ecosystem = ecosystem ?? throw new ArgumentNullException(nameof(ecosystem));
         Carcasses = carcasses ?? throw new ArgumentNullException(nameof(carcasses));
+        Processing = processing ?? throw new ArgumentNullException(nameof(processing));
     }
 
     internal WildlifePopulationState Population { get; }
     internal WildlifeEcosystemRestoreCandidate Ecosystem { get; }
     internal List<WildlifeCarcassFreshnessSaveData> Carcasses { get; }
+    internal List<WildlifeCarcassProcessingSaveData> Processing { get; }
     internal Action<WildlifeRestoreCandidate> DiscardAction { get; set; }
 
     public void Discard()
@@ -35,6 +38,7 @@ public sealed class WildlifeRestoreCandidate :
         WildlifePopulationState population = new WildlifePopulationState
         {
             NextSequence = source.nextSequence,
+            NextGameplayOutcomeSequence = source.nextGameplayOutcomeSequence,
             LastDiseaseVectorAbsoluteDay = source.lastDiseaseVectorAbsoluteDay,
             InitialSpawnCompleted = true,
             NextCarcassTickAt = nextCarcassTickAt
@@ -45,13 +49,20 @@ public sealed class WildlifeRestoreCandidate :
             population.FoodRaidOrders.Add(
                 WildlifeBehaviorRuntime.CloneFoodRaidOrder(order));
         }
+        foreach (WildlifeGameplayOutcomeSaveData outcome in
+                 source.gameplayOutcomes)
+        {
+            population.GameplayOutcomes.Add(
+                WildlifeGameplayOutcomeRuntime.Clone(outcome));
+        }
 
         return new WildlifeRestoreCandidate(
             population,
             ecosystem,
             source.carcasses
                 .Select(CloneCarcass)
-                .ToList());
+                .ToList(),
+            source.carcassProcessing.Select(row => row.Clone()).ToList());
     }
 
     private static WildlifeCarcassFreshnessSaveData CloneCarcass(

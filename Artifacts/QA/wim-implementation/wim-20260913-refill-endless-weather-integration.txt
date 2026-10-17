@@ -1,0 +1,47 @@
+WIM integration checkpoint — 2026-09-13
+
+Current item count
+- Original WIM complete: 40/47 (85.1% item ratio; not an effort estimate)
+- Research verification: 0/1
+- Wiki corrections: 13/13
+- Additional WIM-062/063: 2/2
+- FIRE: 0/4
+
+WIM-016 committed refill recovery child — PASS
+- Report: wim-016-committed-refill-restore.txt
+- Report SHA256: 3767F2C724EECDE61DC06562B77BA3B99CAFB683A7B346BC390828745426B373
+- Runner SHA256: 71F683EC7835C076E8312F53BCEF4360D90867CAC5B7FC1DA06E77D5E4D239E5
+- Actual typed buffer-to-WIP input receipts were captured at InputCommitted and OutcomePublished.
+- Current registered whole-world restore, altered input-mass atomic rejection, exact water consumption, pending receipt ACK, terminal retry idempotence all passed.
+- This does not prove a natural full crop cycle or the final six-adult portfolio; WIM-016 remains open for that aggregate balance closure.
+
+WIM-051/052 focused policy/lifecycle/persistence — PASS, parent still open
+- Report: wim-051-052-endless-crisis-focused.txt
+- Report SHA256: 055644D4B55FE5F2B401F69EFEEB7BB87BFF0D2D95B16291C641F11728539D98
+- Runner SHA256: 31026AE4436F2C4AE791367D81EDB80B325879C41100FDBEBD6B73E411C42C9F
+- Policy asset SHA256: 96970D1CC962209A60AC1883CA7E3887F398974534E7D05758F1484CD372EC20
+- Policy meta SHA256: C64B002FE00946E4EF9CB8C9DAA99F5AE68FDCBDB094188981BE8AC6F86B64E1
+- 70/30 authored selection, five single axes, one distinct compound, weaker compound modifiers, exact 3-day pressure and 7/8-day recovery, same-date idempotence, no-overlap, direct-response ownership, current-format owner/runtime persistence join, and climate/logistics/faction/combat consumers passed.
+- Disease consumer, actual alert/UI projection, and a representative live recovery-burden witness remain before closing WIM-051/052.
+
+WIM-017 actual expedition weather/UI/save — PASS and CLOSED
+- Report: wim-017-main-weather-decision-ui-save.txt
+- Report SHA256: FCCB43205FC7D5ECBB7DDB57D0C79AB999DB421CDFA605F9952F73D92A721712
+- Runner SHA256: 2FDABBCA2E5DD6150B7D398D7FAC7729BFFA2CE53FD7D045487FCAC21E19B5D8
+- Shared Editor facade SHA256: 7ECA32C29AC5748D559BBBA59CBF25535D2165EA341ECE64F1631D40671DED93
+- Latest compiled Runtime SHA256: 468E8FEC2BB992F67E08F62469F9FE6253E34CEC61460D2D5314F6B6B1E6E487
+- Latest compiled Editor SHA256: AC3FC7654E8477630321BD57DD6A3ED9F71742412D5D3E04B1CA89CFEE926783
+- Actual owner/party UI and public departure were used. Six weather-conditioned cards survived registered whole-save exactly and did not reroll on UI reopen.
+- Twelve actual UI choices matched authored time, exposure, funds, supplies, loot, stress, HP, and equipment effects. Insufficient funds and lantern choices retained the card and all effect authorities while showing the shortage reason. Replays were rejected without change.
+- Black rain reduced one physically backed equipped cloth hood by exactly 13 durability and preserved ownership.
+- Natural weather frequency, natural item pickup, and physical expedition packing were not claimed by this controlled witness.
+
+Retained test-only failures and corrections
+- Owner selection was initially searched through an offense-panel-only helper even though OwnerOption_1001 was active and interactable. The witness now uses the established general UI button query and pointer dispatcher.
+- EnsureExpeditionResearchPrerequisite initially invoked IDungeonSaveSectionRegistry.RestoreAll directly, leaving restore-completed hooks pending. The helper now uses IDungeonGameSaveService.Capture/TryRestore, the production whole-save authority.
+- No production gameplay, balance value, scene, or user persistence file was changed by these two corrections.
+
+Final Unity state for this checkpoint
+- Editor stopped and ready; compiling=false; domain reload=false.
+- Latest explicit compilation completed with failed=false and errors=[].
+- No Unity command, Play session, compiler, or generator is in flight.

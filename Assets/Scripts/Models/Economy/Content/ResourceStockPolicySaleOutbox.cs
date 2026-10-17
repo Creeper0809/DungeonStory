@@ -11,9 +11,11 @@ public interface IResourceStockPolicySaleCommandPort
         out ResourceStockPolicySaleTransferReceipt receipt);
 
     bool TryPublishSaleIncome(
-        int amount,
-        string operationId,
-        string itemId,
+        ResourceStockPolicyPendingSale pending,
+        out string failureReason);
+
+    bool TryPublishSaleFact(
+        ResourceStockPolicyPendingSale pending,
         out string failureReason);
 
     bool AcknowledgeSaleTransfer(
@@ -39,6 +41,10 @@ public static class ResourceStockPolicySaleOutbox
         int sequence,
         string itemId,
         int proceeds,
+        int unitPrice,
+        int saleRateBasisPoints,
+        int absoluteDay,
+        string outcomeResultKey,
         ResourceStockPolicySaleTransferReceipt receipt)
     {
         ResourceStockPolicyPendingSale pending = new()
@@ -48,6 +54,9 @@ public static class ResourceStockPolicySaleOutbox
             destinationId = FormatDestinationId(itemId),
             quantity = receipt?.quantity ?? 0,
             proceeds = proceeds,
+            unitPrice = unitPrice,
+            saleRateBasisPoints = saleRateBasisPoints,
+            absoluteDay = absoluteDay,
             phase = ResourceStockPolicySaleCommitPhase.PhysicalCommitted,
             operationId = receipt?.operationId ?? string.Empty,
             reasonCode = receipt?.reasonCode ?? string.Empty,
@@ -55,7 +64,10 @@ public static class ResourceStockPolicySaleOutbox
             sourceStackIds = (receipt?.sourceStackIds ?? new List<string>())
                 .OrderBy(value => value, StringComparer.Ordinal)
                 .ToList(),
-            inputMassGrams = receipt?.inputMassGrams ?? 0L
+            inputMassGrams = receipt?.inputMassGrams ?? 0L,
+            physicalOutcomeOwnerRevision =
+                receipt?.physicalOutcomeOwnerRevision ?? 0L,
+            outcomeResultKey = outcomeResultKey?.Trim() ?? string.Empty
         };
         if (!HasCanonicalPending(pending))
         {
@@ -95,9 +107,7 @@ public static class ResourceStockPolicySaleOutbox
             ResourceStockPolicySaleCommitPhase.PhysicalCommitted)
         {
             if (!commands.TryPublishSaleIncome(
-                    pending.proceeds,
-                    pending.operationId,
-                    pending.itemId,
+                    pending,
                     out failureReason))
             {
                 return false;
@@ -105,9 +115,24 @@ public static class ResourceStockPolicySaleOutbox
             pending.phase = ResourceStockPolicySaleCommitPhase.IncomePublished;
         }
 
-        return commands.AcknowledgeSaleTransfer(
-            pending.commitId,
-            out failureReason);
+        if (pending.phase == ResourceStockPolicySaleCommitPhase.IncomePublished)
+        {
+            if (!commands.TryPublishSaleFact(pending, out failureReason))
+                return false;
+            pending.phase = ResourceStockPolicySaleCommitPhase.LedgerCommitted;
+        }
+
+        if (pending.phase == ResourceStockPolicySaleCommitPhase.LedgerCommitted)
+        {
+            if (!commands.AcknowledgeSaleTransfer(
+                    pending.commitId,
+                    out failureReason))
+            {
+                return false;
+            }
+            pending.phase = ResourceStockPolicySaleCommitPhase.Acknowledged;
+        }
+        return pending.phase == ResourceStockPolicySaleCommitPhase.Acknowledged;
     }
 
     public static bool HasCanonicalPending(
@@ -121,9 +146,15 @@ public static class ResourceStockPolicySaleOutbox
             StringComparison.Ordinal)
         && pending.quantity > 0
         && pending.proceeds > 0
+        && pending.unitPrice > 0
+        && pending.saleRateBasisPoints > 0
+        && pending.saleRateBasisPoints <= 10000
+        && pending.absoluteDay >= 0
         && pending.phase is
             ResourceStockPolicySaleCommitPhase.PhysicalCommitted
             or ResourceStockPolicySaleCommitPhase.IncomePublished
+            or ResourceStockPolicySaleCommitPhase.LedgerCommitted
+            or ResourceStockPolicySaleCommitPhase.Acknowledged
         && string.Equals(
             pending.operationId,
             FormatOperationId(pending.itemId, pending.sequence),
@@ -144,10 +175,13 @@ public static class ResourceStockPolicySaleOutbox
         && pending.sourceStackIds.Distinct(StringComparer.Ordinal).Count()
             == pending.sourceStackIds.Count
         && pending.inputMassGrams > 0L
+        && pending.physicalOutcomeOwnerRevision > 0L
+        && IsCanonicalRequired(pending.outcomeResultKey)
         && string.Equals(
             pending.commitId,
             FormatCommitId(pending),
-            StringComparison.Ordinal);
+            StringComparison.Ordinal)
+        && HasCanonicalPhaseState(pending);
 
     public static bool ReceiptMatchesSaved(
         ResourceStockPolicyPendingSale pending,
@@ -168,6 +202,8 @@ public static class ResourceStockPolicySaleOutbox
             StringComparison.Ordinal)
         && receipt.quantity == pending.quantity
         && receipt.inputMassGrams == pending.inputMassGrams
+        && receipt.physicalOutcomeOwnerRevision
+            == pending.physicalOutcomeOwnerRevision
         && (receipt.sourceStackIds ?? new List<string>())
             .OrderBy(value => value, StringComparer.Ordinal)
             .SequenceEqual(pending.sourceStackIds, StringComparer.Ordinal);
@@ -180,4 +216,49 @@ public static class ResourceStockPolicySaleOutbox
     private static bool IsCanonicalRequired(string value) =>
         !string.IsNullOrWhiteSpace(value)
         && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static bool HasCanonicalPhaseState(
+        ResourceStockPolicyPendingSale pending)
+    {
+        bool hasPayment = IsCanonicalRequired(pending.economyTransactionId)
+            && pending.balanceBefore >= 0
+            && pending.balanceAfter == pending.balanceBefore + pending.proceeds;
+        bool hasOutcome = IsCanonicalRequired(pending.outcomeId)
+            && IsLowerSha256(pending.outcomeDigest);
+        return pending.phase switch
+        {
+            ResourceStockPolicySaleCommitPhase.PhysicalCommitted =>
+                !hasPayment
+                && string.IsNullOrEmpty(pending.economyTransactionId)
+                && pending.balanceBefore == 0
+                && pending.balanceAfter == 0
+                && !hasOutcome
+                && string.IsNullOrEmpty(pending.outcomeId)
+                && string.IsNullOrEmpty(pending.outcomeDigest),
+            ResourceStockPolicySaleCommitPhase.IncomePublished =>
+                hasPayment
+                && !hasOutcome
+                && string.IsNullOrEmpty(pending.outcomeId)
+                && string.IsNullOrEmpty(pending.outcomeDigest),
+            ResourceStockPolicySaleCommitPhase.LedgerCommitted
+                or ResourceStockPolicySaleCommitPhase.Acknowledged =>
+                hasPayment && hasOutcome,
+            _ => false
+        };
+    }
+
+    private static bool IsLowerSha256(string value)
+    {
+        if (value?.Length != 64)
+            return false;
+        foreach (char character in value)
+        {
+            if (character is not (>= '0' and <= '9')
+                && character is not (>= 'a' and <= 'f'))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 }

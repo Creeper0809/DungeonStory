@@ -1,0 +1,158 @@
+{
+  "schemaVersion": "gameplay-outcome-ledger-phase80-closure@1",
+  "slice": "social-life",
+  "generatedAtUtc": "2026-09-17T16:54:59Z",
+  "disposition": "BLOCKED_FROZEN",
+  "candidateCount": 23,
+  "recordCount": 0,
+  "nonResultCount": 3,
+  "unresolvedCount": 20,
+  "rules": {
+    "observerOnlyIsAtomic": false,
+    "duplicateReplayRequiresCanonicalAcknowledgement": true,
+    "provenanceIsRetentionAnchor": false,
+    "compactionEnabledForImplementedTypes": false
+  },
+  "implementedHigherResults": [
+    {
+      "type": "SocialConflictOutcomeReceipt",
+      "outcomeTypeId": "social.conflict-resolved",
+      "atomicity": "The adapter reserves exact ledger capacity before relationship-memory or mood mutation, snapshots identity and mood state, writes the detached final receipt, commits the domain state and outbox as one guarded synchronous operation, rolls both domain snapshots back if preparation or commit fails, and only then emits optional reaction and legacy projection events.",
+      "duplicateReplay": "Capacity reservation rejects duplicate result keys before domain mutation. Exact final-receipt recovery uses recorder duplicate reconciliation and accepts only PublishedAcknowledged with a canonical payload hash; committed or publication-pending replays invoke the persisted delivery retry pump.",
+      "retention": "Both direct characters and an optional direct venue are explicit subjects. Optional witnesses are disabled. The memory policy owns novelty, magnitude, relationship, causation, repetition and age scoring. This outcome is non-compactable until a concrete compacted projector/reference contract exists."
+    },
+    {
+      "type": "ApologyOutcomeReceipt",
+      "outcomeTypeId": "social.apology-resolved",
+      "atomicity": "The adapter reserves exact ledger capacity before forgiveness or mood mutation, snapshots identity and mood state, writes the final receipt, commits it through the outbox, and restores both snapshots on pre-commit failure.",
+      "duplicateReplay": "The same strict canonical reconciliation and acknowledged-state requirement as social.conflict-resolved applies.",
+      "retention": "Offender and recipient are direct subjects, witnesses are disabled, descriptor scoring owns relationship magnitude, novelty, causation, repetition and age, and compaction is disabled."
+    }
+  ],
+  "candidates": [
+    {
+      "candidate": "ApologyEvent",
+      "classification": "NonResult",
+      "exactHigherResult": "ApologyOutcomeReceipt",
+      "proof": "The higher receipt preserves operation id, offender, recipient, historical names, offense id, restitution flag, committed mood delta and day. ApologyEvent is the command trigger and is not separately retained."
+    },
+    {
+      "candidate": "CareerMentorshipAwardCommitReceipt",
+      "classification": "dependent-substitute-pending",
+      "blocker": "ObservedLastLessonLifeEventReceipt exists only for the retirement/PPE last-lesson subset. Ordinary mentorship awards have no exact higher authoritative gameplay-ledger result."
+    },
+    {
+      "candidate": "CharacterAgeConditionChangedEvent",
+      "classification": "dependent-substitute-pending",
+      "blocker": "It is published after CharacterLifeRuntime.AdvanceDay and lacks a stable operation id and pre-mutation ledger reservation."
+    },
+    {
+      "candidate": "CharacterConsumablesMealConsumedEvent",
+      "classification": "dependent-substitute-pending",
+      "blocker": "PhysicalMealConsumedEvent is an observer projection, not an atomic ledger commit, and null facility projection for field meals does not by itself preserve the source facility id."
+    },
+    {
+      "candidate": "CharacterLifeStageChangedEvent",
+      "classification": "dependent-substitute-pending",
+      "blocker": "It is derived after daily age mutation and has no stable result identity or atomic outbox reservation."
+    },
+    {
+      "candidate": "CharacterMealConsumedEvent",
+      "classification": "dependent-substitute-pending",
+      "blocker": "The legacy survival meal ledger is committed before publication and no gameplay-ledger capacity is reserved before its mutation."
+    },
+    {
+      "candidate": "CharacterPrimitiveSurvivalCompletedEvent",
+      "classification": "dependent-substitute-pending",
+      "blocker": "Need recovery and physical-item effects are already committed before the completion event is published."
+    },
+    {
+      "candidate": "CharacterProficiencyAwardCommitReceipt",
+      "classification": "dependent-substitute-pending",
+      "blocker": "ObservedQuietPromotionLifeEventReceipt preserves its fields in the V20 campaign receipt store, but no atomic gameplay-outcome ledger record is yet coupled to that persisted delivery phase."
+    },
+    {
+      "candidate": "CharacterTabooIncidentEvent",
+      "classification": "dependent-substitute-pending",
+      "blocker": "The generic source reference and post-carcass observer event do not provide a stable operation id or immutable perceived-witness set."
+    },
+    {
+      "candidate": "CharacterWaterConsumedEvent",
+      "classification": "dependent-substitute-pending",
+      "blocker": "Water effects are applied before publication; the event has neither stable operation identity nor committed day/location/name snapshots."
+    },
+    {
+      "candidate": "FacilityRestockEvent",
+      "classification": "dependent-substitute-pending",
+      "blocker": "This mutable public-field event is published after stock mutation and has no stable operation id or detached immutable facility-name snapshot."
+    },
+    {
+      "candidate": "MealConsumedEvent",
+      "classification": "dependent-substitute-pending",
+      "blocker": "It is an identity-rule projection of a meal commit and drops facility, item display, diet, nutrition, contamination and amount facts; no implemented exact higher ledger result currently preserves both source and projected tags."
+    },
+    {
+      "candidate": "MealMissedEvent",
+      "classification": "dependent-substitute-pending",
+      "blocker": "The day-boundary absence projection has no stable result key or persisted exact replay identity."
+    },
+    {
+      "candidate": "ObservedFuneralLifeEventReceipt",
+      "classification": "dependent-substitute-pending",
+      "blocker": "The receipt is exact and persisted by the V20 campaign transaction, but it is not yet written to GameplayOutcomeLedger inside the funeral resource/psychosocial transaction."
+    },
+    {
+      "candidate": "ObservedLastLessonLifeEventReceipt",
+      "classification": "dependent-substitute-pending",
+      "blocker": "The V20 receipt has canonical replay state, but its pending-life-event commit is not yet joined to the gameplay-outcome outbox."
+    },
+    {
+      "candidate": "ObservedLineageCompressionLifeEventReceipt",
+      "classification": "dependent-substitute-pending",
+      "blocker": "Kinship state is published before the V20 observed receipt is committed, and no gameplay-ledger reservation/rollback boundary spans both stores."
+    },
+    {
+      "candidate": "ObservedQuietPromotionLifeEventReceipt",
+      "classification": "dependent-substitute-pending",
+      "blocker": "The canonical V20 receipt is durable, but GameplayOutcomeLedger registration and acknowledged delivery are not yet integrated with that durable retry owner."
+    },
+    {
+      "candidate": "OwnerRunEndedEvent",
+      "classification": "dependent-substitute-pending",
+      "blocker": "Owner run state is committed before publication and the event carries a live actor reference rather than an immutable id/name snapshot."
+    },
+    {
+      "candidate": "PhysicalMealConsumedEvent",
+      "classification": "dependent-substitute-pending",
+      "blocker": "It is an immutable-looking projection but is emitted only after hunger, mood, damage and item effects have committed; the source transaction must reserve the ledger first."
+    },
+    {
+      "candidate": "RestOutcomeIdentityEvent",
+      "classification": "dependent-substitute-pending",
+      "blocker": "CharacterStats publishes it after rest mutation and it has no stable operation id or pre-state rollback ownership."
+    },
+    {
+      "candidate": "SocialConflictCommittedReceiptEvent",
+      "classification": "NonResult",
+      "exactHigherResult": "SocialConflictOutcomeReceipt",
+      "proof": "When emitted, every field is preserved by the already-committed higher result: operation id, both participants, customer, both cultures, facility, grid location and day."
+    },
+    {
+      "candidate": "SocialConflictEvent",
+      "classification": "NonResult",
+      "exactHigherResult": "SocialConflictOutcomeReceipt",
+      "proof": "The trigger's operation id, participants, conflict kind, severity, origin and day are retained together with historical names and the actual committed mood delta."
+    },
+    {
+      "candidate": "UsageLedgerEvent",
+      "classification": "dependent-substitute-pending",
+      "blocker": "This is a mutable evolution-history component rather than a source-owned immutable commit receipt; it lacks one authoritative operation boundary and result key."
+    }
+  ],
+  "crossSlicePending": [
+    {
+      "producer": "CombatCommandResultApplier",
+      "requirement": "Pass the existing canonical attackOperationId into SocialConflictEvent. Empty ids are deliberately rejected before social mutation and are not replaced with observer-generated ids."
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+preparation=crafter:character:staff:1:01; M06:building:6659deff8d58498b815d1293e86f6885@(13, 0)
+preProductionProfile=False; publication capacity is checked after the completed batch commits
+PASS recipe:surgery:heart-augmentation; item=surgery:prosthetic:heart/variant/orc-combat-heart; node=heart; bill=production-bill:1; part/instance/commit=surgical-part:1/item-instance:3c33b48cb6dd4fde8e99116de51ca9d2/production-output:production-bill:1:00000001:output:recipe:surgery:heart-augmentation/000/main/surgery:prosthetic:heart/variant/orc-combat-heart:surgery:prosthetic:heart/variant/orc-combat-heart:00000000; stack=stack:89493444b1ab4288909d023fb7737d84; output=production-output:building:6659deff8d58498b815d1293e86f6885; grams=1800; consumedInputs=material:steel-ingotx2,resource:mana-crystalx1,medicine:advancedx1; terminalRetry=None
+clinicalPreparation=Orc actual owner; doctor=character:staff:1:01; table=building:6a7402e926d04e25a297740524d6e8c2; order=surgery:1; supplies=medicine:disinfectantx1,medicine:standardx1,resource:clean-waterx1; outcomeState=1; neutral field22C/air100/light100 refreshed5gameSeconds; preMaxHP=100
+observed=PatientWaiting/PatientAdmissionWaiting/Loose; wu=0; patient=(18, 0); doctor=(19, 0); wall=0.002883911; game=0
+observed=PatientWaiting/PatientCurrentMovePending/Loose; wu=0; patient=(18, 0); doctor=(19, 0); wall=2.643679; game=1.333333
+observed=PatientWaiting/PatientMovingToSurgery/Loose; wu=0; patient=(18, 0); doctor=(19, 0); wall=2.807943; game=2.666667
+observed=PatientWaiting/PatientMovingToSurgery/Carried; wu=0; patient=(22, 0); doctor=(19, 0); wall=3.963541; game=7.051873
+observed=MaterialsWaiting/MaterialsDeliveryPending/Carried; wu=0; patient=(34, 0); doctor=(24, 1); wall=7.24498; game=20.06705
+observed=MaterialsWaiting/MaterialsDeliveryPending/FacilityBuffer; wu=0; patient=(34, 0); doctor=(34, 1); wall=10.02302; game=31.13597
+observed=Anesthetizing/PatientRestraintInProgress/FacilityBuffer; wu=0; patient=(34, 0); doctor=(34, 1); wall=10.38723; game=31.4171
+observed=Incision/IncisionInProgress/FacilityBuffer; wu=5.452741; patient=(34, 0); doctor=(37, 0); wall=25.33128; game=76.35917
+observed=Procedure/ProcedureInProgress/FacilityBuffer; wu=12.43358; patient=(34, 0); doctor=(37, 0); wall=28.49405; game=84.50818
+observed=Suturing/SuturingInProgress/FacilityBuffer; wu=29.30521; patient=(34, 0); doctor=(37, 0); wall=42.53466; game=104.5082
+observed=Recovering/RecoveryObservation/; wu=34; patient=(34, 0); doctor=(37, 0); wall=50.07078; game=111.1748
+observed=TerminalDraining/RecoveryObservation/; wu=34; patient=(34, 0); doctor=(37, 0); wall=63.28994; game=120.5082
+clinicalTerminal=TerminalDraining; status=RecoveryObservation; wu=34; carried=True; delivered=True; admissionMove=True; admitted=True; doctorWork=True; wall=93.69342; game=140.5082
+result=FAIL
+System.InvalidOperationException: Natural surgery did not complete successfully: TerminalDraining/RecoveryObservation
+  at PhysicalItemLogisticsPlayModeVerificationRunner+<RunWim023Clinical>d__248.MoveNext () [0x014ff] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Items\Editor\Wim023PartProductionLiveWitness.cs:412 
+  at PhysicalItemLogisticsPlayModeVerificationRunner+<ObserveWim023PartProduction>d__245.MoveNext () [0x00051] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Items\Editor\Wim023PartProductionLiveWitness.cs:63 
+scope=controlled authored Orc party, facilities, qualifications, neutral environment, supplies and fixed outcome stream; real production commands -> actual surgery UI pointer -> natural part/supply haul, patient admission and doctor work -> installed heart effect. NOT natural crafting, uncontrolled clinical-risk/balance or whole-save certification. No admission/progress/result writes.
+cleanup=paused disposable main Play; runtime fixture/output retained for inspection until operator stops. User persistence disabled before party selection; no whole-world save restore, source-asset modification or scene save.

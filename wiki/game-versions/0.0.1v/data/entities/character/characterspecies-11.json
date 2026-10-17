@@ -1,0 +1,45 @@
+{
+  "facts": [
+    {
+      "label": "효과",
+      "value": "14개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "funeral-culture-human",
+      "target_spoiler_tier": "none",
+      "target_title": "Funeral_Human",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "life-history-human",
+      "target_spoiler_tier": "none",
+      "target_title": "Life_Human",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "reproduction-human",
+      "target_spoiler_tier": "none",
+      "target_title": "Reproduction_Human",
+      "type": "references"
+    }
+  ],
+  "schema_version": 1,
+  "slug": "characterspecies-11",
+  "spoiler_tier": "none",
+  "summary": "기존 방문객과 모집 경로를 통해 정착할 수 있는 인간이다. 특정 종족 보너스나 전용 세력을 추가하지 않는다.",
+  "title": "인간"
+}

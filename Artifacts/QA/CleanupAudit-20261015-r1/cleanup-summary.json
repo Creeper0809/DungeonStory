@@ -1,0 +1,374 @@
+{
+  "date": "2026-10-15",
+  "phase": "complete-confirmed-unused-cleanup",
+  "sourceCoverage": {
+    "scripts": 3717,
+    "tests": 18,
+    "sourceLines": 1809556,
+    "typeDeclarationCandidates": 15159,
+    "uniqueTypeNameCandidates": 312,
+    "uniqueMethodNameCandidates": 179
+  },
+  "assetsBefore": {
+    "entries": 10792,
+    "metas": 10792,
+    "orphanMetas": 0,
+    "missingMetas": 0
+  },
+  "duplicates": {
+    "firstPartyTextFiles": 3883,
+    "configFiles": 21,
+    "duplicateGroups": 0
+  },
+  "removedEmptyDirectories": [
+    {
+      "path": "Assets/Sounds",
+      "meta": "Assets/Sounds.meta",
+      "metaSha256": "c11a174804303c1abf07a24168fc98bab5b68f0ca67505e0d96683024f7fb001"
+    },
+    {
+      "path": "Assets/Resources/SO/Stock/P1",
+      "meta": "Assets/Resources/SO/Stock/P1.meta",
+      "metaSha256": "5b3e2e246a77649aaf8d7f7cd8f03797a948f536c8fd13475e1d30f9c897d78c"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Treasury",
+      "meta": "Assets/Scripts/Models/Economy/Treasury.meta",
+      "metaSha256": "6ec2fc0d3ef46caa80a94dbcc3bc14234419b400eb4866b7dbb58b3e6092b6ae"
+    },
+    {
+      "path": "Assets/Scripts/Models/Survival/Core/Save",
+      "meta": "Assets/Scripts/Models/Survival/Core/Save.meta",
+      "metaSha256": "d3f9c6911732386480aa2465f92a786a21889274db44cad280a426bd49bdb2c6"
+    },
+    {
+      "path": "Assets/Scripts/Services/AI",
+      "meta": "Assets/Scripts/Services/AI.meta",
+      "metaSha256": "d0d2441c7a3e1963c02344854c1f88215c20a2c177681dd51eaceea81c27b6ce"
+    },
+    {
+      "path": "Assets/Scripts/Services/MetaIdentityRefresh",
+      "meta": "Assets/Scripts/Services/MetaIdentityRefresh.meta",
+      "metaSha256": "1d2e7b2d979668f4ec7e613f8c48db1ac25ce28cbf0d40802c3612fa664f1a56"
+    },
+    {
+      "path": "Assets/Scripts/Services/UI",
+      "meta": "Assets/Scripts/Services/UI.meta",
+      "metaSha256": "f2a7a32383d36dbb9ce1edfec1e91a1e89b8e362f9937a2ee366482a2b05e6a3"
+    },
+    {
+      "path": "Assets/Scripts/Services/Buildings/Work",
+      "meta": "Assets/Scripts/Services/Buildings/Work.meta",
+      "metaSha256": "abbb15dfd766c7c0c9393ac3bc8ec73b613deef6a1a7ae3452bd8c2618b451ad"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Identity/Core",
+      "meta": "Assets/Scripts/Services/Character/Identity/Core.meta",
+      "metaSha256": "aa7378747a6eac9e498ae808a5c9125d794d9a95448cf8528847a4ac4d48932c"
+    },
+    {
+      "path": "Assets/Scripts/Services/Effects/Core",
+      "meta": "Assets/Scripts/Services/Effects/Core.meta",
+      "metaSha256": "763426a9d67c0bfeb1c0bebe8886b903e9165ee309b7ef001c0a8097b02fb26f"
+    },
+    {
+      "path": "Assets/Scripts/Services/Environment/Editor",
+      "meta": "Assets/Scripts/Services/Environment/Editor.meta",
+      "metaSha256": "0179fa3f7da8dad1b11e60b2b2a470af97c2702e69dc4fbd2f1924e662fd2c76"
+    },
+    {
+      "path": "Assets/Scripts/Services/Exterior/Editor",
+      "meta": "Assets/Scripts/Services/Exterior/Editor.meta",
+      "metaSha256": "cf50ee96e7ce9102d42da7a6e26e95310b2cc6c35ae2328fa1672a5e556a7c12"
+    },
+    {
+      "path": "Assets/Scripts/Services/Research/Work",
+      "meta": "Assets/Scripts/Services/Research/Work.meta",
+      "metaSha256": "955ac6881f52ee55b25e011f3291cb14ba7099b50bdd6f2311fc9dbba53057c5"
+    },
+    {
+      "path": "AgentScripts",
+      "meta": null,
+      "metaSha256": null
+    },
+    {
+      "path": "Assets/Scripts/Services/Environment",
+      "meta": "Assets/Scripts/Services/Environment.meta",
+      "metaSha256": "145a1de6ffb10537c1e1608ea4b2610640251719a778841278e196adb54cd055"
+    },
+    {
+      "path": "Assets/Scripts/Services/Exterior",
+      "meta": "Assets/Scripts/Services/Exterior.meta",
+      "metaSha256": "4abab0ad554f4153fe7cc0c13beb20a17b3731999642f4396dfdf6f740f21d32"
+    }
+  ],
+  "removedSourceFiles": [
+    {
+      "path": "Assets/Scripts/Services/Items/WarehousePhysicalStockOperations.cs",
+      "deleted": true,
+      "removedLines": 8,
+      "beforeSha256": "caa1e8e9025d920eeaf5ce56653932002218e9107134208fa30482f5b41003b2"
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/WarehousePhysicalStockOperations.cs.meta",
+      "deleted": true,
+      "removedLines": 2,
+      "beforeSha256": "6a90b2b9f9121c2992f2e4c53554e0272c9b2e8175a27205e9a616568f177cca"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/Shopkeeper.cs",
+      "deleted": true,
+      "removedLines": 15,
+      "beforeSha256": "49871ae919af0df4fb568db431879d117b5e5a5d7968f740dde2ce2a7161b81d"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/Shopkeeper.cs.meta",
+      "deleted": true,
+      "removedLines": 11,
+      "beforeSha256": "59aaed3247a499cd13271505dfde2347a8850baf14e8fd5e210d76c03c9b64c8"
+    },
+    {
+      "path": "tools/Verification/Phase76FinalReviewEntry.cs",
+      "deleted": true,
+      "removedLines": 19,
+      "beforeSha256": "b416dd6375e070eae4a282c0305c3cc482ceee00af870b9e9becaa6f895fe74f"
+    },
+    {
+      "path": "tools/Verification/Phase77CompletionEntry.cs",
+      "deleted": true,
+      "removedLines": 68,
+      "beforeSha256": "b86b01cc615847adc54e9aff44b947305bc7d5b4b3df70aa723a42116a69c496"
+    },
+    {
+      "path": "tools/Verification/Phase79EvidenceQualityEntry.cs",
+      "deleted": true,
+      "removedLines": 169,
+      "beforeSha256": "0392b4e2aa8ad2ae89a5107e82c284f250a55db28385f39c5dfd521aa9928a8a"
+    },
+    {
+      "path": "tools/Verification/Phase79TraitPendingEntry.cs",
+      "deleted": true,
+      "removedLines": 175,
+      "beforeSha256": "a13fc2b5af2b263bf284cff2359efca4d59bba2fdfeba49a595b9adcf3836ce0"
+    },
+    {
+      "path": "ThirdPartySamples.meta",
+      "deleted": true,
+      "removedLines": 8,
+      "beforeSha256": "22339bda3e9c8063cc91e31c6a4b07e3a0ac4ab076b8a4cde9e74f26f3d4af1b"
+    }
+  ],
+  "editedSources": [
+    {
+      "path": "Assets/Scripts/Views/UI/CharacterSummaryTextFormatter.cs",
+      "removedLines": 5,
+      "beforeSha256": "cd586ae218254c3c17aaa88000d4d36ee7691175269bee1ab4397a69f7d5342f",
+      "afterSha256": "36d35b27a49125e84b2820a38b730c9cb484426ae06fd251b1c4ab185ef97678",
+      "removedDeclarations": [
+        "public static string FormatSigned("
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Views/UI/CharacterSummaryCombatPresenter.cs",
+      "removedLines": 25,
+      "beforeSha256": "97fe9d4923b016e4d6d12b96fbab46cfee4301f3bac4f57c0ca2507c8b400529",
+      "afterSha256": "04fc0e441507a7b5718f00313e3b376a7507849c49ca6c6a6d3da5c302976323",
+      "removedDeclarations": [
+        "internal sealed class CombatEquipmentUiStatBlock",
+        "internal CombatEquipmentUiStatBlock GetCurrentEquipmentBonuses("
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Views/Character/UI/StartPartyPreparationPresentation.cs",
+      "removedLines": 14,
+      "beforeSha256": "429c578de988c10c573b918bb703e1072516b78455616beade895c060a11ee33",
+      "afterSha256": "e31f880c5744fb792931ef83c9b130f3c4627f900b79e151c84d98a4f6423f36",
+      "removedDeclarations": [
+        "public static void AppendFlags(",
+        "public static string FormatTraitIds("
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Services/Codex/CodexRuntimeApplicationAdapter.cs",
+      "removedLines": 7,
+      "beforeSha256": "76180c24f99f65ebf1060d40b9b1af9c5f4fd55e995f6db2ab68c981aa40d9a2",
+      "afterSha256": "80b5f06e25a7350b93cb3996d8e89a399d6649ea80af3775f183f72b6d7b2c68",
+      "removedDeclarations": [
+        "internal static string FormatLegacyWorkTypes("
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Services/Combat/CharacterBodyHealthStateRules.cs",
+      "removedLines": 33,
+      "beforeSha256": "96566759d57e533c4c3cd49dab11be07190fb2c0e24127a446c0547448e1d106",
+      "afterSha256": "4f01cb07a4c9860acd03a48efc193a4b108db62d4f76da7c8b028773f0f261fe",
+      "removedDeclarations": [
+        "public CombatBodyPart? GetLegacyBodyPart("
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Services/Offense/OffenseExpeditionPanel.cs",
+      "removedLines": 25,
+      "beforeSha256": "1840bc643377d8ea7fc69d417e5877215df7c86600373bd1f30e527ea8873916",
+      "afterSha256": "ddad2207157226150e2d15f064e9ddf7505b8685b640f5b5d3431a94230f9ad6",
+      "removedDeclarations": [
+        "private static string FormatEquipmentStats("
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionIdentity.cs",
+      "removedLines": 13,
+      "beforeSha256": "62acded55dad2cc246351645447d4e4a92e76e98b297424917ed8853d07d5378",
+      "afterSha256": "cf8f1de48d5fbe8c719f1204c0649da1b13085036e80ab556ed191ab6555bd2d",
+      "removedDeclarations": [
+        "public interface IFacilityIdentityPressureProvider",
+        "public sealed class DefaultFacilityIdentityPressureProvider"
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecord.cs",
+      "removedLines": 15,
+      "beforeSha256": "3a82fd68c469d2d501e74e61c87b81bff6ec8c22cd4b421bb1f86dc96bc516d3",
+      "afterSha256": "5069ffd31ae67a6e5d0cef31f788e0c1e7075983034410ab22b51e5562e96788",
+      "removedDeclarations": [
+        "public sealed class ComponentFacilityEvolutionRecordProvider"
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/PhysicalItemGameplayOutcomeTransaction.cs",
+      "removedLines": 60,
+      "beforeSha256": "25a2559375025748e2ae08262cfd14175998c803d603c8487afd834719b5d35f",
+      "afterSha256": "96e86eda808565bd0c0980ba0bc9ff992208c502b7d549cb5d2abc78bfca96ee",
+      "removedDeclarations": [
+        "internal static class PhysicalGameplayOutcomeSaveCodec"
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/Diagnostics/ProductionOutputDestinationLifecycleDebugScenarios.cs",
+      "removedLines": 85,
+      "beforeSha256": "f25d5f98fb0b427e5b6d0bedaf0da227f690f13d404445aa05b46fe63b6aa565",
+      "afterSha256": "3be266a38ce89b1653f66b7e6efa721eecd2159f0124017c05b902579b2b6a24",
+      "removedDeclarations": [
+        "private sealed class RecordingMutationFence"
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Exterior/Editor/ExteriorActivityDebugScenarios.cs",
+      "removedLines": 51,
+      "beforeSha256": "3fde524423719934ba07a180bd323f8224315d5fe1b6503893af9a64d8d508c8",
+      "afterSha256": "07446f613fd1287e396f9c2a4dc7d8229a641d68e6b792994285c95c567b06f7",
+      "removedDeclarations": [
+        "private sealed class FailOnceAfterExteriorSaveSection"
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/AI/Editor/V25NarrativeInferenceDebugScenarios.cs",
+      "removedLines": 187,
+      "beforeSha256": "b1b4a86ad20239168fed25d8193899b709cdd023d0a4576410d8532019c37e64",
+      "afterSha256": "00dcfefe539f40d1e29f2fb10c5eeca1b2144736a9817dca44a56409c98a9657",
+      "removedDeclarations": [
+        "private sealed class StableCatalogSnapshotProvider"
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Services/Offense/Editor/OffenseRewardDebugScenarios.cs",
+      "removedLines": 5,
+      "beforeSha256": "984990609f5a184d79e3961f596720c5f51b594d6e23fba17caf711985a22cb3",
+      "afterSha256": "f9761beb066558af1a664a02638908152258361e9420207fdd2ed5a75adc24c4",
+      "removedDeclarations": [
+        "private sealed class EmptyRunResultPanelService"
+      ]
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/AI/NarrativeRequestContext.cs",
+      "removedLines": 22,
+      "removedDeclarations": [
+        "NarrativeRequestContextBuilder.ForProgression",
+        "NarrativeRequestContextBuilder.DefaultForProfile"
+      ]
+    }
+  ],
+  "preserved": [
+    {
+      "path": "ThirdPartySamples",
+      "reason": "282 unique sample assets, intentionally outside Assets",
+      "bytes": 18383995
+    },
+    {
+      "path": "Assets/Images/Character/ARCHIVE-I",
+      "reason": "3 live referenced GUIDs; other unique art not proven obsolete",
+      "files": 450
+    },
+    {
+      "path": "Assets/Images/Character/ARCHIVE-II",
+      "reason": "200 unique GIFs, static nonreference alone insufficient for content purge",
+      "files": 450
+    },
+    {
+      "path": "Assets/_Recovery",
+      "reason": "31 unique recovery scenes protected by user instructions",
+      "files": 62
+    },
+    {
+      "path": "docs_primary_allocation_v1_20260920",
+      "reason": "create-only historical QA evidence",
+      "files": 585
+    },
+    {
+      "path": "Artifacts",
+      "reason": "QA and exports evidence preserved",
+      "filesBefore": 85439,
+      "bytesBefore": 24797496375
+    },
+    {
+      "path": "Library, Logs, wiki caches and dependencies",
+      "reason": "generated but not unused game source; no purge requested by space constraint"
+    },
+    {
+      "path": "tools/unity-mcp and config",
+      "reason": "explicit disabled-but-preserved compatibility policy"
+    },
+    {
+      "path": "tools/QA/run_hidden_unity_batch.ps1",
+      "reason": "intentional safety fail-fast stub"
+    },
+    {
+      "path": "Assets/Plugins/Sirenix/Demos",
+      "reason": "empty vendor folder preserved"
+    }
+  ],
+  "removedCSharpLines": 1001,
+  "editedSourceFiles": 14,
+  "removedCSharpFiles": 6,
+  "knowledgeBaseRebuild": {
+    "exitCode": 0,
+    "validationFailures": 0,
+    "freshnessFailures": 0
+  },
+  "architectureGate": {
+    "passed": false,
+    "reason": "MutableStatic grew from baseline 3 to current 5",
+    "before": {
+      "mutableStatics": 5,
+      "oversizedTypes": 37,
+      "largeConstructors": 12
+    },
+    "after": {
+      "mutableStatics": 5,
+      "oversizedTypes": 37,
+      "largeConstructors": 12
+    },
+    "baselineChanged": false
+  },
+  "verification": {
+    "currentCompilation": "PASS",
+    "isolatedGameplayComposition": "PASS",
+    "moduleCount": 149,
+    "bindingCount": 153,
+    "compilerWarnings": 26,
+    "sourcePinDrift": [],
+    "unityExitCode": 0,
+    "knowledgeBaseRebuild": "PASS",
+    "architectureBaseline": "FAIL-existing-debt"
+  }
+}

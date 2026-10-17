@@ -1,0 +1,10 @@
+series-node-cap-and-conservation=PASS
+parallel-capacity-sums=PASS
+priority-and-shared-cut-no-double-spend=PASS
+residual-reroute-preserves-prior-grant=PASS
+minimum-supply-rollback-retains-battery-and-capacity=PASS
+generation-preferred-over-near-battery-and-charge-conservation=PASS
+disconnected-node-has-zero-flow=PASS
+current-format-connection-required-and-round-trip=PASS
+scope=pure-flow-and-serialization-contracts-not-live-network-evidence
+result=PASS

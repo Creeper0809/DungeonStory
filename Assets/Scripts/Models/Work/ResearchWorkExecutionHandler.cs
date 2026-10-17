@@ -49,13 +49,15 @@ namespace DungeonStory.Work
             bool completed,
             float progressRatio,
             string label,
-            string failureCode)
+            string failureCode,
+            bool capacityDeferred = false)
         {
             Succeeded = succeeded;
             Completed = completed;
             ProgressRatio = Math.Max(0f, Math.Min(1f, progressRatio));
             Label = label ?? string.Empty;
             FailureCode = failureCode ?? string.Empty;
+            CapacityDeferred = capacityDeferred;
         }
 
         public bool Succeeded { get; }
@@ -63,6 +65,7 @@ namespace DungeonStory.Work
         public float ProgressRatio { get; }
         public string Label { get; }
         public string FailureCode { get; }
+        public bool CapacityDeferred { get; }
     }
 
     public interface IResearchWorkRuntimePort

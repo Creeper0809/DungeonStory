@@ -82,6 +82,7 @@ public static class DungeonSaveSectionDebugScenarios
         DungeonGameSaveData save = scope.Container.Resolve<IDungeonGameSaveService>().Capture();
         string[] required =
         {
+            GameWorldLineageSaveSection.Id,
             PhysicalItemsSaveSection.Id,
             WorkOrdersSaveSection.Id,
             WildlifeSaveSection.Id,

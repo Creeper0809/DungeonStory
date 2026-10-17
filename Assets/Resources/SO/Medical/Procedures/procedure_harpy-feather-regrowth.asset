@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: "\uAE43\uCD95 \uC7AC\uC0DD"
   description: "\uAE43\uCD95 \uC7AC\uC0DD\uC744(\uB97C) \uC885\uC871 \uD574\uBD80
     \uAD6C\uC870\uC5D0 \uB9DE\uCDB0 \uC2DC\uD589\uD55C\uB2E4."
-  kind: 12
+  kind: 7
   family: 3
   urgency: 2
   allowedAnatomyFamilies:
@@ -26,7 +26,7 @@ MonoBehaviour:
   operatorRequirement:
     stats: []
     minimumWeightedScore: 3
-  targetNodeId: 
+  targetNodeId: wing:left
   requiredResearchId: research:medical:avian-prosthetics
   requiredFacilityTags: 12
   requiredWork: 34
@@ -48,8 +48,9 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7737212199327498824
-      type: {class: HealSurgicalNodeEffect, ns: , asm: DungeonStory.Medical}
+      type: {class: InstallSurgicalPartEffect, ns: , asm: DungeonStory.Medical}
       data:
-        effectId: HealSurgicalNodeEffect
-        health: 20
-        infectionReduction: 10
+        effectId: InstallSurgicalPartEffect
+        partKind: 1
+        requiredItemDefinitionId: surgery:prosthetic:wing:left
+        efficiency: 1

@@ -74,6 +74,24 @@ public sealed class RunAdministrativeSealDurableEquipmentRuntime
         Func<bool> commitResolution,
         out string failureReason)
     {
+        if (commitResolution == null)
+            throw new ArgumentNullException(nameof(commitResolution));
+        return TryCommitResolution(
+            officeId,
+            officePosition,
+            _ => commitResolution(),
+            out _,
+            out failureReason);
+    }
+
+    public bool TryCommitResolution(
+        BuildingInstanceId officeId,
+        Vector2Int officePosition,
+        Func<DurableFacilityEquipmentUseContext, bool> commitResolution,
+        out DurableFacilityEquipmentUseResult useResult,
+        out string failureReason)
+    {
+        useResult = default;
         failureReason = string.Empty;
         if (!officeId.IsValid || commitResolution == null)
             throw new ArgumentException("Administrative seal use input is invalid.");
@@ -101,13 +119,13 @@ public sealed class RunAdministrativeSealDurableEquipmentRuntime
             return false;
         }
 
-        DurableFacilityEquipmentUseResult result = use.TryApplyWearAndEffect(
+        useResult = use.TryApplyWearAndEffect(
             assignment.Key,
             RunAdministrativeSealDurableEquipmentPolicySource.RequirementId,
             WearPerResolution,
             new ResolutionEffect(commitResolution));
-        failureReason = result.FailureReason;
-        return result.Succeeded;
+        failureReason = useResult.FailureReason;
+        return useResult.Succeeded;
     }
 
     private DurableFacilityEquipmentPolicy RequirePolicy()
@@ -137,9 +155,10 @@ public sealed class RunAdministrativeSealDurableEquipmentRuntime
     private sealed class ResolutionEffect :
         IDurableFacilityEquipmentEffectCommit
     {
-        private readonly Func<bool> commit;
+        private readonly Func<DurableFacilityEquipmentUseContext, bool> commit;
 
-        internal ResolutionEffect(Func<bool> commit)
+        internal ResolutionEffect(
+            Func<DurableFacilityEquipmentUseContext, bool> commit)
         {
             this.commit = commit ?? throw new ArgumentNullException(nameof(commit));
         }
@@ -177,7 +196,7 @@ public sealed class RunAdministrativeSealDurableEquipmentRuntime
             DurableFacilityEquipmentUseContext context,
             out string failureReason)
         {
-            if (!commit())
+            if (!commit(context))
             {
                 failureReason = "administrative-seal-resolution-rejected";
                 return false;

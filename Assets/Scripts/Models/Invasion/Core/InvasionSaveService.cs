@@ -67,7 +67,7 @@ public sealed class InvasionRestoreCandidate :
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonInvasionSaveData
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 9;
 
     public int version = CurrentVersion;
     public DungeonInvasionThreatSaveData threat = new DungeonInvasionThreatSaveData();
@@ -99,6 +99,9 @@ public sealed class DungeonInvasionThreatSaveData
     public float reputationFactor;
     public float timeFactor;
     public float riskFactor;
+    public string endlessCrisisCandidateEffectOwnerId = string.Empty;
+    public string endlessCrisisDirectResponseOwnerId = string.Empty;
+    public string endlessCrisisDirectResponseRuntimeId = string.Empty;
 }
 
 [Serializable]
@@ -140,6 +143,8 @@ public sealed class DungeonInvasionIntruderSaveData
         new List<DungeonInvasionConditionSaveData>();
     public List<DungeonDefenseStatusSaveData> defenseStatuses =
         new List<DungeonDefenseStatusSaveData>();
+    public string invasionStartPublicationKey = string.Empty;
+    public string lastInvasionStagePublicationKey = string.Empty;
 }
 
 [Serializable]
@@ -244,6 +249,10 @@ public sealed class DungeonInvasionOperationSaveData
     public string objectiveId = string.Empty;
     public int scheduledDay;
     public float intelligenceConfidence;
+    public string sourceOwnerId = string.Empty;
+    public int sourceAbsoluteDay;
+    public string startedInvasionRuntimeId = string.Empty;
+    public string startedPublicationKey = string.Empty;
 }
 
 [Serializable]

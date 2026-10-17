@@ -1,0 +1,1 @@
+C9_CAPABILITY_PARITY=PASS; owners=6; moved=54; shared=12; public=28; constants=6; existingTypes=13; extractedAftermathQueries=2; DTO/attributes/constructor/same store/condition order/lease+receipt+partial-apply/death-retention/rollback exact; no parent implementation dependency; identityAuthority=guards-only; Unity=NOT_RUN

@@ -1,0 +1,8 @@
+station=Service-0x0-11e673$
+desktop=DungeonStoryQA_6a518e07985c4265b1f6e5fa6ac83d15
+visible=false
+jobUiRestrictions=255
+killChildrenOnClose=true
+interactiveFallback=false
+startupResourceProfile=serial-import-job1
+beeBuildThreads=1

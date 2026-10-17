@@ -1,0 +1,32 @@
+{
+  "success": true,
+  "command": "command eval",
+  "data": {
+    "command": "eval",
+    "parameters": {
+      "code": "return new {\n            compiling = UnityEditor.EditorApplication.isCompiling,\n            updating = UnityEditor.EditorApplication.isUpdating,\n            playing = UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode,\n            failed = UnityEditor.EditorUtility.scriptCompilationFailed,\n            unityVersion = UnityEngine.Application.unityVersion,\n            assembly = typeof(NarrativeMechanicCatalogExporter).Assembly.Location,\n            assemblyTicks = System.IO.File.GetLastWriteTimeUtc(typeof(NarrativeMechanicCatalogExporter).Assembly.Location).Ticks\n        };"
+    },
+    "result": {
+      "output": null,
+      "diagnostics": [],
+      "success": true,
+      "result": {
+        "compiling": false,
+        "updating": false,
+        "playing": false,
+        "failed": false,
+        "unityVersion": "6000.3.8f1",
+        "assembly": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory\\Library\\ScriptAssemblies\\Assembly-CSharp-Editor.dll",
+        "assemblyTicks": 639250597657896200
+      }
+    },
+    "target": {
+      "host": "127.0.0.1",
+      "port": 7800,
+      "projectPath": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory"
+    },
+    "success": true
+  },
+  "errors": [],
+  "warnings": []
+}

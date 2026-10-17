@@ -14,13 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
   stableId: seasonal:summer-vermin-bloom
   displayName: "\uD574\uCDA9 \uB300\uBC1C\uC0DD"
-  description: "\uACE0\uC628\uC5D0 \uB298\uC5B4\uB09C \uD574\uCDA9\uC774 \uBC2D\uACFC
-    \uC2DD\uB7C9 \uCC3D\uACE0\uB97C \uC624\uAC04\uB2E4."
+  description: "\uC0AC\uAC74 \uC2DC\uC791 \uC2DC \uC774\uBBF8 \uC790\uB77C\uB294 \uC2E4\uC81C
+    \uC7AC\uBC30 \uC8FC\uAE30\uC758 \uC8FC \uC0DD\uC0B0\uB7C9\uB9CC \uCD5C\uB300 10% \uAC10\uC18C\uD558\uBA70
+    \uC800\uC7A5 \uC2DD\uD488\uC740 \uC190\uC0C1\uC2DC\uD0A4\uC9C0 \uC54A\uB294\uB2E4."
   authoringRevision: 1
   sourceNote: V20 hand-authored seasonal world event manifest.
   season: 1
   minimumDurationDays: 3
   maximumDurationDays: 5
+  worldWaterRegenerationMultiplier: 1
+  cropPrimaryBatchLossPercent: 10
   affectedDomainIds:
   - agriculture
   - logistics
@@ -33,11 +36,7 @@ MonoBehaviour:
     worldMetrics: []
     requiredFlags: []
     excludedFlags: []
-  startEffects:
-  - kind: 14
-    targetId: crop-pests
-    amount: 5
-    durationDays: 5
+  startEffects: []
   dailyEffects: []
   endEffects:
   - kind: 12

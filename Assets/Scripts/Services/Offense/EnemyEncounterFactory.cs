@@ -410,6 +410,15 @@ public sealed class EnemyEncounterFactory : IEnemyEncounterFactory
         OffenseRouteNode routeNode)
     {
         int campaign = Mathf.Clamp(target.campaignOrder, 1, 6);
+        if (!string.IsNullOrWhiteSpace(target.authoredEncounterId))
+        {
+            OffenseEncounterSO authored = encounters.Require(
+                target.authoredEncounterId);
+            if (EncounterCampaign(authored.encounterId) != campaign)
+                throw new InvalidOperationException(
+                    $"Authored encounter '{authored.encounterId}' does not belong to campaign {campaign}.");
+            return authored;
+        }
         OffenseEncounterSO[] campaignEncounters = encounters.All
             .Where(value => EncounterCampaign(value.encounterId) == campaign)
             .OrderBy(value => value.encounterId, StringComparer.Ordinal)

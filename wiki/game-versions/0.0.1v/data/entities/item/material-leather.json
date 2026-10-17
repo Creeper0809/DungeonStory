@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "균형 잡힌 연갑과 장비의 주재료이다. 라카쉬 세갈래길의 가죽에는 짐승의 종류와 무두질한 날짜가 살이 붙어 있던 면에 옅게 눌려 있다.",
+  "in_game_description": "균형 잡힌 연갑과 장비의 주재료이다. 라카쉬 세갈래길에서 손질한 가죽에는 먹을 몫과 만들 몫을 가르는 두 줄 칼집이 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

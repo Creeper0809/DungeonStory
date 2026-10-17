@@ -272,15 +272,11 @@ public class OwnerSelectionPanel : MonoBehaviour
         PreparationTab tab = selectedTabs.TryGetValue(member.Index, out PreparationTab selected)
             ? selected
             : PreparationTab.Identity;
-        TMP_Text body = CreateText(
+        CreateScrollableMemberBody(
             card.transform,
+            member.Index,
             BuildTabText(member, tab),
-            18f,
-            DungeonUiTheme.TextSecondary,
-            TextAlignmentOptions.TopLeft);
-        body.textWrappingMode = TextWrappingModes.Normal;
-        body.overflowMode = TextOverflowModes.Truncate;
-        SetLayout(body.gameObject, tab == PreparationTab.Skill ? 126f : 250f, 1f);
+            tab == PreparationTab.Skill ? 126f : 250f);
 
         if (tab == PreparationTab.Skill)
         {
@@ -441,7 +437,17 @@ public class OwnerSelectionPanel : MonoBehaviour
             string traits = string.Join("\n", progression.ResolveSelectedTraits()
                 .Where(trait => trait != null)
                 .Select(trait => $"· {trait.traitName}: {trait.description}"));
-            return $"출신\n{progression.GrowthState.origin}\n\n특성\n{traits}";
+            if (!preparationService.TryGetCandidateLivingSummary(
+                    member.Index,
+                    out StartPartyCandidateLivingSummary living,
+                    out string message))
+            {
+                return $"출신\n{progression.GrowthState.origin}\n\n특성\n{traits}"
+                    + $"\n\n생활·환경\n{message}";
+            }
+
+            return $"출신\n{progression.GrowthState.origin}\n\n특성\n{traits}"
+                + $"\n\n생활·환경\n{StartPartyPreparationPresentation.BuildCandidateLivingText(living)}";
         }
 
         if (tab == PreparationTab.Aptitude)
@@ -469,6 +475,52 @@ public class OwnerSelectionPanel : MonoBehaviour
         string passive = progression.PassiveSkills.FirstOrDefault()?.displayName ?? "-";
         string active = progression.ActiveSkills.FirstOrDefault()?.displayName ?? "선택 전";
         return $"종족 액티브  {member.CharacterData.SpeciesTag} 고유기\n첫 패시브  {passive}\n첫 액티브  {active}";
+    }
+
+    private TMP_Text CreateScrollableMemberBody(
+        Transform parent,
+        int memberIndex,
+        string value,
+        float minimumHeight)
+    {
+        Image viewport = CreatePanel(
+            $"StartPartyMemberBodyViewport_{memberIndex}",
+            parent,
+            DungeonUiTheme.SurfaceMuted);
+        LayoutElement layout = viewport.gameObject.AddComponent<LayoutElement>();
+        layout.minHeight = minimumHeight;
+        layout.preferredHeight = minimumHeight;
+        layout.flexibleHeight = 1f;
+        viewport.gameObject.AddComponent<RectMask2D>();
+
+        ScrollRect scroll = viewport.gameObject.AddComponent<ScrollRect>();
+        scroll.viewport = viewport.rectTransform;
+        scroll.horizontal = false;
+        scroll.vertical = true;
+        scroll.movementType = ScrollRect.MovementType.Clamped;
+        scroll.scrollSensitivity = 28f;
+
+        TMP_Text body = CreateText(
+            viewport.transform,
+            value,
+            18f,
+            DungeonUiTheme.TextSecondary,
+            TextAlignmentOptions.TopLeft);
+        body.textWrappingMode = TextWrappingModes.Normal;
+        body.overflowMode = TextOverflowModes.Overflow;
+        body.margin = new Vector4(10f, 8f, 10f, 8f);
+        RectTransform bodyRect = body.rectTransform;
+        bodyRect.anchorMin = new Vector2(0f, 1f);
+        bodyRect.anchorMax = new Vector2(1f, 1f);
+        bodyRect.pivot = new Vector2(0.5f, 1f);
+        bodyRect.anchoredPosition = Vector2.zero;
+        bodyRect.sizeDelta = Vector2.zero;
+        ContentSizeFitter fitter = body.gameObject.AddComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        scroll.content = bodyRect;
+        scroll.verticalNormalizedPosition = 1f;
+        return body;
     }
 
     private void HandleFullReroll(int memberIndex)

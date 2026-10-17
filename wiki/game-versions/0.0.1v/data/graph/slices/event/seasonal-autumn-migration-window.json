@@ -5,6 +5,18 @@
     "spoiler_tier": "warning",
     "title": "짧은 이동창"
   },
-  "edges": [],
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/seasonal-autumn-migration-window",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "spore-elk",
+      "target_spoiler_tier": "none",
+      "target_title": "포자큰사슴",
+      "to": "nature/spore-elk",
+      "type": "references"
+    }
+  ],
   "schema_version": 1
 }

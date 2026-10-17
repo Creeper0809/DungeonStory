@@ -172,6 +172,7 @@ public static class CropPhysicalTransactionFixture
             && VerifyPreparedHarvestOwnerSnapshots()
             && VerifyCompletionDeliveryLedger()
             && VerifyCompletionDeliveryRestoreJoin()
+            && VerifyPhysicalVectorComponentSignatures()
             && VerifyCropTreatment(catalog)
             && VerifyFacilityMutationFence();
     }
@@ -270,6 +271,14 @@ public static class CropPhysicalTransactionFixture
             operationSequence = 0,
             operationId = harvestOperation,
             cropId = CropId,
+            harvesterId = "character:qa:crop-harvester",
+            ecologyOutcomeFingerprint = new string('c', 64),
+            ecologyBeforeFingerprint = new string('d', 64),
+            ecologyAfterFingerprint = new string('e', 64),
+            goldenPrepared = false,
+            goldenOutcome = ExtremeRiskOutcome.Normal,
+            goldenPrimaryMultiplier = 1f,
+            goldenSecondaryMultiplier = 1f,
             returnedSeedLot = sow.seedLot.Clone(),
             harvestCapability = harvestCapability,
             seedCapability = seedCapability,
@@ -316,6 +325,11 @@ public static class CropPhysicalTransactionFixture
             || publicReceipt.OutputMassGrams != 1400L
             || publicReceipt.Outputs.Count != 2
             || publicReceipt.Outputs.Sum(output => output.MassGrams) != 1400L
+            || publicReceipt.HarvesterId != "character:qa:crop-harvester"
+            || publicReceipt.EcologyBeforeFingerprint != new string('d', 64)
+            || publicReceipt.EcologyAfterFingerprint != new string('e', 64)
+            || publicReceipt.GoldenPrepared
+            || publicReceipt.GoldenOutcome != ExtremeRiskOutcome.Normal
             || publicReceipt.Outputs.Any(output =>
                 string.IsNullOrEmpty(output.CapabilityFingerprint)))
             return false;
@@ -518,65 +532,462 @@ public static class CropPhysicalTransactionFixture
         }
     }
 
+    private static bool VerifyPhysicalVectorComponentSignatures()
+    {
+        const string HarvestLine = "crop-harvest:qa:physical-vector:harvest";
+        const string SeedLine = "crop-harvest:qa:physical-vector:seed";
+        const string HarvestStackId = "world-item-stack:qa:physical-vector:harvest";
+        const string SeedStackId = "world-item-stack:qa:physical-vector:seed";
+        const string HarvestItemId = "resource:twilight-grain";
+        const string VectorDestination = "crop-plot:qa:physical-vector";
+        Vector2Int position = new(13, 6);
+        SeedLotState returnedSeedLot = CreateHarvestSeedLot(generation: 4);
+        ItemInstanceComponentSaveData seedComponent =
+            SeedLotItemStateCodec.Encode(returnedSeedLot);
+        string runtimeSignature =
+            FacilityBufferPlannedOutputPublicationService
+                .CreateRuntimeComponentSignature(new[] { seedComponent });
+        string preparedFingerprint =
+            ProductionDomainOutputPublicationService
+                .CaptureComponentFingerprint(new[] { seedComponent });
+        CropHarvestOutputSaveData owner = new()
+        {
+            phase = CropHarvestOutputPhase.OutputCommitted,
+            operationSequence = 0,
+            operationId = "crop-harvest:qa:physical-vector:000000",
+            harvestItemId = HarvestItemId,
+            harvestQuantity = 3,
+            seedItemId = SeedItemId,
+            seedQuantity = 1,
+            returnedSeedLot = returnedSeedLot,
+            harvestCapability = new ProductionOutputCapabilitySaveData
+            {
+                outputLineId = HarvestLine
+            },
+            seedCapability = new ProductionOutputCapabilitySaveData
+            {
+                outputLineId = SeedLine
+            },
+            outputPublication = new ProductionDomainOutputPublicationSaveData
+            {
+                batchCommitId = "crop-harvest:qa:physical-vector:batch",
+                outcomeFingerprint = new string('a', 64),
+                plannedOutputFingerprint = new string('b', 64),
+                destinationId = VectorDestination,
+                destinationX = position.x,
+                destinationY = position.y,
+                outputMassGrams = 1400L,
+                stacks = new List<ProductionDomainPublishedStackSaveData>
+                {
+                    new()
+                    {
+                        outputLineId = HarvestLine,
+                        itemId = HarvestItemId,
+                        stackId = HarvestStackId,
+                        quantity = 3,
+                        massGrams = 1350L
+                    },
+                    new()
+                    {
+                        outputLineId = SeedLine,
+                        itemId = SeedItemId,
+                        stackId = SeedStackId,
+                        quantity = 1,
+                        massGrams = 50L
+                    }
+                }
+            }
+        };
+        MethodInfo validate = typeof(CropPlotSaveSection).GetMethod(
+            "ValidatePhysicalVector",
+            BindingFlags.NonPublic | BindingFlags.Static,
+            null,
+            new[]
+            {
+                typeof(CropHarvestOutputSaveData),
+                typeof(FacilityBufferPlannedOutputRestoreBatchSnapshot)
+            },
+            null);
+        if (validate == null)
+            return false;
+
+        FacilityBufferPlannedOutputRestoreBatchSnapshot exact =
+            CreatePhysicalVectorBatch(
+                owner,
+                HarvestLine,
+                SeedLine,
+                HarvestStackId,
+                SeedStackId,
+                HarvestItemId,
+                position,
+                seedComponent,
+                runtimeSignature,
+                preparedFingerprint);
+        if (!InvokePhysicalVector(validate, owner, exact))
+            return false;
+
+        SeedLotState alteredSeedLot = returnedSeedLot.Clone();
+        alteredSeedLot.cultivarGenomeId = "genome:twilight-grain:qa-altered";
+        ItemInstanceComponentSaveData alteredComponent =
+            SeedLotItemStateCodec.Encode(alteredSeedLot);
+        return RejectPhysicalVector(
+                validate,
+                owner,
+                CreatePhysicalVectorBatch(
+                    owner,
+                    HarvestLine,
+                    SeedLine,
+                    HarvestStackId,
+                    SeedStackId,
+                    HarvestItemId,
+                    position,
+                    seedComponent,
+                    preparedFingerprint,
+                    preparedFingerprint))
+            && RejectPhysicalVector(
+                validate,
+                owner,
+                CreatePhysicalVectorBatch(
+                    owner,
+                    HarvestLine,
+                    SeedLine,
+                    HarvestStackId,
+                    SeedStackId,
+                    HarvestItemId,
+                    position,
+                    seedComponent,
+                    runtimeSignature + ":drift",
+                    preparedFingerprint))
+            && RejectPhysicalVector(
+                validate,
+                owner,
+                CreatePhysicalVectorBatch(
+                    owner,
+                    HarvestLine,
+                    SeedLine,
+                    HarvestStackId,
+                    SeedStackId,
+                    HarvestItemId,
+                    position,
+                    seedComponent,
+                    runtimeSignature,
+                    new string('0', 64)))
+            && RejectPhysicalVector(
+                validate,
+                owner,
+                CreatePhysicalVectorBatch(
+                    owner,
+                    HarvestLine,
+                    SeedLine,
+                    HarvestStackId,
+                    SeedStackId,
+                    HarvestItemId,
+                    position,
+                    alteredComponent,
+                    FacilityBufferPlannedOutputPublicationService
+                        .CreateRuntimeComponentSignature(
+                            new[] { alteredComponent }),
+                    ProductionDomainOutputPublicationService
+                        .CaptureComponentFingerprint(
+                            new[] { alteredComponent })))
+            && RejectPhysicalVector(
+                validate,
+                owner,
+                CreatePhysicalVectorBatch(
+                    owner,
+                    HarvestLine,
+                    SeedLine,
+                    HarvestStackId,
+                    SeedStackId,
+                    HarvestItemId,
+                    position,
+                    seedComponent,
+                    runtimeSignature,
+                    preparedFingerprint,
+                    seedQuantity: 2));
+    }
+
+    private static FacilityBufferPlannedOutputRestoreBatchSnapshot
+        CreatePhysicalVectorBatch(
+            CropHarvestOutputSaveData owner,
+            string harvestLine,
+            string seedLine,
+            string harvestStackId,
+            string seedStackId,
+            string harvestItemId,
+            Vector2Int position,
+            ItemInstanceComponentSaveData seedComponent,
+            string seedSignature,
+            string seedPreparedFingerprint,
+            int seedQuantity = 1) => new(
+            owner.outputPublication.batchCommitId,
+            owner.outputPublication.outcomeFingerprint,
+            owner.outputPublication.plannedOutputFingerprint,
+            3 + seedQuantity,
+            1400L,
+            new[]
+            {
+                new FacilityBufferPlannedOutputRestoreStackSnapshot(
+                    owner.outputPublication.batchCommitId,
+                    owner.outputPublication.outcomeFingerprint,
+                    owner.outputPublication.plannedOutputFingerprint,
+                    harvestLine,
+                    0,
+                    harvestStackId,
+                    harvestItemId,
+                    3,
+                    1350L,
+                    string.Empty,
+                    WorldItemStackState.FacilityOutputBuffer,
+                    position,
+                    owner.outputPublication.destinationId),
+                new FacilityBufferPlannedOutputRestoreStackSnapshot(
+                    owner.outputPublication.batchCommitId,
+                    owner.outputPublication.outcomeFingerprint,
+                    owner.outputPublication.plannedOutputFingerprint,
+                    seedLine,
+                    0,
+                    seedStackId,
+                    SeedItemId,
+                    seedQuantity,
+                    50L,
+                    seedSignature,
+                    WorldItemStackState.FacilityOutputBuffer,
+                    position,
+                    owner.outputPublication.destinationId,
+                    components: new[] { seedComponent },
+                    preparedComponentFingerprint: seedPreparedFingerprint)
+            });
+
+    private static bool InvokePhysicalVector(
+        MethodInfo validate,
+        CropHarvestOutputSaveData owner,
+        FacilityBufferPlannedOutputRestoreBatchSnapshot batch)
+    {
+        try
+        {
+            validate.Invoke(null, new object[] { owner, batch });
+            return true;
+        }
+        catch (TargetInvocationException exception) when (
+            exception.InnerException is InvalidOperationException)
+        {
+            return false;
+        }
+    }
+
+    private static bool RejectPhysicalVector(
+        MethodInfo validate,
+        CropHarvestOutputSaveData owner,
+        FacilityBufferPlannedOutputRestoreBatchSnapshot batch) =>
+        !InvokePhysicalVector(validate, owner, batch);
+
     private static bool VerifyCompletionDeliveryRestoreJoin()
     {
         const string CompletionPlotId =
             "building:crop-plot:qa:completion-delivery";
-        CropHarvestOutputSaveData pending = new()
-        {
-            phase = CropHarvestOutputPhase.Frozen,
-            operationSequence = 0,
-            operationId = CropPlotRuntime.FormatHarvestOperationId(
-                new BuildingInstanceId(CompletionPlotId),
-                0),
-            harvesterId = "character:qa:harvester",
-            outcomeId = "normal",
-            completionAbsoluteDay = 3
-        };
+        CropHarvestOutputSaveData pending = CreateCompletionPending(
+            CompletionPlotId,
+            0);
+        CropCycleExecutionReceiptSaveData cycle = CreateCompletionCycle(
+            CompletionPlotId,
+            pending,
+            "crop-cycle:qa:completion:0");
         WorkCompletionIdentityDeliveryRequest request =
-            CropPlotRuntime.CreateHarvestCompletionDelivery(
+            CropHarvestCompletionObservation.CreateSavedRequest(
                 new BuildingInstanceId(CompletionPlotId),
-                pending);
+                pending,
+                cycle);
         pending.completionDeliveryId = request.DeliveryId;
         pending.completionDeliveryFingerprint = request.PayloadFingerprint;
         CropPlotSaveData plot = new()
         {
             buildingInstanceId = CompletionPlotId,
             nextHarvestOperationSequence = 0,
-            pendingHarvest = pending
+            pendingHarvest = pending,
+            cycleExecutionReceipt = cycle
         };
         WorkCompletionIdentityDeliveryCursorSaveData current =
             ToCompletionCursor(request);
 
-        ValidateCompletionJoin(new[] { plot });
-        ValidateCompletionJoin(new[] { plot }, new[] { current });
-        plot.pendingHarvest.completionEventPublished = true;
-        ValidateCompletionJoin(new[] { plot }, new[] { current });
+        // These are detached save DTOs for restore preflight. Live crop publication
+        // remains covered by the runtime transaction fixtures, not this join probe.
+        GameplayOutcomeLedgerSaveData emptyLedger =
+            CreateCompletionLedger();
+        ValidateCompletionJoin(new[] { plot }, emptyLedger);
+        if (!RejectCompletionJoin(new[] { plot }, null))
+            return false;
 
+        plot.pendingHarvest.phase = CropHarvestOutputPhase.OutputRestoredAwaitingFinalization;
+        plot.pendingHarvest.cropOutcomeAcknowledged = true;
+        GameplayOutcomeLedgerSaveData childOnly =
+            CreateCompletionLedger(request);
+        ValidateCompletionJoin(new[] { plot }, childOnly);
+        if (!RejectCompletionJoin(new[] { plot }, emptyLedger))
+            return false;
+
+        GameplayOutcomeLedgerSaveData tamperedChild =
+            CreateCompletionLedger(request);
+        tamperedChild.exactOutcomes[0].facts.Single(value =>
+            value.factId == EnvironmentOutcomeIds.HarvesterFact.Value).value =
+            "character:qa:other";
+        if (!RejectCompletionJoin(new[] { plot }, tamperedChild))
+            return false;
+
+        // A different worker supplied all approved work before the scheduled
+        // golden harvester finalized. The final owner's approved amount is zero.
+        CropHarvestOutputSaveData zeroPending = pending.DeepClone();
+        zeroPending.harvesterId = "character:qa:golden-finalizer";
+        zeroPending.completionDeliveryId = string.Empty;
+        zeroPending.completionDeliveryFingerprint = string.Empty;
+        WorkCompletionIdentityDeliveryRequest zero = CropHarvestCompletionObservation.CreateSavedRequest(
+            new BuildingInstanceId(CompletionPlotId), zeroPending, cycle);
+        if (zero.ContributionWorkUnits != 0f) return false;
+        zeroPending.completionDeliveryId = zero.DeliveryId;
+        zeroPending.completionDeliveryFingerprint = zero.PayloadFingerprint;
+        CropPlotSaveData zeroPlot = new()
+        {
+            buildingInstanceId = CompletionPlotId,
+            pendingHarvest = zeroPending,
+            cycleExecutionReceipt = cycle
+        };
+        GameplayOutcomeLedgerSaveData zeroLedger = CreateCompletionLedger(zero, includeIdentity: true);
+        GameplayOutcomeFactSnapshot zeroContributors = zeroLedger.exactOutcomes[0].facts.Single(value =>
+            value.factId == EnvironmentOutcomeIds.HarvestContributorsFact.Value);
+        zeroContributors.value = pending.harvesterId + "=1.25";
+        ValidateCompletionJoin(new[] { zeroPlot }, zeroLedger, new[] { ToCompletionCursor(zero) });
+        zeroContributors.value = zeroPending.harvesterId + "=1.25";
+        if (!RejectCompletionJoin(new[] { zeroPlot }, zeroLedger, new[] { ToCompletionCursor(zero) }))
+            return false;
+
+        plot.pendingHarvest.completionEventPublished = true;
+        GameplayOutcomeLedgerSaveData appliedLedger =
+            CreateCompletionLedger(request, includeIdentity: true);
+        ValidateCompletionJoin(new[] { plot }, appliedLedger, new[] { current });
+        plot.pendingHarvest.cropOutcomeAcknowledged = false;
+        if (!RejectCompletionJoin(new[] { plot }, appliedLedger, new[] { current }))
+            return false;
+        plot.pendingHarvest.cropOutcomeAcknowledged = true;
+
+        GameplayOutcomeLedgerSaveData compactedIdentityLedger =
+            CreateCompletionLedger(
+                request,
+                includeIdentity: true,
+                compactIdentity: true);
+        ValidateCompletionJoin(
+            new[] { plot },
+            compactedIdentityLedger,
+            new[] { current });
+
+        CropHarvestOutputSaveData aheadPending = CreateCompletionPending(
+            CompletionPlotId,
+            1);
+        CropCycleExecutionReceiptSaveData aheadCycle = CreateCompletionCycle(
+            CompletionPlotId,
+            aheadPending,
+            "crop-cycle:qa:completion:1");
         WorkCompletionIdentityDeliveryRequest next =
-            CreateCompletionDeliveryRequest(
-                1,
-                CompletionPlotId,
-                "character:qa:harvester");
+            CropHarvestCompletionObservation.CreateSavedRequest(
+                new BuildingInstanceId(CompletionPlotId),
+                aheadPending,
+                aheadCycle);
         WorkCompletionIdentityDeliveryCursorSaveData ahead =
             ToCompletionCursor(next);
         WorkCompletionIdentityDeliveryCursorSaveData wrongFingerprint =
             current.Clone();
         wrongFingerprint.payloadFingerprint = new string('0', 64);
-        if (!RejectCompletionJoin(new[] { plot })
-            || !RejectCompletionJoin(new[] { plot }, new[] { ahead })
-            || !RejectCompletionJoin(
+        if (!RejectCompletionJoin(
                 new[] { plot },
-                new[] { wrongFingerprint }))
+                appliedLedger,
+                new[] { wrongFingerprint })
+            || !RejectCompletionJoin(
+                Array.Empty<CropPlotSaveData>(),
+                appliedLedger,
+                new[] { current }))
             return false;
 
         plot.pendingHarvest = new CropHarvestOutputSaveData();
         plot.nextHarvestOperationSequence = 1;
-        ValidateCompletionJoin(new[] { plot }, new[] { current });
-        if (!RejectCompletionJoin(new[] { plot }, new[] { ahead })
+        plot.cycleExecutionReceipt.completed = true;
+        ValidateCompletionJoin(new[] { plot }, appliedLedger, new[] { current });
+        if (!RejectCompletionJoin(new[] { plot }, appliedLedger))
+            return false;
+        if (!RejectCompletionJoin(
+                new[] { plot },
+                CreateCompletionLedger(next, includeIdentity: true),
+                new[] { ahead }))
+            return false;
+
+        ValidateCompletionJoin(
+            new[] { plot },
+            appliedLedger,
+            new[]
+            {
+                current,
+                new WorkCompletionIdentityDeliveryCursorSaveData
+                {
+                    producerStreamId = "research-completion:qa",
+                    operationSequence = 0,
+                    deliveryId = "identity-event:research:qa:000000",
+                    payloadFingerprint = new string('a', 64)
+                }
+            });
+        if (!RejectCompletionJoin(
+                new[] { plot, new CropPlotSaveData
+                {
+                    buildingInstanceId = CompletionPlotId,
+                    nextHarvestOperationSequence = 1,
+                    pendingHarvest = new CropHarvestOutputSaveData()
+                } },
+                appliedLedger,
+                new[] { current }))
+            return false;
+
+        CropHarvestOutputSaveData workerless = pending.DeepClone();
+        workerless.harvesterId = string.Empty;
+        workerless.completionDeliveryId = string.Empty;
+        workerless.completionDeliveryFingerprint = string.Empty;
+        workerless.cropOutcomeAcknowledged = false;
+        workerless.completionEventPublished = false;
+        plot.pendingHarvest = workerless;
+        plot.nextHarvestOperationSequence = 0;
+        ValidateCompletionJoin(new[] { plot }, emptyLedger);
+        plot.pendingHarvest.completionDeliveryId = request.DeliveryId;
+        if (!RejectCompletionJoin(new[] { plot }, emptyLedger))
+            return false;
+        plot.pendingHarvest.completionDeliveryId = string.Empty;
+        if (!RejectCompletionJoin(new[] { plot }, appliedLedger, new[] { current }))
+            return false;
+
+        CropHarvestOutputSaveData nextPending = CreateCompletionPending(
+            CompletionPlotId,
+            1);
+        CropCycleExecutionReceiptSaveData nextCycle = CreateCompletionCycle(
+            CompletionPlotId,
+            nextPending,
+            "crop-cycle:qa:completion:next");
+        WorkCompletionIdentityDeliveryRequest nextRequest =
+            CropHarvestCompletionObservation.CreateSavedRequest(
+                new BuildingInstanceId(CompletionPlotId),
+                nextPending,
+                nextCycle);
+        nextPending.completionDeliveryId = nextRequest.DeliveryId;
+        nextPending.completionDeliveryFingerprint =
+            nextRequest.PayloadFingerprint;
+        plot.pendingHarvest = nextPending;
+        plot.cycleExecutionReceipt = nextCycle;
+        plot.nextHarvestOperationSequence = 1;
+        ValidateCompletionJoin(new[] { plot }, appliedLedger, new[] { current });
+        WorkCompletionIdentityDeliveryCursorSaveData wrongPrevious =
+            current.Clone();
+        wrongPrevious.deliveryId += ":wrong";
+        if (!RejectCompletionJoin(
+                new[] { plot },
+                appliedLedger,
+                new[] { wrongPrevious })
             || !RejectCompletionJoin(
-                Array.Empty<CropPlotSaveData>(),
-                new[] { current })
+                new CropPlotSaveData[] { null },
+                emptyLedger)
             || !RejectCompletionJoin(
                 new[] { plot, new CropPlotSaveData
                 {
@@ -584,71 +995,209 @@ public static class CropPhysicalTransactionFixture
                     nextHarvestOperationSequence = 1,
                     pendingHarvest = new CropHarvestOutputSaveData()
                 } },
-                new[] { current }))
-            return false;
-
-        WorkCompletionIdentityDeliveryCursorSaveData unrelated = new()
-        {
-            producerStreamId = "research-completion:qa",
-            operationSequence = 0,
-            deliveryId = "identity-event:research:qa:000000",
-            payloadFingerprint = new string('a', 64)
-        };
-        ValidateCompletionJoin(new[] { plot }, new[] { current, unrelated });
-
-        CropHarvestOutputSaveData workerless = pending.DeepClone();
-        workerless.harvesterId = string.Empty;
-        workerless.completionDeliveryId = string.Empty;
-        workerless.completionDeliveryFingerprint = string.Empty;
-        workerless.completionEventPublished = false;
-        plot.pendingHarvest = workerless;
-        plot.nextHarvestOperationSequence = 0;
-        ValidateCompletionJoin(new[] { plot });
-        plot.pendingHarvest.completionDeliveryId = request.DeliveryId;
-        if (!RejectCompletionJoin(new[] { plot }))
-            return false;
-        plot.pendingHarvest.completionDeliveryId = string.Empty;
-        if (!RejectCompletionJoin(new[] { plot }, new[] { current }))
-            return false;
-
-        CropHarvestOutputSaveData nextPending = new()
-        {
-            phase = CropHarvestOutputPhase.Frozen,
-            operationSequence = 1,
-            operationId = CropPlotRuntime.FormatHarvestOperationId(
-                new BuildingInstanceId(CompletionPlotId),
-                1),
-            harvesterId = "character:qa:harvester",
-            outcomeId = "normal",
-            completionAbsoluteDay = 3
-        };
-        WorkCompletionIdentityDeliveryRequest nextRequest =
-            CropPlotRuntime.CreateHarvestCompletionDelivery(
-                new BuildingInstanceId(CompletionPlotId),
-                nextPending);
-        nextPending.completionDeliveryId = nextRequest.DeliveryId;
-        nextPending.completionDeliveryFingerprint =
-            nextRequest.PayloadFingerprint;
-        plot.pendingHarvest = nextPending;
-        plot.nextHarvestOperationSequence = 1;
-        ValidateCompletionJoin(new[] { plot }, new[] { current });
-        WorkCompletionIdentityDeliveryCursorSaveData wrongPrevious =
-            current.Clone();
-        wrongPrevious.deliveryId += ":wrong";
-        if (!RejectCompletionJoin(new[] { plot }, new[] { wrongPrevious })
-            || !RejectCompletionJoin(
-                new CropPlotSaveData[] { null },
-                Array.Empty<
-                    WorkCompletionIdentityDeliveryCursorSaveData>())
+                appliedLedger,
+                new[] { current })
             || !RejectCompletionJoin(
                 new[] { new CropPlotSaveData
                 {
                     buildingInstanceId = " "
-                } }))
+                } },
+                emptyLedger))
             return false;
 
         return true;
     }
+
+    private static CropHarvestOutputSaveData CreateCompletionPending(
+        string plotId,
+        int sequence) => new()
+    {
+        phase = CropHarvestOutputPhase.Frozen,
+        operationSequence = sequence,
+        operationId = CropPlotRuntime.FormatHarvestOperationId(
+            new BuildingInstanceId(plotId),
+            sequence),
+        harvesterId = "character:qa:harvester",
+        outcomeId = "normal",
+        completionAbsoluteDay = 3
+    };
+
+    private static CropCycleExecutionReceiptSaveData CreateCompletionCycle(
+        string plotId,
+        CropHarvestOutputSaveData pending,
+        string correlationId) => new()
+    {
+        plotId = plotId,
+        correlationId = correlationId,
+        harvestOperationSequence = pending.operationSequence,
+        harvestOperationId = pending.operationId,
+        harvesterId = pending.harvesterId,
+        harvestContributions = new List<CraftContributionSaveData>
+        {
+            new()
+            {
+                characterId = pending.harvesterId,
+                contributedWork = 1.25f
+            }
+        }
+    };
+
+    private static GameplayOutcomeLedgerSaveData CreateCompletionLedger(
+        WorkCompletionIdentityDeliveryRequest request = default,
+        bool includeIdentity = false,
+        bool compactIdentity = false)
+    {
+        GameplayOutcomeLedgerSaveData ledger = new();
+        if (string.IsNullOrEmpty(request.DeliveryId))
+            return ledger;
+
+        GameplayResultKey child = CompletionChildKey(request);
+        ledger.exactOutcomes.Add(new GameplayOutcomeSnapshot
+        {
+            runId = "run:crop-completion-join",
+            sequence = 1,
+            producerId = child.ProducerId,
+            operationId = child.OperationId.Value,
+            commitRevision = child.CommitRevision,
+            localResultIndex = child.LocalResultIndex,
+            outcomeTypeId = EnvironmentOutcomeIds.CropPlanTerminal.Value,
+            absoluteDay = request.AbsoluteDay,
+            status = GameplayOutcomeStatus.Succeeded,
+            participants = new List<GameplayOutcomeParticipantSnapshot>
+            {
+                new()
+                {
+                    entityKindId = EnvironmentOutcomeIds.FacilityKind.Value,
+                    entityId = request.TargetEntityId,
+                    roleId = EnvironmentOutcomeIds.FacilityRole.Value
+                }
+            },
+            facts = new List<GameplayOutcomeFactSnapshot>
+            {
+                new()
+                {
+                    factId = EnvironmentOutcomeIds.HarvesterFact.Value,
+                    value = request.Character.Value
+                },
+                new()
+                {
+                    factId = EnvironmentOutcomeIds.HarvestOperationFact.Value,
+                    value = CropPlotRuntime.FormatHarvestOperationId(
+                        new BuildingInstanceId(request.TargetEntityId),
+                        request.OperationSequence)
+                },
+                new()
+                {
+                    factId = EnvironmentOutcomeIds.HarvestContributorsFact.Value,
+                    value = request.Character.Value + "="
+                        + request.ContributionWorkUnits.ToString(
+                            "R",
+                            System.Globalization.CultureInfo.InvariantCulture)
+                }
+            }
+        });
+        if (!includeIdentity)
+            return ledger;
+
+        GameplayResultKey identity =
+            WorkCompletionIdentityOutcomeIds.ResultKey(request);
+        if (compactIdentity)
+        {
+            ledger.tombstones.Add(new GameplayOutcomeTombstoneSnapshot
+            {
+                runId = "run:crop-completion-join",
+                sequence = 2,
+                producerId = identity.ProducerId,
+                operationId = identity.OperationId.Value,
+                commitRevision = identity.CommitRevision,
+                localResultIndex = identity.LocalResultIndex,
+                absoluteDay = request.AbsoluteDay
+            });
+            return ledger;
+        }
+
+        ledger.exactOutcomes.Add(new GameplayOutcomeSnapshot
+        {
+            runId = "run:crop-completion-join",
+            sequence = 2,
+            producerId = identity.ProducerId,
+            operationId = identity.OperationId.Value,
+            commitRevision = identity.CommitRevision,
+            localResultIndex = identity.LocalResultIndex,
+            outcomeTypeId = WorkCompletionIdentityOutcomeIds.Applied.Value,
+            absoluteDay = request.AbsoluteDay,
+            status = GameplayOutcomeStatus.Succeeded,
+            participants = new List<GameplayOutcomeParticipantSnapshot>
+            {
+                new()
+                {
+                    entityKindId = WorkCompletionIdentityOutcomeIds.CharacterKind.Value,
+                    entityId = request.Character.Value,
+                    roleId = WorkCompletionIdentityOutcomeIds.WorkerRole.Value
+                }
+            },
+            metrics = new List<GameplayOutcomeMetricSnapshot>
+            {
+                new()
+                {
+                    metricId = WorkCompletionIdentityOutcomeIds.ContributionMetric.Value,
+                    value = request.ContributionWorkUnits,
+                    unitId = WorkCompletionIdentityOutcomeIds.WorkUnit.Value
+                }
+            },
+            subjects = new List<GameplayOutcomeSubjectSnapshot>
+            {
+                new()
+                {
+                    entityKindId = WorkCompletionIdentityOutcomeIds.BuildingKind.Value,
+                    entityId = request.TargetEntityId
+                }
+            },
+            facts = new List<GameplayOutcomeFactSnapshot>
+            {
+                CompletionFact(WorkCompletionIdentityOutcomeIds.WorkIdFact.Value,
+                    request.WorkId),
+                CompletionFact(WorkCompletionIdentityOutcomeIds.ProductIdFact.Value,
+                    request.ProductId),
+                CompletionFact(WorkCompletionIdentityOutcomeIds.OriginFact.Value,
+                    WorkCompletionIdentityOutcomeIds.StableOrigin(request.Origin)),
+                CompletionFact(WorkCompletionIdentityOutcomeIds.ProducerStreamFact.Value,
+                    request.ProducerStreamId),
+                CompletionFact(WorkCompletionIdentityOutcomeIds.OperationIdFact.Value,
+                    request.OperationId),
+                CompletionFact(WorkCompletionIdentityOutcomeIds.TerminalOwnerFact.Value,
+                    request.TerminalOwnerId),
+                CompletionFact(WorkCompletionIdentityOutcomeIds.ChildResultKeyFact.Value,
+                    request.ChildResultKey),
+                CompletionFact(WorkCompletionIdentityOutcomeIds.SkillModifierProvenanceFact.Value,
+                    request.SkillModifierProvenance)
+            },
+            provenance = new List<GameplayOutcomeProvenanceReferenceSnapshot>
+            {
+                new()
+                {
+                    kindId = "identity-payload-fingerprint",
+                    value = request.PayloadFingerprint
+                }
+            }
+        });
+        return ledger;
+    }
+
+    private static GameplayResultKey CompletionChildKey(
+        WorkCompletionIdentityDeliveryRequest request) => new(
+        EnvironmentOutcomeIds.CropPlanProducer,
+        new GameplayOperationId(request.OperationId),
+        checked((long)request.OperationSequence + 1L),
+        0);
+
+    private static GameplayOutcomeFactSnapshot CompletionFact(
+        string id,
+        string factValue) => new()
+    {
+        factId = id,
+        value = factValue
+    };
 
     private static WorkCompletionIdentityDeliveryRequest
         CreateCompletionDeliveryRequest(
@@ -660,8 +1209,8 @@ public static class CropPhysicalTransactionFixture
             new BuildingInstanceId(plotId),
             sequence);
         return new WorkCompletionIdentityDeliveryRequest(
-            CropPlotRuntime.HarvestCompletionDeliveryPrefix + operationId,
-            CropPlotRuntime.HarvestCompletionStreamPrefix + plotId,
+            CropHarvestCompletionObservation.DeliveryPrefix + operationId,
+            CropHarvestCompletionObservation.StreamPrefix + plotId,
             sequence,
             new CharacterId(characterId),
             BuiltInWorkTypeIds.Harvest.Value,
@@ -677,26 +1226,31 @@ public static class CropPhysicalTransactionFixture
             producerStreamId = request.ProducerStreamId,
             operationSequence = request.OperationSequence,
             deliveryId = request.DeliveryId,
-            payloadFingerprint = request.PayloadFingerprint
+            payloadFingerprint = request.PayloadFingerprint,
+            disposition = WorkCompletionIdentityDeliveryDisposition
+                .EffectsAppliedWithOutcome
         };
 
     private static void ValidateCompletionJoin(
         IReadOnlyCollection<CropPlotSaveData> plots,
+        GameplayOutcomeLedgerSaveData ledger,
         IReadOnlyList<WorkCompletionIdentityDeliveryCursorSaveData> deliveries =
             null) =>
         CropHarvestCompletionDeliveryRestoreJoin.Validate(
             plots,
             deliveries ??
-                Array.Empty<WorkCompletionIdentityDeliveryCursorSaveData>());
+                Array.Empty<WorkCompletionIdentityDeliveryCursorSaveData>(),
+            ledger);
 
     private static bool RejectCompletionJoin(
         IReadOnlyCollection<CropPlotSaveData> plots,
+        GameplayOutcomeLedgerSaveData ledger,
         IReadOnlyList<WorkCompletionIdentityDeliveryCursorSaveData> deliveries =
             null)
     {
         try
         {
-            ValidateCompletionJoin(plots, deliveries);
+            ValidateCompletionJoin(plots, ledger, deliveries);
             return false;
         }
         catch (InvalidOperationException)
@@ -961,6 +1515,8 @@ public static class CropPhysicalTransactionFixture
         SeedLotState returnedSeedLot = null) => new(
             owner.Owner.operationId,
             plotId ?? owner.PlotId,
+            owner.Owner.ecologyBeforeFingerprint,
+            owner.Owner.ecologyAfterFingerprint,
             fingerprint ?? owner.Owner.ecologyOutcomeFingerprint,
             committed ?? owner.Owner.ecologyCommitted,
             new CropHarvestEcologyResult(
@@ -1629,6 +2185,8 @@ public static class CropPhysicalTransactionFixture
                 Proxy<IPhysicalSeedLotGateway>(),
                 registry,
                 Proxy<IProductionDomainOutputPublicationService>(),
+                Proxy<IObservedProductionDomainOutputPublicationService>(),
+                Proxy<IGameCalendar>(),
                 new DungeonRuntimeAggregateRootStore(),
                 new ProductionFacilityMutationEpochRuntime(),
                 Proxy<ICertifiedSeedInputOwnerRuntime>());
@@ -1753,6 +2311,8 @@ public static class CropPhysicalTransactionFixture
             gateway,
             registry,
             Proxy<IProductionDomainOutputPublicationService>(),
+            Proxy<IObservedProductionDomainOutputPublicationService>(),
+            Proxy<IGameCalendar>(),
             new DungeonRuntimeAggregateRootStore(),
             new ProductionFacilityMutationEpochRuntime(),
             Proxy<ICertifiedSeedInputOwnerRuntime>());
@@ -1812,6 +2372,8 @@ public static class CropPhysicalTransactionFixture
             gateway,
             registry,
             Proxy<IProductionDomainOutputPublicationService>(),
+            Proxy<IObservedProductionDomainOutputPublicationService>(),
+            Proxy<IGameCalendar>(),
             new DungeonRuntimeAggregateRootStore(),
             new ProductionFacilityMutationEpochRuntime(),
             Proxy<ICertifiedSeedInputOwnerRuntime>());
@@ -2256,6 +2818,8 @@ public static class CropPhysicalTransactionFixture
                 seedLots,
                 Proxy<IProductionOutputCapabilityRegistry>(),
                 Proxy<IProductionDomainOutputPublicationService>(),
+                Proxy<IObservedProductionDomainOutputPublicationService>(),
+                Proxy<IGameCalendar>(),
                 new DungeonRuntimeAggregateRootStore(),
                 new ProductionFacilityMutationEpochRuntime(),
                 CertifiedSeedRecoveryInputOwnerProxy.Create());

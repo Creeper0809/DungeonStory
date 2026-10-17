@@ -74,6 +74,10 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
     private IGameMoneyAccount moneyAccount;
     private IStockCategoryDefinitionCatalog stockCategoryCatalog;
     private IBuildingCategoryDefinitionCatalog buildingCategoryCatalog;
+    private IGameSessionStateProvider gameDataProvider;
+    private OperatingDayFactJournal settlementFacts;
+    private IGameSessionStateStore gameSessionState;
+    private TreasuryEconomyAggregateStateStore treasuryState;
     private IDisposable stockSupplySubscription;
     private IDisposable facilityVisitSubscription;
     private IDisposable facilityRevenueSubscription;
@@ -115,7 +119,7 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
             snapshot.Ledger.TotalRevenue,
             snapshot.Ledger.TotalVisits,
             snapshot.Ledger.RestockFailureCount,
-            snapshot.Ledger.FacilityRevenue,
+            snapshot.Ledger.FacilityDetails,
             snapshot.Ledger.SpeciesVisits,
             snapshot.Ledger.ConsumedStock.ToDictionary(
                 pair => (StockCategory)pair.Key,
@@ -147,7 +151,7 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
             OperatingDayReport,
             StockSupplyResult> snapshot = new(
                 state.CurrentDay,
-                state.FacilityRevenue,
+                state.FacilityDetails,
                 state.SpeciesVisits,
                 state.ConsumedStock.ToDictionary(
                     pair => (int)pair.Key,
@@ -202,7 +206,7 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(facilityShopCatalog));
         this.runVariableReader = runVariableReader
             ?? throw new ArgumentNullException(nameof(runVariableReader));
-        _ = gameDataProvider
+        this.gameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
@@ -224,41 +228,126 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
         SubscribeToScopedEvents();
     }
 
+    [Inject]
+    public void ConstructSettlementFacts(
+        OperatingDayFactJournal settlementFacts,
+        IGameSessionStateStore gameSessionState,
+        TreasuryEconomyAggregateStateStore treasuryState)
+    {
+        this.settlementFacts = settlementFacts
+            ?? throw new ArgumentNullException(nameof(settlementFacts));
+        this.gameSessionState = gameSessionState
+            ?? throw new ArgumentNullException(nameof(gameSessionState));
+        this.treasuryState = treasuryState
+            ?? throw new ArgumentNullException(nameof(treasuryState));
+    }
+
+    public string LastObservationFailure => settlementFacts?.LastFailure
+        ?? "operating-day-observer-not-configured";
+
+    private void RequireRecoveredObservations()
+    {
+        if (settlementFacts == null)
+            throw new InvalidOperationException("Operating-day fact journal is not configured.");
+        if (!settlementFacts.RecoverPending(out string failure))
+            throw new InvalidOperationException("Operating-day report observation pending: " + failure);
+    }
+
     public void OnTriggerEvent(OperatingDayStartedEvent eventType)
     {
+        RequireRecoveredObservations();
         RequireDomain().BeginDay(eventType.day);
     }
 
     public void OnTriggerEvent(OperatingDayEndedEvent eventType)
     {
-        OperatingDaySettlementDomain<OperatingDayReport, StockSupplyResult>
-            domain = RequireDomain();
-        if (!domain.TryBeginSettlement(
-                eventType.day,
-                out OperatingDaySettlementRequest<StockSupplyResult> request))
+        var domain = RequireDomain();
+        // Retry only the frozen observation, even when this gameplay day is complete.
+        RequireRecoveredObservations();
+        if (domain.HasSettledDay(eventType.day)) return;
+        if (gameSessionState == null || treasuryState == null || gameDataProvider == null
+            || !gameDataProvider.TryGetSessionState(out GameSessionState gameData)
+            || gameData?.day == null)
+            throw new InvalidOperationException(
+                "Operating-day settlement requires session, treasury, and current day authorities.");
+
+        int absoluteDay = Mathf.Max(0, gameData.day.Value);
+        var proposal = new OperatingDaySettledFact(new OperatingDaySettledFactData
         {
-            return;
+            reportDay = Mathf.Max(1, eventType.day), absoluteDay = absoluteDay
+        }, proposal: true);
+        if (!settlementFacts.TryBegin(proposal, out var prepared, out string reserveFailure))
+            throw new InvalidOperationException(
+                "Operating-day report outcome reservation failed: " + reserveFailure);
+
+        OperatingDaySettlementEffect<OperatingDayReport> effect;
+        bool observationPending;
+        using (prepared)
+        {
+            var domainBefore = domain.CaptureOwnerState();
+            var sessionBefore = gameData.Capture();
+            var treasuryBefore = treasuryState.Current.Copy();
+            using var employmentEffects = employmentContracts.BeginSettlement()
+                ?? throw new InvalidOperationException("Employment settlement scope is required.");
+            bool gameplayCompleted = false;
+            try
+            {
+                if (!domain.TryBeginSettlement(eventType.day, out var request)) return;
+                OperatingDayEconomyApplication economy = ApplyOperatingCostPorts(request.Day, domain);
+                OperatingDayCostTransition costs = domain.ResolveCostTransition(request, economy);
+                request = domain.RefreshSettlementRequest(request);
+                OperatingDayReport report = BuildReport(request, costs);
+                var fact = new OperatingDaySettledFact(OperatingDaySettledFactData.From(report, absoluteDay));
+                effect = domain.CompleteSettlement(request, report, costs);
+                domain.FinishSettlement(request);
+                gameplayCompleted = true;
+                employmentEffects.Commit();
+                // The owner is now committed. Observation retries cannot repeat effects.
+                prepared.PublishApplied(fact);
+                observationPending = prepared.ObservationPending;
+            }
+            catch
+            {
+                if (!gameplayCompleted)
+                    RestoreSettlementOwners(domain, domainBefore, sessionBefore, treasuryBefore);
+                throw;
+            }
         }
 
-        OperatingDayEconomyApplication economy = ApplyOperatingCostPorts(
-            request.Day);
-        OperatingDayCostTransition costs = domain.ResolveCostTransition(
-            request,
-            economy);
-        if (costs.HasWageShortfall)
+        PublishPostCommit(() => gameEventBus.Publish(new OperatingDayReportEvent(effect.Report)),
+            "operating-day-report-event");
+        if (observationPending)
+            throw new InvalidOperationException(
+                "Operating-day report observation pending: " + settlementFacts.LastFailure);
+    }
+
+    private void RestoreSettlementOwners(
+        OperatingDaySettlementDomain<OperatingDayReport, StockSupplyResult> domain,
+        OperatingDaySettlementAggregateState<
+            OperatingDayReport,
+            StockSupplyResult> domainBefore,
+        GameSessionSnapshot sessionBefore,
+        TreasuryEconomyAggregateState treasuryBefore)
+    {
+        domain.RestoreOwnerState(domainBefore);
+        gameSessionState.Restore(sessionBefore);
+        treasuryState.Replace(treasuryBefore
+            ?? throw new ArgumentNullException(nameof(treasuryBefore)));
+    }
+
+    private static void PublishPostCommit(Action observer, string label)
+    {
+        try
         {
-            gameEventBus.RaiseAlert(
-                "\uC784\uAE08 \uCCB4\uBD88",
-                $"\uBBF8\uC9C0\uAE09 \uC784\uAE08 {costs.CarriedDebt}\uC774 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4. \uC9C1\uC6D0 \uBD88\uB9CC\uC774 \uC99D\uAC00\uD569\uB2C8\uB2E4.",
-                EventAlertImportance.High,
-                "\uACBD\uC81C");
+            observer?.Invoke();
         }
-        request = domain.RefreshSettlementRequest(request);
-        OperatingDayReport report = BuildReport(request, costs);
-        OperatingDaySettlementEffect<OperatingDayReport> effect =
-            domain.CompleteSettlement(request, report, costs);
-        gameEventBus.Publish(new OperatingDayReportEvent(effect.Report));
-        domain.FinishSettlement(request);
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(label + ":" + exception.GetType().Name);
+        }
     }
 
     public bool TryTakeEmergencyFunding(out string message)
@@ -285,19 +374,29 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
         {
             mood = value;
         }
-        RequireDomain().RecordVisit(identity.SpeciesTag, mood);
+        string facilityId = RequireFacilityId(eventType.facility);
+        RequireDomain().RecordVisit(
+            facilityId,
+            GetFacilityName(eventType.facility),
+            identity.SpeciesTag,
+            mood);
     }
 
     public void OnTriggerEvent(FacilityRevenueEvent eventType)
     {
+        string facilityId = RequireFacilityId(eventType.facility);
         RequireDomain().RecordRevenue(
+            facilityId,
             GetFacilityName(eventType.facility),
             eventType.revenue);
     }
 
     public void OnTriggerEvent(FacilityStockConsumedEvent eventType)
     {
+        string facilityId = RequireFacilityId(eventType.facility);
         RequireDomain().RecordStockConsumed(
+            facilityId,
+            GetFacilityName(eventType.facility),
             (int)eventType.category,
             eventType.amount);
     }
@@ -443,7 +542,10 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
             settlement.PaidAmount,
             settlement.CarriedDebt,
             settlement.ClosingBalance,
-            settlement.ConsecutiveShortfallDays);
+            settlement.ConsecutiveShortfallDays,
+            ledger.FacilityDetails,
+            costs.TerminatedContractAmount,
+            costs.EmploymentLines);
     }
 
     private static BuildingReportData BuildBuildingSnapshot(
@@ -539,12 +641,35 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
             0);
     }
 
-    private OperatingDayEconomyApplication ApplyOperatingCostPorts(int day)
+    private OperatingDayEconomyApplication ApplyOperatingCostPorts(
+        int day,
+        OperatingDaySettlementDomain<OperatingDayReport, StockSupplyResult>
+            domain)
     {
         int openingBalance = moneyAccount.Balance;
         EmploymentDailySettlement employment =
             employmentContracts.SettleDay(day);
-        int maintenanceCost = paidFacilityContracts.ForecastCost(1);
+        IReadOnlyList<PaidFacilityContractState> contracts =
+            paidFacilityContracts.Contracts
+            ?? throw new InvalidOperationException(
+                "Paid-facility contract query returned no collection.");
+        PaidFacilityContractState[] dueContracts = contracts
+            .Where(contract => contract != null
+                && contract.active
+                && contract.lastSettledDay < day)
+            .OrderBy(contract => contract.contractId, StringComparer.Ordinal)
+            .ToArray();
+        int maintenanceCost = 0;
+        foreach (PaidFacilityContractState contract in dueContracts)
+        {
+            int cost = paidFacilityContracts.GetDailyCost(
+                contract.facilityPersistentId);
+            maintenanceCost = checked(maintenanceCost + cost);
+            domain.RecordFacilityCost(
+                contract.facilityPersistentId,
+                ResolveFacilityDisplayName(contract.facilityPersistentId),
+                cost);
+        }
         int maintenancePaid = paidFacilityContracts.SettleDay(day);
         return new OperatingDayEconomyApplication(
             openingBalance,
@@ -555,7 +680,69 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
             employment.employeeWagesPaid,
             employment.mercenaryFeesPaid,
             employment.unpaidEmployeeWages,
-            moneyAccount.Balance);
+            employment.unpaidMercenaryFees,
+            moneyAccount.Balance,
+            employment.lines.Select(ToOperatingDayEmploymentLine).ToArray());
+    }
+
+    private static OperatingDayEmploymentSettlementLine
+        ToOperatingDayEmploymentLine(EmploymentSettlementLine source)
+    {
+        if (source == null)
+        {
+            throw new InvalidOperationException(
+                "Employment settlement returned a null individual line.");
+        }
+
+        OperatingDayEmploymentContractKind contractKind = source.contractKind
+            switch
+            {
+                EmploymentContractKind.Founder =>
+                    OperatingDayEmploymentContractKind.Founder,
+                EmploymentContractKind.Employee =>
+                    OperatingDayEmploymentContractKind.Employee,
+                EmploymentContractKind.Mercenary =>
+                    OperatingDayEmploymentContractKind.Mercenary,
+                _ => throw new InvalidOperationException(
+                    "Employment settlement returned an unknown contract kind.")
+            };
+        return new OperatingDayEmploymentSettlementLine
+        {
+            day = source.day,
+            characterId = source.characterId,
+            contractKind = contractKind,
+            due = source.due,
+            paid = source.paid,
+            unpaidDebtBefore = source.unpaidDebtBefore,
+            unpaidDebtAfter = source.unpaidDebtAfter,
+            moodPenaltyApplied = source.moodPenaltyApplied,
+            contractEnded = source.contractEnded,
+            departureAttempted = source.departureAttempted,
+            departureStarted = source.departureStarted,
+            departurePending = source.departurePending,
+            departureFailureReason = source.departureFailureReason,
+            financeSourceId = source.financeSourceId,
+            financeTransactionId = source.financeTransactionId,
+            financeSucceeded = source.financeSucceeded
+        };
+    }
+
+    private string ResolveFacilityDisplayName(string facilityPersistentId)
+    {
+        IReadOnlyList<BuildableObject> buildings =
+            RequireBuildingQuery().Buildings
+            ?? throw new InvalidOperationException(
+                "Building query returned no facility collection.");
+        BuildableObject facility = buildings
+            .FirstOrDefault(value => value != null
+                && value.PersistentInstanceId.IsValid
+                && string.Equals(
+                    value.PersistentInstanceId.Value,
+                    facilityPersistentId,
+                    StringComparison.Ordinal));
+        return facility == null
+            ? facilityPersistentId
+            : GetFacilityName(facility);
     }
 
     private DungeonRuntimeAggregateRootStore RequireAggregateRoot()
@@ -589,6 +776,16 @@ public class OperatingDaySettlementApplicationAdapter : MonoBehaviour
             return facility.BuildingData.objectName;
         }
         return facility.name;
+    }
+
+    private static string RequireFacilityId(BuildableObject facility)
+    {
+        if (facility == null)
+        {
+            throw new InvalidOperationException(
+                "Operating-day facility event has no facility owner.");
+        }
+        return facility.RequirePersistentInstanceId().Value;
     }
 
     private static float GetStat(

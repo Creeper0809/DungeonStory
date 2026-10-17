@@ -6633,31 +6633,6 @@ GenericItemDefinitionSO|facility-kit:1,facility-kit:1,references.RefIds.1.type.c
 GenericItemDefinitionSO|facility-kit:1,facility-kit:1,references.RefIds.1.type.ns,,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1,facility-kit:1,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1,facility-kit:1,references.RefIds.1.data.buildingDefinitionId,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,m_Name,facility_kit_10,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,itemId,facility-kit:10,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,displayName,저가 음식점 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,features.0.rid,7737211921623155075,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,features.1.rid,7737211921623155076,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,references.RefIds.0.rid,7737211921623155075,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,references.RefIds.1.rid,7737211921623155076,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:10,facility-kit:10,references.RefIds.1.data.buildingDefinitionId,10,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1000,facility-kit:1000,m_Name,facility_kit_1000,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1000,facility-kit:1000,id,0,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1000,facility-kit:1000,itemId,facility-kit:1000,,,explicit-serialized
@@ -9108,56 +9083,6 @@ GenericItemDefinitionSO|facility-kit:1097,facility-kit:1097,references.RefIds.1.
 GenericItemDefinitionSO|facility-kit:1097,facility-kit:1097,references.RefIds.1.type.ns,,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1097,facility-kit:1097,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1097,facility-kit:1097,references.RefIds.1.data.buildingDefinitionId,1097,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,m_Name,facility_kit_11,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,itemId,facility-kit:11,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,displayName,고기 식당 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,features.0.rid,7737211921623155273,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,features.1.rid,7737211921623155274,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,references.RefIds.0.rid,7737211921623155273,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,references.RefIds.1.rid,7737211921623155274,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:11,facility-kit:11,references.RefIds.1.data.buildingDefinitionId,11,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,m_Name,facility_kit_12,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,itemId,facility-kit:12,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,displayName,잡화점 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,features.0.rid,7737211921623155275,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,features.1.rid,7737211921623155276,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,references.RefIds.0.rid,7737211921623155275,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,references.RefIds.1.rid,7737211921623155276,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:12,facility-kit:12,references.RefIds.1.data.buildingDefinitionId,12,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1200,facility-kit:1200,m_Name,facility_kit_1200,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1200,facility-kit:1200,id,0,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1200,facility-kit:1200,itemId,facility-kit:1200,,,explicit-serialized
@@ -9408,81 +9333,6 @@ GenericItemDefinitionSO|facility-kit:1209,facility-kit:1209,references.RefIds.1.
 GenericItemDefinitionSO|facility-kit:1209,facility-kit:1209,references.RefIds.1.type.ns,,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1209,facility-kit:1209,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1209,facility-kit:1209,references.RefIds.1.data.buildingDefinitionId,1209,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,m_Name,facility_kit_13,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,itemId,facility-kit:13,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,displayName,무기점 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,features.0.rid,7737211921623155297,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,features.1.rid,7737211921623155298,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,references.RefIds.0.rid,7737211921623155297,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,references.RefIds.1.rid,7737211921623155298,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:13,facility-kit:13,references.RefIds.1.data.buildingDefinitionId,13,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,m_Name,facility_kit_14,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,itemId,facility-kit:14,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,displayName,휴식방 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,features.0.rid,7737211921623155299,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,features.1.rid,7737211921623155300,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,references.RefIds.0.rid,7737211921623155299,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,references.RefIds.1.rid,7737211921623155300,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:14,facility-kit:14,references.RefIds.1.data.buildingDefinitionId,14,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,m_Name,facility_kit_15,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,itemId,facility-kit:15,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,displayName,훈련장 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,features.0.rid,7737211921623155301,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,features.1.rid,7737211921623155302,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,references.RefIds.0.rid,7737211921623155301,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,references.RefIds.1.rid,7737211921623155302,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:15,facility-kit:15,references.RefIds.1.data.buildingDefinitionId,15,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1500,facility-kit:1500,m_Name,facility_kit_1500,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1500,facility-kit:1500,id,0,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1500,facility-kit:1500,itemId,facility-kit:1500,,,explicit-serialized
@@ -9633,31 +9483,6 @@ GenericItemDefinitionSO|facility-kit:1505,facility-kit:1505,references.RefIds.1.
 GenericItemDefinitionSO|facility-kit:1505,facility-kit:1505,references.RefIds.1.type.ns,,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1505,facility-kit:1505,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1505,facility-kit:1505,references.RefIds.1.data.buildingDefinitionId,1505,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,m_Name,facility_kit_16,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,itemId,facility-kit:16,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,displayName,연구실 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,features.0.rid,7737211921623155315,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,features.1.rid,7737211921623155316,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,references.RefIds.0.rid,7737211921623155315,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,references.RefIds.1.rid,7737211921623155316,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:16,facility-kit:16,references.RefIds.1.data.buildingDefinitionId,16,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1600,facility-kit:1600,m_Name,facility_kit_1600,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1600,facility-kit:1600,id,0,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1600,facility-kit:1600,itemId,facility-kit:1600,,,explicit-serialized
@@ -10358,31 +10183,6 @@ GenericItemDefinitionSO|facility-kit:1627,facility-kit:1627,references.RefIds.1.
 GenericItemDefinitionSO|facility-kit:1627,facility-kit:1627,references.RefIds.1.type.ns,,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1627,facility-kit:1627,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1627,facility-kit:1627,references.RefIds.1.data.buildingDefinitionId,1627,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,m_Name,facility_kit_17,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,itemId,facility-kit:17,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,displayName,마력 저장소 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,features.0.rid,7737211921623155373,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,features.1.rid,7737211921623155374,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,references.RefIds.0.rid,7737211921623155373,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,references.RefIds.1.rid,7737211921623155374,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:17,facility-kit:17,references.RefIds.1.data.buildingDefinitionId,17,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1700,facility-kit:1700,m_Name,facility_kit_1700,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1700,facility-kit:1700,id,0,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1700,facility-kit:1700,itemId,facility-kit:1700,,,explicit-serialized
@@ -10783,31 +10583,6 @@ GenericItemDefinitionSO|facility-kit:1715,facility-kit:1715,references.RefIds.1.
 GenericItemDefinitionSO|facility-kit:1715,facility-kit:1715,references.RefIds.1.type.ns,,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1715,facility-kit:1715,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1715,facility-kit:1715,references.RefIds.1.data.buildingDefinitionId,1715,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,m_Name,facility_kit_18,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,itemId,facility-kit:18,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,displayName,창고 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,features.0.rid,7737211921623155407,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,features.1.rid,7737211921623155408,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,references.RefIds.0.rid,7737211921623155407,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,references.RefIds.1.rid,7737211921623155408,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:18,facility-kit:18,references.RefIds.1.data.buildingDefinitionId,18,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1800,facility-kit:1800,m_Name,facility_kit_1800,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1800,facility-kit:1800,id,0,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:1800,facility-kit:1800,itemId,facility-kit:1800,,,explicit-serialized
@@ -10983,31 +10758,6 @@ GenericItemDefinitionSO|facility-kit:2,facility-kit:2,references.RefIds.1.type.c
 GenericItemDefinitionSO|facility-kit:2,facility-kit:2,references.RefIds.1.type.ns,,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:2,facility-kit:2,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:2,facility-kit:2,references.RefIds.1.data.buildingDefinitionId,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,m_Name,facility_kit_3,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,itemId,facility-kit:3,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,displayName,사장실 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,features.0.rid,7737211921623155423,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,features.1.rid,7737211921623155424,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,references.RefIds.0.rid,7737211921623155423,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,references.RefIds.1.rid,7737211921623155424,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:3,facility-kit:3,references.RefIds.1.data.buildingDefinitionId,3,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:30,facility-kit:30,m_Name,facility_kit_30,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:30,facility-kit:30,id,0,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:30,facility-kit:30,itemId,facility-kit:30,,,explicit-serialized
@@ -11133,31 +10883,6 @@ GenericItemDefinitionSO|facility-kit:34,facility-kit:34,references.RefIds.1.type
 GenericItemDefinitionSO|facility-kit:34,facility-kit:34,references.RefIds.1.type.ns,,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:34,facility-kit:34,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:34,facility-kit:34,references.RefIds.1.data.buildingDefinitionId,34,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,m_Name,facility_kit_35,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,itemId,facility-kit:35,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,displayName,1성 경비실 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,unitPrice,180,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,features.0.rid,7737211921623155435,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,features.1.rid,7737211921623155436,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,references.RefIds.0.rid,7737211921623155435,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,references.RefIds.1.rid,7737211921623155436,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:35,facility-kit:35,references.RefIds.1.data.buildingDefinitionId,35,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:4,facility-kit:4,m_Name,facility_kit_4,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:4,facility-kit:4,id,0,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:4,facility-kit:4,itemId,facility-kit:4,,,explicit-serialized
@@ -11183,81 +10908,6 @@ GenericItemDefinitionSO|facility-kit:4,facility-kit:4,references.RefIds.1.type.c
 GenericItemDefinitionSO|facility-kit:4,facility-kit:4,references.RefIds.1.type.ns,,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:4,facility-kit:4,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:4,facility-kit:4,references.RefIds.1.data.buildingDefinitionId,4,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,m_Name,facility_kit_5,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,itemId,facility-kit:5,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,displayName,무기상점 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,features.0.rid,7737211921623155439,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,features.1.rid,7737211921623155440,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,references.RefIds.0.rid,7737211921623155439,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,references.RefIds.1.rid,7737211921623155440,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:5,facility-kit:5,references.RefIds.1.data.buildingDefinitionId,5,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,m_Name,facility_kit_50,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,itemId,facility-kit:50,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,displayName,2성 전투 식당 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,features.0.rid,7737211921623155441,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,features.1.rid,7737211921623155442,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,references.RefIds.0.rid,7737211921623155441,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,references.RefIds.1.rid,7737211921623155442,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:50,facility-kit:50,references.RefIds.1.data.buildingDefinitionId,50,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,m_Name,facility_kit_51,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,itemId,facility-kit:51,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,displayName,2성 고급 고기 식당 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,features.0.rid,7737211921623155443,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,features.1.rid,7737211921623155444,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,references.RefIds.0.rid,7737211921623155443,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,references.RefIds.1.rid,7737211921623155444,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:51,facility-kit:51,references.RefIds.1.data.buildingDefinitionId,51,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:52,facility-kit:52,m_Name,facility_kit_52,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:52,facility-kit:52,id,0,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:52,facility-kit:52,itemId,facility-kit:52,,,explicit-serialized
@@ -11308,81 +10958,6 @@ GenericItemDefinitionSO|facility-kit:53,facility-kit:53,references.RefIds.1.type
 GenericItemDefinitionSO|facility-kit:53,facility-kit:53,references.RefIds.1.type.ns,,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:53,facility-kit:53,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:53,facility-kit:53,references.RefIds.1.data.buildingDefinitionId,53,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,m_Name,facility_kit_54,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,itemId,facility-kit:54,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,displayName,2성 병영 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,features.0.rid,7737211921623155449,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,features.1.rid,7737211921623155450,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,references.RefIds.0.rid,7737211921623155449,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,references.RefIds.1.rid,7737211921623155450,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:54,facility-kit:54,references.RefIds.1.data.buildingDefinitionId,54,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,m_Name,facility_kit_55,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,itemId,facility-kit:55,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,displayName,3성 전장의 식당 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,features.0.rid,7737211921623155451,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,features.1.rid,7737211921623155452,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,references.RefIds.0.rid,7737211921623155451,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,references.RefIds.1.rid,7737211921623155452,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:55,facility-kit:55,references.RefIds.1.data.buildingDefinitionId,55,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,m_Name,facility_kit_56,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,itemId,facility-kit:56,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,displayName,3성 귀족의 식당 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,features.0.rid,7737211921623155453,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,features.1.rid,7737211921623155454,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,references.RefIds.0.rid,7737211921623155453,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,references.RefIds.1.rid,7737211921623155454,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:56,facility-kit:56,references.RefIds.1.data.buildingDefinitionId,56,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:57,facility-kit:57,m_Name,facility_kit_57,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:57,facility-kit:57,id,0,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:57,facility-kit:57,itemId,facility-kit:57,,,explicit-serialized
@@ -11433,106 +11008,6 @@ GenericItemDefinitionSO|facility-kit:58,facility-kit:58,references.RefIds.1.type
 GenericItemDefinitionSO|facility-kit:58,facility-kit:58,references.RefIds.1.type.ns,,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:58,facility-kit:58,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:58,facility-kit:58,references.RefIds.1.data.buildingDefinitionId,58,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,m_Name,facility_kit_59,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,itemId,facility-kit:59,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,displayName,3성 전투 병영 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,features.0.rid,7737211921623155459,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,features.1.rid,7737211921623155460,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,references.RefIds.0.rid,7737211921623155459,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,references.RefIds.1.rid,7737211921623155460,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:59,facility-kit:59,references.RefIds.1.data.buildingDefinitionId,59,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,m_Name,facility_kit_6,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,itemId,facility-kit:6,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,displayName,패스트푸드점 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,features.0.rid,7737211921623155461,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,features.1.rid,7737211921623155462,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,references.RefIds.0.rid,7737211921623155461,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,references.RefIds.1.rid,7737211921623155462,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:6,facility-kit:6,references.RefIds.1.data.buildingDefinitionId,6,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,m_Name,facility_kit_60,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,itemId,facility-kit:60,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,displayName,화장실 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,features.0.rid,7737211921623155463,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,features.1.rid,7737211921623155464,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,references.RefIds.0.rid,7737211921623155463,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,references.RefIds.1.rid,7737211921623155464,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:60,facility-kit:60,references.RefIds.1.data.buildingDefinitionId,60,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,m_Name,facility_kit_61,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,id,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,itemId,facility-kit:61,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,displayName,세면장 설치 키트,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,stockCategory,1,StockCategory,General (일반),explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,unitWeight,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,maxStack,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,sprite.fileID,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,unitPrice,1,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,features.0.rid,7737211921623155465,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,features.1.rid,7737211921623155466,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,references.version,2,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,references.RefIds.0.rid,7737211921623155465,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,references.RefIds.0.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,references.RefIds.0.data.kind,8,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,references.RefIds.1.rid,7737211921623155466,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,references.RefIds.1.type.ns,,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
-GenericItemDefinitionSO|facility-kit:61,facility-kit:61,references.RefIds.1.data.buildingDefinitionId,61,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:7,facility-kit:7,m_Name,facility_kit_7,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:7,facility-kit:7,id,0,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:7,facility-kit:7,itemId,facility-kit:7,,,explicit-serialized
@@ -15633,6 +15108,56 @@ GenericItemDefinitionSO|facility-kit:9827,facility-kit:9827,references.RefIds.1.
 GenericItemDefinitionSO|facility-kit:9827,facility-kit:9827,references.RefIds.1.type.ns,,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:9827,facility-kit:9827,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:9827,facility-kit:9827,references.RefIds.1.data.buildingDefinitionId,9827,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,m_Name,facility_kit_9828,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,id,0,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,itemId,facility-kit:9828,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,displayName,태양등 설치 키트,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,stockCategory,1,StockCategory,General (일반),explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,unitWeight,8,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,maxStack,1,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,sprite.fileID,0,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,unitPrice,95,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,features.0.rid,2763484101997495099,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,features.1.rid,2763484101997495100,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,references.version,2,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,references.RefIds.0.rid,2763484101997495099,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,references.RefIds.0.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,references.RefIds.0.data.kind,8,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,references.RefIds.1.rid,2763484101997495100,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,references.RefIds.1.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9828,facility-kit:9828,references.RefIds.1.data.buildingDefinitionId,9828,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,m_Name,facility_kit_9829,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,id,0,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,itemId,facility-kit:9829,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,displayName,인공태양 설치 키트,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,description,시설을 건설하기 위한 실제 부품과 조립 자재 묶음.,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,stockCategory,1,StockCategory,General (일반),explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,unitWeight,8,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,maxStack,1,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,sprite.fileID,0,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,unitPrice,165,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,features.0.rid,2763484101997495101,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,features.1.rid,2763484101997495102,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,references.version,2,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,references.RefIds.0.rid,2763484101997495101,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,references.RefIds.0.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,references.RefIds.0.data.kind,8,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,references.RefIds.1.rid,2763484101997495102,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,references.RefIds.1.type.class,InstallationItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,references.RefIds.1.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|facility-kit:9829,facility-kit:9829,references.RefIds.1.data.buildingDefinitionId,9829,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:9840,facility-kit:9840,m_Name,facility_kit_9840,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:9840,facility-kit:9840,id,0,,,explicit-serialized
 GenericItemDefinitionSO|facility-kit:9840,facility-kit:9840,itemId,facility-kit:9840,,,explicit-serialized
@@ -16027,6 +15552,19 @@ GenericItemDefinitionSO|industrial:sludge,industrial:sludge,references.RefIds.0.
 GenericItemDefinitionSO|industrial:sludge,industrial:sludge,references.RefIds.0.data.kind,8,,,explicit-serialized
 GenericItemDefinitionSO|industrial:sludge,industrial:sludge,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
 GenericItemDefinitionSO|industrial:sludge,industrial:sludge,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+GenericItemDefinitionSO|item:memory-erasure-seal,item:memory-erasure-seal,m_Name,item_memory_erasure_seal,,,explicit-serialized
+GenericItemDefinitionSO|item:memory-erasure-seal,item:memory-erasure-seal,id,0,,,explicit-serialized
+GenericItemDefinitionSO|item:memory-erasure-seal,item:memory-erasure-seal,itemId,item:memory-erasure-seal,,,explicit-serialized
+GenericItemDefinitionSO|item:memory-erasure-seal,item:memory-erasure-seal,displayName,망각의 인장,,,explicit-serialized
+GenericItemDefinitionSO|item:memory-erasure-seal,item:memory-erasure-seal,description,후천 특성 하나를 지우는 지역 보스 최초 처치 보상입니다.,,,explicit-serialized
+GenericItemDefinitionSO|item:memory-erasure-seal,item:memory-erasure-seal,stockCategory,1,StockCategory,General (일반),explicit-serialized
+GenericItemDefinitionSO|item:memory-erasure-seal,item:memory-erasure-seal,unitWeight,0.1,,,explicit-serialized
+GenericItemDefinitionSO|item:memory-erasure-seal,item:memory-erasure-seal,maxStack,75,,,explicit-serialized
+GenericItemDefinitionSO|item:memory-erasure-seal,item:memory-erasure-seal,sprite.fileID,0,,,explicit-serialized
+GenericItemDefinitionSO|item:memory-erasure-seal,item:memory-erasure-seal,unitPrice,0,,,explicit-serialized
+GenericItemDefinitionSO|item:memory-erasure-seal,item:memory-erasure-seal,features,[],,,explicit-serialized
+GenericItemDefinitionSO|item:memory-erasure-seal,item:memory-erasure-seal,references.version,2,,,explicit-serialized
+GenericItemDefinitionSO|item:memory-erasure-seal,item:memory-erasure-seal,references.RefIds,[],,,explicit-serialized
 GenericItemDefinitionSO|medicine:blood-pack,medicine:blood-pack,m_Name,medicine_blood_pack,,,explicit-serialized
 GenericItemDefinitionSO|medicine:blood-pack,medicine:blood-pack,id,0,,,explicit-serialized
 GenericItemDefinitionSO|medicine:blood-pack,medicine:blood-pack,itemId,medicine:blood-pack,,,explicit-serialized
@@ -17054,6 +16592,55 @@ GenericItemDefinitionSO|surgery:prosthetic:arm:right,surgery:prosthetic:arm:righ
 GenericItemDefinitionSO|surgery:prosthetic:arm:right,surgery:prosthetic:arm:right,references.RefIds.0.data.kind,8,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:arm:right,surgery:prosthetic:arm:right,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:arm:right,surgery:prosthetic:arm:right,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,m_Name,surgery_prosthetic_balance-tail,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,id,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,itemId,surgery:prosthetic:balance-tail,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,displayName,평형 꼬리 보철,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,description,꼬리 슬롯에 장착해 균형 기능을 대체하는 정밀 보철.,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,stockCategory,1,StockCategory,General (일반),explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,unitWeight,1.8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,maxStack,1,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,sprite.fileID,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,unitPrice,240,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,features.0.rid,2763484210697601430,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,references.version,2,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,references.RefIds.0.rid,2763484210697601430,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,references.RefIds.0.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,references.RefIds.0.data.kind,8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail,surgery:prosthetic:balance-tail,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,m_Name,surgery_prosthetic_balance-tail_variant_kobold-tail-balance,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,id,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,itemId,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,displayName,코볼트 평형 꼬리 보강기,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,description,코볼트 꼬리 슬롯의 회피 균형을 보조하는 정밀 보철.,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,stockCategory,1,StockCategory,General (일반),explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,unitWeight,1.8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,maxStack,1,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,sprite.fileID,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,unitPrice,300,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,features.0.rid,2763484210697601436,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,features.1.rid,2763484210697601460,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.version,2,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.RefIds.0.rid,2763484210697601436,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.RefIds.0.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.RefIds.0.data.kind,8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.RefIds.1.rid,2763484210697601460,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.RefIds.1.type.class,InstalledSurgicalPartEffectItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.RefIds.1.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.RefIds.1.data.effects.0.bindingId,part:kobold-tail-balance:evasion-chance,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.RefIds.1.data.effects.0.definition.fileID,11400000,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.RefIds.1.data.effects.0.definition.guid,fb93b8072ad1340499a5bac22450b4dc,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.RefIds.1.data.effects.0.definition.type,2,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.RefIds.1.data.effects.0.value,0.03,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:balance-tail/variant/kobold-tail-balance,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,references.RefIds.1.data.effects.0.condition.fileID,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:brain,surgery:prosthetic:brain,m_Name,surgery_prosthetic_brain,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:brain,surgery:prosthetic:brain,id,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:brain,surgery:prosthetic:brain,itemId,surgery:prosthetic:brain,,,explicit-serialized
@@ -17073,6 +16660,36 @@ GenericItemDefinitionSO|surgery:prosthetic:brain,surgery:prosthetic:brain,refere
 GenericItemDefinitionSO|surgery:prosthetic:brain,surgery:prosthetic:brain,references.RefIds.0.data.kind,8,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:brain,surgery:prosthetic:brain,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:brain,surgery:prosthetic:brain,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,m_Name,surgery_prosthetic_brain_variant_human-neural-assist,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,id,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,itemId,surgery:prosthetic:brain/variant/human-neural-assist,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,displayName,인간 신경 보조기,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,description,인간 뇌 슬롯에 장착해 직접 작업 신호를 보조하는 인공 부품.,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,stockCategory,1,StockCategory,General (일반),explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,unitWeight,1.8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,maxStack,1,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,sprite.fileID,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,unitPrice,260,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,features.0.rid,2763484210697601437,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,features.1.rid,2763484210697601461,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.version,2,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.RefIds.0.rid,2763484210697601437,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.RefIds.0.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.RefIds.0.data.kind,8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.RefIds.1.rid,2763484210697601461,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.RefIds.1.type.class,InstalledSurgicalPartEffectItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.RefIds.1.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.RefIds.1.data.effects.0.bindingId,part:human-neural-assist:work-speed,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.RefIds.1.data.effects.0.definition.fileID,11400000,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.RefIds.1.data.effects.0.definition.guid,c82e7a8d248986f4b8776ccbc743d601,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.RefIds.1.data.effects.0.definition.type,2,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.RefIds.1.data.effects.0.value,1.05,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:brain/variant/human-neural-assist,surgery:prosthetic:brain/variant/human-neural-assist,references.RefIds.1.data.effects.0.condition.fileID,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:core,surgery:prosthetic:core,m_Name,surgery_prosthetic_core,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:core,surgery:prosthetic:core,id,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:core,surgery:prosthetic:core,itemId,surgery:prosthetic:core,,,explicit-serialized
@@ -17130,6 +16747,25 @@ GenericItemDefinitionSO|surgery:prosthetic:eye:right,surgery:prosthetic:eye:righ
 GenericItemDefinitionSO|surgery:prosthetic:eye:right,surgery:prosthetic:eye:right,references.RefIds.0.data.kind,8,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:eye:right,surgery:prosthetic:eye:right,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:eye:right,surgery:prosthetic:eye:right,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,m_Name,surgery_prosthetic_hand_left,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,id,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,itemId,surgery:prosthetic:hand:left,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,displayName,왼손 정밀 보철,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,description,코볼트 왼손 슬롯에 장착하는 정밀 작업용 보철.,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,stockCategory,1,StockCategory,General (일반),explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,unitWeight,1.8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,maxStack,1,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,sprite.fileID,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,unitPrice,260,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,features.0.rid,2763484210697601438,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,references.version,2,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,references.RefIds.0.rid,2763484210697601438,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,references.RefIds.0.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,references.RefIds.0.data.kind,8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hand:left,surgery:prosthetic:hand:left,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:heart,surgery:prosthetic:heart,m_Name,surgery_prosthetic_heart,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:heart,surgery:prosthetic:heart,id,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:heart,surgery:prosthetic:heart,itemId,surgery:prosthetic:heart,,,explicit-serialized
@@ -17149,6 +16785,85 @@ GenericItemDefinitionSO|surgery:prosthetic:heart,surgery:prosthetic:heart,refere
 GenericItemDefinitionSO|surgery:prosthetic:heart,surgery:prosthetic:heart,references.RefIds.0.data.kind,8,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:heart,surgery:prosthetic:heart,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:heart,surgery:prosthetic:heart,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,m_Name,surgery_prosthetic_heart_variant_orc-combat-heart,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,id,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,itemId,surgery:prosthetic:heart/variant/orc-combat-heart,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,displayName,오크 전투 심장,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,description,오크 심장 슬롯에 장착하는 강화 펌프 보철.,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,stockCategory,1,StockCategory,General (일반),explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,unitWeight,1.8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,maxStack,1,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,sprite.fileID,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,unitPrice,240,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,features.0.rid,2763484210697601433,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,features.1.rid,2763484210697601462,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.version,2,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.RefIds.0.rid,2763484210697601433,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.RefIds.0.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.RefIds.0.data.kind,8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.RefIds.1.rid,2763484210697601462,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.RefIds.1.type.class,InstalledSurgicalPartEffectItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.RefIds.1.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.RefIds.1.data.effects.0.bindingId,part:orc-combat-heart:maximum-health,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.RefIds.1.data.effects.0.definition.fileID,11400000,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.RefIds.1.data.effects.0.definition.guid,6e2fa925a6b24a64a9e07484034c2301,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.RefIds.1.data.effects.0.definition.type,2,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.RefIds.1.data.effects.0.value,1.1,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heart/variant/orc-combat-heart,surgery:prosthetic:heart/variant/orc-combat-heart,references.RefIds.1.data.effects.0.condition.fileID,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,m_Name,surgery_prosthetic_heat-sac_variant_demon-heat-sac,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,id,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,itemId,surgery:prosthetic:heat-sac/variant/demon-heat-sac,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,displayName,데몬 열낭 보강기,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,description,데몬 열낭 슬롯의 열 교환을 보조하는 인공 부품.,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,stockCategory,1,StockCategory,General (일반),explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,unitWeight,1.8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,maxStack,1,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,sprite.fileID,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,unitPrice,240,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,features.0.rid,2763484210697601435,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,features.1.rid,2763484210697601463,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.version,2,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.RefIds.0.rid,2763484210697601435,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.RefIds.0.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.RefIds.0.data.kind,8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.RefIds.1.rid,2763484210697601463,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.RefIds.1.type.class,InstalledSurgicalPartEffectItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.RefIds.1.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.RefIds.1.data.effects.0.bindingId,part:demon-heat-sac:heat-exposure,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.RefIds.1.data.effects.0.definition.fileID,11400000,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.RefIds.1.data.effects.0.definition.guid,e2cec60c35a7dd848919d427b9d0a433,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.RefIds.1.data.effects.0.definition.type,2,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.RefIds.1.data.effects.0.value,0.8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:heat-sac/variant/demon-heat-sac,surgery:prosthetic:heat-sac/variant/demon-heat-sac,references.RefIds.1.data.effects.0.condition.fileID,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,m_Name,surgery_prosthetic_hypha-core,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,id,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,itemId,surgery:prosthetic:hypha-core,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,displayName,균핵 보철,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,description,균사 구조와 접속하는 인공 균핵.,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,stockCategory,1,StockCategory,General (일반),explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,unitWeight,1.8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,maxStack,1,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,sprite.fileID,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,unitPrice,180,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,features.0.rid,2763484210697601428,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,references.version,2,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,references.RefIds.0.rid,2763484210697601428,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,references.RefIds.0.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,references.RefIds.0.data.kind,8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:hypha-core,surgery:prosthetic:hypha-core,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:kidney:left,surgery:prosthetic:kidney:left,m_Name,surgery_prosthetic_kidney_left,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:kidney:left,surgery:prosthetic:kidney:left,id,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:kidney:left,surgery:prosthetic:kidney:left,itemId,surgery:prosthetic:kidney:left,,,explicit-serialized
@@ -17206,6 +16921,36 @@ GenericItemDefinitionSO|surgery:prosthetic:leg:left,surgery:prosthetic:leg:left,
 GenericItemDefinitionSO|surgery:prosthetic:leg:left,surgery:prosthetic:leg:left,references.RefIds.0.data.kind,8,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:leg:left,surgery:prosthetic:leg:left,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:leg:left,surgery:prosthetic:leg:left,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,m_Name,surgery_prosthetic_leg_left_variant_beastkin-sprint-joint,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,id,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,itemId,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,displayName,수인 질주 관절,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,description,수인 왼다리 슬롯에 장착하는 질주용 관절 보철.,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,stockCategory,1,StockCategory,General (일반),explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,unitWeight,1.8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,maxStack,1,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,sprite.fileID,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,unitPrice,381,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,features.0.rid,2763484210697601434,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,features.1.rid,2763484210697601464,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.version,2,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.RefIds.0.rid,2763484210697601434,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.RefIds.0.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.RefIds.0.data.kind,8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.RefIds.1.rid,2763484210697601464,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.RefIds.1.type.class,InstalledSurgicalPartEffectItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.RefIds.1.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.RefIds.1.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.RefIds.1.data.effects.0.bindingId,part:beastkin-sprint-joint:move-speed,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.RefIds.1.data.effects.0.definition.fileID,11400000,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.RefIds.1.data.effects.0.definition.guid,5efe462ac434ee74498e829584182490,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.RefIds.1.data.effects.0.definition.type,2,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.RefIds.1.data.effects.0.value,1.08,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,references.RefIds.1.data.effects.0.condition.fileID,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:leg:right,surgery:prosthetic:leg:right,m_Name,surgery_prosthetic_leg_right,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:leg:right,surgery:prosthetic:leg:right,id,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:leg:right,surgery:prosthetic:leg:right,itemId,surgery:prosthetic:leg:right,,,explicit-serialized
@@ -17282,6 +17027,25 @@ GenericItemDefinitionSO|surgery:prosthetic:lung:right,surgery:prosthetic:lung:ri
 GenericItemDefinitionSO|surgery:prosthetic:lung:right,surgery:prosthetic:lung:right,references.RefIds.0.data.kind,8,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:lung:right,surgery:prosthetic:lung:right,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:lung:right,surgery:prosthetic:lung:right,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,m_Name,surgery_prosthetic_night-eye_left,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,id,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,itemId,surgery:prosthetic:night-eye:left,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,displayName,왼쪽 야간안 보철,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,description,뱀파이어 야간안 슬롯에 장착하는 인공 감각기.,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,stockCategory,1,StockCategory,General (일반),explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,unitWeight,1.8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,maxStack,1,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,sprite.fileID,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,unitPrice,220,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,features.0.rid,2763484210697601432,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,references.version,2,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,references.RefIds.0.rid,2763484210697601432,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,references.RefIds.0.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,references.RefIds.0.data.kind,8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:night-eye:left,surgery:prosthetic:night-eye:left,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:pseudopods,surgery:prosthetic:pseudopods,m_Name,surgery_prosthetic_pseudopods,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:pseudopods,surgery:prosthetic:pseudopods,id,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:pseudopods,surgery:prosthetic:pseudopods,itemId,surgery:prosthetic:pseudopods,,,explicit-serialized
@@ -17339,6 +17103,44 @@ GenericItemDefinitionSO|surgery:prosthetic:stomach,surgery:prosthetic:stomach,re
 GenericItemDefinitionSO|surgery:prosthetic:stomach,surgery:prosthetic:stomach,references.RefIds.0.data.kind,8,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:stomach,surgery:prosthetic:stomach,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
 GenericItemDefinitionSO|surgery:prosthetic:stomach,surgery:prosthetic:stomach,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,m_Name,surgery_prosthetic_torso,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,id,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,itemId,surgery:prosthetic:torso,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,displayName,골격 보강 몸통,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,description,몸통 슬롯에 장착하는 하중 분산 골격 보철.,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,stockCategory,1,StockCategory,General (일반),explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,unitWeight,1.8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,maxStack,1,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,sprite.fileID,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,unitPrice,320,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,features.0.rid,2763484210697601431,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,references.version,2,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,references.RefIds.0.rid,2763484210697601431,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,references.RefIds.0.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,references.RefIds.0.data.kind,8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:torso,surgery:prosthetic:torso,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,m_Name,surgery_prosthetic_wing_left,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,id,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,itemId,surgery:prosthetic:wing:left,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,displayName,왼날개 보철,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,description,조류형 왼날개의 비행·조작 구조를 대체하는 보철.,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,stockCategory,1,StockCategory,General (일반),explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,unitWeight,1.8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,maxStack,1,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,sprite.fileID,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,unitPrice,260,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,features.0.rid,2763484210697601429,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,references.version,2,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,references.RefIds.0.rid,2763484210697601429,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,references.RefIds.0.type.class,ProductionItemFeature,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,references.RefIds.0.type.ns,,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,references.RefIds.0.type.asm,DungeonStory.Economy,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,references.RefIds.0.data.kind,8,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,references.RefIds.0.data.ingredientTags,0,,,explicit-serialized
+GenericItemDefinitionSO|surgery:prosthetic:wing:left,surgery:prosthetic:wing:left,references.RefIds.0.data.sharedIntermediate,0,,,explicit-serialized
 GenericItemDefinitionSO|survival:cooked_meal,survival:cooked_meal,m_Name,survival_cooked_meal,,,explicit-serialized
 GenericItemDefinitionSO|survival:cooked_meal,survival:cooked_meal,id,0,,,explicit-serialized
 GenericItemDefinitionSO|survival:cooked_meal,survival:cooked_meal,itemId,survival:cooked_meal,,,explicit-serialized

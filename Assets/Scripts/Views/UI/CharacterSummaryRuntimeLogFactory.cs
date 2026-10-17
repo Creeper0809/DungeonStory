@@ -56,6 +56,7 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
                 || generated.Find("Content/HealthContent/HealthCommandRow/SurgeryCommand") == null
                 || generated.Find("Content/HealthContent/HealthCommandRow/AutomaticSurgery") == null
                 || generated.Find("Content/HealthContent/SubstanceCommandRow/SubstanceSelection") == null
+                || generated.Find("Content/HealthContent/SubstanceCommandRow/MealQuality") == null
                 || generated.Find("Content/HealthContent/SubstanceCommandRow/SubstancePolicy") == null
                 || generated.Find("Content/CombatContent/CombatContentViewport/CombatSummaryText") == null
                 || generated.Find("Content/PopulationContent/PopulationViewport/PopulationSummaryText") == null
@@ -280,6 +281,14 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
         substanceCommands.childControlHeight = true;
         substanceCommands.childForceExpandWidth = true;
         substanceCommands.childForceExpandHeight = true;
+        Button mealQuality = CreateButton(
+            "MealQuality",
+            substanceCommandRow,
+            CharacterSummaryUiTextQuery.Get(
+                "CharacterSummary.Health.Button.MealQuality",
+                CharacterSummaryHealthStatusTextFormatter.MealQualityLimit(
+                    CharacterMealQualityLimit.Inherit)));
+        mealQuality.onClick.AddListener(actions.Health.CycleMealQualityLimit);
         Button substanceSelection = CreateButton(
             "SubstanceSelection",
             substanceCommandRow,
@@ -335,10 +344,16 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             "CharacterApprenticeship",
             populationCommands,
             "청소년만 개별 허용");
+        Button familyPlanningPolicy = CreateButton(
+            "FamilyPlanningPolicy",
+            populationCommands,
+            "가족계획: 계획");
         globalApprenticeship.onClick.AddListener(
             actions.Population.ToggleGlobalApprenticeship);
         characterApprenticeship.onClick.AddListener(
             actions.Population.ToggleCharacterApprenticeship);
+        familyPlanningPolicy.onClick.AddListener(
+            actions.Population.CycleFamilyPlanningPolicy);
         TMP_Text populationSummaryText = CreateScrollableText(
             "PopulationViewport",
             "PopulationSummaryText",
@@ -607,6 +622,7 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             healthTabButton,
             captivityCommand,
             dietPolicy,
+            mealQuality,
             surgeryCommand,
             automaticSurgery,
             substanceSelection,
@@ -626,7 +642,8 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             populationContent.gameObject,
             populationTabButton,
             globalApprenticeship,
-            characterApprenticeship);
+            characterApprenticeship,
+            familyPlanningPolicy);
         viewBinding.BindGeneratedTabs(
             statusContent.gameObject,
             growthContent.gameObject,
@@ -689,6 +706,7 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             generated.Find("TabBar/HealthTab")?.GetComponent<Button>(),
             generated.Find("Content/HealthContent/HealthCommandRow/CaptivityCommand")?.GetComponent<Button>(),
             generated.Find("Content/HealthContent/HealthCommandRow/DietPolicy")?.GetComponent<Button>(),
+            generated.Find("Content/HealthContent/SubstanceCommandRow/MealQuality")?.GetComponent<Button>(),
             generated.Find("Content/HealthContent/HealthCommandRow/SurgeryCommand")?.GetComponent<Button>(),
             generated.Find("Content/HealthContent/HealthCommandRow/AutomaticSurgery")?.GetComponent<Button>(),
             generated.Find("Content/HealthContent/SubstanceCommandRow/SubstanceSelection")?.GetComponent<Button>(),
@@ -708,7 +726,8 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             generated.Find("Content/PopulationContent")?.gameObject,
             generated.Find("TabBar/PopulationTab")?.GetComponent<Button>(),
             generated.Find("Content/PopulationContent/PopulationCommands/GlobalApprenticeship")?.GetComponent<Button>(),
-            generated.Find("Content/PopulationContent/PopulationCommands/CharacterApprenticeship")?.GetComponent<Button>());
+            generated.Find("Content/PopulationContent/PopulationCommands/CharacterApprenticeship")?.GetComponent<Button>(),
+            generated.Find("Content/PopulationContent/PopulationCommands/FamilyPlanningPolicy")?.GetComponent<Button>());
         viewBinding.BindGeneratedTabs(
             generated.Find("Content/StatusContent")?.gameObject,
             generated.Find("Content/GrowthContent")?.gameObject,

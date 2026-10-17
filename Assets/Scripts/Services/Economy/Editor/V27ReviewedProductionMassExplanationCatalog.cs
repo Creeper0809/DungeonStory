@@ -438,8 +438,20 @@ public static class V27ReviewedProductionMassExplanationCatalog
 
     private static readonly string[] ProstheticCraftLossRecipeIds =
     {
+        "recipe:surgery:balance-tail",
+        "recipe:surgery:brain-assist",
+        "recipe:surgery:heart-augmentation",
+        "recipe:surgery:heat-sac",
+        "recipe:surgery:hypha-core",
+        "recipe:surgery:night-eye",
+        "recipe:surgery:precision-hand",
         "recipe:surgery:prosthetic-arm",
-        "recipe:surgery:prosthetic-leg"
+        "recipe:surgery:prosthetic-leg",
+        "recipe:surgery:pseudopods",
+        "recipe:surgery:reinforced-torso",
+        "recipe:surgery:sprint-joint",
+        "recipe:surgery:tail-balance-augmentation",
+        "recipe:surgery:wing"
     };
 
     private static readonly string[] TreatedLumberLossRecipeIds =
@@ -478,11 +490,11 @@ public static class V27ReviewedProductionMassExplanationCatalog
             throw new InvalidOperationException(
                 "Reviewed fiber-processing IDs must be unique, disjoint and ordinal-sorted.");
         }
-        if (ReviewedLossPolicies.Count != 294)
+        if (ReviewedLossPolicies.Count != 306)
         {
             throw new InvalidOperationException(
                 "Reviewed production loss-policy count drifted: "
-                + ReviewedLossPolicies.Count + "/294.");
+                + ReviewedLossPolicies.Count + "/306.");
         }
         if (NonReproducibleLossRecipeIds.Length != 1
             || NonReproducibleLossRecipeIds.Distinct(StringComparer.Ordinal)

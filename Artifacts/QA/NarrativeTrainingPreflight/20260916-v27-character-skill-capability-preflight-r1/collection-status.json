@@ -1,0 +1,13 @@
+{
+  "blockers": [
+    "No natural-play/save/replay collection session executed or supplied to this tool",
+    "Existing calibration/evaluation must not be re-labelled as training inputs",
+    "Independent family/seed/save provenance and editorial quality review still required"
+  ],
+  "humanApprovalClaimed": false,
+  "modelQualityGatePassed": false,
+  "sampleCount": 0,
+  "scope": "Existing controlled Editor fixture export only",
+  "status": "NOT_COLLECTED",
+  "trainingEligible": false
+}

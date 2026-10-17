@@ -14,6 +14,13 @@ internal sealed class FluidNetworkProjectionAdapter
     private int snapshotVersion = int.MinValue;
     private int publishedRestoreRevision;
 
+    // Derived network projections share the topology/restore invalidation boundary.
+    internal Dictionary<string, float> NextBackflowAt { get; } =
+        new Dictionary<string, float>(StringComparer.Ordinal);
+    internal IReadOnlyList<WaterTransferFacilitySnapshot> WaterTransfers { get; set; } =
+        Array.Empty<WaterTransferFacilitySnapshot>();
+    internal float Accumulated { get; set; }
+
     public FluidNetworkProjectionAdapter(
         IIndustrialInfrastructureTopologyRuntime topologyRuntime,
         FluidNetworkStateStore stateStore)
@@ -148,6 +155,58 @@ internal sealed class FluidNetworkProjectionAdapter
         snapshots = Array.Empty<FluidNetworkSnapshot>();
     }
 
+    internal void EnsureTopology(IFluidFacilityInputOwnerAuthority inputOwners)
+    {
+        if (EnsurePublishedRestoreRevision())
+        {
+            ResetTransientProjection();
+        }
+
+        IndustrialTopologySnapshot topology = topologyRuntime.Current;
+        if (!inputOwners.TryReconcile(topology, out string ownerFailure))
+        {
+            throw new InvalidOperationException(
+                "Fluid input destination authority reconciliation failed: "
+                + ownerFailure);
+        }
+        if (!TryUpdateTopologyVersion(
+                topology.SourceVersion))
+        {
+            return;
+        }
+
+        foreach (IndustrialNodeDescriptor node in topology.Nodes.Values.Where(
+                     node => (node.Channels
+                             & (UtilityChannel.CleanWater
+                                | UtilityChannel.Wastewater))
+                         != 0))
+        {
+            FluidNodeState state = stateStore.EnsureState(node.NodeId);
+            BuildingWaterStorageAbility storage =
+                node.Building.BuildingData
+                    .GetAbility<BuildingWaterStorageAbility>();
+            if (storage != null)
+            {
+                float waterCapacity = Mathf.Max(
+                    0f,
+                    storage.cleanWaterCapacity);
+                FluidNodeWaterRules.ClampToCapacity(state, waterCapacity);
+                state.Wastewater = Mathf.Min(
+                    state.Wastewater,
+                    Mathf.Max(0f, storage.wastewaterCapacity));
+            }
+        }
+
+        stateStore.Touch();
+    }
+
+    internal void ResetTransientProjection()
+    {
+        Accumulated = 0f;
+        NextBackflowAt.Clear();
+        WaterTransfers = Array.Empty<WaterTransferFacilitySnapshot>();
+    }
+
     private static FluidTopologyProjection Capture(
         IndustrialTopologySnapshot topology)
     {
@@ -196,15 +255,22 @@ internal sealed class FluidNetworkStateStore
     {
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        _ = Current;
     }
 
-    private FluidNetworkAggregateState State =>
+    private FluidNetworkAggregateState Current =>
+        aggregateRootStore.GetOrCreate(
+            () => new FluidNetworkAggregateState());
+
+    private FluidNetworkAggregateState Writable =>
         aggregateRootStore.GetOrCreateWritable(
             () => new FluidNetworkAggregateState(),
             state => state.DeepClone());
 
-    public Dictionary<string, FluidNodeState> Nodes => State.Nodes;
-    public int Version => State.Version;
+    public Dictionary<string, FluidNodeState> Nodes => Writable.Nodes;
+    public IReadOnlyDictionary<string, FluidNodeState> CurrentNodes =>
+        Current.Nodes;
+    public int Version => Current.Version;
     public int PublishedRestoreRevision =>
         aggregateRootStore.PublishedRestoreRevision;
     public bool IsRestoreStaging => aggregateRootStore.IsRestoreStaging;
@@ -224,12 +290,26 @@ internal sealed class FluidNetworkStateStore
     {
         unchecked
         {
-            State.Version++;
+            Writable.Version++;
         }
     }
 
     public void Replace(FluidNetworkRestoreCandidate candidate)
     {
         aggregateRootStore.Replace(candidate.State);
+    }
+
+    public FluidNetworkAggregateState CaptureMutation() => Current.DeepClone();
+
+    public void RestoreMutation(
+        FluidNetworkAggregateState before,
+        int expectedMutatedVersion)
+    {
+        if (before == null)
+            throw new ArgumentNullException(nameof(before));
+        if (Current.Version != expectedMutatedVersion)
+            throw new InvalidOperationException(
+                "Fluid mutation rollback would overwrite a later authoritative mutation.");
+        aggregateRootStore.Replace(before.DeepClone());
     }
 }

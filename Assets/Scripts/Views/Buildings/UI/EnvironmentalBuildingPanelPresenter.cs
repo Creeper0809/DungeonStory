@@ -19,17 +19,21 @@ public sealed class EnvironmentalBuildingPanelPresenter :
 {
     private readonly IEnvironmentalFieldQuery query;
     private readonly IEnvironmentalFieldCommand commands;
+    private readonly IFluidInfrastructureQuery fluid;
     private readonly IDomainFailureLocalizer failureLocalizer;
 
     public EnvironmentalBuildingPanelPresenter(
         IEnvironmentalFieldQuery query,
         IEnvironmentalFieldCommand commands,
+        IFluidInfrastructureQuery fluid,
         IDomainFailureLocalizer failureLocalizer)
     {
         this.query = query
             ?? throw new ArgumentNullException(nameof(query));
         this.commands = commands
             ?? throw new ArgumentNullException(nameof(commands));
+        this.fluid = fluid
+            ?? throw new ArgumentNullException(nameof(fluid));
         this.failureLocalizer = failureLocalizer
             ?? throw new ArgumentNullException(nameof(failureLocalizer));
     }
@@ -42,11 +46,27 @@ public sealed class EnvironmentalBuildingPanelPresenter :
         Action refresh)
     {
         List<GameObject> created = new List<GameObject>();
+        if (parent == null || building == null)
+        {
+            return created;
+        }
+
+        if (fluid.TryGetWaterCondition(
+                building,
+                out BuildingWaterConditionSnapshot water))
+        {
+            created.Add(CreateText(
+                parent,
+                FormatWaterCondition(water),
+                font,
+                54f,
+                "EnvironmentalWaterConditionText"));
+        }
+
         BuildingThermalEmitterAbility emitter =
-            building?.BuildingData
+            building.BuildingData
                 ?.GetAbility<BuildingThermalEmitterAbility>();
-        if (parent == null
-            || emitter?.playerConfigurable != true
+        if (emitter?.playerConfigurable != true
             || !query.TryGetTargetTemperature(
                 building.centerPos,
                 out float target))
@@ -66,6 +86,33 @@ public sealed class EnvironmentalBuildingPanelPresenter :
         AddButton(row.transform, "+2°C", font, () =>
             ChangeTarget(building, target + 2f, setStatus, refresh));
         return created;
+    }
+
+    private static string FormatWaterCondition(
+        BuildingWaterConditionSnapshot snapshot)
+    {
+        string state = snapshot.Recovering
+            ? "회복 대기"
+            : snapshot.Frozen
+                ? "동결"
+                : "정상";
+        string temperature = snapshot.HasObservedTemperature
+            ? $"{snapshot.ObservedTemperatureC:0.#}°C"
+            : "온도 관측 불가";
+        string text =
+            $"배관 {state} · 유량 {snapshot.ThroughputMultiplier * 100f:0}% · {temperature}";
+        if (!snapshot.HasSeasonalSource)
+        {
+            return text;
+        }
+
+        text +=
+            $" · 동결 ≤{snapshot.FreezeThresholdC:0.#}°C / 회복 ≥{snapshot.RecoveryThresholdC:0.#}°C"
+            + $"\n{snapshot.SourceDisplayName}"
+            + (snapshot.SourceRemainingDays > 0
+                ? $" · 남은 {snapshot.SourceRemainingDays}일"
+                : " · 오늘 종료");
+        return text;
     }
 
     private void ChangeTarget(
@@ -95,15 +142,17 @@ public sealed class EnvironmentalBuildingPanelPresenter :
     private static GameObject CreateText(
         Transform parent,
         string value,
-        TMP_FontAsset font)
+        TMP_FontAsset font,
+        float preferredHeight = 30f,
+        string objectName = "EnvironmentalTargetText")
     {
         GameObject root = new GameObject(
-            "EnvironmentalTargetText",
+            objectName,
             typeof(RectTransform),
             typeof(TextMeshProUGUI),
             typeof(LayoutElement));
         root.transform.SetParent(parent, false);
-        root.GetComponent<LayoutElement>().preferredHeight = 30f;
+        root.GetComponent<LayoutElement>().preferredHeight = preferredHeight;
         TMP_Text text = root.GetComponent<TMP_Text>();
         text.text = value;
         text.font = font;

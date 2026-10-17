@@ -157,6 +157,7 @@ public sealed class DefenseFacilityPhysicalCommitSaveData
     public int inputQuantity;
     public long inputMassGrams;
     public string commitId = string.Empty;
+    public long outcomeOwnerRevision;
     public string requestFingerprint = string.Empty;
     public int supplyBefore;
     public int supplyAfter;
@@ -175,6 +176,7 @@ public sealed class DefenseFacilityPhysicalCommitSaveData
         inputQuantity = inputQuantity,
         inputMassGrams = inputMassGrams,
         commitId = commitId ?? string.Empty,
+        outcomeOwnerRevision = outcomeOwnerRevision,
         requestFingerprint = requestFingerprint ?? string.Empty,
         supplyBefore = supplyBefore,
         supplyAfter = supplyAfter,
@@ -182,6 +184,47 @@ public sealed class DefenseFacilityPhysicalCommitSaveData
         inputs = (inputs ?? new List<DefenseFacilityPhysicalInputSaveData>())
             .ConvertAll(value => value?.DeepClone())
     };
+}
+
+public enum DefenseFacilityServicePendingPhase
+{
+    None = 0,
+    Requested = 1,
+    TerminalApplied = 2
+}
+
+public enum DefenseFacilityServiceOutcomePhase
+{
+    Requested = 1,
+    Completed = 2,
+    FailedWithImpact = 3
+}
+
+[Serializable]
+public sealed class DefenseFacilityServicePendingSaveData
+{
+    public DefenseFacilityServicePendingPhase phase;
+    public DefenseFacilityPhysicalCommitKind kind;
+    public int operationSequence;
+    public long requestRevision;
+    public long terminalRevision;
+    public int absoluteDay;
+    public DefenseFacilityOperationalState beforeState;
+    public DefenseFacilityOperationalState requestedState;
+    public DefenseFacilityOperationalState terminalState;
+    public int beforeSupply;
+    public int requestedSupply;
+    public int terminalSupply;
+    public bool requestAcknowledged;
+    public DefenseFacilityServiceOutcomePhase terminalPhase;
+    public string physicalOperationId = string.Empty;
+    public long physicalOwnerRevision;
+    public string itemId = string.Empty;
+    public int inputQuantity;
+    public long inputMassGrams;
+
+    public DefenseFacilityServicePendingSaveData DeepClone() =>
+        (DefenseFacilityServicePendingSaveData)MemberwiseClone();
 }
 
 public sealed class DefenseFacilityState
@@ -206,6 +249,9 @@ public sealed class DefenseFacilityState
     public DefenseFacilityPhysicalCommitSaveData pendingMaintenance = new();
     public int nextSupplyOperationSequence;
     public DefenseFacilityPhysicalCommitSaveData pendingSupply = new();
+    public long serviceRevision;
+    public int nextServiceOperationSequence;
+    public DefenseFacilityServicePendingSaveData pendingService = new();
 
     public DefenseFacilityState DeepClone() => new()
     {
@@ -230,7 +276,11 @@ public sealed class DefenseFacilityState
             ?? new DefenseFacilityPhysicalCommitSaveData(),
         nextSupplyOperationSequence = nextSupplyOperationSequence,
         pendingSupply = pendingSupply?.DeepClone()
-            ?? new DefenseFacilityPhysicalCommitSaveData()
+            ?? new DefenseFacilityPhysicalCommitSaveData(),
+        serviceRevision = serviceRevision,
+        nextServiceOperationSequence = nextServiceOperationSequence,
+        pendingService = pendingService?.DeepClone()
+            ?? new DefenseFacilityServicePendingSaveData()
     };
 }
 
@@ -251,6 +301,17 @@ public sealed class DefenseFacilityAggregateState
             throw new ArgumentException("Defense state requires a persistent facility ID.", nameof(state));
         }
         states.Add(state.facilityPersistentId, state);
+    }
+
+    public void Set(DefenseFacilityState state)
+    {
+        if (state == null || string.IsNullOrWhiteSpace(state.facilityPersistentId))
+        {
+            throw new ArgumentException(
+                "Defense state requires a persistent facility ID.",
+                nameof(state));
+        }
+        states[state.facilityPersistentId] = state;
     }
 
     public DefenseFacilityAggregateState DeepClone()
@@ -298,6 +359,9 @@ public sealed class DefenseFacilityRecordSaveData
     public DefenseFacilityPhysicalCommitSaveData pendingMaintenance = new();
     public int nextSupplyOperationSequence;
     public DefenseFacilityPhysicalCommitSaveData pendingSupply = new();
+    public long serviceRevision;
+    public int nextServiceOperationSequence;
+    public DefenseFacilityServicePendingSaveData pendingService = new();
 }
 
 [Serializable]
@@ -346,6 +410,13 @@ public readonly struct DefenseFacilitySnapshot
         Powered = powered;
         BlockedReason = state?.blockedReason ?? string.Empty;
         SupplyDestinationId = destinationId ?? string.Empty;
+        HasPendingMaintenance = state != null
+            && ((state.pendingMaintenance?.phase
+                    ?? DefenseFacilityPhysicalCommitPhase.None)
+                != DefenseFacilityPhysicalCommitPhase.None
+                || (state.pendingService?.kind
+                    ?? DefenseFacilityPhysicalCommitKind.None)
+                == DefenseFacilityPhysicalCommitKind.MaintenanceSink);
     }
 
     public string PersistentId { get; }
@@ -358,6 +429,7 @@ public readonly struct DefenseFacilitySnapshot
     public bool Powered { get; }
     public string BlockedReason { get; }
     public string SupplyDestinationId { get; }
+    public bool HasPendingMaintenance { get; }
 }
 
 public readonly struct DefenseActivationAuthorization
@@ -522,6 +594,14 @@ public static class DefenseFacilitySaveRules
         if (facility.nextMaintenanceOperationSequence < 0
             || facility.nextSupplyOperationSequence < 0)
             errors.Add($"Defense facility '{id}' has a negative physical operation sequence.");
+        if (facility.serviceRevision < 0L
+            || facility.nextServiceOperationSequence < 0
+            || facility.pendingService == null
+                && (facility.serviceRevision != 0L
+                    || facility.nextServiceOperationSequence != 0))
+            errors.Add($"Defense facility '{id}' has invalid service revision or pending state.");
+        else if (facility.pendingService != null)
+            ValidateService(facility, id, errors);
         if ((facility.allowedGroups & ~DefenseFacilityRules.AllAccessGroupsMask) != 0)
             errors.Add($"Defense facility '{id}' has unknown access-group flags.");
         ValidateAllowed(facility, id, errors);
@@ -603,6 +683,7 @@ public static class DefenseFacilitySaveRules
                 && pending.inputQuantity == 0
                 && pending.inputMassGrams == 0L
                 && string.IsNullOrEmpty(pending.commitId)
+                && pending.outcomeOwnerRevision == 0L
                 && string.IsNullOrEmpty(pending.requestFingerprint)
                 && pending.supplyBefore == 0
                 && pending.supplyAfter == 0
@@ -653,6 +734,7 @@ public static class DefenseFacilitySaveRules
             && pending.inputQuantity > 0
             && pending.inputMassGrams > 0L
             && DefenseFacilityRules.IsCanonical(pending.commitId)
+            && pending.outcomeOwnerRevision >= 0L
             && DefenseFacilityRules.IsCanonical(pending.requestFingerprint)
             && pending.supplyBefore >= 0
             && pending.supplyAfter >= 0
@@ -674,6 +756,90 @@ public static class DefenseFacilitySaveRules
         if (!valid)
         {
             errors.Add($"Defense facility '{facilityId}' has an invalid {expectedKind} commit.");
+        }
+    }
+
+    private static void ValidateService(
+        DefenseFacilityRecordSaveData facility,
+        string id,
+        ICollection<string> errors)
+    {
+        DefenseFacilityServicePendingSaveData pending = facility.pendingService;
+        if (pending.phase == DefenseFacilityServicePendingPhase.None)
+        {
+            if (pending.kind != DefenseFacilityPhysicalCommitKind.None
+                || pending.operationSequence != 0
+                || pending.requestRevision != 0L
+                || pending.terminalRevision != 0L
+                || pending.absoluteDay != 0
+                || pending.beforeSupply != 0
+                || pending.requestedSupply != 0
+                || pending.terminalSupply != 0
+                || pending.requestAcknowledged
+                || pending.terminalPhase !=
+                    (DefenseFacilityServiceOutcomePhase)0
+                || !string.IsNullOrEmpty(pending.physicalOperationId)
+                || pending.physicalOwnerRevision != 0L
+                || !string.IsNullOrEmpty(pending.itemId)
+                || pending.inputQuantity != 0
+                || pending.inputMassGrams != 0L)
+                errors.Add($"Defense facility '{id}' has partial empty service state.");
+            return;
+        }
+        if (!Enum.IsDefined(typeof(DefenseFacilityServicePendingPhase), pending.phase)
+            || pending.kind is not (DefenseFacilityPhysicalCommitKind.SupplyTransfer
+                or DefenseFacilityPhysicalCommitKind.MaintenanceSink)
+            || pending.operationSequence != facility.nextServiceOperationSequence
+            || pending.absoluteDay < 0
+            || pending.beforeSupply < 0 || pending.requestedSupply < 0
+            || pending.terminalSupply < 0
+            || pending.beforeSupply != pending.requestedSupply
+            || pending.requestRevision <= 0L
+            || pending.terminalRevision < 0L
+            || pending.requestRevision > facility.serviceRevision
+            || pending.terminalRevision > facility.serviceRevision
+            || !Enum.IsDefined(typeof(DefenseFacilityOperationalState), pending.beforeState)
+            || !Enum.IsDefined(typeof(DefenseFacilityOperationalState), pending.requestedState)
+            || !Enum.IsDefined(typeof(DefenseFacilityOperationalState), pending.terminalState)
+            || pending.phase == DefenseFacilityServicePendingPhase.Requested
+                && (pending.terminalRevision != 0L
+                    || facility.serviceRevision != pending.requestRevision
+                    || pending.terminalPhase !=
+                        (DefenseFacilityServiceOutcomePhase)0
+                    || !string.IsNullOrEmpty(pending.physicalOperationId))
+            || pending.phase == DefenseFacilityServicePendingPhase.TerminalApplied
+                && (pending.terminalRevision != pending.requestRevision + 1L
+                    || facility.serviceRevision != pending.terminalRevision
+                    || pending.terminalPhase is not (
+                        DefenseFacilityServiceOutcomePhase.Completed
+                        or DefenseFacilityServiceOutcomePhase.FailedWithImpact)))
+        {
+            errors.Add($"Defense facility '{id}' has invalid service pending state.");
+        }
+        if (pending.phase == DefenseFacilityServicePendingPhase.TerminalApplied)
+        {
+            DefenseFacilityPhysicalCommitSaveData physical = pending.kind
+                == DefenseFacilityPhysicalCommitKind.MaintenanceSink
+                    ? facility.pendingMaintenance
+                    : facility.pendingSupply;
+            bool completed = pending.terminalPhase
+                == DefenseFacilityServiceOutcomePhase.Completed;
+            if (completed && (physical == null
+                    || physical.phase != DefenseFacilityPhysicalCommitPhase.OutcomePublished
+                    || !string.Equals(pending.physicalOperationId,
+                        physical.operationId, StringComparison.Ordinal)
+                    || pending.physicalOwnerRevision <= 0L
+                    || pending.physicalOwnerRevision != physical.outcomeOwnerRevision
+                    || !string.Equals(pending.itemId,
+                        physical.itemId, StringComparison.Ordinal)
+                    || pending.inputQuantity != physical.inputQuantity
+                    || pending.inputMassGrams != physical.inputMassGrams)
+                || !completed && (!string.IsNullOrEmpty(pending.physicalOperationId)
+                    || pending.physicalOwnerRevision != 0L
+                    || !string.IsNullOrEmpty(pending.itemId)
+                    || pending.inputQuantity != 0
+                    || pending.inputMassGrams != 0L))
+                errors.Add($"Defense facility '{id}' has a mismatched service terminal child.");
         }
     }
 

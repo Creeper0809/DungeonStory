@@ -16,6 +16,11 @@ public static class CharacterDetailedStatsTextFormatter
         GameplayEffectTargetIds.DiseaseRecoverySpeed => "\uC9C8\uBCD1 \uD68C\uBCF5 \uC18D\uB3C4",
         GameplayEffectTargetIds.ImmunityGain => "\uBA74\uC5ED \uD68D\uB4DD\uB825",
         GameplayEffectTargetIds.ImmunityRetention => "\uBA74\uC5ED \uC720\uC9C0\uB825",
+        GameplayEffectTargetIds.MoveSpeed => "\uC774\uB3D9 \uC18D\uB3C4",
+        GameplayEffectTargetIds.HeatExposure => "\uC5F4\uAE30 \uB178\uCD9C",
+        GameplayEffectTargetIds.MaximumHealth => "\uCD5C\uB300 \uCCB4\uB825",
+        GameplayEffectTargetIds.EvasionChance => "\uD68C\uD53C \uD655\uB960(0~1)",
+        GameplayEffectTargetIds.WorkSpeed => "\uC791\uC5C5 \uC18D\uB3C4",
         _ => targetId ?? string.Empty
     };
 

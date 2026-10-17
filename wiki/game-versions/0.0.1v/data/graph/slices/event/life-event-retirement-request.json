@@ -7,7 +7,7 @@
   },
   "edges": [
     {
-      "amount": "-2",
+      "amount": "0",
       "from": "event/life-event-retirement-request",
       "label": "연결",
       "target_kind": "event",
@@ -15,7 +15,18 @@
       "target_spoiler_tier": "warning",
       "target_title": "도구를 내려놓는 날",
       "to": "event/life-event-retirement-request",
-      "type": "adds-work-delay"
+      "type": "unknown-effect"
+    },
+    {
+      "amount": "0",
+      "from": "event/life-event-retirement-request",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-retirement-request",
+      "target_spoiler_tier": "warning",
+      "target_title": "도구를 내려놓는 날",
+      "to": "event/life-event-retirement-request",
+      "type": "unknown-effect"
     },
     {
       "amount": "6",
@@ -29,11 +40,18 @@
       "type": "changes-mood"
     },
     {
-      "amount": "-2",
+      "amount": "0",
       "from": "event/life-event-retirement-request",
       "label": "연결",
       "to": "event/life-event-retirement-request",
-      "type": "adds-work-delay"
+      "type": "unknown-effect"
+    },
+    {
+      "amount": "0",
+      "from": "event/life-event-retirement-request",
+      "label": "연결",
+      "to": "event/life-event-retirement-request",
+      "type": "unknown-effect"
     },
     {
       "amount": "6",

@@ -1,0 +1,2 @@
+{"transactionId":"economy:00000001","kind":20,"sourceId":"employment","targetId":"character:staff:1:01","description":"직원 임금","amount":-32,"balanceBefore":5000,"balanceAfter":4968,"gameTime":120.38029479980469,"succeeded":true,"failureReason":""}
+{"transactionId":"economy:00000002","kind":20,"sourceId":"employment","targetId":"character:staff:1:02","description":"직원 임금","amount":-32,"balanceBefore":4968,"balanceAfter":4936,"gameTime":120.38029479980469,"succeeded":true,"failureReason":""}

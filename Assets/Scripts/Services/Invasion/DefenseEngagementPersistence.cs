@@ -227,7 +227,7 @@ internal sealed class DefenseEngagementPersistence
         Vector2Int rangedCell = new(source.rangedX, source.rangedY);
         Vector2Int secondaryRangedCell =
             new(source.secondaryRangedX, source.secondaryRangedY);
-        if (reserve != null && !IsValidGuardCell(grid, reserveCell)
+        if (source.hasReserveCell && !IsValidGuardCell(grid, reserveCell)
             || ranged != null && !IsValidGuardCell(grid, rangedCell)
             || secondaryRanged != null
                 && !IsValidGuardCell(grid, secondaryRangedCell))

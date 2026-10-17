@@ -11,7 +11,7 @@ internal sealed class CaptivityStateRuntime
     private readonly CaptivityInteractionRuntime interactions;
     private readonly ICaptivityEscortRestoreLifecycle escortRestore;
     private readonly IDoorAccessSubjectRegistry doorSubjects;
-    private readonly IGameClock gameClock;
+    private readonly IGameCalendar gameCalendar;
 
     private int captureSequence
     {
@@ -25,7 +25,7 @@ internal sealed class CaptivityStateRuntime
         CaptivityInteractionRuntime interactions,
         ICaptivityEscortRestoreLifecycle escortRestore,
         IDoorAccessSubjectRegistry doorSubjects,
-        IGameClock gameClock)
+        IGameCalendar gameCalendar)
     {
         this.actors = actors ?? throw new ArgumentNullException(nameof(actors));
         this.policies = policies ?? throw new ArgumentNullException(nameof(policies));
@@ -33,12 +33,16 @@ internal sealed class CaptivityStateRuntime
         this.escortRestore = escortRestore
             ?? throw new ArgumentNullException(nameof(escortRestore));
         this.doorSubjects = doorSubjects ?? throw new ArgumentNullException(nameof(doorSubjects));
-        this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.gameCalendar = gameCalendar
+            ?? throw new ArgumentNullException(nameof(gameCalendar));
     }
 
     public void OnCharacterDowned(CharacterActor actor)
     {
-        if (!IsEligibleDownedIntruder(actor))
+        // The body-health event is the authority for this transition. Lifecycle
+        // is its projection, not a prerequisite supplied by another subscriber.
+        if (actor == null || actor.IsDead
+            || actor.characterType != CharacterType.Intruder)
         {
             return;
         }
@@ -80,7 +84,7 @@ internal sealed class CaptivityStateRuntime
 
         state.status = CaptivityStatus.Dead;
         state.lastResult = "수용 중 사망";
-        interactions.ReleaseMaterials(state);
+        interactions.HandleSubjectDeath(state);
         doorSubjects.SetCaptive(state.captiveId, false);
         escortRestore.RestoreCaptiveParent(state.captiveId);
     }
@@ -105,7 +109,6 @@ internal sealed class CaptivityStateRuntime
             capturePosition = actor.GetNowXY(),
             policyId = defaultPolicy.policyId,
             laborPermissions = defaultPolicy.allowedLabor,
-            health = EstimateHealth(actor),
             capturedAbsoluteDay = CurrentAbsoluteDay,
             lastResult = "포획 가능"
         };
@@ -127,28 +130,5 @@ internal sealed class CaptivityStateRuntime
         };
     }
 
-    private static bool IsEligibleDownedIntruder(CharacterActor actor)
-    {
-        return actor != null
-            && !actor.IsDead
-            && actor.characterType == CharacterType.Intruder
-            && actor.CurrentLifecycleState == CharacterLifecycleState.Downed;
-    }
-
-    private static float EstimateHealth(CharacterActor actor)
-    {
-        if (actor?.Stats == null)
-        {
-            return 0f;
-        }
-
-        return Mathf.Clamp(
-            actor.Stats.CurrentHealth / Mathf.Max(1f, actor.Stats.MaxHealth) * 100f,
-            0f,
-            100f);
-    }
-
-    private int CurrentAbsoluteDay => Mathf.Max(
-        0,
-        Mathf.FloorToInt(gameClock.Time / GameCalendarRules.SecondsPerDay));
+    private int CurrentAbsoluteDay => gameCalendar.Day;
 }

@@ -9,13 +9,15 @@ public sealed class DefenseFeatureCommandService : IDefenseFeatureCommandService
     private readonly IBuildingWorldQuery buildingWorld;
     private readonly IDefenseFacilityRuntime defenseFacilities;
     private readonly IDefenseUiTextQuery text;
+    private readonly IInvasionOwnerEvacuationService residentEvacuation;
 
     public DefenseFeatureCommandService(
         IDefenseResponsePolicyRuntime policyRuntime,
         ICharacterWorldQuery characterWorld,
         IBuildingWorldQuery buildingWorld,
         IDefenseFacilityRuntime defenseFacilities,
-        IDefenseUiTextQuery text)
+        IDefenseUiTextQuery text,
+        IInvasionOwnerEvacuationService residentEvacuation)
     {
         this.policyRuntime = policyRuntime
             ?? throw new ArgumentNullException(nameof(policyRuntime));
@@ -26,6 +28,8 @@ public sealed class DefenseFeatureCommandService : IDefenseFeatureCommandService
         this.defenseFacilities = defenseFacilities
             ?? throw new ArgumentNullException(nameof(defenseFacilities));
         this.text = text ?? throw new ArgumentNullException(nameof(text));
+        this.residentEvacuation = residentEvacuation
+            ?? throw new ArgumentNullException(nameof(residentEvacuation));
     }
 
     public DefenseFeatureCommandResult ToggleAutoResponse(string policyId)
@@ -159,7 +163,8 @@ public sealed class DefenseFeatureCommandService : IDefenseFeatureCommandService
             defenseFacilities.GetSnapshot(facility);
         bool succeeded;
         DomainFailure failure;
-        if (snapshot.OperationalState == DefenseFacilityOperationalState.Jammed)
+        if (snapshot.OperationalState == DefenseFacilityOperationalState.Jammed
+            || snapshot.HasPendingMaintenance)
         {
             succeeded = defenseFacilities.TryClearJam(
                 facility,
@@ -177,6 +182,17 @@ public sealed class DefenseFeatureCommandService : IDefenseFeatureCommandService
             succeeded
                 ? text.Get("FacilityServiceRequested")
                 : text.Get(failure));
+    }
+
+    public DefenseFeatureCommandResult RequestResidentEvacuation()
+    {
+        bool succeeded = residentEvacuation.TryRequestResidentEvacuation(
+            out string failureReason);
+        return new DefenseFeatureCommandResult(
+            succeeded,
+            succeeded
+                ? "주민 대피 명령을 전달했습니다."
+                : failureReason);
     }
 
     private DefenseFacility FindFacility(int runtimeId)

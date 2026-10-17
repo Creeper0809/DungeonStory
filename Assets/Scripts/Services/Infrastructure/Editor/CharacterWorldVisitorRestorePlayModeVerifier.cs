@@ -486,7 +486,7 @@ public sealed class CharacterWorldVisitorRestorePlayModeRunner : MonoBehaviour
             FindFirstObjectByType<DungeonStoryGridBuildingController>(
                 FindObjectsInactive.Include);
         BuildingSO definition = Resources.Load<BuildingSO>(
-            "SO/Building/P1/P1_GeneralStore");
+            "SO/Building/Modular/S01_판매카운터");
         if (controller == null || definition == null || grid == null)
         {
             detail = "production shop prerequisites missing";

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "capturedBeforeEvolutionEdits": "2026-09-18",
+  "files": [
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Environment/CharacterApparelRuntime.cs",
+      "sha256": "f59d6684c4570e0e797d9b9a4e34fec702df7610a99c5055f3b6fc91b969dfd7",
+      "preexistingStatus": "modified",
+      "preexistingDiffNumstat": "1336 additions, 9 deletions"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitSpecialReaction.cs",
+      "sha256": "d8380130ac1e2a413c3f4f6b499597a574eaa98e16e652b3b7e5c406ec80f8b7",
+      "preexistingStatus": "untracked"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/MemoryErasureSealTransactionService.cs",
+      "sha256": "55f495096d2c99aba168d4bcbaee94f310e92db6f930a8ebe6be55b56d884e56",
+      "preexistingStatus": "untracked"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/Core/MemoryErasureSealCommandService.cs",
+      "sha256": "b6476fdb8d2b862e2de1edd390f53c48573008ca2723fe2f17bb1a53ab7d8dd9",
+      "preexistingStatus": "untracked"
+    },
+    {
+      "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRuntime.cs",
+      "sha256": "d61ec3d21b7802d02c0a596ad8b6a3fb3cc8255c2ec0092926929d511ee1abbd",
+      "preexistingStatus": "modified",
+      "preexistingDiffNumstat": "334 additions, 5 deletions"
+    },
+    {
+      "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionService.cs",
+      "sha256": "b4027aa5f88e36bbf6a6591e394b789b9e484cd4c9be8a5c69686c580f897b38",
+      "preexistingStatus": "modified",
+      "editedByThisPhase": false
+    }
+  ],
+  "prohibitedOwnerFilesEdited": false,
+  "checkoutOrResetUsed": false
+}

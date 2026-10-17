@@ -26,12 +26,23 @@ public sealed class PhysicalItemRestoreCandidateDispositionSnapshot
         Quantity = quantity;
         InputMassGrams = inputMassGrams;
         CommitId = commitId;
+        PublicationKey = string.Empty;
+        PublicationId = string.Empty;
+        PublicationFingerprint = string.Empty;
     }
 
     public PhysicalItemRestoreCandidateDispositionSnapshot(PhysicalItemBatchDispositionSaveData source)
         : this((PhysicalItemDispositionKind)(source ?? throw new ArgumentNullException(nameof(source))).kind,
             source.operationId, source.reasonCode, source.requestFingerprint,
-            source.sourceStackIds, source.quantity, source.inputMassGrams, source.commitId) { }
+            source.sourceStackIds, source.quantity, source.inputMassGrams, source.commitId)
+    {
+        OwnerRevision = source.ownerRevision;
+        PublicationExpected = source.publicationExpected;
+        PublicationKey = source.publicationKey;
+        PublicationId = source.publicationId;
+        PublicationFingerprint = source.publicationFingerprint;
+        PublicationDelivered = source.publicationDelivered;
+    }
 
     public PhysicalItemDispositionKind Kind { get; }
     public string OperationId { get; }
@@ -41,6 +52,12 @@ public sealed class PhysicalItemRestoreCandidateDispositionSnapshot
     public int Quantity { get; }
     public long InputMassGrams { get; }
     public string CommitId { get; }
+    public long OwnerRevision { get; }
+    public bool PublicationExpected { get; }
+    public string PublicationKey { get; }
+    public string PublicationId { get; }
+    public string PublicationFingerprint { get; }
+    public bool PublicationDelivered { get; }
 }
 
 public interface IPhysicalItemRestoreCandidateQuery
@@ -48,6 +65,52 @@ public interface IPhysicalItemRestoreCandidateQuery
     bool IsCandidateAvailable { get; }
     IReadOnlyList<PhysicalItemRestoreCandidateDispositionSnapshot> PendingBatchDispositions { get; }
     bool TryGetPendingBatchDisposition(string operationId, out PhysicalItemRestoreCandidateDispositionSnapshot disposition);
+}
+
+/// <summary>
+/// Read-only exact-instance projection over the detached physical-item restore
+/// candidate. Cross-aggregate restore joins use this instead of live stock.
+/// </summary>
+public sealed class PhysicalItemRestoreCandidateStackSnapshot
+{
+    public PhysicalItemRestoreCandidateStackSnapshot(
+        string stackId,
+        ItemInstanceId itemInstanceId,
+        string itemId,
+        int quantity,
+        WorldItemStackState state,
+        Vector2Int position,
+        string destinationId,
+        bool forbidden)
+    {
+        StackId = stackId ?? string.Empty;
+        ItemInstanceId = itemInstanceId;
+        ItemId = itemId ?? string.Empty;
+        Quantity = quantity;
+        State = state;
+        Position = position;
+        DestinationId = destinationId ?? string.Empty;
+        Forbidden = forbidden;
+    }
+
+    public string StackId { get; }
+    public ItemInstanceId ItemInstanceId { get; }
+    public string ItemId { get; }
+    public int Quantity { get; }
+    public WorldItemStackState State { get; }
+    public Vector2Int Position { get; }
+    public string DestinationId { get; }
+    public bool Forbidden { get; }
+}
+
+public interface IPhysicalItemRestoreCandidateStackQuery
+{
+    bool IsCandidateAvailable { get; }
+    bool TryGetStack(
+        ItemInstanceId itemInstanceId,
+        out PhysicalItemRestoreCandidateStackSnapshot stack);
+    bool TryGetStackById(string stackId,
+        out PhysicalItemRestoreCandidateStackSnapshot stack);
 }
 
 /// <summary>
@@ -246,6 +309,9 @@ public interface IFacilityBufferPlannedOutputRestoreCandidateQuery
 public interface IFacilityBufferAcknowledgedOutputRestoreCandidateQuery
 {
     bool IsCandidateAvailable { get; }
+    // Intact exact vectors only. Released/split/consumed provenance remains on
+    // physical items as history, not as a reconstructable producer lease.
+    // A retained owner must reject an absent batch; it must not recreate it.
     IReadOnlyList<FacilityBufferPlannedOutputRestoreBatchSnapshot> Batches { get; }
     bool TryGetBatch(
         string batchCommitId,

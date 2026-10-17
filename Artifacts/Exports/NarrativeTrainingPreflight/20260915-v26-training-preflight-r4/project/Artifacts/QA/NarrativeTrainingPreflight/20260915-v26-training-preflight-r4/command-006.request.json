@@ -1,0 +1,15 @@
+{
+  "arguments": [
+    "C:\\Users\\vulpo\\AppData\\Local\\Microsoft\\WindowsApps\\unity.EXE",
+    "command",
+    "eval",
+    "--project-path",
+    "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory",
+    "--format",
+    "json",
+    "--detach",
+    "--code",
+    "var r = NarrativeMechanicCatalogExporter.CompareIndependentExports(\n            () => new NarrativeMechanicCatalogUnityAssetSource()); r.RequireByteIdentical();\n            return new { passed = r.IsByteIdentical, firstInputDigest = r.FirstInputDigest,\n                secondInputDigest = r.SecondInputDigest, byteCount = r.FirstBytes.Length,\n                firstSha256 = NarrativeMechanicCatalogCanonicalJson.Sha256Prefixed(r.FirstBytes),\n                secondSha256 = NarrativeMechanicCatalogCanonicalJson.Sha256Prefixed(r.SecondBytes) };"
+  ],
+  "cwd": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory"
+}

@@ -26,6 +26,10 @@ public interface IAnatomyHealthRuntime
         string nodeId,
         float health,
         float infectionReduction);
+    bool TryStopBleeding(
+        CharacterActor actor,
+        string nodeId,
+        out DomainFailure failure);
     PartRecoveryPolicy GetRecoveryPolicy(
         CharacterActor actor,
         string nodeId);
@@ -49,13 +53,20 @@ public interface IAnatomyHealthRuntime
         string partInstanceId,
         SurgicalPartKind partKind,
         float efficiency,
+        float restoredCurrentHealth,
+        bool preserveRestoredHealth,
         out DomainFailure failure);
     bool TryReplaceNodePart(
         CharacterActor actor,
         string nodeId,
+        string expectedPartInstanceId,
+        float expectedCurrentHealth,
+        float expectedMaxHealth,
         string partInstanceId,
         SurgicalPartKind partKind,
         float efficiency,
+        float restoredCurrentHealth,
+        bool preserveRestoredHealth,
         out AnatomyNodeHealthState replacedNode,
         out DomainFailure failure);
     bool TryAddNodeBurden(
@@ -82,6 +93,10 @@ public interface IWildlifeAnatomyHealthRuntime
         string nodeId,
         float health,
         float infectionReduction);
+    bool TryStopBleeding(
+        WildlifeActor actor,
+        string nodeId,
+        out DomainFailure failure);
     bool TryRemoveNode(
         WildlifeActor actor,
         string nodeId,

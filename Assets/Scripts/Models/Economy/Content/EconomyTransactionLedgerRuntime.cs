@@ -50,6 +50,9 @@ public sealed class TreasuryEconomyAggregateState
     public List<AutoProcurementRule> StockRules { get; } = new();
     public List<ProcurementWishlistRule> WishlistRules { get; } = new();
     public List<AutoProcurementResult> ProcurementResults { get; } = new();
+    public List<AutoProcurementParentSaveData> ProcurementParents { get; } = new();
+    public AutoProcurementPendingFactSaveData ProcurementPendingFact { get; set; }
+    public StockSupplyFactSaveData WarehouseSupply { get; set; } = new();
     public HashSet<string> ProcessedOfferKeys { get; } =
         new(StringComparer.Ordinal);
     public int DailyBudget { get; set; } = 500;
@@ -99,16 +102,11 @@ public sealed class TreasuryEconomyAggregateState
         copy.StockRules.AddRange(StockRules.Select(rule => rule.Clone()));
         copy.WishlistRules.AddRange(WishlistRules.Select(rule => rule.Clone()));
         copy.ProcurementResults.AddRange(ProcurementResults.Select(result =>
-            new AutoProcurementResult
-            {
-                day = result.day,
-                ruleId = result.ruleId,
-                itemLabel = result.itemLabel,
-                quantity = result.quantity,
-                cost = result.cost,
-                purchased = result.purchased,
-                reason = result.reason
-            }));
+            result.Clone()));
+        copy.ProcurementParents.AddRange(ProcurementParents.Select(value =>
+            value.Clone()));
+        copy.ProcurementPendingFact = ProcurementPendingFact?.Clone();
+        copy.WarehouseSupply = StockSupplyFactSaveData.ValidateAndClone(WarehouseSupply);
         copy.ProcessedOfferKeys.UnionWith(ProcessedOfferKeys);
         foreach (KeyValuePair<string, OverclockState> pair in OverclockStates)
             copy.OverclockStates.Add(pair.Key, pair.Value.Clone());
@@ -126,6 +124,17 @@ public sealed class TreasuryEconomyAggregateState
 public sealed class TreasuryEconomyAggregateStateStore
 {
     private readonly DungeonRuntimeAggregateRootStore rootStore;
+    public bool StockSupplyInFlight { get; private set; }
+    public void BeginStockSupply()
+    {
+        AssertStockSupplyIdle();
+        StockSupplyInFlight = true;
+    }
+    public void EndStockSupply() => StockSupplyInFlight = false;
+    public void AssertStockSupplyIdle()
+    {
+        if (StockSupplyInFlight) throw new InvalidOperationException("stock-supply-command-active");
+    }
 
     public TreasuryEconomyAggregateStateStore(
         DungeonRuntimeAggregateRootStore rootStore)

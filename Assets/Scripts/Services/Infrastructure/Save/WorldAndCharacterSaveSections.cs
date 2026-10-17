@@ -45,6 +45,9 @@ public sealed class ModularFacilityWorldSaveSection :
         return worldSaveService.CreateSnapshot(ResolveWorld());
     }
 
+    protected override void ValidateRawPayload(string payloadJson) =>
+        ModularFacilityWorldSaveCodec.ValidateSpatialPublicationJson(payloadJson);
+
     protected override void NormalizeRestorePayload(
         ModularFacilityWorldSaveData payload,
         DungeonGameRestoreReport report) =>
@@ -103,7 +106,7 @@ public sealed class CharacterWorldSaveSection :
     IDungeonRollbackFreeSaveSection
 {
     public const string Id = "characters.world";
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 10;
 
     private readonly ICharacterWorldSaveService saveService;
     private readonly IGridSystemProvider gridSystemProvider;
@@ -138,6 +141,71 @@ public sealed class CharacterWorldSaveSection :
     protected override DungeonCharacterWorldSaveData CapturePayload()
     {
         return saveService.Capture(ResolveGrid());
+    }
+
+    protected override string SerializePayload(DungeonCharacterWorldSaveData payload) =>
+        DungeonCharacterWorldSaveCodec.Serialize(payload);
+
+    protected override void ValidateRawPayload(string payloadJson)
+    {
+        ValidateRetailPurchaseJson(payloadJson);
+        DungeonStrictJsonShape.RequireObjectArrayNonNegativeInt64Fields(
+            SectionId, payloadJson, "actors", "lifecycleRevision");
+        var actors = (Newtonsoft.Json.Linq.JArray)Newtonsoft.Json.Linq.JObject.Parse(payloadJson)["actors"];
+        foreach (var actor in actors)
+        {
+            var rest = actor["restObservation"];
+            if (rest == null) throw new InvalidOperationException("characters.world rest observation presence is missing.");
+            if (rest.Type != Newtonsoft.Json.Linq.JTokenType.Null)
+                ValidateRestShape(rest, typeof(CharacterRestObservationSaveData));
+            var last = actor["growth"]?["useLimits"]?["lastSkillActivation"];
+            if (last is Newtonsoft.Json.Linq.JObject value
+                && value["observationPending"]?.Type != Newtonsoft.Json.Linq.JTokenType.Boolean)
+                throw new InvalidOperationException("characters.world skill observation presence is missing.");
+        }
+        var root = Newtonsoft.Json.Linq.JObject.Parse(payloadJson);
+        if (root["populationProfiles"] is not Newtonsoft.Json.Linq.JArray profiles)
+            throw new InvalidOperationException("characters.world population profiles missing.");
+        foreach (var profile in profiles)
+        {
+            if (profile["nextVisitorExitSequence"]?.Type != Newtonsoft.Json.Linq.JTokenType.Integer)
+                throw new InvalidOperationException("characters.world visitor exit sequence missing.");
+            ValidateRestShape(profile["visitorExitOperation"], typeof(CharacterVisitorExitOperationSaveData));
+        }
+    }
+
+    private static void ValidateRestShape(Newtonsoft.Json.Linq.JToken token, Type type)
+    {
+        if (type == typeof(CharacterEventContext) && token?.Type == Newtonsoft.Json.Linq.JTokenType.Null) return;
+        bool valid;
+        if (type == typeof(string)) valid = token?.Type == Newtonsoft.Json.Linq.JTokenType.String;
+        else if (type == typeof(bool)) valid = token?.Type == Newtonsoft.Json.Linq.JTokenType.Boolean;
+        else if (type == typeof(float) || type == typeof(double)) valid = token?.Type is Newtonsoft.Json.Linq.JTokenType.Float or Newtonsoft.Json.Linq.JTokenType.Integer;
+        else if (type == typeof(int) || type == typeof(long) || type.IsEnum) valid = token?.Type == Newtonsoft.Json.Linq.JTokenType.Integer;
+        else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
+        {
+            if (token is not Newtonsoft.Json.Linq.JArray values) throw new InvalidOperationException("rest-json-list-missing");
+            foreach (var value in values) ValidateRestShape(value, type.GetGenericArguments()[0]);
+            return;
+        }
+        else
+        {
+            if (token is not Newtonsoft.Json.Linq.JObject value) throw new InvalidOperationException("rest-json-object-missing");
+            foreach (var field in type.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+                ValidateRestShape(value[field.Name], field.FieldType);
+            return;
+        }
+        if (!valid) throw new InvalidOperationException("rest-json-field-invalid:" + type.Name);
+    }
+
+    public static void ValidateRetailPurchaseJson(string json)
+    {
+        var root = Newtonsoft.Json.Linq.JObject.Parse(json, new Newtonsoft.Json.Linq.JsonLoadSettings
+        { DuplicatePropertyNameHandling = Newtonsoft.Json.Linq.DuplicatePropertyNameHandling.Error });
+        if (root["actors"] is not Newtonsoft.Json.Linq.JArray actors)
+            throw new InvalidOperationException("characters.world actors missing.");
+        foreach (var actor in actors)
+            ValidateRestShape(actor["pendingRetailPurchases"], typeof(List<RetailPurchaseRecoverySaveData>));
     }
 
     protected override void NormalizeRestorePayload(

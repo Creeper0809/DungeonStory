@@ -467,10 +467,12 @@ namespace DungeonStory.Buildings
         public bool TryTakeExactLot(
             int saleItemId,
             out RetailStockLotSnapshot taken,
+            out string unitOperationId,
             out string failureReason)
         {
             EnsureInitialized();
             taken = null;
+            unitOperationId = string.Empty;
             failureReason = string.Empty;
             RetailStockLotSnapshot source = lots
                 .Where(lot => lot != null
@@ -487,6 +489,8 @@ namespace DungeonStory.Buildings
 
             taken = source.Clone();
             taken.quantity = 1;
+            unitOperationId =
+                $"retail-unit:{source.sourceOperationId}:ordinal:{source.quantity:D10}";
             source.quantity--;
             if (source.quantity <= 0)
             {

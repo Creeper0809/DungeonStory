@@ -1,0 +1,59 @@
+{
+  "status": "TARGETING_SESSION_IMPLEMENTED_PURE_AND_LIMITED_ABI_VERIFIED_UNITY_DEFERRED",
+  "goalStatus": "active",
+  "completedTargets": 6,
+  "totalTargets": 32,
+  "allGoalTargetsComplete": false,
+  "sourcePin": {
+    "path": "source-pin-c1-targeting-r1.json",
+    "files": 940,
+    "drift": 0
+  },
+  "toolPin": {
+    "path": "tool-pin-c1-targeting-r1.json",
+    "files": 9,
+    "drift": 0
+  },
+  "allowedOldDrift": [
+    "Assets/Scripts/Controllers/Character/Input/OwnerCommandController.cs"
+  ],
+  "window": "All authors READY/FROZEN; SOURCE_EDIT closed; UNITY_VERIFY not opened",
+  "parity": {
+    "existingPublicMethods": 18,
+    "unchangedDomainMethods": 30,
+    "serialized/interface/base/combatDispatch/drag/info": "PASS"
+  },
+  "pureLifetime": {
+    "status": "PASS",
+    "cases": 15,
+    "scope": "Actual targeting+selection logic with explicit actor/enum/nameplate/Application collaborators. No Unity destroyed-object equality, gameplay, actual input/UI, activation or persistence."
+  },
+  "limitedProductionCompilation": {
+    "status": "PASS",
+    "sourceFiles": 3,
+    "references": 47,
+    "warnings": [
+      "CS0649 targetCamera serialized Inspector field"
+    ],
+    "scope": "Current controller/selection+drag+info/targeting production source, pinned cached production ABI, existing friend access. Full current Unity compilation/Editor import/ILPP/runtime NOT RUN."
+  },
+  "EditorFixture": "PlayerSelected+Single real transaction wired to full/focused and dedicated focused entry; current whole fixture compilation/execution pending. External cached internal helper probe incomplete; no access widening. Controlled completion, not live raycast/UI.",
+  "syntax": {
+    "files": 131,
+    "errors": 0
+  },
+  "independentReview": "One immediate-rejection stale-intent finding resolved; narrow recheck no additional confirmed defect; read-only",
+  "newMeta": {
+    "path": "Assets/Scripts/Controllers/Character/Input/OwnerCommandTargetingSession.cs.meta",
+    "guid": "0f9c61c7ed4f4a1f9e4e547083eace2f",
+    "occurrences": 1,
+    "assembly": "Assembly-CSharp"
+  },
+  "knowledgeBase": "Pre-C1 narrow OwnerCommandController query stale166/exit1; original-source fallback; related index batch remains open",
+  "Unity": "NOT_RUN",
+  "remaining": "Full current Unity compile/import/ILPP; targeted real activation/cancel/retry and input/raycast/UI; all previous required actual checks and other conditional targets",
+  "reportLocalLinks": 612,
+  "missingLinks": 0,
+  "committedOrPushed": false,
+  "executionPolicy": "User continue code cleanup; no same-RAM Unity retry, other-app or desktop-input action"
+}

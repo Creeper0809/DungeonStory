@@ -443,7 +443,7 @@ public static class CharacterAiFeatureQaRuntimeProbe
             InvokePrivateLlmResult(
                 actor.PersonaRuntime,
                 "OnPersonaResult",
-                "{\"traitName\":\"QA Curious\",\"flavorText\":\"Checks every corner.\",\"selfCareMultiplier\":1.1,\"curiosityMultiplier\":1.4,\"shoppingMultiplier\":1.2,\"patienceMultiplier\":0.9,\"hungerCurveMultiplier\":1.0,\"funCurveMultiplier\":1.1,\"moodCurveMultiplier\":1.0,\"preferredFacilityTags\":[\"Meal\",\"Rest\"]}");
+                "{\"personaName\":\"QA Curious\",\"flavorText\":\"Checks every corner.\"}");
             personaApplied = actor.PersonaRuntime != null && actor.PersonaRuntime.HasGeneratedPersona;
 
             moodRequested = director != null && director.RequestMoodImpulse(actor);
@@ -813,8 +813,8 @@ public static class CharacterAiFeatureQaRuntimeProbe
             return false;
         }
 
-        FieldInfo dutyControllerField = typeof(AbilityWork).GetField(
-            "dutyController",
+        PropertyInfo dutyControllerField = typeof(AbilityWork).GetProperty(
+            "DutyController",
             BindingFlags.Instance | BindingFlags.NonPublic);
         object dutyController = dutyControllerField?.GetValue(work);
         if (dutyController == null)

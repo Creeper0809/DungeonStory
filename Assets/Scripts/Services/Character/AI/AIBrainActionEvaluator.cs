@@ -106,6 +106,38 @@ internal sealed class AIBrainActionEvaluator
             clock.Time + Math.Max(0.1f, durationSeconds);
     }
 
+    public bool TryGetCooldownExpiry(
+        AIActionSet actionSet,
+        BuildableObject destination,
+        out float expiresAt)
+    {
+        expiresAt = 0f;
+        if (actionSet == null)
+        {
+            return false;
+        }
+
+        bool found = cooldownUntil.TryGetValue(actionSet, out float actionUntil)
+            && clock.Time < actionUntil;
+        if (found)
+        {
+            expiresAt = actionUntil;
+        }
+
+        if (!ReferenceEquals(destination, null)
+            && destinationCooldownUntil.TryGetValue(
+                (actionSet, destination.GetInstanceID()),
+                out float destinationUntil)
+            && clock.Time < destinationUntil
+            && (!found || destinationUntil > expiresAt))
+        {
+            expiresAt = destinationUntil;
+            found = true;
+        }
+
+        return found;
+    }
+
     public bool TryEvaluate(
         CharacterActor actor,
         AIAction action,

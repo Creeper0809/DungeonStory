@@ -1,0 +1,21 @@
+{
+  "catalogHash": "sha256:38706406b7a4192ff8408d34a44c507a4b94ae308da9a82cceb3feb42545bd25",
+  "checks": [
+    {
+      "byteCount": 221144,
+      "file": "catalog.json",
+      "matched": true,
+      "sha256": "sha256:d2b616c9022a44af8070f66949eeeec5f2f5f16d1aafac9ffc5f61eb55272f81"
+    },
+    {
+      "byteCount": 37337,
+      "file": "packet_parity_cases.json",
+      "matched": true,
+      "sha256": "sha256:6dfa39285bb213444d8ec44f29c7e8ac4f989877447f199c120f0620551c718e"
+    }
+  ],
+  "humanApprovalClaimed": false,
+  "inputDigest": "sha256:a59bf71fb10cdb4e643f073cfe2eb95c918645107666ae8e5b1af4843e51f79d",
+  "passed": true,
+  "scope": "Actual Unity canonical full catalog and parity bytes vs Python stdlib canonical encoding"
+}

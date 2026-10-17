@@ -3,6 +3,7 @@ using System;
 public enum CharacterActionIntentKind
 {
     None = 0,
+    Festival = 50,
     RoutineNeed = 100,
     // Emergency self-care is ordered by physical harm risk so a hygiene or
     // bladder action cannot keep ownership while hunger/thirst is already

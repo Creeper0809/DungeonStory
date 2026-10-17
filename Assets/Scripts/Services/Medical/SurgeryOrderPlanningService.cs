@@ -12,6 +12,8 @@ internal sealed class SurgeryOrderPlanningService
     private readonly SurgeryContentServices content;
     private readonly SurgeryWorldServices world;
     private readonly SurgeryResourceServices resources;
+    private readonly IReadOnlyDictionary<Type, ISurgicalProcedureEffectHandler>
+        effectHandlers;
 
     public SurgeryOrderPlanningService(
         SurgeryContentServices content,
@@ -21,14 +23,13 @@ internal sealed class SurgeryOrderPlanningService
         this.content = content ?? throw new ArgumentNullException(nameof(content));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
+        effectHandlers = SurgeryRuntimeSupport.BuildEffectIndex(content.Effects);
     }
 
     public bool RequiresInstalledPart(SurgicalProcedureSO procedure)
     {
-        return procedure?.Kind is SurgicalProcedureKind.TransplantOrgan
-            or SurgicalProcedureKind.InstallProsthetic
-            or SurgicalProcedureKind.InstallImplant
-            or SurgicalProcedureKind.ArcaneModification;
+        return procedure != null
+            && procedure.TryGetInstallationEffect(out _);
     }
 
     public bool ValidateSelectedPart(
@@ -46,38 +47,39 @@ internal sealed class SurgeryOrderPlanningService
             return false;
         }
 
-        bool kindMatches = procedure.Kind switch
+        if (!procedure.TryGetInstallationEffect(
+                out InstallSurgicalPartEffect installation))
         {
-            SurgicalProcedureKind.TransplantOrgan => part.kind == SurgicalPartKind.NaturalOrgan,
-            SurgicalProcedureKind.InstallProsthetic => part.kind == SurgicalPartKind.Prosthetic,
-            SurgicalProcedureKind.InstallImplant => part.kind == SurgicalPartKind.Implant,
-            SurgicalProcedureKind.ArcaneModification =>
-                part.kind == SurgicalPartKind.ArcaneGraft
-                || part.kind == SurgicalPartKind.Implant,
-            _ => true
-        };
-        if (!kindMatches)
+            failure = new DomainFailure(FailureCode.SurgeryPartUnavailable);
+            return false;
+        }
+
+        if (part.kind != installation.partKind)
         {
             failure = new DomainFailure(FailureCode.SurgeryPartKindMismatch);
+            return false;
+        }
+
+        string requiredItemId = installation.requiredItemDefinitionId?.Trim()
+            ?? string.Empty;
+        if (requiredItemId.Length > 0
+            && !string.Equals(
+                part.itemDefinitionId,
+                requiredItemId,
+                StringComparison.Ordinal))
+        {
+            failure = new DomainFailure(FailureCode.SurgeryPartUnavailable);
             return false;
         }
 
         string target = string.IsNullOrWhiteSpace(targetNodeId)
             ? procedure.TargetNodeId
             : targetNodeId.Trim();
-        if (string.Equals(part.nodeId, target, StringComparison.Ordinal))
-        {
-            return true;
-        }
-
         AnatomyProfileDefinition recipient = content.AnatomyProfiles.GetForSpecies(subject?.speciesId);
-        if (recipient.TryGetNode(target, out AnatomyNodeDefinition targetNode)
-            && recipient.TryGetNode(part.nodeId, out AnatomyNodeDefinition partNode)
-            && !string.IsNullOrWhiteSpace(targetNode.PairedGroupId)
-            && string.Equals(
-                targetNode.PairedGroupId,
-                partNode.PairedGroupId,
-                StringComparison.Ordinal))
+        if (SurgicalPartAnatomyCompatibility.IsCompatible(
+                recipient,
+                part.nodeId,
+                target))
         {
             return true;
         }
@@ -93,6 +95,13 @@ internal sealed class SurgeryOrderPlanningService
         out DomainFailure failure)
     {
         failure = DomainFailure.None;
+        if (subject == null || procedure == null)
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryFacilityOrProcedureMissing);
+            return false;
+        }
+
         bool corpse = subject.kind is SurgicalSubjectKind.HumanoidCorpse
             or SurgicalSubjectKind.WildlifeCorpse;
         if (corpse && !procedure.AllowsCorpseSubject
@@ -106,11 +115,16 @@ internal sealed class SurgeryOrderPlanningService
             return false;
         }
 
-        AnatomyProfileDefinition profile =
-            !string.IsNullOrWhiteSpace(subject.anatomyProfileId)
-            && content.AnatomyProfiles.TryGet(subject.anatomyProfileId, out AnatomyProfileDefinition explicitProfile)
-                ? explicitProfile
-                : content.AnatomyProfiles.GetForSpecies(subject.speciesId);
+        if (!TryResolveSubjectProfile(
+                subject,
+                corpse,
+                out string resolvedSpeciesId,
+                out AnatomyProfileDefinition profile,
+                out failure))
+        {
+            return false;
+        }
+
         string family = profile?.AnatomyFamily ?? string.Empty;
         if (procedure.AllowedAnatomyFamilies.Count > 0
             && !procedure.AllowedAnatomyFamilies.Any(value => string.Equals(
@@ -127,12 +141,12 @@ internal sealed class SurgeryOrderPlanningService
         if (procedure.AllowedSpeciesIds.Count > 0
             && !procedure.AllowedSpeciesIds.Any(value => string.Equals(
                 value,
-                subject.speciesId,
+                resolvedSpeciesId,
                 StringComparison.OrdinalIgnoreCase)))
         {
             failure = new DomainFailure(
                 FailureCode.SurgerySpeciesUnsupported,
-                subject.speciesId);
+                resolvedSpeciesId);
             return false;
         }
 
@@ -152,15 +166,171 @@ internal sealed class SurgeryOrderPlanningService
             : targetNodeId.Trim();
         if (string.IsNullOrWhiteSpace(nodeId))
         {
+            if (procedure.IsWholeCharacterTreatment)
+            {
+                return ValidateEffects(
+                    subject,
+                    procedure,
+                    string.Empty,
+                    out failure);
+            }
+
             failure = new DomainFailure(FailureCode.SurgeryTargetNodeMissing);
             return false;
         }
 
-        return corpse
+        bool subjectValid = corpse
             ? ValidateCorpse(subject, nodeId, out failure)
             : subject.kind == SurgicalSubjectKind.Character
                 ? ValidateCharacter(subject, nodeId, out failure)
                 : ValidateWildlife(subject, nodeId, out failure);
+        return subjectValid
+            && ValidateEffects(subject, procedure, nodeId, out failure);
+    }
+
+    private bool TryResolveSubjectProfile(
+        SurgicalSubjectRef subject,
+        bool corpse,
+        out string resolvedSpeciesId,
+        out AnatomyProfileDefinition profile,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        resolvedSpeciesId = subject.speciesId?.Trim() ?? string.Empty;
+        profile = null;
+        if (corpse)
+        {
+            profile = !string.IsNullOrWhiteSpace(subject.anatomyProfileId)
+                && content.AnatomyProfiles.TryGet(
+                    subject.anatomyProfileId,
+                    out AnatomyProfileDefinition explicitProfile)
+                    ? explicitProfile
+                    : content.AnatomyProfiles.GetForSpecies(resolvedSpeciesId);
+            return true;
+        }
+
+        string runtimeProfileId;
+        if (subject.kind == SurgicalSubjectKind.Character)
+        {
+            CharacterActor actor = SurgicalSubjectResolver.FindCharacter(
+                world.Characters,
+                subject.subjectId);
+            if (actor == null || actor.IsDead)
+            {
+                failure = new DomainFailure(
+                    FailureCode.SurgeryLivingSubjectUnavailable,
+                    subject.subjectId);
+                return false;
+            }
+
+            string actualSpeciesId = actor.Identity?.SpeciesTag?.Trim()
+                ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(actualSpeciesId)
+                || !string.Equals(
+                    resolvedSpeciesId,
+                    actualSpeciesId,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                failure = new DomainFailure(
+                    FailureCode.SurgerySpeciesUnsupported,
+                    resolvedSpeciesId);
+                return false;
+            }
+
+            resolvedSpeciesId = actualSpeciesId;
+            runtimeProfileId = resources.Anatomy
+                .GetAnatomySnapshot(actor)
+                .ProfileId;
+        }
+        else if (subject.kind == SurgicalSubjectKind.Wildlife)
+        {
+            WildlifeActor animal = SurgicalSubjectResolver.FindWildlife(
+                world.Wildlife,
+                subject.subjectId);
+            if (animal == null || !animal.IsAlive)
+            {
+                failure = new DomainFailure(
+                    FailureCode.SurgeryWildlifeSubjectUnavailable,
+                    subject.subjectId);
+                return false;
+            }
+
+            string actualSpeciesId = animal.SpeciesId?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(actualSpeciesId)
+                || !string.Equals(
+                    resolvedSpeciesId,
+                    actualSpeciesId,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                failure = new DomainFailure(
+                    FailureCode.SurgerySpeciesUnsupported,
+                    resolvedSpeciesId);
+                return false;
+            }
+
+            resolvedSpeciesId = actualSpeciesId;
+            runtimeProfileId = resources.WildlifeAnatomy
+                .GetAnatomySnapshot(animal)
+                .ProfileId;
+        }
+        else
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgerySubjectKindUnsupported,
+                subject.kind.ToString());
+            return false;
+        }
+
+        profile = !string.IsNullOrWhiteSpace(runtimeProfileId)
+            && content.AnatomyProfiles.TryGet(
+                runtimeProfileId,
+                out AnatomyProfileDefinition runtimeProfile)
+                ? runtimeProfile
+                : content.AnatomyProfiles.GetForSpecies(resolvedSpeciesId);
+        return true;
+    }
+
+    public bool ValidateEffects(
+        SurgicalSubjectRef subject,
+        SurgicalProcedureSO procedure,
+        string targetNodeId,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (subject == null || procedure == null)
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryFacilityOrProcedureMissing);
+            return false;
+        }
+
+        SurgeryOrder eligibilityOrder = new()
+        {
+            procedureId = procedure.ProcedureId,
+            subject = subject,
+            targetNodeId = targetNodeId?.Trim() ?? string.Empty
+        };
+        foreach (SurgicalProcedureEffect effect in
+                 procedure.Effects ?? Array.Empty<SurgicalProcedureEffect>())
+        {
+            if (effect == null
+                || !effectHandlers.TryGetValue(
+                    effect.GetType(),
+                    out ISurgicalProcedureEffectHandler handler))
+            {
+                failure = new DomainFailure(
+                    FailureCode.SurgeryEffectHandlerMissing,
+                    effect?.GetType().Name ?? string.Empty);
+                return false;
+            }
+
+            if (!handler.CanApply(eligibilityOrder, effect, out failure))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public bool ValidateResearch(
@@ -408,10 +578,42 @@ internal sealed class SurgeryOrderPlanningService
         string id = itemId.Trim();
         if (!merged.TryGetValue(id, out SurgicalMaterialRequirement entry))
         {
-            entry = new SurgicalMaterialRequirement { itemId = id, optional = optional };
+            entry = new SurgicalMaterialRequirement
+            {
+                itemId = id,
+                quantity = 0,
+                optional = optional
+            };
             merged.Add(id, entry);
         }
         entry.quantity += quantity;
         entry.optional &= optional;
+    }
+}
+
+internal static class SurgicalPartAnatomyCompatibility
+{
+    internal static bool IsCompatible(
+        AnatomyProfileDefinition profile,
+        string partNodeId,
+        string targetNodeId)
+    {
+        if (profile == null)
+            throw new ArgumentNullException(nameof(profile));
+
+        if (!profile.TryGetNode(targetNodeId, out AnatomyNodeDefinition targetNode)
+            || !profile.TryGetNode(partNodeId, out AnatomyNodeDefinition partNode))
+        {
+            return false;
+        }
+        return string.Equals(
+                partNodeId,
+                targetNodeId,
+                StringComparison.Ordinal)
+            || !string.IsNullOrWhiteSpace(targetNode.PairedGroupId)
+            && string.Equals(
+                targetNode.PairedGroupId,
+                partNode.PairedGroupId,
+                StringComparison.Ordinal);
     }
 }

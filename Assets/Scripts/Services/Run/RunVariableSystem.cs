@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using UnityEngine.Serialization;
 using VContainer;
@@ -9,11 +10,11 @@ using VContainer;
 public class RunVariableRuntime :
     MonoBehaviour,
     IRunVariableRuntime,
-    IRunVariableRestorePublisher
+    IRunVariableRestorePublisher,
+    IDungeonSaveRestoreCompletedHook
 {
     [FormerlySerializedAs("runSeed")]
     [SerializeField] private int initialRunSeed;
-    [SerializeField] private bool raiseAlerts = true;
 
     private IRandomStream random;
     private IRandomStreamProvider randomStreamProvider;
@@ -24,6 +25,11 @@ public class RunVariableRuntime :
     private IRunVariableDefinitionCatalog definitionCatalog;
     private IOwnerDoctrineDefinitionCatalog ownerDoctrineCatalog;
     private DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private IDomainFactPublisher facts;
+    private IDomainFactRecoveryPublisher recovery;
+    private bool publishing;
+    private long nextRecoveryTick;
+    private string recoveryFailure;
     private IDisposable invasionCandidateSubscription;
     private IDisposable invasionResolvedSubscription;
     private IDisposable operatingDayStartedSubscription;
@@ -60,8 +66,12 @@ public class RunVariableRuntime :
         IGameEventBus gameEventBus,
         IRunVariableDefinitionCatalog definitionCatalog,
         IOwnerDoctrineDefinitionCatalog ownerDoctrineCatalog,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IDomainFactPublisher facts,
+        IDomainFactRecoveryPublisher recovery)
     {
+        AssertIdle();
+        if (!ReferenceEquals(this.gameEventBus, gameEventBus)) OnDisable();
         this.ownerRunDataProvider = ownerRunDataProvider
             ?? throw new ArgumentNullException(nameof(ownerRunDataProvider));
         invasionThreat = (invasionRuntimes
@@ -81,6 +91,8 @@ public class RunVariableRuntime :
             ?? throw new ArgumentNullException(nameof(ownerDoctrineCatalog));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
         aggregateRootStore.GetOrCreate(CreateInitialAggregateState);
         SubscribeToScopedEvents();
     }
@@ -101,6 +113,7 @@ public class RunVariableRuntime :
         DungeonSurvivalPressure survivalPressure =
             DungeonSurvivalPressure.Standard)
     {
+        RequireObservationReady();
         runSeed = seed != 0 ? seed : Environment.TickCount;
         IRandomStreamProvider provider = ResolveRandomStreamProvider();
         provider.Reseed(runSeed);
@@ -108,16 +121,8 @@ public class RunVariableRuntime :
         RunStartVariableSnapshot snapshot = ResolveRunStartVariableSelector()
             .Create(runSeed, ownerData, difficulty, survivalPressure);
         state.SetStartVariables(snapshot);
-        gameEventBus.Publish(new RunStartVariablesSelectedEvent(snapshot));
-
-        if (raiseAlerts)
-        {
-            gameEventBus.RaiseAlert(
-                "런 시작 변수",
-                snapshot.ToSummaryText(),
-                EventAlertImportance.Low,
-                "런 변수");
-        }
+        PublishObserver(() => gameEventBus.Publish(new RunStartVariablesSelectedEvent(snapshot)),
+            "run-start-variables-observer");
     }
 
     public void StartRun(int seed, CharacterSO ownerData, InvasionThreatDifficulty difficulty)
@@ -131,6 +136,7 @@ public class RunVariableRuntime :
 
     public void OnTriggerEvent(OperatingDayStartedEvent eventType)
     {
+        RequireObservationReady();
         currentDay = Mathf.Max(1, eventType.day);
         EnsureRunStarted();
 
@@ -142,11 +148,33 @@ public class RunVariableRuntime :
 
     public void OnTriggerEvent(OperatingDayEndedEvent eventType)
     {
-        IReadOnlyList<ActiveRunVariable> expired = state.AdvanceOperationVariables();
-        foreach (ActiveRunVariable active in expired)
+        RequireObservationReady();
+        int completedDay = Mathf.Max(1, eventType.day);
+        if (completedDay <= aggregateState.LastOperationAdvanceDay) return;
+
+        RunVariableAggregateState preview = aggregateState.DeepClone();
+        ActiveRunVariable[] expired = preview.Variables.AdvanceOperationVariables()
+            .OrderBy(active => active.InstanceSequence).ToArray();
+        if (expired.Length == 0)
         {
-            gameEventBus.Publish(new RunVariableExpiredEvent(active.Definition));
+            state.AdvanceOperationVariables();
+            aggregateState.LastOperationAdvanceDay = completedDay;
+            currentDay = Math.Max(currentDay, completedDay);
+            return;
         }
+        RunVariableFact fact = CreateFact(RunVariableFactKind.Expired, completedDay, expired);
+        if (!ApplyObservedChange(fact, () =>
+            {
+                var actual = state.AdvanceOperationVariables().OrderBy(value => value.InstanceSequence).ToArray();
+                if (!actual.Select(value => value.InstanceSequence).SequenceEqual(expired.Select(value => value.InstanceSequence)))
+                    throw new InvalidOperationException("run-variable-expiration-preview-diverged");
+                aggregateState.LastOperationAdvanceDay = completedDay;
+                currentDay = Math.Max(currentDay, completedDay);
+            })) return;
+
+        foreach (ActiveRunVariable active in expired)
+            PublishObserver(() => gameEventBus.Publish(new RunVariableExpiredEvent(active.Definition)),
+                "run-variable-expired-observer");
     }
 
     private void OnInvasionCandidate(InvasionCandidateEvent eventType)
@@ -157,33 +185,38 @@ public class RunVariableRuntime :
 
     public void OnTriggerEvent(InvasionResolvedEvent eventType)
     {
+        RequireObservationReady();
         state.ClearInvasionVariable();
     }
 
     public ActiveRunVariable ActivateOperationVariable(string id, int day = -1, bool alert = true)
     {
+        RequireObservationReady();
         RunVariableDefinition definition = ResolveDefinitionCatalog().Get(id);
-        ActiveRunVariable active = state.ActivateOperationVariable(definition, day > 0 ? day : currentDay);
-        if (active == null)
-        {
-            return null;
-        }
+        if (definition == null || definition.category != RunVariableCategory.Operation) return null;
+        EnsureRunStarted();
+        int activationDay = day > 0 ? day : currentDay;
+        long sequence = aggregateState.NextOperationSequence;
+        long nextSequence = checked(sequence + 1L);
+        var proposed = new ActiveRunVariable(definition, activationDay, definition.activeDays, sequence);
+        RunVariableFact fact = CreateFact(RunVariableFactKind.Activated, activationDay, new[] { proposed });
+        ActiveRunVariable active = null;
+        if (!ApplyObservedChange(fact, () =>
+            {
+                active = state.ActivateOperationVariable(definition, activationDay, sequence)
+                    ?? throw new InvalidOperationException("run-variable-activation-rejected");
+                aggregateState.NextOperationSequence = nextSequence;
+                currentDay = Math.Max(currentDay, activationDay);
+            })) return null;
 
-        gameEventBus.Publish(new RunVariableActivatedEvent(active));
-        if (alert && raiseAlerts)
-        {
-            gameEventBus.RaiseAlert(
-                active.Definition.title,
-                active.Definition.ToDetailText(),
-                active.Definition.importance,
-                "운영 변수");
-        }
-
+        PublishObserver(() => gameEventBus.Publish(new RunVariableActivatedEvent(active, alert)),
+            "run-variable-activated-observer");
         return active;
     }
 
     public RunVariableDefinition SelectInvasionVariable(string id, bool alert = true)
     {
+        RequireObservationReady();
         RunVariableDefinition definition = ResolveDefinitionCatalog().Get(id);
         if (definition == null || definition.category != RunVariableCategory.Invasion)
         {
@@ -191,15 +224,8 @@ public class RunVariableRuntime :
         }
 
         state.SetInvasionVariable(definition);
-        gameEventBus.Publish(new InvasionVariableSelectedEvent(definition));
-        if (alert && raiseAlerts)
-        {
-            gameEventBus.RaiseAlert(
-                definition.title,
-                definition.ToDetailText(),
-                definition.importance,
-                "침입 변수");
-        }
+        PublishObserver(() => gameEventBus.Publish(new InvasionVariableSelectedEvent(definition, alert)),
+            "invasion-variable-selected-observer");
 
         return definition;
     }
@@ -302,15 +328,25 @@ public class RunVariableRuntime :
         PublishRestoreState(restored);
     }
 
-    public void PublishRestoreState(RunVariableAggregateState candidate) =>
-        aggregateRootStore.Replace(candidate);
+    public void PublishRestoreState(RunVariableAggregateState candidate)
+    {
+        AssertIdle();
+        aggregateRootStore.Replace(candidate ?? throw new ArgumentNullException(nameof(candidate)));
+        random = null;
+        nextRecoveryTick = 0;
+        recoveryFailure = null;
+    }
 
     public DungeonRunVariableSaveData CaptureForSave()
     {
+        AssertIdle();
         DungeonRunVariableSaveData destination = new()
         {
             runSeed = RunSeed,
-            currentDay = CurrentDay
+            currentDay = CurrentDay,
+            nextOperationSequence = aggregateState.NextOperationSequence,
+            lastOperationAdvanceDay = aggregateState.LastOperationAdvanceDay,
+            pendingObservations = aggregateState.PendingObservations.Select(value => value.Clone()).ToList()
         };
         RunStartVariableSnapshot start = State.StartVariables;
         destination.hasStartVariables = start != null;
@@ -340,7 +376,8 @@ public class RunVariableRuntime :
             {
                 definitionId = active.Definition.id,
                 startDay = active.StartDay,
-                remainingDays = active.RemainingDays
+                remainingDays = active.RemainingDays,
+                instanceSequence = active.InstanceSequence
             })
             .ToList();
         destination.invasionVariableId =
@@ -382,18 +419,22 @@ public class RunVariableRuntime :
             activeVariables.Add(new ActiveRunVariable(
                 definition,
                 saved.startDay,
-                saved.remainingDays));
+                saved.remainingDays,
+                saved.instanceSequence));
         }
 
-        RestoreRun(
-            source.runSeed,
-            source.currentDay,
-            start,
-            activeVariables,
-            source.invasionVariableId.Length == 0
-                ? null
-                : ResolveDefinitionCatalog().Require(
-                    source.invasionVariableId));
+        if (source.version != DungeonRunVariableSaveData.CurrentVersion)
+            throw new InvalidOperationException("run-variable-save-version-unsupported");
+        RunVariableSaveSection.ValidateObservationOwners(source);
+        var candidate = new RunVariableAggregateState(source.runSeed, source.currentDay)
+        {
+            NextOperationSequence = source.nextOperationSequence,
+            LastOperationAdvanceDay = source.lastOperationAdvanceDay
+        };
+        candidate.Variables.Restore(start, activeVariables,
+            source.invasionVariableId.Length == 0 ? null : ResolveDefinitionCatalog().Require(source.invasionVariableId));
+        candidate.PendingObservations.AddRange(source.pendingObservations.Select(value => value.Clone()));
+        PublishRestoreState(candidate);
     }
 
     private int NextRandomIndex(int maximum)
@@ -401,6 +442,135 @@ public class RunVariableRuntime :
         EnsureRandom();
         int safeMaximum = Mathf.Max(1, maximum);
         return random.NextInt(0, safeMaximum);
+    }
+
+    private RunVariableFact CreateFact(RunVariableFactKind kind, int day, IEnumerable<ActiveRunVariable> entries) =>
+        new(new RunVariableFactData
+        {
+            kind = kind, runSeed = runSeed, absoluteDay = day,
+            entries = entries.Select(value => new RunVariableFactEntry
+            {
+                instanceSequence = value.InstanceSequence, definitionId = value.Definition.id,
+                title = value.Definition.title, startDay = value.StartDay, remainingDays = value.RemainingDays
+            }).ToList()
+        });
+
+    private bool ApplyObservedChange(RunVariableFact fact, Action mutation)
+    {
+        AssertIdle();
+        var rollback = aggregateState.DeepClone();
+        DomainFactLease lease = default;
+        publishing = true;
+        bool accepted = false;
+        try
+        {
+            if (!facts.TryReserve(fact, out lease, out string failure))
+            {
+                Debug.LogError("run-variable-observation-reservation-rejected:" + failure);
+                return false;
+            }
+            var pending = new RunVariablePendingFactData { publicationKey = lease.PublicationKey, fact = fact.Snapshot() };
+            pending.Validate();
+            mutation();
+            aggregateState.PendingObservations.Add(pending);
+            DomainFactDelivery delivery = facts.Publish(lease, fact);
+            if (!delivery.MayBeCommitted)
+            {
+                Debug.LogError("run-variable-observation-rejected:" + delivery.Detail);
+                return false;
+            }
+            accepted = true;
+            if (delivery.Phase != DomainFactDeliveryPhase.InDoubt)
+                aggregateState.PendingObservations.Clear();
+            else
+                ReportPending(delivery.Detail);
+            return true;
+        }
+        finally
+        {
+            // Rejected preparation/commit has no durable fact and restores the complete
+            // state, including replaced variables and the operation sequence.
+            if (!accepted) aggregateRootStore.Replace(rollback);
+            try { if (lease.IsValid) facts.Cancel(lease); }
+            finally { publishing = false; }
+        }
+    }
+
+    public bool ResumePendingObservations()
+    {
+        AssertIdle();
+        if (aggregateState.PendingObservations.Count == 0) return true;
+        publishing = true;
+        try
+        {
+            var pending = aggregateState.PendingObservations.Single();
+            pending.Validate();
+            var results = new DomainFactDelivery[1];
+            bool accepted = recovery.ReplayBatch(new[]
+            {
+                DomainFactReplay.Create(pending.publicationKey, new RunVariableFact(pending.fact))
+            }, results, out string failure);
+            if (accepted && results[0].MayBeCommitted && results[0].Phase != DomainFactDeliveryPhase.InDoubt)
+            {
+                aggregateState.PendingObservations.Clear();
+                recoveryFailure = null;
+                return true;
+            }
+            ReportPending(failure ?? results[0].Detail);
+            return false;
+        }
+        catch (Exception error) when (error is not OutOfMemoryException
+            && error is not StackOverflowException && error is not AccessViolationException)
+        {
+            ReportPending(error.GetType().Name + ":" + error.Message);
+            return false;
+        }
+        finally { publishing = false; }
+    }
+
+    public void OnRestoreCompleted() => ResumePendingObservations();
+
+    private void Update()
+    {
+        if (aggregateRootStore == null || publishing || aggregateState.PendingObservations.Count == 0) return;
+        long now = System.Diagnostics.Stopwatch.GetTimestamp();
+        if (now < nextRecoveryTick) return;
+        nextRecoveryTick = now + System.Diagnostics.Stopwatch.Frequency;
+        ResumePendingObservations();
+    }
+
+    private void RequireObservationReady()
+    {
+        AssertIdle();
+        if (!ResumePendingObservations())
+            throw new InvalidOperationException("run-variable-observation-pending");
+    }
+
+    private void AssertIdle()
+    {
+        if (publishing) throw new InvalidOperationException("run-variable-observation-in-flight");
+    }
+
+    private void ReportPending(string detail)
+    {
+        if (recoveryFailure == detail) return;
+        recoveryFailure = detail;
+        Debug.LogWarning("run-variable-observation-pending:" + detail);
+    }
+
+    private static void PublishObserver(Action observer, string label)
+    {
+        try
+        {
+            observer?.Invoke();
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(label + ":" + exception.GetType().Name);
+        }
     }
 
     private void EnsureRunStarted()
@@ -489,6 +659,8 @@ public class RunVariableRuntime :
         return definitionCatalog ?? throw new InvalidOperationException(
             $"{nameof(RunVariableRuntime)} requires {nameof(IRunVariableDefinitionCatalog)} injection.");
     }
+
+    private void OnDestroy() => OnDisable();
 
     private void OnEnable()
     {

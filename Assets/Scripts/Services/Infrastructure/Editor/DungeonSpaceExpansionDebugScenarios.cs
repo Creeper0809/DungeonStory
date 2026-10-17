@@ -6,13 +6,419 @@ using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
+using DungeonStory.Narrative.Korean;
 using UnityEditor;
 using UnityEngine;
 
 public static class DungeonSpaceExpansionDebugScenarios
 {
+    private const string ExpansionObserverId =
+        "infrastructure.space-expansion-observer";
     private const string ReportPath =
         "Artifacts/QA/v27-balance-expansion-editmode.txt";
+
+    // BDC-S01: exercises the same production command used by both launch modes,
+    // then the live research-completion event and restore reconciliation hooks.
+    public static void RunOrThrow()
+    {
+        VerifyNewRunTrigger(DungeonGameplayLaunchMode.NewRun);
+        VerifyNewRunTrigger(DungeonGameplayLaunchMode.PreparedNewRun);
+        VerifyResearchParentAndRestore();
+        Debug.Log("BDC-S01 dungeon-space causal trigger scenarios PASS");
+    }
+
+    public static void RunBDCS01FromBatch()
+    {
+        const string selector = "DUNGEONSTORY_U0_BDCS01_SPACE_EXPANSION_VERIFY";
+        if (!Application.isBatchMode
+            || !string.Equals(
+                Environment.GetEnvironmentVariable(selector),
+                "1",
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "BDC-S01 requires its dedicated isolated batch selector.");
+        }
+
+        string output = Environment.GetEnvironmentVariable(
+            "DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            throw new InvalidOperationException(
+                "BDC-S01 requires a create-only audit output directory.");
+        }
+
+        string reportPath = Path.Combine(
+            Path.GetFullPath(output),
+            "dungeon-space-bdcs01-report.txt");
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath)
+            ?? throw new InvalidOperationException(
+                "BDC-S01 report directory is missing."));
+        if (File.Exists(reportPath))
+        {
+            throw new InvalidOperationException(
+                "BDC-S01 evidence is immutable: " + reportPath);
+        }
+
+        try
+        {
+            RunOrThrow();
+            using (FileStream stream = new(
+                       reportPath,
+                       FileMode.CreateNew,
+                       FileAccess.Write,
+                       FileShare.Read))
+            using (StreamWriter writer = new(stream))
+            {
+                writer.WriteLine("BDC_S01=PASS");
+                writer.WriteLine("newRun=true");
+                writer.WriteLine("preparedNewRun=true");
+                writer.WriteLine("researchProjects=3");
+                writer.WriteLine("restoreReconcile=true");
+                writer.WriteLine("sameTargetNoOp=true");
+                writer.WriteLine("exactResearchParents=true");
+                writer.WriteLine("oldSaveMigrationAdded=false");
+                writer.WriteLine("fullAuditExecuted=false");
+                writer.WriteLine("humanApprovalRecorded=false");
+                writer.WriteLine("trainingExecuted=false");
+            }
+            EditorApplication.Exit(0);
+        }
+        catch (Exception exception)
+        {
+            using (FileStream stream = new(
+                       reportPath,
+                       FileMode.CreateNew,
+                       FileAccess.Write,
+                       FileShare.Read))
+            using (StreamWriter writer = new(stream))
+            {
+                writer.WriteLine("BDC_S01=FAIL");
+                writer.WriteLine(exception.ToString());
+            }
+            Debug.LogException(exception);
+            EditorApplication.Exit(1);
+        }
+    }
+
+    private static void VerifyNewRunTrigger(DungeonGameplayLaunchMode mode)
+    {
+        Require(mode is DungeonGameplayLaunchMode.NewRun
+            or DungeonGameplayLaunchMode.PreparedNewRun,
+            "A production new-run launch mode is required.");
+        GameEventBus events = new();
+        GameplayOutcomeRegistry registry = CreateBdcRegistry();
+        GameplayOutcomeLedger ledger = new(
+            registry,
+            GameplayOutcomeBufferLimits.Default,
+            new GameplayOutcomeRunId("run:bdc-space:" + mode),
+            1L);
+        GameplayOutcomeRecorder recorder = new(ledger, registry, events);
+        DomainFactDispatcher facts = ConnectExpansionObserver(
+            registry,
+            ledger,
+            recorder);
+        TestGridAuthority grid = new(CreateInitialGrid());
+        DungeonSpaceExpansionRuntime runtime = new(
+            events, grid, grid, EditorFixedGameCalendar.Instance,
+            facts,
+            facts,
+            new EditorBlueprintResearchStateService());
+        try
+        {
+            Require(runtime.TryReconcileNewRunTierZero(
+                    out DungeonSpaceExpansionResult first,
+                    out string failure)
+                && first.Changed,
+                mode + " did not execute the production Tier-0 command: "
+                + failure);
+            RequireLayout(grid.Grid, 29, 60, new Vector2Int(17, 0));
+            GameplayResultKey key = DungeonSpaceExpansionOutcomeIds.ResultKey(
+                DungeonSpaceExpansionCatalog.TierZeroInitializationId,
+                29L);
+            Require(ledger.TryGetResultIdentity(key,
+                    out GameplayOutcomeReplayIdentity identity)
+                && ledger.TryGetExact(identity.OutcomeId,
+                    out GameplayOutcomeSnapshot outcome)
+                && outcome.outcomeTypeId
+                    == DungeonSpaceExpansionOutcomeIds.Expanded.Value
+                && outcome.participants.Any(participant => participant.roleId
+                    == DungeonSpaceExpansionOutcomeIds.InitializationRole.Value)
+                && !outcome.participants.Any(participant => participant.roleId
+                    == DungeonSpaceExpansionOutcomeIds.UnlockingResearchRole.Value)
+                && outcome.facts.Any(fact => fact.factId
+                        == DungeonSpaceExpansionOutcomeIds.TriggerFact.Value
+                    && fact.value
+                        == DungeonSpaceExpansionTrigger.NewRunInitialization
+                            .ToString())
+                && string.IsNullOrEmpty(outcome.parentRunId),
+                mode + " Tier-0 outcome was misrepresented as research.");
+            Require(runtime.TryReconcileNewRunTierZero(out var repeated,
+                    out failure)
+                && !repeated.Changed
+                && ledger.CaptureGameplayOutcomes().exactOutcomes.Count == 1,
+                mode + " same-target reconciliation created another result.");
+        }
+        finally
+        {
+            runtime.Dispose();
+            facts.Dispose();
+            events.Clear();
+        }
+    }
+
+    private static void VerifyResearchParentAndRestore()
+    {
+        ResearchProjectSO[] projects =
+        {
+            CreateBdcProject(DungeonSpaceExpansionCatalog.QuarryResearchId,
+                "채석장"),
+            CreateBdcProject(DungeonSpaceExpansionCatalog.StonecuttingResearchId,
+                "석재 가공"),
+            CreateBdcProject(DungeonSpaceExpansionCatalog.DeepMiningResearchId,
+                "심부 채굴")
+        };
+        GameEventBus events = new();
+        GameplayOutcomeRegistry registry = CreateBdcRegistry();
+        const string RunId = "run:bdc-space-research";
+        GameplayOutcomeLedger ledger = new(
+            registry, GameplayOutcomeBufferLimits.Default,
+            new GameplayOutcomeRunId(RunId), 1L);
+        GameplayOutcomeRecorder recorder = new(ledger, registry, events);
+        DomainFactDispatcher facts = ConnectExpansionObserver(
+            registry,
+            ledger,
+            recorder);
+        BlueprintResearchState state = new();
+        TestGridAuthority grid = new(CreateInitialGrid());
+        DungeonSpaceExpansionRuntime runtime = new(
+            events, grid, grid, EditorFixedGameCalendar.Instance,
+            facts,
+            facts,
+            new EditorBlueprintResearchStateService(state));
+        DungeonSpaceExpansionRuntime restoredRuntime = null;
+        GameEventBus restoredEvents = null;
+        DomainFactDispatcher restoredFacts = null;
+        try
+        {
+            Require(runtime.TryReconcileNewRunTierZero(out _, out _),
+                "Research fixture could not enter Tier 0.");
+            GameplayResultKey quarryParent = CommitBdcResearchParent(
+                recorder, state, projects[0], 1L);
+            DungeonResearchSaveData researchSave = new()
+            {
+                outcomeSequence = state.OutcomeSequence,
+                completedProjectIds = state.Projects.CompletedProjectIds.ToList(),
+                completedProjectResults = state.CompletedProjectResultKeys
+                    .Select(pair => new DungeonResearchCompletionResultSaveData
+                    {
+                        projectId = pair.Key,
+                        publicationKey = pair.Value
+                    }).ToList()
+            };
+            researchSave = JsonUtility.FromJson<DungeonResearchSaveData>(
+                JsonUtility.ToJson(researchSave));
+            GameplayOutcomeLedgerSaveData ledgerSave =
+                ledger.CaptureGameplayOutcomes();
+            DungeonGameRestoreReport report = new();
+            ResearchOutcomeSavePreflight.ValidateCompletedProjectResultKeys(
+                researchSave, ledgerSave, report);
+            Require(report.Success
+                && researchSave.completedProjectResults.Count == 1,
+                "Committed research parent did not survive save/outbox preflight.");
+
+            BlueprintResearchState restoredState = new();
+            restoredState.RestoreOutcomeSequence(researchSave.outcomeSequence);
+            foreach (DungeonResearchCompletionResultSaveData row in
+                     researchSave.completedProjectResults)
+            {
+                restoredState.Projects.RestoreCompleted(
+                    new ResearchProjectId(row.projectId));
+                restoredState.RecordCompletedProjectResultKey(row.projectId,
+                    row.publicationKey);
+            }
+            restoredEvents = new GameEventBus();
+            GameplayOutcomeLedger restoredLedger = new(
+                registry, GameplayOutcomeBufferLimits.Default,
+                new GameplayOutcomeRunId(RunId), 1L);
+            GameplayOutcomeLedgerRestoreCandidate restoredLedgerCandidate =
+                restoredLedger.PrepareGameplayOutcomeRestore(ledgerSave);
+            restoredLedger.BeginRestoreCandidate();
+            restoredLedger.PublishGameplayOutcomeRestore(
+                restoredLedgerCandidate);
+            restoredLedger.PublishRestoreCandidate();
+            restoredLedger.CompleteRestoreCandidate();
+            GameplayOutcomeRecorder restoredRecorder = new(
+                restoredLedger, registry, restoredEvents);
+            restoredFacts = ConnectExpansionObserver(
+                registry,
+                restoredLedger,
+                restoredRecorder);
+            TestGridAuthority restoredGrid = new(CreateTierZeroGrid());
+            restoredRuntime = new DungeonSpaceExpansionRuntime(
+                restoredEvents, restoredGrid, restoredGrid,
+                EditorFixedGameCalendar.Instance,
+                restoredFacts,
+                restoredFacts,
+                new EditorBlueprintResearchStateService(restoredState));
+            restoredRuntime.Start();
+            restoredRuntime.OnRestoreCompleted();
+            restoredRuntime.Tick();
+            RequireLayout(restoredGrid.Grid, 51, 68,
+                new Vector2Int(17, 0));
+            VerifyBdcParent(restoredLedger, projects[0], quarryParent, 51L);
+            int count = restoredLedger.CaptureGameplayOutcomes()
+                .exactOutcomes.Count;
+            restoredEvents.Publish(new BlueprintResearchCompletedEvent(
+                projects[0], default, quarryParent.ToString()));
+            Require(!restoredRuntime.LastResult.Changed
+                && restoredLedger.CaptureGameplayOutcomes()
+                    .exactOutcomes.Count == count,
+                "Same-target quarry event duplicated the expansion.");
+
+            for (int index = 1; index < projects.Length; index++)
+            {
+                GameplayResultKey parent = CommitBdcResearchParent(
+                    restoredRecorder, restoredState, projects[index],
+                    index + 1L);
+                restoredEvents.Publish(new BlueprintResearchCompletedEvent(
+                    projects[index], default, parent.ToString()));
+                int expectedColumns = index == 1 ? 71 : 87;
+                VerifyBdcParent(restoredLedger, projects[index], parent,
+                    expectedColumns);
+                RequireLayout(restoredGrid.Grid, expectedColumns,
+                    index == 1 ? 88 : 104,
+                    new Vector2Int(17, 0));
+            }
+            Require(restoredLedger.CaptureGameplayOutcomes()
+                    .exactOutcomes.Count == 7,
+                "Tier 0, three research parents, and three expansions were not exact once.");
+        }
+        finally
+        {
+            restoredRuntime?.Dispose();
+            runtime.Dispose();
+            restoredFacts?.Dispose();
+            facts.Dispose();
+            restoredEvents?.Clear();
+            events.Clear();
+            foreach (ResearchProjectSO project in projects)
+                UnityEngine.Object.DestroyImmediate(project);
+        }
+    }
+
+    private static GameplayOutcomeRegistry CreateBdcRegistry() => new(
+        new IGameplayOutcomeDescriptor[]
+        {
+            new ResearchWorkOutcomeDescriptor(),
+            new DungeonSpaceExpansionOutcomeDescriptor(
+                new KoreanJosaFormatter())
+        },
+        new IGameplayOutcomeAdapterRegistration[]
+        {
+            new ResearchWorkOutcomeAdapter(),
+            new DungeonSpaceExpansionOutcomeAdapter()
+        });
+
+    private static DomainFactDispatcher ConnectExpansionObserver(
+        IGameplayOutcomeRegistry registry,
+        GameplayOutcomeLedger ledger,
+        IGameplayOutcomeRecorder recorder)
+    {
+        DomainFactDispatcher facts = new();
+        try
+        {
+            facts.Subscribe(
+                ExpansionObserverId,
+                new GameplayDomainFactObserver<
+                    DungeonSpaceExpandedFact,
+                    DungeonSpaceExpansionOutcomeReceipt>(
+                    fact => DungeonSpaceExpansionFactObservation.Capture(
+                        fact,
+                        ledger),
+                    registry,
+                    ledger,
+                    recorder,
+                    new GameplayDomainFactCommitGroup(recorder, ledger)));
+            return facts;
+        }
+        catch
+        {
+            facts.Dispose();
+            throw;
+        }
+    }
+
+    private static ResearchProjectSO CreateBdcProject(
+        string projectId, string name)
+    {
+        ResearchProjectSO project =
+            ScriptableObject.CreateInstance<ResearchProjectSO>();
+        project.Configure(projectId, name, name, ResearchField.Mining,
+            1f, ResearchBlueprintRule.None, null,
+            Array.Empty<ResearchProjectSO>());
+        return project;
+    }
+
+    private static GameplayResultKey CommitBdcResearchParent(
+        GameplayOutcomeRecorder recorder,
+        BlueprintResearchState state,
+        ResearchProjectSO project,
+        long revision)
+    {
+        GameplayResultKey key = new(
+            ResearchWorkOutcomeIds.ProducerId,
+            new GameplayOperationId("research-work:" + revision),
+            revision, 0);
+        ResearchWorkOutcomeReceipt receipt = new(
+            key, 0, project.ProjectId.Value, project.DisplayName,
+            string.Empty, string.Empty, string.Empty, string.Empty,
+            0f, project.RequiredWork, project.RequiredWork, true,
+            Array.Empty<BlueprintUnlockRecord>(),
+            ResearchWorkCause.ImmediateCompletion);
+        Require(recorder.TryPrepare(receipt,
+                out PreparedOutcomeToken prepared).Success,
+            "Research parent outcome prepare failed.");
+        Require(recorder.CommitPrepared(prepared, revision,
+                out CommittedOutcomeToken committed).Success,
+            "Research parent outcome commit failed.");
+        Require(recorder.TryDeliver(committed).Published
+            && recorder.Acknowledge(committed).Success,
+            "Research parent delivery failed.");
+        state.Projects.RestoreCompleted(project.ProjectId);
+        state.RestoreOutcomeSequence(revision);
+        state.RecordCompletedProjectResultKey(
+            project.ProjectId.Value,
+            key.ToString());
+        return key;
+    }
+
+    private static void VerifyBdcParent(
+        GameplayOutcomeLedger ledger,
+        ResearchProjectSO project,
+        GameplayResultKey parent,
+        long expansionRevision)
+    {
+        GameplayResultKey child = DungeonSpaceExpansionOutcomeIds.ResultKey(
+            project.ProjectId.Value, expansionRevision);
+        Require(ledger.TryGetResultIdentity(parent,
+                out GameplayOutcomeReplayIdentity parentIdentity)
+            && ledger.TryGetResultIdentity(child,
+                out GameplayOutcomeReplayIdentity childIdentity)
+            && ledger.TryGetExact(childIdentity.OutcomeId,
+                out GameplayOutcomeSnapshot outcome)
+            && outcome.parentRunId == parentIdentity.OutcomeId.RunId.Value
+            && outcome.parentSequence == parentIdentity.OutcomeId.Sequence
+            && outcome.facts.Any(fact => fact.factId
+                    == DungeonSpaceExpansionOutcomeIds.TriggerFact.Value
+                && fact.value
+                    == DungeonSpaceExpansionTrigger.ResearchCompletion.ToString())
+            && outcome.facts.Any(fact => fact.factId
+                    == DungeonSpaceExpansionOutcomeIds.ParentOperationFact.Value
+                && fact.value == parent.OperationId.Value),
+            "Dungeon-space child did not preserve its exact committed research parent.");
+    }
 
     [MenuItem("DungeonStory/V27/Verify Research-Gated Dungeon Expansion")]
     public static void RunFromMenu()
@@ -45,6 +451,31 @@ public static class DungeonSpaceExpansionDebugScenarios
         Verify(
             "EXPANSION_EVENT_29_51_71_87_EXACT",
             VerifyResearchEventExpansion,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_OUTCOME_REJECTION_ROLLS_BACK_GRID",
+            VerifyOutcomeCommitRejectionRollsBackGrid,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_POSTCOMMIT_OBSERVER_FAULT_ISOLATED",
+            VerifyPostCommitObserverFaultIsolated,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_RESEARCH_STATE_RETRIES_PREPARE_DEFERRAL",
+            VerifyResearchStateRetriesPrepareDeferral,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_RESTORE_HOOK_RECONCILES_COMPLETED_RESEARCH",
+            VerifyRestoreHookReconcilesCompletedResearch,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_SAVE_V5_LAYOUT_ROUNDTRIP_EXACT",
+            VerifySaveLayoutRoundTrip,
             rows,
             failures);
         Verify(
@@ -100,6 +531,42 @@ public static class DungeonSpaceExpansionDebugScenarios
             Debug.Log("Research-gated dungeon expansion scenarios passed.");
         }
 
+        return failures.Count == 0;
+    }
+
+    public static bool RunOutcomeIntegrationScenarios(bool logSuccess)
+    {
+        List<string> rows = new();
+        List<string> failures = new();
+        Verify(
+            "EXPANSION_EVENT_29_51_71_87_EXACT",
+            VerifyResearchEventExpansion,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_OUTCOME_REJECTION_ROLLS_BACK_GRID",
+            VerifyOutcomeCommitRejectionRollsBackGrid,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_POSTCOMMIT_OBSERVER_FAULT_ISOLATED",
+            VerifyPostCommitObserverFaultIsolated,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_RESEARCH_STATE_RETRIES_PREPARE_DEFERRAL",
+            VerifyResearchStateRetriesPrepareDeferral,
+            rows,
+            failures);
+        Verify(
+            "EXPANSION_RESTORE_HOOK_RECONCILES_COMPLETED_RESEARCH",
+            VerifyRestoreHookReconcilesCompletedResearch,
+            rows,
+            failures);
+        foreach (string failure in failures)
+            Debug.LogError(failure);
+        if (failures.Count == 0 && logSuccess)
+            Debug.Log("Dungeon-space outcome integration scenarios passed.");
         return failures.Count == 0;
     }
 
@@ -167,8 +634,15 @@ public static class DungeonSpaceExpansionDebugScenarios
         Grid initial = CreateInitialGrid();
         TestGridAuthority authority = new TestGridAuthority(initial);
         GameEventBus events = new GameEventBus();
+        BlueprintResearchState researchState = new();
         DungeonSpaceExpansionRuntime runtime =
-            new DungeonSpaceExpansionRuntime(events, authority, authority);
+            CreateRuntime(
+                events,
+                authority,
+                out DomainFactDispatcher facts,
+                out GameplayOutcomeRecorder recorder,
+                researchStateService:
+                    new EditorBlueprintResearchStateService(researchState));
         runtime.Start();
         try
         {
@@ -191,6 +665,8 @@ public static class DungeonSpaceExpansionDebugScenarios
             Grid beforeQuarry = authority.Grid;
             Publish(
                 events,
+                recorder,
+                researchState,
                 projects[DungeonSpaceExpansionCatalog.QuarryResearchId]);
             RequireLayout(authority.Grid, 51, 68, new Vector2Int(17, 0));
             Require(beforeQuarry.GetGridCell(new Vector2Int(46, 0)).AreaType
@@ -200,6 +676,8 @@ public static class DungeonSpaceExpansionDebugScenarios
             Grid quarryGrid = authority.Grid;
             Publish(
                 events,
+                recorder,
+                researchState,
                 projects[DungeonSpaceExpansionCatalog.QuarryResearchId]);
             Require(ReferenceEquals(authority.Grid, quarryGrid),
                 "Re-completing quarry expansion was not idempotent.");
@@ -208,11 +686,15 @@ public static class DungeonSpaceExpansionDebugScenarios
 
             Publish(
                 events,
+                recorder,
+                researchState,
                 projects[DungeonSpaceExpansionCatalog.StonecuttingResearchId]);
             RequireLayout(authority.Grid, 71, 88, new Vector2Int(17, 0));
 
             Publish(
                 events,
+                recorder,
+                researchState,
                 projects[DungeonSpaceExpansionCatalog.DeepMiningResearchId]);
             RequireLayout(authority.Grid, 87, 104, new Vector2Int(17, 0));
             Require(runtime.LastResult.Changed
@@ -226,6 +708,7 @@ public static class DungeonSpaceExpansionDebugScenarios
         finally
         {
             runtime.Dispose();
+            facts.Dispose();
             events.Clear();
         }
 
@@ -238,7 +721,11 @@ public static class DungeonSpaceExpansionDebugScenarios
         TestGridAuthority restoredAuthority = new(restoredTierZero);
         GameEventBus restoredEvents = new();
         DungeonSpaceExpansionRuntime restoredRuntime =
-            new(restoredEvents, restoredAuthority, restoredAuthority);
+            CreateRuntime(
+                restoredEvents,
+                restoredAuthority,
+                out DomainFactDispatcher restoredFacts,
+                out _);
         restoredRuntime.Start();
         try
         {
@@ -250,6 +737,7 @@ public static class DungeonSpaceExpansionDebugScenarios
         finally
         {
             restoredRuntime.Dispose();
+            restoredFacts.Dispose();
             restoredEvents.Clear();
         }
 
@@ -257,7 +745,11 @@ public static class DungeonSpaceExpansionDebugScenarios
         TestGridAuthority newRunAuthority = new(sceneSeed);
         GameEventBus newRunEvents = new();
         DungeonSpaceExpansionRuntime newRunRuntime =
-            new(newRunEvents, newRunAuthority, newRunAuthority);
+            CreateRuntime(
+                newRunEvents,
+                newRunAuthority,
+                out DomainFactDispatcher newRunFacts,
+                out _);
         try
         {
             Require(newRunRuntime.TryReconcileNewRunTierZero(
@@ -280,6 +772,7 @@ public static class DungeonSpaceExpansionDebugScenarios
         finally
         {
             newRunRuntime.Dispose();
+            newRunFacts.Dispose();
             newRunEvents.Clear();
         }
 
@@ -292,8 +785,15 @@ public static class DungeonSpaceExpansionDebugScenarios
         Grid initial = CreateInitialGrid();
         TestGridAuthority authority = new TestGridAuthority(initial);
         GameEventBus events = new GameEventBus();
+        BlueprintResearchState researchState = new();
         DungeonSpaceExpansionRuntime runtime =
-            new DungeonSpaceExpansionRuntime(events, authority, authority);
+            CreateRuntime(
+                events,
+                authority,
+                out DomainFactDispatcher facts,
+                out GameplayOutcomeRecorder recorder,
+                researchStateService:
+                    new EditorBlueprintResearchStateService(researchState));
         runtime.Start();
         try
         {
@@ -301,6 +801,8 @@ public static class DungeonSpaceExpansionDebugScenarios
                 "Direct-deep fixture could not reconcile Tier 0: " + tierZeroFailure);
             Publish(
                 events,
+                recorder,
+                researchState,
                 projects[DungeonSpaceExpansionCatalog.DeepMiningResearchId]);
             RequireLayout(authority.Grid, 87, 104, new Vector2Int(17, 0));
             Require(runtime.LastResult.Changed
@@ -310,12 +812,16 @@ public static class DungeonSpaceExpansionDebugScenarios
             Grid deepGrid = authority.Grid;
             Publish(
                 events,
+                recorder,
+                researchState,
                 projects[DungeonSpaceExpansionCatalog.QuarryResearchId]);
             Require(ReferenceEquals(authority.Grid, deepGrid)
                     && !runtime.LastResult.Changed,
                 "Late quarry completion changed an already-expanded deep layout.");
             Publish(
                 events,
+                recorder,
+                researchState,
                 projects[DungeonSpaceExpansionCatalog.StonecuttingResearchId]);
             Require(ReferenceEquals(authority.Grid, deepGrid)
                     && !runtime.LastResult.Changed,
@@ -327,9 +833,227 @@ public static class DungeonSpaceExpansionDebugScenarios
         finally
         {
             runtime.Dispose();
+            facts.Dispose();
             events.Clear();
         }
 
+        return true;
+    }
+
+    private static bool VerifyOutcomeCommitRejectionRollsBackGrid()
+    {
+        Grid initial = CreateInitialGrid();
+        TestGridAuthority authority = new(initial);
+        GameEventBus events = new();
+        EditorDungeonSpaceExpansionFactPublisher publisher = new(
+            rejectCommit: true);
+        DungeonSpaceExpansionRuntime runtime = CreateRuntime(
+            events,
+            authority,
+            out DomainFactDispatcher facts,
+            out _,
+            publisher);
+        try
+        {
+            Require(!runtime.TryReconcileNewRunTierZero(
+                    out DungeonSpaceExpansionResult result,
+                    out string failureReason),
+                "Injected outcome rejection unexpectedly succeeded.");
+            Require(ReferenceEquals(authority.Grid, initial)
+                    && authority.PublicationCount == 2
+                    && authority.CompletionCount == 0
+                    && !result.Changed
+                    && publisher.PrepareCount == 1
+                    && publisher.CommitCount == 1
+                    && failureReason.Contains(
+                        "injected-dungeon-space-commit-rejection",
+                        StringComparison.Ordinal),
+                "Outcome rejection did not restore the original grid atomically: "
+                + failureReason);
+        }
+        finally
+        {
+            runtime.Dispose();
+            facts.Dispose();
+            events.Clear();
+        }
+        return true;
+    }
+
+    private static bool VerifyPostCommitObserverFaultIsolated()
+    {
+        Grid initial = CreateInitialGrid();
+        TestGridAuthority authority = new(initial)
+        {
+            ThrowOnCompletion = true
+        };
+        GameEventBus events = new();
+        EditorDungeonSpaceExpansionFactPublisher publisher = new();
+        DungeonSpaceExpansionRuntime runtime = CreateRuntime(
+            events,
+            authority,
+            out DomainFactDispatcher facts,
+            out _,
+            publisher);
+        try
+        {
+            Require(runtime.TryReconcileNewRunTierZero(
+                    out DungeonSpaceExpansionResult result,
+                    out string failureReason),
+                "Post-commit observer fault escaped the expansion command: "
+                + failureReason);
+            Require(result.Changed
+                    && result.OutcomeOwnerRevision
+                        == DungeonSpaceExpansionCatalog.InitialInteriorColumns
+                    && authority.PublicationCount == 1
+                    && authority.CompletionCount == 1
+                    && publisher.PrepareCount == 1
+                    && publisher.CommitCount == 1,
+                "Post-commit observer fault changed the committed expansion result.");
+            RequireLayout(
+                authority.Grid,
+                DungeonSpaceExpansionCatalog.InitialInteriorColumns,
+                60,
+                new Vector2Int(17, 0));
+        }
+        finally
+        {
+            runtime.Dispose();
+            facts.Dispose();
+            events.Clear();
+        }
+        return true;
+    }
+
+    private static bool VerifyResearchStateRetriesPrepareDeferral()
+    {
+        Dictionary<string, ResearchProjectSO> projects = LoadProjects();
+        Grid tierZero = CreateTierZeroGrid();
+        TestGridAuthority authority = new(tierZero);
+        GameEventBus events = new();
+        BlueprintResearchState researchState = new();
+        researchState.Projects.RestoreCompleted(
+            new ResearchProjectId(DungeonSpaceExpansionCatalog.QuarryResearchId));
+        researchState.RecordCompletedProjectResultKey(
+            DungeonSpaceExpansionCatalog.QuarryResearchId,
+            SyntheticResearchKey(
+                DungeonSpaceExpansionCatalog.QuarryResearchId).ToString());
+        EditorBlueprintResearchStateService research = new(researchState);
+        EditorDungeonSpaceExpansionFactPublisher publisher = new(
+            deferPrepareCount: 1);
+        DungeonSpaceExpansionRuntime runtime = CreateRuntime(
+            events,
+            authority,
+            out DomainFactDispatcher facts,
+            out GameplayOutcomeRecorder recorder,
+            publisher,
+            research);
+        runtime.Start();
+        try
+        {
+            Publish(
+                events,
+                recorder,
+                researchState,
+                projects[DungeonSpaceExpansionCatalog.QuarryResearchId]);
+            Require(ReferenceEquals(authority.Grid, tierZero)
+                    && runtime.HasPendingExpansion
+                    && string.Equals(
+                        runtime.PendingResearchProjectId,
+                        DungeonSpaceExpansionCatalog.QuarryResearchId,
+                        StringComparison.Ordinal)
+                    && runtime.PendingFailureReason.Contains(
+                        "injected-dungeon-space-prepare-deferral",
+                        StringComparison.Ordinal)
+                    && publisher.PrepareCount == 1
+                    && publisher.CommitCount == 0,
+                "A deferred prepare was not retained as an observable pending expansion.");
+
+            for (int index = 0; index <= 60; index++)
+                runtime.Tick();
+
+            RequireLayout(
+                authority.Grid,
+                DungeonSpaceExpansionCatalog.BasicSectorTargetColumns,
+                68,
+                new Vector2Int(17, 0));
+            Require(!runtime.HasPendingExpansion
+                    && string.IsNullOrEmpty(runtime.PendingResearchProjectId)
+                    && string.IsNullOrEmpty(runtime.PendingFailureReason)
+                    && publisher.PrepareCount == 2
+                    && publisher.CommitCount == 1
+                    && authority.PublicationCount == 1
+                    && authority.CompletionCount == 1,
+                "Completed research did not retry the exact deferred expansion once.");
+
+            for (int index = 0; index < 120; index++)
+                runtime.Tick();
+            Require(publisher.PrepareCount == 2
+                    && authority.PublicationCount == 1,
+                "A reconciled expansion kept retrying after success.");
+        }
+        finally
+        {
+            runtime.Dispose();
+            facts.Dispose();
+            events.Clear();
+        }
+        return true;
+    }
+
+    private static bool VerifyRestoreHookReconcilesCompletedResearch()
+    {
+        Grid tierZero = CreateTierZeroGrid();
+        TestGridAuthority authority = new(tierZero);
+        GameEventBus events = new();
+        BlueprintResearchState researchState = new();
+        researchState.Projects.RestoreCompleted(
+            new ResearchProjectId(DungeonSpaceExpansionCatalog.DeepMiningResearchId));
+        researchState.RecordCompletedProjectResultKey(
+            DungeonSpaceExpansionCatalog.DeepMiningResearchId,
+            SyntheticResearchKey(
+                DungeonSpaceExpansionCatalog.DeepMiningResearchId).ToString());
+        EditorDungeonSpaceExpansionFactPublisher publisher = new();
+        DungeonSpaceExpansionRuntime runtime = CreateRuntime(
+            events,
+            authority,
+            out DomainFactDispatcher facts,
+            out GameplayOutcomeRecorder recorder,
+            publisher,
+            new EditorBlueprintResearchStateService(researchState));
+        runtime.Start();
+        try
+        {
+            CommitSyntheticResearchParent(
+                recorder,
+                researchState,
+                LoadProjects()[DungeonSpaceExpansionCatalog.DeepMiningResearchId]);
+            runtime.OnRestoreCompleted();
+            runtime.Tick();
+
+            RequireLayout(
+                authority.Grid,
+                DungeonSpaceExpansionCatalog.DeepSectorTargetColumns,
+                DungeonSpaceExpansionCatalog.MaximumSupportedGridWidth,
+                new Vector2Int(17, 0));
+            Require(!runtime.HasPendingExpansion
+                    && runtime.LastResult.Changed
+                    && string.Equals(
+                        runtime.LastResult.ResearchProjectId,
+                        DungeonSpaceExpansionCatalog.DeepMiningResearchId,
+                        StringComparison.Ordinal)
+                    && publisher.PrepareCount == 1
+                    && publisher.CommitCount == 1
+                    && authority.PublicationCount == 1
+                    && authority.CompletionCount == 1,
+                "The restore-completed hook did not reconcile the highest completed expansion exactly once.");
+        }
+        finally
+        {
+            runtime.Dispose();
+            facts.Dispose();
+            events.Clear();
+        }
         return true;
     }
 
@@ -446,7 +1170,11 @@ public static class DungeonSpaceExpansionDebugScenarios
             Grid original = CreateGridWithInteriorColumns(columns);
             TestGridAuthority authority = new(original);
             GameEventBus events = new();
-            DungeonSpaceExpansionRuntime runtime = new(events, authority, authority);
+            DungeonSpaceExpansionRuntime runtime = CreateRuntime(
+                events,
+                authority,
+                out DomainFactDispatcher facts,
+                out _);
             try
             {
                 Require(!runtime.TryReconcileNewRunTierZero(
@@ -464,6 +1192,7 @@ public static class DungeonSpaceExpansionDebugScenarios
             finally
             {
                 runtime.Dispose();
+                facts.Dispose();
                 events.Clear();
             }
         }
@@ -682,7 +1411,11 @@ public static class DungeonSpaceExpansionDebugScenarios
         Grid initial = CreateInitialGrid();
         TestGridAuthority authority = new(initial);
         GameEventBus events = new();
-        DungeonSpaceExpansionRuntime runtime = new(events, authority, authority);
+        DungeonSpaceExpansionRuntime runtime = CreateRuntime(
+            events,
+            authority,
+            out DomainFactDispatcher facts,
+            out _);
         try
         {
             Require(runtime.TryReconcileNewRunTierZero(out _, out string failureReason),
@@ -692,13 +1425,126 @@ public static class DungeonSpaceExpansionDebugScenarios
         finally
         {
             runtime.Dispose();
+            facts.Dispose();
             events.Clear();
         }
     }
 
-    private static void Publish(GameEventBus events, ResearchProjectSO project)
+    private static void Publish(
+        GameEventBus events,
+        GameplayOutcomeRecorder recorder,
+        BlueprintResearchState researchState,
+        ResearchProjectSO project)
     {
-        events.Publish(new BlueprintResearchCompletedEvent(project, default));
+        CommitSyntheticResearchParent(recorder, researchState, project);
+        events.Publish(new BlueprintResearchCompletedEvent(
+            project,
+            default,
+            SyntheticResearchKey(project.ProjectId.Value).ToString()));
+    }
+
+    private static void CommitSyntheticResearchParent(
+        GameplayOutcomeRecorder recorder,
+        BlueprintResearchState researchState,
+        ResearchProjectSO project)
+    {
+        if (recorder == null || researchState == null || project == null)
+            throw new ArgumentNullException("Synthetic research parent dependencies are required.");
+        GameplayResultKey key = SyntheticResearchKey(project.ProjectId.Value);
+        ResearchWorkOutcomeReceipt receipt = new(
+            key,
+            0,
+            project.ProjectId.Value,
+            project.DisplayName,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            0f,
+            project.RequiredWork,
+            project.RequiredWork,
+            true,
+            Array.Empty<BlueprintUnlockRecord>(),
+            ResearchWorkCause.ImmediateCompletion);
+        OutcomePrepareResult preparation = recorder.TryPrepare(
+            receipt,
+            out PreparedOutcomeToken prepared);
+        if (!preparation.Success)
+        {
+            Require(preparation.Code is OutcomePrepareCode.AlreadyCommitted
+                    or OutcomePrepareCode.AlreadyPublished
+                    or OutcomePrepareCode.AlreadyTerminal,
+                "Synthetic research parent could not be prepared: "
+                + preparation.Code + ":" + preparation.DetailCode);
+        }
+        else
+        {
+            Require(recorder.CommitPrepared(
+                        prepared,
+                        key.CommitRevision,
+                        out CommittedOutcomeToken committed)
+                    .Success
+                && recorder.TryDeliver(committed).Published
+                && recorder.Acknowledge(committed).Success,
+                "Synthetic research parent did not commit exactly once.");
+        }
+        researchState.Projects.RestoreCompleted(project.ProjectId);
+        researchState.RecordCompletedProjectResultKey(
+            project.ProjectId.Value,
+            key.ToString());
+    }
+
+    private static GameplayResultKey SyntheticResearchKey(string projectId)
+    {
+        int sequence = string.Equals(projectId,
+                DungeonSpaceExpansionCatalog.QuarryResearchId,
+                StringComparison.Ordinal) ? 1
+            : string.Equals(projectId,
+                DungeonSpaceExpansionCatalog.StonecuttingResearchId,
+                StringComparison.Ordinal) ? 2 : 3;
+        return new GameplayResultKey(
+            ResearchWorkOutcomeIds.ProducerId,
+            new GameplayOperationId("research-work:" + sequence),
+            sequence,
+            0);
+    }
+
+    private static DungeonSpaceExpansionRuntime CreateRuntime(
+        GameEventBus events,
+        TestGridAuthority authority,
+        out DomainFactDispatcher facts,
+        out GameplayOutcomeRecorder recorder,
+        EditorDungeonSpaceExpansionFactPublisher publisher = null,
+        IBlueprintResearchStateService researchStateService = null)
+    {
+        GameplayOutcomeRegistry registry = CreateBdcRegistry();
+        GameplayOutcomeLedger ledger = new(
+            registry,
+            GameplayOutcomeBufferLimits.Default);
+        recorder = new GameplayOutcomeRecorder(ledger, registry, events);
+        facts = ConnectExpansionObserver(registry, ledger, recorder);
+        IDomainFactStagingPublisher staging = facts;
+        if (publisher != null)
+        {
+            publisher.Attach(facts);
+            staging = publisher;
+        }
+        try
+        {
+            return new DungeonSpaceExpansionRuntime(
+                events,
+                authority,
+                authority,
+                EditorFixedGameCalendar.Instance,
+                staging,
+                facts,
+                researchStateService ?? new EditorBlueprintResearchStateService());
+        }
+        catch
+        {
+            facts.Dispose();
+            throw;
+        }
     }
 
     private static void RequireLayout(
@@ -758,6 +1604,91 @@ public static class DungeonSpaceExpansionDebugScenarios
         File.WriteAllText(fullPath, string.Join("\n", rows) + "\n");
     }
 
+    private sealed class EditorDungeonSpaceExpansionFactPublisher :
+        IDomainFactStagingPublisher
+    {
+        private readonly bool rejectCommit;
+        private int remainingPrepareDeferrals;
+        private IDomainFactStagingPublisher inner;
+
+        internal EditorDungeonSpaceExpansionFactPublisher(
+            bool rejectCommit = false,
+            int deferPrepareCount = 0)
+        {
+            if (deferPrepareCount < 0)
+                throw new ArgumentOutOfRangeException(nameof(deferPrepareCount));
+            this.rejectCommit = rejectCommit;
+            remainingPrepareDeferrals = deferPrepareCount;
+        }
+
+        internal int PrepareCount { get; private set; }
+        internal int CommitCount { get; private set; }
+
+        internal void Attach(IDomainFactStagingPublisher publisher)
+        {
+            if (publisher == null) throw new ArgumentNullException(nameof(publisher));
+            if (inner != null)
+                throw new InvalidOperationException(
+                    "A dungeon-space fact publisher fixture cannot be rebound.");
+            inner = publisher;
+        }
+
+        public bool TryStage<TFact>(
+            in TFact fact,
+            out IDomainFactStage stage,
+            out string failure)
+        {
+            if (inner == null)
+                throw new InvalidOperationException(
+                    "A dungeon-space fact publisher fixture is not attached.");
+            PrepareCount++;
+            if (remainingPrepareDeferrals > 0)
+            {
+                remainingPrepareDeferrals--;
+                stage = null;
+                failure = "injected-dungeon-space-prepare-deferral";
+                return false;
+            }
+            if (!inner.TryStage(fact, out IDomainFactStage prepared, out failure))
+            {
+                stage = null;
+                return false;
+            }
+            stage = new FaultStage(this, prepared);
+            return true;
+        }
+
+        private sealed class FaultStage : IDomainFactStage
+        {
+            private readonly EditorDungeonSpaceExpansionFactPublisher owner;
+            private readonly IDomainFactStage inner;
+
+            internal FaultStage(
+                EditorDungeonSpaceExpansionFactPublisher owner,
+                IDomainFactStage inner)
+            {
+                this.owner = owner;
+                this.inner = inner;
+            }
+
+            public string OperationKey => inner.OperationKey;
+            public long OwnerRevision => inner.OwnerRevision;
+            public bool IsReplay => inner.IsReplay;
+            public bool IsActive => inner.IsActive;
+
+            public DomainFactDelivery Commit()
+            {
+                owner.CommitCount++;
+                if (!owner.rejectCommit) return inner.Commit();
+                inner.Cancel();
+                return DomainFactDelivery.Reject(
+                    "injected-dungeon-space-commit-rejection");
+            }
+
+            public void Cancel() => inner.Cancel();
+        }
+    }
+
     private sealed class TestGridAuthority : IGridSystemProvider, IGridSystemPublisher
     {
         public TestGridAuthority(Grid grid)
@@ -769,6 +1700,7 @@ public static class DungeonSpaceExpansionDebugScenarios
         public Grid Grid { get; private set; }
         public int PublicationCount { get; private set; }
         public int CompletionCount { get; private set; }
+        public bool ThrowOnCompletion { get; set; }
 
         public bool TryGetManager(out GridSystemManager manager)
         {
@@ -802,6 +1734,11 @@ public static class DungeonSpaceExpansionDebugScenarios
         public void CompleteGridPublication()
         {
             CompletionCount++;
+            if (ThrowOnCompletion)
+            {
+                throw new InvalidOperationException(
+                    "injected-dungeon-space-observer-fault");
+            }
         }
     }
 

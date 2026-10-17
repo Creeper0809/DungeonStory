@@ -21,6 +21,10 @@ MonoBehaviour:
   season: 2
   minimumDurationDays: 1
   maximumDurationDays: 3
+  worldWaterRegenerationMultiplier: 1
+  feedSelfHeatingFireProfile:
+    minimumPhysicalQuantity: 1
+    ignitionIntensity: 0.25
   affectedDomainIds:
   - husbandry
   - facility

@@ -1,0 +1,57 @@
+{
+  "status": "PASS",
+  "target": "C5",
+  "nativeRun": "native-c5-labor-current-r1",
+  "report": "native-c5-labor-current-r1/unity-evidence/captivity-labor-boundary.txt",
+  "reportSha256": "20fc8394a73ec91c38fb9a12ec4445c1a9b8c6c3ab65d73ad432e42c6f285b26",
+  "terminalUnityExit": 0,
+  "compileSeconds": 27.428827,
+  "compileErrors": 0,
+  "currentCompiledAssembly": "Assembly-CSharp-Editor",
+  "pins": {
+    "source-pin-c5-native-r1.json": {
+      "files": 1426,
+      "drift": []
+    },
+    "native-input-pin-r39.json": {
+      "files": 3880,
+      "drift": []
+    },
+    "tool-pin-c5-native-r1.json": {
+      "files": 9,
+      "drift": []
+    },
+    "g4-faction-assembly-input-pin-r2.json": {
+      "files": 18,
+      "drift": []
+    }
+  },
+  "assemblies": {
+    "Library\\ScriptAssemblies\\Assembly-CSharp-Editor.dll": "18db3cf0103b01451207973229c7651704f26222f6ec8da5d8f8219c361185ee",
+    "Library\\ScriptAssemblies\\Assembly-CSharp.dll": "01e14410b9ee51b3fffe836248e0c803d2c82bc963b622eeeb10b14040c24301",
+    "Library\\ScriptAssemblies\\DungeonStory.Buildings.dll": "e939738b02c6aebe5319a12ac7b476004597efdd6547c301e8e167cd77833b14",
+    "Library\\ScriptAssemblies\\DungeonStory.Economy.dll": "c6dffaa8e88a006e4f91612eb29108a2035cc6ce4d1462908d7615195cb43454",
+    "Library/ScriptAssemblies/DungeonStory.Factions.dll": "c384de7f49e87ab603f7750636594e035adfc7d8ed6cb079b0fe29caf43a04e2",
+    "Library/ScriptAssemblies/DungeonStory.Survival.dll": "e97861eefc80a99d13aa19daa78719bdccc95deb19ff168a656a8b303f9273ff"
+  },
+  "unchangedDiskInputs": {
+    "Assets/Resources/SO/Building/Modular/D04_배식카운터.asset": "2bcdee76a67785c5d2db3d80068f43009667bf0a48a3a51c5abc9d789cff3e1a",
+    "Assets/Resources/SO/Building/Modular/D04_배식카운터.asset.meta": "efbe8ab42cd71b10a593721838c5d8b34adf2456ac1b18d2403ceda604ee92ea",
+    "Assets/Scenes/GameplayScene.unity": "a698948004fd2a1db71ef1bebf5ab4d4c5d62caf85fed1ea5af2bb3972c30341",
+    "Assets/Scenes/GameplayScene.unity.meta": "0c7f1e7dac6804c5e9bad630433c81b9bb944b7532a9e63d5d938f9f3b56849e",
+    "ProjectSettings/EditorBuildSettings.asset": "8ee44400b9ae37cbd1092f671fe364f277601cc02357b02e3908d1d4e9a95ad4"
+  },
+  "protectedInputs": {
+    "Temp/captivity-circus-contracts.tsv": null,
+    "Assets\\Resources\\SO\\Building\\Captivity\\CP01_감방구속대.asset": "76b61e0669382707a225fbbe90d1e2b0ed56239e532ec0bbfba72a1efa751e16",
+    "Assets\\Resources\\SO\\Building\\Captivity\\CP01_감방구속대.asset.meta": "aaa619b952193152e3756d430bbf228bc750039b7471e93debb06029a4dd680d"
+  },
+  "verified": [
+    "Original labor thresholds/durable assets/strict pending assignment outbox physical ACK JSON retry",
+    "Actual native actor/work and real physical repository/spawner/disposition: failed care owner/delivery rollback, no premature work, tool assignment ACK then owner-close failure JSON current-state retry",
+    "Actual facade work permission and NPC/Active vs Intruder/Downed employment state",
+    "Idle no wear, work one wear per clock interval; worn JSON, broken-return failure retains custody and disables labor, exact zero-durability unique return once on retry",
+    "Original D09 transition6 including tool spawn failure/JSON retry/capture fence; shared care owner5"
+  ],
+  "limits": "Controlled native fixture with explicit clock/delivery/care/world ports and real actor/physical methods; not natural AI/hauling or official pending labor world restore. C6 official cold housing/worker joins are separate evidence."
+}

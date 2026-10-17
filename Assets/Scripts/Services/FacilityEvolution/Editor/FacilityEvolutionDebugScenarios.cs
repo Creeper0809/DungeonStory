@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEngine;
 
-public static class FacilityEvolutionDebugScenarios
+public static partial class FacilityEvolutionDebugScenarios
 {
     [MenuItem("DungeonStory/Debug/Facility Evolution/Run Scenarios")]
     public static void RunAllFromMenu()
@@ -15,6 +17,8 @@ public static class FacilityEvolutionDebugScenarios
     public static bool RunAll(bool log = false)
     {
         List<string> errors = new List<string>();
+        RunScenario("Exact nested facility state and resolved-result JSON preserve evidence metrics",
+            VerifyExactNestedJsonRoundTrip, errors);
         RunScenario("Activation projection snapshots mutable building authority", () =>
             FacilityEvolutionActivationProjectionDebugScenarios.RunAll(), errors);
         RunScenario("Engine constructor facade stays bounded and guarded", FacilityEvolutionConstructorFacadeDebugScenarios.Verify, errors);
@@ -28,12 +32,19 @@ public static class FacilityEvolutionDebugScenarios
         RunScenario("Mutation resolver gates suggestions by evidence", VerifyMutationResolverGatesSuggestionsByEvidence, errors);
         RunScenario("Context gates evolution candidates", VerifyContextGatesEvolutionCandidates, errors);
         RunScenario("Validation checks expose candidate condition state", VerifyValidationChecksExposeCandidateConditionState, errors);
-        RunScenario("LLM narrative filters IDs without overriding rule authority", VerifyLlmProposalFiltersIdsAndOrdersCandidates, errors);
+        RunScenario("Formula authority ignores legacy LLM selection and preserves rule order", VerifyFormulaAuthorityIgnoresLegacyLlmSelection, errors);
+        RunScenario("Player can select a non-first formula facility recipe", VerifyPlayerCanSelectNonFirstFormulaRecipe, errors);
+        RunScenario("Formula v2 selects a facility module before C# allocates numbers",
+            VerifyFormulaV2ModuleSelectionContract, errors);
+        RunScenario("Formula v3 separates pure benefits, operating costs, and optional drawbacks",
+            VerifyFormulaV3BurdenSeparation, errors);
         RunScenario("Evolution overview stays rule based and does not enqueue LLM work", VerifyOverviewDoesNotRequestLlm, errors);
         RunScenario("Runtime events build evolution records", VerifyRuntimeEventsBuildEvolutionRecords, errors);
         RunScenario("Evolution replaces facility and preserves lineage records", VerifyEvolutionReplacesFacilityAndPreservesLineageRecords, errors);
         RunScenario("Failed evolution keeps original facility", VerifyFailedEvolutionKeepsOriginalFacility, errors);
         RunScenario("Failed replacement retries one pending material batch without a second debit", VerifyFailedReplacementReplaysPendingMaterialBatch, errors);
+        RunScenario("Formula presentation finalizes inside durable material pending", VerifyFormulaPresentationDurableReceiptDoesNotRestorePending, errors);
+        RunScenario("Pending exact evidence intent survives save and blocks incomplete physical acknowledgement", VerifyPendingEvidenceIntentSurvivesRestore, errors);
         RunScenario("Pending material V4 tamper restores atomically", VerifyPendingMaterialV4TamperRestoresAtomically, errors);
         RunScenario("Domain-applied material acknowledgement resumes without replacement replay", VerifyDomainAppliedAcknowledgementResume, errors);
         RunScenario("Relocation package Transfer restore and acknowledgement are exact", FacilityRelocationPackageOutboxFixture.Run, errors);
@@ -64,6 +75,533 @@ public static class FacilityEvolutionDebugScenarios
         }
 
         return true;
+    }
+
+    public static void RunObserverFocusedForBatchMode()
+    {
+        string output = Environment.GetEnvironmentVariable(
+            "DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        string qaRoot = Path.GetFullPath(Path.Combine(
+            Application.dataPath, "..", "Artifacts", "QA"))
+            + Path.DirectorySeparatorChar;
+        if (!Application.isBatchMode || string.IsNullOrWhiteSpace(output)
+            || !Path.IsPathRooted(output)
+            || !Path.GetFullPath(output).StartsWith(
+                qaRoot,
+                StringComparison.OrdinalIgnoreCase)
+            || Directory.Exists(output))
+        {
+            throw new InvalidOperationException(
+                "Facility evolution observer checks require new project-local batch evidence.");
+        }
+        string probe = File.ReadAllText(Path.Combine(
+            Directory.GetParent(Path.GetFullPath(output)).FullName,
+            "isolation-probe.txt"));
+        Require(probe.Contains("PASS_NONINTERACTIVE_PROBE")
+            && probe.Contains("visible=false")
+            && probe.Contains("windowCreatedAndDestroyed=true")
+            && probe.Contains("inJob=true"),
+            "Facility evolution observer checks require the noninteractive desktop probe.");
+
+        bool noMaterial =
+            VerifyEvolutionReplacesFacilityAndPreservesLineageRecords(
+                out string noMaterialFailure);
+        Require(noMaterial,
+            "No-material facility evolution observer scenario failed: "
+            + noMaterialFailure);
+        Require(VerifyFailedReplacementReplaysPendingMaterialBatch(),
+            "Material replacement retry scenario failed.");
+        Require(VerifyDomainAppliedAcknowledgementResume(),
+            "Material acknowledgement resume scenario failed.");
+        Require(VerifyPendingEvidenceIntentSurvivesRestore(),
+            "Pending evidence intent scenario failed.");
+        Require(VerifyExactNestedJsonRoundTrip(),
+            "Facility evolution exact JSON scenario failed.");
+        Require(VerifyMissingObserverBlocksBeforeEvolutionEffects(),
+            "Missing facility observer did not block before effects.");
+        Require(VerifyUnknownObservationAcknowledgementRecoversExactlyOnce(),
+            "Unknown facility observer acknowledgement did not recover exactly once.");
+        Require(RunCausalEvolutionOwnerFamily(),
+            "Facility evolution causal owner family failed.");
+        Debug.Log(
+            "B79_FACILITY_EVOLUTION_OBSERVER_FOCUSED=PASS; "
+            + "noMaterial=true; materialRetry=true; acknowledgementResume=true; "
+            + "evidenceIntent=true; exactJson=true; missingObserver=true; "
+            + "unknownAcknowledgement=true; causalRestore=true");
+    }
+
+    public static bool VerifyFormulaV2ModuleSelectionContract()
+    {
+        FacilityEvolutionRecipeSO recipe = ScriptableObject.CreateInstance<FacilityEvolutionRecipeSO>();
+        try
+        {
+            recipe.evolutionId = "fixture:facility-module-selection";
+            recipe.displayName = "선택형 시설 진화";
+            recipe.resultBuilding = CreateFormulaTarget(
+                "facility-v2-target",
+                FacilityRole.Security | FacilityRole.Meal,
+                BuiltInWorkTypeIds.Operate,
+                BuiltInWorkTypeIds.Guard);
+            recipe.formulaPolicy = new FacilityEvolutionFormulaPolicyDefinition
+            {
+                formulaVersion = FacilityFormulaEvolutionAuthority.ModuleSelectionFormulaVersion,
+                catalogSha256 = new string('b', 64),
+                baseBudget = 2,
+                powerScale = 4,
+                softCapK = 8f,
+                minimumImportance = 0f,
+                maximumImportance = 4f,
+                milestoneWeights = new List<float> { 1f, 2f },
+                triggerFrequencyUnits = 0,
+                guaranteedProc = true,
+                targetCount = 1
+            };
+            recipe.formulaCapabilities = new List<FacilityEvolutionFormulaCapabilityDefinition>
+            {
+                CreateFormulaV2FixtureCapability("facility:defense"),
+                CreateFormulaV2FixtureCapability("facility:service")
+            };
+            FacilityEvolutionState state = new()
+            {
+                facilityPersistentId = "building:selection-fixture",
+                usageLedger = new UsageLedger
+                {
+                    nextSequence = 2,
+                    currentGenerationEvents = new List<UsageLedgerEvent>
+                    {
+                        new()
+                        {
+                            evidenceId = "usage:selection-fixture",
+                            eventId = "facility-service",
+                            actorId = "character:worker",
+                            targetId = "building:selection-fixture",
+                            outcomeId = "successful-service",
+                            amount = 2f,
+                            repeatCount = 3,
+                            sequence = 1
+                        }
+                    }
+                }
+            };
+            bool prepared = FacilityFormulaEvolutionAuthority.TryPrepare(
+                state, recipe,
+                out FacilityEvolutionFormulaPresentationPendingSnapshot pending,
+                out string failure);
+            if (!prepared || pending?.node == null)
+                throw new InvalidOperationException(failure);
+            EvolutionNode unresolved = pending.node;
+            NarrativeFormulaModuleSelectionRequest request =
+                FacilityFormulaEvolutionAuthority.BuildModuleSelectionRequest(
+                    unresolved, recipe);
+            string evidenceId = request.EvidenceFactIds.Single();
+            NarrativeFormulaModuleSelectionChoice choice = new(
+                request.SelectionId,
+                new[] { "facility:service" },
+                Array.Empty<string>(),
+                new[] { evidenceId });
+            EvolutionNode frozen = FacilityFormulaEvolutionAuthority.FreezeSelectedModule(
+                state, recipe, unresolved, choice);
+            FacilityFormulaEvolutionModuleSelectionDto dto = new()
+            {
+                selectionId = request.SelectionId,
+                positiveModuleIds = new List<string> { "facility:service" },
+                drawbackModuleIds = new List<string>(),
+                evidenceFactIds = new List<string> { evidenceId },
+                displayName = "손길의 계보",
+                narrativeFlavor = "손님을 돌본 기록이 시설의 새로운 쓰임으로 이어졌다."
+            };
+            string responseJson = JsonUtility.ToJson(dto);
+            bool exactContract = dto.Validate(out _)
+                && NarrativeExactKeyContract.TryValidateProfileResponse(
+                    LocalLlmRequestProfiles.FacilityEvolutionModuleSelection.Id,
+                    responseJson, out _, out _);
+            GameObject firstObject = new("FacilityFormulaV2SaveFixture");
+            GameObject restoredObject = new("FacilityFormulaV2RestoreFixture");
+            bool roundTrip;
+            try
+            {
+                FacilityEvolutionStateComponent first =
+                    firstObject.AddComponent<FacilityEvolutionStateComponent>();
+                FacilityEvolutionStateSnapshot initial = first.CreateSnapshot();
+                initial.baseFacilityId = "fixture:facility-base";
+                initial.currentFacilityId = "fixture:facility-current";
+                initial.instanceEvolution = state;
+                first.ApplySnapshot(initial);
+                first.BeginFormulaPresentation(pending);
+                string payload = first.CaptureState();
+                FacilityEvolutionStateComponent restored =
+                    restoredObject.AddComponent<FacilityEvolutionStateComponent>();
+                roundTrip = restored.TryRestoreState(
+                        restored.CurrentVersion, payload, out _)
+                    && restored.PendingFormulaPresentation?.node.presentationState
+                        == EquipmentEvolutionPresentationState.ModuleSelectionPending
+                    && restored.PendingFormulaPresentation.node.moduleSelectionOffers.Count == 2;
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(firstObject);
+                UnityEngine.Object.DestroyImmediate(restoredObject);
+            }
+            NarrativeFormulaModuleSelectionChoice invented = new(
+                request.SelectionId,
+                new[] { "facility:invented" },
+                Array.Empty<string>(),
+                new[] { evidenceId });
+            bool inventedRejected;
+            try
+            {
+                FacilityFormulaEvolutionAuthority.FreezeSelectedModule(
+                    state, recipe, unresolved, invented);
+                inventedRejected = false;
+            }
+            catch (InvalidOperationException)
+            {
+                inventedRejected = true;
+            }
+            return unresolved.presentationState
+                    == EquipmentEvolutionPresentationState.ModuleSelectionPending
+                && string.IsNullOrEmpty(unresolved.effectId)
+                && unresolved.formulaCapabilities.Count == 0
+                && unresolved.calculatedCost == 0
+                && string.IsNullOrEmpty(unresolved.mechanicalDescription)
+                && request.Offers.Count == 2
+                && frozen.presentationState
+                    == EquipmentEvolutionPresentationState.PresentationPending
+                && frozen.effectId == "facility:service"
+                && frozen.formulaCapabilities.Count == 1
+                && frozen.calculatedCost <= frozen.formulaBudget
+                && !string.IsNullOrWhiteSpace(frozen.mechanicalDescription)
+                && state.formulaEvidence.Single().influenceUseCount == 0
+                && exactContract
+                && roundTrip
+                && inventedRejected;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(recipe.resultBuilding);
+            UnityEngine.Object.DestroyImmediate(recipe);
+        }
+    }
+
+    public static bool VerifyFormulaV3BurdenSeparation()
+    {
+        FacilityEvolutionRecipeSO recipe =
+            ScriptableObject.CreateInstance<FacilityEvolutionRecipeSO>();
+        try
+        {
+            recipe.evolutionId = "fixture:facility-burden-separation";
+            recipe.displayName = "부담 분리 시설 진화";
+            recipe.resultBuilding = CreateFormulaTarget(
+                "facility-v3-target",
+                FacilityRole.Security | FacilityRole.Meal,
+                BuiltInWorkTypeIds.Operate,
+                BuiltInWorkTypeIds.Guard);
+            recipe.formulaPolicy = new FacilityEvolutionFormulaPolicyDefinition
+            {
+                formulaVersion =
+                    FacilityFormulaEvolutionAuthority.DrawbackModuleSelectionFormulaVersion,
+                catalogSha256 = new string('c', 64),
+                baseBudget = 4,
+                powerScale = 4,
+                softCapK = 8f,
+                minimumImportance = 0f,
+                maximumImportance = 4f,
+                milestoneWeights = new List<float> { 1f, 2f },
+                drawbackCredit = new NarrativeFormulaDrawbackCreditPolicyDefinition
+                {
+                    playerChoiceMaximumBudgetFraction = 0.5f,
+                    automaticMaximumBudgetFraction = 0.35f,
+                    absoluteMaximumCredit = 3,
+                    requireNegativeEvidenceForAutomatic = true
+                },
+                guaranteedProc = true,
+                targetCount = 1
+            };
+            recipe.formulaCapabilities = new List<FacilityEvolutionFormulaCapabilityDefinition>
+            {
+                CreateFormulaV2FixtureCapability("facility:defense"),
+                CreateFormulaV2FixtureCapability("facility:entertainment"),
+                CreateFormulaV2FixtureCapability("facility:service")
+            };
+            FacilityEvolutionState state = new()
+            {
+                facilityPersistentId = "building:burden-separation-fixture",
+                usageLedger = new UsageLedger
+                {
+                    nextSequence = 2,
+                    currentGenerationEvents = new List<UsageLedgerEvent>
+                    {
+                        new()
+                        {
+                            evidenceId = "usage:invasion-damage",
+                            eventId = "invasion-damage",
+                            actorId = "character:defender",
+                            targetId = "building:burden-separation-fixture",
+                            outcomeId = "facility-damaged",
+                            amount = 4f,
+                            repeatCount = 3,
+                            sequence = 1,
+                            narrativeContext = new GameplayNarrativeEventContext
+                            {
+                                eventInstanceId = "usage:1", chainId = "building:burden-separation-fixture",
+                                locationId = "building:burden-separation-fixture", locationDisplayName = "검증 시설",
+                                actorId = "character:defender", actorDisplayName = "검증 방어자",
+                                usedObjectId = "building:burden-separation-fixture", resultDetail = "시설 손상",
+                                sequence = 1
+                            }
+                        }
+                    }
+                }
+            };
+            if (!FacilityFormulaEvolutionAuthority.TryPrepare(
+                    state, recipe, out FacilityEvolutionFormulaPresentationPendingSnapshot pending,
+                    out string failure))
+                throw new InvalidOperationException(failure);
+            NarrativeFormulaModuleSelectionRequest request =
+                FacilityFormulaEvolutionAuthority.BuildModuleSelectionRequest(
+                    pending.node, recipe);
+            string evidenceId = request.EvidenceFactIds.Single();
+            string prompt = FacilityFormulaEvolutionPresentationRuntime.BuildModuleSelectionPrompt(pending.node, state);
+            if (!prompt.Contains("maximumDrawbackModules=" + request.MaximumDrawbackModules, StringComparison.Ordinal)
+                || request.Offers.Any(offer => !prompt.Contains(
+                    "module=" + offer.ModuleId + " | polarity=" + offer.Polarity, StringComparison.Ordinal))
+                || prompt.Contains("empty array", StringComparison.Ordinal))
+                throw new InvalidOperationException("Facility prompt contradicts its actual formula authority offers.");
+            EvolutionNode operating = FacilityFormulaEvolutionAuthority.FreezeSelectedModule(
+                state, recipe, pending.node,
+                new NarrativeFormulaModuleSelectionChoice(
+                    request.SelectionId,
+                    new[] { "facility:service" },
+                    Array.Empty<string>(),
+                    new[] { evidenceId }));
+            EvolutionNode burdened = FacilityFormulaEvolutionAuthority.FreezeSelectedModule(
+                state, recipe, pending.node,
+                new NarrativeFormulaModuleSelectionChoice(
+                    request.SelectionId,
+                    new[] { "facility:defense" },
+                    new[] { "facility:drawback-accident" },
+                    new[] { evidenceId }));
+            if (NarrativeFormulaModuleSelectionValidator.TryValidate(
+                    request,
+                    new NarrativeFormulaModuleSelectionChoice(
+                        request.SelectionId,
+                        new[] { "facility:service" },
+                        new[] { "facility:drawback-accident" },
+                        new[] { evidenceId }),
+                    out _,
+                    out string sameAxisError)
+                || !sameAxisError.Contains("conflict", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(
+                    "A facility benefit and optional drawback on service.speed were accepted together.");
+            bool passed = request.MaximumDrawbackModules == 1
+                && request.Offers.Count(value => value.Polarity
+                    == NarrativeFormulaModulePolarity.Positive) == 2
+                && !request.Offers.Any(value => string.Equals(
+                    value.ModuleId,
+                    "facility:entertainment",
+                    StringComparison.Ordinal))
+                && request.Offers.Count(value => value.Polarity
+                    == NarrativeFormulaModulePolarity.Drawback) >= 1
+                && operating.effectId == "facility:service"
+                && string.IsNullOrEmpty(operating.burdenEffectId)
+                && operating.drawbackCredit == 0
+                && operating.mechanicalDescription.Contains("운영비=",
+                    StringComparison.Ordinal)
+                && burdened.effectId == "facility:defense"
+                && burdened.burdenEffectId == "facility:drawback-accident"
+                && burdened.burdenPotencyMultiplier >= 1f
+                && burdened.drawbackCredit > 0
+                && burdened.mechanicalDescription.Contains("운영비=",
+                    StringComparison.Ordinal)
+                && burdened.mechanicalDescription.Contains("선택 단점=",
+                    StringComparison.Ordinal);
+            if (!passed)
+                throw new InvalidOperationException(
+                    $"Facility burden separation mismatch: positives={request.Offers.Count(value => value.Polarity == NarrativeFormulaModulePolarity.Positive)}, "
+                    + $"drawbacks={request.Offers.Count(value => value.Polarity == NarrativeFormulaModulePolarity.Drawback)}, "
+                    + $"operating={operating.effectId}/{operating.burdenEffectId}/{operating.drawbackCredit}/'{operating.mechanicalDescription}', "
+                    + $"burdened={burdened.effectId}/{burdened.burdenEffectId}/{burdened.burdenPotencyMultiplier}/{burdened.drawbackCredit}/'{burdened.mechanicalDescription}'.");
+            VerifyExactNegativeEvidenceOffersDrawbackAfterLegacyDedup(recipe);
+            return true;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(recipe.resultBuilding);
+            UnityEngine.Object.DestroyImmediate(recipe);
+        }
+    }
+
+    public static void RunFormulaV3BurdenSeparationFromBatch()
+    {
+        if (!VerifyFormulaV3BurdenSeparation())
+            throw new InvalidOperationException(
+                "Formula v3 burden separation scenario returned false.");
+        Debug.Log("Formula v3 burden separation scenario passed.");
+    }
+
+    private static void VerifyExactNegativeEvidenceOffersDrawbackAfterLegacyDedup(
+        FacilityEvolutionRecipeSO recipe)
+    {
+        const string facilityId = "building:exact-negative-facility-fixture";
+        const string operationId =
+            "facility-visit:facility=building:exact-negative-facility-fixture:use=1";
+        recipe.formulaPolicy.baseBudget = 1;
+        FacilityEvolutionState state = new()
+        {
+            facilityPersistentId = facilityId,
+            usageLedger = new UsageLedger
+            {
+                nextSequence = 2,
+                currentGenerationEvents = new List<UsageLedgerEvent>
+                {
+                    new()
+                    {
+                        evidenceId = "evidence:1",
+                        eventId = "service.facility-visited",
+                        actorId = "character:visitor",
+                        targetId = facilityId,
+                        outcomeId = "facility-visited",
+                        amount = 1f,
+                        repeatCount = 1,
+                        sequence = 1,
+                        narrativeContext = new GameplayNarrativeEventContext
+                        {
+                            eventInstanceId = operationId,
+                            chainId = facilityId
+                        }
+                    }
+                }
+            }
+        };
+        GameplayOutcomeEvidenceBindingSnapshot exact =
+            CreateFacilityExactJsonBinding(facilityId);
+        exact.operationId =
+            "migrated:50:sha256:fa760f7e0d15e695df7994cfa:1";
+        exact.outcomeTypeId = "service.facility-visited";
+        exact.canonicalFactText = "시설 이용 중 방문자가 부상을 입었다.";
+        exact.factIds = new List<string> { "injury-after", "operation-id" };
+        exact.facts = new List<GameplayOutcomeEvidenceFactBindingSnapshot>
+        {
+            new() { factId = "injury-after", value = "0.12" },
+            new() { factId = "operation-id", value = operationId }
+        };
+        exact.experience = GameplayExperienceObserverRegistration.Default
+            .Observe(exact);
+        if (!GameplayOutcomeEvidenceBindingAuthority.TryValidate(
+                exact, out string bindingFailure))
+        {
+            throw new InvalidOperationException(
+                "Exact negative facility evidence fixture is invalid: "
+                + bindingFailure);
+        }
+        if (!FacilityFormulaEvolutionAuthority.TryPrepare(
+                state,
+                recipe,
+                out FacilityEvolutionFormulaPresentationPendingSnapshot pending,
+                out string failure,
+                new[] { exact }))
+            throw new InvalidOperationException(failure);
+
+        NarrativeFormulaModuleSelectionRequest request =
+            FacilityFormulaEvolutionAuthority.BuildModuleSelectionRequest(
+                pending.node, recipe);
+        if (pending.node.formulaBudget != 2
+            || request.EvidenceFactIds.Count != 1
+            || !string.Equals(
+                request.EvidenceFactIds.Single(),
+                exact.publicFactId,
+                StringComparison.Ordinal)
+            || !request.Offers.Any(value => value.Polarity
+                == NarrativeFormulaModulePolarity.Drawback))
+        {
+            throw new InvalidOperationException(
+                "Exact negative facility evidence did not replace its legacy duplicate "
+                + "or expose an optional drawback offer.");
+        }
+
+        EvolutionNode resolved = FacilityFormulaEvolutionAuthority.FreezeSelectedModule(
+            state,
+            recipe,
+            pending.node,
+            new NarrativeFormulaModuleSelectionChoice(
+                request.SelectionId,
+                new[] { "facility:defense" },
+                new[] { "facility:drawback-accident" },
+                new[] { exact.publicFactId }));
+        if (!string.Equals(
+                resolved.burdenEffectId,
+                "facility:drawback-accident",
+                StringComparison.Ordinal)
+            || resolved.drawbackCredit <= 0)
+        {
+            throw new InvalidOperationException(
+                "Exact negative facility evidence could not resolve the offered drawback.");
+        }
+    }
+
+    private static FacilityEvolutionFormulaCapabilityDefinition
+        CreateFormulaV2FixtureCapability(string moduleId)
+    {
+        string capabilityId = "fixture:facility-v2:" + moduleId.Replace(':', '-');
+        return new FacilityEvolutionFormulaCapabilityDefinition
+        {
+            capabilityId = capabilityId,
+            evolutionModuleId = moduleId,
+            baseCost = 1,
+            narrativeAffinity = 1f,
+            affinityKeys = new List<string> { "facility" },
+            conflictGroups = new List<string> { "facility-module" },
+            forbiddenSynergies = new List<string>(),
+            formatterId = capabilityId,
+            applicatorId = capabilityId,
+            parameterRanges = new List<FacilityEvolutionFormulaRangeDefinition>
+            {
+                new()
+                {
+                    parameterId = NarrativeFormulaParameterIds.Magnitude,
+                    minimumUnits = 5000,
+                    maximumUnits = 10000,
+                    quantumUnits = 1000,
+                    decimalPlaces = 4,
+                    costPerQuantum = 1
+                },
+                new() { parameterId = NarrativeFormulaParameterIds.Duration,
+                    minimumUnits = 0, maximumUnits = 0, quantumUnits = 1,
+                    decimalPlaces = 0, costPerQuantum = 1 },
+                new() { parameterId = NarrativeFormulaParameterIds.Count,
+                    minimumUnits = 1, maximumUnits = 1, quantumUnits = 1,
+                    decimalPlaces = 0, costPerQuantum = 1 },
+                new() { parameterId = NarrativeFormulaParameterIds.TargetCount,
+                    minimumUnits = 1, maximumUnits = 1, quantumUnits = 1,
+                    decimalPlaces = 0, costPerQuantum = 1 }
+            }
+        };
+    }
+
+    private static BuildingSO CreateFormulaTarget(
+        string name,
+        FacilityRole roles,
+        params WorkTypeId[] workTypes)
+    {
+        BuildingSO target = ScriptableObject.CreateInstance<BuildingSO>();
+        target.objectName = name;
+        FacilityData facility = new()
+        {
+            roles = roles,
+            capacity = 1,
+            requiredWorkers = 1
+        };
+        facility.SetSupportedWorkTypeIds(workTypes);
+        target.Facility = facility;
+        // These module-selection fixtures intentionally exercise output-axis
+        // candidates. Give them the valid production consumer used by the
+        // live handler rather than treating role metadata as sufficient.
+        target.AbilityModules.Add(new BuildingProductionAbility
+        {
+            outputCategory = StockCategory.General,
+            amount = 1
+        });
+        return target;
     }
 
     private static void RunScenario(string name, Func<bool> scenario, List<string> errors)
@@ -232,6 +770,8 @@ public static class FacilityEvolutionDebugScenarios
 
         FacilityEvolutionRecipeSO crowdRecipe = CreateCrowdIdentityRecipe(crowded.SourceData, crowded.CrowdResultData);
         FacilityEvolutionRecipeSO fineRecipe = CreateFineIdentityRecipe(crowded.SourceData, crowded.FineResultData);
+        ApplyFormulaFixture(crowdRecipe);
+        ApplyFormulaFixture(fineRecipe);
         StaticFacilityEvolutionRecipeProvider recipes = new StaticFacilityEvolutionRecipeProvider(crowdRecipe, fineRecipe);
 
         FacilityEvolutionEngine crowdedEngine = crowded.CreateEngine(recipes);
@@ -263,6 +803,7 @@ public static class FacilityEvolutionDebugScenarios
     {
         using EvolutionScenarioWorld world = EvolutionScenarioWorld.CreateCombatDining();
         FacilityEvolutionRecipeSO recipe = CreateCombatRecipe(world.SourceData, world.CombatResultData, consumeRecordToken: true);
+        PrepareFormulaExecutionFixture(world, recipe);
         StaticFacilityEvolutionRecipeProvider recipes = new StaticFacilityEvolutionRecipeProvider(recipe);
         MemoryFacilityEvolutionResourceProvider resources = new MemoryFacilityEvolutionResourceProvider();
         resources.SetMaterial("high_grade_meat", 3);
@@ -279,7 +820,12 @@ public static class FacilityEvolutionDebugScenarios
             recipes,
             resources,
             recordTokenConsumer: tokenConsumer);
-        bool success = engine.TryEvolve(world.SourceFacility, recipe, out FacilityEvolutionResult result);
+        bool success = TryExecuteFormulaEvolution(
+            engine,
+            world.SourceFacility,
+            recipe,
+            out FacilityEvolutionResult result,
+            out _);
         FacilityEvolutionRecordComponent record = result.ResultBuilding != null
             ? result.ResultBuilding.GetComponent<FacilityEvolutionRecordComponent>()
             : null;
@@ -369,6 +915,8 @@ public static class FacilityEvolutionDebugScenarios
 
         FacilityEvolutionRecipeSO crowdRecipe = CreateCrowdRecipe(crowded.SourceData, crowded.CrowdResultData);
         FacilityEvolutionRecipeSO fineRecipe = CreateFineRecipe(crowded.SourceData, crowded.FineResultData);
+        ApplyFormulaFixture(crowdRecipe);
+        ApplyFormulaFixture(fineRecipe);
         StaticFacilityEvolutionRecipeProvider recipes = new StaticFacilityEvolutionRecipeProvider(crowdRecipe, fineRecipe);
 
         FacilityEvolutionEngine crowdedEngine = crowded.CreateEngine(recipes);
@@ -417,7 +965,7 @@ public static class FacilityEvolutionDebugScenarios
             && rejected.Validation.Checks.Any((check) => !check.Passed && check.Category == "기록");
     }
 
-    private static bool VerifyLlmProposalFiltersIdsAndOrdersCandidates()
+    private static bool VerifyFormulaAuthorityIgnoresLegacyLlmSelection()
     {
         using EvolutionScenarioWorld world = EvolutionScenarioWorld.CreateCombatDining();
         FacilityEvolutionRecipeSO primary = CreateCombatRecipe(
@@ -430,18 +978,19 @@ public static class FacilityEvolutionDebugScenarios
             consumeRecordToken: false);
         secondary.evolutionId = "evolve_test_llm_preferred_combat";
         secondary.displayName = "LLM 선호 전투 계보";
+        P1FacilityEvolutionAssetBuilder.ApplyFormulaAuthoringForEditorTest(
+            primary, "facility:service");
+        P1FacilityEvolutionAssetBuilder.ApplyFormulaAuthoringForEditorTest(
+            secondary, "facility:service");
 
         StaticFacilityEvolutionRecipeProvider recipes = new StaticFacilityEvolutionRecipeProvider(primary, secondary);
         MemoryFacilityEvolutionResourceProvider resources = new MemoryFacilityEvolutionResourceProvider();
         resources.SetMaterial("high_grade_meat", 6);
         FakeLlmRuntime fakeLlm = new FakeLlmRuntime(
-            "{\"facilityIdentitySummary\":\"용병들이 자주 찾는 거친 식당\","
-            + "\"proposalIds\":[\"evolve_test_llm_preferred_combat\",\"unknown_candidate\",\"evolve_test_combat_dining\"],"
-            + "\"reasons\":[{\"id\":\"evolve_test_llm_preferred_combat\",\"reason\":\"용병 기록과 전투 분위기가 이 계보와 가장 강하게 맞습니다.\"}],"
-            + "\"rejectedHints\":[{\"id\":\"evolve_test_combat_dining\",\"reason\":\"다른 전투 계보도 가능하지만 결정적인 사건 기록이 조금 부족합니다.\"},{\"id\":\"unknown_candidate\",\"reason\":\"무시되어야 합니다.\"}],"
-            + "\"mutationTagSuggestions\":[\"Combat\",\"UnknownMutation\"],"
+            "{\"proposalIds\":[\"evolve_test_llm_preferred_combat\",\"evolve_test_combat_dining\"],"
+            + "\"mutationTags\":[\"Combat\"],"
+            + "\"reasons\":[{\"proposalId\":\"evolve_test_llm_preferred_combat\",\"reason\":\"용병 기록과 전투 분위기가 이 계보와 가장 강하게 맞습니다.\"},{\"proposalId\":\"evolve_test_combat_dining\",\"reason\":\"전투 기록이 이어지는 두 번째 합법 계보입니다.\"}],"
             + "\"flavorText\":\"식탁 주변의 무용담이 다음 계보를 부르고 있습니다.\","
-            + "\"usedMotifIds\":[],\"usedCharacterFactIds\":[],"
             + "\"confidence\":0.82}");
         CachedLocalLlmFacilityEvolutionProposalProvider proposalProvider =
             new CachedLocalLlmFacilityEvolutionProposalProvider(
@@ -450,27 +999,74 @@ public static class FacilityEvolutionDebugScenarios
                 allowRequestsOutsidePlayMode: true);
 
         FacilityEvolutionEngine engine = world.CreateEngine(recipes, resources, proposalProvider);
-        engine.GetCandidates(world.SourceFacility, includeRejected: true);
         IReadOnlyList<FacilityEvolutionCandidate> candidates =
             engine.GetCandidates(world.SourceFacility, includeRejected: false);
 
         FacilityEvolutionCandidate first = candidates.FirstOrDefault();
-        bool valid = fakeLlm.FacilityEvolutionRequestCount == 1
-            && !string.IsNullOrWhiteSpace(fakeLlm.LastPrompt)
-            && fakeLlm.LastPrompt.Contains("rejectedHints")
+        FacilityEvolutionCandidate second = candidates.Skip(1).FirstOrDefault();
+        bool valid = fakeLlm.FacilityEvolutionRequestCount == 0
+            && string.IsNullOrWhiteSpace(fakeLlm.LastPrompt)
             && first != null
             && first.Recipe == primary
+            && first.Proposed
+            && first.OrderingSource == FacilityEvolutionCandidateOrderingSource.ModelOrRuleProposal
             && first.ProposalSource == FacilityEvolutionProposalSources.RuleBased
-            && first.ProposalStatusMessage.Contains("Rule-authoritative")
-            && first.ProposalStatusMessage.Contains("local narrative")
-            && first.Reason.Contains("용병")
-            && first.FlavorText.Contains("무용담");
+            && second != null
+            && second.Recipe == secondary
+            && second.ProposalSource == FacilityEvolutionProposalSources.RuleBased;
+
+        FacilityEvolutionProposalJsonDto duplicateIds = new FacilityEvolutionProposalJsonDto
+        {
+            proposalIds = new[] { primary.EffectiveId, primary.EffectiveId },
+            mutationTags = new[] { FacilityEvolutionTerms.Combat },
+            reasons = new[]
+            {
+                new FacilityEvolutionProposalReasonDto { proposalId = primary.EffectiveId, reason = "첫 이유" },
+                new FacilityEvolutionProposalReasonDto { proposalId = primary.EffectiveId, reason = "둘째 이유" }
+            },
+            flavorText = "중복 검증",
+            confidence = 0.5f
+        };
+        valid &= !duplicateIds.TryCreateRuntimeProposal(
+            "identity",
+            new[] { primary.EffectiveId, secondary.EffectiveId },
+            new[] { FacilityEvolutionTerms.Combat },
+            null,
+            null,
+            null,
+            out _,
+            out FacilityEvolutionProposalRejectionKind duplicateKind,
+            out _)
+            && duplicateKind == FacilityEvolutionProposalRejectionKind.DuplicateProposalId;
+
+        FacilityEvolutionProposalJsonDto illegalTag = new FacilityEvolutionProposalJsonDto
+        {
+            proposalIds = new[] { primary.EffectiveId },
+            mutationTags = new[] { "UnknownMutation" },
+            reasons = new[]
+            {
+                new FacilityEvolutionProposalReasonDto { proposalId = primary.EffectiveId, reason = "합법 후보" }
+            },
+            flavorText = "태그 검증",
+            confidence = 0.5f
+        };
+        valid &= !illegalTag.TryCreateRuntimeProposal(
+            "identity",
+            new[] { primary.EffectiveId, secondary.EffectiveId },
+            new[] { FacilityEvolutionTerms.Combat },
+            null,
+            null,
+            null,
+            out _,
+            out FacilityEvolutionProposalRejectionKind illegalTagKind,
+            out _)
+            && illegalTagKind == FacilityEvolutionProposalRejectionKind.IllegalMutationTag;
         if (!valid)
         {
             Debug.LogError(
-                $"Facility evolution LLM diagnostic: requests={fakeLlm.FacilityEvolutionRequestCount}, "
+                $"Facility evolution formula authority diagnostic: requests={fakeLlm.FacilityEvolutionRequestCount}, "
                 + $"prompt={(!string.IsNullOrWhiteSpace(fakeLlm.LastPrompt))}, "
-                + $"promptHints={fakeLlm.LastPrompt?.Contains("rejectedHints") == true}, "
+                + $"promptPacket={fakeLlm.LastPrompt?.Contains("allowedMutationTags") == true}, "
                 + $"candidateCount={candidates.Count}, "
                 + $"first={first?.Recipe?.evolutionId ?? "null"}, "
                 + $"source={first?.ProposalSource ?? "null"}, "
@@ -478,6 +1074,70 @@ public static class FacilityEvolutionDebugScenarios
                 + $"reason={first?.Reason ?? "null"}, flavor={first?.FlavorText ?? "null"}");
         }
         return valid;
+    }
+
+    private static bool VerifyPlayerCanSelectNonFirstFormulaRecipe()
+    {
+        using EvolutionScenarioWorld world = EvolutionScenarioWorld.CreateCombatDining();
+        FacilityEvolutionRecipeSO primary = CreateCombatRecipe(
+            world.SourceData,
+            world.CombatResultData,
+            consumeRecordToken: false);
+        FacilityEvolutionRecipeSO secondary = CreateCombatRecipe(
+            world.SourceData,
+            world.FineResultData,
+            consumeRecordToken: false);
+        secondary.evolutionId = "evolve_test_player_selected_secondary";
+        secondary.displayName = "플레이어 선택 전투 계보";
+        ApplyFormulaFixture(primary);
+        ApplyFormulaFixture(secondary);
+
+        MemoryFacilityEvolutionResourceProvider resources =
+            new MemoryFacilityEvolutionResourceProvider();
+        resources.SetMaterial("high_grade_meat", 6);
+        FacilityEvolutionEngine engine = world.CreateEngine(
+            new StaticFacilityEvolutionRecipeProvider(primary, secondary), resources);
+        FacilityEvolutionStateComponent sourceState =
+            world.SourceFacility.GetComponent<FacilityEvolutionStateComponent>();
+        FacilityEvolutionState sourceEvolution = sourceState.InstanceEvolution;
+        sourceEvolution.usageLedger.currentGenerationEvents.Add(new UsageLedgerEvent
+        {
+            evidenceId = "formula-player-choice-evidence",
+            eventId = "facility-use",
+            actorId = "character:fixture",
+            targetId = sourceEvolution.facilityPersistentId,
+            outcomeId = "successful-service",
+            amount = 1f,
+            repeatCount = 1,
+            sequence = 1
+        });
+        sourceEvolution.usageLedger.nextSequence = 2;
+        sourceState.ReplaceInstanceEvolution(sourceEvolution);
+
+        IReadOnlyList<FacilityEvolutionCandidate> candidates = engine.GetCandidates(
+            world.SourceFacility, includeRejected: false);
+        FacilityEvolutionCandidate selected = candidates.Skip(1).FirstOrDefault();
+        FacilityEvolutionResult result = default;
+        bool queued = selected != null
+            && engine.TryEvolve(world.SourceFacility, selected.Recipe,
+                out result);
+        FacilityEvolutionFormulaPresentationPendingSnapshot pending =
+            sourceState.PendingFormulaPresentation;
+
+        return candidates.Count == 2
+            && candidates[0].Recipe == primary
+            && selected?.Recipe == secondary
+            && queued
+            && result.Success
+            && result.Recipe == secondary
+            && pending != null
+            && string.Equals(pending.recipeId, secondary.EffectiveId,
+                StringComparison.Ordinal)
+            && pending.node != null
+            && pending.node.presentationState
+                == EquipmentEvolutionPresentationState.PresentationPending
+            && sourceState.InstanceEvolution.evolutionNodes.Count == 0
+            && resources.HasMaterial("high_grade_meat", 6);
     }
 
     private static bool VerifyOverviewDoesNotRequestLlm()
@@ -590,21 +1250,41 @@ public static class FacilityEvolutionDebugScenarios
             && record.RecentEvents.Any((entry) => entry.Contains("테스트 절도"));
     }
 
-    private static bool VerifyEvolutionReplacesFacilityAndPreservesLineageRecords()
+    private static bool VerifyEvolutionReplacesFacilityAndPreservesLineageRecords() =>
+        VerifyEvolutionReplacesFacilityAndPreservesLineageRecords(out _);
+
+    private static bool VerifyEvolutionReplacesFacilityAndPreservesLineageRecords(
+        out string diagnostic)
     {
+        diagnostic = string.Empty;
         using EvolutionScenarioWorld world = EvolutionScenarioWorld.CreateCombatDining();
         FacilityEvolutionRecipeSO recipe = CreateCombatRecipe(world.SourceData, world.CombatResultData, consumeRecordToken: true);
+        // This scenario proves the domain replacement and canonical outcome
+        // boundary. Material provenance has its own physical transaction
+        // scenarios, so use the production no-material branch here instead of
+        // the in-memory resource provider's non-physical receipt.
+        recipe.requiredMaterials = Array.Empty<
+            FacilityEvolutionMaterialRequirement>();
+        PrepareFormulaExecutionFixture(world, recipe);
         StaticFacilityEvolutionRecipeProvider recipes = new StaticFacilityEvolutionRecipeProvider(recipe);
         MemoryFacilityEvolutionResourceProvider resources = new MemoryFacilityEvolutionResourceProvider();
         resources.SetMaterial("high_grade_meat", 3);
         DefaultFacilityEvolutionRecordTokenConsumer tokenConsumer =
             new DefaultFacilityEvolutionRecordTokenConsumer(
                 new EmptyFacilityEvolutionRecordTokenDefinitionProvider());
+        FixedFacilityEvolutionCalendar calendar = new(day: 23, hour: 10);
+        using EvolutionGameplayOutcomeEditorFixture outcomes = new(
+            "run:facility-evolution-success-editor",
+            calendar: calendar,
+            includeFacilityEvolutionFacts: true);
 
         FacilityEvolutionEngine engine = world.CreateEngine(
             recipes,
             resources,
-            recordTokenConsumer: tokenConsumer);
+            recordTokenConsumer: tokenConsumer,
+            facts: outcomes.FacilityEvolutionFacts,
+            factRecovery: outcomes.FacilityEvolutionFacts,
+            calendar: calendar);
         DungeonStory.Foundation.IGameEventBus gameEvents =
             new DungeonStory.Foundation.GameEventBus();
         CountingEvolutionCompletedListener listener =
@@ -613,7 +1293,12 @@ public static class FacilityEvolutionDebugScenarios
         {
             BuildingInstanceId survivorId =
                 world.SourceFacility.RequirePersistentInstanceId();
-            bool success = engine.TryEvolve(world.SourceFacility, recipe, out FacilityEvolutionResult result);
+            bool success = TryExecuteFormulaEvolution(
+                engine,
+                world.SourceFacility,
+                recipe,
+                out FacilityEvolutionResult result,
+                out string executionFailure);
             gameEvents.Publish(new FacilityEvolutionCompletedEvent(result));
 
             BuildableObject occupant = world.Grid
@@ -626,31 +1311,172 @@ public static class FacilityEvolutionDebugScenarios
                 ? result.ResultBuilding.GetComponent<FacilityEvolutionRecordComponent>()
                 : null;
             FacilityEvolutionRecord copiedRecord = record != null ? record.GetRecord(result.ResultBuilding) : null;
-
-            return success
+            bool outcomeAcknowledged = false;
+            bool outcomeTypedFacts = false;
+            bool outcomeHasNoMaterialEvidence = false;
+            string outcomeState = "not-queried";
+            GameplayOutcomeSnapshot exact = null;
+            if (success
                 && result.Success
-                && result.ResultBuilding != null
-                && result.ResultBuilding.id == world.CombatResultData.id
-                && result.ResultBuilding.PersistentInstanceId.Equals(survivorId)
-                && occupant == result.ResultBuilding
-                && state != null
+                && !string.IsNullOrWhiteSpace(result.OutcomeOperationId)
+                && result.OutcomeOwnerRevision > 0L)
+            {
+                GameplayResultKey key = new(
+                    EvolutionOutcomeIds.FacilityProducerId,
+                    new GameplayOperationId(result.OutcomeOperationId),
+                    result.OutcomeOwnerRevision,
+                    0);
+                bool identityFound = outcomes.Ledger.TryGetResultIdentity(
+                    key,
+                    out GameplayOutcomeReplayIdentity identity);
+                outcomeState = identityFound
+                    ? identity.State.ToString()
+                    : "missing";
+                outcomeAcknowledged = identityFound
+                    && identity.State
+                    == GameplayOutcomeReplayState.PublishedAcknowledged;
+                outcomeTypedFacts = outcomeAcknowledged
+                    && outcomes.Ledger.TryGetExact(
+                        identity.OutcomeId,
+                        out exact)
+                    && exact?.facts != null
+                    && exact.facts.Any(value => value != null
+                        && string.Equals(
+                            value.factId,
+                            EvolutionOutcomeIds.FacilityRecipeFact.Value,
+                            StringComparison.Ordinal)
+                        && string.Equals(
+                            value.value,
+                            recipe.EffectiveId,
+                            StringComparison.Ordinal))
+                    && exact.facts.Any(value => value != null
+                        && string.Equals(
+                            value.factId,
+                            EvolutionOutcomeIds.FacilityResultDefinitionFact.Value,
+                            StringComparison.Ordinal)
+                        && string.Equals(
+                            value.value,
+                            FacilityEvolutionUtility.GetFacilityId(recipe.resultBuilding),
+                            StringComparison.Ordinal));
+                outcomeHasNoMaterialEvidence = exact != null
+                    && (exact.anchors?.Count ?? -1) == 0
+                    && (exact.initialAnchors?.Count ?? -1) == 0
+                    && HasMetricValue(
+                        exact,
+                        EvolutionOutcomeIds.MaterialQuantityMetric,
+                        0d)
+                    && HasMetricValue(
+                        exact,
+                        EvolutionOutcomeIds.MaterialMassMetric,
+                        0d)
+                    && HasMetricValue(
+                        exact,
+                        EvolutionOutcomeIds.MaterialSourceCountMetric,
+                        0d);
+            }
+
+            bool resultDefinitionMatches = result.ResultBuilding != null
+                && result.ResultBuilding.id == world.CombatResultData.id;
+            bool persistentIdentityMatches = result.ResultBuilding != null
+                && result.ResultBuilding.PersistentInstanceId.Equals(survivorId);
+            bool occupantMatches = ReferenceEquals(
+                occupant,
+                result.ResultBuilding);
+            bool stateMatches = state != null
                 && state.BaseFacilityId == world.SourceData.id.ToString()
-                && state.CurrentFacilityId == world.CombatResultData.id.ToString()
+                && state.CurrentFacilityId
+                    == world.CombatResultData.id.ToString()
                 && state.StarGrade == 2
-                && state.EvolutionHistory.Count == 1
+                && state.EvolutionHistory.Count == 1;
+            bool identityPressureMatches = state != null
                 && state.LastIdentityPressures.Count > 0
-                && state.LastIdentityPressures.Any((entry) => entry.key == FacilityEvolutionTerms.Combat && entry.value > 0f)
-                && state.MutationTags.Contains(FacilityEvolutionTerms.Combat)
-                && copiedRecord != null
-                && copiedRecord.GetToken(FacilityEvolutionTerms.MercenaryHangout) == 1
-                && copiedRecord.RecentEvents.Any((entry) => entry.Contains("용병"))
-                && listener.Count == 1;
+                && state.LastIdentityPressures.Any(entry => entry.key
+                    == FacilityEvolutionTerms.Combat && entry.value > 0f)
+                && state.MutationTags.Contains(FacilityEvolutionTerms.Combat);
+            bool recordMatches = copiedRecord != null
+                && copiedRecord.GetToken(
+                    FacilityEvolutionTerms.MercenaryHangout) == 1
+                && copiedRecord.RecentEvents.Any(entry =>
+                    entry.Contains("용병"));
+            bool noPhysicalReceipt = string.IsNullOrEmpty(
+                    result.MaterialCommitId)
+                && (result.MaterialSourceStackIds?.Count ?? 0) == 0
+                && result.MaterialQuantity == 0
+                && result.MaterialInputMassGrams == 0L
+                && resources.HasMaterial("high_grade_meat", 3)
+                && !resources.TryGetPendingMaterialCommit(
+                    result.OutcomeOperationId,
+                    "facility-evolution-material-incorporated:"
+                        + recipe.EffectiveId,
+                    out _,
+                    out _);
+            bool passed = success
+                && result.Success
+                && resultDefinitionMatches
+                && persistentIdentityMatches
+                && occupantMatches
+                && stateMatches
+                && identityPressureMatches
+                && recordMatches
+                && listener.Count == 1
+                && outcomeAcknowledged
+                && outcomeTypedFacts
+                && outcomeHasNoMaterialEvidence
+                && noPhysicalReceipt;
+            if (!passed)
+            {
+                GameplayOutcomeLedgerSaveData ledger =
+                    outcomes.Ledger.CaptureGameplayOutcomes();
+                diagnostic = "execute=" + success
+                    + "; executionFailure=" + (executionFailure ?? string.Empty)
+                    + "; resultSuccess=" + result.Success
+                    + "; resultMessage=" + result.Message
+                    + "; resultBuilding=" + (result.ResultBuilding != null)
+                    + "; resultDefinition="
+                    + (result.ResultBuilding?.BuildingData?.id.ToString()
+                        ?? string.Empty)
+                    + "; operationId=" + result.OutcomeOperationId
+                    + "; ownerRevision=" + result.OutcomeOwnerRevision
+                    + "; resultDefinitionMatches="
+                    + resultDefinitionMatches
+                    + "; persistentIdentityMatches="
+                    + persistentIdentityMatches
+                    + "; occupantMatches=" + occupantMatches
+                    + "; state=" + (state != null)
+                    + "; history=" + (state?.EvolutionHistory.Count ?? -1)
+                    + "; star=" + (state?.StarGrade ?? -1)
+                    + "; stateMatches=" + stateMatches
+                    + "; identityPressureMatches="
+                    + identityPressureMatches
+                    + "; recordMatches=" + recordMatches
+                    + "; noPhysicalReceipt=" + noPhysicalReceipt
+                    + "; listenerCount=" + listener.Count
+                    + "; outcomeState=" + outcomeState
+                    + "; typedFacts=" + outcomeTypedFacts
+                    + "; noMaterialEvidence="
+                    + outcomeHasNoMaterialEvidence
+                    + "; outbox=" + (ledger.outbox?.Count ?? -1)
+                    + "; exact=" + (ledger.exactOutcomes?.Count ?? -1)
+                    + "; tombstones=" + (ledger.tombstones?.Count ?? -1);
+            }
+            return passed;
         }
         finally
         {
             listener.Dispose();
         }
     }
+
+    private static bool HasMetricValue(
+        GameplayOutcomeSnapshot outcome,
+        GameplayMetricId metricId,
+        double expected) => outcome?.metrics != null
+        && outcome.metrics.Any(value => value != null
+            && string.Equals(
+                value.metricId,
+                metricId.Value,
+                StringComparison.Ordinal)
+            && value.value.Equals(expected));
 
     private static bool VerifyFailedEvolutionKeepsOriginalFacility()
     {
@@ -680,6 +1506,7 @@ public static class FacilityEvolutionDebugScenarios
             world.SourceData,
             world.CombatResultData,
             consumeRecordToken: false);
+        ApplyFormulaFixture(recipe);
         StaticFacilityEvolutionRecipeProvider recipes =
             new StaticFacilityEvolutionRecipeProvider(recipe);
         MemoryFacilityEvolutionResourceProvider resources =
@@ -692,17 +1519,44 @@ public static class FacilityEvolutionDebugScenarios
             resources,
             buildingReplacer: replacer);
 
-        bool first = engine.TryEvolve(
+        FacilityEvolutionStateComponent sourceState =
+            world.SourceFacility.GetComponent<FacilityEvolutionStateComponent>();
+        FacilityEvolutionState sourceEvolution = sourceState.InstanceEvolution;
+        sourceEvolution.usageLedger.currentGenerationEvents.Add(new UsageLedgerEvent
+        {
+            evidenceId = "formula-pending-material-retry-evidence",
+            eventId = "facility-use",
+            actorId = "character:fixture",
+            targetId = sourceEvolution.facilityPersistentId,
+            outcomeId = "successful-service",
+            amount = 1f,
+            repeatCount = 1,
+            sequence = 1
+        });
+        sourceEvolution.usageLedger.nextSequence = 2;
+        sourceState.ReplaceInstanceEvolution(sourceEvolution);
+
+        bool queued = engine.TryEvolve(
             world.SourceFacility,
             recipe,
-            out FacilityEvolutionResult firstResult);
+            out FacilityEvolutionResult queuedResult);
+        FacilityEvolutionFormulaPresentationPendingSnapshot presentation =
+            sourceState.PendingFormulaPresentation;
+        FacilityEvolutionResult firstResult = default;
+        string firstFailure = string.Empty;
+        bool first = presentation != null
+            && engine.TryCommitFormulaPresentation(
+                world.SourceFacility,
+                presentation.presentationId,
+                "재기의 불씨",
+                "용병들의 흔적이 식당의 새로운 계보를 일으켰다.",
+                out firstResult,
+                out firstFailure);
         BuildableObject firstOccupant = world.Grid
             .GetGridCell(world.SourcePosition)
             .GetOccupant(GridLayer.Building) as BuildableObject;
         bool materialWasDebited = resources.HasMaterial("high_grade_meat", 1)
             && !resources.HasMaterial("high_grade_meat", 2);
-        FacilityEvolutionStateComponent sourceState =
-            world.SourceFacility.GetComponent<FacilityEvolutionStateComponent>();
         bool sourceAliveAfterFirst = !world.SourceFacility.isDestroy
             && ReferenceEquals(firstOccupant, world.SourceFacility);
         bool pendingAfterFirst = sourceState != null
@@ -715,15 +1569,18 @@ public static class FacilityEvolutionDebugScenarios
                 out _)
             && sourceState.HasPendingMaterialCommit;
 
-        bool second = engine.TryEvolve(
+        bool second = engine.TryResumePending(
             world.SourceFacility,
-            recipe,
-            out FacilityEvolutionResult secondResult);
+            out FacilityEvolutionResult secondResult,
+            out string secondFailure);
         BuildableObject secondOccupant = world.Grid
             .GetGridCell(world.SourcePosition)
             .GetOccupant(GridLayer.Building) as BuildableObject;
 
-        bool passed = !first
+        bool passed = queued
+            && queuedResult.Success
+            && presentation != null
+            && !first
             && !firstResult.Success
             && sourceAliveAfterFirst
             && materialWasDebited
@@ -742,12 +1599,381 @@ public static class FacilityEvolutionDebugScenarios
         if (!passed)
         {
             Debug.LogError(
-                $"Pending material retry detail: first={first}/{firstResult.Message}, "
-                + $"second={second}/{secondResult.Message}, "
+                $"Pending material retry detail: queued={queued}/{queuedResult.Message}, "
+                + $"presentation={presentation?.presentationId ?? "<none>"}, "
+                + $"first={first}/{firstResult.Message}/{firstFailure}, "
+                + $"second={second}/{secondResult.Message}/{secondFailure}, "
                 + $"pendingAfterFirst={pendingAfterFirst}, roundTrip={currentFormatRoundTrip}, "
                 + $"sourceAliveAfterFirst={sourceAliveAfterFirst}, "
                 + $"debited={materialWasDebited}, replaceCalls={replacer.TryReplaceCalls}, "
                 + $"secondOccupant={secondOccupant}.");
+        }
+        return passed;
+    }
+
+    private static bool VerifyFormulaPresentationDurableReceiptDoesNotRestorePending()
+    {
+        using EvolutionScenarioWorld world = EvolutionScenarioWorld.CreateCombatDining();
+        FacilityEvolutionRecipeSO recipe = CreateCombatRecipe(
+            world.SourceData, world.CombatResultData, consumeRecordToken: false);
+        ApplyFormulaFixture(recipe);
+        MemoryFacilityEvolutionResourceProvider resources =
+            new MemoryFacilityEvolutionResourceProvider();
+        resources.SetMaterial("high_grade_meat", 3);
+        FailOnceBuildingReplacer replacer = new FailOnceBuildingReplacer(
+            world.CreateReplacer());
+        FacilityEvolutionEngine engine = world.CreateEngine(
+            new StaticFacilityEvolutionRecipeProvider(recipe), resources,
+            buildingReplacer: replacer);
+
+        FacilityEvolutionStateComponent sourceState =
+            world.SourceFacility.GetComponent<FacilityEvolutionStateComponent>();
+        FacilityEvolutionState sourceEvolution = sourceState.InstanceEvolution;
+        sourceEvolution.usageLedger.currentGenerationEvents.Add(new UsageLedgerEvent
+        {
+            evidenceId = "formula-pending-evidence",
+            eventId = "facility-use",
+            actorId = "character:fixture",
+            targetId = sourceEvolution.facilityPersistentId,
+            outcomeId = "successful-service",
+            amount = 1f,
+            repeatCount = 1,
+            sequence = 1
+        });
+        sourceEvolution.usageLedger.nextSequence = 2;
+        sourceState.ReplaceInstanceEvolution(sourceEvolution);
+
+        bool queued = engine.TryEvolve(world.SourceFacility, recipe,
+            out FacilityEvolutionResult queuedResult);
+        FacilityEvolutionFormulaPresentationPendingSnapshot pending =
+            sourceState.PendingFormulaPresentation;
+        bool failedPublication = pending != null
+            && !engine.TryCommitFormulaPresentation(world.SourceFacility,
+                pending.presentationId, "불꽃 수호",
+                "수호의 불씨가 오래된 식당에 깃들었다.",
+                out _, out _);
+        FacilityEvolutionPendingMaterialCommitSnapshot durable =
+            sourceState.PendingMaterialCommit;
+        FacilityEvolutionStateSnapshot resolved = durable?.ReadResolvedResultState();
+        EvolutionNode finalized = resolved?.instanceEvolution?.evolutionNodes
+            ?.SingleOrDefault(node => node != null
+                && string.Equals(node.presentationId, pending?.presentationId,
+                    StringComparison.Ordinal));
+        bool snapshotFinalized = durable != null
+            && sourceState.PendingFormulaPresentation == null
+            && finalized != null
+            && finalized.presentationState == EquipmentEvolutionPresentationState.Ready
+            && finalized.active
+            && resolved.instanceEvolution.formulaEvidence.Any(value => value != null
+                && finalized.evidenceIds.Contains(value.evidenceId)
+                && value.influenceUseCount == 1)
+            && resolved.evolutionHistory.LastOrDefault()?.summary == finalized.narrativeFlavor;
+
+        bool resumed = engine.TryResumePending(world.SourceFacility,
+            out FacilityEvolutionResult resumedResult, out _);
+        FacilityEvolutionStateComponent resultState = resumedResult.ResultBuilding?
+            .GetComponent<FacilityEvolutionStateComponent>();
+        EvolutionNode published = resultState?.InstanceEvolution.evolutionNodes
+            .SingleOrDefault(node => node != null
+                && string.Equals(node.presentationId, pending?.presentationId,
+                    StringComparison.Ordinal));
+        bool passed = queued && queuedResult.Success && pending != null
+            && failedPublication && snapshotFinalized && resumed && resumedResult.Success
+            && published != null && published.presentationState == EquipmentEvolutionPresentationState.Ready
+            && !resultState.HasPendingMaterialCommit
+            && resources.HasMaterial("high_grade_meat", 1)
+            && !resources.HasMaterial("high_grade_meat", 2)
+            && replacer.TryReplaceCalls == 2;
+        if (!passed)
+        {
+            bool hasOneMaterial = resources.HasMaterial("high_grade_meat", 1);
+            bool hasTwoMaterials = resources.HasMaterial("high_grade_meat", 2);
+            Debug.LogError(
+                $"Facility formula durable receipt detail: queued={queued}/{queuedResult.Message}, "
+                + $"pending={pending != null}, failedPublication={failedPublication}, "
+                + $"snapshotFinalized={snapshotFinalized}, resumed={resumed}/{resumedResult.Message}, "
+                + $"published={published != null}/{published?.presentationState}, "
+                + $"pendingMaterial={resultState?.HasPendingMaterialCommit}, "
+                + $"materials1={hasOneMaterial}, materials2={hasTwoMaterials}, "
+                + $"replaceCalls={replacer.TryReplaceCalls}.");
+        }
+        return passed;
+    }
+
+    private static void ApplyFormulaFixture(FacilityEvolutionRecipeSO recipe)
+    {
+        recipe.formulaPolicy = new FacilityEvolutionFormulaPolicyDefinition
+        {
+            formulaVersion = 1,
+            catalogSha256 = new string('a', 64),
+            baseBudget = 2,
+            powerScale = 4,
+            softCapK = 8f,
+            minimumImportance = 0f,
+            maximumImportance = 4f,
+            milestoneWeights = new List<float> { 1f },
+            triggerFrequencyUnits = 0,
+            guaranteedProc = true,
+            targetCount = 1
+        };
+        recipe.formulaCapabilities = new List<FacilityEvolutionFormulaCapabilityDefinition>
+        {
+            new()
+            {
+                capabilityId = "fixture:facility-formula",
+                evolutionModuleId = "facility:service",
+                baseCost = 0,
+                formatterId = "fixture:facility-formula",
+                applicatorId = "fixture:facility-formula",
+                affinityKeys = new List<string> { FacilityEvolutionTerms.Combat },
+                conflictGroups = new List<string> { "fixture:facility-formula" },
+                forbiddenSynergies = new List<string>(),
+                parameterRanges = new List<FacilityEvolutionFormulaRangeDefinition>
+                {
+                    new()
+                    {
+                        parameterId = NarrativeFormulaParameterIds.Magnitude,
+                        minimumUnits = 100,
+                        maximumUnits = 100,
+                        quantumUnits = 1,
+                        decimalPlaces = 0,
+                        costPerQuantum = 1
+                    },
+                    new()
+                    {
+                        parameterId = NarrativeFormulaParameterIds.Duration,
+                        minimumUnits = 0,
+                        maximumUnits = 0,
+                        quantumUnits = 1,
+                        decimalPlaces = 0,
+                        costPerQuantum = 1
+                    },
+                    new()
+                    {
+                        parameterId = NarrativeFormulaParameterIds.Count,
+                        minimumUnits = 1,
+                        maximumUnits = 1,
+                        quantumUnits = 1,
+                        decimalPlaces = 0,
+                        costPerQuantum = 1
+                    },
+                    new()
+                    {
+                        parameterId = NarrativeFormulaParameterIds.TargetCount,
+                        minimumUnits = 1,
+                        maximumUnits = 1,
+                        quantumUnits = 1,
+                        decimalPlaces = 0,
+                        costPerQuantum = 1
+                    }
+                }
+            }
+        };
+    }
+
+    private static void PrepareFormulaExecutionFixture(
+        EvolutionScenarioWorld world,
+        params FacilityEvolutionRecipeSO[] recipes)
+    {
+        foreach (FacilityEvolutionRecipeSO recipe in recipes
+                     ?? Array.Empty<FacilityEvolutionRecipeSO>())
+        {
+            ApplyFormulaFixture(recipe);
+        }
+
+        FacilityEvolutionStateComponent state =
+            world.SourceFacility.GetComponent<FacilityEvolutionStateComponent>();
+        FacilityEvolutionState evolution = state.InstanceEvolution;
+        evolution.usageLedger ??= new UsageLedger();
+        evolution.usageLedger.currentGenerationEvents ??= new List<UsageLedgerEvent>();
+        long sequence = Math.Max(1L, evolution.usageLedger.nextSequence);
+        evolution.usageLedger.currentGenerationEvents.Add(new UsageLedgerEvent
+        {
+            evidenceId = "formula-legacy-fixture:" + sequence,
+            eventId = "facility-use",
+            actorId = "character:fixture",
+            targetId = evolution.facilityPersistentId,
+            outcomeId = "successful-service",
+            amount = 1f,
+            repeatCount = 1,
+            sequence = sequence
+        });
+        evolution.usageLedger.nextSequence = sequence + 1L;
+        state.ReplaceInstanceEvolution(evolution);
+    }
+
+    private static bool TryExecuteFormulaEvolution(
+        FacilityEvolutionEngine engine,
+        BuildableObject facility,
+        FacilityEvolutionRecipeSO recipe,
+        out FacilityEvolutionResult result,
+        out string failureReason)
+    {
+        result = default;
+        failureReason = string.Empty;
+        if (!engine.TryEvolve(facility, recipe, out FacilityEvolutionResult queued)
+            || !queued.Success)
+        {
+            result = queued;
+            failureReason = queued.Message;
+            return false;
+        }
+
+        FacilityEvolutionFormulaPresentationPendingSnapshot pending = facility
+            .GetComponent<FacilityEvolutionStateComponent>()
+            .PendingFormulaPresentation;
+        if (pending == null)
+        {
+            result = queued;
+            failureReason = "Formula presentation was not queued.";
+            return false;
+        }
+
+        return engine.TryCommitFormulaPresentation(
+            facility,
+            pending.presentationId,
+            "이어진 계보",
+            "시설에 남은 경험이 새로운 쓰임으로 이어졌다.",
+            out result,
+            out failureReason);
+    }
+
+    private static bool TryExecuteFormulaEvolution(
+        FacilityEvolutionRuntime runtime,
+        BuildableObject facility,
+        FacilityEvolutionRecipeSO recipe,
+        out FacilityEvolutionResult result,
+        out string failureReason)
+    {
+        result = default;
+        failureReason = string.Empty;
+        if (!runtime.TryEvolve(facility, recipe, out FacilityEvolutionResult queued)
+            || !queued.Success)
+        {
+            result = queued;
+            failureReason = queued.Message;
+            return false;
+        }
+
+        FacilityEvolutionFormulaPresentationPendingSnapshot pending = facility
+            .GetComponent<FacilityEvolutionStateComponent>()
+            .PendingFormulaPresentation;
+        if (pending == null)
+        {
+            result = queued;
+            failureReason = "Formula presentation was not queued.";
+            return false;
+        }
+
+        return runtime.TryCommitFormulaPresentation(
+            facility,
+            pending.presentationId,
+            "이어진 계보",
+            "시설에 남은 경험이 새로운 쓰임으로 이어졌다.",
+            out result,
+            out failureReason);
+    }
+
+    private static bool VerifyPendingEvidenceIntentSurvivesRestore()
+    {
+        using EvolutionScenarioWorld world = EvolutionScenarioWorld.CreateCombatDining();
+        FacilityEvolutionRecipeSO recipe = CreateCombatRecipe(
+            world.SourceData,
+            world.CombatResultData,
+            consumeRecordToken: false);
+        PrepareFormulaExecutionFixture(world, recipe);
+        MemoryFacilityEvolutionResourceProvider resources =
+            new MemoryFacilityEvolutionResourceProvider();
+        resources.SetMaterial("high_grade_meat", 3);
+        FailOnceBuildingReplacer replacer = new FailOnceBuildingReplacer(
+            world.CreateReplacer());
+        FacilityEvolutionEngine engine = world.CreateEngine(
+            new StaticFacilityEvolutionRecipeProvider(recipe),
+            resources,
+            buildingReplacer: replacer);
+
+        bool first = TryExecuteFormulaEvolution(
+            engine, world.SourceFacility, recipe, out _, out _);
+        FacilityEvolutionStateComponent state =
+            world.SourceFacility.GetComponent<FacilityEvolutionStateComponent>();
+        if (first || state == null || !state.HasPendingMaterialCommit)
+            return false;
+
+        string factId = "public-fact:sha256:" + new string('e', 64);
+        state.RecordPendingEvidenceUseIntent(
+            "facility-evidence-fixture",
+            new[]
+            {
+                new GameplayOutcomeEvidenceBindingSnapshot
+                {
+                    publicFactId = factId,
+                    outcomeRunId = "run:facility-evidence-fixture",
+                    outcomeSequence = 1L,
+                    outcomeTypeId = "facility.fixture",
+                    subjectKindId = "facility",
+                    subjectId = state.FacilityPersistentId,
+                    anchorRevision = 0,
+                    status = (int)GameplayOutcomeStatus.Succeeded,
+                    subjectSalience = 1f,
+                    influenceUseCount = 0,
+                    influenceRevision = 0,
+                    canonicalFactText = "시설 진화 근거가 확정됐다.",
+                    roleIds = new List<string> { "facility" },
+                    metricIds = new List<string> { "count" },
+                    metricReferenceIds = new List<string>(),
+                    factIds = new List<string> { "facility.fixture" },
+                    semanticTags = new List<string> { "facility" }
+                }
+            });
+
+        string payload = state.CaptureState();
+        bool restored = state.TryRestoreState(
+            state.CurrentVersion,
+            payload,
+            out string restoreError);
+        FacilityEvolutionPendingMaterialCommitSnapshot restoredPending =
+            state.PendingMaterialCommit;
+        bool resumeRejected = !engine.TryResumePending(
+            world.SourceFacility,
+            out _,
+            out string resumeFailure);
+        FacilityEvolutionPendingMaterialCommitSnapshot afterResume =
+            state.PendingMaterialCommit;
+        bool physicalStillPending = resources.TryGetPendingMaterialCommit(
+            afterResume?.operationId,
+            afterResume?.reasonCode,
+            out FacilityEvolutionMaterialCommitReceipt receipt,
+            out _)
+            && receipt.IsCommitted;
+
+        bool passed = restored
+            && string.IsNullOrWhiteSpace(restoreError)
+            && restoredPending != null
+            && string.Equals(
+                restoredPending.evidenceAnchorId,
+                "facility-evidence-fixture",
+                StringComparison.Ordinal)
+            && restoredPending.evidenceBindings.Count == 1
+            && string.Equals(
+                restoredPending.evidenceBindings[0].publicFactId,
+                factId,
+                StringComparison.Ordinal)
+            && !restoredPending.evidenceUseCompleted
+            && resumeRejected
+            && !string.IsNullOrWhiteSpace(resumeFailure)
+            && afterResume != null
+            && !afterResume.evidenceUseCompleted
+            && physicalStillPending
+            && state.HasPendingMaterialCommit;
+        if (!passed)
+        {
+            Debug.LogError(
+                "Facility pending evidence intent detail: restored=" + restored
+                + "/" + restoreError
+                + ", resumeRejected=" + resumeRejected
+                + "/" + resumeFailure
+                + ", evidenceCompleted=" + afterResume?.evidenceUseCompleted
+                + ", physicalPending=" + physicalStillPending + ".");
         }
         return passed;
     }
@@ -759,6 +1985,7 @@ public static class FacilityEvolutionDebugScenarios
             world.SourceData,
             world.CombatResultData,
             consumeRecordToken: false);
+        PrepareFormulaExecutionFixture(world, recipe);
         MemoryFacilityEvolutionResourceProvider resources =
             new MemoryFacilityEvolutionResourceProvider();
         resources.SetMaterial("high_grade_meat", 3);
@@ -766,7 +1993,8 @@ public static class FacilityEvolutionDebugScenarios
             new StaticFacilityEvolutionRecipeProvider(recipe),
             resources,
             buildingReplacer: new FailOnceBuildingReplacer(world.CreateReplacer()));
-        if (engine.TryEvolve(world.SourceFacility, recipe, out _))
+        if (TryExecuteFormulaEvolution(
+                engine, world.SourceFacility, recipe, out _, out _))
         {
             return false;
         }
@@ -895,6 +2123,7 @@ public static class FacilityEvolutionDebugScenarios
             world.SourceData,
             world.CombatResultData,
             consumeRecordToken: false);
+        PrepareFormulaExecutionFixture(world, recipe);
         MemoryFacilityEvolutionResourceProvider inner =
             new MemoryFacilityEvolutionResourceProvider();
         inner.SetMaterial("high_grade_meat", 3);
@@ -907,7 +2136,8 @@ public static class FacilityEvolutionDebugScenarios
             resources,
             buildingReplacer: replacer);
 
-        bool first = engine.TryEvolve(world.SourceFacility, recipe, out _);
+        bool first = TryExecuteFormulaEvolution(
+            engine, world.SourceFacility, recipe, out _, out _);
         BuildableObject published = world.Grid
             .GetGridCell(world.SourcePosition)
             .GetOccupant(GridLayer.Building) as BuildableObject;
@@ -945,6 +2175,7 @@ public static class FacilityEvolutionDebugScenarios
             world.SourceData,
             world.CombatResultData,
             consumeRecordToken: false);
+        PrepareFormulaExecutionFixture(world, recipe);
         StaticFacilityEvolutionRecipeProvider recipes =
             new StaticFacilityEvolutionRecipeProvider(recipe);
         MemoryFacilityEvolutionResourceProvider resources =
@@ -957,7 +2188,8 @@ public static class FacilityEvolutionDebugScenarios
             resources,
             replacer);
 
-        bool first = runtime.TryEvolve(world.SourceFacility, recipe, out _);
+        bool first = TryExecuteFormulaEvolution(
+            runtime, world.SourceFacility, recipe, out _, out _);
         FacilityEvolutionStateComponent sourceState =
             world.SourceFacility.GetComponent<FacilityEvolutionStateComponent>();
         string pendingPayload = sourceState.CaptureState();
@@ -997,6 +2229,194 @@ public static class FacilityEvolutionDebugScenarios
             && !resources.HasMaterial("high_grade_meat", 2);
     }
 
+    private static bool VerifyMissingObserverBlocksBeforeEvolutionEffects()
+    {
+        using EvolutionScenarioWorld world =
+            EvolutionScenarioWorld.CreateCombatDining();
+        FacilityEvolutionRecipeSO recipe = CreateCombatRecipe(
+            world.SourceData,
+            world.CombatResultData,
+            consumeRecordToken: false);
+        recipe.requiredMaterials = Array.Empty<
+            FacilityEvolutionMaterialRequirement>();
+        PrepareFormulaExecutionFixture(world, recipe);
+        RecordingBuildingReplacer replacer = new(world.CreateReplacer());
+        using DomainFactDispatcher missing = new();
+        FixedFacilityEvolutionCalendar calendar = new(day: 23, hour: 10);
+        FacilityEvolutionEngine engine = world.CreateEngine(
+            new StaticFacilityEvolutionRecipeProvider(recipe),
+            buildingReplacer: replacer,
+            facts: missing,
+            factRecovery: missing,
+            calendar: calendar);
+
+        bool completed = TryExecuteFormulaEvolution(
+            engine,
+            world.SourceFacility,
+            recipe,
+            out FacilityEvolutionResult result,
+            out string failure);
+        BuildableObject occupant = world.Grid
+            .GetGridCell(world.SourcePosition)
+            .GetOccupant(GridLayer.Building) as BuildableObject;
+        FacilityEvolutionStateComponent state = world.SourceFacility
+            .GetComponent<FacilityEvolutionStateComponent>();
+        return !completed
+            && !result.Success
+            && !string.IsNullOrWhiteSpace(failure)
+            && !world.SourceFacility.isDestroy
+            && ReferenceEquals(occupant, world.SourceFacility)
+            && replacer.TryReplaceCalls == 0
+            && state != null
+            && state.EvolutionHistory.Count == 0;
+    }
+
+    private static bool
+        VerifyUnknownObservationAcknowledgementRecoversExactlyOnce()
+    {
+        using EvolutionScenarioWorld world =
+            EvolutionScenarioWorld.CreateCombatDining();
+        FacilityEvolutionRecipeSO recipe = CreateCombatRecipe(
+            world.SourceData,
+            world.CombatResultData,
+            consumeRecordToken: false);
+        PrepareFormulaExecutionFixture(world, recipe);
+        StaticFacilityEvolutionRecipeProvider recipes = new(recipe);
+        MemoryFacilityEvolutionResourceProvider resources = new();
+        resources.SetMaterial("high_grade_meat", 3);
+        RecordingBuildingReplacer replacer = new(world.CreateReplacer());
+        FixedFacilityEvolutionCalendar calendar = new(day: 23, hour: 10);
+        using EvolutionGameplayOutcomeEditorFixture outcomes = new(
+            "run:facility-evolution-unknown-ack-editor",
+            calendar: calendar,
+            includeFacilityEvolutionFacts: true);
+        UnknownAcknowledgementFactPublisher uncertain = new(
+            outcomes.FacilityEvolutionFacts);
+        FacilityEvolutionEngine firstEngine = world.CreateEngine(
+            recipes,
+            resources,
+            buildingReplacer: replacer,
+            facts: uncertain,
+            factRecovery: uncertain,
+            calendar: calendar);
+
+        bool first = TryExecuteFormulaEvolution(
+            firstEngine,
+            world.SourceFacility,
+            recipe,
+            out FacilityEvolutionResult firstResult,
+            out string firstFailure);
+        BuildableObject published = world.Grid
+            .GetGridCell(world.SourcePosition)
+            .GetOccupant(GridLayer.Building) as BuildableObject;
+        FacilityEvolutionStateComponent publishedState = published
+            ?.GetComponent<FacilityEvolutionStateComponent>();
+        FacilityEvolutionPendingMaterialCommitSnapshot pending =
+            publishedState?.PendingMaterialCommit;
+        bool firstBoundary = !first
+            && !firstResult.Success
+            && !string.IsNullOrWhiteSpace(firstFailure)
+            && published != null
+            && publishedState != null
+            && pending != null
+            && pending.phase == FacilityEvolutionMaterialCommitPhase.DomainApplied
+            && !string.IsNullOrWhiteSpace(pending.publicationKey)
+            && !pending.observationDelivered
+            && replacer.TryReplaceCalls == 1
+            && resources.HasMaterial("high_grade_meat", 1)
+            && !resources.HasMaterial("high_grade_meat", 2)
+            && outcomes.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count == 1;
+        if (!firstBoundary)
+            return false;
+
+        GameplayOutcomeLedgerSaveData committedLedger =
+            outcomes.Ledger.CaptureGameplayOutcomes();
+        try
+        {
+            FacilityEvolutionFactPreflight.ValidateObservation(
+                pending,
+                committedLedger);
+        }
+        catch (Exception exception) when (exception is ArgumentException
+            or InvalidOperationException or OverflowException)
+        {
+            return false;
+        }
+
+        FacilityEvolutionPendingMaterialCommitSnapshot alteredKey =
+            pending.Clone();
+        alteredKey.publicationKey += ":altered";
+        FacilityEvolutionPendingMaterialCommitSnapshot alteredProof =
+            pending.Clone();
+        alteredProof.observationAccepted = true;
+        alteredProof.publicationId = "outcome:altered";
+        alteredProof.publicationFingerprint = new string('f', 64);
+        FacilityEvolutionPendingMaterialCommitSnapshot alteredDay =
+            pending.Clone();
+        alteredDay.completedFact.absoluteDay += 1;
+        FacilityEvolutionPendingMaterialCommitSnapshot alteredName =
+            pending.Clone();
+        alteredName.completedFact.facilityDisplayName += " altered";
+        if (!RejectsFacilityEvolutionObservation(alteredKey, committedLedger)
+            || !RejectsFacilityEvolutionObservation(alteredProof, committedLedger)
+            || !RejectsFacilityEvolutionObservation(alteredDay, committedLedger)
+            || !RejectsFacilityEvolutionObservation(alteredName, committedLedger))
+        {
+            return false;
+        }
+
+        string saved = publishedState.CaptureState();
+        if (!publishedState.TryRestoreState(
+                publishedState.CurrentVersion,
+                saved,
+                out string restoreFailure)
+            || !string.IsNullOrWhiteSpace(restoreFailure))
+        {
+            return false;
+        }
+
+        FacilityEvolutionEngine restoredEngine = world.CreateEngine(
+            recipes,
+            resources,
+            buildingReplacer: replacer,
+            facts: outcomes.FacilityEvolutionFacts,
+            factRecovery: outcomes.FacilityEvolutionFacts,
+            calendar: calendar);
+        bool resumed = restoredEngine.TryResumePending(
+            published,
+            out FacilityEvolutionResult resumedResult,
+            out string resumeFailure);
+        BuildableObject afterResume = world.Grid
+            .GetGridCell(world.SourcePosition)
+            .GetOccupant(GridLayer.Building) as BuildableObject;
+        return resumed
+            && resumedResult.Success
+            && string.IsNullOrWhiteSpace(resumeFailure)
+            && ReferenceEquals(afterResume, published)
+            && replacer.TryReplaceCalls == 1
+            && !publishedState.HasPendingMaterialCommit
+            && publishedState.EvolutionHistory.Count == 1
+            && resources.HasMaterial("high_grade_meat", 1)
+            && !resources.HasMaterial("high_grade_meat", 2)
+            && outcomes.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count == 1;
+    }
+
+    private static bool RejectsFacilityEvolutionObservation(
+        FacilityEvolutionPendingMaterialCommitSnapshot pending,
+        GameplayOutcomeLedgerSaveData ledger)
+    {
+        try
+        {
+            FacilityEvolutionFactPreflight.ValidateObservation(pending, ledger);
+            return false;
+        }
+        catch (Exception exception) when (exception is ArgumentException
+            or InvalidOperationException or OverflowException)
+        {
+            return true;
+        }
+    }
+
     private static bool VerifyInjectedValidatorBlocksCandidateAndEvolution()
     {
         using EvolutionScenarioWorld world = EvolutionScenarioWorld.CreateCombatDining();
@@ -1029,6 +2449,7 @@ public static class FacilityEvolutionDebugScenarios
     {
         using EvolutionScenarioWorld world = EvolutionScenarioWorld.CreateCombatDining();
         FacilityEvolutionRecipeSO recipe = CreateCombatRecipe(world.SourceData, world.CombatResultData, consumeRecordToken: true);
+        PrepareFormulaExecutionFixture(world, recipe);
         StaticFacilityEvolutionRecipeProvider recipes = new StaticFacilityEvolutionRecipeProvider(recipe);
         MemoryFacilityEvolutionResourceProvider resources = new MemoryFacilityEvolutionResourceProvider();
         resources.SetMaterial("high_grade_meat", 4);
@@ -1046,7 +2467,22 @@ public static class FacilityEvolutionDebugScenarios
             && panel.LastRenderedText.Contains("[충족]")
             && panel.LastRenderedText.Contains("용병");
 
-        bool evolved = panel.TryEvolveFirstApproved(out FacilityEvolutionResult result);
+        bool queued = panel.TryEvolveFirstApproved(out FacilityEvolutionResult queuedResult);
+        FacilityEvolutionStateComponent pendingState =
+            world.SourceFacility.GetComponent<FacilityEvolutionStateComponent>();
+        FacilityEvolutionFormulaPresentationPendingSnapshot pending =
+            pendingState.PendingFormulaPresentation;
+        FacilityEvolutionResult result = default;
+        bool evolved = queued
+            && queuedResult.Success
+            && pending != null
+            && runtime.TryCommitFormulaPresentation(
+                world.SourceFacility,
+                pending.presentationId,
+                "전장의 식탁",
+                "용병들의 발걸음이 식당의 새로운 계보로 이어졌다.",
+                out result,
+                out _);
         FacilityEvolutionStateComponent state = result.ResultBuilding != null
             ? result.ResultBuilding.GetComponent<FacilityEvolutionStateComponent>()
             : null;
@@ -1462,6 +2898,62 @@ public static class FacilityEvolutionDebugScenarios
         }
     }
 
+    private sealed class UnknownAcknowledgementFactPublisher :
+        IDomainFactPublisher,
+        IDomainFactRecoveryPublisher
+    {
+        private readonly DomainFactDispatcher inner;
+        private bool hidden;
+
+        internal UnknownAcknowledgementFactPublisher(
+            DomainFactDispatcher inner)
+        {
+            this.inner = inner
+                ?? throw new ArgumentNullException(nameof(inner));
+        }
+
+        public bool TryReserve<TFact>(
+            in TFact proposed,
+            out DomainFactLease lease,
+            out string failure) => inner.TryReserve(
+                proposed,
+                out lease,
+                out failure);
+
+        public DomainFactDelivery Publish<TFact>(
+            in DomainFactLease lease,
+            in TFact actual)
+        {
+            DomainFactDelivery delivered = inner.Publish(lease, actual);
+            if (hidden)
+                return delivered;
+            hidden = true;
+            return DomainFactDelivery.Uncertain(
+                "injected-facility-evolution-acknowledgement-lost");
+        }
+
+        public bool PublishBatch(
+            IReadOnlyList<DomainFactEmission> facts,
+            DomainFactDelivery[] results,
+            out string failure) => inner.PublishBatch(
+                facts,
+                results,
+                out failure);
+
+        public DomainFactDelivery Replay<TFact>(in TFact fact) =>
+            inner.Replay(fact);
+
+        public void Cancel(in DomainFactLease lease) => inner.Cancel(lease);
+
+        public bool ReplayBatch(
+            IReadOnlyList<DomainFactReplay> facts,
+            DomainFactDelivery[] results,
+            out string failure) => inner.ReplayBatch(
+                facts,
+                results,
+                out failure);
+    }
+
     private sealed class FailOnceAcknowledgementResourceProvider :
         IFacilityEvolutionResourceProvider
     {
@@ -1552,7 +3044,10 @@ public static class FacilityEvolutionDebugScenarios
             new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null);
         private readonly IRoomFacilityPolicy roomFacilityPolicy =
             new RoomFacilityPolicyService(new RoomLayoutCache());
+        private readonly List<EvolutionGameplayOutcomeEditorFixture>
+            outcomeFixtures = new();
         private int nextBuildingId = 5100;
+        private int nextOutcomeRun;
 
         private EvolutionScenarioWorld()
         {
@@ -1579,7 +3074,7 @@ public static class FacilityEvolutionDebugScenarios
         public BuildingSO CrowdResultData { get; private set; }
         public BuildingSO FineResultData { get; private set; }
         public BuildingSO CombatResultData { get; private set; }
-        public BuildableObject SourceFacility { get; private set; }
+        public BuildableObject SourceFacility { get; internal set; }
 
         public static EvolutionScenarioWorld CreateCrowdedDining()
         {
@@ -1624,8 +3119,27 @@ public static class FacilityEvolutionDebugScenarios
             IFacilityEvolutionCandidateBuilder candidateBuilder = null,
             IFacilityEvolutionRecordTokenConsumer recordTokenConsumer = null,
             IFacilityEvolutionMutationResolver mutationResolver = null,
-            IFacilityEvolutionBuildingReplacer buildingReplacer = null)
+            IFacilityEvolutionBuildingReplacer buildingReplacer = null,
+            IDomainFactPublisher facts = null,
+            IDomainFactRecoveryPublisher factRecovery = null,
+            IGameCalendar calendar = null,
+            IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery = null,
+            IGameplayOutcomeEvidenceUseTransaction evidenceUseTransaction = null)
         {
+            IGameCalendar resolvedCalendar = calendar
+                ?? new FixedFacilityEvolutionCalendar(day: 23, hour: 10);
+            if ((facts == null) != (factRecovery == null))
+            {
+                throw new ArgumentException(
+                    "Facility evolution Editor facts and recovery must share one explicit dispatcher.");
+            }
+            if (facts == null)
+            {
+                EvolutionGameplayOutcomeEditorFixture outcomes =
+                    CreateFacilityOutcomeFixture(resolvedCalendar);
+                facts = outcomes.FacilityEvolutionFacts;
+                factRecovery = outcomes.FacilityEvolutionFacts;
+            }
             FacilityEvolutionRecordComponentService records =
                 new FacilityEvolutionRecordComponentService(new FacilityEvolutionRecordComponentFactory());
             IRoomLayoutCache rooms = new RoomLayoutCache();
@@ -1659,7 +3173,14 @@ public static class FacilityEvolutionDebugScenarios
                     recordTokenConsumer ?? new DefaultFacilityEvolutionRecordTokenConsumer(
                         new EmptyFacilityEvolutionRecordTokenDefinitionProvider()),
                     mutationResolver ?? new DefaultFacilityEvolutionMutationResolver());
-            return new FacilityEvolutionEngine(definitions, execution);
+            return new FacilityEvolutionEngine(
+                definitions,
+                execution,
+                facts,
+                factRecovery,
+                resolvedCalendar,
+                outcomeEvidenceQuery,
+                evidenceUseTransaction);
         }
 
         public FacilityEvolutionRuntime CreateRuntime(
@@ -1681,6 +3202,11 @@ public static class FacilityEvolutionDebugScenarios
             IFacilityEvolutionValidator validator =
                 new DefaultFacilityEvolutionValidator(recipeQuery, states);
             FacilityEvolutionRuntime runtime = obj.AddComponent<FacilityEvolutionRuntime>();
+            IGameCalendar calendar = new FixedFacilityEvolutionCalendar(
+                day: 23,
+                hour: 10);
+            EvolutionGameplayOutcomeEditorFixture outcomes =
+                CreateFacilityOutcomeFixture(calendar);
             runtime.Configure(
                 recipeQuery,
                 new RoomProfileBuilder(records, rooms),
@@ -1700,8 +3226,48 @@ public static class FacilityEvolutionDebugScenarios
                 nextCandidateBuilder: new DefaultFacilityEvolutionCandidateBuilder(validator),
                 nextBuildingReplacerFactory: null,
                 nextMutationResolver: new DefaultFacilityEvolutionMutationResolver(),
-                nextEngineFactory: new FacilityEvolutionEngineFactory());
+                nextEngineFactory: new EditorLegacyFacilityEvolutionEngineFactory(
+                    outcomes.FacilityEvolutionFacts,
+                    outcomes.FacilityEvolutionFacts,
+                    calendar));
             return runtime;
+        }
+
+        private EvolutionGameplayOutcomeEditorFixture
+            CreateFacilityOutcomeFixture(IGameCalendar calendar)
+        {
+            EvolutionGameplayOutcomeEditorFixture outcomes = new(
+                "run:facility-evolution-editor:"
+                    + (++nextOutcomeRun).ToString("D4"),
+                calendar: calendar,
+                includeFacilityEvolutionFacts: true);
+            outcomeFixtures.Add(outcomes);
+            return outcomes;
+        }
+
+        private sealed class EditorLegacyFacilityEvolutionEngineFactory :
+            IFacilityEvolutionEngineFactory
+        {
+            private readonly IDomainFactPublisher facts;
+            private readonly IDomainFactRecoveryPublisher recovery;
+            private readonly IGameCalendar calendar;
+
+            internal EditorLegacyFacilityEvolutionEngineFactory(
+                IDomainFactPublisher facts,
+                IDomainFactRecoveryPublisher recovery,
+                IGameCalendar calendar)
+            {
+                this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+                this.recovery = recovery
+                    ?? throw new ArgumentNullException(nameof(recovery));
+                this.calendar = calendar
+                    ?? throw new ArgumentNullException(nameof(calendar));
+            }
+
+            public FacilityEvolutionEngine Create(
+                FacilityEvolutionDefinitionContext definitions,
+                FacilityEvolutionExecutionContext execution) =>
+                new(definitions, execution, facts, recovery, calendar);
         }
 
         public sealed class EditorFacilityEvolutionRecipeQuery : IFacilityEvolutionRecipeQuery
@@ -1761,6 +3327,12 @@ public static class FacilityEvolutionDebugScenarios
         {
             RoomRegistry.Clear();
             FacilityCandidateCache.Clear();
+            foreach (EvolutionGameplayOutcomeEditorFixture outcomes in
+                     outcomeFixtures)
+            {
+                outcomes.Dispose();
+            }
+            outcomeFixtures.Clear();
             foreach (UnityEngine.Object obj in cleanup.Where((obj) => obj != null))
             {
                 UnityEngine.Object.DestroyImmediate(obj);
@@ -1872,7 +3444,7 @@ public static class FacilityEvolutionDebugScenarios
             return data;
         }
 
-        private BuildingSO CreateBuildingData(string name, FacilityRole roles)
+        internal BuildingSO CreateBuildingData(string name, FacilityRole roles)
         {
             BuildingSO data = ScriptableObject.CreateInstance<BuildingSO>();
             cleanup.Add(data);
@@ -1896,7 +3468,25 @@ public static class FacilityEvolutionDebugScenarios
             };
             if (roles != FacilityRole.None)
             {
+                List<WorkTypeId> supported = new() { BuiltInWorkTypeIds.Operate };
+                if ((roles & FacilityRole.Research) != 0)
+                    supported.Add(BuiltInWorkTypeIds.Research);
+                if ((roles & FacilityRole.Security) != 0)
+                    supported.Add(BuiltInWorkTypeIds.Guard);
+                data.Facility.SetSupportedWorkTypeIds(supported);
+            }
+            if (roles != FacilityRole.None)
+            {
                 data.AbilityModules.Add(new BuildingRoomRequirementAbility());
+                // Formula fixtures select the service module, whose authored
+                // operating burden is work.output. Model the dining facility's
+                // real output consumer so eligibility is tested rather than
+                // bypassed by role/work metadata alone.
+                data.AbilityModules.Add(new BuildingProductionAbility
+                {
+                    outputCategory = StockCategory.General,
+                    amount = 1
+                });
             }
 
             return data;
@@ -1945,7 +3535,7 @@ public static class FacilityEvolutionDebugScenarios
                 roomFacilityPolicy, combatEquipmentRuntime: null,
                 worldRegistry: (IBuildingWorldRegistryPort)
                     CharacterAiEditorTestDependencies.WorldRegistry,
-                worldItemStackRuntime: null, abilityRuntimeDispatcher: null,
+                worldItemStackRuntime: null, abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
                 gameClock: null, paidFacilityContracts: null,
                 evolutionState: new FacilityEvolutionStateComponentFactory());
         }
@@ -2001,7 +3591,8 @@ public static class FacilityEvolutionDebugScenarios
         public BlueprintResearchWorkResult ApplyApprovedResearchWork(
             CharacterActor researcher,
             BuildableObject researchFacility,
-            float approvedWorkUnits) =>
+            float approvedWorkUnits,
+            DurableFacilityEquipmentUseContext equipment = null) =>
             ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 
@@ -2044,6 +3635,38 @@ public static class FacilityEvolutionDebugScenarios
         public BlueprintResearchState GetState()
         {
             return null;
+        }
+    }
+
+    private sealed class FixedFacilityEvolutionCalendar : IGameCalendar
+    {
+        private int day;
+        private int hour;
+
+        internal FixedFacilityEvolutionCalendar(int day, int hour)
+        {
+            SetDateTime(day, hour);
+        }
+
+        public int Day => day;
+        public int Hour => hour;
+        public int Year => Current.Year;
+        public int DayOfYear => Current.DayOfYear;
+        public Season Season => Current.Season;
+        public int DayOfSeason => Current.DayOfSeason;
+        public long AbsoluteHour => Current.AbsoluteHour;
+        public float ElapsedSeconds => hour / 24f * GameCalendarRules.SecondsPerDay;
+        public TimeOfDay TimeOfDay => TimeOfDay.Noon;
+        public bool IsRunning { get; private set; }
+        public CalendarDateTime Current => GameCalendarRules.Project(day, hour);
+        public CalendarDateTime GetRegionalTime(int utcOffsetHours) =>
+            GameCalendarRules.ProjectRegional(day, hour, utcOffsetHours);
+        public void Start() => IsRunning = true;
+
+        public void SetDateTime(int nextDay, int nextHour)
+        {
+            day = Math.Max(1, nextDay);
+            hour = Math.Clamp(nextHour, 0, 23);
         }
     }
 

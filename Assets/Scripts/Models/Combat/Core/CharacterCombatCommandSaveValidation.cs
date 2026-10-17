@@ -23,7 +23,8 @@ public static class CharacterCombatCommandSaveValidation
         if (payload.commandSequence < 0
             || payload.stanceCharacterIds == null
             || payload.commands == null
-            || payload.revisions == null)
+            || payload.revisions == null
+            || payload.pendingCellShots == null)
         {
             report.AddError("Combat-command payload has missing collections or a negative sequence.");
             return;
@@ -115,6 +116,32 @@ public static class CharacterCombatCommandSaveValidation
             report.AddError(
                 $"Combat-command sequence {payload.commandSequence} is below saved command {highestSequence}.");
         }
+        ValidateCellShots(payload, revisions, report);
+    }
+
+    private static void ValidateCellShots(CharacterCombatCommandSaveData payload,
+        Dictionary<string, int> revisions, DungeonGameRestoreReport report)
+    {
+        if (payload.pendingCellShots.Count > CombatCellShotJournal.MaximumPending)
+            report.AddError("Combat-command pending cell shots exceed capacity.");
+        var operations = new HashSet<string>(StringComparer.Ordinal);
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var entry in payload.pendingCellShots)
+        {
+            try
+            {
+                if (entry == null || string.IsNullOrWhiteSpace(entry.publicationKey) || !keys.Add(entry.publicationKey))
+                    throw new ArgumentException("Cell-shot publication identity is missing or duplicated.");
+                var fact = new CombatCellShotFact(entry.fact);
+                var data = fact.Snapshot();
+                if (!operations.Add(fact.OperationId) || !IsCharacterId(data.actorId)
+                    || !revisions.TryGetValue(data.actorId, out int watermark) || watermark <= data.attackRevision
+                    || !CombatCellShotFact.TryReadCommandSequence(data.commandId, out int sequence)
+                    || sequence > payload.commandSequence)
+                    throw new ArgumentException("Cell-shot applied command revision or sequence is inconsistent.");
+            }
+            catch (ArgumentException exception) { report.AddError(exception.Message); }
+        }
     }
 
     public static CharacterCombatCommandAggregateState CreateState(
@@ -135,6 +162,7 @@ public static class CharacterCombatCommandSaveValidation
             restored.state = CharacterCombatCommandState.Queued;
             state.Commands.Add(restored.actorId, restored);
         }
+        foreach (var entry in payload.pendingCellShots) state.PendingCellShots.Add(entry.Clone());
 
         return state;
     }

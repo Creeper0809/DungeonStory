@@ -1,7 +1,9 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
@@ -9,6 +11,8 @@ using VContainer;
 
 public static class IndustrialInfrastructureDebugScenarios
 {
+    private const string E12ReportPathEnvironmentVariable =
+        "DUNGEONSTORY_U0_E12_INFRASTRUCTURE_REPORT_PATH";
     private sealed class ProbeGridOccupant : IGridOccupant
     {
         public int GridId { get; }
@@ -88,6 +92,164 @@ public static class IndustrialInfrastructureDebugScenarios
         VerifyIndustryTab();
         Debug.Log(
             "IndustrialInfrastructureDebugScenarios passed: research, assets, utilities, conveyors, automation, save, and UI.");
+    }
+
+    public static void RunE12FuelOutboxOnly()
+    {
+        VerifyFuelOutboxTransaction();
+        VerifySaveRoundTrip();
+        VerifyPowerFuelOutcomeSaveJoin();
+        Debug.Log("[Industrial Infrastructure E12 Fuel Outbox] PASS");
+    }
+
+    public static void RunE12FluidAutonomousOnly()
+    {
+        string report = FluidAutonomousOutcomeContractProbe.Run();
+        Require(report.Contains("save-resume=1", StringComparison.Ordinal),
+            "fluid autonomous outcome probe did not finish save recovery");
+        Debug.Log("[Industrial Infrastructure E12 Fluid Autonomous] PASS "
+            + report);
+    }
+
+    public static void RunE12BreakerAutonomousOnly()
+    {
+        VerifyBreakerTripOutcome();
+        Debug.Log("[Industrial Infrastructure E12 Breaker Autonomous] PASS");
+    }
+
+    public static string RunE12AutonomousOutcomeFocused(
+        Action<string, string> observe = null)
+    {
+        VerifyFuelOutboxTransaction(observe);
+        VerifyPowerFuelOutcomeSaveJoin();
+        string fluid = FluidAutonomousOutcomeContractProbe.Run(observe == null
+            ? null : (key, json) => observe("fluid/" + key, json));
+        VerifyBreakerTripOutcome(observe);
+        Require(fluid.Contains("save-resume=1", StringComparison.Ordinal),
+            "E12 focused regression did not close fluid save recovery");
+        return "PASS E12_AUTONOMOUS_OUTCOMES; fuel=1; breaker=1; "
+            + "wastewater=1; leak=1; backflow=1; freeze=1; recovery=1; "
+            + "save-join=1";
+    }
+
+    public static void RunE12FromBatch()
+    {
+        string output = Environment.GetEnvironmentVariable(
+            E12ReportPathEnvironmentVariable);
+        Require(
+            !string.IsNullOrWhiteSpace(output),
+            "A create-only E12 infrastructure report path is required.");
+        if (File.Exists(output))
+        {
+            throw new InvalidOperationException(
+                "E12 infrastructure evidence is immutable and already exists: "
+                + output);
+        }
+        string observationPath = Path.ChangeExtension(output, "observations.json");
+        Require(!File.Exists(observationPath),
+            "E12 observation evidence is immutable and already exists: " + observationPath);
+        string canonicalPath = Path.ChangeExtension(output, "canonical.json");
+        Require(!File.Exists(canonicalPath),
+            "E12 canonical evidence is immutable and already exists: " + canonicalPath);
+
+        string directory = Path.GetDirectoryName(output);
+        if (!string.IsNullOrWhiteSpace(directory))
+            Directory.CreateDirectory(directory);
+        E12ObservationReport observations = new();
+        string focused;
+        try
+        {
+            focused = RunE12AutonomousOutcomeFocused((key, json) =>
+            {
+                Require(!string.IsNullOrWhiteSpace(key)
+                        && !string.IsNullOrWhiteSpace(json)
+                        && observations.observations.All(value => value.key != key),
+                    "E12 observation is empty or duplicate: " + key);
+                observations.observations.Add(new E12Observation
+                {
+                    key = key,
+                    valueJson = json
+                });
+            });
+            IndustrialTransitionKind[] requiredKinds =
+            {
+                IndustrialTransitionKind.PowerFuelConsumed,
+                IndustrialTransitionKind.PowerBreakerTripped,
+                IndustrialTransitionKind.PowerBreakerReset,
+                IndustrialTransitionKind.WastewaterBatchCompleted,
+                IndustrialTransitionKind.FluidLeakEpisode,
+                IndustrialTransitionKind.WastewaterBackflow,
+                IndustrialTransitionKind.PipeFreezeLatched,
+                IndustrialTransitionKind.PipeFreezeRecovered
+            };
+            IndustrialTransitionKind[] capturedKinds = observations.observations
+                .Where(value => value.key.Contains("/outcome/", StringComparison.Ordinal))
+                .Select(value => JsonUtility.FromJson<
+                    IndustrialTransitionFactData>(value.valueJson).kind)
+                .Distinct().ToArray();
+            Require(requiredKinds.All(capturedKinds.Contains),
+                "E12 observation export is missing a required result kind.");
+            E12CanonicalInfrastructureVerifier.Run(canonicalPath);
+            observations.passed = true;
+            observations.assertionReport = focused;
+        }
+        catch (Exception exception)
+        {
+            observations.failure = exception.ToString();
+            WriteE12Observations(observationPath, observations);
+            throw;
+        }
+        WriteE12Observations(observationPath, observations);
+        string report = string.Join(
+            Environment.NewLine,
+            new[]
+            {
+                "E12_INFRASTRUCTURE_AUTONOMOUS_OUTCOMES",
+                focused,
+                "humanApprovalClaimed=false",
+                "trainingEligible=false",
+                "RESULT=PASS"
+            }) + Environment.NewLine;
+        using FileStream stream = new(
+            output,
+            FileMode.CreateNew,
+            FileAccess.Write,
+            FileShare.Read);
+        using StreamWriter writer = new(
+            stream,
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        writer.Write(report);
+        Debug.Log("E12_INFRASTRUCTURE_AUTONOMOUS_OUTCOMES=PASS");
+    }
+
+    [Serializable]
+    private sealed class E12Observation
+    {
+        public string key;
+        public string valueJson;
+    }
+
+    [Serializable]
+    private sealed class E12ObservationReport
+    {
+        public string schema = "dungeonstory-e12-probe-observations@1";
+        public string scope = "Controlled direct-runtime probes. Power uses the real physical repository/gateway; fluid item/filth/outcome ports and outcome revisions are test-local. These are source results and owner projections, not durable gameplay-ledger records or natural-play telemetry.";
+        public bool passed;
+        public string assertionReport = string.Empty;
+        public string failure = string.Empty;
+        public bool naturalGameplay = false;
+        public bool fullAuditClosure = false;
+        public bool humanApprovalClaimed = false;
+        public bool trainingEligible = false;
+        public List<E12Observation> observations = new();
+    }
+
+    private static void WriteE12Observations(string path, E12ObservationReport report)
+    {
+        using FileStream stream = new(path, FileMode.CreateNew,
+            FileAccess.Write, FileShare.Read);
+        using StreamWriter writer = new(stream, new UTF8Encoding(false));
+        writer.Write(JsonUtility.ToJson(report, prettyPrint: true));
     }
 
     public static string RunCurrentBalanceContracts()
@@ -555,7 +717,7 @@ public static class IndustrialInfrastructureDebugScenarios
             "Restored execution mode query changed Automatic mode.");
     }
 
-    private static void VerifyFuelOutboxTransaction()
+    private static void VerifyFuelOutboxTransaction(Action<string, string> observe = null)
     {
         const string NodeId = "building:qa:power-fuel-outbox";
         const string FuelItemId = "resource:coal";
@@ -588,6 +750,11 @@ public static class IndustrialInfrastructureDebugScenarios
                 ?.SetValue(building, data);
             typeof(BuildableObject).GetProperty(nameof(BuildableObject.centerPos))
                 ?.SetValue(building, new Vector2Int(7, 3));
+            typeof(BuildableObject).GetField(
+                    "facilityCandidateCache",
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)
+                ?.SetValue(building, NoopFacilityStateChange.Instance);
             building.RestorePersistentIdentity(new BuildingInstanceId(NodeId));
             Grid fixtureGrid = new Grid(16, 8);
             building.SetGrid(fixtureGrid);
@@ -627,7 +794,8 @@ public static class IndustrialInfrastructureDebugScenarios
                 items,
                 fault,
                 FuelItemId,
-                SecondsPerFuel);
+                SecondsPerFuel,
+                observe == null ? null : (key, json) => observe("fuel/" + key, json));
             Require(report.Contains("second-debit=0", StringComparison.Ordinal)
                     && report.Contains(
                         "capacity-revision=stable",
@@ -648,12 +816,226 @@ public static class IndustrialInfrastructureDebugScenarios
         }
     }
 
+    private static void VerifyBreakerTripOutcome(Action<string, string> observe = null)
+    {
+        GameObject host = new("Power Breaker Autonomous Outcome Fixture");
+        BuildingSO data = ScriptableObject.CreateInstance<BuildingSO>();
+        WorldItemStackRuntime items = null;
+        try
+        {
+            data.id = 99873;
+            data.objectName = "전력 차단기 자율 사건 시험 설비";
+            BuildingAbilityCollection abilities = new();
+            abilities.Add(new BuildingUtilityConnectionAbility
+            {
+                channels = UtilityChannel.Power
+            });
+            abilities.Add(new BuildingPowerProducerAbility
+            {
+                productionPerSecond = 10f,
+                requiresFuel = false
+            });
+            abilities.Add(new BuildingPowerConsumerAbility
+            {
+                demandPerSecond = 30f,
+                minimumSupplyFraction = 0f
+            });
+            abilities.Add(new BuildingCircuitBreakerAbility
+            {
+                overloadTolerance = 1.1f,
+                tripHeat = 61f
+            });
+            data.ReplaceAbilities(abilities);
+
+            BuildableObject building = host.AddComponent<BuildableObject>();
+            building.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+            typeof(BuildableObject).GetProperty(nameof(BuildableObject.BuildingData))
+                ?.SetValue(building, data);
+            typeof(BuildableObject).GetProperty(nameof(BuildableObject.centerPos))
+                ?.SetValue(building, new Vector2Int(9, 3));
+            typeof(BuildableObject).GetField(
+                    "facilityCandidateCache",
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)
+                ?.SetValue(building, NoopFacilityStateChange.Instance);
+            building.RestorePersistentIdentity(new BuildingInstanceId(
+                "building:qa:power-breaker-autonomous"));
+            Grid fixtureGrid = new Grid(16, 8);
+            building.SetGrid(fixtureGrid);
+            building.SetRuntimeGridPosition(new Vector2Int(9, 3));
+            Require(fixtureGrid.RegisterOccupant(
+                    building,
+                    data.Placement.Layer,
+                    building.buildPoses,
+                    building.IsGridMovement),
+                "Power breaker probe fixture was not registered on its live Grid authority.");
+
+            IDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
+            items = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
+                catalog,
+                out WorldItemRepository repository,
+                out _,
+                out _,
+                out _,
+                out _,
+                out IPhysicalItemBatchDispositionService batch);
+            IPhysicalFacilityItemSinkGateway physical =
+                new PhysicalFacilityItemSinkGateway(
+                    new PhysicalStockQuery(
+                        repository,
+                        catalog,
+                        items.MassQuery),
+                    batch);
+            string report = IndustrialPowerFuelOutboxContractProbe
+                .RunBreakerTrip(building, items, physical,
+                    observe == null ? null : (key, json) => observe("breaker/" + key, json));
+            Require(report.Contains("trip-edge=1", StringComparison.Ordinal)
+                    && report.Contains(
+                        "manual-reset=separate",
+                        StringComparison.Ordinal),
+                "power breaker autonomous outcome probe did not close its contract");
+        }
+        finally
+        {
+            items?.Dispose();
+            UnityEngine.Object.DestroyImmediate(host);
+            UnityEngine.Object.DestroyImmediate(data);
+        }
+    }
+
+    private static void VerifyPowerFuelOutcomeSaveJoin()
+    {
+        const long Revision = 11L;
+        const string NodeId = "building:qa:power-fuel-join";
+        const string CommitId = "physical-batch-disposition:qa:power-fuel-join";
+        PowerNodeSaveData node = new()
+        {
+            buildingInstanceId = NodeId,
+            pendingFuel = new PowerFuelCommitSaveData
+            {
+                phase = (int)PowerFuelCommitPhase.OutcomePublished,
+                operationId = "power-fuel:building:qa:power-fuel-join:00000001",
+                commitId = CommitId,
+                inputMassGrams = 350L,
+                outcomeOwnerRevision = Revision
+            }
+        };
+        DungeonInfrastructureObservationSaveData infrastructure = new()
+        {
+            nextOwnerRevision = Revision + 1L,
+            pending = new List<InfrastructureObservationSaveData>
+            {
+                new()
+                {
+                    publicationKey = InfrastructureAutonomousOutcomeIds
+                        .ResultKey(Revision).ToString(),
+                    fact = new IndustrialTransitionFactData
+                    {
+                        ownerRevision = Revision,
+                        kind = IndustrialTransitionKind.PowerFuelConsumed,
+                        targetId = NodeId,
+                        facilityId = NodeId,
+                        facilityDisplayName = "시험 연료 설비",
+                        absoluteDay = 1,
+                        before = new IndustrialStateData(),
+                        after = new IndustrialStateData(),
+                        details = new IndustrialTransitionDetails
+                        {
+                            operationId = node.pendingFuel.operationId,
+                            physicalCommitId = CommitId,
+                            massGrams = 350L
+                        }
+                    }
+                }
+            }
+        };
+        GameplayOutcomeLedgerSaveData ledger = new();
+        DungeonGameRestoreReport queued = new();
+        DungeonAggregateReferencePreflight.ValidatePowerFuelOutcomeJoin(
+            node,
+            node.pendingFuel,
+            infrastructure,
+            ledger,
+            queued);
+        Require(queued.Success,
+            "queued power-fuel outcome owner revision did not join");
+
+        infrastructure.pending.Clear();
+        ledger.exactOutcomes.Add(new GameplayOutcomeSnapshot
+        {
+            producerId = InfrastructureAutonomousOutcomeIds.ProducerId,
+            operationId = "infrastructure-autonomous:" + Revision,
+            commitRevision = Revision,
+            ownerRevision = Revision,
+            outcomeTypeId =
+                InfrastructureAutonomousOutcomeIds.Transitioned.Value,
+            facts = new List<GameplayOutcomeFactSnapshot>
+            {
+                new()
+                {
+                    factId = InfrastructureAutonomousOutcomeIds
+                        .TransitionKindFact.Value,
+                    value = "power-fuel-consumed"
+                },
+                new()
+                {
+                    factId = InfrastructureAutonomousOutcomeIds
+                        .TargetIdFact.Value,
+                    value = NodeId
+                },
+                new()
+                {
+                    factId = InfrastructureAutonomousOutcomeIds
+                        .BeforeValueFact.Value,
+                    value = "fuelSeconds=0;operation="
+                        + node.pendingFuel.operationId
+                },
+                new()
+                {
+                    factId = InfrastructureAutonomousOutcomeIds
+                        .AfterValueFact.Value,
+                    value = "fuelSeconds=0;item=;quantity=0;massGrams=350;sourceStacks=;physicalCommit="
+                        + CommitId
+                }
+            }
+        });
+        DungeonGameRestoreReport delivered = new();
+        DungeonAggregateReferencePreflight.ValidatePowerFuelOutcomeJoin(
+            node,
+            node.pendingFuel,
+            infrastructure,
+            ledger,
+            delivered);
+        Require(delivered.Success,
+            "delivered power-fuel outcome owner revision did not join");
+
+        ledger.exactOutcomes.Clear();
+        DungeonGameRestoreReport missing = new();
+        DungeonAggregateReferencePreflight.ValidatePowerFuelOutcomeJoin(
+            node,
+            node.pendingFuel,
+            infrastructure,
+            ledger,
+            missing);
+        Require(!missing.Success,
+            "power-fuel save accepted a missing outcome owner revision");
+    }
+
+    private sealed class NoopFacilityStateChange :
+        IBuildingFacilityStateChangePort
+    {
+        internal static readonly NoopFacilityStateChange Instance = new();
+        public void MarkDynamicStateDirty()
+        {
+        }
+    }
+
     private static void VerifySaveRoundTrip()
     {
         Require(
-            DungeonPowerInfrastructureSaveData.CurrentVersion == 3
-            && DungeonFluidInfrastructureSaveData.CurrentVersion == 6
-            && DungeonConveyorInfrastructureSaveData.CurrentVersion == 3
+            DungeonPowerInfrastructureSaveData.CurrentVersion == 5
+            && DungeonFluidInfrastructureSaveData.CurrentVersion == 9
+            && DungeonConveyorInfrastructureSaveData.CurrentVersion == 4
             && DungeonAutomationSaveData.CurrentVersion == 2,
             "Industrial save DTO versions changed without fixture approval.");
 
@@ -664,6 +1046,7 @@ public static class IndustrialInfrastructureDebugScenarios
                 new PowerNodeSaveData
                 {
                     buildingInstanceId = "building:power:fuelled",
+                    connectionState = 1,
                     fuelSeconds = 120f,
                     nextFuelOperationSequence = 4,
                     pendingFuel = new PowerFuelCommitSaveData
@@ -686,7 +1069,8 @@ public static class IndustrialInfrastructureDebugScenarios
                         },
                         inputMassGrams = 2_000L,
                         commitId =
-                            $"physical-batch-disposition:{(int)PhysicalItemDispositionKind.Sink}:power-fuel:building:power:fuelled:00000004:1:2000"
+                            $"physical-batch-disposition:{(int)PhysicalItemDispositionKind.Sink}:power-fuel:building:power:fuelled:00000004:1:2000",
+                        outcomeOwnerRevision = 11L
                     }
                 }
             }
@@ -743,7 +1127,8 @@ public static class IndustrialInfrastructureDebugScenarios
                         segmentBuildingInstanceId = "building:loop",
                         destinationId = "warehouse:reserve",
                         stalledSince = 37f,
-                        stallReason = ConveyorStallReason.CyclicDeadlock
+                        stallReason = ConveyorStallReason.CyclicDeadlock,
+                        overflowApproved = true
                     }
                 }
             };
@@ -770,7 +1155,8 @@ public static class IndustrialInfrastructureDebugScenarios
             "Advanced conveyor filters did not round-trip.");
         Require(restored.payloads[0].itemStackId == "stack:corpse"
                 && restored.payloads[0].segmentBuildingInstanceId
-                    == "building:loop",
+                    == "building:loop"
+                && restored.payloads[0].overflowApproved,
             "Conveyor payload did not preserve its physical stack reference.");
         RequireInvalidConveyorCandidate(
             source,
@@ -865,7 +1251,10 @@ public static class IndustrialInfrastructureDebugScenarios
                             },
                         transferMode =
                             WaterContainerTransferMode.FeedNetwork,
-                        transferWork = 2.5f
+                        transferWork = 2.5f,
+                        frozenPipeLatched = true,
+                        frozenPipeOccurrenceInstanceId =
+                            "seasonal:test:frozen-pipes:0001"
                     }
                 }
             };
@@ -881,6 +1270,9 @@ public static class IndustrialInfrastructureDebugScenarios
                 && Mathf.Approximately(
                     restoredFluid.nodes[0].manualWaterReserve,
                     0.65f)
+                && restoredFluid.nodes[0].frozenPipeLatched
+                && restoredFluid.nodes[0].frozenPipeOccurrenceInstanceId
+                    == "seasonal:test:frozen-pipes:0001"
                 && restoredFluid.nodes[0]
                     .nextImmediateManualWaterOperationSequence == 3
                 && restoredFluid.nodes[0]

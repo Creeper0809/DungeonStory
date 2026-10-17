@@ -15,7 +15,9 @@ public sealed class ExteriorActivityWorldServices
         IWorldItemStackRuntime items,
         IFacilityBufferAcknowledgedOutputRestoreCandidateQuery
             acknowledgedOutputs,
-        IPhysicalItemExactSourceRestoreAuthorityCommand exactSourceRestore)
+        IPhysicalItemExactSourceRestoreAuthorityCommand exactSourceRestore,
+        ISocietyIncidentRestoreOwnedCharacterIdQuery
+            societyIncidentRestoreOwners)
     {
         Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         DropZones = dropZones
@@ -35,6 +37,9 @@ public sealed class ExteriorActivityWorldServices
             ?? throw new ArgumentNullException(nameof(acknowledgedOutputs));
         ExactSourceRestore = exactSourceRestore
             ?? throw new ArgumentNullException(nameof(exactSourceRestore));
+        SocietyIncidentRestoreOwners = societyIncidentRestoreOwners
+            ?? throw new ArgumentNullException(
+                nameof(societyIncidentRestoreOwners));
     }
 
     public IGridSystemProvider Grid { get; }
@@ -48,6 +53,8 @@ public sealed class ExteriorActivityWorldServices
     public IFacilityBufferAcknowledgedOutputRestoreCandidateQuery
         AcknowledgedOutputs { get; }
     public IPhysicalItemExactSourceRestoreAuthorityCommand ExactSourceRestore { get; }
+    public ISocietyIncidentRestoreOwnedCharacterIdQuery
+        SocietyIncidentRestoreOwners { get; }
 }
 
 public sealed class ExteriorActivityDomainServices

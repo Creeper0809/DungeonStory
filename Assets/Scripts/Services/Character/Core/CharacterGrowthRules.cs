@@ -182,6 +182,11 @@ public static class CharacterGrowthRules
         }
     }
 
+    public static int StableNonNegativeHash(string value)
+    {
+        return StableHash(value) & int.MaxValue;
+    }
+
     private static int RollWeighted(float[] weights, System.Random random)
     {
         if (random == null)

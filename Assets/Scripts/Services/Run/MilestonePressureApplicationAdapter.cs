@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using DungeonStory.Foundation;
-using DungeonStory.Operation;
 using VContainer.Unity;
 
 /// <summary>
@@ -77,6 +76,7 @@ public sealed class MilestonePressureApplicationAdapter :
             return;
         }
 
+        int affectedCount = 0;
         foreach (FactionCampaignStateSaveData faction in factionQuery.Factions
                      .Where(value => value != null)
                      .OrderBy(value => value.factionId, StringComparer.Ordinal))
@@ -86,13 +86,16 @@ public sealed class MilestonePressureApplicationAdapter :
                 rapportDelta: 0,
                 grievanceDelta: 0,
                 obligationDelta: 1);
+            affectedCount++;
         }
 
-        Publish(
+        events.Publish(new MilestonePressureAppliedFact(
+            MilestonePressureEffectKind.DefenseObligation,
             absoluteDay,
-            "공동방위 의무 발생",
-            "대협약 회원 세력 모두에 공동방위 의무가 1 증가했습니다.",
-            "monster-accord");
+            "ending:monster-accord",
+            "monster-accord",
+            affectedCount: affectedCount,
+            obligationDelta: 1));
     }
 
     private void ApplyInternalPressures(int absoluteDay)
@@ -101,33 +104,39 @@ public sealed class MilestonePressureApplicationAdapter :
             && milestones.HasPressure("ending:sealed-paradise"))
         {
             workDelays.ApplyWorkDelay("farm", 3, absoluteDay);
-            Publish(
+            events.Publish(new MilestonePressureAppliedFact(
+                MilestonePressureEffectKind.FarmingWorkDelay,
                 absoluteDay,
-                "폐쇄 생태 불균형",
-                "폐쇄 생태계의 균형 조정으로 농업 작업이 3일간 지연됩니다.",
-                "sealed-paradise");
+                "ending:sealed-paradise",
+                "sealed-paradise",
+                workScopeId: "farm",
+                workDelayDays: 3));
         }
 
         if (absoluteDay % 40 == 0
             && milestones.HasPressure("ending:eternal-lineage"))
         {
             workDelays.ApplyWorkDelay("global", 1, absoluteDay);
-            Publish(
+            events.Publish(new MilestonePressureAppliedFact(
+                MilestonePressureEffectKind.InheritanceWorkDelay,
                 absoluteDay,
-                "계승권 분쟁",
-                "계승권 조정으로 전체 작업이 하루 동안 지연됩니다.",
-                "eternal-lineage");
+                "ending:eternal-lineage",
+                "eternal-lineage",
+                workScopeId: "global",
+                workDelayDays: 1));
         }
 
         if (absoluteDay % 20 == 0
             && milestones.HasPressure("ending:steel-apotheosis"))
         {
             workDelays.ApplyWorkDelay("repair", 2, absoluteDay);
-            Publish(
+            events.Publish(new MilestonePressureAppliedFact(
+                MilestonePressureEffectKind.RepairWorkDelay,
                 absoluteDay,
-                "자동화 연쇄 고장",
-                "연쇄 고장과 내부 점검으로 수리 작업이 2일간 지연됩니다.",
-                "steel-apotheosis");
+                "ending:steel-apotheosis",
+                "steel-apotheosis",
+                workScopeId: "repair",
+                workDelayDays: 2));
         }
     }
 
@@ -164,11 +173,13 @@ public sealed class MilestonePressureApplicationAdapter :
 
         if (changed > 0)
         {
-            Publish(
+            events.Publish(new MilestonePressureAppliedFact(
+                MilestonePressureEffectKind.TemporalMaintenanceAcceleration,
                 absoluteDay,
-                "시간 이상 현상",
-                $"시간 고정 대상 {changed}명의 다음 촉매 교체일이 3일 뒤로 앞당겨졌습니다.",
-                "timeless-sanctuary");
+                "ending:timeless-sanctuary",
+                "timeless-sanctuary",
+                affectedCount: changed,
+                maintenanceLeadDays: 3));
         }
     }
 
@@ -176,13 +187,13 @@ public sealed class MilestonePressureApplicationAdapter :
     {
         float threat = 0f;
         string source = string.Empty;
-        string title = string.Empty;
+        string pressureId = string.Empty;
         if (milestones.HasPressure("ending:truth-revealed")
             && absoluteDay % 20 == 0)
         {
             threat = 75f;
             source = "truth-revealed";
-            title = "진실 수호자 보복";
+            pressureId = "ending:truth-revealed";
         }
         if (milestones.HasPressure("ending:surface-hegemony")
             && absoluteDay % 15 == 0
@@ -190,7 +201,7 @@ public sealed class MilestonePressureApplicationAdapter :
         {
             threat = 90f;
             source = "surface-hegemony";
-            title = "인간 연합 반격";
+            pressureId = "ending:surface-hegemony";
         }
         if (milestones.HasPressure("ending:dungeon-sovereignty")
             && absoluteDay % 10 == 0
@@ -198,7 +209,7 @@ public sealed class MilestonePressureApplicationAdapter :
         {
             threat = 100f;
             source = "dungeon-sovereignty";
-            title = "국가 규모 공성전";
+            pressureId = "ending:dungeon-sovereignty";
         }
         if (milestones.HasPressure("ending:arcane-ascension")
             && absoluteDay % 20 == 0
@@ -206,39 +217,31 @@ public sealed class MilestonePressureApplicationAdapter :
         {
             threat = 95f;
             source = "arcane-ascension";
-            title = "비전 습격";
+            pressureId = "ending:arcane-ascension";
         }
 
-        if (threat <= 0f
-            || invasions.Operations.Any(value => value != null
-                && value.scheduledDay == absoluteDay))
+        if (threat <= 0f)
         {
             return;
         }
 
+        string sourceOwnerId =
+            $"milestone-pressure:{source}:{absoluteDay}";
         ScheduledInvasionOperationState operation =
-            invasions.ScheduleNextOperation(threat);
-        if (operation != null)
-        {
-            Publish(
+            invasions.ScheduleMilestonePressureOperation(
+                threat,
+                sourceOwnerId,
                 absoluteDay,
-                title,
-                $"위협도 {threat:0}의 침입 작전 {operation.operationId}이 예약되었습니다.",
-                source);
+                out bool created);
+        if (operation != null && created)
+        {
+            events.Publish(new MilestonePressureAppliedFact(
+                MilestonePressureEffectKind.InvasionScheduled,
+                absoluteDay,
+                pressureId,
+                source,
+                invasionOperationId: operation.operationId,
+                invasionThreat: threat));
         }
-    }
-
-    private void Publish(
-        int absoluteDay,
-        string title,
-        string detail,
-        string source)
-    {
-        events.Publish(new EventAlertRequestedEvent(new EventAlertRequest(
-            title,
-            detail,
-            EventAlertImportance.High,
-            "V21 이정표 압력",
-            sourceId: $"milestone-pressure:{source}:{absoluteDay}")));
     }
 }

@@ -16,6 +16,6 @@
   "schema_version": 1,
   "slug": "building-9803",
   "spoiler_tier": "none",
-  "summary": "시설 동작은 BuildingEconomyAbility, BuildingFacilityAbility, BuildingFacilityPartAbility, BuildingUtilityConnectionAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 404, 재료 석재 블록×5, 철괴×3이 필요하다.",
+  "summary": "시설 동작은 BuildingEconomyAbility, BuildingFacilityAbility, BuildingFacilityPartAbility, BuildingUtilityConnectionAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 463 WU, 재료 석재 블록×5, 철괴×3이 필요하다.",
   "title": "하수관"
 }

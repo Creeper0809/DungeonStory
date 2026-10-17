@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Environment;
 using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer.Unity;
@@ -123,7 +124,8 @@ internal sealed class OffenseUrgentMitigationRestoreCandidate
 public sealed class OffenseUrgentMitigationRuntime :
     IOffenseUrgentMitigationRuntime,
     IInitializable,
-    ITickable
+    ITickable,
+    IDungeonRestoreTransactionParticipant
 {
     private const float EvaluationInterval = 0.5f;
     private const string PhysicalOperationPrefix =
@@ -144,6 +146,7 @@ public sealed class OffenseUrgentMitigationRuntime :
     private IReadOnlyList<OffenseUrgentMitigationOrderStateData> ordersView;
     private float nextEvaluationTime;
     private int nextOrderSequence;
+    private readonly DungeonRestorePublication restorePublication = new();
 
     public OffenseUrgentMitigationRuntime(
         IOffenseWorldSimulation world,
@@ -510,6 +513,18 @@ public sealed class OffenseUrgentMitigationRuntime :
         OffenseUrgentMitigationRestoreCandidate candidate)
     {
         candidate = candidate ?? throw new ArgumentNullException(nameof(candidate));
+        if (restorePublication.TryStage(
+                () => ApplyRestore(candidate),
+                CaptureRestoreRollback))
+        {
+            return;
+        }
+
+        ApplyRestore(candidate);
+    }
+
+    private void ApplyRestore(OffenseUrgentMitigationRestoreCandidate candidate)
+    {
         orders = candidate.Orders;
         boundFacilities = candidate.BoundFacilities;
         ordersView = null;
@@ -517,6 +532,34 @@ public sealed class OffenseUrgentMitigationRuntime :
         nextEvaluationTime = candidate.NextEvaluationTime;
         Version = candidate.Version;
     }
+
+    private Action CaptureRestoreRollback()
+    {
+        List<OffenseUrgentMitigationOrderStateData> previousOrders = orders;
+        Dictionary<string, BuildableObject> previousBoundFacilities =
+            boundFacilities;
+        IReadOnlyList<OffenseUrgentMitigationOrderStateData> previousOrdersView =
+            ordersView;
+        float previousNextEvaluationTime = nextEvaluationTime;
+        int previousNextOrderSequence = nextOrderSequence;
+        int previousVersion = Version;
+        return () =>
+        {
+            orders = previousOrders;
+            boundFacilities = previousBoundFacilities;
+            ordersView = previousOrdersView;
+            nextEvaluationTime = previousNextEvaluationTime;
+            nextOrderSequence = previousNextOrderSequence;
+            Version = previousVersion;
+        };
+    }
+
+    public string ParticipantId => "offense.urgent-mitigation";
+    public void BeginRestoreCandidate() => restorePublication.Begin();
+    public void PublishRestoreCandidate() => restorePublication.Publish();
+    public void RollbackPublishedRestoreCandidate() => restorePublication.Discard();
+    public void DiscardRestoreCandidate() => restorePublication.Discard();
+    public void CompleteRestoreCandidate() => restorePublication.Complete();
 
     private static bool IsFinite(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value);
@@ -1255,23 +1298,39 @@ public sealed class OffenseUrgentMitigationRuntime :
 
 public sealed class ThreatMitigationWorkExecutionHandler :
     IWorkExecutionHandler,
+    IWorkAccessStandExecutionHandler,
     IWorkCandidateProvider,
     IWorkUrgencyProvider
 {
+    private const float InitialAttackWorkChunk = 1f;
+
     private static readonly WorkTypeId[] Supported =
     {
         BuiltInWorkTypeIds.ThreatMitigation
     };
 
     private readonly IOffenseUrgentMitigationRuntime runtime;
+    private readonly IEnvironmentalFireSuppressionWorkRuntime fireRuntime;
 
     public ThreatMitigationWorkExecutionHandler(
-        IOffenseUrgentMitigationRuntime runtime)
+        IOffenseUrgentMitigationRuntime runtime,
+        IEnvironmentalFireSuppressionWorkRuntime fireRuntime)
     {
         this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        this.fireRuntime = fireRuntime
+            ?? throw new ArgumentNullException(nameof(fireRuntime));
     }
 
     public IReadOnlyCollection<WorkTypeId> WorkTypeIds => Supported;
+
+    public bool RequiresWorkAccessStand(
+        WorkTypeId workTypeId,
+        CharacterActor actor,
+        BuildableObject target)
+    {
+        return workTypeId == BuiltInWorkTypeIds.ThreatMitigation
+            && fireRuntime.TryGetWork(target, actor, out _);
+    }
 
     public bool IsAvailable(
         WorkTypeId workTypeId,
@@ -1279,9 +1338,24 @@ public sealed class ThreatMitigationWorkExecutionHandler :
         BuildableObject target,
         out string reason)
     {
-        OffenseUrgentMitigationWorkSnapshot work = default;
-        bool available = workTypeId == BuiltInWorkTypeIds.ThreatMitigation
-            && runtime.TryGetWork(target, actor, out work)
+        reason = string.Empty;
+        if (workTypeId != BuiltInWorkTypeIds.ThreatMitigation)
+            return false;
+        if (fireRuntime.TryGetWork(
+                target,
+                actor,
+                out EnvironmentalFireSuppressionWorkSnapshot fireWork))
+        {
+            reason = fireWork.Available
+                ? string.Empty
+                : fireWork.UnavailableReason;
+            return fireWork.Available;
+        }
+
+        bool available = runtime.TryGetWork(
+                target,
+                actor,
+                out OffenseUrgentMitigationWorkSnapshot work)
             && work.Available;
         reason = available ? string.Empty : work.UnavailableReason;
         return available;
@@ -1292,8 +1366,16 @@ public sealed class ThreatMitigationWorkExecutionHandler :
         CharacterActor actor,
         BuildableObject target)
     {
-        return workTypeId == BuiltInWorkTypeIds.ThreatMitigation
-            && runtime.TryGetWork(
+        if (workTypeId != BuiltInWorkTypeIds.ThreatMitigation)
+            return 0f;
+        if (fireRuntime.TryGetWork(
+                target,
+                actor,
+                out EnvironmentalFireSuppressionWorkSnapshot fireWork))
+        {
+            return fireWork.Available ? 100f : 0f;
+        }
+        return runtime.TryGetWork(
                 target,
                 actor,
                 out OffenseUrgentMitigationWorkSnapshot work)
@@ -1306,6 +1388,234 @@ public sealed class ThreatMitigationWorkExecutionHandler :
         WorkExecutionContext context,
         WorkExecutionResult result)
     {
+        if (fireRuntime.TryGetWork(
+                context.Target,
+                context.Actor,
+                out EnvironmentalFireSuppressionWorkSnapshot fireWork))
+        {
+            if (!fireWork.Available)
+            {
+                RejectFireWork(
+                    result,
+                    fireWork.UnavailableReason,
+                    ResolveFireFailureAxis(fireWork.UnavailableReason));
+                yield break;
+            }
+
+            string fireId = fireWork.Fire?.FireId ?? string.Empty;
+            if (fireId.Length == 0)
+            {
+                RejectFireWork(
+                    result,
+                    "environmental-fire-work-fire-identity-missing",
+                    CharacterOperationBlockAxis.Identity);
+                yield break;
+            }
+
+            if (fireWork.Mode == EnvironmentalFireSuppressionMode.InitialAttack)
+            {
+                while (context.CanContinue)
+                {
+                    if (!TryGetSameFireWork(context, fireId, out fireWork))
+                    {
+                        // Another responder may have extinguished this fire while
+                        // the worker was entering or completing a bounded chunk.
+                        MarkFireResolvedByAnotherResponder(result);
+                        yield break;
+                    }
+                    if (!fireWork.Available
+                        || fireWork.Mode
+                            != EnvironmentalFireSuppressionMode.InitialAttack)
+                    {
+                        // The live fire has crossed into the water-only mode (or
+                        // otherwise became ineligible). End this pass so the next
+                        // candidate evaluation can use the current response mode.
+                        RejectFireWork(
+                            result,
+                            fireWork.Available
+                                ? "environmental-fire-response-mode-changed"
+                                : fireWork.UnavailableReason,
+                            fireWork.Available
+                                ? CharacterOperationBlockAxis.Environment
+                                : ResolveFireFailureAxis(
+                                    fireWork.UnavailableReason));
+                        yield break;
+                    }
+
+                    float approvedWork = Mathf.Min(
+                        InitialAttackWorkChunk,
+                        fireWork.RequiredWork);
+                    var chunk = new EnvironmentalFireSuppressionWorkSnapshot(
+                        true,
+                        fireWork.Fire,
+                        fireWork.Mode,
+                        approvedWork,
+                        0,
+                        fireWork.DisplayName,
+                        string.Empty);
+                    if (!fireRuntime.TryBegin(
+                            context.Target,
+                            context.Actor,
+                            chunk,
+                            out EnvironmentalFireSuppressionAttempt attempt,
+                            out string beginFailure,
+                            context.CommandOrigin))
+                    {
+                        if (!TryGetSameFireWork(context, fireId, out _))
+                        {
+                            MarkFireResolvedByAnotherResponder(result);
+                        }
+                        else
+                        {
+                            RejectFireWork(
+                                result,
+                                beginFailure,
+                                ResolveFireFailureAxis(beginFailure));
+                        }
+                        yield break;
+                    }
+
+                    context.RegisterCancellationResource(attempt);
+                    yield return context.ExecuteWorkAmount(
+                        approvedWork,
+                        fireWork.DisplayName);
+                    if (!context.CanContinue)
+                    {
+                        result.CompletedSuccessfully = false;
+                        yield break;
+                    }
+                    if (!TryGetSameFireWork(context, fireId, out _))
+                    {
+                        MarkFireResolvedByAnotherResponder(result);
+                        yield break;
+                    }
+                    if (!fireRuntime.ApplyResponderExposure(
+                            attempt,
+                            context.Actor,
+                            approvedWork))
+                    {
+                        if (!TryGetSameFireWork(context, fireId, out _))
+                        {
+                            MarkFireResolvedByAnotherResponder(result);
+                        }
+                        else
+                        {
+                            RejectFireWork(
+                                result,
+                                "environmental-fire-responder-exposure-rejected",
+                                CharacterOperationBlockAxis.Environment);
+                        }
+                        yield break;
+                    }
+
+                    EnvironmentalFireSuppressionResult chunkSuppression =
+                        fireRuntime.Complete(attempt);
+                    if (chunkSuppression.Disposition
+                        == EnvironmentalFireSuppressionDisposition.FireMissing)
+                    {
+                        MarkFireResolvedByAnotherResponder(result);
+                        yield break;
+                    }
+                    if (!chunkSuppression.Applied)
+                    {
+                        RejectFireWork(result, chunkSuppression);
+                        yield break;
+                    }
+                    MarkFireDomainOutcome(
+                        result,
+                        fireWork,
+                        chunkSuppression,
+                        approvedWork);
+                    if (chunkSuppression.Disposition
+                        == EnvironmentalFireSuppressionDisposition.Extinguished)
+                    {
+                        result.CompletedSuccessfully = true;
+                        yield break;
+                    }
+                }
+
+                result.CompletedSuccessfully = false;
+                yield break;
+            }
+
+            if (!fireRuntime.TryBegin(
+                    context.Target,
+                    context.Actor,
+                    fireWork,
+                    out EnvironmentalFireSuppressionAttempt waterAttempt,
+                    out string waterBeginFailure,
+                    context.CommandOrigin))
+            {
+                if (!TryGetSameFireWork(context, fireId, out _))
+                {
+                    MarkFireResolvedByAnotherResponder(result);
+                }
+                else
+                {
+                    RejectFireWork(
+                        result,
+                        waterBeginFailure,
+                        ResolveFireFailureAxis(waterBeginFailure));
+                }
+                yield break;
+            }
+
+            context.RegisterCancellationResource(waterAttempt);
+            yield return context.ExecuteWorkAmount(
+                fireWork.RequiredWork,
+                fireWork.DisplayName);
+            if (!context.CanContinue)
+            {
+                result.CompletedSuccessfully = false;
+                yield break;
+            }
+
+            if (!TryGetSameFireWork(context, fireId, out _))
+            {
+                MarkFireResolvedByAnotherResponder(result);
+                yield break;
+            }
+            if (!fireRuntime.ApplyResponderExposure(
+                    waterAttempt,
+                    context.Actor,
+                    fireWork.RequiredWork))
+            {
+                if (!TryGetSameFireWork(context, fireId, out _))
+                {
+                    MarkFireResolvedByAnotherResponder(result);
+                }
+                else
+                {
+                    RejectFireWork(
+                        result,
+                        "environmental-fire-responder-exposure-rejected",
+                        CharacterOperationBlockAxis.Environment);
+                }
+                yield break;
+            }
+            EnvironmentalFireSuppressionResult suppression =
+                fireRuntime.Complete(waterAttempt);
+            if (suppression.Applied)
+            {
+                MarkFireDomainOutcome(
+                    result,
+                    fireWork,
+                    suppression,
+                    fireWork.RequiredWork);
+            }
+            else if (suppression.Disposition
+                     == EnvironmentalFireSuppressionDisposition.FireMissing)
+            {
+                MarkFireResolvedByAnotherResponder(result);
+            }
+            result.CompletedSuccessfully = suppression.Applied
+                || suppression.Disposition
+                    == EnvironmentalFireSuppressionDisposition.FireMissing;
+            if (!result.CompletedSuccessfully)
+                RejectFireWork(result, suppression);
+            yield break;
+        }
+
         if (!runtime.TryGetWork(
                 context.Target,
                 context.Actor,
@@ -1335,5 +1645,128 @@ public sealed class ThreatMitigationWorkExecutionHandler :
             });
         result.CompletedSuccessfully = progressApplied && completed;
         result.CompletionEffectsAlreadyApplied = completed;
+    }
+
+    private static void MarkFireDomainOutcome(
+        WorkExecutionResult result,
+        EnvironmentalFireSuppressionWorkSnapshot work,
+        in EnvironmentalFireSuppressionResult suppression,
+        float contributionWork)
+    {
+        result.CompletionEffectsAlreadyApplied = true;
+        // Suppression owns mandatory identity delivery (including durable pending
+        // delivery after its child commit). Never publish a generic duplicate here.
+        result.CompletionIdentityAlreadyPublished = true;
+        if (string.IsNullOrWhiteSpace(suppression.OutcomeResultKey))
+        {
+            throw new InvalidOperationException(
+                "Applied environmental-fire suppression lost its canonical outcome result key.");
+        }
+
+        result.SetTerminalReference(
+            EnvironmentOutcomeIds.FireSuppressionProducer,
+            suppression.OutcomeResultKey,
+            work.Fire?.Target.TargetId ?? string.Empty,
+            Mathf.Max(0f, contributionWork));
+    }
+
+    private static void MarkFireResolvedByAnotherResponder(
+        WorkExecutionResult result)
+    {
+        result.CompletedSuccessfully = true;
+        result.CompletionEffectsAlreadyApplied = true;
+        // The live target was already resolved by the domain owner. Do not
+        // fabricate a second generic terminal identity for this stale attempt.
+        result.CompletionIdentityAlreadyPublished = true;
+    }
+
+    private bool TryGetSameFireWork(
+        WorkExecutionContext context,
+        string fireId,
+        out EnvironmentalFireSuppressionWorkSnapshot work)
+    {
+        return fireRuntime.TryGetWork(context.Target, context.Actor, out work)
+            && work.Fire != null
+            && string.Equals(
+                work.Fire.FireId,
+                fireId,
+                StringComparison.Ordinal);
+    }
+
+    private static void RejectFireWork(
+        WorkExecutionResult result,
+        string reason,
+        CharacterOperationBlockAxis axis)
+    {
+        string canonicalReason = string.IsNullOrWhiteSpace(reason)
+            ? "environmental-fire-work-rejected"
+            : reason.Trim();
+        result.CompletedSuccessfully = false;
+        result.Failure = new DomainFailure(
+            FailureCode.EnvironmentWorkTargetUnavailable,
+            canonicalReason);
+        result.FailureAxis = axis;
+    }
+
+    private static void RejectFireWork(
+        WorkExecutionResult result,
+        EnvironmentalFireSuppressionResult suppression)
+    {
+        string canonicalReason = string.IsNullOrWhiteSpace(suppression.Reason)
+            ? "environmental-fire-suppression-rejected"
+            : suppression.Reason.Trim();
+        result.CompletedSuccessfully = false;
+        result.Failure = new DomainFailure(
+            FailureCode.EnvironmentWorkTargetUnavailable,
+            suppression.Disposition.ToString(),
+            canonicalReason);
+        result.FailureAxis = suppression.Disposition switch
+        {
+            EnvironmentalFireSuppressionDisposition.AccessBlocked =>
+                CharacterOperationBlockAxis.Access,
+            EnvironmentalFireSuppressionDisposition.ElectricalIsolationRequired =>
+                CharacterOperationBlockAxis.Power,
+            EnvironmentalFireSuppressionDisposition.RequiresWater or
+            EnvironmentalFireSuppressionDisposition.WaterUnavailable =>
+                CharacterOperationBlockAxis.Water,
+            _ => CharacterOperationBlockAxis.Environment
+        };
+    }
+
+    private static CharacterOperationBlockAxis ResolveFireFailureAxis(
+        string reason)
+    {
+        string canonicalReason = reason?.Trim() ?? string.Empty;
+        if (canonicalReason.IndexOf(
+                "electrical",
+                StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            return CharacterOperationBlockAxis.Power;
+        }
+        if (canonicalReason.IndexOf(
+                "water",
+                StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            return CharacterOperationBlockAxis.Water;
+        }
+        if (canonicalReason.IndexOf(
+                "identity",
+                StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            return CharacterOperationBlockAxis.Identity;
+        }
+        if (canonicalReason.IndexOf(
+                "access",
+                StringComparison.OrdinalIgnoreCase) >= 0
+            || canonicalReason.IndexOf(
+                "stand",
+                StringComparison.OrdinalIgnoreCase) >= 0
+            || canonicalReason.IndexOf(
+                "worker-unavailable",
+                StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            return CharacterOperationBlockAxis.Access;
+        }
+        return CharacterOperationBlockAxis.Environment;
     }
 }

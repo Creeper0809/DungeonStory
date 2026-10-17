@@ -634,13 +634,6 @@ public static class ProductionWorkshopContentAssetBuilder
                     }
                 }
             });
-            abilities.Add(new BuildingFuelConsumerAbility
-            {
-                fuelPerRefuel = 1,
-                workSeconds = 0.8f,
-                warmth = 8f,
-                lightSafety = 4f
-            });
         }
         abilities.EnsureStableIds();
         asset.ReplaceAbilities(abilities);

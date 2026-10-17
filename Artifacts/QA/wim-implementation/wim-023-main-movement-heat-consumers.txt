@@ -1,0 +1,5 @@
+PASS authored Beastkin paired leg:left/right -> validated current restore -> main AbilityMove.Move2PosBySpeed -> actual transform commits; distance=0.001588821->0.001716614; ratio=1.080432; equal samples=2; scheduler stride=1; controlled dt=.001; no path/AI scheduling proof
+PASS authored Demon heat-sac -> validated current restore -> main CharacterEnvironmentUnityAdapter.Tick -> actual heatExposure delta; 50C/air100/light100; 1-second gain=0.8456475->0.676518; ratio=0.8; no exposure-output writes; injected clock restored
+result=PASS
+scope=actual authored Beastkin/Demon, controlled persistent NPC/AbilityWork/proficiency, registered current whole-save historical installation, actual main AbilityMove position commits and CharacterEnvironmentUnityAdapter.Tick exposure changes. Controlled clock and one hot field cell; NOT natural navigation/clinical/weather or work/combat proof.
+cleanup=paused disposable main Play; prepared historical whole-world restore is in-memory only; user persistence disabled before party selection; no source-asset modification or scene save. Fixture retained until operator stops.

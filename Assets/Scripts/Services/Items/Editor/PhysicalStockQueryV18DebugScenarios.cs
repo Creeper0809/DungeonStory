@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEngine;
 using VContainer;
@@ -14,6 +15,31 @@ public static class PhysicalStockQueryV18DebugScenarios
         "Artifacts/QA/v27-storage-mass-authority.txt";
     private const string LumberItemId = "material:lumber";
     private const string InoculatedLogItemId = "supply:inoculated-log";
+
+    public static void RunTransferTransitForBatch()
+    {
+        if (!Application.isBatchMode)
+            throw new InvalidOperationException("Transfer transit verification requires isolated batch execution.");
+        WorldItemRepository repository = new(
+            new GuidPersistentIdGenerator(), new DungeonRuntimeAggregateRootStore());
+        IDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
+        IPhysicalItemMassQuery massQuery = CreateMassQuery(catalog);
+        PhysicalStockQuery query = new(repository, catalog, massQuery);
+        VerifyConveyorWarehouseMassAdmission(repository, catalog, massQuery, query);
+        Debug.Log("ARCHITECTURE_TRANSFER_TRANSIT=PASS; facility fault rollback; warehouse capacity; retained transit");
+    }
+
+    public static void RunWim020MassFocused()
+    {
+        WorldItemRepository repository = new(
+            new GuidPersistentIdGenerator(), new DungeonRuntimeAggregateRootStore());
+        IDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
+        IPhysicalItemMassQuery massQuery = CreateMassQuery(catalog);
+        VerifyCombatEquipmentDynamicMass(repository, catalog, massQuery,
+            new PhysicalStockQuery(repository, catalog, massQuery),
+            (BuildingInstanceId)"building:wim-020-mass");
+        VerifyApparelPhysicalMass(massQuery);
+    }
 
     [MenuItem("DungeonStory/Debug/Items/Run V18 Physical Stock Query Contracts")]
     public static void RunAll()
@@ -402,12 +428,19 @@ public static class PhysicalStockQueryV18DebugScenarios
     {
         EditorNullItemMarkerPresenter markers =
             EditorNullItemMarkerPresenter.Instance;
+        var outcomeFixture = new MigratedProducerOutcomeEditorFixture(
+            "run:physical-stock-partial-transform");
+        using DomainFactDispatcher physicalFacts =
+            outcomeFixture.CreatePhysicalTransformationFacts();
+        var session = new FixedGameSessionStateProvider();
         PhysicalItemTransformService transforms = new(
             repository,
             new WorldItemSpawner(catalog, repository, markers),
             massQuery,
             catalog,
-            markers);
+            markers,
+            session,
+            physicalFacts);
         long lumberMass = massQuery.GetDefinitionUnitMass(
             (ItemDefinitionId)LumberItemId).Value;
         DungeonItemDefinition output = catalog.All
@@ -571,7 +604,9 @@ public static class PhysicalStockQueryV18DebugScenarios
             new WorldItemSpawner(catalog, repository, markers),
             massQuery,
             catalog,
-            new ThrowOnceItemMarkerPresenter());
+            new ThrowOnceItemMarkerPresenter(),
+            session,
+            physicalFacts);
         int outputBeforeRollback = stockQuery.GetAllStacks()
             .Where(value => value.Position == multiOutputPosition
                 && string.Equals(value.ItemId, output.ItemId,
@@ -666,10 +701,11 @@ public static class PhysicalStockQueryV18DebugScenarios
         PhysicalStockQuery stockQuery)
     {
         IItemMarkerPresenter markers = EditorNullItemMarkerPresenter.Instance;
-        PhysicalItemRelocationService relocations = new(
+        DeterministicPhysicalItemRelocationOutcomeFixture outcomeFixture = new();
+        IPhysicalItemRelocationService relocations = outcomeFixture.CreateService(
             repository,
-            new WorldItemSpawner(catalog, repository, markers),
             massQuery,
+            catalog,
             markers);
         Vector2Int sourcePosition = new(43, 4);
         Vector2Int destinationPosition = new(44, 4);
@@ -696,6 +732,8 @@ public static class PhysicalStockQueryV18DebugScenarios
             && receipt.DestinationStackId != sourceId
             && receipt.ItemId == LumberItemId
             && receipt.Quantity == 1
+            && outcomeFixture.PreparedCount == 1
+            && outcomeFixture.CommittedCount == 1
             && receipt.MassGrams == massQuery.GetDefinitionUnitMass(
                 (ItemDefinitionId)LumberItemId).Value
             && stockQuery.GetAllStacks().Single(value => string.Equals(
@@ -783,7 +821,7 @@ public static class PhysicalStockQueryV18DebugScenarios
             massQuery,
             new ThrowOnceItemMarkerPresenter());
         Require(
-            !throwingBatch.TryCommit(
+            throwingBatch.TryCommit(
                 new[]
                 {
                     new PhysicalItemTransformInput(rollbackFirstId, 1),
@@ -794,18 +832,16 @@ public static class PhysicalStockQueryV18DebugScenarios
                 "qa-batch-rollback",
                 out _,
                 out string rollbackFailure)
-            && rollbackFailure.StartsWith(
-                "physical-batch-disposition-rollback:",
-                StringComparison.Ordinal)
-            && stockQuery.GetAllStacks().Single(value => string.Equals(
+            && stockQuery.GetAllStacks().All(value => !string.Equals(
                 value.StackId,
                 rollbackFirstId,
-                StringComparison.Ordinal)).Quantity == 1
+                StringComparison.Ordinal))
             && stockQuery.GetAllStacks().Single(value => string.Equals(
                 value.StackId,
                 rollbackSecondId,
-                StringComparison.Ordinal)).Quantity == 2,
-            "Batch disposition did not restore exact sources after publication failure.");
+                StringComparison.Ordinal)).Quantity == 1,
+            "Marker presentation failure incorrectly rolled back an authoritative batch disposition: "
+            + rollbackFailure);
 
         foreach (WorldItemStackSnapshot stack in stockQuery.GetAllStacks()
                      .Where(value => value.Position == firstPosition
@@ -1046,29 +1082,21 @@ public static class PhysicalStockQueryV18DebugScenarios
             new ThrowOnceItemMarkerPresenter(),
             reservations);
         Require(
-            !throwingBatch.TryCommitReservedSinkPending(
+            throwingBatch.TryCommitReservedSinkPending(
                 rollbackLease.leaseId,
                 1,
                 rollbackOperation,
                 "character-meal-consumed",
-                out _,
+                out PhysicalItemBatchDispositionReceipt markerFaultReceipt,
                 out string rollbackFailure)
-            && rollbackFailure.StartsWith(
-                "physical-reserved-disposition-rollback:",
-                StringComparison.Ordinal)
-            && repository.GetEditorTestQuantity(rollbackStackId) == 2
-            && repository.GetEditorPendingBatchDispositionCount() == 0
-            && reservations.Revalidate(
-                rollbackLease.leaseId,
-                out ItemQuantityLease restoredLease,
-                out _)
-            && restoredLease.remainingQuantity == 1
-            && reservations.GetReservedQuantity(
-                (ItemStackId)rollbackStackId) == 1,
-            "Reserved pending Sink failure did not restore exact source and lease ownership.");
-        reservations.Release(
-            rollbackLease.leaseId,
-            ItemReservationReleaseReason.Cancelled);
+            && repository.GetEditorTestQuantity(rollbackStackId) == 1
+            && repository.GetEditorPendingBatchDispositionCount() == 1
+            && !reservations.Revalidate(rollbackLease.leaseId, out _, out _),
+            "Marker presentation failure incorrectly rolled back a reserved Sink: "
+            + rollbackFailure);
+        Require(
+            throwingBatch.Acknowledge(markerFaultReceipt.CommitId, out _),
+            "Marker-fault Sink pending receipt could not be retired.");
     }
 
     private static void VerifyReservedPendingTransferAtomicity(
@@ -1253,30 +1281,21 @@ public static class PhysicalStockQueryV18DebugScenarios
             new ThrowOnceItemMarkerPresenter(),
             reservations);
         Require(
-            !throwingBatch.TryCommitReservedTransferPending(
+            throwingBatch.TryCommitReservedTransferPending(
                 rollbackLease.leaseId,
                 1,
                 rollbackOperation,
                 "apparel-inputs-to-wip",
-                out _,
+                out PhysicalItemBatchDispositionReceipt markerFaultReceipt,
                 out string rollbackFailure)
-            && rollbackFailure.StartsWith(
-                "physical-reserved-disposition-rollback:",
-                StringComparison.Ordinal)
-            && repository.GetEditorTestQuantity(rollbackStackId) == 2
-            && repository.GetEditorPendingBatchDispositionCount() == 0
-            && reservations.Revalidate(
-                rollbackLease.leaseId,
-                out ItemQuantityLease restoredLease,
-                out _)
-            && restoredLease.remainingQuantity == 1
-            && reservations.GetReservedQuantity(
-                (ItemStackId)rollbackStackId) == 1,
-            "Reserved pending Transfer publication failure did not restore exact "
-            + "source/lease state and remove its pending receipt.");
-        reservations.Release(
-            rollbackLease.leaseId,
-            ItemReservationReleaseReason.Cancelled);
+            && repository.GetEditorTestQuantity(rollbackStackId) == 1
+            && repository.GetEditorPendingBatchDispositionCount() == 1
+            && !reservations.Revalidate(rollbackLease.leaseId, out _, out _),
+            "Marker presentation failure incorrectly rolled back a reserved Transfer: "
+            + rollbackFailure);
+        Require(
+            throwingBatch.Acknowledge(markerFaultReceipt.CommitId, out _),
+            "Marker-fault Transfer pending receipt could not be retired.");
     }
 
 
@@ -1325,12 +1344,18 @@ public static class PhysicalStockQueryV18DebugScenarios
         EditorNullItemMarkerPresenter markers =
             EditorNullItemMarkerPresenter.Instance;
         WorldItemSpawner spawner = new(catalog, repository, markers);
+        var outcomeFixture = new MigratedProducerOutcomeEditorFixture(
+            "run:physical-stock-wildlife-transform");
+        using DomainFactDispatcher physicalFacts =
+            outcomeFixture.CreatePhysicalTransformationFacts();
         PhysicalItemTransformService transforms = new(
             repository,
             spawner,
             massQuery,
             catalog,
-            markers);
+            markers,
+            new FixedGameSessionStateProvider(),
+            physicalFacts);
         Vector2Int position = new(37, 4);
         string sourceStackId = WorldItemRepositoryEditorAccess.AddStack(
             repository,
@@ -2563,6 +2588,12 @@ public static class PhysicalStockQueryV18DebugScenarios
             quantityReservations,
             quantityReservations,
             aggregation,
+            new DeterministicPhysicalItemRelocationOutcomeFixture()
+                .CreateService(
+                    repository,
+                    massQuery,
+                    catalog,
+                    EditorNullItemMarkerPresenter.Instance),
             admission,
             facilityBufferMassAdmission: facilityAdmission);
 

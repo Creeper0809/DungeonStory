@@ -132,6 +132,14 @@ public static class CharacterProgressionSavePlayModeFacade
             staffContract.displayName = "Character World Work Round Trip";
             staffContract.characterType = staffData.characterType;
             staffContract.role = staffData.role;
+            // This fixture verifies legacy identity and work-state restoration.
+            // Do not clone the owner's in-flight skill requests onto a second
+            // character: request keys are identity-scoped runtime work.
+            staffContract.growth.activeSkills.Clear();
+            staffContract.growth.passiveSkills.Clear();
+            staffContract.growth.ultimate = null;
+            staffContract.growth.drafts.Clear();
+            staffContract.growth.pendingRequestKeys.Clear();
             staffContract.workPriorities = new List<DungeonCharacterWorkPrioritySaveData>
             {
                 new DungeonCharacterWorkPrioritySaveData
@@ -216,6 +224,7 @@ public static class CharacterProgressionSavePlayModeFacade
                 CharacterLifeWorldSaveData.CurrentVersion,
                 DungeonSaveRestorePhase.Characters,
                 life);
+            ResealFixture(captured);
 
             ICharacterWorldSaveService directWorldSave =
                 scope.Container.Resolve<ICharacterWorldSaveService>();
@@ -292,15 +301,38 @@ public static class CharacterProgressionSavePlayModeFacade
             }
 
             CharacterProgression restored = ownerManager.CurrentOwnerActor.Progression;
+            string restoredGrowthJson = restored == null
+                ? string.Empty
+                : JsonUtility.ToJson(restored.GrowthState);
+            string restoredNarrativeJson = restored == null
+                ? string.Empty
+                : JsonUtility.ToJson(restored.NarrativeLedger);
             if (restored == null
                 || restored.Level != expectedLevel
                 || restored.CurrentExperience != expectedExperience
-                || JsonUtility.ToJson(restored.GrowthState) != expectedGrowthJson
-                || JsonUtility.ToJson(restored.NarrativeLedger) != expectedNarrativeJson)
+                || restoredGrowthJson != expectedGrowthJson
+                || restoredNarrativeJson != expectedNarrativeJson)
             {
+                ICharacterSkillGenerationDiagnostics generationDiagnostics =
+                    scope.Container.Resolve<ICharacterSkillGenerationDiagnostics>();
+                string draftDiagnostic = restored == null
+                    ? "<no-progression>"
+                    : string.Join(",", restored.Drafts.Select(draft => draft == null
+                        ? "<null>"
+                        : $"{draft.kind}@{draft.unlockLevel}[ready={draft.isReady},chosen={draft.permanentlyChosen},submitted={draft.requestSubmitted},failures={draft.presentationFailureCount},state={draft.presentationState},key={draft.requestKey}]"));
                 message = restored == null
                     ? "Restored owner has no progression component."
-                    : $"Progression mismatch after restore: Lv.{restored.Level}, XP {restored.CurrentExperience}, active={restored.ActiveSkills.Count}, passive={restored.PassiveSkills.Count}";
+                    : "Progression mismatch after restore: "
+                        + $"level={restored.Level}/{expectedLevel}; "
+                        + $"xp={restored.CurrentExperience}/{expectedExperience}; "
+                        + $"growthExact={restoredGrowthJson == expectedGrowthJson}; "
+                        + $"growthDifference={DescribeFirstDifference(expectedGrowthJson, restoredGrowthJson)}; "
+                        + $"narrativeExact={restoredNarrativeJson == expectedNarrativeJson}; "
+                        + $"active={restored.ActiveSkills.Count}; "
+                        + $"passive={restored.PassiveSkills.Count}; "
+                        + $"drafts={draftDiagnostic}; "
+                        + $"generatorPending={generationDiagnostics.PendingRequestCount}; "
+                        + $"generatorLast='{generationDiagnostics.LastDiagnostic}'.";
                 return false;
             }
 
@@ -500,6 +532,40 @@ public static class CharacterProgressionSavePlayModeFacade
         }
     }
 
+    private static string DescribeFirstDifference(string expected, string actual)
+    {
+        expected ??= string.Empty;
+        actual ??= string.Empty;
+        int sharedLength = Math.Min(expected.Length, actual.Length);
+        int differenceIndex = 0;
+        while (differenceIndex < sharedLength
+               && expected[differenceIndex] == actual[differenceIndex])
+        {
+            differenceIndex++;
+        }
+
+        if (differenceIndex == expected.Length && differenceIndex == actual.Length)
+        {
+            return "none";
+        }
+
+        const int ContextRadius = 80;
+        int start = Math.Max(0, differenceIndex - ContextRadius);
+        int expectedLength = Math.Min(
+            expected.Length - start,
+            ContextRadius * 2);
+        int actualLength = Math.Min(
+            actual.Length - start,
+            ContextRadius * 2);
+        string expectedContext = expectedLength > 0
+            ? expected.Substring(start, expectedLength)
+            : "<end>";
+        string actualContext = actualLength > 0
+            ? actual.Substring(start, actualLength)
+            : "<end>";
+        return $"index={differenceIndex},expected='{expectedContext}',actual='{actualContext}'";
+    }
+
     private static string CanonicalizeBodyHealthIds(
         DungeonCharacterBodyHealthSaveData bodyHealth,
         string legacyId = null,
@@ -565,10 +631,37 @@ public static class CharacterProgressionSavePlayModeFacade
             builder.Append(section.sectionVersion).Append('\n');
             builder.Append((int)section.restorePhase).Append('\n');
             builder.Append(section.optional ? '1' : '0').Append('\n');
-            AppendCanonicalField(builder, section.payloadJson);
+            AppendCanonicalField(builder, CanonicalizeSectionPayload(section));
         }
 
         return builder.ToString();
+    }
+
+    private static string CanonicalizeSectionPayload(
+        DungeonSaveSectionEnvelope section)
+    {
+        if (!string.Equals(
+                section.sectionId,
+                GameplayOutcomeLedgerSaveSection.Id,
+                StringComparison.Ordinal))
+        {
+            return section.payloadJson;
+        }
+
+        // Restoring the ledger intentionally advances its cancellation epoch.
+        // Compare durable gameplay state while leaving that required session
+        // generation behavior to the ledger's focused persistence tests.
+        GameplayOutcomeLedgerSaveData ledger = JsonUtility.FromJson<
+            GameplayOutcomeLedgerSaveData>(section.payloadJson);
+        ledger.worldEpoch = 0L;
+        foreach (GameplayOutcomeConsolidationJobSnapshot job in
+                 ledger.consolidationJobs
+                 ?? new List<GameplayOutcomeConsolidationJobSnapshot>())
+        {
+            if (job != null)
+                job.worldEpoch = 0L;
+        }
+        return JsonUtility.ToJson(ledger);
     }
 
     private static void AppendCanonicalField(StringBuilder builder, string value)
@@ -671,6 +764,7 @@ public static class CharacterProgressionSavePlayModeFacade
             CharacterWorldSaveSection.CurrentVersion,
             DungeonSaveRestorePhase.Characters,
             ownerlessCharacters);
+        ResealFixture(ownerless);
         bool ownerlessRestored = saveService.TryRestore(
             ownerless,
             out DungeonGameRestoreReport ownerlessReport);
@@ -715,6 +809,7 @@ public static class CharacterProgressionSavePlayModeFacade
             CharacterWorldSaveSection.CurrentVersion,
             DungeonSaveRestorePhase.Characters,
             invalidCharacters);
+        ResealFixture(invalidPosition);
         if (saveService.TryRestore(invalidPosition, out DungeonGameRestoreReport positionReport)
             || !positionReport.Errors.Any(error => error.Contains(
                 "not walkable in the candidate grid",
@@ -766,6 +861,7 @@ public static class CharacterProgressionSavePlayModeFacade
             CharacterWorldSaveSection.CurrentVersion,
             DungeonSaveRestorePhase.Characters,
             characters);
+        ResealFixture(invalidSave);
 
         bool restored = saveService.TryRestore(
             invalidSave,
@@ -825,6 +921,7 @@ public static class CharacterProgressionSavePlayModeFacade
             CharacterWorldSaveSection.CurrentVersion,
             DungeonSaveRestorePhase.Characters,
             characters);
+        ResealFixture(collision);
 
         bool restored = saveService.TryRestore(
             collision,
@@ -851,6 +948,13 @@ public static class CharacterProgressionSavePlayModeFacade
         return true;
     }
 
+    private static void ResealFixture(DungeonGameSaveData save)
+    {
+        // These fixtures deliberately change domain payloads and must remain a
+        // valid sealed snapshot so the intended domain validator is exercised.
+        save.manifest = DungeonSaveManifest.Capture(save.sections);
+    }
+
     private static bool ValidateRollbackFreeLateFailure(
         DungeonRuntimeLifetimeScope scope,
         DungeonGameSaveData baseline,
@@ -859,18 +963,28 @@ public static class CharacterProgressionSavePlayModeFacade
         IRestoreWorldCandidateQuery candidates,
         out string failure)
     {
-        IDungeonSaveSectionRegistry liveRegistry =
-            scope.Container.Resolve<IDungeonSaveSectionRegistry>();
-        IDungeonSaveSection facilitySection = liveRegistry.OrderedSections
-            .Single(section => section.SectionId == ModularFacilityWorldSaveSection.Id);
-        IDungeonSaveSection characterSection = liveRegistry.OrderedSections
-            .Single(section => section.SectionId == CharacterWorldSaveSection.Id);
+        IModularFacilityWorldSaveService facilitySaveService =
+            scope.Container.Resolve<IModularFacilityWorldSaveService>();
+        ICharacterWorldSaveService characterSaveService =
+            scope.Container.Resolve<ICharacterWorldSaveService>();
+        IGridSystemProvider sectionGridProvider =
+            scope.Container.Resolve<IGridSystemProvider>();
+        IProductionOutputLifecycleRestoreCandidatePublisher disabledProjection =
+            ProductionOutputLifecycleRestoreCandidatePublisher
+                .IsolatedSectionFixtureOnly;
+        IDungeonSaveSection facilitySection = new ModularFacilityWorldSaveSection(
+            facilitySaveService,
+            sectionGridProvider,
+            disabledProjection);
+        IDungeonSaveSection characterSection = new CharacterWorldSaveSection(
+            characterSaveService,
+            sectionGridProvider,
+            candidates,
+            disabledProjection);
         IDungeonRestoreTransactionParticipant facilityParticipant =
-            scope.Container.Resolve<IModularFacilityWorldSaveService>()
-                as IDungeonRestoreTransactionParticipant;
+            facilitySaveService as IDungeonRestoreTransactionParticipant;
         IDungeonRestoreTransactionParticipant characterParticipant =
-            scope.Container.Resolve<ICharacterWorldSaveService>()
-                as IDungeonRestoreTransactionParticipant;
+            characterSaveService as IDungeonRestoreTransactionParticipant;
         if (facilityParticipant == null || characterParticipant == null)
         {
             failure = "Character atomic verification could not resolve world participants.";

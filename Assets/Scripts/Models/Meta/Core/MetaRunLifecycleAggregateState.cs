@@ -3,4 +3,5 @@ public sealed class MetaRunLifecycleAggregateState
 {
     public bool Ended { get; set; }
     public RunResultSnapshot LatestResult { get; set; }
+    public MetaRunCompletionSnapshot PendingCompletion { get; set; }
 }

@@ -6,7 +6,8 @@ public readonly struct BuildingAbilityWorkContext
     public BuildingAbilityWorkContext(
         IBuildingVisitorPort actor,
         BuildableObject building,
-        WorkTypeId workTypeId)
+        WorkTypeId workTypeId,
+        float approvedWork)
     {
         if (!workTypeId.IsValid)
         {
@@ -14,10 +15,19 @@ public readonly struct BuildingAbilityWorkContext
                 "Building ability work context requires a valid work type id.",
                 nameof(workTypeId));
         }
+        if (float.IsNaN(approvedWork)
+            || float.IsInfinity(approvedWork)
+            || approvedWork < 0f)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(approvedWork),
+                "Building ability work context requires finite nonnegative approved work.");
+        }
 
         Actor = actor;
         Building = building;
         WorkTypeId = workTypeId;
+        ApprovedWork = approvedWork;
         WorkType = WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition)
             ? FacilityWorkTypeMap.GetRequired(definition)
             : FacilityWorkType.None;
@@ -26,6 +36,7 @@ public readonly struct BuildingAbilityWorkContext
     public IBuildingVisitorPort Actor { get; }
     public BuildableObject Building { get; }
     public WorkTypeId WorkTypeId { get; }
+    public float ApprovedWork { get; }
     internal FacilityWorkType WorkType { get; }
 }
 
@@ -43,10 +54,13 @@ public interface IBuildingWorkCompletionFallbackHandler
 
 public interface IBuildingAbilityRuntimeDispatcher
 {
+    IReadOnlyList<object> BindRuntimeAbilities(IReadOnlyList<BuildingAbility> definitions);
+
     int ApplyWorkCompleted(
         IBuildingVisitorPort actor,
         BuildableObject building,
-        WorkTypeId workTypeId);
+        WorkTypeId workTypeId,
+        float approvedWork);
 }
 
 public sealed class BuildingAbilityRuntimeDispatcher :
@@ -54,28 +68,45 @@ public sealed class BuildingAbilityRuntimeDispatcher :
 {
     private readonly Dictionary<Type, IBuildingAbilityWorkCompletedHandler> workHandlers;
     private readonly Dictionary<WorkTypeId, IBuildingWorkCompletionFallbackHandler> fallbackHandlers;
+    private readonly BuildingAbilityRuntimeCatalog runtimeCatalog;
 
+    [VContainer.Inject]
     public BuildingAbilityRuntimeDispatcher(
         IReadOnlyList<IBuildingAbilityWorkCompletedHandler> registeredWorkHandlers,
         IReadOnlyList<IBuildingWorkCompletionFallbackHandler> registeredFallbackHandlers)
+        : this(registeredWorkHandlers, registeredFallbackHandlers, BuildingAbilityRuntimeCatalog.CreateBuiltIns())
     {
+    }
+
+    public BuildingAbilityRuntimeDispatcher(
+        IReadOnlyList<IBuildingAbilityWorkCompletedHandler> registeredWorkHandlers,
+        IReadOnlyList<IBuildingWorkCompletionFallbackHandler> registeredFallbackHandlers,
+        BuildingAbilityRuntimeCatalog runtimeCatalog)
+    {
+        this.runtimeCatalog = runtimeCatalog ?? throw new ArgumentNullException(nameof(runtimeCatalog));
         workHandlers = BuildTypeIndex(registeredWorkHandlers);
         fallbackHandlers = BuildFallbackIndex(registeredFallbackHandlers);
     }
 
+    public IReadOnlyList<object> BindRuntimeAbilities(IReadOnlyList<BuildingAbility> definitions) => runtimeCatalog.Bind(definitions);
+
     public int ApplyWorkCompleted(
         IBuildingVisitorPort actor,
         BuildableObject building,
-        WorkTypeId workTypeId)
+        WorkTypeId workTypeId,
+        float approvedWork)
     {
         if (building?.BuildingData == null)
         {
             return 0;
         }
 
-        building.RecordCompletedWorkCycle();
         BuildingAbilityWorkContext context =
-            new BuildingAbilityWorkContext(actor, building, workTypeId);
+            new BuildingAbilityWorkContext(
+                actor,
+                building,
+                workTypeId,
+                approvedWork);
         int totalProduced = 0;
         foreach (BuildingAbility ability in building.BuildingData.Abilities)
         {
@@ -107,6 +138,10 @@ public sealed class BuildingAbilityRuntimeDispatcher :
             totalProduced += Math.Max(0, fallback.Apply(context));
         }
 
+        // A completed cycle is a terminal fact, not an execution attempt. Keep
+        // it behind every ability/fallback effect so an unsupported command or
+        // thrown handler cannot leave a false completed-cycle mutation behind.
+        building.RecordCompletedWorkCycle();
         return totalProduced;
     }
 

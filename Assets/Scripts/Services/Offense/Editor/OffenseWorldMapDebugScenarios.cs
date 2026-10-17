@@ -206,7 +206,7 @@ public static class OffenseWorldMapDebugScenarios
 
     private static bool VerifyStrategicTruthReveal()
     {
-        using ScenarioRuntime scenario = new ScenarioRuntime();
+        using ScenarioRuntime scenario = new ScenarioRuntime(realOutcomes: true);
         using CountingTruthListener truthListener =
             new CountingTruthListener(scenario.GameEvents);
         bool revealed = scenario.Runtime.TryRecordStrategicTruthReveal(
@@ -215,13 +215,25 @@ public static class OffenseWorldMapDebugScenarios
         bool repeated = scenario.Runtime.TryRecordStrategicTruthReveal(
             OffenseWorldMapService.TruthTargetId,
             out _);
+        GameplayResultKey expected = new(
+            ExternalFactionOutcomeIds.TruthRevealProducerId,
+            new GameplayOperationId(
+                "offense-truth-reveal:"
+                + OffenseWorldMapService.TruthTargetId),
+            1L,
+            0);
 
         return revealed
             && repeated
             && message.Contains("진실")
             && scenario.Runtime.State.TruthRevealed
             && scenario.Runtime.State.CompletedTargetCount == 1
-            && truthListener.Count == 1;
+            && truthListener.Count == 1
+            && scenario.OutcomeLedger != null
+            && scenario.OutcomeLedger.TryGetResultIdentity(
+                expected,
+                out GameplayOutcomeReplayIdentity identity)
+            && identity.State == GameplayOutcomeReplayState.PublishedAcknowledged;
     }
 
     private static bool HasSpecificBlueprint(
@@ -301,29 +313,42 @@ public static class OffenseWorldMapDebugScenarios
     private sealed class ScenarioRuntime : IDisposable
     {
         private readonly GameObject runtimeObject;
+        private readonly EditorOffenseTruthFactFixture truthFacts;
 
         public OffenseWorldMapRuntime Runtime { get; }
         public DungeonStory.Foundation.IGameEventBus GameEvents { get; }
         public IOffensePanelService PanelService { get; }
+        public GameplayOutcomeLedger OutcomeLedger { get; }
 
-        public ScenarioRuntime(IOffenseCampaignCatalog catalog = null)
+        public ScenarioRuntime(
+            IOffenseCampaignCatalog catalog = null,
+            bool realOutcomes = false)
         {
             GameEvents = new DungeonStory.Foundation.GameEventBus();
             runtimeObject = new GameObject("Offense World Map Scenario Runtime");
             Runtime = runtimeObject.AddComponent<OffenseWorldMapRuntime>();
             PanelService = new TestPanelService();
             OffenseCampaignRuntime campaign = new OffenseCampaignRuntime();
+            _ = realOutcomes;
+            truthFacts = new EditorOffenseTruthFactFixture(
+                GameEvents,
+                "run:offense-truth-reveal-editor");
+            OutcomeLedger = truthFacts.Ledger;
             Runtime.Construct(
                 GameEvents,
                 externalInfluence: null,
                 campaign,
                 campaign,
-                catalog ?? OffenseEditorTestDependencies.CreateCampaignCatalog());
+                catalog ?? OffenseEditorTestDependencies.CreateCampaignCatalog(),
+                truthFacts.Facts,
+                truthFacts.Facts,
+                EditorFixedGameCalendar.Instance);
             Runtime.StartWorldMap();
         }
 
         public void Dispose()
         {
+            truthFacts.Dispose();
             Object.DestroyImmediate(runtimeObject);
         }
     }

@@ -1,0 +1,17 @@
+{
+  "catalogHash": "sha256:8ddaa9dacb6b2de45adb5f4a503750e04195e9981697a9f307649a64c8d4e23e",
+  "evidenceGateCount": 4,
+  "inputDigest": "sha256:ce7d9e4eae37ca834777320af783566e0970549e9db4367bd79bea61ee8bfe2b",
+  "manifestFileCount": 255,
+  "parityProfileCounts": {
+    "AcquiredTrait": 6,
+    "CharacterSkill": 2,
+    "EquipmentChoice": 2,
+    "EvolutionHistory": 2,
+    "FacilityEvolution": 2,
+    "Persona": 2
+  },
+  "requiredProvenanceCount": 156,
+  "status": "PASS",
+  "trainingEligible": true
+}

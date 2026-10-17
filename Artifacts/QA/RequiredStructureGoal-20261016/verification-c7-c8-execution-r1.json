@@ -1,0 +1,70 @@
+{
+  "status": "C7_C8_TARGETED_ACTUAL_GROUPS_PASS",
+  "runs": {
+    "destinationless": {
+      "report": "native-ai-destinationless-current-r1\\ai-destinationless\\character-ai-fault-recovery-destinationless-playmode.txt",
+      "sha256": "6339d4dd55d5f7c27542a086460d4bde5775774e34f551a9b1bd94e708232a39",
+      "scenarios": [
+        "PASS SCENARIO setup:resolve-live-world: elapsed=0.435s",
+        "PASS SCENARIO destinationless:look_around:recovery: elapsed=1.27s",
+        "PASS SCENARIO destinationless:look_around:starvation: elapsed=22.953s",
+        "PASS SCENARIO destinationless:wait:recovery: elapsed=3.964s",
+        "PASS SCENARIO destinationless:wait:starvation: elapsed=50.745s",
+        "PASS SCENARIO destinationless:exit_dungeon:recovery: elapsed=6.045s",
+        "PASS SCENARIO destinationless:exit_dungeon:starvation: elapsed=54.718s"
+      ],
+      "passRows": 61,
+      "unityExit": 0,
+      "consoleErrors": 0
+    },
+    "deprivation": {
+      "report": "native-ai-deprivation-current-r1\\ai-deprivation\\character-ai-fault-recovery-deprivation-playmode.txt",
+      "sha256": "e8c09d0048ebcd0d98b3903bf380ad132536a00056140f912e9f1cee3e02e7d3",
+      "scenarios": [
+        "PASS SCENARIO setup:resolve-live-world: elapsed=0.261s",
+        "PASS SCENARIO deprivation:relief: elapsed=0.402s",
+        "PASS SCENARIO deprivation:drink: elapsed=0.207s",
+        "PASS SCENARIO deprivation:eat: elapsed=0.137s",
+        "PASS SCENARIO deprivation:collapse: elapsed=0.081s",
+        "PASS SCENARIO deprivation:violent: elapsed=0.36s"
+      ],
+      "passRows": 44,
+      "unityExit": 0,
+      "consoleErrors": 0
+    },
+    "primitive": {
+      "report": "native-ai-primitive-current-r1\\ai-primitive\\character-ai-fault-recovery-primitive-playmode.txt",
+      "sha256": "908e897f4146c2dfb6fb511eaf041a3a7c2c1234f2c0af779675a50c9a900102",
+      "scenarios": [
+        "PASS SCENARIO setup:resolve-live-world: elapsed=0.245s",
+        "PASS SCENARIO primitive:field-meal:commit-loss: elapsed=0.384s",
+        "PASS SCENARIO primitive:bucket-wash:path-invalidated: elapsed=0.08s",
+        "PASS SCENARIO primitive:bucket-wash:target-lost: elapsed=1.904s",
+        "PASS SCENARIO primitive:latrine:path-invalidated: elapsed=0.334s",
+        "PASS SCENARIO primitive:latrine:target-invalidated: elapsed=0.454s",
+        "PASS SCENARIO primitive:floor-rest:interrupted: elapsed=0.198s"
+      ],
+      "passRows": 55,
+      "unityExit": 0,
+      "consoleErrors": 0
+    }
+  },
+  "pins": {
+    "source-pin-actual-followup-r1.json": {
+      "files": 1403,
+      "drift": []
+    },
+    "native-input-pin-r15.json": {
+      "files": 3872,
+      "drift": []
+    },
+    "tool-pin-actual-followup-r1.json": {
+      "files": 9,
+      "drift": []
+    }
+  },
+  "assembliesUnchanged": true,
+  "earlierActualMovementWorldGraph": "verification-movement-work-graph-execution-r1.json; unchanged production Runtime also verified in current restock/world batch",
+  "scope": "Existing live Gameplay Brain/scheduler/BT production action fault groups17 behavior scenarios plus3 setup, zero console errors/failed rows, normal native terminal0 per group. Destinationless delayed-search retry/typed starvation, deprivation5 and primitive6 boundaries preserved.",
+  "limits": "Controlled failure/prerequisite inputs; not every spontaneous AI combination or final cross-target integration."
+}

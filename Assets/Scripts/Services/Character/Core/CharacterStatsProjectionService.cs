@@ -182,6 +182,7 @@ public sealed class CharacterStatsProjectionService
         CharacterId characterId = new(context.Identity?.PersistentId);
         float contextFactor = GetFatigueEfficiencyMultiplier(context.Sleep)
             * deprivation.GetMoveSpeedMultiplier(context.Actor)
+            * diseaseSymptoms.GetMoveSpeedMultiplier(characterId)
             * environmentStatus.GetMoveSpeedMultiplier(characterId)
             * GetEquipmentBurdenMultiplier(context, characterId)
             * externalCombatInfluence.GetMoveSpeedMultiplier(
@@ -207,12 +208,15 @@ public sealed class CharacterStatsProjectionService
                     context,
                     GameplayEffectTargetIds.ResearchSpeed,
                     BuildWorkEffectContext(context, definition.WorkTypeId))
+                    * substances.GetResearchSpeedMultiplier(context.Actor)
                 : 1f)
             * GetFatigueEfficiencyMultiplier(context.Sleep)
             * discontentMultiplier
             * CharacterSkillRuntimeEffects.GetWorkSpeedMultiplier(context.Actor)
             * deprivation.GetWorkSpeedMultiplier(context.Actor)
             * substances.GetWorkSpeedMultiplier(context.Actor)
+            * diseaseSymptoms.GetWorkSpeedMultiplier(
+                new CharacterId(context.Identity?.PersistentId))
             * ResolveEnvironmentWorkSpeed(context, definition.WorkTypeId)
             * GetEquipmentBurdenMultiplier(
                 context,
@@ -237,6 +241,10 @@ public sealed class CharacterStatsProjectionService
     {
         return substances.GetCombatMultiplier(context.Actor);
     }
+
+    public float GetFatigueAccumulationMultiplier(
+        CharacterStatsProjectionContext context) =>
+        substances.GetFatigueAccumulationMultiplier(context.Actor);
 
     private float GetEquipmentBurdenMultiplier(
         CharacterStatsProjectionContext context,
@@ -282,7 +290,8 @@ public sealed class CharacterStatsProjectionService
     public float GetConsumptionMultiplier(
         CharacterStatsProjectionContext context) => RequirePerformance().Evaluate(
             context.Actor,
-            "performance:survival:food-consumption").Value;
+            "performance:survival:food-consumption",
+            effectContext: BuildCharacterEffectContext(context, null)).Value;
 
     private ICharacterPerformanceQuery RequirePerformance() => performance
         ?? throw new InvalidOperationException(
@@ -333,7 +342,7 @@ public sealed class CharacterStatsProjectionService
                 targetId,
                 effectContext ?? BuildCharacterEffectContext(context, null));
 
-    private GameplayEffectContext BuildWorkEffectContext(
+    internal GameplayEffectContext BuildWorkEffectContext(
         CharacterStatsProjectionContext context,
         WorkTypeId workTypeId)
     {
@@ -412,7 +421,8 @@ public sealed class CharacterStatsProjectionService
         {
             if (stats.GetConditionValue(CharacterCondition.HUNGER, 0f) >= 80f)
                 conditions.Add("state:sated");
-            if (context.InjurySeverity > 0.001f)
+            if (context.InjurySeverity > 0.001f
+                && !substances.SuppressesPerceivedPain(context.Actor))
                 conditions.Add("state:pain");
 
             CharacterMoodSnapshot mood = stats.GetMoodSnapshot();
@@ -460,9 +470,15 @@ public sealed class CharacterStatsProjectionService
         CharacterStatsProjectionContext context)
     {
         const float maximum = 100f;
-        return context.Identity != null && context.Identity.IsOwner
+        float authored = context.Identity != null && context.Identity.IsOwner
             ? maximum * metaProgression.GetOwnerMaxHealthMultiplier()
             : maximum;
+        return context.Actor == null
+            ? authored
+            : sharedEffects.ProjectValue(
+                context.Actor,
+                GameplayEffectTargetIds.MaximumHealth,
+                authored).Value;
     }
 
     public static float GetFatigueEfficiencyMultiplier(float sleep) =>
@@ -500,13 +516,26 @@ public sealed class NeutralCharacterSubstanceRuntime :
     }
     public float GetWorkSpeedMultiplier(CharacterActor actor) => 1f;
     public float GetCombatMultiplier(CharacterActor actor) => 1f;
-    public void SetPolicy(
+    public float GetFatigueAccumulationMultiplier(CharacterActor actor) => 1f;
+    public float GetResearchSpeedMultiplier(CharacterActor actor) => 1f;
+    public bool SuppressesPerceivedPain(CharacterActor actor) => false;
+    public CharacterToxicityStatus GetToxicityStatus(CharacterActor actor) =>
+        new(0f, false, false, "toxicity-zero");
+    public CharacterConsumablesPolicyChangeResult SetPolicy(
         CharacterActor actor,
         string substanceId,
         SubstancePolicyMode mode,
         float moodThreshold = 30f,
         int scheduledHour = 20)
     {
+        return new CharacterConsumablesPolicyChangeResult(
+            CharacterConsumablesPolicyChangeCode.InvalidRequest,
+            "character-substance",
+            substanceId,
+            string.Empty,
+            string.Empty,
+            0L,
+            "neutral-substance-runtime");
     }
     public bool TryConsume(
         CharacterActor actor,
@@ -542,6 +571,13 @@ public sealed class NeutralCharacterEnvironmentStatusQuery :
     private NeutralCharacterEnvironmentStatusQuery() { }
     public CharacterEnvironmentExposure GetExposure(CharacterId characterId) =>
         default;
+    public bool TryGetLightAdaptation(
+        CharacterId characterId,
+        out CharacterLightAdaptationSnapshot snapshot)
+    {
+        snapshot = default;
+        return false;
+    }
     public EnvironmentalExposureBand GetPhysiologicalBand(CharacterId characterId) =>
         default;
     public EnvironmentalExposureBand GetVisualBand(CharacterId characterId) =>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 
 [Flags]
 public enum DiseaseTransmissionRoute
@@ -120,13 +121,17 @@ public readonly struct PopulationDiseaseRouteExposureEvent
         string diseaseId,
         DiseaseTransmissionRoute route,
         float exposureHours,
-        float environmentCoefficient)
+        float environmentCoefficient,
+        string sourceKind = "population-route-event",
+        string sourceId = "unspecified-source")
     {
         CharacterId = characterId;
         DiseaseId = diseaseId?.Trim() ?? string.Empty;
         Route = route;
         ExposureHours = Math.Max(0f, exposureHours);
         EnvironmentCoefficient = Math.Max(0f, environmentCoefficient);
+        SourceKind = sourceKind?.Trim() ?? string.Empty;
+        SourceId = sourceId?.Trim() ?? string.Empty;
     }
 
     public CharacterId CharacterId { get; }
@@ -134,6 +139,8 @@ public readonly struct PopulationDiseaseRouteExposureEvent
     public DiseaseTransmissionRoute Route { get; }
     public float ExposureHours { get; }
     public float EnvironmentCoefficient { get; }
+    public string SourceKind { get; }
+    public string SourceId { get; }
 }
 
 public interface IDiseaseDefinitionCatalog
@@ -176,6 +183,36 @@ public sealed class DiseaseExposureSaveData
     public string diseaseId = string.Empty;
     public float weightedExposureHours;
     public float susceptibility = 1f;
+}
+
+/// <summary>
+/// Bounded durable outbox for one disease-exposure fact whose gameplay-ledger
+/// commit is unresolved. It contains value snapshots only, never a runtime lease.
+/// </summary>
+[Serializable]
+public sealed class PopulationDiseaseExposurePendingFactSaveData
+{
+    public string characterId = string.Empty;
+    public string characterDisplayName = string.Empty;
+    public string diseaseId = string.Empty;
+    public string diseaseDisplayName = string.Empty;
+    public int diseaseRoutes;
+    public int incubationDays;
+    public int contagiousDays;
+    public float baseInfectionProbability;
+    public float baseSeverity;
+    public int targetSystem;
+    public bool vaccineAllowed;
+    public bool chronic;
+    public string symptomProfileId = string.Empty;
+    public List<string> fieldResponseIds = new();
+    public int route;
+    public float exposureHours;
+    public float environmentCoefficient;
+    public int absoluteDay;
+    public long ownerRevision;
+    public string sourceKind = string.Empty;
+    public string sourceId = string.Empty;
 }
 
 [Serializable]
@@ -244,16 +281,48 @@ public sealed class VaccinationCommitSaveData
 [Serializable]
 public sealed class PopulationHealthWorldSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 7;
     public int version = CurrentVersion;
     public int currentAbsoluteDay = 1;
+    public long exposureRevision = 1;
     public int nextFieldResponseOperationSequence = 1;
     public DiseaseFieldResponseCommitSaveData pendingFieldResponse = new();
     public int nextVaccinationOperationSequence = 1;
     public VaccinationCommitSaveData pendingVaccination = new();
     public List<CharacterPopulationHealthSaveData> characters = new();
     public List<DiseaseExposureSaveData> pendingExposures = new();
+    public List<PopulationDiseaseExposurePendingFactSaveData>
+        pendingExposureFacts = new();
     public List<EpidemicStateSaveData> epidemics = new();
+    public List<DiseaseAnatomyBurdenProjectionSaveData>
+        pendingAnatomyBurdenProjections = new();
+}
+
+public enum DiseaseAnatomyBurdenProjectionPhase
+{
+    None = 0,
+    Pending = 1,
+    AnatomyApplied = 2
+}
+
+[Serializable]
+public sealed class DiseaseAnatomyBurdenProjectionSaveData
+{
+    public int phase;
+    public string operationId = string.Empty;
+    public int absoluteDay;
+    public string characterId = string.Empty;
+    public string diseaseId = string.Empty;
+    public int targetSystem;
+    public float severity;
+    public float requestedInfectionBurden;
+    public string nodeId = string.Empty;
+    public float infectionBefore;
+    public float infectionAfter;
+    public int attemptCount;
+    public string lastFailureCode = string.Empty;
+    public string characterDisplayName = string.Empty;
+    public string publicationKey = string.Empty;
 }
 
 public readonly struct PopulationExposureTarget
@@ -311,19 +380,22 @@ public readonly struct PopulationHealthChange
         string diseaseId,
         PopulationHealthChangeKind kind,
         float severity,
-        DiseaseTargetSystem targetSystem)
+        DiseaseTargetSystem targetSystem,
+        int absoluteDay = 0)
     {
         CharacterId = characterId;
         DiseaseId = diseaseId;
         Kind = kind;
         Severity = severity;
         TargetSystem = targetSystem;
+        AbsoluteDay = Math.Max(0, absoluteDay);
     }
     public CharacterId CharacterId { get; }
     public string DiseaseId { get; }
     public PopulationHealthChangeKind Kind { get; }
     public float Severity { get; }
     public DiseaseTargetSystem TargetSystem { get; }
+    public int AbsoluteDay { get; }
 }
 
 public readonly struct ContagiousDiseaseSnapshot
@@ -400,14 +472,158 @@ public sealed class PopulationHealthAggregateState
     private readonly Dictionary<CharacterId, CharacterPopulationHealthSaveData> characters = new();
     private readonly Dictionary<string, DiseaseExposureSaveData> exposures = new(StringComparer.Ordinal);
     private readonly Dictionary<string, EpidemicStateSaveData> epidemics = new(StringComparer.Ordinal);
+    private readonly List<PopulationDiseaseExposurePendingFactSaveData>
+        pendingExposureFacts = new();
+    private readonly List<DiseaseAnatomyBurdenProjectionSaveData>
+        pendingAnatomyBurdenProjections = new();
 
     public int CurrentAbsoluteDay { get; private set; } = 1;
+    // Durable exposure command identity, independent of transient query-cache versions.
+    public long ExposureRevision { get; private set; } = 1;
+    public IReadOnlyList<PopulationDiseaseExposurePendingFactSaveData>
+        PendingExposureFacts => pendingExposureFacts
+            .Select(ClonePendingExposureFact)
+            .ToArray();
     public int NextFieldResponseOperationSequence { get; private set; } = 1;
     public DiseaseFieldResponseCommitSaveData PendingFieldResponse { get; private set; } =
         new();
     public int NextVaccinationOperationSequence { get; private set; } = 1;
     public VaccinationCommitSaveData PendingVaccination { get; private set; } =
         new();
+    public IReadOnlyList<DiseaseAnatomyBurdenProjectionSaveData>
+        PendingAnatomyBurdenProjections => pendingAnatomyBurdenProjections
+            .OrderBy(value => value.operationId, StringComparer.Ordinal)
+            .Select(CloneAnatomyBurdenProjection)
+            .ToArray();
+
+    public void EnqueueAnatomyBurdenProjection(
+        PopulationHealthChange change,
+        float requestedInfectionBurden)
+    {
+        if (change.Kind != PopulationHealthChangeKind.DailyBodyBurden
+            || change.AbsoluteDay <= 0
+            || requestedInfectionBurden <= 0f)
+            return;
+        string operationId = string.Join(":", new[]
+        {
+            "disease-anatomy-burden",
+            change.CharacterId.Value,
+            change.DiseaseId,
+            change.AbsoluteDay.ToString("D8")
+        });
+        DiseaseAnatomyBurdenProjectionSaveData existing =
+            pendingAnatomyBurdenProjections.SingleOrDefault(value =>
+                string.Equals(value.operationId, operationId,
+                    StringComparison.Ordinal));
+        if (existing != null)
+            return;
+        pendingAnatomyBurdenProjections.Add(new DiseaseAnatomyBurdenProjectionSaveData
+        {
+            phase = (int)DiseaseAnatomyBurdenProjectionPhase.Pending,
+            operationId = operationId,
+            absoluteDay = change.AbsoluteDay,
+            characterId = change.CharacterId.Value,
+            diseaseId = change.DiseaseId,
+            targetSystem = (int)change.TargetSystem,
+            severity = change.Severity,
+            requestedInfectionBurden = requestedInfectionBurden
+        });
+    }
+
+    public void RecordAnatomyBurdenApplied(
+        string operationId,
+        string nodeId,
+        float infectionBefore,
+        float infectionAfter,
+        string characterDisplayName)
+    {
+        DiseaseAnatomyBurdenProjectionSaveData projection =
+            RequireAnatomyBurdenProjection(operationId);
+        if ((DiseaseAnatomyBurdenProjectionPhase)projection.phase
+            == DiseaseAnatomyBurdenProjectionPhase.AnatomyApplied)
+        {
+            if (projection.nodeId != nodeId || projection.infectionBefore != infectionBefore
+                || projection.infectionAfter != infectionAfter || projection.characterDisplayName != characterDisplayName)
+                throw new InvalidOperationException("Disease anatomy burden application conflicts with its frozen fact.");
+            return;
+        }
+        if ((DiseaseAnatomyBurdenProjectionPhase)projection.phase
+                != DiseaseAnatomyBurdenProjectionPhase.Pending
+            || string.IsNullOrWhiteSpace(nodeId)
+            || infectionBefore < 0f
+            || infectionAfter < infectionBefore)
+        {
+            throw new InvalidOperationException(
+                "Disease anatomy burden application is invalid.");
+        }
+        var candidate = CloneAnatomyBurdenProjection(projection);
+        candidate.phase = (int)DiseaseAnatomyBurdenProjectionPhase.AnatomyApplied;
+        candidate.nodeId = nodeId; candidate.infectionBefore = infectionBefore; candidate.infectionAfter = infectionAfter;
+        candidate.characterDisplayName = characterDisplayName;
+        _ = new DiseaseAnatomyBurdenAppliedFact(candidate);
+        projection.phase = candidate.phase;
+        projection.nodeId = nodeId.Trim();
+        projection.infectionBefore = infectionBefore;
+        projection.infectionAfter = infectionAfter;
+        projection.characterDisplayName = characterDisplayName;
+        projection.lastFailureCode = string.Empty;
+    }
+
+    public void RecordAnatomyBurdenPublication(string operationId, string publicationKey)
+    {
+        var projection = RequireAnatomyBurdenProjection(operationId);
+        if (projection.phase != (int)DiseaseAnatomyBurdenProjectionPhase.AnatomyApplied
+            || !DomainFactValueSyntax.IsText(publicationKey, 1024, false)
+            || projection.publicationKey.Length > 0 && projection.publicationKey != publicationKey)
+            throw new InvalidOperationException("Disease anatomy burden publication conflicts with its applied fact.");
+        projection.publicationKey = publicationKey;
+    }
+
+    public void ResetAnatomyBurdenProjection(string operationId)
+    {
+        DiseaseAnatomyBurdenProjectionSaveData projection =
+            RequireAnatomyBurdenProjection(operationId);
+        projection.phase = (int)DiseaseAnatomyBurdenProjectionPhase.Pending;
+        projection.nodeId = string.Empty;
+        projection.infectionBefore = 0f;
+        projection.infectionAfter = 0f;
+        projection.characterDisplayName = string.Empty;
+        projection.publicationKey = string.Empty;
+    }
+
+    public void RecordAnatomyBurdenFailure(
+        string operationId,
+        string failureCode)
+    {
+        DiseaseAnatomyBurdenProjectionSaveData projection =
+            RequireAnatomyBurdenProjection(operationId);
+        projection.attemptCount = checked(projection.attemptCount + 1);
+        projection.lastFailureCode = string.IsNullOrWhiteSpace(failureCode)
+            ? "disease-anatomy-burden-failed"
+            : failureCode.Trim();
+    }
+
+    public void CompleteAnatomyBurdenProjection(string operationId)
+    {
+        var projection = RequireAnatomyBurdenProjection(operationId);
+        if (projection.phase != (int)DiseaseAnatomyBurdenProjectionPhase.AnatomyApplied
+            || !DomainFactValueSyntax.IsText(projection.publicationKey, 1024, false))
+            throw new InvalidOperationException("Disease anatomy burden cannot complete before observation.");
+        int removed = pendingAnatomyBurdenProjections.RemoveAll(value =>
+            string.Equals(value.operationId, operationId,
+                StringComparison.Ordinal));
+        if (removed != 1)
+            throw new InvalidOperationException(
+                "Disease anatomy burden completion was not exact.");
+    }
+
+    private DiseaseAnatomyBurdenProjectionSaveData
+        RequireAnatomyBurdenProjection(string operationId) =>
+        pendingAnatomyBurdenProjections.SingleOrDefault(value =>
+            string.Equals(value.operationId, operationId,
+                StringComparison.Ordinal))
+        ?? throw new InvalidOperationException(
+            "Disease anatomy burden projection is missing.");
 
     public void RecordExposure(
         string diseaseId,
@@ -417,8 +633,12 @@ public sealed class PopulationHealthAggregateState
         IDiseaseDefinitionCatalog definitions)
     {
         DiseaseDefinition disease = definitions.Require(diseaseId);
+        long nextExposureRevision = checked(ExposureRevision + 1L);
         if (!disease.Contagious || exposureHours <= 0f || environmentCoefficient <= 0f)
+        {
+            ExposureRevision = nextExposureRevision;
             return;
+        }
         foreach (PopulationExposureTarget target in targets
                      ?? Array.Empty<PopulationExposureTarget>())
         {
@@ -443,6 +663,29 @@ public sealed class PopulationHealthAggregateState
                 exposure.susceptibility,
                 target.Susceptibility);
         }
+        ExposureRevision = nextExposureRevision;
+    }
+
+    public void StagePendingExposureFact(
+        PopulationDiseaseExposurePendingFactSaveData fact,
+        IDiseaseDefinitionCatalog definitions)
+    {
+        if (pendingExposureFacts.Count != 0)
+            throw new InvalidOperationException(
+                "A population disease-exposure publication is already pending.");
+        ValidatePendingExposureFact(fact, ExposureRevision, definitions);
+        pendingExposureFacts.Add(ClonePendingExposureFact(fact));
+    }
+
+    public void CompletePendingExposureFact(long ownerRevision)
+    {
+        if (pendingExposureFacts.Count != 1
+            || pendingExposureFacts[0].ownerRevision != ownerRevision)
+        {
+            throw new InvalidOperationException(
+                "Population disease-exposure completion does not match its pending fact.");
+        }
+        pendingExposureFacts.Clear();
     }
 
     public int RemovePendingExposures(CharacterId characterId)
@@ -685,6 +928,7 @@ public sealed class PopulationHealthAggregateState
     public PopulationHealthWorldSaveData Capture() => new()
     {
         currentAbsoluteDay = CurrentAbsoluteDay,
+        exposureRevision = ExposureRevision,
         nextFieldResponseOperationSequence = NextFieldResponseOperationSequence,
         pendingFieldResponse = CloneFieldResponseCommit(PendingFieldResponse),
         nextVaccinationOperationSequence = NextVaccinationOperationSequence,
@@ -698,9 +942,16 @@ public sealed class PopulationHealthAggregateState
             .ThenBy(value => value.diseaseId, StringComparer.Ordinal)
             .Select(CloneExposure)
             .ToList(),
+        pendingExposureFacts = pendingExposureFacts
+            .Select(ClonePendingExposureFact)
+            .ToList(),
         epidemics = epidemics.Values
             .OrderBy(value => value.diseaseId, StringComparer.Ordinal)
             .Select(CloneEpidemic)
+            .ToList(),
+        pendingAnatomyBurdenProjections = pendingAnatomyBurdenProjections
+            .OrderBy(value => value.operationId, StringComparer.Ordinal)
+            .Select(CloneAnatomyBurdenProjection)
             .ToList()
     };
 
@@ -709,7 +960,11 @@ public sealed class PopulationHealthAggregateState
         IDiseaseDefinitionCatalog definitions)
     {
         if (data == null || data.version != PopulationHealthWorldSaveData.CurrentVersion
-            || data.currentAbsoluteDay < 1)
+            || data.currentAbsoluteDay < 1 || data.exposureRevision < 1
+            || data.pendingExposureFacts == null
+            || data.pendingExposureFacts.Count > 1
+            || (data.pendingExposureFacts.Count == 1
+                && data.pendingExposureFacts[0] == null))
             throw new InvalidOperationException("Population-health payload is missing or invalid.");
         if (data.nextFieldResponseOperationSequence <= 0)
             throw new InvalidOperationException(
@@ -728,6 +983,7 @@ public sealed class PopulationHealthAggregateState
         PopulationHealthAggregateState state = new()
         {
             CurrentAbsoluteDay = data.currentAbsoluteDay,
+            ExposureRevision = data.exposureRevision,
             NextFieldResponseOperationSequence =
                 data.nextFieldResponseOperationSequence,
             PendingFieldResponse = CloneFieldResponseCommit(
@@ -791,6 +1047,16 @@ public sealed class PopulationHealthAggregateState
                 || !state.exposures.TryAdd(ExposureKey(id, source.diseaseId), CloneExposure(source)))
                 throw new InvalidOperationException("Pending disease exposures are invalid or duplicated.");
         }
+        foreach (PopulationDiseaseExposurePendingFactSaveData source in
+                 data.pendingExposureFacts)
+        {
+            ValidatePendingExposureFact(
+                source,
+                state.ExposureRevision,
+                definitions);
+            state.pendingExposureFacts.Add(
+                ClonePendingExposureFact(source));
+        }
         foreach (EpidemicStateSaveData source in data.epidemics
                      ?? new List<EpidemicStateSaveData>())
         {
@@ -798,8 +1064,83 @@ public sealed class PopulationHealthAggregateState
             if (!state.epidemics.TryAdd(disease.Id, CloneEpidemic(source)))
                 throw new InvalidOperationException("Epidemic states are duplicated.");
         }
+        foreach (DiseaseAnatomyBurdenProjectionSaveData source in
+                 data.pendingAnatomyBurdenProjections
+                 ?? new List<DiseaseAnatomyBurdenProjectionSaveData>())
+        {
+            ValidateAnatomyBurdenProjection(source, definitions);
+            if (state.pendingAnatomyBurdenProjections.Any(value =>
+                    string.Equals(value.operationId, source.operationId,
+                        StringComparison.Ordinal)))
+            {
+                throw new InvalidOperationException(
+                    "Disease anatomy burden projections are duplicated.");
+            }
+            state.pendingAnatomyBurdenProjections.Add(
+                CloneAnatomyBurdenProjection(source));
+        }
         return state;
     }
+
+    private static void ValidateAnatomyBurdenProjection(
+        DiseaseAnatomyBurdenProjectionSaveData source,
+        IDiseaseDefinitionCatalog definitions)
+    {
+        if (source == null)
+            throw new InvalidOperationException(
+                "Disease anatomy burden projection is missing.");
+        definitions.Require(source.diseaseId);
+        DiseaseAnatomyBurdenProjectionPhase phase =
+            (DiseaseAnatomyBurdenProjectionPhase)source.phase;
+        if (phase is not DiseaseAnatomyBurdenProjectionPhase.Pending
+                and not DiseaseAnatomyBurdenProjectionPhase.AnatomyApplied
+            || string.IsNullOrWhiteSpace(source.operationId)
+            || !new CharacterId(source.characterId).IsValid
+            || source.absoluteDay <= 0
+            || !Enum.IsDefined(typeof(DiseaseTargetSystem), source.targetSystem)
+            || source.severity < 0f
+            || source.requestedInfectionBurden <= 0f
+            || float.IsNaN(source.severity) || float.IsInfinity(source.severity)
+            || float.IsNaN(source.requestedInfectionBurden) || float.IsInfinity(source.requestedInfectionBurden)
+            || source.attemptCount < 0
+            || !DomainFactValueSyntax.IsText(source.publicationKey, 1024, true)
+            || (phase == DiseaseAnatomyBurdenProjectionPhase.Pending
+                && (!string.IsNullOrEmpty(source.nodeId)
+                    || source.infectionBefore != 0f
+                    || source.infectionAfter != 0f
+                    || source.characterDisplayName != string.Empty || source.publicationKey != string.Empty))
+            || (phase == DiseaseAnatomyBurdenProjectionPhase.AnatomyApplied
+                && (string.IsNullOrWhiteSpace(source.nodeId)
+                    || source.infectionBefore < 0f
+                    || source.infectionAfter < source.infectionBefore)))
+        {
+            throw new InvalidOperationException(
+                "Disease anatomy burden projection is invalid.");
+        }
+        if (phase == DiseaseAnatomyBurdenProjectionPhase.AnatomyApplied)
+            _ = new DiseaseAnatomyBurdenAppliedFact(source);
+    }
+
+    private static DiseaseAnatomyBurdenProjectionSaveData
+        CloneAnatomyBurdenProjection(
+            DiseaseAnatomyBurdenProjectionSaveData source) => new()
+        {
+            phase = source?.phase ?? 0,
+            operationId = source?.operationId ?? string.Empty,
+            absoluteDay = source?.absoluteDay ?? 0,
+            characterId = source?.characterId ?? string.Empty,
+            diseaseId = source?.diseaseId ?? string.Empty,
+            targetSystem = source?.targetSystem ?? 0,
+            severity = source?.severity ?? 0f,
+            requestedInfectionBurden = source?.requestedInfectionBurden ?? 0f,
+            nodeId = source?.nodeId ?? string.Empty,
+            infectionBefore = source?.infectionBefore ?? 0f,
+            infectionAfter = source?.infectionAfter ?? 0f,
+            attemptCount = source?.attemptCount ?? 0,
+            lastFailureCode = source?.lastFailureCode ?? string.Empty,
+            characterDisplayName = source?.characterDisplayName ?? string.Empty,
+            publicationKey = source?.publicationKey ?? string.Empty
+        };
 
     public static double CalculateInfectionProbability(
         float baseProbability,
@@ -901,7 +1242,8 @@ public sealed class PopulationHealthAggregateState
                 {
                     changes.Add(new PopulationHealthChange(
                         pair.Key, disease.Id, PopulationHealthChangeKind.DailyBodyBurden,
-                        active.severity, disease.TargetSystem));
+                        active.severity, disease.TargetSystem,
+                        CurrentAbsoluteDay));
                 }
             }
         }
@@ -1060,6 +1402,95 @@ public sealed class PopulationHealthAggregateState
             diagnosed = value.diagnosed
         }).ToList()
     };
+
+    private static void ValidatePendingExposureFact(
+        PopulationDiseaseExposurePendingFactSaveData source,
+        long expectedRevision,
+        IDiseaseDefinitionCatalog definitions)
+    {
+        if (source == null || definitions == null)
+            throw new InvalidOperationException(
+                "Population disease-exposure pending fact is missing.");
+        var characterId = new CharacterId(source.characterId);
+        DiseaseDefinition disease = definitions.Require(source.diseaseId);
+        var route = (DiseaseTransmissionRoute)source.route;
+        int routeBits = source.route;
+        IReadOnlyList<string> fieldResponses =
+            source.fieldResponseIds ?? new List<string>();
+        bool canonicalFieldResponses = fieldResponses.All(IsCanonicalRequired)
+            && fieldResponses.Distinct(StringComparer.Ordinal).Count()
+                == fieldResponses.Count;
+        bool exactDisease = string.Equals(
+                source.diseaseDisplayName,
+                disease.DisplayName,
+                StringComparison.Ordinal)
+            && source.diseaseRoutes == (int)disease.Routes
+            && source.incubationDays == disease.IncubationDays
+            && source.contagiousDays == disease.ContagiousDays
+            && source.baseInfectionProbability.Equals(
+                disease.BaseInfectionProbability)
+            && source.baseSeverity.Equals(disease.BaseSeverity)
+            && source.targetSystem == (int)disease.TargetSystem
+            && source.vaccineAllowed == disease.VaccineAllowed
+            && source.chronic == disease.Chronic
+            && string.Equals(
+                source.symptomProfileId,
+                disease.SymptomProfileId,
+                StringComparison.Ordinal)
+            && fieldResponses.SequenceEqual(disease.FieldResponseIds);
+        if (!characterId.IsValid
+            || !IsCanonicalRequired(source.characterId)
+            || !IsCanonicalRequired(source.characterDisplayName)
+            || !IsCanonicalRequired(source.diseaseId)
+            || !IsCanonicalRequired(source.diseaseDisplayName)
+            || !IsCanonicalRequired(source.symptomProfileId)
+            || !canonicalFieldResponses
+            || !exactDisease
+            || route == DiseaseTransmissionRoute.None
+            || (routeBits & (routeBits - 1)) != 0
+            || (disease.Routes & route) == 0
+            || !float.IsFinite(source.exposureHours)
+            || source.exposureHours <= 0f
+            || !float.IsFinite(source.environmentCoefficient)
+            || source.environmentCoefficient <= 0f
+            || source.absoluteDay < 1
+            || source.ownerRevision != expectedRevision
+            || source.ownerRevision < 1L
+            || !IsCanonicalRequired(source.sourceKind)
+            || !IsCanonicalRequired(source.sourceId))
+        {
+            throw new InvalidOperationException(
+                "Population disease-exposure pending fact is invalid or disagrees with its owner revision.");
+        }
+    }
+
+    private static PopulationDiseaseExposurePendingFactSaveData
+        ClonePendingExposureFact(
+            PopulationDiseaseExposurePendingFactSaveData source) => new()
+        {
+            characterId = source.characterId,
+            characterDisplayName = source.characterDisplayName,
+            diseaseId = source.diseaseId,
+            diseaseDisplayName = source.diseaseDisplayName,
+            diseaseRoutes = source.diseaseRoutes,
+            incubationDays = source.incubationDays,
+            contagiousDays = source.contagiousDays,
+            baseInfectionProbability = source.baseInfectionProbability,
+            baseSeverity = source.baseSeverity,
+            targetSystem = source.targetSystem,
+            vaccineAllowed = source.vaccineAllowed,
+            chronic = source.chronic,
+            symptomProfileId = source.symptomProfileId,
+            fieldResponseIds = new List<string>(
+                source.fieldResponseIds ?? new List<string>()),
+            route = source.route,
+            exposureHours = source.exposureHours,
+            environmentCoefficient = source.environmentCoefficient,
+            absoluteDay = source.absoluteDay,
+            ownerRevision = source.ownerRevision,
+            sourceKind = source.sourceKind,
+            sourceId = source.sourceId
+        };
 
     private static DiseaseExposureSaveData CloneExposure(DiseaseExposureSaveData value) => new()
     {
@@ -1363,11 +1794,21 @@ public sealed class PopulationHealthAggregateState
 public interface IPopulationHealthService
 {
     int Version { get; }
+    long ExposureRevision { get; }
+    IReadOnlyList<PopulationDiseaseExposurePendingFactSaveData>
+        PendingExposureFacts { get; }
     void RecordExposure(
         string diseaseId,
         IReadOnlyList<PopulationExposureTarget> targets,
         float exposureHours,
         float environmentCoefficient);
+    void RecordExposureWithPendingFact(
+        string diseaseId,
+        IReadOnlyList<PopulationExposureTarget> targets,
+        float exposureHours,
+        float environmentCoefficient,
+        PopulationDiseaseExposurePendingFactSaveData pendingFact);
+    void CompletePendingExposureFact(long ownerRevision);
     IReadOnlyList<PopulationHealthChange> AdvanceToDay(int absoluteDay);
     void Vaccinate(CharacterId characterId, string diseaseId);
     PopulationHealthChange ApplyEnvironmentalCondition(CharacterId characterId, string diseaseId);

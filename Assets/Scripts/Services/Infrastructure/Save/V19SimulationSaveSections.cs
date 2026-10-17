@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 
 public sealed class FoundationSessionSaveSection :
     DungeonStrictJsonSaveSection<GameSessionSaveData, FoundationSessionRestoreCandidate>,
@@ -109,6 +110,27 @@ public sealed class CharacterLifeSaveSection :
     }
     protected override CharacterLifeRestoreCandidate BuildRestoreCandidate(CharacterLifeWorldSaveData payload) =>
         persistence.PrepareRestore(payload);
+    protected override void ValidateRawPayload(string payloadJson)
+    {
+        var root = JObject.Parse(payloadJson);
+        if (root["lastAdvancedAbsoluteDay"]?.Type != JTokenType.Integer
+            || root["pendingDailyObservation"] is not JObject daily
+            || daily["absoluteDay"]?.Type != JTokenType.Integer || daily["entries"] is not JArray entries
+            || root["pendingAgeConditionAnatomyProjections"] is not JArray projections)
+            throw new InvalidOperationException("Character-life observation authority is missing.");
+        foreach (JToken token in entries)
+        {
+            if (token is not JObject row || row["publicationKey"]?.Type != JTokenType.String || row["fact"] is not JObject fact
+                || new[] { "kind", "absoluteDay", "previous", "current" }.Any(name => fact[name]?.Type != JTokenType.Integer)
+                || new[] { "characterId", "conditionId" }.Any(name => fact[name]?.Type != JTokenType.String)
+                || new[] { "newlyDiagnosed", "resolved" }.Any(name => fact[name]?.Type != JTokenType.Boolean))
+                throw new InvalidOperationException("Character-life frozen observation is missing.");
+        }
+        foreach (JToken token in projections)
+            if (token is not JObject row || new[] { "parentPublicationId", "parentPublicationKey", "characterDisplayName", "publicationKey" }
+                .Any(name => row[name]?.Type != JTokenType.String))
+                throw new InvalidOperationException("Age-condition frozen observation is missing.");
+    }
     protected override void PublishRestoreCandidate(CharacterLifeRestoreCandidate candidate) =>
         persistence.PublishRestore(candidate);
 }
@@ -151,6 +173,68 @@ public sealed class ReproductionSaveSection :
         CharacterBodyHealthSaveSection.Id
     };
     protected override ReproductionWorldSaveData CapturePayload() => persistence.Capture();
+    protected override void ValidateRawPayload(string payloadJson)
+    {
+        RequireTopLevelArrayFields(payloadJson, "processes", "pendingFamilyPlanningPolicyChanges", "pendingCarrierDeaths");
+        ValidateDeathNotificationJson(payloadJson);
+        ValidateTransitionJson(payloadJson);
+    }
+    internal static void ValidateTransitionJson(string payloadJson)
+    {
+        var root = JObject.Parse(payloadJson);
+        if (root["version"]?.Type != JTokenType.Integer
+            || root["version"].Value<int>() != ReproductionWorldSaveData.CurrentVersion
+            || root["processes"] is not JArray processes)
+            throw new InvalidOperationException("Reproduction transition schema is missing or unsupported.");
+        foreach (JToken token in processes)
+        {
+            if (token is not JObject process) throw new InvalidOperationException("Reproduction process is not an object.");
+            RequireFields(process, JTokenType.String, "lastPublicationKey", "lastPublicationId", "lastPublicationFingerprint");
+            if (process["pendingTransitions"] is not JArray pending)
+                throw new InvalidOperationException("Reproduction pending transitions are missing or null.");
+            foreach (JToken entry in pending)
+            {
+                if (entry is not JObject row || row["fact"] is not JObject fact)
+                    throw new InvalidOperationException("Reproduction pending fact is missing or null.");
+                RequireFields(row, JTokenType.String, "publicationKey");
+                RequireFields(fact, JTokenType.String, "processId", "transitionKind", "phenotypeSpeciesId", "cause",
+                    "facilityId", "facilityName", "costs", "locationInstanceId", "locationRegionId",
+                    "parentPublicationKey", "previousPublicationKey");
+                RequireFields(fact, JTokenType.Boolean, "hasBefore");
+                RequireFields(fact, JTokenType.Integer, "mode", "statusBefore", "statusAfter", "failureBefore", "failureAfter",
+                    "absoluteDay", "revisionBefore", "revisionAfter", "phaseBefore", "phaseAfter", "phaseElapsedBefore",
+                    "phaseElapsedAfter", "progressBefore", "progressAfter", "emergencyDeadlineDay", "locationX", "locationY");
+                if (fact["people"] is not JArray people)
+                    throw new InvalidOperationException("Reproduction pending participants are missing or null.");
+                foreach (JToken person in people)
+                {
+                    if (person is not JObject value) throw new InvalidOperationException("Reproduction participant is not an object.");
+                    RequireFields(value, JTokenType.String, "characterId", "name", "role");
+                }
+            }
+            foreach (string transaction in new[] { "pendingStart", "pendingBirth" })
+            {
+                var value = process[transaction];
+                if (value == null || value.Type == JTokenType.Null) continue;
+                if (value is not JObject body) throw new InvalidOperationException("Reproduction transaction is not an object.");
+                RequireFields(body, JTokenType.String, "publicationKey", "publicationId", "publicationFingerprint");
+            }
+        }
+    }
+    private static void RequireFields(JObject source, JTokenType type, params string[] names)
+    {
+        foreach (string name in names)
+            if (source[name]?.Type != type)
+                throw new InvalidOperationException("Reproduction field is missing or invalid: " + name);
+    }
+    internal static void ValidateDeathNotificationJson(string payloadJson)
+    {
+        if (JObject.Parse(payloadJson)["pendingCarrierDeaths"] is not JArray notifications)
+            throw new InvalidOperationException("Reproduction carrier-death notifications are missing or null.");
+        foreach (JToken notification in notifications)
+            if (notification is not JObject row || row["parentPublicationKey"]?.Type != JTokenType.String)
+                throw new InvalidOperationException("Reproduction carrier-death publication reference is missing or null.");
+    }
     protected override ReproductionWorldAggregate BuildRestoreCandidate(ReproductionWorldSaveData payload) =>
         persistence.PrepareRestore(payload);
     protected override void PublishRestoreCandidate(ReproductionWorldAggregate candidate) =>
@@ -173,6 +257,40 @@ public sealed class PopulationHealthSaveSection :
         CharacterLifeSaveSection.Id,
         CharacterBodyHealthSaveSection.Id
     };
+    protected override void ValidateRawPayload(string payloadJson)
+    {
+        RequireTopLevelArrayFields(payloadJson, "pendingExposureFacts", "pendingAnatomyBurdenProjections");
+        var raw = JObject.Parse(payloadJson);
+        foreach (var projection in (JArray)raw["pendingAnatomyBurdenProjections"])
+            if (projection is not JObject value || value["characterDisplayName"]?.Type != JTokenType.String
+                || value["publicationKey"]?.Type != JTokenType.String)
+                throw new InvalidOperationException("Population-health anatomy observation fields are missing.");
+        JToken revision = raw["exposureRevision"];
+        if (revision == null || revision.Type != JTokenType.Integer || revision.Value<long>() < 1L)
+            throw new InvalidOperationException("Population-health exposure revision is missing or invalid.");
+    }
+
+    internal static void RequireExposureLedgerRevision(
+        PopulationHealthWorldSaveData source,
+        GameplayOutcomeLedgerSaveData ledger)
+    {
+        long highestRevision = (ledger?.outbox ?? new List<GameplayOutcomeSnapshot>())
+            .Concat(ledger?.exactOutcomes ?? new List<GameplayOutcomeSnapshot>())
+            .Where(row => row != null
+                && row.producerId == EnvironmentOutcomeIds.DiseaseExposureProducer
+                && row.lifecycle >= GameplayOutcomeRecordLifecycle.Committed)
+            .Select(row => Math.Max(row.ownerRevision, row.commitRevision))
+            .Concat((ledger?.tombstones ?? new List<GameplayOutcomeTombstoneSnapshot>())
+                .Where(row => row != null
+                    && row.producerId == EnvironmentOutcomeIds.DiseaseExposureProducer)
+                .Select(row => Math.Max(row.ownerRevision, row.commitRevision)))
+            .DefaultIfEmpty(0L)
+            .Max();
+        if (source == null || source.exposureRevision < 1L
+            || source.exposureRevision < highestRevision)
+            throw new InvalidOperationException(
+                "Population-health exposure revision precedes its durable gameplay outcomes.");
+    }
     protected override PopulationHealthWorldSaveData CapturePayload() => persistence.Capture();
     protected override PopulationHealthAggregateState BuildRestoreCandidate(PopulationHealthWorldSaveData payload) =>
         persistence.PrepareRestore(payload);

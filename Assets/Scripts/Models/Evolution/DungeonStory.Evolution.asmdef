@@ -2,6 +2,8 @@
   "name": "DungeonStory.Evolution",
   "rootNamespace": "DungeonStory.Evolution",
   "references": [
+    "DungeonStory.Foundation",
+    "DungeonStory.AI",
     "DungeonStory.FacilityEvolution",
     "VContainer"
   ],

@@ -40,7 +40,7 @@ public static class ProductionFacilityDestructiveDrainCoordinatorDebugScenarios
 
         ProductionFacilityDestructiveDrainDriveResult driven =
             coordinator.DriveToAuthorityRevoke(
-                ProductionFacilityDestructiveDrainCause.ExplicitDemolition,
+                ProductionFacilityDestructiveDrainCause.CombatCover,
                 facilityId);
         Require(driven.Status ==
             ProductionFacilityDestructiveDrainDriveStatus.AwaitingAuthorityRevoke,
@@ -218,7 +218,7 @@ public static class ProductionFacilityDestructiveDrainCoordinatorDebugScenarios
 
         ProductionFacilityDestructiveDrainDriveResult result =
             coordinator.DriveToAuthorityRevoke(
-                ProductionFacilityDestructiveDrainCause.ExplicitDemolition,
+                ProductionFacilityDestructiveDrainCause.CombatCover,
                 facilityId);
         Require(
             result.Status == ProductionFacilityDestructiveDrainDriveStatus.Conflict
@@ -249,7 +249,7 @@ public static class ProductionFacilityDestructiveDrainCoordinatorDebugScenarios
 
         ProductionFacilityDestructiveDrainDriveResult driven =
             coordinator.DriveToAuthorityRevoke(
-                ProductionFacilityDestructiveDrainCause.ExplicitDemolition,
+                ProductionFacilityDestructiveDrainCause.CombatCover,
                 facilityId);
         Require(
             journal.TryGet(driven.OperationId, out var before),
@@ -324,7 +324,7 @@ public static class ProductionFacilityDestructiveDrainCoordinatorDebugScenarios
 
         ProductionFacilityDestructiveDrainDriveResult driven =
             coordinator.DriveToAuthorityRevoke(
-                ProductionFacilityDestructiveDrainCause.ExplicitDemolition,
+                ProductionFacilityDestructiveDrainCause.CombatCover,
                 facilityId);
         lifecycle.AuthorityPresent = false;
         lifecycle.CapacityAuthorityPresent = false;
@@ -399,6 +399,26 @@ public static class ProductionFacilityDestructiveDrainCoordinatorDebugScenarios
                 ProductionFacilityDestructiveDrainParticipantIds
                     .PhysicalCustodyCarryRecovery
             },
+            ownsOne: false),
+        new FakeParticipant(
+            lifecycle,
+            ProductionFacilityDestructiveDrainParticipantIds
+                .EnvironmentalFireDamageOutcome,
+            new[]
+            {
+                ProductionFacilityDestructiveDrainParticipantIds
+                    .StockSensorEmbeddedSalvage
+            },
+            ownsOne: false),
+        new FakeParticipant(
+            lifecycle,
+            ProductionFacilityDestructiveDrainParticipantIds
+                .BuildingDemolitionOutcome,
+            new[]
+            {
+                ProductionFacilityDestructiveDrainParticipantIds
+                    .EnvironmentalFireDamageOutcome
+            },
             ownsOne: false)
     };
 
@@ -447,7 +467,11 @@ public static class ProductionFacilityDestructiveDrainCoordinatorDebugScenarios
             ProductionFacilityDestructiveDrainParticipantIds
                 .PhysicalCustodyCarryRecovery,
             ProductionFacilityDestructiveDrainParticipantIds
-                .StockSensorEmbeddedSalvage
+                .StockSensorEmbeddedSalvage,
+            ProductionFacilityDestructiveDrainParticipantIds
+                .EnvironmentalFireDamageOutcome,
+            ProductionFacilityDestructiveDrainParticipantIds
+                .BuildingDemolitionOutcome
         };
 
         private readonly BuildingInstanceId facilityId;

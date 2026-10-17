@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 /// <summary>
@@ -16,13 +17,20 @@ public sealed class DoorAccessUnityAdapter :
 {
     private readonly DoorAccessService domain;
     private readonly ICharacterAiWorldRegistry world;
+    private readonly IDomainFactPublisher domainFacts;
+    private readonly IGameCalendar calendar;
 
     public DoorAccessUnityAdapter(
         DoorAccessService domain,
-        ICharacterAiWorldRegistry world)
+        ICharacterAiWorldRegistry world,
+        IDomainFactPublisher domainFacts,
+        IGameCalendar calendar)
     {
         this.domain = domain ?? throw new ArgumentNullException(nameof(domain));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
+        this.domainFacts = domainFacts
+            ?? throw new ArgumentNullException(nameof(domainFacts));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
     }
 
     public int DoorAccessVersion => domain.DoorAccessVersion;
@@ -70,6 +78,96 @@ public sealed class DoorAccessUnityAdapter :
         }
 
         return CanUse(door, context, out denialReason);
+    }
+
+    [GameplayEntryPoint("DoorAccessPanelPresenter; WIM-045 actual door hold/close UI")]
+    public bool SetHeldOpen(Door door, bool held)
+    {
+        if (door == null || !door.CanAcceptManualOperation
+            || !TryCompletePendingHeldOpenOutcome(door))
+        {
+            return false;
+        }
+        if (door.IsHeldOpen == held)
+            return true;
+        if (!door.TryPreviewHeldOpen(held, out bool afterOpen))
+            return false;
+
+        DoorOperationStateModule state = door.OperationStateModule;
+        int absoluteDay = calendar.Current.AbsoluteDay;
+        if (state.ManualRevision == long.MaxValue || absoluteDay < 0)
+            return false;
+        long revision = checked(state.ManualRevision + 1L);
+        DoorHeldOpenPendingSaveData pending = new()
+        {
+            doorId = door.PersistentInstanceId.Value,
+            operationId = DoorHeldOpenPendingSaveData.BuildOperationId(
+                door.PersistentInstanceId.Value,
+                revision),
+            commandOrigin = DoorHeldOpenPendingSaveData.PlayerPanelOrigin,
+            revision = revision,
+            absoluteDay = absoluteDay,
+            positionX = door.centerPos.x,
+            positionY = door.centerPos.y,
+            beforeOpen = door.IsOpen,
+            beforeHeld = door.IsHeldOpen,
+            afterOpen = afterOpen,
+            afterHeld = held
+        };
+        if (!DoorHeldOpenPendingSaveData.IsValid(pending))
+            return false;
+        var fact = new DoorHeldOpenFact(pending);
+        if (!domainFacts.TryReserve(
+                fact,
+                out DomainFactLease prepared,
+                out string prepareFailure))
+        {
+            Debug.LogWarning(
+                "Door held-open outcome prepare rejected: "
+                + prepareFailure);
+            return false;
+        }
+        if (!door.SetHeldOpen(held, pending))
+        {
+            domainFacts.Cancel(prepared);
+            return false;
+        }
+        return CompleteHeldOpenObservation(door, pending.operationId,
+            domainFacts.Publish(prepared, fact));
+    }
+
+    private bool TryCompletePendingHeldOpenOutcome(Door door)
+    {
+        DoorHeldOpenPendingSaveData pending =
+            door.OperationStateModule.PendingManualOutcome;
+        if (pending == null)
+            return true;
+        if (!string.Equals(
+                pending.doorId,
+                door.PersistentInstanceId.Value,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+        if (!DoorHeldOpenPendingSaveData.IsValid(pending))
+            return false;
+        return CompleteHeldOpenObservation(door, pending.operationId,
+            domainFacts.Replay(new DoorHeldOpenFact(pending)));
+    }
+
+    private static bool CompleteHeldOpenObservation(
+        Door door,
+        string operationId,
+        in DomainFactDelivery delivery)
+    {
+        if (!delivery.Completed)
+        {
+            Debug.LogWarning(
+                "Door held-open outcome remains pending: "
+                + delivery.Detail);
+            return false;
+        }
+        return door.OperationStateModule.AcknowledgeManualOutcome(operationId);
     }
 
     public bool SetGroupAllowed(
@@ -254,8 +352,10 @@ public sealed class BuildingDoorRoomPolicyAdapter : IBuildingDoorRoomPolicyPort
                 continue;
             }
 
-            door.AccessStateModule.CopyFrom(typedPolicy);
-            changed++;
+            if (door.AccessStateModule.CopyFrom(typedPolicy))
+            {
+                changed++;
+            }
         }
 
         return changed;

@@ -202,6 +202,9 @@ public interface ICombatEquipmentMaintenanceRuntime
 {
     IReadOnlyList<EquipmentMaintenancePolicyData> Policies { get; }
     IReadOnlyList<CombatEquipmentRepairOrder> Orders { get; }
+    bool TryGetOrder(
+        string orderId,
+        out CombatEquipmentRepairOrder order);
     EquipmentMaintenancePolicyData GetPolicy(CharacterActor actor);
     string GetAssignedPolicyId(CharacterActor actor);
     bool AssignPolicy(CharacterActor actor, string policyId);
@@ -355,6 +358,23 @@ public sealed class EquipmentMaintenancePolicyRuntime :
             .OrderBy(item => item.orderId, StringComparer.Ordinal)
             .Select(item => item.Clone())
             .ToArray();
+
+    public bool TryGetOrder(
+        string orderId,
+        out CombatEquipmentRepairOrder order)
+    {
+        order = null;
+        if (string.IsNullOrWhiteSpace(orderId)
+            || !aggregateState.Orders.TryGetValue(
+                orderId,
+                out CombatEquipmentRepairOrder stored))
+        {
+            return false;
+        }
+
+        order = stored.Clone();
+        return true;
+    }
 
     public IReadOnlyList<CombatEquipmentRepairTerminalEffectSaveData>
         TerminalEffects => aggregateState.TerminalEffects.Values

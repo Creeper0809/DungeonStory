@@ -122,6 +122,11 @@ public sealed class EmployeeWageState
     public int lastSettledDay;
     public bool active = true;
     public bool departed;
+    public bool departurePending;
+    public int departureContractDay;
+    public string departureFinanceSourceId = string.Empty;
+    public string departureFinanceTransactionId = string.Empty;
+    public string departureFailureReason = string.Empty;
 
     public EmployeeWageState Clone()
     {
@@ -134,7 +139,12 @@ public sealed class EmployeeWageState
             unpaidWages = unpaidWages,
             lastSettledDay = lastSettledDay,
             active = active,
-            departed = departed
+            departed = departed,
+            departurePending = departurePending,
+            departureContractDay = departureContractDay,
+            departureFinanceSourceId = departureFinanceSourceId,
+            departureFinanceTransactionId = departureFinanceTransactionId,
+            departureFailureReason = departureFailureReason
         };
     }
 }
@@ -170,7 +180,52 @@ public sealed class EmploymentDailySettlement
     public int mercenaryFeesDue;
     public int mercenaryFeesPaid;
     public int unpaidEmployeeWages;
+    public int unpaidMercenaryFees;
     public List<string> departedMercenaryIds = new List<string>();
+    public List<EmploymentSettlementLine> lines =
+        new List<EmploymentSettlementLine>();
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class EmploymentSettlementLine
+{
+    public int day;
+    public string characterId = string.Empty;
+    public EmploymentContractKind contractKind;
+    public int due;
+    public int paid;
+    public int unpaidDebtBefore;
+    public int unpaidDebtAfter;
+    public bool moodPenaltyApplied;
+    public bool contractEnded;
+    public bool departureAttempted;
+    public bool departureStarted;
+    public bool departurePending;
+    public string departureFailureReason = string.Empty;
+    public string financeSourceId = string.Empty;
+    public string financeTransactionId = string.Empty;
+    public bool financeSucceeded;
+
+    public EmploymentSettlementLine Clone() => new EmploymentSettlementLine
+    {
+        day = day,
+        characterId = characterId,
+        contractKind = contractKind,
+        due = due,
+        paid = paid,
+        unpaidDebtBefore = unpaidDebtBefore,
+        unpaidDebtAfter = unpaidDebtAfter,
+        moodPenaltyApplied = moodPenaltyApplied,
+        contractEnded = contractEnded,
+        departureAttempted = departureAttempted,
+        departureStarted = departureStarted,
+        departurePending = departurePending,
+        departureFailureReason = departureFailureReason,
+        financeSourceId = financeSourceId,
+        financeTransactionId = financeTransactionId,
+        financeSucceeded = financeSucceeded
+    };
 }
 
 [Serializable]
@@ -249,6 +304,77 @@ public sealed class AutoProcurementResult
     public int cost;
     public bool purchased;
     public string reason = string.Empty;
+    public string attemptedItemId = string.Empty;
+    public int attemptedQuantity;
+    public int attemptedCost;
+    public string committedItemId = string.Empty;
+    public int committedQuantity;
+    public int committedCost;
+    public string childPurchaseResultKey = string.Empty;
+    public List<AutoProcurementPhysicalStackRef> physicalStacks =
+        new List<AutoProcurementPhysicalStackRef>();
+
+    public AutoProcurementResult Clone() => new AutoProcurementResult
+    {
+        day = day,
+        ruleId = ruleId,
+        itemLabel = itemLabel,
+        quantity = quantity,
+        cost = cost,
+        purchased = purchased,
+        reason = reason,
+        attemptedItemId = attemptedItemId,
+        attemptedQuantity = attemptedQuantity,
+        attemptedCost = attemptedCost,
+        committedItemId = committedItemId,
+        committedQuantity = committedQuantity,
+        committedCost = committedCost,
+        childPurchaseResultKey = childPurchaseResultKey,
+        physicalStacks = (physicalStacks
+            ?? new List<AutoProcurementPhysicalStackRef>())
+            .ConvertAll(value => value?.Clone())
+    };
+}
+
+[Serializable]
+public sealed class AutoProcurementPhysicalStackRef
+{
+    public string stackId = string.Empty;
+    public string itemInstanceId = string.Empty;
+    public int quantity;
+
+    public AutoProcurementPhysicalStackRef Clone() =>
+        new AutoProcurementPhysicalStackRef
+        {
+            stackId = stackId,
+            itemInstanceId = itemInstanceId,
+            quantity = quantity
+        };
+}
+
+public enum AutoProcurementParentPhase
+{
+    ChildCommitted = 0,
+    ParentPending = 1,
+    ParentCommitted = 2
+}
+
+[Serializable]
+public sealed class AutoProcurementParentSaveData
+{
+    public string offerKey = string.Empty;
+    public string childPurchaseResultKey = string.Empty;
+    public AutoProcurementParentPhase phase;
+    public AutoProcurementResult result = new AutoProcurementResult();
+
+    public AutoProcurementParentSaveData Clone() =>
+        new AutoProcurementParentSaveData
+        {
+            offerKey = offerKey,
+            childPurchaseResultKey = childPurchaseResultKey,
+            phase = phase,
+            result = result?.Clone()
+        };
 }
 
 [Serializable]
@@ -265,6 +391,19 @@ public sealed class AutoProcurementSaveData
     public List<string> processedOfferKeys = new List<string>();
     public List<AutoProcurementResult> lastResults =
         new List<AutoProcurementResult>();
+    public List<AutoProcurementParentSaveData> parentResults =
+        new List<AutoProcurementParentSaveData>();
+    public List<AutoProcurementPendingFactSaveData> pendingFacts = new();
+}
+
+[Serializable]
+public sealed class AutoProcurementPendingFactSaveData
+{
+    public string publicationKey = string.Empty;
+    public string offerKey = string.Empty;
+    public AutoProcurementResult result = new();
+    public AutoProcurementPendingFactSaveData Clone() => new()
+    { publicationKey = publicationKey, offerKey = offerKey, result = result?.Clone() };
 }
 
 [Serializable]
@@ -291,9 +430,10 @@ public sealed class PaidFacilityContractSaveData
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class TreasuryEconomySaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 6;
 
     public int version = CurrentVersion;
+    public StockSupplyFactSaveData warehouseSupply = new();
     public EconomyTransactionLedgerSaveData transactionLedger =
         new EconomyTransactionLedgerSaveData();
     public EmploymentContractSaveData employment =

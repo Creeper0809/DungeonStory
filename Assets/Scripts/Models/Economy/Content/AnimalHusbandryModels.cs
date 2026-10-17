@@ -87,7 +87,20 @@ public enum AnimalHusbandryFailureCode
     AnimalNotFound,
     PregnantAnimalProtected,
     InvalidPen,
-    NoPendingWork
+    NoPendingWork,
+    OutcomeUnavailable
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum AnimalHusbandryOutcomeOperationKind
+{
+    None = 0,
+    SetPenPolicy = 1,
+    DesignateSlaughter = 2,
+    Tame = 3,
+    CollectProduct = 4,
+    CollectManure = 5,
+    Slaughter = 6
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -167,6 +180,52 @@ public enum AnimalHusbandryStatusCode
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum AnimalProductThermalStatusCode
+{
+    Available = 0,
+    PenPositionUnavailable = 1,
+    EnvironmentalFieldUnavailable = 2
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public readonly struct AnimalProductThermalSnapshot
+{
+    public AnimalProductThermalSnapshot(
+        WildlifeInstanceId animalId,
+        Vector2Int penPosition,
+        AnimalProductThermalStatusCode statusCode,
+        float temperatureC,
+        float comfortMinimumTemperatureC,
+        float comfortMaximumTemperatureC,
+        float degreesOutsideComfort,
+        float productProgressMultiplier)
+    {
+        AnimalId = animalId;
+        PenPosition = penPosition;
+        StatusCode = statusCode;
+        TemperatureC = temperatureC;
+        ComfortMinimumTemperatureC = comfortMinimumTemperatureC;
+        ComfortMaximumTemperatureC = comfortMaximumTemperatureC;
+        DegreesOutsideComfort = Mathf.Max(0f, degreesOutsideComfort);
+        ProductProgressMultiplier = Mathf.Clamp01(productProgressMultiplier);
+    }
+
+    public WildlifeInstanceId AnimalId { get; }
+    public Vector2Int PenPosition { get; }
+    public AnimalProductThermalStatusCode StatusCode { get; }
+    public bool HasTemperature =>
+        StatusCode == AnimalProductThermalStatusCode.Available;
+    public float TemperatureC { get; }
+    public float ComfortMinimumTemperatureC { get; }
+    public float ComfortMaximumTemperatureC { get; }
+    public float DegreesOutsideComfort { get; }
+    public float ProductProgressMultiplier { get; }
+    public float ProductDelayRatio => HasTemperature
+        ? 1f - ProductProgressMultiplier
+        : 1f;
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class AnimalProductProgressState
 {
     public ItemDefinitionId ItemId { get; set; }
@@ -200,6 +259,8 @@ public sealed class HusbandryAnimalState
     public AnimalHusbandryWorkKind PendingWorkKind { get; set; }
     public ItemDefinitionId PendingProductItemId { get; set; }
     public float PendingWorkCompleted { get; set; }
+    public List<CraftContributionSaveData> PendingWorkContributions { get; set; } =
+        new List<CraftContributionSaveData>();
     public AnimalHusbandryStatusCode StatusCode { get; set; }
     public List<string> StatusParameters { get; set; } = new();
     public List<AnimalProductProgressState> Products { get; set; } =
@@ -212,6 +273,9 @@ public sealed class HusbandryAnimalState
             .ConvertAll(item => item?.Clone());
         clone.StatusParameters = new List<string>(
             StatusParameters ?? new List<string>());
+        clone.PendingWorkContributions = (PendingWorkContributions
+                ?? new List<CraftContributionSaveData>())
+            .ConvertAll(item => item?.Clone());
         return clone;
     }
 }
@@ -278,9 +342,20 @@ public sealed class HusbandryAnimalSaveData
     public AnimalHusbandryWorkKind pendingWorkKind;
     public string pendingProductItemDefinitionId = string.Empty;
     public float pendingWorkCompleted;
+    public List<CraftContributionSaveData> pendingWorkContributions = new();
     public AnimalHusbandryStatusCode statusCode;
     public List<string> statusParameters = new();
     public List<AnimalProductProgressSaveData> products = new();
+
+    public HusbandryAnimalSaveData Clone()
+    {
+        var clone = (HusbandryAnimalSaveData)MemberwiseClone();
+        clone.pendingWorkContributions = pendingWorkContributions?.ConvertAll(value => value?.Clone());
+        clone.statusParameters = statusParameters == null ? null : new List<string>(statusParameters);
+        clone.products = products?.ConvertAll(value => value == null ? null : new AnimalProductProgressSaveData
+        { itemDefinitionId = value.itemDefinitionId, progressDays = value.progressDays, readyCycles = value.readyCycles });
+        return clone;
+    }
 }
 
 [Serializable]
@@ -366,8 +441,114 @@ public readonly struct AnimalHusbandryWorkSnapshot
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonAnimalHusbandrySaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 6;
     public int version = CurrentVersion;
+    public long nextOutcomeSequence = 1L;
     public List<HusbandryAnimalSaveData> animals = new();
     public List<AnimalPenPolicySaveData> penPolicies = new();
+    public List<AnimalHusbandryPendingOutcomeSaveData> pendingOutcomes = new();
+    public List<AnimalHusbandryPendingCommandSaveData> pendingCommandFacts = new();
+}
+
+[Serializable]
+public sealed class AnimalHusbandryPendingCommandSaveData
+{
+    public string publicationKey = string.Empty;
+    public AnimalHusbandryCommandFactSaveData fact;
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class AnimalHusbandryPendingOutcomeSaveData
+{
+    public string operationId = string.Empty;
+    public AnimalHusbandryOutcomeOperationKind kind;
+    public int absoluteDay;
+    public string penId = string.Empty;
+    public string animalId = string.Empty;
+    public string speciesId = string.Empty;
+    public string workerId = string.Empty;
+    public string workerDisplayName = string.Empty;
+    public string publicationKey = string.Empty;
+    public List<HusbandryAnimalSaveData> animalStatesBefore = new();
+    public List<HusbandryAnimalSaveData> animalStatesAfter = new();
+    public int completedWorkMilliUnits;
+    public List<CraftContributionSaveData> contributions = new();
+    public string outputItemId = string.Empty;
+    public int outputQuantity;
+    public long outputMassGrams;
+    public List<AnimalHusbandryOutputStackSaveData> outputStacks = new();
+    public string carcassStackId = string.Empty;
+    public string lastFailure = string.Empty;
+    public bool completionIdentityRequired;
+    public bool outcomeCommitted;
+    public string completionPublicationKey = string.Empty;
+    public CharacterCommandOrigin completionOrigin;
+    public float completionContributionWorkUnits;
+    public string completionSkillModifierProvenance = string.Empty;
+
+    public AnimalHusbandryPendingOutcomeSaveData Clone()
+    {
+        var clone = (AnimalHusbandryPendingOutcomeSaveData)MemberwiseClone();
+        clone.animalStatesBefore = animalStatesBefore?.ConvertAll(value => value?.Clone());
+        clone.animalStatesAfter = animalStatesAfter?.ConvertAll(value => value?.Clone());
+        clone.contributions = contributions?.ConvertAll(value => value?.Clone());
+        clone.outputStacks = outputStacks?.ConvertAll(value => value == null ? null : new AnimalHusbandryOutputStackSaveData
+        { stackId = value.stackId, quantity = value.quantity });
+        return clone;
+    }
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class AnimalHusbandryPendingOutcomeState
+{
+    public string OperationId { get; set; } = string.Empty;
+    public AnimalHusbandryOutcomeOperationKind Kind { get; set; }
+    public int AbsoluteDay { get; set; }
+    public BuildingInstanceId PenId { get; set; }
+    public WildlifeInstanceId AnimalId { get; set; }
+    public WildlifeSpeciesId SpeciesId { get; set; }
+    public string WorkerId { get; set; } = string.Empty;
+    public string WorkerDisplayName { get; set; } = string.Empty;
+    public string PublicationKey { get; set; } = string.Empty;
+    public List<HusbandryAnimalState> AnimalStatesBefore { get; set; } = new();
+    public List<HusbandryAnimalState> AnimalStatesAfter { get; set; } = new();
+    public int CompletedWorkMilliUnits { get; set; }
+    public List<CraftContributionSaveData> Contributions { get; set; } = new();
+    public ItemDefinitionId OutputItemId { get; set; }
+    public int OutputQuantity { get; set; }
+    public long OutputMassGrams { get; set; }
+    public List<AnimalHusbandryOutputStack> OutputStacks { get; set; } = new();
+    public string CarcassStackId { get; set; } = string.Empty;
+    public string LastFailure { get; set; } = string.Empty;
+    public bool CompletionIdentityRequired { get; set; }
+    public bool OutcomeCommitted { get; set; }
+    public string CompletionPublicationKey { get; set; } = string.Empty;
+    public CharacterCommandOrigin CompletionOrigin { get; set; }
+    public float CompletionContributionWorkUnits { get; set; }
+    public string CompletionSkillModifierProvenance { get; set; } = string.Empty;
+
+    public AnimalHusbandryPendingOutcomeState Clone()
+    {
+        var clone = (AnimalHusbandryPendingOutcomeState)MemberwiseClone();
+        clone.AnimalStatesBefore = AnimalStatesBefore?.ConvertAll(value => value?.Clone());
+        clone.AnimalStatesAfter = AnimalStatesAfter?.ConvertAll(value => value?.Clone());
+        clone.Contributions = Contributions?.ConvertAll(value => value?.Clone());
+        clone.OutputStacks = OutputStacks?.ConvertAll(value => value?.Clone());
+        return clone;
+    }
+}
+
+[Serializable]
+public sealed class AnimalHusbandryOutputStackSaveData
+{
+    public string stackId = string.Empty;
+    public int quantity;
+}
+
+public sealed class AnimalHusbandryOutputStack
+{
+    public string StackId { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public AnimalHusbandryOutputStack Clone() => (AnimalHusbandryOutputStack)MemberwiseClone();
 }

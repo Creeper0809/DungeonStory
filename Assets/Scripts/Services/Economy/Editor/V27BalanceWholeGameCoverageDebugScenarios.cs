@@ -313,7 +313,15 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
             "Assets/Scripts/Models/Work/SettlementLaborAuthority.cs",
             "Assets/Scripts/Services/Character/AI/CharacterAiDecisionPipeline.cs",
             "Assets/Scripts/Services/Character/Ability/AbilityWork.cs",
+            "Assets/Scripts/Services/Character/Work/CharacterWorkModuleRuntime.cs",
             "Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs",
+            "Assets/Scripts/Services/Character/Work/WorkTaskExecutionContracts.cs",
+            "Assets/Scripts/Services/Character/Work/WorkRunRuntime.cs",
+            "Assets/Scripts/Services/Character/Work/WorkAccidentExecutionRuntime.cs",
+            "Assets/Scripts/Services/Character/Work/RestockWorkExecution.cs",
+            "Assets/Scripts/Services/Character/Work/RestockCargoOperation.cs",
+            "Assets/Scripts/Services/Character/Work/WorkRunLaborAccounting.cs",
+            "Assets/Scripts/Services/Character/Work/WorkProficiencyProgress.cs",
             "Assets/Scripts/Models/Economy/Content/WorldResourceRuntime.cs",
             "Assets/Scripts/Services/Economy/ProductionItemGateway.cs",
             "Assets/Scripts/Services/Economy/CropEcologyRuntime.cs",
@@ -529,6 +537,7 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
             "Assets/Scripts/Services/Economy/V27SurvivalClosedLoopModels.cs",
             "Assets/Scripts/Services/Survival/Editor/PrimitiveStartSurvivalPlayModeVerifier.cs",
             "Assets/Scripts/Services/Survival/CharacterPrimitiveSurvivalRunner.cs",
+            "Assets/Scripts/Services/Survival/CharacterPrimitiveSurvivalCompletion.cs",
             "Assets/Scripts/Services/Survival/CharacterSafeReliefRunner.cs",
             "Assets/Scripts/Services/Character/AI/Editor/CharacterAiSelfCarePlayModeVerifier.cs"
         };
@@ -560,6 +569,8 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
             new[]
             {
                 "PASS V27_SIX_ADULT_OUTAGE_SIX_LIVE_ADULTS:",
+                "PASS V27_SIX_ADULT_OUTAGE_AUTHORED_CROP_WATER_STORAGE_MASS_LOOP:",
+                "PASS V27_SIX_ADULT_OUTAGE_SIX_COHORT_REPRESENTATIVE_APPAREL_MASS_AND_RECOVERY:",
                 "PASS V27_SIX_ADULT_OUTAGE_CANCEL_NO_RECOVERY_NO_CONSUME:",
                 "PASS V27_SIX_ADULT_OUTAGE_ONE_GAME_DAY_ELAPSED:",
                 "PASS V27_SIX_ADULT_OUTAGE_ALL_FIVE_FALLBACKS_COMPLETED:",

@@ -15,6 +15,30 @@ internal interface IWorldFilthWorkTargetRuntime
     void NotifyWorkTargetDestroyed(Vector2Int position, WorldFilthWorkTarget target);
 }
 
+internal sealed class WorldFilthTransactionSnapshot
+{
+    internal WorldFilthTransactionSnapshot(
+        IReadOnlyList<WorldFilthSaveData> filth,
+        int nextSequence,
+        IReadOnlyList<ExteriorZoneSaveData> exteriorZones)
+    {
+        Filth = filth ?? throw new ArgumentNullException(nameof(filth));
+        NextSequence = nextSequence;
+        ExteriorZones = exteriorZones
+            ?? throw new ArgumentNullException(nameof(exteriorZones));
+    }
+
+    internal IReadOnlyList<WorldFilthSaveData> Filth { get; }
+    internal int NextSequence { get; }
+    internal IReadOnlyList<ExteriorZoneSaveData> ExteriorZones { get; }
+}
+
+internal interface IWorldFilthTransactionPort
+{
+    WorldFilthTransactionSnapshot CaptureTransactionState();
+    void RestoreTransactionState(WorldFilthTransactionSnapshot snapshot);
+}
+
 internal sealed class WorldFilthAggregateState
 {
     internal readonly List<WorldFilthSaveData> Filth = new();
@@ -206,6 +230,7 @@ public sealed class WorldFilthRuntime :
     IWorldFilthQuery,
     IWorldFilthWorkTargetRuntime,
     IWorldFilthRestoreCandidatePort,
+    IWorldFilthTransactionPort,
     IStartable,
     IDisposable
 {
@@ -457,6 +482,52 @@ public sealed class WorldFilthRuntime :
         PublishRestoreCandidate(BuildRestoreCandidate(saveData, nextSequence));
     }
 
+    WorldFilthTransactionSnapshot
+        IWorldFilthTransactionPort.CaptureTransactionState()
+    {
+        return new WorldFilthTransactionSnapshot(
+            CaptureFilth(),
+            nextSequence,
+            exteriorZoneQuery.Zones
+                .Where(zone => zone != null)
+                .Select(zone => zone.CreateSaveData())
+                .ToArray());
+    }
+
+    void IWorldFilthTransactionPort.RestoreTransactionState(
+        WorldFilthTransactionSnapshot snapshot)
+    {
+        snapshot = snapshot
+            ?? throw new ArgumentNullException(nameof(snapshot));
+        var savedById = snapshot.ExteriorZones.ToDictionary(
+            zone => zone.zoneId ?? string.Empty,
+            zone => zone,
+            StringComparer.Ordinal);
+        ExteriorZoneMarker[] currentZones = exteriorZoneQuery.Zones
+            .Where(zone => zone != null)
+            .ToArray();
+        if (savedById.Count != currentZones.Length)
+        {
+            throw new InvalidOperationException(
+                "World-filth transaction rollback cannot restore a changed exterior-zone set.");
+        }
+        foreach (ExteriorZoneMarker zone in currentZones)
+        {
+            if (!savedById.ContainsKey(zone.ZoneId))
+            {
+                throw new InvalidOperationException(
+                    $"World-filth transaction rollback is missing exterior zone '{zone.ZoneId}'.");
+            }
+        }
+
+        RestoreFilth(snapshot.Filth, snapshot.NextSequence);
+        foreach (ExteriorZoneMarker zone in currentZones)
+        {
+            ExteriorZoneSaveData saved = savedById[zone.ZoneId];
+            zone.ApplySaveData(saved);
+        }
+    }
+
     public WorldFilthRestoreCandidate BuildRestoreCandidate(
         IEnumerable<WorldFilthSaveData> saveData,
         int nextSequence)
@@ -499,7 +570,7 @@ public sealed class WorldFilthRuntime :
     {
         foreach (WorldFilthWorkTarget target in workTargets.Values.Where(target => target != null).ToArray())
         {
-            UnityEngine.Object.Destroy(target.gameObject);
+            target.RetireForWorldReplacement();
         }
         workTargets.Clear();
         foreach (Vector2Int position in filth.Where(entry => entry != null && entry.amount > 0f)

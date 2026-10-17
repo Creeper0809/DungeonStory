@@ -534,6 +534,10 @@ public static class
 
     private sealed class FakeBridge : IProductionAssemblyBridge
     {
+        public float ApplyCraftQualityCeiling(
+            ProductionOutputCapabilityDescriptor capability, float qualityModifier, float maximumScore) =>
+            throw new NotSupportedException("This custody-only fixture does not resolve quality outputs.");
+
         private readonly ProductionFacilityHandle handle;
 
         internal FakeBridge(ProductionFacilityHandle handle) =>

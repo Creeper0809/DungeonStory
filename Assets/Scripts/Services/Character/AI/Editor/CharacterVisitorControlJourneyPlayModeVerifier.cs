@@ -21,13 +21,62 @@ public static class CharacterVisitorControlJourneyPlayModeVerifier
 {
     public const string ReportPath =
         "Artifacts/QA/character-visitor-control-journey-playmode.txt";
+    private const string ReportPathEnvironmentVariable =
+        "DUNGEONSTORY_VISITOR_CONTROL_REPORT_PATH";
+    private const string ExitOnlyEnvironmentVariable =
+        "DUNGEONSTORY_VISITOR_EXIT_ONLY";
+    private const string VandalismOnlyEnvironmentVariable =
+        "DUNGEONSTORY_VISITOR_VANDALISM_ONLY";
     private const string PendingPath =
         "Temp/character-visitor-control-journey-playmode.flag";
     private const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
+    private static bool batchRunRequested;
+
+    internal static bool ExitOnlyRequested => string.Equals(
+        Environment.GetEnvironmentVariable(ExitOnlyEnvironmentVariable)?.Trim(),
+        "1",
+        StringComparison.Ordinal);
+
+    internal static bool VandalismOnlyRequested => string.Equals(
+        Environment.GetEnvironmentVariable(
+            VandalismOnlyEnvironmentVariable)?.Trim(),
+        "1",
+        StringComparison.Ordinal);
+
+    internal static string ActiveReportPath
+    {
+        get
+        {
+            string relative = Environment.GetEnvironmentVariable(
+                    ReportPathEnvironmentVariable)
+                ?.Trim();
+            if (string.IsNullOrWhiteSpace(relative)) relative = ReportPath;
+            string root = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            string absolute = Path.GetFullPath(Path.Combine(root, relative));
+            string qaRoot = Path.GetFullPath(Path.Combine(root, "Artifacts", "QA"));
+            if (!absolute.StartsWith(
+                    qaRoot + Path.DirectorySeparatorChar,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "Visitor-control report must remain under Artifacts/QA.");
+            }
+            return absolute;
+        }
+    }
 
     [MenuItem("DungeonStory/Debug/QA/Run Visitor And Control Journey PlayMode Verification")]
     public static void RequestRun()
     {
+        if (Application.isBatchMode)
+        {
+            batchRunRequested = true;
+            EditorApplication.playModeStateChanged -= ExitBatchAfterRun;
+            EditorApplication.playModeStateChanged += ExitBatchAfterRun;
+        }
+        string reportPath = ActiveReportPath;
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath));
+        if (File.Exists(reportPath)) File.Delete(reportPath);
         if (EditorApplication.isPlaying)
         {
             StartRunner(false);
@@ -41,6 +90,49 @@ public static class CharacterVisitorControlJourneyPlayModeVerifier
         EditorApplication.EnterPlaymode();
     }
 
+    internal static void StartIsolatedFromFacade(
+        IEnumerable<string> initialWarnings,
+        IEnumerable<string> initialErrors)
+    {
+        if (!Application.isBatchMode
+            || !EditorApplication.isPlaying
+            || !DungeonPersistencePaths.IsIsolatedVerification)
+        {
+            throw new InvalidOperationException(
+                "Visitor-exit verification requires the active isolated batch PlayMode facade.");
+        }
+        if (ExitOnlyRequested == VandalismOnlyRequested)
+        {
+            throw new InvalidOperationException(
+                "Visitor isolated verification requires exactly one focused selector.");
+        }
+
+        string reportPath = ActiveReportPath;
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath));
+        if (File.Exists(reportPath))
+        {
+            throw new InvalidOperationException(
+                "Existing visitor-exit evidence must be preserved.");
+        }
+
+        CharacterVisitorControlJourneyPlayModeRunner runner = StartRunner(false);
+        runner.ExitBatchProcessOnCompletion = true;
+        runner.AddInitialConsoleIssues(initialWarnings, initialErrors);
+    }
+
+    private static void ExitBatchAfterRun(PlayModeStateChange state)
+    {
+        if (!batchRunRequested || state != PlayModeStateChange.EnteredEditMode)
+            return;
+        batchRunRequested = false;
+        EditorApplication.playModeStateChanged -= ExitBatchAfterRun;
+        string reportPath = ActiveReportPath;
+        bool passed = File.Exists(reportPath)
+            && File.ReadLines(reportPath).Any(line =>
+                string.Equals(line, "result=PASS", StringComparison.Ordinal));
+        EditorApplication.Exit(passed ? 0 : 1);
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
@@ -49,30 +141,36 @@ public static class CharacterVisitorControlJourneyPlayModeVerifier
         StartRunner(true);
     }
 
-    private static void StartRunner(bool exitPlayMode)
+    private static CharacterVisitorControlJourneyPlayModeRunner StartRunner(
+        bool exitPlayMode)
     {
-        if (UnityEngine.Object.FindFirstObjectByType<
-                CharacterVisitorControlJourneyPlayModeRunner>() != null)
-            return;
+        CharacterVisitorControlJourneyPlayModeRunner existing =
+            UnityEngine.Object.FindFirstObjectByType<
+                CharacterVisitorControlJourneyPlayModeRunner>();
+        if (existing != null) return existing;
         CharacterVisitorControlJourneyPlayModeRunner runner =
             new GameObject("Visitor And Control Journey PlayMode Runner")
                 .AddComponent<CharacterVisitorControlJourneyPlayModeRunner>();
         runner.ExitPlayModeOnCompletion = exitPlayMode;
+        return runner;
     }
 }
 
 public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
 {
     private const float OverallTimeout = 240f;
-    private const string Revision = "visitor-control-journey-v5-exact-retail-restore";
+    private const string Revision = "visitor-control-journey-v7-a03-isolated-route";
     private readonly List<string> evidence = new List<string>();
     private readonly List<string> failures = new List<string>();
+    private readonly List<string> consoleIssues = new List<string>();
     public bool ExitPlayModeOnCompletion { get; set; }
+    public bool ExitBatchProcessOnCompletion { get; set; }
 
     private IEnumerator Start()
     {
         Directory.CreateDirectory("Artifacts/QA");
         WriteReport("RUNNING", "setup");
+        Application.logMessageReceived += CaptureConsoleIssue;
         float deadline = Time.realtimeSinceStartup + OverallTimeout;
         IEnumerator routine = Run(deadline);
         while (true)
@@ -95,10 +193,27 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
             }
             yield return current;
         }
-        WriteReport(failures.Count == 0 ? "PASS" : "FAIL", "complete");
-        if (failures.Count == 0) Debug.Log("[VisitorControlJourney] PASS");
+        Application.logMessageReceived -= CaptureConsoleIssue;
+        if (consoleIssues.Count == 0)
+        {
+            evidence.Add("console-warning-error-zero=0/0");
+        }
+        else
+        {
+            failures.AddRange(consoleIssues);
+        }
+        bool passed = failures.Count == 0;
+        WriteReport(passed ? "PASS" : "FAIL", "complete");
+        if (passed) Debug.Log("[VisitorControlJourney] PASS");
         else Debug.LogError("[VisitorControlJourney] " + string.Join(" | ", failures));
         Destroy(gameObject);
+        if (ExitBatchProcessOnCompletion)
+        {
+            DungeonFullWorldRoundTripPlayModeFacade.CleanupTransientArtifacts();
+            EditorApplication.delayCall += () =>
+                EditorApplication.Exit(passed ? 0 : 1);
+            yield break;
+        }
         if (ExitPlayModeOnCompletion)
         {
             EditorApplication.delayCall += () =>
@@ -152,6 +267,8 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
         IGridSystemProvider grids = scope.Container.Resolve<IGridSystemProvider>();
         IDungeonGameSaveService gameSaves =
             scope.Container.Resolve<IDungeonGameSaveService>();
+        IGameplayOutcomeDiagnosticsQuery outcomeDiagnostics =
+            scope.Container.Resolve<IGameplayOutcomeDiagnosticsQuery>();
         AiDirectorRuntime director = FindFirstObjectByType<AiDirectorRuntime>(
             FindObjectsInactive.Include);
         grids.TryGetGrid(out Grid grid);
@@ -234,6 +351,7 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
         int peakPendingSkillRequests =
             skillGenerationDiagnostics.PendingRequestCount;
         int skillDiagnosticTransitions = 0;
+        bool deterministicVisitorPreparation = false;
         string previousSkillDiagnostic =
             skillGenerationDiagnostics.LastDiagnostic ?? string.Empty;
         while (!spawnRequested && visitor == null
@@ -247,6 +365,82 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
             {
                 rejectionCounts.TryGetValue(lastRejection, out int count);
                 rejectionCounts[lastRejection] = count + 1;
+                if (!deterministicVisitorPreparation
+                    && lastRejection
+                        == CharacterSpawnRejection.PopulationProfilePreparing)
+                {
+                    WorldCharacterProfile preparing = characterPopulation.Profiles
+                        .FirstOrDefault(profile => profile != null
+                            && profile.characterDataId == visitorDefinition.id
+                            && profile.isAlive
+                            && !profile.isStaff
+                            && !profile.isVisiting);
+                    WorldCharacterProfile readyTemplate = characterPopulation.Profiles
+                        .FirstOrDefault(profile => profile != null
+                            && profile.IsReady);
+                    if (preparing != null && readyTemplate?.growth != null)
+                    {
+                        // This verifier owns shopping/exit integration, not LLM
+                        // availability. Reuse a fully prepared authored growth
+                        // shape so the production spawner path remains
+                        // deterministic in offline batch runs.
+                        preparing.growth = readyTemplate.growth.Clone();
+                        preparing.level = readyTemplate.level;
+                        preparing.currentExperience = readyTemplate.currentExperience;
+                        deterministicVisitorPreparation = preparing.IsReady;
+                    }
+                    else if (preparing?.growth != null)
+                    {
+                        preparing.growth.initialized = true;
+                        preparing.growth.activeSkills = new List<CharacterSkillInstance>
+                        {
+                            new CharacterSkillInstance
+                            {
+                                id = "visitor-exit-verifier-active",
+                                displayName = "검증용 공격",
+                                description = "방문객 퇴장 검증용 기술",
+                                narrativeReason = "오프라인 통합 검증",
+                                kind = CharacterSkillKind.Active,
+                                rarity = CharacterSkillRarity.Advanced,
+                                trigger = CharacterSkillTrigger.ManualCombat,
+                                target = CharacterSkillTarget.Enemy,
+                                modules = new List<CharacterSkillModuleSelection>
+                                {
+                                    new CharacterSkillModuleSelection
+                                    {
+                                        moduleId = "damage",
+                                        variantId = "light"
+                                    }
+                                }
+                            }
+                        };
+                        preparing.growth.passiveSkills = new List<CharacterSkillInstance>
+                        {
+                            new CharacterSkillInstance
+                            {
+                                id = "visitor-exit-verifier-passive",
+                                displayName = "검증용 습관",
+                                description = "방문객 퇴장 검증용 패시브",
+                                narrativeReason = "오프라인 통합 검증",
+                                kind = CharacterSkillKind.Passive,
+                                rarity = CharacterSkillRarity.Advanced,
+                                trigger = CharacterSkillTrigger.WorkCompleted,
+                                target = CharacterSkillTarget.Self,
+                                modules = new List<CharacterSkillModuleSelection>
+                                {
+                                    new CharacterSkillModuleSelection
+                                    {
+                                        moduleId = "work_speed",
+                                        variantId = "small"
+                                    }
+                                }
+                            }
+                        };
+                        preparing.growth.drafts.Clear();
+                        preparing.growth.pendingRequestKeys.Clear();
+                        deterministicVisitorPreparation = preparing.IsReady;
+                    }
+                }
             }
 
             visitor = LiveVisitors().FirstOrDefault(candidate =>
@@ -295,6 +489,7 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
             + skillGenerationDiagnostics.PendingRequestCount
             + ";peakPendingSkillRequests=" + peakPendingSkillRequests
             + ";skillDiagnosticTransitions=" + skillDiagnosticTransitions
+            + ";deterministicPreparation=" + deterministicVisitorPreparation
             + ";skillDiagnostic="
             + skillGenerationDiagnostics.LastDiagnostic);
         evidence.Add("visitor-spawn-request=production-race-aware;attempts="
@@ -357,6 +552,32 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
                 + entryFailure.Reason);
         if (visitor == null || failures.Count > 0) yield break;
         evidence.Add("visitor-entry=SpawningOutside/EnteringDungeon->Active");
+
+        if (CharacterVisitorControlJourneyPlayModeVerifier
+            .VandalismOnlyRequested)
+        {
+            yield return VerifyFacilityVandalism(
+                visitor,
+                director,
+                shop,
+                outcomeDiagnostics,
+                gameSaves);
+            yield break;
+        }
+
+        if (CharacterVisitorControlJourneyPlayModeVerifier.ExitOnlyRequested)
+        {
+            yield return VerifyVisitorExit(
+                visitor,
+                director,
+                shop,
+                spawner,
+                characterWorld,
+                characterPopulation,
+                outcomeDiagnostics,
+                deadline);
+            yield break;
+        }
 
         AIBrain brain = visitor.Brain;
         AbilityShopping shopping = visitor.GetAbility<AbilityShopping>();
@@ -478,17 +699,39 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
             shop, "macro:avoid-facility", () => visitor.Blackboard.LastFailureReason
                 .Contains("Facility cooldown", StringComparison.Ordinal));
 
-        bool damagedBefore = shop.IsDamaged;
-        if (damagedBefore) shop.SetDamaged(false);
-        yield return VerifyMacro(visitor, director, CharacterMacroGoalType.Vandalize,
-            shop, "macro:vandalize", () => shop.IsDamaged);
-        shop.SetDamaged(damagedBefore);
+        yield return VerifyFacilityVandalism(
+            visitor,
+            director,
+            shop,
+            outcomeDiagnostics,
+            gameSaves);
 
+        yield return VerifyVisitorExit(
+            visitor,
+            director,
+            shop,
+            spawner,
+            characterWorld,
+            characterPopulation,
+            outcomeDiagnostics,
+            deadline);
+    }
+
+    private IEnumerator VerifyVisitorExit(
+        CharacterActor visitor,
+        AiDirectorRuntime director,
+        BuildableObject target,
+        CharacterSpawner spawner,
+        ICharacterWorldQuery characterWorld,
+        ICharacterPopulationService characterPopulation,
+        IGameplayOutcomeDiagnosticsQuery outcomeDiagnostics,
+        float deadline)
+    {
         string exitingVisitorId = PersistentId(visitor);
         long exitHandoffAttemptsBefore = spawner.VisitorExitHandoffAttemptCount;
         long exitHandoffCompletedBefore = spawner.VisitorExitHandoffCompletedCount;
         yield return VerifyMacro(visitor, director, CharacterMacroGoalType.ExitDungeon,
-            shop, "macro:exit-dungeon", () =>
+            target, "macro:exit-dungeon", () =>
                 (visitor.TryGetAbility(out AbilityMove exitMove)
                     && exitMove.HasActiveMovementRoutineForDiagnostics)
                 || visitor.CurrentLifecycleState == CharacterLifecycleState.ExitingDungeon
@@ -561,10 +804,37 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
                 spawner.LastVisitorExitPersistentId,
                 exitingVisitorId,
                 StringComparison.Ordinal);
+        WorldCharacterProfile departedProfile = characterPopulation.Profiles
+            .FirstOrDefault(profile => profile != null
+                && string.Equals(
+                    profile.persistentId,
+                    exitingVisitorId,
+                    StringComparison.Ordinal));
+        CharacterVisitorExitOperationSaveData exitOperation =
+            departedProfile?.visitorExitOperation;
+        GameplayResultKey expectedDepartureKey = exitOperation == null
+            ? default
+            : new GameplayResultKey(
+                VisitorExitOutcomeIds.DepartureProducerId,
+                new GameplayOperationId(exitOperation.operationId),
+                exitOperation.ownerRevision,
+                0);
+        bool exactDepartureOutcome = exitOperation != null
+            && exitOperation.phase == CharacterVisitorExitPhase.Departed
+            && string.Equals(
+                exitOperation.departurePublicationKey,
+                expectedDepartureKey.ToString(),
+                StringComparison.Ordinal)
+            && outcomeDiagnostics.TryGetResultIdentity(
+                expectedDepartureKey,
+                out GameplayOutcomeReplayIdentity departureIdentity)
+            && (int)departureIdentity.State
+                >= (int)GameplayOutcomeReplayState.Committed;
         Require(releasedFromLiveWorld
                 && releasedFromRegistry
                 && releasedFromPopulationVisit
-                && exactExitHandoff,
+                && exactExitHandoff
+                && exactDepartureOutcome,
             "visitor exit lifecycle did not release the persistent visitor; "
                 + DescribeExitTrace(
                     visitor,
@@ -572,15 +842,56 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
                     releasedFromRegistry,
                     releasedFromPopulationVisit)
                 + $";handoff={exitHandoffAttemptsBefore}->{spawner.VisitorExitHandoffAttemptCount}"
-                + $"/{exitHandoffCompletedBefore}->{spawner.VisitorExitHandoffCompletedCount}");
+                + $"/{exitHandoffCompletedBefore}->{spawner.VisitorExitHandoffCompletedCount}"
+                + $";departureOutcome={exactDepartureOutcome}"
+                + $";phase={exitOperation?.phase.ToString() ?? "missing"}");
         if (releasedFromLiveWorld
             && releasedFromRegistry
             && releasedFromPopulationVisit
-            && exactExitHandoff)
+            && exactExitHandoff
+            && exactDepartureOutcome)
         {
             evidence.Add("visitor-exit=ExitingDungeon->Despawned/pool-release;id="
-                + exitingVisitorId);
+                + exitingVisitorId
+                + ";resultKey="
+                + expectedDepartureKey);
         }
+    }
+
+    public void AddInitialConsoleIssues(
+        IEnumerable<string> warnings,
+        IEnumerable<string> errors)
+    {
+        if (warnings != null)
+        {
+            consoleIssues.AddRange(warnings.Select(value =>
+                "console-warning=" + value));
+        }
+        if (errors != null)
+        {
+            consoleIssues.AddRange(errors.Select(value =>
+                "console-error=" + value));
+        }
+    }
+
+    private void CaptureConsoleIssue(
+        string condition,
+        string stackTrace,
+        LogType type)
+    {
+        if (type == LogType.Warning)
+        {
+            consoleIssues.Add("console-warning=" + condition);
+        }
+        else if (type is LogType.Error or LogType.Exception or LogType.Assert)
+        {
+            consoleIssues.Add("console-error=" + condition + "\n" + stackTrace);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        Application.logMessageReceived -= CaptureConsoleIssue;
     }
 
     private IEnumerator VerifyMacro(
@@ -627,6 +938,117 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
         Require(sideEffect(), row + " did not apply its production side effect");
         Require(!actor.Blackboard.HasActiveMacroGoal(), row + " did not clear terminal goal");
         evidence.Add(row + "=" + actor.Blackboard.LastDecisionRouteSummary);
+    }
+
+    private IEnumerator VerifyFacilityVandalism(
+        CharacterActor actor,
+        AiDirectorRuntime director,
+        BuildableObject target,
+        IGameplayOutcomeDiagnosticsQuery outcomeDiagnostics,
+        IDungeonGameSaveService gameSaves)
+    {
+        bool damagedBefore = target.IsDamaged;
+        FacilityRuntimeState stateBefore = target.FacilityState.Clone();
+        long sequenceBefore = target.NextVandalismOperationSequence;
+        if (damagedBefore)
+            target.SetDamaged(false);
+
+        yield return VerifyMacro(
+            actor,
+            director,
+            CharacterMacroGoalType.Vandalize,
+            target,
+            "macro:vandalize",
+            () => target.IsDamaged);
+
+        FacilityVandalismCommitState committed = target.LastVandalism;
+        GameplayResultKey expected = FacilityVandalismOutcomeIds.ResultKey(
+            target.RequirePersistentInstanceId(),
+            sequenceBefore);
+        bool exactOutcome = outcomeDiagnostics.TryGetResultIdentity(
+            expected,
+            out GameplayOutcomeReplayIdentity identity)
+            && (int)identity.State
+                >= (int)GameplayOutcomeReplayState.Committed;
+        Require(target.IsDamaged
+                && target.NextVandalismOperationSequence == sequenceBefore + 1L
+                && committed.operationSequence == sequenceBefore
+                && committed.actorId == PersistentId(actor)
+                && committed.source == "macro"
+                && committed.reason == "macro:vandalize"
+                && committed.publicationKey == expected.ToString()
+                && exactOutcome,
+            "macro:vandalize did not persist the exact A04 facility outcome; "
+                + $"sequence={sequenceBefore}->{target.NextVandalismOperationSequence};"
+                + $"actor={committed.actorId};source={committed.source};"
+                + $"reason={committed.reason};result={committed.publicationKey};"
+                + $"exactOutcome={exactOutcome}");
+        if (target.IsDamaged
+            && target.NextVandalismOperationSequence == sequenceBefore + 1L
+            && exactOutcome)
+        {
+            evidence.Add(
+                "facility-vandalism=production-Brain/BT+shared-transaction;resultKey="
+                + expected);
+        }
+
+        if (CharacterVisitorControlJourneyPlayModeVerifier
+            .VandalismOnlyRequested)
+        {
+            BuildingInstanceId facilityId =
+                target.RequirePersistentInstanceId();
+            string expectedActorId = PersistentId(actor);
+            DungeonGameSaveData committedSave = gameSaves.Capture();
+            DungeonGameRestoreReport restoreReport = null;
+            bool restored = committedSave != null
+                && gameSaves.TryRestore(
+                    gameSaves.FromJson(gameSaves.ToJson(committedSave)),
+                    out restoreReport);
+            BuildableObject restoredFacility = restored
+                ? FindObjectsByType<BuildableObject>(
+                        FindObjectsInactive.Include,
+                        FindObjectsSortMode.None)
+                    .FirstOrDefault(candidate => candidate != null
+                        && candidate.PersistentInstanceId.Equals(facilityId))
+                : null;
+            FacilityVandalismCommitState restoredCommit =
+                restoredFacility?.LastVandalism;
+            bool restoredExactOutcome = restored
+                && outcomeDiagnostics.TryGetResultIdentity(
+                    expected,
+                    out GameplayOutcomeReplayIdentity restoredIdentity)
+                && (int)restoredIdentity.State
+                    >= (int)GameplayOutcomeReplayState.Committed;
+            bool exactRoundTrip = restoredFacility != null
+                && restoredFacility.IsDamaged
+                && restoredFacility.NextVandalismOperationSequence
+                    == sequenceBefore + 1L
+                && restoredCommit != null
+                && restoredCommit.operationSequence == sequenceBefore
+                && restoredCommit.actorId == expectedActorId
+                && restoredCommit.source == "macro"
+                && restoredCommit.reason == "macro:vandalize"
+                && restoredCommit.publicationKey == expected.ToString()
+                && restoredExactOutcome;
+            Require(exactRoundTrip,
+                "macro:vandalize did not survive aggregate save/restore; "
+                    + $"restored={restored};facility={facilityId.Value};"
+                    + $"sequence={sequenceBefore}->{restoredFacility?.NextVandalismOperationSequence};"
+                    + $"actor={restoredCommit?.actorId};source={restoredCommit?.source};"
+                    + $"reason={restoredCommit?.reason};result={restoredCommit?.publicationKey};"
+                    + $"outcome={restoredExactOutcome};"
+                    + $"errors={string.Join("|", restoreReport?.Errors ?? Array.Empty<string>())}");
+            if (exactRoundTrip)
+            {
+                evidence.Add(
+                    "facility-vandalism-save-roundtrip=macro;resultKey="
+                    + expected);
+            }
+            yield break;
+        }
+
+        target.SetDamaged(damagedBefore);
+        target.RestoreFacilityState(stateBefore);
     }
 
     private IEnumerator VerifyCriticalManualMove(
@@ -846,7 +1268,8 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
             + $"phase={brain?.CurrentActionPhase ?? string.Empty};"
             + $"failure={failure};registryReleased={registryReleased};"
             + $"populationVisitReleased={populationVisitReleased};"
-            + $"spawnerStage={spawner?.LastVisitorExitHandoffStage ?? string.Empty}";
+            + $"spawnerStage={spawner?.LastVisitorExitHandoffStage ?? string.Empty};"
+            + $"handoffFailure={spawner?.LastVisitorExitHandoffFailure ?? string.Empty}";
     }
 
     private static string DescribeExitStateKey(
@@ -860,7 +1283,8 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
             + $"{(actor != null && actor.gameObject.activeInHierarchy)}|"
             + $"{(move != null && move.HasActiveMovementRoutineForDiagnostics)}|"
             + $"{registryReleased}|{populationVisitReleased}|"
-            + (spawner?.LastVisitorExitHandoffStage ?? string.Empty);
+            + (spawner?.LastVisitorExitHandoffStage ?? string.Empty) + "|"
+            + (spawner?.LastVisitorExitHandoffFailure ?? string.Empty);
     }
 
     private static Shop EnsureProductionShop(Grid grid, out string detail)
@@ -879,7 +1303,7 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
             FindFirstObjectByType<DungeonStoryGridBuildingController>(
                 FindObjectsInactive.Include);
         BuildingSO definition = Resources.Load<BuildingSO>(
-            "SO/Building/P1/P1_GeneralStore");
+            "SO/Building/Modular/S01_판매카운터");
         if (controller == null || definition == null || grid == null)
         {
             detail = "production initial-building command prerequisites missing";
@@ -933,14 +1357,25 @@ public sealed class CharacterVisitorControlJourneyPlayModeRunner : MonoBehaviour
         {
             "# Character Visitor And Control Journey PlayMode Verification",
             "result=" + result,
-            "scope=official-GameplayScene+CharacterSpawner+production-Brain/BT+production-shopping",
+            "scope=" + (CharacterVisitorControlJourneyPlayModeVerifier.ExitOnlyRequested
+                ? "official-GameplayScene+CharacterSpawner+production-Brain/BT+visitor-exit-A03"
+                : CharacterVisitorControlJourneyPlayModeVerifier
+                    .VandalismOnlyRequested
+                    ? "official-GameplayScene+CharacterSpawner+production-Brain/BT+facility-vandalism-A04"
+                : "official-GameplayScene+CharacterSpawner+production-Brain/BT+production-shopping"),
             "utc=" + DateTime.UtcNow.ToString("O"),
             "verifierRevision=" + Revision,
+            "fullAuditClosure=false",
+            "humanApprovalClaimed=false",
+            "trainingEligible=false",
             "phase=" + phase
         };
         lines.AddRange(evidence.Select(value => "PASS\t" + value));
         lines.AddRange(failures.Select(value => "FAIL\t" + value));
-        File.WriteAllLines(CharacterVisitorControlJourneyPlayModeVerifier.ReportPath, lines);
+        string reportPath = CharacterVisitorControlJourneyPlayModeVerifier
+            .ActiveReportPath;
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath));
+        File.WriteAllLines(reportPath, lines);
     }
 }
 #endif

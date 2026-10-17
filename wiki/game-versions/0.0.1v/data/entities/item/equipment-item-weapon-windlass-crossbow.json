@@ -10,12 +10,12 @@
     },
     {
       "label": "기준 가격",
-      "value": "1162"
+      "value": "1261"
     }
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "권양기로 무거운 시위를 감아 올려 강한 볼트를 쏘는 쇠뇌다. 특히 크릭 제7굴식 권양 석궁은 좁은 갱도 벽에 걸리지 않도록 활몸 양끝을 짧게 깎는다.",
+  "in_game_description": "권양기로 무거운 시위를 감아 올려 강한 볼트를 쏘는 쇠뇌다. 크릭 제7굴식 권양 석궁은 좁은 갱도 벽에 걸리지 않도록 활몸 양끝을 짧게 깎는다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

@@ -21,8 +21,7 @@ public static class ModularFacilityRuntimeEffects
             return;
         }
 
-        foreach (IBuildingVisualRuntimeAbility ability in building.BuildingData.Abilities
-                     .OfType<IBuildingVisualRuntimeAbility>())
+        foreach (IBuildingVisualRuntimeAbility ability in building.GetRuntimeAbilities<IBuildingVisualRuntimeAbility>())
         {
             ability.ConfigureVisual(building);
         }
@@ -155,8 +154,7 @@ public static class ModularFacilityRuntimeEffects
             return;
         }
 
-        foreach (IBuildingUseCompletedRuntimeAbility ability in building.BuildingData.Abilities
-                     .OfType<IBuildingUseCompletedRuntimeAbility>())
+        foreach (IBuildingUseCompletedRuntimeAbility ability in building.GetRuntimeAbilities<IBuildingUseCompletedRuntimeAbility>())
         {
             ability.ApplyUseCompleted(actor, building);
         }
@@ -165,8 +163,17 @@ public static class ModularFacilityRuntimeEffects
     public static int ApplyWorkCompleted(
         IBuildingVisitorPort actor,
         BuildableObject building,
-        WorkTypeId workTypeId)
+        WorkTypeId workTypeId,
+        float approvedWork)
     {
+        if (float.IsNaN(approvedWork)
+            || float.IsInfinity(approvedWork)
+            || approvedWork < 0f)
+        {
+            throw new System.ArgumentOutOfRangeException(
+                nameof(approvedWork),
+                "Building work completion requires finite nonnegative approved work.");
+        }
         if (building?.BuildingData == null || !workTypeId.IsValid)
         {
             return 0;
@@ -181,7 +188,8 @@ public static class ModularFacilityRuntimeEffects
         return building.AbilityRuntimeDispatcher.ApplyWorkCompleted(
             actor,
             building,
-            workTypeId);
+            workTypeId,
+            approvedWork);
     }
 
     public static int ApplyProduction(

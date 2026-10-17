@@ -4,10 +4,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEngine;
 
-public static class CharacterMedicalSupplyDestinationDrainRuntimeDebugScenarios
+public static partial class CharacterMedicalSupplyDestinationDrainRuntimeDebugScenarios
 {
     private const string DigestA =
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -666,6 +667,7 @@ public static class CharacterMedicalSupplyDestinationDrainRuntimeDebugScenarios
     private sealed class MedicalRuntimeFixture : IDisposable
     {
         private readonly GameObject actorObject;
+        private readonly DomainFactDispatcher facts;
 
         internal MedicalRuntimeFixture(
             CharacterMedicalOrder order,
@@ -687,9 +689,11 @@ public static class CharacterMedicalSupplyDestinationDrainRuntimeDebugScenarios
             state.Orders.Add(order);
             state.OrderSequence = 1;
             roots.Replace(state);
+            // These fixtures exercise destination drain/recovery only and never
+            // complete a medical procedure, so no fact observer is required.
+            facts = new DomainFactDispatcher();
             Runtime = new CharacterMedicalRuntime(
                 new FixedBodyHealthQuery(downed),
-                CreateDefaultProxy<ICharacterBodyHealthCommand>(),
                 new CharacterMedicalWorldServices(
                     new UnavailableGridProvider(),
                     world,
@@ -705,13 +709,21 @@ public static class CharacterMedicalSupplyDestinationDrainRuntimeDebugScenarios
                 new RecordingTareDisposition(),
                 new AlwaysValidDestinationRuntime(),
                 ownerDrain,
-                new EmptyDrainRestoreCandidateQuery());
+                new EmptyDrainRestoreCandidateQuery(),
+                CreateDefaultProxy<ICharacterBodyHealthMutationTransaction>(),
+                facts,
+                facts,
+                CreateDefaultProxy<IGameCalendar>());
         }
 
         internal CharacterActor Actor { get; }
         internal CharacterMedicalRuntime Runtime { get; }
 
-        public void Dispose() => UnityEngine.Object.DestroyImmediate(actorObject);
+        public void Dispose()
+        {
+            facts.Dispose();
+            UnityEngine.Object.DestroyImmediate(actorObject);
+        }
     }
 
     private sealed class RecordingOwnerDrain :
@@ -944,6 +956,7 @@ public static class CharacterMedicalSupplyDestinationDrainRuntimeDebugScenarios
     private sealed class RuntimeWorldRegistry : ICharacterAiWorldRegistry
     {
         private readonly List<CharacterActor> characters;
+        private readonly List<BuildableObject> buildings = new();
 
         internal RuntimeWorldRegistry(CharacterActor actor) =>
             characters = new List<CharacterActor> { actor };
@@ -955,9 +968,9 @@ public static class CharacterMedicalSupplyDestinationDrainRuntimeDebugScenarios
         public int WildlifeVersion => 0;
         public IReadOnlyList<WildlifeActor> Wildlife =>
             Array.Empty<WildlifeActor>();
-        public int BuildingVersion => 0;
+        public int BuildingVersion => buildings.Count;
         public IReadOnlyList<BuildableObject> Buildings =>
-            Array.Empty<BuildableObject>();
+            buildings;
         public int WarehouseVersion => 0;
         public IReadOnlyList<IWarehouseFacility> Warehouses =>
             Array.Empty<IWarehouseFacility>();
@@ -973,8 +986,10 @@ public static class CharacterMedicalSupplyDestinationDrainRuntimeDebugScenarios
         public void UnregisterCharacterLifetime(CharacterActor actor) { }
         public void RegisterWildlife(WildlifeActor actor) { }
         public void UnregisterWildlife(WildlifeActor actor) { }
-        public void RegisterBuilding(BuildableObject building) { }
-        public void UnregisterBuilding(BuildableObject building) { }
+        public void RegisterBuilding(BuildableObject building) =>
+            buildings.Add(building);
+        public void UnregisterBuilding(BuildableObject building) =>
+            buildings.Remove(building);
         public int ReleaseTransientBuildingOwnership(
             IBuildingVisitorPort visitor,
             string reason) => 0;

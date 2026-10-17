@@ -329,6 +329,7 @@ public sealed class QualityTargetPipelineSaveData
 
 public interface IQualityTargetPipelineQuery
 {
+    CraftQualityAttemptEstimate CaptureQualityEstimate(string pipelineId);
     IReadOnlyList<QualityTargetPipelineSaveData> QualityPipelines { get; }
     bool TryGetQualityPipeline(
         string pipelineId,

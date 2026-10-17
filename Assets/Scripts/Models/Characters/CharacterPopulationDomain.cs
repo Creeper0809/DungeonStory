@@ -171,7 +171,9 @@ namespace DungeonStory.Characters
                 profile.IsStaff =
                     CharacterSettlementStandingRules.IsSettlementResident(
                         profile.SettlementStanding);
-                profile.IsVisiting = false;
+                // A visiting profile now has an actor in the same world save.
+                // Clearing this flag would make the restored visitor eligible
+                // for a second spawn. The world validator owns the actor join.
             }
 
             creationSerial = profiles

@@ -185,7 +185,10 @@ public sealed class ResourceItemDefinitionSO : ItemDefinitionSO
         float moodEffect,
         float workSpeedEffect,
         float combatEffect,
-        float durationSeconds)
+        float durationSeconds,
+        float fatigueAccumulationReduction = 0f,
+        float researchSpeedEffect = 0f,
+        bool suppressesPerceivedPain = false)
     {
         SetFeature(new SubstanceItemFeature
         {
@@ -198,6 +201,10 @@ public sealed class ResourceItemDefinitionSO : ItemDefinitionSO
             moodEffect = moodEffect,
             workSpeedEffect = workSpeedEffect,
             combatEffect = combatEffect,
+            fatigueAccumulationReduction = Mathf.Clamp01(
+                fatigueAccumulationReduction),
+            researchSpeedEffect = Mathf.Max(0f, researchSpeedEffect),
+            suppressesPerceivedPain = suppressesPerceivedPain,
             durationSeconds = Mathf.Max(1f, durationSeconds)
         });
     }

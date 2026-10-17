@@ -29,13 +29,25 @@ public sealed class CombatImpactPresentation : MonoBehaviour
 
         IWorldUiHierarchy requiredHierarchy = worldUiHierarchy
             ?? throw new System.ArgumentNullException(nameof(worldUiHierarchy));
-        CombatImpactPresentation impact = Pool.Count > 0
-            ? Pool.Dequeue()
-            : Create(requiredHierarchy);
+        CombatImpactPresentation impact = null;
+        while (Pool.Count > 0 && impact == null)
+        {
+            impact = Pool.Dequeue();
+        }
+        if (impact == null)
+        {
+            impact = Create(requiredHierarchy);
+        }
         impact.gameObject.SetActive(true);
         impact.gameClock = gameClock
             ?? throw new System.ArgumentNullException(nameof(gameClock));
         impact.Begin(worldPosition, damageType, coverHit);
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetPool()
+    {
+        Pool.Clear();
     }
 
     private static CombatImpactPresentation Create(IWorldUiHierarchy worldUiHierarchy)

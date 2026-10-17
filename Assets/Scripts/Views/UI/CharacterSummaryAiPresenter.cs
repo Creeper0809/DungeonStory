@@ -128,9 +128,59 @@ public sealed class CharacterSummaryAiPresenter
 
         if (actor.Brain != null)
         {
+            CharacterOperationBlockSnapshot currentBlock =
+                actor.Brain.CaptureCurrentOperationBlock();
+            CharacterOperationBlockSnapshot recentFailure =
+                actor.Brain.CaptureRecentOperationFailure();
+            CharacterAiDecisionScheduleObservation schedule =
+                diagnostics.CaptureDecisionSchedule(actor);
             builder.AppendLine();
             builder.AppendLine("현재 행동");
             builder.AppendLine(actor.Brain.GetDebugSummary(5));
+            builder.AppendLine();
+            builder.AppendLine("실행 차단 관측");
+            if (currentBlock.HasCurrentBlock)
+            {
+                builder.Append("현재  ")
+                    .Append(GameplayFlowDiagnosticsBuilder.FormatOperationBlock(
+                        currentBlock,
+                        schedule))
+                    .Append(" · 대상 ")
+                    .AppendLine(currentBlock.TargetStableId);
+            }
+            else if (currentBlock.HasObservation)
+            {
+                builder.Append("마지막 관측  ")
+                    .Append(GameplayFlowDiagnosticsBuilder.FormatOperationBlock(
+                        currentBlock,
+                        schedule))
+                    .Append(" · 대상 ")
+                    .AppendLine(currentBlock.TargetStableId);
+            }
+            else
+            {
+                builder.AppendLine("현재  미확인");
+            }
+            if (recentFailure.HasObservation)
+            {
+                builder.Append("최근 이력  ")
+                    .Append(GameplayFlowDiagnosticsBuilder.FormatBlockAxis(
+                        recentFailure.Axis))
+                    .Append(" · ")
+                    .Append(recentFailure.DomainFailure.IsFailure
+                        ? recentFailure.DomainFailure.Code.ToString()
+                        : recentFailure.Failure.Kind.ToString())
+                    .Append(" · 작업 ")
+                    .Append(recentFailure.ActionStableId)
+                    .Append(" · 실행 #")
+                    .Append(recentFailure.ActionEpoch)
+                    .Append(" · 대상 ")
+                    .AppendLine(recentFailure.TargetStableId);
+            }
+            else
+            {
+                builder.AppendLine("최근 이력  없음");
+            }
             builder.AppendLine();
             builder.AppendLine("AI 누적 진단");
             builder.Append("행동 시작 ").Append(actor.Brain.RuntimeActionStartCount)
@@ -147,8 +197,28 @@ public sealed class CharacterSummaryAiPresenter
                 .AppendLine(actor.Brain.CurrentJobGiverEvaluationRejectionSummary);
         }
 
+        CharacterAiDecisionScheduleObservation decisionSchedule =
+            diagnostics.CaptureDecisionSchedule(actor);
         builder.AppendLine();
-        builder.AppendLine($"다음 판단  {diagnostics.GetNextDecisionDelay(actor):0.0}s 후");
+        if (!decisionSchedule.IsScheduled)
+        {
+            builder.AppendLine("다음 판단  미예약");
+        }
+        else if (decisionSchedule.IsRetry)
+        {
+            builder.Append("다음 판단  재시도 · ")
+                .Append(GameplayFlowDiagnosticsBuilder.FormatRetryKind(
+                    decisionSchedule.RetryKind))
+                .Append(" · ")
+                .Append(decisionSchedule.RemainingSeconds.ToString("0.0"))
+                .AppendLine("s 후");
+        }
+        else
+        {
+            builder.Append("다음 판단  정상 주기 · ")
+                .Append(decisionSchedule.RemainingSeconds.ToString("0.0"))
+                .AppendLine("s 후");
+        }
         builder.AppendLine(
             $"AI 처리  {diagnostics.LastProcessingMilliseconds:0.00}ms"
             + $" · 경로 {diagnostics.LastPathSearchCount}/{diagnostics.CurrentPathSearchBudget}");

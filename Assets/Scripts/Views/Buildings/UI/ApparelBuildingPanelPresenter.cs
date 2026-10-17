@@ -168,6 +168,13 @@ public sealed class ApparelBuildingPanelPresenter : IApparelBuildingPanelPresent
                 debugMode.IsDeveloperModeEnabled ? 44f : 26f,
                 created,
                 "ApparelOrderStatus");
+            if (order.kind == ApparelWorkOrderKind.Craft)
+            {
+                CraftQualityAttemptEstimate estimate = orders.CaptureQualityEstimate(order.orderId);
+                AddText(parent, GameplayUiPresentationText.QualityEstimate(estimate), font, 12f,
+                    estimate.NeedsLowProbabilityWarning ? DungeonUiTheme.Warning : DungeonUiTheme.TextSecondary,
+                    90f, created, "ApparelQualityEstimate");
+            }
         }
         if (active.Count > 3)
         {

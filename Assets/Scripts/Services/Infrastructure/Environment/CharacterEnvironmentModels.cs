@@ -52,6 +52,37 @@ public sealed class CharacterEnvironmentExposure
 }
 
 [Serializable]
+public sealed class EnvironmentalExposureOutcomeSaveData
+{
+    public const int CurrentSchemaVersion = 1;
+
+    public int schemaVersion = CurrentSchemaVersion;
+    public string operationId = string.Empty;
+    public string eventKind = string.Empty;
+    public string characterId = string.Empty;
+    public string characterDisplayName = string.Empty;
+    public int x;
+    public int y;
+    public int absoluteDay;
+    public long ownerRevision;
+    public float temperatureC;
+    public float airQuality;
+    public float lightLevel;
+    public float coldBefore;
+    public float coldAfter;
+    public float heatBefore;
+    public float heatAfter;
+    public float airborneBefore;
+    public float airborneAfter;
+    public EnvironmentalExposureBand bandBefore;
+    public EnvironmentalExposureBand bandAfter;
+    public float damage;
+    public float healthBefore;
+    public float healthAfter;
+    public string reasonCode = string.Empty;
+}
+
+[Serializable]
 public sealed class EnvironmentalWorkwearSaveData
 {
     public string characterId = string.Empty;
@@ -61,17 +92,20 @@ public sealed class EnvironmentalWorkwearSaveData
 [Serializable]
 public sealed class DungeonCharacterEnvironmentSaveData
 {
-    public const int CurrentVersion = 11;
+    public const int CurrentVersion = 14;
 
     public int version = CurrentVersion;
     // Arrays intentionally have no initializer. Unity JsonUtility preserves a
-    // missing array as null, allowing the strict V3 boundary to distinguish a
+    // missing array as null, allowing the strict current-version boundary to distinguish a
     // malformed payload from a deliberately captured empty collection.
     public CharacterEnvironmentExposure[] exposures;
     public EnvironmentalWorkwearSaveData[] equippedWorkwear;
     public EquippedApparelSaveData[] equippedApparel;
+    public CharacterApparelPolicySaveData[] apparelPolicies;
     public ApparelWorkOrderSaveData[] apparelWorkOrders;
     public ApparelWorkOrderTerminalStateSaveData[] apparelWorkOrderTerminalStates;
+    public int nextExposureOutcomeSequence;
+    public EnvironmentalExposureOutcomeSaveData[] exposureOutcomes;
 }
 
 public readonly struct EnvironmentExposureChannelProjection
@@ -166,9 +200,45 @@ public readonly struct WorkEnvironmentAssessment
     public EnvironmentExposureProjection Projection { get; }
 }
 
+public readonly struct CharacterLightAdaptationSnapshot
+{
+    public CharacterLightAdaptationSnapshot(
+        bool enabled,
+        float actualLight,
+        float comfortableMinimum,
+        float comfortableMaximum,
+        float sensitivity,
+        float discomfort,
+        float moodContribution,
+        float workSpeedContribution)
+    {
+        Enabled = enabled;
+        ActualLight = actualLight;
+        ComfortableMinimum = comfortableMinimum;
+        ComfortableMaximum = comfortableMaximum;
+        Sensitivity = sensitivity;
+        Discomfort = discomfort;
+        MoodContribution = moodContribution;
+        WorkSpeedContribution = workSpeedContribution;
+    }
+
+    public bool Enabled { get; }
+    public float ActualLight { get; }
+    public float ComfortableMinimum { get; }
+    public float ComfortableMaximum { get; }
+    public float Sensitivity { get; }
+    public float Discomfort { get; }
+    public float MoodContribution { get; }
+    public float WorkSpeedContribution { get; }
+    public float WorkSpeedMultiplier => 1f + WorkSpeedContribution;
+}
+
 public interface ICharacterEnvironmentStatusQuery
 {
     CharacterEnvironmentExposure GetExposure(CharacterId characterId);
+    bool TryGetLightAdaptation(
+        CharacterId characterId,
+        out CharacterLightAdaptationSnapshot snapshot);
     EnvironmentalExposureBand GetPhysiologicalBand(CharacterId characterId);
     EnvironmentalExposureBand GetVisualBand(CharacterId characterId);
     float GetWorkSpeedMultiplier(CharacterId characterId);
@@ -180,6 +250,7 @@ public interface ICharacterEnvironmentStatusQuery
 public interface ICharacterEnvironmentExposureCommand
 {
     bool AddAirborneExposure(CharacterId characterId, float amount);
+    bool AddHeatExposure(CharacterId characterId, float amount);
 }
 
 public sealed class NoOpCharacterEnvironmentExposureCommand :
@@ -194,6 +265,8 @@ public sealed class NoOpCharacterEnvironmentExposureCommand :
 
     public bool AddAirborneExposure(CharacterId characterId, float amount) =>
         false;
+
+    public bool AddHeatExposure(CharacterId characterId, float amount) => false;
 }
 
 public interface ICharacterEnvironmentWorkContext
@@ -250,6 +323,13 @@ public interface IEnvironmentWorkPolicy
         EnvironmentalWorkKind workKind,
         bool forced);
     WorkEnvironmentAssessment AssessStart(
+        CharacterActor actor,
+        Vector2Int destination,
+        IReadOnlyList<GridMoveStep> route,
+        float expectedSeconds,
+        EnvironmentalWorkKind workKind,
+        bool forced);
+    WorkEnvironmentAssessment PrepareActiveWork(
         CharacterActor actor,
         Vector2Int destination,
         IReadOnlyList<GridMoveStep> route,

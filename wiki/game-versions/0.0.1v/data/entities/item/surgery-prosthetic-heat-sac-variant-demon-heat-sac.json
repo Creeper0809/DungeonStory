@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "1.8kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "1개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "240"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "손상되거나 잃은 데몬 열낭의 기능을 대신하도록 신체에 연결하는 보철 부품이다. 므네실라의 보철 공방은 데몬 열낭 보강기를 피부에 닿는 면에 초록 포자점, 기계에 닿는 면에 네모 홈을 남긴다. 수리자는 손끝으로 어느 쪽을 먼저 풀지 안다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "surgery-prosthetic-heat-sac-variant-demon-heat-sac",
+  "spoiler_tier": "none",
+  "summary": "데몬 열낭 슬롯의 열 교환을 보조하는 인공 부품.",
+  "title": "데몬 열낭 보강기"
+}

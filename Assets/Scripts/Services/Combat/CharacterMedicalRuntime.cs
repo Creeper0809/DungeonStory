@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using Unity.Profiling;
 using UnityEngine;
 using VContainer.Unity;
@@ -19,7 +20,12 @@ public sealed partial class CharacterMedicalRuntime :
         new ProfilerMarker("CharacterMedicalRuntime.Tick");
 
     private readonly ICharacterBodyHealthQuery bodyHealthQuery;
-    private readonly ICharacterBodyHealthCommand bodyHealthCommands;
+    private readonly ICharacterBodyHealthMutationTransaction bodyHealthMutation;
+    private readonly IDomainFactPublisher facts;
+    private readonly IDomainFactRecoveryPublisher factRecovery;
+    private float nextFactRecoveryTime;
+    private string lastFactFailure = string.Empty;
+    private readonly IGameCalendar calendar;
     private readonly CharacterMedicalWorldServices world;
     private readonly IGameEventBus gameEventBus;
     private readonly ICharacterCarePriorityQuery carePriorityQuery;
@@ -32,6 +38,7 @@ public sealed partial class CharacterMedicalRuntime :
         supplyDestinationDrainRestoreCandidates;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly ICharacterPerformanceQuery performance;
+    private readonly ISettlementLaborAccountingService laborAccounting;
     private readonly CharacterMedicalRestoreCoordinator restoreCoordinator;
     private readonly Dictionary<string, CharacterMedicalDownedRegistration>
         downedOccupants = new(StringComparer.Ordinal);
@@ -61,7 +68,6 @@ public sealed partial class CharacterMedicalRuntime :
 
     public CharacterMedicalRuntime(
         ICharacterBodyHealthQuery bodyHealthQuery,
-        ICharacterBodyHealthCommand bodyHealthCommands,
         CharacterMedicalWorldServices world,
         IGameEventBus gameEventBus,
         ICharacterCarePriorityQuery carePriorityQuery,
@@ -74,12 +80,20 @@ public sealed partial class CharacterMedicalRuntime :
         ICharacterMedicalSupplyDestinationRuntime supplyDestinations,
         ICharacterMedicalSupplyDestinationDrainRuntime supplyDestinationDrains,
         IFacilityBufferDestinationCustodyDrainRestoreCandidateQuery
-            supplyDestinationDrainRestoreCandidates)
+            supplyDestinationDrainRestoreCandidates,
+        ICharacterBodyHealthMutationTransaction bodyHealthMutation,
+        IDomainFactPublisher facts,
+        IDomainFactRecoveryPublisher factRecovery,
+        IGameCalendar calendar,
+        ISettlementLaborAccountingService laborAccounting = null)
     {
         this.bodyHealthQuery = bodyHealthQuery
             ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
-        this.bodyHealthCommands = bodyHealthCommands
-            ?? throw new ArgumentNullException(nameof(bodyHealthCommands));
+        this.bodyHealthMutation = bodyHealthMutation
+            ?? throw new ArgumentNullException(nameof(bodyHealthMutation));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.factRecovery = factRecovery ?? throw new ArgumentNullException(nameof(factRecovery));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.gameEventBus = gameEventBus ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.carePriorityQuery = carePriorityQuery
@@ -104,6 +118,7 @@ public sealed partial class CharacterMedicalRuntime :
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
+        this.laborAccounting = laborAccounting;
         CharacterMedicalRestoreServices restoreServices = new(
             this.bodyHealthQuery,
             this.world.WorldRegistry,
@@ -184,6 +199,7 @@ public sealed partial class CharacterMedicalRuntime :
     public void CompleteRestoreCandidate()
     {
         restoreCoordinator.CompleteRestoreCandidate();
+        nextFactRecoveryTime = 0f;
     }
     public void DiscardRestoreCandidate() => restoreCoordinator.DiscardRestoreCandidate();
 
@@ -204,6 +220,7 @@ public sealed partial class CharacterMedicalRuntime :
 
     public void Initialize()
     {
+        if (downedSubscription != null) return;
         RecoverPendingMedicalSuppliesOrThrow();
         RecoverPendingMedicalDestinationDrainsOrThrow();
         downedSubscription = gameEventBus.Subscribe<CharacterBodyHealthDownedEvent>(
@@ -211,6 +228,7 @@ public sealed partial class CharacterMedicalRuntime :
         recoveredSubscription = gameEventBus.Subscribe<CharacterBodyHealthRecoveredEvent>(
             gameEvent => NotifyCharacterRecovered(gameEvent.Actor));
         deathSubscription = gameEventBus.Subscribe<CharacterDeathEvent>(OnCharacterDeath);
+        RecoverPendingProcedureFacts();
     }
 
     private void RecoverPendingMedicalSuppliesOrThrow()
@@ -287,6 +305,11 @@ public sealed partial class CharacterMedicalRuntime :
 
     private void TickRuntime()
     {
+        if (Time.realtimeSinceStartup >= nextFactRecoveryTime)
+        {
+            nextFactRecoveryTime = Time.realtimeSinceStartup + 0.5f;
+            RecoverPendingProcedureFacts();
+        }
         for (int index = 0; index < orders.Count; index++)
         {
             CharacterMedicalOrder order = orders[index];
@@ -425,6 +448,7 @@ public sealed partial class CharacterMedicalRuntime :
             return false;
         }
         order.rescuerId = GetId(rescuer);
+        BeginMedicalLaborReservation(order);
         order.state = order.stabilized
             ? CharacterMedicalOrderState.AwaitingRescue
             : CharacterMedicalOrderState.AwaitingStabilization;
@@ -476,6 +500,7 @@ public sealed partial class CharacterMedicalRuntime :
         }
 
         order.rescuerId = GetId(rescuer);
+        BeginMedicalLaborReservation(order);
         order.state = order.stabilized
             ? CharacterMedicalOrderState.AwaitingRescue
             : CharacterMedicalOrderState.AwaitingStabilization;
@@ -681,23 +706,60 @@ public sealed partial class CharacterMedicalRuntime :
         {
             return 0f;
         }
+        if (order.stabilized)
+            return 1f;
 
-        order.state = CharacterMedicalOrderState.Stabilizing;
-        order.SetStatus(CharacterMedicalStatusCode.Stabilizing);
-        order.completedStabilizationWork = Mathf.Min(
+        float completed = Mathf.Min(
             order.requiredStabilizationWork,
             order.completedStabilizationWork + Mathf.Max(0f, work));
-        if (order.completedStabilizationWork + 0.001f < order.requiredStabilizationWork)
+        if (completed + 0.001f < order.requiredStabilizationWork)
         {
-            return order.completedStabilizationWork / Mathf.Max(0.01f, order.requiredStabilizationWork);
+            RecordMedicalLabor(
+                order,
+                rescuer,
+                completed - order.completedStabilizationWork,
+                stabilization: true);
+            order.state = CharacterMedicalOrderState.Stabilizing;
+            order.SetStatus(CharacterMedicalStatusCode.Stabilizing);
+            order.completedStabilizationWork = completed;
+            return completed / Mathf.Max(0.01f, order.requiredStabilizationWork);
         }
 
-        bodyHealthCommands.Stabilize(patient);
-        gameEventBus.Publish(new CharacterInfectionBurdenRequestedEvent(patient, 8f));
+        if (!TryReserveMedicalFact(order, rescuer, patient,
+                CharacterMedicalProcedureKind.Stabilization, completed, order.requiredStabilizationWork,
+                out DomainFactLease reservation, out CharacterMedicalProcedureFactData draft))
+            return order.completedStabilizationWork
+                / Mathf.Max(0.01f, order.requiredStabilizationWork);
+        CharacterBodyHealthMutationSnapshot before = default;
+        try
+        {
+            before = bodyHealthMutation.CaptureCombatMutation(patient);
+            bodyHealthMutation.ApplyPreparedMedicalStabilization(patient);
+            if (!TryCommitMedicalFact(order, patient, reservation, draft, before))
+                return order.completedStabilizationWork
+                    / Mathf.Max(0.01f, order.requiredStabilizationWork);
+        }
+        catch
+        {
+            if (before.IsValid)
+                bodyHealthMutation.RestoreCombatMutation(
+                    patient, before, "medical-stabilization-aborted");
+            facts.Cancel(reservation);
+            throw;
+        }
 
+        RecordMedicalLabor(
+            order,
+            rescuer,
+            completed - order.completedStabilizationWork,
+            stabilization: true);
+        order.currentReservationStabilizationWork = 0f;
+        order.completedStabilizationWork = completed;
         order.stabilized = true;
         order.state = CharacterMedicalOrderState.AwaitingRescue;
         order.SetStatus(CharacterMedicalStatusCode.StabilizedWithInfectionRisk);
+        bodyHealthMutation.CompletePreparedMedicalMutation(patient, before);
+        gameEventBus.Publish(new CharacterInfectionBurdenRequestedEvent(patient, 8f));
         TryAssignTreatmentFacility(order);
         return 1f;
     }
@@ -819,24 +881,50 @@ public sealed partial class CharacterMedicalRuntime :
         }
 
         BuildingMedicalAbility medical = facility.BuildingData?.GetAbility<BuildingMedicalAbility>();
-        if (medical?.requiresMedicine == true
-            && order.completedTreatmentWork <= 0.001f
-            && !supplyCoordinator.EnsureTreatmentSupplyReady(order, facility))
+        float completed = Mathf.Min(
+            order.requiredTreatmentWork,
+            order.completedTreatmentWork + Mathf.Max(0f, work));
+        bool terminal = completed + 0.001f >= order.requiredTreatmentWork;
+        DomainFactLease reservation = default;
+        CharacterMedicalProcedureFactData draft = null;
+        if (terminal && !TryReserveMedicalFact(order, rescuer, patient,
+                CharacterMedicalProcedureKind.Treatment, completed, order.requiredTreatmentWork,
+                out reservation, out draft))
+            return order.completedTreatmentWork
+                / Mathf.Max(0.01f, order.requiredTreatmentWork);
+        bool supplyReady = true;
+        try
         {
+            if (medical?.requiresMedicine == true
+                && order.completedTreatmentWork <= 0.001f)
+                supplyReady = supplyCoordinator.EnsureTreatmentSupplyReady(
+                    order, facility);
+        }
+        catch
+        {
+            if (terminal) facts.Cancel(reservation);
+            throw;
+        }
+        if (!supplyReady)
+        {
+            if (terminal) facts.Cancel(reservation);
             return 0f;
         }
 
-        order.state = CharacterMedicalOrderState.Treating;
-        order.SetStatus(
-            order.treatmentSupply == CharacterMedicalSupplyKind.ExtractedBlood
-                ? CharacterMedicalStatusCode.TreatingWithExtractedBlood
-                : CharacterMedicalStatusCode.Treating);
-        order.completedTreatmentWork = Mathf.Min(
-            order.requiredTreatmentWork,
-            order.completedTreatmentWork + Mathf.Max(0f, work));
-        if (order.completedTreatmentWork + 0.001f < order.requiredTreatmentWork)
+        if (!terminal)
         {
-            return order.completedTreatmentWork / Mathf.Max(0.01f, order.requiredTreatmentWork);
+            RecordMedicalLabor(
+                order,
+                rescuer,
+                completed - order.completedTreatmentWork,
+                stabilization: false);
+            order.state = CharacterMedicalOrderState.Treating;
+            order.SetStatus(
+                order.treatmentSupply == CharacterMedicalSupplyKind.ExtractedBlood
+                    ? CharacterMedicalStatusCode.TreatingWithExtractedBlood
+                    : CharacterMedicalStatusCode.Treating);
+            order.completedTreatmentWork = completed;
+            return completed / Mathf.Max(0.01f, order.requiredTreatmentWork);
         }
 
         float severityReduction = medical != null
@@ -849,15 +937,52 @@ public sealed partial class CharacterMedicalRuntime :
             : Mathf.Max(0.1f, order.treatmentPotency);
         if (rescuer != null)
         {
-            CharacterPerformanceSnapshot treatment = performance.Evaluate(
-                rescuer,
-                "performance:medical:treatment-efficiency");
+            CharacterPerformanceSnapshot treatment;
+            try
+            {
+                treatment = performance.Evaluate(
+                    rescuer,
+                    "performance:medical:treatment-efficiency");
+                if (treatment == null)
+                    throw new InvalidOperationException(
+                        "Medical treatment performance result is missing.");
+            }
+            catch
+            {
+                facts.Cancel(reservation);
+                throw;
+            }
             treatmentEfficiency *= treatment.IsApplicable ? treatment.Value : 0f;
         }
-        bodyHealthCommands.ApplyTreatment(
-            patient,
-            severityReduction * 40f * treatmentEfficiency,
-            usedExtractedBlood ? 14f : 25f);
+        CharacterBodyHealthMutationSnapshot before = default;
+        try
+        {
+            before = bodyHealthMutation.CaptureCombatMutation(patient);
+            bodyHealthMutation.ApplyPreparedMedicalTreatment(
+                patient,
+                severityReduction * 40f * treatmentEfficiency,
+                usedExtractedBlood ? 14f : 25f);
+            if (!TryCommitMedicalFact(order, patient, reservation, draft, before))
+                return order.completedTreatmentWork
+                    / Mathf.Max(0.01f, order.requiredTreatmentWork);
+        }
+        catch
+        {
+            if (before.IsValid)
+                bodyHealthMutation.RestoreCombatMutation(
+                    patient, before, "medical-treatment-aborted");
+            facts.Cancel(reservation);
+            throw;
+        }
+        order.state = CharacterMedicalOrderState.Treating;
+        RecordMedicalLabor(
+            order,
+            rescuer,
+            completed - order.completedTreatmentWork,
+            stabilization: false);
+        order.currentReservationTreatmentWork = 0f;
+        order.completedTreatmentWork = completed;
+        bodyHealthMutation.CompletePreparedMedicalMutation(patient, before);
         if (usedExtractedBlood)
         {
             ApplyExtractedBloodConsequences(patient, infection: 4f, instability: 6f);
@@ -904,6 +1029,242 @@ public sealed partial class CharacterMedicalRuntime :
         order.requiredTreatmentWork = CalculateTreatmentWork(patient);
         order.SetStatus(CharacterMedicalStatusCode.AdditionalTreatmentRequired);
         return 1f;
+    }
+
+    private bool TryReserveMedicalFact(CharacterMedicalOrder order, CharacterActor rescuer,
+        CharacterActor patient, CharacterMedicalProcedureKind procedure, float completedWork, float requiredWork,
+        out DomainFactLease lease, out CharacterMedicalProcedureFactData draft)
+    {
+        lease = default;
+        draft = null;
+        if (order.nextTerminalOutcomeSequence <= 0 || order.nextTerminalOutcomeSequence == int.MaxValue)
+            throw new InvalidOperationException("medical-procedure-sequence-exhausted");
+        if (aggregateState.PendingProcedureFacts.Count >= CharacterMedicalSaveValidation.MaximumPendingProcedureFacts)
+        {
+            ReportFactFailure("medical-procedure-pending-capacity");
+            return false;
+        }
+        string patientId = CharacterPersistentIdentity.Require(patient).Value;
+        string clinicianId = CharacterPersistentIdentity.Require(rescuer).Value;
+        draft = new CharacterMedicalProcedureFactData
+        {
+            orderId = order.orderId, sequence = order.nextTerminalOutcomeSequence,
+            absoluteDay = calendar.Current.AbsoluteDay,
+            patientId = patientId, patientName = string.IsNullOrWhiteSpace(patient.name) ? patientId : patient.name,
+            clinicianId = clinicianId, clinicianName = string.IsNullOrWhiteSpace(rescuer.name) ? clinicianId : rescuer.name,
+            facilityId = order.treatmentFacilityId, procedure = procedure,
+            completedWork = completedWork, requiredWork = requiredWork
+        };
+        var proposal = new CharacterMedicalProcedureFact(draft, proposalOnly: true);
+        if (!facts.TryReserve(proposal, out lease, out string failure))
+        {
+            ReportFactFailure("medical-procedure-reserve:" + failure);
+            return false;
+        }
+        if (!lease.IsValid || string.IsNullOrWhiteSpace(lease.PublicationKey))
+        {
+            facts.Cancel(lease);
+            throw new InvalidOperationException("medical-procedure-reservation-identity-missing");
+        }
+        return true;
+    }
+
+    private bool TryCommitMedicalFact(CharacterMedicalOrder order, CharacterActor patient,
+        in DomainFactLease lease, CharacterMedicalProcedureFactData draft,
+        in CharacterBodyHealthMutationSnapshot before)
+    {
+        var after = bodyHealthMutation.CaptureCombatMutation(patient);
+        draft.before = CharacterMedicalProcedureFact.CaptureVitals(before.State);
+        draft.after = CharacterMedicalProcedureFact.CaptureVitals(after.State);
+        if (draft.procedure == CharacterMedicalProcedureKind.Treatment)
+        {
+            draft.materialKind = order.treatmentSupply;
+            draft.materialItemId = order.treatmentItemId;
+            draft.materialQuantity = order.treatmentSupplyConsumed ? 1 : 0;
+        }
+        var fact = new CharacterMedicalProcedureFact(draft);
+        var pending = new CharacterMedicalPendingFactData
+        { publicationKey = lease.PublicationKey, fact = fact.Snapshot() };
+        var pendingFacts = writableAggregateState.PendingProcedureFacts;
+        pendingFacts.Add(pending);
+        DomainFactDelivery result;
+        try { result = facts.Publish(lease, fact); }
+        catch (Exception exception)
+        {
+            // The reply can be lost after the durable boundary. Preserve the
+            // applied body and exact fact; replay never performs medical effects.
+            result = DomainFactDelivery.Uncertain("medical-procedure-publish:" + exception.GetType().Name);
+        }
+        if (!result.MayBeCommitted)
+        {
+            bodyHealthMutation.RestoreCombatMutation(patient, before, "medical-procedure-publication-rejected");
+            pendingFacts.Remove(pending);
+            ReportFactFailure(result.Detail);
+            return false;
+        }
+        order.nextTerminalOutcomeSequence++;
+        if (result.Completed && result.OperationKey == pending.publicationKey)
+        {
+            pendingFacts.Remove(pending);
+            lastFactFailure = string.Empty;
+        }
+        else ReportFactFailure("medical-procedure-pending:" + result.Detail);
+        return true;
+    }
+
+    internal void RecoverPendingProcedureFacts()
+    {
+        var pendingFacts = writableAggregateState.PendingProcedureFacts;
+        foreach (var pending in pendingFacts.Take(8).ToArray())
+        {
+            var fact = new CharacterMedicalProcedureFact(pending.fact);
+            var replies = new DomainFactDelivery[1];
+            bool accepted;
+            string failure;
+            try
+            {
+                accepted = factRecovery.ReplayBatch(
+                    new[] { DomainFactReplay.Create(pending.publicationKey, fact) }, replies, out failure);
+            }
+            catch (Exception exception)
+            {
+                ReportFactFailure("medical-procedure-recovery:" + exception.GetType().Name);
+                continue;
+            }
+            if (accepted && replies[0].Completed && replies[0].OperationKey == pending.publicationKey)
+            {
+                pendingFacts.Remove(pending);
+                lastFactFailure = string.Empty;
+            }
+            else ReportFactFailure("medical-procedure-recovery-pending:" + failure + ":" + replies[0].Detail);
+        }
+    }
+
+    private void ReportFactFailure(string failure)
+    {
+        if (failure == lastFactFailure) return;
+        lastFactFailure = failure;
+        Debug.LogWarning("Character medical observation: " + failure);
+    }
+
+    private static void BeginMedicalLaborReservation(
+        CharacterMedicalOrder order)
+    {
+        if (order == null)
+        {
+            throw new ArgumentNullException(nameof(order));
+        }
+
+        order.currentReservationStabilizationWork = 0f;
+        order.currentReservationTreatmentWork = 0f;
+        if (order.nextLaborCheckpointSequence <= 0)
+        {
+            // Additive compatibility for version-8 payloads written before
+            // the checkpoint sequence was introduced.
+            order.nextLaborCheckpointSequence = 1;
+        }
+    }
+
+    private void RecordMedicalLabor(
+        CharacterMedicalOrder order,
+        CharacterActor rescuer,
+        float acceptedWork,
+        bool stabilization)
+    {
+        if (order == null
+            || rescuer == null
+            || acceptedWork <= 0f
+            || !float.IsFinite(acceptedWork))
+        {
+            return;
+        }
+
+        float previous = stabilization
+            ? order.currentReservationStabilizationWork
+            : order.currentReservationTreatmentWork;
+        float current = checked(previous + acceptedWork);
+        long deltaMilliWu = checked(
+            EmergencyWuUnits.FromWu(current)
+            - EmergencyWuUnits.FromWu(previous));
+        int nextSequence = checked(
+            (stabilization
+                ? order.stabilizationLaborSequence
+                : order.treatmentLaborSequence) + 1);
+        if (laborAccounting != null)
+        {
+            string procedure = stabilization
+                ? "stabilization"
+                : "treatment";
+            EmergencyAccountingResult recorded = laborAccounting.Record(
+                new SettlementLaborContribution(
+                    $"medical-work:{order.orderId}:{procedure}",
+                    nextSequence,
+                    SettlementLaborContributionChannel.ActualLabor,
+                    deltaMilliWu,
+                    BuiltInWorkTypeIds.Treat.Value));
+            if (!recorded.Success)
+            {
+                throw new InvalidOperationException(
+                    $"{recorded.Code}: {recorded.Message}");
+            }
+        }
+
+        if (stabilization)
+        {
+            order.stabilizationLaborSequence = nextSequence;
+            order.currentReservationStabilizationWork = current;
+        }
+        else
+        {
+            order.treatmentLaborSequence = nextSequence;
+            order.currentReservationTreatmentWork = current;
+        }
+    }
+
+    private void PublishMedicalWorkCheckpoint(
+        CharacterMedicalOrder order,
+        CharacterActor rescuer,
+        CharacterMedicalStatusCode releaseStatus)
+    {
+        if (order == null)
+        {
+            return;
+        }
+
+        float contribution = checked(
+            order.currentReservationStabilizationWork
+            + order.currentReservationTreatmentWork);
+        if (contribution <= 0f)
+        {
+            return;
+        }
+
+        string rescuerId = rescuer != null
+            ? CharacterPersistentIdentity.Require(rescuer).Value
+            : order.rescuerId;
+        if (!DomainFactValueSyntax.IsIdentity(rescuerId)
+            || !DomainFactValueSyntax.IsIdentity(order.patientId))
+        {
+            throw new InvalidOperationException(
+                "Medical work checkpoint requires canonical rescuer and patient IDs.");
+        }
+
+        int sequence = Math.Max(1, order.nextLaborCheckpointSequence);
+        gameEventBus.Publish(new WorkCompletedIdentityEvent(
+            new CharacterId(rescuerId),
+            BuiltInWorkTypeIds.Treat.Value,
+            "checkpoint:medical-work-suspended:"
+                + releaseStatus.ToString().ToLowerInvariant(),
+            CharacterCommandOrigin.Autonomous,
+            Math.Max(0, calendar.Day),
+            $"medical-work-checkpoint:{order.orderId}:{sequence}",
+            WorkCompletionIdentityReferenceDefaults.CheckpointTerminalOwner,
+            WorkCompletionIdentityReferenceDefaults.None,
+            order.patientId,
+            contribution));
+        order.nextLaborCheckpointSequence = checked(sequence + 1);
+        order.currentReservationStabilizationWork = 0f;
+        order.currentReservationTreatmentWork = 0f;
     }
 
     private void ApplyExtractedBloodConsequences(
@@ -955,6 +1316,8 @@ public sealed partial class CharacterMedicalRuntime :
                 GetId(rescuer));
             return false;
         }
+
+        PublishMedicalWorkCheckpoint(order, rescuer, releaseStatus);
 
         if (order.carried && TryGetPatient(order, out CharacterActor patient))
         {
@@ -1105,7 +1468,8 @@ public sealed partial class CharacterMedicalRuntime :
         {
             version = DungeonCharacterMedicalSaveData.CurrentVersion,
             orderSequence = orderSequence,
-            orders = orders.Select(CharacterMedicalOrderPersistence.Clone).ToList()
+            orders = orders.Select(CharacterMedicalOrderPersistence.Clone).ToList(),
+            pendingProcedureFacts = aggregateState.PendingProcedureFacts.Select(value => value.Clone()).ToList()
         };
     }
 

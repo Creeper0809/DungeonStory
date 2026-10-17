@@ -1,0 +1,7 @@
+pet=; petCell=; petHP=; hunger=; thirst=; intent=; owner=character:staff:1:01; ownerCell=(19, 0); gameTime=0.648096
+result=FAIL
+System.InvalidOperationException: No legal domestic-birth cell beside authored pen.
+  at Wim029CompanionLiveRunner+<Run>d__19.MoveNext () [0x00e12] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Captivity\Editor\Wim029CompanionLiveRunner.cs:217 
+  at Wim029CompanionLiveRunner+<Observe>d__18.MoveNext () [0x00051] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Captivity\Editor\Wim029CompanionLiveRunner.cs:66 
+scope=controlled authored initial pen/domestic birth, healthy staff and safe field; actual EventSystem owner assignment/change/clear, autonomous follow/return, current whole registry restore. Not natural capture/birth/construction, reciprocal combat, animal haul, daily balance or six-adult certification.
+cleanup=paused disposable main Play, operator stops; disk persistence disabled before owner UI; original environment restored

@@ -47,6 +47,33 @@ public interface IOffensePreparationService
         DungeonGameRestoreReport report = null);
 }
 
+public readonly struct OffensePhysicalItemCommitReceipt
+{
+    public OffensePhysicalItemCommitReceipt(
+        string itemId,
+        int quantity,
+        string operationId)
+    {
+        ItemId = itemId?.Trim() ?? string.Empty;
+        Quantity = Mathf.Max(0, quantity);
+        OperationId = operationId?.Trim() ?? string.Empty;
+    }
+
+    public string ItemId { get; }
+    public int Quantity { get; }
+    public string OperationId { get; }
+}
+
+public interface IOffensePreparationSettlementPort
+{
+    IReadOnlyList<OffensePhysicalItemCommitReceipt> ReturnSuppliesWithReceipt(
+        OffenseSupplyLoadout loadout,
+        string packageId);
+    IReadOnlyList<OffensePhysicalItemCommitReceipt> DepositLootWithReceipt(
+        IReadOnlyDictionary<StockCategory, int> loot,
+        string expeditionId);
+}
+
 public readonly struct OffenseSupplyCustodyReceipt
 {
     public OffenseSupplyCustodyReceipt(
@@ -350,6 +377,7 @@ public readonly struct OffenseSupplyPackingSnapshot
 
 public sealed class DungeonOffensePreparationService :
     IOffensePreparationService,
+    IOffensePreparationSettlementPort,
     IDungeonRestoreTransactionParticipant
 {
     private const string ExpeditionSupplyOwnerDomain =
@@ -361,6 +389,8 @@ public sealed class DungeonOffensePreparationService :
         "offense-expedition-supply-custody-transfer";
     public const string ReturnSourceReasonCode =
         "offense-expedition-supply-return";
+    public const string LootReturnSourceReasonCode =
+        "offense-expedition-loot-return";
     internal sealed class PackingRestoreCandidate
     {
         internal PackingRestoreCandidate(
@@ -647,7 +677,16 @@ public sealed class DungeonOffensePreparationService :
 
     public void ReturnSupplies(OffenseSupplyLoadout loadout, string packageId = "")
     {
-        if (loadout == null) return;
+        ReturnSuppliesWithReceipt(loadout, packageId);
+    }
+
+    public IReadOnlyList<OffensePhysicalItemCommitReceipt>
+        ReturnSuppliesWithReceipt(
+            OffenseSupplyLoadout loadout,
+            string packageId)
+    {
+        if (loadout == null)
+            return Array.Empty<OffensePhysicalItemCommitReceipt>();
         string normalized = NormalizePackageId(packageId);
         if (string.IsNullOrWhiteSpace(normalized)
             || !packages.TryGetValue(
@@ -656,7 +695,7 @@ public sealed class DungeonOffensePreparationService :
         {
             // Only the persisted package is authorized to materialize returns.
             // A caller-provided loadout without that owner must never mint stock.
-            return;
+            return Array.Empty<OffensePhysicalItemCommitReceipt>();
         }
         if (package.Phase == OffenseSupplyCustodyPhase.Staging)
         {
@@ -673,12 +712,15 @@ public sealed class DungeonOffensePreparationService :
                 packages.Values.Where(candidate =>
                     !ReferenceEquals(candidate, package)));
             packages.Remove(normalized);
-            return;
+            return Array.Empty<OffensePhysicalItemCommitReceipt>();
         }
-        if (package.Phase is OffenseSupplyCustodyPhase.Returned
-                or OffenseSupplyCustodyPhase.Lost)
+        if (package.Phase == OffenseSupplyCustodyPhase.Returned)
         {
-            return;
+            return BuildReturnedItemReceipts(package);
+        }
+        if (package.Phase == OffenseSupplyCustodyPhase.Lost)
+        {
+            return Array.Empty<OffensePhysicalItemCommitReceipt>();
         }
         if (!EnsureCustodyAcknowledged(package, out string custodyFailure))
         {
@@ -718,7 +760,7 @@ public sealed class DungeonOffensePreparationService :
         if (package.ReturnedCosts.Count == 0)
         {
             package.CompleteEmptyReturn();
-            return;
+            return Array.Empty<OffensePhysicalItemCommitReceipt>();
         }
         if (!physicalCustody.TryEnsureReturnOutputs(
                 package.ReturnedCosts,
@@ -732,6 +774,7 @@ public sealed class DungeonOffensePreparationService :
                 $"Expedition supply package '{package.PackageId}' return publication failed: {returnFailure}");
         }
         package.CompleteReturn(receipt);
+        return BuildReturnedItemReceipts(package);
     }
 
     public void DepositLoot(IReadOnlyDictionary<StockCategory, int> loot)
@@ -741,6 +784,50 @@ public sealed class DungeonOffensePreparationService :
         {
             Deposit(OffenseLootItemIds.UnappraisedLoot, total);
         }
+    }
+
+    public IReadOnlyList<OffensePhysicalItemCommitReceipt>
+        DepositLootWithReceipt(
+            IReadOnlyDictionary<StockCategory, int> loot,
+            string expeditionId)
+    {
+        int total = loot?.Values.Sum(value => Mathf.Max(0, value)) ?? 0;
+        string normalized = expeditionId?.Trim() ?? string.Empty;
+        if (total <= 0)
+            return Array.Empty<OffensePhysicalItemCommitReceipt>();
+        if (normalized.Length == 0
+            || !TryResolveReturnDropPosition(out Vector2Int position))
+        {
+            throw new InvalidOperationException(
+                "Expedition loot return requires an expedition and physical drop position.");
+        }
+
+        string operationId = $"offense-expedition-loot-return:{normalized}";
+        Dictionary<string, int> outputs = new(StringComparer.Ordinal)
+        {
+            [OffenseLootItemIds.UnappraisedLoot] = total
+        };
+        if (!physicalCustody.TryEnsureReturnOutputs(
+                outputs,
+                position,
+                operationId,
+                LootReturnSourceReasonCode,
+                out PhysicalItemSourcePublicationReceipt receipt,
+                out string failure)
+            || !receipt.IsCommitted
+            || receipt.OutputQuantity != total)
+        {
+            throw new InvalidOperationException(
+                $"Expedition loot return publication failed: {failure}");
+        }
+
+        return new[]
+        {
+            new OffensePhysicalItemCommitReceipt(
+                OffenseLootItemIds.UnappraisedLoot,
+                receipt.OutputQuantity,
+                receipt.OperationId)
+        };
     }
 
     public IReadOnlyList<OffenseSupplyPackingStateData> CapturePackingState()
@@ -1057,6 +1144,25 @@ public sealed class DungeonOffensePreparationService :
         }
 
         return costs;
+    }
+
+    private static IReadOnlyList<OffensePhysicalItemCommitReceipt>
+        BuildReturnedItemReceipts(ExpeditionSupplyPackage package)
+    {
+        if (package == null
+            || package.Phase != OffenseSupplyCustodyPhase.Returned)
+        {
+            return Array.Empty<OffensePhysicalItemCommitReceipt>();
+        }
+
+        return package.ReturnedCosts
+            .Where(pair => pair.Value > 0)
+            .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .Select(pair => new OffensePhysicalItemCommitReceipt(
+                pair.Key,
+                pair.Value,
+                package.ReturnOperationId))
+            .ToArray();
     }
 
     private bool EnsurePackageReservation(ExpeditionSupplyPackage package)

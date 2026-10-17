@@ -1,0 +1,6 @@
+result=PASS
+missing/nonwater/empty-query-preserves-state=PASS
+quality-and-authored-multiplier-exact-boundary/query-zero-debit/actual-use-exact-debit=PASS
+manual-arrival/ceil/reservation/destination/item-kind/dry-fallback/purity=PASS
+unregistered-and-null-manual-owner-rejected-without-publication=PASS
+scope=actual fluid topology/state and production read selectors; synthetic water fixtures and controlled stock snapshots; no natural bathing/hauling or six-adult balance claim

@@ -45,7 +45,7 @@ tools/player-automation/Invoke-DungeonPlayerAutomation.ps1 -Command capture.scre
 ```toml
 [mcp_servers.dungeon-player]
 command = "python"
-args = ["F:/01_Programming/01_Project/02_Unity/DungeonStory/tools/player-automation/dungeon_player_mcp.py"]
+args = ["C:/Users/vulpo/Documents/DungeonStory/tools/player-automation/dungeon_player_mcp.py"]
 ```
 
 MCP 클라이언트가 서버 목록을 다시 읽은 뒤에는 상태, UI 목록, 클릭, 키 입력,

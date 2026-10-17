@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// Immutable, exact six-participant registry. Journal persistence binds to
+/// Immutable, exact eight-participant registry. Journal persistence binds to
 /// its fingerprint, while runtime execution uses the dependency-derived order.
 /// Persisted participant rows remain ID-ordinal and never use execution order.
 /// </summary>
@@ -11,8 +11,12 @@ public sealed class ProductionFacilityDestructiveDrainParticipantRegistry :
     IProductionFacilityDestructiveDrainParticipantRegistry
 {
     public const string Schema =
-        "production-facility-destructive-drain-participant-registry@3";
+        "production-facility-destructive-drain-participant-registry@5";
     public const string ExpectedRegistryFingerprint =
+        "f84fdfbeb5e4345f7ee81c5a91efc4d9c58801011600ee51ea0448bdd12397ec";
+    public const string PreviousV4RegistryFingerprint =
+        "934be6dfe7f86fa7f0c0e5b37a6e93d4c05602987cd4ce6056d10aba4d0d8cc1";
+    public const string PreviousV3RegistryFingerprint =
         "2a12b255807935361d7326d21e5d533f8802c6825332343aa03471a8033aff58";
 
     private static readonly IReadOnlyDictionary<string, ParticipantSpec>
@@ -58,6 +62,22 @@ public sealed class ProductionFacilityDestructiveDrainParticipantRegistry :
                     {
                         ProductionFacilityDestructiveDrainParticipantIds
                             .PhysicalCustodyCarryRecovery
+                    }),
+            [ProductionFacilityDestructiveDrainParticipantIds
+                .EnvironmentalFireDamageOutcome] = new(
+                    1,
+                    new[]
+                    {
+                        ProductionFacilityDestructiveDrainParticipantIds
+                            .StockSensorEmbeddedSalvage
+                    }),
+            [ProductionFacilityDestructiveDrainParticipantIds
+                .BuildingDemolitionOutcome] = new(
+                    1,
+                    new[]
+                    {
+                        ProductionFacilityDestructiveDrainParticipantIds
+                            .EnvironmentalFireDamageOutcome
                     })
         };
 
@@ -188,7 +208,7 @@ public sealed class ProductionFacilityDestructiveDrainParticipantRegistry :
         if (!actual.SequenceEqual(expected, StringComparer.Ordinal))
         {
             throw new InvalidOperationException(
-                "Destructive-drain participant registry does not contain the exact required six IDs.");
+                "Destructive-drain participant registry does not contain the exact required eight IDs.");
         }
     }
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 
@@ -16,6 +17,8 @@ public class FacilitySynthesisRuntime : MonoBehaviour
     private IFacilitySynthesisRecipeQuery recipeQuery;
     private IGridBuildingObjectFactory gridBuildingObjectFactory;
     private IGameEventBus gameEventBus;
+    private IGameCalendar gameCalendar;
+    private FacilitySynthesisFactOutbox facts;
     private readonly IProductionFacilityHandleQuery productionFacilityHandles =
         new ProductionFacilityHandleQueryAdapter();
 
@@ -32,7 +35,9 @@ public class FacilitySynthesisRuntime : MonoBehaviour
         IObjectResolver objectResolver,
         IFacilitySynthesisRecipeQuery recipeQuery,
         IGridBuildingObjectFactory gridBuildingObjectFactory,
-        IGameEventBus gameEventBus)
+        IGameEventBus gameEventBus,
+        IGameCalendar gameCalendar,
+        FacilitySynthesisFactOutbox facts)
     {
         this.blueprintResearchStateService = blueprintResearchStateService
             ?? throw new ArgumentNullException(nameof(blueprintResearchStateService));
@@ -46,6 +51,9 @@ public class FacilitySynthesisRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(gridBuildingObjectFactory));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.gameCalendar = gameCalendar
+            ?? throw new ArgumentNullException(nameof(gameCalendar));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
         buildingFactory = null;
     }
 
@@ -126,16 +134,81 @@ public class FacilitySynthesisRuntime : MonoBehaviour
         Grid grid = primary.Grid;
         Vector2Int resultPosition = primary.centerPos;
         int inheritedLevel = FacilitySynthesisService.CalculateInheritedLevel(recipe, materials);
+        long ownerRevision;
+        try
+        {
+            ownerRevision = checked(primary.SynthesisOutcomeRevision + 1L);
+        }
+        catch (OverflowException)
+        {
+            result = new FacilitySynthesisResult(
+                false,
+                recipe,
+                null,
+                inheritedLevel,
+                "시설 합성 결과 revision 한도를 초과했습니다");
+            return false;
+        }
 
-        if (!TryReplaceMaterialsAtomically(
+        FacilitySynthesisCompletedFact completedFact;
+        try
+        {
+            completedFact = CaptureCompletedFact(
+                recipe,
+                orderedMaterials,
+                primary,
+                inheritedLevel,
+                ownerRevision,
+                resultPosition);
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                           or InvalidOperationException
+                                           or OverflowException)
+        {
+            result = new FacilitySynthesisResult(
+                false,
+                recipe,
+                null,
+                inheritedLevel,
+                "시설 합성 완료 사실 고정 실패: " + exception.Message);
+            return false;
+        }
+        if (!facts.TryBegin(
+                completedFact,
+                out IDomainFactStage preparedFact,
+                out string outcomePrepareFailure))
+        {
+            result = new FacilitySynthesisResult(
+                false,
+                recipe,
+                null,
+                inheritedLevel,
+                "시설 합성 결과 예약 실패: " + outcomePrepareFailure);
+            return false;
+        }
+
+        bool replaced;
+        BuildableObject resultBuilding;
+        string replacementFailure;
+        try
+        {
+            replaced = TryReplaceMaterialsAtomically(
                 recipe,
                 orderedMaterials,
                 primary,
                 grid,
                 resultPosition,
                 inheritedLevel,
-                out BuildableObject resultBuilding,
-                out string replacementFailure))
+                ownerRevision,
+                preparedFact,
+                out resultBuilding,
+                out replacementFailure);
+        }
+        finally
+        {
+            preparedFact.Cancel();
+        }
+        if (!replaced)
         {
             result = new FacilitySynthesisResult(
                 false,
@@ -151,15 +224,97 @@ public class FacilitySynthesisRuntime : MonoBehaviour
             recipe,
             resultBuilding,
             inheritedLevel,
-            $"{recipe.DisplayName} 합성 완료");
-        Completed?.Invoke(result);
-        gameEventBus.Publish(new FacilitySynthesisCompletedEvent(result));
-        gameEventBus.RaiseAlert(
-            "시설 합성 완료",
-            $"{recipe.DisplayName}: {FacilityShopService.GetBuildingName(recipe.resultBuilding)} Lv.{inheritedLevel}",
-            EventAlertImportance.Medium,
-            "합성");
+            $"{recipe.DisplayName} 합성 완료",
+            ownerRevision);
+        NotifyCompletionSafely(result);
         return true;
+    }
+
+    private void NotifyCompletionSafely(FacilitySynthesisResult result)
+    {
+        Delegate[] callbacks = Completed?.GetInvocationList();
+        if (callbacks != null)
+        {
+            foreach (Delegate callback in callbacks)
+            {
+                try
+                {
+                    ((Action<FacilitySynthesisResult>)callback).Invoke(result);
+                }
+                catch (Exception exception) when (IsRecoverableObserverException(
+                           exception))
+                {
+                    Debug.LogError(
+                        "Facility synthesis completion observer failed after the domain/outbox commit: "
+                        + exception.GetType().Name + ":" + exception.Message);
+                }
+            }
+        }
+
+        try
+        {
+            gameEventBus.Publish(new FacilitySynthesisCompletedEvent(result));
+        }
+        catch (Exception exception) when (IsRecoverableObserverException(exception))
+        {
+            Debug.LogError(
+                "Facility synthesis event publication failed after the domain/outbox commit: "
+                + exception.GetType().Name + ":" + exception.Message);
+        }
+
+        try
+        {
+            gameEventBus.RaiseAlert(
+                "시설 합성 완료",
+                $"{result.Recipe.DisplayName}: {FacilityShopService.GetBuildingName(result.Recipe.resultBuilding)} Lv.{result.InheritedLevel}",
+                EventAlertImportance.Medium,
+                "합성");
+        }
+        catch (Exception exception) when (IsRecoverableObserverException(exception))
+        {
+            Debug.LogError(
+                "Facility synthesis alert publication failed after the domain/outbox commit: "
+                + exception.GetType().Name + ":" + exception.Message);
+        }
+    }
+
+    private static bool IsRecoverableObserverException(Exception exception) =>
+        exception is not OutOfMemoryException
+        && exception is not StackOverflowException
+        && exception is not AccessViolationException;
+
+    private FacilitySynthesisCompletedFact CaptureCompletedFact(
+        FacilitySynthesisRecipeSO recipe,
+        IReadOnlyList<BuildableObject> orderedMaterials,
+        BuildableObject primary,
+        int inheritedLevel,
+        long ownerRevision,
+        Vector2Int resultPosition)
+    {
+        string survivorId = primary.RequirePersistentInstanceId().Value;
+        string[] materialIds = orderedMaterials
+            .Select(material => material.RequirePersistentInstanceId().Value)
+            .ToArray();
+        string[] materialDefinitionIds = orderedMaterials
+            .Select(material => BuildingDefinitionIdentity.Resolve(
+                material.BuildingData))
+            .ToArray();
+        string[] materialNames =
+            orderedMaterials
+                .Select(material => FacilityShopService.GetBuildingName(material.BuildingData).Trim())
+                .ToArray();
+        string resultDefinitionId = BuildingDefinitionIdentity.Resolve(
+            recipe.resultBuilding);
+        return new FacilitySynthesisCompletedFact(new FacilitySynthesisCompletedFactData
+        {
+            survivorFacilityId = survivorId, revision = ownerRevision,
+            recipeId = recipe.recipeId, recipeDisplayName = recipe.DisplayName.Trim(),
+            resultDefinitionId = resultDefinitionId,
+            resultDisplayName = FacilityShopService.GetBuildingName(recipe.resultBuilding).Trim(),
+            materialIds = materialIds, materialDefinitionIds = materialDefinitionIds,
+            materialDisplayNames = materialNames, inheritedLevel = inheritedLevel,
+            absoluteDay = Math.Max(0, gameCalendar.Day), x = resultPosition.x, y = resultPosition.y
+        });
     }
 
     private bool Validate(
@@ -297,6 +452,8 @@ public class FacilitySynthesisRuntime : MonoBehaviour
         Grid grid,
         Vector2Int resultPosition,
         int inheritedLevel,
+        long outcomeOwnerRevision,
+        IDomainFactStage preparedFact,
         out BuildableObject resultBuilding,
         out string failureReason)
     {
@@ -339,6 +496,7 @@ public class FacilitySynthesisRuntime : MonoBehaviour
             candidate.SetGrid(grid);
             candidate.Initialization(recipe.resultBuilding, resultPosition);
             candidate.SetFacilityLevel(inheritedLevel);
+            candidate.SetSynthesisOutcomeRevision(outcomeOwnerRevision);
         }
         catch (Exception exception)
         {
@@ -478,16 +636,17 @@ public class FacilitySynthesisRuntime : MonoBehaviour
             return false;
         }
 
-        if (!retarget.TryComplete(transaction, out string completionFailure))
+        DomainFactDelivery delivery = preparedFact.Commit();
+        if (!delivery.MayBeCommitted)
         {
-            RollbackRetargetOrThrow(retarget, transaction, "completion");
+            RollbackRetargetOrThrow(retarget, transaction, "outcome-commit");
             if (!worldRegistry.TryRollbackBuildingReplacement(
                     candidate,
                     anchor,
                     out string registryRollbackFailure))
             {
                 throw new InvalidOperationException(
-                    "Synthesis authority completion failed and world authority rollback also failed: "
+                    "Synthesis outcome commit failed and world authority rollback also failed: "
                     + registryRollbackFailure);
             }
             grid.RemoveOccupant(
@@ -497,9 +656,16 @@ public class FacilitySynthesisRuntime : MonoBehaviour
                 recipe.resultBuilding.Placement.IsMovement);
             DiscardCandidate(candidate, recipe.resultBuilding, resultPosition);
             RestoreMaterialOccupancies(grid, removedMaterials);
-            failureReason = "생산 권위 합성 완료 검증 실패로 재료 시설을 복구했습니다: "
-                + completionFailure;
+            failureReason = "시설 합성 결과 공동 커밋 실패로 재료 시설을 복구했습니다: "
+                + delivery.Detail;
             return false;
+        }
+
+        if (!retarget.TryComplete(transaction, out string completionFailure))
+        {
+            throw new InvalidOperationException(
+                "Facility synthesis domain and outcome committed, but production authority completion failed: "
+                + completionFailure);
         }
 
         foreach (BuildableObject material in orderedMaterials)
@@ -510,6 +676,8 @@ public class FacilitySynthesisRuntime : MonoBehaviour
         }
 
         resultBuilding = candidate;
+        if (!delivery.Completed)
+            Debug.LogWarning("Facility synthesis applied; fact delivery remains pending: " + delivery.Detail);
         return true;
     }
 

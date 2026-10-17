@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 internal sealed class CharacterBreakdownActionPolicyDependencies
@@ -41,7 +43,9 @@ internal sealed class CharacterBreakdownActionExecutionDependencies
         CharacterDeprivationDiagnostics diagnostics,
         CharacterDeprivationConsequences consequences,
         IFieldMealConsumptionCommand fieldMeals,
-        IGameEventBus events)
+        IGameCalendar calendar,
+        CharacterWaterPublicationOutbox waterPublications,
+        ICharacterVandalismCommand vandalismCommands = null)
     {
         StateStore = stateStore
             ?? throw new ArgumentNullException(nameof(stateStore));
@@ -55,7 +59,10 @@ internal sealed class CharacterBreakdownActionExecutionDependencies
             ?? throw new ArgumentNullException(nameof(consequences));
         FieldMeals = fieldMeals
             ?? throw new ArgumentNullException(nameof(fieldMeals));
-        Events = events ?? throw new ArgumentNullException(nameof(events));
+        Calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        WaterPublications = waterPublications
+            ?? throw new ArgumentNullException(nameof(waterPublications));
+        VandalismCommands = vandalismCommands;
     }
 
     internal CharacterDeprivationStateStore StateStore { get; }
@@ -64,7 +71,9 @@ internal sealed class CharacterBreakdownActionExecutionDependencies
     internal CharacterDeprivationDiagnostics Diagnostics { get; }
     internal CharacterDeprivationConsequences Consequences { get; }
     internal IFieldMealConsumptionCommand FieldMeals { get; }
-    internal IGameEventBus Events { get; }
+    internal IGameCalendar Calendar { get; }
+    internal CharacterWaterPublicationOutbox WaterPublications { get; }
+    internal ICharacterVandalismCommand VandalismCommands { get; }
 }
 
 internal sealed class CharacterBreakdownActionRunner
@@ -94,9 +103,38 @@ internal sealed class CharacterBreakdownActionRunner
     private readonly IFieldMealConsumptionCommand fieldMeals;
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly ICharacterPerformanceQuery performance;
-    private readonly IGameEventBus events;
-    private readonly HashSet<CharacterId> runningActorIds =
-        new HashSet<CharacterId>();
+    private readonly IGameCalendar calendar;
+    private readonly CharacterWaterPublicationOutbox waterPublications;
+    private readonly ICharacterVandalismCommand vandalismCommands;
+    private readonly CharacterCorpseConsumptionTransaction corpseConsumption;
+    private readonly Dictionary<CharacterId, RunningBreakdownAction> runningActions = new();
+
+    private sealed class RunningBreakdownAction
+    {
+        internal RunningBreakdownAction(CharacterActor actor, CharacterBreakdownKind kind,
+            int generation, CharacterActionIntentLease intentLease)
+        {
+            Actor = actor;
+            Kind = kind;
+            Generation = generation;
+            IntentLease = intentLease;
+        }
+
+        internal CharacterActor Actor { get; }
+        internal CharacterBreakdownKind Kind { get; }
+        internal int Generation { get; }
+        internal CharacterActionIntentLease IntentLease { get; }
+
+        internal bool Matches(CharacterActor actor, CharacterBreakdownKind kind,
+            int generation, CharacterActionIntentLease lease) =>
+            ReferenceEquals(Actor, actor) && Kind == kind && Generation == generation
+            && SharesIntent(actor, lease);
+
+        internal bool SharesIntent(CharacterActor actor, CharacterActionIntentLease lease) =>
+            ReferenceEquals(Actor, actor) && IntentLease.Epoch == lease.Epoch
+            && IntentLease.Kind == lease.Kind
+            && string.Equals(IntentLease.OwnerId, lease.OwnerId, StringComparison.Ordinal);
+    }
     private readonly Dictionary<CharacterBreakdownKind, Func<CharacterActor, CharacterActionIntentLease, IEnumerator>>
         actionRoutines =
             new Dictionary<CharacterBreakdownKind, Func<CharacterActor, CharacterActionIntentLease, IEnumerator>>();
@@ -120,7 +158,11 @@ internal sealed class CharacterBreakdownActionRunner
         diagnostics = execution.Diagnostics;
         consequences = execution.Consequences;
         fieldMeals = execution.FieldMeals;
-        events = execution.Events;
+        calendar = execution.Calendar;
+        waterPublications = execution.WaterPublications;
+        vandalismCommands = execution.VandalismCommands;
+        corpseConsumption = new CharacterCorpseConsumptionTransaction(
+            world, stateStore, consequences, calendar);
         CreateActionRoutines();
     }
 
@@ -134,7 +176,9 @@ internal sealed class CharacterBreakdownActionRunner
             return false;
         }
 
-        if (runningActorIds.Contains((CharacterId)state.characterId))
+        if (runningActions.TryGetValue((CharacterId)state.characterId, out RunningBreakdownAction running)
+            && running.Matches(actor, state.breakdown.kind, state.breakdownGeneration, running.IntentLease)
+            && actor.Brain?.IsExternalIntentCurrent(running.IntentLease) == true)
         {
             status = GetBreakdownLabel(state.breakdown.kind) + " 진행 중";
             return true;
@@ -161,32 +205,63 @@ internal sealed class CharacterBreakdownActionRunner
             return true;
         }
 
-        Begin(actor, state.breakdown.kind, intentLease);
+        if (!TryStart(actor, state.breakdown.kind, intentLease))
+            status = "붕괴 행동을 시작하지 못함";
         return true;
     }
 
     public void Begin(
         CharacterActor actor,
         CharacterBreakdownKind kind,
+        CharacterActionIntentLease intentLease) => TryStart(actor, kind, intentLease);
+
+    private bool TryStart(CharacterActor actor, CharacterBreakdownKind kind,
         CharacterActionIntentLease intentLease)
     {
-        if (!stateStore.TryGet(actor, out CharacterDeprivationState state)
-            || state.breakdown == null
-            || !state.breakdown.active
-            || state.breakdown.kind != kind)
+        bool admitted = false;
+        CharacterId actorId = default;
+        RunningBreakdownAction run = null;
+        try
         {
-            return;
-        }
+            if (!string.Equals(intentLease.OwnerId, IntentOwnerId, StringComparison.Ordinal)
+                || intentLease.Kind != CharacterActionIntentKind.Breakdown
+                || actor?.Brain?.IsExternalIntentCurrent(intentLease) != true
+                || !stateStore.TryGet(actor, out CharacterDeprivationState state)
+                || state.breakdown == null || !state.breakdown.active || state.breakdown.kind != kind)
+                return false;
 
-        CharacterId actorId = CharacterPersistentIdentity.Require(actor);
-        if (runningActorIds.Add(actorId))
+            actorId = CharacterPersistentIdentity.Require(actor);
+            if (runningActions.TryGetValue(actorId, out RunningBreakdownAction current)
+                && current.Matches(actor, kind, state.breakdownGeneration, intentLease))
+            {
+                admitted = true;
+                return true;
+            }
+
+            run = new RunningBreakdownAction(actor, kind, state.breakdownGeneration, intentLease);
+            runningActions[actorId] = run;
+            try
+            {
+                Coroutine coroutine = actor.StartCoroutine(RunBreakdownAction(actor, actorId, kind,
+                    state.breakdownGeneration, intentLease, run));
+                if (coroutine == null && IsCurrentRun(actorId, run))
+                    throw new InvalidOperationException("Breakdown coroutine was not scheduled.");
+                admitted = true;
+                return true;
+            }
+            catch
+            {
+                CompleteRunningAction(actorId, run);
+                throw;
+            }
+        }
+        finally
         {
-            actor.StartCoroutine(RunBreakdownAction(
-                actor,
-                actorId,
-                kind,
-                state.breakdownGeneration,
-                intentLease));
+            if (!admitted && string.Equals(intentLease.OwnerId, IntentOwnerId, StringComparison.Ordinal)
+                && intentLease.Kind == CharacterActionIntentKind.Breakdown
+                && !ReplacementSharesIntent(actorId, run, actor, intentLease)
+                && actor?.Brain?.IsExternalIntentCurrent(intentLease) == true)
+                actor.Brain.EndExternallyDrivenAction(intentLease, clearFailures: true);
         }
     }
 
@@ -206,21 +281,20 @@ internal sealed class CharacterBreakdownActionRunner
             return false;
         }
 
-        Begin(actor, kind, intentLease);
-        return true;
+        return TryStart(actor, kind, intentLease);
     }
 
     public void ReleaseActor(CharacterId actorId)
     {
         if (actorId.IsValid)
         {
-            runningActorIds.Remove(actorId);
+            runningActions.Remove(actorId);
         }
     }
 
     public void Reset()
     {
-        runningActorIds.Clear();
+        runningActions.Clear();
     }
 
     private IEnumerator RunBreakdownAction(
@@ -228,15 +302,21 @@ internal sealed class CharacterBreakdownActionRunner
         CharacterId actorId,
         CharacterBreakdownKind kind,
         int generation,
-        CharacterActionIntentLease intentLease)
+        CharacterActionIntentLease intentLease,
+        RunningBreakdownAction run)
     {
         try
         {
+            if (!IsCurrentRun(actorId, run))
+                yield break;
             if (actionRoutines.TryGetValue(
                     kind,
                     out Func<CharacterActor, CharacterActionIntentLease, IEnumerator> routine))
             {
-                yield return routine(actor, intentLease);
+                IEnumerator action = RunWhileCurrent(routine(actor, intentLease),
+                    () => IsCurrentRun(actorId, run) && CanCommit(actor, intentLease));
+                try { yield return action; }
+                finally { (action as IDisposable)?.Dispose(); }
             }
 
             // A violent impulse is one bounded episode, not a permanent owner of
@@ -244,7 +324,9 @@ internal sealed class CharacterBreakdownActionRunner
             // the impulse by wandering, then it must release the actor so normal
             // needs can recover.  Deprivation can build toward a later episode,
             // but it cannot reissue the same breakdown every decision tick.
-            if (kind == CharacterBreakdownKind.ViolentImpulse
+            if (IsCurrentRun(actorId, run)
+                && CanCommit(actor, intentLease)
+                && kind == CharacterBreakdownKind.ViolentImpulse
                 && actor != null
                 && !actor.IsDead
                 && stateStore.TryGetWritable(actor, out CharacterDeprivationState completed)
@@ -261,14 +343,16 @@ internal sealed class CharacterBreakdownActionRunner
         }
         finally
         {
-            runningActorIds.Remove(actorId);
-            if (actor?.Brain?.IsExternalIntentCurrent(intentLease) == true)
+            bool wasCurrent = CompleteRunningAction(actorId, run);
+            bool replacementSharesIntent = ReplacementSharesIntent(actorId, run, actor, intentLease);
+            if (!replacementSharesIntent && actor?.Brain?.IsExternalIntentCurrent(intentLease) == true)
             {
                 actor.Brain.EndExternallyDrivenAction(
                     intentLease,
                     clearFailures: true);
             }
-            if (actor != null
+            if (wasCurrent
+                && actor != null
                 && !actor.IsDead
                 && stateStore.TryGet(actor, out CharacterDeprivationState current)
                 && current.breakdown != null
@@ -280,6 +364,50 @@ internal sealed class CharacterBreakdownActionRunner
         }
     }
 
+
+    private bool IsCurrentRun(CharacterId actorId, RunningBreakdownAction run) =>
+        runningActions.TryGetValue(actorId, out RunningBreakdownAction current) && ReferenceEquals(current, run);
+
+    private static IEnumerator RunWhileCurrent(IEnumerator action, Func<bool> isCurrent)
+    {
+        try
+        {
+            while (isCurrent() && action.MoveNext())
+            {
+                object current = action.Current;
+                if (current is IEnumerator nested)
+                {
+                    IEnumerator guardedNested = RunWhileCurrent(nested, isCurrent);
+                    try { yield return guardedNested; }
+                    finally { (guardedNested as IDisposable)?.Dispose(); }
+                }
+                else
+                    yield return current;
+            }
+        }
+        finally
+        {
+            (action as IDisposable)?.Dispose();
+        }
+    }
+
+    private bool ReplacementSharesIntent(CharacterId actorId, RunningBreakdownAction run,
+        CharacterActor actor, CharacterActionIntentLease lease) =>
+        runningActions.TryGetValue(actorId, out RunningBreakdownAction replacement)
+        && !ReferenceEquals(replacement, run) && replacement.SharesIntent(actor, lease);
+
+    private bool CompleteRunningAction(CharacterId actorId, RunningBreakdownAction run)
+    {
+        if (!IsCurrentRun(actorId, run)) return false;
+        runningActions.Remove(actorId);
+        return true;
+    }
+
+    internal void RecoverCorpsePublications() => corpseConsumption.RecoverCorpsePublications();
+
+    internal bool TryConsumeHumanoidCorpse(CharacterActor actor, WorldItemStackSnapshot selected,
+        float recovery, int standDistance, string operationId, string reasonCode) =>
+        corpseConsumption.TryConsumeHumanoidCorpse(actor, selected, recovery, standDistance, operationId, reasonCode);
 
     private IEnumerator RunDesperateRelief(
         CharacterActor actor,
@@ -419,37 +547,146 @@ internal sealed class CharacterBreakdownActionRunner
             int standDistance = source.TerrainType == GridCellTerrainType.DeepWater ? 1 : 0;
             yield return emergencyMovement.MoveNear(actor, source.Position, standDistance);
             if (CanCommit(actor, intentLease)
-                && Manhattan(actor.GetNowXY(), source.Position) <= standDistance
-                && world.TryDrink(
-                    source.SourceId,
-                    ApplyPersonalWaterConsumption(1f),
-                    out WorldWaterQuality quality,
-                    out float consumed)
-                && consumed > 0f)
+                && Manhattan(actor.GetNowXY(), source.Position) <= standDistance)
             {
-                RecoverNeed(
-                    actor,
-                    CharacterCondition.THIRST,
-                    GetWaterRecovery(quality),
-                    CharacterNeedRecoverySource.Emergency);
-                consequences.EndActiveBreakdownIfRelieved(actor);
-                events.Publish(new CharacterWaterConsumedEvent(
-                    actorId,
-                    source.SourceId,
-                    quality,
-                    consumed,
-                    source.PathogenDiseaseId));
-                if (quality != WorldWaterQuality.Clean)
+                var data = new CharacterWaterFactData
                 {
-                    bodyHealthCommands.ApplyLegacyDamage(
-                        actor,
-                        quality == WorldWaterQuality.Foul ? 5f : 2f,
-                        "오염된 물",
-                        allowDeath: true);
-                    actor.ChangesStat(CharacterCondition.HYGIENE, -12f);
-                    consequences.AddInfection(actor, quality == WorldWaterQuality.Foul ? 22f : 10f);
-                    actor.ApplyMoodFactor("survival:foul-water", "썩은 물을 삼킴", -7f, 240f, 1);
+                    characterId = actorId.Value, characterName = actor.BuildingDisplayName,
+                    sourceId = source.SourceId, sourceKind = CharacterWaterSourceKind.WorldWater,
+                    quality = source.Quality, pathogenDiseaseId = source.PathogenDiseaseId,
+                    absoluteDay = Math.Max(1, calendar.Day)
+                };
+                DomainFactLease lease = waterPublications.Reserve(new CharacterWaterConsumedFact(data, true));
+
+                CharacterBreakdownWorld.WaterTransactionSnapshot waterBefore;
+                CharacterMoodDeliveryTransactionSnapshot statsBefore;
+                CharacterDeprivationAggregateState deprivationBefore;
+                ICharacterBodyHealthPersistence bodyPersistence;
+                DungeonCharacterBodyHealthSaveData bodyBefore;
+                try
+                {
+                    waterBefore = world.CaptureWater();
+                    statsBefore = actor.Stats?
+                        .CaptureMoodDeliveryTransactionState();
+                    deprivationBefore = stateStore.CaptureTransactionState();
+                    bodyPersistence = bodyHealthCommands
+                        as ICharacterBodyHealthPersistence;
+                    if (source.Quality != WorldWaterQuality.Clean
+                        && bodyPersistence == null)
+                    {
+                        throw new InvalidOperationException(
+                            "Breakdown foul-water rollback requires body-health persistence.");
+                    }
+                    bodyBefore = bodyPersistence?.Capture();
                 }
+                catch
+                {
+                    waterPublications.Cancel(lease);
+                    throw;
+                }
+
+                bool drank;
+                WorldWaterQuality quality;
+                float consumed;
+                bool mayBeCommitted = false;
+                try
+                {
+                    drank = world.TryDrink(
+                        source.SourceId,
+                        ApplyPersonalWaterConsumption(1f),
+                        out quality,
+                        out consumed)
+                        && consumed > 0f && quality == source.Quality;
+                    if (drank)
+                    {
+                        float healthBefore = actor.CurrentHealth;
+                        float thirstBefore = SnapshotStat(
+                            statsBefore,
+                            CharacterCondition.THIRST);
+                        float hygieneBefore = SnapshotStat(
+                            statsBefore,
+                            CharacterCondition.HYGIENE);
+                        float moodBefore = SnapshotStat(
+                            statsBefore,
+                            CharacterCondition.MOOD);
+                        float infectionBefore = deprivationBefore.TryGet(
+                            actorId,
+                            out CharacterDeprivationState deprivationSnapshot)
+                                ? deprivationSnapshot.infectionBurden
+                                : 0f;
+                        RecoverNeed(
+                            actor,
+                            CharacterCondition.THIRST,
+                            GetWaterRecovery(quality),
+                            CharacterNeedRecoverySource.Emergency);
+                        consequences.EndActiveBreakdownIfRelieved(actor);
+                        if (quality != WorldWaterQuality.Clean)
+                        {
+                            bodyHealthCommands.ApplyLegacyDamage(
+                                actor,
+                                quality == WorldWaterQuality.Foul ? 5f : 2f,
+                                "오염된 물",
+                                allowDeath: true);
+                            actor.ChangesStat(CharacterCondition.HYGIENE, -12f);
+                            consequences.AddInfection(
+                                actor,
+                                quality == WorldWaterQuality.Foul ? 22f : 10f);
+                            actor.ApplyMoodFactor(
+                                "survival:foul-water",
+                                "썩은 물을 삼킴",
+                                -7f,
+                                240f,
+                                1);
+                        }
+
+                        float infectionAfter = stateStore.TryGet(
+                            actorId,
+                            out CharacterDeprivationState currentDeprivation)
+                                ? currentDeprivation.infectionBurden
+                                : infectionBefore;
+                        data.consumed = consumed;
+                        data.thirstBefore = thirstBefore;
+                        data.thirstAfter = GetNeed(actor, CharacterCondition.THIRST);
+                        data.healthBefore = healthBefore;
+                        data.healthAfter = actor.CurrentHealth;
+                        data.hygieneBefore = hygieneBefore;
+                        data.hygieneAfter = GetNeed(actor, CharacterCondition.HYGIENE);
+                        data.infectionBefore = infectionBefore;
+                        data.infectionAfter = infectionAfter;
+                        data.moodBefore = moodBefore;
+                        data.moodAfter = actor.Stats?.Mood ?? moodBefore;
+                        var delivery = waterPublications.Publish(lease, new CharacterWaterConsumedFact(data));
+                        mayBeCommitted = delivery.MayBeCommitted;
+                        if (!mayBeCommitted)
+                            throw new InvalidOperationException("breakdown-water-publication-rejected:" + delivery.Detail);
+                    }
+                }
+                catch
+                {
+                    if (!mayBeCommitted)
+                    {
+                        waterPublications.Cancel(lease);
+                        RestoreWorldDrinkTransaction(actor, waterBefore, statsBefore,
+                            deprivationBefore, bodyPersistence, bodyBefore);
+                    }
+                    throw;
+                }
+
+                if (!drank)
+                {
+                    waterPublications.Cancel(lease);
+                    RestoreWorldDrinkTransaction(
+                        actor,
+                        waterBefore,
+                        statsBefore,
+                        deprivationBefore,
+                        bodyPersistence,
+                        bodyBefore);
+                    yield break;
+                }
+
+                if (!waterPublications.Deliver(actorId.Value, out string deliveryFailure))
+                    throw new InvalidOperationException("water-effects-applied-publication-pending:" + deliveryFailure);
                 yield break;
             }
         }
@@ -521,6 +758,14 @@ internal sealed class CharacterBreakdownActionRunner
                 yield break;
             }
 
+            if (food.ItemId == DarkSurvivalItemDefinitions.HumanoidCorpseItemId)
+            {
+                TryConsumeHumanoidCorpse(actor, food, 75f, 0,
+                    $"breakdown-eat:{GetPersistentId(actor)}:{food.StackId}",
+                    "breakdown-emergency-food");
+                yield break;
+            }
+
             if (world.TryConsumeStack(
                     food.StackId,
                     1,
@@ -537,7 +782,7 @@ internal sealed class CharacterBreakdownActionRunner
                 consequences.EndActiveBreakdownIfRelieved(actor);
                 if (humanoid)
                 {
-                    ApplyCannibalismConsequences(actor, consumed);
+                    corpseConsumption.ApplyCannibalismConsequences(actor, consumed);
                 }
                 else if (IsUnsafeFood(consumed))
                 {
@@ -611,21 +856,11 @@ internal sealed class CharacterBreakdownActionRunner
         {
             yield return CorpseSpawnDelay;
             WorldItemStackSnapshot corpse = FindHumanoidCorpse(victim);
-            if (CanCommit(actor, intentLease)
-                && corpse != null
-                && world.TryConsumeStack(
-                    corpse.StackId,
-                    1,
-                    $"breakdown-cannibal:{GetPersistentId(actor)}:{corpse.StackId}",
-                    "breakdown-cannibal-corpse",
-                    out WorldItemStackSnapshot consumed))
+            if (CanCommit(actor, intentLease) && corpse != null)
             {
-                RecoverNeed(
-                    actor,
-                    CharacterCondition.HUNGER,
-                    85f,
-                    CharacterNeedRecoverySource.Emergency);
-                ApplyCannibalismConsequences(actor, consumed);
+                TryConsumeHumanoidCorpse(actor, corpse, 85f, 1,
+                    $"breakdown-cannibal:{GetPersistentId(actor)}:{corpse.StackId}",
+                    "breakdown-cannibal-corpse");
             }
         }
     }
@@ -683,7 +918,25 @@ internal sealed class CharacterBreakdownActionRunner
                 && !building.IsDamaged
                 && Manhattan(actor.GetNowXY(), building.centerPos) <= 1)
             {
-                building.SetDamaged(true);
+                if (!(vandalismCommands ?? throw new InvalidOperationException(
+                            $"{nameof(CharacterBreakdownActionRunner)} requires "
+                            + $"{nameof(ICharacterVandalismCommand)} "
+                            + "for violent vandalism."))
+                    .TryCommitDamage(
+                        actor,
+                        building,
+                        FacilityVandalismSourceKind.Deprivation,
+                        "mental-instability",
+                        Array.Empty<string>(),
+                        out _,
+                        out string vandalismFailure))
+                {
+                    actor.AddActivity(CharacterActivityEvent.InternalAi(
+                        CharacterActivityOutcomes.Failed,
+                        "violent-vandalism-transaction-failed",
+                        "Breakdown vandalism failed: " + vandalismFailure));
+                    yield break;
+                }
                 actor.AddActivity(CharacterActivityEvent.Facility(
                     CharacterActivityKinds.Combat,
                     CharacterActivityOutcomes.Damaged,
@@ -772,8 +1025,11 @@ internal sealed class CharacterBreakdownActionRunner
             BuildableObject candidate = buildings[index];
             if (candidate == null
                 || candidate.IsGridDestroyed
+                || !FacilityVandalismTargetRules
+                    .IsPersistentAggregateTarget(candidate)
                 || candidate.IsDamaged
                 || candidate.IsGridMovement
+                || candidate.Facility == null
                 || !candidate.CanApplyDamageRules)
             {
                 continue;
@@ -848,7 +1104,7 @@ internal sealed class CharacterBreakdownActionRunner
     }
 
 
-    private bool TryFindEmergencyFood(CharacterActor actor, out WorldItemStackSnapshot food)
+    internal bool TryFindEmergencyFood(CharacterActor actor, out WorldItemStackSnapshot food)
     {
         food = null;
         return actor != null
@@ -1010,45 +1266,6 @@ internal sealed class CharacterBreakdownActionRunner
     }
 
 
-    private void ApplyCannibalismConsequences(CharacterActor actor, WorldItemStackSnapshot consumed)
-    {
-        bool sameSpecies = !string.IsNullOrWhiteSpace(consumed.SourceSpeciesTag)
-            && string.Equals(actor.Identity?.SpeciesTag, consumed.SourceSpeciesTag, StringComparison.OrdinalIgnoreCase);
-        CharacterAiPersonality personality = GetPersonality(actor);
-        float conscience01 = personality != null
-            ? (Mathf.InverseLerp(0.25f, 2f, personality.selfCare)
-                + Mathf.InverseLerp(0.25f, 2f, personality.orderliness)
-                + Mathf.InverseLerp(0.25f, 2f, personality.routineAdherence)) / 3f
-            : 0.5f;
-        float appetite01 = personality != null
-            ? (Mathf.InverseLerp(0.25f, 2f, personality.riskTaking)
-                + Mathf.InverseLerp(0.25f, 2f, personality.noveltySeeking)) * 0.5f
-            : 0.5f;
-        float mood = (sameSpecies ? -18f : -11f) * Mathf.Lerp(0.45f, 1.25f, conscience01);
-        string reaction = appetite01 > 0.72f && conscience01 < 0.45f
-            ? "금기의 맛을 다시 떠올림"
-            : conscience01 < 0.35f
-                ? "금기에 무감각해짐"
-                : sameSpecies ? "동족을 먹었다" : "인간형 사체를 먹었다";
-        actor.ApplyMoodFactor(
-            sameSpecies ? "survival:same-species-cannibalism" : "survival:cannibalism",
-            reaction,
-            mood,
-            900f,
-            1);
-        actor.ChangesStat(CharacterCondition.HYGIENE, -20f);
-        consequences.AddInfection(actor, sameSpecies ? 20f : 12f);
-        string victim = string.IsNullOrWhiteSpace(consumed.SourceDisplayName) ? "이름 모를 사체" : consumed.SourceDisplayName;
-        consequences.RecordTaboo(actor, $"극한의 굶주림 속에서 {victim}을 먹었다");
-        consequences.ApplyWitnessMood(
-            actor,
-            actor.GetNowXY(),
-            "금기의 포식을 목격함",
-            sameSpecies ? -12f : -8f,
-            permanentMemory: true);
-    }
-
-
     private static void GetViolentImpulseThresholds(
         CharacterAiPersonality personality,
         out float vandalThreshold,
@@ -1094,6 +1311,25 @@ internal sealed class CharacterBreakdownActionRunner
         };
     }
 
+    private void RestoreWorldDrinkTransaction(
+        CharacterActor actor,
+        CharacterBreakdownWorld.WaterTransactionSnapshot waterBefore,
+        CharacterMoodDeliveryTransactionSnapshot statsBefore,
+        CharacterDeprivationAggregateState deprivationBefore,
+        ICharacterBodyHealthPersistence bodyPersistence,
+        DungeonCharacterBodyHealthSaveData bodyBefore)
+    {
+        world.RestoreWater(waterBefore);
+        stateStore.RestoreTransactionState(deprivationBefore);
+        if (bodyPersistence != null && bodyBefore != null)
+        {
+            bodyPersistence.PublishRestore(
+                bodyPersistence.PrepareRestore(bodyBefore));
+        }
+        if (statsBefore != null)
+            actor.Stats?.RestoreMoodDeliveryTransactionState(statsBefore);
+    }
+
     private static void RecoverNeed(
         CharacterActor actor,
         CharacterCondition condition,
@@ -1113,6 +1349,15 @@ internal sealed class CharacterBreakdownActionRunner
                 ? Mathf.Clamp(value, 0f, 100f)
                 : 100f;
     }
+
+    private static float SnapshotStat(
+        CharacterMoodDeliveryTransactionSnapshot snapshot,
+        CharacterCondition condition) =>
+        snapshot != null
+        && snapshot.Stats != null
+        && snapshot.Stats.TryGetValue(condition, out float value)
+            ? value
+            : 0f;
 
     private static bool IsEligibleHumanoid(CharacterActor actor)
     {

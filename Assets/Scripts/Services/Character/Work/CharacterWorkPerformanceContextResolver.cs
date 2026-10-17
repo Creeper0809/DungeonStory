@@ -1,4 +1,51 @@
 using System;
+using UnityEngine;
+
+public readonly struct WorkAccidentRiskContext
+{
+    public WorkAccidentRiskContext(
+        bool hasSleepState,
+        float sleep,
+        float sufficientSleep,
+        float fatigueMultiplier,
+        bool hasFacilityIntegrity,
+        float facilityIntegrityRatio,
+        float facilityMultiplier)
+    {
+        HasSleepState = hasSleepState;
+        Sleep = sleep;
+        SufficientSleep = sufficientSleep;
+        FatigueMultiplier = Mathf.Max(1f, fatigueMultiplier);
+        HasFacilityIntegrity = hasFacilityIntegrity;
+        FacilityIntegrityRatio = Mathf.Clamp01(facilityIntegrityRatio);
+        FacilityMultiplier = Mathf.Max(1f, facilityMultiplier);
+    }
+
+    public bool HasSleepState { get; }
+    public float Sleep { get; }
+    public float SufficientSleep { get; }
+    public float FatigueMultiplier { get; }
+    public bool HasFacilityIntegrity { get; }
+    public float FacilityIntegrityRatio { get; }
+    public float FacilityMultiplier { get; }
+    public float CombinedMultiplier => FatigueMultiplier * FacilityMultiplier;
+
+    public string ObservationDetail
+    {
+        get
+        {
+            string fatigue = HasSleepState
+                ? FormattableString.Invariant(
+                    $"fatigue(sleep={Sleep:0.###},sufficient={SufficientSleep:0.###},multiplier={FatigueMultiplier:0.######})")
+                : "fatigue(sleep=unavailable,multiplier=1)";
+            string facility = HasFacilityIntegrity
+                ? FormattableString.Invariant(
+                    $"facility(integrity={FacilityIntegrityRatio:0.######},multiplier={FacilityMultiplier:0.######})")
+                : "facility(integrity=unavailable,multiplier=1)";
+            return fatigue + ";" + facility;
+        }
+    }
+}
 
 public sealed class CharacterWorkPerformanceContextResolver
 {
@@ -102,6 +149,53 @@ public sealed class CharacterWorkPerformanceContextResolver
             ? profile.Secondary.Value
             : profile.Primary.Value
     };
+
+    public WorkAccidentRiskContext ResolveAccidentRiskContext(
+        CharacterActor actor,
+        WorkTypeId assignedWorkTypeId,
+        bool hasFacilityIntegrity,
+        float facilityIntegrityRatio)
+    {
+        if (actor == null)
+            throw new ArgumentNullException(nameof(actor));
+        if (!assignedWorkTypeId.IsValid)
+            throw new ArgumentException(
+                "Work accident risk requires the exact assigned work type.",
+                nameof(assignedWorkTypeId));
+
+        float sleepValue = 100f;
+        bool hasSleepState = actor.Stats != null
+            && actor.Stats.TryGetConditionValue(
+                CharacterCondition.SLEEP,
+                out sleepValue);
+        float sleep = hasSleepState
+            ? Mathf.Clamp(sleepValue, 0f, 100f)
+            : 100f;
+        float sufficientSleep = hasSleepState
+            ? Mathf.Clamp(
+                actor.Stats.GetNeedResponse(CharacterCondition.SLEEP).resumeTarget,
+                0f,
+                100f)
+            : 100f;
+        float fatigueDeficit = sufficientSleep > 0f
+            ? Mathf.Clamp01((sufficientSleep - sleep) / sufficientSleep)
+            : 0f;
+        float fatigueMultiplier = 1f + fatigueDeficit;
+
+        float integrityRatio = hasFacilityIntegrity
+            ? Mathf.Clamp01(facilityIntegrityRatio)
+            : 1f;
+        float facilityMultiplier = 1f + (1f - integrityRatio);
+
+        return new WorkAccidentRiskContext(
+            hasSleepState,
+            sleep,
+            sufficientSleep,
+            fatigueMultiplier,
+            hasFacilityIntegrity,
+            integrityRatio,
+            facilityMultiplier);
+    }
 
     private CharacterProficiencyId ResolveActiveCombat(CharacterActor actor)
     {

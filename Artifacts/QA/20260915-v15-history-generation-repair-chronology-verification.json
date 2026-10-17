@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "sourceExport": "F:/01_Programming/01_Project/02_Unity/DungeonStory/Artifacts/Exports/NarrativeMechanicCatalog/20260915-v25-authoritative-scenarios-v15-history-generation-repair",
+  "status": "PASS",
+  "positiveRows": 100,
+  "losslessPublicProjections": 100,
+  "unknownParticipantRejections": 30,
+  "duplicateEvidenceRejections": 30,
+  "negativeInputsRejected": 14,
+  "mechanicalWitnessPass": 100,
+  "mechanicalWitnessFail": 0,
+  "historyRows": 15,
+  "generationMismatches": 0,
+  "priorNotStrictlyEarlier": 0,
+  "futureGenerationRows": 0,
+  "modelInputProjectionRun": "RUN",
+  "modelInferenceRun": "NOT_RUN",
+  "humanApprovalClaimed": false,
+  "trainingEligible": false
+}

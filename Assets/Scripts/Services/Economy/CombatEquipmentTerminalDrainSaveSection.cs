@@ -4,7 +4,7 @@ using System.Linq;
 
 /// <summary>
 /// Current-format section for combat craft/repair terminal
-/// producers. It validates only after the base-eight lifecycle and detached
+/// producers. It validates only after the base-nine lifecycle and detached
 /// Items child candidates have been staged.
 /// </summary>
 public sealed class CombatEquipmentTerminalDrainSaveSection :
@@ -24,7 +24,8 @@ public sealed class CombatEquipmentTerminalDrainSaveSection :
         ProductionPreparedOutputRoutingSaveSection.Id,
         CombatEquipmentSaveSection.Id,
         EquipmentMaintenanceSaveSection.Id,
-        CharacterEnvironmentSaveSection.Id
+        CharacterEnvironmentSaveSection.Id,
+        EnvironmentalFireSaveSection.Id
     };
 
     private readonly ICombatEquipmentTerminalDrainQuery query;
@@ -91,8 +92,8 @@ public sealed class CombatEquipmentTerminalDrainSaveSection :
         if (!lifecycle.TryCapture(out _))
         {
             throw new InvalidOperationException(
-                "Combat equipment terminal-drain staged commit requires all eight lifecycle candidates; found "
-                + lifecycle.PublishedSourceCount + "/8.");
+                "Combat equipment terminal-drain staged commit requires all nine lifecycle candidates; found "
+                + lifecycle.PublishedSourceCount + "/9.");
         }
         if (!inputDrains.IsCandidateAvailable)
         {

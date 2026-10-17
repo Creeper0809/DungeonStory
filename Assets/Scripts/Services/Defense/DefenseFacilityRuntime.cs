@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
+using VContainer;
 
 public interface IDefenseFacilityRuntime
 {
@@ -22,6 +23,11 @@ public interface IDefenseFacilityRuntime
     void CompleteActivation(
         DefenseFacility facility,
         DefenseActivationAuthorization authorization);
+    DefenseFacilityState CaptureActivationState(DefenseFacility facility);
+    void RestoreActivationState(
+        DefenseFacility facility,
+        DefenseFacilityState snapshot);
+    void PublishCommittedState(DefenseFacility facility);
     bool SetArmingPolicy(
         DefenseFacility facility,
         DefenseArmingPolicy policy);
@@ -45,7 +51,7 @@ public interface IDefenseFacilityRuntime
 
 public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
 {
-    private readonly IWorldItemStackRuntime items;
+    private readonly IEquipmentPhysicalItemGateway items;
     private readonly IDefenseFacilityPhysicalItemGateway physicalItems;
     private readonly IDefenseFacilityInputOwnerRuntime inputOwners;
     private readonly IPowerInfrastructureQuery power;
@@ -54,6 +60,8 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
     private readonly IDefenseFacilityNetworkRuntime facilityNetwork;
     private readonly IFacilityCapabilityQuery facilities;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly DefenseServicePublicationRuntime serviceOutcomes;
+    private readonly IGameCalendar calendar;
 
     private DefenseFacilityAggregateState Current =>
         aggregateRootStore.GetOrCreate(
@@ -65,8 +73,43 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
 
     internal IReadOnlyCollection<DefenseFacilityState> States => Current.States;
 
+    [Inject]
     public DefenseFacilityRuntime(
-        IWorldItemStackRuntime items,
+        IEquipmentPhysicalItemGateway items,
+        IDefenseFacilityPhysicalItemGateway physicalItems,
+        IDefenseFacilityInputOwnerRuntime inputOwners,
+        IGameClock clock,
+        IGameEventBus events,
+        IPowerInfrastructureQuery power,
+        IDefenseFacilityNetworkRuntime facilityNetwork,
+        IFacilityCapabilityQuery facilities,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        DefenseServicePublicationRuntime serviceOutcomes,
+        IGameCalendar calendar)
+    {
+        this.items = items ?? throw new ArgumentNullException(nameof(items));
+        this.physicalItems = physicalItems
+            ?? throw new ArgumentNullException(nameof(physicalItems));
+        this.inputOwners = inputOwners
+            ?? throw new ArgumentNullException(nameof(inputOwners));
+        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.events = events ?? throw new ArgumentNullException(nameof(events));
+        this.power = power ?? throw new ArgumentNullException(nameof(power));
+        this.facilityNetwork = facilityNetwork
+            ?? throw new ArgumentNullException(nameof(facilityNetwork));
+        this.facilities = facilities
+            ?? throw new ArgumentNullException(nameof(facilities));
+        this.aggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.serviceOutcomes = serviceOutcomes
+            ?? throw new ArgumentNullException(nameof(serviceOutcomes));
+    }
+
+    // Legacy isolated physical-transaction fixtures do not construct the
+    // gameplay ledger; production composition uses the injected constructor.
+    public DefenseFacilityRuntime(
+        IEquipmentPhysicalItemGateway items,
         IDefenseFacilityPhysicalItemGateway physicalItems,
         IDefenseFacilityInputOwnerRuntime inputOwners,
         IGameClock clock,
@@ -235,7 +278,6 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             jammed,
             misfired,
             multiplier);
-        PublishState(state);
         return true;
     }
 
@@ -261,8 +303,30 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         state.operationalState = state.cooldownUntil > clock.Time
             ? DefenseFacilityOperationalState.Cooldown
             : DefenseFacilityOperationalState.Ready;
-        PublishState(state);
     }
+
+    public DefenseFacilityState CaptureActivationState(DefenseFacility facility) =>
+        GetOrCreate(facility).DeepClone();
+
+    public void RestoreActivationState(
+        DefenseFacility facility,
+        DefenseFacilityState snapshot)
+    {
+        string facilityId = ResolvePersistentId(facility);
+        if (snapshot == null
+            || !string.Equals(
+                snapshot.facilityPersistentId,
+                facilityId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Defense activation rollback snapshot belongs to another facility.");
+        }
+        Writable.Set(snapshot.DeepClone());
+    }
+
+    public void PublishCommittedState(DefenseFacility facility) =>
+        PublishState(GetOrCreate(facility));
 
     public bool SetArmingPolicy(
         DefenseFacility facility,
@@ -298,6 +362,7 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         DefenseFacility facility,
         out DomainFailure failure)
     {
+        serviceOutcomes?.RequireIdleMutation();
         failure = DomainFailure.None;
         if (facility?.Defense?.UsesPhysicalSupply != true)
         {
@@ -310,19 +375,81 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             return false;
 
         DefenseFacilityState state = GetOrCreate(facility);
+        if (serviceOutcomes != null
+            && state.pendingService.phase != DefenseFacilityServicePendingPhase.None
+            && state.pendingService.kind != DefenseFacilityPhysicalCommitKind.SupplyTransfer)
+        {
+            failure = new DomainFailure(FailureCode.DefenseSupplyDeliveryPending,
+                "another-service-pending");
+            return false;
+        }
         int capacity = Mathf.Max(
             1,
             facility.Defense.supplyCapacity
                 + state.growth.capacityLevel);
-        if (state.supply >= capacity)
+        if (state.supply >= capacity
+            && state.pendingService.phase == DefenseFacilityServicePendingPhase.None)
         {
             failure = new DomainFailure(FailureCode.DefenseSupplyCapacityFull);
             return false;
         }
 
+        if (serviceOutcomes != null
+            && state.pendingService.phase == DefenseFacilityServicePendingPhase.None
+            && !TryBeginServiceRequest(facility, state,
+                DefenseFacilityPhysicalCommitKind.SupplyTransfer,
+                DefenseFacilityOperationalState.Reloading))
+        {
+            failure = new DomainFailure(FailureCode.DefenseSupplyDeliveryPending,
+                "service-outcome-prepare-rejected");
+            return false;
+        }
+        if (serviceOutcomes != null && !TryPublishServiceRequest(state))
+        {
+            failure = new DomainFailure(FailureCode.DefenseSupplyDeliveryPending,
+                "service-request-delivery-pending");
+            return false;
+        }
+        if (state.pendingSupply.phase != DefenseFacilityPhysicalCommitPhase.None)
+        {
+            if (TryRecoverSupplyCommit(facility, state, out bool completed)
+                && completed)
+                return true;
+            failure = new DomainFailure(FailureCode.DefenseSupplyDeliveryPending,
+                "physical-or-service-outcome-pending");
+            return false;
+        }
+        else
+        {
+            string authoredItemId = facility.Defense.supplyItemId?.Trim()
+                ?? string.Empty;
+            int wanted = Mathf.Max(0, capacity - state.supply);
+            if (wanted > 0 && authoredItemId.Length > 0
+                && TryBeginSupplyCommit(facility, state,
+                    BuildSupplyDestinationId(facility), authoredItemId,
+                    wanted, wanted))
+            {
+                if (TryRecoverSupplyCommit(facility, state,
+                        out bool completed) && completed)
+                    return true;
+                failure = new DomainFailure(FailureCode.DefenseSupplyDeliveryPending,
+                    "physical-or-service-outcome-pending");
+                return false;
+            }
+        }
         RequestMissingSupply(facility, state, capacity);
         string destinationId = BuildSupplyDestinationId(facility);
         bool requested = HasPendingSupply(destinationId);
+        if (!requested && serviceOutcomes != null)
+        {
+            if (!TryFailServiceWithImpact(state,
+                    DefenseFacilityOperationalState.Empty))
+            {
+                failure = new DomainFailure(FailureCode.DefenseSupplyDeliveryPending,
+                    "service-failure-outcome-pending");
+                return false;
+            }
+        }
         state.operationalState = requested
             ? DefenseFacilityOperationalState.Reloading
             : DefenseFacilityOperationalState.Empty;
@@ -332,6 +459,9 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
                 : FailureCode.DefenseSupplyUnavailable);
         SetBlockedFailure(state, failure);
         PublishState(state);
+        if (serviceOutcomes != null
+            && !TryPublishServiceRequest(state))
+            return false;
         return requested;
     }
 
@@ -362,8 +492,35 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         DefenseFacility facility,
         out DomainFailure failure)
     {
+        serviceOutcomes?.RequireIdleMutation();
         failure = DomainFailure.None;
         DefenseFacilityState state = GetOrCreate(facility);
+        if (serviceOutcomes != null
+            && state.pendingService.phase != DefenseFacilityServicePendingPhase.None
+            && state.pendingService.kind != DefenseFacilityPhysicalCommitKind.MaintenanceSink)
+        {
+            failure = new DomainFailure(FailureCode.DefenseMaintenanceDeliveryPending,
+                "another-service-pending");
+            return false;
+        }
+        if (serviceOutcomes != null
+            && state.pendingService.phase == DefenseFacilityServicePendingPhase.TerminalApplied)
+        {
+            if (state.pendingService.terminalPhase
+                == DefenseFacilityServiceOutcomePhase.FailedWithImpact)
+            {
+                TryFailServiceWithImpact(
+                    state, state.pendingService.terminalState);
+                failure = new DomainFailure(FailureCode.DefenseMaintenancePartMissing);
+                return false;
+            }
+            if (TryRecoverMaintenanceCommit(facility, state, out bool completed)
+                && completed)
+                return true;
+            failure = new DomainFailure(FailureCode.DefenseMaintenanceDeliveryPending,
+                "service-outcome-pending");
+            return false;
+        }
         if (state.pendingMaintenance.phase
             != DefenseFacilityPhysicalCommitPhase.None)
         {
@@ -387,6 +544,22 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
 
         if (!TryEnsureInputAuthority(facility, out failure))
             return false;
+        if (serviceOutcomes != null
+            && state.pendingService.phase == DefenseFacilityServicePendingPhase.None
+            && !TryBeginServiceRequest(facility, state,
+                DefenseFacilityPhysicalCommitKind.MaintenanceSink,
+                DefenseFacilityOperationalState.Jammed))
+        {
+            failure = new DomainFailure(FailureCode.DefenseMaintenanceDeliveryPending,
+                "service-outcome-prepare-rejected");
+            return false;
+        }
+        if (serviceOutcomes != null && !TryPublishServiceRequest(state))
+        {
+            failure = new DomainFailure(FailureCode.DefenseMaintenanceDeliveryPending,
+                "service-request-delivery-pending");
+            return false;
+        }
         string destinationId = BuildMaintenanceDestinationId(facility);
         bool consumed = DefenseFacilityPhysicalTransactionOutbox.TryCommitOrResume(
             state.pendingMaintenance,
@@ -422,6 +595,10 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
                     : FailureCode.DefenseMaintenancePartMissing,
                 DefenseFacilityPhysicalTransactionOutbox.MaintenanceItemId,
                 "1");
+            if (!pending && serviceOutcomes != null
+                && !TryFailServiceWithImpact(state,
+                    state.operationalState))
+                return false;
             SetBlockedFailure(state, failure);
             PublishState(state);
             return false;
@@ -460,6 +637,7 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
 
     public DefenseFacilitySaveData CaptureState()
     {
+        serviceOutcomes?.RequireIdleMutation();
         return new DefenseFacilitySaveData
         {
             facilities = Current.States
@@ -472,6 +650,7 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
     public DefenseFacilityRestoreCandidate PrepareRestoreState(
         DefenseFacilitySaveData data)
     {
+        serviceOutcomes?.RequireIdlePersistence();
         IReadOnlyList<string> errors = DefenseFacilitySaveRules.Validate(data);
         if (errors.Count > 0)
         {
@@ -492,6 +671,7 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
 
     public void PublishRestoreState(DefenseFacilityRestoreCandidate candidate)
     {
+        serviceOutcomes?.RequireIdlePersistence();
         if (candidate == null)
         {
             throw new ArgumentNullException(nameof(candidate));
@@ -682,11 +862,36 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
                 throw new InvalidOperationException(
                     $"Defense maintenance commit '{pending.operationId}' conflicts with supply state.");
             }
-            state.operationalState = DefenseFacilityOperationalState.Preparing;
-            state.blockedReason = string.Empty;
-            pending.phase = DefenseFacilityPhysicalCommitPhase.OutcomePublished;
-            PublishState(state);
+            DefenseServicePublicationRuntime.Preparation prepared = default;
+            bool linkedService = serviceOutcomes != null
+                && state.pendingService.phase
+                    != DefenseFacilityServicePendingPhase.None;
+            if (linkedService
+                && !TryPrepareServiceTerminal(state, pending,
+                    DefenseFacilityOperationalState.Preparing,
+                    state.supply,
+                    out prepared))
+                return false;
+            bool acknowledged = true;
+            using (prepared)
+            {
+                if (linkedService) CaptureServiceRollback(state, prepared);
+                state.operationalState = DefenseFacilityOperationalState.Preparing;
+                state.blockedReason = string.Empty;
+                pending.phase = DefenseFacilityPhysicalCommitPhase.OutcomePublished;
+                if (linkedService)
+                {
+                    RecordServiceTerminal(state, pending, DefenseFacilityOperationalState.Preparing, state.supply);
+                    var delivered = prepared.PublishApplied();
+                    if (!delivered.MayBeCommitted) return false;
+                    acknowledged = delivered.Completed;
+                }
+            }
+            PublishServiceState(state);
+            if (!acknowledged) return false;
         }
+        if (serviceOutcomes != null && !TryPublishServiceTerminal(state))
+            return false;
         if (!DefenseFacilityPhysicalTransactionOutbox.TryAcknowledgeOutcome(
                 pending,
                 physicalItems,
@@ -697,6 +902,7 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         DefenseFacilityPhysicalTransactionOutbox.Clear(pending);
         state.nextMaintenanceOperationSequence = checked(
             state.nextMaintenanceOperationSequence + 1);
+        CompleteService(state);
         completed = true;
         return true;
     }
@@ -736,15 +942,42 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
                 throw new InvalidOperationException(
                     $"Defense supply commit '{pending.operationId}' conflicts with facility supply.");
             }
-            state.supply = pending.supplyAfter;
-            pending.phase = DefenseFacilityPhysicalCommitPhase.OutcomePublished;
-            PublishState(state);
+            DefenseFacilityOperationalState afterState =
+                state.pendingService.phase != DefenseFacilityServicePendingPhase.None
+                    ? DefenseFacilityOperationalState.Ready
+                    : state.operationalState;
+            DefenseServicePublicationRuntime.Preparation prepared = default;
+            if (serviceOutcomes != null
+                && state.pendingService.phase != DefenseFacilityServicePendingPhase.None
+                && !TryPrepareServiceTerminal(state, pending,
+                    afterState, pending.supplyAfter,
+                    out prepared))
+                return false;
+            bool acknowledged = true;
+            using (prepared)
+            {
+                if (prepared != null) CaptureServiceRollback(state, prepared);
+                state.supply = pending.supplyAfter;
+                state.operationalState = afterState;
+                pending.phase = DefenseFacilityPhysicalCommitPhase.OutcomePublished;
+                if (prepared != null)
+                {
+                    RecordServiceTerminal(state, pending, afterState, state.supply);
+                    var delivered = prepared.PublishApplied();
+                    if (!delivered.MayBeCommitted) return false;
+                    acknowledged = delivered.Completed;
+                }
+            }
+            PublishServiceState(state);
+            if (!acknowledged) return false;
         }
         else if (state.supply != pending.supplyAfter)
         {
             throw new InvalidOperationException(
                 $"Defense supply commit '{pending.operationId}' lost its published outcome.");
         }
+        if (serviceOutcomes != null && !TryPublishServiceTerminal(state))
+            return false;
         if (!DefenseFacilityPhysicalTransactionOutbox.TryAcknowledgeOutcome(
                 pending,
                 physicalItems,
@@ -755,8 +988,210 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         DefenseFacilityPhysicalTransactionOutbox.Clear(pending);
         state.nextSupplyOperationSequence = checked(
             state.nextSupplyOperationSequence + 1);
+        CompleteService(state);
         completed = true;
         return true;
+    }
+
+    private bool TryBeginServiceRequest(
+        DefenseFacility facility,
+        DefenseFacilityState state,
+        DefenseFacilityPhysicalCommitKind kind,
+        DefenseFacilityOperationalState requestedState)
+    {
+        if (state.pendingService.phase != DefenseFacilityServicePendingPhase.None)
+            return state.pendingService.kind == kind;
+        DefenseFacilityServicePendingSaveData request = new()
+        {
+            phase = DefenseFacilityServicePendingPhase.Requested,
+            kind = kind,
+            operationSequence = state.nextServiceOperationSequence,
+            requestRevision = checked(state.serviceRevision + 1L),
+            absoluteDay = calendar.Day,
+            beforeState = state.operationalState,
+            requestedState = requestedState,
+            beforeSupply = state.supply,
+            requestedSupply = state.supply
+        };
+        var fact = BuildServiceFact(state.facilityPersistentId, request, DefenseFacilityServiceOutcomePhase.Requested);
+        if (!serviceOutcomes.TryPrepare(fact, out var prepared, out _)) return false;
+        using (prepared)
+        {
+            CaptureServiceRollback(state, prepared);
+            state.pendingService = request;
+            state.serviceRevision = request.requestRevision;
+            state.operationalState = requestedState;
+            var delivery = prepared.PublishApplied();
+            if (!delivery.MayBeCommitted) return false;
+            request.requestAcknowledged = delivery.Completed;
+        }
+        PublishServiceState(state);
+        return true;
+    }
+
+    private bool TryPublishServiceRequest(DefenseFacilityState state)
+    {
+        DefenseFacilityServicePendingSaveData pending = state.pendingService;
+        if (pending.phase == DefenseFacilityServicePendingPhase.None
+            || pending.requestAcknowledged)
+            return true;
+        pending.requestAcknowledged = serviceOutcomes.TryEnsurePublished(
+            BuildServiceFact(state.facilityPersistentId, pending, DefenseFacilityServiceOutcomePhase.Requested), out _);
+        return pending.requestAcknowledged;
+    }
+
+    private bool TryPrepareServiceTerminal(
+        DefenseFacilityState state,
+        DefenseFacilityPhysicalCommitSaveData physical,
+        DefenseFacilityOperationalState afterState,
+        int afterSupply,
+        out DefenseServicePublicationRuntime.Preparation prepared)
+    {
+        prepared = default;
+        DefenseFacilityServicePendingSaveData pending = state.pendingService;
+        if (pending.phase == DefenseFacilityServicePendingPhase.None)
+            return true;
+        if (!TryPublishServiceRequest(state)
+            || physical.outcomeOwnerRevision <= 0L)
+            return false;
+        DefenseFacilityServicePendingSaveData candidate = pending.DeepClone();
+        candidate.phase = DefenseFacilityServicePendingPhase.TerminalApplied;
+        candidate.terminalPhase = DefenseFacilityServiceOutcomePhase.Completed;
+        candidate.terminalRevision = checked(state.serviceRevision + 1L);
+        candidate.terminalState = afterState;
+        candidate.terminalSupply = afterSupply;
+        candidate.physicalOperationId = physical.operationId;
+        candidate.physicalOwnerRevision = physical.outcomeOwnerRevision;
+        candidate.itemId = physical.itemId;
+        candidate.inputQuantity = physical.inputQuantity;
+        candidate.inputMassGrams = physical.inputMassGrams;
+        return serviceOutcomes.TryPrepare(
+            BuildServiceFact(state.facilityPersistentId, candidate, DefenseFacilityServiceOutcomePhase.Completed), out prepared, out _);
+    }
+
+    private static void RecordServiceTerminal(
+        DefenseFacilityState state,
+        DefenseFacilityPhysicalCommitSaveData physical,
+        DefenseFacilityOperationalState afterState,
+        int afterSupply)
+    {
+        DefenseFacilityServicePendingSaveData pending = state.pendingService;
+        if (pending.phase == DefenseFacilityServicePendingPhase.None)
+            return;
+        pending.phase = DefenseFacilityServicePendingPhase.TerminalApplied;
+        pending.terminalPhase = DefenseFacilityServiceOutcomePhase.Completed;
+        pending.terminalRevision = checked(state.serviceRevision + 1L);
+        pending.terminalState = afterState;
+        pending.terminalSupply = afterSupply;
+        pending.physicalOperationId = physical.operationId;
+        pending.physicalOwnerRevision = physical.outcomeOwnerRevision;
+        pending.itemId = physical.itemId;
+        pending.inputQuantity = physical.inputQuantity;
+        pending.inputMassGrams = physical.inputMassGrams;
+        state.serviceRevision = pending.terminalRevision;
+    }
+
+    private bool TryPublishServiceTerminal(DefenseFacilityState state)
+    {
+        DefenseFacilityServicePendingSaveData pending = state.pendingService;
+        if (pending.phase == DefenseFacilityServicePendingPhase.None)
+            return true;
+        if (pending.phase != DefenseFacilityServicePendingPhase.TerminalApplied
+            || !TryPublishServiceRequest(state))
+            return false;
+        return serviceOutcomes.TryEnsurePublished(BuildServiceFact(state.facilityPersistentId, pending, pending.terminalPhase), out _);
+    }
+
+    private bool TryFailServiceWithImpact(
+        DefenseFacilityState state,
+        DefenseFacilityOperationalState afterState)
+    {
+        DefenseFacilityServicePendingSaveData pending = state.pendingService;
+        if (pending.phase == DefenseFacilityServicePendingPhase.None)
+            return true;
+        if (pending.phase == DefenseFacilityServicePendingPhase.TerminalApplied)
+        {
+            if (!TryPublishServiceTerminal(state))
+                return false;
+            CompleteService(state);
+            return true;
+        }
+        if (!TryPublishServiceRequest(state))
+            return false;
+        DefenseFacilityServicePendingSaveData candidate = pending.DeepClone();
+        candidate.phase = DefenseFacilityServicePendingPhase.TerminalApplied;
+        candidate.terminalPhase = DefenseFacilityServiceOutcomePhase.FailedWithImpact;
+        candidate.terminalRevision = checked(state.serviceRevision + 1L);
+        candidate.terminalState = afterState;
+        candidate.terminalSupply = state.supply;
+        if (!serviceOutcomes.TryPrepare(BuildServiceFact(state.facilityPersistentId, candidate,
+                DefenseFacilityServiceOutcomePhase.FailedWithImpact), out var prepared, out _)) return false;
+        bool acknowledged;
+        using (prepared)
+        {
+            CaptureServiceRollback(state, prepared);
+            state.pendingService = candidate;
+            state.serviceRevision = candidate.terminalRevision;
+            state.operationalState = afterState;
+            var delivered = prepared.PublishApplied();
+            if (!delivered.MayBeCommitted) return false;
+            acknowledged = delivered.Completed;
+        }
+        PublishServiceState(state);
+        if (!acknowledged && !TryPublishServiceTerminal(state)) return false;
+        CompleteService(state);
+        return true;
+    }
+
+    private static void CompleteService(DefenseFacilityState state)
+    {
+        if (state.pendingService.phase != DefenseFacilityServicePendingPhase.TerminalApplied)
+            return;
+        state.pendingService = new DefenseFacilityServicePendingSaveData();
+        state.nextServiceOperationSequence = checked(
+            state.nextServiceOperationSequence + 1);
+    }
+
+    private static DefenseServiceChangedFact BuildServiceFact(string facilityId,
+        DefenseFacilityServicePendingSaveData pending, DefenseFacilityServiceOutcomePhase phase)
+    {
+        bool terminal = phase != DefenseFacilityServiceOutcomePhase.Requested;
+        bool completed = phase == DefenseFacilityServiceOutcomePhase.Completed;
+        return new DefenseServiceChangedFact(new DefenseServiceFactData
+        {
+            facilityId = facilityId, operationSequence = pending.operationSequence,
+            operationId = DefenseServiceFactData.Operation(facilityId, pending.operationSequence, phase),
+            revision = terminal ? pending.terminalRevision : pending.requestRevision,
+            absoluteDay = pending.absoluteDay, kind = pending.kind, phase = phase,
+            beforeState = pending.beforeState, afterState = terminal ? pending.terminalState : pending.requestedState,
+            beforeSupply = pending.beforeSupply, afterSupply = terminal ? pending.terminalSupply : pending.requestedSupply,
+            physicalOperationId = completed ? pending.physicalOperationId : string.Empty,
+            physicalOwnerRevision = completed ? pending.physicalOwnerRevision : 0L,
+            itemId = completed ? pending.itemId : string.Empty,
+            inputQuantity = completed ? pending.inputQuantity : 0, inputMassGrams = completed ? pending.inputMassGrams : 0L
+        });
+    }
+
+    private static void CaptureServiceRollback(DefenseFacilityState state, DefenseServicePublicationRuntime.Preparation prepared)
+    {
+        var before = state.DeepClone();
+        prepared.SetRollback(() =>
+        {
+            state.operationalState = before.operationalState; state.blockedReason = before.blockedReason;
+            state.supply = before.supply; state.serviceRevision = before.serviceRevision;
+            state.pendingService = before.pendingService.DeepClone();
+            state.pendingSupply = before.pendingSupply.DeepClone();
+            state.pendingMaintenance = before.pendingMaintenance.DeepClone();
+            return true;
+        });
+    }
+
+    private void PublishServiceState(DefenseFacilityState state)
+    {
+        try { PublishState(state); }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException && exception is not AccessViolationException)
+        { Debug.LogError("defense-service-state-observer-failed:" + exception.Message); }
     }
 
     private bool HasPendingSupply(string destinationId)
@@ -798,6 +1233,12 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
                 new DomainFailure(FailureCode.DefenseDestroyed));
             return;
         }
+
+        // A passive snapshot must not rewrite the applied service state while
+        // its exact physical child and terminal parent await acknowledgement.
+        if (state.pendingService.phase
+                == DefenseFacilityServicePendingPhase.TerminalApplied)
+            return;
 
         if (state.operationalState == DefenseFacilityOperationalState.Jammed)
         {
@@ -996,7 +1437,11 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
                 ?? new DefenseFacilityPhysicalCommitSaveData(),
             nextSupplyOperationSequence = source.nextSupplyOperationSequence,
             pendingSupply = source.pendingSupply?.DeepClone()
-                ?? new DefenseFacilityPhysicalCommitSaveData()
+                ?? new DefenseFacilityPhysicalCommitSaveData(),
+            serviceRevision = source.serviceRevision,
+            nextServiceOperationSequence = source.nextServiceOperationSequence,
+            pendingService = source.pendingService?.DeepClone()
+                ?? new DefenseFacilityServicePendingSaveData()
         };
     }
 
@@ -1032,7 +1477,11 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
                 source.nextMaintenanceOperationSequence,
             pendingMaintenance = source.pendingMaintenance.DeepClone(),
             nextSupplyOperationSequence = source.nextSupplyOperationSequence,
-            pendingSupply = source.pendingSupply.DeepClone()
+            pendingSupply = source.pendingSupply.DeepClone(),
+            serviceRevision = source.serviceRevision,
+            nextServiceOperationSequence = source.nextServiceOperationSequence,
+            pendingService = source.pendingService?.DeepClone()
+                ?? new DefenseFacilityServicePendingSaveData()
         };
     }
 

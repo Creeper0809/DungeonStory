@@ -1,0 +1,10 @@
+result=PASS
+PASS actual pointer choice twice with zero funds: localized failure='골드가 부족합니다. 보유 0 / 필요 60'; retry/source preserved; society/factions/physical/money ledger unchanged
+PASS current alert JSON failure/result roundtrip; funded retry commits one -60 transaction; actual open result remains read-only; action/source replay changes nothing
+result summary=처리: 숙박비를 보상한다
+해결 상태: compensate
+작성 결과 서술: 숙박비를 보상한다
+적용 효과 유형: 자금
+PASS actual sealed-archive acceptance without RF25 remains AwaitingVenue with frozen risk, no terminal result/reward/item mutation; no haul replay
+scope=controlled authored occurrence and initial funds; actual main notice pointer input, real dispatcher/content commit and persisted result. Local risk restore separately verified; not natural accident eligibility, every social effect or six-adult balance.
+cleanup=paused disposable main Play; disk saves disabled before owner UI; operator stops without saving scene/profile/settings

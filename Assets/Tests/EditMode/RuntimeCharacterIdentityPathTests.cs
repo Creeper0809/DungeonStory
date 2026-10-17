@@ -13,7 +13,7 @@ namespace DungeonStory.Tests.Architecture
             string invasionRestore = ReadSource(
                 "Scripts/Services/Invasion/InvasionIntruderRuntime.Restore.cs");
             string factions = ReadSource(
-                "Scripts/Services/Factions/FactionRuntime.cs");
+                "Scripts/Services/Factions/FactionReinforcementMaterializer.cs");
             string offense = ReadSource(
                 "Scripts/Services/Offense/OffenseReturnArrivalRuntime.cs");
             string exterior = ReadSource(

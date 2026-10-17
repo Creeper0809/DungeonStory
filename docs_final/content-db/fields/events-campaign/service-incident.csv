@@ -6,6 +6,8 @@ ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,descri
 ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,authoringRevision,1,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,kind,0,ServiceIncidentKind,Brawl,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,riskTier,2,ExperienceEventRiskTier,Serious,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,riskReason,작성된 대응에 비치명 체력 피해 -3이 있다.,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,triggerRequirements.items,[],,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,triggerRequirements.facilities,[],,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:brawl,service-incident:brawl,triggerRequirements.research,[],,,explicit-serialized
@@ -66,6 +68,8 @@ ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:cont
 ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,authoringRevision,1,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,kind,2,ServiceIncidentKind,Contamination,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,riskTier,2,ExperienceEventRiskTier,Serious,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,riskReason,작성된 대응에 활성 압력 식별자를 추가하는 Threat 6이 있다.,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,triggerRequirements.items,[],,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,triggerRequirements.facilities,[],,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:contamination,service-incident:contamination,triggerRequirements.research,[],,,explicit-serialized
@@ -126,6 +130,8 @@ ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:cul
 ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,authoringRevision,1,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,kind,3,ServiceIncidentKind,Cultural Insult,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,riskReason,작성된 대응에 세력 원한 8이 있다.,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,triggerRequirements.items,[],,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,triggerRequirements.facilities,[],,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:culturalinsult,service-incident:culturalinsult,triggerRequirements.research,[],,,explicit-serialized
@@ -186,6 +192,8 @@ ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envo
 ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,authoringRevision,1,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,kind,6,ServiceIncidentKind,Envoy Conflict,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,riskReason,작성된 대응에 작업 지연 1일 또는 세력 원한 8이 있다.,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,triggerRequirements.items,[],,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,triggerRequirements.facilities,[],,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:envoyconflict,service-incident:envoyconflict,triggerRequirements.research,[],,,explicit-serialized
@@ -246,6 +254,8 @@ ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forb
 ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,authoringRevision,1,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,kind,4,ServiceIncidentKind,Forbidden Meal,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,riskReason,작성된 대응에 돈 -60 또는 세력 원한 5가 있다.,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,triggerRequirements.items,[],,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,triggerRequirements.facilities,[],,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:forbiddenmeal,service-incident:forbiddenmeal,triggerRequirements.research,[],,,explicit-serialized
@@ -306,6 +316,8 @@ ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:me
 ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,authoringRevision,1,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,kind,5,ServiceIncidentKind,Medical Collapse,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,riskReason,작성된 대응에 작업 지연 1일 또는 세력 원한 10이 있다.,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,triggerRequirements.items,[],,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,triggerRequirements.facilities,[],,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:medicalcollapse,service-incident:medicalcollapse,triggerRequirements.research,[],,,explicit-serialized
@@ -366,6 +378,8 @@ ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,
 ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,authoringRevision,1,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,kind,7,ServiceIncidentKind,Sabotage,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,riskTier,2,ExperienceEventRiskTier,Serious,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,riskReason,작성된 대응에 활성 압력 식별자를 추가하는 Threat 3이 있다.,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,triggerRequirements.items,[],,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,triggerRequirements.facilities,[],,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:sabotage,service-incident:sabotage,triggerRequirements.research,[],,,explicit-serialized
@@ -426,6 +440,8 @@ ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,descri
 ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,authoringRevision,1,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,kind,1,ServiceIncidentKind,Theft,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,riskReason,작성된 대응에 작업 지연 1일 또는 돈 -100이 있다.,,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,triggerRequirements.items,[],,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,triggerRequirements.facilities,[],,,explicit-serialized
 ServiceIncidentDefinitionSO|service-incident:theft,service-incident:theft,triggerRequirements.research,[],,,explicit-serialized

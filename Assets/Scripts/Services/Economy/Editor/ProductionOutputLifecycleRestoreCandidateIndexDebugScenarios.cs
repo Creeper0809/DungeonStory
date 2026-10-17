@@ -273,6 +273,7 @@ public static class ProductionOutputLifecycleRestoreCandidateIndexDebugScenarios
             exposures = Array.Empty<CharacterEnvironmentExposure>(),
             equippedWorkwear = Array.Empty<EnvironmentalWorkwearSaveData>(),
             equippedApparel = Array.Empty<EquippedApparelSaveData>(),
+            apparelPolicies = Array.Empty<CharacterApparelPolicySaveData>(),
             apparelWorkOrders = Array.Empty<ApparelWorkOrderSaveData>()
         };
 

@@ -1,0 +1,7 @@
+state-roundtrip-invalid-payload-atomic=PASS
+actual-environment-adapter-open-close-restored-mask=PASS
+structural-revision-light-invariant=PASS
+closed-temperature=20;open-temperature=32.375
+closed-air=100;open-air=78
+scope=explicit-world-and-module-restore-fixture;main-movement-not-covered
+result=PASS

@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "주민과 운반물이 지나는 길을 놓을 때 쓰는 복도 설치 부품이며, 하르나크에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "주민과 운반물이 지나는 길을 놓을 때 쓰는 복도 설치 부품이다. 하르나크식 복도는 오크와 골렘이 마주 지나고 하피가 날개를 접어 돌 수 있는 폭으로 만든다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

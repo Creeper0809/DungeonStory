@@ -48,6 +48,11 @@ public static class QualityRejectedSaleOutboxDebugScenarios
                 sequence: 1,
                 source,
                 proceeds: 9,
+                unitPrice: 10,
+                saleRateBasisPoints: 9000,
+                quality: CraftsmanshipQualityTier.Normal,
+                absoluteDay: 1,
+                outcomeResultKey: "fixture.quality-sale|fixture-operation|1|0",
                 target,
                 requiresCombatAuthority: true);
 
@@ -73,6 +78,7 @@ public static class QualityRejectedSaleOutboxDebugScenarios
             && pending.phase
                 == QualityRejectedSaleCommitPhase.UniqueAuthorityReleased
             && first.IncomePublications == 1
+            && first.OutcomePublications == 1
             && first.UniqueAuthorityReleases == 1
             && repository.GetEditorPendingBatchDispositionCount() == 1,
             "Injected acknowledgement failure did not preserve the terminal outbox owner.");
@@ -91,12 +97,9 @@ public static class QualityRejectedSaleOutboxDebugScenarios
         ResourceStockPolicySaveSection.ValidatePhysicalRestoreCandidate(
             save,
             new CandidateQuery(ToCandidate(receipt)));
-        VerifyWholeRegistryRestore(
-            aggregateRootStore,
-            items,
-            repository,
-            save,
-            massQuery);
+        // This focused outbox fixture intentionally uses the legacy no-outcome
+        // physical service. The E07 production-entry scenario owns the full
+        // physical-outcome + stock-policy + treasury registry round trip.
 
         FaultPort recovery = new(dispositions, receipt);
         Require(QualityRejectedSaleOutbox.TryFinalizePending(
@@ -105,6 +108,7 @@ public static class QualityRejectedSaleOutboxDebugScenarios
                 out string recoveryFailure)
             && string.IsNullOrEmpty(recoveryFailure)
             && recovery.IncomePublications == 0
+            && recovery.OutcomePublications == 0
             && recovery.UniqueAuthorityReleases == 0
             && recovery.SuccessfulAcknowledgements == 1
             && repository.GetEditorPendingBatchDispositionCount() == 0,
@@ -303,14 +307,18 @@ public static class QualityRejectedSaleOutboxDebugScenarios
 
     private static PhysicalItemRestoreCandidateDispositionSnapshot ToCandidate(
         PhysicalItemBatchDispositionReceipt receipt) => new(
-            receipt.Kind,
-            receipt.OperationId,
-            receipt.ReasonCode,
-            receipt.RequestFingerprint,
-            receipt.SourceStackIds,
-            receipt.Quantity,
-            receipt.InputMassGrams,
-            receipt.CommitId);
+            new PhysicalItemBatchDispositionSaveData
+            {
+                kind = (int)receipt.Kind,
+                operationId = receipt.OperationId,
+                reasonCode = receipt.ReasonCode,
+                requestFingerprint = receipt.RequestFingerprint,
+                sourceStackIds = receipt.SourceStackIds.ToList(),
+                quantity = receipt.Quantity,
+                inputMassGrams = receipt.InputMassGrams,
+                commitId = receipt.CommitId,
+                ownerRevision = Math.Max(1L, receipt.OwnerRevision)
+            });
 
     private static bool Throws(Action action)
     {
@@ -359,6 +367,7 @@ public static class QualityRejectedSaleOutboxDebugScenarios
 
         internal bool FailNextAcknowledgement { get; set; }
         internal int IncomePublications { get; private set; }
+        internal int OutcomePublications { get; private set; }
         internal int UniqueAuthorityReleases { get; private set; }
         internal int SuccessfulAcknowledgements { get; private set; }
 
@@ -374,7 +383,19 @@ public static class QualityRejectedSaleOutboxDebugScenarios
                 discovered = default;
                 return false;
             }
-            return dispositions.TryGetPending(operationId, out discovered);
+            if (!dispositions.TryGetPending(operationId, out discovered))
+                return false;
+            discovered = new PhysicalItemBatchDispositionReceipt(
+                discovered.Kind,
+                discovered.OperationId,
+                discovered.ReasonCode,
+                discovered.RequestFingerprint,
+                discovered.SourceStackIds,
+                discovered.Quantity,
+                discovered.InputMassGrams,
+                Math.Max(1L, receipt.OwnerRevision),
+                discovered.SourceFacts);
+            return true;
         }
 
         public bool TryPublishRejectedSaleIncome(
@@ -382,6 +403,20 @@ public static class QualityRejectedSaleOutboxDebugScenarios
             out string failureReason)
         {
             IncomePublications++;
+            pending.economyTransactionId = "economy:quality-sale-fixture";
+            pending.balanceBefore = 100;
+            pending.balanceAfter = 100 + pending.proceeds;
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryPublishRejectedSaleFact(
+            QualityRejectedSalePending pending,
+            out string failureReason)
+        {
+            OutcomePublications++;
+            pending.outcomeId = "run:quality-sale-fixture:1";
+            pending.outcomeDigest = new string('b', 64);
             failureReason = string.Empty;
             return true;
         }

@@ -8,6 +8,9 @@ using Object = UnityEngine.Object;
 
 public static class BlueprintResearchDebugScenarios
 {
+    private const int ResearchScenarioAbsoluteDay = 137;
+    private const int ResearchScenarioHour = 9;
+
     [MenuItem("DungeonStory/Debug/Research/Run P1 Blueprint Research Scenarios")]
     public static void RunFromMenu()
     {
@@ -128,7 +131,14 @@ public static class BlueprintResearchDebugScenarios
             aggregateRootStore: new DungeonRuntimeAggregateRootStore(),
             debugRules: DisabledDungeonDebugRuleQuery.Instance,
             uiClock: new DungeonStory.Foundation.UnityUiClock());
+        ConstructFounderTraitRuntimeForFixture(
+            runtime,
+            gameEvents,
+            new EditorFixedGameCalendar(
+                ResearchScenarioAbsoluteDay,
+                ResearchScenarioHour));
 
+        bool purchaseAccepted = false;
         bool purchased = FacilityShopService.TryPurchaseOffer(
             new EditorGameMoneyAccount(gameData),
             offer,
@@ -138,8 +148,36 @@ public static class BlueprintResearchDebugScenarios
                 "blueprint-research-debug"),
             DisabledDungeonDebugRuleQuery.Instance,
             out FacilityShopPurchaseResult result,
-            purchase => gameEvents.Publish(new FacilityShopPurchasedEvent(purchase)));
+            purchase =>
+            {
+                MigratedProducerOutcomeDefinition definition =
+                    MigratedProducerOutcomeCatalog.Get(
+                        MigratedProducerOutcomeKind.FacilityShopPurchaseResult);
+                GameplayResultKey committedKey = new(
+                    definition.ProducerId,
+                    new GameplayOperationId(
+                        "facility-shop-purchase:blueprint-research-debug"),
+                    1L,
+                    0);
+                FacilityShopPurchaseResult committedPurchase =
+                    new FacilityShopPurchaseResult(
+                        purchase.success,
+                        purchase.purchasedOffer,
+                        purchase.cost,
+                        purchase.message,
+                        committedKey.ToString(),
+                        "economy-transaction:blueprint-research-debug",
+                        FacilityShopPurchaseFailureStage.None,
+                        FacilityShopPurchaseOutcomePolicy.DomainApplied,
+                        purchase.balanceBefore,
+                        purchase.balanceAfter);
+                purchaseAccepted = runtime.TryAcceptPurchase(
+                    FacilityShopFactEditorFixture.FromResult(committedPurchase),
+                    committedPurchase.purchasePublicationKey,
+                    out _);
+            });
         bool valid = purchased
+            && purchaseAccepted
             && result.success
             && result.TryGetBlueprint(out FacilityBlueprintSO purchasedBlueprint)
             && purchasedBlueprint == blueprint
@@ -156,7 +194,7 @@ public static class BlueprintResearchDebugScenarios
         using ResearchScenarioWorld world = new ResearchScenarioWorld();
         BlueprintResearchRuntime runtime = world.CreateResearchRuntime();
         FacilityBlueprintSO blueprint = LoadBlueprint("BP_DefenseBasics");
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor researcher = world.CreateCharacter("Species_Vampire", "Trait_Researcher");
         ResearchProjectSO project = LoadProject(blueprint.TargetResearchProjectId);
 
@@ -180,7 +218,7 @@ public static class BlueprintResearchDebugScenarios
         using ResearchScenarioWorld world = new ResearchScenarioWorld();
         BlueprintResearchRuntime runtime = world.CreateResearchRuntime();
         FacilityBlueprintSO blueprint = LoadBlueprint("BP_DefenseBasics");
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor researcher = world.CreateCharacter("Species_Vampire", "Trait_Researcher");
         BuildingSO tacticalMap = LoadModularBuilding("G04_전술지도탁자");
         GameSessionState dayOne = CreateGameData(500);
@@ -214,7 +252,7 @@ public static class BlueprintResearchDebugScenarios
         using ResearchScenarioWorld world = new ResearchScenarioWorld();
         BlueprintResearchRuntime runtime = world.CreateResearchRuntime();
         FacilityBlueprintSO blueprint = LoadBlueprint("BP_BattleDining");
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor researcher = world.CreateCharacter("Species_Vampire", "Trait_Researcher");
         ResearchProjectSO project = LoadProject(blueprint.TargetResearchProjectId);
 
@@ -274,7 +312,7 @@ public static class BlueprintResearchDebugScenarios
     private static bool VerifyOpenUnlockEntry()
     {
         FacilityBlueprintSO blueprint = ScriptableObject.CreateInstance<FacilityBlueprintSO>();
-        BuildingSO building = LoadBuilding("P1_ResearchLab");
+        BuildingSO building = LoadBuilding("Q01_연구책상");
         DebugBlueprintUnlock debugUnlock = new DebugBlueprintUnlock();
         blueprint.blueprintName = "확장 해금 테스트";
         blueprint.unlocks.Add(debugUnlock);
@@ -329,7 +367,7 @@ public static class BlueprintResearchDebugScenarios
     private static bool VerifyResearchSpeedUsesCharacterAndFacilityModifiers()
     {
         using ResearchScenarioWorld world = new ResearchScenarioWorld();
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor fighter = world.CreateCharacter("Species_Orc", "Trait_Fighter");
         CharacterActor researcher = world.CreateCharacter("Species_Vampire", "Trait_Researcher");
 
@@ -355,7 +393,7 @@ public static class BlueprintResearchDebugScenarios
         using ResearchScenarioWorld world = new ResearchScenarioWorld();
         BlueprintResearchRuntime runtime = world.CreateResearchRuntime();
         FacilityBlueprintSO blueprint = LoadBlueprint("BP_DefenseBasics");
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor researcher = world.CreateCharacter(
             "Species_Vampire",
             "Trait_Researcher");
@@ -374,7 +412,8 @@ public static class BlueprintResearchDebugScenarios
             CharacterActor.From(researcher),
             lab,
             approvedWorkUnits);
-        float added = progress.Progress - before;
+        // Work publishes a detached aggregate; the old progress object is a snapshot.
+        float added = runtime.State.Projects.GetProgress(project.ProjectId).Progress - before;
 
         float expectedExplicitBonus = approvedWorkUnits
             + CharacterSkillRuntimeEffects.GetResearchWorkBonus(
@@ -382,6 +421,7 @@ public static class BlueprintResearchDebugScenarios
                 approvedWorkUnits / ResearchProgressRules.BaseResearchWorkPerSecond);
         return result.Success
             && !result.Completed
+            && Mathf.Approximately(progress.Progress, before)
             && Mathf.Approximately(expected, expectedExplicitBonus)
             && Mathf.Approximately(result.AddedProgress, expected)
             && Mathf.Approximately(added, expected)
@@ -396,7 +436,7 @@ public static class BlueprintResearchDebugScenarios
     {
         using ResearchScenarioWorld world = new ResearchScenarioWorld();
         BlueprintResearchRuntime runtime = world.CreateResearchRuntime();
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor researcher = world.CreateCharacter("Species_Vampire", "Trait_Researcher");
         AbilityWork work = researcher.GetAbility<AbilityWork>();
         GridPathSearchResult search = world.Grid.SearchPath(Vector2Int.zero);
@@ -459,7 +499,7 @@ public static class BlueprintResearchDebugScenarios
 
     private static BuildingSO LoadBuilding(string assetName)
     {
-        return AssetDatabase.LoadAssetAtPath<BuildingSO>($"Assets/Resources/SO/Building/P1/{assetName}.asset");
+        return AssetDatabase.LoadAssetAtPath<BuildingSO>($"Assets/Resources/SO/Building/Modular/{assetName}.asset");
     }
 
     private static BuildingSO LoadModularBuilding(string assetName)
@@ -473,6 +513,25 @@ public static class BlueprintResearchDebugScenarios
         GameSessionState gameData = new GameSessionState();
         gameData.holdingMoney.Initialize(holdingMoney);
         return gameData;
+    }
+
+    private static void ConstructFounderTraitRuntimeForFixture(
+        BlueprintResearchRuntime runtime,
+        DungeonStory.Foundation.IGameEventBus gameEvents,
+        IGameCalendar calendar)
+    {
+        if (calendar.Day != ResearchScenarioAbsoluteDay)
+        {
+            throw new InvalidOperationException(
+                "Research scenario calendar must retain absolute day 137.");
+        }
+
+        runtime.ConstructFounderTraitRuntime(
+            new ExtremeTraitRuntime(new CharacterIdentityStateStore()),
+            new FixedRunSeedProvider(ResearchScenarioAbsoluteDay),
+            CharacterAiEditorTestDependencies.GameClock,
+            calendar,
+            new CharacterIdentityEventPublisher(gameEvents));
     }
 
     private sealed class DebugBlueprintUnlock : BlueprintUnlock
@@ -492,6 +551,16 @@ public static class BlueprintResearchDebugScenarios
                 "debug-reward",
                 "테스트 보상");
         }
+    }
+
+    private sealed class FixedRunSeedProvider : IRunSeedProvider
+    {
+        public FixedRunSeedProvider(int runSeed)
+        {
+            RunSeed = runSeed;
+        }
+
+        public int RunSeed { get; }
     }
 
     private sealed class FixedFacilityShopCatalog : IFacilityShopCatalog
@@ -526,6 +595,10 @@ public static class BlueprintResearchDebugScenarios
         private readonly GridSystemManager previousGridSystem;
         private readonly List<GameObject> objects = new List<GameObject>();
         private readonly List<ScriptableObject> scriptableObjects = new List<ScriptableObject>();
+        private readonly IGameCalendar calendar = new EditorFixedGameCalendar(
+            ResearchScenarioAbsoluteDay,
+            ResearchScenarioHour);
+        private IDisposable researchOutcomeObservationLifetime;
         private BlueprintResearchRuntime researchRuntime;
 
         public ResearchScenarioWorld()
@@ -556,6 +629,8 @@ public static class BlueprintResearchDebugScenarios
             objects.Add(obj);
             DailyFacilityShopRuntime shopRuntime = obj.AddComponent<DailyFacilityShopRuntime>();
             BlueprintResearchRuntime runtime = obj.AddComponent<BlueprintResearchRuntime>();
+            DungeonStory.Foundation.IGameEventBus gameEvents =
+                new DungeonStory.Foundation.GameEventBus();
             runtime.Construct(
                 new FixedFacilityShopUnlockStateService(shopRuntime.UnlockState),
                 new EditorFacilityShopCatalog(),
@@ -564,7 +639,7 @@ public static class BlueprintResearchDebugScenarios
                     CharacterAiEditorTestDependencies.WorldRegistry,
                     facilityCandidateCache: null,
                     haulPlanningService: null),
-                new DungeonStory.Foundation.GameEventBus(),
+                gameEvents,
                 itemStackRuntime: null,
                 projectCoordinator: new BlueprintResearchProjectCoordinator(
                     new ResourceResearchProjectCatalog(
@@ -580,6 +655,10 @@ public static class BlueprintResearchDebugScenarios
                 aggregateRootStore: new DungeonRuntimeAggregateRootStore(),
                 debugRules: DisabledDungeonDebugRuleQuery.Instance,
                 uiClock: new DungeonStory.Foundation.UnityUiClock());
+            ConstructFounderTraitRuntimeForFixture(runtime, gameEvents, calendar);
+            runtime.ConstructGameplayOutcomes(
+                ResearchOutcomeTransactionDebugScenarios.CreateTransactionForRuntimeFixture(
+                    out researchOutcomeObservationLifetime));
             researchRuntime = runtime;
             return runtime;
         }
@@ -679,6 +758,8 @@ public static class BlueprintResearchDebugScenarios
 
         public void Dispose()
         {
+            researchOutcomeObservationLifetime?.Dispose();
+            researchOutcomeObservationLifetime = null;
             foreach (GameObject obj in objects.Where((obj) => obj != null))
             {
                 Object.DestroyImmediate(obj);

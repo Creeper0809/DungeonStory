@@ -25,6 +25,25 @@ public enum WorkOrderMaterialTransferPhase
     RestitutionPending = 4
 }
 
+public enum WorkOrderTerminalPhase
+{
+    None = 0,
+    EffectsAppliedPendingOutcome = 1,
+    OutcomeCommitted = 2
+}
+
+public enum WorkOrderTerminalKind
+{
+    None = 0,
+    Completed = 1,
+    Cancelled = 2
+}
+
+public static class WorkOrderPlacementIdentity
+{
+    public static string ForOrder(string orderId) => "construction-placement:" + orderId;
+}
+
 [Serializable]
 public sealed class WorkOrderMaterialSourceSaveData
 {
@@ -85,17 +104,31 @@ public sealed class WorkOrderSaveData
     public List<WorkOrderItemMaterialSaveData> itemMaterials =
         new List<WorkOrderItemMaterialSaveData>();
     public WorkOrderMaterialTransferSaveData materialTransfer = new();
+    public WorkOrderTerminalPhase terminalPhase;
+    public WorkOrderTerminalKind terminalKind;
+    public bool terminalFactCaptured;
+    public ConstructionWorkEndedData terminalFact = new();
+    public string terminalPublicationKey = string.Empty;
+    public string placementOperationId = string.Empty;
+    public List<string> supportBuildingIds = new();
+    public string finalFacilityId = string.Empty;
+    public string finalFacilityDefinitionId = string.Empty;
+    public string replacedFacilityId = string.Empty;
+    public string replacedFacilityDefinitionId = string.Empty;
 }
 
 [Serializable]
 public sealed class DungeonWorkOrderSaveData
 {
-    public const int CurrentVersion = 8;
+    public const int CurrentVersion = 14;
 
     public int version = CurrentVersion;
     public int nextOrderSequence = 1;
+    public int nextRepairOutcomeSequence = 1;
     public List<WorkOrderSaveData> orders = new List<WorkOrderSaveData>();
     public List<QualityTargetPipelineSaveData> qualityPipelines = new();
+    public List<RepairWorkOutcomeSaveData> repairOutcomes = new();
+    public List<WorkAccidentObservationSaveData> pendingAccidents = new();
 }
 
 public sealed class WorkOrderProgressState
@@ -152,12 +185,28 @@ public interface IWorkOrderRuntime
         DungeonWorkOrderSaveData snapshot);
     void PublishRestoreCandidate(WorkOrderRestoreCandidate candidate);
     bool TryCreateConstructionOrder(ConstructionSite site, BuildingSO building, Vector2Int position, out string orderId, out string failureReason);
+    bool TryAttachConstructionPlacement(
+        string orderId,
+        string placementOperationId,
+        IReadOnlyList<string> supportBuildingIds,
+        out string failureReason);
     bool TryGetOrderFor(BuildableObject target, WorkTypeId workTypeId, out WorkOrderProgressState order);
     bool ApplyWork(CharacterActor worker, BuildableObject target, WorkTypeId workTypeId, float amount, out bool completed, out bool appliedCompletionEffects, out string message);
     bool RefreshMaterialsReady(ConstructionSite site);
     bool CancelOrder(string orderId, bool refundDeliveredMaterials);
     bool DebugCompleteOrder(string orderId, out string message);
     int DebugCompleteAllOrders();
+}
+
+internal interface IWorkAccidentOperationIdAuthority
+{
+    [GameplayInternalOnly(
+        "Allocates a persisted monotonic identity before one work-accident damage commit.",
+        "WorkTaskExecutor.TryTriggerWorkAccident only")]
+    string AllocateWorkAccidentOperationId(
+        CharacterId workerId,
+        WorkTypeId workTypeId,
+        BuildingInstanceId facilityId);
 }
 
 public interface IConstructionProjectWorkforceRuntime
@@ -216,6 +265,17 @@ internal sealed class WorkOrderRecord
     public readonly Dictionary<string, int> spawnedRecoveryOutputs =
         new Dictionary<string, int>(StringComparer.Ordinal);
     public WorkOrderMaterialTransferState materialTransfer = new();
+    public WorkOrderTerminalPhase terminalPhase;
+    public WorkOrderTerminalKind terminalKind;
+    public bool terminalFactCaptured;
+    public ConstructionWorkEndedData terminalFact = new();
+    public string terminalPublicationKey = string.Empty;
+    public string placementOperationId = string.Empty;
+    public readonly List<string> supportBuildingIds = new();
+    public string finalFacilityId = string.Empty;
+    public string finalFacilityDefinitionId = string.Empty;
+    public string replacedFacilityId = string.Empty;
+    public string replacedFacilityDefinitionId = string.Empty;
 
     public WorkOrderRecord DeepClone()
     {
@@ -252,7 +312,17 @@ internal sealed class WorkOrderRecord
                 cancelRebuildAfterDestructiveDrain,
             status = status,
             materialTransfer = materialTransfer?.DeepClone()
-                ?? new WorkOrderMaterialTransferState()
+                ?? new WorkOrderMaterialTransferState(),
+            terminalPhase = terminalPhase,
+            terminalKind = terminalKind,
+            terminalFactCaptured = terminalFactCaptured,
+            terminalFact = terminalFact?.Clone(),
+            terminalPublicationKey = terminalPublicationKey,
+            placementOperationId = placementOperationId ?? string.Empty,
+            finalFacilityId = finalFacilityId ?? string.Empty,
+            finalFacilityDefinitionId = finalFacilityDefinitionId ?? string.Empty,
+            replacedFacilityId = replacedFacilityId ?? string.Empty,
+            replacedFacilityDefinitionId = replacedFacilityDefinitionId ?? string.Empty
         };
         clone.contributions.AddRange(contributions.Select(value => value?.Clone())
             .Where(value => value != null));
@@ -260,6 +330,7 @@ internal sealed class WorkOrderRecord
         Copy(deliveredItemMaterials, clone.deliveredItemMaterials);
         Copy(requiredRecoveryOutputs, clone.requiredRecoveryOutputs);
         Copy(spawnedRecoveryOutputs, clone.spawnedRecoveryOutputs);
+        clone.supportBuildingIds.AddRange(supportBuildingIds);
         return clone;
     }
 

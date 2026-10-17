@@ -60,9 +60,17 @@ public sealed class GameCalendarRuntime : IGameCalendar, ITickable
         float elapsed = state.curTime.Value + Mathf.Max(0f, gameClock.DeltaTime);
         while (elapsed >= GameCalendarRules.SecondsPerDay)
         {
-            gameEventBus.Publish(new OperatingDayEndedEvent(state.day.Value));
+            int endedDay = state.day.Value;
             elapsed -= GameCalendarRules.SecondsPerDay;
-            state.day.Value++;
+            // Midnight has occurred before either notification. Ended carries
+            // the completed accounting day; listeners that advance life or
+            // ambition to endedDay + 1 must see that same authoritative date.
+            // Publish a coherent midnight, not next-day/old-hour mixed state.
+            state.curTime.Value = 0f;
+            state.hour.Value = 0;
+            state.timeOfDay.Value = ResolveTimeOfDay(0f);
+            state.day.Value = checked(endedDay + 1);
+            gameEventBus.Publish(new OperatingDayEndedEvent(endedDay));
             gameEventBus.Publish(new OperatingDayStartedEvent(state.day.Value));
         }
 
@@ -109,11 +117,13 @@ public sealed class GameSpeedController : IGameSpeedController
     private readonly IGameSessionStateProvider sessionStateProvider;
     private readonly IGameSessionPauseAuthority pauseAuthority;
     private readonly IGameTimeScaleController timeScaleController;
+    private readonly IDungeonRestoreSafetyQuery restoreSafety;
 
     public GameSpeedController(
         IGameSessionStateProvider sessionStateProvider,
         IGameSessionPauseAuthority pauseAuthority,
-        IGameTimeScaleController timeScaleController)
+        IGameTimeScaleController timeScaleController,
+        IDungeonRestoreSafetyQuery restoreSafety)
     {
         this.sessionStateProvider = sessionStateProvider
             ?? throw new ArgumentNullException(nameof(sessionStateProvider));
@@ -121,6 +131,8 @@ public sealed class GameSpeedController : IGameSpeedController
             ?? throw new ArgumentNullException(nameof(pauseAuthority));
         this.timeScaleController = timeScaleController
             ?? throw new ArgumentNullException(nameof(timeScaleController));
+        this.restoreSafety = restoreSafety
+            ?? throw new ArgumentNullException(nameof(restoreSafety));
     }
 
     public int Speed => RequireState().gameSpeed.Value;
@@ -133,6 +145,7 @@ public sealed class GameSpeedController : IGameSpeedController
 
     public void SetSpeed(int speed)
     {
+        RequireSafeProgression();
         GameSessionState state = RequireState();
         state.gameSpeed.Value = Mathf.Clamp(speed, 1, 5);
         if (!state.IsPaused)
@@ -148,9 +161,16 @@ public sealed class GameSpeedController : IGameSpeedController
 
     public void SetPaused(bool paused)
     {
+        if (!paused) RequireSafeProgression();
         GameSessionState state = RequireState();
         pauseAuthority.SetPaused(paused);
         timeScaleController.Scale = paused ? 0f : state.gameSpeed.Value;
+    }
+
+    private void RequireSafeProgression()
+    {
+        if (restoreSafety.RequiresRecovery)
+            throw new InvalidOperationException(restoreSafety.RecoveryMessage);
     }
 
     private GameSessionState RequireState()

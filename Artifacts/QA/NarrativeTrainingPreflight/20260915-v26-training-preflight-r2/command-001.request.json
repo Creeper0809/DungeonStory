@@ -1,0 +1,15 @@
+{
+  "arguments": [
+    "C:\\Users\\vulpo\\AppData\\Local\\Microsoft\\WindowsApps\\unity.EXE",
+    "command",
+    "eval",
+    "--project-path",
+    "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory",
+    "--format",
+    "json",
+    "--detach",
+    "--code",
+    "return new {\n            compiling = UnityEditor.EditorApplication.isCompiling,\n            updating = UnityEditor.EditorApplication.isUpdating,\n            playing = UnityEditor.EditorApplication.isPlayingOrWillChangePlaymode,\n            failed = UnityEditor.EditorUtility.scriptCompilationFailed,\n            unityVersion = UnityEngine.Application.unityVersion,\n            assembly = typeof(NarrativeMechanicCatalogExporter).Assembly.Location,\n            assemblyTicks = System.IO.File.GetLastWriteTimeUtc(typeof(NarrativeMechanicCatalogExporter).Assembly.Location).Ticks\n        };"
+  ],
+  "cwd": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory"
+}

@@ -1,0 +1,24 @@
+result=FAIL
+entry=Wim037GuestDeliveryLiveRunner.StartVenueFocused
+rootRunner=8531924A637FEA041273B553F8CD16C29F9AF41E59234AC3145E7F649FBAF047
+rootVenue=782D23161CC000E71B5A3B2EDC1A54A300070695AC63F45E58C5DC1EA0D375C6
+productionQuery=A77C951BD6E35C07EF4F83AF71E4100AEE1079222D8276D9C253EEDAEB5BC48D
+mainCompile=PASS
+setup=validated initial society capture; replaced only unaccepted ordinary startup event with controlled target
+passed=actual notice accepted with no RF25; active pending; physical debit0; reward0; notice retained
+exception=Actual prepared venue unavailable: 후보 방에 점유·예약·통행을 제외한 행사 공간이 부족합니다.
+phase=read-only venue query after two real authored RF25 factory placements; before haul
+observation=RF25 anchor17,1; actual room width10/height1/cells10/parts17; every cell excluded
+observation=RF25 anchor28,1; actual room width5/height1/cells5/parts7; sole raw-vacant cell29,1 excluded as access
+parts=Hallway building0 at28..32; actual stair building4 at31,1; RF25 building8825 at28,1
+sourceCause=CaptureEventCells indiscriminately calls EnumerateCandidates for structural Hallway parts; their neighboring cells become fake operational access exclusions
+furtherBoundary=RoomDetector intentionally uses left/right room adjacency; blanket hard-block articulation over free event cells does not describe actual shared actor traversal
+pending=production owner reviewing minimal structural/operational/sole-access rule; fixture must still prepare actual eligible space without invented cells or weakening production capacity
+cleanup=paused disposable main Play stopped; no production behavior changed by diagnostic queries; old accepted normal/cancel evidence preserved
+
+post-correction-repeat=main current compile PASS, productionQuery0328B5B23311B7938CFB24FE15A2DF15752670515927B0C885812BCAA9489418
+spatial-boundary=real Grid/structural Hallway/retained access/door/stair/claim/purity focused PASS
+live-result=same first-fitting rooms still correctly lack usable event space after placement
+measured-preparation=room17..26,y1 has1 raw empty cell; room28..32,y1 has2; room27..32,y2 has3
+fixture-correction=prefer existing room by actual empty floor count before legal RF25 placement; do not add artificial cells, change production safety, expand dungeon, or use new gameplay assets
+scope=two full rooms reject is expected; first-fitting delivery fixture was insufficient for new venue requirement

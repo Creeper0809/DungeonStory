@@ -337,7 +337,9 @@ internal static class CharacterWorldRestorePayloadValidator
 
         CharacterWorldSaveValidation.ValidatePopulationProfiles(
             concreteProfiles,
-            report);
+            report,
+            charactersById);
+        CharacterWorldSaveValidation.ValidateVisitorBindings(concreteActors, concreteProfiles, report);
         CharacterWorldSaveValidation.ValidateReputation(
             source.globalFacilityReputation,
             report);
@@ -401,6 +403,13 @@ internal static class CharacterWorldRestorePayloadValidator
                 $"Character '{id.Value}' contains a non-finite health or mood value.");
         }
 
+        // Entry/exit traversal has no durable continuation owner yet. Do not
+        // silently drop the visitor or load it into a permanently stuck phase.
+        if (actor.characterType == CharacterType.Customer
+            && actor.lifecycleState is CharacterLifecycleState.SpawningOutside
+                or CharacterLifecycleState.EnteringDungeon or CharacterLifecycleState.ExitingDungeon)
+            report.AddError($"Visitor '{id.Value}' traversal continuation is not yet supported: {actor.lifecycleState}.");
+
         Vector2Int position = new Vector2Int(actor.gridX, actor.gridY);
         if (RequiresWalkableRestoreCell(actor.lifecycleState)
             && (!grid.IsValidGridPos(position) || !grid.IsWalkable(position)))
@@ -409,7 +418,7 @@ internal static class CharacterWorldRestorePayloadValidator
                 $"Character '{id.Value}' restore cell ({actor.gridX}, {actor.gridY}) is not walkable in the candidate grid.");
         }
 
-        CharacterWorldSaveValidation.ValidateActor(actor, id.Value, report);
+        CharacterWorldSaveValidation.ValidateActor(actor, id.Value, report, definition);
     }
 
     private static void ValidateProfile(

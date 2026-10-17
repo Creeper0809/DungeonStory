@@ -12,6 +12,8 @@ public static class DungeonFactionWarRegistration
             throw new ArgumentNullException(nameof(builder));
         }
 
+        builder.RegisterExternalFactionGameplayOutcomes();
+
         builder.Register<ResourceDungeonFactionCatalogApplicationAdapter>(Lifetime.Singleton);
         builder.Register<ResourceFactionAllianceBenefitBudgetApplicationAdapter>(
             Lifetime.Singleton);
@@ -28,10 +30,12 @@ public static class DungeonFactionWarRegistration
         builder.RegisterEntryPoint<FactionRuntimeApplicationAdapter>(Lifetime.Singleton)
             .As<IFactionRuntime>()
             .As<IFactionContractQuery>()
+            .As<IDungeonSaveRestoreCompletedHook>()
             .As<IDungeonSaveCaptureGuard>();
         builder.RegisterEntryPoint<InvasionCampaignRuntime>(Lifetime.Singleton)
             .As<IInvasionCampaignRuntime>();
         builder.RegisterEntryPoint<MilestonePressureApplicationAdapter>(
             Lifetime.Singleton);
+        builder.RegisterEntryPoint<MilestonePressurePresentationObserver>(Lifetime.Singleton);
     }
 }

@@ -16,6 +16,6 @@
   "schema_version": 1,
   "slug": "building-landmark-accord-hall",
   "spoiler_tier": "none",
-  "summary": "V20 hand-authored milestone landmark.",
+  "summary": "시설 동작은 BuildingStructuralIntegrityAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 4121 WU, 재료 처리 목재×36, 석재 블록×18, 강철×16, 종이×12이 필요하다. V20 hand-authored milestone landmark.",
   "title": "대협약 회당"
 }

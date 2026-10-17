@@ -7,6 +7,8 @@ public interface IWildlifeCaptureRestoreWorld
     bool HasActiveGrid { get; }
     bool HasMatchingLiveWildlife(string wildlifeId, string speciesId);
     bool HasSpecies(string speciesId);
+    bool SpeciesSupportsRole(string speciesId, CapturedWildlifeRoleId roleId);
+    bool IsEligibleCompanionOwner(string ownerCharacterId);
     bool HasItem(string itemId);
     bool IsValidGridPosition(Vector2Int position);
     bool IsCarrierAvailable(string carrierId);
@@ -31,7 +33,8 @@ public static class WildlifeCaptureRestoreValidator
         {
             throw new ArgumentNullException(nameof(report));
         }
-        if (saveData?.capturedWildlife == null)
+        if (saveData?.capturedWildlife == null
+            || saveData.wildlifeGameplayOutcomes == null)
         {
             report.AddError("Circus restore is missing captured wildlife data.");
             return;
@@ -40,6 +43,16 @@ public static class WildlifeCaptureRestoreValidator
         {
             report.AddError("Captured wildlife restore requires an active grid.");
             return;
+        }
+
+        foreach (WildlifeGameplayOutcomeSaveData pending in
+                 saveData.wildlifeGameplayOutcomes)
+        {
+            if (pending != null && !world.HasSpecies(pending.wildlifeSpeciesId))
+            {
+                report.AddError(
+                    $"Pending captured-wildlife outcome '{pending.operationId}' references unknown species '{pending.wildlifeSpeciesId}'.");
+            }
         }
 
         Dictionary<string, int> penOccupancy =
@@ -65,6 +78,32 @@ public static class WildlifeCaptureRestoreValidator
             {
                 report.AddError(
                     $"Captured wildlife '{state.wildlifeId}' references unknown species '{state.speciesId}'.");
+            }
+            if (CapturedWildlifeCapabilityStateCodec.TryRead(
+                    state.capabilityState,
+                    out CapturedWildlifeRoleId roleId,
+                    out _)
+                && (roleId.Equals(CapturedWildlifeRoleIds.Companion)
+                    || roleId.Equals(CapturedWildlifeRoleIds.Haul)))
+            {
+                if (!world.SpeciesSupportsRole(state.speciesId, roleId))
+                {
+                    report.AddError(
+                        $"Captured wildlife '{state.wildlifeId}' species does not support role '{roleId.Value}'.");
+                }
+                if (roleId.Equals(CapturedWildlifeRoleIds.Companion))
+                {
+                    CapturedWildlifeCapabilityStateCodec.TryReadCompanion(
+                        state.capabilityState,
+                        out CharacterId ownerId,
+                        out _,
+                        out _);
+                    if (!world.IsEligibleCompanionOwner(ownerId.Value))
+                    {
+                        report.AddError(
+                            $"Captured wildlife '{state.wildlifeId}' references ineligible companion owner '{ownerId.Value}'.");
+                    }
+                }
             }
             if (state.lastFeedItemId.Length > 0
                 && !world.HasItem(state.lastFeedItemId))

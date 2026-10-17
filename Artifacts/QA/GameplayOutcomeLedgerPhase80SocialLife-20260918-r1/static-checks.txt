@@ -1,0 +1,24 @@
+Phase80 social-life bounded static verification
+Timestamp UTC: 2026-09-17T16:54:59Z
+
+closure JSON parse: PASS
+candidate count: 23
+Record classifications: 0
+NonResult classifications: 3
+dependent-substitute-pending classifications: 20
+
+new SocialLife C# files with adjacent .meta: 5/5
+SocialLife file GUIDs unique within the folder: 5/5
+SocialLife folder .meta GUID occurrence under Assets: 1
+
+scoped git diff --check: PASS
+registration call present: DungeonCharacterRegistration.cs:16
+
+Unity editor: NOT RUN (delegated to main verification)
+Unity CLI: NOT RUN
+Unity MCP: NOT USED
+Gameplay tests: NOT RUN (delegated to main verification)
+
+Known cross-slice pending:
+- CombatCommandResultApplier must pass its existing canonical attackOperationId to SocialConflictEvent.
+- Empty operation ids remain fail-closed; no observer-generated replacement id is used.

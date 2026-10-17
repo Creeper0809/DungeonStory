@@ -9,6 +9,13 @@ public enum CaptivityAbilityAccessKind
     CaptiveEscape
 }
 
+public enum CaptivityMovementResolution
+{
+    Unreachable = 0,
+    Pending = 1,
+    Ready = 2
+}
+
 public enum WildlifeDeliveryStandResolution
 {
     Failed = 0,
@@ -26,7 +33,7 @@ public interface ICaptiveEscapeAbilityPort
         out string failureReason);
     IDisposable BeginEscapePass(string captiveId);
     bool TryStartSystemMove(Vector2Int destination, out string failureReason);
-    void CompleteEscape(string captiveId);
+    bool CompleteEscape(string captiveId, out string failureReason);
     void FailEscape(string captiveId, string reason);
     void SetActionPhase(string phase, Vector2Int destination);
 }
@@ -44,7 +51,7 @@ public interface ICaptiveEscortAbilityPort
         out Vector2Int subjectPosition,
         out string subjectDisplayName,
         out string failureReason);
-    bool TryCreateMovement(
+    CaptivityMovementResolution ResolveMovement(
         Vector2Int destination,
         CaptivityAbilityAccessKind accessKind,
         out IEnumerator movement);
@@ -62,6 +69,7 @@ public interface ICaptiveEscortAbilityPort
 
 public interface IWildlifeCaptureTransportAbilityPort
 {
+    Vector2Int Position { get; }
     bool TryBeginActionOwnership(
         string wildlifeId,
         out string failureReason);
@@ -78,8 +86,9 @@ public interface IWildlifeCaptureTransportAbilityPort
         Vector2Int destination,
         CaptivityAbilityAccessKind accessKind,
         out IEnumerator movement);
-    bool TryCreatePickupMovement(
+    CaptivityMovementResolution ResolvePickupMovement(
         Vector2Int wildlifePosition,
+        out Vector2Int pickupStand,
         out IEnumerator movement);
     bool TryCreateDeliveryMovement(
         Vector2Int destination,

@@ -21,6 +21,7 @@ public static class CombatEquipmentMaterialDebugScenarios
         Run("catalog_and_allowed_families", VerifyCatalogAndFamilies, report, failures);
         Run("derived_stats", VerifyDerivedStats, report, failures);
         Run("material_policy", VerifyMaterialPolicy, report, failures);
+        Run("craft_command_receipts", VerifyCraftCommandReceipts, report, failures);
         Run(
             "facility_mutation_fence",
             VerifyFacilityMutationFence,
@@ -57,7 +58,7 @@ public static class CombatEquipmentMaterialDebugScenarios
                 new DungeonRuntimeAggregateRootStore()),
             new CharacterCarryInventoryRegistry(),
             materialCatalog,
-            researchProvider: EditorAllResearchRuntimeProvider.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
 
         Require(equipmentCatalog.All.Count >= 19, "initial equipment catalog is incomplete");
         Require(materialCatalog.Materials.Count == 12, "material catalog must contain 12 materials");
@@ -95,7 +96,7 @@ public static class CombatEquipmentMaterialDebugScenarios
                 new DungeonRuntimeAggregateRootStore()),
             new CharacterCarryInventoryRegistry(),
             materialCatalog,
-            researchProvider: EditorAllResearchRuntimeProvider.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
         CombatEquipmentInstance iron = runtime.CreateInstance(
             "weapon:longsword",
             CombatEquipmentQuality.Normal,
@@ -126,8 +127,8 @@ public static class CombatEquipmentMaterialDebugScenarios
             "blacksteel penetration multiplier mismatch");
         Require(blacksteelStats.MaxDurability > ironStats.MaxDurability,
             "blacksteel durability must exceed iron");
-        Require(goldStats.Weight > ironStats.Weight,
-            "gold equipment must be heavier than iron");
+        Require(Approximately(goldStats.Weight, ironStats.Weight),
+            "Material presentation must not override the canonical physical item mass (WIM-020)");
         Require(goldStats.ValueMultiplier > blacksteelStats.ValueMultiplier,
             "gold value must exceed blacksteel");
         Require(blacksteelStats.DisplayName.Contains("흑강", StringComparison.Ordinal),
@@ -146,7 +147,7 @@ public static class CombatEquipmentMaterialDebugScenarios
                 new DungeonRuntimeAggregateRootStore()),
             new CharacterCarryInventoryRegistry(),
             materialCatalog,
-            researchProvider: EditorAllResearchRuntimeProvider.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
         GameObject facilityObject = new GameObject("MaterialPolicyFacility");
         BuildingSO facilityData = CreateFacilityData(88001);
         try
@@ -208,6 +209,7 @@ public static class CombatEquipmentMaterialDebugScenarios
             evolutionModules: EmptyEvolutionModuleRegistry.Instance,
             moduleCatalog: EmptyEquipmentModuleCatalog.Instance,
             itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance,
+            calendar: new EditorFixedGameCalendar(137, 9),
             facilityMutations: mutations);
         BuildingSO facilityData = Resources.LoadAll<BuildingSO>(string.Empty)
             .Where(value => value != null)
@@ -272,6 +274,161 @@ public static class CombatEquipmentMaterialDebugScenarios
         }
     }
 
+    private static string VerifyCraftCommandReceipts()
+    {
+        (ResourceCombatEquipmentCatalog equipmentCatalog,
+            ResourceEconomyContentCatalog materialCatalog) = CreateCatalogs();
+        var destinations = new AcceptingCraftInputDestinations();
+        CombatEquipmentRuntime runtime = CombatEquipmentEditorTestFactory.Create(
+            equipmentCatalog,
+            new WorldItemRepository(
+                new GuidPersistentIdGenerator(),
+                new DungeonRuntimeAggregateRootStore()),
+            new CharacterCarryInventoryRegistry(),
+            materialCatalog,
+            researchProvider: EditorAllResearchRuntimeProvider.Instance,
+            evolutionModules: EmptyEvolutionModuleRegistry.Instance,
+            moduleCatalog: EmptyEquipmentModuleCatalog.Instance,
+            itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance,
+            calendar: new EditorFixedGameCalendar(137, 9),
+            inputDestinations: destinations);
+        BuildingSO facilityData = Resources.LoadAll<BuildingSO>(string.Empty)
+            .Where(value => value != null)
+            .First(value => value.GetAbility<BuildingEquipmentCraftingAbility>()?
+                .CraftableEquipmentIds.Contains(
+                    "weapon:longsword",
+                    StringComparer.Ordinal) == true);
+        GameObject facilityObject = new("CombatCraftCommandReceiptFacility");
+        try
+        {
+            BuildableObject facility = facilityObject.AddComponent<BuildableObject>();
+            CharacterAiEditorTestDependencies.Inject(facility);
+            facility.Initialization(facilityData, new Vector2Int(8, 11));
+
+            Require(runtime.SetCraftMaterialAllowed(
+                    "weapon:longsword",
+                    "material:blacksteel",
+                    facility,
+                    true,
+                    out string allowFailure),
+                "material command failed: " + allowFailure);
+            Require(runtime.SetCraftMaterialAllowed(
+                    "weapon:longsword",
+                    "material:blacksteel",
+                    facility,
+                    true,
+                    out _),
+                "idempotent material command failed");
+            Require(runtime.MoveCraftMaterialPriority(
+                    "weapon:longsword",
+                    "material:blacksteel",
+                    facility,
+                    -1,
+                    out string priorityFailure),
+                "priority command failed: " + priorityFailure);
+            CombatEquipmentCraftMaterialPolicySaveData policy =
+                runtime.GetCraftMaterialPolicy("weapon:longsword", facility);
+            Require(policy.commandReceipts.Count == 2
+                    && policy.commandRevision == 2L
+                    && policy.commandReceipts[0].commandKind == "material-allowed"
+                    && policy.commandReceipts[1].commandKind == "material-priority",
+                "policy command receipts were duplicated or incomplete");
+
+            Require(runtime.TryQueueCraft(
+                    "weapon:longsword",
+                    "material:blacksteel",
+                    facility,
+                    out string queueFailure),
+                "queue command failed: " + queueFailure);
+            CombatEquipmentCraftOrderSaveData order = runtime.Capture()
+                .craftOrders.Single();
+            Require(order.commandRevision == 3L
+                    && order.commandReceipts.Count == 3
+                    && order.commandReceipts[2].commandKind == "order-queued",
+                "queue did not inherit policy receipts and append itself");
+
+            WorkerSelectionPolicySaveData worker =
+                WorkerSelectionPolicySaveData.Anyone(
+                    WorkerCandidateSortMode.Fastest);
+            Require(runtime.SetCraftWorkerPolicy(
+                    order.orderId,
+                    worker,
+                    out string workerFailure)
+                && runtime.SetCraftWorkerPolicy(order.orderId, worker, out _),
+                "worker policy command failed or was not idempotent: "
+                + workerFailure);
+            Require(runtime.SetCraftQualityTarget(
+                    order.orderId,
+                    CraftsmanshipQualityTier.Good,
+                    RejectedOutputDisposition.MarkForSale,
+                    QualityRepeatLimitMode.SafeLimits,
+                    3,
+                    48f,
+                    1,
+                    out string qualityFailure)
+                && runtime.SetCraftQualityTarget(
+                    order.orderId,
+                    CraftsmanshipQualityTier.Good,
+                    RejectedOutputDisposition.MarkForSale,
+                    QualityRepeatLimitMode.SafeLimits,
+                    3,
+                    48f,
+                    1,
+                    out _),
+                "quality command failed or was not idempotent: "
+                + qualityFailure);
+            Require(!runtime.SetCraftWorkerPolicy(
+                    "combat-craft:missing",
+                    worker,
+                    out _),
+                "missing order worker command was accepted");
+
+            DungeonCombatEquipmentSaveData save = runtime.Capture();
+            CombatEquipmentCraftOrderSaveData saved = save.craftOrders.Single();
+            string[] kinds = saved.commandReceipts
+                .Select(value => value.commandKind)
+                .ToArray();
+            Require(saved.commandRevision == 5L
+                    && kinds.SequenceEqual(new[]
+                    {
+                        "material-allowed",
+                        "material-priority",
+                        "order-queued",
+                        "worker-policy",
+                        "quality-target"
+                    }),
+                "the five command groups were not captured exactly once");
+
+            CombatEquipmentRuntime restored =
+                CombatEquipmentEditorTestFactory.Create(
+                    equipmentCatalog,
+                    new WorldItemRepository(
+                        new GuidPersistentIdGenerator(),
+                        new DungeonRuntimeAggregateRootStore()),
+                    new CharacterCarryInventoryRegistry(),
+                    materialCatalog,
+                    researchProvider: EditorAllResearchRuntimeProvider.Instance,
+                    evolutionModules: EmptyEvolutionModuleRegistry.Instance,
+                    moduleCatalog: EmptyEquipmentModuleCatalog.Instance,
+                    itemStackRuntime:
+                        UnavailableEquipmentPhysicalItemGateway.Instance,
+                    calendar: new EditorFixedGameCalendar(137, 9),
+                    inputDestinations: destinations);
+            restored.PublishRestoreCandidate(restored.BuildRestoreCandidate(save));
+            CombatEquipmentCraftOrderSaveData replayed = restored.Capture()
+                .craftOrders.Single();
+            Require(replayed.commandRevision == 5L
+                    && replayed.commandReceipts.Select(value => value.commandKind)
+                        .SequenceEqual(kinds),
+                "command receipt order changed across save/restore");
+            return "commands=5; noOpDuplicates=0; saveRestore=pass";
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(facilityObject);
+        }
+    }
+
     private static string VerifySaveRoundTrip()
     {
         (ResourceCombatEquipmentCatalog equipmentCatalog,
@@ -285,7 +442,7 @@ public static class CombatEquipmentMaterialDebugScenarios
             itemRepository,
             new CharacterCarryInventoryRegistry(),
             materialCatalog,
-            researchProvider: EditorAllResearchRuntimeProvider.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
         GameObject facilityObject = new GameObject("MaterialSaveFacility");
         BuildingSO facilityData = CreateFacilityData(88002);
         try
@@ -311,7 +468,7 @@ public static class CombatEquipmentMaterialDebugScenarios
                 itemRepository,
             new CharacterCarryInventoryRegistry(),
                 materialCatalog,
-                researchProvider: EditorAllResearchRuntimeProvider.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+                researchProvider: EditorAllResearchRuntimeProvider.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
             restored.PublishRestoreCandidate(
                 restored.BuildRestoreCandidate(save));
             Require(restored.TryGetInstance(created.instanceId, out CombatEquipmentInstance instance),
@@ -341,23 +498,54 @@ public static class CombatEquipmentMaterialDebugScenarios
                 new ResourceItemDefinitionCatalog(
                     new ResourceGameContentCatalog(
                         new UnityGameContentRootLoader())));
+        int registryResolveCount = 0;
+        CombatEquipmentPhysicalStateWriter writer =
+            new CombatEquipmentPhysicalStateWriter(
+                new WorldItemRepository(
+                    new GuidPersistentIdGenerator(),
+                    new DungeonRuntimeAggregateRootStore()),
+                UnavailableEquipmentPhysicalItemGateway.Instance,
+                () =>
+                {
+                    registryResolveCount++;
+                    return registry;
+                });
+        Require(
+            registryResolveCount == 0,
+            "equipment physical-state writer resolved output capabilities in its constructor");
 
         ProductionOutputCapabilityDescriptor equipment =
-            registry.CaptureDeclaredDescriptor(
+            writer.CaptureOutputCapability(
                 CombatEquipmentCraftOutputCapability.OutputLineId,
                 PhysicalItemIds.ForEquipment("weapon:longsword"),
                 ProductionOutputCapabilityIds.CombatEquipmentCraft);
+        Require(
+            registryResolveCount == 1,
+            "first equipment output did not resolve capabilities exactly once");
         ProductionOutputCapabilityDescriptor ammunition =
-            registry.CaptureDeclaredDescriptor(
+            writer.CaptureOutputCapability(
                 CombatAmmunitionCraftOutputCapability.OutputLineId,
                 CombatItemDefinitions.ArrowItemId,
                 ProductionOutputCapabilityIds.CombatAmmunitionCraft);
         Require(
-            registry.TryValidateExact(equipment, out _, out _),
+            writer.TryValidateOutputCapability(
+                ProductionOutputCapabilitySaveData.Freeze(equipment),
+                out _),
             "combat equipment output capability did not validate exactly");
         Require(
-            registry.TryValidateExact(ammunition, out _, out _),
+            writer.TryValidateOutputCapability(
+                ProductionOutputCapabilitySaveData.Freeze(ammunition),
+                out _),
             "combat ammunition output capability did not validate exactly");
+
+        int beforeInvalidValidation = registryResolveCount;
+        Require(
+            !writer.TryValidateOutputCapability(
+                null,
+                out DomainFailure missingFailure)
+            && missingFailure.IsFailure
+            && registryResolveCount == beforeInvalidValidation,
+            "missing frozen output capability did not reject before registry resolution");
 
         ProductionOutputCapabilityDescriptor drifted = new(
             ammunition.OutputLineId,
@@ -368,10 +556,13 @@ public static class CombatEquipmentMaterialDebugScenarios
             ammunition.ComponentCodecVersion + 1,
             ammunition.Fingerprint);
         Require(
-            !registry.TryValidateExact(drifted, out _, out DomainFailure failure)
+            !writer.TryValidateOutputCapability(
+                ProductionOutputCapabilitySaveData.Freeze(drifted),
+                out DomainFailure failure)
                 && failure.IsFailure,
             "combat ammunition output capability codec drift was accepted");
-        return $"equipment={equipment.CapabilityId}; ammunition={ammunition.CapabilityId}; driftRejected=true";
+        return $"equipment={equipment.CapabilityId}; ammunition={ammunition.CapabilityId}; "
+            + $"registryResolves={registryResolveCount}; driftRejected=true";
     }
 
     private static BuildingSO CreateFacilityData(int id)
@@ -384,6 +575,73 @@ public static class CombatEquipmentMaterialDebugScenarios
         data.layer = GridLayer.Building;
         data.category = BuildingCategory.Crafting;
         return data;
+    }
+
+    private sealed class AcceptingCraftInputDestinations :
+        ICombatEquipmentCraftInputDestinationRuntime
+    {
+        public bool TryOpen(
+            CombatEquipmentCraftOrderSaveData order,
+            BuildableObject facility,
+            IReadOnlyDictionary<string, int> requirements,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryRequest(
+            CombatEquipmentCraftOrderSaveData order,
+            IReadOnlyDictionary<string, int> requirements,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryClear(
+            CombatEquipmentCraftOrderSaveData order,
+            string reasonCode,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryClose(
+            CombatEquipmentCraftOrderSaveData order,
+            string reasonCode,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryValidateProjection(
+            CombatEquipmentCraftOrderSaveData order,
+            IReadOnlyDictionary<string, int> requirements,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryValidateAuthority(
+            CombatEquipmentCraftOrderSaveData order,
+            IReadOnlyDictionary<string, int> requirements,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryReplace(
+            IReadOnlyList<CombatEquipmentCraftInputDestinationProjection> desired,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
     }
 
     private static (

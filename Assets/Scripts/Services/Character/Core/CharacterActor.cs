@@ -53,6 +53,8 @@ public class CharacterActor : SerializedMonoBehaviour,
     private ICharacterSocialMemoryFactory socialMemoryFactory;
     private ICharacterRuntimeProfileFactory runtimeProfileFactory;
     private CharacterMoodPolicyService moodPolicy;
+    private IGameEventBus domainEvents;
+    private IIdleSocialInteractionCommand idleSocialInteractionCommand;
     [SerializeField, ReadOnly] private CharacterActorRuntimeBridge runtimeBridge;
     [SerializeField, ReadOnly] private CharacterActorPresentationBridge presentationBridge;
     private bool runtimeStateInitialized;
@@ -74,7 +76,8 @@ public class CharacterActor : SerializedMonoBehaviour,
     public CharacterIdentity Identity => identity;
     public CharacterId BuildingCharacterId =>
         identity != null ? identity.TypedPersistentId : default;
-    public string BuildingDisplayName => this != null ? name : string.Empty;
+    public string BuildingDisplayName => this != null && identity != null
+        ? identity.DisplayName : string.Empty;
     public InvasionThreatSubjectSnapshot CaptureInvasionThreatSubject() =>
         new(BuildingCharacterId, BuildingDisplayName);
     public bool IsBuildingInteractionAvailable =>
@@ -170,8 +173,18 @@ public class CharacterActor : SerializedMonoBehaviour,
     internal IGameClock GameClock => runtimeBridge?.GameClock;
     internal IWorkAmountCalculator WorkAmountCalculator =>
         runtimeBridge?.WorkAmountCalculator;
+    internal IIdleSocialInteractionCommand IdleSocialInteractionCommand =>
+        idleSocialInteractionCommand;
     internal CharacterAiNaturalnessSettingsSO NaturalnessSettings { get; private set; }
     public event Action<CharacterActor, string> OnDied;
+
+    [Inject]
+    public void ConfigureIdleSocialInteractionCommand(
+        IIdleSocialInteractionCommand command)
+    {
+        idleSocialInteractionCommand = command
+            ?? throw new ArgumentNullException(nameof(command));
+    }
 
     [Inject]
     public void ConstructCharacterActor(
@@ -201,8 +214,10 @@ public class CharacterActor : SerializedMonoBehaviour,
         ITmpKoreanFontService tmpKoreanFontService,
         ICharacterPresentationScheduler presentationScheduler,
         ICharacterRuntimeProfileFactory runtimeProfileFactory,
-        CharacterMoodPolicyService moodPolicy)
+        CharacterMoodPolicyService moodPolicy,
+        IGameEventBus domainEvents)
     {
+        this.domainEvents = domainEvents ?? throw new ArgumentNullException(nameof(domainEvents));
         this.runtimeProfileFactory = runtimeProfileFactory
             ?? throw new ArgumentNullException(nameof(runtimeProfileFactory));
         this.socialMemoryFactory = socialMemoryFactory
@@ -392,6 +407,7 @@ public class CharacterActor : SerializedMonoBehaviour,
         if (CurrentLifecycleState == CharacterLifecycleState.Active)
         {
             transientAiOwnershipReleased = false;
+            retiringForWorldRestore = false;
         }
         lifecycleCoordinator.OnEnabled(
             runtimeBridge,
@@ -429,6 +445,20 @@ public class CharacterActor : SerializedMonoBehaviour,
             visual,
             runtimeBridge,
             presentationBridge);
+    }
+
+    // Set only after the official restore has published replacement authorities.
+    // The retiring scene object must stop its own routines without cancelling
+    // a same-ID meal that now belongs to the restored actor/aggregate.
+    private bool retiringForWorldRestore;
+
+    internal void PrepareForWorldRestoreRetirement()
+    {
+        retiringForWorldRestore = true;
+        // Unity destruction is deferred. Once replacement authorities are
+        // committed, all queries must stop seeing this outgoing scene actor.
+        // This bridge callback only releases registrations, not life/body data.
+        runtimeBridge?.OnActorDestroyed();
     }
 
     public void ReleaseTransientAiOwnership(string reason)
@@ -474,9 +504,10 @@ public class CharacterActor : SerializedMonoBehaviour,
             $"lifecycle-release:{normalizedReason}");
         GetComponent<AbilityHunt>()?.StopHunting(normalizedReason);
         GetComponent<AbilityUseSubstance>()?.StopUse(normalizedReason);
-        runtimeBridge?.MealOperationCancellation?.CancelActiveMealOperations(
-            this,
-            normalizedReason);
+        if (!retiringForWorldRestore)
+            runtimeBridge?.MealOperationCancellation?.CancelActiveMealOperations(
+                this,
+                normalizedReason);
 
         IBuildingVisitorPort visitor = BuildingVisitor;
         if (visitor == null)
@@ -488,8 +519,11 @@ public class CharacterActor : SerializedMonoBehaviour,
             normalizedReason);
     }
 
-    internal void PrepareTransientAiOwnershipForActiveLifecycle() =>
+    internal void PrepareTransientAiOwnershipForActiveLifecycle()
+    {
         transientAiOwnershipReleased = false;
+        retiringForWorldRestore = false;
+    }
 
     private void OrganizeRuntimeHierarchy()
     {
@@ -680,6 +714,13 @@ public class CharacterActor : SerializedMonoBehaviour,
             return false;
         }
 
+        if (brain.IsExternallyDrivenActionActive)
+        {
+            failure = AIActionFailure.Create(AIActionFailureKind.CannotStart,
+                "Selected action cannot execute while an external action owns this actor.");
+            return false;
+        }
+
         if (brain.bestAction == null || brain.bestAction.actionset == null)
         {
             failure = AIActionFailure.Create(
@@ -845,8 +886,19 @@ public class CharacterActor : SerializedMonoBehaviour,
     public Vector2Int GetNowXY() =>
         RuntimeLifecycle != null ? RuntimeLifecycle.GetNowXY() : Vector2Int.zero;
     public void AddLog(string message) => activityBridge.AddLog(RuntimeLog, message);
-    public void AddActivity(CharacterActivityEvent activity) =>
-        activityBridge.AddActivity(RuntimeLog, progression, activity);
+    internal void PublishAiDiagnostic(CharacterAiDiagnosticEvent value)
+    {
+        if (!ReferenceEquals(value.Actor, this))
+            throw new ArgumentException("AI diagnostic actor does not match its publisher.", nameof(value));
+        PublishDomainEvent(value);
+    }
+    internal void PublishDomainEvent<TEvent>(TEvent value) =>
+        (domainEvents ?? throw new InvalidOperationException(
+            "CharacterActor requires event-bus injection before publishing domain events.")).Publish(value);
+    public void AddActivity(CharacterActivityEvent activity) => AddActivity(activity, 0);
+
+    public void AddActivity(CharacterActivityEvent activity, int absoluteDay) =>
+        activityBridge.AddActivity(RuntimeLog, progression, activity, absoluteDay);
     public float GetMoveSpeed()
     {
         EnsureRuntimeState();
@@ -899,8 +951,6 @@ public class CharacterActor : SerializedMonoBehaviour,
         RuntimeStats != null ? RuntimeStats.GetWorkPreferenceScore(workTypeId) : 0.5f;
     public float GetFacilityPreferenceScore(FacilityRole roles) =>
         RuntimeStats != null ? RuntimeStats.GetFacilityPreferenceScore(roles) : 0.5f;
-    public float GetAccidentChanceMultiplier() =>
-        RuntimeStats != null ? RuntimeStats.GetAccidentChanceMultiplier() : 1f;
     public CharacterSpeciesIncidentType GetIncidentType() => RuntimeStats != null
         ? RuntimeStats.GetIncidentType()
         : CharacterSpeciesIncidentType.None;
@@ -932,8 +982,12 @@ public class CharacterActor : SerializedMonoBehaviour,
         string label,
         float value,
         float durationSeconds = 180f,
-        int maxStacks = 1)
+        int maxStacks = 1,
+        int absoluteDay = 0,
+        GameplayNarrativeEventContext eventContext = null)
     {
+        if (absoluteDay < 0)
+            throw new ArgumentOutOfRangeException(nameof(absoluteDay));
         if (moodPolicy == null)
             throw new InvalidOperationException(
                 "CharacterMoodPolicyService must be injected before applying mood.");
@@ -943,20 +997,56 @@ public class CharacterActor : SerializedMonoBehaviour,
             value,
             durationSeconds,
             label,
-            maxStacks);
+            maxStacks,
+            absoluteDay,
+            eventContext);
     }
 
-    internal void ApplyResolvedMoodFactor(
+    internal float ApplyMoodFactorBeforeOutcomeCommit(
+        string id, string label, float value, float durationSeconds, int maxStacks,
+        out bool applied)
+    {
+        if (moodPolicy == null)
+            throw new InvalidOperationException(
+                "CharacterMoodPolicyService must be injected before applying mood.");
+        return moodPolicy.ApplySecondsBeforeOutcomeCommit(
+            this, id, value, durationSeconds, label, maxStacks, out applied);
+    }
+
+    internal void ApplyMoodFactorFromEvent(string id, string label, float value,
+        float durationSeconds, int maxStacks, int absoluteDay, CharacterEventContext eventContext)
+    {
+        if (moodPolicy == null) throw new InvalidOperationException("CharacterMoodPolicyService must be injected before applying mood.");
+        moodPolicy.ApplySecondsFromEvent(this, id, value, durationSeconds, label, maxStacks, absoluteDay, eventContext);
+    }
+
+    internal bool ApplyResolvedMoodFactorFromEvent(string id, string label, float value,
+        float durationSeconds, int maxStacks, bool publish, int absoluteDay, CharacterEventContext eventContext) =>
+        RuntimeStats?.ApplyResolvedMoodFactor(id, label, value, durationSeconds, maxStacks,
+            publish, absoluteDay, eventContext) ?? false;
+
+    internal bool ApplyResolvedMoodFactor(
         string id,
         string label,
         float value,
         float durationSeconds,
-        int maxStacks) => RuntimeStats?.ApplyResolvedMoodFactor(
+        int maxStacks,
+        bool publish = true,
+        int absoluteDay = 0,
+        GameplayNarrativeEventContext eventContext = null)
+    {
+        if (absoluteDay < 0)
+            throw new ArgumentOutOfRangeException(nameof(absoluteDay));
+        return RuntimeStats?.ApplyResolvedMoodFactor(
             id,
             label,
             value,
             durationSeconds,
-            maxStacks);
+            maxStacks,
+            publish,
+            absoluteDay,
+            eventContext?.ToDomainContext()) ?? false;
+    }
     public void ApplyDamage(float amount, string reason = "") =>
         RuntimeStats?.ApplyDamage(amount, reason);
     public void ApplyBodyDamage(float amount, string reason = "") =>
@@ -975,6 +1065,7 @@ public class CharacterActor : SerializedMonoBehaviour,
         RuntimeLifecycle != null && RuntimeLifecycle.BeginExpedition();
     public void EndExpedition(bool alive = true) => RuntimeLifecycle?.EndExpedition(alive);
     public void ChangeLayer(string layer) => RuntimeVisual?.ChangeLayer(layer);
+    internal int VisualLayerRevision => RuntimeVisual != null ? RuntimeVisual.LayerRevision : -1;
     public void ApplyVisualFootAnchor() => RuntimeVisual?.ApplyVisualFootAnchor();
     public float GetVisualTopLocalY() =>
         RuntimeVisual != null ? RuntimeVisual.GetVisualTopLocalY() : 1f;

@@ -1,0 +1,4 @@
+PASS authored Kobold (controlled persistent NPC/AbilityWork and proficiency100) -> registered restore -> installed part -> main performance/body -> CombatRuntimeStatFactory -> CombatResolutionService.Resolve; same roll=0.0213125; bonus=0->0.03; damage=7.948889->0; evaded=false->true; installed physical duplicates=0
+result=PASS
+scope=actual authored Kobold actor, registered current whole-save restored installed part/body/order joins, actual main performance/body queries and CombatResolutionService.Resolve with fixed exogenous rolls. Historical installation is prepared through validated restore, NOT natural surgery/clinical or new production proof. Movement/heat/work consumers are not covered by this combat witness.
+cleanup=paused disposable main Play; prepared historical whole-world restore is in-memory only; user persistence disabled before party selection; no source-asset modification or scene save. Fixture retained until operator stops.

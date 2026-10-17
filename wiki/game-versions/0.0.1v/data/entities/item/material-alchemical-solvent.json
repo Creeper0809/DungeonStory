@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "약효 성분과 마나를 안정적으로 섞는 용매이다. 베르사디온의 연금 용매는 계약한 제조자만 마개를 풀도록 동의의 잔에서 가져온 검은 실을 봉인 아래에 두 번 감는다.",
+  "in_game_description": "약효 성분과 마나를 안정적으로 섞는 용매이다. 베르사디온의 연금 용매 병목에는 동의의 잔에서 떼어 낸 검은 실이 감겨 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

@@ -15,9 +15,13 @@ namespace DungeonStory.Environment
         public float[] NextLight { get; set; } = Array.Empty<float>();
         public bool[] Barriers { get; set; } = Array.Empty<bool>();
         public bool[] Doors { get; set; } = Array.Empty<bool>();
+        public bool[] ClosedDoors { get; set; } = Array.Empty<bool>();
         public float[] DuctExchange { get; set; } = Array.Empty<float>();
         public bool[] Exterior { get; set; } = Array.Empty<bool>();
         public Dictionary<BuildingInstanceId, float> TargetOverrides { get; } = new();
+        public Dictionary<BuildingInstanceId, EnvironmentalControlOutcomeSaveData>
+            ControlOutcomes { get; } = new();
+        public int NextControlOutcomeSequence { get; set; }
         public int CachedStructuralVersion { get; set; } = -1;
         public int CachedBuildingVersion { get; set; } = -1;
         public float Accumulator { get; set; }
@@ -53,6 +57,9 @@ namespace DungeonStory.Environment
         public const float MaximumTemperature = 80f;
         public const float MinimumFieldLevel = 0f;
         public const float MaximumFieldLevel = 100f;
+        public const float ExteriorNonNightAmbientLight = 70f;
+        public const float ExteriorNightAmbientLight = 30f;
+        public const float IndoorAmbientLight = 20f;
 
         private const float IndoorTemperatureExchange = 0.08f;
         private const float ExteriorTemperatureExchange = 0.35f;
@@ -69,6 +76,7 @@ namespace DungeonStory.Environment
             int height,
             float outdoorTemperature,
             bool[] exterior,
+            float exteriorAmbientLight,
             int version)
         {
             int count = width * height;
@@ -80,6 +88,7 @@ namespace DungeonStory.Environment
                 throw new ArgumentException(
                     "Environmental field dimensions and exterior topology must match.");
             }
+            RequireFieldLevel(exteriorAmbientLight, nameof(exteriorAmbientLight));
 
             EnvironmentalFieldAggregateState created = new()
             {
@@ -93,6 +102,7 @@ namespace DungeonStory.Environment
                 NextLight = new float[count],
                 Barriers = new bool[count],
                 Doors = new bool[count],
+                ClosedDoors = new bool[count],
                 DuctExchange = new float[count],
                 Exterior = (bool[])exterior.Clone(),
                 Version = version,
@@ -104,7 +114,9 @@ namespace DungeonStory.Environment
                 created.NextTemperature[index] = outdoorTemperature;
                 created.Air[index] = MaximumFieldLevel;
                 created.NextAir[index] = MaximumFieldLevel;
-                float baseLight = GetBaseLight(created.Exterior[index]);
+                float baseLight = GetBaseLight(
+                    created.Exterior[index],
+                    exteriorAmbientLight);
                 created.Light[index] = baseLight;
                 created.NextLight[index] = baseLight;
             }
@@ -115,12 +127,14 @@ namespace DungeonStory.Environment
         public static void StepDiffusion(
             EnvironmentalFieldAggregateState state,
             float outdoorTemperature,
+            float exteriorAmbientLight,
             float deltaTime)
         {
             if (state == null)
             {
                 throw new ArgumentNullException(nameof(state));
             }
+            RequireFieldLevel(exteriorAmbientLight, nameof(exteriorAmbientLight));
 
             int width = state.Width;
             int height = state.Height;
@@ -173,7 +187,9 @@ namespace DungeonStory.Environment
                         * (exteriorCells[index]
                             ? ExteriorAirExchange
                             : IndoorAirExchange);
-                    float baseLight = GetBaseLight(exteriorCells[index]);
+                    float baseLight = GetBaseLight(
+                        exteriorCells[index],
+                        exteriorAmbientLight);
                     lightDelta += (baseLight - currentLight[index])
                         * (exteriorCells[index]
                             ? ExteriorLightExchange
@@ -213,11 +229,13 @@ namespace DungeonStory.Environment
                                 ? DoorCellExchange
                                 : NormalCellExchange,
                             Math.Max(ductCells[index], ductCells[neighbor]));
-                        temperatureDelta +=
-                            (currentTemperature[neighbor] - currentTemperature[index])
-                            * exchange;
-                        airDelta += (currentAir[neighbor] - currentAir[index])
-                            * exchange;
+                        // The physical leaf gates heat/air, not structural room ownership or light.
+                        if (!state.ClosedDoors[index] && !state.ClosedDoors[neighbor])
+                        {
+                            temperatureDelta +=
+                                (currentTemperature[neighbor] - currentTemperature[index]) * exchange;
+                            airDelta += (currentAir[neighbor] - currentAir[index]) * exchange;
+                        }
                         lightDelta += (currentLight[neighbor] - currentLight[index])
                             * exchange
                             * LightNeighborExchange;
@@ -297,9 +315,17 @@ namespace DungeonStory.Environment
                 Math.Max(firstLimit, secondLimit));
         }
 
-        public static float GetBaseLight(bool isExterior)
+        public static float ResolveExteriorAmbientLight(bool isNight) =>
+            isNight
+                ? ExteriorNightAmbientLight
+                : ExteriorNonNightAmbientLight;
+
+        public static float GetBaseLight(
+            bool isExterior,
+            float exteriorAmbientLight)
         {
-            return isExterior ? 70f : 20f;
+            RequireFieldLevel(exteriorAmbientLight, nameof(exteriorAmbientLight));
+            return isExterior ? exteriorAmbientLight : IndoorAmbientLight;
         }
 
         public static void CompleteStep(EnvironmentalFieldAggregateState state)
@@ -336,6 +362,17 @@ namespace DungeonStory.Environment
         private static float Clamp(float value, float minimum, float maximum)
         {
             return Math.Min(maximum, Math.Max(minimum, value));
+        }
+
+        private static void RequireFieldLevel(float value, string parameterName)
+        {
+            if (float.IsNaN(value)
+                || float.IsInfinity(value)
+                || value < MinimumFieldLevel
+                || value > MaximumFieldLevel)
+            {
+                throw new ArgumentOutOfRangeException(parameterName);
+            }
         }
     }
 }

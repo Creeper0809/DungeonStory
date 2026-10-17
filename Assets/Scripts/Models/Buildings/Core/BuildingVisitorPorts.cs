@@ -67,7 +67,11 @@ public readonly struct BuildingVisitorSnapshot
         float fun,
         float sleep,
         float excretion,
-        float hygiene)
+        float hygiene,
+        float currentHealth = 0f,
+        float maximumHealth = 0f,
+        float injurySeverity = 0f,
+        IReadOnlyList<string> activeConditionIds = null)
     {
         PersistentId = persistentId ?? string.Empty;
         DisplayName = displayName ?? string.Empty;
@@ -89,6 +93,10 @@ public readonly struct BuildingVisitorSnapshot
         Sleep = sleep;
         Excretion = excretion;
         Hygiene = hygiene;
+        CurrentHealth = Mathf.Max(0f, currentHealth);
+        MaximumHealth = Mathf.Max(0f, maximumHealth);
+        InjurySeverity = Mathf.Max(0f, injurySeverity);
+        ActiveConditionIds = activeConditionIds ?? System.Array.Empty<string>();
     }
 
     public string PersistentId { get; }
@@ -111,6 +119,10 @@ public readonly struct BuildingVisitorSnapshot
     public float Sleep { get; }
     public float Excretion { get; }
     public float Hygiene { get; }
+    public float CurrentHealth { get; }
+    public float MaximumHealth { get; }
+    public float InjurySeverity { get; }
+    public IReadOnlyList<string> ActiveConditionIds { get; }
 }
 
 public readonly struct BuildingActivitySnapshot
@@ -124,7 +136,8 @@ public readonly struct BuildingActivitySnapshot
         float value = 0f,
         int quantity = 0,
         float sentiment = 0f,
-        bool bubbleEligible = false)
+        bool bubbleEligible = false,
+        int absoluteDay = 0)
     {
         KindId = kindId ?? string.Empty;
         OutcomeId = outcomeId ?? string.Empty;
@@ -135,6 +148,8 @@ public readonly struct BuildingActivitySnapshot
         Quantity = quantity;
         Sentiment = sentiment;
         BubbleEligible = bubbleEligible;
+        if (absoluteDay < 0) throw new ArgumentOutOfRangeException(nameof(absoluteDay));
+        AbsoluteDay = absoluteDay;
         WorkTypeId = string.Empty;
     }
 
@@ -147,7 +162,8 @@ public readonly struct BuildingActivitySnapshot
         string reasonCode,
         float value,
         int quantity,
-        bool bubbleEligible)
+        bool bubbleEligible,
+        int absoluteDay = 0)
         : this(
             kindId,
             outcomeId,
@@ -157,7 +173,8 @@ public readonly struct BuildingActivitySnapshot
             value,
             quantity,
             0f,
-            bubbleEligible)
+            bubbleEligible,
+            absoluteDay)
     {
         WorkTypeId = workTypeId ?? string.Empty;
     }
@@ -172,6 +189,7 @@ public readonly struct BuildingActivitySnapshot
     public float Sentiment { get; }
     public bool BubbleEligible { get; }
     public string WorkTypeId { get; }
+    public int AbsoluteDay { get; }
 }
 
 public readonly struct BuildingRetailOfferSnapshot
@@ -255,7 +273,8 @@ public readonly struct BuildingMealUseSnapshot
         string operationId = "",
         string failureDetail = "",
         bool isNoLongerNeeded = false,
-        bool isRetryableUnavailable = false)
+        bool isRetryableUnavailable = false,
+        string outcomeResultKey = "")
     {
         Success = success;
         FailureCode = failureCode ?? string.Empty;
@@ -266,6 +285,7 @@ public readonly struct BuildingMealUseSnapshot
         FailureDetail = failureDetail ?? string.Empty;
         IsNoLongerNeeded = isNoLongerNeeded;
         IsRetryableUnavailable = isRetryableUnavailable;
+        OutcomeResultKey = outcomeResultKey?.Trim() ?? string.Empty;
     }
 
     public bool Success { get; }
@@ -286,6 +306,31 @@ public readonly struct BuildingMealUseSnapshot
     // this interaction committed. This is a normal retry boundary, not an AI
     // execution failure and not an accepted meal operation.
     public bool IsRetryableUnavailable { get; }
+    public string OutcomeResultKey { get; }
+}
+
+public readonly struct BuildingNeedRecoveryResult
+{
+    public BuildingNeedRecoveryResult(IReadOnlyList<string> childResultKeys)
+    {
+        ChildResultKeys = childResultKeys ?? System.Array.Empty<string>();
+    }
+
+    public IReadOnlyList<string> ChildResultKeys { get; }
+}
+
+public readonly struct BuildingRoomExperienceResult
+{
+    public BuildingRoomExperienceResult(
+        bool applied,
+        IReadOnlyList<string> childResultKeys)
+    {
+        Applied = applied;
+        ChildResultKeys = childResultKeys ?? System.Array.Empty<string>();
+    }
+
+    public bool Applied { get; }
+    public IReadOnlyList<string> ChildResultKeys { get; }
 }
 
 public readonly struct BuildingRecreationalSubstanceUseSnapshot
@@ -295,13 +340,15 @@ public readonly struct BuildingRecreationalSubstanceUseSnapshot
         string failureCode,
         string displayName,
         bool becameAddicted,
-        bool overdosed)
+        bool overdosed,
+        string outcomeResultKey = "")
     {
         Success = success;
         FailureCode = failureCode ?? string.Empty;
         DisplayName = displayName ?? string.Empty;
         BecameAddicted = becameAddicted;
         Overdosed = overdosed;
+        OutcomeResultKey = outcomeResultKey?.Trim() ?? string.Empty;
     }
 
     public bool Success { get; }
@@ -309,6 +356,7 @@ public readonly struct BuildingRecreationalSubstanceUseSnapshot
     public string DisplayName { get; }
     public bool BecameAddicted { get; }
     public bool Overdosed { get; }
+    public string OutcomeResultKey { get; }
 }
 
 public interface IBuildingShoppingVisitorPort
@@ -332,12 +380,70 @@ public interface IBuildingShoppingVisitorPort
         BuildingVisitOutcome outcome);
 }
 
+public readonly struct RetailRevenueModifierSnapshot
+{
+    public static RetailRevenueModifierSnapshot Unmodified => new(
+        string.Empty,
+        1f,
+        "none");
+
+    public RetailRevenueModifierSnapshot(
+        string workerId,
+        float priceMultiplier,
+        string skillModifierProvenance)
+    {
+        if (!float.IsFinite(priceMultiplier) || priceMultiplier < 1f)
+            throw new ArgumentOutOfRangeException(nameof(priceMultiplier));
+        WorkerId = workerId?.Trim() ?? string.Empty;
+        PriceMultiplier = priceMultiplier;
+        SkillModifierProvenance = string.IsNullOrWhiteSpace(
+            skillModifierProvenance)
+                ? "none"
+                : skillModifierProvenance.Trim();
+    }
+
+    public string WorkerId { get; }
+    public float PriceMultiplier { get; }
+    public string SkillModifierProvenance { get; }
+    public bool IsValid => float.IsFinite(PriceMultiplier)
+        && PriceMultiplier >= 1f
+        && SkillModifierProvenance != null;
+}
+
 public sealed class BuildingRetailPurchaseCommitResult
 {
+    private RetailRevenueModifierSnapshot pricingContext =
+        RetailRevenueModifierSnapshot.Unmodified;
+
     public bool IsResolved { get; private set; }
     public bool Committed { get; private set; }
     public string FailureCode { get; private set; } = string.Empty;
     public RetailStockLotSnapshot CommittedLot { get; private set; }
+    public RetailRevenueModifierSnapshot PricingContext => pricingContext;
+    public string ShopUseOperationId { get; private set; } = string.Empty;
+    public int ShopUseCartIndex { get; private set; } = -1;
+
+    public void BindShopUse(string operationId, int cartIndex)
+    {
+        if (IsResolved || !string.IsNullOrEmpty(ShopUseOperationId)
+            || string.IsNullOrWhiteSpace(operationId) || cartIndex < 0)
+            throw new InvalidOperationException("Invalid retail execution binding.");
+        ShopUseOperationId = operationId;
+        ShopUseCartIndex = cartIndex;
+    }
+
+    public void BindPricingContext(
+        in RetailRevenueModifierSnapshot context)
+    {
+        if (IsResolved)
+            throw new InvalidOperationException(
+                "Retail pricing context cannot change after resolution.");
+        if (!context.IsValid)
+            throw new ArgumentException(
+                "Retail pricing context is invalid.",
+                nameof(context));
+        pricingContext = context;
+    }
 
     public void Commit(RetailStockLotSnapshot committedLot)
     {
@@ -407,6 +513,10 @@ public interface IBuildingVisitorPort : IBuildingCharacterPort
         string detail,
         IBuildingWorldEntryPort destination);
     IEnumerator MoveTo(Vector3 position, float speed, object expectedAction);
+    IEnumerator MoveToWithResult(
+        Vector3 position, float speed, object expectedAction, Action<string> completed);
+    void BeginWorkerPose(object allocation);
+    void EndWorkerPose(object allocation, Vector3? restoredPosition);
     IEnumerator MoveToGrid(Vector2Int position);
     void SetWorldPosition(Vector3 position);
     void HideForTraversal(float failSafeDelay);
@@ -427,6 +537,12 @@ public interface IBuildingVisitorPort : IBuildingCharacterPort
         float sentiment,
         string detail);
     void ApplyNeedRecovery(BuildingNeedRecoverySnapshot recovery);
+    BuildingNeedRecoveryResult ApplyNeedRecoveryDetailed(
+        BuildingNeedRecoverySnapshot recovery)
+    {
+        ApplyNeedRecovery(recovery);
+        return new BuildingNeedRecoveryResult(System.Array.Empty<string>());
+    }
     bool TryConsumeMeal(
         object mealRuntime,
         IBuildingWorldEntryPort facility,
@@ -442,6 +558,16 @@ public interface IBuildingVisitorPort : IBuildingCharacterPort
         object roomExperienceRuntime,
         IBuildingWorldEntryPort facility,
         string activityId);
+    BuildingRoomExperienceResult ApplyRoomExperienceDetailed(
+        object roomExperienceRuntime,
+        IBuildingWorldEntryPort facility,
+        string activityId)
+    {
+        ApplyRoomExperience(roomExperienceRuntime, facility, activityId);
+        return new BuildingRoomExperienceResult(
+            false,
+            System.Array.Empty<string>());
+    }
     void ApplyFacilityUseCompleted(IBuildingWorldEntryPort facility);
     void ApplyExpeditionRecovery(
         float healthHealRatio,

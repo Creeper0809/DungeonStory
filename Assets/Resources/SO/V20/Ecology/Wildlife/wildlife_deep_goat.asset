@@ -43,6 +43,8 @@ MonoBehaviour:
   laysEggs: 0
   bodySize: 1
   manureIntervalDays: 2
+  productComfortMinimumTemperatureC: 5
+  productComfortMaximumTemperatureC: 30
   husbandryProducts:
   - itemId: fiber:deep-goat-wool
     amount: 2
@@ -57,6 +59,19 @@ MonoBehaviour:
   nestTag: nest:stone-ledge
   breedingSeason: 0
   migrationPatternId: migration:vertical-graze
+  migrationProfile:
+    capability: 1
+    detectionRadiusCells: 12
+    signalScore: 0
+    minimumWaterRemainingRatio: 0
+    minimumCarcassQuantity: 0
+    minimumTemperatureC: 0
+    maximumTemperatureC: 0
+  hasHaulRoleProfile: 1
+  haulRoleProfile:
+    maxCargoMassGrams: 18000
+    loadedMoveSpeedMultiplier: 0.8
+    decisionIntervalSeconds: 0.5
   diseaseVectorIds:
   - disease:deep-parasitosis
   activeSeasons: 000000000100000002000000

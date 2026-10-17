@@ -503,6 +503,6 @@ public sealed class ProductionInputDestinationClaimRuntime :
         && !string.IsNullOrWhiteSpace(record.materialDestinationId)
         && string.Equals(
             record.materialDestinationId,
-            ProductionBillRuntime.DestinationPrefix + record.billId.Value,
+            ProductionBillIdentity.DestinationPrefix + record.billId.Value,
             StringComparison.Ordinal);
 }

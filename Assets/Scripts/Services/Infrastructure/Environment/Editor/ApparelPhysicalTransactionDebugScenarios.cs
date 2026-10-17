@@ -3,16 +3,17 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEngine;
 
 public static class ApparelPhysicalTransactionDebugScenarios
 {
-    private const string OutputItemId = "item:qa:apparel-output";
-    private const string MaterialItemId = "item:qa:apparel-material";
+    internal const string OutputItemId = "tool:hauling-harness";
+    internal const string MaterialItemId = "material:common-wool";
     private const string FillerItemId = "item:qa:apparel-buffer-filler";
-    private const string ApparelDefinitionId = "apparel:qa:work-shirt";
-    private const string MaterialDefinitionId = "textile:qa:linen";
+    internal const string ApparelDefinitionId = "apparel:hauling-harness";
+    internal const string MaterialDefinitionId = "textile:common-wool";
     private const string FacilityId = "building:qa:apparel-bench";
     private const string FacilityDefinitionId = "building:qa:apparel-bench-definition";
     private const string WorkstationTag = "workstation:qa:apparel";
@@ -32,6 +33,171 @@ public static class ApparelPhysicalTransactionDebugScenarios
             "[V27 Apparel Physical Transaction] PASS: capacity/source, "
             + "declared capability freeze/drift, unique component/mass, "
             + "pending acknowledgements, replay, market route.");
+    }
+
+    public static void RunApparelPhysicalObserverFocusedForBatchMode()
+    {
+        string output = Environment.GetEnvironmentVariable(
+            "DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        string qaRoot = Path.GetFullPath(Path.Combine(
+            Application.dataPath,
+            "..",
+            "Artifacts",
+            "QA")) + Path.DirectorySeparatorChar;
+        if (!Application.isBatchMode
+            || string.IsNullOrWhiteSpace(output)
+            || !Path.IsPathRooted(output)
+            || !Path.GetFullPath(output).StartsWith(
+                qaRoot,
+                StringComparison.OrdinalIgnoreCase)
+            || Directory.Exists(output))
+        {
+            throw new InvalidOperationException(
+                "Apparel physical observer checks require new project-local batch evidence.");
+        }
+
+        string probe = File.ReadAllText(Path.Combine(
+            Directory.GetParent(Path.GetFullPath(output)).FullName,
+            "isolation-probe.txt"));
+        Require(probe.Contains("PASS_NONINTERACTIVE_PROBE")
+                && probe.Contains("visible=false")
+                && probe.Contains("windowCreatedAndDestroyed=true")
+                && probe.Contains("inJob=true"),
+            "Apparel physical observer checks require the noninteractive desktop probe.");
+        RunAll();
+        ApparelRejectedDismantlePhysicalTransactionDebugScenarios.RunAll();
+        VerifyDurableObserverRecovery();
+        Require(EquipmentApparelCausalProductionEntryDebugScenarios.RunAll(),
+            "Equipment-apparel causal physical observer regression failed.");
+        Debug.Log("B90_APPAREL_PHYSICAL_OBSERVER_FOCUSED=PASS");
+    }
+
+    private static void VerifyDurableObserverRecovery()
+    {
+        using var physical = new Fixture("durable-observer");
+        string sourceId = physical.AddMaterialSource(4);
+        var order = physical.CreateOrder(sourceId, 2);
+        var component = CreateApparelComponent();
+        using (var disconnected = new DomainFactDispatcher())
+        {
+            var unobserved = new ApparelPhysicalPublicationRuntime(disconnected, disconnected);
+            var blocked = physical.CreateTransaction(unobserved, physical.OutcomeFixture.Calendar)
+                .ExecuteCraftOrResume(order, physical.Facility, OutputItemId, component, false);
+            Require(blocked.Status == ApparelPhysicalTransactionStatus.PendingFinalization
+                && physical.Repository.GetEditorTestQuantity(sourceId) == 4 && physical.OutputStacks.Count == 0
+                && unobserved.Capture().observations.Count == 0,
+                "Missing observer consumed material or recorded a nonexistent product: " + blocked.FailureReason);
+        }
+        var fault = new HideCommittedAck(physical.OutcomeFixture.ApparelPhysicalFacts);
+        var source = new ApparelPhysicalPublicationRuntime(fault, physical.OutcomeFixture.ApparelPhysicalFacts);
+        var owner = physical.CreateTransaction(source, physical.OutcomeFixture.Calendar);
+        var pending = owner.ExecuteCraftOrResume(order, physical.Facility, OutputItemId, component, false);
+        Require(pending.Status == ApparelPhysicalTransactionStatus.PendingFinalization && fault.Commits == 1
+            && physical.Repository.GetEditorTestQuantity(sourceId) == 2 && physical.OutputStacks.Count == 1,
+            "Real committed observation ACK loss did not retain one physical craft: " + pending.FailureReason);
+        string json = new ApparelPhysicalPublicationSaveSection(source).Capture();
+        ApparelPhysicalPublicationSaveSection.ValidateJson(json);
+        var saved = DungeonSaveJson.Deserialize<ApparelPhysicalPublicationSaveData>(json);
+        var ledger = physical.OutcomeFixture.Ledger.CaptureGameplayOutcomes();
+        Require(saved.observations.Single().pending && ledger.exactOutcomes.Count == 1,
+            "ACK loss failed to freeze one pending fact against the real committed ledger.");
+        ApparelPhysicalCompletedFactPreflight.ValidateJournal(saved, ledger);
+        ApparelPhysicalCompletedFactPreflight.ValidateOwners(saved, new[] { order });
+        var broken = ApparelPhysicalPublicationRuntime.ValidateAndClone(saved);
+        broken.observations[0].fact.outputMassGrams++;
+        ExpectInvalid(() => ApparelPhysicalCompletedFactPreflight.ValidateJournal(broken, ledger),
+            "Conflicting physical fact was accepted against its canonical ledger.");
+        ExpectInvalid(() => ApparelPhysicalCompletedFactPreflight.ValidateJournal(new(), ledger),
+            "Completed physical journal history could be dropped.");
+        var regressed = JsonUtility.FromJson<ApparelWorkOrderSaveData>(JsonUtility.ToJson(order));
+        regressed.craftOutputAcknowledged = false;
+        ExpectInvalid(() => ApparelPhysicalCompletedFactPreflight.ValidateOwners(saved, new[] { regressed }),
+            "Completed physical fact accepted a regressed owner.");
+        string physicalSnapshot = JsonUtility.ToJson(physical.WorldItems.Capture());
+        string orderJson = JsonUtility.ToJson(order);
+        int originalDay = saved.observations[0].fact.absoluteDay;
+        var later = new EditorFixedGameCalendar(originalDay + 1);
+        using var restored = new EvolutionGameplayOutcomeEditorFixture("run:apparel-physical-restored", calendar: later);
+        restored.Ledger.BeginRestoreCandidate();
+        var candidate = restored.Ledger.PrepareGameplayOutcomeRestore(ledger);
+        restored.Ledger.PublishGameplayOutcomeRestore(candidate);
+        restored.Ledger.PublishRestoreCandidate();
+        restored.Ledger.CompleteRestoreCandidate();
+        restored.ApparelPhysicalPublications.Restore(saved);
+        var restoredOwner = physical.CreateTransaction(restored.ApparelPhysicalPublications, later);
+        order = JsonUtility.FromJson<ApparelWorkOrderSaveData>(orderJson);
+        var replay = restoredOwner.ExecuteCraftOrResume(order, physical.Facility, OutputItemId, component, false);
+        Require(replay.IsCompleted
+            && physicalSnapshot == JsonUtility.ToJson(physical.WorldItems.Capture())
+            && restored.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count == 1
+            && restored.ApparelPhysicalPublications.Capture().observations.Single().fact.absoluteDay == originalDay
+            && !restored.ApparelPhysicalPublications.Capture().observations.Single().pending,
+            "New owner/journal/ledger recovery repeated effects or changed the original day: " + replay.FailureReason);
+        var rejected = restoredOwner.ExecuteCraftOrResume(regressed, physical.Facility, OutputItemId, component, false);
+        Require(rejected.Status == ApparelPhysicalTransactionStatus.Conflict
+            && physicalSnapshot == JsonUtility.ToJson(physical.WorldItems.Capture()),
+            "Regressed owner repeated physical material debit after a completed fact.");
+
+        // Journal replay remains valid after natural ownership of the product has moved on.
+        var output = physical.OutputStacks.Single();
+        Require(physical.WorldItems.TryRouteStackToDestination(output.StackId, WorldItemStackState.Carried,
+            "character:qa:apparel-carrier", new Vector2Int(4, 4), out string routeFailure),
+            "Could not move the completed product for detached observation recovery: " + routeFailure);
+        physicalSnapshot = JsonUtility.ToJson(physical.WorldItems.Capture());
+        using var detached = new DomainFactDispatcher();
+        var journal = new ApparelPhysicalPublicationRuntime(detached, detached);
+        journal.Restore(saved);
+        Require(!journal.RecoverPending(out _), "Unconnected observer acknowledged pending history.");
+        var binding = ApparelPhysicalCompletedFactMapping.CreateBinding(restored.Registry, restored.Ledger,
+            restored.Recorder, new GameplayDomainFactCommitGroup(restored.Recorder, restored.Ledger));
+        using (var connection = binding.Connect(detached))
+        {
+            bool duplicate = false;
+            try { using var invalid = binding.Connect(detached); }
+            catch (InvalidOperationException error)
+            { duplicate = error.Message.Contains("Duplicate durable domain observer", StringComparison.Ordinal); }
+            Require(duplicate, "Physical fact accepted a duplicate observer.");
+        }
+        Require(!journal.RecoverPending(out _), "Disposed observer still received pending history.");
+        using var rebound = binding.Connect(detached);
+        Require(journal.RecoverPending(out string recoveryFailure)
+            && physicalSnapshot == JsonUtility.ToJson(physical.WorldItems.Capture())
+            && restored.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count == 1,
+            "Detached/rebound journal replay touched items or duplicated the ledger: " + recoveryFailure);
+        var missingPhysical = restoredOwner.ExecuteCraftOrResume(order, physical.Facility, OutputItemId, component, false);
+        Require(missingPhysical.Status == ApparelPhysicalTransactionStatus.Conflict
+            && physicalSnapshot == JsonUtility.ToJson(physical.WorldItems.Capture()),
+            "Command replay bypassed its existing physical route guard or recreated the garment.");
+        ApparelPhysicalCompletedFactPreflight.ValidateJournal(journal.Capture(),
+            restored.Ledger.CaptureGameplayOutcomes());
+        Debug.Log("B90_APPAREL_PHYSICAL_RECOVERY=PASS");
+    }
+
+    private static void ExpectInvalid(Action action, string message)
+    {
+        bool rejected = false;
+        try { action(); }
+        catch (Exception error) when (error is InvalidOperationException or ArgumentException) { rejected = true; }
+        Require(rejected, message);
+    }
+    private sealed class HideCommittedAck : IDomainFactPublisher
+    {
+        private readonly DomainFactDispatcher inner;
+        internal int Commits { get; private set; }
+        internal HideCommittedAck(DomainFactDispatcher inner) => this.inner = inner;
+        public bool TryReserve<T>(in T proposal, out DomainFactLease lease, out string failure) =>
+            inner.TryReserve(proposal, out lease, out failure);
+        public DomainFactDelivery Publish<T>(in DomainFactLease lease, in T actual)
+        {
+            var result = inner.Publish(lease, actual);
+            Require(result.Completed, "ACK injection never reached an actual committed result: " + result.Detail);
+            Commits++;
+            return DomainFactDelivery.Uncertain("editor-hidden-apparel-physical-commit-ack");
+        }
+        public bool PublishBatch(IReadOnlyList<DomainFactEmission> facts, DomainFactDelivery[] results,
+            out string failure) => inner.PublishBatch(facts, results, out failure);
+        public DomainFactDelivery Replay<T>(in T fact) => inner.Replay(fact);
+        public void Cancel(in DomainFactLease lease) => inner.Cancel(lease);
     }
 
     private static void VerifyCapacityFailurePreservesMaterialSource()
@@ -137,6 +303,41 @@ public static class ApparelPhysicalTransactionDebugScenarios
             && order.craftOutputAcknowledged
             && fixture.Repository.GetEditorPendingBatchDispositionCount() == 0,
             "Successful craft did not close material/output pending receipts.");
+        GameplayOutcomeQueryPage makerHistory = fixture.OutcomeFixture.Ledger
+            .GetForEntity(
+                new GameplayEntityId(
+                    EvolutionOutcomeIds.CharacterKind,
+                    "character:qa:apparel-maker"),
+                OutcomeCursor.FirstPage(10),
+                OutcomeFilter.All);
+        GameplayOutcomeQueryPage facilityHistory = fixture.OutcomeFixture.Ledger
+            .GetForEntity(
+                new GameplayEntityId(
+                    EvolutionOutcomeIds.FacilityKind,
+                    FacilityId),
+                OutcomeCursor.FirstPage(10),
+                OutcomeFilter.All);
+        GameplayOutcomeSnapshot qualityOutcome = makerHistory.Items
+            .Single().Exact;
+        Require(
+            facilityHistory.Items.Count == 1
+            && facilityHistory.Items[0].Exact.sequence
+                == qualityOutcome.sequence
+            && qualityOutcome.participants.Count == 2
+            && qualityOutcome.subjects.Count == 3
+            && qualityOutcome.metrics.Count == 5
+            && qualityOutcome.tags.Contains(
+                EvolutionOutcomeIds.ProductQualityTag.Value)
+            && qualityOutcome.metrics.Any(value =>
+                value.metricId
+                    == EvolutionOutcomeIds.ProductQualityTierMetric.Value
+                && value.value == (int)CraftsmanshipQualityTier.Normal),
+            "Apparel physical outcome did not expose the same exact quality result to maker and facility views.");
+        ApparelPhysicalPublicationSaveData observations =
+            fixture.OutcomeFixture.ApparelPhysicalPublications.Capture();
+        Require(observations.observations.Count == 1
+                && !observations.observations[0].pending,
+            "Completed apparel craft did not retain one delivered physical fact.");
         RequireFrozenCapability(order);
         RequireNoRawSpawnOrDeleteRollback();
     }
@@ -273,6 +474,8 @@ public static class ApparelPhysicalTransactionDebugScenarios
         int materialAfterFirst = fixture.Repository.GetEditorTestQuantity(sourceStackId);
         int outputCountAfterFirst = fixture.OutputStacks.Count;
         int pendingAfterFirst = fixture.Repository.GetEditorPendingBatchDispositionCount();
+        int factsAfterFirst = fixture.OutcomeFixture.ApparelPhysicalPublications
+            .Capture().observations.Count;
         ApparelPhysicalTransactionResult replay = fixture.Transaction
             .ExecuteCraftOrResume(
                 order,
@@ -289,8 +492,10 @@ public static class ApparelPhysicalTransactionDebugScenarios
         Require(
             fixture.Repository.GetEditorTestQuantity(sourceStackId) == materialAfterFirst
             && fixture.OutputStacks.Count == outputCountAfterFirst
-            && fixture.Repository.GetEditorPendingBatchDispositionCount() == pendingAfterFirst,
-            "Completed replay duplicated output or debited materials twice.");
+            && fixture.Repository.GetEditorPendingBatchDispositionCount() == pendingAfterFirst
+            && fixture.OutcomeFixture.ApparelPhysicalPublications.Capture()
+                .observations.Count == factsAfterFirst,
+            "Completed replay duplicated output, debited materials twice, or appended a second fact.");
     }
 
     private static void VerifyRejectedSaleRouteRemainsPhysicalFacilityOutput()
@@ -319,13 +524,13 @@ public static class ApparelPhysicalTransactionDebugScenarios
             "Mark-for-sale routing stripped the Apparel component.");
     }
 
-    private static ItemInstanceComponentSaveData CreateApparelComponent() =>
+    internal static ItemInstanceComponentSaveData CreateApparelComponent() =>
         ApparelItemStateCodec.Create(new ApparelInstanceState
         {
             apparelDefinitionId = ApparelDefinitionId,
             primaryMaterialId = MaterialDefinitionId,
             craftsmanshipQuality = CraftsmanshipQualityTier.Normal,
-            sourceKind = TextileSourceKind.Crop,
+            sourceKind = TextileSourceKind.Animal,
             sourceDefinitionId = MaterialDefinitionId,
             size = ApparelSizeClass.Medium,
             modifications = ApparelModificationKind.None,
@@ -380,25 +585,31 @@ public static class ApparelPhysicalTransactionDebugScenarios
             throw new InvalidOperationException(message);
     }
 
-    private sealed class Fixture : IDisposable
+    internal sealed class Fixture : IDisposable
     {
         private readonly GameObject facilityObject;
         private readonly ProductionFacilityHandle handle;
+        private readonly Func<ApparelPhysicalPublicationRuntime, IGameCalendar, ApparelPhysicalTransaction> createTransaction;
 
         internal Fixture(
             string suffix,
             IFacilityBufferPlannedOutputAcknowledgementFaultInjector
-                acknowledgementFaultInjector = null)
+                acknowledgementFaultInjector = null,
+            string runId = null,
+            IPersistentIdGenerator persistentIdGenerator = null)
         {
             Catalog = new FixedCatalog();
             WorldItems = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
                 Catalog,
+                aggregateRootStore: null,
                 out WorldItemRepository repository,
                 out _,
                 out ItemQuantityReservationService quantityReservations,
                 out _,
                 out _,
-                out IPhysicalItemBatchDispositionService dispositions);
+                out IPhysicalItemBatchDispositionService dispositions,
+                out _,
+                persistentIdGenerator);
             Repository = repository;
 
             FacilityBufferDestinationClaimRegistry claims = new();
@@ -491,7 +702,11 @@ public static class ApparelPhysicalTransactionDebugScenarios
                 ApparelPhysicalTransaction.OutputLineId,
                 OutputItemId,
                 ProductionOutputCapabilityIds.ApparelWorkOrder);
-            Transaction = new ApparelPhysicalTransaction(
+            OutcomeFixture = new EvolutionGameplayOutcomeEditorFixture(
+                string.IsNullOrWhiteSpace(runId)
+                    ? "run:apparel-physical-editor"
+                    : runId);
+            createTransaction = (observations, calendar) => new ApparelPhysicalTransaction(
                 WorldItems,
                 dispositions,
                 (IReservedPhysicalItemBatchDispositionService)dispositions,
@@ -503,10 +718,16 @@ public static class ApparelPhysicalTransactionDebugScenarios
                 publication,
                 repository,
                 outputCapabilityRegistry,
-                maximumMassRegistry);
+                maximumMassRegistry,
+                observations,
+                calendar);
+            Transaction = CreateTransaction(OutcomeFixture.ApparelPhysicalPublications, OutcomeFixture.Calendar);
         }
 
-        internal FixedCatalog Catalog { get; }
+        internal ApparelPhysicalTransaction CreateTransaction(ApparelPhysicalPublicationRuntime observations,
+            IGameCalendar calendar) => createTransaction(observations, calendar);
+
+        internal IDungeonItemCatalogProvider Catalog { get; }
         internal WorldItemStackRuntime WorldItems { get; }
         internal WorldItemRepository Repository { get; }
         internal BuildableObject Facility { get; }
@@ -515,6 +736,7 @@ public static class ApparelPhysicalTransactionDebugScenarios
         internal ProductionOutputDestinationAuthorityRuntime Destinations { get; }
         internal ProductionOutputMaximumMassRegistry MaximumMassRegistry { get; }
         internal ProductionOutputCapabilityDescriptor ApparelDescriptor { get; }
+        internal EvolutionGameplayOutcomeEditorFixture OutcomeFixture { get; }
         internal string DestinationId => ProductionBillRuntime.OutputDestinationPrefix + FacilityId;
         internal IReadOnlyList<WorldItemStackSnapshot> OutputStacks => WorldItems
             .GetAllStacks()
@@ -531,9 +753,12 @@ public static class ApparelPhysicalTransactionDebugScenarios
 
         internal ApparelWorkOrderSaveData CreateOrder(
             string sourceStackId,
-            int quantity) => new()
+            int quantity,
+            string orderId = null) => new()
         {
-            orderId = "apparel-order:qa:" + Guid.NewGuid().ToString("N"),
+            orderId = string.IsNullOrWhiteSpace(orderId)
+                ? "apparel-order:qa:" + Guid.NewGuid().ToString("N")
+                : CausalGameplaySyntax.RequireId(orderId, nameof(orderId)),
             kind = ApparelWorkOrderKind.Craft,
             state = ApparelWorkOrderState.InProgress,
             apparelDefinitionId = ApparelDefinitionId,
@@ -590,6 +815,7 @@ public static class ApparelPhysicalTransactionDebugScenarios
 
         public void Dispose()
         {
+            OutcomeFixture?.Dispose();
             WorldItems?.Dispose();
             if (facilityObject != null)
                 UnityEngine.Object.DestroyImmediate(facilityObject);

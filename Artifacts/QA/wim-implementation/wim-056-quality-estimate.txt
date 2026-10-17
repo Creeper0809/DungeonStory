@@ -1,0 +1,9 @@
+PASS
+resolver-distributions=24
+known-distribution=3171/9261
+p-zero-one-and-20-attempt-boundary=PASS
+limited-success-and-gross-cost=PASS
+player-text=PASS
+preview-roll-invariant=PASS
+live-apparel-order-and-render=NOT_RUN
+combat-construction-query-ui=NOT_CONNECTED

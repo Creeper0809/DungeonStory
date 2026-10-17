@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "벽돌로 열을 오래 가두어 빵과 음식을 굽는 오븐 설치 부품이며, 하르나크에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "벽돌 오븐으로 방의 경계와 지지 구조를 세울 때 쓰는 설치 부품이다. 하르나크 주민은 벽돌 오븐의 수리 구역을 여섯 도시가 나눠 맡아 한 도시가 봉쇄돼도 길이 끊기지 않게 한다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

@@ -63,7 +63,16 @@ public interface IExpeditionDepartureService
 
 public interface IExpeditionReturnService
 {
-    bool TryBeginReturn(CharacterActor actor, bool alive, Action completed, out string message);
+    bool TryBeginReturn(CharacterActor actor, bool alive, Action<ExpeditionReturnOutcome> completed, out string message,
+        ExpeditionReturnProgress progress = null);
+}
+
+public enum ExpeditionReturnOutcome
+{
+    Arrived,
+    RequiresRescue,
+    Dead,
+    Interrupted
 }
 
 [Serializable]
@@ -178,6 +187,8 @@ public sealed class ExteriorActivityRuntime :
     private readonly IRuntimeBuildingArchetypeCatalog buildingArchetypes;
     private readonly ExteriorActivityRestoreCoordinator restoreCoordinator;
     private ExteriorActivityCoroutineHost coroutineHost;
+    private readonly HashSet<CharacterActor> returningActors = new();
+    private readonly HashSet<string> departingExpeditions = new(StringComparer.Ordinal);
     private float nextConditionTick;
     private float nextIncidentCheck;
     private int incidentSequence;
@@ -292,6 +303,7 @@ public sealed class ExteriorActivityRuntime :
 
     public void Dispose()
     {
+        StopTransitRoutines();
         for (int i = zones.Count - 1; i >= 0; i--)
         {
             ExteriorZoneMarker zone = zones[i];
@@ -456,6 +468,7 @@ public sealed class ExteriorActivityRuntime :
 
         ProjectAllIncidentStates();
         restoreCoordinator.CompletePublished();
+        StopTransitRoutines();
         activePublication = null;
     }
 
@@ -615,6 +628,11 @@ public sealed class ExteriorActivityRuntime :
             return false;
         }
 
+        if (departingExpeditions.Contains(expedition.ExpeditionId))
+        {
+            message = "expedition-departure-already-in-progress";
+            return false;
+        }
         if (!ResolveDeparturePoints(out ExteriorZoneMarker staging, out WorldGridEntryPoint entryPoint))
         {
             message = "expedition-staging-missing";
@@ -622,7 +640,8 @@ public sealed class ExteriorActivityRuntime :
         }
 
         EnsureRuntimeObjects();
-        coroutineHost.StartCoroutine(DepartureRoutine(
+        departingExpeditions.Add(expedition.ExpeditionId);
+        coroutineHost.StartCoroutine(TrackDeparture(
             expedition,
             members,
             staging,
@@ -633,13 +652,36 @@ public sealed class ExteriorActivityRuntime :
         return true;
     }
 
-    public bool TryBeginReturn(CharacterActor actor, bool alive, Action completed, out string message)
+    private IEnumerator TrackDeparture(OffenseExpeditionRun expedition, IReadOnlyList<CharacterActor> members,
+        ExteriorZoneMarker staging, WorldGridEntryPoint entry, Func<bool> ready, Action completed)
+    {
+        try { yield return DepartureRoutine(expedition, members, staging, entry, ready, completed); }
+        finally { departingExpeditions.Remove(expedition.ExpeditionId); }
+    }
+
+    public bool TryBeginReturn(CharacterActor actor, bool alive, Action<ExpeditionReturnOutcome> completed, out string message,
+        ExpeditionReturnProgress progress = null)
     {
         message = string.Empty;
-        if (actor == null || !alive)
+        if (actor == null || !alive || actor.IsDead)
         {
-            completed?.Invoke();
             message = "return-skipped";
+            return false;
+        }
+
+        if (returningActors.Contains(actor))
+        {
+            message = "return-already-in-progress";
+            return false;
+        }
+
+        progress ??= new ExpeditionReturnProgress(CharacterPersistentIdentity.Require(actor).Value);
+        if (progress.CharacterId != CharacterPersistentIdentity.Require(actor).Value || progress.IsTerminal
+            || (progress.Stage == ExpeditionReturnStage.Pending && !actor.IsOnExpedition)
+            || (progress.Stage != ExpeditionReturnStage.Pending
+                && actor.CurrentLifecycleState != CharacterLifecycleState.ReturningExpedition))
+        {
+            message = "return-lifecycle-owner-unavailable";
             return false;
         }
 
@@ -650,9 +692,46 @@ public sealed class ExteriorActivityRuntime :
         }
 
         EnsureRuntimeObjects();
-        coroutineHost.StartCoroutine(ReturnRoutine(actor, entryPoint, completed));
+        returningActors.Add(actor);
+        coroutineHost.StartCoroutine(TrackReturn(actor, entryPoint, progress, completed));
         message = "expedition-return-started";
         return true;
+    }
+
+    private IEnumerator TrackReturn(CharacterActor actor, WorldGridEntryPoint entryPoint, ExpeditionReturnProgress progress,
+        Action<ExpeditionReturnOutcome> completed)
+    {
+        bool settled = false;
+        void Settle(ExpeditionReturnOutcome outcome)
+        {
+            if (settled) return;
+            settled = true;
+            progress.Stage = outcome switch
+            {
+                ExpeditionReturnOutcome.Arrived => ExpeditionReturnStage.Arrived,
+                ExpeditionReturnOutcome.RequiresRescue => ExpeditionReturnStage.RequiresRescue,
+                ExpeditionReturnOutcome.Dead => ExpeditionReturnStage.Dead,
+                _ => progress.Stage
+            };
+            completed?.Invoke(outcome);
+        }
+        try
+        {
+            yield return ReturnRoutine(actor, entryPoint, progress, Settle);
+            // Despawn is not proof of death. Only the actual health authority
+            // may settle a dead member; other ownership changes remain unresolved.
+            if (!settled && actor != null && actor.Stats?.IsDead == true)
+                Settle(ExpeditionReturnOutcome.Dead);
+            if (!settled) Settle(ExpeditionReturnOutcome.Interrupted);
+        }
+        finally { returningActors.Remove(actor); }
+    }
+
+    private void StopTransitRoutines()
+    {
+        if (coroutineHost != null) coroutineHost.StopAllCoroutines();
+        returningActors.Clear();
+        departingExpeditions.Clear();
     }
 
     private void EnsureRuntimeObjects()
@@ -1090,7 +1169,10 @@ public sealed class ExteriorActivityRuntime :
             }
 
             member.SetLifecycleState(CharacterLifecycleState.PreparingExpedition);
-            yield return MoveActorToGrid(member, staging.centerPos);
+            yield return MoveTransitSegment(member, CharacterLifecycleState.PreparingExpedition,
+                () => MoveActorToGrid(member, staging.centerPos));
+            if (member != null && member.Stats?.IsDead == true) continue;
+            if (TransitFailed(member) || member.CurrentLifecycleState != CharacterLifecycleState.PreparingExpedition) yield break;
         }
 
         foreach (CharacterActor member in members)
@@ -1101,34 +1183,76 @@ public sealed class ExteriorActivityRuntime :
             }
 
             member.SetLifecycleState(CharacterLifecycleState.DepartingExpedition);
-            yield return MoveActorToGrid(member, entryPoint.GridPosition);
-            yield return MoveActorToWorld(member, entryPoint.DoorPosition);
-            yield return MoveActorToWorld(member, entryPoint.OutsidePosition);
-            member.BeginExpedition();
+            yield return MoveTransitSegment(member, CharacterLifecycleState.DepartingExpedition,
+                () => MoveActorToGrid(member, entryPoint.GridPosition));
+            if (member != null && member.Stats?.IsDead == true) continue;
+            if (TransitFailed(member) || member.CurrentLifecycleState != CharacterLifecycleState.DepartingExpedition) yield break;
+            yield return MoveTransitSegment(member, CharacterLifecycleState.DepartingExpedition,
+                () => MoveActorToWorld(member, entryPoint.DoorPosition));
+            if (member != null && member.Stats?.IsDead == true) continue;
+            if (TransitFailed(member) || member.CurrentLifecycleState != CharacterLifecycleState.DepartingExpedition) yield break;
+            yield return MoveTransitSegment(member, CharacterLifecycleState.DepartingExpedition,
+                () => MoveActorToWorld(member, entryPoint.OutsidePosition));
+            if (member != null && member.Stats?.IsDead == true) continue;
+            if (TransitFailed(member) || member.CurrentLifecycleState != CharacterLifecycleState.DepartingExpedition) yield break;
+            if (!member.BeginExpedition()) yield break;
         }
 
         completed?.Invoke();
     }
 
-    private IEnumerator ReturnRoutine(CharacterActor actor, WorldGridEntryPoint entryPoint, Action completed)
+    private IEnumerator ReturnRoutine(CharacterActor actor, WorldGridEntryPoint entryPoint, ExpeditionReturnProgress progress,
+        Action<ExpeditionReturnOutcome> completed)
     {
-        actor.transform.position = entryPoint.OutsidePosition;
-        actor.EndExpedition(alive: true);
+        bool starting = progress.Stage == ExpeditionReturnStage.Pending;
+        if (starting)
+        {
+            actor.transform.position = entryPoint.OutsidePosition;
+            actor.EndExpedition(alive: true);
+            progress.Stage = ExpeditionReturnStage.ToDoor;
+            actor.SetLifecycleState(CharacterLifecycleState.ReturningExpedition);
+        }
 
-        if (bodyHealthQuery.GetSnapshot(actor).Downed)
+        if (starting && bodyHealthQuery.GetSnapshot(actor).Downed)
         {
             PlaceDownedReturneeOnGrid(actor, entryPoint);
             medicalCommands.NotifyCharacterDowned(actor);
             DefenseCombatPresentation.Ensure(actor)?.SetStatus("귀환 직후 구조 필요", combatActive: true);
-            completed?.Invoke();
+            completed?.Invoke(ExpeditionReturnOutcome.RequiresRescue);
             yield break;
         }
 
-        actor.SetLifecycleState(CharacterLifecycleState.ReturningExpedition);
-        yield return MoveActorToWorld(actor, entryPoint.DoorPosition);
-        yield return MoveActorToGrid(actor, entryPoint.GridPosition);
+        if (progress.Stage == ExpeditionReturnStage.ToDoor)
+        {
+            yield return MoveTransitSegment(actor, CharacterLifecycleState.ReturningExpedition,
+                () => MoveActorToWorld(actor, entryPoint.DoorPosition));
+            if (TransitFailed(actor) || actor.CurrentLifecycleState != CharacterLifecycleState.ReturningExpedition) yield break;
+            progress.Stage = ExpeditionReturnStage.ToInterior;
+        }
+        yield return MoveTransitSegment(actor, CharacterLifecycleState.ReturningExpedition,
+            () => MoveActorToGrid(actor, entryPoint.GridPosition));
+        if (TransitFailed(actor) || actor.CurrentLifecycleState != CharacterLifecycleState.ReturningExpedition) yield break;
         actor.SetLifecycleState(CharacterLifecycleState.Active);
-        completed?.Invoke();
+        completed?.Invoke(ExpeditionReturnOutcome.Arrived);
+    }
+
+    private IEnumerator MoveTransitSegment(CharacterActor actor, CharacterLifecycleState owner, Func<IEnumerator> segment)
+    {
+        while (actor != null && !actor.IsDead
+            && actor.CurrentLifecycleState == owner)
+        {
+            yield return segment();
+            if (actor == null || actor.IsDead || !actor.TryGetAbility<AbilityMove>(out var move)
+                || move.LastGridMoveFailureReason == GridMoveFailureReason.None) yield break;
+            actor.Brain?.SetActionPhase("원정 이동 조건 대기",
+                detail: "expedition-transit; owner=" + owner + "; failure=" + move.LastGridMoveFailureReason
+                    + "; retained-request; retry-in-1-game-second");
+            float retryAt = applicationAdapter.Time + 1f;
+            while (actor != null && !actor.IsDead
+                && actor.CurrentLifecycleState == owner
+                && (applicationAdapter.Time < retryAt || !actor.isActiveAndEnabled
+                    || bodyHealthQuery.GetSnapshot(actor).Downed)) yield return null;
+        }
     }
 
     private void PlaceDownedReturneeOnGrid(CharacterActor actor, WorldGridEntryPoint entryPoint)
@@ -1159,8 +1283,10 @@ public sealed class ExteriorActivityRuntime :
         }
 
         AbilityMove move = actor.GetAbility<AbilityMove>();
-        if (move == null || !gridSystemProvider.TryGetGrid(out Grid grid))
+        if (move == null) yield break;
+        if (!gridSystemProvider.TryGetGrid(out Grid grid))
         {
+            move.MarkGridMoveFailure(GridMoveFailureReason.GridUnavailable);
             yield break;
         }
 
@@ -1172,7 +1298,12 @@ public sealed class ExteriorActivityRuntime :
             yield break;
         }
 
-        yield return move.Move2PosBySpeed(grid.GetWorldPos(target), 0.9f);
+        if (start == target)
+        {
+            move.MarkGridMoveFailure(GridMoveFailureReason.None);
+            yield break;
+        }
+        move.MarkGridMoveFailure(GridMoveFailureReason.MissingPath);
     }
 
     private static IEnumerator MoveActorToWorld(CharacterActor actor, Vector3 position)
@@ -1183,8 +1314,12 @@ public sealed class ExteriorActivityRuntime :
             yield break;
         }
 
-        yield return move.Move2PosBySpeed(position, 0.9f);
+        yield return move.MoveThroughWorldDoorway(position, 0.9f);
     }
+
+    private static bool TransitFailed(CharacterActor actor) => actor == null || actor.IsDead
+        || !actor.TryGetAbility<AbilityMove>(out var move)
+        || move.LastGridMoveFailureReason != GridMoveFailureReason.None;
 
     private static int Distance(Vector2Int a, Vector2Int b)
     {

@@ -19,6 +19,26 @@ public interface IWorldItemHaulPlanningService
         CharacterActor actor,
         out WorldItemHaulJob job,
         out string failureReason);
+    bool TryPreviewActiveEmergencySupportPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason);
+    bool TryReserveActiveEmergencySupportPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason);
+}
+
+public interface IActiveEmergencySupportHaulPlanRuntime
+{
+    bool TryPreviewActiveEmergencySupportHaulPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason);
+    bool TryReserveActiveEmergencySupportHaulPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason);
 }
 
 public enum WorldItemDeliveryReachabilityStatus
@@ -214,7 +234,7 @@ public sealed class WorldItemHaulPlanningService :
         }
 
         WorldItemHaulDestinationKind destinationKind =
-            TryParseWarehouseId(destination, out _)
+            HaulRouteEligibilityRules.TryParseWarehouseId(destination, out _)
                 ? WorldItemHaulDestinationKind.Warehouse
                 : WorldItemHaulDestinationKind.FacilityBuffer;
         if (!WorldItemHaulDestinationAuthority.TryResolve(
@@ -288,7 +308,25 @@ public sealed class WorldItemHaulPlanningService :
         out WorldItemHaulPlan plan,
         out string failureReason)
     {
-        return TryBuildBestPlan(actor, reserve: false, out plan, out failureReason);
+        return TryBuildBestPlan(
+            actor,
+            reserve: false,
+            activeEmergencySupportOnly: false,
+            out plan,
+            out failureReason);
+    }
+
+    public bool TryPreviewActiveEmergencySupportPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason)
+    {
+        return TryBuildBestPlan(
+            actor,
+            reserve: false,
+            activeEmergencySupportOnly: true,
+            out plan,
+            out failureReason);
     }
 
 #if UNITY_EDITOR
@@ -331,7 +369,7 @@ public sealed class WorldItemHaulPlanningService :
             return FailEditorCandidate("production input drain is open", out failureReason);
         if (!HasConsistentRoutableCustody(stack))
             return FailEditorCandidate("routable custody is inconsistent", out failureReason);
-        if (!IsExactRouteDeliveryCandidate(
+        if (!HaulRouteEligibilityRules.IsExactRouteDeliveryCandidate(
                 stack,
                 exactRouteQuery,
                 out FacilityOutputExactRouteFailure routeFailure,
@@ -391,7 +429,25 @@ public sealed class WorldItemHaulPlanningService :
         out WorldItemHaulPlan plan,
         out string failureReason)
     {
-        return TryBuildBestPlan(actor, reserve: true, out plan, out failureReason);
+        return TryBuildBestPlan(
+            actor,
+            reserve: true,
+            activeEmergencySupportOnly: false,
+            out plan,
+            out failureReason);
+    }
+
+    public bool TryReserveActiveEmergencySupportPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason)
+    {
+        return TryBuildBestPlan(
+            actor,
+            reserve: true,
+            activeEmergencySupportOnly: true,
+            out plan,
+            out failureReason);
     }
 
     public bool TryReserveBestJob(
@@ -403,6 +459,7 @@ public sealed class WorldItemHaulPlanningService :
         if (!TryBuildBestPlan(
                 actor,
                 reserve: true,
+                activeEmergencySupportOnly: false,
                 out WorldItemHaulPlan plan,
                 out failureReason))
         {
@@ -429,6 +486,7 @@ public sealed class WorldItemHaulPlanningService :
     private bool TryBuildBestPlan(
         CharacterActor actor,
         bool reserve,
+        bool activeEmergencySupportOnly,
         out WorldItemHaulPlan plan,
         out string failureReason)
     {
@@ -459,6 +517,7 @@ public sealed class WorldItemHaulPlanningService :
             actor,
             inventory,
             actorId,
+            activeEmergencySupportOnly,
             out string priorityFailureReason);
         if (seed == null)
         {
@@ -498,7 +557,7 @@ public sealed class WorldItemHaulPlanningService :
             new(StringComparer.Ordinal);
         List<WarehouseHaulAdmissionSaveData> warehouseAdmissions = new();
         bool reserveExactWarehouseBeforeLease =
-            RequiresExactWarehouseAdmissionsBeforeLease(
+            HaulRouteEligibilityRules.RequiresExactWarehouseAdmissionsBeforeLease(
                 selected.Select(candidate => candidate.Stack));
         if (reserve)
         {
@@ -800,7 +859,7 @@ public sealed class WorldItemHaulPlanningService :
             tokenId = token.TokenId,
             ownerAdmissionOperationId = admissionOperationId ?? string.Empty,
             warehouseId = token.WarehouseId.Value,
-            sourceWarehouseId = TryParseWarehouseId(
+            sourceWarehouseId = HaulRouteEligibilityRules.TryParseWarehouseId(
                 source.sourceStorageDestinationId,
                 out string sourceWarehouseId)
                     ? sourceWarehouseId
@@ -915,7 +974,7 @@ public sealed class WorldItemHaulPlanningService :
                 && !string.IsNullOrWhiteSpace(stack.destinationId))
             {
                 WorldItemHaulDestinationKind explicitKind =
-                    TryParseWarehouseId(stack.destinationId, out _)
+                    HaulRouteEligibilityRules.TryParseWarehouseId(stack.destinationId, out _)
                         ? WorldItemHaulDestinationKind.Warehouse
                         : WorldItemHaulDestinationKind.FacilityBuffer;
                 if (WorldItemHaulDestinationAuthority.TryResolve(
@@ -975,6 +1034,7 @@ public sealed class WorldItemHaulPlanningService :
         CharacterActor actor,
         CharacterCarryInventory inventory,
         string actorId,
+        bool activeEmergencySupportOnly,
         out string priorityFailureReason)
     {
         priorityFailureReason = string.Empty;
@@ -1013,6 +1073,12 @@ public sealed class WorldItemHaulPlanningService :
                 continue;
             }
 
+            if (activeEmergencySupportOnly
+                && !IsActiveEmergencySupportCandidate(candidate))
+            {
+                continue;
+            }
+
             if (best == null
                 || candidate.PriorityRank > best.PriorityRank
                 || candidate.PriorityRank == best.PriorityRank
@@ -1023,6 +1089,19 @@ public sealed class WorldItemHaulPlanningService :
         }
 
         return best;
+    }
+
+    private bool IsActiveEmergencySupportCandidate(HaulCandidate candidate)
+    {
+        return candidate != null
+            && candidate.DestinationKind
+                == WorldItemHaulDestinationKind.FacilityBuffer
+            && destinationClaims.TryGetClaim(
+                candidate.DestinationId,
+                candidate.DropPosition,
+                out FacilityBufferDestinationClaim claim)
+            && EnvironmentalFireWaterDestinationIdentity
+                .IsExactEmergencySupportClaim(claim);
     }
 
     private List<HaulCandidate> SelectOpportunisticCandidates(
@@ -1153,7 +1232,7 @@ public sealed class WorldItemHaulPlanningService :
                 out FacilityOutputExactRouteCustodyMetadata exactCustody)
             && exactCustody.Phase ==
                 FacilityOutputExactRouteCustodyPhase.Routable
-            && TryParseWarehouseId(
+            && HaulRouteEligibilityRules.TryParseWarehouseId(
                 exactCustody.CurrentTargetDestinationId,
                 out _);
 
@@ -1194,7 +1273,7 @@ public sealed class WorldItemHaulPlanningService :
         if (stack.hasDestinationPosition && !string.IsNullOrWhiteSpace(destinationId))
         {
             WorldItemHaulDestinationKind explicitKind =
-                TryParseWarehouseId(destinationId, out _)
+                HaulRouteEligibilityRules.TryParseWarehouseId(destinationId, out _)
                     ? WorldItemHaulDestinationKind.Warehouse
                     : WorldItemHaulDestinationKind.FacilityBuffer;
             if (!WorldItemHaulDestinationAuthority.TryResolve(
@@ -1377,7 +1456,7 @@ public sealed class WorldItemHaulPlanningService :
             // batch. Holding one serving at the source would split the batch
             // after its output and destination admission were committed.
             // Ordinary loose survival stock still uses the reserve below.
-            || IsExactWarehouseCustody(stack)
+            || HaulRouteEligibilityRules.IsExactWarehouseCustody(stack)
             || !TryGetWarehouseStockCategory(stack.itemId, out StockCategory category)
             || !RequiresImmediateSurvivalReserve(stack.itemId, category))
         {
@@ -1585,7 +1664,7 @@ public sealed class WorldItemHaulPlanningService :
             && !repository.IsProductionInputDestinationDrainOpen(
                 stack.destinationId)
             && HasConsistentRoutableCustody(stack)
-            && IsExactRouteDeliveryCandidate(
+            && HaulRouteEligibilityRules.IsExactRouteDeliveryCandidate(
                 stack,
                 exactRouteQuery,
                 out routeFailure,
@@ -1625,210 +1704,24 @@ public sealed class WorldItemHaulPlanningService :
     }
 
     internal static bool IsExactWarehouseCustody(WorldItemStackRecord stack) =>
-        stack != null
-        && FacilityOutputExactRouteCustodyCodec.TryRead(
-            stack.components,
-            out FacilityOutputExactRouteCustodyMetadata custody)
-        && custody.Phase == FacilityOutputExactRouteCustodyPhase.Routable
-        && TryParseWarehouseId(custody.CurrentTargetDestinationId, out _);
+        HaulRouteEligibilityRules.IsExactWarehouseCustody(stack);
 
     internal static bool RequiresExactWarehouseAdmissionsBeforeLease(
-        IEnumerable<WorldItemStackRecord> stacks)
-    {
-        WorldItemStackRecord[] exact = (stacks
-                ?? Array.Empty<WorldItemStackRecord>())
-            .ToArray();
-        return exact.Length > 0 && exact.All(IsExactWarehouseCustody);
-    }
+        IEnumerable<WorldItemStackRecord> stacks) =>
+        HaulRouteEligibilityRules.RequiresExactWarehouseAdmissionsBeforeLease(
+            stacks);
 
     internal static bool IsExactRouteDeliveryCandidate(
         WorldItemStackRecord stack,
         IFacilityOutputExactRouteOutboxQuery query,
         out FacilityOutputExactRouteFailure failure,
         IPreparedOutputExactDestinationAdmissionParticipant
-            destinationAdmission = null)
-    {
-        failure = FacilityOutputExactRouteFailure.None;
-        if (stack == null
-            || !FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
-                stack.components))
-        {
-            // Ordinary hauling deliberately has no dependency on the prepared
-            // output lifecycle.
-            return true;
-        }
-        if (!FacilityOutputExactRouteCustodyCodec.TryRead(
-                stack.components,
-                out FacilityOutputExactRouteCustodyMetadata custody))
-        {
-            return FailExactRouteCandidate(
-                FacilityOutputExactRouteFailureCode.ComponentMismatch,
-                "custody metadata is invalid",
-                out failure);
-        }
-        if (custody.Phase != FacilityOutputExactRouteCustodyPhase.Routable
-            || custody.CurrentDeliveryRevision < 0L
-            || string.IsNullOrEmpty(
-                custody.CurrentDeliveryRevisionFingerprint))
-        {
-            return FailExactRouteCandidate(
-                FacilityOutputExactRouteFailureCode.PhaseMismatch,
-                "current delivery revision is not confirmed",
-                out failure);
-        }
-        if (string.IsNullOrEmpty(custody.CurrentTargetDestinationId))
-        {
-            return FailExactRouteCandidate(
-                FacilityOutputExactRouteFailureCode.PendingRouteMissing,
-                "warehouse selection is still pending",
-                out failure);
-        }
-        if (!stack.hasDestinationPosition
-            || !string.Equals(
-                stack.destinationId,
-                custody.CurrentTargetDestinationId,
-                StringComparison.Ordinal)
-            || stack.destinationPosition != custody.CurrentTargetPosition)
-        {
-            return FailExactRouteCandidate(
-                FacilityOutputExactRouteFailureCode.ReceiptMismatch,
-                "physical target does not match the custody overlay",
-                out failure);
-        }
-        if (query == null)
-        {
-            return FailExactRouteCandidate(
-                FacilityOutputExactRouteFailureCode.PendingRouteMissing,
-                "current delivery query is unavailable",
-                out failure);
-        }
-
-        FacilityOutputExactRoutePendingSnapshot[] matches =
-            (query.CapturePendingRoutes()
-                ?? Array.Empty<FacilityOutputExactRoutePendingSnapshot>())
-            .Where(value => value?.Receipt != null
-                && string.Equals(
-                    value.Receipt.RouteOperationId,
-                    custody.RouteOperationId,
-                    StringComparison.Ordinal))
-            .Take(2)
-            .ToArray();
-        if (matches.Length != 1)
-        {
-            return FailExactRouteCandidate(
-                matches.Length == 0
-                    ? FacilityOutputExactRouteFailureCode.PendingRouteMissing
-                    : FacilityOutputExactRouteFailureCode.OperationConflict,
-                matches.Length == 0
-                    ? "current route is absent from the outbox"
-                    : "current route is duplicated in the outbox",
-                out failure);
-        }
-
-        FacilityOutputExactRoutePendingSnapshot route = matches[0];
-        FacilityOutputExactRouteDeliveryRevisionSnapshot delivery =
-            route.DeliveryRevision;
-        if (route.Phase != FacilityOutputExactRoutePhase.Routable)
-        {
-            return FailExactRouteCandidate(
-                FacilityOutputExactRouteFailureCode.PhaseMismatch,
-                "outbox route is not routable",
-                out failure);
-        }
-        if (delivery == null
-            || !string.Equals(
-                route.Receipt.PhysicalReceiptFingerprint,
-                custody.PhysicalReceiptFingerprint,
-                StringComparison.Ordinal)
-            || delivery.Revision != custody.CurrentDeliveryRevision
-            || !string.Equals(
-                delivery.RevisionFingerprint,
-                custody.CurrentDeliveryRevisionFingerprint,
-                StringComparison.Ordinal)
-            || !string.Equals(
-                delivery.RerouteOperationId,
-                custody.CurrentDeliveryRerouteOperationId,
-                StringComparison.Ordinal)
-            || !string.Equals(
-                delivery.TargetDestinationId,
-                custody.CurrentTargetDestinationId,
-                StringComparison.Ordinal)
-            || delivery.TargetPositionX != custody.CurrentTargetPosition.x
-            || delivery.TargetPositionY != custody.CurrentTargetPosition.y
-            || !string.Equals(
-                delivery.TargetAuthorityFingerprint,
-                custody.CurrentTargetAuthorityFingerprint,
-                StringComparison.Ordinal))
-        {
-            return FailExactRouteCandidate(
-                FacilityOutputExactRouteFailureCode.ReceiptMismatch,
-                "outbox and custody delivery overlays differ",
-                out failure);
-        }
-
-        if (TryParseWarehouseId(
-                custody.CurrentTargetDestinationId,
-                out _))
-        {
-            PreparedOutputExactDestinationAuthoritySnapshot authority = default;
-            PreparedOutputExactDestinationAdmissionFailureCode authorityFailure =
-                PreparedOutputExactDestinationAdmissionFailureCode.None;
-            string authorityReason = string.Empty;
-            if (custody.CurrentDeliveryRevision <= 0L
-                || string.IsNullOrEmpty(
-                    custody.CurrentTargetAuthorityFingerprint)
-                || destinationAdmission == null
-                || !destinationAdmission.TryCaptureTargetAuthority(
-                    PreparedOutputExactDestinationTargetKind.Warehouse,
-                    custody.CurrentTargetDestinationId,
-                    custody.CurrentTargetPosition,
-                    out authority,
-                    out authorityFailure,
-                    out authorityReason)
-                || authority.Kind !=
-                    PreparedOutputExactDestinationTargetKind.Warehouse
-                || authority.Position != custody.CurrentTargetPosition
-                || !string.Equals(
-                    authority.DestinationId,
-                    custody.CurrentTargetDestinationId,
-                    StringComparison.Ordinal)
-                || string.IsNullOrEmpty(authority.Fingerprint)
-                || !string.Equals(
-                    authority.Fingerprint,
-                    authority.Fingerprint.Trim(),
-                    StringComparison.Ordinal)
-                || authority.CapacityRevision <= 0L
-                || authority.MassAuthorityRevision <= 0L
-                || authority.MaxMassGrams <= 0L
-                || authority.ReservedMassGrams < 0L
-                || authority.ReservedMassGrams > authority.MaxMassGrams)
-            {
-                return FailExactRouteCandidate(
-                    FacilityOutputExactRouteFailureCode.ReceiptMismatch,
-                    "warehouse target authority is stale:"
-                        + authorityFailure + ":" + authorityReason,
-                    out failure);
-            }
-
-            // Warehouse admission reserve/release advances the live capacity
-            // authority revision. Consequently, a route-minted target fingerprint
-            // is a structural provenance token, not a stable view of the mutable
-            // admission ledger. Candidate discovery still requires the exact route,
-            // custody, destination id, position, and a canonical positive live
-            // authority. Current capacity/revision is fenced atomically when the
-            // admission token is reserved and again immediately before pickup.
-        }
-        return true;
-    }
-
-    private static bool FailExactRouteCandidate(
-        FacilityOutputExactRouteFailureCode code,
-        string reason,
-        out FacilityOutputExactRouteFailure failure)
-    {
-        failure = new FacilityOutputExactRouteFailure(code, reason);
-        return false;
-    }
+            destinationAdmission = null) =>
+        HaulRouteEligibilityRules.IsExactRouteDeliveryCandidate(
+            stack,
+            query,
+            out failure,
+            destinationAdmission);
 
     private static bool IsOutboundStoredStack(WorldItemStackRecord stack)
     {
@@ -1870,7 +1763,7 @@ public sealed class WorldItemHaulPlanningService :
             return false;
         }
 
-        if (!CanShareOpportunisticRoute(a.Stack, b.Stack))
+        if (!HaulRouteEligibilityRules.CanShareOpportunisticRoute(a.Stack, b.Stack))
         {
             return false;
         }
@@ -1881,34 +1774,8 @@ public sealed class WorldItemHaulPlanningService :
 
     internal static bool CanShareOpportunisticRoute(
         WorldItemStackRecord first,
-        WorldItemStackRecord second)
-    {
-        bool firstHasCustody = first != null
-            && FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
-                first.components);
-        bool secondHasCustody = second != null
-            && FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
-                second.components);
-        if (!firstHasCustody && !secondHasCustody)
-        {
-            return true;
-        }
-        if (!firstHasCustody
-            || !secondHasCustody
-            || !FacilityOutputExactRouteCustodyCodec.TryRead(
-                first.components,
-                out FacilityOutputExactRouteCustodyMetadata firstCustody)
-            || !FacilityOutputExactRouteCustodyCodec.TryRead(
-                second.components,
-                out FacilityOutputExactRouteCustodyMetadata secondCustody))
-        {
-            return false;
-        }
-        return string.Equals(
-            firstCustody.RouteOperationId,
-            secondCustody.RouteOperationId,
-            StringComparison.Ordinal);
-    }
+        WorldItemStackRecord second) =>
+        HaulRouteEligibilityRules.CanShareOpportunisticRoute(first, second);
 
     private static int GetDetour(HaulCandidate seed, HaulCandidate candidate)
     {
@@ -1944,23 +1811,6 @@ public sealed class WorldItemHaulPlanningService :
                 GridPathSearchPriority.Normal,
                 GridTraversalContext.ForCharacter(
                     CharacterPersistentIdentity.Require(actor)));
-    }
-
-    private static bool TryParseWarehouseId(
-        string destinationId,
-        out string warehouseId)
-    {
-        warehouseId = string.Empty;
-        string destination = destinationId?.Trim() ?? string.Empty;
-        if (!destination.StartsWith(
-                WorldItemStackRuntime.WarehouseStorageDestinationPrefix,
-                StringComparison.Ordinal))
-        {
-            return false;
-        }
-        warehouseId = destination.Substring(
-            WorldItemStackRuntime.WarehouseStorageDestinationPrefix.Length);
-        return warehouseId.Length > 0;
     }
 
     private static bool TryResolvePickupStandCell(

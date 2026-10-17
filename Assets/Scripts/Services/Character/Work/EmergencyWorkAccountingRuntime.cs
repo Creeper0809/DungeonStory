@@ -194,6 +194,19 @@ public sealed class EmergencyWorkAccountingRuntime :
     public EmergencyReserveSnapshot CaptureSnapshot() =>
         CreateSnapshot(totals, ComputeStableHash(), healthy);
 
+    public bool TryGetWorkerOperation(string workerId, out EmergencyWorkLedgerEntry entry)
+    {
+        entry = default;
+        string normalized = workerId?.Trim() ?? string.Empty;
+        if (normalized.Length == 0
+            || !operationByWorker.TryGetValue(normalized, out string operationId))
+            return false;
+        if (!entriesByOperation.TryGetValue(operationId, out entry))
+            throw new InvalidOperationException(
+                $"Emergency work index for worker '{normalized}' references missing operation '{operationId}'.");
+        return true;
+    }
+
     public EmergencyAccountingReconciliationResult Reconcile(
         EmergencyAccountingReconciliationTrigger trigger)
     {

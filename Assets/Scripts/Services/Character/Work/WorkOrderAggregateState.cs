@@ -7,8 +7,13 @@ internal sealed class WorkOrderAggregateState
         new Dictionary<string, WorkOrderRecord>(StringComparer.Ordinal);
     public Dictionary<string, QualityTargetPipelineSaveData> QualityPipelinesById
         { get; } = new(StringComparer.Ordinal);
+    public Dictionary<string, RepairWorkOutcomeSaveData> RepairOutcomesById
+        { get; } = new(StringComparer.Ordinal);
+    public Dictionary<string, WorkAccidentObservationSaveData> PendingAccidents
+        { get; } = new(StringComparer.Ordinal);
 
     public int NextOrderSequence { get; set; } = 1;
+    public int NextRepairOutcomeSequence { get; set; } = 1;
     public int CandidateVersion { get; set; }
 
     public WorkOrderAggregateState DeepClone()
@@ -16,6 +21,7 @@ internal sealed class WorkOrderAggregateState
         WorkOrderAggregateState clone = new WorkOrderAggregateState
         {
             NextOrderSequence = NextOrderSequence,
+            NextRepairOutcomeSequence = NextRepairOutcomeSequence,
             CandidateVersion = CandidateVersion
         };
         foreach (KeyValuePair<string, WorkOrderRecord> pair in OrdersById)
@@ -29,7 +35,14 @@ internal sealed class WorkOrderAggregateState
                 pair.Key,
                 pair.Value.CloneNormalized());
         }
+        foreach (KeyValuePair<string, RepairWorkOutcomeSaveData> pair in
+                 RepairOutcomesById)
+        {
+            clone.RepairOutcomesById.Add(pair.Key, pair.Value.Clone());
+        }
 
+        foreach (var pair in PendingAccidents)
+            clone.PendingAccidents.Add(pair.Key, pair.Value.Clone());
         return clone;
     }
 }
@@ -56,6 +69,14 @@ public sealed class WorkOrderAggregateStateStore
         aggregateRootStore.GetOrCreateWritable(
             () => new WorkOrderAggregateState(),
             state => state.DeepClone());
+
+    internal void InvalidateCandidates()
+    {
+        unchecked
+        {
+            Writable.CandidateVersion++;
+        }
+    }
 
     internal void Replace(WorkOrderAggregateState state)
     {

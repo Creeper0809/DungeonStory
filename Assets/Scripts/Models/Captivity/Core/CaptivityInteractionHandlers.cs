@@ -46,6 +46,8 @@ public abstract class CaptivityInteractionHandlerBase : ICaptivityInteractionHan
     public abstract string DisplayName { get; }
     public abstract CaptiveInteractionKind Kind { get; }
     public abstract float RequiredWork { get; }
+    public virtual CaptivityBodyDamagePolicy BodyDamage =>
+        CaptivityBodyDamagePolicy.None;
     public virtual System.Collections.Generic.IReadOnlyDictionary<StockCategory, int>
         MaterialRequirements => EmptyMaterials;
 
@@ -151,6 +153,7 @@ public sealed class CaptivityCoercionHandler : CaptivityInteractionHandlerBase
     public override string DisplayName => "강압";
     public override CaptiveInteractionKind Kind => CaptiveInteractionKind.Coercion;
     public override float RequiredWork => 12f;
+    public override CaptivityBodyDamagePolicy BodyDamage => new(6f);
     public override System.Collections.Generic.IReadOnlyDictionary<StockCategory, int>
         MaterialRequirements => Materials((StockCategory.General, 1));
 
@@ -162,15 +165,15 @@ public sealed class CaptivityCoercionHandler : CaptivityInteractionHandlerBase
             willDelta: -16f,
             fearDelta: 18f,
             trustDelta: -10f,
-            grudgeDelta: 14f,
-            healthDelta: -6f);
+            grudgeDelta: 14f);
     }
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CaptivityInterrogationHandler : CaptivityInteractionHandlerBase
 {
-    public override string InteractionId => "captivity:interrogation";
+    public override string InteractionId =>
+        CaptivityInterrogationAttemptIdentity.InteractionId;
     public override string DisplayName => "심문";
     public override CaptiveInteractionKind Kind => CaptiveInteractionKind.Interrogation;
     public override float RequiredWork => 18f;
@@ -179,7 +182,8 @@ public sealed class CaptivityInterrogationHandler : CaptivityInteractionHandlerB
 
     public override CaptivityInteractionResult Execute(CaptivityInteractionContext context)
     {
-        bool unreliable = context.Captive.fear >= 75f;
+        bool unreliable = context.Captive.fear
+            >= CaptivityInterrogationAttemptIdentity.HighFearCautionThreshold;
         return new CaptivityInteractionResult(
             true,
             unreliable
@@ -221,6 +225,7 @@ public sealed class CaptivityBrandingHandler : CaptivityInteractionHandlerBase
     public override string DisplayName => "각인";
     public override CaptiveInteractionKind Kind => CaptiveInteractionKind.Branding;
     public override float RequiredWork => 20f;
+    public override CaptivityBodyDamagePolicy BodyDamage => new(8f);
     public override System.Collections.Generic.IReadOnlyDictionary<StockCategory, int>
         MaterialRequirements => Materials(
             (StockCategory.General, 1),
@@ -235,8 +240,7 @@ public sealed class CaptivityBrandingHandler : CaptivityInteractionHandlerBase
             fearDelta: 13f,
             trustDelta: -8f,
             grudgeDelta: 12f,
-            corruptionDelta: 9f,
-            healthDelta: -8f);
+            corruptionDelta: 9f);
     }
 }
 
@@ -247,6 +251,7 @@ public sealed class CaptivityBloodExtractionHandler : CaptivityInteractionHandle
     public override string DisplayName => "혈액 추출";
     public override CaptiveInteractionKind Kind => CaptiveInteractionKind.BloodExtraction;
     public override float RequiredWork => 16f;
+    public override CaptivityBodyDamagePolicy BodyDamage => new(18f);
     public override System.Collections.Generic.IReadOnlyDictionary<StockCategory, int>
         MaterialRequirements => Materials((StockCategory.Medicine, 1));
 
@@ -258,7 +263,6 @@ public sealed class CaptivityBloodExtractionHandler : CaptivityInteractionHandle
             fearDelta: 10f,
             trustDelta: -9f,
             grudgeDelta: 11f,
-            healthDelta: -18f,
             outputItemId: CaptivityItemDefinitions.ExtractedBloodItemId,
             outputAmount: 1);
     }
@@ -271,6 +275,7 @@ public sealed class CaptivityMemoryExtractionHandler : CaptivityInteractionHandl
     public override string DisplayName => "기억 추출";
     public override CaptiveInteractionKind Kind => CaptiveInteractionKind.MemoryExtraction;
     public override float RequiredWork => 28f;
+    public override CaptivityBodyDamagePolicy BodyDamage => new(10f);
     public override System.Collections.Generic.IReadOnlyDictionary<StockCategory, int>
         MaterialRequirements => Materials((StockCategory.Mana, 1));
 
@@ -284,7 +289,6 @@ public sealed class CaptivityMemoryExtractionHandler : CaptivityInteractionHandl
             trustDelta: -12f,
             grudgeDelta: 8f,
             corruptionDelta: 13f,
-            healthDelta: -10f,
             outputItemId: CaptivityItemDefinitions.MemoryResidueItemId,
             outputAmount: 1);
     }
@@ -297,6 +301,7 @@ public sealed class CaptivityForcedModificationHandler : CaptivityInteractionHan
     public override string DisplayName => "강제 개조";
     public override CaptiveInteractionKind Kind => CaptiveInteractionKind.ForcedModification;
     public override float RequiredWork => 36f;
+    public override CaptivityBodyDamagePolicy BodyDamage => new(16f);
     public override System.Collections.Generic.IReadOnlyDictionary<StockCategory, int>
         MaterialRequirements => Materials(
             (StockCategory.General, 2),
@@ -311,8 +316,7 @@ public sealed class CaptivityForcedModificationHandler : CaptivityInteractionHan
             fearDelta: 15f,
             trustDelta: -15f,
             grudgeDelta: 18f,
-            corruptionDelta: 20f,
-            healthDelta: -16f);
+            corruptionDelta: 20f);
     }
 }
 
@@ -323,6 +327,7 @@ public sealed class CaptivityCorruptionRitualHandler : CaptivityInteractionHandl
     public override string DisplayName => "타락 의식";
     public override CaptiveInteractionKind Kind => CaptiveInteractionKind.CorruptionRitual;
     public override float RequiredWork => 42f;
+    public override CaptivityBodyDamagePolicy BodyDamage => new(10f);
     public override System.Collections.Generic.IReadOnlyDictionary<StockCategory, int>
         MaterialRequirements => Materials(
             (StockCategory.Mana, 1),
@@ -337,7 +342,6 @@ public sealed class CaptivityCorruptionRitualHandler : CaptivityInteractionHandl
             fearDelta: 8f,
             trustDelta: -8f,
             grudgeDelta: 7f,
-            corruptionDelta: 28f,
-            healthDelta: -10f);
+            corruptionDelta: 28f);
     }
 }

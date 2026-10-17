@@ -94,10 +94,12 @@ public sealed class SurgeryWorkExecutionHandler :
         if (!commands.TryReserveWork(
                 context.Target,
                 context.Actor,
+                context.CommandOrigin,
                 out SurgeryOrder order,
                 out DomainFailure failure))
         {
             result.CompletedSuccessfully = false;
+            result.Failure = failure;
             context.Actor?.Brain?.SetActionPhase(
                 failure.Code.ToString(),
                 context.Target);
@@ -106,6 +108,7 @@ public sealed class SurgeryWorkExecutionHandler :
 
         bool applied = true;
         bool operationCompleted = false;
+        DomainFailure executionFailure = DomainFailure.None;
         float facilitySpeed = 1f;
         if (procedures.TryGet(
                 order.procedureId,
@@ -113,7 +116,7 @@ public sealed class SurgeryWorkExecutionHandler :
         {
             SurgicalFacilitySnapshot snapshot = facilities.Evaluate(
                 context.Target,
-                procedure.RequiredFacilityTags);
+                procedure);
             facilitySpeed = snapshot.IsAvailable
                 ? snapshot.SpeedMultiplier
                 : 1f;
@@ -135,6 +138,7 @@ public sealed class SurgeryWorkExecutionHandler :
                 operationCompleted |= completed;
                 if (failure.IsFailure)
                 {
+                    executionFailure = failure;
                     context.Actor?.Brain?.SetActionPhase(
                         failure.Code.ToString(),
                         context.Target);
@@ -160,5 +164,10 @@ public sealed class SurgeryWorkExecutionHandler :
 
         result.CompletedSuccessfully = applied && operationCompleted;
         result.CompletionEffectsAlreadyApplied = operationCompleted;
+        // Once rolled, the surgery aggregate owns the exact terminal delivery,
+        // including a pending ACK. A generic event is not a substitute for it.
+        result.CompletionIdentityAlreadyPublished =
+            order.resultRolled;
+        result.Failure = executionFailure;
     }
 }

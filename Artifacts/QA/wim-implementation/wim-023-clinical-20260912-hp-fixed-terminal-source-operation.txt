@@ -1,0 +1,53 @@
+preparation=crafter:character:staff:1:01; M06:building:359f34d7de78494ba22451488d70aec9@(13, 0)
+preProductionProfile=False; publication capacity is checked after the completed batch commits
+PASS recipe:surgery:heart-augmentation; item=surgery:prosthetic:heart/variant/orc-combat-heart; node=heart; bill=production-bill:1; part/instance/commit=surgical-part:1/item-instance:023b6811e3554490bfb2a94f060dfd55/production-output:production-bill:1:00000001:output:recipe:surgery:heart-augmentation/000/main/surgery:prosthetic:heart/variant/orc-combat-heart:surgery:prosthetic:heart/variant/orc-combat-heart:00000000; stack=stack:d1e8c452b15d4640a0156386c3b0c7d5; output=production-output:building:359f34d7de78494ba22451488d70aec9; grams=1800; consumedInputs=material:steel-ingotx2,resource:mana-crystalx1,medicine:advancedx1; terminalRetry=None
+clinicalPreparation=Orc actual owner; doctor=character:staff:1:01; table=building:1914b38df02a4fafbcaeb13148a74559; order=surgery:1; supplies=medicine:disinfectantx1,medicine:standardx1,resource:clean-waterx1; outcomeState=1; neutral field22C/air100/light100 refreshed5gameSeconds; preMaxHP=100
+observed=PatientWaiting/PatientAdmissionWaiting/Loose; wu=0; patient=(18, 0); doctor=(19, 0); wall=0.003410339; game=0
+observed=PatientWaiting/PatientCurrentMovePending/Loose; wu=0; patient=(18, 0); doctor=(19, 0); wall=2.64696; game=1.333333
+observed=PatientWaiting/PatientMovingToSurgery/Loose; wu=0; patient=(18, 0); doctor=(19, 0); wall=2.799807; game=2.666667
+observed=PatientWaiting/PatientMovingToSurgery/Carried; wu=0; patient=(22, 0); doctor=(19, 0); wall=4.212418; game=8.084134
+observed=MaterialsWaiting/MaterialsDeliveryPending/Carried; wu=0; patient=(34, 0); doctor=(23, 1); wall=7.182928; game=20.15751
+observed=MaterialsWaiting/MaterialsDeliveryPending/FacilityBuffer; wu=0; patient=(34, 0); doctor=(34, 1); wall=10.38569; game=32.53195
+observed=Anesthetizing/PatientRestraintInProgress/FacilityBuffer; wu=0; patient=(34, 0); doctor=(34, 1); wall=10.67491; game=33.03506
+observed=Incision/IncisionInProgress/FacilityBuffer; wu=5.195051; patient=(34, 0); doctor=(37, 0); wall=25.22041; game=77.66211
+observed=Procedure/ProcedureInProgress/FacilityBuffer; wu=12.42307; patient=(34, 0); doctor=(37, 0); wall=29.01741; game=86.884
+observed=Suturing/SuturingInProgress/FacilityBuffer; wu=29.29742; patient=(34, 0); doctor=(37, 0); wall=44.35104; game=106.884
+observed=Recovering/RecoveryObservation/; wu=34; patient=(34, 0); doctor=(37, 0); wall=52.51031; game=113.5507
+observed=TerminalDraining/RecoveryObservation/; wu=34; patient=(34, 0); doctor=(37, 0); wall=64.94501; game=122.884
+clinicalTerminal=TerminalDraining; status=RecoveryObservation; wu=34; carried=True; delivered=True; admissionMove=True; admitted=True; doctorWork=True; wall=92.0515; game=140.2173
+drainDiagnostic=ReleasingActors; actors=0/1; operations=0/1; input=1/500; commit=
+drainChild={"schemaVersion":1,"parentOperationId":"surgery-material-terminal:surgery:1","stepOperationId":"surgery-material-terminal:surgery:1:custody","ownerStableId":"surgery-order:surgery:1","billId":"surgery:1","facilityId":"building:1914b38df02a4fafbcaeb13148a74559","sourceDestinationId":"surgery-materials:surgery:1","ownerGridX":36,"ownerGridY":0,"sourceClaimFingerprint":"6bfc41e8dbdfe55710dc9d2864267d1ae45096366656cd6f31b5e2bebca5e4ef","sourceOwnershipFingerprint":"92fabf2cf1a8f5034e162328249cea7649295c48365164e30323bf005bdccff7","requestFingerprint":"5d7b149c7aa028b2e443ac1275d9c42847a4760311bb562a745b161fbbbf2391","phase":1,"sourceStacks":[{"stackId":"stack:3498dda171774831961b9c453c987071","itemId":"resource:clean-water","itemInstanceId":"","componentFingerprint":"17a76d32302c5a611f82d43d0ac32a09a6f7735382cd81992a7e5353a06af267","quantity":1,"massGrams":500,"state":3,"positionX":19,"positionY":0,"sourceStorageDestinationId":"","destinationPositionX":19,"destinationPositionY":0,"reservationRevision":1}],"sourceOperations":[{"operationId":"haul:character:staff:1:02:000000000003","actorId":"character:staff:1:02","hadCommittedPickup":true,"operationFingerprint":"357378e92de504b0b9b364dd65ee28ee06fa1d4a1792fe9f5f74044189ff45cc","leaseAuthorityFingerprints":["8bbd5b6cc71533e2a49381a44a8ecf8a38bd501c9249a0d8846a38cbdea163c3"],"carriedStackIds":["stack:3498dda171774831961b9c453c987071"]}],"sourceActors":[{"actorId":"character:staff:1:02","sourcePhysicalFingerprint":"3e37151419a1215e3576040dae62c9604451ab9a22c6f23ccd49cc581d14ec7c","allowedOperationIds":["haul:character:staff:1:02:000000000003"]}],"completedActorIds":[],"releasedOperationIds":[],"releasedStackIds":[],"inputQuantity":1,"inputMassGrams":500,"releasedQuantity":0,"releasedMassGrams":0,"resultFingerprint":"","commitId":"","receiptFingerprint":""}
+drainActor=owner; frozen=False; hauling=False; operations=; stage=대기; failure=; carried=
+drainActor=character:staff:1:01; frozen=False; hauling=False; operations=; stage=대기; failure=; carried=
+drainActor=character:staff:1:02; frozen=False; hauling=True; operations=haul:character:staff:1:02:000000000005; stage=경로 이동 중 14단계; failure=; carried=
+drainActor=character:world:1:000001; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000004; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000002; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000007; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000010; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000005; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000013; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000008; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000011; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000014; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000016; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000017; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000019; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000020; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000003; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000006; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000022; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000023; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000009; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000012; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000015; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000018; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000021; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+drainActor=character:world:1:000024; frozen=False; hauling=False; operations=; stage=중단; failure=; carried=
+clinicalVitals=102.45/100; before=100/100
+result=FAIL
+System.InvalidOperationException: Natural surgery did not complete successfully: TerminalDraining/RecoveryObservation
+  at PhysicalItemLogisticsPlayModeVerificationRunner+<RunWim023Clinical>d__248.MoveNext () [0x0160f] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Items\Editor\Wim023PartProductionLiveWitness.cs:417 
+  at PhysicalItemLogisticsPlayModeVerificationRunner+<ObserveWim023PartProduction>d__245.MoveNext () [0x00051] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Items\Editor\Wim023PartProductionLiveWitness.cs:63 
+scope=controlled authored Orc party, facilities, qualifications, neutral environment, supplies and fixed outcome stream; real production commands -> actual surgery UI pointer -> natural part/supply haul, patient admission and doctor work -> installed heart effect. NOT natural crafting, uncontrolled clinical-risk/balance or whole-save certification. No admission/progress/result writes.
+cleanup=paused disposable main Play; runtime fixture/output retained for inspection until operator stops. User persistence disabled before party selection; no whole-world save restore, source-asset modification or scene save.

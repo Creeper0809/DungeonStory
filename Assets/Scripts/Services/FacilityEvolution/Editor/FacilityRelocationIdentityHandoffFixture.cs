@@ -12,7 +12,7 @@ public static class FacilityRelocationIdentityHandoffFixture
     public static void Verify()
     {
         BuildingSO definition = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-            "Assets/Resources/SO/Building/P1/P1_Warehouse.asset");
+            "Assets/Resources/SO/Building/Modular/L01_대형보관선반.asset");
         Require(definition != null,
             "Relocation identity fixture definition is missing.");
 

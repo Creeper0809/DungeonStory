@@ -4,7 +4,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using DungeonStory.Environment;
+using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -20,22 +24,257 @@ using VContainer.Unity;
 /// </summary>
 public static class CharacterAiWorkTypeLiveMatrixPlayModeVerifier
 {
+    public static void RunW01FireIdentityRegressionBatch()
+    {
+        string output = RequireAuditOutput("W01 fire identity regression");
+        if (Directory.Exists(output))
+            throw new InvalidOperationException("W01 fire regression requires a new evidence directory.");
+        Directory.CreateDirectory(output);
+        var rows = new List<string>();
+        bool passed = true;
+        Run("response-operation-id", VerifyFireOperationIdentity);
+        Run("fire-completion-terminal-contract", VerifyFireCompletionContract);
+        Run("fire-domain-replay-restore", EnvironmentalFireFocusedDebugScenarios.RunAll);
+        using (var writer = new StreamWriter(new FileStream(Path.Combine(output, "w01-fire-identity-regression.txt"),
+            FileMode.CreateNew, FileAccess.Write, FileShare.Read), new UTF8Encoding(false)))
+        {
+            writer.NewLine = "\n";
+            writer.WriteLine("status=" + (passed ? "PASS" : "FAIL") + "; cases=3");
+            foreach (string row in rows) writer.WriteLine(row);
+        }
+        if (!passed) throw new InvalidOperationException("W01 fire regression failed; preserved report has details.");
+        Debug.Log("W01_FIRE_IDENTITY_REGRESSION=PASS cases=3; scope=operation ID, completion contract and controlled fire runtime, not actual AI identity");
+        void Run(string name, Action test)
+        {
+            try { test(); rows.Add("PASS " + name); }
+            catch (Exception error) { passed = false; rows.Add("FAIL " + name + " " + error); }
+        }
+    }
+
+    private static void VerifyFireCompletionContract()
+    {
+        var owner = new EnvironmentalFireSuppressionSaveRecord
+        {
+            operationId = "fire:contract:1", fireId = "environmental-fire:1", workerId = "owner",
+            targetId = "building:contract", workerDisplayName = "Owner", absoluteDay = 1, outcomeRevision = 2,
+            commandOrigin = (int)CharacterCommandOrigin.DirectPlayerOrder, approvedWork = 1f,
+            phase = (int)EnvironmentalFireSuppressionPhase.Applied,
+            mode = (int)EnvironmentalFireSuppressionMode.InitialAttack, intensityAfter = 0.1f
+        };
+        Require(!EnvironmentalFireCompletionIdentity.RequiresIdentity(owner), "Intermediate initial attack requested identity.");
+        owner.intensityAfter = 0f;
+        Require(EnvironmentalFireCompletionIdentity.RequiresIdentity(owner), "Final initial attack lost identity.");
+        var first = EnvironmentalFireCompletionIdentity.CreateRequest(owner);
+        Require(EnvironmentalFireCompletionIdentity.RequireCompletionChild(first).ToString() == first.ChildResultKey
+            && first.Origin == CharacterCommandOrigin.DirectPlayerOrder && first.OperationSequence == 0,
+            "Fire completion lost its canonical child/origin.");
+        owner.approvedWork = 2f;
+        var changed = EnvironmentalFireCompletionIdentity.CreateRequest(owner);
+        Require(first.DeliveryId == changed.DeliveryId && first.PayloadFingerprint != changed.PayloadFingerprint,
+            "Changed contribution allocated a second identity instead of conflicting.");
+        owner.workerId = "character:other";
+        Require(first.DeliveryId != EnvironmentalFireCompletionIdentity.CreateRequest(owner).DeliveryId,
+            "Different responder shared completion identity.");
+        owner.mode = (int)EnvironmentalFireSuppressionMode.Water;
+        owner.intensityAfter = 0.4f;
+        Require(EnvironmentalFireCompletionIdentity.RequiresIdentity(owner), "Applied water work lost terminal identity.");
+        owner.phase = (int)EnvironmentalFireSuppressionPhase.WaterCommitted;
+        Require(!EnvironmentalFireCompletionIdentity.RequiresIdentity(owner), "Unapplied water work requested identity.");
+        static void Require(bool value, string failure)
+        {
+            if (!value) throw new InvalidOperationException(failure);
+        }
+    }
+
+    private static void VerifyFireOperationIdentity()
+    {
+        string first = Id("environmental-fire:1", "owner", 0f, 0);
+        string[] distinct =
+        {
+            first, Id("environmental-fire:2", "owner", 0f, 0),
+            Id("environmental-fire:1", "staff:1", 0f, 0),
+            Id("environmental-fire:1", "owner", 1f, 0),
+            Id("environmental-fire:1", "owner", 0f, 1),
+            Id("environmental-fire:1", "owner", 0.5f, 0),
+            Id("environmental-fire:1", new string('a', 192), float.MaxValue, int.MaxValue)
+        };
+        if (distinct.Distinct(StringComparer.Ordinal).Count() != distinct.Length
+            || distinct.Any(value => !new GameplayOperationId(value).IsValid)
+            || first != Id("environmental-fire:1", "owner", 0f, 0))
+            throw new InvalidOperationException("Fire response operation IDs are not stable, bounded and input-sensitive.");
+        var previousCulture = System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("fr-FR");
+            if (distinct[5] != Id("environmental-fire:1", "owner", 0.5f, 0))
+                throw new InvalidOperationException("Fire operation identity depends on locale.");
+        }
+        finally { System.Globalization.CultureInfo.CurrentCulture = previousCulture; }
+        Reject(() => Id("bad=fire", "owner", 0f, 0));
+        Reject(() => Id("environmental-fire:1", "", 0f, 0));
+        Reject(() => Id("environmental-fire:1", "owner", float.NaN, 0));
+        Reject(() => Id("environmental-fire:1", "owner", float.PositiveInfinity, 0));
+        Reject(() => Id("environmental-fire:1", "owner", -1f, 0));
+        Reject(() => Id("environmental-fire:1", "owner", 0f, -1));
+        static string Id(string fire, string worker, float completed, int water) =>
+            EnvironmentalFireResponseRuntime.CreateSuppressionOperationId(fire, worker, completed, water);
+        static void Reject(Func<string> invalid)
+        {
+            try { invalid(); }
+            catch (ArgumentException) { return; }
+            throw new InvalidOperationException("Invalid fire identity input was accepted.");
+        }
+    }
+
+    public static void RunW01CropIdentityRegressionBatch()
+    {
+        string output = RequireAuditOutput("W01 crop identity regression");
+        if (Directory.Exists(output))
+            throw new InvalidOperationException("W01 crop regression requires a new evidence directory.");
+        Directory.CreateDirectory(output);
+        List<string> rows = new();
+        bool passed = true;
+        Run("crop-physical-restore-joins", () => CropPhysicalTransactionFixture.Run());
+        Run("domain-output-publication-and-restore", () => { ProductionDomainOutputPublicationDebugScenarios.VerifyAll(); return true; });
+        Run("terminal-identity-ownership", () => { WorkTerminalIdentityOwnershipDebugScenarios.RunOrThrow(); return true; });
+        Run("crop-production-entry", () => EnvironmentCropProductionEntryDebugScenarios.RunAll(log: true));
+        Run("work-identity-causal-restore", () => WorkCompletionIdentityCausalProductionEntryDebugScenarios.RunCausalOwnerFamily(log: true));
+        Run("work-identity-rollback-and-recipient", () => { V26FounderTraitAuditScenario.RunWorkCompletionDeliveryRegression(); return true; });
+        using (StreamWriter writer = new(new FileStream(Path.Combine(output, "w01-crop-identity-regression.txt"),
+            FileMode.CreateNew, FileAccess.Write, FileShare.Read), new UTF8Encoding(false)))
+        {
+            writer.NewLine = "\n";
+            writer.WriteLine("status=" + (passed ? "PASS" : "FAIL"));
+            foreach (string row in rows) writer.WriteLine(row);
+        }
+        if (!passed) throw new InvalidOperationException("W01 crop identity regressions failed; see preserved report.");
+        Debug.Log("W01_CROP_IDENTITY_REGRESSION=PASS cases=6");
+        void Run(string name, Func<bool> test)
+        {
+            try
+            {
+                if (!test()) throw new InvalidOperationException("Fixture returned false.");
+                rows.Add("PASS " + name);
+            }
+            catch (Exception error)
+            {
+                passed = false;
+                rows.Add("FAIL " + name + " " + error);
+            }
+        }
+    }
+
     public const string ReportPath =
         "Artifacts/QA/character-ai-worktype-live-matrix.txt";
-    public const string P15AutomationModesReportPath =
+    private const string PersistentCookPauseEnvironment =
+        "DUNGEONSTORY_PERSISTENT_COOK_PAUSE_VERIFY";
+    private const string W05HarvestIdentityEnvironment =
+        "DUNGEONSTORY_W05_HARVEST_IDENTITY_VERIFY";
+    private const string AuditOutputEnvironment =
+        "DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT";
+    private const string DefaultP15AutomationModesReportPath =
         "Artifacts/QA/v27-p15-production-execution-modes-playmode.txt";
     private const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
     private const string PendingPath =
         "Temp/character-ai-worktype-live-matrix.flag";
     private const string P15AutomationModesPendingPath =
         "Temp/v27-p15-production-execution-modes.flag";
+    private const string W05HarvestIdentityPendingPath =
+        "Temp/w05-harvest-identity.flag";
+
+    public static bool IsPersistentCookPauseVerification => string.Equals(
+        Environment.GetEnvironmentVariable(PersistentCookPauseEnvironment),
+        "1",
+        StringComparison.Ordinal);
+
+    public static bool IsW05HarvestIdentityVerification => string.Equals(
+        Environment.GetEnvironmentVariable(W05HarvestIdentityEnvironment),
+        "1",
+        StringComparison.Ordinal);
+
+    public static string W05HarvestIdentityReportPath => Path.Combine(
+        RequireAuditOutput("W05 harvest identity verification"),
+        "w05-harvest-identity-report.txt");
+
+    public static bool IsW01WorkTerminalJoinVerification => string.Equals(
+        Environment.GetEnvironmentVariable("DUNGEONSTORY_W01_WORK_TERMINAL_JOIN_VERIFY"),
+        "1", StringComparison.Ordinal);
+
+    public static bool IsW03MedicalLaborVerification => string.Equals(
+        Environment.GetEnvironmentVariable("DUNGEONSTORY_W03_MEDICAL_LABOR_VERIFY"),
+        "1", StringComparison.Ordinal);
+
+    public static bool IsW04RepairLiveVerification => string.Equals(
+        Environment.GetEnvironmentVariable("DUNGEONSTORY_W04_REPAIR_LIVE_VERIFY"),
+        "1", StringComparison.Ordinal);
+
+    public static bool IsW06ResourceCausalityVerification => string.Equals(
+        Environment.GetEnvironmentVariable("DUNGEONSTORY_W06_RESOURCE_CAUSALITY_VERIFY"),
+        "1", StringComparison.Ordinal);
+
+    public static string W03MedicalLaborReportPath => Path.Combine(
+        RequireAuditOutput("W03 medical labor verification"), "w03-medical-labor-report.txt");
+
+    public static string W04RepairLiveReportPath => Path.Combine(
+        RequireAuditOutput("W04 repair live verification"),
+        "w04-repair-live-report.txt");
+
+    public static string W06ResourceCausalityReportPath => Path.Combine(
+        RequireAuditOutput("W06 resource causality verification"),
+        "w06-resource-causality-report.txt");
+
+    public static string W01WorkTerminalJoinReportPath => Path.Combine(
+        RequireAuditOutput("W01 work terminal join verification"),
+        IsW01FireWaterIdentityVerification ? "w01-fire-water-identity-report.txt"
+            : IsW01FireIdentityVerification ? "w01-fire-identity-report.txt"
+            : "w01-work-terminal-join-report.txt");
+
+    public static bool IsW01FireIdentityVerification => string.Equals(
+        Environment.GetEnvironmentVariable("DUNGEONSTORY_W01_FIRE_IDENTITY_VERIFY"),
+        "1", StringComparison.Ordinal);
+
+    public static bool IsW01FireWaterIdentityVerification => string.Equals(
+        Environment.GetEnvironmentVariable("DUNGEONSTORY_W01_FIRE_WATER_IDENTITY_VERIFY"),
+        "1", StringComparison.Ordinal);
+
+    public static string P15AutomationModesReportPath
+    {
+        get
+        {
+            if (!IsPersistentCookPauseVerification)
+                return DefaultP15AutomationModesReportPath;
+
+            string output = Environment.GetEnvironmentVariable(
+                AuditOutputEnvironment);
+            if (string.IsNullOrWhiteSpace(output))
+            {
+                throw new InvalidOperationException(
+                    "Persistent Cook pause verification requires an isolated audit output directory.");
+            }
+            return Path.Combine(
+                Path.GetFullPath(output),
+                "persistent-cook-pause-report.txt");
+        }
+    }
+
+    private static string RequireAuditOutput(string verification)
+    {
+        string output = Environment.GetEnvironmentVariable(
+            AuditOutputEnvironment);
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            throw new InvalidOperationException(
+                verification + " requires an isolated audit output directory.");
+        }
+        return Path.GetFullPath(output);
+    }
 
     [MenuItem("DungeonStory/Debug/QA/Run Character AI WorkType Live Matrix")]
     public static void RequestRun()
     {
         if (EditorApplication.isPlaying)
         {
-            StartRunner(p15AutomationModesOnly: false);
+            StartRunner(p15AutomationModesOnly: false, w05HarvestIdentityOnly: false);
             return;
         }
 
@@ -57,7 +296,7 @@ public static class CharacterAiWorkTypeLiveMatrixPlayModeVerifier
     {
         if (EditorApplication.isPlaying)
         {
-            StartRunner(p15AutomationModesOnly: true);
+            StartRunner(p15AutomationModesOnly: true, w05HarvestIdentityOnly: false);
             return;
         }
 
@@ -74,13 +313,49 @@ public static class CharacterAiWorkTypeLiveMatrixPlayModeVerifier
         EditorApplication.EnterPlaymode();
     }
 
+    [MenuItem("DungeonStory/Debug/QA/Run W05 Harvest Identity Verification")]
+    public static void RequestW05HarvestIdentityRun()
+    {
+        if (!IsW05HarvestIdentityVerification)
+        {
+            throw new InvalidOperationException(
+                "W05 harvest identity verification requires its isolated environment flag.");
+        }
+        string reportPath = W05HarvestIdentityReportPath;
+        if (File.Exists(reportPath))
+        {
+            throw new IOException(
+                "W05 harvest identity report already exists: " + reportPath);
+        }
+        if (EditorApplication.isPlaying)
+        {
+            StartRunner(p15AutomationModesOnly: false, w05HarvestIdentityOnly: true);
+            return;
+        }
+        if (!File.Exists(GameplayScenePath))
+        {
+            throw new FileNotFoundException(
+                "W05 harvest identity verification requires the official gameplay scene.",
+                GameplayScenePath);
+        }
+        EditorSceneManager.OpenScene(GameplayScenePath, OpenSceneMode.Single);
+        Directory.CreateDirectory("Temp");
+        File.WriteAllText(
+            W05HarvestIdentityPendingPath,
+            DateTime.UtcNow.ToString("O"));
+        EditorApplication.EnterPlaymode();
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
         bool p15AutomationModesOnly = File.Exists(P15AutomationModesPendingPath);
-        if (!p15AutomationModesOnly && !File.Exists(PendingPath))
+        bool w05HarvestIdentityOnly = File.Exists(W05HarvestIdentityPendingPath);
+        if (!p15AutomationModesOnly
+            && !w05HarvestIdentityOnly
+            && !File.Exists(PendingPath))
             return;
-        StartRunner(p15AutomationModesOnly);
+        StartRunner(p15AutomationModesOnly, w05HarvestIdentityOnly);
     }
 
     internal static void MarkRunCompleted()
@@ -89,9 +364,13 @@ public static class CharacterAiWorkTypeLiveMatrixPlayModeVerifier
             File.Delete(PendingPath);
         if (File.Exists(P15AutomationModesPendingPath))
             File.Delete(P15AutomationModesPendingPath);
+        if (File.Exists(W05HarvestIdentityPendingPath))
+            File.Delete(W05HarvestIdentityPendingPath);
     }
 
-    private static void StartRunner(bool p15AutomationModesOnly)
+    private static void StartRunner(
+        bool p15AutomationModesOnly,
+        bool w05HarvestIdentityOnly)
     {
         if (UnityEngine.Object.FindFirstObjectByType<
                 CharacterAiWorkTypeLiveMatrixPlayModeRunner>() != null)
@@ -103,12 +382,18 @@ public static class CharacterAiWorkTypeLiveMatrixPlayModeVerifier
             new GameObject("Character AI WorkType Live Matrix Runner")
                 .AddComponent<CharacterAiWorkTypeLiveMatrixPlayModeRunner>();
         runner.P15AutomationModesOnly = p15AutomationModesOnly;
+        runner.W05HarvestIdentityOnly = w05HarvestIdentityOnly;
     }
 }
 
 public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
 {
     public bool P15AutomationModesOnly { get; set; }
+    public bool W05HarvestIdentityOnly { get; set; }
+    public bool W01WorkTerminalJoinOnly { get; set; }
+    public bool W03MedicalLaborOnly { get; set; }
+    public bool W04RepairLiveOnly { get; set; }
+    public bool W06ResourceCausalityOnly { get; set; }
 
     private const float MinimumProgressObservationSeconds = 8f;
     private const float MaximumProgressObservationSeconds = 120f;
@@ -171,9 +456,9 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
     private readonly List<FixtureAreaSnapshot> roomAreaSnapshots =
         new List<FixtureAreaSnapshot>(24);
     private DungeonRuntimeLifetimeScope runtimeScope;
-    private IDungeonSaveSectionRegistry saveRegistry;
+    private IDungeonGameSaveService gameSaveService;
     private ICharacterAiWorldRegistry worldRegistry;
-    private List<DungeonSaveSectionEnvelope> baseline;
+    private DungeonGameSaveData baseline;
     private CharacterActor actor;
     private AbilityWork work;
     private AIBrain brain;
@@ -186,6 +471,7 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
     private IAutomationInfrastructurePersistence automationPersistence;
     private IPowerInfrastructureQuery power;
     private ISettlementLaborAccountingService settlementLabor;
+    private IGameSpeedController gameSpeed;
     private IResourceEconomyContentCatalog economyContent;
     private IWorldItemStackRuntime physicalItems;
     private WorldItemRepository itemRepository;
@@ -207,6 +493,17 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
     private float previousTimeScale;
     private bool consoleGatePassed;
     private bool abortRemainingRows;
+    private readonly List<WorkCompletedIdentityEvent> w05IdentityEvents = new();
+    private IDisposable w05IdentitySubscription;
+    private WorkCompletionIdentityDeliveryLedger w05IdentityDeliveries;
+    private W01RepairHandlerObservation w01RepairObservation;
+    private W05HarvestDeliveryGate w05HarvestDeliveryGate;
+    private W01RepairDeliveryGate w01RepairDeliveryGate;
+    private W04RepairDeliveryObservation w04RepairDeliveries;
+    private IReadOnlyList<WorkCompletionIdentityDeliveryCursorSaveData>
+        w05DeliveryBaseline = Array.Empty<
+            WorkCompletionIdentityDeliveryCursorSaveData>();
+    private string w05HarvestPlotId = string.Empty;
 
     private IEnumerator Start()
     {
@@ -224,10 +521,25 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
                 "FAIL",
                 "-",
                 string.Join(" | ", consoleIssues)));
-        WriteReport();
+        bool reportPassed = WriteReport();
         CharacterAiWorkTypeLiveMatrixPlayModeVerifier.MarkRunCompleted();
         Time.timeScale = previousTimeScale;
         Destroy(gameObject);
+        if (CharacterAiWorkTypeLiveMatrixPlayModeVerifier
+                .IsPersistentCookPauseVerification
+            || CharacterAiWorkTypeLiveMatrixPlayModeVerifier
+                .IsW05HarvestIdentityVerification
+            || CharacterAiWorkTypeLiveMatrixPlayModeVerifier
+                .IsW01WorkTerminalJoinVerification
+            || CharacterAiWorkTypeLiveMatrixPlayModeVerifier.IsW03MedicalLaborVerification
+            || CharacterAiWorkTypeLiveMatrixPlayModeVerifier.IsW04RepairLiveVerification
+            || CharacterAiWorkTypeLiveMatrixPlayModeVerifier.IsW06ResourceCausalityVerification)
+        {
+            DungeonFullWorldRoundTripPlayModeFacade.CleanupTransientArtifacts();
+            EditorApplication.delayCall += () =>
+                EditorApplication.Exit(reportPassed ? 0 : 1);
+            yield break;
+        }
         EditorApplication.delayCall += () =>
         {
             if (EditorApplication.isPlaying)
@@ -235,9 +547,28 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
         };
     }
 
+    public void AddInitialConsoleIssues(
+        IEnumerable<string> warnings,
+        IEnumerable<string> errors)
+    {
+        if (warnings != null)
+        {
+            consoleIssues.AddRange(warnings.Select(value =>
+                "EarlyWarning:" + (value ?? string.Empty)));
+        }
+        if (errors != null)
+        {
+            consoleIssues.AddRange(errors.Select(value =>
+                "EarlyError:" + (value ?? string.Empty)));
+        }
+    }
+
     private void OnDisable()
     {
         Application.logMessageReceived -= CaptureConsoleIssue;
+        w01RepairObservation?.Dispose();
+        w05IdentitySubscription?.Dispose();
+        w05IdentitySubscription = null;
     }
 
     private void CaptureConsoleIssue(
@@ -349,7 +680,7 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             yield break;
         }
 
-        saveRegistry = scope.Container.Resolve<IDungeonSaveSectionRegistry>();
+        gameSaveService = scope.Container.Resolve<IDungeonGameSaveService>();
         grid = FindFirstObjectByType<GridSystemManager>()?.grid;
         actor = SelectStableWorkSubject(actors);
         if (grid == null || actor == null)
@@ -359,10 +690,30 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
                 "grid=" + (grid != null) + "; actor=" + (actor != null));
             yield break;
         }
-        baseline = saveRegistry.CaptureAll();
-        if (!EnsureGrandProjectResearchPrerequisite(
+        baseline = gameSaveService.Capture();
+        string researchFixtureDetail = string.Empty;
+        IReadOnlyList<string> fixtureResearchIds = P15AutomationModesOnly
+            ? new[] { "research:cuisine:livestock" }
+            : W06ResourceCausalityOnly
+                ? new[]
+                {
+                    "research:agriculture:gathering",
+                    "research:agriculture:field",
+                    "research:forestry:logging"
+                }
+            : W01WorkTerminalJoinOnly || W03MedicalLaborOnly || W04RepairLiveOnly
+                ? Array.Empty<string>()
+                : W05HarvestIdentityOnly
+                ? new[] { "research:agriculture:field" }
+                : RequiredFixtureResearchIds;
+        if (!EnsureFixtureResearchPrerequisites(
                 scope.Container,
-                out string researchFixtureDetail))
+                fixtureResearchIds,
+                includeGrandProject: !P15AutomationModesOnly
+                    && !W05HarvestIdentityOnly && !W01WorkTerminalJoinOnly
+                    && !W03MedicalLaborOnly && !W04RepairLiveOnly
+                    && !W06ResourceCausalityOnly,
+                out researchFixtureDetail))
         {
             AddGlobalFailure(
                 "grand-project-research-fixture",
@@ -370,7 +721,7 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             yield break;
         }
         results.Add(WorkTypeLiveRow.Info(
-            "grand-project-research-fixture",
+            "fixture-research",
             researchFixtureDetail));
         for (int frame = 0; frame < 4; frame++)
             yield return null;
@@ -385,6 +736,7 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             IAutomationInfrastructurePersistence>();
         power = scope.Container.Resolve<IPowerInfrastructureQuery>();
         settlementLabor = scope.Container.Resolve<ISettlementLaborAccountingService>();
+        gameSpeed = scope.Container.Resolve<IGameSpeedController>();
         economyContent = scope.Container.Resolve<IResourceEconomyContentCatalog>();
         physicalItems = scope.Container.Resolve<IWorldItemStackRuntime>();
         itemRepository = scope.Container.Resolve<WorldItemRepository>();
@@ -421,7 +773,9 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
                 + "; role=" + actor.Role
                 + "; lifecycle=" + actor.CurrentLifecycleState));
 
-        if (worldResources is WorldResourceRuntime worldResourceRuntime)
+        if (!W05HarvestIdentityOnly && !W01WorkTerminalJoinOnly
+            && !W03MedicalLaborOnly && !W04RepairLiveOnly
+            && worldResources is WorldResourceRuntime worldResourceRuntime)
         {
             float resourceDeadline = Time.realtimeSinceStartup + 8f;
             bool published = false;
@@ -473,6 +827,53 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             yield break;
         }
 
+        if (W03MedicalLaborOnly)
+        {
+            IEnumerator medicalLabor = RunW03MedicalLaborFocused();
+            while (medicalLabor.MoveNext()) yield return medicalLabor.Current;
+            yield break;
+        }
+
+        if (W04RepairLiveOnly)
+        {
+            IEnumerator repair = RunW04RepairLiveFocused();
+            while (repair.MoveNext())
+                yield return repair.Current;
+            yield break;
+        }
+
+        if (W06ResourceCausalityOnly)
+        {
+            IEnumerator causality = RunW06ResourceCausalityFocused();
+            while (causality.MoveNext())
+                yield return causality.Current;
+            yield break;
+        }
+
+        if (W01WorkTerminalJoinOnly)
+        {
+            IEnumerator terminalJoin = RunW01WorkTerminalJoinFocused();
+            while (terminalJoin.MoveNext())
+                yield return terminalJoin.Current;
+            yield break;
+        }
+
+        if (W05HarvestIdentityOnly)
+        {
+            IGameEventBus gameEvents = scope.Container.Resolve<IGameEventBus>();
+            w05IdentitySubscription = gameEvents.Subscribe<
+                WorkCompletedIdentityEvent>(w05IdentityEvents.Add);
+            w05IdentityDeliveries = scope.Container.Resolve<
+                WorkCompletionIdentityDeliveryLedger>();
+            w05DeliveryBaseline = w05IdentityDeliveries.Capture();
+            int identityBaseline = w05IdentityEvents.Count;
+            IEnumerator harvest = RunW05HarvestIdentityFocused();
+            while (harvest.MoveNext())
+                yield return harvest.Current;
+            VerifyW05HarvestTerminalIdentity(identityBaseline);
+            yield break;
+        }
+
         foreach (WorkTypeId workTypeId in Rows)
         {
             if (abortRemainingRows)
@@ -508,6 +909,10 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
         IEnumerator utilityFailure = RunP15UtilityFailureAtomicArm();
         while (utilityFailure.MoveNext())
             yield return utilityFailure.Current;
+
+        IEnumerator persistentPause = RunP15PersistentCookPauseArm();
+        while (persistentPause.MoveNext())
+            yield return persistentPause.Current;
     }
 
     private IEnumerator RunP15NaturalExecutionModeArm(
@@ -971,9 +1376,9 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
                 BuiltInWorkTypeIds.Cook);
         ProductionBillSnapshot billBefore = FindFocusedBill(focused);
         string physicalBefore = CaptureP15PhysicalStackFingerprint();
-        int sludgeBefore = CaptureP15ItemQuantity(
+        int sludgeBefore = CapturePhysicalItemQuantity(
             IndustrialItemDefinitions.SludgeId);
-        int waterBefore = CaptureP15ItemQuantity("resource:clean-water");
+        int waterBefore = CapturePhysicalItemQuantity("resource:clean-water");
         bool delegatedWork = false;
         IWorkExecutionHandlerRegistry handlers =
             runtimeScope.Container.Resolve<IWorkExecutionHandlerRegistry>();
@@ -1007,9 +1412,9 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
 
         ProductionBillSnapshot billAfter = FindFocusedBill(focused);
         string physicalAfter = CaptureP15PhysicalStackFingerprint();
-        int sludgeAfter = CaptureP15ItemQuantity(
+        int sludgeAfter = CapturePhysicalItemQuantity(
             IndustrialItemDefinitions.SludgeId);
-        int waterAfter = CaptureP15ItemQuantity("resource:clean-water");
+        int waterAfter = CapturePhysicalItemQuantity("resource:clean-water");
         bool utilityRejected = !availability.Available
             && availability.Failure.Code
                 == FailureCode.ProductionUtilitiesUnavailable
@@ -1066,6 +1471,3398 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             detail));
     }
 
+    private IEnumerator RunP15PersistentCookPauseArm()
+    {
+        const string RowId = "p15:persistent-cook-pause";
+        P15FocusedFixture focused = null;
+        string setupFailure = string.Empty;
+        IEnumerator setup = PrepareP15FocusedFixture(
+            value => focused = value,
+            value => setupFailure = value);
+        while (setup.MoveNext())
+            yield return setup.Current;
+        if (focused == null)
+        {
+            results.Add(new WorkTypeLiveRow(
+                RowId,
+                "FAIL",
+                "P15",
+                "fixture=" + setupFailure));
+            yield break;
+        }
+
+        InfrastructureCommandResult manual = automationCommands.SetMode(
+            focused.Target,
+            AutomationMode.Manual);
+        ProductionBillSnapshot billBefore = FindFocusedBill(focused);
+        PrepareActor(BuiltInWorkTypeIds.Cook);
+        WorkPhaseResult phase = null;
+        IEnumerator phaseRun = RunLivePhase(
+            BuiltInWorkTypeIds.Cook,
+            focused.Target,
+            WorkProbeFault.PauseAfterApprovedProgress,
+            fixture: null,
+            complete: value => phase = value,
+            persistentPauseFixture: focused);
+        while (phaseRun.MoveNext())
+            yield return phaseRun.Current;
+        ProductionBillSnapshot billAfter = FindFocusedBill(focused);
+
+        float completedDelta = billBefore != null && billAfter != null
+            ? billAfter.CompletedWork - billBefore.CompletedWork
+            : 0f;
+        bool passed = manual.Succeeded
+            && phase?.Passed == true
+            && completedDelta > 0f;
+        string detail = "manual=" + manual.Succeeded
+            + "; billProgress=" + (completedDelta > 0f)
+            + "; phase=" + (phase?.Format() ?? "missing");
+        if (!CloseP15FocusedFixture(focused, out string cleanupFailure))
+        {
+            passed = false;
+            detail += "; cleanup=" + cleanupFailure;
+        }
+        results.Add(new WorkTypeLiveRow(
+            RowId,
+            passed ? "PASS" : "FAIL",
+            "P15",
+            detail));
+    }
+
+    private void VerifyW05HarvestTerminalIdentity(int identityBaseline)
+    {
+        CharacterId worker = CharacterPersistentIdentity.Require(actor);
+        WorkCompletedIdentityEvent[] observed = w05IdentityEvents
+            .Skip(identityBaseline)
+            .Where(value => value.Character.Equals(worker)
+                && string.Equals(
+                    value.WorkId,
+                    BuiltInWorkTypeIds.Harvest.Value,
+                    StringComparison.Ordinal))
+            .ToArray();
+        WorkCompletedIdentityEvent[] eventBusDomain = observed
+            .Where(value => !string.IsNullOrWhiteSpace(value.ProductId)
+                && !value.ProductId.StartsWith("outcome:", StringComparison.Ordinal)
+                && !value.ProductId.StartsWith("checkpoint:", StringComparison.Ordinal))
+            .ToArray();
+        int eventBusGenericCount = observed.Count(value =>
+            string.IsNullOrWhiteSpace(value.ProductId));
+        string domainStreamId = CropHarvestCompletionObservation.StreamPrefix
+            + w05HarvestPlotId;
+        WorkCompletionIdentityDeliveryCursorSaveData domainBefore =
+            FindW05DeliveryCursor(w05DeliveryBaseline, domainStreamId);
+        WorkCompletionIdentityDeliveryCursorSaveData directBefore =
+            FindW05DeliveryCursor(
+                w05DeliveryBaseline,
+                WorkCompletionIdentityDeliveryLedger.DirectEventStreamId);
+        IReadOnlyList<WorkCompletionIdentityDeliveryCursorSaveData> after =
+            w05IdentityDeliveries?.Capture()
+            ?? Array.Empty<WorkCompletionIdentityDeliveryCursorSaveData>();
+        WorkCompletionIdentityDeliveryCursorSaveData domainAfter =
+            FindW05DeliveryCursor(after, domainStreamId);
+        WorkCompletionIdentityDeliveryCursorSaveData directAfter =
+            FindW05DeliveryCursor(
+                after,
+                WorkCompletionIdentityDeliveryLedger.DirectEventStreamId);
+        bool domainAppliedExactlyOnce = domainBefore == null
+            && domainAfter != null
+            && domainAfter.operationSequence == 0
+            && domainAfter.disposition ==
+                WorkCompletionIdentityDeliveryDisposition.EffectsAppliedWithOutcome
+            && domainAfter.deliveryId.StartsWith(
+                CropHarvestCompletionObservation.DeliveryPrefix,
+                StringComparison.Ordinal)
+            && domainAfter.payloadFingerprint?.Length == 64;
+        bool directStreamUnchanged = W05DeliveryCursorEquals(
+            directBefore,
+            directAfter);
+        bool passed = domainAppliedExactlyOnce
+            && directStreamUnchanged
+            && eventBusDomain.Length == 0
+            && eventBusGenericCount == 0;
+        results.Add(new WorkTypeLiveRow(
+            "w05:harvest-terminal-identity",
+            passed ? "PASS" : "FAIL",
+            actor?.Identity?.PersistentId ?? "-",
+            "domainDelivery=" + domainAppliedExactlyOnce
+                + "; domainStream=" + domainStreamId
+                + "; domainSequence="
+                + (domainAfter?.operationSequence.ToString() ?? "missing")
+                + "; domainDisposition="
+                + (domainAfter?.disposition.ToString() ?? "missing")
+                + "; directStreamUnchanged=" + directStreamUnchanged
+                + "; eventBusDomain=" + eventBusDomain.Length
+                + "; eventBusGeneric=" + eventBusGenericCount
+                + "; allHarvestEvents=" + observed.Length));
+        VerifyW01HarvestTerminalChildJoin(domainStreamId, worker);
+    }
+
+    private void VerifyW01HarvestTerminalChildJoin(
+        string producerStreamId,
+        CharacterId worker)
+    {
+        IGameplayOutcomeQuery query = runtimeScope.Container.Resolve<IGameplayOutcomeQuery>();
+        List<GameplayOutcomeSnapshot> exact = new();
+        OutcomeCursor cursor = OutcomeCursor.FirstPage(200);
+        while (true)
+        {
+            GameplayOutcomeQueryPage page = query.GetGlobal(cursor, OutcomeFilter.All);
+            if (page.Items.Count == 0)
+                break;
+            exact.AddRange(page.Items.Where(value => value.Exact != null)
+                .Select(value => value.Exact));
+            cursor = page.NextCursor;
+        }
+
+        GameplayOutcomeSnapshot[] children = exact.Where(value =>
+            value.outcomeTypeId == EnvironmentOutcomeIds.CropPlanTerminal.Value
+            && value.participants.Any(participant =>
+                participant.entityId == w05HarvestPlotId)).ToArray();
+        GameplayOutcomeSnapshot[] identities = exact.Where(value =>
+            value.outcomeTypeId == WorkCompletionIdentityOutcomeIds.Applied.Value
+            && Fact(value, WorkCompletionIdentityOutcomeIds.ProducerStreamFact)
+                == producerStreamId).ToArray();
+        bool singlePair = children.Length == 1 && identities.Length == 1;
+        GameplayOutcomeSnapshot child = singlePair ? children[0] : null;
+        GameplayOutcomeSnapshot identity = singlePair ? identities[0] : null;
+        bool exactChild = singlePair
+            && child.status == GameplayOutcomeStatus.Succeeded
+            && child.immutablePayloadHash?.Length == 64
+            && Fact(child, EnvironmentOutcomeIds.HarvesterFact) == worker.Value;
+        bool childFirst = exactChild && child.sequence < identity.sequence;
+        string childKey = child == null ? "missing" : new GameplayResultKey(
+            child.producerId, new GameplayOperationId(child.operationId),
+            child.commitRevision, child.localResultIndex).ToString();
+        results.Add(new WorkTypeLiveRow(
+            "w01:harvest-child-before-identity",
+            childFirst ? "PASS" : "FAIL",
+            w05HarvestPlotId,
+            "children=" + children.Length + "; identities=" + identities.Length
+                + "; childExact=" + exactChild
+                + "; childSequence=" + (child?.sequence.ToString() ?? "missing")
+                + "; identitySequence=" + (identity?.sequence.ToString() ?? "missing")
+                + "; child=" + childKey));
+
+        bool joined = exactChild
+            && Fact(identity, WorkCompletionIdentityOutcomeIds.ChildResultKeyFact) == childKey
+            && Fact(identity, WorkCompletionIdentityOutcomeIds.OperationIdFact) == child.operationId
+            && Fact(identity, WorkCompletionIdentityOutcomeIds.TerminalOwnerFact) == child.producerId
+            && identity.absoluteDay == child.absoluteDay
+            && identity.participants.Any(participant => participant.entityId == worker.Value)
+            && identity.subjects.Any(subject =>
+                subject.entityKindId == WorkCompletionIdentityOutcomeIds.BuildingKind.Value
+                && subject.entityId == w05HarvestPlotId);
+        results.Add(new WorkTypeLiveRow(
+            "w01:harvest-terminal-child-join",
+            joined ? "PASS" : "FAIL",
+            worker.Value,
+            "joined=" + joined + "; child=" + childKey
+                + "; identityChild=" + Fact(identity, WorkCompletionIdentityOutcomeIds.ChildResultKeyFact)
+                + "; identityOperation=" + Fact(identity, WorkCompletionIdentityOutcomeIds.OperationIdFact)
+                + "; identityOwner=" + Fact(identity, WorkCompletionIdentityOutcomeIds.TerminalOwnerFact)
+                + "; plot=" + w05HarvestPlotId));
+
+        static string Fact(GameplayOutcomeSnapshot outcome, GameplayOutcomeFactId fact) =>
+            outcome?.facts.FirstOrDefault(value => value.factId == fact.Value)?.value ?? "missing";
+    }
+
+    private static WorkCompletionIdentityDeliveryCursorSaveData
+        FindW05DeliveryCursor(
+            IEnumerable<WorkCompletionIdentityDeliveryCursorSaveData> cursors,
+            string streamId) => (cursors ?? Array.Empty<
+            WorkCompletionIdentityDeliveryCursorSaveData>())
+            .SingleOrDefault(value => value != null
+                && string.Equals(
+                    value.producerStreamId,
+                    streamId,
+                    StringComparison.Ordinal));
+
+    private static bool W05DeliveryCursorEquals(
+        WorkCompletionIdentityDeliveryCursorSaveData left,
+        WorkCompletionIdentityDeliveryCursorSaveData right)
+    {
+        if (left == null || right == null)
+            return left == null && right == null;
+        return string.Equals(
+                left.producerStreamId,
+                right.producerStreamId,
+                StringComparison.Ordinal)
+            && left.operationSequence == right.operationSequence
+            && string.Equals(
+                left.deliveryId,
+                right.deliveryId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                left.payloadFingerprint,
+                right.payloadFingerprint,
+                StringComparison.Ordinal)
+            && left.disposition == right.disposition;
+    }
+
+    private IEnumerator RunW03MedicalLaborFocused()
+    {
+        if (!Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification)
+            throw new InvalidOperationException("W03 requires the owned isolated PlayMode entry.");
+        Time.timeScale = 4f;
+        PrepareActor(BuiltInWorkTypeIds.Rescue);
+        var medical = runtimeScope.Container.Resolve<ICharacterMedicalQuery>();
+        var commands = runtimeScope.Container.Resolve<ICharacterMedicalCommand>();
+        var medicalPersistence = runtimeScope.Container.Resolve<ICharacterMedicalPersistence>();
+        var laborPersistence = runtimeScope.Container.Resolve<ISettlementLaborPersistence>();
+        var bodies = runtimeScope.Container.Resolve<CharacterBodyHealthRuntime>();
+        var events = runtimeScope.Container.Resolve<IGameEventBus>();
+        string workerId = actor.Identity.PersistentId;
+        CharacterActor patient = LiveActors(worldRegistry).First(value => value != actor);
+        string patientId = patient.Identity.PersistentId;
+        string carrierId = LiveActors(worldRegistry).First(value => value != actor && value != patient)
+            .Identity.PersistentId;
+        w05IdentitySubscription = events.Subscribe<WorkCompletedIdentityEvent>(w05IdentityEvents.Add);
+        string output = Path.GetDirectoryName(CharacterAiWorkTypeLiveMatrixPlayModeVerifier.W03MedicalLaborReportPath);
+        string orderId = string.Empty;
+        bool sawAbility = false, sawCarriedPatient = false, sawTreatment = false;
+        bool capturedSkillEvidenceFailure = false;
+        int deliveries = 0;
+        string medicineId = string.Empty;
+        float firstPartial = 0f, secondPartial = 0f;
+        long initialLabor = TotalLabor(), repairLabor = 0L;
+
+        BuildingSO bedDefinition = AssetDatabase.LoadAssetAtPath<BuildingSO>(
+            "Assets/Resources/SO/Building/Medical/M01_응급처치대.asset");
+        BuildableObject bed = PlaceAuthoredBuilding(bedDefinition, out string bedFailure);
+        Require(bed != null && bed.BuildingData.GetAbility<BuildingMedicalAbility>() != null,
+            "authored injury treatment bed: " + bedFailure);
+        string bedId = bed.RequirePersistentInstanceId().Value;
+        runtimeScope.Container.Resolve<IFacilityCandidateCache>().MarkDynamicStateDirty();
+        Vector2Int[] cells = grid.GetCells()
+            .Where(value => value != null && value.AreaType == GridCellAreaType.DungeonInterior
+                && grid.IsWalkable(value.Position) && !bed.buildPoses.Contains(value.Position))
+            .OrderBy(value => Vector2Int.Distance(value.Position, bed.centerPos))
+            .ThenBy(value => value.Position.y).ThenBy(value => value.Position.x)
+            .Select(value => value.Position).Take(2).ToArray();
+        Require(cells.Length == 2, "two reachable fixture actor cells");
+        Position(patient, cells[0]);
+        Position(actor, cells[1]);
+        SetNeutralNeeds(patient);
+        AnatomyHealthSnapshot healthy = bodies.GetAnatomySnapshot(patient);
+        Require(healthy.ProfileId == "anatomy:slime",
+            "authored starter patient must have the expected slime anatomy");
+        AnatomyNodeHealthState membrane = healthy.Nodes.Single(value => value.nodeId == "membrane");
+        // The authored starter is a Slime: all non-head compatibility parts
+        // alias its membrane. Use the typed damage command so later aliases
+        // cannot overwrite bleeding, and let the body authority create Downed.
+        Require(bodies.TryDamageNode(patient, membrane.nodeId,
+                membrane.currentHealth - membrane.maxHealth * 0.18f, 0.01f,
+                "qa:w03:controlled-anatomy-injury"), "typed membrane injury rejected");
+        yield return null;
+        yield return null;
+        CharacterMedicalOrder order = medical.ActiveOrders.Single(value =>
+            value.IsActive && value.patientId == patientId);
+        orderId = order.orderId;
+        Require(patient.CurrentLifecycleState == CharacterLifecycleState.Downed
+            && bodies.GetTotalBleeding(patient) > 0.001f && !order.stabilized
+            && order.completedStabilizationWork == 0f
+            && order.state == CharacterMedicalOrderState.AwaitingStabilization,
+            "controlled anatomy injury must require real stabilization: " + Describe());
+        var ranked = CharacterMedicalSupplyPolicy.RankMedicines(
+            economyContent.Items.Where(value => value != null
+                && value.Kind == ResourceItemKind.Medicine && value.SupportsInjuryTreatment)
+                .Select(value => new CharacterMedicalMedicineCandidate(value.ItemId, value.UnitPrice,
+                    value.TreatmentPotency, value.InfectionReduction, value.PainReduction)).ToArray(),
+            order.requiredTreatmentWork);
+        Require(ranked.Count > 0, "authored injury medicine missing");
+        medicineId = ranked[0].ItemId;
+        var warehouse = worldRegistry.Warehouses.FirstOrDefault(value => value != null
+            && value.HasWarehouseInventory && value.Inventory.Accepts(StockCategory.Medicine)
+            && value.Inventory.HasMassCapacityAuthority);
+        Require(warehouse != null, "physical medicine warehouse missing");
+        Require(runtimeScope.Container.Resolve<WorldItemWarehouseService>().SpawnItemStock(
+                warehouse, medicineId, 8, "qa:w03:medical-labor", "generic:" + medicineId,
+                out int spawned, out _, out DomainFailure spawnFailure) && spawned == 8,
+            "controlled physical medicine admission: " + spawnFailure);
+        Write("w03-initial-world.json", gameSaveService.ToJson(gameSaveService.Capture(), true));
+        StartRescue();
+        IEnumerator wait = WaitUntil(() => Current().completedStabilizationWork > 0.05f,
+            "initial partial stabilization", false);
+        while (wait.MoveNext()) yield return wait.Current;
+        order = Current();
+        firstPartial = order.completedStabilizationWork;
+        Require(sawAbility && firstPartial < order.requiredStabilizationWork && !order.stabilized,
+            "actual AbilityRescue partial observation missing: " + Describe());
+        Require(TotalLabor() - initialLabor == EmergencyWuUnits.FromWu(firstPartial),
+            "initial approved stabilization labor differs from real accounting");
+        actor.SetAiPaused(true);
+        brain.StopCurrentActionForReplan("qa:w03:cancel-medical-A");
+        yield return null;
+        order = Current();
+        WorkCompletedIdentityEvent[] checkpoints = w05IdentityEvents.Where(value =>
+            value.TargetEntityId == patientId
+            && value.ProductId.StartsWith("checkpoint:medical-work-suspended:", StringComparison.Ordinal)).ToArray();
+        Require(checkpoints.Length == 1 && checkpoints[0].WorkId == BuiltInWorkTypeIds.Treat.Value
+            && checkpoints[0].OperationId.StartsWith("medical-work-checkpoint:" + orderId + ":", StringComparison.Ordinal)
+            && checkpoints[0].TerminalOwnerId == WorkCompletionIdentityReferenceDefaults.CheckpointTerminalOwner
+            && Mathf.Approximately(checkpoints[0].ContributionWorkUnits, firstPartial)
+            && string.IsNullOrEmpty(order.rescuerId)
+            && order.currentReservationStabilizationWork == 0f
+            && Mathf.Approximately(order.completedStabilizationWork, firstPartial)
+            && actor.GetComponent<AbilityRescue>()?.IsRescuing != true,
+            "cancel did not preserve exact partial work/checkpoint and release rescue: " + Describe());
+        Check("w03:rescue-partial-cancel", "work=" + firstPartial + "; sequence="
+            + order.stabilizationLaborSequence + "; checkpoint=" + checkpoints[0].OperationId
+            + "; target=" + checkpoints[0].TargetEntityId + "; labor=" + (TotalLabor() - initialLabor));
+
+        MaterialWorkFixture repair = PrepareRepairFixture(out string repairFailure);
+        Require(repair != null, "intervening repair fixture: " + repairFailure);
+        w01RepairObservation = new W01RepairHandlerObservation(
+            runtimeScope.Container.Resolve<IWorkExecutionHandlerRegistry>());
+        PrepareActor(BuiltInWorkTypeIds.Repair);
+        long laborBeforeRepair = TotalLabor();
+        double repairCarryBefore = ExecutorLaborCarry(requireExecutor: false);
+        WorkPhaseResult repairResult = null;
+        IEnumerator repairRun = RunLivePhase(BuiltInWorkTypeIds.Repair, repair.Target,
+            WorkProbeFault.CompleteNormally, repair, value => repairResult = value,
+            completionAuthoritySatisfied: () => w01RepairObservation.CompletedCalls == 1
+                && runtimeScope.Container.Resolve<IBuildingStructuralIntegrityRuntime>().TryGet(
+                    repair.Target, out BuildingStructuralIntegritySnapshot state)
+                && Mathf.Approximately(state.CurrentHitPoints, state.MaxHitPoints));
+        while (repairRun.MoveNext()) yield return repairRun.Current;
+        actor.SetAiPaused(true);
+        brain.StopCurrentActionForReplan("qa:w03:repair-B-completed");
+        work.ClearPriorityWorkTarget();
+        repairLabor = TotalLabor() - laborBeforeRepair;
+        Write("w03-after-repair-world.json", gameSaveService.ToJson(gameSaveService.Capture(), true));
+        double repairCarry = ExecutorLaborCarry(requireExecutor: true);
+        float returnedRepairWu = w01RepairObservation.Result?.ContributionWorkUnits ?? float.NaN;
+        double exactRepairMilli = (double)returnedRepairWu * EmergencyWuUnits.UnitsPerWu;
+        string repairAccounting = "actualMilli=" + repairLabor
+            + "; returnedWu=" + returnedRepairWu
+            + "; executorCarry=" + repairCarryBefore + "->" + repairCarry
+            + "; calls=" + w01RepairObservation.CompletedCalls
+            + "; completed=" + w01RepairObservation.Result?.CompletedSuccessfully
+            + "; medicalA=" + Current().completedStabilizationWork + "/" + firstPartial;
+        results.Add(WorkTypeLiveRow.Info("w03-repair-accounting", repairAccounting));
+        Require(repairResult != null && repairResult.Passed && w01RepairObservation.CompletedCalls == 1
+            && w01RepairObservation.Result.CompletedSuccessfully && repairLabor > 0
+            && w01RepairObservation.Result.ContributionWorkUnits.HasValue
+            && float.IsFinite(returnedRepairWu)
+            && repairLabor == checked((long)Math.Floor(exactRepairMilli + repairCarryBefore + 1e-9d))
+            && repairCarry >= 0d && repairCarry < 1d
+            // Exact integer accounting plus the executor's retained fraction.
+            // Only float accumulation error (< 0.001 milliWU) is tolerated.
+            && Math.Abs(repairLabor + repairCarry - repairCarryBefore - exactRepairMilli) < 0.001d
+            && Mathf.Approximately(Current().completedStabilizationWork, firstPartial),
+            "actual B completion or preservation of A failed: " + repairAccounting + "; "
+                + (repairResult == null ? "missing" : repairResult.Format()));
+        Check("w03:intervening-repair", repairResult.Format() + "; actualLaborMilli=" + repairLabor
+            + "; typedChild=" + w01RepairObservation.Result.ChildResultKey + "; medicalA=" + firstPartial);
+        w01RepairObservation.Dispose();
+        w01RepairObservation = null;
+
+        StartRescue();
+        wait = WaitUntil(() => Current().completedStabilizationWork > firstPartial + 0.05f,
+            "resumed partial stabilization", false);
+        while (wait.MoveNext()) yield return wait.Current;
+        secondPartial = Current().completedStabilizationWork;
+        Require(secondPartial < Current().requiredStabilizationWork && !Current().stabilized,
+            "resumed A must still be partial before official capture");
+        long beforeSaveLabor = TotalLabor();
+        long expectedBeforeSave = EmergencyWuUnits.FromWu(firstPartial)
+            + EmergencyWuUnits.FromWu(secondPartial - firstPartial) + repairLabor;
+        Require(beforeSaveLabor - initialLabor == expectedBeforeSave,
+            "A -> B -> A approved labor differs before save");
+        DungeonGameSaveData pending = gameSaveService.Capture();
+        Write("w03-partial-world.json", gameSaveService.ToJson(pending, true));
+        string pendingMedical = JsonUtility.ToJson(medicalPersistence.Capture());
+        string pendingLabor = JsonUtility.ToJson(laborPersistence.CaptureLaborSaveData());
+        CharacterActor previousWorker = actor, previousPatient = patient;
+        BuildableObject previousBed = bed;
+        Require(gameSaveService.TryRestore(gameSaveService.FromJson(
+                gameSaveService.ToJson(pending)), out DungeonGameRestoreReport restored) && restored.Success,
+            "official partial restore failed: " + string.Join(" | ", restored.Errors));
+        RefreshActors();
+        bed = worldRegistry.Buildings.Single(value => value != null && value.PersistentInstanceId.Value == bedId);
+        Require(pending.sections.Count == 81 && !ReferenceEquals(previousWorker, actor)
+            && !ReferenceEquals(previousPatient, patient) && !ReferenceEquals(previousBed, bed)
+            && Mathf.Approximately(Current().completedStabilizationWork, secondPartial)
+            && TotalLabor() == beforeSaveLabor
+            && pendingLabor == JsonUtility.ToJson(laborPersistence.CaptureLaborSaveData()),
+            "official restore changed approved labor/progress or retained old objects");
+        Write("w03-partial-restored-medical.json", JsonUtility.ToJson(medicalPersistence.Capture(), true));
+        Write("w03-partial-medical-before.json", pendingMedical);
+        Write("w03-partial-restored-world.json", gameSaveService.ToJson(gameSaveService.Capture(), true));
+        Check("w03:partial-official-restore", "sections=" + pending.sections.Count + "; freshWorker/Patient/Bed=True"
+            + "; completed=" + secondPartial + "; labor=" + beforeSaveLabor
+            + "; restoredReservation=" + Current().rescuerId);
+
+        StartRescue();
+        wait = WaitUntil(() => !Current().IsActive
+                && patient.CurrentLifecycleState == CharacterLifecycleState.Active
+                && actor.GetComponent<AbilityRescue>()?.IsRescuing != true,
+            "fresh actual stabilization, carry and treatment", true);
+        while (wait.MoveNext()) yield return wait.Current;
+        actor.SetAiPaused(true);
+        brain.StopCurrentActionForReplan("qa:w03:medical-completed");
+        GameplayOutcomeSnapshot[] outcomes = MedicalOutcomes();
+        GameplayOutcomeSnapshot[] stabilization = outcomes.Where(value =>
+            Fact(value, CharacterMedicalOutcomeIds.Procedure.Value) == "stabilization").ToArray();
+        GameplayOutcomeSnapshot[] treatments = outcomes.Where(value =>
+            Fact(value, CharacterMedicalOutcomeIds.Procedure.Value) == "treatment").ToArray();
+        Require(stabilization.Length == 1 && treatments.Length > 0 && sawCarriedPatient && sawTreatment
+            && outcomes.All(value => value.participants.Any(person =>
+                person.roleId == CharacterMedicalOutcomeIds.Patient.Value && person.entityId == patientId)
+                && value.participants.Any(person =>
+                    person.roleId == CharacterMedicalOutcomeIds.Clinician.Value && person.entityId == workerId)),
+            "actual stabilization/carry/treatment result or exact participants missing");
+        float stabilizationTotal = (float)Metric(stabilization[0], CharacterMedicalOutcomeIds.CompletedWork.Value);
+        long expectedMedical = EmergencyWuUnits.FromWu(firstPartial)
+            + EmergencyWuUnits.FromWu(secondPartial - firstPartial)
+            + EmergencyWuUnits.FromWu(stabilizationTotal - secondPartial)
+            + treatments.Sum(value => EmergencyWuUnits.FromWu(
+                (float)Metric(value, CharacterMedicalOutcomeIds.CompletedWork.Value)));
+        Require(TotalLabor() - initialLabor == expectedMedical + repairLabor,
+            "completed actual labor differs: recorded=" + (TotalLabor() - initialLabor)
+                + "; medical=" + expectedMedical + "; repair=" + repairLabor);
+        Require(treatments.Any(value => Metric(value, CharacterMedicalOutcomeIds.HealthAfter.Value)
+                > Metric(value, CharacterMedicalOutcomeIds.HealthBefore.Value))
+            && !bodies.GetSnapshot(patient).Downed, "treatment produced no physical recovery");
+        Check("w03:actual-medical-completion", "stabilizations=" + stabilization.Length
+            + "; treatments=" + treatments.Length + "; physicalCarry=" + sawCarriedPatient
+            + "; controlledPhysicalDeliveries=" + deliveries + "; medicalMilli=" + expectedMedical
+            + "; repairMilli=" + repairLabor + "; allActualMilli=" + (TotalLabor() - initialLabor));
+
+        DungeonGameSaveData completed = gameSaveService.Capture();
+        Write("w03-completed-world.json", gameSaveService.ToJson(completed, true));
+        string completedSections = W05SectionPayloads(completed);
+        string outcomeHashes = string.Join("|", outcomes.Select(value => value.immutablePayloadHash));
+        // The production command rejects the completed owner, not a fixture
+        // stage guard. Repeated calls must leave every official section intact.
+        for (int attempt = 0; attempt < 2; attempt++)
+        {
+            commands.AdvanceStabilization(orderId, actor, 10f);
+            commands.AdvanceTreatment(orderId, actor, 10f);
+        }
+        Require(completedSections == W05SectionPayloads(gameSaveService.Capture()),
+            "completed live medical command replay changed official state");
+        previousWorker = actor;
+        Require(gameSaveService.TryRestore(gameSaveService.FromJson(gameSaveService.ToJson(completed)),
+                out DungeonGameRestoreReport terminalRestore) && terminalRestore.Success,
+            "official completed restore failed: " + string.Join(" | ", terminalRestore.Errors));
+        RefreshActors();
+        string restoredSections = W05SectionPayloads(gameSaveService.Capture());
+        for (int attempt = 0; attempt < 2; attempt++)
+        {
+            commands.AdvanceStabilization(orderId, actor, 10f);
+            commands.AdvanceTreatment(orderId, actor, 10f);
+        }
+        Require(!ReferenceEquals(previousWorker, actor)
+            && restoredSections == W05SectionPayloads(gameSaveService.Capture())
+            && outcomeHashes == string.Join("|", MedicalOutcomes().Select(value => value.immutablePayloadHash))
+            && TotalLabor() - initialLabor == expectedMedical + repairLabor,
+            "fresh completed-owner replay changed labor/body/exact results");
+        Check("w03:terminal-official-replay", "sections=" + completed.sections.Count
+            + "; liveAttempts=2; freshAttempts=2; exactOutcomes=" + outcomes.Length
+            + "; allSectionsUnchanged=True; hashes=" + outcomeHashes);
+        Write("w03-final-world.json", gameSaveService.ToJson(gameSaveService.Capture(), true));
+
+        CharacterMedicalOrder Current() => medical.ActiveOrders.Single(value => value.orderId == orderId);
+        double ExecutorLaborCarry(bool requireExecutor)
+        {
+            PropertyInfo executorField = typeof(AbilityWork).GetProperty("TaskExecutor",
+                BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("W03 executor observation field missing.");
+            object executor = executorField.GetValue(work);
+            if (executor == null)
+            {
+                // No executor yet means no prior work and no retained fraction.
+                Require(!requireExecutor, "completed repair executor missing");
+                return 0d;
+            }
+            PropertyInfo carryField = typeof(WorkTaskExecutor).GetProperty("ActualLaborMilliWuCarryForDiagnostics",
+                BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("W03 labor carry observation property missing.");
+            return (double)carryField.GetValue(executor);
+        }
+        long TotalLabor()
+        {
+            var saved = laborPersistence.CaptureLaborSaveData();
+            return checked(saved.actualLaborMilliWu + saved.dailyRecords.Sum(value => value.actualLaborMilliWu));
+        }
+        void StartRescue()
+        {
+            PrepareActor(BuiltInWorkTypeIds.Rescue);
+            Require(brain.availableActions.Any(value => value?.actionset is AIRescue),
+                "authored AIRescue action missing");
+            brain.PreferActionOnNextDecision<AIRescue>(180f);
+            actor.SetAiPaused(false);
+            brain.RequestImmediateReplan(clearFailures: true);
+        }
+        void RefreshActors()
+        {
+            actor = worldRegistry.Characters.Single(value => value != null && value.Identity.PersistentId == workerId);
+            patient = worldRegistry.Characters.Single(value => value != null && value.Identity.PersistentId == patientId);
+            brain = actor.Brain;
+            work = actor.GetComponent<AbilityWork>();
+            grid = FindFirstObjectByType<GridSystemManager>()?.grid;
+            foreach (CharacterActor other in worldRegistry.Characters.Where(value => value != null && value != actor))
+                other.SetAiPaused(true);
+        }
+        IEnumerator WaitUntil(Func<bool> condition, string stage, bool allowDelivery)
+        {
+            float simulationStart = actor.GameClock.Time, wallStart = Time.realtimeSinceStartup;
+            float nextEnvironmentReset = simulationStart;
+            int firstFrame = Time.frameCount;
+            float lastProgressGame = simulationStart, lastProgressWall = wallStart;
+            int lastProgressFrame = firstFrame, lastDeliveries = deliveries;
+            CharacterMedicalOrder previous = Current();
+            CharacterMedicalOrderState previousState = previous.state;
+            float previousStabilization = previous.completedStabilizationWork;
+            float previousTreatment = previous.completedTreatmentWork;
+            int previousTerminalSequence = previous.nextTerminalOutcomeSequence;
+            bool previousCarried = previous.carried;
+            Vector3 previousWorkerPosition = actor.transform.position;
+            Vector2Int previousPatientPosition = patient.GetNowXY();
+            while (!condition())
+            {
+                MaintainStableWorkSubject();
+                SetNeutralNeeds(patient);
+                if (actor.GameClock.Time >= nextEnvironmentReset)
+                {
+                    ResetSubjectEnvironmentExposure();
+                    nextEnvironmentReset = actor.GameClock.Time + 5f;
+                }
+                AbilityRescue rescue = actor.GetComponent<AbilityRescue>();
+                sawAbility |= rescue?.IsRescuing == true && brain.bestAction?.actionset is AIRescue;
+                CharacterMedicalOrder current = Current();
+                sawCarriedPatient |= current.carried && patient.transform.IsChildOf(actor.transform);
+                sawTreatment |= current.state == CharacterMedicalOrderState.Treating;
+                if (allowDelivery && current.treatmentSupplyDeliveryRequested && !current.treatmentSupplyConsumed)
+                    DeliverRequestedMedicine(current);
+                // Sample real authority progress before testing expiry. An
+                // external editor request can delay wall time without granting
+                // the simulation enough execution time to finish clinical work.
+                bool progressed = current.state != previousState
+                    || current.completedStabilizationWork > previousStabilization + 0.0001f
+                    || current.completedTreatmentWork > previousTreatment + 0.0001f
+                    || current.nextTerminalOutcomeSequence > previousTerminalSequence
+                    || current.carried != previousCarried || deliveries > lastDeliveries
+                    || (actor.transform.position - previousWorkerPosition).sqrMagnitude >= 0.0001f
+                    || patient.GetNowXY() != previousPatientPosition;
+                if (progressed)
+                {
+                    lastProgressGame = actor.GameClock.Time;
+                    lastProgressWall = Time.realtimeSinceStartup;
+                    lastProgressFrame = Time.frameCount;
+                    previousWorkerPosition = actor.transform.position;
+                }
+                previousState = current.state;
+                previousStabilization = current.completedStabilizationWork;
+                previousTreatment = current.completedTreatmentWork;
+                previousTerminalSequence = current.nextTerminalOutcomeSequence;
+                previousCarried = current.carried;
+                previousPatientPosition = patient.GetNowXY();
+                lastDeliveries = deliveries;
+                if (!capturedSkillEvidenceFailure && consoleIssues.Any(value =>
+                        value.Contains("evidence-binding-invalid", StringComparison.Ordinal)))
+                {
+                    Write("w03-evidence-error-world.json", gameSaveService.ToJson(gameSaveService.Capture(), true));
+                    capturedSkillEvidenceFailure = true;
+                }
+                bool overallExpired = actor.GameClock.Time - simulationStart > 240f
+                    && Time.frameCount - firstFrame > 180;
+                bool authorityStalled = Time.realtimeSinceStartup - lastProgressWall >= 60f
+                    && (actor.GameClock.Time - lastProgressGame >= 30f
+                        || Time.frameCount - lastProgressFrame >= 120);
+                if (overallExpired || authorityStalled)
+                {
+                    Write("w03-timeout-world.json", gameSaveService.ToJson(gameSaveService.Capture(), true));
+                    throw new InvalidOperationException("W03 timed out at " + stage + ": " + Describe()
+                        + "; game=" + (actor.GameClock.Time - simulationStart)
+                        + "; frames=" + (Time.frameCount - firstFrame)
+                        + "; wall=" + (Time.realtimeSinceStartup - wallStart)
+                        + "; overall=" + overallExpired + "; authorityStalled=" + authorityStalled
+                        + "; idleGame=" + (actor.GameClock.Time - lastProgressGame)
+                        + "; idleFrames=" + (Time.frameCount - lastProgressFrame)
+                        + "; idleWall=" + (Time.realtimeSinceStartup - lastProgressWall));
+                }
+                yield return null;
+            }
+        }
+        void DeliverRequestedMedicine(CharacterMedicalOrder current)
+        {
+            if (physicalItems.GetAllStacks().Any(value => value.Quantity > 0
+                    && value.DestinationId == current.treatmentMaterialDestinationId
+                    && value.State == WorldItemStackState.FacilityBuffer))
+                return;
+            CharacterActor carrier = worldRegistry.Characters.Single(value =>
+                value != null && value.Identity.PersistentId == carrierId);
+            Require(deliveries < 8 && carrier.CarryInventory.Items.Count == 0,
+                "bounded controlled carrier unavailable");
+            Require(physicalItems.TryReserveBestHaulPlan(carrier, out WorldItemHaulPlan plan, out string failure),
+                "medical physical haul plan: " + failure);
+            Require(plan.PrimaryDestinationId == current.treatmentMaterialDestinationId
+                && plan.ReservedStackQuantities.Count == 1 && plan.ReservedStackQuantities[0].Quantity == 1,
+                "physical planner selected a different medical route");
+            WorldItemReservedStackQuantity leg = plan.ReservedStackQuantities[0];
+            Require(physicalItems.TryPickupReservedStackQuantity(carrier, carrier.CarryInventory, leg,
+                    out int picked, out string pickupFailure) && picked == 1, pickupFailure);
+            Require(physicalItems.TryCommitHaulPickup(leg.OwnerOperationId, carrier.CarryInventory,
+                out string commitFailure), commitFailure);
+            Require(physicalItems.TryDepositCarriedItemsToFacility(carrier, carrier.CarryInventory, current.BedPosition,
+                current.treatmentMaterialDestinationId, new[] { leg.OwnerOperationId }, out string depositFailure),
+                depositFailure);
+            Require(runtimeScope.Container.Resolve<ItemQuantityReservationService>().ReleaseByOwner(
+                    leg.OwnerOperationId, ItemReservationReleaseReason.Completed) > 0
+                && physicalItems.ReleaseHaulDeliveryIntent(leg.OwnerOperationId)
+                && carrier.CarryInventory.Items.Count == 0, "medical haul owner did not close");
+            deliveries++;
+        }
+        GameplayOutcomeSnapshot[] MedicalOutcomes() => W01ExactOutcomes().Where(value =>
+            value.outcomeTypeId == CharacterMedicalOutcomeIds.Completed.Value
+            && Fact(value, CharacterMedicalOutcomeIds.Order.Value) == orderId).OrderBy(value => value.sequence).ToArray();
+        string Describe()
+        {
+            CharacterMedicalOrder value = Current();
+            return "order=" + orderId + "; state=" + value.state + "/" + value.statusCode
+                + "; stabilization=" + value.completedStabilizationWork + "/" + value.requiredStabilizationWork
+                + "; treatment=" + value.completedTreatmentWork + "/" + value.requiredTreatmentWork
+                + "; phase=" + brain.CurrentActionPhase + "; failure=" + brain.LastActionFailure
+                + "; rescue=" + actor.GetComponent<AbilityRescue>()?.LastRescueTerminalForDiagnostics;
+        }
+        void Check(string id, string detail) => results.Add(new WorkTypeLiveRow(id, "PASS", patientId, detail));
+        void Write(string name, string json)
+        {
+            Directory.CreateDirectory(output);
+            WriteUtf8LfCreateNew(Path.Combine(output, name), new[] { json });
+        }
+        static string Fact(GameplayOutcomeSnapshot value, string id) =>
+            value.facts.FirstOrDefault(fact => fact.factId == id)?.value ?? string.Empty;
+        static double Metric(GameplayOutcomeSnapshot value, string id) =>
+            value.metrics.Single(metric => metric.metricId == id).value;
+        static void Require(bool value, string failure)
+        {
+            if (!value) throw new InvalidOperationException("W03 medical labor: " + failure);
+        }
+        void Position(CharacterActor target, Vector2Int cell)
+        {
+            target.SetAiPaused(true);
+            target.Brain?.StopCurrentActionForReplan("qa:w03:position");
+            target.GetComponent<AbilityMove>()?.CancelActiveMovement();
+            target.transform.position = grid.GetWorldPos(cell);
+            target.Brain?.ClearPathSearchCache();
+        }
+    }
+
+    private IEnumerator RunW01WorkTerminalJoinFocused()
+    {
+        if (CharacterAiWorkTypeLiveMatrixPlayModeVerifier.IsW01FireIdentityVerification)
+        {
+            IEnumerator fire = RunW01FireIdentityFocused();
+            while (fire.MoveNext()) yield return fire.Current;
+            yield break;
+        }
+        WorkTypeId workTypeId = BuiltInWorkTypeIds.Repair;
+        MaintainStableWorkSubject();
+        MaterialWorkFixture fixture = PrepareRepairFixture(out string fixtureFailure);
+        if (fixture == null)
+        {
+            results.Add(WorkTypeLiveRow.Blocked(
+                workTypeId, "structural-repair-fixture-unavailable", fixtureFailure));
+            yield break;
+        }
+        BuildableObject target = fixture.Target;
+        string targetId = target.RequirePersistentInstanceId().Value;
+        string actorId = actor.Identity.PersistentId;
+        IBuildingStructuralIntegrityRuntime integrity = runtimeScope.Container
+            .Resolve<IBuildingStructuralIntegrityRuntime>();
+        if (!integrity.TryGet(target, out BuildingStructuralIntegritySnapshot before))
+            throw new InvalidOperationException("W01 structural state is missing.");
+        IWorkExecutionHandlerRegistry registry = runtimeScope.Container
+            .Resolve<IWorkExecutionHandlerRegistry>();
+        w01RepairObservation = new W01RepairHandlerObservation(registry);
+        w05IdentitySubscription = runtimeScope.Container.Resolve<IGameEventBus>()
+            .Subscribe<WorkCompletedIdentityEvent>(w05IdentityEvents.Add);
+        w05IdentityDeliveries = runtimeScope.Container
+            .Resolve<WorkCompletionIdentityDeliveryLedger>();
+        WorkCompletionIdentityDeliveryCursorSaveData directBefore =
+            FindW05DeliveryCursor(w05IdentityDeliveries.Capture(),
+                WorkCompletionIdentityDeliveryLedger.DirectEventStreamId);
+        runtimeScope.Container.Resolve<IFacilityCandidateCache>().MarkDynamicStateDirty();
+        yield return null;
+        PrepareActor(workTypeId);
+
+        HashSet<string> identityKeysBefore = new(
+            CaptureRepairIdentities().Select(W01ResultKey), StringComparer.Ordinal);
+        w01RepairDeliveryGate = new W01RepairDeliveryGate(
+            (WorkOrderRuntime)workOrders,
+            runtimeScope.Container.Resolve<IDomainFactPublisher>(),
+            runtimeScope.Container.Resolve<IWorkCompletionIdentityDeliveryCommand>(),
+            runtimeScope.Container.Resolve<WorkCompletionIdentityDeliveryLedger>(),
+            runtimeScope.Container.Resolve<CharacterIdentityEventPublisher>(),
+            runtimeScope.Container.Resolve<WorkIdentityAppliedFactMapping>());
+        WorkPhaseResult completion = null;
+        IEnumerator run = RunLivePhase(workTypeId, target,
+            WorkProbeFault.CompleteNormally, fixture, value => completion = value,
+            completionAuthoritySatisfied: () =>
+                w01RepairObservation.CompletedCalls == 1
+                && integrity.TryGet(target, out BuildingStructuralIntegritySnapshot state)
+                && Mathf.Approximately(state.CurrentHitPoints, state.MaxHitPoints));
+        while (run.MoveNext())
+            yield return run.Current;
+        w01RepairObservation.Dispose();
+        WorkExecutionResult terminal = w01RepairObservation.Result;
+        results.Add(new WorkTypeLiveRow(workTypeId.Value,
+            completion?.Passed == true ? "PASS" : "FAIL", targetId,
+            completion?.Format() ?? "actual AI completion was not observed"));
+        if (terminal == null || !terminal.CompletedSuccessfully
+            || string.IsNullOrEmpty(terminal.ChildResultKey))
+        {
+            results.Add(new WorkTypeLiveRow("w01:terminal-child-join", "FAIL", targetId,
+                "handlerCalls=" + w01RepairObservation.CompletedCalls
+                    + "; successful=" + terminal?.CompletedSuccessfully
+                    + "; child=" + terminal?.ChildResultKey));
+            yield break;
+        }
+
+        if (!w01RepairDeliveryGate.Held)
+            throw new InvalidOperationException("W01 actual repair did not reach the mandatory identity command.");
+        WorkCompletionIdentityDeliveryRequest frozenRequest = w01RepairDeliveryGate.Request;
+        brain.StopCurrentActionForReplan("W01 repair post-child checkpoint");
+        work.ClearPriorityWorkTarget();
+        actor.SetAiPaused(true);
+        DungeonGameSaveData pendingSave = gameSaveService.Capture();
+        string pendingJson = gameSaveService.ToJson(pendingSave, true);
+        WriteRepairEvidence("w01-repair-post-child-world.json", pendingJson);
+        RepairWorkOutcomeSaveData pendingOwner = workOrders.Capture().repairOutcomes.Single(value =>
+            value.operationId == frozenRequest.OperationId);
+        GameplayOutcomeSnapshot pendingChild = W01ExactOutcomes().Single(value =>
+            W01ResultKey(value) == frozenRequest.ChildResultKey);
+        bool checkpoint = pendingOwner.terminal
+            && pendingOwner.publicationConfirmed
+            && pendingOwner.publicationKey == frozenRequest.ChildResultKey
+            && pendingOwner.completionWorkerId == actorId && CaptureRepairIdentities().Length == identityKeysBefore.Count;
+        DungeonGameSaveData invalid = gameSaveService.FromJson(pendingJson);
+        DungeonSaveSectionEnvelope ledgerSection = invalid.sections.Single(value =>
+            value.sectionId == GameplayOutcomeLedgerSaveSection.Id);
+        var missingChild = DungeonSaveJson.Deserialize<GameplayOutcomeLedgerSaveData>(ledgerSection.payloadJson);
+        int removed = missingChild.exactOutcomes.RemoveAll(value => W01ResultKey(value) == frozenRequest.ChildResultKey)
+            + missingChild.outbox.RemoveAll(value => W01ResultKey(value) == frozenRequest.ChildResultKey);
+        if (removed != 1) throw new InvalidOperationException("W01 requires one actual repair child for corruption test.");
+        ledgerSection.payloadJson = JsonUtility.ToJson(missingChild);
+        invalid.manifest = DungeonSaveManifest.Capture(invalid.sections);
+        WriteRepairEvidence("w01-repair-missing-child-invalid-world.json", gameSaveService.ToJson(invalid, true));
+        var root = runtimeScope.Container.Resolve<DungeonRuntimeAggregateRootStore>();
+        int revision = root.PublishedRestoreRevision;
+        string beforeInvalid = W05SectionPayloads(gameSaveService.Capture());
+        bool invalidAccepted = gameSaveService.TryRestore(invalid, out DungeonGameRestoreReport rejection);
+        bool atomicallyRejected = !invalidAccepted && rejection.Errors.Any(value =>
+                value.Contains("Repair completion", StringComparison.Ordinal))
+            && revision == root.PublishedRestoreRevision && !root.IsRestoreStaging
+            && beforeInvalid == W05SectionPayloads(gameSaveService.Capture());
+        string rejectionDetail = "accepted=" + invalidAccepted + "; sectionsUnchanged=" + atomicallyRejected
+            + "; errors=" + string.Join(" | ", rejection.Errors);
+        WriteRepairEvidence("w01-repair-missing-child-witness.txt", rejectionDetail);
+        results.Add(new WorkTypeLiveRow("w01:repair-missing-child-rejected",
+            atomicallyRejected ? "PASS" : "FAIL", targetId, rejectionDetail));
+        if (!atomicallyRejected) throw new InvalidOperationException("W01 invalid repair save was not rejected atomically.");
+        if (!gameSaveService.TryRestore(gameSaveService.FromJson(pendingJson), out var pendingRestored)
+            || !pendingRestored.Success)
+            throw new InvalidOperationException("W01 pending repair restore failed: " + string.Join(" | ", pendingRestored.Errors));
+        actor = LiveActors(worldRegistry).Single(value => value.Identity.PersistentId == actorId);
+        work = actor.GetComponent<AbilityWork>();
+        brain = actor.Brain;
+        actor.SetAiPaused(true);
+        grid = FindFirstObjectByType<GridSystemManager>()?.grid;
+        BuildableObject pendingFreshTarget = worldRegistry.Buildings.Single(value =>
+            value != null && value.PersistentInstanceId.Value == targetId);
+        bool pendingFresh = !ReferenceEquals(target, pendingFreshTarget);
+        target = pendingFreshTarget;
+        w01RepairDeliveryGate.Released = true;
+        float pendingGame = actor.GameClock.Time;
+        float pendingWall = Time.realtimeSinceStartup;
+        int pendingFrame = Time.frameCount;
+        while (workOrders.Capture().repairOutcomes.Any(value => value.operationId == frozenRequest.OperationId))
+        {
+            if (actor.GameClock.Time - pendingGame > 15f && Time.frameCount - pendingFrame > 120
+                || Time.realtimeSinceStartup - pendingWall > 120f)
+                throw new InvalidOperationException("W01 pending repair did not finish via production Tick.");
+            yield return null;
+        }
+        var resumedChildren = W01ExactOutcomes().Where(value => W01ResultKey(value) == frozenRequest.ChildResultKey).ToArray();
+        bool resumed = checkpoint && pendingFresh && resumedChildren.Length == 1
+            && resumedChildren[0].immutablePayloadHash == pendingChild.immutablePayloadHash
+            && CaptureRepairIdentities().Length == identityKeysBefore.Count + 1
+            && integrity.TryGet(target, out var resumedState)
+            && Mathf.Approximately(resumedState.CurrentHitPoints, resumedState.MaxHitPoints);
+        results.Add(new WorkTypeLiveRow("w01:repair-pending-save-resume", resumed ? "PASS" : "FAIL", targetId,
+            "officialSections=" + pendingSave.sections.Count + "; checkpoint=" + checkpoint
+                + "; freshTarget=" + pendingFresh + "; children=" + resumedChildren.Length
+                + "; pendingOwners=" + workOrders.Capture().repairOutcomes.Count
+                + "; identities=" + CaptureRepairIdentities().Length));
+        w01RepairDeliveryGate.Dispose();
+        w01RepairDeliveryGate = null;
+
+        GameplayOutcomeSnapshot[] exactChildren = W01ExactOutcomes()
+            .Where(value => W01ResultKey(value) == terminal.ChildResultKey).ToArray();
+        GameplayOutcomeSnapshot child = exactChildren.SingleOrDefault();
+        if (child == null)
+            throw new InvalidOperationException("W01 returned child has no unique exact ledger record.");
+        string operation = child.facts.Single(value =>
+            value.factId == MigratedProducerOutcomeIds.OperationFact.Value).value;
+        double totalMilliWork = child.metrics.Single(value =>
+            value.metricId == MigratedProducerOutcomeIds.CompletedWorkMetric.Value).value;
+        double ledgerBefore = child.metrics.Single(value =>
+            value.metricId == MigratedProducerOutcomeIds.PreviousMetric.Value).value;
+        double ledgerAfter = child.metrics.Single(value =>
+            value.metricId == MigratedProducerOutcomeIds.CurrentMetric.Value).value;
+        string contributors = child.facts.Single(value =>
+            value.factId == MigratedProducerOutcomeIds.ContributorsFact.Value).value;
+        float repairPerWork = target.BuildingData
+            .GetAbility<BuildingStructuralIntegrityAbility>().repairHitPointsPerWork;
+        double physicalWork = (ledgerAfter - ledgerBefore) / repairPerWork;
+        bool amountMatches = terminal.ContributionWorkUnits.HasValue
+            && Math.Abs(Math.Round(terminal.ContributionWorkUnits.Value * 1000d)
+                - totalMilliWork) <= 1d
+            && Math.Abs(terminal.ContributionWorkUnits.Value - physicalWork) < 0.001d;
+        bool targetRestored = integrity.TryGet(target,
+            out BuildingStructuralIntegritySnapshot after)
+            && Mathf.Approximately(after.CurrentHitPoints, after.MaxHitPoints);
+        bool directUnchanged = W05DeliveryCursorEquals(directBefore,
+            FindW05DeliveryCursor(w05IdentityDeliveries.Capture(),
+                WorkCompletionIdentityDeliveryLedger.DirectEventStreamId));
+        int identityEvents = w05IdentityEvents.Count(value => value.WorkId == workTypeId.Value);
+        bool joined = w01RepairObservation.CompletedCalls == 1
+            && completion?.ProgressDelta > 1
+            && w01RepairObservation.ActorId == actorId
+            && w01RepairObservation.TargetId == targetId
+            && terminal.CompletionIdentityAlreadyPublished
+            && terminal.TerminalOwnerId == "repair-work-outcome"
+            && terminal.TargetEntityId == targetId
+            && child.outcomeTypeId == "work.repair-resolved"
+            && child.status == GameplayOutcomeStatus.Succeeded
+            && operation.StartsWith("repair-work:", StringComparison.Ordinal)
+            && child.participants.Any(value => value.entityId == actorId
+                && value.roleId == MigratedProducerOutcomeIds.ActorRole.Value)
+            && child.participants.Any(value => value.entityId == targetId
+                && value.roleId == MigratedProducerOutcomeIds.FacilityRole.Value)
+            && Math.Abs(ledgerBefore - before.CurrentHitPoints) < 0.001d
+            && Math.Abs(ledgerAfter - after.CurrentHitPoints) < 0.001d
+            && totalMilliWork > 0d && amountMatches && targetRestored
+            && identityEvents == 0 && directUnchanged;
+        results.Add(new WorkTypeLiveRow("w01:terminal-child-join",
+            joined ? "PASS" : "FAIL", targetId,
+            "scope=actual-executor-return-to-domain-ledger; operation=" + operation
+                + "; child=" + terminal.ChildResultKey
+                + "; terminalOwner=" + terminal.TerminalOwnerId
+                + "; actor=" + actorId + "; calls=" + w01RepairObservation.CompletedCalls
+                + "; hp=" + ledgerBefore + "->" + ledgerAfter
+                + "; returnedWork=" + terminal.ContributionWorkUnits
+                + "; ledgerMilliWork=" + totalMilliWork
+                + "; physicalWork=" + physicalWork
+                + "; contributors=" + contributors + "; amountMatches=" + amountMatches
+                + "; domainOwned=" + terminal.CompletionIdentityAlreadyPublished
+                + "; genericEvents=" + identityEvents + "; directUnchanged=" + directUnchanged));
+
+        GameplayOutcomeSnapshot[] identities = CaptureRepairIdentities()
+            .Where(value => !identityKeysBefore.Contains(W01ResultKey(value))).ToArray();
+        GameplayOutcomeSnapshot identity = identities.Length == 1 ? identities[0] : null;
+        double identityWork = identity?.metrics.FirstOrDefault(value =>
+            value.metricId == WorkCompletionIdentityOutcomeIds.ContributionMetric.Value)?.value
+            ?? double.NaN;
+        bool identityJoined = identity != null
+            && identity.status == GameplayOutcomeStatus.Succeeded
+            && identity.sequence > child.sequence
+            && identity.absoluteDay == child.absoluteDay
+            && Fact(identity, WorkCompletionIdentityOutcomeIds.ChildResultKeyFact)
+                == terminal.ChildResultKey
+            && Fact(identity, WorkCompletionIdentityOutcomeIds.OperationIdFact) == operation
+            && Fact(identity, WorkCompletionIdentityOutcomeIds.TerminalOwnerFact)
+                == terminal.TerminalOwnerId
+            && identity.subjects.Any(value =>
+                value.entityKindId == WorkCompletionIdentityOutcomeIds.BuildingKind.Value
+                && value.entityId == targetId)
+            && terminal.ContributionWorkUnits.HasValue
+            && Math.Abs(identityWork - terminal.ContributionWorkUnits.Value) < 0.001d;
+        results.Add(new WorkTypeLiveRow("w01:repair-identity-child-join",
+            identityJoined ? "PASS" : "FAIL", targetId,
+            "identities=" + identities.Length + "; worker=" + actorId
+                + "; child=" + terminal.ChildResultKey
+                + "; identityChild=" + Fact(identity, WorkCompletionIdentityOutcomeIds.ChildResultKeyFact)
+                + "; operation=" + operation
+                + "; identityOperation=" + Fact(identity, WorkCompletionIdentityOutcomeIds.OperationIdFact)
+                + "; terminalOwner=" + terminal.TerminalOwnerId
+                + "; identityOwner=" + Fact(identity, WorkCompletionIdentityOutcomeIds.TerminalOwnerFact)
+                + "; childSequence=" + child.sequence + "; identitySequence=" + identity?.sequence
+                + "; work=" + identityWork + "/" + terminal.ContributionWorkUnits));
+
+        brain.StopCurrentActionForReplan("W01 terminal snapshot");
+        work.ClearPriorityWorkTarget();
+        actor.SetAiPaused(true);
+        DungeonGameSaveData completedSave = gameSaveService.Capture();
+        string completedJson = gameSaveService.ToJson(completedSave, true);
+        string evidenceDirectory = Path.GetDirectoryName(
+            CharacterAiWorkTypeLiveMatrixPlayModeVerifier.W01WorkTerminalJoinReportPath);
+        Directory.CreateDirectory(evidenceDirectory);
+        WriteUtf8LfCreateNew(Path.Combine(evidenceDirectory,
+            "w01-repair-completed-world.json"), new[] { completedJson });
+        DungeonGameSaveData detached = gameSaveService.FromJson(completedJson);
+        if (!gameSaveService.TryRestore(detached, out DungeonGameRestoreReport restored)
+            || !restored.Success)
+            throw new InvalidOperationException("W01 completed world restore failed: "
+                + string.Join(" | ", restored.Errors));
+        actor = LiveActors(worldRegistry).Single(value =>
+            value.Identity.PersistentId == actorId);
+        work = actor.GetComponent<AbilityWork>();
+        brain = actor.Brain;
+        grid = FindFirstObjectByType<GridSystemManager>()?.grid;
+        BuildableObject freshTarget = worldRegistry.Buildings.Single(value =>
+            value != null && value.PersistentInstanceId.Value == targetId);
+        bool freshObjects = !ReferenceEquals(target, freshTarget);
+        GameplayOutcomeSnapshot[] restoredChildren = W01ExactOutcomes()
+            .Where(value => W01ResultKey(value) == terminal.ChildResultKey).ToArray();
+        IRepairWorkOutcomeRuntime repair = runtimeScope.Container.Resolve<IRepairWorkOutcomeRuntime>();
+        string workStateBeforeRetry = JsonUtility.ToJson(workOrders.Capture());
+        bool retryAccepted = repair.TryComplete(new RepairWorkOutcomeHandle(operation),
+            new CharacterId(actorId), CharacterCommandOrigin.Autonomous,
+            terminal.ContributionWorkUnits.Value,
+            child.absoluteDay, true, RepairWorkPrimaryUnit.Point,
+            (float)ledgerBefore, (float)ledgerAfter, 0f, 0f,
+            RepairWorkMaterialReceipt.None, out string retryKey, out string retryFailure);
+        GameplayOutcomeSnapshot[] retryChildren = W01ExactOutcomes()
+            .Where(value => W01ResultKey(value) == terminal.ChildResultKey).ToArray();
+        bool replaySafe = freshObjects && restoredChildren.Length == 1
+            && restoredChildren[0].immutablePayloadHash == child.immutablePayloadHash
+            && !retryAccepted && string.IsNullOrEmpty(retryKey)
+            && retryFailure == "repair-work-outcome-owner-missing"
+            && retryChildren.Length == 1
+            && retryChildren[0].immutablePayloadHash == child.immutablePayloadHash
+            && workStateBeforeRetry == JsonUtility.ToJson(workOrders.Capture())
+            && integrity.TryGet(freshTarget, out BuildingStructuralIntegritySnapshot finalState)
+            && Mathf.Approximately(finalState.CurrentHitPoints, (float)ledgerAfter)
+            && !workOrders.Capture().repairOutcomes.Any(value => value.operationId == operation)
+            && W05DeliveryCursorEquals(directBefore,
+                FindW05DeliveryCursor(w05IdentityDeliveries.Capture(),
+                    WorkCompletionIdentityDeliveryLedger.DirectEventStreamId));
+        results.Add(new WorkTypeLiveRow("w01:terminal-save-replay",
+            replaySafe ? "PASS" : "FAIL", targetId,
+            "officialSections=" + completedSave.sections.Count + "; freshTarget=" + freshObjects
+                + "; restoredChildren=" + restoredChildren.Length
+                + "; retryChildren=" + retryChildren.Length + "; retryAccepted=" + retryAccepted
+                + "; retryFailure=" + retryFailure + "; childHash=" + child.immutablePayloadHash));
+        GameplayOutcomeSnapshot[] restoredIdentities = CaptureRepairIdentities()
+            .Where(value => !identityKeysBefore.Contains(W01ResultKey(value))).ToArray();
+        bool identityRestored = identityJoined && restoredIdentities.Length == 1
+            && W01ResultKey(restoredIdentities[0]) == W01ResultKey(identity)
+            && restoredIdentities[0].immutablePayloadHash == identity.immutablePayloadHash
+            && Fact(restoredIdentities[0], WorkCompletionIdentityOutcomeIds.ChildResultKeyFact)
+                == terminal.ChildResultKey;
+        results.Add(new WorkTypeLiveRow("w01:repair-identity-save-join",
+            identityRestored ? "PASS" : "FAIL", targetId,
+            "officialSections=" + completedSave.sections.Count + "; freshTarget=" + freshObjects
+                + "; identitiesBefore=" + identities.Length
+                + "; identitiesAfterRestoreAndOwnerRetry=" + restoredIdentities.Length
+                + "; identityHash=" + (identity?.immutablePayloadHash ?? "missing")));
+        IWorkCompletionIdentityDeliveryCommand command = runtimeScope.Container.Resolve<IWorkCompletionIdentityDeliveryCommand>();
+        string beforeReplay = W05SectionPayloads(gameSaveService.Capture());
+        var replayOne = command.EnsureApplied(frozenRequest);
+        var replayTwo = command.EnsureApplied(frozenRequest);
+        var changedRequest = new WorkCompletionIdentityDeliveryRequest(frozenRequest.DeliveryId,
+            frozenRequest.ProducerStreamId, frozenRequest.OperationSequence, frozenRequest.Character,
+            frozenRequest.WorkId, frozenRequest.ProductId, frozenRequest.Origin, frozenRequest.AbsoluteDay,
+            frozenRequest.OperationId, frozenRequest.TerminalOwnerId, frozenRequest.ChildResultKey,
+            frozenRequest.TargetEntityId, frozenRequest.ContributionWorkUnits + 1f);
+        var changed = command.EnsureApplied(changedRequest);
+        bool exactReplay = replayOne.Status == WorkCompletionIdentityDeliveryStatus.AlreadyApplied
+            && replayTwo.Status == WorkCompletionIdentityDeliveryStatus.AlreadyApplied
+            && changed.Status == WorkCompletionIdentityDeliveryStatus.Conflict
+            && beforeReplay == W05SectionPayloads(gameSaveService.Capture());
+        results.Add(new WorkTypeLiveRow("w01:repair-identity-exact-replay", exactReplay ? "PASS" : "FAIL", targetId,
+            "first=" + replayOne.Status + "; second=" + replayTwo.Status + "; changed=" + changed.Status
+                + "; allSectionsUnchanged=" + exactReplay + "; detail=" + changed.FailureReason));
+        bool sharedReplay = WorkCompletionIdentityOutcomeDebugScenarios.RunAll();
+        results.Add(new WorkTypeLiveRow("w01:shared-delivery-replay",
+            sharedReplay ? "PASS" : "FAIL", "bounded-fixture",
+            "scope=separate shared-delivery sequence/replay/tamper/JSON test; not actual AI child join"));
+
+        GameplayOutcomeSnapshot[] CaptureRepairIdentities() => W01ExactOutcomes()
+            .Where(value => value.outcomeTypeId == WorkCompletionIdentityOutcomeIds.Applied.Value
+                && Fact(value, WorkCompletionIdentityOutcomeIds.WorkIdFact) == workTypeId.Value
+                && value.participants.Any(participant => participant.entityId == actorId
+                    && participant.roleId == WorkCompletionIdentityOutcomeIds.WorkerRole.Value))
+            .ToArray();
+
+        void WriteRepairEvidence(string name, string content)
+        {
+            string directory = Path.GetDirectoryName(CharacterAiWorkTypeLiveMatrixPlayModeVerifier.W01WorkTerminalJoinReportPath);
+            Directory.CreateDirectory(directory);
+            WriteUtf8LfCreateNew(Path.Combine(directory, name), new[] { content });
+        }
+        static string Fact(GameplayOutcomeSnapshot outcome, GameplayOutcomeFactId fact) =>
+            outcome?.facts.FirstOrDefault(value => value.factId == fact.Value)?.value ?? "missing";
+    }
+
+    private IEnumerator RunW01FireIdentityFocused()
+    {
+        bool waterMode = CharacterAiWorkTypeLiveMatrixPlayModeVerifier.IsW01FireWaterIdentityVerification;
+        WorkTypeId workTypeId = BuiltInWorkTypeIds.ThreatMitigation;
+        MaintainStableWorkSubject();
+        PrepareActor(workTypeId);
+        var targets = runtimeScope.Container.Resolve<IEnvironmentalFireTargetQuery>();
+        var fires = runtimeScope.Container.Resolve<IEnvironmentalFireQuery>();
+        var commands = runtimeScope.Container.Resolve<IEnvironmentalFireCommand>();
+        var persistence = runtimeScope.Container.Resolve<IEnvironmentalFirePersistence>();
+        var response = runtimeScope.Container.Resolve<IEnvironmentalFireSuppressionWorkRuntime>();
+        if (response is not EnvironmentalFireResponseRuntime)
+            throw new InvalidOperationException("W01 fire requires the production response runtime.");
+
+        BuildableObject target = worldRegistry.Buildings.Where(value =>
+                !waterMode && value != null && !value.isDestroy && IsReachableFromSubject(value)
+                && targets.TryGetTarget(new EnvironmentalFireTargetRef(
+                    EnvironmentalFireTargetKind.Building, value.PersistentInstanceId.Value), out var candidate)
+                && candidate.CanBurn && !candidate.HasElectricalHazard
+                && candidate.Accepts(EnvironmentalFireIgnitionKind.ActiveHeatSource))
+            .OrderBy(value => Vector2Int.Distance(actor.GetNowXY(), value.centerPos))
+            .ThenBy(value => value.PersistentInstanceId.Value, StringComparer.Ordinal).FirstOrDefault();
+        if (target == null)
+        {
+            // This is a fixture placement, not evidence for construction or a
+            // heat-source producer. Ignition and all response work use real owners.
+            var warehouse = Resources.Load<BuildingSO>("SO/Building/Modular/L01_대형보관선반");
+            target = PlaceAuthoredBuilding(warehouse, out string placementFailure);
+            if (target == null)
+                throw new InvalidOperationException("W01 fire warehouse unavailable: " + placementFailure);
+        }
+        string targetId = target.RequirePersistentInstanceId().Value;
+        string actorId = actor.Identity.PersistentId;
+        var targetRef = new EnvironmentalFireTargetRef(EnvironmentalFireTargetKind.Building, targetId);
+        if (!targets.TryGetTarget(targetRef, out var targetSnapshot) || !targetSnapshot.CanBurn
+            || targetSnapshot.HasElectricalHazard || !targetSnapshot.Accepts(EnvironmentalFireIgnitionKind.ActiveHeatSource))
+            throw new InvalidOperationException("W01 fire target is not an authored combustible non-electrical heat target.");
+        var ignitionRequest = new EnvironmentalFireIgnitionRequest("qa:w01:fire-identity",
+            EnvironmentalFireIgnitionKind.ActiveHeatSource, "qa:w01:fire-fixture", targetRef,
+            waterMode ? 0.4f : 0.06f, "qa:w01:actual-ai", targetDisplayName: targetSnapshot.DisplayName);
+        EnvironmentalFireIgnitionResult ignition = commands.TryIgnite(ignitionRequest);
+        if (!ignition.Created)
+            throw new InvalidOperationException("W01 fire ignition rejected: " + ignition.Disposition + "; " + ignition.Reason);
+        string fireId = ignition.FireId;
+        if (waterMode)
+        {
+            IEnumerator haul = RunW01FireWaterHaul(target, fireId, fresh => target = fresh);
+            while (haul.MoveNext()) yield return haul.Current;
+            PrepareActor(workTypeId);
+        }
+        int physicalWaterBefore = CapturePhysicalItemQuantity("resource:clean-water");
+        using var fireGate = new W01FireDeliveryGate((EnvironmentalFireRuntime)commands,
+            runtimeScope.Container.Resolve<IWorkCompletionIdentityDeliveryCommand>());
+        w01RepairObservation = new W01RepairHandlerObservation(
+            runtimeScope.Container.Resolve<IWorkExecutionHandlerRegistry>(), observeFire: true);
+        w05IdentitySubscription = runtimeScope.Container.Resolve<IGameEventBus>()
+            .Subscribe<WorkCompletedIdentityEvent>(w05IdentityEvents.Add);
+        w05IdentityDeliveries = runtimeScope.Container.Resolve<WorkCompletionIdentityDeliveryLedger>();
+        var directBefore = FindW05DeliveryCursor(w05IdentityDeliveries.Capture(),
+            WorkCompletionIdentityDeliveryLedger.DirectEventStreamId);
+        HashSet<string> identityKeysBefore = new(CaptureIdentities().Select(W01ResultKey), StringComparer.Ordinal);
+        // Only the normal response Tick adds the work marker/alert. Do not inject
+        // a fake suppression port, mutate fire intensity, or call the handler directly.
+        yield return null;
+        if (!response.TryGetWork(target, actor, out var initialWork) || !initialWork.Available
+            || initialWork.Mode != (waterMode ? EnvironmentalFireSuppressionMode.Water : EnvironmentalFireSuppressionMode.InitialAttack))
+            throw new InvalidOperationException("W01 fire required suppression mode unavailable: " + initialWork.UnavailableReason);
+        runtimeScope.Container.Resolve<IFacilityCandidateCache>().MarkDynamicStateDirty();
+        var fixture = new MaterialWorkFixture(target, "actual-fire:" + fireId, null,
+            (out string reason) => { reason = "fire red-test does not request invalidation"; return false; });
+        WorkPhaseResult completion = null;
+        IEnumerator run = RunLivePhase(workTypeId, target, WorkProbeFault.CompleteNormally,
+            fixture, value => completion = value,
+            completionAuthoritySatisfied: () => w01RepairObservation.CompletedCalls == 1
+                && fires.History.Any(value => value.Fire.FireId == fireId
+                    && value.EndReason == EnvironmentalFireEndReason.Suppressed));
+        while (run.MoveNext()) yield return run.Current;
+        w01RepairObservation.Dispose();
+        WorkExecutionResult terminal = w01RepairObservation.Result;
+        results.Add(new WorkTypeLiveRow(workTypeId.Value, completion?.Passed == true ? "PASS" : "FAIL",
+            targetId, (completion?.Format() ?? "actual AI completion not observed")
+                + "; fire=" + fireId + "; initialIntensity=" + initialWork.Fire.Intensity));
+        if (terminal == null || !terminal.CompletedSuccessfully || string.IsNullOrEmpty(terminal.ChildResultKey))
+        {
+            results.Add(new WorkTypeLiveRow("w01:fire-terminal-child-join", "FAIL", targetId,
+                "calls=" + w01RepairObservation.CompletedCalls + "; successful=" + terminal?.CompletedSuccessfully
+                    + "; child=" + terminal?.ChildResultKey
+                    + "; domainFailure=" + terminal?.Failure + "; axis=" + terminal?.FailureAxis));
+            yield break;
+        }
+        if (!fireGate.Held)
+            throw new InvalidOperationException("W01 actual fire did not reach its mandatory identity command.");
+        var frozenRequest = fireGate.Request;
+        brain.StopCurrentActionForReplan("W01 fire post-child checkpoint");
+        work.ClearPriorityWorkTarget();
+        actor.SetAiPaused(true);
+        string fireEvidence = Path.GetDirectoryName(CharacterAiWorkTypeLiveMatrixPlayModeVerifier.W01WorkTerminalJoinReportPath);
+        Directory.CreateDirectory(fireEvidence);
+        var pendingSave = gameSaveService.Capture();
+        string pendingJson = gameSaveService.ToJson(pendingSave, true);
+        WriteUtf8LfCreateNew(Path.Combine(fireEvidence, "w01-fire-post-child-world.json"), new[] { pendingJson });
+        var pendingOwner = persistence.Capture().suppressionOperations.Single(value => value.operationId == frozenRequest.OperationId);
+        var pendingChild = W01ExactOutcomes().Single(value => W01ResultKey(value) == frozenRequest.ChildResultKey);
+        bool checkpoint = EnvironmentalFireCompletionIdentity.RequiresIdentity(pendingOwner)
+            && !pendingOwner.completionIdentityAcknowledged && !pendingOwner.outcomePending
+            && pendingOwner.commandOrigin == (int)CharacterCommandOrigin.DirectPlayerOrder
+            && CaptureIdentities().Length == identityKeysBefore.Count;
+        var invalid = gameSaveService.FromJson(pendingJson);
+        var ledgerSection = invalid.sections.Single(value => value.sectionId == GameplayOutcomeLedgerSaveSection.Id);
+        var missingChild = DungeonSaveJson.Deserialize<GameplayOutcomeLedgerSaveData>(ledgerSection.payloadJson);
+        int removed = missingChild.exactOutcomes.RemoveAll(value => W01ResultKey(value) == frozenRequest.ChildResultKey)
+            + missingChild.outbox.RemoveAll(value => W01ResultKey(value) == frozenRequest.ChildResultKey);
+        if (removed != 1) throw new InvalidOperationException("W01 requires one actual fire child for corruption test.");
+        ledgerSection.payloadJson = JsonUtility.ToJson(missingChild);
+        invalid.manifest = DungeonSaveManifest.Capture(invalid.sections);
+        WriteUtf8LfCreateNew(Path.Combine(fireEvidence, "w01-fire-missing-child-invalid-world.json"), new[] { gameSaveService.ToJson(invalid, true) });
+        var root = runtimeScope.Container.Resolve<DungeonRuntimeAggregateRootStore>();
+        int revision = root.PublishedRestoreRevision;
+        string beforeInvalid = W05SectionPayloads(gameSaveService.Capture());
+        bool accepted = gameSaveService.TryRestore(invalid, out var rejection);
+        bool rejected = !accepted && rejection.Errors.Any(value => value.Contains("Fire completion", StringComparison.Ordinal))
+            && revision == root.PublishedRestoreRevision && !root.IsRestoreStaging
+            && beforeInvalid == W05SectionPayloads(gameSaveService.Capture());
+        results.Add(new WorkTypeLiveRow("w01:fire-missing-child-rejected", rejected ? "PASS" : "FAIL", targetId,
+            "accepted=" + accepted + "; unchanged=" + rejected + "; errors=" + string.Join(" | ", rejection.Errors)));
+        if (!rejected) throw new InvalidOperationException("W01 missing fire child was not rejected atomically.");
+        if (!gameSaveService.TryRestore(gameSaveService.FromJson(pendingJson), out var pendingRestore) || !pendingRestore.Success)
+            throw new InvalidOperationException("W01 pending fire restore failed: " + string.Join(" | ", pendingRestore.Errors));
+        actor = LiveActors(worldRegistry).Single(value => value.Identity.PersistentId == actorId);
+        work = actor.GetComponent<AbilityWork>();
+        brain = actor.Brain;
+        actor.SetAiPaused(true);
+        grid = FindFirstObjectByType<GridSystemManager>()?.grid;
+        var pendingTarget = worldRegistry.Buildings.Single(value => value != null && value.PersistentInstanceId.Value == targetId);
+        bool pendingFresh = !ReferenceEquals(target, pendingTarget);
+        target = pendingTarget;
+        fireGate.Released = true;
+        float pendingGame = actor.GameClock.Time, pendingWall = Time.realtimeSinceStartup;
+        int pendingFrame = Time.frameCount;
+        while (!persistence.Capture().suppressionOperations.Single(value => value.operationId == frozenRequest.OperationId).completionIdentityAcknowledged)
+        {
+            if (actor.GameClock.Time - pendingGame > 15f && Time.frameCount - pendingFrame > 120
+                || Time.realtimeSinceStartup - pendingWall > 120f)
+                throw new InvalidOperationException("W01 pending fire identity did not finish via production Tick.");
+            yield return null;
+        }
+        var resumedChildren = W01ExactOutcomes().Where(value => W01ResultKey(value) == frozenRequest.ChildResultKey).ToArray();
+        bool resumed = checkpoint && pendingFresh && resumedChildren.Length == 1
+            && resumedChildren[0].immutablePayloadHash == pendingChild.immutablePayloadHash
+            && CaptureIdentities().Length == identityKeysBefore.Count + 1;
+        results.Add(new WorkTypeLiveRow("w01:fire-pending-save-resume", resumed ? "PASS" : "FAIL", targetId,
+            "sections=" + pendingSave.sections.Count + "; checkpoint=" + checkpoint + "; fresh=" + pendingFresh
+                + "; childCount=" + resumedChildren.Length + "; identityCount=" + CaptureIdentities().Length));
+        var child = W01ExactOutcomes().Single(value => W01ResultKey(value) == terminal.ChildResultKey);
+        var suppression = persistence.Capture().suppressionOperations.Single(value => value.operationId == child.operationId);
+        var history = fires.History.Single(value => value.Fire.FireId == fireId);
+        bool directUnchanged = W05DeliveryCursorEquals(directBefore,
+            FindW05DeliveryCursor(w05IdentityDeliveries.Capture(), WorkCompletionIdentityDeliveryLedger.DirectEventStreamId));
+        int genericEvents = w05IdentityEvents.Count(value => value.WorkId == workTypeId.Value);
+        bool joined = w01RepairObservation.CompletedCalls == 1 && completion?.ProgressDelta > 0
+            && w01RepairObservation.ActorId == actorId && w01RepairObservation.TargetId == targetId
+            && terminal.CompletionIdentityAlreadyPublished && terminal.CompletionEffectsAlreadyApplied
+            && terminal.TerminalOwnerId == EnvironmentOutcomeIds.FireSuppressionProducer
+            && terminal.TargetEntityId == targetId && terminal.ContributionWorkUnits.HasValue
+            && Math.Abs(terminal.ContributionWorkUnits.Value - suppression.approvedWork) < 0.0001f
+            && child.outcomeTypeId == EnvironmentOutcomeIds.FireSuppression.Value
+            && child.status == GameplayOutcomeStatus.Succeeded && child.absoluteDay == suppression.absoluteDay
+            && child.participants.Any(value => value.entityId == actorId && value.roleId == EnvironmentOutcomeIds.ActorRole.Value)
+            && child.participants.Any(value => value.entityId == fireId && value.roleId == EnvironmentOutcomeIds.FireRole.Value)
+            && suppression.workerId == actorId && suppression.fireId == fireId && !suppression.outcomePending
+            && suppression.resultDisposition == (int)EnvironmentalFireSuppressionDisposition.Extinguished
+            && suppression.intensityAfter == 0f && suppression.mode == (int)initialWork.Mode
+            && suppression.waterCommittedQuantity == (waterMode ? initialWork.RequiredWater : 0)
+            && (!waterMode || suppression.waterAcknowledged)
+            && history.EndReason == EnvironmentalFireEndReason.Suppressed
+            && history.Fire.TotalWaterConsumed == (waterMode ? initialWork.RequiredWater : 0)
+            && genericEvents == 0 && directUnchanged;
+        results.Add(new WorkTypeLiveRow("w01:fire-terminal-child-join", joined ? "PASS" : "FAIL", targetId,
+            "fire=" + fireId + "; operation=" + child.operationId + "; child=" + terminal.ChildResultKey
+                + "; owner=" + terminal.TerminalOwnerId + "; worker=" + actorId
+                + "; intensity=" + suppression.intensityBefore + "->" + suppression.intensityAfter
+                + "; finalWork=" + terminal.ContributionWorkUnits + "/" + suppression.approvedWork
+                + "; totalWork=" + history.Fire.TotalSuppressionWork + "; water=" + history.Fire.TotalWaterConsumed
+                + "; genericEvents=" + genericEvents + "; directUnchanged=" + directUnchanged));
+        if (waterMode)
+        {
+            var waterRows = W01ExactOutcomes().Where(value => value.outcomeTypeId == EnvironmentOutcomeIds.FireWaterConsumed.Value
+                && value.operationId == suppression.operationId).ToArray();
+            var waterCompletionIdentity = CaptureIdentities().SingleOrDefault(value =>
+                Fact(value, WorkCompletionIdentityOutcomeIds.ChildResultKeyFact) == terminal.ChildResultKey);
+            // The parent reserves its ledger sequence before the physical sink.
+            // Sequence is preparation order, not effect/commit time. Join the
+            // actual physical receipt and require both results before identity.
+            bool waterOnce = waterRows.Length == 1 && initialWork.RequiredWater == 1
+                && physicalWaterBefore - CapturePhysicalItemQuantity("resource:clean-water") == initialWork.RequiredWater
+                && !string.IsNullOrEmpty(suppression.waterLeaseId) && !string.IsNullOrEmpty(suppression.waterCommitId)
+                && suppression.waterAcknowledged && waterCompletionIdentity != null
+                && waterRows[0].sequence < waterCompletionIdentity.sequence
+                && waterRows[0].status == GameplayOutcomeStatus.Succeeded
+                && waterRows[0].absoluteDay == suppression.absoluteDay
+                && Fact(waterRows[0], EnvironmentOutcomeIds.CommitFact) == suppression.waterCommitId
+                && Fact(waterRows[0], EnvironmentOutcomeIds.CorrelationFact) == suppression.operationId
+                && Fact(child, EnvironmentOutcomeIds.CorrelationFact) == suppression.operationId
+                && waterRows[0].metrics.Single(value => value.metricId == EnvironmentOutcomeIds.QuantityMetric.Value).value == initialWork.RequiredWater
+                && child.metrics.Single(value => value.metricId == EnvironmentOutcomeIds.QuantityMetric.Value).value == initialWork.RequiredWater
+                && waterRows[0].participants.Any(value => value.entityId == actorId && value.roleId == EnvironmentOutcomeIds.ActorRole.Value)
+                && waterRows[0].participants.Any(value => value.entityId == "resource:clean-water" && value.roleId == EnvironmentOutcomeIds.ItemRole.Value);
+            results.Add(new WorkTypeLiveRow("w01:fire-water-consumed-once", waterOnce ? "PASS" : "FAIL", targetId,
+                "required=" + initialWork.RequiredWater + "; physicalDelta=" + (physicalWaterBefore - CapturePhysicalItemQuantity("resource:clean-water"))
+                    + "; rows=" + waterRows.Length + "; waterSequence=" + waterRows.FirstOrDefault()?.sequence
+                    + "; childSequence=" + child.sequence + "; lease=" + suppression.waterLeaseId
+                    + "; commit=" + suppression.waterCommitId + "; acknowledged=" + suppression.waterAcknowledged
+                    + "; identitySequence=" + waterCompletionIdentity?.sequence
+                    + "; receiptCommit=" + (waterRows.Length == 1 ? Fact(waterRows[0], EnvironmentOutcomeIds.CommitFact) : "missing")));
+        }
+        var identities = CaptureIdentities().Where(value => !identityKeysBefore.Contains(W01ResultKey(value))).ToArray();
+        var identity = identities.SingleOrDefault(value => Fact(value, WorkCompletionIdentityOutcomeIds.ChildResultKeyFact) == terminal.ChildResultKey);
+        double identityWork = identity?.metrics.FirstOrDefault(value =>
+            value.metricId == WorkCompletionIdentityOutcomeIds.ContributionMetric.Value)?.value ?? double.NaN;
+        bool identityJoined = identities.Length == 1 && suppression.completionIdentityAcknowledged
+            && identity != null && identity.status == GameplayOutcomeStatus.Succeeded
+            && identity.sequence > child.sequence && identity.absoluteDay == child.absoluteDay
+            && Fact(identity, WorkCompletionIdentityOutcomeIds.OperationIdFact) == child.operationId
+            && Fact(identity, WorkCompletionIdentityOutcomeIds.TerminalOwnerFact) == terminal.TerminalOwnerId
+            && identity.subjects.Any(value => value.entityKindId == WorkCompletionIdentityOutcomeIds.BuildingKind.Value
+                && value.entityId == targetId)
+            && terminal.ContributionWorkUnits.HasValue
+            && Math.Abs(identityWork - terminal.ContributionWorkUnits.Value) < 0.0001d;
+        results.Add(new WorkTypeLiveRow("w01:fire-identity-child-join", identityJoined ? "PASS" : "FAIL", targetId,
+            "identities=" + identities.Length + "; child=" + terminal.ChildResultKey
+                + "; identityChild=" + Fact(identity, WorkCompletionIdentityOutcomeIds.ChildResultKeyFact)
+                + "; childSequence=" + child.sequence + "; identitySequence=" + identity?.sequence
+                + "; identityOperation=" + Fact(identity, WorkCompletionIdentityOutcomeIds.OperationIdFact)
+                + "; identityOwner=" + Fact(identity, WorkCompletionIdentityOutcomeIds.TerminalOwnerFact)
+                + "; work=" + identityWork + "/" + terminal.ContributionWorkUnits));
+        brain.StopCurrentActionForReplan("W01 fire completed checkpoint");
+        work.ClearPriorityWorkTarget();
+        actor.SetAiPaused(true);
+        var completedSave = gameSaveService.Capture();
+        string completedJson = gameSaveService.ToJson(completedSave, true);
+        string directory = Path.GetDirectoryName(CharacterAiWorkTypeLiveMatrixPlayModeVerifier.W01WorkTerminalJoinReportPath);
+        Directory.CreateDirectory(directory);
+        WriteUtf8LfCreateNew(Path.Combine(directory, "w01-fire-completed-world.json"), new[] { completedJson });
+        if (!gameSaveService.TryRestore(gameSaveService.FromJson(completedJson), out var restored) || !restored.Success)
+            throw new InvalidOperationException("W01 fire completed restore rejected: " + string.Join(" | ", restored.Errors));
+        actor = LiveActors(worldRegistry).Single(value => value.Identity.PersistentId == actorId);
+        work = actor.GetComponent<AbilityWork>();
+        brain = actor.Brain;
+        grid = FindFirstObjectByType<GridSystemManager>()?.grid;
+        var freshTarget = worldRegistry.Buildings.Single(value => value != null && value.PersistentInstanceId.Value == targetId);
+        bool fresh = !ReferenceEquals(target, freshTarget);
+        var restoredChildren = W01ExactOutcomes().Where(value => W01ResultKey(value) == terminal.ChildResultKey).ToArray();
+        bool childRestored = fresh && restoredChildren.Length == 1
+            && restoredChildren[0].immutablePayloadHash == child.immutablePayloadHash
+            && !fires.ActiveFires.Any(value => value.FireId == fireId)
+            && fires.History.Single(value => value.Fire.FireId == fireId).EndReason == EnvironmentalFireEndReason.Suppressed;
+        results.Add(new WorkTypeLiveRow("w01:fire-terminal-save-join", childRestored ? "PASS" : "FAIL", targetId,
+            "officialSections=" + completedSave.sections.Count + "; freshTarget=" + fresh
+                + "; children=" + restoredChildren.Length + "; childHash=" + child.immutablePayloadHash));
+        string beforeReplay = W05SectionPayloads(gameSaveService.Capture());
+        var replayCommand = new EnvironmentalFireSuppressionCommand(suppression.operationId, suppression.fireId,
+            suppression.workerId, new Vector2Int(suppression.standX, suppression.standY),
+            (EnvironmentalFireSuppressionMode)suppression.mode, suppression.approvedWork,
+            suppression.waterLeaseId, suppression.waterQuantity, suppression.workerDisplayName,
+            (CharacterCommandOrigin)suppression.commandOrigin);
+        var replayOne = commands.TryApplySuppression(replayCommand);
+        var replayTwo = commands.TryApplySuppression(replayCommand);
+        var changed = commands.TryApplySuppression(new EnvironmentalFireSuppressionCommand(
+            suppression.operationId, suppression.fireId, suppression.workerId, replayCommand.StandPosition,
+            replayCommand.Mode, suppression.approvedWork + 1f, suppression.waterLeaseId,
+            suppression.waterQuantity, suppression.workerDisplayName,
+            (CharacterCommandOrigin)suppression.commandOrigin));
+        bool replaySafe = replayOne.Disposition == EnvironmentalFireSuppressionDisposition.PreviouslyApplied
+            && replayTwo.Disposition == EnvironmentalFireSuppressionDisposition.PreviouslyApplied
+            && replayOne.OutcomeResultKey == terminal.ChildResultKey && replayTwo.OutcomeResultKey == terminal.ChildResultKey
+            && changed.Disposition == EnvironmentalFireSuppressionDisposition.OperationConflict
+            && beforeReplay == W05SectionPayloads(gameSaveService.Capture());
+        results.Add(new WorkTypeLiveRow("w01:fire-domain-replay", replaySafe ? "PASS" : "FAIL", targetId,
+            "first=" + replayOne.Disposition + "; second=" + replayTwo.Disposition + "; changed=" + changed.Disposition
+                + "; unchanged=" + replaySafe + "; child=" + replayOne.OutcomeResultKey));
+        var restoredIdentities = CaptureIdentities().Where(value => !identityKeysBefore.Contains(W01ResultKey(value))).ToArray();
+        bool identityRestored = identityJoined && restoredIdentities.Count(value =>
+            W01ResultKey(value) == W01ResultKey(identity) && value.immutablePayloadHash == identity.immutablePayloadHash) == 1
+            && restoredIdentities.Length == identities.Length && directUnchanged;
+        results.Add(new WorkTypeLiveRow("w01:fire-identity-save-join", identityRestored ? "PASS" : "FAIL", targetId,
+            "identitiesBefore=" + identities.Length + "; identitiesAfter=" + restoredIdentities.Length
+                + "; identityHash=" + (identity?.immutablePayloadHash ?? "missing")));
+        string beforeIdentityReplay = W05SectionPayloads(gameSaveService.Capture());
+        var delivery = runtimeScope.Container.Resolve<IWorkCompletionIdentityDeliveryCommand>();
+        var identityReplayOne = delivery.EnsureApplied(frozenRequest);
+        var identityReplayTwo = delivery.EnsureApplied(frozenRequest);
+        var alteredRequest = new WorkCompletionIdentityDeliveryRequest(frozenRequest.DeliveryId,
+            frozenRequest.ProducerStreamId, frozenRequest.OperationSequence, frozenRequest.Character,
+            frozenRequest.WorkId, frozenRequest.ProductId, frozenRequest.Origin, frozenRequest.AbsoluteDay,
+            frozenRequest.OperationId, frozenRequest.TerminalOwnerId, frozenRequest.ChildResultKey,
+            frozenRequest.TargetEntityId, frozenRequest.ContributionWorkUnits + 1f);
+        var identityConflict = delivery.EnsureApplied(alteredRequest);
+        bool identitiesStable = identityReplayOne.Status == WorkCompletionIdentityDeliveryStatus.AlreadyApplied
+            && identityReplayTwo.Status == WorkCompletionIdentityDeliveryStatus.AlreadyApplied
+            && identityConflict.Status == WorkCompletionIdentityDeliveryStatus.Conflict
+            && beforeIdentityReplay == W05SectionPayloads(gameSaveService.Capture());
+        results.Add(new WorkTypeLiveRow("w01:fire-identity-replay", identitiesStable ? "PASS" : "FAIL", targetId,
+            "first=" + identityReplayOne.Status + "; second=" + identityReplayTwo.Status
+                + "; changed=" + identityConflict.Status + "; unchanged=" + identitiesStable));
+
+        GameplayOutcomeSnapshot[] CaptureIdentities() => W01ExactOutcomes().Where(value =>
+            value.outcomeTypeId == WorkCompletionIdentityOutcomeIds.Applied.Value
+            && Fact(value, WorkCompletionIdentityOutcomeIds.WorkIdFact) == workTypeId.Value
+            && value.participants.Any(participant => participant.entityId == actorId
+                && participant.roleId == WorkCompletionIdentityOutcomeIds.WorkerRole.Value)).ToArray();
+        static string Fact(GameplayOutcomeSnapshot value, GameplayOutcomeFactId fact) =>
+            value?.facts.FirstOrDefault(item => item.factId == fact.Value)?.value ?? "missing";
+    }
+
+    private IEnumerator RunW04RepairLiveFocused()
+    {
+        const string RepairOutcomeType = "work.repair-resolved";
+        WorkTypeId repairWork = BuiltInWorkTypeIds.Repair;
+        string workerId = actor.Identity.PersistentId;
+        w04RepairDeliveries = new W04RepairDeliveryObservation(
+            (WorkOrderRuntime)workOrders,
+            runtimeScope.Container.Resolve<IDomainFactPublisher>(),
+            runtimeScope.Container.Resolve<IWorkCompletionIdentityDeliveryCommand>(),
+            runtimeScope.Container.Resolve<WorkCompletionIdentityDeliveryLedger>(),
+            runtimeScope.Container.Resolve<CharacterIdentityEventPublisher>(),
+            runtimeScope.Container.Resolve<WorkIdentityAppliedFactMapping>());
+        List<W04RepairArmResult> completedArms = new(5);
+
+        BuildingSO generalDefinition = LoadAuthoredBuilding(data =>
+            data.Facility?.SupportsWork(repairWork) == true
+            && string.Equals(
+                data.GetAbility<BuildingFacilityPartAbility>()?.code,
+                "S02",
+                StringComparison.Ordinal)
+            && data.GetAbility<BuildingStructuralIntegrityAbility>() == null
+            && data.GetAbility<BuildingAutomationAbility>() == null
+            && data.GetAbility<BuildingEquipmentMaintenanceAbility>() == null
+            && data.Defense?.IsDefenseFacility != true);
+        BuildableObject general = PlaceAuthoredBuilding(
+            generalDefinition,
+            out string generalPlacementFailure);
+        if (general == null)
+        {
+            results.Add(new WorkTypeLiveRow(
+                "w04:general-repair", "FAIL", "general",
+                "fixture=" + generalPlacementFailure));
+        }
+        else
+        {
+            general.SetDamaged(true);
+            string targetId = general.RequirePersistentInstanceId().Value;
+            W04RepairArmResult arm = null;
+            IEnumerator run = RunW04RepairArm(
+                general,
+                targetId,
+                "general-damage",
+                () => !general.IsDamaged,
+                value => arm = value);
+            while (run.MoveNext()) yield return run.Current;
+            bool passed = arm?.Joined == true
+                && !general.IsDamaged
+                && W04Metric(arm.Child, MigratedProducerOutcomeIds.PreviousMetric.Value) == 1d
+                && W04Metric(arm.Child, MigratedProducerOutcomeIds.CurrentMetric.Value) == 0d;
+            results.Add(new WorkTypeLiveRow(
+                "w04:general-repair", passed ? "PASS" : "FAIL", targetId,
+                (arm?.Detail ?? "arm-missing") + "; damaged=true->" + general.IsDamaged));
+            if (arm != null) completedArms.Add(arm);
+        }
+
+        MaterialWorkFixture structuralFixture = PrepareRepairFixture(
+            out string structuralFailure);
+        if (structuralFixture == null)
+        {
+            results.Add(new WorkTypeLiveRow(
+                "w04:structural-repair", "FAIL", "structural",
+                "fixture=" + structuralFailure));
+        }
+        else
+        {
+            BuildableObject structural = structuralFixture.Target;
+            string targetId = structural.RequirePersistentInstanceId().Value;
+            IBuildingStructuralIntegrityRuntime integrity = runtimeScope.Container
+                .Resolve<IBuildingStructuralIntegrityRuntime>();
+            bool capturedBefore = integrity.TryGet(
+                structural,
+                out BuildingStructuralIntegritySnapshot before);
+            W04RepairArmResult arm = null;
+            IEnumerator run = RunW04RepairArm(
+                structural,
+                targetId,
+                "structural-integrity",
+                () => integrity.TryGet(
+                    structural,
+                    out BuildingStructuralIntegritySnapshot state)
+                    && Mathf.Approximately(
+                        state.CurrentHitPoints,
+                        state.MaxHitPoints),
+                value => arm = value,
+                structuralFixture);
+            while (run.MoveNext()) yield return run.Current;
+            bool capturedAfter = integrity.TryGet(
+                structural,
+                out BuildingStructuralIntegritySnapshot after);
+            bool passed = arm?.Joined == true
+                && capturedBefore
+                && capturedAfter
+                && before.CurrentHitPoints < before.MaxHitPoints
+                && Mathf.Approximately(after.CurrentHitPoints, after.MaxHitPoints)
+                && Math.Abs(W04Metric(
+                    arm.Child,
+                    MigratedProducerOutcomeIds.PreviousMetric.Value)
+                    - before.CurrentHitPoints) < 0.001d
+                && Math.Abs(W04Metric(
+                    arm.Child,
+                    MigratedProducerOutcomeIds.CurrentMetric.Value)
+                    - after.CurrentHitPoints) < 0.001d;
+            results.Add(new WorkTypeLiveRow(
+                "w04:structural-repair", passed ? "PASS" : "FAIL", targetId,
+                (arm?.Detail ?? "arm-missing") + "; hp="
+                    + (capturedBefore
+                        ? before.CurrentHitPoints.ToString()
+                        : "missing")
+                    + "->" + (capturedAfter
+                        ? after.CurrentHitPoints.ToString()
+                        : "missing")
+                    + "/" + (capturedAfter
+                        ? after.MaxHitPoints.ToString()
+                        : "missing")));
+            if (arm != null) completedArms.Add(arm);
+        }
+
+        BuildingSO defenseDefinition = LoadAuthoredBuilding(data =>
+            data.Facility?.SupportsWork(repairWork) == true
+            && data.Defense?.IsDefenseFacility == true);
+        DefenseFacility defense = PlaceAuthoredBuilding(
+            defenseDefinition,
+            out string defensePlacementFailure) as DefenseFacility;
+        if (defense == null)
+        {
+            results.Add(new WorkTypeLiveRow(
+                "w04:defense-repair", "FAIL", "defense",
+                "fixture=" + defensePlacementFailure));
+        }
+        else
+        {
+            DefenseFacilityRuntime defenseRuntime = runtimeScope.Container
+                .Resolve<IDefenseFacilityRuntime>() as DefenseFacilityRuntime;
+            string targetId = defense.RequirePersistentInstanceId().Value;
+            _ = defenseRuntime?.GetSnapshot(defense);
+            DefenseFacilitySaveData save = defenseRuntime?.CaptureState();
+            DefenseFacilityRecordSaveData row = save?.facilities.SingleOrDefault(
+                value => value.facilityPersistentId == targetId);
+            if (defenseRuntime == null || row == null)
+            {
+                results.Add(new WorkTypeLiveRow(
+                    "w04:defense-repair", "FAIL", targetId,
+                    "production defense state unavailable"));
+            }
+            else
+            {
+                row.condition = 45f;
+                row.operationalState = DefenseFacilityOperationalState.Ready;
+                row.blockedReason = string.Empty;
+                defenseRuntime.PublishRestoreState(
+                    defenseRuntime.PrepareRestoreState(save));
+                defense.SetDamaged(true);
+                DefenseFacilitySnapshot before = defenseRuntime.GetSnapshot(defense);
+                W04RepairArmResult arm = null;
+                IEnumerator run = RunW04RepairArm(
+                    defense,
+                    targetId,
+                    "defense-facility",
+                    () => defenseRuntime.GetSnapshot(defense).Condition >= 99.999f,
+                    value => arm = value);
+                while (run.MoveNext()) yield return run.Current;
+                DefenseFacilitySnapshot after = defenseRuntime.GetSnapshot(defense);
+                bool passed = arm?.Joined == true
+                    && before.Condition < 100f
+                    && after.Condition >= 99.999f
+                    && Math.Abs(W04Metric(
+                        arm.Child,
+                        MigratedProducerOutcomeIds.PreviousMetric.Value)
+                        - before.Condition) < 0.001d
+                    && Math.Abs(W04Metric(
+                        arm.Child,
+                        MigratedProducerOutcomeIds.CurrentMetric.Value)
+                        - after.Condition) < 0.001d;
+                results.Add(new WorkTypeLiveRow(
+                    "w04:defense-repair", passed ? "PASS" : "FAIL", targetId,
+                    (arm?.Detail ?? "arm-missing") + "; condition="
+                        + before.Condition + "->" + after.Condition));
+                if (arm != null) completedArms.Add(arm);
+            }
+        }
+
+        BuildingSO automationDefinition = LoadAuthoredBuilding(data =>
+            data.Facility?.SupportsWork(repairWork) == true
+            && data.GetAbility<BuildingAutomationAbility>() is
+                BuildingAutomationAbility ability
+            && ability.maximumMode >= AutomationMode.PoweredAssist);
+        BuildableObject automationTarget = PlaceAuthoredBuilding(
+            automationDefinition,
+            out string automationPlacementFailure);
+        if (automationTarget == null)
+        {
+            results.Add(new WorkTypeLiveRow(
+                "w04:automation-repair", "FAIL", "automation",
+                "fixture=" + automationPlacementFailure));
+        }
+        else
+        {
+            string targetId = automationTarget.RequirePersistentInstanceId().Value;
+            _ = automation.TryGetFacility(automationTarget, out _);
+            DungeonAutomationSaveData save = automationPersistence.Capture();
+            AutomationFacilitySaveData row = save.facilities.SingleOrDefault(
+                value => value.buildingInstanceId == targetId);
+            if (row == null)
+            {
+                results.Add(new WorkTypeLiveRow(
+                    "w04:automation-repair", "FAIL", targetId,
+                    "production automation state unavailable"));
+            }
+            else
+            {
+                row.mode = AutomationMode.PoweredAssist;
+                row.maintenance = 40f;
+                row.fault = 20f;
+                automationPersistence.Restore(
+                    automationPersistence.PrepareRestore(save));
+                automation.TryGetFacility(
+                    automationTarget,
+                    out AutomationFacilitySnapshot before);
+                W04RepairArmResult arm = null;
+                IEnumerator run = RunW04RepairArm(
+                    automationTarget,
+                    targetId,
+                    "automation-maintenance",
+                    () => automation.TryGetFacility(
+                        automationTarget,
+                        out AutomationFacilitySnapshot state)
+                        && state.Maintenance >= 85f
+                        && state.Fault <= 0.001f,
+                    value => arm = value);
+                while (run.MoveNext()) yield return run.Current;
+                automation.TryGetFacility(
+                    automationTarget,
+                    out AutomationFacilitySnapshot after);
+                bool passed = arm?.Joined == true
+                    && before != null
+                    && after != null
+                    && before.Maintenance < 85f
+                    && after.Maintenance >= 85f
+                    && after.Fault <= 0.001f
+                    && Math.Abs(W04Metric(
+                        arm.Child,
+                        MigratedProducerOutcomeIds.PreviousMetric.Value)
+                        - before.Maintenance) < 0.001d
+                    && Math.Abs(W04Metric(
+                        arm.Child,
+                        MigratedProducerOutcomeIds.CurrentMetric.Value)
+                        - after.Maintenance) < 0.001d;
+                results.Add(new WorkTypeLiveRow(
+                    "w04:automation-repair", passed ? "PASS" : "FAIL", targetId,
+                    (arm?.Detail ?? "arm-missing") + "; maintenance="
+                        + before?.Maintenance + "->" + after?.Maintenance
+                        + "; fault=" + before?.Fault + "->" + after?.Fault));
+                if (arm != null) completedArms.Add(arm);
+            }
+        }
+
+        IEnumerator equipmentRun = RunW04EquipmentRepair(
+            completedArms,
+            RepairOutcomeType);
+        while (equipmentRun.MoveNext())
+            yield return equipmentRun.Current;
+
+        string[] expectedKinds =
+        {
+            "general-damage",
+            "structural-integrity",
+            "defense-facility",
+            "automation-maintenance",
+            "equipment-durability"
+        };
+        bool fiveKinds = completedArms.Count == 5
+            && expectedKinds.All(kind => completedArms.Count(value =>
+                value.Kind == kind && value.Joined) == 1)
+            && completedArms.All(value => value.WorkerId == workerId)
+            && completedArms.Select(value => value.ChildResultKey)
+                .Distinct(StringComparer.Ordinal).Count() == 5
+            && completedArms.Select(value => value.Request.DeliveryId)
+                .Distinct(StringComparer.Ordinal).Count() == 5;
+        results.Add(new WorkTypeLiveRow(
+            "w04:five-kind-ledger-join",
+            fiveKinds ? "PASS" : "FAIL",
+            workerId,
+            "actualHandlerKinds=" + string.Join(",", completedArms.Select(value => value.Kind))
+                + "; joined=" + completedArms.Count(value => value.Joined)
+                + "; children=" + completedArms.Select(value => value.ChildResultKey)
+                    .Distinct(StringComparer.Ordinal).Count()
+                + "; identities=" + completedArms.Select(value => value.Request.DeliveryId)
+                    .Distinct(StringComparer.Ordinal).Count()
+                + "; expectedOutcome=" + RepairOutcomeType));
+    }
+
+    private IEnumerator RunW06ResourceCausalityFocused()
+    {
+        if (!Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification)
+        {
+            throw new InvalidOperationException(
+                "W06 requires the owned isolated PlayMode entry.");
+        }
+
+        CharacterActor[] workers = LiveActors(worldRegistry)
+            .Where(value => value != null
+                && value.Identity != null
+                && !string.IsNullOrWhiteSpace(value.Identity.PersistentId)
+                && value.GetComponent<AbilityWork>() != null)
+            .OrderBy(value => value.Identity.PersistentId, StringComparer.Ordinal)
+            .Take(2)
+            .ToArray();
+        if (workers.Length != 2)
+        {
+            throw new InvalidOperationException(
+                "W06 requires two persistent production workers.");
+        }
+
+        IWorkExecutionHandlerRegistry registry = runtimeScope.Container
+            .Resolve<IWorkExecutionHandlerRegistry>();
+        if (!registry.TryGet(BuiltInWorkTypeIds.Sow, out IWorkExecutionHandler sowHandler)
+            || !registry.TryGet(BuiltInWorkTypeIds.Gather, out IWorkExecutionHandler gatherHandler)
+            || !registry.TryGet(BuiltInWorkTypeIds.Logging, out IWorkExecutionHandler loggingHandler)
+            || sowHandler is not ResourceGatheringWorkExecutionHandler
+            || !ReferenceEquals(sowHandler, gatherHandler)
+            || !ReferenceEquals(sowHandler, loggingHandler))
+        {
+            throw new InvalidOperationException(
+                "W06 requires the registered production resource handler for Sow/Gather/Logging.");
+        }
+
+        IGameCalendar calendar = runtimeScope.Container.Resolve<IGameCalendar>();
+        int startedDay = calendar.Day;
+        string firstWorkerId = workers[0].Identity.PersistentId;
+        string secondWorkerId = workers[1].Identity.PersistentId;
+        List<CropCycleExecutionReceiptSaveData> sowReceipts = new(2);
+        List<float> sowRequiredWork = new(2);
+        List<string> sowTargets = new(2);
+
+        for (int plotIndex = 0; plotIndex < 2; plotIndex++)
+        {
+            if (!TryPrepareCropPlotFixture(
+                    BuiltInWorkTypeIds.Sow,
+                    out MaterialWorkFixture fixture,
+                    out string fixtureFailure))
+            {
+                throw new InvalidOperationException(
+                    "W06 sow fixture " + plotIndex + " failed: " + fixtureFailure);
+            }
+
+            BuildableObject target = fixture.Target;
+            string targetId = target.RequirePersistentInstanceId().Value;
+            if (!cropPlots.TryGetWork(
+                    target,
+                    BuiltInWorkTypeIds.Sow,
+                    out CropPlotWorkSnapshot ready)
+                || !ready.Available)
+            {
+                throw new InvalidOperationException(
+                    "W06 sow target was not available: " + targetId);
+            }
+
+            if (plotIndex == 0)
+            {
+                WorkExecutionResult partial = null;
+                float partialApplied = 0f;
+                IEnumerator partialRun = RunW06HandlerSlice(
+                    sowHandler,
+                    workers[0],
+                    target,
+                    BuiltInWorkTypeIds.Sow,
+                    ready.RequiredWork * 0.4f,
+                    (result, applied) =>
+                    {
+                        partial = result;
+                        partialApplied = applied;
+                    });
+                while (partialRun.MoveNext())
+                    yield return partialRun.Current;
+                if (partial == null
+                    || partial.CompletedSuccessfully
+                    || partialApplied <= 0f
+                    || !cropPlots.TryGetWork(
+                        target,
+                        BuiltInWorkTypeIds.Sow,
+                        out CropPlotWorkSnapshot remaining)
+                    || remaining.CompletedWork <= 0f
+                    || remaining.CompletedWork >= remaining.RequiredWork)
+                {
+                    throw new InvalidOperationException(
+                        "W06 first sow worker did not leave authoritative partial progress.");
+                }
+            }
+
+            CharacterActor terminalWorker = plotIndex == 0 ? workers[1] : workers[0];
+            WorkExecutionResult terminal = null;
+            float terminalApplied = 0f;
+            IEnumerator terminalRun = RunW06HandlerSlice(
+                sowHandler,
+                terminalWorker,
+                target,
+                BuiltInWorkTypeIds.Sow,
+                float.MaxValue,
+                (result, applied) =>
+                {
+                    terminal = result;
+                    terminalApplied = applied;
+                });
+            while (terminalRun.MoveNext())
+                yield return terminalRun.Current;
+            cropPlots.Tick();
+            if (terminal == null || !terminal.CompletedSuccessfully
+                || terminalApplied <= 0f)
+            {
+                throw new InvalidOperationException(
+                    "W06 sow terminal handler failed: " + targetId);
+            }
+
+            CropPlotSaveData saved = cropPlots.Capture().plots.Single(value =>
+                string.Equals(
+                    value.buildingInstanceId,
+                    targetId,
+                    StringComparison.Ordinal));
+            CropCycleExecutionReceiptSaveData receipt =
+                saved.cycleExecutionReceipt?.DeepClone();
+            if (receipt == null
+                || receipt.status != CropCycleExecutionReceiptStatus.Active
+                || receipt.plotId != targetId)
+            {
+                throw new InvalidOperationException(
+                    "W06 sow receipt was not retained by the crop owner: " + targetId);
+            }
+            sowReceipts.Add(receipt);
+            sowRequiredWork.Add(ready.RequiredWork);
+            sowTargets.Add(targetId);
+        }
+
+        HashSet<string> resourceOutcomeKeysBefore = new(
+            W01ExactOutcomes().Select(W01ResultKey),
+            StringComparer.Ordinal);
+        WorkTypeId[] resourceTypes =
+        {
+            BuiltInWorkTypeIds.Gather,
+            BuiltInWorkTypeIds.Logging
+        };
+        List<GameplayOutcomeSnapshot> resourceOutcomes = new(2);
+        List<float> resourceRequiredWork = new(2);
+        List<string> resourceTargets = new(2);
+
+        for (int resourceIndex = 0; resourceIndex < resourceTypes.Length; resourceIndex++)
+        {
+            WorkTypeId workTypeId = resourceTypes[resourceIndex];
+            if (!TryPrepareWorldResourceFixture(
+                    workTypeId,
+                    out MaterialWorkFixture fixture,
+                    out string fixtureFailure))
+            {
+                throw new InvalidOperationException(
+                    "W06 " + workTypeId.Value + " fixture failed: " + fixtureFailure);
+            }
+            BuildableObject target = fixture.Target;
+            WorldResourceNode node = (target as IWorldResourceNodeHost)?.ResourceNode;
+            if (node == null
+                || !worldResources.TryGetWork(
+                    node,
+                    workTypeId,
+                    out WorldResourceWorkSnapshot ready)
+                || !ready.Available)
+            {
+                throw new InvalidOperationException(
+                    "W06 world-resource target was not available: " + workTypeId.Value);
+            }
+
+            if (resourceIndex == 0)
+            {
+                WorkExecutionResult partial = null;
+                float partialApplied = 0f;
+                IEnumerator partialRun = RunW06HandlerSlice(
+                    gatherHandler,
+                    workers[0],
+                    target,
+                    workTypeId,
+                    ready.RequiredWork * 0.4f,
+                    (result, applied) =>
+                    {
+                        partial = result;
+                        partialApplied = applied;
+                    });
+                while (partialRun.MoveNext())
+                    yield return partialRun.Current;
+                if (partial == null
+                    || partial.CompletedSuccessfully
+                    || partialApplied <= 0f
+                    || !worldResources.TryGetWork(
+                        node,
+                        workTypeId,
+                        out WorldResourceWorkSnapshot remaining)
+                    || remaining.CompletedWork <= 0f
+                    || remaining.CompletedWork >= remaining.RequiredWork)
+                {
+                    throw new InvalidOperationException(
+                        "W06 first resource worker did not leave authoritative partial progress.");
+                }
+            }
+
+            WorkExecutionResult terminal = null;
+            float terminalApplied = 0f;
+            CharacterActor terminalWorker = resourceIndex == 0
+                ? workers[1]
+                : workers[0];
+            IEnumerator terminalRun = RunW06HandlerSlice(
+                resourceIndex == 0 ? gatherHandler : loggingHandler,
+                terminalWorker,
+                target,
+                workTypeId,
+                float.MaxValue,
+                (result, applied) =>
+                {
+                    terminal = result;
+                    terminalApplied = applied;
+                });
+            while (terminalRun.MoveNext())
+                yield return terminalRun.Current;
+            if (terminal == null || !terminal.CompletedSuccessfully
+                || terminalApplied <= 0f)
+            {
+                throw new InvalidOperationException(
+                    "W06 world-resource terminal handler failed: " + workTypeId.Value);
+            }
+
+            GameplayOutcomeSnapshot outcome = W01ExactOutcomes()
+                .Where(value => !resourceOutcomeKeysBefore.Contains(W01ResultKey(value))
+                    && value.outcomeTypeId == "world.resource-cycle-resolved"
+                    && W04Fact(value, "work-type-id") == workTypeId.Value)
+                .SingleOrDefault();
+            if (outcome == null)
+            {
+                throw new InvalidOperationException(
+                    "W06 world-resource outcome was not committed: " + workTypeId.Value);
+            }
+            resourceOutcomeKeysBefore.Add(W01ResultKey(outcome));
+            resourceOutcomes.Add(outcome);
+            resourceRequiredWork.Add(ready.RequiredWork);
+            resourceTargets.Add(target.RequirePersistentInstanceId().Value);
+        }
+
+        bool sowMultiWorker = sowReceipts[0].sowContributions.Count == 2
+            && sowReceipts[0].sowContributions.Any(value =>
+                value.characterId == firstWorkerId && value.contributedWork > 0f)
+            && sowReceipts[0].sowContributions.Any(value =>
+                value.characterId == secondWorkerId && value.contributedWork > 0f);
+        string gatherContributors = W04Fact(
+            resourceOutcomes[0],
+            MigratedProducerOutcomeIds.ContributorsFact.Value);
+        bool resourceMultiWorker = gatherContributors.Split(',').Length == 2
+            && gatherContributors.Contains(firstWorkerId + "=", StringComparison.Ordinal)
+            && gatherContributors.Contains(secondWorkerId + "=", StringComparison.Ordinal);
+        bool multiWorker = sowMultiWorker && resourceMultiWorker;
+        results.Add(new WorkTypeLiveRow(
+            "w06:multi-worker",
+            multiWorker ? "PASS" : "FAIL",
+            sowTargets[0] + "," + resourceTargets[0],
+            "handler=ResourceGatheringWorkExecutionHandler; workers="
+                + firstWorkerId + "," + secondWorkerId
+                + "; sowContributors=" + string.Join(",", sowReceipts[0]
+                    .sowContributions.Select(value => value.characterId + "="
+                        + value.contributedWork.ToString("R")))
+                + "; resourceContributors=" + gatherContributors));
+
+        bool sameDayMultipleTargets = calendar.Day == startedDay
+            && sowTargets.Distinct(StringComparer.Ordinal).Count() == 2
+            && resourceOutcomes.Select(value => value.absoluteDay).Distinct().Count() == 1
+            && resourceOutcomes[0].absoluteDay == startedDay
+            && resourceOutcomes.Select(W01ResultKey)
+                .Distinct(StringComparer.Ordinal).Count() == 2;
+        results.Add(new WorkTypeLiveRow(
+            "w06:same-day-multiple-targets",
+            sameDayMultipleTargets ? "PASS" : "FAIL",
+            string.Join(",", sowTargets.Concat(resourceTargets)),
+            "day=" + startedDay + "->" + calendar.Day
+                + "; plots=" + sowTargets.Count
+                + "; resourceOperations=" + resourceOutcomes.Count
+                + "; outcomeDays=" + string.Join(",",
+                    resourceOutcomes.Select(value => value.absoluteDay))));
+
+        bool sowCausality = sowReceipts.Select((receipt, index) => new
+            {
+                Receipt = receipt,
+                Required = sowRequiredWork[index]
+            })
+            .All(value => value.Receipt.inputQuantity > 0
+                && value.Receipt.inputMassGrams > 0L
+                && !string.IsNullOrEmpty(value.Receipt.sowCommitId)
+                && !string.IsNullOrEmpty(value.Receipt.inputVectorDigest)
+                && value.Receipt.inputs.Sum(input => input.quantity)
+                    == value.Receipt.inputQuantity
+                && Math.Abs(value.Receipt.sowContributions
+                    .Sum(contribution => contribution.contributedWork)
+                    - value.Required) < 0.001f);
+        bool resourceCausality = resourceOutcomes.Select((outcome, index) => new
+            {
+                Outcome = outcome,
+                Required = resourceRequiredWork[index]
+            })
+            .All(value => W04Metric(
+                    value.Outcome,
+                    MigratedProducerOutcomeIds.PreviousMetric.Value)
+                    > W04Metric(
+                        value.Outcome,
+                        MigratedProducerOutcomeIds.CurrentMetric.Value)
+                && Math.Abs(W04Metric(
+                        value.Outcome,
+                        MigratedProducerOutcomeIds.CompletedWorkMetric.Value)
+                    - Math.Round(value.Required * 1000d)) <= 1d
+                && W04Metric(
+                    value.Outcome,
+                    MigratedProducerOutcomeIds.OutputQuantityMetric.Value) > 0d
+                && W04Metric(
+                    value.Outcome,
+                    MigratedProducerOutcomeIds.OutputMassMetric.Value) > 0d
+                && W04Fact(value.Outcome, "recipe-id") != "missing"
+                && W04Fact(value.Outcome, "batch-commit-id") != "none"
+                && W04Fact(value.Outcome, "output-vector") != "none");
+        bool causal = sowCausality && resourceCausality;
+        results.Add(new WorkTypeLiveRow(
+            "w06:quantity-labor-causality",
+            causal ? "PASS" : "FAIL",
+            string.Join(",", resourceTargets),
+            "sowInputs=" + string.Join(",", sowReceipts.Select(value =>
+                    value.inputQuantity + "/" + value.inputMassGrams + "g"))
+                + "; sowWork=" + string.Join(",", sowReceipts.Select(value =>
+                    value.sowContributions.Sum(item => item.contributedWork)))
+                + "; resource=" + string.Join(" | ", resourceOutcomes.Select(value =>
+                    W04Fact(value, "work-type-id") + ":source="
+                    + W04Metric(value, MigratedProducerOutcomeIds.PreviousMetric.Value)
+                    + "->" + W04Metric(value, MigratedProducerOutcomeIds.CurrentMetric.Value)
+                    + "; workMilli=" + W04Metric(value,
+                        MigratedProducerOutcomeIds.CompletedWorkMetric.Value)
+                    + "; output=" + W04Fact(value, "output-vector")))));
+    }
+
+    private IEnumerator RunW06HandlerSlice(
+        IWorkExecutionHandler handler,
+        CharacterActor worker,
+        BuildableObject target,
+        WorkTypeId workTypeId,
+        float maximumApprovedWork,
+        Action<WorkExecutionResult, float> completed)
+    {
+        AbilityWork workerAbility = worker?.GetComponent<AbilityWork>();
+        if (handler == null || workerAbility == null || target == null
+            || completed == null)
+        {
+            throw new ArgumentException("W06 handler slice arguments are incomplete.");
+        }
+        float appliedWork = 0f;
+        WorkExecutionContext context = new(
+            Time.frameCount,
+            workerAbility,
+            worker,
+            target,
+            workTypeId,
+            (_, _, _) => W06UnexpectedTransientWork(),
+            () => true,
+            (required, current, _, _, applyDelta) => W06ApplyApprovedWork(
+                required,
+                current,
+                maximumApprovedWork,
+                applyDelta,
+                amount => appliedWork += amount));
+        WorkExecutionResult result = new();
+        IEnumerator execution = handler.Execute(context, result);
+        try
+        {
+            while (execution.MoveNext())
+                yield return execution.Current;
+        }
+        finally
+        {
+            (execution as IDisposable)?.Dispose();
+        }
+        completed(result, appliedWork);
+    }
+
+    private static IEnumerator W06ApplyApprovedWork(
+        float requiredWork,
+        float completedWork,
+        float maximumApprovedWork,
+        Func<float, bool> applyDelta,
+        Action<float> applied)
+    {
+        float remaining = Mathf.Max(0f, requiredWork - completedWork);
+        float amount = Mathf.Min(remaining, maximumApprovedWork);
+        if (amount <= 0f || !applyDelta(amount))
+        {
+            throw new InvalidOperationException(
+                "W06 production handler rejected approved work.");
+        }
+        applied(amount);
+        yield break;
+    }
+
+    private static IEnumerator W06UnexpectedTransientWork()
+    {
+        throw new InvalidOperationException(
+            "W06 resource handler used the non-persistent work path.");
+    }
+
+    private IEnumerator RunW04RepairArm(
+        BuildableObject target,
+        string targetEntityId,
+        string expectedKind,
+        Func<bool> completionAuthority,
+        Action<W04RepairArmResult> completed,
+        MaterialWorkFixture fixture = null)
+    {
+        runtimeScope.Container.Resolve<IFacilityCandidateCache>()
+            .MarkDynamicStateDirty();
+        yield return null;
+        const int MaximumAccidentRetries = 2;
+        int accidentRetries = 0;
+        W01RepairHandlerObservation observation = null;
+        WorkPhaseResult phase = null;
+        for (int attempt = 0; attempt <= MaximumAccidentRetries; attempt++)
+        {
+            PrepareActor(BuiltInWorkTypeIds.Repair);
+            observation = new W01RepairHandlerObservation(
+                runtimeScope.Container.Resolve<IWorkExecutionHandlerRegistry>());
+            w01RepairObservation = observation;
+            phase = null;
+            IEnumerator run = RunLivePhase(
+                BuiltInWorkTypeIds.Repair,
+                target,
+                WorkProbeFault.CompleteNormally,
+                fixture,
+                value => phase = value,
+                completionAuthoritySatisfied: () =>
+                    observation.CompletedCalls == 1 && completionAuthority());
+            while (run.MoveNext())
+                yield return run.Current;
+
+            bool workAccident = phase?.ObservedTerminalKind
+                    == CharacterAiActionTerminalKind.Failed
+                && string.Equals(
+                    brain.LastActionFailure.Reason,
+                    "work-accident",
+                    StringComparison.Ordinal);
+            if (phase?.Passed == true
+                || !workAccident
+                || attempt == MaximumAccidentRetries)
+            {
+                break;
+            }
+
+            accidentRetries++;
+            observation.Dispose();
+            observation = null;
+            w01RepairObservation = null;
+        }
+        observation.Dispose();
+        w01RepairObservation = null;
+
+        WorkExecutionResult terminal = observation.Result;
+        GameplayOutcomeSnapshot[] children = string.IsNullOrEmpty(
+                terminal?.ChildResultKey)
+            ? Array.Empty<GameplayOutcomeSnapshot>()
+            : W01ExactOutcomes().Where(value =>
+                W01ResultKey(value) == terminal.ChildResultKey).ToArray();
+        GameplayOutcomeSnapshot child = children.SingleOrDefault();
+        WorkCompletionIdentityDeliveryRequest[] requests = terminal == null
+            ? Array.Empty<WorkCompletionIdentityDeliveryRequest>()
+            : w04RepairDeliveries.Requests.Where(value =>
+                value.ChildResultKey == terminal.ChildResultKey).ToArray();
+        WorkCompletionIdentityDeliveryRequest request = requests.SingleOrDefault();
+        GameplayOutcomeSnapshot[] identities = terminal == null
+            ? Array.Empty<GameplayOutcomeSnapshot>()
+            : W01ExactOutcomes().Where(value =>
+                value.outcomeTypeId == WorkCompletionIdentityOutcomeIds.Applied.Value
+                && value.facts.Any(fact =>
+                    fact.factId == WorkCompletionIdentityOutcomeIds.ChildResultKeyFact.Value
+                    && fact.value == terminal.ChildResultKey)).ToArray();
+        string workerId = actor.Identity.PersistentId;
+        string facilityId = target.RequirePersistentInstanceId().Value;
+        bool joined = phase?.Passed == true
+            && observation.CompletedCalls == 1
+            && observation.ActorId == workerId
+            && observation.TargetId == facilityId
+            && terminal?.CompletedSuccessfully == true
+            && terminal.CompletionIdentityAlreadyPublished
+            && terminal.TerminalOwnerId == "repair-work-outcome"
+            && terminal.TargetEntityId == targetEntityId
+            && terminal.ContributionWorkUnits is > 0f
+            && children.Length == 1
+            && child.outcomeTypeId == "work.repair-resolved"
+            && child.status == GameplayOutcomeStatus.Succeeded
+            && W04Fact(child, "repair-kind") == expectedKind
+            && W04Fact(child, "repair-target-id") == targetEntityId
+            && child.participants.Any(value =>
+                value.entityId == workerId
+                && value.roleId == MigratedProducerOutcomeIds.ActorRole.Value)
+            && child.participants.Any(value =>
+                value.entityId == facilityId
+                && value.roleId == MigratedProducerOutcomeIds.FacilityRole.Value)
+            && W04Metric(child, MigratedProducerOutcomeIds.CompletedWorkMetric.Value) > 0d
+            && requests.Length == 1
+            && request.Character.Value == workerId
+            && request.TargetEntityId == targetEntityId
+            && request.TerminalOwnerId == "repair-work-outcome"
+            && identities.Length == 1
+            && identities[0].sequence > child.sequence;
+        completed(new W04RepairArmResult(
+            expectedKind,
+            workerId,
+            facilityId,
+            targetEntityId,
+            phase,
+            terminal,
+            child,
+            request,
+            joined,
+            "phase=" + (phase?.Passed == true)
+                + "; accidentRetries=" + accidentRetries
+                + "; phaseDetail=" + (phase?.Format() ?? "missing")
+                + "; calls=" + observation.CompletedCalls
+                + "; childCount=" + children.Length
+                + "; identityCount=" + identities.Length
+                + "; contribution=" + terminal?.ContributionWorkUnits
+                + "; kind=" + W04Fact(child, "repair-kind")
+                + "; target=" + W04Fact(child, "repair-target-id")
+                + "; completedMilli="
+                + W04Metric(child, MigratedProducerOutcomeIds.CompletedWorkMetric.Value)));
+    }
+
+    private IEnumerator RunW04EquipmentRepair(
+        List<W04RepairArmResult> completedArms,
+        string repairOutcomeType)
+    {
+        BuildingSO maintenanceDefinition = LoadAuthoredBuilding(data =>
+            data.Facility?.SupportsWork(BuiltInWorkTypeIds.Repair) == true
+            && data.GetAbility<BuildingEquipmentMaintenanceAbility>() != null);
+        BuildableObject placedFacility = PlaceAuthoredBuilding(
+            maintenanceDefinition,
+            out string placementFailure);
+        if (placedFacility == null)
+        {
+            results.Add(new WorkTypeLiveRow(
+                "w04:equipment-material-shortage", "FAIL", "equipment",
+                "fixture=" + placementFailure));
+            results.Add(new WorkTypeLiveRow(
+                "w04:equipment-partial-save-resume", "FAIL", "equipment",
+                "fixture unavailable"));
+            results.Add(new WorkTypeLiveRow(
+                "w04:equipment-repair", "FAIL", "equipment",
+                "fixture unavailable"));
+            results.Add(new WorkTypeLiveRow(
+                "w04:terminal-replay", "FAIL", "equipment",
+                "fixture unavailable"));
+            yield break;
+        }
+
+        ICombatEquipmentRuntime equipment = runtimeScope.Container
+            .Resolve<ICombatEquipmentRuntime>();
+        ICombatEquipmentMaintenanceRuntime maintenance = runtimeScope.Container
+            .Resolve<ICombatEquipmentMaintenanceRuntime>();
+        BuildingEquipmentMaintenanceAbility ability = maintenanceDefinition
+            .GetAbility<BuildingEquipmentMaintenanceAbility>();
+        string expectedMaterialItemId = ability?.RepairSupplyItemId
+            ?? "tool:maintenance-kit";
+        foreach (WorldItemStackSnapshot existing in physicalItems.GetAllStacks()
+                     .Where(value => value != null
+                         && value.ItemId == expectedMaterialItemId)
+                     .ToArray())
+        {
+            if (!physicalItems.SetForbidden(existing.StackId, true))
+            {
+                throw new InvalidOperationException(
+                    "W04 could not isolate existing repair supply: "
+                    + existing.StackId);
+            }
+        }
+
+        CombatEquipmentInstance instance = equipment.CreateInstance(
+            "armor:cloth-hood",
+            CombatEquipmentQuality.Normal,
+            CombatEquipmentWorldState.Loose);
+        if (instance == null
+            || !equipment.TryApplyDurabilityDamage(instance.instanceId, 60f)
+            || !equipment.TryGetInstance(
+                instance.instanceId,
+                out CombatEquipmentInstance damaged))
+        {
+            throw new InvalidOperationException(
+                "W04 could not create the damaged equipment fixture.");
+        }
+        float durabilityBefore = damaged.durabilityRatio;
+        int repairChildrenBefore = W01ExactOutcomes().Count(value =>
+            value.outcomeTypeId == repairOutcomeType
+            && W04Fact(value, "repair-target-id") == instance.instanceId);
+        int materialBefore = CapturePhysicalItemQuantity(expectedMaterialItemId);
+        DungeonWorkOrderSaveData ownersBefore = workOrders.Capture();
+        long approvedBefore = work.ApprovedWorkProgressRevisionForDiagnostics;
+        if (!maintenance.TryRequestManualRepair(
+                instance.instanceId,
+                out string requestMessage))
+        {
+            throw new InvalidOperationException(
+                "W04 equipment repair request failed: " + requestMessage);
+        }
+
+        CombatEquipmentRepairOrder requested = maintenance.Orders.Single(value =>
+            value.equipmentInstanceId == instance.instanceId);
+        BuildableObject facility = worldRegistry.Buildings.Single(value =>
+            value != null
+            && value.PersistentInstanceId.Value == requested.facilityBuildingId);
+        string facilityId = facility.RequirePersistentInstanceId().Value;
+        string orderId = requested.orderId;
+        string materialItemId = requested.materialItemId;
+        if (!string.Equals(
+                materialItemId,
+                expectedMaterialItemId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "W04 authored maintenance supply differs from its order: expected="
+                + expectedMaterialItemId + "; actual=" + materialItemId);
+        }
+
+        PrepareActor(BuiltInWorkTypeIds.Repair);
+        GridPathSearchResult shortageSearch = grid.SearchPath(actor.GetNowXY());
+        bool firstPriorityAccepted = work.TrySetPriorityWorkTarget(
+            facility,
+            BuiltInWorkTypeIds.Repair,
+            shortageSearch,
+            out string firstPriorityFailure);
+        bool secondPriorityAccepted = work.TrySetPriorityWorkTarget(
+            facility,
+            BuiltInWorkTypeIds.Repair,
+            shortageSearch,
+            out string secondPriorityFailure);
+        work.ClearPriorityWorkTarget();
+        maintenance.HasRepairWorkFor(facility);
+        CombatEquipmentRepairOrder shortage = maintenance.Orders.Single(value =>
+            value.orderId == orderId);
+        equipment.TryGetInstance(
+            instance.instanceId,
+            out CombatEquipmentInstance shortageEquipment);
+        bool shortagePassed = shortage.state
+                == CombatEquipmentRepairOrderState.WaitingForDelivery
+            && !maintenance.HasRepairWorkFor(facility)
+            && !firstPriorityAccepted
+            && !secondPriorityAccepted
+            && Mathf.Approximately(
+                shortageEquipment.durabilityRatio,
+                durabilityBefore)
+            && CapturePhysicalItemQuantity(materialItemId) == materialBefore
+            && work.ApprovedWorkProgressRevisionForDiagnostics == approvedBefore
+            && workOrders.Capture().repairOutcomes.Count
+                == ownersBefore.repairOutcomes.Count
+            && W01ExactOutcomes().Count(value =>
+                value.outcomeTypeId == repairOutcomeType
+                && W04Fact(value, "repair-target-id") == instance.instanceId)
+                == repairChildrenBefore;
+        results.Add(new WorkTypeLiveRow(
+            "w04:equipment-material-shortage",
+            shortagePassed ? "PASS" : "FAIL",
+            instance.instanceId,
+            "state=" + shortage.state
+                + "; repairAvailable=" + maintenance.HasRepairWorkFor(facility)
+                + "; priority=" + firstPriorityAccepted + "/"
+                + secondPriorityAccepted
+                + "; failures=" + firstPriorityFailure + "/"
+                + secondPriorityFailure
+                + "; durability=" + durabilityBefore + "->"
+                + shortageEquipment.durabilityRatio
+                + "; material=" + materialBefore + "->"
+                + CapturePhysicalItemQuantity(materialItemId)
+                + "; ownerDelta="
+                + (workOrders.Capture().repairOutcomes.Count
+                    - ownersBefore.repairOutcomes.Count)));
+
+        HashSet<string> oldStackIds = new(
+            physicalItems.GetAllStacks().Where(value => value != null)
+                .Select(value => value.StackId),
+            StringComparer.Ordinal);
+        if (!physicalItems.SpawnItemAt(
+                materialItemId,
+                requested.requiredMaterialAmount,
+                actor.GetNowXY(),
+                WorldItemStackState.Loose,
+                string.Empty,
+                out int spawned)
+            || spawned != requested.requiredMaterialAmount)
+        {
+            throw new InvalidOperationException(
+                "W04 could not create exact repair supplies.");
+        }
+        WorldItemStackSnapshot supply = physicalItems.GetAllStacks().Single(value =>
+            value != null
+            && !oldStackIds.Contains(value.StackId)
+            && value.ItemId == materialItemId);
+        int materialAfterSpawn = CapturePhysicalItemQuantity(materialItemId);
+        int haulRuns = 0;
+        IEnumerator haulRun = RunW04EquipmentHaulUntilReady(
+            maintenance,
+            facility,
+            orderId,
+            value => haulRuns = value);
+        while (haulRun.MoveNext())
+            yield return haulRun.Current;
+
+        CombatEquipmentRepairOrder ready = maintenance.Orders.Single(value =>
+            value.orderId == orderId);
+        if (ready.state != CombatEquipmentRepairOrderState.Ready
+            || !maintenance.HasRepairWorkFor(facility))
+        {
+            results.Add(new WorkTypeLiveRow(
+                "w04:equipment-partial-save-resume", "FAIL",
+                instance.instanceId,
+                "delivery did not reach Ready; state=" + ready.state
+                    + "; hauls=" + haulRuns));
+            results.Add(new WorkTypeLiveRow(
+                "w04:equipment-repair", "FAIL", instance.instanceId,
+                "delivery did not reach Ready"));
+            results.Add(new WorkTypeLiveRow(
+                "w04:terminal-replay", "FAIL", instance.instanceId,
+                "delivery did not reach Ready"));
+            yield break;
+        }
+
+        PrepareActor(BuiltInWorkTypeIds.Repair);
+        WorkPhaseResult partial = null;
+        IEnumerator partialRun = RunLivePhase(
+            BuiltInWorkTypeIds.Repair,
+            facility,
+            WorkProbeFault.CancelAfterApprovedProgress,
+            null,
+            value => partial = value);
+        while (partialRun.MoveNext())
+            yield return partialRun.Current;
+        CombatEquipmentRepairOrder partialOrder = maintenance.Orders
+            .SingleOrDefault(value => value.orderId == orderId);
+        RepairWorkOutcomeSaveData partialOwner = workOrders.Capture()
+            .repairOutcomes.SingleOrDefault(value =>
+                value.kind == RepairWorkOutcomeKind.EquipmentDurability
+                && value.targetEntityId == instance.instanceId);
+        equipment.TryGetInstance(
+            instance.instanceId,
+            out CombatEquipmentInstance partialEquipment);
+        bool partialAuthority = partial?.Passed == true
+            && partialOrder != null
+            && partialOrder.state == CombatEquipmentRepairOrderState.InProgress
+            && partialOrder.completedWork > 0f
+            && partialOrder.completedWork < partialOrder.requiredWork
+            && !partialOrder.materialsConsumed
+            && partialOwner != null
+            && !partialOwner.terminal
+            && partialOwner.contributions.Sum(value => value.contributedWork) > 0f
+            && Mathf.Approximately(
+                partialEquipment.durabilityRatio,
+                durabilityBefore)
+            && CapturePhysicalItemQuantity(materialItemId) == materialAfterSpawn;
+        if (!partialAuthority)
+        {
+            results.Add(new WorkTypeLiveRow(
+                "w04:equipment-partial-save-resume", "FAIL",
+                instance.instanceId,
+                (partial?.Format() ?? "partial-phase-missing")
+                    + "; order=" + (partialOrder?.state.ToString() ?? "missing")
+                    + "; work=" + partialOrder?.completedWork + "/"
+                    + partialOrder?.requiredWork
+                    + "; consumed=" + partialOrder?.materialsConsumed
+                    + "; owner=" + (partialOwner != null)
+                    + "; terminal=" + partialOwner?.terminal
+                    + "; durability=" + partialEquipment?.durabilityRatio
+                    + "; material=" + CapturePhysicalItemQuantity(materialItemId)
+                    + "; expected=" + materialAfterSpawn));
+            results.Add(new WorkTypeLiveRow(
+                "w04:equipment-repair", "FAIL", instance.instanceId,
+                "partial checkpoint was not available for resume"));
+            results.Add(new WorkTypeLiveRow(
+                "w04:terminal-replay", "FAIL", instance.instanceId,
+                "partial checkpoint was not available for replay"));
+            yield break;
+        }
+
+        string workerId = actor.Identity.PersistentId;
+        DungeonGameSaveData partialWorld = gameSaveService.Capture();
+        string partialJson = gameSaveService.ToJson(partialWorld, true);
+        W04WriteEvidence("w04-equipment-partial-world.json", partialJson);
+        CharacterActor staleActor = actor;
+        BuildableObject staleFacility = facility;
+        if (!gameSaveService.TryRestore(
+                gameSaveService.FromJson(partialJson),
+                out DungeonGameRestoreReport partialRestore)
+            || !partialRestore.Success)
+        {
+            throw new InvalidOperationException(
+                "W04 equipment partial restore failed: "
+                + string.Join(" | ", partialRestore.Errors));
+        }
+        actor = LiveActors(worldRegistry).Single(value =>
+            value.Identity.PersistentId == workerId);
+        foreach (CharacterActor other in LiveActors(worldRegistry))
+            other.SetAiPaused(true);
+        work = actor.GetComponent<AbilityWork>();
+        brain = actor.Brain;
+        grid = FindFirstObjectByType<GridSystemManager>()?.grid;
+        facility = worldRegistry.Buildings.Single(value => value != null
+            && value.PersistentInstanceId.Value == facilityId);
+        maintenance = runtimeScope.Container
+            .Resolve<ICombatEquipmentMaintenanceRuntime>();
+        equipment = runtimeScope.Container.Resolve<ICombatEquipmentRuntime>();
+        CombatEquipmentRepairOrder restoredOrder = maintenance.Orders
+            .SingleOrDefault(value => value.orderId == orderId);
+        RepairWorkOutcomeSaveData restoredOwner = workOrders.Capture()
+            .repairOutcomes.SingleOrDefault(value =>
+                value.kind == RepairWorkOutcomeKind.EquipmentDurability
+                && value.targetEntityId == instance.instanceId);
+        bool partialRestored = !ReferenceEquals(staleActor, actor)
+            && !ReferenceEquals(staleFacility, facility)
+            && restoredOrder != null
+            && restoredOrder.state == CombatEquipmentRepairOrderState.InProgress
+            && Mathf.Approximately(
+                restoredOrder.completedWork,
+                partialOrder.completedWork)
+            && restoredOwner != null
+            && restoredOwner.operationId == partialOwner.operationId
+            && restoredOwner.contributions.Sum(value => value.contributedWork)
+                == partialOwner.contributions.Sum(value => value.contributedWork)
+            && CapturePhysicalItemQuantity(materialItemId) == materialAfterSpawn;
+        results.Add(new WorkTypeLiveRow(
+            "w04:equipment-partial-save-resume",
+            partialRestored ? "PASS" : "FAIL",
+            instance.instanceId,
+            "sections=" + partialWorld.sections.Count
+                + "; freshActor=" + !ReferenceEquals(staleActor, actor)
+                + "; freshFacility=" + !ReferenceEquals(staleFacility, facility)
+                + "; state=" + restoredOrder?.state
+                + "; work=" + restoredOrder?.completedWork + "/"
+                + restoredOrder?.requiredWork
+                + "; owner=" + restoredOwner?.operationId
+                + "; material=" + CapturePhysicalItemQuantity(materialItemId)));
+        if (!partialRestored)
+        {
+            results.Add(new WorkTypeLiveRow(
+                "w04:equipment-repair", "FAIL", instance.instanceId,
+                "official partial restore did not preserve repair state"));
+            results.Add(new WorkTypeLiveRow(
+                "w04:terminal-replay", "FAIL", instance.instanceId,
+                "official partial restore did not preserve replay state"));
+            yield break;
+        }
+
+        W04RepairArmResult arm = null;
+        IEnumerator resumeRun = RunW04RepairArm(
+            facility,
+            instance.instanceId,
+            "equipment-durability",
+            () => equipment.TryGetInstance(
+                    instance.instanceId,
+                    out CombatEquipmentInstance state)
+                && state.durabilityRatio >= restoredOrder.targetDurability
+                    - 0.0001f,
+            value => arm = value);
+        while (resumeRun.MoveNext())
+            yield return resumeRun.Current;
+        equipment.TryGetInstance(
+            instance.instanceId,
+            out CombatEquipmentInstance completedEquipment);
+        int materialAfter = CapturePhysicalItemQuantity(materialItemId);
+        double materialQuantity = W04Metric(
+            arm?.Child,
+            MigratedProducerOutcomeIds.InputQuantityMetric.Value);
+        double materialMass = W04Metric(
+            arm?.Child,
+            MigratedProducerOutcomeIds.InputMassMetric.Value);
+        string materialSources = W04Fact(arm?.Child, "repair-material-sources");
+        bool equipmentPassed = arm?.Joined == true
+            && completedEquipment != null
+            && completedEquipment.durabilityRatio
+                >= restoredOrder.targetDurability - 0.0001f
+            && Math.Abs(W04Metric(
+                    arm.Child,
+                    MigratedProducerOutcomeIds.PreviousMetric.Value)
+                - durabilityBefore) < 0.0001d
+            && Math.Abs(W04Metric(
+                    arm.Child,
+                    MigratedProducerOutcomeIds.CurrentMetric.Value)
+                - completedEquipment.durabilityRatio) < 0.0001d
+            && materialAfterSpawn - materialAfter
+                == restoredOrder.requiredMaterialAmount
+            && Math.Abs(materialQuantity - restoredOrder.requiredMaterialAmount)
+                < 0.001d
+            && materialMass > 0d
+            && materialSources.Contains(materialItemId, StringComparison.Ordinal)
+            && materialSources.Contains(supply.StackId, StringComparison.Ordinal);
+        results.Add(new WorkTypeLiveRow(
+            "w04:equipment-repair",
+            equipmentPassed ? "PASS" : "FAIL",
+            instance.instanceId,
+            (arm?.Detail ?? "arm-missing")
+                + "; durability=" + durabilityBefore + "->"
+                + completedEquipment?.durabilityRatio
+                + "; target=" + restoredOrder.targetDurability
+                + "; material=" + materialAfterSpawn + "->" + materialAfter
+                + "; required=" + restoredOrder.requiredMaterialAmount
+                + "; childQuantity=" + materialQuantity
+                + "; childMass=" + materialMass
+                + "; sources=" + materialSources
+                + "; hauls=" + haulRuns));
+        if (arm != null)
+            completedArms.Add(arm);
+        if (arm == null || !equipmentPassed)
+        {
+            results.Add(new WorkTypeLiveRow(
+                "w04:terminal-replay", "FAIL", instance.instanceId,
+                "equipment completion did not produce an exact replay request"));
+            yield break;
+        }
+
+        DungeonGameSaveData completedWorld = gameSaveService.Capture();
+        string completedJson = gameSaveService.ToJson(completedWorld, true);
+        W04WriteEvidence("w04-equipment-completed-world.json", completedJson);
+        if (!gameSaveService.TryRestore(
+                gameSaveService.FromJson(completedJson),
+                out DungeonGameRestoreReport completedRestore)
+            || !completedRestore.Success)
+        {
+            throw new InvalidOperationException(
+                "W04 equipment completed restore failed: "
+                + string.Join(" | ", completedRestore.Errors));
+        }
+        actor = LiveActors(worldRegistry).Single(value =>
+            value.Identity.PersistentId == workerId);
+        work = actor.GetComponent<AbilityWork>();
+        brain = actor.Brain;
+        grid = FindFirstObjectByType<GridSystemManager>()?.grid;
+        equipment = runtimeScope.Container.Resolve<ICombatEquipmentRuntime>();
+        equipment.TryGetInstance(
+            instance.instanceId,
+            out CombatEquipmentInstance replayEquipment);
+        string beforeReplay = W05SectionPayloads(gameSaveService.Capture());
+        IWorkCompletionIdentityDeliveryCommand delivery = runtimeScope.Container
+            .Resolve<IWorkCompletionIdentityDeliveryCommand>();
+        WorkCompletionIdentityDeliveryResult replayOne = delivery.EnsureApplied(
+            arm.Request);
+        WorkCompletionIdentityDeliveryResult replayTwo = delivery.EnsureApplied(
+            arm.Request);
+        GameplayOutcomeSnapshot[] replayChildren = W01ExactOutcomes().Where(value =>
+            W01ResultKey(value) == arm.ChildResultKey).ToArray();
+        GameplayOutcomeSnapshot[] replayIdentities = W01ExactOutcomes().Where(value =>
+            value.outcomeTypeId == WorkCompletionIdentityOutcomeIds.Applied.Value
+            && W04Fact(
+                value,
+                WorkCompletionIdentityOutcomeIds.ChildResultKeyFact.Value)
+                == arm.ChildResultKey).ToArray();
+        bool replayPassed = replayOne.Status
+                == WorkCompletionIdentityDeliveryStatus.AlreadyApplied
+            && replayTwo.Status
+                == WorkCompletionIdentityDeliveryStatus.AlreadyApplied
+            && beforeReplay == W05SectionPayloads(gameSaveService.Capture())
+            && replayChildren.Length == 1
+            && replayIdentities.Length == 1
+            && replayEquipment != null
+            && Mathf.Approximately(
+                replayEquipment.durabilityRatio,
+                completedEquipment.durabilityRatio)
+            && CapturePhysicalItemQuantity(materialItemId) == materialAfter;
+        results.Add(new WorkTypeLiveRow(
+            "w04:terminal-replay",
+            replayPassed ? "PASS" : "FAIL",
+            instance.instanceId,
+            "officialRestore=true; first=" + replayOne.Status
+                + "; second=" + replayTwo.Status
+                + "; sectionsUnchanged="
+                + (beforeReplay == W05SectionPayloads(gameSaveService.Capture()))
+                + "; childCount=" + replayChildren.Length
+                + "; identityCount=" + replayIdentities.Length
+                + "; material=" + CapturePhysicalItemQuantity(materialItemId)
+                + "; durability=" + replayEquipment?.durabilityRatio));
+    }
+
+    private IEnumerator RunW04EquipmentHaulUntilReady(
+        ICombatEquipmentMaintenanceRuntime maintenance,
+        BuildableObject facility,
+        string orderId,
+        Action<int> completed)
+    {
+        const int MaximumHaulRuns = 4;
+        int runs = 0;
+        while (!maintenance.HasRepairWorkFor(facility)
+               && runs < MaximumHaulRuns)
+        {
+            CombatEquipmentRepairOrder order = maintenance.Orders
+                .SingleOrDefault(value => value.orderId == orderId);
+            if (order == null)
+                break;
+            PrepareActor(BuiltInWorkTypeIds.Haul);
+            AbilityHaul haul = AbilityHaul.Ensure(actor);
+            long startsBefore = haul.RuntimeHaulStartCount;
+            long terminalsBefore = haul.RuntimeHaulTerminalCount;
+            actor.SetAiPaused(false);
+            if (!brain.PreferActionOnNextDecision<AIHaul>())
+            {
+                throw new InvalidOperationException(
+                    "W04 actor has no authored AIHaul action.");
+            }
+            brain.RequestImmediateReplan(clearFailures: true);
+            float deadline = Time.realtimeSinceStartup + 45f;
+            bool sawHaul = false;
+            while (Time.realtimeSinceStartup < deadline)
+            {
+                MaintainStableWorkSubject();
+                sawHaul |= brain.bestAction?.actionset is AIHaul
+                    && brain.HasRunningAction;
+                if (sawHaul
+                    && haul.RuntimeHaulTerminalCount > terminalsBefore
+                    && !haul.IsHauling)
+                    break;
+                yield return null;
+            }
+            actor.SetAiPaused(true);
+            runs++;
+            if (!sawHaul
+                || haul.RuntimeHaulStartCount <= startsBefore
+                || haul.RuntimeHaulTerminalCount <= terminalsBefore)
+            {
+                throw new InvalidOperationException(
+                    "W04 actual Brain -> AIHaul delivery did not settle: run="
+                    + runs + "; saw=" + sawHaul + "; starts="
+                    + startsBefore + "->" + haul.RuntimeHaulStartCount
+                    + "; terminals=" + terminalsBefore + "->"
+                    + haul.RuntimeHaulTerminalCount);
+            }
+        }
+        completed(runs);
+    }
+
+    private static string W04Fact(
+        GameplayOutcomeSnapshot outcome,
+        string factId) => outcome?.facts
+            .FirstOrDefault(value => value.factId == factId)?.value
+        ?? "missing";
+
+    private static double W04Metric(
+        GameplayOutcomeSnapshot outcome,
+        string metricId) => outcome?.metrics
+            .FirstOrDefault(value => value.metricId == metricId)?.value
+        ?? double.NaN;
+
+    private static void W04WriteEvidence(string name, string content)
+    {
+        string directory = Path.GetDirectoryName(
+            CharacterAiWorkTypeLiveMatrixPlayModeVerifier.W04RepairLiveReportPath);
+        Directory.CreateDirectory(directory);
+        WriteUtf8LfCreateNew(Path.Combine(directory, name), new[] { content });
+    }
+
+    private IEnumerator RunW01FireWaterHaul(BuildableObject target, string fireId,
+        Action<BuildableObject> completed)
+    {
+        const string waterId = "resource:clean-water";
+        string actorId = actor.Identity.PersistentId;
+        string targetId = target.PersistentInstanceId.Value;
+        string destination = EnvironmentalFireWaterDestinationIdentity.Create(fireId);
+        string directory = Path.GetDirectoryName(CharacterAiWorkTypeLiveMatrixPlayModeVerifier.W01WorkTerminalJoinReportPath);
+        Directory.CreateDirectory(directory);
+        // Only the original physical stock is a fixture. Response Tick must request
+        // its delivery; Brain/AIHaul must pick it up and deliver it to the real claim.
+        foreach (var existing in physicalItems.GetAllStacks().Where(value => value != null && value.ItemId == waterId).ToArray())
+            if (!physicalItems.SetForbidden(existing.StackId, true))
+                throw new InvalidOperationException("W01 could not isolate competing water stock: " + existing.StackId);
+        HashSet<string> oldIds = new(physicalItems.GetAllStacks().Select(value => value.StackId), StringComparer.Ordinal);
+        if (!physicalItems.SpawnItemAt(waterId, 1, actor.GetNowXY(), WorldItemStackState.Loose,
+                string.Empty, out int spawned) || spawned != 1)
+            throw new InvalidOperationException("W01 water source fixture could not be created.");
+        var source = physicalItems.GetAllStacks().Single(value => !oldIds.Contains(value.StackId) && value.ItemId == waterId);
+        PrepareActor(BuiltInWorkTypeIds.Haul);
+        AbilityHaul haul = AbilityHaul.Ensure(actor);
+        long startCount = haul.RuntimeHaulStartCount;
+        long brainStartCount = brain.RuntimeActionStartCount;
+        actor.SetAiPaused(false);
+        if (!brain.PreferActionOnNextDecision<AIHaul>())
+            throw new InvalidOperationException("W01 actor has no authored AIHaul action.");
+        brain.RequestImmediateReplan(clearFailures: true);
+        float startedGame = actor.GameClock.Time, startedWall = Time.realtimeSinceStartup;
+        int startedFrame = Time.frameCount;
+        bool sawBrainHaul = false;
+        HaulDeliveryIntentSaveData picked = null;
+        while (picked == null)
+        {
+            MaintainStableWorkSubject();
+            sawBrainHaul |= brain.bestAction?.actionset is AIHaul && brain.HasRunningAction;
+            HaulDeliveryIntentSaveData candidate = haul.CaptureDeliveryIntentForSave();
+            if (candidate?.HasCommittedPickup == true && candidate.destinationId == destination)
+                picked = candidate;
+            else
+            {
+                RequireProgressTime("pickup");
+                yield return null;
+            }
+        }
+        var carryBefore = actor.CarryInventory.Items.Single(value => value.ownerOperationId == picked.operationId && value.itemId == waterId);
+        bool pickupExact = sawBrainHaul && brain.RuntimeActionStartCount > brainStartCount
+            && haul.RuntimeHaulStartCount > startCount && picked.ownerCharacterId == actorId
+            && carryBefore.sourceStackId == source.StackId && carryBefore.quantity == 1
+            && picked.commitments.Sum(value => value.quantity) == 1
+            && picked.commitments.Single().carriedStackId == carryBefore.carriedStackId;
+        // Supplemental authority check: an existing facility on the exact same
+        // cell must not substitute for the fire's missing or foreign claim.
+        var claimQuery = runtimeScope.Container.Resolve<IFacilityBufferDestinationClaimQuery>();
+        var workOrders = runtimeScope.Container.Resolve<IWorkOrderQuery>();
+        var emptyClaims = new FacilityBufferDestinationClaimRegistry();
+        var foreignClaims = new FacilityBufferDestinationClaimRegistry();
+        if (!foreignClaims.TryClaim(new FacilityBufferDestinationClaim(destination, target.centerPos,
+                "qa:foreign-owner", fireId, targetId, FacilityBufferDestinationAnchorKind.LiveBuilding), out _, out _))
+            throw new InvalidOperationException("W01 could not construct the foreign-claim negative fixture.");
+        bool realResolved = WorldItemHaulDestinationAuthority.TryResolve(grid, worldRegistry, workOrders,
+            claimQuery, WorldItemHaulDestinationKind.FacilityBuffer, destination, target.centerPos, out _, out string realFailure);
+        bool missingResolved = WorldItemHaulDestinationAuthority.TryResolve(grid, worldRegistry, workOrders,
+            emptyClaims, WorldItemHaulDestinationKind.FacilityBuffer, destination, target.centerPos, out _, out string missingFailure);
+        bool foreignResolved = WorldItemHaulDestinationAuthority.TryResolve(grid, worldRegistry, workOrders,
+            foreignClaims, WorldItemHaulDestinationKind.FacilityBuffer, destination, target.centerPos, out _, out string foreignFailure);
+        bool exactAuthority = realResolved && !missingResolved && !foreignResolved
+            && missingFailure.StartsWith("haul-destination-fire-water-claim-missing:", StringComparison.Ordinal)
+            && foreignFailure.StartsWith("haul-destination-fire-water-owner-mismatch:", StringComparison.Ordinal);
+        results.Add(new WorkTypeLiveRow("w01:fire-water-exact-claim-required", exactAuthority ? "PASS" : "FAIL", targetId,
+            "supplementalAuthority=true; real=" + realResolved + "; realFailure=" + realFailure
+                + "; missing=" + missingResolved + "; missingFailure=" + missingFailure
+                + "; foreign=" + foreignResolved + "; foreignFailure=" + foreignFailure));
+        if (!exactAuthority) throw new InvalidOperationException("W01 fire water accepted an inexact destination authority.");
+        var carriedSave = gameSaveService.Capture();
+        string carriedJson = gameSaveService.ToJson(carriedSave, true);
+        WriteUtf8LfCreateNew(Path.Combine(directory, "w01-fire-water-carried-world.json"), new[] { carriedJson });
+        if (!gameSaveService.TryRestore(gameSaveService.FromJson(carriedJson), out var restored) || !restored.Success)
+            throw new InvalidOperationException("W01 carried fire water restore rejected: " + string.Join(" | ", restored.Errors));
+        CharacterActor previousActor = actor;
+        actor = LiveActors(worldRegistry).Single(value => value.Identity.PersistentId == actorId);
+        foreach (var other in LiveActors(worldRegistry)) other.SetAiPaused(true);
+        work = actor.GetComponent<AbilityWork>();
+        brain = actor.Brain;
+        grid = FindFirstObjectByType<GridSystemManager>()?.grid;
+        haul = AbilityHaul.Ensure(actor);
+        var rebound = haul.CaptureDeliveryIntentForSave();
+        BuildableObject freshTarget = worldRegistry.Buildings.Single(value => value != null && value.PersistentInstanceId.Value == targetId);
+        var carryAfter = actor.CarryInventory.Items.SingleOrDefault(value => value.ownerOperationId == picked.operationId && value.itemId == waterId);
+        var claims = runtimeScope.Container.Resolve<IFacilityBufferDestinationClaimQuery>();
+        bool claimFound = claims.TryGetClaim(destination, freshTarget.centerPos, out var claim);
+        bool restoredExact = pickupExact && !ReferenceEquals(previousActor, actor) && !ReferenceEquals(target, freshTarget)
+            && haul.HasBoundDeliveryIntent && rebound?.operationId == picked.operationId
+            && rebound.destinationId == destination && carryAfter?.carriedStackId == carryBefore.carriedStackId
+            && carryAfter.quantity == 1 && carryAfter.sourceStackId == source.StackId
+            && claimFound
+            && claim.OwnerOperationId == fireId && claim.OwnerDomain == EnvironmentalFireWaterDestinationIdentity.OwnerDomain;
+        results.Add(new WorkTypeLiveRow("w01:fire-water-carried-save-join", restoredExact ? "PASS" : "FAIL", targetId,
+            "sections=" + carriedSave.sections.Count + "; actualBrainPickup=" + pickupExact + "; fresh=" + !ReferenceEquals(previousActor, actor)
+                + "; rebound=" + haul.HasBoundDeliveryIntent + "; operation=" + picked.operationId
+                + "; source=" + source.StackId + "; restoredSource=" + carryAfter?.sourceStackId
+                + "; carried=" + carryBefore.carriedStackId + "; restoredCarried=" + carryAfter?.carriedStackId
+                + "; quantity=" + carryAfter?.quantity + "; freshTarget=" + !ReferenceEquals(target, freshTarget)
+                + "; reboundOperation=" + rebound?.operationId + "; reboundDestination=" + rebound?.destinationId
+                + "; claimFound=" + claimFound + "; claimOwner=" + claim?.OwnerOperationId
+                + "; claimDomain=" + claim?.OwnerDomain + "; position=" + freshTarget.centerPos));
+        if (!restoredExact) throw new InvalidOperationException("W01 fire water did not restore its exact carried intent/claim.");
+        long restoredStarts = haul.RuntimeHaulStartCount, restoredTerminals = haul.RuntimeHaulTerminalCount;
+        bool sawResumedBrainHaul = false;
+        actor.SetAiPaused(false);
+        if (!brain.PreferActionOnNextDecision<AIHaul>())
+            throw new InvalidOperationException("W01 restored actor has no AIHaul action.");
+        brain.RequestImmediateReplan(clearFailures: true);
+        startedGame = actor.GameClock.Time;
+        startedWall = Time.realtimeSinceStartup;
+        startedFrame = Time.frameCount;
+        WorldItemStackSnapshot delivered = null;
+        while (delivered == null || haul.IsHauling || haul.RuntimeHaulTerminalCount <= restoredTerminals)
+        {
+            MaintainStableWorkSubject();
+            sawResumedBrainHaul |= brain.bestAction?.actionset is AIHaul && brain.HasRunningAction;
+            delivered = physicalItems.GetAllStacks().SingleOrDefault(value => value.ItemId == waterId
+                && value.State == WorldItemStackState.FacilityBuffer && value.DestinationId == destination
+                && value.Position == freshTarget.centerPos && value.Quantity == 1);
+            RequireProgressTime("delivery");
+            yield return null;
+        }
+        bool deliveredOnce = sawResumedBrainHaul && haul.RuntimeHaulStartCount == restoredStarts + 1
+            && haul.RuntimeHaulTerminalCount == restoredTerminals + 1 && !haul.HasBoundDeliveryIntent
+            && !actor.CarryInventory.Items.Any(value => value.ownerOperationId == picked.operationId)
+            && physicalItems.CaptureHaulDeliveryIntentsByDestination(destination).Count == 0;
+        results.Add(new WorkTypeLiveRow("w01:fire-water-actual-haul", deliveredOnce ? "PASS" : "FAIL", targetId,
+            "resumedBrainHaul=" + sawResumedBrainHaul + "; starts=" + (haul.RuntimeHaulStartCount - restoredStarts)
+                + "; terminals=" + (haul.RuntimeHaulTerminalCount - restoredTerminals) + "; destination=" + destination
+                + "; stack=" + delivered.StackId + "; quantity=" + delivered.Quantity + "; failure=" + haul.LastFailureReason));
+        if (!deliveredOnce) throw new InvalidOperationException("W01 fire water delivery did not complete exactly once.");
+        actor.SetAiPaused(true);
+        completed(freshTarget);
+
+        void RequireProgressTime(string stage)
+        {
+            float game = actor.GameClock.Time - startedGame;
+            float wall = Time.realtimeSinceStartup - startedWall;
+            int frames = Time.frameCount - startedFrame;
+            if (game > 60f && frames > 180 || wall > 180f && frames > 60)
+                throw new InvalidOperationException("W01 water " + stage + " stalled: game=" + game + "; wall=" + wall
+                    + "; frames=" + frames + "; phase=" + haul.CurrentExecutionStage + "; failure=" + haul.LastFailureReason
+                    + "; action=" + brain.CurrentActionDebugLabel + "; path=" + haul.ActivePathDebug);
+        }
+    }
+
+    private sealed class W01FireDeliveryGate : IWorkCompletionIdentityDeliveryCommand, IDisposable
+    {
+        private readonly EnvironmentalFireRuntime runtime;
+        private readonly FieldInfo port;
+        private readonly object previous;
+        private readonly IWorkCompletionIdentityDeliveryCommand inner;
+        public bool Held { get; private set; }
+        public bool Released { get; set; }
+        public WorkCompletionIdentityDeliveryRequest Request { get; private set; }
+        public W01FireDeliveryGate(EnvironmentalFireRuntime runtime, IWorkCompletionIdentityDeliveryCommand inner)
+        {
+            this.runtime = runtime;
+            this.inner = inner;
+            port = typeof(EnvironmentalFireRuntime).GetField("completionDeliveries", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("W01 fire completion port seam is missing.");
+            previous = port.GetValue(runtime);
+            port.SetValue(runtime, this);
+        }
+        public WorkCompletionIdentityDeliveryResult EnsureApplied(WorkCompletionIdentityDeliveryRequest request)
+        {
+            if (Released) return inner.EnsureApplied(request);
+            if (Held && Request.PayloadFingerprint != request.PayloadFingerprint)
+                throw new InvalidOperationException("W01 fire pending request changed before acknowledgement.");
+            Held = true;
+            Request = request;
+            return new(WorkCompletionIdentityDeliveryStatus.Deferred, "qa-fire-post-child-checkpoint");
+        }
+        public bool RetireProducerStream(string stream) => inner.RetireProducerStream(stream);
+        public void Dispose() => port.SetValue(runtime, previous);
+    }
+
+    private List<GameplayOutcomeSnapshot> W01ExactOutcomes()
+    {
+        IGameplayOutcomeQuery query = runtimeScope.Container.Resolve<IGameplayOutcomeQuery>();
+        List<GameplayOutcomeSnapshot> snapshots = new();
+        OutcomeCursor cursor = OutcomeCursor.FirstPage(200);
+        while (true)
+        {
+            GameplayOutcomeQueryPage page = query.GetGlobal(cursor, OutcomeFilter.All);
+            if (page.Items.Count == 0)
+                return snapshots;
+            snapshots.AddRange(page.Items.Where(value => value.Exact != null)
+                .Select(value => value.Exact));
+            cursor = page.NextCursor;
+        }
+    }
+
+    private static string W01ResultKey(GameplayOutcomeSnapshot value) =>
+        new GameplayResultKey(value.producerId, new GameplayOperationId(value.operationId),
+            value.commitRevision, value.localResultIndex).ToString();
+
+    // QA-only observation. The production handler, context and result are forwarded unchanged.
+    private sealed class W01RepairHandlerObservation : IWorkExecutionHandler,
+        IWorkAccessStandExecutionHandler, IDisposable
+    {
+        private readonly Dictionary<WorkTypeId, IWorkExecutionHandler> handlers;
+        private readonly IWorkExecutionHandler inner;
+        private readonly WorkTypeId observedWorkType;
+        public W01RepairHandlerObservation(IWorkExecutionHandlerRegistry registry,
+            bool observeFire = false)
+        {
+            observedWorkType = observeFire ? BuiltInWorkTypeIds.ThreatMitigation : BuiltInWorkTypeIds.Repair;
+            if (registry is not WorkExecutionHandlerRegistry production
+                || !registry.TryGet(observedWorkType, out inner)
+                || (observeFire ? inner is not ThreatMitigationWorkExecutionHandler
+                    : inner is not RepairWorkExecutionHandler))
+                throw new InvalidOperationException("W01 requires the production terminal registry/handler: " + observedWorkType);
+            handlers = typeof(WorkExecutionHandlerRegistry).GetField("handlers",
+                BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(production)
+                as Dictionary<WorkTypeId, IWorkExecutionHandler>
+                ?? throw new InvalidOperationException("W01 registry observation seam is missing.");
+            handlers[observedWorkType] = this;
+        }
+        public IReadOnlyCollection<WorkTypeId> WorkTypeIds => inner.WorkTypeIds;
+        public bool RequiresWorkAccessStand(WorkTypeId workTypeId,
+            CharacterActor actor, BuildableObject target) =>
+            inner is IWorkAccessStandExecutionHandler access
+            && access.RequiresWorkAccessStand(workTypeId, actor, target);
+        public int CompletedCalls { get; private set; }
+        public WorkExecutionResult Result { get; private set; }
+        public string ActorId { get; private set; }
+        public string TargetId { get; private set; }
+        public IEnumerator Execute(WorkExecutionContext context, WorkExecutionResult result)
+        {
+            IEnumerator execution = inner.Execute(context, result);
+            try
+            {
+                while (execution.MoveNext())
+                    yield return execution.Current;
+                CompletedCalls++;
+                Result = result;
+                ActorId = context.Actor.Identity.PersistentId;
+                TargetId = context.Target.PersistentInstanceId.Value;
+            }
+            finally
+            {
+                (execution as IDisposable)?.Dispose();
+            }
+        }
+        public void Dispose()
+        {
+            if (ReferenceEquals(handlers[observedWorkType], this))
+                handlers[observedWorkType] = inner;
+        }
+    }
+
+    private IEnumerator RunW05HarvestIdentityFocused()
+    {
+        WorkTypeId workTypeId = BuiltInWorkTypeIds.Harvest;
+        if (!CleanupRowScopedFixtures(out string rowCleanupFailure))
+        {
+            results.Add(WorkTypeLiveRow.Blocked(
+                workTypeId,
+                "previous-row-fixture-cleanup-failed",
+                rowCleanupFailure));
+            yield break;
+        }
+        if (!CleanupRoomFixture(out string roomCleanupFailure))
+        {
+            results.Add(WorkTypeLiveRow.Blocked(
+                workTypeId,
+                "previous-room-fixture-cleanup-failed",
+                roomCleanupFailure));
+            yield break;
+        }
+
+        MaintainStableWorkSubject();
+        if (!TryPrepareMaterialFixture(
+                workTypeId,
+                out MaterialWorkFixture fixture,
+                out string fixtureFailure)
+            || fixture == null)
+        {
+            results.Add(WorkTypeLiveRow.Blocked(
+                workTypeId,
+                "production-live-fixture-unavailable",
+                fixtureFailure));
+            yield break;
+        }
+
+        runtimeScope.Container.Resolve<IFacilityCandidateCache>()
+            .MarkDynamicStateDirty();
+        yield return null;
+        PrepareActor(workTypeId);
+
+        BuildableObject target = fixture.Target;
+        string targetLabel = target != null
+            ? target.name
+            : "<missing-target>";
+        string plotId = target != null
+            ? target.RequirePersistentInstanceId().Value
+            : string.Empty;
+        w05HarvestPlotId = plotId;
+        CropPlotSnapshot plotBefore = cropPlots.Plots.FirstOrDefault(value =>
+            string.Equals(value.PlotId, plotId, StringComparison.Ordinal));
+        CropDefinitionSO crop = plotBefore == null
+            ? null
+            : economyContent.Crops.FirstOrDefault(value => value != null
+                && string.Equals(
+                    value.CropId,
+                    plotBefore.CropId,
+                    StringComparison.Ordinal));
+        if (target == null || plotBefore == null || crop == null
+            || string.IsNullOrWhiteSpace(crop.HarvestItemId))
+        {
+            results.Add(new WorkTypeLiveRow(
+                workTypeId.Value,
+                "FAIL",
+                targetLabel,
+                "harvest-completion-authority-unavailable:plot=" + plotId
+                    + "; crop=" + (plotBefore?.CropId ?? "-")
+                    + "; harvestItem=" + (crop?.HarvestItemId ?? "-")));
+            IEnumerator failedSetupCleanup =
+                CleanupSingleDomainRoomAfterRow(workTypeId);
+            while (failedSetupCleanup.MoveNext())
+                yield return failedSetupCleanup.Current;
+            yield break;
+        }
+
+        int outputBefore = CapturePhysicalItemQuantity(crop.HarvestItemId);
+        string pendingWorldJson = null;
+        GameplayOutcomeSnapshot pendingChild = null;
+        w05HarvestDeliveryGate = new W05HarvestDeliveryGate(cropPlots,
+            runtimeScope.Container.Resolve<IWorkCompletionIdentityDeliveryCommand>(),
+            runtimeScope.Container.Resolve<WorkCompletionIdentityDeliveryLedger>(),
+            runtimeScope.Container.Resolve<CharacterIdentityEventPublisher>(),
+            runtimeScope.Container.Resolve<WorkIdentityAppliedFactMapping>());
+        WorkPhaseResult completion = null;
+        IEnumerator completionRun = RunLivePhase(
+            workTypeId,
+            target,
+            WorkProbeFault.CompleteNormally,
+            fixture,
+            value => completion = value,
+            completionAuthoritySatisfied: () =>
+            {
+                bool harvestStillAvailable = cropPlots.TryGetWork(
+                        target,
+                        workTypeId,
+                        out CropPlotWorkSnapshot workAfter)
+                    && workAfter.Available;
+                return !harvestStillAvailable
+                    && CapturePhysicalItemQuantity(crop.HarvestItemId)
+                        > outputBefore;
+            });
+        while (completionRun.MoveNext())
+        {
+            if (pendingWorldJson == null && w05HarvestDeliveryGate.Held)
+            {
+                WorkCompletionIdentityDeliveryRequest held = w05HarvestDeliveryGate.Request;
+                CropPlotSaveData pendingPlot = cropPlots.Capture().plots.Single(value =>
+                    value.buildingInstanceId == plotId);
+                pendingChild = W01ExactOutcomes().Single(value => W01ResultKey(value) == held.ChildResultKey);
+                bool checkpointReady = pendingPlot.pendingHarvest.cropOutcomeAcknowledged
+                    && !pendingPlot.pendingHarvest.completionEventPublished
+                    && pendingPlot.pendingHarvest.outputPublication.outputAcknowledged
+                    && FindW05DeliveryCursor(w05IdentityDeliveries.Capture(), held.ProducerStreamId) == null
+                    && !W01ExactOutcomes().Any(value => W01ResultKey(value)
+                        == WorkCompletionIdentityOutcomeIds.ResultKey(held).ToString())
+                    && CapturePhysicalItemQuantity(crop.HarvestItemId) > outputBefore;
+                if (!checkpointReady)
+                    throw new InvalidOperationException("W05 child/identity checkpoint is not the claimed production boundary.");
+                pendingWorldJson = gameSaveService.ToJson(gameSaveService.Capture(), true);
+                W05WriteEvidence("w01-harvest-child-before-identity-world.json", pendingWorldJson);
+                w05HarvestDeliveryGate.Released = true;
+            }
+            yield return completionRun.Current;
+        }
+
+        int outputAfter = CapturePhysicalItemQuantity(crop.HarvestItemId);
+        CropPlotSnapshot plotAfter = cropPlots.Plots.FirstOrDefault(value =>
+            string.Equals(value.PlotId, plotId, StringComparison.Ordinal));
+        bool harvestAvailableAfter = cropPlots.TryGetWork(
+                target,
+                workTypeId,
+                out CropPlotWorkSnapshot finalWork)
+            && finalWork.Available;
+        bool outputPreserved = outputAfter > outputBefore;
+        bool passed = completion != null
+            && completion.Passed
+            && outputPreserved
+            && !harvestAvailableAfter
+            && plotAfter != null;
+        results.Add(new WorkTypeLiveRow(
+            workTypeId.Value,
+            passed ? "PASS" : "FAIL",
+            targetLabel,
+            "completion=" + (completion?.Format() ?? "missing")
+                + "; plot=" + plotId
+                + "; phase=" + plotBefore.Phase
+                + "->" + (plotAfter?.Phase.ToString() ?? "missing")
+                + "; harvestAvailableAfter=" + harvestAvailableAfter
+                + "; output=" + crop.HarvestItemId + ":"
+                + outputBefore + "->" + outputAfter
+                + "; outputPreserved=" + outputPreserved));
+
+        if (passed && pendingWorldJson != null)
+        {
+            IEnumerator restore = VerifyW05HarvestPendingRestore(
+                pendingWorldJson, pendingChild, target, crop.HarvestItemId, outputAfter,
+                w05HarvestDeliveryGate.Request);
+            while (restore.MoveNext()) yield return restore.Current;
+        }
+        else
+            results.Add(new WorkTypeLiveRow("w01:harvest-pending-save-resume", "FAIL", plotId,
+                "actualCompletionPassed=" + passed + "; pendingCheckpointCaptured="
+                    + (pendingWorldJson != null) + "; restoreResume=NOT_RUN"));
+        w05HarvestDeliveryGate.Dispose();
+        w05HarvestDeliveryGate = null;
+
+        IEnumerator cleanup = CleanupSingleDomainRoomAfterRow(workTypeId);
+        while (cleanup.MoveNext())
+            yield return cleanup.Current;
+    }
+
+    private IEnumerator VerifyW05HarvestPendingRestore(string pendingJson,
+        GameplayOutcomeSnapshot childBefore, BuildableObject previousPlot, string itemId, int outputQuantity,
+        WorkCompletionIdentityDeliveryRequest request)
+    {
+        brain.StopCurrentActionForReplan("W05 pending harvest restore checkpoint");
+        work.ClearPriorityWorkTarget();
+        actor.SetAiPaused(true);
+        string actorId = actor.Identity.PersistentId;
+        DungeonGameSaveData invalid = gameSaveService.FromJson(pendingJson);
+        DungeonSaveSectionEnvelope ledgerSection = invalid.sections.Single(value =>
+            value.sectionId == GameplayOutcomeLedgerSaveSection.Id);
+        GameplayOutcomeLedgerSaveData missingChild = DungeonSaveJson.Deserialize<GameplayOutcomeLedgerSaveData>(
+            ledgerSection.payloadJson);
+        int removed = missingChild.exactOutcomes.RemoveAll(value => W01ResultKey(value) == request.ChildResultKey)
+            + missingChild.outbox.RemoveAll(value => W01ResultKey(value) == request.ChildResultKey);
+        if (removed != 1) throw new InvalidOperationException("W05 missing-child test requires one real committed child.");
+        ledgerSection.payloadJson = JsonUtility.ToJson(missingChild);
+        invalid.manifest = DungeonSaveManifest.Capture(invalid.sections);
+        W05WriteEvidence("w01-harvest-missing-child-invalid-world.json", gameSaveService.ToJson(invalid, true));
+        var root = runtimeScope.Container.Resolve<DungeonRuntimeAggregateRootStore>();
+        int revision = root.PublishedRestoreRevision;
+        string beforeInvalid = W05SectionPayloads(gameSaveService.Capture());
+        bool accepted = gameSaveService.TryRestore(invalid, out DungeonGameRestoreReport rejection);
+        bool rejectedAtomically = !accepted && rejection.Errors.Any(value =>
+                value.Contains("Crop", StringComparison.OrdinalIgnoreCase))
+            && revision == root.PublishedRestoreRevision && !root.IsRestoreStaging
+            && beforeInvalid == W05SectionPayloads(gameSaveService.Capture());
+        string rejectionDetail = "accepted=" + accepted + "; sectionsUnchanged=" + rejectedAtomically
+            + "; errors=" + string.Join(" | ", rejection.Errors);
+        W05WriteEvidence("w01-harvest-missing-child-witness.txt", rejectionDetail);
+        results.Add(new WorkTypeLiveRow("w01:harvest-missing-child-rejected",
+            rejectedAtomically ? "PASS" : "FAIL", w05HarvestPlotId, rejectionDetail));
+        if (!rejectedAtomically)
+            throw new InvalidOperationException("W05 malformed child checkpoint was not rejected atomically.");
+
+        DungeonGameSaveData pendingWorld = gameSaveService.FromJson(pendingJson);
+        if (!gameSaveService.TryRestore(pendingWorld, out DungeonGameRestoreReport restored) || !restored.Success)
+            throw new InvalidOperationException("W05 pending world restore failed: " + string.Join(" | ", restored.Errors));
+        actor = LiveActors(worldRegistry).Single(value => value.Identity.PersistentId == actorId);
+        work = actor.GetComponent<AbilityWork>();
+        brain = actor.Brain;
+        actor.SetAiPaused(true);
+        grid = FindFirstObjectByType<GridSystemManager>()?.grid;
+        BuildableObject freshPlot = worldRegistry.Buildings.Single(value =>
+            value != null && value.PersistentInstanceId.Value == w05HarvestPlotId);
+        bool freshObjects = !ReferenceEquals(previousPlot, freshPlot);
+        float startTime = actor.GameClock.Time;
+        int startFrame = Time.frameCount;
+        float startWall = Time.realtimeSinceStartup;
+        while (cropPlots.Capture().plots.Single(value => value.buildingInstanceId == w05HarvestPlotId)
+            .pendingHarvest.phase != CropHarvestOutputPhase.None)
+        {
+            if (actor.GameClock.Time - startTime > 15f && Time.frameCount - startFrame > 120
+                || Time.realtimeSinceStartup - startWall > 120f)
+                throw new InvalidOperationException("W05 restored harvest did not finalize: gameSeconds="
+                    + (actor.GameClock.Time - startTime) + "; frames=" + (Time.frameCount - startFrame));
+            yield return null; // Production crop tick resumes the frozen owner; no synthetic work call.
+        }
+        GameplayOutcomeSnapshot[] children = W01ExactOutcomes().Where(value =>
+            W01ResultKey(value) == request.ChildResultKey).ToArray();
+        GameplayOutcomeSnapshot[] identities = W01ExactOutcomes().Where(value =>
+            W01ResultKey(value) == WorkCompletionIdentityOutcomeIds.ResultKey(request).ToString()).ToArray();
+        bool resumed = freshObjects && children.Length == 1 && identities.Length == 1
+            && children[0].immutablePayloadHash == childBefore.immutablePayloadHash
+            && children[0].sequence < identities[0].sequence
+            && CapturePhysicalItemQuantity(itemId) == outputQuantity
+            && FindW05DeliveryCursor(w05IdentityDeliveries.Capture(), request.ProducerStreamId)?.payloadFingerprint
+                == request.PayloadFingerprint;
+        results.Add(new WorkTypeLiveRow("w01:harvest-pending-save-resume", resumed ? "PASS" : "FAIL",
+            w05HarvestPlotId, "officialSections=" + pendingWorld.sections.Count + "; freshPlot=" + freshObjects
+                + "; children=" + children.Length + "; identities=" + identities.Length
+                + "; output=" + CapturePhysicalItemQuantity(itemId) + "; expected=" + outputQuantity
+                + "; childHash=" + children.SingleOrDefault()?.immutablePayloadHash));
+        if (!resumed) throw new InvalidOperationException("W05 pending harvest replay changed its physical or ledger result.");
+
+        string completedJson = gameSaveService.ToJson(gameSaveService.Capture(), true);
+        W05WriteEvidence("w01-harvest-completed-world.json", completedJson);
+        if (!gameSaveService.TryRestore(gameSaveService.FromJson(completedJson), out var completedRestore)
+            || !completedRestore.Success)
+            throw new InvalidOperationException("W05 completed world restore failed: "
+                + string.Join(" | ", completedRestore.Errors));
+        actor = LiveActors(worldRegistry).Single(value => value.Identity.PersistentId == actorId);
+        work = actor.GetComponent<AbilityWork>();
+        brain = actor.Brain;
+        actor.SetAiPaused(true);
+        grid = FindFirstObjectByType<GridSystemManager>()?.grid;
+        string beforeReplay = W05SectionPayloads(gameSaveService.Capture());
+        IWorkCompletionIdentityDeliveryCommand command = runtimeScope.Container.Resolve<IWorkCompletionIdentityDeliveryCommand>();
+        var firstReplay = command.EnsureApplied(request);
+        var secondReplay = command.EnsureApplied(request);
+        bool replaySafe = firstReplay.Status == WorkCompletionIdentityDeliveryStatus.AlreadyApplied
+            && secondReplay.Status == WorkCompletionIdentityDeliveryStatus.AlreadyApplied
+            && beforeReplay == W05SectionPayloads(gameSaveService.Capture());
+        results.Add(new WorkTypeLiveRow("w01:harvest-completed-save-replay", replaySafe ? "PASS" : "FAIL",
+            request.Character.Value, "officialRestore=true; redeliveries=2; sectionsUnchanged=" + replaySafe));
+    }
+
+    private static string W05SectionPayloads(DungeonGameSaveData save) => string.Join("\n", save.sections
+        .OrderBy(value => value.sectionId, StringComparer.Ordinal)
+        .Select(value => value.sectionId + ":" + value.sectionVersion + ":" + value.payloadJson));
+
+    private static void W05WriteEvidence(string name, string content)
+    {
+        string directory = Path.GetDirectoryName(CharacterAiWorkTypeLiveMatrixPlayModeVerifier.W05HarvestIdentityReportPath);
+        Directory.CreateDirectory(directory);
+        WriteUtf8LfCreateNew(Path.Combine(directory, name), new[] { content });
+    }
+
+    // QA-only port decorator: pause after the real crop child commits, then
+    // forward the unchanged request to the real identity command. Never fabricate success.
+    private sealed class W05HarvestDeliveryGate : IWorkCompletionIdentityDeliveryCommand, IDisposable
+    {
+        private readonly CropPlotRuntime runtime;
+        private readonly IDomainFactPublisher previous;
+        private readonly WorkCompletionDomainFactTestPublisher<CropHarvestCompletedFact> routed;
+        private readonly IWorkCompletionIdentityDeliveryCommand inner;
+        public bool Held { get; private set; }
+        public bool Released { get; set; }
+        public WorkCompletionIdentityDeliveryRequest Request { get; private set; }
+        public W05HarvestDeliveryGate(CropPlotRuntime runtime, IWorkCompletionIdentityDeliveryCommand inner,
+            WorkCompletionIdentityDeliveryLedger deliveries, CharacterIdentityEventPublisher events,
+            WorkIdentityAppliedFactMapping childValidation)
+        {
+            this.runtime = runtime;
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+            var port = typeof(CropPlotRuntime).GetField("domainFacts", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("W05 crop fact publisher seam is missing.");
+            previous = port.GetValue(runtime) as IDomainFactPublisher
+                ?? throw new InvalidOperationException("W05 requires the real crop fact publisher.");
+            routed = new(previous, this, events, deliveries, CropHarvestCompletionObservation.CreateRequest,
+                WorkCompletionNotificationMode.ApplyOnly, childValidation);
+            runtime.ConstructDomainFacts(routed);
+        }
+        public WorkCompletionIdentityDeliveryResult EnsureApplied(WorkCompletionIdentityDeliveryRequest request)
+        {
+            if (!Released)
+            {
+                Held = true;
+                Request = request;
+                return new(WorkCompletionIdentityDeliveryStatus.Deferred, "qa-post-child-checkpoint");
+            }
+            return inner.EnsureApplied(request);
+        }
+        public bool RetireProducerStream(string stream) => inner.RetireProducerStream(stream);
+        public void Dispose() { runtime.ConstructDomainFacts(previous); routed.Dispose(); }
+    }
+
+    private sealed class W01RepairDeliveryGate : IWorkCompletionIdentityDeliveryCommand, IDisposable
+    {
+        private readonly WorkOrderRuntime runtime;
+        private readonly FieldInfo port;
+        private readonly IDomainFactPublisher previous;
+        private readonly WorkCompletionDomainFactTestPublisher<
+            RepairWorkCompletionFact> routed;
+        private readonly IWorkCompletionIdentityDeliveryCommand inner;
+        public bool Held { get; private set; }
+        public bool Released { get; set; }
+        public WorkCompletionIdentityDeliveryRequest Request { get; private set; }
+        public W01RepairDeliveryGate(
+            WorkOrderRuntime runtime,
+            IDomainFactPublisher production,
+            IWorkCompletionIdentityDeliveryCommand inner,
+            WorkCompletionIdentityDeliveryLedger deliveries,
+            CharacterIdentityEventPublisher events,
+            WorkIdentityAppliedFactMapping childValidation)
+        {
+            this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+            port = typeof(WorkOrderRuntime).GetField(
+                    "repairFacts",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException(
+                    "W01 repair fact publisher seam is missing.");
+            previous = port.GetValue(runtime) as IDomainFactPublisher;
+            IDomainFactPublisher actual = previous ?? production
+                ?? throw new ArgumentNullException(nameof(production));
+            routed = new WorkCompletionDomainFactTestPublisher<
+                RepairWorkCompletionFact>(
+                    actual,
+                    this,
+                    events,
+                    deliveries,
+                    RepairWorkCompletionObservation.CreateCompletionRequest,
+                    WorkCompletionNotificationMode.ApplyOnly,
+                    childValidation);
+            port.SetValue(runtime, routed);
+        }
+        public WorkCompletionIdentityDeliveryResult EnsureApplied(WorkCompletionIdentityDeliveryRequest request)
+        {
+            if (Released) return inner.EnsureApplied(request);
+            if (Held && Request.PayloadFingerprint != request.PayloadFingerprint)
+                throw new InvalidOperationException("W01 repair pending request changed before ACK.");
+            Held = true;
+            Request = request;
+            return new(WorkCompletionIdentityDeliveryStatus.Deferred, "qa-repair-post-child-checkpoint");
+        }
+        public bool RetireProducerStream(string stream) => inner.RetireProducerStream(stream);
+        public void Dispose()
+        {
+            port.SetValue(runtime, previous);
+            routed.Dispose();
+        }
+    }
+
+    // QA-only observation port. It forwards the unchanged production request
+    // immediately and retains the exact request so the verifier can join it to
+    // the committed child and replay it after an official whole-world restore.
+    private sealed class W04RepairDeliveryObservation :
+        IWorkCompletionIdentityDeliveryCommand,
+        IDisposable
+    {
+        private readonly WorkOrderRuntime runtime;
+        private readonly FieldInfo port;
+        private readonly IDomainFactPublisher previous;
+        private readonly WorkCompletionDomainFactTestPublisher<
+            RepairWorkCompletionFact> routed;
+        private readonly IWorkCompletionIdentityDeliveryCommand inner;
+        private readonly List<WorkCompletionIdentityDeliveryRequest> requests =
+            new();
+
+        public W04RepairDeliveryObservation(
+            WorkOrderRuntime runtime,
+            IDomainFactPublisher production,
+            IWorkCompletionIdentityDeliveryCommand inner,
+            WorkCompletionIdentityDeliveryLedger deliveries,
+            CharacterIdentityEventPublisher events,
+            WorkIdentityAppliedFactMapping childValidation)
+        {
+            this.runtime = runtime
+                ?? throw new ArgumentNullException(nameof(runtime));
+            this.inner = inner
+                ?? throw new ArgumentNullException(nameof(inner));
+            port = typeof(WorkOrderRuntime).GetField(
+                    "repairFacts",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException(
+                    "W04 repair fact publisher seam is missing.");
+            previous = port.GetValue(runtime) as IDomainFactPublisher;
+            IDomainFactPublisher actual = previous ?? production
+                ?? throw new ArgumentNullException(nameof(production));
+            routed = new WorkCompletionDomainFactTestPublisher<
+                RepairWorkCompletionFact>(
+                    actual,
+                    this,
+                    events,
+                    deliveries,
+                    RepairWorkCompletionObservation.CreateCompletionRequest,
+                    WorkCompletionNotificationMode.ApplyOnly,
+                    childValidation);
+            port.SetValue(runtime, routed);
+        }
+
+        public IReadOnlyList<WorkCompletionIdentityDeliveryRequest> Requests =>
+            requests;
+
+        public WorkCompletionIdentityDeliveryResult EnsureApplied(
+            WorkCompletionIdentityDeliveryRequest request)
+        {
+            requests.Add(request);
+            return inner.EnsureApplied(request);
+        }
+
+        public bool RetireProducerStream(string stream) =>
+            inner.RetireProducerStream(stream);
+
+        public void Dispose()
+        {
+            port.SetValue(runtime, previous);
+            routed.Dispose();
+        }
+    }
+
     private static IEnumerator EmptyP15FocusedCoroutine()
     {
         yield break;
@@ -1080,7 +4877,7 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
                 + value.Quantity + ":" + value.AvailableQuantity + ":"
                 + (int)value.State + ":" + value.DestinationId));
 
-    private int CaptureP15ItemQuantity(string itemId) => physicalItems
+    private int CapturePhysicalItemQuantity(string itemId) => physicalItems
         .GetAllStacks()
         .Where(value => value != null
             && string.Equals(value.ItemId, itemId, StringComparison.Ordinal))
@@ -1922,7 +5719,9 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
         BuildableObject target,
         WorkProbeFault fault,
         MaterialWorkFixture fixture,
-        Action<WorkPhaseResult> complete)
+        Action<WorkPhaseResult> complete,
+        P15FocusedFixture persistentPauseFixture = null,
+        Func<bool> completionAuthoritySatisfied = null)
     {
         WorkPhaseResult result = new WorkPhaseResult(fault);
         if (workTypeId == BuiltInWorkTypeIds.Plumbing)
@@ -2283,7 +6082,8 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             CalculateBoundedTravelObservationSeconds(observedAction);
         result.MovementStartPosition = actor.GetNowXY();
         bool targetWasActive = target.gameObject.activeSelf;
-        if (fault == WorkProbeFault.CancelAfterApprovedProgress)
+        if (fault == WorkProbeFault.CancelAfterApprovedProgress
+            || fault == WorkProbeFault.PauseAfterApprovedProgress)
         {
             float progressSoftDeadline = Time.realtimeSinceStartup
                 + result.EstimatedTravelSeconds;
@@ -2365,9 +6165,22 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
                     + "; expected-before-terminal="
                     + CapturePlumbingState(target);
             }
+            if (fault == WorkProbeFault.PauseAfterApprovedProgress
+                && result.Progressed
+                && string.IsNullOrEmpty(result.Blocker))
+            {
+                IEnumerator pauseWindow = ObservePersistentCookPauseWindow(
+                    target,
+                    persistentPauseFixture,
+                    result);
+                while (pauseWindow.MoveNext())
+                    yield return pauseWindow.Current;
+            }
             result.TerminalRequested = brain.StopCurrentActionForReplan(
                 result.Progressed
-                    ? "worktype live matrix cancel after approved progress"
+                    ? fault == WorkProbeFault.PauseAfterApprovedProgress
+                        ? "persistent Cook pause regression complete"
+                        : "worktype live matrix cancel after approved progress"
                     : "worktype live matrix abort after progress timeout");
             if (!result.Progressed && string.IsNullOrEmpty(result.Blocker))
                 result.Blocker = "approved-wu-progress-timeout; "
@@ -2378,8 +6191,8 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
         else if (fault == WorkProbeFault.CompleteNormally)
         {
             // No verifier mutation: the production WorkOrder/AbilityWork path
-            // must remove the dismantle target, leave any recovery continuation
-            // authoritative, and publish its own Completed terminal.
+            // must reach the domain-owned completion boundary and publish its
+            // own Completed terminal.
             result.TerminalRequested = true;
         }
         else
@@ -2495,10 +6308,14 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
         result.ProgressDelta =
             work.ApprovedWorkProgressRevisionForDiagnostics - startWorkRevision;
         result.Progressed = result.ProgressDelta > 0;
-        result.CompletionTargetRemoved = fault != WorkProbeFault.CompleteNormally
-            || target == null
+        result.CompletionTargetRemoved = target == null
             || target.isDestroy
             || !target.gameObject.activeInHierarchy;
+        result.CompletionAuthoritySatisfied =
+            fault != WorkProbeFault.CompleteNormally
+            || (completionAuthoritySatisfied != null
+                ? completionAuthoritySatisfied()
+                : result.CompletionTargetRemoved);
 
         if (fault == WorkProbeFault.InvalidateTargetAfterStart
             && fixture == null)
@@ -2533,6 +6350,9 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             WorkProbeFault.CancelAfterApprovedProgress =>
                 result.ObservedTerminalKind
                     == CharacterAiActionTerminalKind.Cancelled,
+            WorkProbeFault.PauseAfterApprovedProgress =>
+                result.ObservedTerminalKind
+                    == CharacterAiActionTerminalKind.Cancelled,
             WorkProbeFault.CompleteNormally =>
                 result.ObservedTerminalKind
                     == CharacterAiActionTerminalKind.Completed,
@@ -2555,6 +6375,204 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
         }
         complete(result);
     }
+
+    private IEnumerator ObservePersistentCookPauseWindow(
+        BuildableObject target,
+        P15FocusedFixture focused,
+        WorkPhaseResult result)
+    {
+        const int RequiredPausedFrames = 120;
+        if (focused == null
+            || gameSpeed == null
+            || target == null
+            || !ReferenceEquals(target, focused.Target))
+        {
+            result.Blocker = "persistent-cook-pause-authority-missing";
+            yield break;
+        }
+
+        ProductionBillSnapshot billBeforePause = FindFocusedBill(focused);
+        if (billBeforePause == null)
+        {
+            result.Blocker = "persistent-cook-pause-bill-missing";
+            yield break;
+        }
+
+        SettlementLaborAccountingSnapshot laborBeforePause =
+            settlementLabor.Capture();
+        int runIdBeforePause = work.ActiveWorkRunIdForDiagnostics;
+        long approvedBeforePause =
+            work.ApprovedWorkProgressRevisionForDiagnostics;
+        string actorIdBeforePause = actor.Identity?.PersistentId ?? string.Empty;
+        bool routineBeforePause = work.HasActiveWorkRoutineForDiagnostics;
+        WorkTypeId workTypeBeforePause = work.AssignedWorkTypeId;
+        BuildableObject targetBeforePause = work.assignedShop;
+        bool wasPaused = gameSpeed.IsPaused;
+        int speedBeforePause = gameSpeed.Speed;
+        float scaleBeforePause = Time.timeScale;
+        if (wasPaused || runIdBeforePause <= 0 || !routineBeforePause)
+        {
+            result.Blocker = "persistent-cook-pause-precondition-invalid:paused="
+                + wasPaused + "; runId=" + runIdBeforePause
+                + "; routine=" + routineBeforePause;
+            yield break;
+        }
+
+        bool pauseHeld = true;
+        gameSpeed.SetPaused(true);
+        result.PauseObserved = gameSpeed.IsPaused
+            && Mathf.Approximately(Time.timeScale, 0f);
+        try
+        {
+            for (int frame = 0; frame < RequiredPausedFrames; frame++)
+            {
+                pauseHeld &= gameSpeed.IsPaused
+                    && Mathf.Approximately(Time.timeScale, 0f);
+                result.PauseFrameCount++;
+                yield return null;
+            }
+        }
+        finally
+        {
+            gameSpeed.SetPaused(wasPaused);
+            if (!wasPaused)
+                Time.timeScale = scaleBeforePause;
+        }
+
+        ProductionBillSnapshot billAfterPause = FindFocusedBill(focused);
+        SettlementLaborAccountingSnapshot laborAfterPause =
+            settlementLabor.Capture();
+        bool terminalDuringPause = brain.CaptureRuntimeDiagnostics()
+            .TryGetActionTerminal(
+                result.ObservedEpoch,
+                out CharacterAiActionTerminalKind pauseTerminal);
+        result.PauseBillUnchanged = BillPauseStateEquals(
+            billBeforePause,
+            billAfterPause);
+        result.PauseLaborUnchanged = LaborSnapshotEquals(
+            laborBeforePause,
+            laborAfterPause);
+        result.PauseApprovedRevisionUnchanged =
+            work.ApprovedWorkProgressRevisionForDiagnostics
+                == approvedBeforePause;
+        result.PauseWorkIdentityUnchanged =
+            string.Equals(
+                actor.Identity?.PersistentId,
+                actorIdBeforePause,
+                StringComparison.Ordinal)
+            && work.ActiveWorkRunIdForDiagnostics == runIdBeforePause
+            && work.HasActiveWorkRoutineForDiagnostics == routineBeforePause
+            && work.AssignedWorkTypeId == workTypeBeforePause
+            && ReferenceEquals(work.assignedShop, targetBeforePause)
+            && ReferenceEquals(targetBeforePause, target)
+            && !terminalDuringPause;
+        result.PauseObserved &= pauseHeld
+            && result.PauseFrameCount == RequiredPausedFrames
+            && !gameSpeed.IsPaused
+            && gameSpeed.Speed == speedBeforePause
+            && Mathf.Approximately(Time.timeScale, scaleBeforePause);
+        result.PauseBillWorkBefore = billBeforePause.CompletedWork;
+        result.PauseBillWorkAfter = billAfterPause?.CompletedWork ?? float.NaN;
+        result.PauseLaborRevisionBefore = laborBeforePause.Revision;
+        result.PauseLaborRevisionAfter = laborAfterPause.Revision;
+        if (!result.PauseObserved
+            || !result.PauseBillUnchanged
+            || !result.PauseLaborUnchanged
+            || !result.PauseApprovedRevisionUnchanged
+            || !result.PauseWorkIdentityUnchanged)
+        {
+            result.Blocker = "persistent-cook-mutated-while-paused:terminal="
+                + (terminalDuringPause ? pauseTerminal.ToString() : "none");
+            yield break;
+        }
+
+        float resumeDeadline = Time.realtimeSinceStartup + 20f;
+        while (Time.realtimeSinceStartup < resumeDeadline)
+        {
+            ProductionBillSnapshot currentBill = FindFocusedBill(focused);
+            bool sameWork = work.ActiveWorkRunIdForDiagnostics == runIdBeforePause
+                && work.HasActiveWorkRoutineForDiagnostics
+                && work.AssignedWorkTypeId == BuiltInWorkTypeIds.Cook
+                && ReferenceEquals(work.assignedShop, target);
+            bool billAdvanced = currentBill != null
+                && currentBill.CompletedWork > billAfterPause.CompletedWork;
+            bool approvedAdvanced =
+                work.ApprovedWorkProgressRevisionForDiagnostics
+                    > approvedBeforePause;
+            if (sameWork && billAdvanced && approvedAdvanced)
+            {
+                result.ResumedSameWorkProgress = true;
+                break;
+            }
+            if (!sameWork
+                || brain.CaptureRuntimeDiagnostics().TryGetActionTerminal(
+                    result.ObservedEpoch,
+                    out _))
+            {
+                break;
+            }
+            yield return null;
+        }
+        if (!result.ResumedSameWorkProgress)
+            result.Blocker = "persistent-cook-did-not-resume-same-work";
+    }
+
+    private static bool BillPauseStateEquals(
+        ProductionBillSnapshot before,
+        ProductionBillSnapshot after) =>
+        before != null
+        && after != null
+        && before.BillId == after.BillId
+        && before.Status == after.Status
+        && before.RemainingCycles == after.RemainingCycles
+        && before.RequiredWork.Equals(after.RequiredWork)
+        && before.CompletedWork.Equals(after.CompletedWork)
+        && before.MaterialsConsumed == after.MaterialsConsumed
+        && before.ProcessFluidConsumed == after.ProcessFluidConsumed
+        && before.BatchStage == after.BatchStage
+        && before.RemainingProcessingHours.Equals(
+            after.RemainingProcessingHours)
+        && string.Equals(
+            before.ReservedWorkerId,
+            after.ReservedWorkerId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            before.OccupiedSupportNodeId,
+            after.OccupiedSupportNodeId,
+            StringComparison.Ordinal);
+
+    private static bool LaborSnapshotEquals(
+        SettlementLaborAccountingSnapshot before,
+        SettlementLaborAccountingSnapshot after) =>
+        before.ActualLaborMilliWu == after.ActualLaborMilliWu
+        && before.ConvertedProcessOutputMilliWu
+            == after.ConvertedProcessOutputMilliWu
+        && before.DomainAutomationMilliWu == after.DomainAutomationMilliWu
+        && before.LossMilliWu == after.LossMilliWu
+        && before.EssentialMaintenanceMilliWu
+            == after.EssentialMaintenanceMilliWu
+        && before.EquipmentFacilityMaintenanceMilliWu
+            == after.EquipmentFacilityMaintenanceMilliWu
+        && before.OutputEquivalentMilliWu == after.OutputEquivalentMilliWu
+        && before.RealizedGrowthMilliWu == after.RealizedGrowthMilliWu
+        && before.GuaranteedGrowthMilliWu == after.GuaranteedGrowthMilliWu
+        && before.CompletedDayCount == after.CompletedDayCount
+        && before.RollingPerCapitaNetWuMedian.Equals(
+            after.RollingPerCapitaNetWuMedian)
+        && before.LatestDay.AbsoluteDay == after.LatestDay.AbsoluteDay
+        && before.LatestDay.ActualLaborMilliWu
+            == after.LatestDay.ActualLaborMilliWu
+        && before.LatestDay.OutputEquivalentMilliWu
+            == after.LatestDay.OutputEquivalentMilliWu
+        && before.LatestDay.RealizedGrowthMilliWu
+            == after.LatestDay.RealizedGrowthMilliWu
+        && before.LatestDay.GuaranteedGrowthMilliWu
+            == after.LatestDay.GuaranteedGrowthMilliWu
+        && before.LatestDay.ProductiveAdultCount
+            == after.LatestDay.ProductiveAdultCount
+        && before.LatestDay.PerCapitaNetWuIndex.Equals(
+            after.LatestDay.PerCapitaNetWuIndex)
+        && before.Revision == after.Revision;
 
     private float CalculateBoundedTravelObservationSeconds(AIAction action)
     {
@@ -4453,12 +8471,14 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
         return building;
     }
 
-    private bool EnsureGrandProjectResearchPrerequisite(
+    private bool EnsureFixtureResearchPrerequisites(
         IObjectResolver resolver,
+        IReadOnlyList<string> requiredResearchIds,
+        bool includeGrandProject,
         out string detail)
     {
         detail = string.Empty;
-        if (baseline == null || baseline.Count == 0)
+        if (baseline?.sections == null || baseline.sections.Count == 0)
         {
             detail = "save baseline was not captured before fixture research promotion";
             return false;
@@ -4467,7 +8487,7 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
         IResearchProjectCatalog catalog =
             resolver.Resolve<IResearchProjectCatalog>();
         HashSet<string> closure = new(StringComparer.Ordinal);
-        foreach (string projectId in RequiredFixtureResearchIds)
+        foreach (string projectId in requiredResearchIds)
         {
             if (!catalog.TryGet(
                     new ResearchProjectId(projectId),
@@ -4479,24 +8499,26 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             AddResearchClosure(project, closure);
         }
 
-        IGrandProjectRuntime grand = resolver.Resolve<IGrandProjectRuntime>();
-        GrandProjectDefinition grandDefinition = grand.Definitions
-            .Where(value => value != null
-                && !string.IsNullOrWhiteSpace(value.RequiredResearchId))
-            .OrderBy(value => value.ProjectId, StringComparer.Ordinal)
-            .FirstOrDefault();
-        if (grandDefinition != null
-            && catalog.TryGet(
-                new ResearchProjectId(grandDefinition.RequiredResearchId),
-                out ResearchProjectSO grandProject))
+        if (includeGrandProject)
         {
-            AddResearchClosure(grandProject, closure);
+            IGrandProjectRuntime grand = resolver.Resolve<IGrandProjectRuntime>();
+            GrandProjectDefinition grandDefinition = grand.Definitions
+                .Where(value => value != null
+                    && !string.IsNullOrWhiteSpace(value.RequiredResearchId))
+                .OrderBy(value => value.ProjectId, StringComparer.Ordinal)
+                .FirstOrDefault();
+            if (grandDefinition != null
+                && catalog.TryGet(
+                    new ResearchProjectId(grandDefinition.RequiredResearchId),
+                    out ResearchProjectSO grandProject))
+            {
+                AddResearchClosure(grandProject, closure);
+            }
         }
 
-        List<DungeonSaveSectionEnvelope> fixtureSave = baseline
-            .Select(CloneEnvelope)
-            .ToList();
-        DungeonSaveSectionEnvelope researchEnvelope = fixtureSave.FirstOrDefault(
+        DungeonGameSaveData fixtureSave = gameSaveService.FromJson(
+            gameSaveService.ToJson(baseline));
+        DungeonSaveSectionEnvelope researchEnvelope = fixtureSave.sections.FirstOrDefault(
             value => string.Equals(
                 value.sectionId,
                 BlueprintResearchSaveSection.Id,
@@ -4550,9 +8572,10 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToList();
         researchEnvelope.payloadJson = JsonUtility.ToJson(research);
+        fixtureSave.manifest = DungeonSaveManifest.Capture(fixtureSave.sections);
 
-        DungeonGameRestoreReport report = new();
-        if (!saveRegistry.RestoreAll(fixtureSave, report) || !report.Success)
+        if (!gameSaveService.TryRestore(fixtureSave, out DungeonGameRestoreReport report)
+            || !report.Success)
         {
             detail = "legal fixture research restore failed: "
                 + string.Join(" | ", report.Errors);
@@ -4574,7 +8597,7 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             return false;
         }
 
-        detail = "save-registry research closure="
+        detail = "official-game-save research closure="
             + string.Join(",", closure.OrderBy(
                 value => value,
                 StringComparer.Ordinal));
@@ -5430,7 +9453,7 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
                 .ToHashSet(StringComparer.Ordinal);
             int containers = Mathf.Max(
                 1,
-                Mathf.CeilToInt(processFluid.cleanWaterPerCycle)) * 2;
+                Mathf.CeilToInt(processFluid.cleanWaterPerCycle));
             if (!physicalItems.SpawnItemAt(
                     "resource:clean-water",
                     containers,
@@ -7142,6 +11165,15 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
 
     private void Cleanup()
     {
+        w04RepairDeliveries?.Dispose();
+        w04RepairDeliveries = null;
+        w01RepairDeliveryGate?.Dispose();
+        w01RepairDeliveryGate = null;
+        w05HarvestDeliveryGate?.Dispose();
+        w05HarvestDeliveryGate = null;
+        w01RepairObservation?.Dispose();
+        w05IdentitySubscription?.Dispose();
+        w05IdentitySubscription = null;
         try
         {
             brain?.StopCurrentActionForReplan("worktype live matrix cleanup");
@@ -7150,14 +11182,23 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
                 AddGlobalFailure("row-fixture-cleanup-failed", rowCleanupFailure);
             if (!CleanupRoomFixture(out string roomCleanupFailure))
                 AddGlobalFailure("room-fixture-cleanup-failed", roomCleanupFailure);
-            if (saveRegistry != null && baseline != null)
+            if (gameSaveService != null && baseline != null)
             {
-                DungeonGameRestoreReport report = new DungeonGameRestoreReport();
-                if (!saveRegistry.RestoreAll(baseline, report))
+                if (!gameSaveService.TryRestore(
+                        baseline,
+                        out DungeonGameRestoreReport report)
+                    || !report.Success)
                 {
                     AddGlobalFailure(
                         "baseline-restore-failed",
                         string.Join(" | ", report.Errors));
+                }
+                else
+                {
+                    results.Add(WorkTypeLiveRow.Info(
+                        "baseline-official-restore",
+                        "sections=" + (baseline.sections?.Count ?? 0)
+                            + "; completedHooks=true"));
                 }
             }
             RestoreActorPauseStates();
@@ -7197,7 +11238,7 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
         }
     }
 
-    private void WriteReport()
+    private bool WriteReport()
     {
         int passed = results.Count(row => row.Status == "PASS");
         int blocked = results.Count(row => row.Status == "BLOCKED");
@@ -7208,54 +11249,234 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             "p15:powered-assist",
             "p15:allocated-worker-transition",
             "p15:automatic",
-            "p15:utility-failure-atomic"
+            "p15:utility-failure-atomic",
+            "p15:persistent-cook-pause"
         };
+        string[] w05Rows =
+        {
+            BuiltInWorkTypeIds.Harvest.Value,
+            "w05:harvest-terminal-identity",
+            "w01:harvest-child-before-identity",
+            "w01:harvest-terminal-child-join",
+            "w01:harvest-pending-save-resume",
+            "w01:harvest-missing-child-rejected",
+            "w01:harvest-completed-save-replay"
+        };
+        string[] w01Rows =
+        {
+            BuiltInWorkTypeIds.Repair.Value,
+            "w01:repair-missing-child-rejected",
+            "w01:repair-pending-save-resume",
+            "w01:terminal-child-join",
+            "w01:repair-identity-child-join",
+            "w01:terminal-save-replay",
+            "w01:repair-identity-save-join",
+            "w01:repair-identity-exact-replay",
+            "w01:shared-delivery-replay"
+        };
+        string[] w03Rows =
+        {
+            "w03:rescue-partial-cancel", "w03:intervening-repair",
+            "w03:partial-official-restore", "w03:actual-medical-completion",
+            "w03:terminal-official-replay"
+        };
+        string[] w04Rows =
+        {
+            "w04:general-repair",
+            "w04:structural-repair",
+            "w04:defense-repair",
+            "w04:automation-repair",
+            "w04:equipment-material-shortage",
+            "w04:equipment-partial-save-resume",
+            "w04:equipment-repair",
+            "w04:terminal-replay",
+            "w04:five-kind-ledger-join"
+        };
+        string[] w06Rows =
+        {
+            "w06:multi-worker",
+            "w06:same-day-multiple-targets",
+            "w06:quantity-labor-causality"
+        };
+        bool fireIdentity = CharacterAiWorkTypeLiveMatrixPlayModeVerifier.IsW01FireIdentityVerification;
+        bool fireWaterIdentity = CharacterAiWorkTypeLiveMatrixPlayModeVerifier.IsW01FireWaterIdentityVerification;
+        if (fireIdentity)
+            w01Rows = new[]
+            {
+                BuiltInWorkTypeIds.ThreatMitigation.Value,
+                "w01:fire-terminal-child-join",
+                "w01:fire-identity-child-join",
+                "w01:fire-missing-child-rejected",
+                "w01:fire-pending-save-resume",
+                "w01:fire-identity-replay",
+                "w01:fire-terminal-save-join",
+                "w01:fire-domain-replay",
+                "w01:fire-identity-save-join"
+            };
+        if (fireWaterIdentity)
+            w01Rows = w01Rows.Concat(new[] { "w01:fire-water-carried-save-join",
+                "w01:fire-water-actual-haul", "w01:fire-water-consumed-once",
+                "w01:fire-water-exact-claim-required" }).ToArray();
         bool complete = consoleGatePassed
-            && (P15AutomationModesOnly
+            && (W06ResourceCausalityOnly
+                ? w06Rows.All(id => results.Any(row =>
+                    row.WorkTypeId == id && row.Status == "PASS"))
+                : W04RepairLiveOnly
+                ? w04Rows.All(id => results.Any(row =>
+                    row.WorkTypeId == id && row.Status == "PASS"))
+                : W03MedicalLaborOnly
+                ? w03Rows.All(id => results.Any(row => row.WorkTypeId == id && row.Status == "PASS"))
+                : W01WorkTerminalJoinOnly
+                ? w01Rows.All(id => results.Any(row =>
+                    row.WorkTypeId == id && row.Status == "PASS"))
+                : P15AutomationModesOnly
                 ? focusedRows.All(id => results.Any(row =>
                     row.WorkTypeId == id && row.Status == "PASS"))
-                : Rows.All(id => results.Any(row =>
-                    row.WorkTypeId == id.Value && row.Status == "PASS")));
-        string reportPath = P15AutomationModesOnly
+                : W05HarvestIdentityOnly
+                    ? w05Rows.All(id => results.Any(row =>
+                        row.WorkTypeId == id && row.Status == "PASS"))
+                    : Rows.All(id => results.Any(row =>
+                        row.WorkTypeId == id.Value && row.Status == "PASS")));
+        string reportPath = W06ResourceCausalityOnly
+            ? CharacterAiWorkTypeLiveMatrixPlayModeVerifier
+                .W06ResourceCausalityReportPath
+            : W04RepairLiveOnly
+            ? CharacterAiWorkTypeLiveMatrixPlayModeVerifier.W04RepairLiveReportPath
+            : W03MedicalLaborOnly
+            ? CharacterAiWorkTypeLiveMatrixPlayModeVerifier.W03MedicalLaborReportPath
+            : W01WorkTerminalJoinOnly
+            ? CharacterAiWorkTypeLiveMatrixPlayModeVerifier.W01WorkTerminalJoinReportPath
+            : P15AutomationModesOnly
             ? CharacterAiWorkTypeLiveMatrixPlayModeVerifier
                 .P15AutomationModesReportPath
-            : CharacterAiWorkTypeLiveMatrixPlayModeVerifier.ReportPath;
+            : W05HarvestIdentityOnly
+                ? CharacterAiWorkTypeLiveMatrixPlayModeVerifier
+                    .W05HarvestIdentityReportPath
+                : CharacterAiWorkTypeLiveMatrixPlayModeVerifier.ReportPath;
         List<string> lines = new List<string>(results.Count + 8)
         {
-            P15AutomationModesOnly
+            W06ResourceCausalityOnly
+                ? "# W06 production resource worker/source/product causality"
+                : W04RepairLiveOnly
+                ? "# W04 actual five-kind repair, material shortage, partial restore and exact terminal replay"
+                : W03MedicalLaborOnly
+                ? "# W03 actual medical A -> cancel -> repair B -> resume A / official restore / exact labor"
+                : W01WorkTerminalJoinOnly
+                ? fireWaterIdentity ? "# W01 actual water fire haul, save-resume and completion identity"
+                    : fireIdentity ? "# W01 actual environmental fire completion identity child join"
+                    : "# W01 actual repair terminal and completion identity child join"
+                : P15AutomationModesOnly
                 ? "# P15 production execution-mode live matrix"
-                : "# Character AI WorkType production-live matrix",
-            P15AutomationModesOnly
+                : W05HarvestIdentityOnly
+                    ? "# W05 harvest terminal identity production-live verification"
+                    : "# Character AI WorkType production-live matrix",
+            W06ResourceCausalityOnly
+                ? "authority=ResourceGatheringWorkExecutionHandler -> CropPlotRuntime/WorldResourceRuntime -> physical transaction -> GameplayOutcomeLedger"
+                : W04RepairLiveOnly
+                ? "authority=Brain -> AIWork -> AbilityWork -> WorkTaskExecutor -> RepairWorkExecutionHandler; equipment input delivery uses Brain -> AIHaul"
+                : W03MedicalLaborOnly
+                ? "authority=Brain -> AIRescue -> AbilityRescue -> CharacterMedicalRuntime; intervening Brain -> AIWork -> AbilityWork -> WorkTaskExecutor"
+                : P15AutomationModesOnly
                 ? "authority=Manual/PoweredAssist:Brain -> AIWork -> AbilityWork -> WorkTaskExecutor; Automatic:AutomationRuntime -> ProductionBillWorkExecution"
                 : "authority=Brain -> AIWork -> AbilityWork -> WorkTaskExecutor",
-            "contract/direct-handler evidence is never accepted as PASS",
+            W06ResourceCausalityOnly
+                ? "scope=two persistent workers, two sow plots and Gather/Logging in one day; exact accepted work, crop inputs, source debit and physical outputs"
+                : W04RepairLiveOnly
+                ? "scope=controlled damage and exact repair supplies; actual five adapter dispatches, shortage rejection, partial whole-world restore, one-time material consumption and completion identity replay"
+                : W03MedicalLaborOnly
+                ? "scope=controlled injury and physical delivery commands; actual rescue/carry/treatment and official pending/completed restore; no natural injury or AI-haul claim"
+                : W01WorkTerminalJoinOnly
+                ? fireWaterIdentity ? "scope=actual Brain/AIHaul carried-water official save/fresh resume then Brain/AIWork Water suppression; controlled source/ignition; domain replay supplemental"
+                    : fireIdentity ? "scope=actual initial attack; domain replay is supplemental; no water-mode or pre-terminal save claim"
+                    : "shared-delivery-replay is bounded supplemental evidence; repair identity rows require actual AI outcomes"
+                : "contract/direct-handler evidence is never accepted as PASS",
             "RESULT=" + (complete && failed == 0 && blocked == 0 ? "PASS" : "FAIL")
-                + "; rows=" + (P15AutomationModesOnly
+                + "; rows=" + (W06ResourceCausalityOnly
+                    ? w06Rows.Length
+                    : W04RepairLiveOnly
+                    ? w04Rows.Length
+                    : W03MedicalLaborOnly
+                    ? w03Rows.Length : W01WorkTerminalJoinOnly
+                    ? w01Rows.Length
+                    : P15AutomationModesOnly
                     ? focusedRows.Length
-                    : Rows.Length) + "; passed=" + passed
+                    : W05HarvestIdentityOnly
+                        ? w05Rows.Length
+                        : Rows.Length) + "; passed=" + passed
                 + "; blocked=" + blocked + "; failed=" + failed,
             "status\tworkType\ttarget\tdetail"
         };
-        IEnumerable<WorkTypeLiveRow> reportRows = P15AutomationModesOnly
+        IEnumerable<WorkTypeLiveRow> reportRows = W06ResourceCausalityOnly
+            ? results.Where(row => w06Rows.Contains(
+                    row.WorkTypeId,
+                    StringComparer.Ordinal)
+                || row.Status == "FAIL"
+                || row.WorkTypeId == "info:console-warning-error-zero"
+                || row.WorkTypeId == "info:baseline-official-restore"
+                || row.WorkTypeId == "info:subject")
+            : W04RepairLiveOnly
+            ? results.Where(row => w04Rows.Contains(
+                    row.WorkTypeId,
+                    StringComparer.Ordinal)
+                || row.Status == "FAIL"
+                || row.WorkTypeId == "info:console-warning-error-zero"
+                || row.WorkTypeId == "info:baseline-official-restore"
+                || row.WorkTypeId == "info:subject")
+            : P15AutomationModesOnly
             ? results.Where(row => focusedRows.Contains(
                     row.WorkTypeId,
                     StringComparer.Ordinal)
                 || row.Status == "FAIL"
-                || row.WorkTypeId == "info:console-warning-error-zero")
-            : results;
+                || row.WorkTypeId == "info:console-warning-error-zero"
+                || row.WorkTypeId == "info:baseline-official-restore")
+            : W05HarvestIdentityOnly
+                ? results.Where(row => w05Rows.Contains(
+                        row.WorkTypeId,
+                        StringComparer.Ordinal)
+                    || row.Status == "FAIL"
+                    || row.WorkTypeId == "info:console-warning-error-zero"
+                    || row.WorkTypeId == "info:baseline-official-restore"
+                    || row.WorkTypeId == "info:subject")
+                : results;
         lines.AddRange(reportRows.Select(row =>
             row.Status + "\t" + row.WorkTypeId + "\t" + row.Target + "\t" + row.Detail));
         Directory.CreateDirectory(Path.GetDirectoryName(
             reportPath)
             ?? "Artifacts/QA");
-        WriteUtf8LfIfChanged(reportPath, lines);
-        string resultPrefix = P15AutomationModesOnly
+        if (CharacterAiWorkTypeLiveMatrixPlayModeVerifier
+                .IsPersistentCookPauseVerification
+            || CharacterAiWorkTypeLiveMatrixPlayModeVerifier
+                .IsW05HarvestIdentityVerification
+            || CharacterAiWorkTypeLiveMatrixPlayModeVerifier
+                .IsW01WorkTerminalJoinVerification
+            || CharacterAiWorkTypeLiveMatrixPlayModeVerifier.IsW03MedicalLaborVerification
+            || CharacterAiWorkTypeLiveMatrixPlayModeVerifier.IsW04RepairLiveVerification
+            || CharacterAiWorkTypeLiveMatrixPlayModeVerifier.IsW06ResourceCausalityVerification)
+        {
+            WriteUtf8LfCreateNew(reportPath, lines);
+        }
+        else
+        {
+            WriteUtf8LfIfChanged(reportPath, lines);
+        }
+        string resultPrefix = W06ResourceCausalityOnly
+            ? "W06_RESOURCE_CAUSALITY"
+            : W04RepairLiveOnly
+            ? "W04_REPAIR_LIVE"
+            : W03MedicalLaborOnly
+            ? "W03_MEDICAL_LABOR"
+            : W01WorkTerminalJoinOnly
+            ? "W01_WORK_TERMINAL_JOIN"
+            : P15AutomationModesOnly
             ? "P15_PRODUCTION_EXECUTION_MODES"
-            : "CHARACTER_AI_WORKTYPE_LIVE_MATRIX";
+            : W05HarvestIdentityOnly
+                ? "W05_HARVEST_TERMINAL_IDENTITY"
+                : "CHARACTER_AI_WORKTYPE_LIVE_MATRIX";
         Debug.Log(resultPrefix + "="
             + (complete && failed == 0 && blocked == 0 ? "PASS" : "FAIL")
             + "; passed=" + passed
             + "; blocked=" + blocked + "; failed=" + failed);
+        return complete && failed == 0 && blocked == 0;
     }
 
     private static void WriteUtf8LfIfChanged(
@@ -7277,9 +11498,26 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
     }
 
+    private static void WriteUtf8LfCreateNew(
+        string path,
+        IReadOnlyList<string> lines)
+    {
+        string contents = string.Join("\n", lines) + "\n";
+        using FileStream stream = new FileStream(
+            path,
+            FileMode.CreateNew,
+            FileAccess.Write,
+            FileShare.Read);
+        using StreamWriter writer = new StreamWriter(
+            stream,
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        writer.Write(contents);
+    }
+
     private enum WorkProbeFault
     {
         CancelAfterApprovedProgress,
+        PauseAfterApprovedProgress,
         InvalidateTargetAfterStart,
         CompleteNormally
     }
@@ -7345,6 +11583,45 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
         public ProductionBillId BillId { get; }
     }
 
+    private sealed class W04RepairArmResult
+    {
+        public W04RepairArmResult(
+            string kind,
+            string workerId,
+            string facilityId,
+            string targetEntityId,
+            WorkPhaseResult phase,
+            WorkExecutionResult terminal,
+            GameplayOutcomeSnapshot child,
+            WorkCompletionIdentityDeliveryRequest request,
+            bool joined,
+            string detail)
+        {
+            Kind = kind ?? string.Empty;
+            WorkerId = workerId ?? string.Empty;
+            FacilityId = facilityId ?? string.Empty;
+            TargetEntityId = targetEntityId ?? string.Empty;
+            Phase = phase;
+            Terminal = terminal;
+            Child = child;
+            Request = request;
+            Joined = joined;
+            Detail = detail ?? string.Empty;
+        }
+
+        public string Kind { get; }
+        public string WorkerId { get; }
+        public string FacilityId { get; }
+        public string TargetEntityId { get; }
+        public WorkPhaseResult Phase { get; }
+        public WorkExecutionResult Terminal { get; }
+        public GameplayOutcomeSnapshot Child { get; }
+        public WorkCompletionIdentityDeliveryRequest Request { get; }
+        public bool Joined { get; }
+        public string Detail { get; }
+        public string ChildResultKey => Terminal?.ChildResultKey ?? string.Empty;
+    }
+
     private sealed class WorkPhaseResult
     {
         public WorkPhaseResult(WorkProbeFault fault) { Fault = fault; }
@@ -7352,6 +11629,7 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
         public bool Started;
         public bool Progressed;
         public bool CompletionTargetRemoved;
+        public bool CompletionAuthoritySatisfied;
         public bool TerminalRequested;
         public bool TerminalObserved;
         public bool TypedTerminal;
@@ -7375,6 +11653,17 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
         public float EstimatedTravelSeconds;
         public bool MovementObserved;
         public bool MovementStalled;
+        public bool PauseObserved;
+        public bool PauseBillUnchanged;
+        public bool PauseLaborUnchanged;
+        public bool PauseApprovedRevisionUnchanged;
+        public bool PauseWorkIdentityUnchanged;
+        public bool ResumedSameWorkProgress;
+        public int PauseFrameCount;
+        public float PauseBillWorkBefore;
+        public float PauseBillWorkAfter;
+        public long PauseLaborRevisionBefore;
+        public long PauseLaborRevisionAfter;
         public Vector2Int MovementStartPosition;
         public Vector2Int MovementEndPosition;
         public CharacterAiActionTerminalKind ObservedTerminalKind;
@@ -7389,8 +11678,15 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
 
         public bool Passed => Started
             && (Fault == WorkProbeFault.InvalidateTargetAfterStart || Progressed)
+            && (Fault != WorkProbeFault.PauseAfterApprovedProgress
+                || PauseObserved
+                && PauseBillUnchanged
+                && PauseLaborUnchanged
+                && PauseApprovedRevisionUnchanged
+                && PauseWorkIdentityUnchanged
+                && ResumedSameWorkProgress)
             && (Fault != WorkProbeFault.CompleteNormally
-                || CompletionTargetRemoved)
+                || CompletionAuthoritySatisfied)
             && TerminalRequested
             && TerminalObserved
             && TypedTerminal
@@ -7409,6 +11705,7 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             + "; priorityCommand=" + PriorityCommandDetail
             + "; progress=" + ProgressDelta
             + "; completionTargetRemoved=" + CompletionTargetRemoved
+            + "; completionAuthority=" + CompletionAuthoritySatisfied
             + "; action=" + ActionStarts + "/" + ActionTerminals
             + "; terminal=" + Cancelled + "C/" + Failed + "F"
             + "; terminalEpochKind=" + ObservedTerminalKind
@@ -7416,6 +11713,21 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
             + "; reservation=" + ReservationAcquires + "/" + ReservationReleases
             + "; movement=" + MovementObserved + "/" + MovementStalled
             + "@" + MovementStartPosition + "->" + MovementEndPosition
+            + (Fault != WorkProbeFault.PauseAfterApprovedProgress
+                ? string.Empty
+                : "; pause=" + PauseObserved
+                    + "; frames=" + PauseFrameCount
+                    + "; billExact=" + PauseBillUnchanged
+                    + "@" + PauseBillWorkBefore.ToString("0.######")
+                    + "->" + PauseBillWorkAfter.ToString("0.######")
+                    + "; laborExact=" + PauseLaborUnchanged
+                    + "@" + PauseLaborRevisionBefore
+                    + "->" + PauseLaborRevisionAfter
+                    + "; approvedExact="
+                    + PauseApprovedRevisionUnchanged
+                    + "; workIdentityExact="
+                    + PauseWorkIdentityUnchanged
+                    + "; resumedSameWork=" + ResumedSameWorkProgress)
             + "; gameplayProgress=" + GameplayProgressDelta
             + "; preStartDeferredWaits=" + PreStartDeferredWaits
             + "; etaCap=" + EstimatedTravelSeconds.ToString("0.###")

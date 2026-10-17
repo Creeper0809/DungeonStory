@@ -1,0 +1,897 @@
+[
+  {
+    "symbol": "MechanicalSignature",
+    "path": "Assets/Scripts/Content/FactionChapterDefinitionSO.cs",
+    "line": 62
+  },
+  {
+    "symbol": "ConstructGameManager",
+    "path": "Assets/Scripts/Controllers/GameManager.cs",
+    "line": 40
+  },
+  {
+    "symbol": "ConstructBuildingSummaryEventBus",
+    "path": "Assets/Scripts/Views/UI/BuildingSummaryInfo.cs",
+    "line": 43
+  },
+  {
+    "symbol": "ConstructProficiencies",
+    "path": "Assets/Scripts/Views/UI/CharacterDetailedStatsRuntime.cs",
+    "line": 88
+  },
+  {
+    "symbol": "ConstructGameplayEffects",
+    "path": "Assets/Scripts/Views/UI/CharacterDetailedStatsRuntime.cs",
+    "line": 101
+  },
+  {
+    "symbol": "GetCurrentEquipmentBonuses",
+    "path": "Assets/Scripts/Views/UI/CharacterSummaryCombatPresenter.cs",
+    "line": 519
+  },
+  {
+    "symbol": "FormatSigned",
+    "path": "Assets/Scripts/Views/UI/CharacterSummaryTextFormatter.cs",
+    "line": 182
+  },
+  {
+    "symbol": "ResgisterTab",
+    "path": "Assets/Scripts/Views/UI/UITabManager.cs",
+    "line": 126
+  },
+  {
+    "symbol": "UnRegisterTab",
+    "path": "Assets/Scripts/Views/UI/UITabManager.cs",
+    "line": 133
+  },
+  {
+    "symbol": "ConstructWildlifeInfoEventBus",
+    "path": "Assets/Scripts/Views/Wildlife/WildlifeInfoPanel.cs",
+    "line": 70
+  },
+  {
+    "symbol": "ConstructWildlifeCompanionRoles",
+    "path": "Assets/Scripts/Views/Wildlife/WildlifeInfoPanel.cs",
+    "line": 78
+  },
+  {
+    "symbol": "ConstructWildlifeHaulRoles",
+    "path": "Assets/Scripts/Views/Wildlife/WildlifeInfoPanel.cs",
+    "line": 89
+  },
+  {
+    "symbol": "ConstructNoticeFeed",
+    "path": "Assets/Scripts/Views/UI/Core/NoticeFeed.cs",
+    "line": 20
+  },
+  {
+    "symbol": "SetImpactRotationCompatibility",
+    "path": "Assets/Scripts/Views/Character/Presentation/CharacterProceduralMotionPresenter.cs",
+    "line": 144
+  },
+  {
+    "symbol": "ConstructCharacterFeedbackBubble",
+    "path": "Assets/Scripts/Views/Character/UI/CharacterFeedbackBubble.cs",
+    "line": 46
+  },
+  {
+    "symbol": "ConstructOwnerSelectionPanel",
+    "path": "Assets/Scripts/Views/Character/UI/OwnerSelectionPanel.cs",
+    "line": 46
+  },
+  {
+    "symbol": "ConstructStaffManagementDependencies",
+    "path": "Assets/Scripts/Views/Character/UI/StaffWorkPriorityPanel.cs",
+    "line": 72
+  },
+  {
+    "symbol": "ConstructStaffWorkPriorityEventBus",
+    "path": "Assets/Scripts/Views/Character/UI/StaffWorkPriorityPanel.cs",
+    "line": 96
+  },
+  {
+    "symbol": "ConstructStaffWorkPriorityApology",
+    "path": "Assets/Scripts/Views/Character/UI/StaffWorkPriorityPanel.cs",
+    "line": 113
+  },
+  {
+    "symbol": "ConstructStaffWorkPriorityRitualFasting",
+    "path": "Assets/Scripts/Views/Character/UI/StaffWorkPriorityPanel.cs",
+    "line": 122
+  },
+  {
+    "symbol": "AppendFlags",
+    "path": "Assets/Scripts/Views/Character/UI/StartPartyPreparationPresentation.cs",
+    "line": 137
+  },
+  {
+    "symbol": "FormatTraitIds",
+    "path": "Assets/Scripts/Views/Character/UI/StartPartyPreparationPresentation.cs",
+    "line": 200
+  },
+  {
+    "symbol": "OnDrop",
+    "path": "Assets/Scripts/Views/Character/UI/StartPartyPreparationUiController.cs",
+    "line": 716
+  },
+  {
+    "symbol": "SetCombatHorizontalOffset",
+    "path": "Assets/Scripts/Views/Character/UI/WorldCharacterNameplate.cs",
+    "line": 142
+  },
+  {
+    "symbol": "OnPointerMove",
+    "path": "Assets/Scripts/Views/Buildings/UI/FacilityRelocationTargetingService.cs",
+    "line": 41
+  },
+  {
+    "symbol": "ConstructUIBuildingInfo",
+    "path": "Assets/Scripts/Views/Buildings/UI/UIBuildingInfo.cs",
+    "line": 65
+  },
+  {
+    "symbol": "ConstructUIBuildingInfoEventBus",
+    "path": "Assets/Scripts/Views/Buildings/UI/UIBuildingInfo.cs",
+    "line": 154
+  },
+  {
+    "symbol": "ActiveDestroyMode",
+    "path": "Assets/Scripts/Views/Buildings/UI/UIBuildingSelectButton.cs",
+    "line": 90
+  },
+  {
+    "symbol": "ConstructCoverDurabilityRegistry",
+    "path": "Assets/Scripts/Services/Buildings/BuildableObject.cs",
+    "line": 328
+  },
+  {
+    "symbol": "ReconcilePendingFacilityUse",
+    "path": "Assets/Scripts/Services/Buildings/BuildableObject.cs",
+    "line": 1360
+  },
+  {
+    "symbol": "ApplyFacilityUseMutation",
+    "path": "Assets/Scripts/Services/Buildings/BuildableObject.cs",
+    "line": 1447
+  },
+  {
+    "symbol": "ConstructDoorVisualResources",
+    "path": "Assets/Scripts/Services/Buildings/Door.cs",
+    "line": 39
+  },
+  {
+    "symbol": "ConstructDoorAccess",
+    "path": "Assets/Scripts/Services/Buildings/Door.cs",
+    "line": 47
+  },
+  {
+    "symbol": "GetRefund",
+    "path": "Assets/Scripts/Services/Buildings/FacilityOperationalData.cs",
+    "line": 542
+  },
+  {
+    "symbol": "PublishStockConsumed",
+    "path": "Assets/Scripts/Services/Buildings/Shop.cs",
+    "line": 709
+  },
+  {
+    "symbol": "WithWildlife",
+    "path": "Assets/Scripts/Services/Captivity/WildlifeHaulRoleContracts.cs",
+    "line": 58
+  },
+  {
+    "symbol": "RunLongHorizonAndQualitySamples",
+    "path": "Assets/Scripts/Services/Character/CharacterProficiencyDebugHarness.cs",
+    "line": 198
+  },
+  {
+    "symbol": "RunDecayPerformanceProbe",
+    "path": "Assets/Scripts/Services/Character/CharacterProficiencyDebugHarness.cs",
+    "line": 275
+  },
+  {
+    "symbol": "ConstructSocietyIncidentExitAdmission",
+    "path": "Assets/Scripts/Services/Character/CharacterSpawner.cs",
+    "line": 120
+  },
+  {
+    "symbol": "Respawned",
+    "path": "Assets/Scripts/Services/Character/CharacterSpawner.cs",
+    "line": 566
+  },
+  {
+    "symbol": "FormatLegacyWorkTypes",
+    "path": "Assets/Scripts/Services/Codex/CodexRuntimeApplicationAdapter.cs",
+    "line": 680
+  },
+  {
+    "symbol": "GetLegacyBodyPart",
+    "path": "Assets/Scripts/Services/Combat/CharacterBodyHealthStateRules.cs",
+    "line": 557
+  },
+  {
+    "symbol": "ResolveRequiredCapacityGrams",
+    "path": "Assets/Scripts/Services/Economy/ProductionOutputBufferCapacityProjector.cs",
+    "line": 624
+  },
+  {
+    "symbol": "ExactScaled",
+    "path": "Assets/Scripts/Services/Economy/ProductionRecipeWorkRateMaximumAuthority.cs",
+    "line": 34
+  },
+  {
+    "symbol": "TryGetAudit",
+    "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionLlmProposalProvider.cs",
+    "line": 248
+  },
+  {
+    "symbol": "SetToken",
+    "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecord.cs",
+    "line": 69
+  },
+  {
+    "symbol": "TryConsumeToken",
+    "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecord.cs",
+    "line": 79
+  },
+  {
+    "symbol": "TryConsumeTokens",
+    "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecord.cs",
+    "line": 107
+  },
+  {
+    "symbol": "ConstructFacilityEvolutionRuntime",
+    "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRuntime.cs",
+    "line": 1765
+  },
+  {
+    "symbol": "CopyPendingEvidenceUseIntent",
+    "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionStateComponent.cs",
+    "line": 771
+  },
+  {
+    "symbol": "AddMastery",
+    "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionStateComponent.cs",
+    "line": 839
+  },
+  {
+    "symbol": "ApplyEvolution",
+    "path": "Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionStateComponent.cs",
+    "line": 890
+  },
+  {
+    "symbol": "ConstructArchiveDestinationAuthority",
+    "path": "Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntime.cs",
+    "line": 109
+  },
+  {
+    "symbol": "RegisterGameManager",
+    "path": "Assets/Scripts/Services/Infrastructure/DungeonSceneRuntimeReferences.cs",
+    "line": 125
+  },
+  {
+    "symbol": "RegisterGridBuildingController",
+    "path": "Assets/Scripts/Services/Infrastructure/DungeonSceneRuntimeReferences.cs",
+    "line": 130
+  },
+  {
+    "symbol": "RegisterGridTexture",
+    "path": "Assets/Scripts/Services/Infrastructure/DungeonSceneRuntimeReferences.cs",
+    "line": 136
+  },
+  {
+    "symbol": "RegisterOwnerSelectionPanel",
+    "path": "Assets/Scripts/Services/Infrastructure/DungeonSceneRuntimeReferences.cs",
+    "line": 146
+  },
+  {
+    "symbol": "RegisterBuildingInfo",
+    "path": "Assets/Scripts/Services/Infrastructure/DungeonSceneRuntimeReferences.cs",
+    "line": 151
+  },
+  {
+    "symbol": "TryGetForInteriorColumns",
+    "path": "Assets/Scripts/Services/Infrastructure/DungeonSpaceExpansionRuntime.cs",
+    "line": 157
+  },
+  {
+    "symbol": "GetRangedCell",
+    "path": "Assets/Scripts/Services/Invasion/DefenseEngagementRuntimeModels.cs",
+    "line": 108
+  },
+  {
+    "symbol": "TryFindPriorityTarget",
+    "path": "Assets/Scripts/Services/Invasion/InvasionFacilityDamageRuntimeAdapter.cs",
+    "line": 78
+  },
+  {
+    "symbol": "ConstructHaulDestinationAuthority",
+    "path": "Assets/Scripts/Services/Items/AbilityHaul.cs",
+    "line": 919
+  },
+  {
+    "symbol": "ConstructCapacityRoutingDrainGate",
+    "path": "Assets/Scripts/Services/Items/AbilityHaul.cs",
+    "line": 926
+  },
+  {
+    "symbol": "FailNextDestructiveRetireAfterCustodyStripForEditorTest",
+    "path": "Assets/Scripts/Services/Items/FacilityOutputExactRouteService.cs",
+    "line": 443
+  },
+  {
+    "symbol": "ConstructItemPileInfoEventBus",
+    "path": "Assets/Scripts/Services/Items/ItemPileInfoPanel.cs",
+    "line": 70
+  },
+  {
+    "symbol": "ConstructItemPileEquipmentActions",
+    "path": "Assets/Scripts/Services/Items/ItemPileInfoPanel.cs",
+    "line": 78
+  },
+  {
+    "symbol": "ConstructItemQuantityDiagnostics",
+    "path": "Assets/Scripts/Services/Items/ItemPileInfoPanel.cs",
+    "line": 95
+  },
+  {
+    "symbol": "ConstructMemoryErasureSealUse",
+    "path": "Assets/Scripts/Services/Items/ItemPileInfoPanel.cs",
+    "line": 106
+  },
+  {
+    "symbol": "GetSkillTrack",
+    "path": "Assets/Scripts/Services/Offense/OffenseCombatAbilities.cs",
+    "line": 103
+  },
+  {
+    "symbol": "TakeReturningFieldFunds",
+    "path": "Assets/Scripts/Services/Offense/OffenseExpeditionModel.cs",
+    "line": 1178
+  },
+  {
+    "symbol": "TryQueueEquipmentCraft",
+    "path": "Assets/Scripts/Services/Offense/OffenseExpeditionRuntime.cs",
+    "line": 410
+  },
+  {
+    "symbol": "SetPreciseIntelForDebug",
+    "path": "Assets/Scripts/Services/Offense/OffenseWorldMapRuntime.cs",
+    "line": 344
+  },
+  {
+    "symbol": "GetVisibleTargetSnapshots",
+    "path": "Assets/Scripts/Services/Offense/OffenseWorldMapService.cs",
+    "line": 201
+  },
+  {
+    "symbol": "TryReserveFuneral",
+    "path": "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs",
+    "line": 99
+  },
+  {
+    "symbol": "CommitFuneral",
+    "path": "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs",
+    "line": 115
+  },
+  {
+    "symbol": "TryReserveLastLesson",
+    "path": "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs",
+    "line": 122
+  },
+  {
+    "symbol": "CommitLastLesson",
+    "path": "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs",
+    "line": 138
+  },
+  {
+    "symbol": "TryReserveProductionLoss",
+    "path": "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs",
+    "line": 145
+  },
+  {
+    "symbol": "CommitProductionLoss",
+    "path": "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs",
+    "line": 161
+  },
+  {
+    "symbol": "TryReserveQuietPromotion",
+    "path": "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs",
+    "line": 168
+  },
+  {
+    "symbol": "CommitQuietPromotion",
+    "path": "Assets/Scripts/Services/Run/ObservedCareerLifeEventReceipts.cs",
+    "line": 180
+  },
+  {
+    "symbol": "DescribeOwner",
+    "path": "Assets/Scripts/Services/Run/V20ContentResolutionService.cs",
+    "line": 428
+  },
+  {
+    "symbol": "InjectFacilityEvolutionModifiers",
+    "path": "Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs",
+    "line": 199
+  },
+  {
+    "symbol": "GetThreatMultiplier",
+    "path": "Assets/Scripts/Services/Survival/SurvivalFacilityWorkRules.cs",
+    "line": 168
+  },
+  {
+    "symbol": "ConstructStrategic",
+    "path": "Assets/Scripts/Services/Offense/Strategic/OffenseWorldMapPanelStrategic.cs",
+    "line": 96
+  },
+  {
+    "symbol": "HasSameParticipantPayload",
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomes/GameplayOutcomeSnapshotCodec.cs",
+    "line": 184
+  },
+  {
+    "symbol": "ExplicitFinal",
+    "path": "Assets/Scripts/Services/Narrative/Korean/KoreanJosaContracts.cs",
+    "line": 107
+  },
+  {
+    "symbol": "WithPhysicalOutcomeId",
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/Infrastructure/DefenseFacilityServiceOutcomeDefinition.cs",
+    "line": 126
+  },
+  {
+    "symbol": "CommitDetailedBatch",
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs",
+    "line": 276
+  },
+  {
+    "symbol": "CommitSingleSubjectBatch",
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/MigratedProducerOutcomeRuntime.cs",
+    "line": 487
+  },
+  {
+    "symbol": "WithAttackOutcome",
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/ProductionCombat/ProductionCombatOutcomeReceipts.cs",
+    "line": 450
+  },
+  {
+    "symbol": "IsValidOutcome",
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/ProductionCombat/WorkCompletionIdentityOutcomeDefinition.cs",
+    "line": 476
+  },
+  {
+    "symbol": "CreateReservationSpec",
+    "path": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/ServiceRooms/ServiceSessionOutcomeDefinition.cs",
+    "line": 155
+  },
+  {
+    "symbol": "RestoreRunState",
+    "path": "Assets/Scripts/Services/Infrastructure/Core/MetaProgressionRuntime.cs",
+    "line": 66
+  },
+  {
+    "symbol": "GetEditorReadinessDiagnostics",
+    "path": "Assets/Scripts/Services/Infrastructure/Diagnostics/DungeonGameplayPerformanceProbe.cs",
+    "line": 53
+  },
+  {
+    "symbol": "StartEditorEconomyMixedPopulationProfile",
+    "path": "Assets/Scripts/Services/Infrastructure/Diagnostics/DungeonGameplayPerformanceProbe.cs",
+    "line": 132
+  },
+  {
+    "symbol": "TryValidateRecoveryOutput",
+    "path": "Assets/Scripts/Services/Infrastructure/Environment/ApparelRejectedDismantleOutbox.cs",
+    "line": 508
+  },
+  {
+    "symbol": "CopyEnvironmentState",
+    "path": "Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearRuntime.cs",
+    "line": 20
+  },
+  {
+    "symbol": "SetWaitingVisitors",
+    "path": "Assets/Scripts/Services/Infrastructure/Exterior/ExteriorZoneMarker.cs",
+    "line": 156
+  },
+  {
+    "symbol": "GetLegacyWorkDurationMultiplier",
+    "path": "Assets/Scripts/Services/Infrastructure/Rooms/RoomEnvironmentAdapter.cs",
+    "line": 347
+  },
+  {
+    "symbol": "HasBuilding",
+    "path": "Assets/Scripts/Services/Grid/Building/GridBuildingRuntime.cs",
+    "line": 1388
+  },
+  {
+    "symbol": "IsConneted",
+    "path": "Assets/Scripts/Services/Grid/Building/GridBuildingRuntime.cs",
+    "line": 1479
+  },
+  {
+    "symbol": "FindAllBuilding",
+    "path": "Assets/Scripts/Services/Grid/Building/GridBuildingRuntime.cs",
+    "line": 1489
+  },
+  {
+    "symbol": "CountBuilding",
+    "path": "Assets/Scripts/Services/Grid/Building/GridBuildingRuntime.cs",
+    "line": 1498
+  },
+  {
+    "symbol": "ConstructFulfillmentQuery",
+    "path": "Assets/Scripts/Services/Economy/Treasury/AutoProcurementRuntime.cs",
+    "line": 727
+  },
+  {
+    "symbol": "StartMoveByCurrentActionPath",
+    "path": "Assets/Scripts/Services/Character/Ability/AbilityMove.cs",
+    "line": 967
+  },
+  {
+    "symbol": "IsPriorityWork",
+    "path": "Assets/Scripts/Services/Character/Ability/AbilityWork.cs",
+    "line": 348
+  },
+  {
+    "symbol": "ConstructEmergencyWorkAccounting",
+    "path": "Assets/Scripts/Services/Character/Ability/AbilityWork.cs",
+    "line": 540
+  },
+  {
+    "symbol": "ConstructReservedItemTransfers",
+    "path": "Assets/Scripts/Services/Character/Ability/AbilityWork.cs",
+    "line": 552
+  },
+  {
+    "symbol": "ConstructSettlementStandings",
+    "path": "Assets/Scripts/Services/Character/Ability/AbilityWork.cs",
+    "line": 578
+  },
+  {
+    "symbol": "ConstructIdentityWorkQueries",
+    "path": "Assets/Scripts/Services/Character/Ability/AbilityWork.cs",
+    "line": 588
+  },
+  {
+    "symbol": "ConstructWorkAccidentRandom",
+    "path": "Assets/Scripts/Services/Character/Ability/AbilityWork.cs",
+    "line": 596
+  },
+  {
+    "symbol": "ConstructBuildingStructuralIntegrity",
+    "path": "Assets/Scripts/Services/Character/Ability/AbilityWork.cs",
+    "line": 620
+  },
+  {
+    "symbol": "StatRatio",
+    "path": "Assets/Scripts/Services/Character/AI/CharacterAiJobGiver.cs",
+    "line": 335
+  },
+  {
+    "symbol": "HasProgressFrom",
+    "path": "Assets/Scripts/Services/Character/AI/CharacterAiRuntimeDiagnostics.cs",
+    "line": 215
+  },
+  {
+    "symbol": "RenameCandidate",
+    "path": "Assets/Scripts/Services/Character/AI/CharacterAiUtilityModels.cs",
+    "line": 70
+  },
+  {
+    "symbol": "ToMultilineString",
+    "path": "Assets/Scripts/Services/Character/AI/CharacterAiUtilityModels.cs",
+    "line": 147
+  },
+  {
+    "symbol": "GetFacilityNeedScore",
+    "path": "Assets/Scripts/Services/Character/AI/CharacterAiUtilityModels.cs",
+    "line": 751
+  },
+  {
+    "symbol": "FreezeForExport",
+    "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitInferenceService.cs",
+    "line": 410
+  },
+  {
+    "symbol": "RequireMeaningfulRecordCount",
+    "path": "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitValidation.cs",
+    "line": 101
+  },
+  {
+    "symbol": "GetReachableBuilding",
+    "path": "Assets/Scripts/Services/Character/Core/CharacterActor.cs",
+    "line": 772
+  },
+  {
+    "symbol": "RaiseDied",
+    "path": "Assets/Scripts/Services/Character/Core/CharacterActor.cs",
+    "line": 1074
+  },
+  {
+    "symbol": "TryCreateMoodFactor",
+    "path": "Assets/Scripts/Services/Character/Core/CharacterNeedDefinitionRuntimeExtensions.cs",
+    "line": 23
+  },
+  {
+    "symbol": "TryToggleEquipped",
+    "path": "Assets/Scripts/Services/Character/Core/CharacterProgression.cs",
+    "line": 419
+  },
+  {
+    "symbol": "IsLearned",
+    "path": "Assets/Scripts/Services/Character/Core/CharacterProgression.cs",
+    "line": 425
+  },
+  {
+    "symbol": "ConstructRecovery",
+    "path": "Assets/Scripts/Services/Character/Core/CharacterSkillActivationOutcomeTransaction.cs",
+    "line": 184
+  },
+  {
+    "symbol": "GetEventWeightMultiplier",
+    "path": "Assets/Scripts/Services/Character/SO/CharacterModelData.cs",
+    "line": 104
+  },
+  {
+    "symbol": "GetIncidentId",
+    "path": "Assets/Scripts/Services/Character/SO/CharacterModelData.cs",
+    "line": 217
+  },
+  {
+    "symbol": "GetIncidentName",
+    "path": "Assets/Scripts/Services/Character/SO/CharacterModelData.cs",
+    "line": 222
+  },
+  {
+    "symbol": "GetIncidentDescription",
+    "path": "Assets/Scripts/Services/Character/SO/CharacterModelData.cs",
+    "line": 227
+  },
+  {
+    "symbol": "GetAnatomyProfileId",
+    "path": "Assets/Scripts/Services/Character/SO/CharacterModelData.cs",
+    "line": 242
+  },
+  {
+    "symbol": "UsesMechanicalMaintenance",
+    "path": "Assets/Scripts/Services/Character/SO/CharacterModelData.cs",
+    "line": 247
+  },
+  {
+    "symbol": "GetBudget",
+    "path": "Assets/Scripts/Services/Character/SO/CharacterSkillSystemSettingsSO.cs",
+    "line": 537
+  },
+  {
+    "symbol": "EvaluateInvestmentReturn",
+    "path": "Assets/Scripts/Services/Character/Work/SettlementLaborBalanceRules.cs",
+    "line": 258
+  },
+  {
+    "symbol": "OnBeforeSerialize",
+    "path": "Assets/Scripts/Services/Character/Work/WorkPriorityProfile.cs",
+    "line": 415
+  },
+  {
+    "symbol": "OnAfterDeserialize",
+    "path": "Assets/Scripts/Services/Character/Work/WorkPriorityProfile.cs",
+    "line": 420
+  },
+  {
+    "symbol": "CanUseAsWorkTarget",
+    "path": "Assets/Scripts/Services/Character/Work/WorkTargetSelector.cs",
+    "line": 215
+  },
+  {
+    "symbol": "TryResolveDestination",
+    "path": "Assets/Scripts/Services/Character/AI/Action/AIActionSet.cs",
+    "line": 309
+  },
+  {
+    "symbol": "GetDislikedSpeciesTags",
+    "path": "Assets/Scripts/Services/Buildings/Abilities/BuildingAbilityAccessors.cs",
+    "line": 132
+  },
+  {
+    "symbol": "RemoveInvalidSlots",
+    "path": "Assets/Scripts/Services/Buildings/SO/BuildingSO.cs",
+    "line": 157
+  },
+  {
+    "symbol": "ResolveAccidentMultiplier",
+    "path": "Assets/Scripts/Models/Characters/CharacterProficiencyDomain.cs",
+    "line": 246
+  },
+  {
+    "symbol": "CaptureStandalone",
+    "path": "Assets/Scripts/Models/Wildlife/Core/WildlifeHabitatPatch.cs",
+    "line": 102
+  },
+  {
+    "symbol": "AdvanceAllOneDay",
+    "path": "Assets/Scripts/Models/Species/Core/CharacterLifeDomain.cs",
+    "line": 1347
+  },
+  {
+    "symbol": "GetThresholdEffects",
+    "path": "Assets/Scripts/Models/Species/Core/GriefTraumaDomain.cs",
+    "line": 316
+  },
+  {
+    "symbol": "GetRoomLabel",
+    "path": "Assets/Scripts/Models/Rooms/Core/RoomRole.cs",
+    "line": 88
+  },
+  {
+    "symbol": "Occupies",
+    "path": "Assets/Scripts/Models/Rooms/Core/RoomSpatialDomain.cs",
+    "line": 73
+  },
+  {
+    "symbol": "FindFirstMissingPrerequisite",
+    "path": "Assets/Scripts/Models/Research/Core/ResearchProjectCoordinatorRules.cs",
+    "line": 89
+  },
+  {
+    "symbol": "CollectDependencyOrder",
+    "path": "Assets/Scripts/Models/Research/Core/ResearchProjectCoordinatorRules.cs",
+    "line": 102
+  },
+  {
+    "symbol": "AddAllowedMaterial",
+    "path": "Assets/Scripts/Models/Production/Core/ProductionAggregateState.cs",
+    "line": 626
+  },
+  {
+    "symbol": "AddAllowedWorker",
+    "path": "Assets/Scripts/Models/Production/Core/ProductionAggregateState.cs",
+    "line": 629
+  },
+  {
+    "symbol": "CreateOwnerPath",
+    "path": "Assets/Scripts/Models/Invasion/Core/FinalDefenseRallyPlanner.cs",
+    "line": 26
+  },
+  {
+    "symbol": "CreateIntruderPath",
+    "path": "Assets/Scripts/Models/Invasion/Core/FinalDefenseRallyPlanner.cs",
+    "line": 27
+  },
+  {
+    "symbol": "SetUnityCoordinates",
+    "path": "Assets/Scripts/Models/Grid/Core/Grid.cs",
+    "line": 85
+  },
+  {
+    "symbol": "SmoothOccupantPath",
+    "path": "Assets/Scripts/Models/Grid/Core/Grid.cs",
+    "line": 867
+  },
+  {
+    "symbol": "TryFindNearestWalkablePositionOnSameFloor",
+    "path": "Assets/Scripts/Models/Grid/Core/Grid.cs",
+    "line": 964
+  },
+  {
+    "symbol": "ConnectFloor",
+    "path": "Assets/Scripts/Models/Grid/Core/GridCell.cs",
+    "line": 90
+  },
+  {
+    "symbol": "SetOccupant",
+    "path": "Assets/Scripts/Models/Grid/Core/GridCell.cs",
+    "line": 330
+  },
+  {
+    "symbol": "TryGetMovePathToRandomReachablePosition",
+    "path": "Assets/Scripts/Models/Grid/Core/GridPathSearchResult.cs",
+    "line": 305
+  },
+  {
+    "symbol": "GetOccupantPathTo",
+    "path": "Assets/Scripts/Models/Grid/Core/GridPathSearchResult.cs",
+    "line": 360
+  },
+  {
+    "symbol": "RentPositionQueue",
+    "path": "Assets/Scripts/Models/Grid/Core/GridSearchWorkspaces.cs",
+    "line": 317
+  },
+  {
+    "symbol": "ReturnMovePath",
+    "path": "Assets/Scripts/Models/Grid/Core/GridSearchWorkspaces.cs",
+    "line": 401
+  },
+  {
+    "symbol": "AdjustTrust",
+    "path": "Assets/Scripts/Models/Factions/Core/FactionDomainRuntime.cs",
+    "line": 325
+  },
+  {
+    "symbol": "IsRoomOwned",
+    "path": "Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs",
+    "line": 156
+  },
+  {
+    "symbol": "WithOutcomeResultKey",
+    "path": "Assets/Scripts/Models/Environment/Core/EnvironmentalFireDomain.cs",
+    "line": 517
+  },
+  {
+    "symbol": "ConfigureRequiredComponentInputs",
+    "path": "Assets/Scripts/Models/Economy/Content/CombatEquipmentDefinitions.cs",
+    "line": 87
+  },
+  {
+    "symbol": "ClampPercent",
+    "path": "Assets/Scripts/Models/Defense/Core/DefenseDomain.cs",
+    "line": 478
+  },
+  {
+    "symbol": "IsHigh",
+    "path": "Assets/Scripts/Models/Captivity/Core/CaptivityRetaliationRuntime.cs",
+    "line": 23
+  },
+  {
+    "symbol": "IsDoorCaptured",
+    "path": "Assets/Scripts/Models/Captivity/Core/CircusSaveValidation.cs",
+    "line": 177
+  },
+  {
+    "symbol": "IsSaleItemAccepted",
+    "path": "Assets/Scripts/Models/Buildings/Core/ShopInventoryRuntime.cs",
+    "line": 182
+  },
+  {
+    "symbol": "IsConditionSuccess",
+    "path": "Assets/Scripts/Models/AI/Core/CharacterAiBehaviorTasks.cs",
+    "line": 48
+  },
+  {
+    "symbol": "IsActionSuccess",
+    "path": "Assets/Scripts/Models/AI/Core/CharacterAiBehaviorTasks.cs",
+    "line": 56
+  },
+  {
+    "symbol": "EnqueueCharacterSkill",
+    "path": "Assets/Scripts/Models/AI/Core/LocalLlmRequestQueue.cs",
+    "line": 1169
+  },
+  {
+    "symbol": "EnqueueMoodImpulse",
+    "path": "Assets/Scripts/Models/AI/Core/LocalLlmRequestQueue.cs",
+    "line": 1179
+  },
+  {
+    "symbol": "EnqueueFacilityEvolution",
+    "path": "Assets/Scripts/Models/AI/Core/LocalLlmRequestQueue.cs",
+    "line": 1189
+  },
+  {
+    "symbol": "EnqueueCharacterRecord",
+    "path": "Assets/Scripts/Models/AI/Core/LocalLlmRequestQueue.cs",
+    "line": 1194
+  },
+  {
+    "symbol": "ToggleBuildMode",
+    "path": "Assets/Scripts/Controllers/Grid/System/GridSystemManager.cs",
+    "line": 294
+  },
+  {
+    "symbol": "IsBuildable",
+    "path": "Assets/Scripts/Controllers/Grid/DungeonStory/Building/DungeonStoryGridBuildingController.cs",
+    "line": 358
+  },
+  {
+    "symbol": "ConstructGridConstructTab",
+    "path": "Assets/Scripts/Controllers/Grid/DungeonStory/UI/GridConstructTab.cs",
+    "line": 42
+  },
+  {
+    "symbol": "ToggleConstructTab",
+    "path": "Assets/Scripts/Controllers/Grid/DungeonStory/UI/GridUIManager.cs",
+    "line": 88
+  }
+]

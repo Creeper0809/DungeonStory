@@ -544,9 +544,9 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         finished = true;
         worldSummaryCollector.Capture(warningCount, errorCount, capturedMessages);
         Directory.CreateDirectory(Path.GetDirectoryName(options.ReportPath)
-            ?? Application.persistentDataPath);
+            ?? DungeonPersistencePaths.Root);
         Directory.CreateDirectory(Path.GetDirectoryName(options.ScreenshotPath)
-            ?? Application.persistentDataPath);
+            ?? DungeonPersistencePaths.Root);
         File.WriteAllText(options.ReportPath, JsonUtility.ToJson(report, true));
         ScreenCapture.CaptureScreenshot(options.ScreenshotPath);
         UnityEngine.Debug.Log(

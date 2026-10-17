@@ -101,6 +101,9 @@ public static class RegionalSupplyContractSaveValidation
         if (!IsCanonicalRequired(contract.title)
             || !IsCanonicalRequired(contract.regionName)
             || !IsCanonicalOptional(contract.lastStatus)
+            || !IsCanonicalOptional(contract.acceptanceOutcomeResultKey)
+            || !IsCanonicalOptional(contract.terminalOutcomeResultKey)
+            || !IsCanonicalOptional(contract.deliveryOutcomeResultKey)
             || !Enum.IsDefined(
                 typeof(RegionalSupplyContractStatus),
                 contract.status)

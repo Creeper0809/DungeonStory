@@ -96,7 +96,7 @@ public sealed class EvolutionCatalystEconomyRuntime :
         }
 
         string operationId =
-            $"evolution-catalyst-dismantle:{source.StackId}:{source.Quantity:D8}";
+            $"evolution-catalyst-dismantle:{source.StackId}:{Guid.NewGuid():N}";
         if (physicalTransforms.TryTransformQuantity(
                 source.StackId,
                 1,
@@ -224,7 +224,7 @@ public sealed class EvolutionCatalystEconomyRuntime :
             return false;
         }
 
-        string operationId = $"evolution-catalyst-exchange:{source.StackId}:{outputId}";
+        string operationId = $"evolution-catalyst-exchange:{source.StackId}:{Guid.NewGuid():N}";
         if (!physicalTransforms.TryTransformQuantity(
                 source.StackId,
                 1,
@@ -298,7 +298,9 @@ public sealed class EvolutionCatalystEconomyRuntime :
                 break;
             }
         }
-        string operationId = $"evolution-catalyst-transform:{outputItemId}:{outputPosition.x}:{outputPosition.y}";
+        // Each public command is a new conversion. Location/item identity is not
+        // a command identity: it would suppress the next legitimate refinement.
+        string operationId = $"evolution-catalyst-transform:{Guid.NewGuid():N}";
         return physicalTransforms.TryTransformQuantities(
             inputs,
             new[]

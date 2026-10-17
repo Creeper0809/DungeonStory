@@ -1,0 +1,384 @@
+{
+  "materials": [
+    {
+      "id": "material:blacksteel",
+      "source": "Assets/Resources/SO/Economy/Materials/material_blacksteel.asset",
+      "label": "흑강",
+      "authored": [
+        1.2,
+        1.3,
+        1.5,
+        1.1,
+        3
+      ],
+      "wiki": [
+        1.2,
+        1.3,
+        1.5,
+        1.1,
+        3
+      ],
+      "equal": true
+    },
+    {
+      "id": "material:bone",
+      "source": "Assets/Resources/SO/Economy/Materials/material_bone.asset",
+      "label": "뼈·뿔",
+      "authored": [
+        0.95,
+        0.8,
+        0.75,
+        0.65,
+        0.9
+      ],
+      "wiki": [
+        0.95,
+        0.8,
+        0.75,
+        0.65,
+        0.9
+      ],
+      "equal": true
+    },
+    {
+      "id": "material:cloth",
+      "source": "Assets/Resources/SO/Economy/Materials/material_cloth.asset",
+      "label": "천",
+      "authored": [
+        0.65,
+        0.45,
+        0.55,
+        0.4,
+        0.65
+      ],
+      "wiki": [
+        0.65,
+        0.45,
+        0.55,
+        0.4,
+        0.65
+      ],
+      "equal": true
+    },
+    {
+      "id": "material:dreamweave",
+      "source": "Assets/Resources/SO/Economy/Materials/material_dreamweave.asset",
+      "label": "몽직물",
+      "authored": [
+        0.9,
+        0.82,
+        0.9,
+        0.28,
+        2.7
+      ],
+      "wiki": [
+        0.9,
+        0.82,
+        0.9,
+        0.28,
+        2.7
+      ],
+      "equal": true
+    },
+    {
+      "id": "material:gold",
+      "source": "Assets/Resources/SO/Economy/Materials/material_gold.asset",
+      "label": "금",
+      "authored": [
+        0.92,
+        0.7,
+        0.55,
+        1.55,
+        4
+      ],
+      "wiki": [
+        0.92,
+        0.7,
+        0.55,
+        1.55,
+        4
+      ],
+      "equal": true
+    },
+    {
+      "id": "material:iron",
+      "source": "Assets/Resources/SO/Economy/Materials/material_iron.asset",
+      "label": "철",
+      "authored": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "wiki": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "equal": true
+    },
+    {
+      "id": "material:leather",
+      "source": "Assets/Resources/SO/Economy/Materials/material_leather.asset",
+      "label": "가죽",
+      "authored": [
+        0.85,
+        0.78,
+        0.9,
+        0.75,
+        1.05
+      ],
+      "wiki": [0.85, 0.78, 0.9, 0.75, 1.05],
+      "equal": true
+    },
+    {
+      "id": "material:rune-leather",
+      "source": "Assets/Resources/SO/Economy/Materials/material_rune_leather.asset",
+      "label": "룬가죽",
+      "authored": [
+        1.02,
+        1.16,
+        1.25,
+        0.72,
+        2.4
+      ],
+      "wiki": [
+        1.02,
+        1.16,
+        1.25,
+        0.72,
+        2.4
+      ],
+      "equal": true
+    },
+    {
+      "id": "material:steel",
+      "source": "Assets/Resources/SO/Economy/Materials/material_steel.asset",
+      "label": "강철",
+      "authored": [
+        1.1,
+        1.18,
+        1.25,
+        0.95,
+        1.5
+      ],
+      "wiki": [
+        1.1,
+        1.18,
+        1.25,
+        0.95,
+        1.5
+      ],
+      "equal": true
+    },
+    {
+      "id": "material:stone",
+      "source": "Assets/Resources/SO/Economy/Materials/material_stone.asset",
+      "label": "석재",
+      "authored": [
+        0.95,
+        0.75,
+        0.85,
+        1.35,
+        0.5
+      ],
+      "wiki": [
+        0.95,
+        0.75,
+        0.85,
+        1.35,
+        0.5
+      ],
+      "equal": true
+    },
+    {
+      "id": "material:wood",
+      "source": "Assets/Resources/SO/Economy/Materials/material_wood.asset",
+      "label": "목재",
+      "authored": [
+        0.85,
+        0.55,
+        0.65,
+        0.55,
+        0.55
+      ],
+      "wiki": [
+        0.85,
+        0.55,
+        0.65,
+        0.55,
+        0.55
+      ],
+      "equal": true
+    },
+    {
+      "id": "material:wool",
+      "source": "Assets/Resources/SO/Economy/Materials/material_wool.asset",
+      "label": "털",
+      "authored": [
+        0.7,
+        0.5,
+        0.7,
+        0.55,
+        0.85
+      ],
+      "wiki": [
+        0.7,
+        0.5,
+        0.7,
+        0.55,
+        0.85
+      ],
+      "equal": true
+    }
+  ],
+  "speciesProcedures": [
+    {
+      "id": "procedure:beastkin-sprint-joint",
+      "species": "- beastkin",
+      "health": "26",
+      "infectionReduction": "10"
+    },
+    {
+      "id": "procedure:beastkin-tail-reconstruction",
+      "species": "- beastkin",
+      "health": "28",
+      "infectionReduction": "10"
+    },
+    {
+      "id": "procedure:demon-heat-sac",
+      "species": "- demon",
+      "health": "26",
+      "infectionReduction": "10"
+    },
+    {
+      "id": "procedure:demon-mana-core-suture",
+      "species": "- demon",
+      "health": "30",
+      "infectionReduction": "10"
+    },
+    {
+      "id": "procedure:harpy-air-sac-suture",
+      "species": "- harpy",
+      "health": "26",
+      "infectionReduction": "16"
+    },
+    {
+      "id": "procedure:harpy-feather-regrowth",
+      "species": "- harpy",
+      "health": "20",
+      "infectionReduction": "10"
+    },
+    {
+      "id": "procedure:harpy-tail-graft",
+      "species": "- harpy",
+      "health": "28",
+      "infectionReduction": "8"
+    },
+    {
+      "id": "procedure:harpy-wing-fixation",
+      "species": "- harpy",
+      "health": "32",
+      "infectionReduction": "8"
+    },
+    {
+      "id": "procedure:human-neural-assist",
+      "species": "- human",
+      "health": "26",
+      "infectionReduction": "10"
+    },
+    {
+      "id": "procedure:human-precision-prosthetic",
+      "species": "- human",
+      "health": "28",
+      "infectionReduction": "10"
+    },
+    {
+      "id": "procedure:kobold-precision-hand",
+      "species": "- kobold",
+      "health": "24",
+      "infectionReduction": "10"
+    },
+    {
+      "id": "procedure:kobold-tail-balance",
+      "species": "- kobold",
+      "health": "22",
+      "infectionReduction": "10"
+    },
+    {
+      "id": "procedure:myconid-core-graft",
+      "species": "- myconid",
+      "health": "32",
+      "infectionReduction": "12"
+    },
+    {
+      "id": "procedure:myconid-hypha-binding",
+      "species": "- myconid",
+      "health": "24",
+      "infectionReduction": "8"
+    },
+    {
+      "id": "procedure:myconid-regrowth",
+      "species": "- myconid",
+      "health": "36",
+      "infectionReduction": "14"
+    },
+    {
+      "id": "procedure:myconid-spore-cleaning",
+      "species": "- myconid",
+      "health": "12",
+      "infectionReduction": "28"
+    },
+    {
+      "id": "procedure:orc-combat-heart",
+      "species": "- orc",
+      "health": "30",
+      "infectionReduction": "10"
+    },
+    {
+      "id": "procedure:orc-skeletal-reinforcement",
+      "species": "- orc",
+      "health": "28",
+      "infectionReduction": "10"
+    },
+    {
+      "id": "procedure:slime-core-stabilization",
+      "species": "- slime",
+      "health": "22",
+      "infectionReduction": "18"
+    },
+    {
+      "id": "procedure:slime-membrane-suture",
+      "species": "- slime",
+      "health": "26",
+      "infectionReduction": "14"
+    },
+    {
+      "id": "procedure:slime-pseudopod-reshape",
+      "species": "- slime",
+      "health": "30",
+      "infectionReduction": "10"
+    },
+    {
+      "id": "procedure:slime-replenishment",
+      "species": "- slime",
+      "health": "18",
+      "infectionReduction": "6"
+    },
+    {
+      "id": "procedure:vampire-blood-sac",
+      "species": "- vampire",
+      "health": "30",
+      "infectionReduction": "10"
+    },
+    {
+      "id": "procedure:vampire-night-eye",
+      "species": "- vampire",
+      "health": "24",
+      "infectionReduction": "10"
+    }
+  ]
+}

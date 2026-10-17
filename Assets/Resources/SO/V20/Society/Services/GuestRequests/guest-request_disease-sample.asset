@@ -19,23 +19,36 @@ MonoBehaviour:
   authoringRevision: 1
   sourceNote: V20 hand-authored faction/service manifest.
   kind: 5
+  riskTier: 1
+  riskReason: 실패 결과가 세력 원한 5를 추가한다.
   deadlineDays: 6
   serviceRequirements:
     items:
     - itemDefinitionId: sample:antigen:cave-flu
       amount: 3
       consume: 1
-    facilities:
-    - buildingDefinitionId: building:vaccine-laboratory
-      capabilityId: 
-      minimumCount: 1
-      mustBeOperational: 1
+    facilities: []
     research: []
     characters: []
     factions: []
     worldMetrics: []
     requiredFlags: []
     excludedFlags: []
+  venueRequirements:
+    anchor:
+      exactBuildingDefinitionIds:
+      - building:8876
+      facilityRoles: 0
+    requiredRoomFacilityRoles: 0
+    requiredRoomFacilities: []
+    minimumSeats: 0
+    minimumTables: 0
+    minimumServiceCapacity: 0
+    minimumEventCells: 1
+    minimumVacantBeds: 0
+    requireResidentHeadroom: 0
+    requireWetBath: 0
+    requireEmergencySurgeryFacility: 0
   successEffects:
   - kind: 9
     targetId: guest-service

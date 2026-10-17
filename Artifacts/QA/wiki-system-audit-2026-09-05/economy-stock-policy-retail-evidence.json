@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "c03d2e0a1c68067de48840f3851b388483966a6e",
+  "scope": "static wiki-versus-runtime source audit; no Unity execution",
+  "counts": {
+    "wikiGuidesRead": 2,
+    "authoredModularBuildingAssetsScanned": 104,
+    "authoredModularRetailAbilityAssets": 7,
+    "publicFacilityEntriesScanned": 425,
+    "publicFacilityEntriesWithShopBuildCategory": 22,
+    "newMissingRegisterRows": 2,
+    "newDifferenceRows": 0
+  },
+  "verifiedRules": [
+    "stock policy defaults are minimum=10,target=20,maximum=40,disabled,hold",
+    "stock policy UI calls toggle,threshold adjustment,disposition cycle and emergency reserve commands",
+    "surplus dispositions are hold,sell,process,compost,dismantle",
+    "sale settlement requires delivered FacilityBuffer quantity and physical Transfer receipt before idempotent income",
+    "quality rejected sale coefficients match public wiki and settle at most four per evaluation",
+    "retail stock is represented as exact lots; unique lots require quantity one and physical instance identity",
+    "external customer purchase commits an exact retail lot before GuestServiceIncome",
+    "shoplifting commits an exact physical lot and restores it when sink commit fails",
+    "shop UI exposes stock,capacity,checkout staffing,price multiplier,crime risk and products"
+  ],
+  "classificationCaveat": "BuildingCategory.Shop is a broad construction-menu category and is not equivalent to BuildingRetailAbility; the 22-versus-7 count is not registered as a documentation error by itself.",
+  "sourceHashes": [
+    {"path":"wiki/game-versions/0.0.1v/content/guides/economy-and-trade.md","sha256":"3fe5812b2505ff397c56430a36418146b10648030051389ea38872da92977fc6"},
+    {"path":"wiki/game-versions/0.0.1v/content/guides/guests-services-and-performance.md","sha256":"9409cb979b7f013fa2856a1a194d49e2135ca00d84c3a70aae2a45f86eeffa90"},
+    {"path":"wiki/game-versions/0.0.1v/data/entities/facility/building-1000.json","sha256":"3fff9419d650fbe4a77e04a0357093a6f41659211feca9069ae0c46fc183c0c2"},
+    {"path":"Assets/Scripts/Models/Economy/Content/ResourceEconomyPlanningModels.cs","sha256":"9e817a93bd927465779d63ebedcc3e67bdde646b80275733a29e046fb0257b54"},
+    {"path":"Assets/Scripts/Models/Buildings/Core/StockCategoryCatalog.cs","sha256":"19816286487f40bdf5ca8626357e30ab2ef1003a5820c36a8fbc4df1d67fe69b"},
+    {"path":"Assets/Scripts/Models/Buildings/Core/ShopInventoryRuntime.cs","sha256":"f37f41967beaceb4a8386e09d81283320d33cbc6e9c46e8dc39365902189d119"},
+    {"path":"Assets/Scripts/Services/Economy/Planning/ResourceStockPolicyRuntime.cs","sha256":"66b36d33c03eb8dce8134c8018fb6f9cd83f2fe538de49feb7495441469e4dea"},
+    {"path":"Assets/Scripts/Services/Economy/Planning/ResourceStockPolicySaveSection.cs","sha256":"d6a9dca021e173562d064ce05fa25c823a324c94e20d89e04996fd68579f2f7c"},
+    {"path":"Assets/Scripts/Views/UI/WarehouseFeatureSurfacePresenter.cs","sha256":"8d6d7627ca6778900342bb85c3493f99571ff392dc0efdb8baf93ce65897c730"},
+    {"path":"Assets/Scripts/Views/UI/WarehouseFeatureCommandService.cs","sha256":"f862ab4f74c1009525933c3118ee5bcb0533f0f75a239766fa0b8f264a02a8f7"},
+    {"path":"Assets/Scripts/Services/Buildings/Shop.cs","sha256":"f19093f331ff0d2243629e7db6fd5b900ab1f3765af83e975f76a7fcb4d9cd45"},
+    {"path":"Assets/Scripts/Services/Buildings/ShopCustomerInteractionService.cs","sha256":"51786f2baecc109aa5d85eabc8696ce7b4ccb128075d8d291bed822c8dc87411"},
+    {"path":"Assets/Scripts/Services/Buildings/ShopCrimeRuntime.cs","sha256":"9af9038d98cc741402af6967330b66f77551ff0979a3a3291f0f8ea57ab765de"},
+    {"path":"Assets/Scripts/Views/UI/ShopFeatureSurfacePresenter.cs","sha256":"8fe2eb5024678f0a8588b755439ed51ef8440343b428216664bd53e972b4510c"},
+    {"path":"Assets/Resources/SO/Building/Modular/S01_판매카운터.asset","sha256":"92e8bc96c1d494b011b12f9188e39610538cf8aef92908e542d5c5c0e640c1eb"},
+    {"path":"Assets/Resources/SO/Building/Modular/S07_무기보관함.asset","sha256":"39122e01272a5ddbb1b5b13a1f34aa060873e0c8f48390206cb390767d3a05ec"}
+  ]
+}

@@ -1,11 +1,109 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using DungeonStory.Foundation;
+using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 
 public static class ExactWarehouseHaulAdmissionJoinDebugScenarios
 {
+    public static void RunAdmissionServiceForBatch()
+    {
+        Require(Application.isBatchMode, "Warehouse admission validation requires isolated batch execution.");
+        IDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
+        IPhysicalItemMassQuery mass = new PhysicalItemMassQuery(catalog);
+        long exactMass = mass.GetQuantityMass((ItemDefinitionId)ItemId,
+            PhysicalItemMassSubject.ForDefinition((ItemDefinitionId)ItemId), 2).Value;
+        Fixture fixture = CreateFixture("service", 2, exactMass);
+        CharacterCarriedItemSaveData carried = fixture.Carried[0];
+        WorldItemRepository repository = new(new GuidPersistentIdGenerator(),
+            new DungeonRuntimeAggregateRootStore());
+        WorldItemStackRecord physical = new()
+        {
+            stackId = carried.carriedStackId, itemId = ItemId, quantity = 2,
+            state = WorldItemStackState.Carried, destinationId = Owner,
+            components = carried.components.Select(value => value.Clone()).ToList()
+        };
+        repository.Add(physical);
+        PhysicalStockQuery stock = new(repository, catalog, mass);
+        WarehouseInventory inventory = new(exactMass * 2L,
+            StockCategory.General, restrictCategory: false);
+        inventory.BindPhysicalStock(stock, (BuildingInstanceId)WarehouseId,
+            new AuthoredGameplayCatalog(new ResourceGameContentCatalog(
+                new UnityGameContentRootLoader())));
+        Warehouse warehouse = new(inventory);
+        WarehouseWorld world = new(warehouse);
+        WarehouseMassAdmissionService firstLedger = new(
+            catalog, mass, stock, world, new UnityGameClock(), repository);
+        WarehouseHaulAdmissionSaveData projection = fixture.Intent.warehouseAdmissions[0];
+        WarehouseMassAdmissionRequest request = new((BuildingInstanceId)WarehouseId,
+            projection.ownerAdmissionOperationId, (ItemDefinitionId)ItemId, "",
+            projection.lotFingerprint, 2,
+            firstLedger.GetWarehouseCapacityRevision((BuildingInstanceId)WarehouseId),
+            firstLedger.CatalogRevision, repository.ItemStackVersion,
+            firstLedger.PrepareMassSubject((ItemDefinitionId)ItemId, "", physical.components));
+        Require(firstLedger.TryReserve(request, out var token, out _),
+            "Warehouse lifecycle fixture could not reserve exact real grams.");
+        projection.tokenId = token.TokenId;
+        projection.reservedMassGrams = token.ReservedMassGrams;
+        projection.catalogRevision = token.CatalogRevision;
+        projection.sourceRevision = token.SourceRevision;
+        WorldItemDestinationAdmissionService service = new(
+            catalog, repository, world, null, firstLedger, null);
+        string before = JsonConvert.SerializeObject(physical);
+        Require(service.TryRenewHaulAdmissions(fixture.Intent, out _)
+            && service.TryValidateHaulAdmission(fixture.Intent, carried, warehouse, out _, out _),
+            "Real haul admission did not renew and validate its exact carried lot.");
+        service.ReleaseHaulAdmissions(fixture.Intent,
+            WarehouseMassAdmissionReleaseReason.CancelledBeforePickup);
+        Require(!service.TryRenewHaulAdmissions(fixture.Intent, out _)
+            && !service.TryValidateHaulAdmission(fixture.Intent, carried, warehouse, out _, out _)
+            && firstLedger.GetReservedInboundMassGrams((BuildingInstanceId)WarehouseId) == 0L
+            && JsonConvert.SerializeObject(physical) == before,
+            "Cancelled admission remained usable or changed physical cargo.");
+
+        HaulDeliveryIntentSaveData restored = JsonUtility.FromJson<HaulDeliveryIntentSaveData>(
+            JsonUtility.ToJson(fixture.Intent));
+        // Official aggregate restore replaces transient token state inside the
+        // existing authority; its inventory must keep the same ledger binding.
+        WarehouseMassAdmissionService restoredLedger = firstLedger;
+        service = new WorldItemDestinationAdmissionService(
+            catalog, repository, world, null, restoredLedger, null);
+        Require(!service.TryRebuildRestoredHaulAdmissions(restored, out _)
+            && restoredLedger.GetReservedInboundMassGrams((BuildingInstanceId)WarehouseId) == 0L
+            && JsonConvert.SerializeObject(physical) == before,
+            "Saved token was rebuilt outside the aggregate restore transaction.");
+        restoredLedger.BeginRestoreCandidate();
+        restoredLedger.PublishRestoreCandidate();
+        HaulDeliveryIntentSaveData malformed = JsonUtility.FromJson<HaulDeliveryIntentSaveData>(
+            JsonUtility.ToJson(restored));
+        malformed.warehouseAdmissions[0].reservedMassGrams--;
+        Require(!service.TryRebuildRestoredHaulAdmissions(malformed, out _)
+            && restoredLedger.GetReservedInboundMassGrams((BuildingInstanceId)WarehouseId) == 0L
+            && JsonConvert.SerializeObject(physical) == before,
+            "Malformed restored admission reserved grams or changed cargo.");
+        Require(service.TryRebuildRestoredHaulAdmissions(restored, out string rebuildFailure)
+            && service.TryRenewHaulAdmissions(restored, out _)
+            && service.TryValidateHaulAdmission(restored, carried, warehouse,
+                out projection, out _)
+            && restoredLedger.GetReservedInboundMassGrams((BuildingInstanceId)WarehouseId) == exactMass,
+            "Saved admission did not rebuild/renew/validate after rejection: " + rebuildFailure);
+        restoredLedger.CompleteRestoreCandidate();
+        // The haul owner deposits the already committed carried lot before admission commit.
+        physical.state = WorldItemStackState.Stored;
+        physical.destinationId = Destination;
+        repository.MarkChanged();
+        Require(service.TryCommitHaulAdmission(projection, restored.operationId, out _)
+            && service.TryCommitHaulAdmission(projection, restored.operationId, out _)
+            && inventory.StoredMassGrams == exactMass
+            && restoredLedger.GetReservedInboundMassGrams((BuildingInstanceId)WarehouseId) == 0L
+            && physical.quantity == 2 && repository.RecordsById.Count == 1,
+            "Restored warehouse admission failed exact deposit or duplicated its commit.");
+        Debug.Log("ARCHITECTURE_WAREHOUSE_HAUL_ADMISSION=PASS; real renewal/validation/release; JSON saved intent; malformed restore unchanged; rebuild retry; real stored mass and idempotent commit");
+    }
+
     private const string Owner = "character:qa:warehouse-admission";
     private const string Destination = "warehouse:building:qa:warehouse-admission";
     private const string WarehouseId = "building:qa:warehouse-admission";
@@ -66,6 +164,21 @@ public static class ExactWarehouseHaulAdmissionJoinDebugScenarios
         RequireInvalid(first, "duplicate ephemeral token id was accepted");
 
         Debug.Log("Exact warehouse admission restore join PASS.");
+    }
+
+    private sealed class Warehouse : IWarehouseFacility
+    {
+        internal Warehouse(WarehouseInventory inventory) => Inventory = inventory;
+        public BuildingInstanceId PersistentInstanceId => (BuildingInstanceId)WarehouseId;
+        public WarehouseInventory Inventory { get; }
+        public bool HasWarehouseInventory => true;
+    }
+
+    private sealed class WarehouseWorld : IWarehouseWorldQuery
+    {
+        internal WarehouseWorld(IWarehouseFacility warehouse) => Warehouses = new[] { warehouse };
+        public int WarehouseVersion => 1;
+        public IReadOnlyList<IWarehouseFacility> Warehouses { get; }
     }
 
     private static Fixture CreateFixture(

@@ -180,11 +180,6 @@ public static class CharacterSummaryTextFormatter
             Mathf.Max(0f, weight));
     }
 
-    public static string FormatSigned(int value)
-    {
-        return value > 0 ? "+" + value : value.ToString();
-    }
-
     public static string Fallback(string text, string fallback)
     {
         return string.IsNullOrWhiteSpace(text) ? fallback : text;

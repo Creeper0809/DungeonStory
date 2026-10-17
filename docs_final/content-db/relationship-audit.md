@@ -4,10 +4,10 @@
 
 | 해석 상태 | 관계 |
 |---|---:|
-| `non-content-protocol` | 1,687 |
-| `resolved-content` | 4,520 |
-| `unresolved-content-reference` | 54 |
-| `unresolved-runtime-domain-id` | 85 |
+| `non-content-protocol` | 1,771 |
+| `resolved-content` | 4,674 |
+| `unresolved-content-reference` | 57 |
+| `unresolved-runtime-domain-id` | 87 |
 
 - [해결되지 않은 콘텐츠 참조](unresolved-references.csv)
 - [콘텐츠가 아닌 프로토콜·상태 채널](protocol-targets.csv)

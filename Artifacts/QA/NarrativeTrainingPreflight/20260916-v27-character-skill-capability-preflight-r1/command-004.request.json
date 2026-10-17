@@ -1,0 +1,15 @@
+{
+  "arguments": [
+    "C:\\Users\\vulpo\\AppData\\Local\\Microsoft\\WindowsApps\\unity.EXE",
+    "command",
+    "eval",
+    "--project-path",
+    "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory",
+    "--format",
+    "json",
+    "--detach",
+    "--code",
+    "var r = NarrativeMechanicCatalogExporter.Export(\n            new NarrativeMechanicCatalogUnityAssetSource(),\n            new NarrativeMechanicCatalogExportRequest(\"20260916-v27-character-skill-capability-preflight-r1-baseline\", false, null));\n            return new { directory = r.DirectoryPath, inputDigest = r.InputDigest,\n                catalogHash = r.CatalogHash, trainingEligible = r.TrainingEligible };"
+  ],
+  "cwd": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory"
+}

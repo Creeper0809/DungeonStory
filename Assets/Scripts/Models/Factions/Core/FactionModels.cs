@@ -333,7 +333,15 @@ public sealed class DungeonFactionState
     public int goodwillTransferQuantity;
     public long goodwillTransferMassGrams;
     public int goodwillTransferredPhysicalValue;
+    public int goodwillCampaignRapportBefore;
     public int goodwillCampaignRapportTarget;
+    public long goodwillTransferRevision;
+    public bool goodwillObserved;
+    public string goodwillPublicationKey = string.Empty;
+    public string goodwillPublicationId = string.Empty;
+    public string goodwillPublicationFingerprint = string.Empty;
+    public int goodwillObservationDay;
+    public string goodwillFactionDisplayName = string.Empty;
     public bool goodwillTransferCompleted;
 
     public FactionHexCoord HomeCoord => new(homeQ, homeR);
@@ -363,6 +371,19 @@ public sealed class FactionRouteState
     public List<FactionCargoLine> cargo = new List<FactionCargoLine>();
     public FactionRouteSettlementReceipt settlement =
         new FactionRouteSettlementReceipt();
+    public string settlementPublicationKey = string.Empty;
+    public string settlementPublicationId = string.Empty;
+    public string settlementPublicationFingerprint = string.Empty;
+    public FactionRouteObservationData settlementObservation = new();
+    public string arrivalPublicationKey = string.Empty;
+    public string arrivalPublicationId = string.Empty;
+    public string arrivalPublicationFingerprint = string.Empty;
+    public FactionRouteObservationData arrivalObservation = new();
+    public string cargoPublicationKey = string.Empty;
+    public string cargoPublicationId = string.Empty;
+    public string cargoPublicationFingerprint = string.Empty;
+    public int cargoObservationDay;
+    public string cargoFactionDisplayName = string.Empty;
 
     public FactionHexCoord CurrentCoord =>
         path != null && path.Count > 0
@@ -373,13 +394,15 @@ public sealed class FactionRouteState
 [Serializable]
 public sealed class DungeonFactionSaveData
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 8;
 
     public int version = CurrentVersion;
     public int currentDay = 1;
     public int routeSequence;
     public int routeSettlementOperationSequence;
     public int goodwillOperationSequence;
+    public int relationshipObservationSequence;
+    public List<FactionRelationshipObservationData> relationshipObservations = new();
     public long allianceBenefitBalanceMilliEwu;
     public long allianceBenefitRefillRemainder;
     public int allianceBenefitLastRefillDay = 1;
@@ -457,18 +480,8 @@ public interface IFactionRuntime : IFactionContractQuery
         string factionId,
         out string routeId,
         out string message);
-    bool TryApplyRouteAmbush(
-        string routeId,
-        int strengthLoss,
-        float delaySeconds,
-        out string message);
     bool TryBetray(string factionId, int stolenValue, out string message);
     bool TryPayRestitution(string factionId, int physicalValue, out string message);
-    bool TryCompleteRecoveryEvent(string factionId, out string message);
-    void RecordReinforcementLoss(
-        string factionId,
-        int deaths,
-        int equipmentLosses);
     DungeonFactionSaveData Capture();
     FactionRestoreCandidate PrepareRestoreCandidate(
         DungeonFactionSaveData saveData);

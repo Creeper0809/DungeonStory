@@ -14,6 +14,7 @@ public sealed class CharacterSummaryCaptivityPresenter
     private readonly ICaptivityRuntime captivityRuntime;
     private readonly ICaptivityCommandService captivityCommands;
     private readonly ICharacterAiWorldRegistry characterWorld;
+    private readonly ICharacterBodyHealthQuery bodyHealth;
     private readonly IGameEventBus eventBus;
     private Button actionButton;
 
@@ -21,6 +22,7 @@ public sealed class CharacterSummaryCaptivityPresenter
         ICaptivityRuntime captivityRuntime,
         ICaptivityCommandService captivityCommands,
         ICharacterAiWorldRegistry characterWorld,
+        ICharacterBodyHealthQuery bodyHealth,
         IGameEventBus eventBus)
     {
         this.captivityRuntime = captivityRuntime
@@ -29,6 +31,8 @@ public sealed class CharacterSummaryCaptivityPresenter
             ?? throw new ArgumentNullException(nameof(captivityCommands));
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
+        this.bodyHealth = bodyHealth
+            ?? throw new ArgumentNullException(nameof(bodyHealth));
         this.eventBus = eventBus
             ?? throw new ArgumentNullException(nameof(eventBus));
     }
@@ -118,8 +122,13 @@ public sealed class CharacterSummaryCaptivityPresenter
                 + $" · 타락 {captive.corruption:0} · {captive.lastResult}");
             return;
         }
+        CharacterVitalsSnapshot vitals = bodyHealth.GetVitals(actor);
+        float healthPercent = CaptivityBodyHealthRules.GetHealthPercent(
+            vitals.CurrentHealth,
+            vitals.MaximumHealth);
         builder.AppendLine(
-            $"{CharacterSummaryTextFormatter.FormatCaptivityStatus(captive.status)} · 건강 {captive.health:0}"
+            $"{CharacterSummaryTextFormatter.FormatCaptivityStatus(captive.status)} · 건강 {healthPercent:0}%"
+            + $" ({vitals.CurrentHealth:0.#}/{vitals.MaximumHealth:0.#})"
             + $" · 순응 {captive.compliance:0} · 탈출 위험 {captive.escapeRisk:0}");
         builder.AppendLine(
             $"의지 {captive.will:0} · 공포 {captive.fear:0}"

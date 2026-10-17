@@ -28,6 +28,7 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
     private ICharacterDialogueBubbleFactory bubbleFactory;
     private IGameClock gameClock;
     private IDynamicFrameWorkBudget frameWorkBudget;
+    private NarrativeRequestContextBuilder requestContexts;
     private bool runtimeInjected;
     private bool logSubscribed;
 
@@ -37,12 +38,15 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
 
     [Inject]
     public void ConstructCharacterDialogueRuntime(
+        NarrativeRequestContextBuilder requestContexts,
         ILocalLlmRuntimeProvider llmRuntimeProvider,
         ICharacterAiSchedulingService aiSchedulingService,
         ICharacterDialogueBubbleFactory bubbleFactory,
         IGameClock gameClock,
         IDynamicFrameWorkBudget frameWorkBudget)
     {
+        this.requestContexts = requestContexts
+            ?? throw new ArgumentNullException(nameof(requestContexts));
         this.llmRuntimeProvider = llmRuntimeProvider
             ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));
         this.aiSchedulingService = aiSchedulingService
@@ -306,7 +310,7 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
             + $"outcome: {entry.Activity?.OutcomeId}\n"
             + $"reasonCode: {entry.Activity?.ReasonCode}\n"
             + $"event: {entry.OriginalMessage}";
-        return NarrativeRequestContextBuilder.ForActor(
+        return requestContexts.ForActor(
                 LocalLlmRequestProfiles.BubbleLine.Id,
                 actor,
                 requireCharacterFact: false,

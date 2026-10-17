@@ -5,6 +5,7 @@ ProficiencyDefinitionSO,content-type,,type-reference; save-restore-reference,ser
 ProficiencyDefinitionSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/UI/CharacterSummaryShellPresenter.cs
 ProficiencyDefinitionSO,stable-id,proficiency:construction-engineering,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterProficiencyPrimitives.cs
 ProficiencyDefinitionSO,stable-id,proficiency:crafting,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterProficiencyPrimitives.cs
+ProficiencyDefinitionSO,stable-id,proficiency:crafting,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/Wim040ObservedLifeEventReceiptDebugFixture.cs
 ProficiencyDefinitionSO,stable-id,proficiency:fieldwork,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterProficiencyPrimitives.cs
 ProficiencyDefinitionSO,stable-id,proficiency:food-production,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterProficiencyPrimitives.cs
 ProficiencyDefinitionSO,stable-id,proficiency:medicine,stable-id-literal,services:foundation,runtime,exact-literal-consumer,Assets/Scripts/Services/Foundation/CharacterProficiencyPrimitives.cs

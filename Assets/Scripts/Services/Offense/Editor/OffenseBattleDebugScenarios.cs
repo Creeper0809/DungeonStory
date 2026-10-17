@@ -1,22 +1,57 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
 
 public static class OffenseBattleDebugScenarios
 {
+    public static void RunProjectionRulesForBatch()
+    {
+        Require(Application.isBatchMode, "Battle projection validation requires isolated batch execution.");
+        Require(VerifyDamageAndInitiative(), "Damage/initiative regression failed.");
+        Require(VerifyLoadedAmmunitionSettlementProducer(), "Ammunition settlement regression failed.");
+        Require(VerifySmokeAndSummonEffects(), "Smoke/cover projection regression failed.");
+        Require(VerifyEncounterCounterEvaluation(), "Encounter projection regression failed.");
+        Require(VerifyOutcomesAndIdempotence(), "Battle command retry regression failed.");
+        Require(VerifyExactPersistence(), "Battle persistence regression failed.");
+        Debug.Log("ARCHITECTURE_OFFENSE_PROJECTION=PASS; real preview and attack; smoke and cover; encounter counters; command idempotence; session restore");
+    }
+
     [MenuItem("DungeonStory/Debug/Offense/Run Turn Battle Scenarios")]
     public static void RunFromMenu()
     {
         if (!RunAll(true)) Debug.LogError("Offense turn battle scenarios failed.");
     }
 
+    public static void RunReturnArrivalInjectionConstructorRegression()
+    {
+        if (!VerifyReturnArrivalInjectionConstructor())
+        {
+            throw new InvalidOperationException(
+                "Offense return-arrival injection constructor regression failed.");
+        }
+
+        Debug.Log("OFFENSE_RETURN_ARRIVAL_DI=PASS");
+    }
+
+    public static void RunTreatmentMembershipRegression()
+    {
+        Require(VerifyHealTargetAndDrainSource(), "Healing treatment membership regression failed.");
+        Debug.Log("OFFENSE_HEAL_TREATMENT_MEMBERSHIP=PASS");
+    }
+
     public static bool RunAll(bool logSuccess)
     {
         List<string> errors = new List<string>();
+        Run("return arrival injection constructor", VerifyReturnArrivalInjectionConstructor, errors);
         Run("damage and initiative", VerifyDamageAndInitiative, errors);
         Run("heal target and drain source", VerifyHealTargetAndDrainSource, errors);
+        Run("loaded ammunition settlement producer",
+            VerifyLoadedAmmunitionSettlementProducer,
+            errors);
         Run("guard and cooldown", VerifyGuardAndCooldown, errors);
         Run("planned round begins every participant once", VerifyPlannedRoundFinalization, errors);
         Run("enemy target priority", VerifyEnemyTargetPriority, errors);
@@ -38,6 +73,53 @@ public static class OffenseBattleDebugScenarios
         foreach (string error in errors) Debug.LogError(error);
         if (errors.Count == 0 && logSuccess) Debug.Log("Offense turn battle scenarios passed.");
         return errors.Count == 0;
+    }
+
+    private static bool VerifyReturnArrivalInjectionConstructor()
+    {
+        Type runtimeType = typeof(OffenseReturnArrivalRuntime);
+        ConstructorInfo[] constructors = runtimeType.GetConstructors(
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        ConstructorInfo[] injectedConstructors = constructors
+            .Where(constructor => constructor.IsDefined(
+                typeof(VContainer.InjectAttribute),
+                false))
+            .ToArray();
+        Require(injectedConstructors.Length == 1,
+            $"Expected exactly one injected return-arrival constructor, got {injectedConstructors.Length}.");
+
+        ConstructorInfo injectedConstructor = injectedConstructors[0];
+        Require(injectedConstructor.IsPublic,
+            "The injected return-arrival constructor is not public.");
+        Type[] injectedParameterTypes = injectedConstructor
+            .GetParameters()
+            .Select(parameter => parameter.ParameterType)
+            .ToArray();
+        Require(injectedParameterTypes.SequenceEqual(new[]
+            {
+                typeof(OffenseReturnArrivalWorldServices),
+                typeof(OffenseReturnArrivalDomainServices)
+            }),
+            "The injected return-arrival constructor does not use the exact world/domain service order.");
+
+        Type[] fixtureParameterTypes =
+        {
+            typeof(DungeonRuntimeAggregateRootStore),
+            typeof(IGameClock),
+            typeof(IGameCalendar),
+            typeof(IGameEventBus),
+            typeof(IMigratedProducerOutcomeTransaction)
+        };
+        ConstructorInfo fixtureConstructor = runtimeType.GetConstructor(
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            null,
+            fixtureParameterTypes,
+            null);
+        Require(fixtureConstructor != null && fixtureConstructor.IsAssembly,
+            "The internal five-parameter return-arrival fixture constructor was not found.");
+        Require(!fixtureConstructor.IsDefined(typeof(VContainer.InjectAttribute), false),
+            "The internal return-arrival fixture constructor must not be injected.");
+        return true;
     }
 
     private static bool VerifyDamageAndInitiative()
@@ -74,25 +156,62 @@ public static class OffenseBattleDebugScenarios
             100f, 8f, 5f, 5f, 20f, 5f,
             fieldDressing);
         OffenseBattleCombatant wounded = Combatant(
-            "ally:wounded", "Wounded", OffenseBattleTeam.Allies,
+            "character:qa:wounded", "Wounded", OffenseBattleTeam.Allies,
             100f, 8f, 5f, 5f, 10f, 5f,
             currentHealth: 40f);
         OffenseBattleCombatant enemy = Combatant(
             "enemy:heal-check", "Enemy", OffenseBattleTeam.Enemies,
             100f, 4f, 4f, 4f, 1f, 1f);
         OffenseBattleSession healSession = Session(healer, wounded, enemy);
-        Require(healSession.TryExecuteCommand(
-            new OffenseBattleCommand(
-                1,
-                healer.PersistentId,
-                OffenseBattleActionType.Ability,
-                wounded.PersistentId,
-                fieldDressing.Id),
-            out _), "Field dressing command was rejected.");
-        Require(Mathf.Approximately(wounded.CurrentHealth, 58f),
-            $"Field dressing healed {wounded.CurrentHealth}, expected target health 58.");
-        Require(Mathf.Approximately(healer.CurrentHealth, 100f),
-            "Field dressing healed the source instead of the target.");
+        GameObject memberObject = new GameObject("Healing Receipt Member Fixture");
+        try
+        {
+            CharacterAiEditorTestDependencies.EnsureCharacterProgression(memberObject);
+            CharacterActor member = memberObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(memberObject);
+            member.EnsureRuntimeState();
+            member.Identity.SetPersistentId(wounded.PersistentId);
+            OffenseExpeditionRun settlement = SettlementRun("expedition:test", member);
+            BindSettlementOwner(healSession, settlement);
+            OffenseBattleCommand memberHeal = new(1, healer.PersistentId,
+                OffenseBattleActionType.Ability, wounded.PersistentId, fieldDressing.Id);
+            Require(healSession.TryExecuteCommand(memberHeal, out _), "Field dressing command was rejected.");
+            Require(Mathf.Approximately(wounded.CurrentHealth, 58f),
+                $"Field dressing healed {wounded.CurrentHealth}, expected target health 58.");
+            Require(Mathf.Approximately(healer.CurrentHealth, 100f),
+                "Field dressing healed the source instead of the target.");
+            Require(settlement.TreatmentReceipts.Count == 1
+                    && settlement.TreatmentReceipts[0].kind == OffenseExpeditionTreatmentKind.Healing
+                    && settlement.TreatmentReceipts[0].characterId == wounded.PersistentId
+                    && Mathf.Approximately(settlement.TreatmentReceipts[0].healedAmount, 18f),
+                "The registered member's Heal commit did not record the applied treatment amount once.");
+            Require(!healSession.TryExecuteCommand(memberHeal, out _)
+                    && settlement.TreatmentReceipts.Count == 1 && Mathf.Approximately(wounded.CurrentHealth, 58f),
+                "Duplicate member heal changed health or duplicated a treatment receipt.");
+
+            OffenseBattleCombatant objective = Combatant("objective:test:protected", "Protected",
+                OffenseBattleTeam.Allies, 100f, 5f, 5f, 5f, 1f, 1f, currentHealth: 40f);
+            OffenseBattleCombatant objectiveHealer = Combatant("ally:objective-healer", "Healer",
+                OffenseBattleTeam.Allies, 100f, 8f, 5f, 5f, 20f, 5f, fieldDressing);
+            OffenseBattleSession objectiveSession = Session(objectiveHealer, objective, enemy);
+            BindSettlementOwner(objectiveSession, settlement);
+            OffenseBattleCommand objectiveHeal = new(1, objectiveHealer.PersistentId,
+                OffenseBattleActionType.Ability, objective.PersistentId, fieldDressing.Id);
+            Require(objectiveSession.TryExecuteCommand(objectiveHeal, out _)
+                    && Mathf.Approximately(objective.CurrentHealth, 58f)
+                    && settlement.TreatmentReceipts.Count == 1,
+                "Battle-only ally heal failed or manufactured a non-participant return treatment.");
+            Require(!objectiveSession.TryExecuteCommand(objectiveHeal, out _)
+                    && Mathf.Approximately(objective.CurrentHealth, 58f)
+                    && settlement.TreatmentReceipts.Count == 1,
+                "Duplicate battle-only heal changed health or return treatments.");
+            bool rejected = false;
+            try { settlement.RecordHealing(objective.PersistentId, 18f); }
+            catch (InvalidOperationException) { rejected = true; }
+            Require(rejected && settlement.TreatmentReceipts.Count == 1,
+                "The expedition treatment owner accepted or partly applied a non-participant receipt.");
+        }
+        finally { UnityEngine.Object.DestroyImmediate(memberObject); }
 
         CharacterCombatAbilityDefinition drain = CharacterCombatAbilityCatalog.CreateVampireDrain();
         OffenseBattleCombatant vampire = Combatant(
@@ -118,6 +237,134 @@ public static class OffenseBattleDebugScenarios
             "Drain did not heal the source.");
         Require(target.CurrentHealth < target.Stats.MaxHealth,
             "Drain did not damage the target.");
+        return true;
+    }
+
+    private static bool VerifyLoadedAmmunitionSettlementProducer()
+    {
+        ICombatEquipmentRuntime equipment =
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime();
+        CombatEquipmentInstance crossbow = equipment.CreateExternalInstance(
+            "weapon:crossbow",
+            CombatEquipmentQuality.Normal);
+        OffenseBattleCombatant ally = Combatant(
+            "ally:ammo-settlement",
+            "Ammo Settlement",
+            OffenseBattleTeam.Allies,
+            100f, 8f, 6f, 5f, 20f, 5f);
+        OffenseBattleCombatant enemy = Combatant(
+            "enemy:ammo-settlement",
+            "Ammo Target",
+            OffenseBattleTeam.Enemies,
+            500f, 4f, 4f, 4f, 1f, 1f);
+        Require(equipment.TryAssignToCharacter(
+                ally.PersistentId,
+                crossbow.instanceId,
+                out _)
+            && equipment.TrySetActiveWeapon(
+                ally.PersistentId,
+                crossbow.instanceId,
+                out _),
+            "Could not prepare the allied weapon for settlement proof.");
+        Require(equipment.TryLoadExternalAmmunition(
+                crossbow.instanceId,
+                "ammo:bolt-iron",
+                3),
+            "Could not load the allied weapon for settlement proof.");
+        Require(equipment.TryGetActiveWeapon(
+                ally.PersistentId,
+                out CombatWeaponSnapshot weapon),
+            "Could not project the loaded allied weapon for settlement proof.");
+        ally.SetCombatEquipment(
+            weapon,
+            equipment.GetArmor(ally.PersistentId),
+            equipment.GetShield(ally.PersistentId));
+        OffenseExpeditionRun settlement =
+            SettlementRun("expedition:ammo-settlement");
+        OffenseBattleSession first = new(
+            "battle:ammo-settlement-a",
+            settlement.ExpeditionId,
+            settlement.Target.id,
+            "Ammo Settlement A",
+            DungeonDifficulty.Normal,
+            new[] { ally, enemy },
+            OffenseEditorTestDependencies.CreateCombatResolution(),
+            equipment);
+        BindSettlementOwner(first, settlement);
+        Require(equipment.TryGetInstance(
+                crossbow.instanceId,
+                out CombatEquipmentInstance firstBefore),
+            "Could not read the loaded weapon before the first attack.");
+        Require(first.TryExecuteCommand(
+                new OffenseBattleCommand(
+                    1,
+                    ally.PersistentId,
+                    OffenseBattleActionType.BasicAttack,
+                    enemy.PersistentId),
+                out _),
+            "The actual loaded-ammunition attack was rejected.");
+        Require(equipment.TryGetInstance(
+                crossbow.instanceId,
+                out CombatEquipmentInstance firstAfter)
+            && firstBefore.loadedAmmunition.remaining
+                > firstAfter.loadedAmmunition.remaining,
+            "The actual loaded-ammunition attack did not commit consumption.");
+        int firstConsumed = firstBefore.loadedAmmunition.remaining
+            - firstAfter.loadedAmmunition.remaining;
+
+        Require(equipment.TryLoadExternalAmmunition(
+                crossbow.instanceId,
+                "ammo:incendiary-bolt",
+                2),
+            "Could not reload the allied weapon for settlement proof.");
+        Require(equipment.TryGetActiveWeapon(
+                ally.PersistentId,
+                out CombatWeaponSnapshot reloaded),
+            "Could not project the reloaded weapon snapshot.");
+        ally.SetCombatEquipment(
+            reloaded,
+            equipment.GetArmor(ally.PersistentId),
+            equipment.GetShield(ally.PersistentId));
+        OffenseBattleSession second = new(
+            "battle:ammo-settlement-b",
+            settlement.ExpeditionId,
+            settlement.Target.id,
+            "Ammo Settlement B",
+            DungeonDifficulty.Normal,
+            new[] { ally, enemy },
+            OffenseEditorTestDependencies.CreateCombatResolution(),
+            equipment);
+        BindSettlementOwner(second, settlement);
+        Require(equipment.TryGetInstance(
+                crossbow.instanceId,
+                out CombatEquipmentInstance secondBefore),
+            "Could not read the reloaded weapon before the second attack.");
+        Require(second.TryExecuteCommand(
+                new OffenseBattleCommand(
+                    1,
+                    ally.PersistentId,
+                    OffenseBattleActionType.BasicAttack,
+                    enemy.PersistentId),
+                out _),
+            "The actual attack after reloading was rejected.");
+        Require(equipment.TryGetInstance(
+                crossbow.instanceId,
+                out CombatEquipmentInstance secondAfter)
+            && secondBefore.loadedAmmunition.remaining
+                > secondAfter.loadedAmmunition.remaining,
+            "The actual attack after reloading did not commit consumption.");
+        int secondConsumed = secondBefore.loadedAmmunition.remaining
+            - secondAfter.loadedAmmunition.remaining;
+        Require(settlement.AmmunitionConsumptions.Count == 2
+                && settlement.AmmunitionConsumptions.Any(value =>
+                    value.InstanceId == crossbow.instanceId
+                    && value.ItemId == "ammo:bolt-iron"
+                    && value.Quantity == firstConsumed)
+                && settlement.AmmunitionConsumptions.Any(value =>
+                    value.InstanceId == crossbow.instanceId
+                    && value.ItemId == "ammo:incendiary-bolt"
+                    && value.Quantity == secondConsumed),
+            "Actual battle consumption did not preserve both ammunition types on the same reloaded weapon instance.");
         return true;
     }
 
@@ -920,6 +1167,33 @@ public static class OffenseBattleDebugScenarios
             OffenseEditorTestDependencies.CreateCombatEquipmentRuntime());
     }
 
+    private static OffenseExpeditionRun SettlementRun(string expeditionId, params CharacterActor[] members) =>
+        new(
+            expeditionId,
+            new OffenseTargetDefinition
+            {
+                id = "target:settlement-proof",
+                title = "Settlement Proof",
+                requiredMembers = 1,
+                requiredPower = 0f,
+                durationSeconds = 10f
+            },
+            members,
+            0f);
+
+    private static void BindSettlementOwner(
+        OffenseBattleSession session,
+        OffenseExpeditionRun settlement)
+    {
+        MethodInfo method = typeof(OffenseBattleSession).GetMethod(
+            "BindSettlementOwner",
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(
+                typeof(OffenseBattleSession).FullName,
+                "BindSettlementOwner");
+        method.Invoke(session, new object[] { settlement });
+    }
+
     private static bool VerifyEmptyRangedWeaponRecovery()
     {
         ICombatEquipmentRuntime runtime =
@@ -1071,7 +1345,7 @@ public static class OffenseBattleDebugScenarios
             catalog,
             itemRepository,
             new CharacterCarryInventoryRegistry(),
-            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
         CombatEquipmentInstance weapon = runtime.CreateInstance(
             "weapon:dagger",
             CombatEquipmentQuality.Good);
@@ -1090,7 +1364,7 @@ public static class OffenseBattleDebugScenarios
             catalog,
             itemRepository,
             new CharacterCarryInventoryRegistry(),
-            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
         restored.PublishRestoreCandidate(restored.BuildRestoreCandidate(
             JsonUtility.FromJson<DungeonCombatEquipmentSaveData>(json)));
         CharacterCombatLoadoutProfile restoredProfile =
@@ -1122,7 +1396,7 @@ public static class OffenseBattleDebugScenarios
                 new GuidPersistentIdGenerator(),
                 new DungeonRuntimeAggregateRootStore()),
             new CharacterCarryInventoryRegistry(),
-            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
         runtime.PublishRestoreCandidate(runtime.BuildRestoreCandidate(
             new DungeonCombatEquipmentSaveData
         {
@@ -1157,7 +1431,7 @@ public static class OffenseBattleDebugScenarios
                 new GuidPersistentIdGenerator(),
                 new DungeonRuntimeAggregateRootStore()),
             new CharacterCarryInventoryRegistry(),
-            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
         restored.PublishRestoreCandidate(restored.BuildRestoreCandidate(
             JsonUtility.FromJson<DungeonCombatEquipmentSaveData>(json)));
         Require(restored.CraftQueue.Count == 1
@@ -1191,7 +1465,7 @@ public static class OffenseBattleDebugScenarios
                     new GuidPersistentIdGenerator(),
                     new DungeonRuntimeAggregateRootStore()),
             new CharacterCarryInventoryRegistry(),
-                researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+                researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
             runtime.PublishRestoreCandidate(runtime.BuildRestoreCandidate(
                 new DungeonCombatEquipmentSaveData
             {
@@ -1284,7 +1558,8 @@ public static class OffenseBattleDebugScenarios
             Require(ModularFacilityRuntimeEffects.ApplyWorkCompleted(
                     worker.BuildingVisitor,
                     building,
-                    BuiltInWorkTypeIds.Craft) == 1
+                    BuiltInWorkTypeIds.Craft,
+                    0f) == 1
                 && runtime.CraftQueue.Count == 0
                 && !building.HasPendingEquipmentCraftWork(),
                 "Craft work completion did not consume the authoritative work-unit order.");
@@ -1492,7 +1767,8 @@ public static class OffenseBattleDebugScenarios
         public BlueprintResearchWorkResult ApplyApprovedResearchWork(
             CharacterActor researcher,
             BuildableObject researchFacility,
-            float approvedWorkUnits) =>
+            float approvedWorkUnits,
+            DurableFacilityEquipmentUseContext equipment = null) =>
             ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 

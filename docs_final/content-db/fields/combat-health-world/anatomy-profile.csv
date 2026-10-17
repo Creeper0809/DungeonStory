@@ -136,6 +136,18 @@ AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.10.removable,1,,,explicit-ser
 AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.10.pairedGroupId,legs,,,explicit-serialized
 AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.10.legacyBodyPart,5,,,explicit-serialized
 AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.10.mapsToLegacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.11.nodeId,balance-tail,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.11.displayName,평형 꼬리깃,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.11.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.11.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.11.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.11.maxHealth,18,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.11.capacityWeight,0.2,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.11.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.11.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.11.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.11.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:avian,anatomy:avian,nodes.11.mapsToLegacyBodyPart,0,,,explicit-serialized
 AnatomyProfileSO|anatomy:avian,anatomy:avian,notApplicableCapacities,[],,,explicit-serialized
 AnatomyProfileSO|anatomy:avian,anatomy:avian,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
 AnatomyProfileSO|anatomy:avian,anatomy:avian,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default

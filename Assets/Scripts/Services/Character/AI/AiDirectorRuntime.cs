@@ -45,6 +45,7 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
     private IGameClock gameClock;
     private IUiClock uiClock;
     private ICharacterNeedDefinitionCatalog needDefinitionCatalog;
+    private NarrativeRequestContextBuilder requestContexts;
 
     public string LastRequestDebug => lastRequestDebug;
     public CharacterMacroGoalType LastAppliedMacroGoalType => lastAppliedMacroGoalType;
@@ -60,6 +61,7 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
 
     [Inject]
     public void ConstructAiDirectorRuntime(
+        NarrativeRequestContextBuilder requestContexts,
         ILocalLlmRuntimeProvider llmRuntimeProvider,
         IAiDirectorContextSceneQuery contextSceneQuery,
         ICharacterAiSchedulingService aiSchedulingService,
@@ -68,6 +70,8 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
         IUiClock uiClock,
         ICharacterNeedDefinitionCatalog needDefinitionCatalog)
     {
+        this.requestContexts = requestContexts
+            ?? throw new ArgumentNullException(nameof(requestContexts));
         this.llmRuntimeProvider = llmRuntimeProvider
             ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));
         this.contextSceneQuery = contextSceneQuery
@@ -528,7 +532,7 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
         {
             prompt = prompt.Substring(0, maxPromptCharacters);
         }
-        return NarrativeRequestContextBuilder.ForActor(
+        return requestContexts.ForActor(
                 LocalLlmRequestProfiles.MacroGoal.Id,
                 actor,
                 requireCharacterFact: false,
@@ -575,7 +579,7 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
         {
             prompt = prompt.Substring(0, maxPromptCharacters);
         }
-        return NarrativeRequestContextBuilder.ForActor(
+        return requestContexts.ForActor(
                 LocalLlmRequestProfiles.MoodImpulse.Id,
                 actor,
                 requireCharacterFact: false,

@@ -11,7 +11,7 @@ public sealed class CombatEquipmentSaveSection :
     IDungeonRollbackFreeSaveSection
 {
     public const string Id = "combat.equipment";
-    public const int CurrentVersion = 11;
+    public const int CurrentVersion = 13;
     private static readonly string[] Dependencies =
     {
         ModularFacilityWorldSaveSection.Id,
@@ -66,6 +66,11 @@ public sealed class CombatEquipmentSaveSection :
 
     protected override DungeonCombatEquipmentSaveData CapturePayload() =>
         runtime.Capture();
+
+    protected override string SerializePayload(DungeonCombatEquipmentSaveData payload) =>
+        CombatEquipmentSaveJson.Serialize(payload);
+
+    protected override void ValidateRawPayload(string payloadJson) => CombatEquipmentSaveJson.ValidateCompletionFacts(payloadJson);
 
     protected override void NormalizeRestorePayload(
         DungeonCombatEquipmentSaveData payload,
@@ -199,6 +204,43 @@ public sealed class CharacterBodyHealthSaveSection :
     protected override DungeonCharacterBodyHealthSaveData CapturePayload() =>
         persistence.Capture();
 
+    protected override void ValidateRawPayload(string payloadJson) => ValidateBodyFactJson(payloadJson);
+
+    internal static void ValidateBodyFactJson(string payloadJson)
+    {
+        var root = Newtonsoft.Json.Linq.JObject.Parse(payloadJson);
+        if (root["pendingHealingFacts"] is not Newtonsoft.Json.Linq.JArray rows)
+            throw new InvalidOperationException("Body-health V7 pending healing facts are missing.");
+        foreach (var row in rows)
+        {
+            RequireFields(row, typeof(CharacterHealingPendingFactData));
+            RequireFields(row["fact"], typeof(CharacterHealingFactData));
+        }
+        if (root["pendingFatalityFacts"] is not Newtonsoft.Json.Linq.JArray fatalities)
+            throw new InvalidOperationException("Body-health V7 pending fatality facts are missing.");
+        foreach (var row in fatalities)
+        {
+            RequireFields(row, typeof(CharacterFatalityPendingFactData));
+            RequireFields(row["fact"], typeof(CharacterFatalityFactData));
+        }
+        static void RequireFields(Newtonsoft.Json.Linq.JToken value, Type type)
+        {
+            if (value is not Newtonsoft.Json.Linq.JObject)
+                throw new InvalidOperationException("Body fact object is missing.");
+            foreach (var field in type.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public))
+            {
+                var item = value[field.Name];
+                var expected = field.FieldType == typeof(string) ? Newtonsoft.Json.Linq.JTokenType.String
+                    : field.FieldType == typeof(bool) ? Newtonsoft.Json.Linq.JTokenType.Boolean
+                    : field.FieldType == typeof(int) || field.FieldType.IsEnum ? Newtonsoft.Json.Linq.JTokenType.Integer
+                    : field.FieldType == typeof(float) ? Newtonsoft.Json.Linq.JTokenType.Float : Newtonsoft.Json.Linq.JTokenType.Object;
+                if (item == null || item.Type != expected
+                    && !(field.FieldType == typeof(float) && item.Type == Newtonsoft.Json.Linq.JTokenType.Integer))
+                    throw new InvalidOperationException("Body fact field is missing or malformed: " + field.Name);
+            }
+        }
+    }
+
     protected override void NormalizeRestorePayload(
         DungeonCharacterBodyHealthSaveData payload,
         DungeonGameRestoreReport report) =>
@@ -246,6 +288,42 @@ public sealed class CharacterMedicalSaveSection :
 
     protected override DungeonCharacterMedicalSaveData CapturePayload() =>
         persistence.Capture();
+
+    protected override void ValidateRawPayload(string payloadJson) => ValidateProcedureFactJson(payloadJson);
+
+    internal static void ValidateProcedureFactJson(string payloadJson)
+    {
+        var root = Newtonsoft.Json.Linq.JObject.Parse(payloadJson);
+        if (root["pendingProcedureFacts"] is not Newtonsoft.Json.Linq.JArray pending)
+            throw new InvalidOperationException("Medical V9 pending procedure facts are missing.");
+        foreach (var value in pending) RequireFactFields(value, typeof(CharacterMedicalPendingFactData));
+    }
+
+    private static void RequireFactFields(Newtonsoft.Json.Linq.JToken token, Type type)
+    {
+        if (token is not Newtonsoft.Json.Linq.JObject value)
+            throw new InvalidOperationException("Medical procedure fact object is missing.");
+        foreach (var field in type.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public))
+        {
+            if (field.IsDefined(typeof(NonSerializedAttribute), false)) continue;
+            var item = value[field.Name];
+            var fieldType = field.FieldType;
+            bool valid = item != null && item.Type != Newtonsoft.Json.Linq.JTokenType.Null;
+            if (fieldType == typeof(string)) valid &= item?.Type == Newtonsoft.Json.Linq.JTokenType.String;
+            else if (fieldType == typeof(bool)) valid &= item?.Type == Newtonsoft.Json.Linq.JTokenType.Boolean;
+            else if (fieldType == typeof(float)) valid &= item?.Type is Newtonsoft.Json.Linq.JTokenType.Float or Newtonsoft.Json.Linq.JTokenType.Integer;
+            else if (fieldType.IsEnum || fieldType == typeof(int)) valid &= item?.Type == Newtonsoft.Json.Linq.JTokenType.Integer;
+            else if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))
+            {
+                valid &= item is Newtonsoft.Json.Linq.JArray;
+                if (valid)
+                    foreach (var child in (Newtonsoft.Json.Linq.JArray)item)
+                        RequireFactFields(child, fieldType.GetGenericArguments()[0]);
+            }
+            else if (valid) RequireFactFields(item, fieldType);
+            if (!valid) throw new InvalidOperationException("Medical procedure fact field is missing or malformed: " + field.Name);
+        }
+    }
 
     protected override void NormalizeRestorePayload(
         DungeonCharacterMedicalSaveData payload,
@@ -305,6 +383,56 @@ public sealed class SurgerySaveSection :
 
     protected override DungeonSurgerySaveData CapturePayload() =>
         persistence.Capture();
+
+    protected override void ValidateRawPayload(string payloadJson) => ValidateObservationJson(payloadJson);
+
+    internal static void ValidateObservationJson(string payloadJson)
+    {
+        var root = Newtonsoft.Json.Linq.JObject.Parse(payloadJson);
+        if (root["orders"] is not Newtonsoft.Json.Linq.JArray orders)
+            throw new InvalidOperationException("Surgery orders are missing.");
+        foreach (var order in orders)
+        {
+            if (order is not Newtonsoft.Json.Linq.JObject)
+                throw new InvalidOperationException("Surgery order observation owner is missing.");
+            foreach (string name in new[] { "resolutionPublicationKey", "resolutionPublicationId", "resolutionFingerprint",
+                "completionPublicationKey", "completionPublicationId", "completionFingerprint" })
+                if (order[name]?.Type != Newtonsoft.Json.Linq.JTokenType.String)
+                    throw new InvalidOperationException("Surgery observation proof field is missing: " + name);
+            foreach (string name in new[] { "outcomeAnatomyBeforeCaptured", "resolutionFactAccepted", "resolutionFactDelivered",
+                "completionFactDelivered" })
+                if (order[name]?.Type != Newtonsoft.Json.Linq.JTokenType.Boolean)
+                    throw new InvalidOperationException("Surgery observation phase is missing: " + name);
+            RequireObservationFields(order["outcomeAnatomyBefore"], typeof(SurgeryAnatomyFactData));
+            RequireObservationFields(order["resolvedFact"], typeof(SurgeryResolvedFactData));
+        }
+    }
+
+    private static void RequireObservationFields(Newtonsoft.Json.Linq.JToken token, Type type)
+    {
+        if (token is not Newtonsoft.Json.Linq.JObject value)
+            throw new InvalidOperationException("Surgery observation object is missing.");
+        foreach (var field in type.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public))
+        {
+            var item = value[field.Name];
+            var fieldType = field.FieldType;
+            bool valid = item != null && item.Type != Newtonsoft.Json.Linq.JTokenType.Null;
+            if (fieldType == typeof(string)) valid &= item?.Type == Newtonsoft.Json.Linq.JTokenType.String;
+            else if (fieldType == typeof(bool)) valid &= item?.Type == Newtonsoft.Json.Linq.JTokenType.Boolean;
+            else if (fieldType == typeof(float)) valid &= item?.Type is Newtonsoft.Json.Linq.JTokenType.Float or Newtonsoft.Json.Linq.JTokenType.Integer;
+            else if (fieldType.IsEnum || fieldType == typeof(int) || fieldType == typeof(long))
+                valid &= item?.Type == Newtonsoft.Json.Linq.JTokenType.Integer;
+            else if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))
+            {
+                valid &= item is Newtonsoft.Json.Linq.JArray;
+                if (valid)
+                    foreach (var child in (Newtonsoft.Json.Linq.JArray)item)
+                        RequireObservationFields(child, fieldType.GetGenericArguments()[0]);
+            }
+            else if (valid) RequireObservationFields(item, fieldType);
+            if (!valid) throw new InvalidOperationException("Surgery observation field is missing or malformed: " + field.Name);
+        }
+    }
 
     protected override void NormalizeRestorePayload(
         DungeonSurgerySaveData payload,
@@ -454,13 +582,15 @@ public sealed class CharacterCombatCommandSaveSection :
     }
 
     public override string SectionId => Id;
-    public override int SectionVersion => 2;
+    public override int SectionVersion => 3;
     public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.LateRuntimeState;
     public override IReadOnlyList<string> DependsOn => Dependencies;
 
     protected override CharacterCombatCommandSaveData CapturePayload() =>
         runtime.Capture();
+
+    protected override void ValidateRawPayload(string json) => CombatCellShotSaveJson.Validate(json);
 
     protected override void NormalizeRestorePayload(
         CharacterCombatCommandSaveData payload,

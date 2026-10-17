@@ -12,7 +12,7 @@ public sealed class OperatingDaySettlementPersistenceState
         int totalRevenue,
         int totalVisits,
         int restockFailureCount,
-        IReadOnlyDictionary<string, int> facilityRevenue,
+        IReadOnlyList<OperatingDayFacilityLedgerEntry> facilityDetails,
         IReadOnlyDictionary<string, int> speciesVisits,
         IReadOnlyDictionary<StockCategory, int> consumedStock,
         IReadOnlyList<float> visitorMoodSamples,
@@ -24,7 +24,7 @@ public sealed class OperatingDaySettlementPersistenceState
         int consecutiveShortfallDays = 0,
         bool emergencyFundingUsed = false)
     {
-        if (facilityRevenue == null) throw new ArgumentNullException(nameof(facilityRevenue));
+        if (facilityDetails == null) throw new ArgumentNullException(nameof(facilityDetails));
         if (speciesVisits == null) throw new ArgumentNullException(nameof(speciesVisits));
         if (consumedStock == null) throw new ArgumentNullException(nameof(consumedStock));
         if (visitorMoodSamples == null) throw new ArgumentNullException(nameof(visitorMoodSamples));
@@ -37,8 +37,28 @@ public sealed class OperatingDaySettlementPersistenceState
         TotalRevenue = Math.Max(0, totalRevenue);
         TotalVisits = Math.Max(0, totalVisits);
         RestockFailureCount = Math.Max(0, restockFailureCount);
+        FacilityDetails = Array.AsReadOnly(facilityDetails
+            .Select(detail => detail == null
+                ? throw new ArgumentException(
+                    "Facility details cannot contain null entries.",
+                    nameof(facilityDetails))
+                : new OperatingDayFacilityLedgerEntry(
+                    detail.FacilityId,
+                    detail.FacilityName,
+                    detail.Revenue,
+                    detail.VisitCount,
+                    detail.OperatingCost,
+                    detail.ConsumedStock,
+                    detail.VisitorMoodSamples))
+            .ToArray());
         FacilityRevenue = new ReadOnlyDictionary<string, int>(
-            new Dictionary<string, int>(facilityRevenue));
+            FacilityDetails
+                .Where(detail => detail.Revenue > 0)
+                .GroupBy(detail => detail.FacilityName, StringComparer.Ordinal)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Sum(detail => detail.Revenue),
+                    StringComparer.Ordinal));
         SpeciesVisits = new ReadOnlyDictionary<string, int>(
             new Dictionary<string, int>(speciesVisits));
         ConsumedStock = new ReadOnlyDictionary<StockCategory, int>(
@@ -57,6 +77,7 @@ public sealed class OperatingDaySettlementPersistenceState
     public int TotalRevenue { get; }
     public int TotalVisits { get; }
     public int RestockFailureCount { get; }
+    public IReadOnlyList<OperatingDayFacilityLedgerEntry> FacilityDetails { get; }
     public IReadOnlyDictionary<string, int> FacilityRevenue { get; }
     public IReadOnlyDictionary<string, int> SpeciesVisits { get; }
     public IReadOnlyDictionary<StockCategory, int> ConsumedStock { get; }

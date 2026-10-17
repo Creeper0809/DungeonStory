@@ -15,6 +15,235 @@ public enum EquipmentEvolutionDirection
     Survival
 }
 
+public enum EquipmentEvolutionPresentationState
+{
+    Legacy = 0,
+    PresentationPending = 1,
+    Ready = 2,
+    AwaitingNarrativeRetry = 3,
+    ModuleSelectionPending = 4
+}
+
+public enum EvolutionModuleOfferPolarity
+{
+    Positive = 0,
+    Drawback = 1
+}
+
+[Serializable]
+public sealed class EquipmentEvolutionModuleOfferState
+{
+    public string moduleId = string.Empty;
+    public EvolutionModuleOfferPolarity polarity = EvolutionModuleOfferPolarity.Positive;
+    public string semanticDescription = string.Empty;
+
+    public EquipmentEvolutionModuleOfferState Clone() => new()
+    {
+        moduleId = moduleId ?? string.Empty,
+        polarity = polarity,
+        semanticDescription = semanticDescription ?? string.Empty
+    };
+}
+
+[Serializable]
+public sealed class EquipmentEvolutionFormulaParameterEnvelope
+{
+    public string parameterId = string.Empty;
+    public long units;
+
+    public EquipmentEvolutionFormulaParameterEnvelope Clone() => new()
+    {
+        parameterId = parameterId ?? string.Empty,
+        units = units
+    };
+}
+
+[Serializable]
+public sealed class EquipmentEvolutionFormulaCapabilityEnvelope
+{
+    public string capabilityId = string.Empty;
+    public string formatterId = string.Empty;
+    public string applicatorId = string.Empty;
+    public List<EquipmentEvolutionFormulaParameterEnvelope> parameters = new();
+
+    public EquipmentEvolutionFormulaCapabilityEnvelope Clone() => new()
+    {
+        capabilityId = capabilityId ?? string.Empty,
+        formatterId = formatterId ?? string.Empty,
+        applicatorId = applicatorId ?? string.Empty,
+        parameters = parameters?
+            .Where(value => value != null)
+            .Select(value => value.Clone())
+            .OrderBy(value => value.parameterId, StringComparer.Ordinal)
+            .ToList() ?? new List<EquipmentEvolutionFormulaParameterEnvelope>()
+    };
+}
+
+[Serializable]
+public sealed class EquipmentEvolutionFormulaEvidenceRecord
+{
+    public string evidenceId = string.Empty;
+    public string eventGroupKey = string.Empty;
+    public string actionKey = string.Empty;
+    public string relationshipKey = string.Empty;
+    public string domainKey = string.Empty;
+    public int attainedMilestoneCount;
+    public double importancePoints;
+    public int influenceUseCount;
+    public UsageLedgerEvent originalEvent = new();
+
+    public EquipmentEvolutionFormulaEvidenceRecord Clone() => new()
+    {
+        evidenceId = evidenceId ?? string.Empty,
+        eventGroupKey = eventGroupKey ?? string.Empty,
+        actionKey = actionKey ?? string.Empty,
+        relationshipKey = relationshipKey ?? string.Empty,
+        domainKey = domainKey ?? string.Empty,
+        attainedMilestoneCount = Mathf.Max(0, attainedMilestoneCount),
+        importancePoints = importancePoints,
+        influenceUseCount = Mathf.Max(0, influenceUseCount),
+        originalEvent = originalEvent?.Clone() ?? new UsageLedgerEvent()
+    };
+}
+
+[Serializable]
+public sealed class EquipmentEvolutionPresentationRequest
+{
+    public string presentationId = string.Empty;
+    public string nodeId = string.Empty;
+    public string targetPersistentId = string.Empty;
+    public string historyHash = string.Empty;
+    public string attunementOwnerPersistentId = string.Empty;
+    public string reforgeOrderId = string.Empty;
+    public int targetGeneration;
+    public float masteryCost;
+    public int failureCount;
+    public string lastFailureReason = string.Empty;
+    public EquipmentEvolutionPresentationState state =
+        EquipmentEvolutionPresentationState.PresentationPending;
+    public List<string> evidenceIds = new();
+    public List<GameplayOutcomeEvidenceBindingSnapshot> gameplayOutcomeEvidence = new();
+    public int publicContextVersion;
+    public string publicContextHash = string.Empty;
+    public NarrativePublicContextMaterialSnapshot publicContext;
+
+    // An uncaptured (including old V4) request binds on its first dispatch. Once
+    // captured, retries and save restoration must never read the current world.
+    public NarrativePublicContextMaterial RestorePublicContext()
+    {
+        if (publicContextVersion == 0 && string.IsNullOrEmpty(publicContextHash)
+            && IsUncapturedContext(publicContext)) return null;
+        if (publicContextVersion != 1 || publicContext == null
+            || !string.Equals(publicContextHash, ComputePublicContextHash(publicContext.semanticHash),
+                StringComparison.Ordinal))
+            throw new InvalidOperationException("Equipment frozen public context version or request binding is invalid.");
+        NarrativePublicContextMaterial material = NarrativePublicContextFactory.Restore(publicContext);
+        ValidatePublicContextOwner(material);
+        return material;
+    }
+
+    public void ValidatePublicContext() => RestorePublicContext();
+
+    public void ValidateFrozenNodeBinding(EvolutionNode node)
+    {
+        if (node == null || node.nodeId != nodeId || node.presentationId != presentationId
+            || evidenceIds == null || node.evidenceIds == null
+            || !evidenceIds.SequenceEqual(node.evidenceIds, StringComparer.Ordinal)
+            || !FrozenBindingPayloads(gameplayOutcomeEvidence)
+                .SequenceEqual(FrozenBindingPayloads(node.gameplayOutcomeEvidence), StringComparer.Ordinal))
+            throw new InvalidOperationException("Equipment presentation and effect node do not share the same frozen evidence.");
+    }
+
+    public void BindPublicContext(NarrativePublicContextMaterial material)
+    {
+        if (material == null) throw new ArgumentNullException(nameof(material));
+        ValidatePublicContextOwner(material);
+        NarrativePublicContextMaterial previous = RestorePublicContext();
+        if (previous != null)
+        {
+            if (!string.Equals(previous.SemanticHash, material.SemanticHash, StringComparison.Ordinal))
+                throw new InvalidOperationException("Equipment request public context is already frozen.");
+            return;
+        }
+        publicContext = material.CaptureSnapshot();
+        publicContextHash = ComputePublicContextHash(material.SemanticHash);
+        publicContextVersion = 1;
+    }
+
+    private void ValidatePublicContextOwner(NarrativePublicContextMaterial material)
+    {
+        if (material.ProfileId != "EvolutionHistory"
+            || material.SubjectKind != NarrativePublicSubjectKind.Equipment
+            || material.SubjectId != targetPersistentId
+            || evidenceIds == null || evidenceIds.Count == 0
+            || !material.Events.Select(value => value.EvidenceId).Distinct(StringComparer.Ordinal)
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .SequenceEqual(evidenceIds.OrderBy(value => value, StringComparer.Ordinal), StringComparer.Ordinal))
+            throw new InvalidOperationException("Equipment frozen public context profile, owner or evidence differs from its request.");
+    }
+
+    private string ComputePublicContextHash(string semanticHash) => NarrativeInferenceHash.ComputeSha256Utf8(
+        "equipment-request-context-v1:" + string.Concat(new[]
+        {
+            presentationId, nodeId, targetPersistentId, historyHash, attunementOwnerPersistentId,
+            reforgeOrderId, targetGeneration.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            masteryCost.ToString("R", System.Globalization.CultureInfo.InvariantCulture), semanticHash
+        }.Concat(new[] { (evidenceIds?.Count ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture) })
+        .Concat(evidenceIds ?? new List<string>())
+        .Concat(FrozenBindingPayloads(gameplayOutcomeEvidence)).Select(value =>
+            (value ?? string.Empty).Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + ":" + (value ?? string.Empty))));
+
+    // These are copies of one frozen input, not independently recomputed facts.
+    // Compare the full serialized DTO; semantic validity remains the evidence authority's job.
+    private static IEnumerable<string> FrozenBindingPayloads(List<GameplayOutcomeEvidenceBindingSnapshot> values)
+    {
+        if (values == null) return Array.Empty<string>();
+        if (values.Any(value => value == null))
+            throw new InvalidOperationException("Equipment presentation contains a null frozen evidence binding.");
+        return values.OrderBy(value => value.publicFactId, StringComparer.Ordinal)
+            .Select(value => JsonUtility.ToJson(value));
+    }
+
+    private static bool IsUncapturedContext(NarrativePublicContextMaterialSnapshot value) => value == null
+        || string.IsNullOrEmpty(value.semanticHash) && string.IsNullOrEmpty(value.profileId)
+        && string.IsNullOrEmpty(value.subjectId) && string.IsNullOrEmpty(value.cultureStyleId)
+        && string.IsNullOrEmpty(value.selectionPolicyId) && !value.requireCharacterFact && !value.requireMotif
+        && value.availableFactCount == 0 && value.omittedFactCount == 0
+        && (value.entities?.Count ?? 0) == 0 && (value.publicFacts?.Count ?? 0) == 0
+        && (value.events?.Count ?? 0) == 0 && (value.motifs?.Count ?? 0) == 0
+        && (value.backgroundFactIds?.Count ?? 0) == 0 && (value.relationshipFactIds?.Count ?? 0) == 0
+        && (value.memoryFactIds?.Count ?? 0) == 0 && (value.priorHistoryFactIds?.Count ?? 0) == 0;
+
+    public EquipmentEvolutionPresentationRequest Clone() => new()
+    {
+        presentationId = presentationId ?? string.Empty,
+        nodeId = nodeId ?? string.Empty,
+        targetPersistentId = targetPersistentId ?? string.Empty,
+        historyHash = historyHash ?? string.Empty,
+        attunementOwnerPersistentId = attunementOwnerPersistentId ?? string.Empty,
+        reforgeOrderId = reforgeOrderId ?? string.Empty,
+        targetGeneration = Mathf.Max(0, targetGeneration),
+        masteryCost = Mathf.Max(0f, masteryCost),
+        failureCount = Mathf.Max(0, failureCount),
+        lastFailureReason = lastFailureReason ?? string.Empty,
+        state = state,
+        publicContextVersion = publicContextVersion,
+        publicContextHash = publicContextHash ?? string.Empty,
+        publicContext = publicContext?.Clone(),
+        evidenceIds = evidenceIds?
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToList() ?? new List<string>(),
+        gameplayOutcomeEvidence = gameplayOutcomeEvidence?
+            .Where(value => value != null).Select(value => value.Clone())
+            .OrderBy(value => value.publicFactId, StringComparer.Ordinal).ToList()
+            ?? new List<GameplayOutcomeEvidenceBindingSnapshot>()
+    };
+}
+
 public enum EvolutionReforgeOrderState
 {
     WaitingForMaterials,
@@ -75,12 +304,15 @@ public sealed class EquipmentEvolutionState
 {
     public int generation;
     public float mastery;
+    public long moduleSelectionRevision;
     public UsageLedger usageLedger = new UsageLedger();
     public List<EvolutionNode> evolutionNodes = new List<EvolutionNode>();
     public List<AttunementRecord> attunements = new List<AttunementRecord>();
     public List<string> activeHistoricalNodeIds = new List<string>();
     public List<EvolutionNarrativeRequestSnapshot> narrativeRequests =
         new List<EvolutionNarrativeRequestSnapshot>();
+    public List<EquipmentEvolutionFormulaEvidenceRecord> formulaEvidence = new();
+    public List<EquipmentEvolutionPresentationRequest> presentationRequests = new();
     public EquipmentEvolutionDirection pendingDirection =
         EquipmentEvolutionDirection.Balanced;
     public string pendingHistoryHash = string.Empty;
@@ -97,6 +329,7 @@ public sealed class EquipmentEvolutionState
         {
             generation = Mathf.Max(0, generation),
             mastery = Mathf.Max(0f, mastery),
+            moduleSelectionRevision = Math.Max(0L, moduleSelectionRevision),
             usageLedger = usageLedger?.Clone() ?? new UsageLedger(),
             evolutionNodes = evolutionNodes?
                 .Where(node => node != null)
@@ -115,6 +348,16 @@ public sealed class EquipmentEvolutionState
                 .Where(request => request != null)
                 .Select(request => request.Clone())
                 .ToList() ?? new List<EvolutionNarrativeRequestSnapshot>(),
+            formulaEvidence = formulaEvidence?
+                .Where(record => record != null)
+                .Select(record => record.Clone())
+                .OrderBy(record => record.originalEvent?.sequence ?? 0L)
+                .ThenBy(record => record.evidenceId, StringComparer.Ordinal)
+                .ToList() ?? new List<EquipmentEvolutionFormulaEvidenceRecord>(),
+            presentationRequests = presentationRequests?
+                .Where(request => request != null)
+                .Select(request => request.Clone())
+                .ToList() ?? new List<EquipmentEvolutionPresentationRequest>(),
             pendingDirection = pendingDirection,
             pendingHistoryHash = pendingHistoryHash ?? string.Empty,
             reforgeReady = reforgeReady

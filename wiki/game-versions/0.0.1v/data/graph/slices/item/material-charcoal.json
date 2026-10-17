@@ -99,10 +99,45 @@
     },
     {
       "amount": "8",
-      "from": "event/seasonal-winter-fuel-demand",
-      "label": "연결",
+      "from": "event/faction-contract-beastkin-winter-fuel-demand",
+      "label": "필요 조건",
       "to": "item/material-charcoal",
-      "type": "consumes-item"
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "event/faction-contract-demon-winter-fuel-demand",
+      "label": "필요 조건",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "event/faction-contract-golem-winter-fuel-demand",
+      "label": "필요 조건",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "event/faction-contract-harpy-winter-fuel-demand",
+      "label": "필요 조건",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "event/faction-contract-kobold-winter-fuel-demand",
+      "label": "필요 조건",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": "8",
+      "from": "event/faction-contract-myconid-winter-fuel-demand",
+      "label": "필요 조건",
+      "to": "item/material-charcoal",
+      "type": "requires"
     }
   ],
   "schema_version": 1

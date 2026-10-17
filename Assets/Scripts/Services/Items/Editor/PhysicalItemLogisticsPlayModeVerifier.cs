@@ -70,7 +70,17 @@ public static class PhysicalItemLogisticsPlayModeVerifier
         "qa:physical-item-logistics-playmode";
     private const string PersistenceOwnedKey =
         "DungeonStory.PhysicalItemLogistics.PersistenceOwned";
+    private const string DestructiveDrainBatchKey = "DungeonStory.PhysicalItemLogistics.DestructiveDrainBatch";
+    private const string DestructiveDrainBatchOutputKey = "DungeonStory.PhysicalItemLogistics.DestructiveDrainBatchOutput";
+    private const string DestructiveDrainBatchResultKey = "DungeonStory.PhysicalItemLogistics.DestructiveDrainBatchResult";
     private static bool runnerCreated;
+
+    internal static bool IsDestructiveDrainBatch => SessionState.GetBool(DestructiveDrainBatchKey, false);
+    private static string RequiredStartScenePath => IsDestructiveDrainBatch
+        ? SyntheticPreparedOutputCanaryGameplaySceneLease.ExpectedRuntimeScenePath : TitleScenePath;
+    internal static string CurrentPreparedOutputWarehouseRequestPath => IsDestructiveDrainBatch
+        ? Path.Combine(RequireDestructiveDrainBatchDirectory(), "prepared-output-destructive-drain.request.json")
+        : PreparedOutputWarehouseRequestPath;
 
     static PhysicalItemLogisticsPlayModeVerifier()
     {
@@ -178,6 +188,83 @@ public static class PhysicalItemLogisticsPlayModeVerifier
             PreparedOutputWarehouseVerificationRequest.DestructiveDrainMode,
             DestructiveDrainPreparedOutputReportPath);
 
+    public static void RequestDestructiveDrainPreparedOutputForBatch()
+    {
+        if (!Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification
+            || EditorApplication.isPlayingOrWillChangePlaymode || HasAnyRequest()
+            || IsDestructiveDrainBatch)
+            throw new InvalidOperationException("Destructive drain requires a fresh isolated Edit-to-Play batch.");
+        string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        string qaRoot = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Artifacts", "QA"))
+            + Path.DirectorySeparatorChar;
+        if (string.IsNullOrWhiteSpace(output) || !Path.IsPathRooted(output)
+            || !Path.GetFullPath(output).StartsWith(qaRoot, StringComparison.OrdinalIgnoreCase)
+            || Directory.Exists(output))
+            throw new InvalidOperationException("Destructive drain requires new project-local batch evidence.");
+        output = Path.GetFullPath(output);
+        string probe = File.ReadAllText(Path.Combine(Path.GetDirectoryName(output), "isolation-probe.txt"));
+        if (!probe.Contains("PASS_NONINTERACTIVE_PROBE") || !probe.Contains("visible=false")
+            || !probe.Contains("windowCreatedAndDestroyed=true") || !probe.Contains("inJob=true"))
+            throw new InvalidOperationException("Destructive drain requires the noninteractive window probe.");
+        Directory.CreateDirectory(output);
+        SessionState.SetString(DestructiveDrainBatchOutputKey, output);
+        SessionState.SetInt(DestructiveDrainBatchResultKey, -1);
+        SessionState.SetBool(DestructiveDrainBatchKey, true);
+        try
+        {
+            using StreamWriter writer = new(new FileStream(CurrentPreparedOutputWarehouseRequestPath,
+                FileMode.CreateNew, FileAccess.Write, FileShare.Read));
+            writer.Write(JsonUtility.ToJson(new PreparedOutputWarehouseVerificationRequest
+            { mode = PreparedOutputWarehouseVerificationRequest.DestructiveDrainMode }));
+        }
+        catch
+        {
+            ClearDestructiveDrainBatch();
+            throw;
+        }
+    }
+
+    private static string RequireDestructiveDrainBatchDirectory()
+    {
+        string output = SessionState.GetString(DestructiveDrainBatchOutputKey, string.Empty);
+        if (!Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification
+            || string.IsNullOrWhiteSpace(output) || !Path.IsPathRooted(output))
+            throw new InvalidOperationException("Destructive drain batch ownership was lost.");
+        return output;
+    }
+
+    internal static void RecordDestructiveDrainBatchResult(bool passed)
+    {
+        if (IsDestructiveDrainBatch) SessionState.SetInt(DestructiveDrainBatchResultKey, passed ? 0 : 1);
+    }
+
+    internal static void WriteVerificationReport(string path, string contents)
+    {
+        if (!IsDestructiveDrainBatch) { File.WriteAllText(path, contents); return; }
+        if (!string.Equals(path, ResolvePreparedOutputReportPath(), StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Destructive drain attempted to write another verifier's report.");
+        using StreamWriter writer = new(new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read));
+        writer.Write(contents);
+    }
+
+    private static void ClearDestructiveDrainBatch()
+    {
+        SessionState.EraseBool(DestructiveDrainBatchKey);
+        SessionState.EraseString(DestructiveDrainBatchOutputKey);
+        SessionState.EraseInt(DestructiveDrainBatchResultKey);
+    }
+
+    private static void ExitDestructiveDrainBatch()
+    {
+        int result = SessionState.GetInt(DestructiveDrainBatchResultKey, 1);
+        try { PlayModeVerificationStartSceneLease.RestoreOwned(StartSceneLeaseOwnerId); }
+        catch (Exception exception) { result = 1; Debug.LogException(exception); }
+        try { SyntheticPreparedOutputCanaryGameplaySceneLease.RestoreOwned(); }
+        catch (Exception exception) { result = 1; Debug.LogException(exception); }
+        ClearDestructiveDrainBatch();
+        EditorApplication.Exit(result);
+    }
+
     [MenuItem("DungeonStory/Debug/QA/Request V27 Natural Output Portfolio Verification")]
     public static void RequestNaturalOutputPortfolioRunFromMenu()
     {
@@ -206,7 +293,7 @@ public static class PhysicalItemLogisticsPlayModeVerifier
         Directory.CreateDirectory("Artifacts/QA");
         File.Delete(reportPath);
         File.WriteAllText(
-            PreparedOutputWarehouseRequestPath,
+            CurrentPreparedOutputWarehouseRequestPath,
             JsonUtility.ToJson(new PreparedOutputWarehouseVerificationRequest
             {
                 mode = mode
@@ -245,7 +332,7 @@ public static class PhysicalItemLogisticsPlayModeVerifier
         Directory.CreateDirectory("Artifacts/QA");
         File.Delete(PreparedOutputWarehouseReportPath);
         File.WriteAllText(
-            PreparedOutputWarehouseRequestPath,
+            CurrentPreparedOutputWarehouseRequestPath,
             JsonUtility.ToJson(new PreparedOutputWarehouseVerificationRequest
             {
                 mode = PreparedOutputWarehouseVerificationRequest.SyntheticMode,
@@ -268,13 +355,13 @@ public static class PhysicalItemLogisticsPlayModeVerifier
     {
         verificationCase = PreparedOutputLiveRouteCase.HayFeed;
         failure = string.Empty;
-        if (!File.Exists(PreparedOutputWarehouseRequestPath))
+        if (!File.Exists(CurrentPreparedOutputWarehouseRequestPath))
         {
             failure = "prepared-output request file is missing";
             return false;
         }
 
-        string payload = File.ReadAllText(PreparedOutputWarehouseRequestPath);
+        string payload = File.ReadAllText(CurrentPreparedOutputWarehouseRequestPath);
         if (!payload.TrimStart().StartsWith("{", StringComparison.Ordinal))
             return true;
 
@@ -410,12 +497,18 @@ public static class PhysicalItemLogisticsPlayModeVerifier
 
     private static void OnEditorUpdate()
     {
+        if (IsDestructiveDrainBatch && SessionState.GetInt(DestructiveDrainBatchResultKey, -1) >= 0
+            && !EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            ExitDestructiveDrainBatch();
+            return;
+        }
         if ((!File.Exists(RequestPath)
                 && !File.Exists(ConstructionRequestPath)
                 && !File.Exists(L02RequestPath)
                 && !File.Exists(ProductionInputMassRequestPath)
                 && !File.Exists(EquipmentRepairRequestPath)
-                && !File.Exists(PreparedOutputWarehouseRequestPath)
+                && !File.Exists(CurrentPreparedOutputWarehouseRequestPath)
                 && !File.Exists(NaturalOutputPortfolioRequestPath))
             || EditorApplication.isPlayingOrWillChangePlaymode)
         {
@@ -437,14 +530,14 @@ public static class PhysicalItemLogisticsPlayModeVerifier
             {
                 throw new InvalidDataException(failure);
             }
-            if (SessionState.GetBool(PersistenceOwnedKey, false)
+            if (!IsDestructiveDrainBatch && SessionState.GetBool(PersistenceOwnedKey, false)
                 && !PlayModeVerificationPersistenceSnapshot.Exists(
                     PersistenceSnapshotId))
             {
                 SessionState.EraseBool(PersistenceOwnedKey);
             }
 
-            if (!DungeonFinalPlayModeAcceptanceRequestFacade
+            if (!IsDestructiveDrainBatch && !DungeonFinalPlayModeAcceptanceRequestFacade
                     .IsPersistenceCoordinatorActive
                 && !SessionState.GetBool(PersistenceOwnedKey, false))
             {
@@ -464,7 +557,7 @@ public static class PhysicalItemLogisticsPlayModeVerifier
             RequireProductBootScenesEnabled();
             PlayModeVerificationStartSceneLease.Acquire(
                 StartSceneLeaseOwnerId,
-                TitleScenePath);
+                RequiredStartScenePath);
             EditorApplication.EnterPlaymode();
         }
         catch (Exception exception)
@@ -479,6 +572,7 @@ public static class PhysicalItemLogisticsPlayModeVerifier
         {
             bool ownsReturnedPlayMode =
                 SessionState.GetBool(PersistenceOwnedKey, false)
+                || IsDestructiveDrainBatch
                 || HasAnyRequest()
                 || PlayModeVerificationStartSceneLease.IsOwnedBy(
                     StartSceneLeaseOwnerId);
@@ -512,7 +606,8 @@ public static class PhysicalItemLogisticsPlayModeVerifier
             {
                 cleanupFailure += " | PERSISTENCE_RESTORE_FAILED: " + exception;
             }
-            PlayModeVerificationInputCleanup.CleanupStaleVerificationMice();
+            try { PlayModeVerificationInputCleanup.CleanupStaleVerificationMice(); }
+            catch (Exception exception) { cleanupFailure += " | INPUT_CLEANUP_FAILED: " + exception; }
             if (HasAnyRequest())
             {
                 FailBeforePlay(
@@ -524,6 +619,7 @@ public static class PhysicalItemLogisticsPlayModeVerifier
             else if (cleanupFailure.Length > 0)
             {
                 Debug.LogError(cleanupFailure);
+                RecordDestructiveDrainBatchResult(false);
             }
             return;
         }
@@ -548,7 +644,7 @@ public static class PhysicalItemLogisticsPlayModeVerifier
                 && !File.Exists(L02RequestPath)
                  && !File.Exists(ProductionInputMassRequestPath)
                  && !File.Exists(EquipmentRepairRequestPath)
-                 && !File.Exists(PreparedOutputWarehouseRequestPath)
+                 && !File.Exists(CurrentPreparedOutputWarehouseRequestPath)
                  && !File.Exists(NaturalOutputPortfolioRequestPath))
         {
             return;
@@ -567,11 +663,12 @@ public static class PhysicalItemLogisticsPlayModeVerifier
         }
         if (!string.Equals(
                 SceneManager.GetActiveScene().path,
-                TitleScenePath,
+                RequiredStartScenePath,
                 StringComparison.OrdinalIgnoreCase))
         {
             FailBeforePlay(
-                "BOOT_TITLE_SCENE_MISMATCH: active="
+                (IsDestructiveDrainBatch ? "BOOT_CONTROLLED_GAMEPLAY_SCENE_MISMATCH: active="
+                    : "BOOT_TITLE_SCENE_MISMATCH: active=")
                 + SceneManager.GetActiveScene().path);
             EditorApplication.ExitPlaymode();
             return;
@@ -586,16 +683,62 @@ public static class PhysicalItemLogisticsPlayModeVerifier
         }
 
         runnerCreated = true;
-        GameObject runner = new(
-            "Physical Item Logistics PlayMode Verification Runner");
-        UnityEngine.Object.DontDestroyOnLoad(runner);
-        PlayModeVerificationCoroutineHost.RunFactory = () =>
-            new PhysicalItemLogisticsPlayModeVerificationRunner().Run();
-        runner.AddComponent<PlayModeVerificationCoroutineHost>();
+        GameObject runner = null;
+        try
+        {
+            runner = new GameObject("Physical Item Logistics PlayMode Verification Runner");
+            UnityEngine.Object.DontDestroyOnLoad(runner);
+            Func<IEnumerator> createRun = () => new PhysicalItemLogisticsPlayModeVerificationRunner().Run();
+            PlayModeVerificationCoroutineHost.RunFactory = IsDestructiveDrainBatch
+                ? () => PlayModeVerificationCoroutine.Observe(createRun, FailDestructiveDrainBatch)
+                : createRun;
+            runner.AddComponent<PlayModeVerificationCoroutineHost>();
+        }
+        catch (Exception exception)
+        {
+            PlayModeVerificationCoroutineHost.RunFactory = null;
+            if (runner != null) UnityEngine.Object.Destroy(runner);
+            if (!IsDestructiveDrainBatch) throw;
+            FailDestructiveDrainBatch(exception);
+        }
+    }
+
+    private static void FailDestructiveDrainBatch(Exception exception)
+    {
+        RecordDestructiveDrainBatchResult(false);
+        Debug.LogException(exception);
+        try
+        {
+            string reportPath = ResolvePreparedOutputReportPath();
+            if (!File.Exists(reportPath))
+                WriteVerificationReport(reportPath,
+                    "Physical Item Logistics PlayMode Verification\n[FAIL] OWNED_BATCH: "
+                    + exception + "\nRESULT=FAIL; failures=1\n");
+            string errorPath = Path.Combine(RequireDestructiveDrainBatchDirectory(),
+                "prepared-output-destructive-drain-error.txt");
+            using StreamWriter writer = new(new FileStream(errorPath,
+                FileMode.CreateNew, FileAccess.Write, FileShare.Read));
+            writer.Write(exception.ToString());
+        }
+        catch (Exception reportException) { Debug.LogException(reportException); }
+        finally
+        {
+            try { File.Delete(CurrentPreparedOutputWarehouseRequestPath); }
+            catch (Exception cleanupException) { Debug.LogException(cleanupException); }
+            finally
+            {
+                if (EditorApplication.isPlayingOrWillChangePlaymode) EditorApplication.ExitPlaymode();
+            }
+        }
     }
 
     private static void FailBeforePlay(string detail)
     {
+        if (IsDestructiveDrainBatch)
+        {
+            FailDestructiveDrainBatch(new InvalidOperationException(detail));
+            return;
+        }
         try
         {
             PlayModeVerificationStartSceneLease.RestoreOwned(
@@ -637,8 +780,8 @@ public static class PhysicalItemLogisticsPlayModeVerifier
                         ? EquipmentRepairRequestPath
                         : File.Exists(NaturalOutputPortfolioRequestPath)
                             ? NaturalOutputPortfolioRequestPath
-                            : File.Exists(PreparedOutputWarehouseRequestPath)
-                                ? PreparedOutputWarehouseRequestPath
+                            : File.Exists(CurrentPreparedOutputWarehouseRequestPath)
+                                ? CurrentPreparedOutputWarehouseRequestPath
                                 : RequestPath;
         string reportPath = File.Exists(ConstructionRequestPath)
             ? ConstructionReportPath
@@ -650,7 +793,7 @@ public static class PhysicalItemLogisticsPlayModeVerifier
                         ? EquipmentRepairReportPath
                         : File.Exists(NaturalOutputPortfolioRequestPath)
                             ? NaturalOutputPortfolioRunnerReportPath
-                        : File.Exists(PreparedOutputWarehouseRequestPath)
+                        : File.Exists(CurrentPreparedOutputWarehouseRequestPath)
                             ? ResolvePreparedOutputReportPath()
                             : ReportPath;
         string failureReport =
@@ -669,6 +812,7 @@ public static class PhysicalItemLogisticsPlayModeVerifier
                 : null);
         File.Delete(requestPath);
         Debug.LogError(detail);
+        RecordDestructiveDrainBatchResult(false);
     }
 
     internal static void PublishBootFailureReportForDiagnostics(
@@ -688,7 +832,7 @@ public static class PhysicalItemLogisticsPlayModeVerifier
         // runner report. Publishing first would immediately delete the only
         // fail-loud evidence for an Editor boot failure.
         invalidateArtifacts?.Invoke();
-        File.WriteAllText(reportPath, failureReport);
+        WriteVerificationReport(reportPath, failureReport);
     }
 
     private static bool HasAnyRequest() =>
@@ -697,19 +841,28 @@ public static class PhysicalItemLogisticsPlayModeVerifier
         || File.Exists(L02RequestPath)
         || File.Exists(ProductionInputMassRequestPath)
         || File.Exists(EquipmentRepairRequestPath)
-        || File.Exists(PreparedOutputWarehouseRequestPath)
+        || File.Exists(CurrentPreparedOutputWarehouseRequestPath)
         || File.Exists(NaturalOutputPortfolioRequestPath);
 
     internal static bool HasPendingDurableRun => HasAnyRequest();
 
-    private static string ResolvePreparedOutputReportPath()
+    internal static string ResolvePreparedOutputReportPath()
     {
+        if (IsDestructiveDrainBatch)
+            return Path.Combine(RequireDestructiveDrainBatchDirectory(), "prepared-output-destructive-drain-live.txt");
         return TryReadPreparedOutputWarehouseCase(
                 out PreparedOutputLiveRouteCase verificationCase,
                 out _)
             && !string.IsNullOrWhiteSpace(verificationCase.ReportPath)
                 ? verificationCase.ReportPath
                 : PreparedOutputWarehouseReportPath;
+    }
+
+    internal static string ResolvePreparedOutputReportPath(PreparedOutputLiveRouteCase verificationCase)
+    {
+        if (IsDestructiveDrainBatch) return ResolvePreparedOutputReportPath();
+        return string.IsNullOrWhiteSpace(verificationCase.ReportPath)
+            ? PreparedOutputWarehouseReportPath : verificationCase.ReportPath;
     }
 
     private static string[] CapturePendingRequestPaths()
@@ -721,7 +874,7 @@ public static class PhysicalItemLogisticsPlayModeVerifier
             L02RequestPath,
             ProductionInputMassRequestPath,
             EquipmentRepairRequestPath,
-            PreparedOutputWarehouseRequestPath,
+            CurrentPreparedOutputWarehouseRequestPath,
             NaturalOutputPortfolioRequestPath
         };
         return paths.Where(File.Exists).ToArray();
@@ -1581,8 +1734,14 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
         string applyFailure = "expansion-runtime-missing";
         bool applied = expansion != null
             && researchAligned
+            && progression.BlueprintResearch.State
+                .TryGetCompletedProjectResultKey(
+                    target.ResearchProjectId,
+                    out string committedResearchKey)
             && expansion.TryApply(
                 target,
+                DungeonSpaceExpansionTrigger.ResearchCompletion,
+                committedResearchKey,
                 out result,
                 out applyFailure);
         grid = gridSystem != null ? gridSystem.grid : null;
@@ -1852,7 +2011,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
         equipmentRepairOnly = File.Exists(
             PhysicalItemLogisticsPlayModeVerifier.EquipmentRepairRequestPath);
         preparedOutputWarehouseOnly = File.Exists(
-            PhysicalItemLogisticsPlayModeVerifier.PreparedOutputWarehouseRequestPath);
+            PhysicalItemLogisticsPlayModeVerifier.CurrentPreparedOutputWarehouseRequestPath);
         naturalOutputPortfolioOnly = File.Exists(
             PhysicalItemLogisticsPlayModeVerifier.NaturalOutputPortfolioRequestPath);
         naturalClearanceOnly = naturalOutputPortfolioOnly
@@ -3570,7 +3729,8 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             ModularFacilityRuntimeEffects.ApplyWorkCompleted(
                 hauler.BuildingVisitor,
                 bench,
-                BuiltInWorkTypeIds.Craft);
+                BuiltInWorkTypeIds.Craft,
+                0f);
             yield return null;
         }
 
@@ -5799,8 +5959,15 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
 
         if (!string.IsNullOrEmpty(recipe.RequiredResearchId))
         {
-            progression.BlueprintResearch.State.Projects.RestoreCompleted(
-                new ResearchProjectId(recipe.RequiredResearchId));
+            bool researchCompleted = progression.BlueprintResearch
+                .TryCompleteProjectImmediatelyForVerification(
+                    new ResearchProjectId(recipe.RequiredResearchId),
+                    out string researchFailure);
+            Check(researchCompleted,
+                "PREPARED_OUTPUT_LIVE_RESEARCH_COMPLETION",
+                $"project={recipe.RequiredResearchId}; failure={researchFailure}");
+            if (!researchCompleted)
+                yield break;
         }
         IReadOnlyList<Vector2Int> positions = FindReachableCells(
             grid,
@@ -10930,7 +11097,11 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             ProductionFacilityDestructiveDrainParticipantIds
                 .PhysicalCustodyCarryRecovery,
             ProductionFacilityDestructiveDrainParticipantIds
-                .StockSensorEmbeddedSalvage
+                .StockSensorEmbeddedSalvage,
+            ProductionFacilityDestructiveDrainParticipantIds
+                .EnvironmentalFireDamageOutcome,
+            ProductionFacilityDestructiveDrainParticipantIds
+                .BuildingDemolitionOutcome
         };
         Array.Sort(expectedParticipantIds, StringComparer.Ordinal);
         string[] actualParticipantIds = participants.ExecutionOrder
@@ -10939,7 +11110,10 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             .ToArray();
         bool participantRegistryExact = actualParticipantIds.SequenceEqual(
             expectedParticipantIds,
-            StringComparer.Ordinal);
+            StringComparer.Ordinal)
+            && string.Equals(participants.RegistryFingerprint,
+                ProductionFacilityDestructiveDrainParticipantRegistry.ExpectedRegistryFingerprint,
+                StringComparison.Ordinal);
         ProductionOutputDestinationLifecycleSnapshot lifecycleBefore =
             lifecycle.Capture(facilityId);
         ProductionFacilityDestructiveDrainAuthoritySnapshot authorityBefore =
@@ -10955,6 +11129,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             liveAuthorityReady,
             "PREPARED_OUTPUT_DESTRUCTIVE_LIVE_AUTHORITY_READY",
             $"participants={string.Join(",", actualParticipantIds)}; "
+                + $"registry={participants.RegistryFingerprint}; "
                 + $"authority={lifecycleBefore.HasAnyAuthority}:"
                 + $"{lifecycleBefore.ActiveRecordCount}:"
                 + $"{lifecycleBefore.OwnedMassGrams}; pair="
@@ -13475,6 +13650,11 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
 
     private IEnumerator EnsureProductBoot()
     {
+        if (PhysicalItemLogisticsPlayModeVerifier.IsDestructiveDrainBatch)
+        {
+            yield return EnsureDestructiveDrainBatchBoot();
+            yield break;
+        }
         DungeonTitleLifetimeScope titleScope = null;
         IDungeonSceneNavigator navigator = null;
         for (int turn = 0; turn <= VerificationBootMaximumTurns; turn++)
@@ -13664,6 +13844,40 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
         }
         Check(false, "BOOT_GAMEPLAY_READY",
             "PreparedNewRun did not reach Gameplay before timeout.");
+    }
+
+    private IEnumerator EnsureDestructiveDrainBatchBoot()
+    {
+        DungeonRuntimeLifetimeScope scope = null;
+        for (int turn = 0; turn <= VerificationBootMaximumTurns; turn++)
+        {
+            scope = UnityEngine.Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>();
+            if (scope?.Container != null) break;
+            if (turn == VerificationBootMaximumTurns) break;
+            yield return null;
+        }
+        bool ready = scope?.Container != null && string.Equals(SceneManager.GetActiveScene().path,
+            SyntheticPreparedOutputCanaryGameplaySceneLease.ExpectedRuntimeScenePath, StringComparison.Ordinal);
+        Check(ready, "BOOT_CONTROLLED_GAMEPLAY_READY", "Exact isolated sanitized Gameplay scene lease; preparation UI is outside this batch scope.");
+        if (!ready) yield break;
+        var managers = scope.Container.Resolve<IOwnerRunManagerProvider>();
+        if (!managers.TryGetManager(out var manager))
+            throw new InvalidOperationException("Destructive drain batch requires its production owner manager.");
+        float requestedScale = Time.timeScale;
+        string preparation = manager.CurrentOwnerActor == null
+            ? StartPartyPreparationPlayModeVerifier.RunFastCommitForDebug() : "owner-already-present";
+        bool committed = manager.CurrentOwnerActor != null && (preparation == "owner-already-present"
+            || preparation.StartsWith("committed=True;", StringComparison.Ordinal));
+        Check(committed, "BOOT_CONTROLLED_START_PARTY", preparation);
+        if (!committed) yield break;
+        GameManager game = UnityEngine.Object.FindFirstObjectByType<GameManager>();
+        if (game == null) throw new InvalidOperationException("Destructive drain batch requires its production game manager.");
+        game.isPause = false;
+        scope.Container.Resolve<IGameTimeScaleController>().Scale = requestedScale;
+        Time.timeScale = requestedScale;
+        productBootSucceeded = true;
+        Check(true, "BOOT_GAMEPLAY_READY", "Controlled official starting-party command; no model inference or preparation UI claim.");
+        yield return null;
     }
 
     private static void ClickButton(Button button)
@@ -14356,7 +14570,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
     private static BuildingSO FindWarehouseAsset()
     {
         return FindBuildingAsset(asset => asset.GetStorageCapacity() > 0 && asset.StoresAllCategories())
-            ?? AssetDatabase.LoadAssetAtPath<BuildingSO>("Assets/Resources/SO/Building/P1/P1_Warehouse.asset");
+            ?? AssetDatabase.LoadAssetAtPath<BuildingSO>("Assets/Resources/SO/Building/Modular/L01_대형보관선반.asset");
     }
 
     private static BuildingSO FindCraftBenchAsset()
@@ -14888,16 +15102,13 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             : productionInputMassOnly
                 ? PhysicalItemLogisticsPlayModeVerifier.ProductionInputMassReportPath
             : preparedOutputWarehouseOnly
-                ? string.IsNullOrWhiteSpace(preparedOutputCase.ReportPath)
-                    ? PhysicalItemLogisticsPlayModeVerifier
-                        .PreparedOutputWarehouseReportPath
-                    : preparedOutputCase.ReportPath
+                ? PhysicalItemLogisticsPlayModeVerifier.ResolvePreparedOutputReportPath(preparedOutputCase)
             : equipmentRepairOnly
                 ? PhysicalItemLogisticsPlayModeVerifier.EquipmentRepairReportPath
             : constructionOnly
                 ? PhysicalItemLogisticsPlayModeVerifier.ConstructionReportPath
                 : PhysicalItemLogisticsPlayModeVerifier.ReportPath;
-        File.WriteAllText(reportPath, string.Join("\n", report));
+        PhysicalItemLogisticsPlayModeVerifier.WriteVerificationReport(reportPath, string.Join("\n", report));
         string completedRequestPath = naturalOutputPortfolioOnly
             ? PhysicalItemLogisticsPlayModeVerifier.NaturalOutputPortfolioRequestPath
             : l02Only
@@ -14907,7 +15118,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
                         .ProductionInputMassRequestPath
                     : preparedOutputWarehouseOnly
                         ? PhysicalItemLogisticsPlayModeVerifier
-                            .PreparedOutputWarehouseRequestPath
+                            .CurrentPreparedOutputWarehouseRequestPath
                         : equipmentRepairOnly
                             ? PhysicalItemLogisticsPlayModeVerifier
                                 .EquipmentRepairRequestPath
@@ -14928,6 +15139,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
                 + reportPath);
         }
 
+        PhysicalItemLogisticsPlayModeVerifier.RecordDestructiveDrainBatchResult(passed);
         EditorApplication.ExitPlaymode();
     }
 

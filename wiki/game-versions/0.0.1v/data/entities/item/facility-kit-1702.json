@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "의료 분류대에서 환자를 살피고 필요한 처치를 이어 갈 수 있게 꾸린 설치 부품이며, 므네실라의 시설과도 체결 규격이 맞는다.",
+  "in_game_description": "의료 분류대에서 환자를 살피고 필요한 처치를 이어 갈 수 있게 꾸린 설치 부품이다. 므네실라의 의료 분류대는 씻은 물이 공동 정원으로 돌아갈 수 있을 때만 초록등이 켜진다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

@@ -99,7 +99,8 @@ public static class V27SpeciesBalanceSimulationDebugScenarios
             ?? throw new InvalidOperationException("Domain catalog is missing.");
         CharacterSpeciesSO[] species = catalog.GetAll<CharacterSpeciesSO>()
             .Where(value => value != null
-                && !string.Equals(value.speciesTag, "Adventurer", StringComparison.Ordinal))
+                && !string.Equals(value.speciesTag, "Adventurer", StringComparison.Ordinal)
+                && !string.Equals(value.speciesTag, "Human", StringComparison.Ordinal))
             .OrderBy(value => value.speciesTag, StringComparer.Ordinal)
             .ToArray();
         Require(species.Length == 9, $"Expected nine dungeon species, found {species.Length}.");

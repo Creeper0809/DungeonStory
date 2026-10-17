@@ -7,7 +7,7 @@ import { getCurrentVersion, getGuide, getGuideNavigation, getGuideRedirect } fro
 const version = getCurrentVersion();
 const guideId = Astro.params.id ?? '';
 const redirectTo = getGuideRedirect(version, guideId);
-if (redirectTo) return Response.redirect(new URL(`/guide/${redirectTo}/`, Astro.url), 308);
+if (redirectTo) return Astro.redirect(`/guide/${redirectTo}/`, 308);
 const guide = getGuide(version, guideId);
 if (!guide) return new Response(null, { status: 404 });
 const navigation = getGuideNavigation(version);

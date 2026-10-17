@@ -527,6 +527,18 @@ MonoBehaviour:
     m_Key: EmergencyProcedureContinuing
     m_Metadata:
       m_Items: []
+  - m_Id: 1173704835
+    m_Key: AcuteBleeding
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704836
+    m_Key: AcuteInfection
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704837
+    m_Key: CriticalNonVitalNode
+    m_Metadata:
+      m_Items: []
   - m_Id: 1173704831
     m_Key: ProcedurePaused
     m_Metadata:
@@ -1569,6 +1581,14 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 7089378127335431
     m_Key: WarehouseMassCapacityUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 20534165975158784
+    m_Key: CharacterMedicalStatusMaterialDestinationDraining
+    m_Metadata:
+      m_Items: []
+  - m_Id: 20534166017101824
+    m_Key: EnvironmentOutcomeUnavailable
     m_Metadata:
       m_Items: []
   m_Metadata:

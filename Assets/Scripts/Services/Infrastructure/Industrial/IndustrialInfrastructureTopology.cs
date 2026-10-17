@@ -34,6 +34,8 @@ internal sealed class IndustrialTopologySnapshot
             new Dictionary<
                 UtilityChannel,
                 Dictionary<string, IReadOnlyList<IndustrialNodeDescriptor>>>();
+    public readonly Dictionary<UtilityChannel, Dictionary<string, string[]>> UtilityNeighbors =
+        new Dictionary<UtilityChannel, Dictionary<string, string[]>>();
     public readonly Dictionary<string, List<string>> ConveyorOutgoing =
         new Dictionary<string, List<string>>(StringComparer.Ordinal);
     public readonly Dictionary<string, List<string>> ConveyorIncoming =
@@ -223,6 +225,10 @@ internal static class IndustrialInfrastructureTopologyBuilder
         Dictionary<Vector2Int, List<string>> byCell = IndexCells(nodes);
         Dictionary<string, HashSet<string>> neighbors =
             CreateUndirectedNeighbors(nodes, byCell);
+        topology.UtilityNeighbors[channel] = neighbors.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value.OrderBy(id => id, StringComparer.Ordinal).ToArray(),
+            StringComparer.Ordinal);
         Dictionary<string, string> networkByNode =
             new Dictionary<string, string>(StringComparer.Ordinal);
         Dictionary<string, List<string>> nodesByNetwork =
@@ -579,7 +585,7 @@ internal static class IndustrialInfrastructureTopologyBuilder
             || node.Overflow != null;
     }
 
-    private static string CreateNetworkId(
+    internal static string CreateNetworkId(
         string prefix,
         IReadOnlyList<string> sortedNodeIds)
     {

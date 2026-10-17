@@ -67,6 +67,9 @@ public sealed class CharacterConsumablesSaveSection :
         return persistence.Capture();
     }
 
+    protected override void ValidateRawPayload(string payloadJson) =>
+        RequireTopLevelArrayFields(payloadJson, "pendingPolicyFacts");
+
     protected override void ValidateParsedPayload(
         DungeonCharacterConsumablesSaveData payload) =>
         persistence.ValidateRestorePayload(

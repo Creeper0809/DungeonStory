@@ -21,7 +21,7 @@ public static class ServiceRoomDebugScenarios
         Debug.Log(
             "Service room contracts PASS: five Direct services, closed demand "
             + "policy, explicit modes, 16 support facilities, five process "
-            + "assets, 180 research projects and service.rooms V2.");
+            + "assets, 180 research projects and service.rooms V7.");
     }
 
     public static List<string> Validate()
@@ -219,9 +219,9 @@ public static class ServiceRoomDebugScenarios
         object serviceRoomsVersion = typeof(ServiceRoomsSaveData)
             .GetField(nameof(ServiceRoomsSaveData.CurrentVersion))?
             .GetRawConstantValue();
-        if (serviceRoomsVersion is not int version || version != 2)
+        if (serviceRoomsVersion is not int version || version != 7)
         {
-            failures.Add("Service room save payload is not exact V2.");
+            failures.Add("Service room save payload is not exact V7.");
         }
 
         ServiceSessionSnapshot source = new ServiceSessionSnapshot
@@ -322,7 +322,9 @@ public static class ServiceRoomDebugScenarios
         if (!firstCompletion
             || firstFailure.IsFailure
             || first?.Completed?.Stage != ServiceSessionStage.Completed
-            || first.Completed.PaymentCommitted != true
+            || first.Completed.PaymentCommitted
+            || first.Completed.TerminalPhase
+                != ServiceSessionTerminalPhase.Prepared
             || first.EconomicCommand?.Amount != 17
             || first.EconomicCommand.CommandId
                 != "service-payment:" + active.SessionId

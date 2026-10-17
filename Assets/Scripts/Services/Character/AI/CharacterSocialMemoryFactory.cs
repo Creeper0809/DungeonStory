@@ -2,11 +2,6 @@ using System;
 using UnityEngine;
 using VContainer;
 
-public interface ICharacterSocialMemoryFactory
-{
-    CharacterSocialMemory GetOrAdd(CharacterActor actor);
-}
-
 public sealed class CharacterSocialMemoryFactory : ICharacterSocialMemoryFactory
 {
     private readonly IObjectResolver objectResolver;

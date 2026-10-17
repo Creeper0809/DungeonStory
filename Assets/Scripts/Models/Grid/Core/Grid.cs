@@ -16,6 +16,29 @@ public class Grid
     public int TraversalVersion => NavigationVersion;
     public Vector3 OriginPosition => originPos;
     public int CellWorldHeight => cellWorldHeight;
+    private DungeonSpaceExpansionPublicationData spaceExpansionPublication = new();
+
+    // This state moves atomically with the authoritative grid root on expansion
+    // and world restore. Callers cannot mutate its frozen contents through a DTO.
+    public DungeonSpaceExpansionPublicationData CaptureSpaceExpansionPublication() =>
+        spaceExpansionPublication.Clone();
+
+    public void SetSpaceExpansionPublication(DungeonSpaceExpansionPublicationData publication)
+    {
+        if (publication == null) throw new ArgumentNullException(nameof(publication));
+        if (publication.active && (string.IsNullOrWhiteSpace(publication.publicationKey)
+            || publication.currentWidth != width))
+            throw new ArgumentException("A spatial publication requires its exact grid and identity.");
+        spaceExpansionPublication = publication.Clone();
+    }
+
+    public void ConfirmSpaceExpansionPublication(string publicationKey)
+    {
+        if (!spaceExpansionPublication.active
+            || spaceExpansionPublication.publicationKey != publicationKey)
+            throw new InvalidOperationException("The spatial publication is not the pending grid transition.");
+        spaceExpansionPublication = new();
+    }
 
     private readonly GridCell[,] gridArray;
     private readonly Dictionary<IGridOccupant, int> occupantRegistrationCounts =
@@ -73,6 +96,7 @@ public class Grid
     public Grid CreateDetachedLayoutCopy()
     {
         Grid copy = new Grid(width, height, originPos, cellWorldHeight);
+        copy.spaceExpansionPublication = spaceExpansionPublication.Clone();
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
@@ -251,6 +275,7 @@ public class Grid
         if (newWidth <= 0 || newHeight <= 0) return null;
 
         Grid newGrid = new Grid(newWidth, newHeight, originPos, cellWorldHeight);
+        newGrid.spaceExpansionPublication = spaceExpansionPublication.Clone();
         int copyHeight = Mathf.Min(height, newHeight);
         int copyWidth = Mathf.Min(width, newWidth);
         Dictionary<IGridOccupant, Dictionary<GridLayer, List<Vector2Int>>>

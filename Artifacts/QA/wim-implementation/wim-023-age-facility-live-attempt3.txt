@@ -1,0 +1,9 @@
+[PASS] actual primary/support query matrix: 5 normal, 20 cross rejected; five singleton candidate lists; co-located distinct primary pairs=1
+[PASS] actual surgery view pointer selector: all five procedures expose only their authored primary; rune UI schedule/cancel publishes node-less, part-less order
+[PASS] direct and dedicated wrong-primary commands reject before mutation; actual rune age command schedules without fake node/part
+result=FAIL
+System.InvalidOperationException: Valid full restore lost the patient's preexisting pause state.
+  at WimAgeFacilityLiveRunner+<Run>d__12.MoveNext () [0x00eff] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Medical\Editor\WimAgeFacilityLiveRunner.cs:251 
+  at WimAgeFacilityLiveRunner+<Observe>d__11.MoveNext () [0x0004b] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Medical\Editor\WimAgeFacilityLiveRunner.cs:62 
+scope=actual owner/party and surgery selector UI, actual AgeTreatmentCommand and direct Schedule, current full-world JSON; authored placement/research are controlled setup; no clinical work/effect/automatic emergency or whole-WIM023 completion claim
+cleanup=operator stops disposable Play; no scene/user persistence writes

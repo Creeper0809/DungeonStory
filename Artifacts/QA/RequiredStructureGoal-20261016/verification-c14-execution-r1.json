@@ -1,0 +1,37 @@
+{
+  "entry": "SurgeryDebugScenarios.RunContractsFromBatch",
+  "evidence": [
+    "native-surgery-current-r1/unity-evidence/surgery-system-contracts.tsv",
+    "native-surgery-current-r1/unity.log"
+  ],
+  "scope": "19/19 native surgery contracts PASS, including installation pending physical receipt/ACK exactly once, strict material sink join, replacement physical identity, actual replacement runtime stale body-CAS rejection, refreshed output admission through JSON restore, post-CAS publication and natural-organ transfer retry without reroll; late participant rollback and organ-preservation joins.",
+  "cases": [
+    "specialized_facilities",
+    "procedure_catalog",
+    "anatomy_profiles",
+    "research_branch",
+    "prosthetic_recipes",
+    "risk_formula",
+    "organ_preservation_restore_join",
+    "corpse_extraction_ledger",
+    "unique_part_save_data",
+    "surgical_part_installation_pending_outbox",
+    "surgery_material_sink_join",
+    "replacement_physical_save_join",
+    "replacement_runtime_transaction",
+    "surgery_facility_single_owner_save_join",
+    "strict_v6_payload",
+    "identifier_sequence_exhaustion",
+    "restore_late_participant_rollback",
+    "doctor_reference_availability",
+    "work_and_stat_contract"
+  ],
+  "target": "C14",
+  "status": "implemented_and_targeted_actual_verified",
+  "currentCompile": "verification-native-current-source-r2.json",
+  "limitations": [
+    "Controlled native fixture scope; no natural UI/AI claim.",
+    "Cold official whole-world integration remains a separate final goal gate."
+  ],
+  "goalStatus": "active"
+}

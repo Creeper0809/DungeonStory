@@ -75,6 +75,15 @@
       "target_spoiler_tier": "none",
       "target_title": "전기 아크등",
       "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9828",
+      "target_spoiler_tier": "none",
+      "target_title": "태양등",
+      "type": "unlocks-building"
     }
   ],
   "schema_version": 1,

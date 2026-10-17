@@ -38,11 +38,21 @@ public sealed class ProductionFacilityDestructiveDrainCoordinator :
 
     public ProductionFacilityDestructiveDrainDriveResult DriveToAuthorityRevoke(
         ProductionFacilityDestructiveDrainCause cause,
-        BuildingInstanceId facilityId)
+        BuildingInstanceId facilityId,
+        ProductionFacilityDestructiveDrainOutcomeSnapshot outcomeSnapshot =
+            default)
     {
         if (!facilityId.IsValid
             || cause == ProductionFacilityDestructiveDrainCause.None
-            || !Enum.IsDefined(typeof(ProductionFacilityDestructiveDrainCause), cause))
+            || !Enum.IsDefined(typeof(ProductionFacilityDestructiveDrainCause), cause)
+            || cause == ProductionFacilityDestructiveDrainCause
+                    .ExplicitDemolition != outcomeSnapshot.IsValid
+                && !query.TryGet(
+                    ProductionFacilityDestructiveDrainOperationId.FromFacility(
+                        facilityId),
+                    out _)
+            || cause != ProductionFacilityDestructiveDrainCause
+                    .ExplicitDemolition && outcomeSnapshot.IsPresent)
         {
             throw new ArgumentException("A valid destructive-drain request is required.");
         }
@@ -69,7 +79,8 @@ public sealed class ProductionFacilityDestructiveDrainCoordinator :
                 cause,
                 facilityId,
                 prepared.DestinationId,
-                prepared.DurableSemanticFingerprint);
+                prepared.DurableSemanticFingerprint,
+                outcomeSnapshot);
             IReadOnlyList<ProductionFacilityDestructiveDrainParticipantSaveData>
                 participants;
             try
@@ -105,6 +116,7 @@ public sealed class ProductionFacilityDestructiveDrainCoordinator :
                     ProductionFacilityDestructiveDrainCanonical
                         .BuildInitiatingMutationOperationId(cause, facilityId),
                     prepared.DurableSemanticFingerprint,
+                    outcomeSnapshot,
                     participants,
                     out entry,
                     out string requestFailure))
@@ -113,7 +125,13 @@ public sealed class ProductionFacilityDestructiveDrainCoordinator :
             }
         }
         else if (!entry.facilityId.Equals(facilityId.Value, StringComparison.Ordinal)
-            || entry.cause != cause)
+            || entry.cause != cause
+            || outcomeSnapshot.IsPresent
+                && entry.OutcomeSnapshot.IsPresent
+                && !string.Equals(
+                    outcomeSnapshot.ComputeFingerprint(facilityId),
+                    entry.OutcomeSnapshot.ComputeFingerprint(facilityId),
+                    StringComparison.Ordinal))
         {
             return Failure(
                 entry,
@@ -458,7 +476,8 @@ public sealed class ProductionFacilityDestructiveDrainCoordinator :
                     (BuildingInstanceId)entry.facilityId,
                     participant.ParticipantId,
                     owner,
-                    row.expectedCurrentContributionFingerprint);
+                    row.expectedCurrentContributionFingerprint,
+                    entry.OutcomeSnapshot);
                 if (!durable.TryPrepareDurable(context, out failureReason))
                 {
                     failureReason = string.IsNullOrEmpty(failureReason)
@@ -589,7 +608,8 @@ public sealed class ProductionFacilityDestructiveDrainCoordinator :
             (BuildingInstanceId)entry.facilityId,
             participant.ParticipantId,
             owner,
-            row.expectedCurrentContributionFingerprint);
+            row.expectedCurrentContributionFingerprint,
+            entry.OutcomeSnapshot);
 
         ProductionFacilityDestructiveDrainStepResult step;
         try

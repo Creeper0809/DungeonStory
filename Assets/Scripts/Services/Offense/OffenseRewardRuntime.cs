@@ -15,12 +15,25 @@ public sealed class OffenseRewardRestoreCandidate
     internal OffenseRewardState State { get; }
 }
 
-public class OffenseRewardRuntime : MonoBehaviour
+internal sealed class OffenseRewardTransactionSnapshot
 {
+    internal OffenseRewardState RewardState;
+    internal DungeonPhysicalItemSaveData PhysicalItems;
+    internal FacilityShopStateSnapshot ShopUnlocks;
+    internal BlueprintResearchAggregateState Research;
+    internal DungeonOffenseRegionSaveData Regions;
+    internal DungeonOffenseReturnArrivalSaveData Arrivals;
+    internal OffenseRewardContext Context;
+}
+
+public class OffenseRewardRuntime : MonoBehaviour, IDungeonRestoreTransactionParticipant
+{
+    private readonly DungeonRestorePublication restorePublication = new();
     private OffenseRewardState state = new OffenseRewardState();
     private readonly OffenseRewardDebugContext debugContext = new OffenseRewardDebugContext();
     private IOffenseRewardContextBuilder contextBuilder;
     private IOffenseRewardGrantService grantService;
+    private IWorldItemStackRuntime itemStackRuntime;
 
     public IOffenseRewardStateView State => state;
 
@@ -33,6 +46,13 @@ public class OffenseRewardRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(contextBuilder));
         this.grantService = grantService
             ?? throw new ArgumentNullException(nameof(grantService));
+    }
+
+    [Inject]
+    public void ConstructTransactionItems(IWorldItemStackRuntime items)
+    {
+        itemStackRuntime = items
+            ?? throw new ArgumentNullException(nameof(items));
     }
 
     public IReadOnlyList<OffenseRewardGrantResult> ApplyExpeditionRewards(
@@ -125,14 +145,97 @@ public class OffenseRewardRuntime : MonoBehaviour
 
     internal void PublishPersistentState(OffenseRewardState candidate)
     {
-        state = candidate ?? throw new ArgumentNullException(nameof(candidate));
+        candidate = candidate ?? throw new ArgumentNullException(nameof(candidate));
+        if (restorePublication.TryStage(() => state = candidate, CaptureRestoreRollback)) return;
+        state = candidate;
     }
+
+    private Action CaptureRestoreRollback()
+    {
+        var previous0 = state;
+        return () =>
+        {
+            state = previous0;
+        };
+    }
+
+    public string ParticipantId => "offense.reward";
+    public void BeginRestoreCandidate() => restorePublication.Begin();
+    public void PublishRestoreCandidate() => restorePublication.Publish();
+    public void RollbackPublishedRestoreCandidate() => restorePublication.Discard();
+    public void DiscardRestoreCandidate() => restorePublication.Discard();
+    public void CompleteRestoreCandidate() => restorePublication.Complete();
 
     public void PublishRestoreCandidate(
         OffenseRewardRestoreCandidate candidate) =>
         PublishPersistentState(
             (candidate ?? throw new ArgumentNullException(nameof(candidate)))
             .State);
+
+    internal OffenseRewardTransactionSnapshot CaptureTransaction(
+        OffenseExpeditionRun expedition)
+    {
+        if (expedition?.Target == null)
+            throw new ArgumentNullException(nameof(expedition));
+        OffenseRewardContext context = CreateContext(
+            expedition.Target,
+            expedition.ExpeditionId);
+        return new OffenseRewardTransactionSnapshot
+        {
+            RewardState = PreparePersistentState(
+                state.MoneyEarned,
+                state.StockGrantedByCategory,
+                state.RareFacilityBuildingIds,
+                state.AcquiredBlueprintIds),
+            PhysicalItems = itemStackRuntime?.Capture(),
+            ShopUnlocks = context.shopUnlockState?.Capture(),
+            Research = context.researchState?.CaptureAggregateClone(),
+            Regions = context.regionRuntime?.Capture(),
+            Arrivals = context.returnArrivalRuntime?.Capture(),
+            Context = context
+        };
+    }
+
+    internal void RestoreTransaction(
+        OffenseRewardTransactionSnapshot snapshot)
+    {
+        snapshot = snapshot
+            ?? throw new ArgumentNullException(nameof(snapshot));
+        if (snapshot.PhysicalItems != null)
+        {
+            if (itemStackRuntime == null)
+                throw new InvalidOperationException(
+                    "Offense reward physical-item rollback is unavailable.");
+            itemStackRuntime.Restore(snapshot.PhysicalItems);
+        }
+        if (snapshot.ShopUnlocks != null)
+            snapshot.Context.shopUnlockState?.Restore(snapshot.ShopUnlocks);
+        if (snapshot.Research != null)
+            snapshot.Context.researchState?.ReplaceAggregate(
+                snapshot.Research.DeepClone());
+        if (snapshot.Regions != null
+            && snapshot.Context.regionRuntime != null)
+        {
+            snapshot.Context.regionRuntime.PublishRestoreCandidate(
+                snapshot.Context.regionRuntime.BuildRestoreCandidate(
+                    snapshot.Regions));
+        }
+        if (snapshot.Arrivals != null
+            && snapshot.Context.returnArrivalRuntime != null)
+        {
+            DungeonGameRestoreReport report = new();
+            OffenseReturnArrivalRestoreCandidate candidate =
+                snapshot.Context.returnArrivalRuntime.BuildRestoreCandidate(
+                    snapshot.Arrivals,
+                    report);
+            if (!report.Success || candidate == null)
+                throw new InvalidOperationException(
+                    "Offense reward arrival rollback snapshot is invalid.");
+            snapshot.Context.returnArrivalRuntime.PublishRestoreCandidate(
+                candidate);
+        }
+        PublishPersistentState(snapshot.RewardState);
+    }
 
     private OffenseRewardContext CreateContext(
         OffenseTargetDefinition target,

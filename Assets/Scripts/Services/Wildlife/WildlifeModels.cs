@@ -52,6 +52,11 @@ public sealed class ResourceWildlifeSpeciesCatalogProvider : IWildlifeSpeciesCat
 
         foreach (WildlifeSpeciesSO asset in authored)
         {
+            IReadOnlyList<string> definitionErrors = asset.ValidateDefinition();
+            if (definitionErrors.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join(" | ", definitionErrors));
+            }
             if (string.IsNullOrWhiteSpace(asset.DisplayName))
             {
                 throw new InvalidOperationException(
@@ -359,7 +364,8 @@ public static class WildlifeTestFixtures
             canEnterDungeon,
             carcassWeight,
             yields,
-            husbandry: husbandry);
+            husbandry: husbandry,
+            migrationProfile: WildlifeMigrationProfile.GeneralHabitat());
     }
 
     private static WildlifeHusbandryProfile H(
@@ -506,6 +512,24 @@ public interface IWildlifeRuntime : IWildlifeQuery, IWildlifeHuntCommandService
     int DebugDeleteAll();
 }
 
+public enum ExternalWildlifeArrivalDisposition
+{
+    Created = 0,
+    ExactReplay = 1,
+    Rejected = 2
+}
+
+public interface IWildlifeExternalArrivalRuntime
+{
+    IReadOnlyList<string> ReserveExternalArrivalIds(int exactCount);
+    ExternalWildlifeArrivalDisposition TrySpawnExternalArrival(
+        string speciesId,
+        string wildlifeId,
+        Vector2Int position,
+        out WildlifeActor actor,
+        out string message);
+}
+
 public interface IWildlifeEcosystemRuntime
 {
     bool OverlayEnabled { get; }
@@ -600,6 +624,8 @@ public interface ICharacterNutritionRuntime
 
 public interface ISurvivalEnvironmentQuery
 {
+    bool HasFuelSupply(BuildableObject building);
+    float GetRemainingFuelGameSeconds(BuildableObject building);
     SurvivalEnvironmentSnapshot GetEnvironmentSnapshot();
 }
 

@@ -4,6 +4,74 @@ using System.Globalization;
 using System.Linq;
 using UnityEngine;
 
+public enum CropGrowthTemperatureStatus
+{
+    WaitingForEnvironmentObservation = 0,
+    Suitable = 1,
+    TooCold = 2,
+    TooHot = 3
+}
+
+public readonly struct CropGrowthTemperatureEvaluation
+{
+    public CropGrowthTemperatureEvaluation(
+        CropGrowthTemperatureStatus status,
+        float observedTemperatureC,
+        float minimumTemperatureC,
+        float maximumTemperatureC,
+        string blockedReason)
+    {
+        Status = status;
+        ObservedTemperatureC = observedTemperatureC;
+        MinimumTemperatureC = minimumTemperatureC;
+        MaximumTemperatureC = maximumTemperatureC;
+        BlockedReason = blockedReason ?? string.Empty;
+    }
+
+    public CropGrowthTemperatureStatus Status { get; }
+    public float ObservedTemperatureC { get; }
+    public float MinimumTemperatureC { get; }
+    public float MaximumTemperatureC { get; }
+    public string BlockedReason { get; }
+    public bool AllowsGrowth => Status == CropGrowthTemperatureStatus.Suitable;
+}
+
+public enum CropGrowthLightStatus
+{
+    LightIndependent = 0,
+    WaitingForEnvironmentObservation = 1,
+    Stopped = 2,
+    Slowed = 3,
+    Normal = 4
+}
+
+public readonly struct CropGrowthLightEvaluation
+{
+    public CropGrowthLightEvaluation(
+        CropGrowthLightStatus status,
+        float observedLight,
+        float stopLight,
+        float sufficientLight,
+        float growthMultiplier,
+        string blockedReason)
+    {
+        Status = status;
+        ObservedLight = observedLight;
+        StopLight = stopLight;
+        SufficientLight = sufficientLight;
+        GrowthMultiplier = Mathf.Clamp01(growthMultiplier);
+        BlockedReason = blockedReason ?? string.Empty;
+    }
+
+    public CropGrowthLightStatus Status { get; }
+    public float ObservedLight { get; }
+    public float StopLight { get; }
+    public float SufficientLight { get; }
+    public float GrowthMultiplier { get; }
+    public string BlockedReason { get; }
+    public bool AllowsGrowth => GrowthMultiplier > 0f;
+}
+
 /// <summary>
 /// Shared live and audit authority for crop growth speed. Crop throughput is a
 /// serial sow -> calendar growth -> harvest cycle; growth is not workstation
@@ -11,21 +79,14 @@ using UnityEngine;
 /// </summary>
 public static class CropGrowthCycleAuthority
 {
-    public const string Schema = "crop-growth-cycle-authority@1";
+    public const string Schema = "crop-growth-cycle-authority@3";
     public const float ClimateControlMultiplier = 1.08f;
     public const float CropCalendarMultiplier = 1.05f;
-    public const float OutdoorNightMultiplier = 0.55f;
     public const float OutdoorRainMultiplier = 1.10f;
     public const float OutdoorFogMultiplier = 0.85f;
     public const float OutdoorStormMultiplier = 0.55f;
     public const float OutdoorHeatWaveMultiplier = 0.90f;
     public const float OutdoorColdSnapMultiplier = 0.90f;
-
-    // GameCalendarRuntime currently classifies [0,40) and [155,180) as
-    // Night. The sustainable peak integrates both intervals instead of
-    // pretending that a multi-day crop can remain in daylight forever.
-    public const int OutdoorNightRealSecondsPerDay = 65;
-    public const int OutdoorNonNightRealSecondsPerDay = 115;
 
     public static float ResolveIndoorRuntimeMultiplier(
         BuildingCropPlotAbility ability,
@@ -43,40 +104,133 @@ public static class CropGrowthCycleAuthority
 
     public static float ResolveOutdoorRuntimeMultiplier(
         BuildingCropPlotAbility ability,
-        CropDefinitionSO crop,
         CropGenomePhenotype phenotype,
         SurvivalEnvironmentSnapshot environment,
-        TimeOfDay? timeOfDay,
-        bool cropCalendarOperational,
-        out string blockedReason)
+        bool cropCalendarOperational)
     {
         if (ability == null)
             throw new ArgumentNullException(nameof(ability));
-        if (crop == null)
-            throw new ArgumentNullException(nameof(crop));
-        blockedReason = string.Empty;
-        Vector2 authoredRange = crop.TemperatureRange;
-        Vector2 range = new(
-            authoredRange.x - phenotype.ColdToleranceDegrees,
-            authoredRange.y + phenotype.HeatToleranceDegrees);
-        if (environment.OutdoorTemperature < range.x)
-        {
-            blockedReason =
-                $"기온이 너무 낮음 ({environment.OutdoorTemperature:0.#}도)";
-            return 0f;
-        }
-        if (environment.OutdoorTemperature > range.y)
-        {
-            blockedReason =
-                $"기온이 너무 높음 ({environment.OutdoorTemperature:0.#}도)";
-            return 0f;
-        }
-
         return ability.GrowthMultiplier
             * ResolveOutdoorWeatherMultiplier(environment.Weather)
-            * ResolveOutdoorTimeOfDayMultiplier(timeOfDay)
             * (cropCalendarOperational ? CropCalendarMultiplier : 1f)
             * phenotype.GrowthMultiplier;
+    }
+
+    public static CropGrowthTemperatureEvaluation EvaluateTemperature(
+        CropDefinitionSO crop,
+        CropGenomePhenotype phenotype,
+        bool hasEnvironmentObservation,
+        float observedTemperatureC)
+    {
+        if (crop == null)
+            throw new ArgumentNullException(nameof(crop));
+        Vector2 authoredRange = crop.TemperatureRange;
+        float minimum = authoredRange.x - phenotype.ColdToleranceDegrees;
+        float maximum = authoredRange.y + phenotype.HeatToleranceDegrees;
+        if (!hasEnvironmentObservation)
+        {
+            return new CropGrowthTemperatureEvaluation(
+                CropGrowthTemperatureStatus.WaitingForEnvironmentObservation,
+                0f,
+                minimum,
+                maximum,
+                "재배지 환경 관측 대기");
+        }
+        if (!float.IsFinite(observedTemperatureC))
+            throw new ArgumentOutOfRangeException(nameof(observedTemperatureC));
+        if (observedTemperatureC < minimum)
+        {
+            return new CropGrowthTemperatureEvaluation(
+                CropGrowthTemperatureStatus.TooCold,
+                observedTemperatureC,
+                minimum,
+                maximum,
+                $"기온이 너무 낮음 ({observedTemperatureC:0.#}도)");
+        }
+        if (observedTemperatureC > maximum)
+        {
+            return new CropGrowthTemperatureEvaluation(
+                CropGrowthTemperatureStatus.TooHot,
+                observedTemperatureC,
+                minimum,
+                maximum,
+                $"기온이 너무 높음 ({observedTemperatureC:0.#}도)");
+        }
+
+        return new CropGrowthTemperatureEvaluation(
+            CropGrowthTemperatureStatus.Suitable,
+            observedTemperatureC,
+            minimum,
+            maximum,
+            string.Empty);
+    }
+
+    public static CropGrowthLightEvaluation EvaluateLight(
+        CropDefinitionSO crop,
+        bool hasEnvironmentObservation,
+        float observedLight)
+    {
+        if (crop == null)
+            throw new ArgumentNullException(nameof(crop));
+        CropLightRequirement requirement = crop.LightRequirement;
+        if (hasEnvironmentObservation
+            && (!float.IsFinite(observedLight)
+                || observedLight < 0f
+                || observedLight > 100f))
+        {
+            throw new ArgumentOutOfRangeException(nameof(observedLight));
+        }
+        if (requirement.IsLightIndependent)
+        {
+            return new CropGrowthLightEvaluation(
+                CropGrowthLightStatus.LightIndependent,
+                hasEnvironmentObservation ? observedLight : 0f,
+                requirement.StopLight,
+                requirement.SufficientLight,
+                1f,
+                string.Empty);
+        }
+        if (!hasEnvironmentObservation)
+        {
+            return new CropGrowthLightEvaluation(
+                CropGrowthLightStatus.WaitingForEnvironmentObservation,
+                0f,
+                requirement.StopLight,
+                requirement.SufficientLight,
+                0f,
+                "재배지 광량 관측 대기");
+        }
+        float multiplier = Mathf.Clamp01(
+            (observedLight - requirement.StopLight)
+            / (requirement.SufficientLight - requirement.StopLight));
+        if (multiplier <= 0f)
+        {
+            return new CropGrowthLightEvaluation(
+                CropGrowthLightStatus.Stopped,
+                observedLight,
+                requirement.StopLight,
+                requirement.SufficientLight,
+                0f,
+                $"광량 부족 · 성장이 멈췄습니다. ({observedLight:0.#}/{requirement.SufficientLight:0.#})");
+        }
+        if (multiplier < 1f)
+        {
+            return new CropGrowthLightEvaluation(
+                CropGrowthLightStatus.Slowed,
+                observedLight,
+                requirement.StopLight,
+                requirement.SufficientLight,
+                multiplier,
+                $"광량 부족 · 성장 {multiplier:P0} ({observedLight:0.#}/{requirement.SufficientLight:0.#})");
+        }
+
+        return new CropGrowthLightEvaluation(
+            CropGrowthLightStatus.Normal,
+            observedLight,
+            requirement.StopLight,
+            requirement.SufficientLight,
+            1f,
+            string.Empty);
     }
 
     public static float ResolveOutdoorWeatherMultiplier(
@@ -89,10 +243,6 @@ public static class CropGrowthCycleAuthority
         SurvivalWeatherType.ColdSnap => OutdoorColdSnapMultiplier,
         _ => 1f
     };
-
-    public static float ResolveOutdoorTimeOfDayMultiplier(
-        TimeOfDay? timeOfDay) =>
-        timeOfDay == TimeOfDay.Night ? OutdoorNightMultiplier : 1f;
 
     public static decimal ResolveMaximumSustainableGrowthRate(
         BuildingCropPlotAbility ability,
@@ -117,40 +267,33 @@ public static class CropGrowthCycleAuthority
                 * phenotype);
         }
 
-        decimal dayIntegrated = checked(
-            (OutdoorNonNightRealSecondsPerDay
-                + OutdoorNightRealSecondsPerDay
-                    * Exact(OutdoorNightMultiplier))
-            / Exact(GameSimulationTimeRules.SecondsPerDay));
         return checked(baseMultiplier
             * Exact(OutdoorRainMultiplier)
             * calendar
-            * phenotype
-            * dayIntegrated);
+            * phenotype);
     }
 
     public static string CaptureSourceDigest()
     {
-        if (OutdoorNightRealSecondsPerDay
-                + OutdoorNonNightRealSecondsPerDay
-                != (int)GameSimulationTimeRules.SecondsPerDay)
-        {
-            throw new InvalidOperationException(
-                "Crop day/night integration drifted from the game-day clock.");
-        }
         CanonicalSemanticDigestBuilder digest = new();
         digest.Append(Schema);
         digest.AppendFloat(ClimateControlMultiplier);
         digest.AppendFloat(CropCalendarMultiplier);
-        digest.AppendFloat(OutdoorNightMultiplier);
         digest.AppendFloat(OutdoorRainMultiplier);
         digest.AppendFloat(OutdoorFogMultiplier);
         digest.AppendFloat(OutdoorStormMultiplier);
         digest.AppendFloat(OutdoorHeatWaveMultiplier);
         digest.AppendFloat(OutdoorColdSnapMultiplier);
-        digest.Append(OutdoorNightRealSecondsPerDay);
-        digest.Append(OutdoorNonNightRealSecondsPerDay);
-        digest.AppendFloat(GameSimulationTimeRules.SecondsPerDay);
+        foreach (CropLightProfile profile in Enum.GetValues(
+                     typeof(CropLightProfile)))
+        {
+            if (profile == CropLightProfile.Unspecified)
+                continue;
+            CropLightRequirement light = CropLightProfileRules.Resolve(profile);
+            digest.Append((int)profile);
+            digest.AppendFloat(light.StopLight);
+            digest.AppendFloat(light.SufficientLight);
+        }
         return digest.ComputeSha256();
     }
 

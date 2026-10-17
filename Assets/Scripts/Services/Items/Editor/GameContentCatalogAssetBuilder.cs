@@ -120,6 +120,225 @@ public static class GameContentCatalogAssetBuilder
     }
 
     /// <summary>
+    /// Replaces only the complete authored BuildingSO slice of the domain
+    /// catalog. The Resources root intentionally includes active facilities,
+    /// compatibility definitions, landmarks, and runtime archetypes.
+    /// </summary>
+    public static bool ReindexBuildingDefinitions()
+    {
+        GameDomainContentCatalogSO domainCatalog =
+            AssetDatabase.LoadAssetAtPath<GameDomainContentCatalogSO>(
+                DomainCatalogPath)
+            ?? throw new InvalidOperationException(
+                $"Required domain content catalog is missing at '{DomainCatalogPath}'.");
+        if (EditorUtility.IsDirty(domainCatalog))
+        {
+            throw new InvalidOperationException(
+                "Building-definition reindex refused to overwrite unsaved changes "
+                + $"on '{DomainCatalogPath}'. Save or revert that catalog first.");
+        }
+
+        IReadOnlyList<string> currentErrors = domainCatalog.ValidateCatalog();
+        if (currentErrors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Building-definition reindex requires a valid current domain catalog:\n"
+                + string.Join("\n", currentErrors));
+        }
+
+        string[] buildingPaths = AssetDatabase
+            .FindAssets("t:BuildingSO", new[] { "Assets/Resources" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+        BuildingSO[] buildings = buildingPaths
+            .Select(path =>
+                AssetDatabase.LoadAssetAtPath<BuildingSO>(path)
+                ?? throw new InvalidOperationException(
+                    $"Building-definition reindex could not load '{path}' as BuildingSO."))
+            .ToArray();
+
+        string[] duplicateNumericIds = buildings
+            .GroupBy(building => building.id)
+            .Where(group => group.Count() > 1)
+            .OrderBy(group => group.Key)
+            .Select(group =>
+                $"numeric id '{group.Key}': "
+                + string.Join(", ", group
+                    .Select(AssetDatabase.GetAssetPath)
+                    .OrderBy(path => path, StringComparer.Ordinal)))
+            .ToArray();
+        if (duplicateNumericIds.Length > 0)
+        {
+            throw new InvalidOperationException(
+                "Building-definition reindex found duplicate numeric IDs:\n"
+                + string.Join("\n", duplicateNumericIds));
+        }
+
+        var identifiedBuildings = buildings
+            .Select(building =>
+            {
+                string path = AssetDatabase.GetAssetPath(building);
+                try
+                {
+                    return new
+                    {
+                        Path = path,
+                        DefinitionId = BuildingDefinitionIdentity.Resolve(building)
+                    };
+                }
+                catch (InvalidOperationException exception)
+                {
+                    throw new InvalidOperationException(
+                        $"Building-definition reindex found an invalid identity at '{path}': "
+                        + exception.Message,
+                        exception);
+                }
+            })
+            .ToArray();
+        string[] duplicateDefinitionIds = identifiedBuildings
+            .GroupBy(entry => entry.DefinitionId, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1)
+            .OrderBy(group => group.Key, StringComparer.Ordinal)
+            .Select(group =>
+                $"definition id '{group.Key}': "
+                + string.Join(", ", group
+                    .Select(entry => entry.Path)
+                    .OrderBy(path => path, StringComparer.Ordinal)))
+            .ToArray();
+        if (duplicateDefinitionIds.Length > 0)
+        {
+            throw new InvalidOperationException(
+                "Building-definition reindex found duplicate stable definition IDs:\n"
+                + string.Join("\n", duplicateDefinitionIds));
+        }
+
+        ScriptableObject[] preservedDefinitions = domainCatalog.Definitions
+            .Where(definition => definition is not BuildingSO)
+            .ToArray();
+        ScriptableObject[] requestedDefinitions = preservedDefinitions
+            .Concat(buildings.Cast<ScriptableObject>())
+            .ToArray();
+        GameDomainContentCatalogSO candidate =
+            UnityEngine.Object.Instantiate(domainCatalog);
+        ScriptableObject[] candidateDefinitions;
+        try
+        {
+            candidate.SetDefinitions(requestedDefinitions);
+            IReadOnlyList<string> candidateErrors = candidate.ValidateCatalog();
+            if (candidateErrors.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    "Building-definition reindex produced an invalid domain catalog:\n"
+                    + string.Join("\n", candidateErrors));
+            }
+
+            candidateDefinitions = candidate.Definitions.ToArray();
+            ScriptableObject[] candidatePreservedDefinitions = candidateDefinitions
+                .Where(definition => definition is not BuildingSO)
+                .ToArray();
+            if (candidatePreservedDefinitions.Length
+                    != preservedDefinitions.Length
+                || !new HashSet<ScriptableObject>(candidatePreservedDefinitions)
+                    .SetEquals(preservedDefinitions))
+            {
+                throw new InvalidOperationException(
+                    "Building-definition reindex changed the non-BuildingSO domain slice.");
+            }
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(candidate);
+        }
+
+        if (domainCatalog.Definitions.SequenceEqual(candidateDefinitions))
+        {
+            return false;
+        }
+
+        domainCatalog.SetDefinitions(candidateDefinitions);
+        EditorUtility.SetDirty(domainCatalog);
+        AssetDatabase.SaveAssetIfDirty(domainCatalog);
+        return true;
+    }
+
+    /// <summary>
+    /// Authors installation-kit definitions for an explicit building set and
+    /// refreshes only the item-definition index.  It is for narrow content
+    /// additions; it deliberately does not invoke the broad catalog migration.
+    /// </summary>
+    public static void EnsureInstallationKitsForBuildings(
+        IEnumerable<BuildingSO> buildings)
+    {
+        EnsureInstallationKitsForBuildings(
+            buildings,
+            preserveManagedReferenceIdentity: false);
+    }
+
+    /// <summary>
+    /// Applies the narrow WIM016 crop-lighting kit slice without recreating
+    /// matching managed-reference feature objects on repeated authoring.
+    /// </summary>
+    public static void EnsureWim016CropLightingInstallationKitsForBuildings(
+        IEnumerable<BuildingSO> buildings)
+    {
+        EnsureInstallationKitsForBuildings(
+            buildings,
+            preserveManagedReferenceIdentity: true);
+    }
+
+    private static void EnsureInstallationKitsForBuildings(
+        IEnumerable<BuildingSO> buildings,
+        bool preserveManagedReferenceIdentity)
+    {
+        if (buildings == null)
+        {
+            throw new ArgumentNullException(nameof(buildings));
+        }
+
+        BuildingSO[] targets = buildings
+            .Where(building => building != null)
+            .GroupBy(building => building.id)
+            .Select(group =>
+            {
+                if (group.Count() != 1)
+                {
+                    throw new InvalidOperationException(
+                        $"Installation-kit authoring has duplicate building ID '{group.Key}'.");
+                }
+                return group.Single();
+            })
+            .OrderBy(building => building.id)
+            .ToArray();
+        foreach (BuildingSO building in targets)
+        {
+            if (building.id <= 0 || building.IsDeprecatedCompatibilityAsset)
+            {
+                throw new InvalidOperationException(
+                    $"Installation-kit authoring requires an active positive-ID building; got '{building?.id}'.");
+            }
+        }
+
+        GenericItemDefinitionSO[] kits = targets
+            .Select(building => EnsureInstallationKit(
+                building,
+                preserveManagedReferenceIdentity))
+            .ToArray();
+        ReindexItemDefinitions();
+        foreach (GenericItemDefinitionSO kit in kits)
+        {
+            AssetDatabase.SaveAssetIfDirty(kit);
+        }
+
+        ItemDefinitionCatalogSO itemCatalog =
+            AssetDatabase.LoadAssetAtPath<ItemDefinitionCatalogSO>(ItemCatalogPath)
+            ?? throw new InvalidOperationException(
+                $"Required item-definition catalog is missing at '{ItemCatalogPath}'.");
+        AssetDatabase.SaveAssetIfDirty(itemCatalog);
+    }
+
+    /// <summary>
     /// Replaces the complete production-recipe slice from its single authored
     /// Resources root. Resource-economy builders must call this after creating
     /// or deleting recipe assets so a physical recipe can never exist outside
@@ -707,27 +926,10 @@ public static class GameContentCatalogAssetBuilder
     {
         EnsureEvolutionCatalystDefinitions();
 
-        foreach (BuildingSO building in FindAssets<BuildingSO>().Where(building => building.id > 0))
+        foreach (BuildingSO building in FindAssets<BuildingSO>().Where(
+                     building => building.id > 0 && !building.IsDeprecatedCompatibilityAsset))
         {
-            string itemId = FacilityInstallationKitItemIds.ForBuilding(building);
-            GenericItemDefinitionSO item = GetOrCreateGenerated(itemId);
-            item.ConfigureCore(
-                itemId,
-                $"{FacilityShopService.GetBuildingName(building)} 설치 키트",
-                "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
-                StockCategory.General,
-                Mathf.Max(1, building.GetConstructionValue()),
-                8f,
-                1);
-            item.SetFeature(new ProductionItemFeature
-            {
-                kind = ResourceItemKind.FinishedGood
-            });
-            item.SetFeature(new InstallationItemFeature
-            {
-                buildingDefinitionId = building.id
-            });
-            EditorUtility.SetDirty(item);
+            EnsureInstallationKit(building);
         }
 
         foreach (FacilityBlueprintSO blueprint in FindAssets<FacilityBlueprintSO>())
@@ -760,6 +962,100 @@ public static class GameContentCatalogAssetBuilder
             EditorUtility.SetDirty(item);
         }
 
+    }
+
+    private static GenericItemDefinitionSO EnsureInstallationKit(
+        BuildingSO building,
+        bool preserveManagedReferenceIdentity = false)
+    {
+        string itemId = FacilityInstallationKitItemIds.ForBuilding(building);
+        GenericItemDefinitionSO item = GetOrCreateGenerated(itemId);
+        if (!preserveManagedReferenceIdentity)
+        {
+            item.ConfigureCore(
+                itemId,
+                $"{FacilityShopService.GetBuildingName(building)} 설치 키트",
+                "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.",
+                StockCategory.General,
+                Mathf.Max(1, building.GetConstructionValue()),
+                8f,
+                1);
+            item.SetFeature(new ProductionItemFeature
+            {
+                kind = ResourceItemKind.FinishedGood
+            });
+            item.SetFeature(new InstallationItemFeature
+            {
+                buildingDefinitionId = building.id
+            });
+            EditorUtility.SetDirty(item);
+            return item;
+        }
+
+        string displayName = $"{FacilityShopService.GetBuildingName(building)} 설치 키트";
+        const string description = "시설을 건설하기 위한 실제 부품과 조립 자재 묶음.";
+        int price = Mathf.Max(1, building.GetConstructionValue());
+        bool coreMatches = string.Equals(
+                item.ItemId,
+                itemId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                item.DisplayName,
+                displayName,
+                StringComparison.Ordinal)
+            && string.Equals(
+                item.Description,
+                description,
+                StringComparison.Ordinal)
+            && item.StockCategory == StockCategory.General
+            && item.UnitPrice == price
+            && Mathf.Approximately(item.UnitWeight, 8f)
+            && item.MaxStack == 1
+            && item.Sprite == null;
+        ProductionItemFeature[] productionFeatures = item.Features
+            .OfType<ProductionItemFeature>()
+            .ToArray();
+        bool productionMatches = productionFeatures.Length == 1
+            && productionFeatures[0].kind == ResourceItemKind.FinishedGood
+            && productionFeatures[0].ingredientTags == ResourceIngredientTag.None
+            && !productionFeatures[0].sharedIntermediate;
+        InstallationItemFeature[] installationFeatures = item.Features
+            .OfType<InstallationItemFeature>()
+            .ToArray();
+        bool installationMatches = installationFeatures.Length == 1
+            && installationFeatures[0].buildingDefinitionId == building.id;
+        if (coreMatches && productionMatches && installationMatches)
+        {
+            return item;
+        }
+
+        if (!coreMatches)
+        {
+            item.ConfigureCore(
+                itemId,
+                displayName,
+                description,
+                StockCategory.General,
+                price,
+                8f,
+                1);
+        }
+        if (!productionMatches)
+        {
+            item.SetFeature(new ProductionItemFeature
+            {
+                kind = ResourceItemKind.FinishedGood
+            });
+        }
+        if (!installationMatches)
+        {
+            item.SetFeature(new InstallationItemFeature
+            {
+                buildingDefinitionId = building.id
+            });
+        }
+        EditorUtility.SetDirty(item);
+        return item;
     }
 
     private static void EnsureEvolutionCatalystDefinitions()

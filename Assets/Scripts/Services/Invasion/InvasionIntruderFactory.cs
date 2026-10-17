@@ -23,6 +23,7 @@ public sealed class InvasionIntruderRuntimeFactory : IInvasionIntruderFactory
     private readonly IDefenseRaidAwarenessRuntime raidAwareness;
     private readonly IDefenseFacilityNetworkRuntime facilityNetwork;
     private readonly IInvasionIntruderPatternDefinitionCatalog patternCatalog;
+    private readonly ICharacterBodyHealthQuery bodyHealth;
 
     public InvasionIntruderRuntimeFactory(
         ICharacterVisualRootFactory visualRootFactory,
@@ -32,7 +33,8 @@ public sealed class InvasionIntruderRuntimeFactory : IInvasionIntruderFactory
         IBuildingStructuralIntegrityRuntime structuralIntegrity,
         IDefenseRaidAwarenessRuntime raidAwareness,
         IDefenseFacilityNetworkRuntime facilityNetwork,
-        IInvasionIntruderPatternDefinitionCatalog patternCatalog)
+        IInvasionIntruderPatternDefinitionCatalog patternCatalog,
+        ICharacterBodyHealthQuery bodyHealth)
     {
         this.visualRootFactory = visualRootFactory
             ?? throw new System.ArgumentNullException(nameof(visualRootFactory));
@@ -50,6 +52,8 @@ public sealed class InvasionIntruderRuntimeFactory : IInvasionIntruderFactory
             ?? throw new System.ArgumentNullException(nameof(facilityNetwork));
         this.patternCatalog = patternCatalog
             ?? throw new System.ArgumentNullException(nameof(patternCatalog));
+        this.bodyHealth = bodyHealth
+            ?? throw new System.ArgumentNullException(nameof(bodyHealth));
     }
 
     public InvasionIntruderRuntime Create(GameObject intruderPrefab, Vector3 position)
@@ -218,7 +222,7 @@ public sealed class InvasionIntruderRuntimeFactory : IInvasionIntruderFactory
             ?? throw new System.InvalidOperationException(
                 "An invasion intruder requires its runtime component.");
         runtime.ConfigureContent(patternCatalog);
-        runtime.ConfigureDefenseEngagement(defenseEngagementRuntime);
+        runtime.ConfigureDefenseEngagement(defenseEngagementRuntime, bodyHealth);
         runtime.ConfigureTacticalServices(
             breachPlanner,
             structuralIntegrity,

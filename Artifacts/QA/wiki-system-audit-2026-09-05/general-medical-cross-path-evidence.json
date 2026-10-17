@@ -1,0 +1,269 @@
+{
+  "sourceFiles": [
+    {
+      "path": "Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs",
+      "sha256": "6FCE7999C0394EC2592BD9FBFB388049DFF0AA8FE0A1B7EB1ECD72D00CE1F540"
+    },
+    {
+      "path": "Assets/Scripts/Services/Combat/CharacterMedicalModels.cs",
+      "sha256": "820D86317C821AAE2745FF0A4718FD0F7E90FCBA35F8C22A79EC8F3E826828F6"
+    },
+    {
+      "path": "Assets/Scripts/Services/Combat/CharacterBodyHealthRuntime.cs",
+      "sha256": "5FCC5AEAD46F66C1E048EA8E16E9091CA8D9D7450976660A85468A624E8CCF83"
+    },
+    {
+      "path": "Assets/Scripts/Services/Combat/AbilityRescue.cs",
+      "sha256": "E67AF19FA3DF3111977FECF0E66605DFA162004A55283121D999CE062D7B6D8F"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/AI/Action/AIRescue.cs",
+      "sha256": "2CE1EAAF6E358D71450920685AF2D0321A50D194426579A317EDEA08E47B9EFE"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/AI/AIBrainActionConfiguration.cs",
+      "sha256": "D240BE84DE9BB367A1C8551D418672FC4C6F034AE1EE596911B2B72D7720AF59"
+    },
+    {
+      "path": "Assets/Scripts/Models/Medical/Core/CharacterMedicalSupplyPolicy.cs",
+      "sha256": "35C082AA7E248CD6F3455D43D18314936F0035582DCA1EEB8977D24E03B15D22"
+    },
+    {
+      "path": "Assets/Scripts/Services/Combat/CharacterMedicalSupplyCoordinator.cs",
+      "sha256": "2AD52C0537612F35A86C856AF1F6FF068C7DC0C2DB4316CCFDA27AD314A7EBE1"
+    },
+    {
+      "path": "Assets/Scripts/Models/Survival/Core/SurvivalBuildingAbilities.cs",
+      "sha256": "47050D612537E796D2AC17562CFFE3E52EC852B01BBF23AE93EF371391006B78"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs",
+      "sha256": "727B23C301533E54B908DC4AF198445102523B616C48EC753BC151512A076E8A"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/ResourceItemDefinitionSO.cs",
+      "sha256": "DA3506DF54F23BBE2CE71D46362E2988CF9CE37261FBF34BF26F5F4670861825"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs",
+      "sha256": "A81D8B1FDF3691BCD601F41E4DA1CD8E1BDD91C1F93BBA8E010C96DC661718D9"
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/GameContentCatalog.cs",
+      "sha256": "0BDC7C696781DB7346880DD19CBD8A226C272E263057723D1DD0C5329251D10C"
+    },
+    {
+      "path": "Assets/Scripts/Services/Survival/SurvivalFoodRuntime.cs",
+      "sha256": "B79BAD355C43A99BC50547DE083AC742F2F8043822C54534F338881168A8AA0E"
+    },
+    {
+      "path": "Assets/Scripts/Services/Survival/SurvivalFoodStockRuntime.cs",
+      "sha256": "467C4DDF9CFE307AD52E6F6F5A0EC05237CC488415BFCDBD3F04D220346C401D"
+    },
+    {
+      "path": "Assets/Scripts/Services/Survival/SurvivalHealthStateRules.cs",
+      "sha256": "88230FAB2CF57903690FD2CF4C2B65302EE8DC52F6A5F4BA80871F62F265F9C4"
+    },
+    {
+      "path": "Assets/Scripts/Services/Survival/Work/SurvivalWorkExecutionHandler.cs",
+      "sha256": "E5CC32DCF716B0FE6122B30FD0F4D18F6E67EF8A13965D24E48F2F93C5CBF776"
+    },
+    {
+      "path": "Assets/Scripts/Services/Survival/Buildings/SurvivalBuildingAbilityHandler.cs",
+      "sha256": "B5ADCC01F3183A491005B009506A2DDD56B32B01B91DE0F4BE2CDD58986BC3C2"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorkRegistration.cs",
+      "sha256": "0FAD345A8C8E7889AB09673F25B4BB923A919E07FE7B6349BBE387CC080C3F1C"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs",
+      "sha256": "4DA69F1FCA835CF85692A126FE3564B7C29188474EEF85B4B71E6BB1292D5FF3"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/PhysicalVaccinationRuntime.cs",
+      "sha256": "F9C681F26E7791917B4998F6346302EBC8E1DB5CD99B1415DCAF3F968F0CB4F5"
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/ItemPileInfoPanel.cs",
+      "sha256": "87CFA22972D8C0A170E611A511A97343568E00BB98B03BB7EFEA2AFE286A1363"
+    },
+    {
+      "path": "Assets/Resources/SO/GameContentCatalog.asset",
+      "sha256": "8B3FE3D0265E1C18A3A25C54E4C0D011C64E4F75EB264AEE22D4466700861645"
+    },
+    {
+      "path": "Assets/Resources/SO/Content/ItemDefinitionCatalog.asset",
+      "sha256": "03D5CEE8D288EB1AE44E655BE0A866D39BB5275E23CDC2E545C6C774512DCC22"
+    },
+    {
+      "path": "Assets/Resources/SO/Content/ItemDefinitionCatalog.asset.meta",
+      "sha256": "42D54AEE00F422D0E7185C9677403BE8D75E40718CA4D280D324FFD671CECA55"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/medical-care-and-surgery.md",
+      "sha256": "897AD8F3608831FD618F233041886C8459D9D40F41A0B98DD544BCA849E29D2E"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/disease-and-public-health.md",
+      "sha256": "64B40015C43996ACD2B62467B100A7EFBD2DD7ACB53AD6AE27209DD787CF7875"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/anatomy-references.json",
+      "sha256": "11249ABA25A7B733BAF96D61B527ADE692ABFFD196697BE611BFB8A8D1D845AA"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/work-references.json",
+      "sha256": "53490CA2981CB0BC848257CD783D60FA3312932F180E2531C8F189DB3D571EEC"
+    }
+  ],
+  "sourceWikiRows": 32,
+  "selectedFieldCount": 140,
+  "hashFailures": [],
+  "ordinaryCandidates": [
+    "medicine:antiseptic",
+    "medicine:advanced",
+    "medicine:standard",
+    "medicine:herbal-poultice",
+    "medical:regenerative-medium",
+    "medical:sterile-bandage",
+    "medicine:mycelial-culture-pack"
+  ],
+  "medicineCatalogJoins": [
+    {
+      "id": "medicine:antiseptic",
+      "guid": "d1faae7d604aa8b49a7e5ac28e6b3b55",
+      "catalogReferenceCount": 1,
+      "metaHash": "A27910BF643BA290C1A058BE7FC6C9772279AFCB46AA2F18F77D718504D2385F"
+    },
+    {
+      "id": "medicine:antidote",
+      "guid": "649741ce1a4bb4c478d37d2bbd023a0c",
+      "catalogReferenceCount": 1,
+      "metaHash": "C112D3A8A02815234B5AD099637F0E42F5190FEA37DD5EB80473D72771FAFD97"
+    },
+    {
+      "id": "medicine:anesthetic",
+      "guid": "87320f0a3f2ab314bb65333c5be5cd87",
+      "catalogReferenceCount": 1,
+      "metaHash": "7E43F99608C30FE2525CAC0F7F8A2738D5C39FD74DA11533E1E923B8A1CD6C5A"
+    },
+    {
+      "id": "medicine:advanced",
+      "guid": "d418e407f2d352e4593889dc426109b1",
+      "catalogReferenceCount": 1,
+      "metaHash": "D369D7A4384017E582D94C5CD4639CB4EE7C54D4F72FC59952FA62480DDE9539"
+    },
+    {
+      "id": "medicine:standard",
+      "guid": "87c90a90923e110488d459d60a07d2da",
+      "catalogReferenceCount": 1,
+      "metaHash": "EEDDAAE239A997DB55DA45CA153F4D529EBDE01797F18466373E8852A25C658C"
+    },
+    {
+      "id": "medicine:herbal-poultice",
+      "guid": "15d0d5ca70614e24ea9bac081133317d",
+      "catalogReferenceCount": 1,
+      "metaHash": "7539088740D187B1188EC4C877C1C994A666B7DE190D668D75BEE85BE7C4AF53"
+    },
+    {
+      "id": "medical:regenerative-medium",
+      "guid": "5c24be85334d0844bb4b7ced4b8422ad",
+      "catalogReferenceCount": 1,
+      "metaHash": "95913633D4977894BD1BEE474493CEA6BBD941AC05BB0A9C6F5F3894D76DEBAB"
+    },
+    {
+      "id": "medical:sterile-bandage",
+      "guid": "ef6dd4b1f9d927c4e9f85eaca80d3440",
+      "catalogReferenceCount": 1,
+      "metaHash": "9166112C8836C202906ABBC54961B7494D8AE710444AB10707979218239B33E5"
+    },
+    {
+      "id": "medicine:vaccine:red-fever",
+      "guid": "e9c64be3e1dc61647857c31b6bbe5f32",
+      "catalogReferenceCount": 1,
+      "metaHash": "F8A4F10DEBF43D293FF4916B2D938BBCADA73DC6ED54AB587723B629B2167C64"
+    },
+    {
+      "id": "medicine:vaccine:cave-flu",
+      "guid": "752c0b794eb012a4fa821ce954c977a7",
+      "catalogReferenceCount": 1,
+      "metaHash": "1D1D59814954045B564C189A07B591F04A46927E3DE62A820E124014C0865ECB"
+    },
+    {
+      "id": "medicine:vaccine:slime-blight",
+      "guid": "e587d82c58f1f344a81cd7bc882c6333",
+      "catalogReferenceCount": 1,
+      "metaHash": "072F838277E5CFF110A20B6506631E82033CEFADB706F3D82722E8E6D0C25E20"
+    },
+    {
+      "id": "medicine:vaccine:blood-wasting",
+      "guid": "1a3e0e2d3a1bd4942b027ce24e59eef4",
+      "catalogReferenceCount": 1,
+      "metaHash": "D77FE104D2088D42A4DC386B207E2A323D8058064E4B372860BBD997D8FABDEF"
+    },
+    {
+      "id": "medicine:vaccine:mana-pox",
+      "guid": "13b5cb5710a511d4894f305c15ff2c17",
+      "catalogReferenceCount": 1,
+      "metaHash": "7A44806FAD37DA2E25CF8F0D82FC6A448D7D98CF05253D4F9ABAAFE1F820C147"
+    },
+    {
+      "id": "medicine:vaccine:spore-lung",
+      "guid": "1ba9087dfa51e8f42aeeaa9660eda5cb",
+      "catalogReferenceCount": 1,
+      "metaHash": "1AD9D5B7112DAB798807C96B91FD5420A0E3555FAB7E9BDB1AD4829DDE40022A"
+    },
+    {
+      "id": "medicine:vaccine:gut-rot",
+      "guid": "75630e3d16f08674d8cc13f76f964e2f",
+      "catalogReferenceCount": 1,
+      "metaHash": "BA4A44FAC9C5B3B1D77E32EE367150AE89B125A632FF939DFA35D2C9BFAC7C7F"
+    },
+    {
+      "id": "medicine:field-emergency-kit",
+      "guid": "8d5738d6a07336a47b767409c8a96772",
+      "catalogReferenceCount": 1,
+      "metaHash": "38612BD916184DD44CD7A8F08A02C491CADD3FAA1B12FBF7785BA79191F25D2A"
+    },
+    {
+      "id": "medicine:blood-seal-kit",
+      "guid": "63966bcac31151541ae555992a1131cd",
+      "catalogReferenceCount": 1,
+      "metaHash": "831B0AE15BCFE59D95E99D7A803A58212E668A63AB2A6ED366A523CAAE5EBE67"
+    },
+    {
+      "id": "medicine:disinfectant",
+      "guid": "01e6cef512590a948ae12544b60a662b",
+      "catalogReferenceCount": 1,
+      "metaHash": "875E7D26D4E59002104E0B0CD8CEBE6FAA0A6254309D4169289DD18151DFC01C"
+    },
+    {
+      "id": "medicine:immunosuppressant",
+      "guid": "7c2ccd43767763348b99346deab74078",
+      "catalogReferenceCount": 1,
+      "metaHash": "8E8E0FAD19553F7456042C92D6D66A13FEE74E2608107096A433B340A7E70720"
+    },
+    {
+      "id": "medicine:rune-slime-patch",
+      "guid": "e5eff9970ee431b44987088c46c16e01",
+      "catalogReferenceCount": 1,
+      "metaHash": "198A1F9B1D8FDF9187F63F1DC050A8F3E23B7CD63A0FCAC9DF16BAC5256090CC"
+    },
+    {
+      "id": "medicine:mycelial-culture-pack",
+      "guid": "2b901f7fec076bd45b64548be510fc83",
+      "catalogReferenceCount": 1,
+      "metaHash": "2349769E09EEB684A0C3210F63DD8B52A7C574101B827D62A697EACEA8B16ABF"
+    },
+    {
+      "id": "medicine:wing-splint-kit",
+      "guid": "a5c99a021ff996a4dba001257c247484",
+      "catalogReferenceCount": 1,
+      "metaHash": "7D461AD63E52FFAF861154C07E172C560FF8431E6A07C84316A6697B0279FF24"
+    }
+  ],
+  "differenceRows": 28,
+  "head": "c03d2e0a1c68067de48840f3851b388483966a6e",
+  "validation": "Selected source hashes and 22 item catalog references. Static comparison only; no Unity execution. 13 authored support flags, seven Resource-type ordinary treatment candidates."
+}

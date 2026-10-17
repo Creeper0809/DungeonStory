@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -25,7 +26,59 @@ public static class CharacterDeprivationProductionBtPlayModeVerifier
     private const string PendingPath = "Temp/character-deprivation-production-bt.flag";
     public const string ReportPath =
         "Artifacts/QA/character-deprivation-production-bt-playmode.txt";
+    private const string ReportPathEnvironmentVariable =
+        "DUNGEONSTORY_DEPRIVATION_BT_REPORT_PATH";
+    private const string VandalismOnlyEnvironmentVariable =
+        "DUNGEONSTORY_DEPRIVATION_VANDALISM_ONLY";
+    private const string FullMatrixEnvironmentVariable =
+        "DUNGEONSTORY_DEPRIVATION_A09_FULL";
+    private const string CorpseOnlyEnvironmentVariable =
+        "DUNGEONSTORY_DEPRIVATION_CORPSE_ONLY";
     private static bool runnerCreated;
+    private static bool batchRunRequested;
+
+    internal static bool VandalismOnlyRequested => string.Equals(
+        Environment.GetEnvironmentVariable(
+            VandalismOnlyEnvironmentVariable)?.Trim(),
+        "1",
+        StringComparison.Ordinal);
+
+    internal static bool FullMatrixRequested => string.Equals(
+        Environment.GetEnvironmentVariable(
+            FullMatrixEnvironmentVariable)?.Trim(),
+        "1",
+        StringComparison.Ordinal);
+
+    internal static bool CorpseEatingOnlyRequested => string.Equals(
+        Environment.GetEnvironmentVariable(CorpseOnlyEnvironmentVariable)?.Trim(),
+        "1", StringComparison.Ordinal);
+
+    internal static string ActiveReportPath
+    {
+        get
+        {
+            string relative = Environment.GetEnvironmentVariable(
+                    ReportPathEnvironmentVariable)?.Trim();
+            if (string.IsNullOrWhiteSpace(relative))
+                relative = ReportPath;
+            string root = Path.GetFullPath(Path.Combine(
+                Application.dataPath,
+                ".."));
+            string absolute = Path.GetFullPath(Path.Combine(root, relative));
+            string qaRoot = Path.GetFullPath(Path.Combine(
+                root,
+                "Artifacts",
+                "QA"));
+            if (!absolute.StartsWith(
+                    qaRoot + Path.DirectorySeparatorChar,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "Deprivation BT report must remain under Artifacts/QA.");
+            }
+            return absolute;
+        }
+    }
 
     static CharacterDeprivationProductionBtPlayModeVerifier()
     {
@@ -36,6 +89,12 @@ public static class CharacterDeprivationProductionBtPlayModeVerifier
     [MenuItem("DungeonStory/Debug/QA/Run Deprivation Production BT Matrix")]
     public static void RequestRun()
     {
+        if (Application.isBatchMode)
+        {
+            batchRunRequested = true;
+            EditorApplication.playModeStateChanged -= ExitBatchAfterRun;
+            EditorApplication.playModeStateChanged += ExitBatchAfterRun;
+        }
         Directory.CreateDirectory("Temp");
         File.WriteAllText(PendingPath, DateTime.UtcNow.ToString("O"));
         if (EditorApplication.isPlaying)
@@ -52,6 +111,51 @@ public static class CharacterDeprivationProductionBtPlayModeVerifier
             EditorSceneManager.OpenScene(GameplayScenePath, OpenSceneMode.Single);
         }
         EditorApplication.EnterPlaymode();
+    }
+
+    internal static void StartIsolatedFromFacade(
+        IEnumerable<string> initialWarnings,
+        IEnumerable<string> initialErrors)
+    {
+        if (!Application.isBatchMode
+            || !EditorApplication.isPlaying
+            || !DungeonPersistencePaths.IsIsolatedVerification
+            || (VandalismOnlyRequested ? 1 : 0) + (FullMatrixRequested ? 1 : 0)
+                + (CorpseEatingOnlyRequested ? 1 : 0) != 1)
+        {
+            throw new InvalidOperationException(
+                "Deprivation verification requires exactly one active isolated PlayMode scope.");
+        }
+
+        string reportPath = ActiveReportPath;
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath));
+        if (File.Exists(reportPath))
+        {
+            throw new InvalidOperationException(
+                "Existing deprivation evidence must be preserved.");
+        }
+
+        CharacterDeprivationProductionBtPlayModeRunner runner = StartRunner()
+            ?? throw new InvalidOperationException(
+                "Deprivation runner could not be created.");
+        runner.ExitBatchProcessOnCompletion = true;
+        runner.AddInitialConsoleIssues(initialWarnings, initialErrors);
+    }
+
+    private static void ExitBatchAfterRun(PlayModeStateChange change)
+    {
+        if (!batchRunRequested
+            || change != PlayModeStateChange.EnteredEditMode)
+        {
+            return;
+        }
+        batchRunRequested = false;
+        EditorApplication.playModeStateChanged -= ExitBatchAfterRun;
+        string reportPath = ActiveReportPath;
+        bool passed = File.Exists(reportPath)
+            && File.ReadLines(reportPath).Any(line =>
+                string.Equals(line, "STATUS=PASS", StringComparison.Ordinal));
+        EditorApplication.Exit(passed ? 0 : 1);
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -71,23 +175,25 @@ public static class CharacterDeprivationProductionBtPlayModeVerifier
     private static void TryStartPendingRunner()
     {
         if (!File.Exists(PendingPath)) return;
-        if (StartRunner()) File.Delete(PendingPath);
+        if (StartRunner() != null) File.Delete(PendingPath);
     }
 
-    private static bool StartRunner()
+    private static CharacterDeprivationProductionBtPlayModeRunner StartRunner()
     {
-        if (UnityEngine.Object.FindFirstObjectByType<
-                CharacterDeprivationProductionBtPlayModeRunner>() != null)
+        CharacterDeprivationProductionBtPlayModeRunner existing =
+            UnityEngine.Object.FindFirstObjectByType<
+                CharacterDeprivationProductionBtPlayModeRunner>();
+        if (existing != null)
         {
             runnerCreated = true;
-            return true;
+            return existing;
         }
-        if (runnerCreated) return false;
+        if (runnerCreated) return null;
         CharacterDeprivationProductionBtPlayModeRunner runner =
             new GameObject(nameof(CharacterDeprivationProductionBtPlayModeRunner))
                 .AddComponent<CharacterDeprivationProductionBtPlayModeRunner>();
         runnerCreated = runner != null;
-        return runnerCreated;
+        return runner;
     }
 }
 
@@ -111,11 +217,32 @@ public sealed class CharacterDeprivationProductionBtPlayModeRunner : MonoBehavio
     private WorldItemRepository repository;
     private IItemQuantityReservationService reservations;
     private IWorldFilthQuery filth;
+    private IBuildingWorldQuery buildings;
+    private IGridSystemProvider gridSystems;
+    private IRandomStreamProvider randomStreams;
+    private IGameplayOutcomeDiagnosticsQuery outcomeDiagnostics;
     private DungeonGameSaveData baseline;
     private string actorId;
     private float oldTimeScale;
     private bool finished;
     private bool reportWritten;
+    public bool ExitBatchProcessOnCompletion { get; set; }
+
+    public void AddInitialConsoleIssues(
+        IEnumerable<string> warnings,
+        IEnumerable<string> errors)
+    {
+        if (warnings != null)
+        {
+            consoleIssues.AddRange(warnings.Select(value =>
+                "Warning: " + value));
+        }
+        if (errors != null)
+        {
+            consoleIssues.AddRange(errors.Select(value =>
+                "Error: " + value));
+        }
+    }
 
     private IEnumerator Start()
     {
@@ -132,6 +259,24 @@ public sealed class CharacterDeprivationProductionBtPlayModeRunner : MonoBehavio
         yield return ResolveWorld();
         if (failures.Count == 0)
         {
+            if (CharacterDeprivationProductionBtPlayModeVerifier.CorpseEatingOnlyRequested)
+            {
+                yield return VerifyRow("CORPSE_EAT_A04", DeprivationKind.Hunger,
+                    CharacterBreakdownKind.DesperateEat, CharacterCondition.HUNGER,
+                    DarkSurvivalItemDefinitions.HumanoidCorpseItemId);
+                yield break;
+            }
+            if (CharacterDeprivationProductionBtPlayModeVerifier
+                .VandalismOnlyRequested)
+            {
+                yield return VerifyRow(
+                    "VIOLENT_BREAKDOWN_A04",
+                    DeprivationKind.MentalInstability,
+                    CharacterBreakdownKind.ViolentImpulse,
+                    CharacterCondition.MOOD,
+                    null);
+                yield break;
+            }
             yield return VerifyRow(
                 "RELIEF",
                 DeprivationKind.Bladder,
@@ -222,7 +367,15 @@ public sealed class CharacterDeprivationProductionBtPlayModeRunner : MonoBehavio
             WriteReport();
             reportWritten = true;
         }
+        bool passed = failures.Count == 0;
         Destroy(gameObject);
+        if (ExitBatchProcessOnCompletion)
+        {
+            DungeonFullWorldRoundTripPlayModeFacade.CleanupTransientArtifacts();
+            EditorApplication.delayCall += () =>
+                EditorApplication.Exit(passed ? 0 : 1);
+            return;
+        }
         EditorApplication.delayCall += () =>
         {
             if (EditorApplication.isPlaying)
@@ -274,6 +427,11 @@ public sealed class CharacterDeprivationProductionBtPlayModeRunner : MonoBehavio
         repository = scope.Container.Resolve<WorldItemRepository>();
         reservations = scope.Container.Resolve<IItemQuantityReservationService>();
         filth = scope.Container.Resolve<IWorldFilthQuery>();
+        buildings = scope.Container.Resolve<IBuildingWorldQuery>();
+        gridSystems = scope.Container.Resolve<IGridSystemProvider>();
+        randomStreams = scope.Container.Resolve<IRandomStreamProvider>();
+        outcomeDiagnostics =
+            scope.Container.Resolve<IGameplayOutcomeDiagnosticsQuery>();
         IEnvironmentalFieldQuery environment =
             scope.Container.Resolve<IEnvironmentalFieldQuery>();
         float readinessDeadline = Time.realtimeSinceStartup + SetupTimeout;
@@ -314,7 +472,65 @@ public sealed class CharacterDeprivationProductionBtPlayModeRunner : MonoBehavio
         }
 
         WorldItemStackSnapshot fixture = null;
-        if (!string.IsNullOrWhiteSpace(fixtureItemId))
+        bool corpseRow = fixtureItemId == DarkSurvivalItemDefinitions.HumanoidCorpseItemId;
+        if (corpseRow)
+        {
+            actor.SetAiPaused(true);
+            // Official restore creates fresh actors whose lifecycle/grid startup
+            // may still be pending in this frame. Let that startup complete before
+            // authoring the controlled death position; do not relocate the corpse.
+            yield return null;
+            CharacterActor victim = LiveActors().FirstOrDefault(candidate =>
+                candidate != actor && !CharacterPersistentIdentity.Require(candidate).Equals(CharacterId.Owner));
+            Check(victim != null, prefix + "_CORPSE_SOURCE_ACTOR", victim?.name ?? "missing");
+            if (victim == null) yield break;
+            string victimId = CharacterPersistentIdentity.Require(victim).Value;
+            actor.GetAbility<AbilityMove>()?.CancelActiveMovement();
+            victim.GetAbility<AbilityMove>()?.CancelActiveMovement();
+            if (!gridSystems.TryGetGrid(out Grid corpseGrid))
+            {
+                Check(false, prefix + "_CORPSE_GRID_READY", "missing");
+                yield break;
+            }
+            Vector2Int deathCell = actor.GetNowXY();
+            victim.transform.position = corpseGrid.GetWorldPos(deathCell);
+            bool positioned = victim.GetNowXY() == deathCell;
+            Check(positioned, prefix + "_DEATH_POSITION_READY",
+                $"actor={actor.GetNowXY()};victim={victim.GetNowXY()};expected={deathCell}");
+            if (!positioned) yield break;
+            scope.Container.Resolve<ICharacterBodyHealthCommand>().ApplyLegacyDamage(
+                victim, victim.CurrentHealth + 100f, "qa:corpse-eating-prerequisite", allowDeath: true);
+            float corpseDeadline = Time.realtimeSinceStartup + SetupTimeout;
+            while (Time.realtimeSinceStartup < corpseDeadline)
+            {
+                fixture = items.GetAllStacks().FirstOrDefault(candidate =>
+                    candidate != null && candidate.ItemId == fixtureItemId
+                    && candidate.SourceCharacterId == victimId);
+                if (fixture != null) break;
+                yield return null;
+            }
+            Check(victim.IsDead && fixture?.SourceCharacterId == victimId
+                    && fixture.Position == deathCell && fixture.TotalQuantity == 1,
+                prefix + "_ACTUAL_DEATH_CORPSE",
+                $"dead={victim.IsDead};victim={victimId};stack={fixture?.StackId};quantity={fixture?.TotalQuantity};"
+                    + $"deathCell={deathCell};corpseCell={fixture?.Position};actorCell={actor.GetNowXY()};victimCell={victim.GetNowXY()}");
+            if (fixture == null || !victim.IsDead || fixture.Position != deathCell) yield break;
+            var actual = (CharacterDeprivationRuntime)deprivation;
+            bool selected = actual.DebugTryFindEmergencyFood(actor, out WorldItemStackSnapshot planned)
+                && planned.StackId == fixture.StackId;
+            Check(selected, prefix + "_PRODUCTION_FOOD_SELECTION",
+                $"expected={fixture.StackId};selected={planned?.StackId};item={planned?.ItemId}");
+            if (!selected) yield break;
+            VerifyCorpseCommitRejection(actor, fixture);
+            if (failures.Count > 0) yield break;
+            Check(scope.Container.Resolve<ISurgeryPersistence>().Capture().corpseFreshness
+                    .Any(entry => entry.stackId == fixture.StackId),
+                prefix + "_SURGERY_LIVE_CORPSE_TRACKED", fixture.StackId);
+            if (failures.Count > 0) yield break;
+            WriteCreateOnly("corpse-before-world.json", saves.ToJson(saves.Capture()));
+            actor.SetAiPaused(false);
+        }
+        else if (!string.IsNullOrWhiteSpace(fixtureItemId))
         {
             string stackId = WorldItemRepositoryEditorAccess.AddStack(
                 repository,
@@ -342,6 +558,44 @@ public sealed class CharacterDeprivationProductionBtPlayModeRunner : MonoBehavio
         int filthBefore = filth.GetAll().Count;
         int activityBefore = actor.LogComponent?.ActivityEntries.Count ?? 0;
         float needBefore = GetNeed(actor, condition);
+        BuildableObject vandalismTarget = null;
+        long vandalismSequenceBefore = 0L;
+        if (cause == DeprivationKind.MentalInstability)
+        {
+            vandalismTarget = FindVandalismTarget(actor);
+            Check(vandalismTarget != null,
+                prefix + "_FACILITY_TARGET",
+                vandalismTarget != null
+                    ? vandalismTarget.RequirePersistentInstanceId().Value
+                    : "no eligible facility");
+            if (vandalismTarget == null)
+                yield break;
+            bool stagedNearFacility = TryStageNearFacility(
+                actor,
+                vandalismTarget,
+                out string stagingDetail);
+            Check(stagedNearFacility,
+                prefix + "_FACILITY_STAGING",
+                stagingDetail);
+            if (!stagedNearFacility)
+                yield break;
+
+            // Resolve once more from the production ordering at the staged
+            // position so the asserted owner is exactly the target the domain
+            // runner will select. The live BT and movement/commit coroutine are
+            // still responsible for the terminal transition.
+            vandalismTarget = FindVandalismTarget(actor);
+            Check(vandalismTarget != null,
+                prefix + "_STAGED_FACILITY_TARGET",
+                vandalismTarget != null
+                    ? vandalismTarget.RequirePersistentInstanceId().Value
+                    : "no eligible facility after staging");
+            if (vandalismTarget == null)
+                yield break;
+            vandalismSequenceBefore =
+                vandalismTarget.NextVandalismOperationSequence;
+            randomStreams.Get("character-deprivation").Restore(1UL);
+        }
         CharacterAiRuntimeDiagnosticsSnapshot diagnosticsBefore =
             brain.CaptureRuntimeDiagnostics();
         string observedRoute = string.Empty;
@@ -416,6 +670,36 @@ public sealed class CharacterDeprivationProductionBtPlayModeRunner : MonoBehavio
             filthBefore,
             activityBefore);
 
+        if (cause == DeprivationKind.MentalInstability)
+        {
+            FacilityVandalismCommitState committed =
+                vandalismTarget.LastVandalism;
+            GameplayResultKey expected = FacilityVandalismOutcomeIds.ResultKey(
+                vandalismTarget.RequirePersistentInstanceId(),
+                vandalismSequenceBefore);
+            bool exactOutcome = outcomeDiagnostics.TryGetResultIdentity(
+                expected,
+                out GameplayOutcomeReplayIdentity identity)
+                && (int)identity.State
+                    >= (int)GameplayOutcomeReplayState.Committed;
+            Check(vandalismTarget.IsDamaged
+                    && vandalismTarget.NextVandalismOperationSequence
+                        == vandalismSequenceBefore + 1L
+                    && committed.operationSequence
+                        == vandalismSequenceBefore
+                    && committed.actorId == actorId
+                    && committed.source == "deprivation"
+                    && committed.reason == "mental-instability"
+                    && committed.publicationKey == expected.ToString()
+                    && exactOutcome,
+                prefix + "_FACILITY_OUTCOME",
+                $"facility={vandalismTarget.RequirePersistentInstanceId().Value};"
+                    + $"sequence={vandalismSequenceBefore}->{vandalismTarget.NextVandalismOperationSequence};"
+                    + $"actor={committed.actorId};source={committed.source};"
+                    + $"reason={committed.reason};result={committed.publicationKey};"
+                    + $"exactOutcome={exactOutcome}");
+        }
+
         bool fixtureLeaseClean = fixture == null
             || reservations.GetLeasesForStack(
                     new ItemStackId(fixture.StackId)).Count == 0;
@@ -428,6 +712,309 @@ public sealed class CharacterDeprivationProductionBtPlayModeRunner : MonoBehavio
               diagnosticsBefore.Gate.InvariantAnomalies,
             prefix + "_NO_LIFECYCLE_ANOMALY",
             diagnosticsAfter.FormatDeltaFrom(in diagnosticsBefore));
+
+        if (corpseRow)
+            VerifyCorpseSaveAndReplay(actor, fixture);
+
+        if (cause == DeprivationKind.MentalInstability
+            && CharacterDeprivationProductionBtPlayModeVerifier
+                .VandalismOnlyRequested)
+        {
+            VerifyVandalismSaveRoundTrip(
+                prefix,
+                vandalismTarget,
+                vandalismSequenceBefore,
+                actorId,
+                FacilityVandalismSourceKind.Deprivation,
+                "mental-instability");
+        }
+    }
+
+    private void VerifyCorpseCommitRejection(CharacterActor actor, WorldItemStackSnapshot corpse)
+    {
+        var actual = (CharacterDeprivationRuntime)deprivation;
+        var ledger = scope.Container.Resolve<IGameplayOutcomePersistence>();
+        string statsBefore = CorpseStatsFingerprint(actor);
+        string domainBefore = JsonUtility.ToJson(actual.Capture());
+        string ledgerBefore = string.Join("\n", ledger.CaptureGameplayOutcomes().exactOutcomes
+            .Select(entry => JsonUtility.ToJson(entry)));
+        string physicalBefore = JsonUtility.ToJson(items.Capture());
+        Func<GameplayResultKey, bool> previous = CharacterCorpseConsumptionFactObserver.DebugRejectCommit;
+        string rejectedOperation = "qa-corpse-reject:" + actorId + ":" + corpse.StackId;
+        bool rejected = false;
+        string failure = string.Empty;
+        try
+        {
+            CharacterCorpseConsumptionFactObserver.DebugRejectCommit = key =>
+                key.OperationId.Value == rejectedOperation || previous?.Invoke(key) == true;
+            try { actual.DebugTryConsumeHumanoidCorpse(actor, corpse, rejectedOperation); }
+            catch (InvalidOperationException exception)
+            {
+                failure = exception.Message;
+                rejected = failure.Contains("qa-corpse-consumption-atomic-commit-rejected");
+            }
+        }
+        finally { CharacterCorpseConsumptionFactObserver.DebugRejectCommit = previous; }
+        string statsAfter = CorpseStatsFingerprint(actor);
+        string domainAfter = JsonUtility.ToJson(actual.Capture());
+        string ledgerAfter = string.Join("\n", ledger.CaptureGameplayOutcomes().exactOutcomes
+            .Select(entry => JsonUtility.ToJson(entry)));
+        string physicalAfter = JsonUtility.ToJson(items.Capture());
+        Check(rejected && statsBefore == statsAfter && domainBefore == domainAfter
+                && ledgerBefore == ledgerAfter && physicalBefore == physicalAfter
+                && outcomeDiagnostics.GetDiagnostics().ReservedCount == 0,
+            "CORPSE_EAT_A04_REJECT_ROLLBACK",
+            $"rejected={rejected};statsUnchanged={statsBefore == statsAfter};"
+                + $"domainUnchanged={domainBefore == domainAfter};ledgerUnchanged={ledgerBefore == ledgerAfter};"
+                + $"physicalUnchanged={physicalBefore == physicalAfter};reason={failure}");
+    }
+
+    private static string CorpseStatsFingerprint(CharacterActor actor)
+    {
+        CharacterMoodDeliveryTransactionSnapshot value = actor.Stats.CaptureMoodDeliveryTransactionState();
+        return string.Join("|", value.Stats.OrderBy(pair => (int)pair.Key)
+                .Select(pair => ((int)pair.Key) + "=" + pair.Value.ToString("R")))
+            + ";health=" + value.CurrentHealth.ToString("R")
+            + ";injury=" + value.InjurySeverity.ToString("R")
+            + ";baseMood=" + value.BaseMood.ToString("R")
+            + ";lastMood=" + value.LastCalculatedMood.ToString("R")
+            + ";factors=" + string.Join("|", value.Factors.Select(factor => JsonUtility.ToJson(factor)));
+    }
+
+    private void VerifyCorpseSaveAndReplay(CharacterActor actor, WorldItemStackSnapshot corpse)
+    {
+        actor.SetAiPaused(true);
+        var ledger = scope.Container.Resolve<IGameplayOutcomePersistence>();
+        string operation = "breakdown-eat:" + actorId + ":" + corpse.StackId;
+        GameplayOutcomeSnapshot[] rowsNow = ledger.CaptureGameplayOutcomes().exactOutcomes.ToArray();
+        GameplayOutcomeSnapshot[] parents = rowsNow.Where(entry => entry.outcomeTypeId == "survival.taboo-incident"
+            && entry.facts.Any(fact => fact.factId == MigratedProducerOutcomeIds.SourceStackFact.Value
+                && fact.value == corpse.StackId)).ToArray();
+        GameplayOutcomeSnapshot[] physicals = rowsNow.Where(entry =>
+            entry.operationId == operation
+            && entry.producerId == TradeInventoryOutcomeDefinitions.Get(
+                TradeInventoryOutcomeKind.PhysicalItemBatchDisposition).ProducerId).ToArray();
+        Check(parents.Length == 1 && physicals.Length == 1,
+            "CORPSE_EAT_A04_EXACT_ONCE", $"taboo={parents.Length};physical={physicals.Length};operation={operation}");
+        if (parents.Length != 1 || physicals.Length != 1) return;
+        GameplayOutcomeSnapshot parent = parents[0];
+        GameplayOutcomeSnapshot physical = physicals[0];
+        var physicalKey = new GameplayResultKey(physical.producerId,
+            new GameplayOperationId(physical.operationId), physical.commitRevision, physical.localResultIndex);
+        bool actorLinked = parent.participants.Any(p => p.entityKindId == "character"
+            && p.entityId == actorId && p.roleId == "actor");
+        bool victimLinked = parent.participants.Any(p => p.entityKindId == "character"
+            && p.entityId == corpse.SourceCharacterId && p.roleId == "target");
+        bool stackLinked = parent.participants.Any(p => p.entityKindId == "item-stack"
+            && p.entityId == corpse.StackId && p.roleId == "source");
+        Check(actorLinked && victimLinked && stackLinked
+                && parent.parentRunId == physical.runId && parent.parentSequence == physical.sequence
+                && parent.rootOperationId == operation
+                && parent.causationRelationId == "corpse-eat-from-physical-sink"
+                && parent.facts.Any(f => f.factId == "physical-result-key" && f.value == physicalKey.ToString()),
+            "CORPSE_EAT_A04_TYPED_CAUSAL_JOIN",
+            $"actor={actorId};victim={corpse.SourceCharacterId};stack={corpse.StackId};"
+                + $"physical={physical.runId}:{physical.sequence};taboo={parent.runId}:{parent.sequence};"
+                + $"actorLinked={actorLinked};victimLinked={victimLinked};stackLinked={stackLinked}");
+        double Metric(GameplayMetricId id) => parent.metrics.Single(m => m.metricId == id.Value).value;
+        double hungerBefore = Metric(MigratedProducerOutcomeIds.HungerBeforeMetric);
+        double hungerAfter = Metric(MigratedProducerOutcomeIds.HungerAfterMetric);
+        float expectedRecovery = scope.Container.Resolve<CharacterNeedStateService>().ApplyRecoveryMultiplier(
+            CharacterCondition.HUNGER, 75f, CharacterNeedRecoverySource.Emergency);
+        bool sameSpecies = string.Equals(actor.SpeciesTag, corpse.SourceSpeciesTag, StringComparison.OrdinalIgnoreCase);
+        Check(Metric(MigratedProducerOutcomeIds.QuantityMetric) == 1d
+                && Metric(MigratedProducerOutcomeIds.InputMassMetric) > 0d
+                && Math.Abs(hungerAfter - Math.Min(100d, hungerBefore + expectedRecovery)) < 0.001d
+                && Math.Abs(Metric(MigratedProducerOutcomeIds.InfectionAfterMetric)
+                    - Math.Min(100d, Metric(MigratedProducerOutcomeIds.InfectionBeforeMetric)
+                        + (sameSpecies ? 20d : 12d))) < 0.001d
+                && items.GetAllStacks().All(stack => stack.StackId != corpse.StackId),
+            "CORPSE_EAT_A04_PHYSICAL_AND_RECOVERY",
+            $"quantity=1;hunger={hungerBefore}->{hungerAfter};authoredRecovery={expectedRecovery};"
+                + $"infection={Metric(MigratedProducerOutcomeIds.InfectionBeforeMetric)}"
+                + $"->{Metric(MigratedProducerOutcomeIds.InfectionAfterMetric)}");
+        var actual = (CharacterDeprivationRuntime)deprivation;
+        Check(actual.Capture().characters.Single(c => c.characterId == actorId).tabooMemories
+                .Contains($"극한의 굶주림 속에서 {corpse.SourceDisplayName}을 먹었다"),
+            "CORPSE_EAT_A04_TABOO_MEMORY", corpse.SourceCharacterId);
+        WriteCreateOnly("corpse-taboo-outcome.json", JsonUtility.ToJson(parent, true));
+        WriteCreateOnly("corpse-physical-outcome.json", JsonUtility.ToJson(physical, true));
+        Check(scope.Container.Resolve<ISurgeryPersistence>().Capture().corpseFreshness
+                .All(entry => entry.stackId != corpse.StackId),
+            "CORPSE_EAT_A04_SURGERY_CONSUMED_REFERENCE_REMOVED", corpse.StackId);
+        string worldJson = saves.ToJson(saves.Capture());
+        WriteCreateOnly("corpse-completed-world.json", worldJson);
+        string parentJson = JsonUtility.ToJson(parent);
+        string physicalJson = JsonUtility.ToJson(physical);
+        bool restored = saves.TryRestore(saves.FromJson(worldJson), out DungeonGameRestoreReport report);
+        string restoreDetail = report == null ? "no report"
+            : $"success={report.Success};errors={string.Join(" | ", report.Errors)};"
+                + $"warnings={string.Join(" | ", report.Warnings)};"
+                + $"characters={report.RestoredCharacterCount};buildings={report.RestoredBuildingCount}";
+        WriteCreateOnly("corpse-restore-diagnostics.txt", restoreDetail);
+        Check(restored, "CORPSE_EAT_A04_OFFICIAL_JSON_RESTORE", restoreDetail);
+        if (!restored) return;
+        CharacterActor fresh = FindActor(actorId);
+        if (fresh == null) { Check(false, "CORPSE_EAT_A04_FRESH_ACTOR", "missing"); return; }
+        fresh.SetAiPaused(true);
+        Check(!ReferenceEquals(fresh, actor), "CORPSE_EAT_A04_FRESH_ACTOR", actorId);
+        GameplayOutcomeSnapshot[] restoredRows = ledger.CaptureGameplayOutcomes().exactOutcomes.ToArray();
+        Check(restoredRows.Count(entry => JsonUtility.ToJson(entry) == parentJson) == 1
+                && restoredRows.Count(entry => JsonUtility.ToJson(entry) == physicalJson) == 1
+                && items.GetAllStacks().All(stack => stack.StackId != corpse.StackId),
+            "CORPSE_EAT_A04_EXACT_RESTORE", "same typed taboo/physical identity;consumed corpse absent");
+        string statsBefore = CorpseStatsFingerprint(fresh);
+        string domainBefore = JsonUtility.ToJson(actual.Capture());
+        string ledgerBefore = JsonUtility.ToJson(ledger.CaptureGameplayOutcomes());
+        string itemsBefore = JsonUtility.ToJson(items.Capture());
+        DungeonGameSaveData invalidWorld = saves.FromJson(worldJson);
+        DungeonSaveSectionEnvelope surgerySection = invalidWorld.sections.Single(section =>
+            section.sectionId == "medical.surgery");
+        DungeonSurgerySaveData invalidSurgery = JsonUtility.FromJson<DungeonSurgerySaveData>(
+            surgerySection.payloadJson);
+        invalidSurgery.corpseFreshness.Add(new SurgicalCorpseFreshnessState
+            { stackId = corpse.StackId, remainingFreshnessSeconds = 10f });
+        surgerySection.payloadJson = JsonUtility.ToJson(invalidSurgery);
+        invalidWorld.manifest = DungeonSaveManifest.Capture(invalidWorld.sections);
+        bool invalidRestored = saves.TryRestore(invalidWorld, out DungeonGameRestoreReport invalidReport);
+        Check(!invalidRestored && invalidReport.Errors.Any(error =>
+                error.Contains("Corpse freshness references missing incoming stack"))
+                && ReferenceEquals(fresh, FindActor(actorId))
+                && statsBefore == CorpseStatsFingerprint(fresh)
+                && domainBefore == JsonUtility.ToJson(actual.Capture())
+                && ledgerBefore == JsonUtility.ToJson(ledger.CaptureGameplayOutcomes())
+                && itemsBefore == JsonUtility.ToJson(items.Capture()),
+            "CORPSE_EAT_A04_INVALID_STALE_REFERENCE_REJECTED",
+            $"restored={invalidRestored};errors={string.Join(" | ", invalidReport.Errors)};live unchanged");
+        bool replay = actual.DebugTryConsumeHumanoidCorpse(fresh, corpse, operation);
+        bool command = deprivation.TryRunActiveBreakdown(fresh, out _);
+        Check(!replay && !command && statsBefore == CorpseStatsFingerprint(fresh)
+                && domainBefore == JsonUtility.ToJson(actual.Capture())
+                && ledgerBefore == JsonUtility.ToJson(ledger.CaptureGameplayOutcomes())
+                && itemsBefore == JsonUtility.ToJson(items.Capture()),
+            "CORPSE_EAT_A04_RESTORE_DUPLICATE_INERT",
+            $"sameConsumptionReplay={replay};publicBreakdownCommand={command};effects/physical/ledger unchanged");
+        WriteCreateOnly("corpse-restored-world.json", saves.ToJson(saves.Capture()));
+    }
+
+    private static void WriteCreateOnly(string name, string content)
+    {
+        string path = Path.Combine(Path.GetDirectoryName(
+            CharacterDeprivationProductionBtPlayModeVerifier.ActiveReportPath), name);
+        using var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+        using var writer = new StreamWriter(file, new UTF8Encoding(false));
+        writer.Write(content);
+    }
+
+    private void VerifyVandalismSaveRoundTrip(
+        string prefix,
+        BuildableObject expectedFacility,
+        long operationSequence,
+        string expectedActorId,
+        FacilityVandalismSourceKind source,
+        string reason)
+    {
+        BuildingInstanceId facilityId =
+            expectedFacility.RequirePersistentInstanceId();
+        bool gridResolved = gridSystems.TryGetGrid(out Grid grid)
+            && grid != null;
+        BuildableObject[] gridFacilities = gridResolved
+            ? grid.FindAllOccupants(null)
+                .OfType<BuildableObject>()
+                .Distinct()
+                .ToArray()
+            : Array.Empty<BuildableObject>();
+        int gridIdMatches = gridFacilities.Count(candidate =>
+            candidate != null
+            && candidate.PersistentInstanceId.Equals(facilityId));
+        int registryIdMatches = buildings.Buildings.Count(candidate =>
+            candidate != null
+            && candidate.PersistentInstanceId.Equals(facilityId));
+        bool sameGridReference = gridFacilities.Any(candidate =>
+            ReferenceEquals(candidate, expectedFacility));
+        Check(gridResolved
+                && sameGridReference
+                && gridIdMatches == 1
+                && registryIdMatches == 1,
+            prefix + "_CURRENT_GRID_FACILITY",
+            $"facility={facilityId.Value};gridResolved={gridResolved};"
+                + $"sameReference={sameGridReference};"
+                + $"gridIdMatches={gridIdMatches};"
+                + $"registryIdMatches={registryIdMatches};"
+                + $"gridFacilities={gridFacilities.Length};"
+                + $"registryFacilities={buildings.Buildings.Count}");
+
+        DungeonGameSaveData committedSave = saves.Capture();
+        DungeonSaveSectionEnvelope[] facilitySections = committedSave?.sections
+            ?.Where(entry => entry != null
+                && string.Equals(
+                    entry.sectionId,
+                    ModularFacilityWorldSaveSection.Id,
+                    StringComparison.Ordinal))
+            .ToArray()
+            ?? Array.Empty<DungeonSaveSectionEnvelope>();
+        ModularFacilityWorldSaveData savedFacilities =
+            facilitySections.Length == 1
+                ? JsonUtility.FromJson<ModularFacilityWorldSaveData>(
+                    facilitySections[0].payloadJson)
+                : null;
+        ModularFacilityBuildingSaveData[] savedRows = savedFacilities?.buildings
+            ?.Where(entry => entry != null
+                && string.Equals(
+                    entry.persistentInstanceId,
+                    facilityId.Value,
+                    StringComparison.Ordinal))
+            .ToArray()
+            ?? Array.Empty<ModularFacilityBuildingSaveData>();
+        Check(committedSave != null
+                && facilitySections.Length == 1
+                && savedRows.Length == 1
+                && savedRows[0].isDamaged,
+            prefix + "_FACILITY_SAVE_ROW",
+            $"facility={facilityId.Value};"
+                + $"sectionCount={facilitySections.Length};"
+                + $"rowCount={savedRows.Length};"
+                + $"savedDamaged={(savedRows.Length == 1 && savedRows[0].isDamaged)};"
+                + $"stateModules={(savedRows.Length == 1 ? savedRows[0].stateModules?.Count ?? 0 : 0)};"
+                + $"savedFacilities={savedFacilities?.buildings?.Count ?? 0}");
+        bool restored = committedSave != null
+            && saves.TryRestore(
+                CloneSave(committedSave),
+                out DungeonGameRestoreReport report);
+        BuildableObject restoredFacility = restored
+            ? buildings.Buildings.FirstOrDefault(candidate =>
+                candidate != null
+                && candidate.PersistentInstanceId.Equals(facilityId))
+            : null;
+        FacilityVandalismCommitState committed =
+            restoredFacility?.LastVandalism;
+        GameplayResultKey expected = FacilityVandalismOutcomeIds.ResultKey(
+            facilityId,
+            operationSequence);
+        bool exactOutcome = restored
+            && outcomeDiagnostics.TryGetResultIdentity(
+                expected,
+                out GameplayOutcomeReplayIdentity identity)
+            && (int)identity.State
+                >= (int)GameplayOutcomeReplayState.Committed;
+        bool valid = restoredFacility != null
+            && restoredFacility.IsDamaged
+            && restoredFacility.NextVandalismOperationSequence
+                == operationSequence + 1L
+            && committed != null
+            && committed.operationSequence == operationSequence
+            && committed.actorId == expectedActorId
+            && committed.source == FacilityVandalismOutcomeIds.Source(source)
+            && committed.reason == reason
+            && committed.publicationKey == expected.ToString()
+            && exactOutcome;
+        Check(valid,
+            prefix + "_SAVE_ROUND_TRIP",
+            $"restored={restored};facility={facilityId.Value};"
+                + $"sequence={operationSequence}->{restoredFacility?.NextVandalismOperationSequence};"
+                + $"actor={committed?.actorId};source={committed?.source};"
+                + $"reason={committed?.reason};result={committed?.publicationKey};"
+                + $"exactOutcome={exactOutcome}");
     }
 
     private bool TryRestoreBaselineAndAuthorBreakdown(
@@ -440,7 +1027,7 @@ public sealed class CharacterDeprivationProductionBtPlayModeRunner : MonoBehavio
     {
         actor = null;
         producerDetail =
-            "V18 aggregate restore + production CharacterStats mutation; "
+            "V18 aggregate restore + explicit QA CharacterStats prerequisite; "
             + "deterministic active breakdown cannot be reached in a bounded QA row through 30 real-time held seconds";
         DungeonGameRestoreReport resetReport = null;
         if (baseline == null
@@ -460,16 +1047,7 @@ public sealed class CharacterDeprivationProductionBtPlayModeRunner : MonoBehavio
         }
         PauseOtherAi(actorId);
         actor.SetAiPaused(true);
-        if (condition != CharacterCondition.MOOD)
-        {
-            float current = GetNeed(actor, condition);
-            actor.ChangesStat(condition, 5f - current);
-        }
-        else
-        {
-            float current = GetNeed(actor, CharacterCondition.MOOD);
-            actor.ChangesStat(CharacterCondition.MOOD, 5f - current);
-        }
+        SetNeedForFixture(actor, condition, 5f);
 
         DungeonGameSaveData authored = saves.Capture();
         DungeonSaveSectionEnvelope envelope = authored.sections.FirstOrDefault(entry =>
@@ -529,15 +1107,67 @@ public sealed class CharacterDeprivationProductionBtPlayModeRunner : MonoBehavio
         }
 
         actor = FindActor(actorId);
-        bool valid = actor != null
+        if (actor != null)
+        {
+            PauseOtherAi(actorId);
+            actor.SetAiPaused(true);
+
+            // CharacterStats is not owned by the V18 deprivation section. The
+            // aggregate restore recreates the actor at its persisted baseline,
+            // so the production stat command must be applied again after the
+            // authored V18 payload is restored. Otherwise the active breakdown
+            // is immediately relieved at the baseline need value before the
+            // Behavior Designer branch can observe it.
+            SetNeedForFixture(actor, condition, 5f);
+        }
+
+        float authoredNeed = actor != null
+            ? GetNeed(actor, condition)
+            : float.NaN;
+        bool authoredBreakdownActive = actor != null
+            && deprivation.HasActiveBreakdown(actor);
+        bool authoredBreakdownKind = actor != null
             && deprivation.HasBreakdownKind(actor, kind);
+        bool valid = actor != null
+            // Mental instability uses the aggregate mood after authored need
+            // factors. Assigning the base prerequisite to 5 can legitimately
+            // recalculate to a value above 5; the production breakdown stays
+            // active while that aggregate remains below the relief boundary.
+            && authoredNeed < 30f
+            && authoredBreakdownKind;
         Check(valid,
             prefix + "_V18_BREAKDOWN_PRODUCER",
             valid
-                ? $"kind={kind};cause={cause};need={GetNeed(actor, condition):0.##};reason={producerDetail}"
-                : authoredReport?.ToString() ?? "actor/state missing");
+                ? $"kind={kind};cause={cause};need={authoredNeed:0.##};reason={producerDetail}"
+                : $"actor={(actor != null ? actor.name : "missing")};"
+                    + $"need={authoredNeed:0.##};active={authoredBreakdownActive};"
+                    + $"kind={authoredBreakdownKind};"
+                    + $"restoreSuccess={authoredReport?.Success};"
+                    + $"restoreErrors={string.Join("|", authoredReport?.Errors ?? Array.Empty<string>())}");
         if (!valid) return false;
-        PauseOtherAi(actorId);
+
+        AIBrain restoredBrain = actor.Brain;
+        string restoredAction = restoredBrain?.CurrentActionDebugLabel
+            ?? string.Empty;
+        bool hadRunningAction = restoredBrain?.HasRunningAction == true;
+        if (restoredBrain != null)
+        {
+            if (hadRunningAction)
+            {
+                restoredBrain.StopCurrentActionForReplan(
+                    "QA authored deprivation breakdown takes ownership");
+            }
+            else
+            {
+                restoredBrain.RequestImmediateReplan(clearFailures: true);
+            }
+        }
+        bool survivedActionReset = deprivation.HasBreakdownKind(actor, kind);
+        Check(survivedActionReset,
+            prefix + "_V18_BREAKDOWN_ACTION_RESET",
+            $"hadRunning={hadRunningAction};action={restoredAction};"
+                + $"activeAfterReset={survivedActionReset}");
+        if (!survivedActionReset) return false;
         actor.SetAiPaused(false);
         actor.Brain.enabled = true;
         actor.BehaviorTree.enabled = true;
@@ -662,6 +1292,96 @@ public sealed class CharacterDeprivationProductionBtPlayModeRunner : MonoBehavio
             ? value
             : float.NaN;
 
+    private static void SetNeedForFixture(
+        CharacterActor actor,
+        CharacterCondition condition,
+        float value)
+    {
+        if (actor == null)
+            throw new ArgumentNullException(nameof(actor));
+        actor.EnsureRuntimeState();
+        IDictionary<CharacterCondition, float> stats = actor.stats;
+        if (stats == null)
+            throw new InvalidOperationException(
+                "CharacterStats prerequisite cannot be authored without runtime stats.");
+        stats[condition] = Mathf.Clamp(value, 0f, 100f);
+    }
+
+    private BuildableObject FindVandalismTarget(CharacterActor actor)
+    {
+        if (actor == null || buildings == null)
+            return null;
+        Vector2Int origin = actor.GetNowXY();
+        BuildableObject best = null;
+        int bestDistance = int.MaxValue;
+        foreach (BuildableObject candidate in buildings.Buildings)
+        {
+            if (candidate == null
+                || candidate.IsGridDestroyed
+                || !FacilityVandalismTargetRules
+                    .IsPersistentAggregateTarget(candidate)
+                || candidate.IsDamaged
+                || candidate.IsGridMovement
+                || candidate.Facility == null
+                || !candidate.CanApplyDamageRules)
+            {
+                continue;
+            }
+            int distance = Mathf.Abs(origin.x - candidate.centerPos.x)
+                + Mathf.Abs(origin.y - candidate.centerPos.y);
+            if (distance >= bestDistance)
+                continue;
+            best = candidate;
+            bestDistance = distance;
+        }
+        return best;
+    }
+
+    private bool TryStageNearFacility(
+        CharacterActor actor,
+        BuildableObject facility,
+        out string detail)
+    {
+        detail = string.Empty;
+        if (actor == null
+            || facility == null
+            || gridSystems == null
+            || !gridSystems.TryGetGrid(out Grid grid)
+            || grid == null)
+        {
+            detail = "actor/facility/grid unavailable";
+            return false;
+        }
+
+        Vector2Int[] candidates =
+        {
+            facility.centerPos + Vector2Int.left,
+            facility.centerPos + Vector2Int.right,
+            facility.centerPos + Vector2Int.up,
+            facility.centerPos + Vector2Int.down
+        };
+        Vector2Int? staging = candidates
+            .Where(position => grid.IsValidGridPos(position)
+                && grid.IsWalkable(position))
+            .Cast<Vector2Int?>()
+            .FirstOrDefault();
+        if (!staging.HasValue)
+        {
+            detail = $"facility={facility.RequirePersistentInstanceId().Value};"
+                + "no walkable adjacent cell";
+            return false;
+        }
+
+        actor.GetAbility<AbilityMove>()?.CancelActiveMovement();
+        actor.transform.position = grid.GetWorldPos(staging.Value);
+        bool adjacent = Mathf.Abs(actor.GetNowXY().x - facility.centerPos.x)
+                + Mathf.Abs(actor.GetNowXY().y - facility.centerPos.y)
+            <= 1;
+        detail = $"facility={facility.RequirePersistentInstanceId().Value};"
+            + $"cell={actor.GetNowXY()};adjacent={adjacent}";
+        return adjacent;
+    }
+
     private void Check(bool passed, string key, string detail)
     {
         rows.Add((passed ? "PASS" : "FAIL") + "\t" + key + "\t" + detail);
@@ -691,6 +1411,15 @@ public sealed class CharacterDeprivationProductionBtPlayModeRunner : MonoBehavio
             "Character Deprivation Production BT PlayMode Matrix",
             "UTC=" + DateTime.UtcNow.ToString("O"),
             "STATUS=" + status,
+            "SCOPE=" + (CharacterDeprivationProductionBtPlayModeVerifier
+                .VandalismOnlyRequested
+                ? "official-GameplayScene+live-BehaviorTree+violent-vandalism-A04"
+                : CharacterDeprivationProductionBtPlayModeVerifier.CorpseEatingOnlyRequested
+                    ? "official-GameplayScene+live-BehaviorTree+corpse-eating-A04;controlled-death/hunger-prerequisite"
+                    : "five-deprivation-breakdown-matrix"),
+            "fullAuditClosure=false",
+            "humanApprovalClaimed=false",
+            "trainingEligible=false",
             "AUTHORITY=V18 aggregate state producer -> live BehaviorTree root -> CharacterAiDecisionPipeline Has/RunDeprivationBreakdown -> domain runner",
             "PROHIBITED_DIRECT_CALLS=decisionPipeline.RunDeprivationBreakdown, TryRunActiveBreakdown, BeginBreakdownAction, DebugForceBreakdown, DebugClearBreakdown",
             string.Empty
@@ -703,10 +1432,10 @@ public sealed class CharacterDeprivationProductionBtPlayModeRunner : MonoBehavio
             output.AddRange(failures);
         }
         Directory.CreateDirectory(Path.GetDirectoryName(
-            CharacterDeprivationProductionBtPlayModeVerifier.ReportPath)
+            CharacterDeprivationProductionBtPlayModeVerifier.ActiveReportPath)
             ?? "Artifacts/QA");
         File.WriteAllLines(
-            CharacterDeprivationProductionBtPlayModeVerifier.ReportPath,
+            CharacterDeprivationProductionBtPlayModeVerifier.ActiveReportPath,
             output);
     }
 

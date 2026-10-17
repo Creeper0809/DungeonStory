@@ -17,6 +17,7 @@ public sealed class ItemPileInfoPanel : UIPopUp
     private ITmpKoreanFontService fontService;
     private ISurgeryPlanningWindowService surgeryWindowService;
     private ISurgicalCorpseFreshnessRuntime corpseFreshness;
+    private ISurgicalPartRuntime surgicalParts;
     private ICombatEquipmentRuntime equipmentRuntime;
     private IPlayerStaffCommandSource playerStaffCommands;
     private ICharacterWorldQuery characterWorld;
@@ -24,6 +25,9 @@ public sealed class ItemPileInfoPanel : UIPopUp
     private IItemQuantityReservationService quantityReservations;
     private IBufferStackAggregationService bufferAggregation;
     private IInGameNarrativeTextQuery narrativeText;
+    private IMemoryErasureSealCommandService memoryErasureSealCommands;
+    private IGameplayOutcomePresentationQuery outcomePresentation;
+    private MemoryErasureSealUseModal memoryErasureSealModal;
 
     private GameObject uiRoot;
     private RectTransform contentRoot;
@@ -43,6 +47,7 @@ public sealed class ItemPileInfoPanel : UIPopUp
         ITmpKoreanFontService fontService,
         ISurgeryPlanningWindowService surgeryWindowService,
         ISurgicalCorpseFreshnessRuntime corpseFreshness,
+        ISurgicalPartRuntime surgicalParts,
         IInGameNarrativeTextQuery narrativeText)
     {
         this.itemStackRuntime = itemStackRuntime ?? throw new ArgumentNullException(nameof(itemStackRuntime));
@@ -55,6 +60,8 @@ public sealed class ItemPileInfoPanel : UIPopUp
             ?? throw new ArgumentNullException(nameof(surgeryWindowService));
         this.corpseFreshness = corpseFreshness
             ?? throw new ArgumentNullException(nameof(corpseFreshness));
+        this.surgicalParts = surgicalParts
+            ?? throw new ArgumentNullException(nameof(surgicalParts));
         this.narrativeText = narrativeText
             ?? throw new ArgumentNullException(nameof(narrativeText));
     }
@@ -95,6 +102,22 @@ public sealed class ItemPileInfoPanel : UIPopUp
             ?? throw new ArgumentNullException(nameof(bufferAggregation));
     }
 
+    [Inject]
+    public void ConstructMemoryErasureSealUse(
+        IMemoryErasureSealCommandService memoryErasureSealCommands)
+    {
+        this.memoryErasureSealCommands = memoryErasureSealCommands
+            ?? throw new ArgumentNullException(nameof(memoryErasureSealCommands));
+    }
+
+    [Inject]
+    public void ConstructGameplayOutcomePresentation(
+        IGameplayOutcomePresentationQuery outcomePresentation)
+    {
+        this.outcomePresentation = outcomePresentation
+            ?? throw new ArgumentNullException(nameof(outcomePresentation));
+    }
+
     private void Start()
     {
         EnsureView();
@@ -133,6 +156,7 @@ public sealed class ItemPileInfoPanel : UIPopUp
 
     public override void OnClose()
     {
+        memoryErasureSealModal?.Close();
         if (uiRoot != null)
         {
             uiRoot.SetActive(false);
@@ -146,8 +170,15 @@ public sealed class ItemPileInfoPanel : UIPopUp
 
     private void OnDisable()
     {
+        memoryErasureSealModal?.Close();
         infoFeedSubscription?.Dispose();
         infoFeedSubscription = null;
+    }
+
+    private void OnDestroy()
+    {
+        memoryErasureSealModal?.Dispose();
+        memoryErasureSealModal = null;
     }
 
     private void SubscribeToInfoFeed()
@@ -296,7 +327,8 @@ public sealed class ItemPileInfoPanel : UIPopUp
             + $"위치 ({stack.Position.x}, {stack.Position.y})\n"
             + $"사용 가능 {stack.AvailableQuantity} / 예약 {stack.ReservedQuantity}\n"
             + $"목적지 {FormatEmpty(stack.DestinationId)}\n"
-            + $"운반 {(!stack.Forbidden && stack.State is WorldItemStackState.Loose or WorldItemStackState.FacilityOutputBuffer ? "가능" : "불가")}";
+            + $"운반 {(!stack.Forbidden && stack.State is WorldItemStackState.Loose or WorldItemStackState.FacilityOutputBuffer ? "가능" : "불가")}"
+            + FormatOutcomeHistory(stack);
 
         CreateDetailActionRow(stack);
         CreateEmergencyButcheryAction(stack);
@@ -577,19 +609,45 @@ public sealed class ItemPileInfoPanel : UIPopUp
             });
         }
 
+        if (string.Equals(
+                stack.ItemId,
+                MemoryErasureSealItemRules.ItemId,
+                StringComparison.Ordinal)
+            && stack.State == WorldItemStackState.Stored)
+        {
+            labels.Add("사용");
+            actions.Add(OpenMemoryErasureSealUse);
+        }
+
         labels.Add("버리기");
         actions.Add(() =>
         {
             bool salvageable = false;
-            bool deleted = isEquipment
-                ? equipmentRuntime.TryDiscardBySourceStack(
-                    stack.StackId,
-                    out salvageable,
-                    out _)
-                : itemStackRuntime.DeleteStack(stack.StackId);
+            SurgicalPartDiscardResult medicalDiscard =
+                surgicalParts.TryDiscardOwnedStack(stack.StackId);
+            bool deleted;
+            string failureReason = string.Empty;
+            if (medicalDiscard.IsOwned)
+            {
+                deleted = medicalDiscard.Succeeded;
+                failureReason = medicalDiscard.FailureReason;
+            }
+            else
+            {
+                deleted = isEquipment
+                    ? equipmentRuntime.TryDiscardBySourceStack(
+                        stack.StackId,
+                        out salvageable,
+                        out failureReason)
+                    : itemStackRuntime.DeleteStack(stack.StackId);
+            }
             if (!deleted)
             {
-                RenderDetail(stack.StackId, "선택한 물품을 버리지 못했습니다.");
+                RenderDetail(
+                    stack.StackId,
+                    string.IsNullOrWhiteSpace(failureReason)
+                        ? "선택한 물품을 버리지 못했습니다."
+                        : failureReason);
                 return;
             }
             foreach (CharacterActor actor in characterWorld.Characters
@@ -628,6 +686,38 @@ public sealed class ItemPileInfoPanel : UIPopUp
             rect.offsetMin = new Vector2(i == 0 ? 0f : 4f, 0f);
             rect.offsetMax = new Vector2(i == labels.Count - 1 ? 0f : -4f, 44f);
         }
+    }
+
+    private string FormatOutcomeHistory(WorldItemStackSnapshot stack)
+    {
+        if (outcomePresentation == null
+            || stack == null
+            || !GameplayOutcomeStableIdSyntax.IsValid(stack.StackId))
+            return string.Empty;
+        GameplayOutcomePresentationPage page = outcomePresentation.GetEntityPage(
+            new GameplayEntityId(
+                new GameplayEntityKindId("item-stack"),
+                stack.StackId),
+            NarrativePerspectiveKind.Equipment,
+            OutcomeCursor.FirstPage(8),
+            OutcomeFilter.All);
+        return "\n\n" + outcomePresentation.FormatPage(page);
+    }
+
+    private void OpenMemoryErasureSealUse()
+    {
+        if (uiRoot == null)
+        {
+            throw new InvalidOperationException(
+                "Memory-erasure seal UI requires the item pile overlay root.");
+        }
+
+        memoryErasureSealModal ??= new MemoryErasureSealUseModal(
+            uiRoot.transform,
+            fontService,
+            memoryErasureSealCommands,
+            characterWorld);
+        memoryErasureSealModal.Open();
     }
 
     private bool TryFindSelectedStack(out WorldItemStackSnapshot stack)

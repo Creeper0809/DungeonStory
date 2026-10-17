@@ -749,6 +749,7 @@ namespace DungeonStory.Tests.Architecture
                 1,
                 3,
                 0f,
+                1f,
                 new[] { 1f, 1f, 1f, 1f });
 
             public IReadOnlyList<WeatherFrontDefinition> Fronts => new[] { front };

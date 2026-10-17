@@ -1,0 +1,7 @@
+WIM-062 treatment delivery / physical commit focused verification
+utc=2026-09-10T05:41:23.0698413Z
+route=controlled work-handler / physical-item fixture; natural-haul=NOT_RUN
+[PASS] TREAT_DELIVERY_RETRY warehouse-only=wait/no-effect/no-billing; controlled-haul=reserved/picked/committed/deposited; cancel=0; detox=ack-failure+restore-once; ordinary=ack-failure+section-restore+invalid-owner/missing/orphan-receipt-reject+replay-once; owner-loss=ack-retry/no-refund/no-duplicate; natural-movement/AI=NOT_RUN
+[PASS] SUPPLY_QUERY StockMissing/CapacityUnavailable/AwaitingRequest/Requested/InTransit/Ready/Processing; repeated reads preserve physical/treatment/consumables/session captures
+supply-query-real-NoPath=NOT_RUN; health-ui=NOT_RUN
+failures=0

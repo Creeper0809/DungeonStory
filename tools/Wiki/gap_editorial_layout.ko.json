@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "guides": {
+    "combat-and-equipment": {
+      "sectionTitle": "전투와 장비의 판정 기준",
+      "lead": "전투 결과는 공격 수치만으로 정해지지 않는다. 사격 준비, 장비 상태, 발동 능력, 엄폐물의 상태가 각 단계의 판정에 관여한다.",
+      "groups": [
+        { "title": "사격과 조준", "gapIds": ["GAP-124", "GAP-125"] },
+        { "title": "장비 개조와 정비", "gapIds": ["GAP-143", "GAP-144", "GAP-170", "GAP-226"] },
+        { "title": "전투 발동 능력", "gapIds": ["GAP-158", "GAP-162", "GAP-221"] },
+        { "title": "엄폐물", "gapIds": ["GAP-206"] }
+      ]
+    },
+    "disease-and-public-health": {
+      "sectionTitle": "질병과 공중 보건의 판정 기준",
+      "lead": "질병은 감염 여부에서 끝나지 않고 노출, 증상 진행, 대응, 회복의 순서로 관리된다. 같은 질병도 주민의 상태와 주변 환경에 따라 부담이 달라질 수 있다.",
+      "groups": [
+        { "title": "질병의 성격", "gapIds": ["GAP-019"] },
+        { "title": "노출과 증상", "gapIds": ["GAP-021", "GAP-022", "GAP-209"] },
+        { "title": "대응과 회복", "gapIds": ["GAP-020", "GAP-023"] }
+      ]
+    },
+    "economy-and-trade": {
+      "sectionTitle": "경제 활동의 판정 기준",
+      "lead": "던전 경제는 주민의 임금과 구매, 시설 운영비, 절도 위험을 함께 다룬다. 현금의 증감은 각 활동이 실제로 확정되는 시점에 반영된다.",
+      "groups": [
+        { "title": "임금과 자동 구매", "gapIds": ["GAP-128", "GAP-129"] },
+        { "title": "운영비", "gapIds": ["GAP-218"] },
+        { "title": "절도와 운영 위험", "gapIds": ["GAP-264"] }
+      ]
+    },
+    "events-and-choices": {
+      "sectionTitle": "사건과 선택의 판정 기준",
+      "lead": "사건은 발생 조건을 충족한 후보 가운데 선택되며, 선택 결과와 처리 기록은 다음 판정에도 쓰인다. 아래 규칙은 후보가 만들어지고 결과가 확정되는 과정을 설명한다.",
+      "groups": [
+        { "title": "사건 효과와 발생", "gapIds": ["GAP-093", "GAP-165"] },
+        { "title": "후보 선정과 기록", "gapIds": ["GAP-149"] }
+      ]
+    },
+    "expeditions": {
+      "sectionTitle": "원정 운영의 판정 기준",
+      "lead": "원정에서는 목적지에 도달하는 과정과 현장 자금, 귀환 뒤 회복과 정보 정리가 하나의 흐름을 이룬다. 준비 단계에서 이 비용과 보상을 함께 확인하는 편이 좋다.",
+      "groups": [
+        { "title": "이동", "gapIds": ["GAP-117"] },
+        { "title": "현장 자금", "gapIds": ["GAP-146"] },
+        { "title": "회복과 정보", "gapIds": ["GAP-168", "GAP-254"] }
+      ]
+    },
+    "factions-contracts-and-prisoners": {
+      "sectionTitle": "세력과 계약 운영의 판정 기준",
+      "lead": "세력 계약은 물자를 받는 거래이면서 동시에 관계와 위험을 관리하는 활동이다. 공급 경로, 화물 손실, 배신 가능성, 수용 공간이 서로 영향을 준다.",
+      "groups": [
+        { "title": "공급과 화물", "gapIds": ["GAP-130", "GAP-136", "GAP-255", "GAP-256"] },
+        { "title": "위기와 배신", "gapIds": ["GAP-135", "GAP-258"] },
+        { "title": "관객과 포로 수용", "gapIds": ["GAP-191", "GAP-193"] }
+      ]
+    },
+    "family-education-and-legacy": {
+      "sectionTitle": "가족과 계승의 판정 기준",
+      "lead": "가족의 형성과 다음 세대의 성장은 멘토링, 번식 계획, 임신과 부화, 자녀 성장으로 이어진다. 생애가 끝난 뒤의 장례도 공동체의 계승 과정에 포함된다.",
+      "groups": [
+        { "title": "멘토링", "gapIds": ["GAP-008", "GAP-009"] },
+        { "title": "번식 계획", "gapIds": ["GAP-010", "GAP-011", "GAP-012", "GAP-017"] },
+        { "title": "임신과 부화", "gapIds": ["GAP-013", "GAP-016"] },
+        { "title": "자녀", "gapIds": ["GAP-015"] },
+        { "title": "장례", "gapIds": ["GAP-213"] }
+      ]
+    },
+    "food-and-ecology": {
+      "sectionTitle": "식량과 생태의 판정 기준",
+      "lead": "식량은 재배하고 조리하는 것만으로 유지되지 않는다. 보관 상태, 물 공급, 야생동물, 주변 생태가 생산량과 안전성을 함께 좌우한다.",
+      "groups": [
+        { "title": "보관과 조리", "gapIds": ["GAP-086", "GAP-137", "GAP-138", "GAP-176", "GAP-204", "GAP-205"] },
+        { "title": "재배", "gapIds": ["GAP-113", "GAP-114", "GAP-115", "GAP-116", "GAP-131", "GAP-132"] },
+        { "title": "야생동물과 생태", "gapIds": ["GAP-126", "GAP-192", "GAP-250", "GAP-251", "GAP-252", "GAP-253"] },
+        { "title": "음료와 기호 물질", "gapIds": ["GAP-141"] },
+        { "title": "물 확보", "gapIds": ["GAP-208", "GAP-259"] }
+      ]
+    },
+    "guests-services-and-performance": {
+      "sectionTitle": "손님과 서비스의 판정 기준",
+      "lead": "손님은 방문 목적에 맞는 시설을 고르고, 실제 이용 결과에 따라 소비와 만족, 영입 가능성이 달라진다. 공연과 일반 서비스는 후보 선정 방식과 수용 조건이 서로 다르다.",
+      "groups": [
+        { "title": "영입과 방문 기록", "gapIds": ["GAP-038", "GAP-039", "GAP-040", "GAP-262"] },
+        { "title": "소매와 시설 이용", "gapIds": ["GAP-140", "GAP-147", "GAP-240"] },
+        { "title": "서비스 선택과 지원", "gapIds": ["GAP-172", "GAP-173", "GAP-219", "GAP-275"] },
+        { "title": "서커스 공연", "gapIds": ["GAP-194", "GAP-195", "GAP-196", "GAP-197", "GAP-198", "GAP-199", "GAP-200"] }
+      ]
+    },
+    "health-and-community": {
+      "sectionTitle": "공동체 위생의 판정 기준",
+      "lead": "공동체 위생은 오물이 생기는 위치와 양, 오염도, 청소 결과를 기준으로 관리된다. 같은 종류의 오물이 겹칠 때는 병합 규칙도 적용된다.",
+      "groups": [
+        { "title": "오물과 청결", "gapIds": ["GAP-260"] }
+      ]
+    },
+    "infrastructure": {
+      "sectionTitle": "시설 운영의 판정 기준",
+      "lead": "시설 운영은 개별 건물의 성장과 전력·급배수·운송의 연결 상태를 함께 본다. 진화 주문, 방 구성, 자동화, 구조, 환경 설비가 각자의 조건을 충족해야 전체 생산 흐름이 유지된다.",
+      "groups": [
+        { "title": "시설 진화", "gapIds": ["GAP-024", "GAP-025", "GAP-249"] },
+        { "title": "시설의 방 기여", "gapIds": ["GAP-189", "GAP-273"] },
+        { "title": "자동화", "gapIds": ["GAP-052", "GAP-053", "GAP-054", "GAP-055"] },
+        { "title": "구조와 건설", "gapIds": ["GAP-057", "GAP-058", "GAP-164", "GAP-266", "GAP-268", "GAP-271"] },
+        { "title": "전력망", "gapIds": ["GAP-061", "GAP-062", "GAP-063", "GAP-064", "GAP-065"] },
+        { "title": "급수와 배수", "gapIds": ["GAP-066", "GAP-067", "GAP-068", "GAP-069", "GAP-070", "GAP-071", "GAP-072", "GAP-074"] },
+        { "title": "컨베이어", "gapIds": ["GAP-076", "GAP-077", "GAP-078", "GAP-079", "GAP-080"] },
+        { "title": "환경 설비와 휴식", "gapIds": ["GAP-082", "GAP-187", "GAP-188"] },
+        { "title": "룬 버스", "gapIds": ["GAP-110"] }
+      ]
+    },
+    "invasions-and-defence": {
+      "sectionTitle": "침입과 방어의 판정 기준",
+      "lead": "침입 대응은 경보 단계에서 시작해 돌파 시도와 방어 시설의 작동으로 이어진다. 적의 접근 경로와 시설 상태를 함께 확인해야 방어선의 실제 성능을 알 수 있다.",
+      "groups": [
+        { "title": "경보", "gapIds": ["GAP-032", "GAP-169"] },
+        { "title": "돌파", "gapIds": ["GAP-059", "GAP-060"] },
+        { "title": "방어 시설", "gapIds": ["GAP-145", "GAP-207"] }
+      ]
+    },
+    "medical-care-and-surgery": {
+      "sectionTitle": "의료와 수술의 판정 기준",
+      "lead": "의료 처치는 환자의 신체 기능, 수술 절차, 지원 설비를 차례로 확인한다. 필요한 기관과 시설이 다르면 같은 치료명이라도 진행 조건과 성공 판정이 달라진다.",
+      "groups": [
+        { "title": "신체 기능", "gapIds": ["GAP-026", "GAP-027", "GAP-028", "GAP-029"] },
+        { "title": "수술 절차와 신체 구조", "gapIds": ["GAP-119", "GAP-120", "GAP-121", "GAP-122", "GAP-123", "GAP-159"] },
+        { "title": "수술 지원 설비", "gapIds": ["GAP-177", "GAP-178", "GAP-179", "GAP-180", "GAP-181", "GAP-182", "GAP-183", "GAP-184"] },
+        { "title": "수술대와 노화 치료", "gapIds": ["GAP-185", "GAP-261"] }
+      ]
+    },
+    "production": {
+      "sectionTitle": "생산과 재고의 판정 기준",
+      "lead": "생산은 재고의 위치와 운반 가능 여부를 확인하는 단계부터 재료 공급, 작업 진행, 품질 판정, 산출물 확정까지 이어진다. 물, 연료, 폐기물처럼 시설 밖에서 오가는 자원도 같은 흐름의 일부다.",
+      "groups": [
+        { "title": "운반", "gapIds": ["GAP-112"] },
+        { "title": "재고와 보관", "gapIds": ["GAP-139", "GAP-210", "GAP-265"] },
+        { "title": "황금 수확", "gapIds": ["GAP-160"] },
+        { "title": "생산 도감과 자원 처리", "gapIds": ["GAP-018", "GAP-073", "GAP-075", "GAP-215"] },
+        { "title": "의복 맞춤", "gapIds": ["GAP-104"] },
+        { "title": "작업 실행과 출력", "gapIds": ["GAP-161", "GAP-186", "GAP-211", "GAP-212"] },
+        { "title": "품질 판정", "gapIds": ["GAP-056", "GAP-105", "GAP-106"] },
+        { "title": "원단과 반복 생산", "gapIds": ["GAP-099", "GAP-107", "GAP-108"] },
+        { "title": "연료", "gapIds": ["GAP-175"] },
+        { "title": "대장 작업대와 작업자", "gapIds": ["GAP-190", "GAP-233"] }
+      ]
+    },
+    "research": {
+      "sectionTitle": "연구와 계승의 판정 기준",
+      "lead": "연구 해금에는 선행 지식과 함께 청사진, 재료, 시설, 작업량이 필요하다. 연구와 런에서 얻은 성과는 종료 정산과 계승 강화를 거쳐 다음 진행으로 이어진다.",
+      "groups": [
+        { "title": "연구 조건과 청사진", "gapIds": ["GAP-041", "GAP-043", "GAP-044", "GAP-045", "GAP-046"] },
+        { "title": "위험한 연구와 재료", "gapIds": ["GAP-047", "GAP-048"] },
+        { "title": "연구 작업량", "gapIds": ["GAP-049"] },
+        { "title": "대형 프로젝트", "gapIds": ["GAP-214", "GAP-216"] },
+        { "title": "계승 강화", "gapIds": ["GAP-050"] },
+        { "title": "런 종료 정산", "gapIds": ["GAP-051"] }
+      ]
+    },
+    "residents-and-work": {
+      "sectionTitle": "주민 생활과 작업의 판정 기준",
+      "lead": "주민 운영은 생활 욕구를 회복하는 일과 노동력을 배치하는 일이 맞물려 돌아간다. 생존 상태, 성장과 숙련, 시설 접근, 직접 명령, 행동 우선도를 함께 보아야 실제 작업 가능 여부를 판단할 수 있다.",
+      "groups": [
+        { "title": "생존과 회복", "gapIds": ["GAP-005", "GAP-034", "GAP-035", "GAP-142", "GAP-166"] },
+        { "title": "성장과 훈련", "gapIds": ["GAP-006", "GAP-167", "GAP-222", "GAP-223", "GAP-224", "GAP-225", "GAP-230"] },
+        { "title": "인력과 노동", "gapIds": ["GAP-030", "GAP-031", "GAP-033", "GAP-036", "GAP-037", "GAP-231", "GAP-232"] },
+        { "title": "환경과 시설 상태", "gapIds": ["GAP-085", "GAP-174", "GAP-203", "GAP-217", "GAP-239"] },
+        { "title": "작업 성능과 숙련", "gapIds": ["GAP-227", "GAP-228", "GAP-229", "GAP-243"] },
+        { "title": "직접 명령과 재배정", "gapIds": ["GAP-235", "GAP-238", "GAP-241"] },
+        { "title": "행동 우선도", "gapIds": ["GAP-244", "GAP-245"] }
+      ]
+    },
+    "spaces": {
+      "sectionTitle": "방과 공간의 판정 기준",
+      "lead": "방은 벽으로 둘러싸인 모양만으로 완성되지 않는다. 환경값과 수용량, 출입 권한, 층간 이동, 시작 공간의 조건이 실제 사용 가능성을 결정한다.",
+      "groups": [
+        { "title": "방 환경과 수용", "gapIds": ["GAP-152", "GAP-153", "GAP-156", "GAP-220"] },
+        { "title": "출입 권한", "gapIds": ["GAP-154"] },
+        { "title": "건설과 계단", "gapIds": ["GAP-267", "GAP-269", "GAP-270"] },
+        { "title": "시작 공간과 연못", "gapIds": ["GAP-272", "GAP-274"] }
+      ]
+    },
+    "species-culture-and-life": {
+      "sectionTitle": "종족과 문화의 판정 기준",
+      "lead": "종족마다 견디기 쉬운 환경과 생활 방식이 다르며, 의복과 축제, 방 선호가 그 차이를 보완하거나 강화한다. 문화적 선호와 생존 조건은 별도로 판정된다.",
+      "groups": [
+        { "title": "기후와 종족 상태", "gapIds": ["GAP-094", "GAP-096", "GAP-157", "GAP-171"] },
+        { "title": "의복", "gapIds": ["GAP-098", "GAP-100", "GAP-101", "GAP-102", "GAP-103"] },
+        { "title": "축제", "gapIds": ["GAP-150", "GAP-151"] },
+        { "title": "문화와 방 선호", "gapIds": ["GAP-155"] }
+      ]
+    },
+    "getting-started": {
+      "sectionTitle": "첫 정착과 시작 파티의 판정 기준",
+      "lead": "시작 파티는 후보의 기술 구성을 살핀 뒤 선택하며, 난이도에 따라 초반 부담과 회복 여지가 달라진다. 역할이 겹치지 않도록 후보의 강점과 약점을 함께 비교할 수 있다.",
+      "groups": [
+        { "title": "후보와 기술", "gapIds": ["GAP-001", "GAP-002", "GAP-003"] },
+        { "title": "난이도", "gapIds": ["GAP-004"] }
+      ]
+    },
+    "weather-seasons-and-environment": {
+      "sectionTitle": "날씨와 환경의 판정 기준",
+      "lead": "날씨와 계절은 지도 환경을 바꾸고 주민과 시설의 노출 상태에 영향을 준다. 관측 정보는 현재 상태를 보여 주며, 보호 장비와 계절 사건은 별도의 조건으로 처리된다.",
+      "groups": [
+        { "title": "환경 전파와 보호", "gapIds": ["GAP-081", "GAP-083", "GAP-084", "GAP-095", "GAP-097"] },
+        { "title": "계절과 날씨 관측", "gapIds": ["GAP-087", "GAP-088", "GAP-090"] },
+        { "title": "계절 사건", "gapIds": ["GAP-091", "GAP-092"] }
+      ]
+    }
+  }
+}

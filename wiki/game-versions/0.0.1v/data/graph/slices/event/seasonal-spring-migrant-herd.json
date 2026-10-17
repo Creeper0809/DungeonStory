@@ -5,6 +5,18 @@
     "spoiler_tier": "warning",
     "title": "이동 초식군"
   },
-  "edges": [],
+  "edges": [
+    {
+      "amount": null,
+      "from": "event/seasonal-spring-migrant-herd",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "deep-goat",
+      "target_spoiler_tier": "none",
+      "target_title": "심층염소",
+      "to": "nature/deep-goat",
+      "type": "references"
+    }
+  ],
   "schema_version": 1
 }

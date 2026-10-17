@@ -15,7 +15,35 @@
     },
     {
       "amount": "1",
+      "from": "recipe/recipe-surgery-precision-hand",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
       "from": "recipe/recipe-surgery-prosthetic-arm",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-pseudopods",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-reinforced-torso",
+      "label": "필요 조건",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-wing",
       "label": "필요 조건",
       "to": "item/material-cloth",
       "type": "requires"

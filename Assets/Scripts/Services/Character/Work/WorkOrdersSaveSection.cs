@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 
 public sealed class WorkOrdersSaveSection :
     DungeonStrictJsonSaveSection<
@@ -40,6 +41,72 @@ public sealed class WorkOrdersSaveSection :
     protected override DungeonWorkOrderSaveData CapturePayload()
     {
         return runtime.Capture();
+    }
+
+    protected override void ValidateRawPayload(string payloadJson) => ValidateAccidentFields(payloadJson);
+
+    internal static void ValidateAccidentFields(string json)
+    {
+        var root = JObject.Parse(json);
+        if (root["version"]?.Type != JTokenType.Integer
+            || root.Value<int>("version") != DungeonWorkOrderSaveData.CurrentVersion
+            || root["pendingAccidents"] is not JArray rows)
+            throw new InvalidOperationException("work-accident-current-save-fields-missing");
+        foreach (var token in rows)
+        {
+            if (token is not JObject row || row["fact"] is not JObject fact)
+                throw new InvalidOperationException("work-accident-saved-fact-missing");
+            Require(row, JTokenType.String, "publicationKey rollbackFailure");
+            Require(row, JTokenType.Boolean, "observationCompleted identityNotificationAttempted rollbackBlocked");
+            Require(fact, JTokenType.String,
+                "operationId workerId workerDisplayName facilityId facilityDisplayName workTypeId anatomyNodeId observedCause fireTargetDisplayName");
+            Require(fact, JTokenType.Float, "appliedDamage accidentMultiplier fireIntensity");
+            Require(fact, JTokenType.Integer, "absoluteDay x y commandOrigin");
+            Require(fact, JTokenType.Boolean, "fireEligible");
+        }
+        if (root["repairOutcomes"] is not JArray repairs)
+            throw new InvalidOperationException("repair-work-current-save-fields-missing");
+        foreach (var token in repairs)
+        {
+            if (token is not JObject repair)
+                throw new InvalidOperationException("repair-work-saved-owner-missing");
+            Require(repair, JTokenType.String, "publicationKey completionPublicationKey");
+            Require(repair, JTokenType.Boolean, "publicationConfirmed");
+        }
+        if (root["orders"] is not JArray orders)
+            throw new InvalidOperationException("construction-current-save-orders-missing");
+        foreach (var token in orders)
+        {
+            if (token is not JObject order || order["terminalFact"] is not JObject fact)
+                throw new InvalidOperationException("construction-saved-fact-missing");
+            Require(order, JTokenType.String, "terminalPublicationKey");
+            Require(order, JTokenType.Boolean, "terminalFactCaptured");
+            Require(fact, JTokenType.String,
+                "workOrderId placementOperationId constructionSitePersistentId buildingDefinitionId buildingDisplayName finalFacilityId finalFacilityDefinitionId replacedFacilityId replacedFacilityDefinitionId materialInputOperationId restitutionOperationId");
+            Require(fact, JTokenType.Integer, "terminalKind targetBuildingId absoluteDay gridX gridY qualityTier");
+            Require(fact, JTokenType.Float, "requiredWork completedWork");
+            Require(fact, JTokenType.Array, "supportBuildingIds contributions itemMaterials");
+            foreach (var entry in (JArray)fact["contributions"])
+            {
+                if (entry is not JObject contribution)
+                    throw new InvalidOperationException("construction-saved-contribution-invalid");
+                Require(contribution, JTokenType.String, "characterId");
+                Require(contribution, JTokenType.Float, "contributedWork relevantSkill");
+            }
+            foreach (var entry in (JArray)fact["itemMaterials"])
+            {
+                if (entry is not JObject material)
+                    throw new InvalidOperationException("construction-saved-material-invalid");
+                Require(material, JTokenType.String, "itemId");
+                Require(material, JTokenType.Integer, "required delivered");
+            }
+        }
+        static void Require(JObject row, JTokenType type, string names)
+        {
+            foreach (string name in names.Split(' '))
+                if (row[name]?.Type != type && !(type == JTokenType.Float && row[name]?.Type == JTokenType.Integer))
+                    throw new InvalidOperationException("work-accident-save-field-missing:" + name);
+        }
     }
 
     protected override void NormalizeRestorePayload(

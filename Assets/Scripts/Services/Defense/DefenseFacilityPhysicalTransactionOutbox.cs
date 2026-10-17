@@ -214,6 +214,7 @@ public static class DefenseFacilityPhysicalTransactionOutbox
             pending.inputQuantity = inputQuantity;
             pending.inputMassGrams = receipt.InputMassGrams;
             pending.commitId = receipt.CommitId;
+            pending.outcomeOwnerRevision = receipt.OwnerRevision;
             pending.requestFingerprint = fingerprint;
             pending.supplyBefore = supplyBefore;
             pending.supplyUnitsGranted = supplyUnitsGranted;
@@ -331,6 +332,7 @@ public static class DefenseFacilityPhysicalTransactionOutbox
         pending.inputQuantity = 0;
         pending.inputMassGrams = 0L;
         pending.commitId = string.Empty;
+        pending.outcomeOwnerRevision = 0L;
         pending.requestFingerprint = string.Empty;
         pending.supplyBefore = 0;
         pending.supplyAfter = 0;
@@ -414,6 +416,8 @@ public static class DefenseFacilityPhysicalTransactionOutbox
             && string.Equals(receipt.ReasonCode, pending.reasonCode, StringComparison.Ordinal)
             && string.Equals(receipt.CommitId, pending.commitId, StringComparison.Ordinal)
             && receipt.Quantity == pending.inputQuantity
+            && (pending.outcomeOwnerRevision == 0L
+                || receipt.OwnerRevision == pending.outcomeOwnerRevision)
             && receipt.InputMassGrams == pending.inputMassGrams
             && receipt.SourceStackIds.SequenceEqual(sourceIds, StringComparer.Ordinal)
             && string.Equals(
@@ -438,6 +442,7 @@ public static class DefenseFacilityPhysicalTransactionOutbox
         && pending.inputQuantity == 0
         && pending.inputMassGrams == 0L
         && string.IsNullOrEmpty(pending.commitId)
+        && pending.outcomeOwnerRevision == 0L
         && string.IsNullOrEmpty(pending.requestFingerprint)
         && pending.supplyBefore == 0
         && pending.supplyAfter == 0

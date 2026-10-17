@@ -27,7 +27,10 @@ public static class SurvivalFacilityUtility
             supportedTypes |= FacilityWorkType.Treat;
         }
 
-        if (building.GetAbility<BuildingFuelConsumerAbility>() != null)
+        if (building.GetAbility<BuildingFuelConsumerAbility>() != null
+            && (building.GetAbility<BuildingLightingAbility>() != null
+                || building.GetAbility<BuildingTemperatureAbility>() != null
+                || building.GetAbility<BuildingThermalEmitterAbility>() != null))
         {
             supportedTypes |= FacilityWorkType.Refuel;
         }

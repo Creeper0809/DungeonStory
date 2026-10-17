@@ -266,11 +266,16 @@ internal static class EquipmentMaintenanceSaveValidation
                 report.AddError($"Equipment-maintenance order '{orderId}' references missing equipment.");
                 continue;
             }
-            if (!TryResolveRepairMaterial(
+            BuildingEquipmentMaintenanceAbility maintenance =
+                facilities[order.facilityBuildingId].BuildingData
+                    .GetAbility<BuildingEquipmentMaintenanceAbility>();
+            string expectedMaterial = maintenance?.RepairSupplyItemId;
+            if (string.IsNullOrWhiteSpace(expectedMaterial)
+                && !TryResolveRepairMaterial(
                     instance,
                     services.EquipmentCatalog,
                     services.ResourceCatalog,
-                    out string expectedMaterial)
+                    out expectedMaterial)
                 || !string.Equals(
                     order.materialItemId,
                     expectedMaterial,

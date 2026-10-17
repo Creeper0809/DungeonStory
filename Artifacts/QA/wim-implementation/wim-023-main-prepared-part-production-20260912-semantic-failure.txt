@@ -1,0 +1,13 @@
+result=FAIL
+run=second main producer attempt, after correction of pre-bill fixture wait
+preparation=crafter:character:staff:1:01; M06:building:5f26436f03244c55aa4e2646b844ccda@(13, 0)
+preProductionProfile=False
+ExecuteWork did not complete the cycle. Original failure display used DomainFailure.ToString and lost the useful fields; root corrected the test's display afterward.
+Same paused world readback: recipe:surgery:prosthetic-arm; InProgress; batchStage=None; completedWork=32/32; MaterialsConsumed=True.
+One explicit zero-WU continuation of that SAME bill, without new materials/restart, returned:
+succeeded=False; complete=False; outcome=None; failure=ProductionOutputUnavailable
+parameters=Production recipe 'recipe:surgery:balance-tail' has an invalid proficiency profile.|maximum-mass-proof-invalid
+Diagnosis: actual authored recipe semantic contract blocks the M06 maximum-mass portfolio, including an otherwise existing arm recipe. No output or complete-production PASS.
+Assigned existing builder owner the bounded proficiency-authoring/semantic-validator correction for its new recipes. Do not weaken semantic validation or change BOM/WU/effects.
+One intermediate diagnostic eval failed to compile due to an incorrect VContainer extension class name and duplicate Newtonsoft identity; corrected to IObjectResolver.Resolve(Type) and explicit scalar failure fields before any diagnostic execution. This was an eval error, not production compilation failure.
+Main stopped and ready 2026-09-12T11:44:11Z; no scene save or persistence enabled.

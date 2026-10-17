@@ -1,0 +1,418 @@
+# WIM-048 protected emergency-lease / topology RunCommand
+
+status=READY_NOT_EXECUTED
+prerequisite=Same protected Play only, after Sol's bounded observer has paused at its first actual Holding observation. The already-PASS C4755EF9 full-save/release segment is not rerun.
+scope=One existing Holding subject and one currently designated resident-evacuation room only. This is a controlled lease/topology regression, not medical-producer evidence.
+
+## Public-only command input
+
+```csharp
+using System;
+using System.Collections;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+
+internal sealed class CommandScript : IRunCommand
+{
+    static Type T(string name)
+    {
+        Type type = Type.GetType(name + ", Assembly-CSharp");
+        return type ?? throw new InvalidOperationException(
+            "Missing public runtime type: " + name);
+    }
+
+    static object P(object value, string name)
+    {
+        var property = value?.GetType().GetProperty(name);
+        if (property == null || property.GetMethod == null || !property.GetMethod.IsPublic)
+        {
+            throw new InvalidOperationException("Missing public property: " + name);
+        }
+        return property.GetValue(value);
+    }
+
+    static MonoBehaviour FindRuntimeScopeHost()
+    {
+        Type scopeType = T("DungeonRuntimeLifetimeScope");
+        return Resources.FindObjectsOfTypeAll(scopeType)
+            .Cast<UnityEngine.Object>()
+            .OfType<MonoBehaviour>()
+            .Single(value => value.gameObject.scene.isLoaded);
+    }
+
+    static object Resolve(string typeName)
+    {
+        MonoBehaviour scope = FindRuntimeScopeHost();
+        object container = P(scope, "Container");
+        var resolve = container.GetType().GetMethod(
+            "Resolve", new[] { typeof(Type), typeof(object) });
+        if (resolve == null || !resolve.IsPublic)
+        {
+            throw new InvalidOperationException(
+                "Public Resolve(Type, object) is unavailable.");
+        }
+        return resolve.Invoke(container, new object[] { T(typeName), null });
+    }
+
+    static object FindActiveActor(string stableId)
+    {
+        object[] matches = Resources.FindObjectsOfTypeAll(T("CharacterActor"))
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Where(value => value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy)
+            .Where(value =>
+            {
+                object identity = P(value, "Identity");
+                return identity != null && string.Equals(
+                    Convert.ToString(P(identity, "PersistentId")),
+                    stableId,
+                    StringComparison.Ordinal);
+            })
+            .Cast<object>()
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Expected exactly one active observed actor; count=" + matches.Length);
+        }
+        return matches[0];
+    }
+
+    static bool IsLeaseParameter(Type parameterType) =>
+        (parameterType.IsByRef ? parameterType.GetElementType() : parameterType)
+        == T("CharacterActionIntentLease");
+
+    static bool TryBeginEmergency(object brain, out object lease)
+    {
+        var begin = brain.GetType().GetMethods().Single(value =>
+        {
+            var parameters = value.GetParameters();
+            return value.Name == "TryBeginExternallyDrivenAction"
+                && value.IsPublic
+                && parameters.Length == 6
+                && parameters[0].ParameterType == typeof(string)
+                && parameters[1].ParameterType == T("CharacterActionIntentKind")
+                && IsLeaseParameter(parameters[5].ParameterType);
+        });
+        object[] arguments =
+        {
+            "qa:wim048:emergency-preemption",
+            Enum.Parse(T("CharacterActionIntentKind"), "EmergencyPhysicalImminent"),
+            "WIM-048 emergency preemption",
+            "Emergency",
+            "resident evacuation stale-epoch protection",
+            null
+        };
+        bool accepted = (bool)begin.Invoke(brain, arguments);
+        lease = arguments[5];
+        return accepted;
+    }
+
+    static bool IsCurrentLease(object brain, object lease)
+    {
+        var current = brain.GetType().GetMethods().Single(value =>
+        {
+            var parameters = value.GetParameters();
+            return value.Name == "IsExternalIntentCurrent"
+                && value.IsPublic
+                && parameters.Length == 1
+                && IsLeaseParameter(parameters[0].ParameterType);
+        });
+        return (bool)current.Invoke(brain, new[] { lease });
+    }
+
+    static bool EndLease(object brain, object lease)
+    {
+        var end = brain.GetType().GetMethods().Single(value =>
+        {
+            var parameters = value.GetParameters();
+            return value.Name == "EndExternallyDrivenAction"
+                && value.IsPublic
+                && parameters.Length == 2
+                && IsLeaseParameter(parameters[0].ParameterType)
+                && parameters[1].ParameterType == typeof(bool);
+        });
+        return (bool)end.Invoke(brain, new object[] { lease, true });
+    }
+
+    public void Execute(ExecutionResult result)
+    {
+        if (!EditorApplication.isPlaying || !Application.isPlaying
+            || !Mathf.Approximately(Time.timeScale, 0f))
+        {
+            throw new InvalidOperationException(
+                "WIM048 lease/topology continuation requires the same paused protected Play.");
+        }
+
+        MonoBehaviour scopeHost = FindRuntimeScopeHost();
+        IInvasionOwnerEvacuationService evacuation =
+            (IInvasionOwnerEvacuationService)Resolve(
+                "IInvasionOwnerEvacuationService");
+        IDungeonGameSaveService saves = (IDungeonGameSaveService)Resolve(
+            "IDungeonGameSaveService");
+        IBuildingFeatureQueryService buildings =
+            (IBuildingFeatureQueryService)Resolve(
+                "IBuildingFeatureQueryService");
+
+        ResidentEvacuationParticipantView[] holding = evacuation
+            .ResidentEvacuationParticipants
+            .Where(value => value.Status
+                == ResidentEvacuationParticipantStatus.Holding
+                && value.HasTarget
+                && !string.IsNullOrWhiteSpace(value.CharacterId))
+            .ToArray();
+        if (evacuation.ResidentZoneStatus
+                != ResidentEvacuationZoneStatus.Active
+            || holding.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Expected exactly one targeted Holding participant in an active zone.");
+        }
+
+        string subjectId = holding[0].CharacterId;
+        object subject = FindActiveActor(subjectId);
+        object brain = P(subject, "Brain");
+        if (brain == null)
+        {
+            throw new InvalidOperationException(
+                "The observed Holding subject has no single active public AIBrain.");
+        }
+
+        BuildingFeatureRoomRow[] designated = buildings.Capture().Rooms
+            .Where(value => value != null && value.IsResidentEvacuationRoom)
+            .ToArray();
+        if (designated.Length != 1 || designated[0].Room == null)
+        {
+            throw new InvalidOperationException(
+                "Expected exactly one current designated evacuation room.");
+        }
+        BuildableObject[] boundaryDoors = designated[0].Room.Doors
+            .Where(value => value != null && !value.isDestroy)
+            .ToArray();
+        if (boundaryDoors.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "The designated evacuation room has no live boundary door.");
+        }
+
+        // This is an iterator on the existing lifetime scope, not a new fixture.
+        // Its only saved baseline is the game-save service's in-memory Capture.
+        DungeonGameSaveData holdingBaseline = saves.Capture();
+        scopeHost.StartCoroutine(Run(
+            saves,
+            evacuation,
+            brain,
+            subjectId,
+            boundaryDoors,
+            holdingBaseline));
+        result.Log(
+            "WIM048 lease-topology continuation installed;subject={0};doors={1};paused={2}",
+            subjectId, boundaryDoors.Length,
+            Mathf.Approximately(Time.timeScale, 0f));
+    }
+
+    private const float TimeoutSeconds = 15f;
+
+    private static IEnumerator Run(
+            IDungeonGameSaveService saveService,
+            IInvasionOwnerEvacuationService evacuationService,
+            object brain,
+            string actorId,
+            BuildableObject[] designatedBoundaryDoors,
+            DungeonGameSaveData holdingBaseline)
+        {
+            bool scenarioPassed = false;
+            string outcome = "FAILED before completed public sequence";
+            try
+            {
+                RequirePaused("initial Holding");
+                RequireStatus(evacuationService, actorId,
+                    ResidentEvacuationParticipantStatus.Holding);
+                if (!CommandScript.TryBeginEmergency(brain, out object lease))
+                {
+                    throw new InvalidOperationException("Public emergency lease was rejected.");
+                }
+
+                Time.timeScale = 1f;
+                yield return WaitForStatus(
+                    evacuationService,
+                    actorId,
+                    ResidentEvacuationParticipantStatus.PreemptedEmergency);
+                Time.timeScale = 0f;
+                RequirePaused("PreemptedEmergency");
+                RequireStatus(evacuationService, actorId,
+                    ResidentEvacuationParticipantStatus.PreemptedEmergency);
+                if (!CommandScript.IsCurrentLease(brain, lease))
+                {
+                    throw new InvalidOperationException("Emergency lease is no longer current.");
+                }
+
+                if (!CommandScript.EndLease(brain, lease))
+                {
+                    throw new InvalidOperationException("Public emergency lease end was rejected.");
+                }
+                Time.timeScale = 1f;
+                yield return WaitForStatus(
+                    evacuationService,
+                    actorId,
+                    ResidentEvacuationParticipantStatus.Holding);
+                Time.timeScale = 0f;
+                RequirePaused("reacquired Holding");
+                RequireStatus(evacuationService, actorId,
+                    ResidentEvacuationParticipantStatus.Holding);
+
+                // Only the exact pre-captured designated-room boundary set is changed.
+                foreach (BuildableObject door in designatedBoundaryDoors)
+                {
+                    if (door == null || door.isDestroy)
+                    {
+                        throw new InvalidOperationException(
+                            "A captured designated-room boundary door became unavailable.");
+                    }
+                    door.DestroySelf();
+                }
+                Time.timeScale = 1f;
+                yield return WaitForZone(evacuationService,
+                    ResidentEvacuationZoneStatus.LostByTopology);
+                Time.timeScale = 0f;
+                RequirePaused("LostByTopology");
+                RequireZone(evacuationService,
+                    ResidentEvacuationZoneStatus.LostByTopology);
+
+                DungeonGameSaveData lostSave = saveService.Capture();
+                if (!saveService.TryRestore(lostSave,
+                        out DungeonGameRestoreReport lostRestore)
+                    || !lostRestore.Success)
+                {
+                    throw new InvalidOperationException(
+                        "Current LostByTopology save/restore failed: "
+                        + string.Join(" | ", lostRestore?.Errors ?? Array.Empty<string>()));
+                }
+                Time.timeScale = 0f;
+                RequirePaused("LostByTopology current restore");
+                IInvasionOwnerEvacuationService restoredEvacuation =
+                    (IInvasionOwnerEvacuationService)CommandScript.Resolve(
+                        "IInvasionOwnerEvacuationService");
+                if (restoredEvacuation.ResidentZoneStatus
+                        != ResidentEvacuationZoneStatus.LostByTopology
+                    || restoredEvacuation.ResidentEvacuationParticipants.Count != 0)
+                {
+                    throw new InvalidOperationException(
+                        "Public LostByTopology state did not survive its current save/restore.");
+                }
+                scenarioPassed = true;
+                outcome = "completed public sequence";
+            }
+            finally
+            {
+                Time.timeScale = 0f;
+                bool cleanupPassed = false;
+                try
+                {
+                    cleanupPassed = holdingBaseline != null
+                        && saveService.TryRestore(holdingBaseline,
+                            out DungeonGameRestoreReport cleanup)
+                        && cleanup.Success;
+                    Time.timeScale = 0f;
+                    RequirePaused("in-memory Holding cleanup");
+                    if (!cleanupPassed)
+                    {
+                        Debug.LogError("WIM048 lease/topology in-memory cleanup failed.");
+                    }
+                }
+                catch (Exception cleanupException)
+                {
+                    Time.timeScale = 0f;
+                    cleanupPassed = false;
+                    Debug.LogError("WIM048 lease/topology cleanup exception: "
+                        + cleanupException);
+                }
+                if (scenarioPassed && cleanupPassed)
+                {
+                    Debug.Log("WIM048 lease/topology continuation PASS"
+                        + ";subject=" + actorId + ";paused="
+                        + Mathf.Approximately(Time.timeScale, 0f));
+                }
+                else
+                {
+                    Debug.LogError("WIM048 lease/topology continuation FAILED: "
+                        + outcome + ";cleanup=" + cleanupPassed
+                        + ";subject=" + actorId + ";paused="
+                        + Mathf.Approximately(Time.timeScale, 0f));
+                }
+            }
+        }
+
+        private static IEnumerator WaitForStatus(
+            IInvasionOwnerEvacuationService evacuation,
+            string actorId,
+            ResidentEvacuationParticipantStatus expected)
+        {
+            float deadline = Time.realtimeSinceStartup + TimeoutSeconds;
+            while (!HasStatus(evacuation, actorId, expected)
+                   && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null; // actual simulation ticks while timeScale is 1
+            }
+        }
+
+        private static IEnumerator WaitForZone(
+            IInvasionOwnerEvacuationService evacuation,
+            ResidentEvacuationZoneStatus expected)
+        {
+            float deadline = Time.realtimeSinceStartup + TimeoutSeconds;
+            while (evacuation.ResidentZoneStatus != expected
+                   && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null; // actual structural validation runs at timeScale 1
+            }
+        }
+
+        private static bool HasStatus(
+            IInvasionOwnerEvacuationService evacuation,
+            string actorId,
+            ResidentEvacuationParticipantStatus expected) => evacuation
+            .ResidentEvacuationParticipants.Any(value => string.Equals(
+                value.CharacterId, actorId, StringComparison.Ordinal)
+                && value.Status == expected);
+
+        private static void RequirePaused(string step)
+        {
+            if (!Mathf.Approximately(Time.timeScale, 0f))
+            {
+                throw new InvalidOperationException("Expected paused step: " + step);
+            }
+        }
+
+        private static void RequireStatus(
+            IInvasionOwnerEvacuationService evacuation,
+            string actorId,
+            ResidentEvacuationParticipantStatus expected)
+        {
+            if (!HasStatus(evacuation, actorId, expected))
+            {
+                throw new InvalidOperationException("Missing expected public status: " + expected);
+            }
+        }
+
+        private static void RequireZone(
+            IInvasionOwnerEvacuationService evacuation,
+            ResidentEvacuationZoneStatus expected)
+        {
+            if (evacuation.ResidentZoneStatus != expected)
+            {
+                throw new InvalidOperationException("Missing expected public zone: " + expected);
+            }
+        }
+}
+```
+
+## Authority / stop contract
+
+- Verified public signatures: `AIBrain.TryBeginExternallyDrivenAction(..., out CharacterActionIntentLease)`, `AIBrain.EndExternallyDrivenAction(in CharacterActionIntentLease, bool)`, `AIBrain.IsExternalIntentCurrent(in CharacterActionIntentLease)`, `IDungeonGameSaveService.Capture()`, and `TryRestore(DungeonGameSaveData, out DungeonGameRestoreReport)`.
+- The sequence follows `DefenseEngagementPlayModeVerifier.cs:1196-1250` for preempt/reacquire and `:1376-1429` for designated-room `DestroySelf` -> `LostByTopology` -> current `Capture`/`TryRestore`; it deliberately does not invoke any verifier-private payload reader or cleanup helper.
+- No clock service, DTO/payload inspection, slots, autosave, scene Save/Discard, UI save, source/asset edit, room designation, actor creation, or mutation outside the captured designated-room `Room.Doors` array is permitted. Public reflection is limited to the observed actor identity/brain and the three named public AIBrain lease methods; no private member is read or invoked. Stop on any precondition, timeout, lease, save, or cleanup failure; do not retry.
+
+execution=NOT_RUN_PENDING_SINGLE_OPERATOR

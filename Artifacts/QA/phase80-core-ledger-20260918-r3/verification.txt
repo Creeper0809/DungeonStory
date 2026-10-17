@@ -1,0 +1,38 @@
+Phase80 gameplay outcome core independent verification
+UTC date: 2026-09-17
+Local date: 2026-09-18 Asia/Seoul
+Unity editor/batch/MCP/dungeon-player: NOT RUN
+
+Compiler:
+C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Data\NetCoreRuntime\dotnet.exe exec C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Data\DotNetSdkRoslyn\csc.dll /nostdlib /noconfig /shared @Library/ProductionCutCompile/GameplayOutcomeCore.rsp
+Exit code: 0
+Output: <empty>
+GameplayOutcomeCore.dll SHA-256: 52d03a6dfa64bacc81070117b0429bbffd1f790c400f5a2ca6c7d73b726baa2f
+
+Pure managed scenario runner:
+C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Data\MonoBleedingEdge\bin\mono.exe Library/ProductionCutCompile/GameplayOutcomeCoreRunner.exe
+Exit code: 0
+Output:
+PASS GameplayOutcomeLedgerDebugScenarios
+PASS KoreanJosaFormatterDebugScenarios
+GameplayOutcomeCoreRunner.exe SHA-256: e19fa75e05d085e4f32f39abe80c1a06f98bfc96a9e83d2f9af9f84312bb0c99
+
+Production assembly independent Roslyn compile:
+C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Data\NetCoreRuntime\dotnet.exe exec C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Data\DotNetSdkRoslyn\csc.dll /nostdlib /noconfig /shared @Library/ProductionCutCompile/DungeonStory.Production.rsp
+Exit code: 0
+Output: <empty>
+DungeonStory.Production.dll SHA-256: b2b0517550b2ca2b87a49632d1946b874e4d0211aa35fde01ba8e8b716ea2de3
+
+Regression coverage notes:
+- Known-result-key saturation is exercised with free hot and retained capacity. It must return CapacityDeferred with detail known-result-key-capacity-deferred before page mutation, and diagnostics must expose current/max/high-water.
+- Retained-history promotion failure is exercised at the bounded pool/result-contract seam. RetentionPromotionDeferred is explicitly non-success. Normal end-to-end publication/acknowledgement and 200 retained Core rows are covered separately.
+- Transactional influence use covers cancel, rollback, save guard, 0->1->2, anchor independence, save/restore, stale revision and atomic two-token completion failure.
+- Korean Josa covers digits 0-9, larger numeric suffixes, English initialisms, quotes/markup, explicit spoken hints and unknown neutral handling.
+
+Limitations of this evidence:
+- This is an independent Roslyn/Mono pure-logic gate, not a Unity Player allocation or play-mode result.
+- EvidenceFormulaProjectionCompileStub.cs is a Library-only compile seam used solely to type-check the evidence transaction without pulling unrelated dirty default-assembly sources. It is not a product asset and is not included in Unity.
+- RetentionPromotionDeferred is an invariant-fault path; the scenario validates the bounded pool failure plus public non-success contract rather than corrupting private ledger state.
+
+Compiled source manifest SHA-256: ed030c415373bbbc615f7d1eb28e7b9ec33c695775953cd6b2347faf952d52ca
+

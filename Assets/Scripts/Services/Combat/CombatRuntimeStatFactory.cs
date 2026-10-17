@@ -48,6 +48,12 @@ public static class CombatRuntimeStatFactory
         float evasion = performance.Evaluate(actor, "performance:combat:evasion").Value;
         float movement = performance.Evaluate(actor, "performance:combat:movement").Value;
         float defense = performance.Evaluate(actor, "performance:combat:defense-reaction").Value;
+        float evasionChanceBonus = performance is ICharacterGameplayEffectValueQuery effects
+            ? effects.ProjectGameplayEffectValue(
+                actor,
+                GameplayEffectTargetIds.EvasionChance,
+                0f).Value
+            : 0f;
         return new CombatStatSnapshot(
             5f * meleeHit,
             5f * rangedHit,
@@ -56,7 +62,8 @@ public static class CombatRuntimeStatFactory
             5f * meleePower,
             5f * defense,
             5f * Mathf.Max(meleeHit, rangedHit),
-            healthEfficiency);
+            healthEfficiency,
+            evasionChanceBonus: evasionChanceBonus);
     }
 
     public static CombatStatSnapshot Create(WildlifeActor actor)

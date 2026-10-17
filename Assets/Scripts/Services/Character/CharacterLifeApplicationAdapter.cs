@@ -1,18 +1,24 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer.Unity;
 
 public readonly struct CharacterAgeConditionChangedEvent
 {
-    public CharacterAgeConditionChangedEvent(AgeConditionChange change)
+    public CharacterAgeConditionChangedEvent(
+        AgeConditionChange change,
+        bool bodyProjectionScheduled = false)
     {
         Change = change;
+        BodyProjectionScheduled = bodyProjectionScheduled;
     }
 
     public AgeConditionChange Change { get; }
+    public bool BodyProjectionScheduled { get; }
 }
 
 public readonly struct CharacterLifeStageChangedEvent
@@ -32,67 +38,130 @@ public readonly struct CharacterLifeStageChangedEvent
     public CharacterLifeStage Current { get; }
 }
 
-public sealed class CharacterLifeApplicationAdapter : IStartable, IDisposable
+public sealed class CharacterLifeApplicationAdapter : IStartable, IDisposable, IDungeonSaveRestoreCompletedHook
 {
     private readonly CharacterLifeRuntime life;
     private readonly IGameEventBus events;
     private readonly IHeritableTraitEffectQuery heritableTraits;
+    private readonly IDomainFactPublisher facts;
+    private readonly IDomainFactRecoveryPublisher recovery;
+    private readonly IAgeConditionAnatomyProjectionCommand anatomyProjection;
     private IDisposable dayEndedSubscription;
+    private bool advancing;
 
-    public CharacterLifeApplicationAdapter(
-        CharacterLifeRuntime life,
-        IGameEventBus events,
-        IHeritableTraitEffectQuery heritableTraits)
+    public CharacterLifeApplicationAdapter(CharacterLifeRuntime life, IGameEventBus events,
+        IHeritableTraitEffectQuery heritableTraits, IDomainFactPublisher facts,
+        IDomainFactRecoveryPublisher recovery,
+        IAgeConditionAnatomyProjectionCommand anatomyProjection = null)
     {
         this.life = life ?? throw new ArgumentNullException(nameof(life));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
-        this.heritableTraits = heritableTraits
-            ?? throw new ArgumentNullException(nameof(heritableTraits));
+        this.heritableTraits = heritableTraits ?? throw new ArgumentNullException(nameof(heritableTraits));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
+        this.anatomyProjection = anatomyProjection;
     }
-
     public void Start()
     {
-        dayEndedSubscription = events.Subscribe<OperatingDayEndedEvent>(OnDayEnded);
+        dayEndedSubscription ??= events.Subscribe<OperatingDayEndedEvent>(OnDayEnded);
+        RecoverSafe();
     }
-
-    public void Dispose()
+    public void Dispose() { dayEndedSubscription?.Dispose(); dayEndedSubscription = null; }
+    public void OnRestoreCompleted() => RecoverSafe();
+    private void RecoverSafe()
     {
-        dayEndedSubscription?.Dispose();
-        dayEndedSubscription = null;
+        try { ResumePending(); }
+        catch (Exception exception) { Debug.LogException(exception); }
     }
-
-    private void OnDayEnded(OperatingDayEndedEvent _)
+    private void ResumePending()
     {
-        Dictionary<CharacterId, CharacterLifeStage> previousStages = life.Records
-            .ToDictionary(value => value.CharacterId, value => value.LifeStage);
-        List<AgeConditionChange> changes = new();
-        foreach (CharacterId characterId in previousStages.Keys
-                     .OrderBy(value => value.Value, StringComparer.Ordinal))
+        var pending = life.PendingDailyObservation;
+        if (pending.entries.Count > 0)
         {
-            changes.AddRange(life.AdvanceDay(
-                characterId,
-                heritableTraits.GetMultiplier(
-                    characterId,
-                    HeritableTraitConsequenceKind.AgingRate,
-                    "biological-age")));
+            var deliveries = new DomainFactDelivery[pending.entries.Count];
+            var replay = pending.entries.Select(row => DomainFactReplay.Create(
+                row.publicationKey, new CharacterLifeTransitionFact(row.fact))).ToArray();
+            if (!recovery.ReplayBatch(replay, deliveries, out string failure))
+                throw new InvalidOperationException("life-daily-observation-replay-pending:" + failure);
+            PublishReactions(life.CompleteDailyObservations(deliveries));
         }
-        for (int index = 0; index < changes.Count; index++)
+        anatomyProjection?.ResumePendingRequired();
+    }
+    private void OnDayEnded(OperatingDayEndedEvent ended)
+    {
+        if (advancing) throw new InvalidOperationException("life-daily-advance-reentrant");
+        advancing = true;
+        try
         {
-            events.Publish(new CharacterAgeConditionChangedEvent(changes[index]));
-        }
-        foreach (CharacterLifeRecord record in life.Records)
-        {
-            if (previousStages.TryGetValue(
-                    record.CharacterId,
-                    out CharacterLifeStage previous)
-                && previous != record.LifeStage)
+            ResumePending();
+            int absoluteDay = checked(ended.day + 1);
+            if (absoluteDay <= life.LastAdvancedAbsoluteDay) return;
+            var multipliers = life.Records.OrderBy(row => row.CharacterId.Value, StringComparer.Ordinal)
+                .ToDictionary(row => row.CharacterId, row => (double)heritableTraits.GetMultiplier(
+                    row.CharacterId, HeritableTraitConsequenceKind.AgingRate, "biological-age"));
+            var candidate = life.PrepareDailyAdvance(multipliers);
+            var leases = new List<DomainFactLease>();
+            bool publicationCrossed = false, sealedCandidate = false;
+            try
             {
-                events.Publish(new CharacterLifeStageChangedEvent(
-                    record.CharacterId,
-                    previous,
-                    record.LifeStage));
+                var cohort = candidate.AgeConditionChanges.Select(value => CharacterLifeTransitionFact.FromAgeCondition(value, absoluteDay))
+                    .Concat(candidate.LifeStageTransitions.Select(value => CharacterLifeTransitionFact.FromLifeStage(value, absoluteDay))).ToArray();
+                foreach (var fact in cohort)
+                {
+                    if (!facts.TryReserve(fact, out var lease, out string failure))
+                        throw new InvalidOperationException("life-daily-observation-reserve:" + failure);
+                    leases.Add(lease);
+                }
+                life.StageDailyObservations(candidate, absoluteDay, cohort, leases.Select(value => value.PublicationKey).ToArray());
+                life.PublishDailyAdvance(candidate);
+                var deliveries = new DomainFactDelivery[cohort.Length];
+                if (cohort.Length > 0)
+                {
+                    publicationCrossed = true;
+                    var emissions = cohort.Select((fact, index) =>
+                        DomainFactEmission.Create(leases[index], fact)).ToArray();
+                    if (!facts.PublishBatch(emissions, deliveries, out string failure))
+                    {
+                        publicationCrossed = false;
+                        throw new InvalidOperationException("life-daily-observation-rejected:" + failure);
+                    }
+                }
+                life.CompleteDailyAdvance(candidate);
+                sealedCandidate = true;
+                if (cohort.Length > 0) PublishReactions(life.CompleteDailyObservations(deliveries));
+            }
+            catch
+            {
+                if (!sealedCandidate)
+                {
+                    // An unknown acknowledgement cannot roll back time/RNG after publication.
+                    if (publicationCrossed) life.CompleteDailyAdvance(candidate);
+                    else life.RollbackDailyAdvance(candidate);
+                }
+                throw;
+            }
+            finally { foreach (var lease in leases) facts.Cancel(lease); }
+            anatomyProjection?.ResumePendingRequired();
+        }
+        finally { advancing = false; }
+    }
+    private void PublishReactions(IEnumerable<CharacterLifeTransitionFact> cohort)
+    {
+        foreach (var fact in cohort)
+        {
+            if (fact.Kind == CharacterLifeTransitionKind.AgeCondition)
+                PublishObserver(new CharacterAgeConditionChangedEvent(fact.AgeChange, bodyProjectionScheduled: !fact.AgeChange.Resolved));
+            else
+            {
+                var change = fact.StageChange;
+                PublishObserver(new CharacterLifeStageChangedEvent(change.CharacterId, change.Previous, change.Current));
             }
         }
+    }
+    private void PublishObserver<TEvent>(TEvent gameEvent)
+    {
+        try { events.Publish(gameEvent); }
+        catch (Exception exception) { Debug.LogException(exception); }
     }
 }
 
@@ -199,6 +268,8 @@ public sealed class CharacterAgeConditionBodyHealthAdapter : IStartable, IDispos
 
     private void OnConditionChanged(CharacterAgeConditionChangedEvent gameEvent)
     {
+        if (gameEvent.BodyProjectionScheduled)
+            return;
         AgeConditionChange change = gameEvent.Change;
         if (change.Resolved)
         {
@@ -281,8 +352,9 @@ public sealed class CharacterDeathPopulationAdapter : IStartable, IDisposable
     private readonly IKinshipQuery kinship;
     private readonly IKinshipCommand kinshipCommands;
     private readonly IHouseholdService households;
-    private readonly IReproductionService reproduction;
+    private readonly IReproductionProcessTransitionCommand reproductionTransitions;
     private readonly IGriefTraumaService grief;
+    private readonly ICareerService careers;
     private readonly IGameEventBus events;
     private IDisposable deathSubscription;
     private IDisposable dayEndedSubscription;
@@ -293,8 +365,9 @@ public sealed class CharacterDeathPopulationAdapter : IStartable, IDisposable
         IKinshipQuery kinship,
         IKinshipCommand kinshipCommands,
         IHouseholdService households,
-        IReproductionService reproduction,
+        IReproductionProcessTransitionCommand reproductionTransitions,
         IGriefTraumaService grief,
+        ICareerService careers,
         IGameEventBus events)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
@@ -304,9 +377,10 @@ public sealed class CharacterDeathPopulationAdapter : IStartable, IDisposable
             ?? throw new ArgumentNullException(nameof(kinshipCommands));
         this.households = households
             ?? throw new ArgumentNullException(nameof(households));
-        this.reproduction = reproduction
-            ?? throw new ArgumentNullException(nameof(reproduction));
+        this.reproductionTransitions = reproductionTransitions
+            ?? throw new ArgumentNullException(nameof(reproductionTransitions));
         this.grief = grief ?? throw new ArgumentNullException(nameof(grief));
+        this.careers = careers ?? throw new ArgumentNullException(nameof(careers));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
@@ -327,8 +401,22 @@ public sealed class CharacterDeathPopulationAdapter : IStartable, IDisposable
     private void OnDeath(CharacterDeathEvent gameEvent)
     {
         CharacterLifeDeathRecord death = gameEvent.ToLifeRecord();
+        // The deceased no longer owns an active psychosocial aggregate. Keep
+        // their death/kinship history and the survivors' grief independently.
+        grief.RetireAfterDeath(death.CharacterId);
+        careers.CancelRetirementByDeath(
+            death.CharacterId,
+            death.AbsoluteDay);
         CharacterActor deceasedActor = FindActor(death.CharacterId);
-        reproduction.NotifyCarrierDeath(death.CharacterId, death.AbsoluteDay);
+        if (!reproductionTransitions.TryNotifyCarrierDeath(
+                gameEvent,
+                out DomainFailure reproductionFailure))
+        {
+            Debug.LogError(
+                "Carrier-death reproduction transition remains pending: "
+                + reproductionFailure.Code + " "
+                + string.Join(",", reproductionFailure.Parameters.ToArray()));
+        }
 
         CharacterRoomAssignmentSaveData deceasedHousehold = null;
         households.TryGet(death.CharacterId, out deceasedHousehold);

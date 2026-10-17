@@ -16,6 +16,6 @@
   "schema_version": 1,
   "slug": "building-landmark-sealed-garden",
   "spoiler_tier": "none",
-  "summary": "V20 hand-authored milestone landmark.",
+  "summary": "시설 동작은 BuildingStructuralIntegrityAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 4155 WU, 재료 처리 목재×45, 석재 블록×27, 깨끗한 물×24, 기계 부품×9이 필요하다. V20 hand-authored milestone landmark.",
   "title": "봉인 생태정원"
 }

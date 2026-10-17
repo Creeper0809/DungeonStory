@@ -1097,10 +1097,10 @@ public sealed class ProductionOutputBufferCapacityProjector :
         canonical.Append(subject.Position.y);
         canonical.Append(subject.WorkstationTag);
         canonical.Append(subject.ProcessFluidProfile.SourceDigest);
-        canonical.Append(ProductionBillRuntime.OutputDestinationPrefix
+        canonical.Append(ProductionBillIdentity.OutputDestinationPrefix
             + subject.FacilityId.Value);
         canonical.Append(ProductionOutputDestinationAuthorityRuntime.OwnerDomain);
-        canonical.Append(ProductionBillRuntime.OutputDestinationPrefix
+        canonical.Append(ProductionBillIdentity.OutputDestinationPrefix
             + subject.FacilityId.Value);
         canonical.Append(subject.FacilityId.Value);
         canonical.Append(cycleCapacity);

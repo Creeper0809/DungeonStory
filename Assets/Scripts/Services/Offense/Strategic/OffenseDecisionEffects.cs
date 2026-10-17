@@ -156,7 +156,7 @@ public sealed class OffenseSupplyDecisionEffectHandler :
         OffenseSupplyDecisionEffect supply = (OffenseSupplyDecisionEffect)effect;
         if (supply.amount < 0)
         {
-            context.Expedition.Supplies.TryConsume(
+            context.Expedition.TryConsumeSupply(
                 supply.supplyType,
                 -supply.amount);
         }
@@ -587,8 +587,14 @@ public sealed class OffenseEquipmentWearDecisionEffectHandler :
 
         int index = (int)((uint)context.DeterministicRoll
             % (uint)ordered.Length);
-        context.Equipment.TryApplyDurabilityDamage(ordered[index], damage);
-        context.Results.Add("방어 장비 내구도 감소");
+        if (context.Equipment.TryApplyDurabilityDamage(ordered[index], damage))
+        {
+            context.Results.Add("방어 장비 내구도 감소");
+        }
+        else
+        {
+            context.Results.Add("방어 장비 내구도 변화 없음");
+        }
     }
 }
 

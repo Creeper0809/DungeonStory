@@ -10,6 +10,9 @@ public interface IAnimalHusbandryQuery : IAnimalPenCompatibilityQuery
     IReadOnlyList<HusbandryAnimalState> Animals { get; }
     IReadOnlyList<AnimalPenPolicyData> PenPolicies { get; }
     bool TryGetAnimal(WildlifeInstanceId animalId, out HusbandryAnimalState state);
+    bool TryGetProductThermalSnapshot(
+        WildlifeInstanceId animalId,
+        out AnimalProductThermalSnapshot snapshot);
     AnimalPenPolicyData GetPenPolicy(BuildingInstanceId penId);
     int GetEffectivePenCapacity(BuildingInstanceId penId);
     bool TryGetWork(
@@ -33,6 +36,14 @@ public interface IAnimalHusbandryCommand
         WildlifeInstanceId animalId,
         AnimalHusbandryWorkKind kind,
         float amount,
+        out bool completed);
+    bool ApplyWork(
+        BuildableObject pen,
+        CharacterActor worker,
+        WildlifeInstanceId animalId,
+        AnimalHusbandryWorkKind kind,
+        float amount,
+        WorkExecutionContext executionContext,
         out bool completed);
 }
 

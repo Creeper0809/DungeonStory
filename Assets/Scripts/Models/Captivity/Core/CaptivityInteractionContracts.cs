@@ -28,6 +28,67 @@ public readonly struct CaptivityInteractionContext
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public readonly struct CaptivityBodyDamageProjection
+{
+    public CaptivityBodyDamageProjection(
+        float percentOfMaximumHealth,
+        float damageAmount,
+        float currentHealth,
+        float maximumHealth)
+    {
+        PercentOfMaximumHealth = Mathf.Clamp(percentOfMaximumHealth, 0f, 100f);
+        MaximumHealth = Mathf.Max(1f, maximumHealth);
+        CurrentHealth = Mathf.Clamp(currentHealth, 0f, MaximumHealth);
+        DamageAmount = Mathf.Clamp(damageAmount, 0f, MaximumHealth);
+    }
+
+    public float PercentOfMaximumHealth { get; }
+    public float DamageAmount { get; }
+    public float CurrentHealth { get; }
+    public float MaximumHealth { get; }
+    public float ExpectedHealth => Mathf.Max(0f, CurrentHealth - DamageAmount);
+    public bool IsLethal => DamageAmount > 0f
+        && DamageAmount + 0.001f >= CurrentHealth;
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public readonly struct CaptivityBodyDamagePolicy
+{
+    public static CaptivityBodyDamagePolicy None => default;
+
+    public CaptivityBodyDamagePolicy(float percentOfMaximumHealth)
+    {
+        if (float.IsNaN(percentOfMaximumHealth)
+            || float.IsInfinity(percentOfMaximumHealth)
+            || percentOfMaximumHealth < 0f
+            || percentOfMaximumHealth > 100f)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(percentOfMaximumHealth),
+                "Captivity body damage must be a finite maximum-health percentage from 0 to 100.");
+        }
+
+        PercentOfMaximumHealth = percentOfMaximumHealth;
+    }
+
+    public float PercentOfMaximumHealth { get; }
+    public bool HasDamage => PercentOfMaximumHealth > 0f;
+
+    public CaptivityBodyDamageProjection Project(
+        float currentHealth,
+        float maximumHealth)
+    {
+        float normalizedMaximum = Mathf.Max(1f, maximumHealth);
+        float damage = normalizedMaximum * PercentOfMaximumHealth / 100f;
+        return new CaptivityBodyDamageProjection(
+            PercentOfMaximumHealth,
+            damage,
+            currentHealth,
+            normalizedMaximum);
+    }
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public readonly struct CaptivityInteractionResult
 {
     public CaptivityInteractionResult(
@@ -38,7 +99,6 @@ public readonly struct CaptivityInteractionResult
         float trustDelta = 0f,
         float grudgeDelta = 0f,
         float corruptionDelta = 0f,
-        float healthDelta = 0f,
         string outputItemId = "",
         int outputAmount = 0)
     {
@@ -49,7 +109,6 @@ public readonly struct CaptivityInteractionResult
         TrustDelta = trustDelta;
         GrudgeDelta = grudgeDelta;
         CorruptionDelta = corruptionDelta;
-        HealthDelta = healthDelta;
         OutputItemId = outputItemId ?? string.Empty;
         OutputAmount = Mathf.Max(0, outputAmount);
     }
@@ -61,7 +120,6 @@ public readonly struct CaptivityInteractionResult
     public float TrustDelta { get; }
     public float GrudgeDelta { get; }
     public float CorruptionDelta { get; }
-    public float HealthDelta { get; }
     public string OutputItemId { get; }
     public int OutputAmount { get; }
 }
@@ -73,9 +131,20 @@ public interface ICaptivityInteractionHandler
     string DisplayName { get; }
     CaptiveInteractionKind Kind { get; }
     float RequiredWork { get; }
+    CaptivityBodyDamagePolicy BodyDamage { get; }
     IReadOnlyDictionary<StockCategory, int> MaterialRequirements { get; }
     bool CanExecute(CaptivityInteractionContext context, out string failureReason);
     CaptivityInteractionResult Execute(CaptivityInteractionContext context);
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public interface ICaptivityInterrogationCodexPort
+{
+    bool HasInformation(string entryId, string informationText);
+    void PublishInformation(
+        string entryId,
+        string fallbackTitle,
+        string informationText);
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

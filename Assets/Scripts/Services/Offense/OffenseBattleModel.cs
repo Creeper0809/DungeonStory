@@ -17,6 +17,7 @@ public sealed class OffenseBattleSession
     private readonly ICombatResolutionService combatResolution;
     private readonly ICombatEquipmentRuntime combatEquipmentRuntime;
     private readonly OffenseBattleEncounterRules encounterRules;
+    private OffenseExpeditionRun settlementOwner;
     private readonly Dictionary<string, string> thrownOwnerByInstance =
         new Dictionary<string, string>(StringComparer.Ordinal);
     private bool recoverableEquipmentFinalized;
@@ -129,6 +130,22 @@ public sealed class OffenseBattleSession
             persistentId,
             StringComparison.Ordinal));
     }
+
+    internal void BindSettlementOwner(OffenseExpeditionRun expedition)
+    {
+        if (expedition == null
+            || !string.Equals(
+                expedition.ExpeditionId,
+                ExpeditionId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Offense battle settlement owner does not match the battle expedition.");
+        }
+        settlementOwner = expedition;
+    }
+
+    internal OffenseExpeditionRun SettlementOwner => settlementOwner;
 
     public OffenseBattlePersistenceState CapturePersistentState()
     {
@@ -734,21 +751,31 @@ public sealed class OffenseBattleSession
             $"{BattleId}:preview",
             source.PersistentId,
             target.PersistentId,
-            CreateAttackStats(source, target, weapon),
-            CreateModifiedCombatStats(target, attacking: false),
+            OffenseBattleSessionRules.CreateAttackStats(
+                encounterRules,
+                source,
+                target,
+                weapon),
+            OffenseBattleSessionRules.CreateModifiedCombatStats(
+                encounterRules,
+                target,
+                attacking: false),
             weapon,
             distance,
             source.FireMode,
-            CreateEffectiveCover(target),
+            OffenseBattleSessionRules.CreateEffectiveCover(target),
             defenderDowned: target.IsDowned,
             defenderMeleeLocked: distance <= 1,
             attackerSuppression: source.Suppression,
             defenderSuppression: target.Suppression,
-            lightMultiplier: GetVisibilityMultiplier(source, target, weapon),
-            attackPowerMultiplier: GetAttackMultiplier(source),
+            lightMultiplier: OffenseBattleSessionRules.GetVisibilityMultiplier(
+                source,
+                target,
+                weapon),
+            attackPowerMultiplier: OffenseBattleSessionRules.GetAttackMultiplier(source),
             defenderArmor: target.Armor,
             defenderShield: target.Shield,
-            defenderConstruct: IsConstruct(target)));
+            defenderConstruct: OffenseBattleSessionRules.IsConstruct(target)));
     }
 
     public int GetFormationDistanceForPreview(
@@ -806,7 +833,18 @@ public sealed class OffenseBattleSession
 
     internal float Heal(OffenseBattleCombatant target, float amount)
     {
-        return target?.Heal(amount) ?? 0f;
+        float applied = target?.Heal(amount) ?? 0f;
+        if (applied > 0f && target.Team == OffenseBattleTeam.Allies
+                && settlementOwner != null
+                && settlementOwner.MemberActors.Concat(settlementOwner.ProtectedRescueActors)
+                    .Any(actor => actor != null && string.Equals(
+                        actor.Identity?.PersistentId, target.PersistentId, StringComparison.Ordinal)))
+        {
+            // Battle-only allies (e.g. protected objectives) keep their real
+            // battle heal but do not create a resident return-treatment receipt.
+            settlementOwner.RecordHealing(target.PersistentId, applied);
+        }
+        return applied;
     }
 
     internal void AddStatus(
@@ -1021,21 +1059,31 @@ public sealed class OffenseBattleSession
             $"{BattleId}:{LastProcessedCommandId + 1}:basic",
             actor.PersistentId,
             target.PersistentId,
-            CreateAttackStats(actor, target, weapon),
-            CreateModifiedCombatStats(target, attacking: false),
+            OffenseBattleSessionRules.CreateAttackStats(
+                encounterRules,
+                actor,
+                target,
+                weapon),
+            OffenseBattleSessionRules.CreateModifiedCombatStats(
+                encounterRules,
+                target,
+                attacking: false),
             weapon,
             distance,
             actor.FireMode,
-            CreateEffectiveCover(target),
+            OffenseBattleSessionRules.CreateEffectiveCover(target),
             defenderDowned: target.HealthRatio <= 0.15f,
             defenderMeleeLocked: distance <= 1,
             attackerSuppression: actor.Suppression,
             defenderSuppression: target.Suppression,
-            lightMultiplier: GetVisibilityMultiplier(actor, target, weapon),
-            attackPowerMultiplier: GetAttackMultiplier(actor),
+            lightMultiplier: OffenseBattleSessionRules.GetVisibilityMultiplier(
+                actor,
+                target,
+                weapon),
+            attackPowerMultiplier: OffenseBattleSessionRules.GetAttackMultiplier(actor),
             defenderArmor: target.Armor,
             defenderShield: target.Shield,
-            defenderConstruct: IsConstruct(target)));
+            defenderConstruct: OffenseBattleSessionRules.IsConstruct(target)));
         if (!resolved.Executed)
         {
             result = new OffenseBattleCommandResult(false, resolved.FailureReason);
@@ -1046,9 +1094,25 @@ public sealed class OffenseBattleSession
 
         if (weapon.RequiresAmmo && !string.IsNullOrWhiteSpace(weapon.InstanceId))
         {
-            combatEquipmentRuntime?.TryConsumeLoadedAmmo(
-                weapon.InstanceId,
-                Mathf.Max(1, resolved.AmmunitionConsumed));
+            int ammunitionConsumed = Mathf.Max(1, resolved.AmmunitionConsumed);
+            string ammunitionItemId = combatEquipmentRuntime != null
+                && combatEquipmentRuntime.TryGetInstance(
+                    weapon.InstanceId,
+                    out CombatEquipmentInstance liveWeapon)
+                ? liveWeapon.loadedAmmunition?.ammunitionItemId ?? string.Empty
+                : string.Empty;
+            if (combatEquipmentRuntime?.TryConsumeLoadedAmmo(
+                    weapon.InstanceId,
+                    ammunitionConsumed) == true)
+            {
+                if (actor.Team == OffenseBattleTeam.Allies)
+                {
+                    settlementOwner?.RecordAmmunitionConsumption(
+                        weapon.InstanceId,
+                        ammunitionItemId,
+                        ammunitionConsumed);
+                }
+            }
             if (combatEquipmentRuntime != null
                 && combatEquipmentRuntime.TryGetActiveWeapon(
                     actor.PersistentId,
@@ -1498,73 +1562,6 @@ public sealed class OffenseBattleSession
         return true;
     }
 
-    private CombatStatSnapshot CreateModifiedCombatStats(
-        OffenseBattleCombatant combatant,
-        bool attacking)
-    {
-        CombatStatSnapshot value = OffenseBattleSessionRules.CreateCombatStats(combatant);
-        float accuracy = attacking
-            ? encounterRules.GetAccuracyMultiplier(combatant.Team)
-            : 1f;
-        float sedation = combatant.Statuses
-            .Where(status => status.Type == OffenseBattleStatusType.Sedated)
-            .Select(status => status.Value)
-            .DefaultIfEmpty(0f)
-            .Max();
-        float activity = 1f - Mathf.Clamp(sedation, 0f, 0.8f);
-        return new CombatStatSnapshot(
-            value.Melee * accuracy * activity,
-            value.Shooting * accuracy * activity,
-            value.Evasion * encounterRules.GetMovementMultiplier(combatant.Team),
-            value.MoveSpeed
-                * encounterRules.GetMovementMultiplier(combatant.Team)
-                * activity,
-            value.Strength,
-            value.Toughness,
-            value.Dexterity * accuracy * activity,
-            value.HealthMultiplier,
-            combatant.ArcanePowerMultiplier,
-            hasArcanePowerMultiplier: true);
-    }
-
-    private CombatStatSnapshot CreateAttackStats(
-        OffenseBattleCombatant source,
-        OffenseBattleCombatant target,
-        CombatWeaponSnapshot weapon)
-    {
-        CombatStatSnapshot value = CreateModifiedCombatStats(
-            source,
-            attacking: true);
-        bool resistedCaptureShot = encounterRules.Objective ==
-                OffenseEncounterObjective.CaptureLeader
-            && source?.Team == OffenseBattleTeam.Allies
-            && string.Equals(
-                target?.PersistentId,
-                encounterRules.ObjectiveCombatantId,
-                StringComparison.Ordinal)
-            && string.Equals(
-                weapon?.AmmunitionItemId,
-                "ammo:tranquilizer-dart",
-                StringComparison.Ordinal);
-        if (!resistedCaptureShot)
-        {
-            return value;
-        }
-
-        float resistance = encounterRules.ObjectiveControlResistanceMultiplier;
-        return new CombatStatSnapshot(
-            value.Melee / resistance,
-            value.Shooting / resistance,
-            value.Evasion,
-            value.MoveSpeed,
-            value.Strength,
-            value.Toughness,
-            value.Dexterity / resistance,
-            value.HealthMultiplier,
-            value.ArcanePowerMultiplier,
-            value.HasArcanePowerMultiplier);
-    }
-
     private string CreateObjectiveLog()
     {
         string objective = encounterRules.Objective switch
@@ -1851,50 +1848,6 @@ public sealed class OffenseBattleSession
         return absorbed;
     }
 
-    private static CombatCoverSnapshot CreateEffectiveCover(
-        OffenseBattleCombatant target)
-    {
-        if (target == null)
-        {
-            return default;
-        }
-
-        float smoke = GetSmokeObscuration(target);
-        float blockChance = Mathf.Max(
-            target.CoverBlockChance,
-            smoke * 0.4f);
-        return blockChance <= 0f
-            ? default
-            : new CombatCoverSnapshot(
-                CombatCoverHeight.Low,
-                blockChance,
-                0f,
-                smoke > 0f ? "offense-smoke" : "offense-cover");
-    }
-
-    private static float GetVisibilityMultiplier(
-        OffenseBattleCombatant source,
-        OffenseBattleCombatant target,
-        CombatWeaponSnapshot weapon)
-    {
-        if (weapon?.IsRanged != true)
-        {
-            return 1f;
-        }
-
-        float obscuration = Mathf.Max(
-            GetSmokeObscuration(source),
-            GetSmokeObscuration(target));
-        return Mathf.Clamp(1f - obscuration * 0.65f, 0.35f, 1f);
-    }
-
-    private static float GetSmokeObscuration(OffenseBattleCombatant combatant) =>
-        combatant?.Statuses
-            .Where(status => status.Type == OffenseBattleStatusType.SmokeObscured)
-            .Select(status => status.Value)
-            .DefaultIfEmpty(0f)
-            .Max() ?? 0f;
-
     private void ApplyAmmunitionStatuses(
         OffenseBattleCombatant source,
         OffenseBattleCombatant target,
@@ -1944,28 +1897,6 @@ public sealed class OffenseBattleSession
                     "ammo:signal-support");
             }
         }
-    }
-
-    private static float GetAttackMultiplier(OffenseBattleCombatant actor)
-    {
-        if (actor == null) return 1f;
-        float support = actor.Statuses
-            .Where(value => value.Type == OffenseBattleStatusType.AttackModifier)
-            .Sum(value => value.Value);
-        float sedation = actor.Statuses
-            .Where(value => value.Type == OffenseBattleStatusType.Sedated)
-            .Select(value => value.Value)
-            .DefaultIfEmpty(0f)
-            .Max();
-        return Mathf.Max(0.1f, (1f + support) * (1f - Mathf.Clamp01(sedation)));
-    }
-
-    private static bool IsConstruct(OffenseBattleCombatant target)
-    {
-        string species = target?.SpeciesTag ?? string.Empty;
-        return species.IndexOf("golem", StringComparison.OrdinalIgnoreCase) >= 0
-            || species.IndexOf("construct", StringComparison.OrdinalIgnoreCase) >= 0
-            || species.IndexOf("clockwork", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private void AddLog(string message)

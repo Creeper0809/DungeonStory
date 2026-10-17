@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
@@ -8,6 +9,7 @@ using VContainer.Unity;
 public sealed class SurgicalPartRuntime :
     ISurgicalPartRuntime,
     ISurgicalPartPreparedOutputRuntime,
+    ISurgicalPartReplacementRuntime,
     ISurgicalAugmentationQuery,
     ITickable
 {
@@ -19,15 +21,27 @@ public sealed class SurgicalPartRuntime :
         "surgery-organ-storage-fuel:";
     private const string OrganPreservationCanisterItemId =
         "medical:organ-preservation-canister";
+    private const string FreshnessExpiryTransformReason =
+        "surgical-organ-expired-to-contaminated-tissue";
+    private const string FreshnessExpiryReleaseReason =
+        "surgical-organ-expiry-owned-release";
 
     private readonly IWorldItemStackRuntime items;
+    private readonly IItemTransferService itemTransfers;
     private readonly IBuildingWorldQuery buildings;
     private readonly ISurgicalFacilityQuery facilities;
+    private readonly IEnvironmentalFieldQuery environment;
     private readonly IAnatomyProfileCatalog anatomyProfiles;
     private readonly IGameClock clock;
     private readonly SurgeryAggregateStateStore stateStore;
     private readonly IPhysicalItemBatchDispositionService batchDispositions;
+    private readonly IPhysicalItemTransformService physicalTransforms;
+    private readonly IPhysicalItemMassQuery physicalMass;
+    private readonly IFacilityBufferDestinationClaimAuthorityQuery
+        destinationClaims;
     private readonly ISurgicalPartStorageInputOwnerAuthority storageInputOwners;
+    private readonly SurgicalPartInstallationRuntime installations;
+    private readonly SurgicalPartReplacementTransaction replacements;
     private float nextFuelRefreshAt;
 
     private List<SurgicalPartInstance> parts => stateStore.State.Parts;
@@ -41,12 +55,15 @@ public sealed class SurgicalPartRuntime :
 
     public SurgicalPartRuntime(
         IWorldItemStackRuntime items,
+        IItemTransferService itemTransfers,
         IBuildingWorldQuery buildings,
         ISurgicalFacilityQuery facilities,
+        IEnvironmentalFieldQuery environment,
         IAnatomyProfileCatalog anatomyProfiles,
         IGameClock clock,
         SurgeryAggregateStateStore stateStore,
         IPhysicalItemBatchDispositionService batchDispositions,
+        IPhysicalItemTransformService physicalTransforms,
         IItemDefinitionCatalog itemCatalog,
         IPhysicalItemMassQuery physicalMass,
         IFacilityBufferDestinationClaimAuthorityQuery destinationClaims,
@@ -55,8 +72,12 @@ public sealed class SurgicalPartRuntime :
         IFacilityBufferDestinationReleaseService destinationReleases)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
+        this.itemTransfers = itemTransfers
+            ?? throw new ArgumentNullException(nameof(itemTransfers));
         this.buildings = buildings ?? throw new ArgumentNullException(nameof(buildings));
         this.facilities = facilities ?? throw new ArgumentNullException(nameof(facilities));
+        this.environment = environment
+            ?? throw new ArgumentNullException(nameof(environment));
         this.anatomyProfiles = anatomyProfiles
             ?? throw new ArgumentNullException(nameof(anatomyProfiles));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
@@ -64,6 +85,12 @@ public sealed class SurgicalPartRuntime :
             ?? throw new ArgumentNullException(nameof(stateStore));
         this.batchDispositions = batchDispositions
             ?? throw new ArgumentNullException(nameof(batchDispositions));
+        this.physicalTransforms = physicalTransforms
+            ?? throw new ArgumentNullException(nameof(physicalTransforms));
+        this.physicalMass = physicalMass
+            ?? throw new ArgumentNullException(nameof(physicalMass));
+        this.destinationClaims = destinationClaims
+            ?? throw new ArgumentNullException(nameof(destinationClaims));
         storageInputOwners = new SurgicalPartStorageInputOwnerAuthority(
             this.buildings,
             this.facilities,
@@ -73,6 +100,10 @@ public sealed class SurgicalPartRuntime :
             destinationCapacities,
             destinationLifecycle,
             destinationReleases);
+        installations = new SurgicalPartInstallationRuntime(
+            this.items, this.stateStore, this.batchDispositions);
+        replacements = new SurgicalPartReplacementTransaction(
+            installations, this.physicalMass, this.batchDispositions);
     }
 
     public IReadOnlyList<SurgicalPartInstance> Parts => parts;
@@ -87,16 +118,8 @@ public sealed class SurgicalPartRuntime :
         }
     }
 
-    public bool TryGet(string partInstanceId, out SurgicalPartInstance part)
-    {
-        part = parts.FirstOrDefault(candidate =>
-            candidate != null
-            && string.Equals(
-                candidate.partInstanceId,
-                partInstanceId?.Trim(),
-                StringComparison.Ordinal));
-        return part != null;
-    }
+    public bool TryGet(string partInstanceId, out SurgicalPartInstance part) =>
+        installations.TryGet(partInstanceId, out part);
 
     public bool TryCreateExtractedPart(
         SurgicalSubjectRef donor,
@@ -140,9 +163,28 @@ public sealed class SurgicalPartRuntime :
             return false;
         }
 
+        WorldItemStackSnapshot physical = items.GetAllStacks().SingleOrDefault(
+            candidate => candidate != null
+                && string.Equals(
+                    candidate.StackId,
+                    stackId,
+                    StringComparison.Ordinal));
+        if (physical == null
+            || string.IsNullOrWhiteSpace(physical.ItemInstanceId))
+        {
+            items.DeleteStack(stackId);
+            failure = new DomainFailure(
+                FailureCode.SurgeryEffectFailed,
+                itemId,
+                "surgical-part-physical-identity-missing");
+            return false;
+        }
+
         part = new SurgicalPartInstance
         {
             partInstanceId = partInstanceId,
+            itemDefinitionId = itemId,
+            physicalItemInstanceId = physical.ItemInstanceId,
             kind = kind,
             nodeId = nodeId.Trim(),
             displayName = items.CatalogProvider.GetDefinition(itemId).DisplayName,
@@ -237,7 +279,12 @@ public sealed class SurgicalPartRuntime :
         if (existing != null)
         {
             if (existing.kind != kind
-                || !string.Equals(existing.nodeId, nodeId, StringComparison.Ordinal))
+                || !string.Equals(existing.nodeId, nodeId, StringComparison.Ordinal)
+                || !string.Equals(
+                    existing.itemDefinitionId,
+                    itemId,
+                    StringComparison.Ordinal)
+                || !((ItemInstanceId)existing.physicalItemInstanceId).IsValid)
             {
                 failure = new DomainFailure(
                     FailureCode.SurgeryEffectFailed,
@@ -248,6 +295,7 @@ public sealed class SurgicalPartRuntime :
             prepared = new SurgicalPartPreparedOutput
             {
                 ItemId = itemId,
+                PhysicalItemInstanceId = existing.physicalItemInstanceId,
                 PartInstanceId = existing.partInstanceId,
                 NodeId = existing.nodeId,
                 DisplayName = existing.displayName,
@@ -321,6 +369,12 @@ public sealed class SurgicalPartRuntime :
                     StringComparison.Ordinal)
                 && string.Equals(existing.worldStackId, stack.StackId,
                     StringComparison.Ordinal)
+                && string.Equals(existing.itemDefinitionId, prepared.ItemId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    existing.physicalItemInstanceId,
+                    prepared.PhysicalItemInstanceId,
+                    StringComparison.Ordinal)
                 || FailCraftedOutput(
                     prepared.CommitId,
                     "crafted-output-replay-conflict",
@@ -343,6 +397,8 @@ public sealed class SurgicalPartRuntime :
         parts.Add(new SurgicalPartInstance
         {
             partInstanceId = prepared.PartInstanceId,
+            itemDefinitionId = prepared.ItemId,
+            physicalItemInstanceId = prepared.PhysicalItemInstanceId,
             kind = prepared.Kind,
             nodeId = prepared.NodeId,
             displayName = prepared.DisplayName,
@@ -469,6 +525,10 @@ public sealed class SurgicalPartRuntime :
                 prepared.ItemId,
                 StringComparison.Ordinal)
             || published.Stacks[0].Quantity != 1
+            || !string.Equals(
+                published.Stacks[0].ItemInstanceId,
+                prepared.PhysicalItemInstanceId,
+                StringComparison.Ordinal)
             || published.Stacks[0].MassGrams <= 0L)
         {
             return FailCraftedOutput(
@@ -514,6 +574,10 @@ public sealed class SurgicalPartRuntime :
         failure = DomainFailure.None;
         if (stack.Quantity != 1
             || string.IsNullOrWhiteSpace(stack.ItemInstanceId)
+            || !string.Equals(
+                stack.ItemInstanceId,
+                prepared.PhysicalItemInstanceId,
+                StringComparison.Ordinal)
             || !string.Equals(stack.ItemId, prepared.ItemId, StringComparison.Ordinal)
             || !SurgicalPartPreparedOutputComponentCodec.TryRead(
                 stack.Components,
@@ -547,6 +611,14 @@ public sealed class SurgicalPartRuntime :
         failure = DomainFailure.None;
         if (stack.Quantity != 1
             || string.IsNullOrWhiteSpace(stack.ItemInstanceId)
+            || !string.Equals(
+                stack.ItemInstanceId,
+                part.physicalItemInstanceId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                stack.ItemId,
+                part.itemDefinitionId,
+                StringComparison.Ordinal)
             || !SurgicalPartPreparedOutputComponentCodec.TryRead(
                 stack.Components,
                 out string partId,
@@ -593,211 +665,57 @@ public sealed class SurgicalPartRuntime :
         return false;
     }
 
-    public bool TryReserveForOrder(
-        string partInstanceId,
-        string orderId,
-        out DomainFailure failure)
-    {
-        failure = DomainFailure.None;
-        if (!TryGet(partInstanceId, out SurgicalPartInstance part)
-            || part.installed)
-        {
-            failure = new DomainFailure(
-                FailureCode.SurgeryPartUnavailable,
-                partInstanceId ?? string.Empty);
-            return false;
-        }
+    public bool TryReserveForOrder(string partInstanceId, string orderId,
+        out DomainFailure failure) =>
+        installations.TryReserveForOrder(partInstanceId, orderId, out failure);
 
-        if (!string.IsNullOrWhiteSpace(part.reservedOrderId)
-            && !string.Equals(part.reservedOrderId, orderId, StringComparison.Ordinal))
-        {
-            failure = new DomainFailure(
-                FailureCode.SurgeryPartUnavailable,
-                partInstanceId ?? string.Empty,
-                part.reservedOrderId);
-            return false;
-        }
+    public void ReleaseReservation(string partInstanceId, string orderId) =>
+        installations.ReleaseReservation(partInstanceId, orderId);
 
-        if (part.kind == SurgicalPartKind.NaturalOrgan
-            && part.freshnessSeconds <= 0f)
-        {
-            failure = new DomainFailure(
-                FailureCode.SurgeryCorpseStale,
-                partInstanceId ?? string.Empty);
-            return false;
-        }
+    public bool TryValidateReservationForOrder(string partInstanceId, string orderId,
+        out DomainFailure failure) =>
+        installations.TryValidateReservationForOrder(partInstanceId, orderId, out failure);
 
-        part.reservedOrderId = orderId ?? string.Empty;
-        return true;
-    }
+    public bool TryConsumeForInstallation(string partInstanceId, string orderId, string subjectId,
+        out SurgicalPartInstance part, out DomainFailure failure) =>
+        installations.TryConsumeForInstallation(partInstanceId, orderId, subjectId, out part, out failure);
 
-    public void ReleaseReservation(string partInstanceId, string orderId)
-    {
-        if (TryGet(partInstanceId, out SurgicalPartInstance part)
-            && string.Equals(part.reservedOrderId, orderId, StringComparison.Ordinal))
-        {
-            part.reservedOrderId = string.Empty;
-        }
-    }
+    bool ISurgicalPartReplacementRuntime.TryReserveReplacementOutput(
+        SurgeryOrder order, AnatomyNodeHealthState currentNode, Vector2Int outputPosition,
+        IFacilityBufferMassAdmissionService admission, out DomainFailure failure) =>
+        ((ISurgicalPartReplacementRuntime)replacements).TryReserveReplacementOutput(
+            order, currentNode, outputPosition, admission, out failure);
 
-    public bool TryConsumeForInstallation(
-        string partInstanceId,
-        string orderId,
-        string subjectId,
-        out SurgicalPartInstance part,
-        out DomainFailure failure)
-    {
-        part = null;
-        failure = DomainFailure.None;
-        if (string.IsNullOrEmpty(partInstanceId)
-            || string.IsNullOrEmpty(orderId)
-            || string.IsNullOrEmpty(subjectId)
-            || !string.Equals(
-                partInstanceId,
-                partInstanceId.Trim(),
-                StringComparison.Ordinal)
-            || !string.Equals(orderId, orderId.Trim(), StringComparison.Ordinal)
-            || !string.Equals(subjectId, subjectId.Trim(), StringComparison.Ordinal)
-            || !TryGet(partInstanceId, out part))
-        {
-            failure = new DomainFailure(
-                FailureCode.SurgeryPartUnavailable,
-                partInstanceId ?? string.Empty);
-            return false;
-        }
+    bool ISurgicalPartReplacementRuntime.TryCommitReplacement(
+        SurgeryOrder order, CharacterActor character, SurgicalPartKind incomingKind,
+        float efficiency, IAnatomyHealthRuntime anatomy,
+        IFacilityBufferMassAdmissionService admission,
+        IFacilityBufferPlannedOutputPublicationService publication, out DomainFailure failure) =>
+        ((ISurgicalPartReplacementRuntime)replacements).TryCommitReplacement(
+            order, character, incomingKind, efficiency, anatomy, admission, publication, out failure);
 
-        string operationId = SurgicalPartInstallationIdentity.FormatOperationId(
-            orderId,
-            partInstanceId);
-        if (part.installed)
-        {
-            if (!string.Equals(
-                    part.installationOrderId,
-                    orderId,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    part.installationOperationId,
-                    operationId,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    part.installationSubjectId,
-                    subjectId,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    part.installedSubjectId,
-                    subjectId,
-                    StringComparison.Ordinal))
-            {
-                failure = new DomainFailure(
-                    FailureCode.SurgeryPartUnavailable,
-                    partInstanceId ?? string.Empty,
-                    "installation-replay-conflict");
-                return false;
-            }
-            if (!SurgicalPartInstallationOutbox.TryFinalizePending(
-                    part,
-                    batchDispositions,
-                    out string replayFailure))
-            {
-                failure = new DomainFailure(
-                    FailureCode.SurgeryPartUnavailable,
-                    partInstanceId ?? string.Empty,
-                    replayFailure);
-                return false;
-            }
-            return true;
-        }
-        if (!string.Equals(part.reservedOrderId, orderId, StringComparison.Ordinal))
-        {
-            failure = new DomainFailure(
-                FailureCode.SurgeryPartUnavailable,
-                partInstanceId ?? string.Empty);
-            return false;
-        }
+    bool ISurgicalPartReplacementRuntime.TryAbortReplacement(
+        SurgeryOrder order, IFacilityBufferMassAdmissionService admission, out string failureReason) =>
+        ((ISurgicalPartReplacementRuntime)replacements).TryAbortReplacement(
+            order, admission, out failureReason);
 
-        bool createdIntent = string.IsNullOrEmpty(part.installationOperationId);
-        if (createdIntent)
-        {
-            part.installationOrderId = orderId ?? string.Empty;
-            part.installationOperationId = operationId;
-            part.installationSourceStackId = part.worldStackId ?? string.Empty;
-            part.installationSubjectId = subjectId ?? string.Empty;
-        }
-        if (!string.Equals(part.installationOrderId, orderId, StringComparison.Ordinal)
-            || !string.Equals(
-                part.installationOperationId,
-                operationId,
-                StringComparison.Ordinal)
-            || !string.Equals(
-                part.installationSourceStackId,
-                part.worldStackId,
-                StringComparison.Ordinal)
-            || !string.Equals(
-                part.installationSubjectId,
-                subjectId,
-                StringComparison.Ordinal)
-            || string.IsNullOrEmpty(part.installationSourceStackId))
-        {
-            if (createdIntent)
-            {
-                ClearInstallationIntent(part);
-            }
-            failure = new DomainFailure(
-                FailureCode.SurgeryPartUnavailable,
-                partInstanceId ?? string.Empty,
-                "installation-intent-conflict");
-            return false;
-        }
-        if (!batchDispositions.TryCommitPending(
-                new[]
-                {
-                    new PhysicalItemTransformInput(
-                        part.installationSourceStackId,
-                        1)
-                },
-                PhysicalItemDispositionKind.Transfer,
-                operationId,
-                SurgicalPartInstallationOutbox.TransferReason,
-                out PhysicalItemBatchDispositionReceipt disposition,
-                out string dispositionFailure))
-        {
-            if (createdIntent)
-            {
-                ClearInstallationIntent(part);
-            }
-            failure = new DomainFailure(
-                FailureCode.SurgeryPartUnavailable,
-                partInstanceId ?? string.Empty,
-                dispositionFailure ?? string.Empty);
-            return false;
-        }
+    internal static bool ReplacementOutcomeFingerprintMatches(
+        SurgeryOrder order, SurgicalPartInstance part) =>
+        SurgicalPartReplacementTransaction.ReplacementOutcomeFingerprintMatches(order, part);
 
-        part.installationCommitId = disposition.CommitId;
-        if (!SurgicalPartInstallationOutbox.TryFinalizePending(
-                part,
-                batchDispositions,
-                out string finalizeFailure))
-        {
-            failure = new DomainFailure(
-                FailureCode.SurgeryPartUnavailable,
-                partInstanceId ?? string.Empty,
-                finalizeFailure);
-            return false;
-        }
-        return true;
-    }
-
-    private static void ClearInstallationIntent(SurgicalPartInstance part)
-    {
-        part.installationOrderId = string.Empty;
-        part.installationOperationId = string.Empty;
-        part.installationCommitId = string.Empty;
-        part.installationSourceStackId = string.Empty;
-        part.installationSubjectId = string.Empty;
-    }
+    internal static string CreateReplacementOutcomeFingerprintForValidation(
+        SurgeryOrder order, SurgicalPartInstance part) =>
+        SurgicalPartReplacementTransaction.CreateReplacementOutcomeFingerprintForValidation(order, part);
 
     public void TickFreshness(float deltaTime)
     {
+        foreach (SurgicalPartInstance pendingDiscard in parts
+                     .Where(HasPendingManualDiscard)
+                     .ToArray())
+        {
+            TryFinalizeManualDiscard(pendingDiscard, out _);
+        }
+
         if (deltaTime <= 0f || parts.Count == 0)
         {
             return;
@@ -807,11 +725,22 @@ public sealed class SurgicalPartRuntime :
         Dictionary<string, WorldItemStackSnapshot> byStack = stacks
             .Where(stack => stack != null)
             .ToDictionary(stack => stack.StackId, StringComparer.Ordinal);
+        HashSet<string> bodyCommittedIncomingPartIds = stateStore.State.Orders
+            .Where(order => order?.IsActive == true
+                && order.replacementPhase ==
+                    SurgicalPartReplacementPhase.BodyCommitted)
+            .Select(order => order.replacementIncomingPartId)
+            .Where(value => !string.IsNullOrEmpty(value))
+            .ToHashSet(StringComparer.Ordinal);
         List<SurgicalPartInstance> expired = null;
         foreach (SurgicalPartInstance part in parts)
         {
             if (part == null
                 || part.installed
+                || HasPendingManualDiscard(part)
+                // The body CAS already owns this exact part. It is no longer
+                // eligible loose inventory even if its Transfer outbox retries.
+                || bodyCommittedIncomingPartIds.Contains(part.partInstanceId)
                 || part.kind != SurgicalPartKind.NaturalOrgan
                 || float.IsPositiveInfinity(part.freshnessSeconds))
             {
@@ -823,12 +752,15 @@ public sealed class SurgicalPartRuntime :
                     part.worldStackId,
                     out WorldItemStackSnapshot stack)
                 && IsInWorkingOrganStorage(stack, out storageId);
-            bool preserved = inWorkingStorage
+            bool preserved = part.freshnessSeconds > 0f
+                && inWorkingStorage
                 && TryEnsurePreservationCanister(part, stack, storageId);
             part.storedFacilityId = preserved ? storageId : string.Empty;
-            part.freshnessSeconds -= deltaTime
-                * (preserved ? StoredFreshnessRate : 1f);
-            if (part.freshnessSeconds <= 0f)
+            part.freshnessSeconds = Mathf.Max(
+                0f,
+                part.freshnessSeconds - deltaTime
+                * (preserved ? StoredFreshnessRate : 1f));
+            if (!(part.freshnessSeconds > 0f))
             {
                 expired ??= new List<SurgicalPartInstance>();
                 expired.Add(part);
@@ -838,25 +770,335 @@ public sealed class SurgicalPartRuntime :
         foreach (SurgicalPartInstance part in expired
                      ?? Enumerable.Empty<SurgicalPartInstance>())
         {
-            Vector2Int position = default;
             WorldItemStackSnapshot stack = items.GetAllStacks().FirstOrDefault(
                 candidate => candidate != null
                     && candidate.StackId == part.worldStackId);
-            if (stack != null)
+            if (stack == null
+                || HasProtectedExpiryCustody(part)
+                || !MatchesExactDetachedPhysicalOwner(part, stack))
             {
-                position = stack.Position;
-                items.DeleteStack(stack.StackId);
-                items.SpawnItemAt(
-                    SurgeryItemDefinitions.ContaminatedTissueId,
-                    1,
-                    position,
-                    WorldItemStackState.Loose,
-                    string.Empty,
-                    out _);
+                continue;
             }
-
-            parts.Remove(part);
+            if (stack.State is WorldItemStackState.Stored
+                    or WorldItemStackState.FacilityBuffer)
+            {
+                ExactOwnedItemReleaseRequest release = new(
+                    stack.StackId,
+                    part.itemDefinitionId,
+                    part.physicalItemInstanceId,
+                    1,
+                    stack.State,
+                    stack.DestinationId,
+                    stack.State == WorldItemStackState.FacilityBuffer
+                        ? SurgicalPartStorageInputOwnerAuthority.OwnerDomain
+                        : string.Empty,
+                    "surgical-organ-expiry-release:" + part.partInstanceId,
+                    FreshnessExpiryReleaseReason);
+                if (!itemTransfers.TryReleaseExactOwnedWholeStack(
+                        release,
+                        out _,
+                        out _))
+                {
+                    continue;
+                }
+                stack = items.GetAllStacks().SingleOrDefault(candidate =>
+                    candidate != null
+                    && string.Equals(
+                        candidate.StackId,
+                        part.worldStackId,
+                        StringComparison.Ordinal));
+                if (stack == null)
+                {
+                    throw new InvalidOperationException(
+                        $"Expired surgical organ '{part.partInstanceId}' was released without its exact physical stack.");
+                }
+                if (!MatchesExactDetachedPhysicalOwner(part, stack))
+                {
+                    throw new InvalidOperationException(
+                        $"Expired surgical organ '{part.partInstanceId}' changed physical identity during release.");
+                }
+            }
+            if (!CanTransformExpiredOrganAtCurrentPlacement(stack))
+            {
+                continue;
+            }
+            if (physicalTransforms.TryTransformWholeStack(
+                    stack.StackId,
+                    new[]
+                    {
+                        new PhysicalItemTransformOutput(
+                            SurgeryItemDefinitions.ContaminatedTissueId,
+                            1,
+                            stack.Position)
+                    },
+                    "surgical-organ-expiry:" + part.partInstanceId,
+                    FreshnessExpiryTransformReason,
+                    out _,
+                    out _,
+                    out _))
+            {
+                parts.Remove(part);
+            }
         }
+    }
+
+    private static bool CanTransformExpiredOrganAtCurrentPlacement(
+        WorldItemStackSnapshot stack) => stack.State == WorldItemStackState.Loose
+        && string.IsNullOrEmpty(stack.DestinationId);
+
+    private static bool HasProtectedExpiryCustody(
+        SurgicalPartInstance part) =>
+        !string.IsNullOrEmpty(part.reservedOrderId)
+        || !string.IsNullOrEmpty(part.installationOperationId)
+        || !string.IsNullOrEmpty(part.preservationOperationId);
+
+    private static bool MatchesExactDetachedPhysicalOwner(
+        SurgicalPartInstance part,
+        WorldItemStackSnapshot stack) => part != null
+        && stack != null
+        && stack.Quantity == 1
+        && string.Equals(
+            stack.ItemId,
+            part.itemDefinitionId,
+            StringComparison.Ordinal)
+        && string.Equals(
+            stack.ItemInstanceId,
+            part.physicalItemInstanceId,
+            StringComparison.Ordinal);
+
+    [GameplayEntryPoint(
+        "ItemPileInfoPanel discard action; OrganPreservationRestoreJoinFixture")]
+    public SurgicalPartDiscardResult TryDiscardOwnedStack(string stackId)
+    {
+        string sourceStackId = stackId ?? string.Empty;
+        SurgicalPartInstance[] owners = parts.Where(part =>
+                part != null
+                && string.Equals(
+                    part.worldStackId,
+                    sourceStackId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (owners.Length == 0)
+        {
+            return new SurgicalPartDiscardResult(
+                SurgicalPartDiscardStatus.NotOwned,
+                string.Empty);
+        }
+        if (owners.Length != 1)
+        {
+            return RejectDiscard("medical-discard-duplicate-owner");
+        }
+
+        SurgicalPartInstance part = owners[0];
+        if (HasPendingManualDiscard(part))
+        {
+            return TryFinalizeManualDiscard(part, out string retryFailure)
+                ? new SurgicalPartDiscardResult(
+                    SurgicalPartDiscardStatus.Completed,
+                    string.Empty)
+                : new SurgicalPartDiscardResult(
+                    SurgicalPartDiscardStatus.Pending,
+                    retryFailure);
+        }
+        bool bodyCommittedIncoming = stateStore.State.Orders.Any(order =>
+            order?.IsActive == true
+            && order.replacementPhase ==
+                SurgicalPartReplacementPhase.BodyCommitted
+            && string.Equals(
+                order.replacementIncomingPartId,
+                part.partInstanceId,
+                StringComparison.Ordinal));
+        if (part.installed
+            || bodyCommittedIncoming
+            || !string.IsNullOrEmpty(part.reservedOrderId)
+            || !string.IsNullOrEmpty(part.installationOperationId)
+            || !string.IsNullOrEmpty(part.preservationOperationId))
+        {
+            return RejectDiscard("medical-discard-owned-custody-protected");
+        }
+
+        WorldItemStackSnapshot[] matchingStacks = items.GetAllStacks()
+            .Where(candidate => candidate != null
+                && string.Equals(
+                    candidate.StackId,
+                    part.worldStackId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (matchingStacks.Length != 1)
+        {
+            return RejectDiscard("medical-discard-exact-stack-missing");
+        }
+        WorldItemStackSnapshot stack = matchingStacks[0];
+        if (stack.Quantity != 1
+            || stack.ReservedQuantity != 0
+            || !string.IsNullOrEmpty(stack.ReservedByPersistentId)
+            || !string.Equals(
+                stack.ItemId,
+                part.itemDefinitionId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                stack.ItemInstanceId,
+                part.physicalItemInstanceId,
+                StringComparison.Ordinal)
+            || stack.State is not (WorldItemStackState.Loose
+                or WorldItemStackState.Stored
+                or WorldItemStackState.FacilityBuffer)
+            || !string.IsNullOrEmpty(stack.SourceStorageDestinationId)
+            || FacilityOutputExactRouteCustodyCodec.HasAnyCustody(
+                stack.Components)
+            || stack.State == WorldItemStackState.Loose
+                && !string.IsNullOrEmpty(stack.DestinationId)
+            || stack.State != WorldItemStackState.Loose
+                && string.IsNullOrEmpty(stack.DestinationId))
+        {
+            return RejectDiscard("medical-discard-physical-owner-mismatch");
+        }
+        if (stack.State == WorldItemStackState.FacilityBuffer
+            && !HasExactSurgicalStorageClaim(
+                stack.DestinationId,
+                stack.Position))
+        {
+            return RejectDiscard("medical-discard-facility-owner-mismatch");
+        }
+
+        string operationId = SurgicalPartDiscardIdentity.FormatOperationId(
+            part.partInstanceId);
+        if (!batchDispositions.TryCommitPending(
+                new[]
+                {
+                    new PhysicalItemTransformInput(stack.StackId, 1)
+                },
+                PhysicalItemDispositionKind.Sink,
+                operationId,
+                SurgicalPartDiscardIdentity.ReasonCode,
+                out PhysicalItemBatchDispositionReceipt receipt,
+                out string commitFailure))
+        {
+            return RejectDiscard(commitFailure);
+        }
+        if (!receipt.IsCommitted
+            || receipt.Kind != PhysicalItemDispositionKind.Sink
+            || !string.Equals(
+                receipt.OperationId,
+                operationId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                receipt.ReasonCode,
+                SurgicalPartDiscardIdentity.ReasonCode,
+                StringComparison.Ordinal)
+            || receipt.SourceStackIds.Count != 1
+            || !string.Equals(
+                receipt.SourceStackIds[0],
+                stack.StackId,
+                StringComparison.Ordinal)
+            || receipt.Quantity != 1)
+        {
+            throw new InvalidOperationException(
+                "Manual surgical-part discard committed a non-canonical physical Sink receipt.");
+        }
+        part.discardOperationId = receipt.OperationId;
+        part.discardCommitId = receipt.CommitId;
+        part.discardSourceStackId = receipt.SourceStackIds[0];
+        part.discardInputMassGrams = receipt.InputMassGrams;
+        if (TryFinalizeManualDiscard(part, out string finalizeFailure))
+        {
+            return new SurgicalPartDiscardResult(
+                SurgicalPartDiscardStatus.Completed,
+                string.Empty);
+        }
+        return new SurgicalPartDiscardResult(
+            SurgicalPartDiscardStatus.Pending,
+            finalizeFailure);
+    }
+
+    private static SurgicalPartDiscardResult RejectDiscard(string reason) =>
+        new(
+            SurgicalPartDiscardStatus.Rejected,
+            string.IsNullOrWhiteSpace(reason)
+                ? "medical-discard-rejected"
+                : reason);
+
+    private static bool HasPendingManualDiscard(
+        SurgicalPartInstance part) => part != null
+        && !string.IsNullOrEmpty(part.discardOperationId);
+
+    private bool HasExactSurgicalStorageClaim(
+        string destinationId,
+        Vector2Int position) => destinationClaims.CaptureAuthorityClaims()
+        .Count(claim => claim != null
+            && string.Equals(
+                claim.DestinationId,
+                destinationId,
+                StringComparison.Ordinal)
+            && claim.DropPosition == position
+            && string.Equals(
+                claim.OwnerDomain,
+                SurgicalPartStorageInputOwnerAuthority.OwnerDomain,
+                StringComparison.Ordinal)
+            && string.Equals(
+                claim.OwnerFacilityId,
+                destinationId,
+                StringComparison.Ordinal)
+            && claim.AnchorKind ==
+                FacilityBufferDestinationAnchorKind.LiveFacility) == 1;
+
+    private bool TryFinalizeManualDiscard(
+        SurgicalPartInstance part,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!HasPendingManualDiscard(part)
+            || !string.Equals(
+                part.discardOperationId,
+                SurgicalPartDiscardIdentity.FormatOperationId(
+                    part.partInstanceId),
+                StringComparison.Ordinal))
+        {
+            failureReason = "medical-discard-pending-invalid";
+            return false;
+        }
+        bool pending = batchDispositions.TryGetPending(
+            part.discardOperationId,
+            out PhysicalItemBatchDispositionReceipt receipt);
+        if (pending
+            && (receipt.Kind != PhysicalItemDispositionKind.Sink
+                || !string.Equals(
+                    receipt.CommitId,
+                    part.discardCommitId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    receipt.ReasonCode,
+                    SurgicalPartDiscardIdentity.ReasonCode,
+                    StringComparison.Ordinal)
+                || receipt.SourceStackIds.Count != 1
+                || !string.Equals(
+                    receipt.SourceStackIds[0],
+                    part.discardSourceStackId,
+                    StringComparison.Ordinal)
+                || receipt.Quantity != 1
+                || receipt.InputMassGrams != part.discardInputMassGrams))
+        {
+            failureReason = "medical-discard-pending-receipt-mismatch";
+            return false;
+        }
+        if (!part.discardOutcomePublished)
+        {
+            if (!pending)
+            {
+                failureReason = "medical-discard-pending-receipt-missing";
+                return false;
+            }
+            part.discardOutcomePublished = true;
+        }
+        if (pending
+            && !batchDispositions.Acknowledge(
+                part.discardCommitId,
+                out failureReason))
+        {
+            return false;
+        }
+        parts.Remove(part);
+        return true;
     }
 
     private bool TryEnsurePreservationCanister(
@@ -1032,7 +1274,10 @@ public sealed class SurgicalPartRuntime :
         out string storageId)
     {
         storageId = string.Empty;
-        if (stack == null || string.IsNullOrWhiteSpace(stack.DestinationId))
+        if (stack == null
+            || stack.State != WorldItemStackState.FacilityBuffer
+            || string.IsNullOrWhiteSpace(stack.DestinationId)
+            || !environment.IsOrganPreservationSafe(stack.Position))
         {
             return false;
         }
@@ -1263,6 +1508,179 @@ public sealed class SurgicalPartRuntime :
             ResolveSpecialEffectId(speciesId, nodeId))
                 ? 0f
                 : 1f;
+    }
+}
+
+internal static class SurgicalPartRecoveryComponentCodec
+{
+    internal const string ComponentTypeId =
+        "medical:surgical-part-recovery";
+    private const string PartIdKey = "part-instance-id";
+    private const string NodeIdKey = "node-id";
+    private const string KindKey = "kind";
+    private const string QualityKey = "quality";
+    private const string CurrentHealthKey = "current-health";
+    private const string MaxHealthKey = "max-health";
+    private const string OrderIdKey = "order-id";
+    private const string OperationIdKey = "operation-id";
+
+    internal static ItemInstanceComponentSaveData Create(
+        SurgicalPartInstance part,
+        string orderId,
+        string operationId,
+        float currentHealth,
+        float maxHealth) => new()
+    {
+        componentTypeId = ComponentTypeId,
+        schemaVersion = 1,
+        affectsStacking = true,
+        values = new List<ItemStateValueSaveData>
+        {
+            String(PartIdKey, part.partInstanceId),
+            String(NodeIdKey, part.nodeId),
+            Integer(KindKey, (int)part.kind),
+            Decimal(QualityKey, part.quality),
+            Decimal(CurrentHealthKey, currentHealth),
+            Decimal(MaxHealthKey, maxHealth),
+            String(OrderIdKey, orderId),
+            String(OperationIdKey, operationId)
+        }
+    };
+
+    internal static bool TryRead(
+        IEnumerable<ItemInstanceComponentSaveData> components,
+        out string partId,
+        out string nodeId,
+        out SurgicalPartKind kind,
+        out float quality,
+        out float currentHealth,
+        out float maxHealth,
+        out string orderId,
+        out string operationId)
+    {
+        partId = string.Empty;
+        nodeId = string.Empty;
+        kind = default;
+        quality = 0f;
+        currentHealth = 0f;
+        maxHealth = 0f;
+        orderId = string.Empty;
+        operationId = string.Empty;
+        ItemInstanceComponentSaveData[] matches = (components
+                ?? Array.Empty<ItemInstanceComponentSaveData>())
+            .Where(component => component != null
+                && string.Equals(
+                    component.componentTypeId,
+                    ComponentTypeId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1
+            || matches[0].schemaVersion != 1
+            || !matches[0].affectsStacking
+            || (matches[0].values?.Count ?? 0) != 8
+            || !TryString(matches[0].values, PartIdKey, out partId)
+            || !TryString(matches[0].values, NodeIdKey, out nodeId)
+            || !TryInteger(matches[0].values, KindKey, out long kindValue)
+            || kindValue < int.MinValue
+            || kindValue > int.MaxValue
+            || !Enum.IsDefined(typeof(SurgicalPartKind), (int)kindValue)
+            || !TryDecimal(matches[0].values, QualityKey, out double qualityValue)
+            || !TryDecimal(
+                matches[0].values,
+                CurrentHealthKey,
+                out double currentValue)
+            || !TryDecimal(matches[0].values, MaxHealthKey, out double maxValue)
+            || currentValue < 0d
+            || maxValue <= 0d
+            || currentValue > maxValue
+            || !TryString(matches[0].values, OrderIdKey, out orderId)
+            || !TryString(
+                matches[0].values,
+                OperationIdKey,
+                out operationId))
+        {
+            return false;
+        }
+        kind = (SurgicalPartKind)kindValue;
+        quality = (float)qualityValue;
+        currentHealth = (float)currentValue;
+        maxHealth = (float)maxValue;
+        return quality is >= 0.1f and <= 1.75f;
+    }
+
+    private static ItemStateValueSaveData String(string key, string value) =>
+        new()
+        {
+            key = key,
+            kind = ItemStateValueKind.String,
+            stringValue = value ?? string.Empty
+        };
+
+    private static ItemStateValueSaveData Integer(string key, long value) =>
+        new()
+        {
+            key = key,
+            kind = ItemStateValueKind.Integer,
+            integerValue = value
+        };
+
+    private static ItemStateValueSaveData Decimal(string key, double value) =>
+        new()
+        {
+            key = key,
+            kind = ItemStateValueKind.Decimal,
+            decimalValue = value
+        };
+
+    private static bool TryString(
+        IEnumerable<ItemStateValueSaveData> values,
+        string key,
+        out string value)
+    {
+        ItemStateValueSaveData[] matches = (values
+                ?? Array.Empty<ItemStateValueSaveData>())
+            .Where(entry => entry != null
+                && entry.kind == ItemStateValueKind.String
+                && string.Equals(entry.key, key, StringComparison.Ordinal))
+            .ToArray();
+        value = matches.Length == 1
+            ? matches[0].stringValue ?? string.Empty
+            : string.Empty;
+        return matches.Length == 1
+            && !string.IsNullOrWhiteSpace(value)
+            && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+    }
+
+    private static bool TryInteger(
+        IEnumerable<ItemStateValueSaveData> values,
+        string key,
+        out long value)
+    {
+        ItemStateValueSaveData[] matches = (values
+                ?? Array.Empty<ItemStateValueSaveData>())
+            .Where(entry => entry != null
+                && entry.kind == ItemStateValueKind.Integer
+                && string.Equals(entry.key, key, StringComparison.Ordinal))
+            .ToArray();
+        value = matches.Length == 1 ? matches[0].integerValue : 0L;
+        return matches.Length == 1;
+    }
+
+    private static bool TryDecimal(
+        IEnumerable<ItemStateValueSaveData> values,
+        string key,
+        out double value)
+    {
+        ItemStateValueSaveData[] matches = (values
+                ?? Array.Empty<ItemStateValueSaveData>())
+            .Where(entry => entry != null
+                && entry.kind == ItemStateValueKind.Decimal
+                && string.Equals(entry.key, key, StringComparison.Ordinal))
+            .ToArray();
+        value = matches.Length == 1 ? matches[0].decimalValue : 0d;
+        return matches.Length == 1
+            && !double.IsNaN(value)
+            && !double.IsInfinity(value);
     }
 }
 

@@ -1,0 +1,201 @@
+{
+  "status": "MAIN_F1_F2_G1_G10_VERIFIED",
+  "targets": [
+    {
+      "id": "F1",
+      "decision": "verified",
+      "requirement": "Prepared/staged/publication lifetime, participant/token cancel and stale owner/index safety",
+      "source": "Assets/Scripts/Services/Infrastructure/CharacterWorldSaveService.cs",
+      "members": "PrepareRestoreCandidate / StageRestoreCandidate / DiscardRestoreCandidate",
+      "currentSourceSha256": "365ae64c71957dbf7c0fb51fc4c0c4a974692cc3b0f389ebb3bef91aa927aa7d",
+      "reason": "Current admission rejects staged/publication before payload work; participant discard clears prepared and staged; same-generation token cleanup. Native10 and official world rollback/retry prove contract.",
+      "evidence": [
+        "f1-lifetime-r6/character-restore-lifetime.tsv",
+        "f1-f2-world-r2/world-lineage-report.json",
+        "verification-final-integration-r4.json"
+      ]
+    },
+    {
+      "id": "F2",
+      "decision": "verified",
+      "requirement": "Commit outcome vs unapplied/rollback failure, UI/safety and same-save recovery",
+      "source": "Assets/Scripts/Services/Foundation/Save/DungeonGameRestoreReport.cs",
+      "members": "Outcome / RequiresRecovery / RecordWorldPublished",
+      "currentSourceSha256": "51af7202c9cb57aa9dca6c59f0dd11fb7b8876ae356251985a57925edd09589d",
+      "reason": "Current four outcomes preserve publication truth; registry completes all participants and game service records hook failures after commit; UI/safety block save/play/load until Title recovery. Native15 include actual UI/Title/fresh Gameplay recovery.",
+      "evidence": [
+        "f2-recovery-r9/restore-outcome.tsv",
+        "verification-f2-recovery-r9.json",
+        "verification-final-integration-r4.json"
+      ]
+    },
+    {
+      "id": "G1",
+      "decision": "verified",
+      "requirement": "Restock and common work/abort/accident/labor ownership",
+      "source": "Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs",
+      "members": "RestockCargoOperation / WorkRunRuntime / WorkAccidentExecutionRuntime",
+      "currentSourceSha256": "434561a6c5fd521957e514beefad186ac1c5608cc54dc51a4631fc0d2d3ea235",
+      "reason": "Existing executor now delegates restock custody and run lifecycle to owners, preserves canonical operation/lease/supply authority. Actual movement/cancel/physical/official pending-carried restores and accident approved-work/JSON retry cover changed boundary.",
+      "evidence": [
+        "verification-g1-restock-execution-r1.json",
+        "verification-g1-accident-execution-r4.json",
+        "verification-final-restock-regression-r1.json"
+      ]
+    },
+    {
+      "id": "G2",
+      "decision": "verified",
+      "requirement": "Separate consumable policy and substance/detox from meal coordination; shared operation/journal",
+      "source": "Assets/Scripts/Models/Survival/Core/CharacterConsumablesRuntime.cs",
+      "members": "CharacterConsumablesPolicyRuntime / CharacterConsumablesSubstanceRuntime",
+      "currentSourceSha256": "a960bcf2b20b3d31853a72b238c1e578727324c512ce5fca8d65b6bc32fa9452",
+      "reason": "Policy and substance lifetimes have distinct owners using current root/session and shared operation authority. Meal/cross-effect receipt coordination remains cohesive facade with concrete conservation/recovery gates. Native9 groups plus paid treatment producer check physical/JSON/root/ACK/failure retry.",
+      "evidence": [
+        "verification-g2-execution-r2.json",
+        "verification-g5-execution-r1.json"
+      ]
+    },
+    {
+      "id": "G3",
+      "decision": "verified",
+      "requirement": "Work order material/construction responsibility with one ledger state/revision",
+      "source": "Assets/Scripts/Services/Character/Work/WorkAmountSystem.cs",
+      "members": "WorkOrderMaterialSupplyRuntime",
+      "currentSourceSha256": "5f52ed06e1de6e2b55c3a58dfd601683f504f242c8a8bcc18073f5857b991db1",
+      "reason": "Material supply orchestration delegates through existing authority access; order revision/creation/cancel/completion/restore gates remain in one runtime. Actual construction/repair terminals, refund/rollback/rejected restore/exact input and WIP GC prove boundary.",
+      "evidence": [
+        "verification-g1-g3-c10-source-r1.json",
+        "verification-g3-execution-r1.json"
+      ]
+    },
+    {
+      "id": "G4",
+      "decision": "verified",
+      "requirement": "Faction cargo/settlement and reinforcement generation separated from diplomacy/route domain",
+      "source": "Assets/Scripts/Services/Factions/FactionRuntime.cs",
+      "members": "FactionRouteCargoRuntime / FactionReinforcementMaterializer / OnRestoreCompleted",
+      "currentSourceSha256": "cf0ead755a4ba86760beed9e136c15e7f6d75ef41171a0f510473f66968f6180",
+      "reason": "Cargo owns physical publication/recovery with current domain queries; reinforcements own factory/entry projection. Current official104-section partial/full response-loss pending and completed restores7 prove fresh root/actors, current-root completion, unique IDs, restored marker/entry and idempotent hook.",
+      "evidence": [
+        "verification-g4-cargo-execution-r1.json",
+        "verification-g4-execution-complete-r1.json",
+        "verification-final-integration-r4.json"
+      ]
+    },
+    {
+      "id": "G5",
+      "decision": "verified",
+      "requirement": "Treatment execution/supply vs daily food/weather aggregation",
+      "source": "Assets/Scripts/Services/Survival/SurvivalFoodRuntime.cs",
+      "members": "SurvivalTreatmentRuntime",
+      "currentSourceSha256": "db2a6b4d5ca4b1012546664a6b75630c6291ce3dca5fed18117d32946039603f",
+      "reason": "Treatment owns patient/supply/work/medical completion; unchanged food stock/spoilage and consumable/service authorities reused through explicit ports/current survival state. Native internal/paid actual actor/physical/service cases and4 section JSON/ACK/owner-loss/cancel/retry prove effects once.",
+      "evidence": [
+        "verification-g4-g5-source-r1.json",
+        "verification-g5-execution-r1.json"
+      ]
+    },
+    {
+      "id": "G6",
+      "decision": "verified",
+      "requirement": "Terminal effect/source journal and checkpoint GC vs live apparel orders",
+      "source": "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderRuntime.cs",
+      "members": "ApparelWorkOrderTerminalJournal",
+      "currentSourceSha256": "273513363cc937aa6db4b3664f406b4cbed31d8a896ca83a063276c532b88ece",
+      "reason": "Terminal journal/GC owns effect/source rows, clone and rollback using current shared authority pointer; live order/cancel executor remains cohesive. Native four terminals, seven terminal authority cases and pending/cancel/JSON/retry/GC preserve one revision/receipt.",
+      "evidence": [
+        "verification-g6-g7-source-r1.json",
+        "verification-g6-execution-r1.json"
+      ]
+    },
+    {
+      "id": "G7",
+      "decision": "verified",
+      "requirement": "Physical manual water custody separate; network water/wastewater invariant retained",
+      "source": "Assets/Scripts/Services/Infrastructure/Industrial/FluidNetworkRuntime.cs",
+      "members": "ManualWaterTransferRuntime",
+      "currentSourceSha256": "c7f41bd2227bb1484584ee4f5554e5a825b6201782c97bedef8b41018cbf3948",
+      "reason": "Manual physical->fluid->ACK transaction owns custody/retry through same state store and existing physical/observation owners. Native actual repository/manual staged conflict/ACK/JSON and autonomous flow/filth conservation/recovery prove boundary.",
+      "evidence": [
+        "verification-g6-g7-source-r1.json",
+        "verification-g7-execution-r1.json"
+      ]
+    },
+    {
+      "id": "G8",
+      "decision": "verified",
+      "requirement": "Unity AbilityWork vs graph construction/invalidation/reinjection",
+      "source": "Assets/Scripts/Services/Character/Ability/AbilityWork.cs",
+      "members": "CharacterWorkModuleRuntime / WorkModules",
+      "currentSourceSha256": "3717bffa29347eeac0495d169c19181ef8e35e8f592a58a7201b874ff3deeef2",
+      "reason": "Existing selector/executor/duty/command graph has one module owner with lazy current dependencies; facade retains Unity/serialized state. Reinjection rebinds selection without cancelling runs/cargo/leases. Current native restock regression proves fresh old-owner carry handoff and selector stability after retirement fix.",
+      "evidence": [
+        "verification-g8-source-r1.json",
+        "verification-g1-restock-execution-r1.json",
+        "verification-final-restock-regression-r1.json"
+      ]
+    },
+    {
+      "id": "G9",
+      "decision": "verified",
+      "requirement": "Trait/evidence transaction and rollback lifetime vs progression state authority",
+      "source": "Assets/Scripts/Services/Character/Core/CharacterProgression.cs",
+      "members": "CharacterTraitInferenceTransaction / ICharacterTraitInferenceAuthority",
+      "currentSourceSha256": "6c92832927fa60df93f1b9005020ab86a0744570bc93ebc39f07b8274d36da8e",
+      "reason": "Transaction owns validation/evidence/fact commit/rollback gate through component authority; no second saved root or copied actor state. Native B83 failed observer/reservation, committed ACK loss, strict frozen JSON/fresh-owner retry, stale callbacks prove rollback/replay.",
+      "evidence": [
+        "verification-g9-source-r1.json",
+        "verification-g9-execution-r1.json"
+      ]
+    },
+    {
+      "id": "G10",
+      "decision": "verified",
+      "requirement": "Host/queue request state and profile admission; cancel/callback exactly once",
+      "source": "Assets/Scripts/Models/AI/Core/LocalLlmRequestQueue.cs",
+      "members": "LocalLlmRequestState / host ownership / scheduler",
+      "currentSourceSha256": "78c96e5c88fffc5494b55266325566405411e9f6961c0612be95d4d9c955a279",
+      "reason": "Queue/running/affinity request authority separated from host OS lifetime and equipment profile admission. Native host ownership/lifecycle16+OS8, request9/component7/Preparation5 show cancellation/late completion/disposal and actual UI lifecycle; no model inference claim.",
+      "evidence": [
+        "verification-g10-host-r3.json",
+        "verification-g10-queue-r3.json"
+      ]
+    }
+  ],
+  "additionalCurrentSources": {
+    "Assets/Scripts/Services/Foundation/Save/DungeonSaveSections.cs": "99b918cc457ab563f9297390c86babd314f31d1cbff280806892a7c02eb0ffe8",
+    "Assets/Scripts/Services/Infrastructure/DungeonGameSaveService.cs": "7dbc5b94c6b7a42899cccd257059cef76a00ebd9db2433f18dc8701714bc4258",
+    "Assets/Scripts/Views/UI/DungeonSaveUi.cs": "86e5c72c1aba3cb0a88bc553aae389fb4cb4f2389091e8b554653485094f84f9",
+    "Assets/Scripts/Services/Character/Work/RestockCargoOperation.cs": "3176d34b8a55d64719c30c155b90345e1c1b28748e1597e72357255c84718548",
+    "Assets/Scripts/Services/Character/Work/WorkRunRuntime.cs": "55ae9574d8158fefab2b5681a052130f47246967993726336c83fe47b1542fc1",
+    "Assets/Scripts/Models/Survival/Core/CharacterConsumablesPolicyRuntime.cs": "fa3fcd53c10a7e70d40044d92164ba4d19ae944e4f5b39bc4b8f8498a5d5b13e",
+    "Assets/Scripts/Models/Survival/Core/CharacterConsumablesSubstanceRuntime.cs": "53f5d90bbf3df7897d30775d979d5c506c3d71ad3c4af61d99f748253c69dff5",
+    "Assets/Scripts/Services/Character/Work/WorkOrderMaterialSupplyRuntime.cs": "2ef497ff696e8b1af022ebacbeaec3bd689568094385c8928f386428346d5bac",
+    "Assets/Scripts/Services/Survival/SurvivalTreatmentRuntime.cs": "23a7d95e2554ddebda3f0e217aeaaee52a578f8809c707aa89bd83ab6b6ce595",
+    "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderTerminalJournal.cs": "71deca13a5871ce52664e0f953409c7e26eff06d028ac2087719c900948f4c66",
+    "Assets/Scripts/Services/Infrastructure/Industrial/ManualWaterTransferRuntime.cs": "bc3c37aeca98bc8627366b940e73672c863db4626bc28428bb0785e0d3559320",
+    "Assets/Scripts/Services/Character/Work/CharacterWorkModuleRuntime.cs": "beaeb2ebd3e7f0dbe71ce94c105aaf03f3e95e79d995326281227424954a959d",
+    "Assets/Scripts/Services/Character/Core/CharacterTraitInferenceTransaction.cs": "f7adb69d9b8bd4e77b18e45fbb7638c85d67ee8dc3ba8a2e6101d27fb271f6f1",
+    "Assets/Scripts/Models/AI/Core/LocalLlmRequestState.cs": "0270baf7116e9d1912a09302835e50eda7d0f06e60352beca49738133a0a068d"
+  },
+  "crossCutting": {
+    "stateAuthority": "Existing definition/runtime/DTO boundaries and one mutable domain owner; restored marker is derived from route receipt, not new saved authority.",
+    "failure": "No new fallback/default result/validator weakening; invalid arrival fixture rejected, duplicate lifetime fixed after commit, missing restored entry spawner explicit hook failure participates in existing F2 applied-recovery contract.",
+    "serialization": "Final runtime5 changes no DTO fields/schema versions/asset or MonoScript GUID changes; source/meta/assets binding and actual official104-section restores preserved.",
+    "cycles": "Only actual ownership/constructor/lifetime dependency directions repaired. No claim that every SCC or class over a line threshold was eliminated.",
+    "compileAndActual": "Current Runtime+Editor native40.446704s/CS0, cache-bound official faction7 and related restock6+baseline/8cancels/2live replacements PASS; prior scoped target bodies unchanged except related retirement now rerun.",
+    "interference": "Only isolated noninteractive station/desktop path; every run OS probe; memory guard unchanged; owned r3 job stopped, source-frozen r4 PASS; no user app/focus/input change.",
+    "documentsAndIndex": "PENDING final authoring/links/diff/related index close before complete.",
+    "conditional20": "PENDING completion-review-conditional-r1.json"
+  },
+  "preservedUnrelatedFailure": "Optional broad IndustrialInfrastructure RunAll hardcoded expected building count36 vs authored38 fails before fluid checks; original assertion/evidence preserved; not a required gate for this scoped structure goal. Targeted fluid native checks passed.",
+  "goalComplete": false,
+  "conditionalReview": {
+    "receipt": "completion-review-conditional-r1.json",
+    "verified": 20,
+    "needsWork": 0,
+    "uncertain": 0
+  },
+  "goalCompleteMeaning": "This scoped review does not decide whole-goal/tool completion; completion-audit-final-r1.json is the final authority."
+}

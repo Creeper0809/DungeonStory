@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
 
@@ -8,6 +9,9 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
 {
     private readonly CharacterActor actor;
     private IBuildingShoppingVisitorPort buildingShoppingVisitorPort;
+    private object workerPoseOwner;
+    private int workerPoseLayerRevision;
+    private int workerPoseMovementVersion;
 
     public CharacterBuildingVisitorAdapter(CharacterActor actor)
     {
@@ -66,7 +70,6 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
     private AIBrain Brain => actor.Brain;
     private Transform transform => actor.transform;
     private GameObject gameObject => actor.gameObject;
-    private string name => actor.name;
     private IWorldItemStackRuntime WorldItemStackRuntime =>
         actor.WorldItemStackRuntime;
 
@@ -94,8 +97,8 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
             amount,
             duration,
             stackLimit);
-    private void AddActivity(CharacterActivityEvent activity) =>
-        actor.AddActivity(activity);
+    private void AddActivity(CharacterActivityEvent activity, int absoluteDay = 0) =>
+        actor.AddActivity(activity, absoluteDay);
     private void ChangesStat(CharacterCondition condition, float amount) =>
         actor.ChangesStat(condition, amount);
 
@@ -105,9 +108,13 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
         {
             bool internalStaff = CharacterWorkRoleUtility.TryGetWork(actor, out _);
             CharacterAiPersonality personality = Identity?.Data?.aiPersonality;
+            TryGetAbility(out AbilityWork work);
+            IReadOnlyList<string> activeConditionIds =
+                work?.GetActiveGameplayEffectConditionIds()
+                ?? System.Array.Empty<string>();
             return new BuildingVisitorSnapshot(
                 Identity?.PersistentId ?? string.Empty,
-                Identity?.DisplayName ?? name,
+                actor.BuildingDisplayName,
                 transform.position,
                 gameObject != null
                     && gameObject.scene.IsValid()
@@ -127,7 +134,16 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
                 GetNeed(CharacterCondition.FUN, 50f),
                 GetNeed(CharacterCondition.SLEEP, 50f),
                 GetNeed(CharacterCondition.EXCRETION, 50f),
-                GetNeed(CharacterCondition.HYGIENE, 50f));
+                GetNeed(CharacterCondition.HYGIENE, 50f),
+                Stats?.CurrentHealth ?? 0f,
+                Stats?.MaxHealth ?? 0f,
+                Stats?.InjurySeverity ?? 0f,
+                activeConditionIds
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .Select(value => value.Trim())
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(value => value, StringComparer.Ordinal)
+                    .ToArray());
         }
     }
 
@@ -227,8 +243,65 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
             : EmptyBuildingPortRoutine();
     }
 
-    void IBuildingVisitorPort.SetWorldPosition(Vector3 position) =>
+    IEnumerator IBuildingVisitorPort.MoveToWithResult(
+        Vector3 position, float speed, object expectedAction, Action<string> completed)
+    {
+        if (completed == null)
+            throw new ArgumentNullException(nameof(completed));
+        AbilityMove movement = GetAbility<AbilityMove>();
+        if (movement == null)
+        {
+            completed("worker-movement-unavailable");
+            yield break;
+        }
+        int version = movement.MovementOperationVersionForDiagnostics;
+        yield return movement.Move2PosBySpeed(position, speed, expectedAction as AIAction);
+        string failure = actor == null || !actor.IsBuildingInteractionAvailable
+            ? "worker-actor-unavailable"
+            : version != movement.MovementOperationVersionForDiagnostics
+                ? "worker-movement-replaced"
+                : expectedAction != null && (!ReferenceEquals(Brain?.bestAction, expectedAction)
+                    || Brain.isBestActionEnd)
+                    ? "worker-action-replaced"
+                    : movement.LastGridMoveFailureReason != GridMoveFailureReason.None
+                        ? "worker-movement-" + movement.LastGridMoveFailureReason
+                        : transform.position != position
+                            ? "worker-movement-endpoint-not-reached"
+                            : string.Empty;
+        completed(failure);
+    }
+
+    void IBuildingVisitorPort.BeginWorkerPose(object allocation)
+    {
+        if (allocation == null)
+            throw new ArgumentNullException(nameof(allocation));
+        if (actor.VisualLayerRevision < 0)
+            throw new InvalidOperationException("worker-pose-visual-unavailable");
+        ChangeLayer("DungeonMiddleObject");
+        workerPoseLayerRevision = actor.VisualLayerRevision;
+        workerPoseMovementVersion = GetAbility<AbilityMove>()?.MovementOperationVersionForDiagnostics ?? -1;
+        workerPoseOwner = allocation;
+    }
+
+    void IBuildingVisitorPort.EndWorkerPose(object allocation, Vector3? restoredPosition)
+    {
+        if (!ReferenceEquals(workerPoseOwner, allocation))
+            return;
+        workerPoseOwner = null;
+        if (actor == null || actor.VisualLayerRevision != workerPoseLayerRevision)
+            return;
+        if (restoredPosition.HasValue
+            && (GetAbility<AbilityMove>()?.MovementOperationVersionForDiagnostics ?? -1)
+                == workerPoseMovementVersion)
+            transform.position = restoredPosition.Value;
+        ChangeLayer("Default");
+    }
+
+    void IBuildingVisitorPort.SetWorldPosition(Vector3 position)
+    {
+        workerPoseOwner = null;
         transform.position = position;
+    }
 
     void IBuildingVisitorPort.HideForTraversal(float failSafeDelay) =>
         HideForTraversal(failSafeDelay);
@@ -236,8 +309,11 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
     void IBuildingVisitorPort.RestoreTraversalVisibility() =>
         RestoreTraversalVisibility();
 
-    void IBuildingVisitorPort.ChangeLayer(string layerName) =>
+    void IBuildingVisitorPort.ChangeLayer(string layerName)
+    {
+        workerPoseOwner = null;
         ChangeLayer(layerName);
+    }
 
     void IBuildingVisitorPort.FaceRight() => Flip(CharacterFacing.RIGHT);
 
@@ -266,7 +342,7 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
                 reasonCode: activity.ReasonCode,
                 value: activity.Value,
                 quantity: activity.Quantity,
-                bubbleEligible: activity.BubbleEligible));
+                bubbleEligible: activity.BubbleEligible), activity.AbsoluteDay);
             return;
         }
 
@@ -279,7 +355,7 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
             reasonCode: activity.ReasonCode,
             value: activity.Value,
             quantity: activity.Quantity,
-            bubbleEligible: activity.BubbleEligible));
+            bubbleEligible: activity.BubbleEligible), activity.AbsoluteDay);
     }
 
     void IBuildingVisitorPort.RememberFacilityExperience(
@@ -294,6 +370,25 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
     }
 
     void IBuildingVisitorPort.ApplyNeedRecovery(
+        BuildingNeedRecoverySnapshot recovery)
+    {
+        ApplyNeedRecovery(recovery);
+    }
+
+    BuildingNeedRecoveryResult IBuildingVisitorPort.ApplyNeedRecoveryDetailed(
+        BuildingNeedRecoverySnapshot recovery)
+    {
+        string beforeRestKey = Stats?.LastRestOutcomeResultKey ?? string.Empty;
+        ApplyNeedRecovery(recovery);
+        string afterRestKey = Stats?.LastRestOutcomeResultKey ?? string.Empty;
+        return new BuildingNeedRecoveryResult(
+            !string.IsNullOrWhiteSpace(afterRestKey)
+            && !string.Equals(beforeRestKey, afterRestKey, StringComparison.Ordinal)
+                ? new[] { afterRestKey }
+                : System.Array.Empty<string>());
+    }
+
+    private void ApplyNeedRecovery(
         BuildingNeedRecoverySnapshot recovery)
     {
         if (recovery.Mood != 0f)
@@ -375,7 +470,8 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
                 meal.OperationId.Value,
                 string.Join(",", meal.Parameters),
                 IsBenignSatisfiedMealResult(meal),
-                IsRetryableUnavailableMealResult(meal));
+                IsRetryableUnavailableMealResult(meal),
+                meal.OutcomeResultKey);
             return consumed;
         }
 
@@ -405,7 +501,8 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
                 meal.OperationId.Value,
                 string.Join(",", meal.Parameters),
                 IsBenignSatisfiedMealResult(meal),
-                IsRetryableUnavailableMealResult(meal));
+                IsRetryableUnavailableMealResult(meal),
+                meal.OutcomeResultKey);
             // A false return is a resolved operation failure, not a missing
             // result. Preserve its typed parameters so the facility, AI
             // blackboard, and activity trace expose the actual commit cause.
@@ -466,7 +563,8 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
                 consumed ? string.Empty : substance.FailureCode.ToString(),
                 substance.DisplayName,
                 substance.BecameAddicted,
-                substance.Overdosed);
+                substance.Overdosed,
+                substance.OutcomeResultKey);
             return consumed;
         }
 
@@ -484,10 +582,29 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
         IBuildingWorldEntryPort facility,
         string activityId)
     {
+        _ = ApplyRoomExperienceDetailed(
+            roomExperienceRuntime,
+            facility,
+            activityId);
+    }
+
+    BuildingRoomExperienceResult IBuildingVisitorPort.ApplyRoomExperienceDetailed(
+        object roomExperienceRuntime,
+        IBuildingWorldEntryPort facility,
+        string activityId) =>
+        ApplyRoomExperienceDetailed(roomExperienceRuntime, facility, activityId);
+
+    private BuildingRoomExperienceResult ApplyRoomExperienceDetailed(
+        object roomExperienceRuntime,
+        IBuildingWorldEntryPort facility,
+        string activityId)
+    {
         if (roomExperienceRuntime is not IRoomEnvironmentExperienceService runtime
             || facility is not BuildableObject building)
         {
-            return;
+            return new BuildingRoomExperienceResult(
+                false,
+                System.Array.Empty<string>());
         }
 
         RoomExperienceActivity activity = string.Equals(
@@ -496,7 +613,13 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
             StringComparison.Ordinal)
                 ? RoomExperienceActivity.Shopping
                 : RoomExperienceActivity.FacilityUse;
-        runtime.Apply(new RoomEnvironmentExperienceEvent(actor, building, activity));
+        RoomEnvironmentExperienceApplyResult result = runtime.ApplyDetailed(
+            new RoomEnvironmentExperienceEvent(actor, building, activity));
+        return new BuildingRoomExperienceResult(
+            result.Applied,
+            string.IsNullOrWhiteSpace(result.OutcomeResultKey)
+                ? System.Array.Empty<string>()
+                : new[] { result.OutcomeResultKey });
     }
 
     void IBuildingVisitorPort.ApplyFacilityUseCompleted(

@@ -492,10 +492,11 @@ public static class ProductionPreparedOutputRoutingAuthorityDebugScenarios
             "immutable batch query lost exact physical route receipt custody");
 
         ProductionPreparedOutputRoutingSaveData saved = authority.Capture();
-        Require(saved.version == 8
+        Require(saved.version == ProductionPreparedOutputRoutingSaveData.CurrentVersion
+                && ProductionPreparedOutputRoutingSaveData.CurrentVersion == 9
                 && saved.batches.Single().totalDeclaredLossMassGrams == 90L
                 && saved.batches.Single().nonPhysicalDispositions.Count == 1,
-            "routing save omitted the frozen non-physical disposition receipt");
+            "routing V9 save omitted the frozen non-physical disposition receipt");
         ProductionPreparedOutputRoutingSaveData tamperedDisposition =
             authority.Capture();
         tamperedDisposition.batches.Single().nonPhysicalDispositions.Single()

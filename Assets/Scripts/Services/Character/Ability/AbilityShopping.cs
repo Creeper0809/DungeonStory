@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 
@@ -13,6 +15,7 @@ public enum ShoppingVisitOutcome
     Failed = 3,
     Abandoned = 4
 }
+
 
 public class AbilityShopping : CharacterAbility
 {
@@ -33,6 +36,11 @@ public class AbilityShopping : CharacterAbility
     private IRandomStreamProvider randomStreamProvider;
     private IGameClock gameClock;
     private IGameEventBus gameEventBus;
+    private IDomainFactPublisher purchaseFacts;
+    private IDomainFactRecoveryPublisher purchaseRecovery;
+    private bool retailTransactionActive;
+    private IGameSessionStateProvider gameDataProvider;
+    private ICharacterVisitorExitOutcomeRuntime visitorExitOutcomes;
     private Predicate<BuildableObject> canVisitBuildingPredicate;
     private float decisionStateCapturedAt = float.NegativeInfinity;
     private int decisionStateVisitCount = int.MinValue;
@@ -43,11 +51,14 @@ public class AbilityShopping : CharacterAbility
     private Coroutine shoppingRoutine;
     private bool shoppingExecutionActive;
     private AIAction activeShoppingAction;
+    private float nextFailedCleanupRetryAt;
     private BuildableObject activeShoppingTarget;
     private Action activeShoppingTargetDestroyedHandler;
     private int committedPurchaseCount;
     private long committedPurchaseMassGrams;
     private RetailStockLotSnapshot lastCommittedPurchaseLot;
+    private readonly List<RetailPurchaseRecoverySaveData>
+        pendingRetailPurchases = new();
 #if UNITY_EDITOR
     public Action<AIAction> DebugBeforeShoppingRoutineStart;
 #endif
@@ -96,6 +107,27 @@ public class AbilityShopping : CharacterAbility
             ?? throw new ArgumentNullException(nameof(gameEventBus));
     }
 
+    [Inject]
+    public void ConstructRetailPurchaseFacts(
+        IDomainFactPublisher purchaseFacts,
+        IDomainFactRecoveryPublisher purchaseRecovery,
+        IGameSessionStateProvider gameDataProvider)
+    {
+        RequireRetailIdle();
+        this.purchaseFacts = purchaseFacts ?? throw new ArgumentNullException(nameof(purchaseFacts));
+        this.purchaseRecovery = purchaseRecovery ?? throw new ArgumentNullException(nameof(purchaseRecovery));
+        this.gameDataProvider = gameDataProvider
+            ?? throw new ArgumentNullException(nameof(gameDataProvider));
+    }
+
+    [Inject]
+    public void ConstructVisitorExitOutcome(
+        ICharacterVisitorExitOutcomeRuntime visitorExitOutcomes)
+    {
+        this.visitorExitOutcomes = visitorExitOutcomes
+            ?? throw new ArgumentNullException(nameof(visitorExitOutcomes));
+    }
+
     public override void Initializtion(CharacterSO data)
     {
         base.Initializtion(data);
@@ -109,10 +141,12 @@ public class AbilityShopping : CharacterAbility
         committedPurchaseCount = 0;
         committedPurchaseMassGrams = 0L;
         lastCommittedPurchaseLot = null;
+        pendingRetailPurchases.Clear();
         holdingMoney = data != null
             ? Mathf.Max(0, data.GetHoldingMoney(randomStream))
             : 0;
         spendingProjectionApplied = false;
+        nextFailedCleanupRetryAt = 0f;
     }
     public Stock DetermineBuyingItem(IReadOnlyList<Stock> stocks)
     {
@@ -184,6 +218,14 @@ public class AbilityShopping : CharacterAbility
         if (shop == null)
         {
             failureReason = "상점 없음";
+            return false;
+        }
+
+        if (shop is Shop concreteShop
+            && !TryRecoverPendingRetailPurchases(
+                concreteShop,
+                out failureReason))
+        {
             return false;
         }
 
@@ -268,20 +310,48 @@ public class AbilityShopping : CharacterAbility
         Coroutine started = StartCoroutine(Shopping(activeShoppingAction));
         shoppingRoutine = shoppingExecutionActive ? started : null;
     }
-    private IEnumerator Shopping(AIAction action)
+    internal void ResumeFacilityUse(Facility facility, FacilityUseExecutionState state)
+    {
+        if (shoppingExecutionActive || !isActiveAndEnabled || !gameObject.activeInHierarchy)
+            throw new InvalidOperationException("Facility resume actor is inactive or already executing.");
+        activeShoppingAction = actor.Brain.RestoreFacilityUseAction(facility, state);
+        BeginVisitInteraction(facility);
+        SubscribeToActiveTargetDestruction(activeShoppingAction);
+        shoppingExecutionActive = true;
+        Coroutine started = StartCoroutine(ResumeShoppingAfterRestore(activeShoppingAction));
+        shoppingRoutine = shoppingExecutionActive ? started : null;
+    }
+
+    internal void ResumeShopUse(Shop shop, ShopUseExecutionState state)
+    {
+        if (shoppingExecutionActive || !isActiveAndEnabled || !gameObject.activeInHierarchy)
+            throw new InvalidOperationException("Shop resume actor is inactive or already executing.");
+        activeShoppingAction = actor.Brain.RestoreShopUseAction(shop, state);
+        BeginVisitInteraction(shop);
+        SubscribeToActiveTargetDestruction(activeShoppingAction);
+        shoppingExecutionActive = true;
+        Coroutine started = StartCoroutine(ResumeShoppingAfterRestore(activeShoppingAction));
+        shoppingRoutine = shoppingExecutionActive ? started : null;
+    }
+
+    private IEnumerator ResumeShoppingAfterRestore(AIAction action)
+    {
+        // StartCoroutine advances synchronously. The current frame's delta was
+        // already consumed by the saved execution, and may remain nonzero even
+        // after the load UI pauses Time.timeScale. Bind ownership immediately,
+        // but do not advance any saved timer/effect until a new frame.
+        yield return null;
+        yield return Shopping(action, restored: true);
+    }
+
+    private IEnumerator Shopping(AIAction action, bool restored = false)
     {
         if (action == null || action.destination == null)
         {
             bool destinationWasDestroyed = action != null
                 && !ReferenceEquals(action.destination, null);
-            actor?.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Shopping,
-                CharacterActivityOutcomes.Failed,
-                "쇼핑 실패: 목적지 없음",
-                actionId: "shopping:visit",
-                reasonCode: "missing-destination",
-                sentiment: -0.7f,
-                bubbleEligible: true));
+            if (actor != null) gameEventBus.Publish(new ShoppingActionObservedEvent(
+                actor, ShoppingActionTransition.MissingDestination));
             if (destinationWasDestroyed)
             {
                 FailCurrentShoppingAction(
@@ -308,14 +378,8 @@ public class AbilityShopping : CharacterAbility
         }
         if (move == null || grid == null)
         {
-            actor?.AddActivity(CharacterActivityEvent.Facility(
-                CharacterActivityKinds.Shopping,
-                CharacterActivityOutcomes.Failed,
-                "쇼핑 실패: 이동 정보 없음",
-                action.destination,
-                actionId: "shopping:visit",
-                reasonCode: "missing-movement-context",
-                bubbleEligible: true));
+            if (actor != null) gameEventBus.Publish(new ShoppingActionObservedEvent(
+                actor, ShoppingActionTransition.MissingMovementContext, action.destination));
             FailCurrentShoppingAction(
                 action,
                 AIActionFailure.Create(
@@ -326,7 +390,7 @@ public class AbilityShopping : CharacterAbility
             yield break;
         }
 
-        yield return move.MoveByCurrentBestActionPath();
+        if (!restored) yield return move.MoveByCurrentBestActionPath();
         if (actor == null
             || actor.Brain == null
             || actor.Brain.bestAction != action)
@@ -347,7 +411,7 @@ public class AbilityShopping : CharacterAbility
             yield break;
         }
         Vector2Int actorGridPosition = grid.GetXY(transform.position);
-        if (action.destination.ContainsGridPosition(actorGridPosition)
+        if ((restored || action.destination.ContainsGridPosition(actorGridPosition))
             && action.destination is IInteractable shop)
         {
             BeginVisitInteraction(action.destination);
@@ -397,14 +461,8 @@ public class AbilityShopping : CharacterAbility
         }
         else
         {
-            actor?.AddActivity(CharacterActivityEvent.Facility(
-                CharacterActivityKinds.Shopping,
-                CharacterActivityOutcomes.Failed,
-                "쇼핑 실패: 목적지 도달 실패",
-                action.destination,
-                actionId: "shopping:visit",
-                reasonCode: "destination-unreachable",
-                bubbleEligible: true));
+            if (actor != null) gameEventBus.Publish(new ShoppingActionObservedEvent(
+                actor, ShoppingActionTransition.DestinationUnreachable, action.destination));
             action.ReleaseReservation(actor);
             if (LastVisitOutcome == ShoppingVisitOutcome.InProgress)
             {
@@ -439,8 +497,14 @@ public class AbilityShopping : CharacterAbility
 
     public void StopShopping(string reason)
     {
+        if (currentVisitTarget is Shop pendingShop
+            && pendingShop.CustomerServiceSessionRuntime?.IsReplacedFacility(pendingShop) != true
+            && pendingRetailPurchases.Any(value => value.facilityId == pendingShop.RequirePersistentInstanceId().Value)
+            && !TryRecoverPendingRetailPurchases(pendingShop, out string pendingFailure))
+            throw new InvalidOperationException("Shopping cancellation awaits purchase recovery: " + pendingFailure);
         shoppingExecutionActive = false;
         Coroutine routine = shoppingRoutine;
+        nextFailedCleanupRetryAt = 0f;
         shoppingRoutine = null;
         if (routine != null)
         {
@@ -466,6 +530,38 @@ public class AbilityShopping : CharacterAbility
         }
     }
 
+    private void Update()
+    {
+        // A nested shop iterator can terminate with an exception while this
+        // ability still owns the action. Retry only the exact cancelled cleanup
+        // owner, never the rejected checkout or the entire shopping interaction.
+        AIAction action = activeShoppingAction;
+        if (!shoppingExecutionActive || gameClock == null || gameClock.IsPaused
+            || gameClock.Time < nextFailedCleanupRetryAt || actor?.Brain == null
+            || !ReferenceEquals(actor.Brain.bestAction, action) || action?.destination is not Shop shop)
+            return;
+        ShopUseExecutionState pending = shop.FindActiveShopUse(actor.Identity.PersistentId);
+        if (pending?.IsFailedServiceCompletion != true
+            || !shop.CustomerServiceSessionRuntime.TryGetSessionSnapshot(pending.serviceSessionId, out var session)
+            || !pending.MatchesCancelledSession(session, shop.RequirePersistentInstanceId().Value))
+            return;
+        if (shoppingRoutine != null) StopCoroutine(shoppingRoutine);
+        shoppingRoutine = null;
+        nextFailedCleanupRetryAt = gameClock.Time + 1f;
+        try { shop.ResumeFailedServiceCleanup(actor.BuildingVisitor, pending); }
+        catch (Exception failure)
+        {
+            Debug.LogException(new InvalidOperationException(
+                "Shop failed cleanup remains pending: " + pending.operationId, failure), this);
+            return;
+        }
+        SetVisitOutcome(shop, ShoppingVisitOutcome.Failed);
+        action.ReleaseReservation(actor);
+        CompleteCurrentShoppingAction(action, clearFailures: false,
+            terminalKind: CharacterAiActionTerminalKind.Failed);
+        FinishShoppingRoutine(action);
+    }
+
     private void FinishShoppingRoutine(AIAction expectedAction)
     {
         if (!ReferenceEquals(activeShoppingAction, expectedAction))
@@ -476,6 +572,7 @@ public class AbilityShopping : CharacterAbility
         shoppingRoutine = null;
         shoppingExecutionActive = false;
         activeShoppingAction = null;
+        nextFailedCleanupRetryAt = 0f;
         UnsubscribeFromActiveTargetDestruction();
         currentVisitTarget = null;
     }
@@ -502,7 +599,10 @@ public class AbilityShopping : CharacterAbility
                 return;
             }
 
-            expectedAction.ReleaseReservation(actor);
+            // The target is still alive during its destruction notification.
+            // Stop and release the visit now, before facility state is removed;
+            // EndExpectedAction only notifies the executor and is not an interrupt.
+            StopShopping("shopping-target-destroyed");
             brain.ReportRuntimeActionFailure(
                 AIActionFailure.Create(
                     AIActionFailureKind.Destroyed,
@@ -627,13 +727,36 @@ public class AbilityShopping : CharacterAbility
         mutableVisitedBuildings.Clear();
     }
 
-    public void RestorePersistentState(int savedVisitCount, int savedLookAroundCount, int savedHoldingMoney)
+    public void RestorePersistentState(
+        int savedVisitCount, int savedLookAroundCount, int savedHoldingMoney,
+        IReadOnlyList<RetailPurchaseRecoverySaveData> savedPendingPurchases = null)
     {
+        RequireRetailIdle();
+        var restoredPurchases = new List<RetailPurchaseRecoverySaveData>();
+        foreach (var source in savedPendingPurchases ?? Array.Empty<RetailPurchaseRecoverySaveData>())
+        {
+            source?.Validate();
+            if (source == null || source.buyerId != actor?.Identity?.PersistentId
+                || restoredPurchases.Any(value => value.operationId == source.operationId))
+                throw new InvalidOperationException("Character retail purchase recovery payload is invalid or duplicated.");
+            restoredPurchases.Add(source.Clone());
+        }
+        // Validate the complete candidate before replacing any live owner state.
         visitCount = Mathf.Max(0, savedVisitCount);
         lookAroundCount = Mathf.Max(0, savedLookAroundCount);
         holdingMoney = Mathf.Max(0, savedHoldingMoney);
         spendingProjectionApplied = true;
         mutableVisitedBuildings.Clear();
+        pendingRetailPurchases.Clear();
+        pendingRetailPurchases.AddRange(restoredPurchases);
+    }
+
+    public IReadOnlyList<RetailPurchaseRecoverySaveData> CapturePendingRetailPurchases()
+    {
+        RequireRetailIdle();
+        foreach (var row in pendingRetailPurchases) row.Validate();
+        return pendingRetailPurchases.OrderBy(value => value.operationId, StringComparer.Ordinal)
+            .Select(value => value.Clone()).ToArray();
     }
 
     public bool IsOffDutyStaffVisitor()
@@ -834,15 +957,60 @@ public class AbilityShopping : CharacterAbility
             throw new ArgumentNullException(nameof(commitResult));
         }
 
+        if (expectedFacility is Shop recoveryShop
+            && !TryRecoverPendingRetailPurchases(
+                recoveryShop,
+                out string recoveryFailure))
+        {
+            throw new InvalidOperationException(
+                "Retail purchase recovery is still pending: "
+                + recoveryFailure);
+        }
+
+        ShopUseCartLine executionLine = null;
+        if (!string.IsNullOrEmpty(commitResult.ShopUseOperationId))
+        {
+            if (expectedFacility is not Shop executionShop)
+                throw new InvalidOperationException("Bound retail purchase requires its shop.");
+            executionLine = executionShop.RequirePurchaseLine(commitResult.ShopUseOperationId,
+                commitResult.ShopUseCartIndex, actor.Identity.PersistentId);
+            if (!executionLine.pricingCaptured || executionLine.price != purchaseCost
+                || executionLine.workerId != commitResult.PricingContext.WorkerId
+                || executionLine.priceMultiplier != commitResult.PricingContext.PriceMultiplier
+                || executionLine.modifierProvenance != commitResult.PricingContext.SkillModifierProvenance)
+                throw new InvalidOperationException("Retail purchase price differs from its saved cart line.");
+            if (executionLine.Committed)
+            {
+                commitResult.Commit(executionLine.committedLot);
+                yield break;
+            }
+        }
         EnsureSpendingProjection();
         IShopStockCatalog catalog = shopStockCatalog
             ?? throw new InvalidOperationException($"{nameof(AbilityShopping)} requires {nameof(IShopStockCatalog)} injection.");
-        if (catalog.TryGetSaleItem(item.id, out SaleItem iteminfo))
+        if ((executionLine == null || !executionLine.feedbackStarted)
+            && item != null && catalog.TryGetSaleItem(item.id, out SaleItem iteminfo))
         {
             RequireFloatingIconFeedbackService().Show(this, iteminfo.itemSprite, purchaseFeedbackIconMaxWorldSize);
         }
 
-        yield return PurchaseFeedbackDelay;
+        if (executionLine == null)
+            yield return PurchaseFeedbackDelay;
+        else
+        {
+            if (!executionLine.feedbackStarted)
+            {
+                executionLine.feedbackStarted = true;
+                executionLine.feedbackRemainingSeconds = 0.5f;
+            }
+            while (executionLine.feedbackRemainingSeconds > 0f)
+            {
+                if (!CanCommitShoppingTransaction(expectedAction, expectedFacility)) break;
+                executionLine.feedbackRemainingSeconds = Mathf.Max(0f,
+                    executionLine.feedbackRemainingSeconds - ((Shop)expectedFacility).CustomerGameDeltaTime);
+                yield return null;
+            }
+        }
         if (!CanCommitShoppingTransaction(expectedAction, expectedFacility))
         {
             commitResult.Reject("shopping-action-no-longer-authoritative");
@@ -862,56 +1030,365 @@ public class AbilityShopping : CharacterAbility
             yield break;
         }
 
-        string lotFailure = "retail-lot-unavailable-before-commit";
+        using IDisposable mutation = EnterRetailMutation();
+        if (purchaseFacts == null || purchaseRecovery == null
+            || gameDataProvider == null
+            || !gameDataProvider.TryGetSessionState(out GameSessionState gameData)
+            || gameData?.day == null)
+        {
+            throw new InvalidOperationException(
+                "Retail purchase fact publication or current day is unavailable.");
+        }
         if (expectedFacility is not Shop shop
-            || !shop.TryTakeExactRetailLot(
+            || !shop.TryPreviewExactRetailLotOperationId(
                 item.id,
-                out RetailStockLotSnapshot purchasedLot,
-                out lotFailure))
+                out string previewOperationId))
+        {
+            commitResult.Reject("retail-lot-unavailable-before-outcome-reservation");
+            yield break;
+        }
+
+        string actorId = actor?.Identity?.PersistentId ?? string.Empty;
+        int absoluteDay = Mathf.Max(0, gameData.day.Value);
+        if (actorId.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "Retail purchase requires a persistent buyer identity.");
+        }
+
+        string lotFailure = "retail-lot-unavailable-before-commit";
+        RetailStockLotSnapshot purchasedLot;
+        string unitOperationId;
+        bool lotTaken;
+        lotTaken = shop.TryTakeExactRetailLot(
+            item.id,
+            out purchasedLot,
+            out unitOperationId,
+            out lotFailure);
+        if (!lotTaken)
         {
             commitResult.Reject(string.IsNullOrWhiteSpace(lotFailure)
                 ? "retail-lot-unavailable-before-commit"
                 : lotFailure);
             yield break;
         }
-        if (!shop.TryCommitExactRetailExternalSink(
-                purchasedLot,
-                out string sinkFailure))
+
+        if (!string.Equals(
+                previewOperationId,
+                unitOperationId,
+                StringComparison.Ordinal))
         {
-            if (!shop.TryRestoreTakenExactRetailLot(
-                    purchasedLot,
-                    out string restoreFailure))
+            RestoreRetailLotOrThrow(shop, purchasedLot, "retail-operation-drift");
+            throw new InvalidOperationException(
+                "Retail purchase operation identity drifted before mutation.");
+        }
+
+        int holdingMoneyBefore = holdingMoney;
+        int purchaseCountBefore = committedPurchaseCount;
+        long purchaseMassBefore = committedPurchaseMassGrams;
+        RetailStockLotSnapshot lastLotBefore = lastCommittedPurchaseLot?.Clone();
+        RetailPurchaseRecoverySaveData recovery = null;
+        try
+        {
+            int nextPurchaseCount = checked(committedPurchaseCount + 1);
+            long nextPurchaseMass = checked(
+                committedPurchaseMassGrams
+                + purchasedLot.unitMassGrams * purchasedLot.quantity);
+            if (!IsInternalStaffUse())
             {
-                throw new InvalidOperationException(
-                    $"Retail purchase sink '{purchasedLot.sourceOperationId}' failed and its exact lot could not be restored: {restoreFailure}");
+                holdingMoney -= normalizedCost;
             }
-            commitResult.Reject(string.IsNullOrWhiteSpace(sinkFailure)
-                ? "retail-terminal-sink-failed"
-                : sinkFailure);
-            yield break;
-        }
+            committedPurchaseCount = nextPurchaseCount;
+            committedPurchaseMassGrams = nextPurchaseMass;
+            lastCommittedPurchaseLot = purchasedLot.Clone();
 
-        // Unity coroutines resume on the main thread. Exact lot removal,
-        // payment and receipt publication remain in one no-yield commit
-        // region, so a second customer cannot buy the same physical unit.
-        if (!IsInternalStaffUse())
+            recovery = new RetailPurchaseRecoverySaveData
+            {
+                shopUseOperationId = commitResult.ShopUseOperationId,
+                shopUseCartIndex = commitResult.ShopUseCartIndex,
+                operationId = unitOperationId,
+                buyerId = actorId,
+                facilityId = shop.RequirePersistentInstanceId().Value,
+                absoluteDay = absoluteDay,
+                purchaseCost = IsInternalStaffUse() ? 0 : normalizedCost,
+                buyerMoneyBefore = holdingMoneyBefore,
+                buyerMoneyAfter = holdingMoney,
+                revenueWorkerId = commitResult.PricingContext.WorkerId,
+                revenuePriceMultiplier =
+                    commitResult.PricingContext.PriceMultiplier,
+                revenueSkillModifierProvenance =
+                    commitResult.PricingContext.SkillModifierProvenance,
+                phase = RetailPurchaseRecoveryPhase.LotTaken,
+                lot = purchasedLot.Clone()
+            };
+            pendingRetailPurchases.Add(recovery);
+            if (executionLine != null) executionLine.pendingPurchaseOperationId = unitOperationId;
+        }
+        catch
         {
-            holdingMoney -= normalizedCost;
+            if (recovery == null)
+            {
+                RestoreRetailPurchaseOwnerState(
+                    shop,
+                    purchasedLot,
+                    holdingMoneyBefore,
+                    purchaseCountBefore,
+                    purchaseMassBefore,
+                    lastLotBefore);
+            }
+            throw;
         }
 
-        // Receipt publication is part of the atomic commit. On-buy effects are
-        // post-commit consequences; an effect exception must not make an
-        // already externalized physical lot appear uncommitted.
+        if (!TryAdvanceRetailPurchase(
+                shop,
+                recovery,
+                out string advanceFailure))
+        {
+            throw new InvalidOperationException(
+                "Retail purchase is durably pending recovery at phase '"
+                + recovery.phase + "': " + advanceFailure);
+        }
+
+        CompleteRetailPurchase(shop, recovery, item.onbuy);
         commitResult.Commit(purchasedLot);
-        committedPurchaseCount = checked(committedPurchaseCount + 1);
-        committedPurchaseMassGrams = checked(
-            committedPurchaseMassGrams
-            + purchasedLot.unitMassGrams * purchasedLot.quantity);
-        lastCommittedPurchaseLot = purchasedLot.Clone();
+    }
 
-        foreach(var events in item.onbuy)
+    private void CompleteRetailPurchase(Shop shop, RetailPurchaseRecoverySaveData recovery, OnBuyItemSO[] onBuy)
+    {
+        shop.ValidatePurchaseBinding(recovery);
+        foreach(var events in onBuy ?? Array.Empty<OnBuyItemSO>())
         {
-            events.Onbuy(actor?.BuildingVisitor);
+            try
+            {
+                events?.Onbuy(actor?.BuildingVisitor);
+            }
+            catch (Exception exception) when (
+                exception is not OutOfMemoryException
+                && exception is not StackOverflowException
+                && exception is not AccessViolationException)
+            {
+                Debug.LogError(
+                    "retail-purchase-post-commit-onbuy:"
+                    + exception.GetType().Name);
+            }
+        }
+        shop.RecordPurchaseBinding(recovery);
+        pendingRetailPurchases.Remove(recovery);
+    }
+
+    public bool TryRecoverPendingRetailPurchases(
+        Shop shop,
+        out string failureReason)
+    {
+        if (retailTransactionActive)
+        { failureReason = "retail-local-transaction-active"; return false; }
+        using IDisposable mutation = EnterRetailMutation();
+        return RecoverPendingRetailPurchasesCore(shop, out failureReason);
+    }
+
+    private bool RecoverPendingRetailPurchasesCore(Shop shop, out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (shop == null)
+        {
+            failureReason = "retail-recovery-shop-missing";
+            return false;
+        }
+        string facilityId = shop.RequirePersistentInstanceId().Value;
+        RetailPurchaseRecoverySaveData[] pending = pendingRetailPurchases
+            .OrderBy(value => value.operationId, StringComparer.Ordinal)
+            .ToArray();
+        foreach (RetailPurchaseRecoverySaveData recovery in pending)
+        {
+            if (!string.Equals(
+                    recovery.facilityId,
+                    facilityId,
+                    StringComparison.Ordinal))
+            {
+                failureReason = "retail-recovery-awaiting-facility:"
+                    + recovery.facilityId;
+                return false;
+            }
+            if (!TryAdvanceRetailPurchase(
+                    shop,
+                    recovery,
+                    out failureReason))
+            {
+                return false;
+            }
+            if (!shop.TryGetSaleItem(recovery.lot.saleItemId, out SaleItem definition) || definition == null)
+                throw new InvalidOperationException("Recovered retail purchase has no authored product callbacks.");
+            CompleteRetailPurchase(shop, recovery, definition.buyevent);
+        }
+        return true;
+    }
+
+    private bool TryAdvanceRetailPurchase(
+        Shop shop,
+        RetailPurchaseRecoverySaveData recovery,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (!IsValidPendingRetailPurchase(recovery)
+            || shop == null
+            || !string.Equals(
+                recovery.facilityId,
+                shop.RequirePersistentInstanceId().Value,
+                StringComparison.Ordinal))
+        {
+            failureReason = "retail-recovery-contract-invalid";
+            return false;
+        }
+
+        shop.ValidatePurchaseBinding(recovery);
+        if (recovery.phase == RetailPurchaseRecoveryPhase.LotTaken)
+        {
+            if (!shop.TryCommitExactRetailExternalSink(
+                    recovery.lot,
+                    out failureReason))
+            {
+                return false;
+            }
+            recovery.phase = RetailPurchaseRecoveryPhase.PhysicalCommitted;
+        }
+
+        if (recovery.phase == RetailPurchaseRecoveryPhase.PhysicalCommitted)
+        {
+            if (!TryObserveRetailPurchase(recovery, out failureReason)) return false;
+            recovery.phase = RetailPurchaseRecoveryPhase.OutcomeCommitted;
+        }
+
+        if (recovery.phase == RetailPurchaseRecoveryPhase.OutcomeCommitted)
+        {
+            if (!shop.TryCommitExactRetailRevenue(
+                    recovery.operationId,
+                    recovery.buyerId,
+                    recovery.purchaseCost,
+                    out failureReason))
+            {
+                return false;
+            }
+            recovery.phase = RetailPurchaseRecoveryPhase.RevenueCommitted;
+        }
+
+        return recovery.phase == RetailPurchaseRecoveryPhase.RevenueCommitted;
+    }
+
+    private bool TryObserveRetailPurchase(RetailPurchaseRecoverySaveData row, out string failure)
+    {
+        failure = string.Empty;
+        if (purchaseFacts == null || purchaseRecovery == null)
+            throw new InvalidOperationException("Retail purchase fact publication is not injected.");
+        var fact = new RetailPurchaseFact(row);
+        DomainFactDelivery delivery;
+        if (row.publicationKey.Length > 0)
+        {
+            var results = new DomainFactDelivery[1];
+            try
+            {
+                if (!purchaseRecovery.ReplayBatch(
+                    new[] { DomainFactReplay.Create(row.publicationKey, fact) }, results, out failure))
+                    return false;
+                delivery = results[0];
+            }
+            catch (Exception error) when (RecoverableRetailObservation(error))
+            { failure = "retail-observation-recovery-unknown:" + error.Message; return false; }
+        }
+        else
+        {
+            if (!purchaseFacts.TryReserve(fact, out DomainFactLease lease, out failure)) return false;
+            try
+            {
+                if (!lease.IsValid || !RetailPurchaseRecoverySaveData.IsPublicationKey(lease.PublicationKey))
+                { failure = "retail-observation-reservation-invalid"; return false; }
+                row.publicationKey = lease.PublicationKey;
+                try { delivery = purchaseFacts.Publish(lease, fact); }
+                catch (Exception error) when (RecoverableRetailObservation(error))
+                { delivery = DomainFactDelivery.Uncertain("retail-observation-response-unknown:" + error.Message); }
+                // A known rejection did not commit. Unknown ACKs retain their
+                // original key and frozen owner facts for exact saved replay.
+                if (!delivery.MayBeCommitted) row.publicationKey = string.Empty;
+            }
+            finally { purchaseFacts.Cancel(lease); }
+        }
+        if (delivery.Phase is not (DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery)
+            || delivery.OperationKey != row.publicationKey
+            || !RetailPurchaseRecoverySaveData.IsPublicationKey(delivery.PublicationId)
+            || !RetailPurchaseRecoverySaveData.IsFingerprint(delivery.Fingerprint))
+        {
+            failure = "retail-observation-pending:" + delivery.Detail;
+            return false;
+        }
+        row.publicationId = delivery.PublicationId;
+        row.publicationFingerprint = delivery.Fingerprint;
+        return true;
+    }
+
+    private static bool RecoverableRetailObservation(Exception error) => error is not OutOfMemoryException
+        && error is not StackOverflowException && error is not AccessViolationException;
+
+    private static bool IsValidPendingRetailPurchase(RetailPurchaseRecoverySaveData row)
+    {
+        if (row == null) return false;
+        try { row.Validate(); return true; }
+        catch (ArgumentException) { return false; }
+    }
+
+    private void RequireRetailIdle()
+    {
+        if (retailTransactionActive) throw new InvalidOperationException("retail-local-transaction-active");
+    }
+
+    private IDisposable EnterRetailMutation()
+    {
+        RequireRetailIdle();
+        retailTransactionActive = true;
+        return new RetailMutation(this);
+    }
+
+    private sealed class RetailMutation : IDisposable
+    {
+        private AbilityShopping owner;
+        public RetailMutation(AbilityShopping owner) => this.owner = owner;
+        public void Dispose()
+        {
+            if (owner == null) return;
+            owner.retailTransactionActive = false;
+            owner = null;
+        }
+    }
+
+    private void RestoreRetailPurchaseOwnerState(
+        Shop shop,
+        RetailStockLotSnapshot purchasedLot,
+        int holdingMoneyBefore,
+        int purchaseCountBefore,
+        long purchaseMassBefore,
+        RetailStockLotSnapshot lastLotBefore)
+    {
+        holdingMoney = holdingMoneyBefore;
+        committedPurchaseCount = purchaseCountBefore;
+        committedPurchaseMassGrams = purchaseMassBefore;
+        lastCommittedPurchaseLot = lastLotBefore?.Clone();
+        RestoreRetailLotOrThrow(
+            shop,
+            purchasedLot,
+            "retail-outcome-rollback");
+    }
+
+    private static void RestoreRetailLotOrThrow(
+        Shop shop,
+        RetailStockLotSnapshot purchasedLot,
+        string reason)
+    {
+        if (!shop.TryRestoreTakenExactRetailLot(
+                purchasedLot,
+                out string restoreFailure))
+        {
+            throw new InvalidOperationException(
+                "Retail purchase rollback '" + reason
+                + "' could not restore exact lot '"
+                + purchasedLot?.sourceOperationId + "': " + restoreFailure);
         }
     }
 
@@ -949,14 +1426,21 @@ public class AbilityShopping : CharacterAbility
         if (attemptedLooseItemTheftBeforeExit
             || actor == null
             || IsInternalStaffUse()
-            || actor.characterType != CharacterType.Customer
-            || actor.WorldItemStackRuntime == null)
+            || actor.characterType != CharacterType.Customer)
         {
             return false;
         }
 
         attemptedLooseItemTheftBeforeExit = true;
-        if (!actor.WorldItemStackRuntime.TryStealLooseItem(
+        ICharacterVisitorExitOutcomeRuntime exitOutcomes = visitorExitOutcomes
+            ?? throw new InvalidOperationException(
+                $"{nameof(AbilityShopping)} requires "
+                + $"{nameof(ICharacterVisitorExitOutcomeRuntime)} injection.");
+        if (!exitOutcomes.BeginExit(
+                actor,
+                "ai.exit-dungeon",
+                out _)
+            || !exitOutcomes.TryStealLooseItemBeforeExit(
                 actor,
                 4,
                 out WorldItemStackSnapshot stolen,
@@ -965,23 +1449,9 @@ public class AbilityShopping : CharacterAbility
             return false;
         }
 
-        string itemName = !string.IsNullOrWhiteSpace(stolen?.DisplayName)
-            ? stolen.DisplayName
-            : "item";
-        string detail = $"{actor.name} pocketed {itemName} from the floor.";
-        actor.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Shopping,
-            CharacterActivityOutcomes.Damaged,
-            detail,
-            actionId: "crime:floor-theft",
-            targetId: stolen?.StackId ?? string.Empty,
-            targetName: itemName,
-            reasonCode: "floor-theft",
-            value: stolen?.TotalValue ?? 0,
-            quantity: 1,
-            sentiment: -0.5f,
-            bubbleEligible: true));
-        gameEventBus.RaiseAlert("바닥 물품 도난", detail, EventAlertImportance.Medium, "범죄");
+        gameEventBus.Publish(new ShoppingActionObservedEvent(actor, ShoppingActionTransition.LooseItemStolen,
+            itemStackId: stolen?.StackId ?? string.Empty, itemDisplayName: stolen?.DisplayName ?? string.Empty,
+            itemValue: stolen?.TotalValue ?? 0));
         return true;
     }
 

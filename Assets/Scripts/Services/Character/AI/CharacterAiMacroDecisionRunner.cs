@@ -11,19 +11,22 @@ internal sealed class CharacterAiMacroDecisionRunner
     private readonly ICharacterWorldQuery characterWorld;
     private readonly CharacterIdentityEventPublisher identityEvents;
     private readonly IGameCalendar calendar;
+    private readonly ICharacterVandalismCommand vandalismCommands;
 
     public CharacterAiMacroDecisionRunner(
         Func<CharacterActor, string, CharacterAiBranch,
             CharacterAiDecisionTickResult> runSelectedAction,
         ICharacterWorldQuery characterWorld = null,
         CharacterIdentityEventPublisher identityEvents = null,
-        IGameCalendar calendar = null)
+        IGameCalendar calendar = null,
+        ICharacterVandalismCommand vandalismCommands = null)
     {
         this.runSelectedAction = runSelectedAction
             ?? throw new ArgumentNullException(nameof(runSelectedAction));
         this.characterWorld = characterWorld;
         this.identityEvents = identityEvents;
         this.calendar = calendar;
+        this.vandalismCommands = vandalismCommands;
     }
 
     public CharacterAiDecisionTickResult RunGoal(CharacterActor actor)
@@ -108,14 +111,8 @@ internal sealed class CharacterAiMacroDecisionRunner
             return Result(false, "Complain", "Macro goal is missing.", blackboard);
         }
 
-        actor.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Social,
-            CharacterActivityOutcomes.Responded,
-            $"불만을 표현함: {goal.reason}",
-            actionId: "macro:complain",
-            reasonCode: goal.reason,
-            sentiment: -0.65f,
-            bubbleEligible: true));
+        actor.PublishDomainEvent(new CharacterMacroActionTransitionEvent(
+            actor, CharacterMacroActionTransition.ComplaintExpressed, goal.reason));
         PublishComplaintInteraction(actor);
         blackboard.ClearMacroGoal("Complain emitted.");
         return Result(true, "Complain", "Complain.", blackboard);
@@ -158,7 +155,8 @@ internal sealed class CharacterAiMacroDecisionRunner
             hostile ? "insulted" : "public-question",
             hostile ? 4f : 1f,
             CharacterCommandOrigin.Autonomous,
-            Math.Max(0, calendar?.Day ?? 0)));
+            Math.Max(0, calendar?.Day ?? 0),
+            $"social-conflict-operation:{Guid.NewGuid():N}"));
     }
 
     public CharacterAiDecisionTickResult ApplyAvoidFacility(
@@ -215,6 +213,22 @@ internal sealed class CharacterAiMacroDecisionRunner
             return Result(false, "ExitDungeon", "AbilityMove is missing.", blackboard);
         }
 
+        if (!move.CanStartExitDungeon(out AIActionFailure admissionFailure))
+        {
+            actor.Brain?.ReportRuntimeActionFailure(
+                admissionFailure,
+                requestImmediateReplan: false);
+            blackboard.ClearCommitment(
+                CharacterAiInterruptReason.MacroGoalChanged,
+                admissionFailure.Reason);
+            blackboard.ClearMacroGoal(admissionFailure.Reason);
+            return Result(
+                false,
+                "ExitDungeon",
+                admissionFailure.Reason,
+                blackboard);
+        }
+
         if (CharacterWorkRoleUtility.TryGetWork(actor, out _))
         {
             blackboard.ClearMacroGoal(
@@ -226,14 +240,8 @@ internal sealed class CharacterAiMacroDecisionRunner
                 blackboard);
         }
 
-        actor.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Lifecycle,
-            CharacterActivityOutcomes.Departed,
-            $"던전을 떠나기로 함: {goal.reason}",
-            actionId: "macro:exit-dungeon",
-            reasonCode: goal.reason,
-            sentiment: -0.8f,
-            bubbleEligible: true));
+        actor.PublishDomainEvent(new CharacterMacroActionTransitionEvent(
+            actor, CharacterMacroActionTransition.DepartureSelected, goal.reason));
         blackboard.ClearCommitment(
             CharacterAiInterruptReason.MacroGoalChanged,
             "ExitDungeon macro.");
@@ -265,10 +273,9 @@ internal sealed class CharacterAiMacroDecisionRunner
         if (target == null)
         {
             blackboard.ClearMacroGoal("Vandalize target not found.");
-            actor.AddActivity(CharacterActivityEvent.InternalAi(
-                CharacterActivityOutcomes.Failed,
-                "vandalize-target-missing",
-                $"AI macro vandalize failed: target not found - {goal.reason}"));
+            actor.PublishAiDiagnostic(new CharacterAiDiagnosticEvent(actor,
+                CharacterAiDiagnosticTransition.VandalismTargetMissing,
+                "vandalize-target-missing", goal.reason));
             return Result(
                 false,
                 "Vandalize",
@@ -279,27 +286,37 @@ internal sealed class CharacterAiMacroDecisionRunner
         if (!CanVandalize(target, out string failureReason))
         {
             blackboard.ClearMacroGoal($"Vandalize target rejected: {failureReason}");
-            actor.AddActivity(CharacterActivityEvent.InternalAi(
-                CharacterActivityOutcomes.Failed,
-                "vandalize-target-rejected",
-                $"AI macro vandalize failed: {failureReason}"));
+            actor.PublishAiDiagnostic(new CharacterAiDiagnosticEvent(actor,
+                CharacterAiDiagnosticTransition.VandalismTargetRejected,
+                "vandalize-target-rejected", failureReason));
             return Result(false, "Vandalize", failureReason, blackboard);
         }
 
-        target.SetDamaged(true);
+        if (!(vandalismCommands ?? throw new InvalidOperationException(
+                    $"{nameof(CharacterAiMacroDecisionRunner)} requires "
+                    + $"{nameof(ICharacterVandalismCommand)} for vandalism."))
+            .TryCommitDamage(
+                actor,
+                target,
+                FacilityVandalismSourceKind.Macro,
+                goal.reason,
+                Array.Empty<string>(),
+                out _,
+                out string commitFailure))
+        {
+            blackboard.ClearMacroGoal(
+                "Vandalize transaction failed: " + commitFailure);
+            actor.PublishAiDiagnostic(new CharacterAiDiagnosticEvent(actor,
+                CharacterAiDiagnosticTransition.VandalismTransactionFailed,
+                "vandalize-transaction-failed", commitFailure));
+            return Result(false, "Vandalize", commitFailure, blackboard);
+        }
         blackboard.ClearCommitment(
             CharacterAiInterruptReason.MacroGoalChanged,
             "Vandalize macro executed.");
         blackboard.ClearMacroGoal("Vandalize completed.");
-        actor.AddActivity(CharacterActivityEvent.Facility(
-            CharacterActivityKinds.Combat,
-            CharacterActivityOutcomes.Damaged,
-            $"{GetBuildingLabel(target)}을 파손했다",
-            target,
-            actionId: "macro:vandalize",
-            reasonCode: goal.reason,
-            value: 1f,
-            bubbleEligible: true));
+        actor.PublishDomainEvent(new CharacterMacroActionTransitionEvent(
+            actor, CharacterMacroActionTransition.FacilityVandalized, goal.reason, target));
         return Result(true, "Vandalize", GetBuildingLabel(target), blackboard);
     }
 
@@ -429,6 +446,11 @@ internal sealed class CharacterAiMacroDecisionRunner
         else if (target.IsGridMovement)
         {
             failureReason = "Movement buildings cannot be vandalized.";
+        }
+        else if (!FacilityVandalismTargetRules
+                     .IsPersistentAggregateTarget(target))
+        {
+            failureReason = "Target is not a persistent facility aggregate.";
         }
         else if (target.Facility == null)
         {

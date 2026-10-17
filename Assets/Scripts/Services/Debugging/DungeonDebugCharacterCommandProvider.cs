@@ -99,7 +99,7 @@ public sealed class DungeonDebugCharacterCommandProvider : IDungeonDebugCommandP
             CharacterActor actor = context.Target.Character;
             int level = Mathf.Clamp(Mathf.RoundToInt(context.NumericValue), 1, CharacterProgression.MaxLevel);
             bool changed = actor.Progression != null
-                && actor.Progression.EnsureMinimumLevel(level, "디버그 레벨 조정");
+                && actor.Progression.EnsureMinimumLevel(level, CharacterLevelChangeCause.DebugAdjustment);
             return changed
                 ? $"{Name(actor)} 레벨 {actor.Progression.Level}"
                 : $"{Name(actor)}은 이미 레벨 {actor.Progression?.Level ?? 1}";

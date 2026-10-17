@@ -1,0 +1,18 @@
+scope=authored profiles; controlled world port; actual ecology selector and current ecology restore; no natural movement claim
+warm-temperature=PASS
+cold-temperature=PASS
+foul-water-not-clean-water=PASS
+foul-water-below-threshold=PASS
+physical-carcass-no-consumption=PASS
+forbidden-and-empty-carcass=PASS
+survival-water-origin-outside-sensing=PASS
+survival-carcass-outside-sensing=PASS
+temperature-no-global-grid-scan=PASS
+territory-admission=PASS
+no-signal-preserves-general-exploration=PASS
+distance-and-ordinal-tie=PASS
+urgent-thirst-priority=PASS
+flee-and-return-priority=PASS
+lore-only-no-special-attraction=PASS
+current-ecology-restore-recomputes-signal=PASS
+result=PASS; failures=0

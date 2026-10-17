@@ -57,6 +57,7 @@ MonoBehaviour:
     - rid: 7302562995605602976
     - rid: 7737212199327498306
     - rid: 7737212199327498307
+    - rid: 7737212199327498308
   width: 2
   height: 1
   layer: 5
@@ -160,3 +161,22 @@ MonoBehaviour:
           amount: 6
         - itemId: component:machine-parts
           amount: 2
+    - rid: 7737212199327498308
+      type: {class: BuildingEnvironmentalFireAbility, ns: , asm: DungeonStory.Environment}
+      data:
+        abilityId: BuildingEnvironmentalFireAbility
+        acceptedSources: 40
+        fuelCapacity: 1
+        maximumIntensity: 0.8
+        growthPerTick: 0.05
+        fuelConsumedPerTick: 0.1
+        damagePerTick: 12
+        minimumSpreadIntensity: 0.55
+        spreadChancePerTick: 0.1
+        spreadIgnitionMultiplier: 0.5
+        waterSuppressionPerUnit: 0.5
+        electricalIgnitionHeat: 90
+        electricalIgnitionFault: 5
+        electricalIgnitionWindowSeconds: 30
+        electricalIgnitionChancePerWindow: 0.15
+        electricalIgnitionIntensity: 0.25

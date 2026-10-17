@@ -78,6 +78,7 @@ public static class ProductionBuildingViewFactory
         ProductionBillStatus.WaitingForStockSensor => "재고 감지반 필요",
         ProductionBillStatus.WaitingForDistributionRoute => "배출 경로 대기",
         ProductionBillStatus.WaitingForEligibleWorker => "조건에 맞는 작업자 대기",
+        ProductionBillStatus.WaitingForQuality => "목표 품질 도달 불가 · 조건 개선 대기",
         _ => "대기"
     };
 

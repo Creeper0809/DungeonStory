@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "흥행과 권위 장식에 쓰는 거친 장신구이다. 라카쉬 세갈래길의 뼈뿔 장신구에는 재료를 내준 짐승과 만든 무리를 뜻하는 서로 다른 모양의 홈이 새겨진다.",
+  "in_game_description": "흥행과 권위 장식에 쓰는 거친 장신구이다. 라카쉬 세갈래길에서 손질한 뼈뿔 장신구에는 먹을 몫과 만들 몫을 가르는 두 줄 칼집이 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

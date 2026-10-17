@@ -89,6 +89,24 @@ public sealed class ProductionBillSnapshotProjector :
         }
         ProductionBillStatus status;
         DomainFailure blockedFailure = record.blockedFailure;
+        float completedCycleWork = record.completedWork;
+        if (recipe != null && recipe.ProcessKind == ProductionProcessKind.PassiveBatch)
+        {
+            if (record.batchStage == ProductionBatchStage.Finishing)
+                completedCycleWork += (balanceWorkCalculator?.CalculateRecipe(recipe) ?? recipe.RequiredWork)
+                    - ResolveCurrentRequiredWork(record, recipe);
+            else if (record.batchStage == ProductionBatchStage.Processing)
+                completedCycleWork += ResolveCurrentRequiredWork(record, recipe);
+        }
+        float manualCeiling = ProductionAutomaticQualityRules.ResolveScoreCeiling(
+            facility?.AutomaticQualityScoreCeiling ?? 100f, completedCycleWork, record.workerContributions);
+        int manualQuality = ProductionQualityTargetRules.CaptureTier(recipe, facility, items, outputPlanning, manualCeiling);
+        int automaticQuality = ProductionQualityTargetRules.CaptureTier(recipe, facility, items,
+            outputPlanning, facility?.AutomaticQualityScoreCeiling ?? 100f);
+        if (record.outputOutcomeResolved)
+            manualQuality = automaticQuality = ProductionQualityTargetRules.CaptureFrozenTier(record, items);
+        if (blockedFailure.Code == FailureCode.QualityTargetUnreachable)
+            blockedFailure = DomainFailure.None; // Recomputed below; never retain a stale condition error.
         if (record.suspended)
         {
             status = ProductionBillStatus.Suspended;
@@ -99,6 +117,13 @@ public sealed class ProductionBillSnapshotProjector :
             status = ProductionBillStatus.WaitingForStockSensor;
             blockedFailure = new DomainFailure(
                 FailureCode.ProductionStockSensorRequired);
+        }
+        else if (record.batchStage != ProductionBatchStage.Processing
+            && (!record.outputOutcomeResolved || manualQuality >= 0)
+            && ProductionQualityTargetRules.Check(record.minimumCraftQuality, manualQuality).IsFailure)
+        {
+            status = ProductionBillStatus.WaitingForQuality;
+            blockedFailure = ProductionQualityTargetRules.Check(record.minimumCraftQuality, manualQuality);
         }
         else if (record.routePolicies.Count > 0
             && record.routePolicies.All(route => !route.enabled))
@@ -192,6 +217,10 @@ public sealed class ProductionBillSnapshotProjector :
             Position = facility?.Position ?? default,
             WorkTypeId = recipe?.WorkTypeId ?? default,
             Mode = record.mode,
+            MinimumCraftQuality = record.minimumCraftQuality,
+            CurrentManualCraftQuality = manualQuality,
+            CurrentAutomaticCraftQuality = automaticQuality,
+            QualityOutcomeFrozen = record.outputOutcomeResolved,
             Status = status,
             RemainingCycles = record.remainingCycles,
             TargetStock = record.targetStock,

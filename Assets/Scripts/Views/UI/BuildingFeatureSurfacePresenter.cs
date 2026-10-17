@@ -10,6 +10,7 @@ public sealed class BuildingFeatureRoomRow
     public string Summary { get; set; } = string.Empty;
     public string Feedback { get; set; } = string.Empty;
     public bool IsSelected { get; set; }
+    public bool IsResidentEvacuationRoom { get; set; }
 }
 
 public sealed class BuildingFeatureSynthesisMaterialRow
@@ -38,6 +39,8 @@ public sealed class BuildingFeatureEvolutionRow
 
 public sealed class BuildingFeatureSurfaceModel
 {
+    public string ResidentEvacuationSummary { get; set; } = string.Empty;
+    public ResidentEvacuationZoneStatus ResidentEvacuationStatus { get; set; }
     public IReadOnlyList<BuildingFeatureRoomRow> Rooms { get; set; } =
         Array.Empty<BuildingFeatureRoomRow>();
     public IReadOnlyList<BuildingFeatureSynthesisMaterialRow> SynthesisMaterials { get; set; } =
@@ -70,6 +73,10 @@ public interface IBuildingFeatureQueryService
 public interface IBuildingFeatureCommandService
 {
     BuildingFeatureCommandResult InspectRoom(Grid grid, RoomInstance room, string feedback);
+    BuildingFeatureCommandResult DesignateResidentEvacuationRoom(
+        Grid grid,
+        RoomInstance room);
+    BuildingFeatureCommandResult ClearResidentEvacuationRoom();
     BuildingFeatureCommandResult ToggleSynthesisMaterial(BuildableObject facility);
     BuildingFeatureCommandResult ExecuteSynthesis(FacilitySynthesisRecipeSO recipe);
     BuildingFeatureCommandResult ExecuteEvolution(
@@ -86,6 +93,7 @@ public sealed class BuildingFeatureQueryService : IBuildingFeatureQueryService
     private readonly IRoomInspectionService roomInspectionService;
     private readonly FacilitySynthesisRuntime synthesis;
     private readonly FacilityEvolutionRuntime evolution;
+    private readonly IInvasionOwnerEvacuationService residentEvacuation;
 
     public BuildingFeatureQueryService(
         IGridSystemProvider gridSystemProvider,
@@ -93,6 +101,7 @@ public sealed class BuildingFeatureQueryService : IBuildingFeatureQueryService
         IRoomLayoutCache roomLayoutCache,
         IRoomEnvironmentEvaluator roomEnvironmentEvaluator,
         IRoomInspectionService roomInspectionService,
+        IInvasionOwnerEvacuationService residentEvacuation,
         FacilityFeatureSceneRuntimeReferences facilityRuntimes)
     {
         this.gridSystemProvider = gridSystemProvider
@@ -105,6 +114,8 @@ public sealed class BuildingFeatureQueryService : IBuildingFeatureQueryService
             ?? throw new ArgumentNullException(nameof(roomEnvironmentEvaluator));
         this.roomInspectionService = roomInspectionService
             ?? throw new ArgumentNullException(nameof(roomInspectionService));
+        this.residentEvacuation = residentEvacuation
+            ?? throw new ArgumentNullException(nameof(residentEvacuation));
         facilityRuntimes = facilityRuntimes
             ?? throw new ArgumentNullException(nameof(facilityRuntimes));
         synthesis = facilityRuntimes.Synthesis
@@ -125,6 +136,8 @@ public sealed class BuildingFeatureQueryService : IBuildingFeatureQueryService
 
         return new BuildingFeatureSurfaceModel
         {
+            ResidentEvacuationSummary = residentEvacuation.ResidentEvacuationStatusText,
+            ResidentEvacuationStatus = residentEvacuation.ResidentZoneStatus,
             Rooms = CaptureRooms(facilities),
             SynthesisMaterials = CaptureSynthesisMaterials(facilities, synthesis),
             SynthesisRecipes = CaptureSynthesisRecipes(synthesis),
@@ -177,7 +190,9 @@ public sealed class BuildingFeatureQueryService : IBuildingFeatureQueryService
                         + $"넓이 {environment.Spaciousness:0} · 미관 {environment.Beauty:0} · "
                         + $"청결 {environment.Cleanliness:0} · 인상도 {environment.Impressiveness:0}",
                     Feedback = $"방 {room.Id} 성향: {roleText} / 인상도 {environment.Impressiveness:0}",
-                    IsSelected = selected
+                    IsSelected = selected,
+                    IsResidentEvacuationRoom =
+                        residentEvacuation.IsResidentEvacuationRoom(grid, room)
                 });
             }
         }
@@ -315,13 +330,17 @@ public sealed class BuildingFeatureCommandService : IBuildingFeatureCommandServi
     private readonly IRoomInspectionService roomInspectionService;
     private readonly FacilitySynthesisRuntime synthesis;
     private readonly FacilityEvolutionRuntime evolution;
+    private readonly IInvasionOwnerEvacuationService residentEvacuation;
 
     public BuildingFeatureCommandService(
         IRoomInspectionService roomInspectionService,
+        IInvasionOwnerEvacuationService residentEvacuation,
         FacilityFeatureSceneRuntimeReferences facilityRuntimes)
     {
         this.roomInspectionService = roomInspectionService
             ?? throw new ArgumentNullException(nameof(roomInspectionService));
+        this.residentEvacuation = residentEvacuation
+            ?? throw new ArgumentNullException(nameof(residentEvacuation));
         facilityRuntimes = facilityRuntimes
             ?? throw new ArgumentNullException(nameof(facilityRuntimes));
         synthesis = facilityRuntimes.Synthesis
@@ -343,6 +362,28 @@ public sealed class BuildingFeatureCommandService : IBuildingFeatureCommandServi
         return new BuildingFeatureCommandResult(
             shown,
             shown ? feedback : "현재 화면에서 이 방을 표시할 수 없습니다.");
+    }
+
+    public BuildingFeatureCommandResult DesignateResidentEvacuationRoom(
+        Grid grid,
+        RoomInstance room)
+    {
+        bool succeeded = residentEvacuation.TryDesignateResidentEvacuationRoom(
+            grid,
+            room,
+            out string failureReason);
+        return new BuildingFeatureCommandResult(
+            succeeded,
+            succeeded ? "주민 대피 구역을 지정했습니다." : failureReason);
+    }
+
+    public BuildingFeatureCommandResult ClearResidentEvacuationRoom()
+    {
+        bool succeeded = residentEvacuation.ClearResidentEvacuationRoom(
+            out string failureReason);
+        return new BuildingFeatureCommandResult(
+            succeeded,
+            succeeded ? "주민 대피 구역 지정을 해제했습니다." : failureReason);
     }
 
     public BuildingFeatureCommandResult ToggleSynthesisMaterial(
@@ -433,15 +474,34 @@ public sealed class BuildingFeatureSurfacePresenter : IFeatureSurfaceTabPresente
         }
 
         BuildingFeatureSurfaceModel model = queryService.Capture();
-        PresentRooms(view, model.Rooms);
+        PresentRooms(view, model);
         PresentSynthesis(view, model);
         PresentEvolution(view, model);
     }
 
     private void PresentRooms(
         IFeatureSurfaceView view,
-        IReadOnlyList<BuildingFeatureRoomRow> rooms)
+        BuildingFeatureSurfaceModel model)
     {
+        IReadOnlyList<BuildingFeatureRoomRow> rooms = model.Rooms;
+        view.AddSection("주민 대피 구역", model.ResidentEvacuationSummary);
+        if (model.ResidentEvacuationStatus != ResidentEvacuationZoneStatus.None)
+        {
+            view.AddDataCard(
+                "P1Action_ResidentEvacuationClear",
+                model.ResidentEvacuationStatus == ResidentEvacuationZoneStatus.LostByTopology
+                    ? "유실된 대피 구역"
+                    : "현재 대피 구역",
+                model.ResidentEvacuationSummary,
+                "지정 해제",
+                () =>
+                {
+                    view.ShowFeedback(
+                        commandService.ClearResidentEvacuationRoom().Message);
+                    view.RequestRefresh();
+                },
+                CompactCardHeight);
+        }
         view.AddSection(
             "방 경계와 배치 성향",
             $"정식 방 {rooms.Count}개 / 폐쇄 {rooms.Count((row) => row.Room.IsClosed)}개 / "
@@ -455,16 +515,37 @@ public sealed class BuildingFeatureSurfacePresenter : IFeatureSurfaceTabPresente
         for (int i = 0; i < rooms.Count; i++)
         {
             BuildingFeatureRoomRow row = rooms[i];
-            view.AddDataCard(
+            BuildingFeatureRoomRow captured = row;
+            view.AddControlCard(
                 $"P1Action_RoomInspect_{i}",
                 row.Title,
                 row.Summary,
-                row.IsSelected ? "선택됨" : "성향 확인",
-                () => view.ShowFeedback(
-                    commandService.InspectRoom(
-                        row.Grid,
-                        row.Room,
-                        row.Feedback).Message),
+                Array.Empty<FeatureSurfaceStepper>(),
+                new[]
+                {
+                    new FeatureSurfaceAction(
+                        "Inspect",
+                        row.IsSelected ? "선택됨" : "성향 확인",
+                        () => view.ShowFeedback(
+                            commandService.InspectRoom(
+                                captured.Grid,
+                                captured.Room,
+                                captured.Feedback).Message)),
+                    new FeatureSurfaceAction(
+                        "Evacuation",
+                        row.IsResidentEvacuationRoom ? "대피 구역 해제" : "대피 구역 지정",
+                        () =>
+                        {
+                            BuildingFeatureCommandResult result =
+                                captured.IsResidentEvacuationRoom
+                                    ? commandService.ClearResidentEvacuationRoom()
+                                    : commandService.DesignateResidentEvacuationRoom(
+                                        captured.Grid,
+                                        captured.Room);
+                            view.ShowFeedback(result.Message);
+                            view.RequestRefresh();
+                        })
+                },
                 row.IsSelected ? 154f : 132f);
         }
     }

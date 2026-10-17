@@ -1,0 +1,6 @@
+result=FAIL
+System.InvalidOperationException: Actual physical emergency dietary violation was not committed exactly once.
+  at Wim040ObservedIncidentLiveRunner+<Run>d__8.MoveNext () [0x00cd9] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Run\Editor\Wim040ObservedIncidentLiveRunner.cs:221 
+  at Wim040ObservedIncidentLiveRunner+<Observe>d__7.MoveNext () [0x0004b] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Run\Editor\Wim040ObservedIncidentLiveRunner.cs:57 
+scope=real Orc Customer spawn/entry and physical emergency field-meal command; Vegan/hunger and source meal prepared in disposable world. Not natural restaurant scheduling, tribal taboo ingredient, medical treatment, other six causes or full WIM040 completion. Invalid replay bus inputs are controlled negative probes.
+cleanup=paused disposable main Play; operator stops; disk persistence disabled before party selection

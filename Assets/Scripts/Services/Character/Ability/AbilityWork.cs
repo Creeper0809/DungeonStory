@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 
@@ -9,7 +10,6 @@ public class AbilityWork : CharacterAbility
 {
     private static readonly IFloatingIconFeedbackService FallbackFloatingIconFeedbackService =
         new AbilityWorkNoopFloatingIconFeedbackService();
-    private const string WorkAccidentRandomStreamId = "character:work-accident";
 
     public enum DutyState
     {
@@ -38,13 +38,13 @@ public class AbilityWork : CharacterAbility
     [SerializeField, Min(0.5f)] private float routineOperateShiftSeconds = 45f;
     [SerializeField, Min(0f)] private float routineOperateCooldownSeconds = 4f;
 
+    private CharacterWorkModuleRuntime workModules;
+    private CharacterWorkModuleRuntime WorkModules =>
+        workModules ??= new CharacterWorkModuleRuntime(this);
+
     private AbilitySchedule schedule;
     private FacilityWorkType assignedWorkType = FacilityWorkType.None;
-    private WorkTargetSelector targetSelector;
-    private WorkTaskExecutor taskExecutor;
-    private WorkDutyController dutyController;
-    private WorkCommandHandler commandHandler;
-    private IRandomStream workAccidentRandom;
+
     private IBlueprintResearchWorkService blueprintResearchWorkService;
     private IStaffDiscontentRuntimeService staffDiscontentRuntimeService;
     private IFloatingIconFeedbackService floatingIconFeedbackService;
@@ -52,34 +52,9 @@ public class AbilityWork : CharacterAbility
     private IFacilityCandidateCache facilityCandidateCache;
     private IRoomEnvironmentQuery roomEnvironmentQuery;
     private IExteriorZoneQuery exteriorZoneQuery;
-    private IWorkExecutionHandlerRegistry workExecutionHandlerRegistry;
-    private IWorkPolicyRegistry workPolicyRegistry;
-    private ICharacterNeedDefinitionCatalog needDefinitionCatalog;
-    private IWorkOrderRuntime workOrderRuntime;
-    private IPaidFacilityContractRuntime paidFacilityContracts;
-    private IEnvironmentWorkPolicy environmentWorkPolicy;
-    private IDungeonDebugRuleQuery debugRules;
-    private ICharacterEnvironmentWorkContext characterEnvironment;
-    private IEnvironmentalWorkwearCommand environmentalWorkwearCommands;
-    private IWorkAmountCalculator workAmountCalculator;
-    private ICaptiveLaborQuery captiveLaborQuery;
-    private IGameClock gameClock;
-    private IGameCalendar gameCalendar;
-    private ICharacterProficiencyCommand proficiencyCommands;
-    private ICharacterProficiencyQuery proficiencyQuery;
-    private ICombatEquipmentRuntime combatEquipmentRuntime;
+
     private IResourceStockPolicyQuery resourceStockPolicies;
-    private IDefenseEngagementRuntime defenseEngagementRuntime;
-    private IRoomEnvironmentExperienceService roomEnvironmentExperienceService;
-    private CharacterIdentityEventPublisher identityEvents;
-    private ICharacterPerformanceQuery performance;
-    private CharacterWorkPerformanceContextResolver performanceContext;
-    private IAnatomyHealthRuntime anatomyHealth;
-    private ICharacterSpeciesCommand speciesCommands;
-    private IEmergencyWorkAccountingService emergencyWorkAccounting;
-    private ISettlementLaborAccountingService settlementLaborAccounting;
-    private IReservedItemTransferService reservedItemTransfers;
-    private ICharacterSettlementStandingQuery settlementStandings;
+
     private bool isScheduleBound;
     private float routineOperateCooldownUntil;
     private Coroutine activeWorkRoutine;
@@ -164,7 +139,7 @@ public class AbilityWork : CharacterAbility
             conditions.Add("work:on-schedule");
         }
 
-        float now = gameClock?.Time ?? -1f;
+        float now = WorkModules.GameClock?.Time ?? -1f;
         if (isWorking
             && activeWorkStartedAt >= 0f
             && now >= activeWorkStartedAt
@@ -188,7 +163,7 @@ public class AbilityWork : CharacterAbility
             && assignedShop?.BuildingData?
                 .GetAbility<BuildingEquipmentCraftingAbility>()
                 is BuildingEquipmentCraftingAbility equipmentCrafting
-            && combatEquipmentRuntime?.TryGetNextCraftMaterialContext(
+            && WorkModules.CombatEquipmentRuntime?.TryGetNextCraftMaterialContext(
                 equipmentCrafting.CraftableEquipmentIds,
                 actor,
                 out _,
@@ -206,7 +181,7 @@ public class AbilityWork : CharacterAbility
     {
         if (!workTypeId.IsValid) return;
         lastFailedWorkTypeId = workTypeId;
-        lastFailedWorkAt = gameClock?.Time ?? 0f;
+        lastFailedWorkAt = WorkModules.GameClock?.Time ?? 0f;
     }
 
     internal void RecordSuccessfulWorkAttempt(WorkTypeId workTypeId)
@@ -229,7 +204,7 @@ public class AbilityWork : CharacterAbility
 
     internal bool IsRecentRetryCandidate(WorkTypeId workTypeId)
     {
-        float now = gameClock?.Time ?? -1f;
+        float now = WorkModules.GameClock?.Time ?? -1f;
         return workTypeId.IsValid
             && workTypeId == lastFailedWorkTypeId
             && lastFailedWorkAt >= 0f
@@ -242,7 +217,7 @@ public class AbilityWork : CharacterAbility
         return building?.BuildingData?
                 .GetAbility<BuildingEquipmentCraftingAbility>()
                 is BuildingEquipmentCraftingAbility equipmentCrafting
-            && combatEquipmentRuntime?.TryGetNextCraftMaterialContext(
+            && WorkModules.CombatEquipmentRuntime?.TryGetNextCraftMaterialContext(
                 equipmentCrafting.CraftableEquipmentIds,
                 actor,
                 out _,
@@ -254,8 +229,8 @@ public class AbilityWork : CharacterAbility
     public void AwardCompletedCombatTraining(BuildableObject building)
     {
         if (building?.BuildingData == null
-            || proficiencyCommands == null
-            || gameCalendar == null
+            || WorkModules.ProficiencyCommands == null
+            || WorkModules.GameCalendar == null
             || !CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId))
         {
             return;
@@ -269,19 +244,19 @@ public class AbilityWork : CharacterAbility
             return;
         }
 
-        proficiencyCommands.AddCombatExperience(
+        WorkModules.ProficiencyCommands.AddCombatExperience(
             characterId,
             proficiencyId,
             0.50f,
             training: true,
             stableAwardKey: string.Empty,
-            absoluteHour: gameCalendar.AbsoluteHour);
-        identityEvents?.Publish(new WorkCompletedIdentityEvent(
+            absoluteHour: WorkModules.GameCalendar.AbsoluteHour);
+        WorkModules.IdentityEvents?.Publish(new WorkCompletedIdentityEvent(
             characterId,
             "work:combat-training",
             building.BuildingData.ContentDefinitionId,
             CharacterCommandOrigin.Autonomous,
-            gameCalendar.Current.AbsoluteDay));
+            WorkModules.GameCalendar.Current.AbsoluteDay));
     }
 
     public CharacterActor WorkerActor => actor;
@@ -303,10 +278,11 @@ public class AbilityWork : CharacterAbility
     internal IRoomEnvironmentQuery RoomEnvironmentQuery => roomEnvironmentQuery;
     internal IExteriorZoneQuery ExteriorZoneQuery => exteriorZoneQuery;
     internal IWorkExecutionHandlerRegistry WorkExecutionHandlerRegistry =>
-        workExecutionHandlerRegistry;
-    internal IWorkPolicyRegistry WorkPolicyRegistry => workPolicyRegistry;
-    internal IWorkOrderRuntime WorkOrderRuntime => workOrderRuntime;
-    internal IGameClock GameClock => gameClock;
+        WorkModules.WorkExecutionHandlerRegistry;
+    internal IWorkPolicyRegistry WorkPolicyRegistry => WorkModules.WorkPolicyRegistry;
+    internal IWorkOrderRuntime WorkOrderRuntime => WorkModules.WorkOrderRuntime;
+    internal IGameClock GameClock => WorkModules.GameClock;
+    internal IGameCalendar GameCalendar => WorkModules.GameCalendar;
     internal IResourceStockPolicyQuery ResourceStockPolicies => resourceStockPolicies;
 
     private InvalidOperationException MissingDependency(string dependencyName)
@@ -402,7 +378,7 @@ public class AbilityWork : CharacterAbility
         get
         {
             EnsureWorkModules();
-            return targetSelector;
+            return WorkModules.TargetSelector;
         }
     }
 
@@ -411,7 +387,7 @@ public class AbilityWork : CharacterAbility
         get
         {
             EnsureWorkModules();
-            return taskExecutor;
+            return WorkModules.TaskExecutor;
         }
     }
 
@@ -420,7 +396,7 @@ public class AbilityWork : CharacterAbility
         get
         {
             EnsureWorkModules();
-            return dutyController;
+            return WorkModules.DutyController;
         }
     }
 
@@ -429,7 +405,7 @@ public class AbilityWork : CharacterAbility
         get
         {
             EnsureWorkModules();
-            return commandHandler;
+            return WorkModules.CommandHandler;
         }
     }
 
@@ -476,37 +452,31 @@ public class AbilityWork : CharacterAbility
             ?? throw new ArgumentNullException(nameof(facilityCandidateCache));
         this.roomEnvironmentQuery = roomEnvironmentQuery;
         this.exteriorZoneQuery = exteriorZoneQuery;
-        this.workExecutionHandlerRegistry = workExecutionHandlerRegistry;
-        this.workPolicyRegistry = workPolicyRegistry;
-        this.workOrderRuntime = workOrderRuntime;
-        this.workAmountCalculator = workAmountCalculator;
-        this.captiveLaborQuery = captiveLaborQuery;
-        this.gameClock = gameClock;
-        this.defenseEngagementRuntime = defenseEngagementRuntime;
-        this.roomEnvironmentExperienceService = roomEnvironmentExperienceService;
-        this.paidFacilityContracts = paidFacilityContracts;
-        this.environmentWorkPolicy = environmentWorkPolicy;
-        this.characterEnvironment = characterEnvironment
-            ?? throw new ArgumentNullException(nameof(characterEnvironment));
-        this.environmentalWorkwearCommands = environmentalWorkwearCommands
-            ?? throw new ArgumentNullException(nameof(environmentalWorkwearCommands));
-        this.needDefinitionCatalog = needDefinitionCatalog
-            ?? throw new ArgumentNullException(nameof(needDefinitionCatalog));
-        this.debugRules = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
-        targetSelector = null;
-        taskExecutor = null;
-        dutyController = null;
-        commandHandler = null;
+        WorkModules.ConstructAbilityWork(
+            workExecutionHandlerRegistry,
+            workPolicyRegistry,
+            workOrderRuntime,
+            workAmountCalculator,
+            captiveLaborQuery,
+            gameClock,
+            defenseEngagementRuntime,
+            roomEnvironmentExperienceService,
+            paidFacilityContracts,
+            environmentWorkPolicy,
+            characterEnvironment,
+            environmentalWorkwearCommands,
+            needDefinitionCatalog,
+            debugRules);
     }
 
     [Inject]
     public void ConstructIdentityEvents(
         CharacterIdentityEventPublisher identityEvents)
-    {
-        this.identityEvents = identityEvents
-            ?? throw new ArgumentNullException(nameof(identityEvents));
-        taskExecutor = null;
-    }
+        => WorkModules.ConstructIdentityEvents(identityEvents);
+
+    internal void PublishControlEvent(in WorkControlChangedEvent value) =>
+        (WorkModules.IdentityEvents ?? throw new InvalidOperationException("work-control-event-publisher-missing"))
+            .Publish(value);
 
     [Inject]
     public void ConstructPerformance(
@@ -514,38 +484,18 @@ public class AbilityWork : CharacterAbility
         CharacterWorkPerformanceContextResolver performanceContext,
         IAnatomyHealthRuntime anatomyHealth,
         ICharacterSpeciesCommand speciesCommands)
-    {
-        this.performance = performance
-            ?? throw new ArgumentNullException(nameof(performance));
-        this.performanceContext = performanceContext
-            ?? throw new ArgumentNullException(nameof(performanceContext));
-        this.anatomyHealth = anatomyHealth
-            ?? throw new ArgumentNullException(nameof(anatomyHealth));
-        this.speciesCommands = speciesCommands
-            ?? throw new ArgumentNullException(nameof(speciesCommands));
-        taskExecutor = null;
-    }
+        => WorkModules.ConstructPerformance(performance, performanceContext, anatomyHealth, speciesCommands);
 
     [Inject]
     public void ConstructEmergencyWorkAccounting(
         IEmergencyWorkAccountingService emergencyWorkAccounting,
         ISettlementLaborAccountingService settlementLaborAccounting)
-    {
-        this.emergencyWorkAccounting = emergencyWorkAccounting
-            ?? throw new ArgumentNullException(nameof(emergencyWorkAccounting));
-        this.settlementLaborAccounting = settlementLaborAccounting
-            ?? throw new ArgumentNullException(nameof(settlementLaborAccounting));
-        taskExecutor = null;
-    }
+        => WorkModules.ConstructEmergencyWorkAccounting(emergencyWorkAccounting, settlementLaborAccounting);
 
     [Inject]
     public void ConstructReservedItemTransfers(
         IReservedItemTransferService reservedItemTransfers)
-    {
-        this.reservedItemTransfers = reservedItemTransfers
-            ?? throw new ArgumentNullException(nameof(reservedItemTransfers));
-        taskExecutor = null;
-    }
+        => WorkModules.ConstructReservedItemTransfers(reservedItemTransfers);
 
     [Inject]
     public void ConstructProficiencyProgression(
@@ -553,44 +503,37 @@ public class AbilityWork : CharacterAbility
         ICharacterProficiencyQuery proficiencyQuery,
         IGameCalendar gameCalendar,
         ICombatEquipmentRuntime combatEquipmentRuntime)
-    {
-        this.proficiencyCommands = proficiencyCommands
-            ?? throw new ArgumentNullException(nameof(proficiencyCommands));
-        this.proficiencyQuery = proficiencyQuery
-            ?? throw new ArgumentNullException(nameof(proficiencyQuery));
-        this.gameCalendar = gameCalendar
-            ?? throw new ArgumentNullException(nameof(gameCalendar));
-        this.combatEquipmentRuntime = combatEquipmentRuntime;
-        taskExecutor = null;
-    }
+        => WorkModules.ConstructProficiencyProgression(proficiencyCommands, proficiencyQuery, gameCalendar, combatEquipmentRuntime);
 
     [Inject]
     public void ConstructSettlementStandings(
         ICharacterSettlementStandingQuery settlementStandings)
-    {
-        this.settlementStandings = settlementStandings
-            ?? throw new ArgumentNullException(nameof(settlementStandings));
-        targetSelector = null;
-        taskExecutor = null;
-    }
+        => WorkModules.ConstructSettlementStandings(settlementStandings);
 
     [Inject]
     public void ConstructIdentityWorkQueries(
         IResourceStockPolicyQuery resourceStockPolicies)
     {
         this.resourceStockPolicies = resourceStockPolicies;
-        targetSelector = null;
+        WorkModules.InvalidateTargetSelection();
     }
 
     [Inject]
     public void ConstructWorkAccidentRandom(
         IRandomStreamProvider randomStreamProvider)
-    {
-        workAccidentRandom = (randomStreamProvider
-                ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
-            .Get(WorkAccidentRandomStreamId);
-        taskExecutor = null;
-    }
+        => WorkModules.ConstructWorkAccidentRandom(randomStreamProvider);
+
+    [Inject]
+    public void ConstructWorkAccidentObservation(
+        ICharacterBodyHealthMutationTransaction bodyHealthMutation,
+        IDomainFactPublisher accidentFacts,
+        WorkAccidentObservationRuntime workAccidentObservations)
+        => WorkModules.ConstructWorkAccidentObservation(bodyHealthMutation, accidentFacts, workAccidentObservations);
+
+    [Inject]
+    public void ConstructBuildingStructuralIntegrity(
+        IBuildingStructuralIntegrityRuntime integrityRuntime)
+        => WorkModules.ConstructBuildingStructuralIntegrity(integrityRuntime);
 
     public override void Initializtion(CharacterSO data)
     {
@@ -759,7 +702,10 @@ public class AbilityWork : CharacterAbility
 
         if (isWorking || activeWorkRoutine != null || activeWorkCheckRoutine != null)
         {
+            int stoppedRunId = activeWorkRunId;
             StopAssignedWork(null);
+            if (activeWorkRunId != unchecked(stoppedRunId + 1))
+                return;
         }
 
         bool assigned = preferredTarget != null
@@ -769,13 +715,9 @@ public class AbilityWork : CharacterAbility
         {
             if (actor != null && actor.Brain != null)
             {
-                actor.AddActivity(CharacterActivityEvent.Work(
-                    requestedWorkType,
-                    CharacterActivityOutcomes.Failed,
-                    "작업 실패: 작업장 없음",
-                    preferredTarget,
-                    reasonCode: "no-workplace",
-                    bubbleEligible: true));
+                WorkExecutionChangedEvent.Publish(WorkModules.IdentityEvents, actor,
+                    WorkExecutionTransition.WorkplaceUnavailable,
+                    requestedWorkType, preferredTarget);
                 AIAction failedAction = actor.Brain.bestAction;
                 actor.Brain.ReportRuntimeActionFailure(
                     AIActionFailure.Create(
@@ -798,7 +740,13 @@ public class AbilityWork : CharacterAbility
         }
 
         int runId = BeginWorkRun();
-        activeWorkRoutine = StartCoroutine(TaskExecutor.Work(runId));
+        if (!IsActiveWorkRun(runId))
+            return;
+        Coroutine routine = StartCoroutine(TaskExecutor.Work(runId));
+        if (IsActiveWorkRun(runId))
+            activeWorkRoutine = routine;
+        else if (routine != null)
+            StopCoroutine(routine);
     }
 
     public void StartWorking(
@@ -899,6 +847,17 @@ public class AbilityWork : CharacterAbility
         SetWorkPriority(workTypeId, priority, null);
     }
 
+    public void RestoreWorkPriority(WorkTypeId workTypeId, WorkPriorityLevel priority)
+    {
+        if (actor == null || !actor.IsDetachedRestoreCandidate)
+            throw new InvalidOperationException("Work priority restoration requires a detached world candidate.");
+        if (!WorkTypeCatalog.TryGet(workTypeId, out _)
+            || !Enum.IsDefined(typeof(WorkPriorityLevel), priority))
+            throw new ArgumentException("Restored work priority is not a registered valid setting.");
+        workPriorities ??= WorkPriorityProfile.CreateDefault();
+        workPriorities.SetPriority(workTypeId, priority);
+    }
+
     public void SetWorkPriority(
         WorkTypeId workTypeId,
         WorkPriorityLevel priority,
@@ -956,12 +915,10 @@ public class AbilityWork : CharacterAbility
             }
         }
 
-        actor?.AddActivity(CharacterActivityEvent.Work(
+        WorkExecutionChangedEvent.Publish(WorkModules.IdentityEvents, actor,
+            WorkExecutionTransition.PriorityChanged,
             workType,
-            CharacterActivityOutcomes.Changed,
-            $"{WorkTaskCatalog.GetLegacyDisplayName(workType)} 우선순위: {priority.ToDisplayText()}",
-            reasonCode: $"priority:{(int)priority}",
-            value: (int)priority));
+            workLabel: WorkTaskCatalog.GetLegacyDisplayName(workType), priority: priority);
     }
 
     private bool ShouldReplanForRaisedPriority(
@@ -1022,6 +979,11 @@ public class AbilityWork : CharacterAbility
     public WorkDutyStartDiagnostics CaptureWorkStartDiagnostics()
     {
         return DutyController.CaptureStartDiagnostics();
+    }
+
+    public bool RequiresRoutineNeedRecovery(CharacterCondition condition)
+    {
+        return DutyController.RequiresRoutineNeedRecovery(condition);
     }
 
     public bool CanStartAnyWorkAction(GridPathSearchResult searchResult)
@@ -1308,6 +1270,12 @@ public class AbilityWork : CharacterAbility
         return TaskExecutor.TryConsumeEmergencySuspension(out receipt);
     }
 
+    public void RestoreEmergencySuspensionReceipt(
+        in EmergencyWorkSuspensionReceipt receipt)
+    {
+        TaskExecutor.RestoreEmergencySuspensionReceipt(receipt);
+    }
+
     public void RestoreInlineEmergencyProgress(
         WorkTypeId workTypeId,
         string targetBuildingId,
@@ -1435,31 +1403,50 @@ public class AbilityWork : CharacterAbility
         StopAssignedWork(reason, false);
     }
 
+    internal void RestoreRestockOwnership(ItemQuantityLease lease, IRetailRestockOperationOwner owner)
+    {
+        if (activeWorkRoutine != null || isWorking)
+            throw new InvalidOperationException("Restock restore cannot replace a live work run.");
+        TaskExecutor.RestoreRestockOwnership(WorkerActor, lease, owner);
+    }
+
+    internal void RelinquishRestockForWorldRestore(string expectedOperationId = null)
+    {
+        WorkTaskExecutor executor = workModules?.TaskExecutor;
+        if (executor == null && expectedOperationId != null)
+            throw new InvalidOperationException("Restock restore lost its expected work module owner.");
+        executor?.RelinquishRestockForWorldRestore(expectedOperationId);
+    }
+
     private void StopAssignedWork(string reason, bool requestImmediateReplan)
     {
         FacilityWorkType stoppedWorkType = assignedWorkType;
         BuildableObject stoppedTarget = assignedShop;
-        InvalidateActiveWorkRun(reason);
-        WorkerMove?.CancelActiveMovement();
-
-        if (assignedShop is IWorkableFacility facility)
-        {
-            facility.DeallocateWorker(actor?.BuildingVisitor);
-        }
-
+        int stoppedRunId = activeWorkRunId;
         AIAction currentAction = actor != null && actor.Brain != null
-            ? actor.Brain.bestAction
-            : null;
+            ? actor.Brain.bestAction : null;
+        InvalidateActiveWorkRun(reason);
+        int invalidatedVersion = unchecked(stoppedRunId + 1);
+        if (activeWorkRunId != invalidatedVersion)
+            return;
+        WorkerMove?.CancelActiveMovement();
+        if (activeWorkRunId != invalidatedVersion)
+            return;
         currentAction?.ReleaseReservation(actor);
-
-        AssignWork(null, FacilityWorkType.None);
+        if (activeWorkRunId != invalidatedVersion)
+            return;
         isWorking = false;
+        AssignWork(null, FacilityWorkType.None);
+        if (activeWorkRunId != invalidatedVersion)
+            return;
         // A partially constructed actor can be disabled before VContainer has
         // injected the scoped candidate cache (scene swap, failed spawn, or
         // restore rollback). Teardown must still be idempotent; a missing
         // cache means this actor never published a usable facility state to
         // invalidate.
         facilityCandidateCache?.MarkDynamicStateDirty();
+        if (activeWorkRunId != invalidatedVersion)
+            return;
         // Teardown can run after scoped registries have already been disposed
         // (scene replacement/save restore/application quit). A cancellation
         // activity triggers narrative passives and therefore touches those
@@ -1470,16 +1457,17 @@ public class AbilityWork : CharacterAbility
             && actor.isActiveAndEnabled
             && actor.CurrentLifecycleState == CharacterLifecycleState.Active)
         {
-            actor?.AddActivity(CharacterActivityEvent.Work(
-                stoppedWorkType,
-                CharacterActivityOutcomes.Cancelled,
-                $"작업 종료: {reason}",
-                stoppedTarget,
-                reasonCode: reason));
+            WorkExecutionChangedEvent.Publish(WorkModules.IdentityEvents, actor,
+                WorkExecutionTransition.Cancelled,
+                stoppedWorkType, stoppedTarget, detail: reason);
         }
 
         if (actor != null && actor.Brain != null)
         {
+            if (activeWorkRunId != invalidatedVersion
+                || actor.Brain.bestAction != null
+                    && !ReferenceEquals(actor.Brain.bestAction, currentAction))
+                return;
             if (currentAction != null)
             {
                 actor.Brain.EndExpectedAction(
@@ -1492,6 +1480,10 @@ public class AbilityWork : CharacterAbility
             {
                 actor.Brain.isBestActionEnd = true;
             }
+            if (activeWorkRunId != invalidatedVersion
+                || actor.Brain.bestAction != null
+                    && !ReferenceEquals(actor.Brain.bestAction, currentAction))
+                return;
             actor.Brain.bestAction = null;
             if (requestImmediateReplan)
                 actor.Brain.RequestImmediateReplan(clearFailures: false);
@@ -1625,74 +1617,23 @@ public class AbilityWork : CharacterAbility
         isScheduleBound = false;
     }
 
-    private void EnsureWorkModules()
-    {
-        if (needDefinitionCatalog == null)
-        {
-            return;
-        }
-
-        if (targetSelector != null
-            && taskExecutor != null
-            && dutyController != null
-            && commandHandler != null)
-        {
-            return;
-        }
-
-        targetSelector ??= new WorkTargetSelector(
-            this,
-            workPolicyRegistry,
-            captiveLaborQuery,
-            environmentWorkPolicy,
-            settlementStandings);
-        taskExecutor ??= new WorkTaskExecutor(
-            new WorkTaskCoreDependencies(
-                this,
-                targetSelector,
-                gameClock,
-                debugRules),
-            new WorkTaskExecutionDependencies(
-                workExecutionHandlerRegistry,
-                workOrderRuntime,
-                workAmountCalculator,
-                paidFacilityContracts),
-            new WorkTaskEnvironmentDependencies(
-                roomEnvironmentExperienceService,
-                characterEnvironment,
-                environmentalWorkwearCommands,
-                environmentWorkPolicy),
-            proficiencyCommands,
-            gameCalendar,
-            proficiencyQuery,
-            combatEquipmentRuntime,
-            workAccidentRandom,
-            identityEvents,
-            performance,
-            performanceContext,
-            anatomyHealth,
-            speciesCommands,
-            emergencyWorkAccounting,
-            settlementLaborAccounting,
-            reservedItemTransfers,
-            settlementStandings);
-        dutyController ??= new WorkDutyController(
-            this,
-            needDefinitionCatalog);
-        commandHandler ??= new WorkCommandHandler(this, targetSelector, defenseEngagementRuntime);
-    }
+    private void EnsureWorkModules() => WorkModules.EnsureReady();
 
     private int BeginWorkRun()
     {
-        StopActiveWorkRoutines("begin-work-run", activeWorkRunId);
-        activeWorkRunId++;
+        int cancelledRunId = activeWorkRunId;
+        int runId = checked(activeWorkRunId + 1);
+        activeWorkRunId = runId;
+        StopActiveWorkRoutines("begin-work-run", cancelledRunId);
+        if (!IsActiveWorkRun(runId))
+            return runId;
         // The count remains cumulative, but the descriptive latch belongs to
         // one run. Without resetting it, a successful later row reports the
         // cancellation reason of an unrelated earlier action.
         lastCancelledWorkRunId = 0;
         lastActiveWorkCancellationReason = string.Empty;
-        activeWorkStartedAt = gameClock?.Time ?? 0f;
-        return activeWorkRunId;
+        activeWorkStartedAt = WorkModules.GameClock?.Time ?? 0f;
+        return runId;
     }
 
     private void InvalidateActiveWorkRun(string reason)
@@ -1707,28 +1648,51 @@ public class AbilityWork : CharacterAbility
         string reason,
         int cancelledRunId)
     {
-        StopActiveWorkRoutine(reason, cancelledRunId);
-        StopActiveWorkCheckRoutine();
-        StopActiveSuppressRoutine();
-    }
-
-    private void StopActiveWorkRoutine(
-        string reason,
-        int cancelledRunId)
-    {
-        if (activeWorkRoutine == null)
+        Coroutine main = activeWorkRoutine;
+        Coroutine check = activeWorkCheckRoutine;
+        Coroutine suppress = activeSuppressRoutine;
+        activeWorkRoutine = null;
+        activeWorkCheckRoutine = null;
+        activeSuppressRoutine = null;
+        if (main != null)
         {
-            return;
+            activeWorkCancellationCount++;
+            lastCancelledWorkRunId = cancelledRunId;
+            lastActiveWorkCancellationReason = string.IsNullOrWhiteSpace(reason)
+                ? "unspecified-work-cancellation" : reason.Trim();
+        }
+        List<Exception> failures = null;
+        try
+        {
+            if (main != null || isWorking || workModules?.TaskExecutor?.HasRestockOperation == true)
+                WorkModules.TaskExecutor?.CancelActiveRun(WorkerActor, "coroutine-stopped");
+        }
+        catch (Exception exception)
+        {
+            failures = new List<Exception> { exception };
         }
 
-        activeWorkCancellationCount++;
-        lastCancelledWorkRunId = cancelledRunId;
-        lastActiveWorkCancellationReason = string.IsNullOrWhiteSpace(reason)
-            ? "unspecified-work-cancellation"
-            : reason.Trim();
-        taskExecutor?.CancelActiveRun(WorkerActor, "coroutine-stopped");
-        StopCoroutine(activeWorkRoutine);
-        activeWorkRoutine = null;
+        // Cargo recovery can reject cancellation while retaining its exact
+        // operation for retry. Stop every detached routine even in that case;
+        // a reentrant replacement owns the new fields, never these handles.
+        StopCapturedRoutine(main);
+        StopCapturedRoutine(check);
+        StopCapturedRoutine(suppress);
+        if (failures?.Count == 1)
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failures[0]).Throw();
+        if (failures?.Count > 1)
+            throw new AggregateException("Work cancellation and coroutine cleanup failed.", failures);
+
+        void StopCapturedRoutine(Coroutine routine)
+        {
+            if (routine == null)
+                return;
+            try { StopCoroutine(routine); }
+            catch (Exception exception)
+            {
+                (failures ??= new List<Exception>()).Add(exception);
+            }
+        }
     }
 
     private void StopActiveWorkCheckRoutine()
@@ -1738,8 +1702,9 @@ public class AbilityWork : CharacterAbility
             return;
         }
 
-        StopCoroutine(activeWorkCheckRoutine);
+        Coroutine routine = activeWorkCheckRoutine;
         activeWorkCheckRoutine = null;
+        StopCoroutine(routine);
     }
 
     private void StopActiveSuppressRoutine()
@@ -1749,8 +1714,9 @@ public class AbilityWork : CharacterAbility
             return;
         }
 
-        StopCoroutine(activeSuppressRoutine);
+        Coroutine routine = activeSuppressRoutine;
         activeSuppressRoutine = null;
+        StopCoroutine(routine);
     }
 
     private IEnumerator RunSuppressPriorityTarget(

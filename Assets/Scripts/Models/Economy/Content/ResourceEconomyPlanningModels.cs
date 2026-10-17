@@ -191,7 +191,7 @@ public sealed class ResourceStockPolicyRestoreCandidate
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonResourceStockPolicySaveData
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
 
     public int version = CurrentVersion;
     public int nextSaleSequence = 1;
@@ -209,7 +209,9 @@ public enum QualityRejectedSaleCommitPhase
     Prepared = 0,
     PhysicalCommitted = 1,
     IncomePublished = 2,
-    UniqueAuthorityReleased = 3
+    LedgerCommitted = 3,
+    UniqueAuthorityReleased = 4,
+    Acknowledged = 5
 }
 
 [Serializable]
@@ -228,10 +230,21 @@ public sealed class QualityRejectedSalePending
     public int destinationY;
     public int quantity = 1;
     public int proceeds;
+    public int unitPrice;
+    public int saleRateBasisPoints;
+    public int qualityTier;
+    public int absoluteDay;
     public bool requiresCombatAuthority;
     public QualityRejectedSaleCommitPhase phase;
     public string commitId = string.Empty;
     public long inputMassGrams;
+    public long physicalOutcomeOwnerRevision;
+    public string economyTransactionId = string.Empty;
+    public int balanceBefore;
+    public int balanceAfter;
+    public string outcomeResultKey = string.Empty;
+    public string outcomeId = string.Empty;
+    public string outcomeDigest = string.Empty;
 
     public QualityRejectedSalePending Clone() =>
         (QualityRejectedSalePending)MemberwiseClone();
@@ -254,18 +267,33 @@ public static class QualityRejectedSaleContract
         if (pending.phase == QualityRejectedSaleCommitPhase.Prepared)
         {
             return string.IsNullOrEmpty(pending.commitId)
-                && pending.inputMassGrams == 0L;
+                && pending.inputMassGrams == 0L
+                && pending.physicalOutcomeOwnerRevision == 0L
+                && HasNoPayment(pending)
+                && HasNoOutcome(pending);
         }
-        return pending.phase is QualityRejectedSaleCommitPhase.PhysicalCommitted
+        bool physicalValid = pending.phase is QualityRejectedSaleCommitPhase.PhysicalCommitted
                 or QualityRejectedSaleCommitPhase.IncomePublished
+                or QualityRejectedSaleCommitPhase.LedgerCommitted
                 or QualityRejectedSaleCommitPhase.UniqueAuthorityReleased
+                or QualityRejectedSaleCommitPhase.Acknowledged
             && IsCanonicalRequired(pending.commitId)
             && pending.inputMassGrams > 0L
+            && pending.physicalOutcomeOwnerRevision > 0L
             && string.Equals(
                 pending.commitId,
                 $"physical-batch-disposition:{TransferDispositionKind}:"
                     + $"{pending.operationId}:1:{pending.inputMassGrams}",
                 StringComparison.Ordinal);
+        if (!physicalValid)
+            return false;
+        if (pending.phase == QualityRejectedSaleCommitPhase.PhysicalCommitted)
+            return HasNoPayment(pending) && HasNoOutcome(pending);
+        if (!HasCanonicalPayment(pending))
+            return false;
+        return pending.phase == QualityRejectedSaleCommitPhase.IncomePublished
+            ? HasNoOutcome(pending)
+            : HasCanonicalOutcome(pending);
     }
 
     public static bool HasCanonicalPrepared(QualityRejectedSalePending pending) =>
@@ -286,7 +314,31 @@ public static class QualityRejectedSaleContract
             StringComparison.Ordinal)
         && pending.quantity == 1
         && pending.proceeds > 0
+        && pending.unitPrice > 0
+        && pending.saleRateBasisPoints > 0
+        && pending.saleRateBasisPoints <= 10000
+        && pending.qualityTier >= 0
+        && pending.absoluteDay >= 0
+        && IsCanonicalRequired(pending.outcomeResultKey)
         && Enum.IsDefined(typeof(QualityRejectedSaleCommitPhase), pending.phase);
+
+    private static bool HasNoPayment(QualityRejectedSalePending pending) =>
+        string.IsNullOrEmpty(pending.economyTransactionId)
+        && pending.balanceBefore == 0
+        && pending.balanceAfter == 0;
+
+    private static bool HasCanonicalPayment(QualityRejectedSalePending pending) =>
+        IsCanonicalRequired(pending.economyTransactionId)
+        && pending.balanceBefore >= 0
+        && pending.balanceAfter == pending.balanceBefore + pending.proceeds;
+
+    private static bool HasNoOutcome(QualityRejectedSalePending pending) =>
+        string.IsNullOrEmpty(pending.outcomeId)
+        && string.IsNullOrEmpty(pending.outcomeDigest);
+
+    private static bool HasCanonicalOutcome(QualityRejectedSalePending pending) =>
+        IsCanonicalRequired(pending.outcomeId)
+        && IsLowerSha256(pending.outcomeDigest);
 
     private static bool IsCanonicalRequired(string value) =>
         !string.IsNullOrWhiteSpace(value)
@@ -312,7 +364,9 @@ public static class QualityRejectedSaleContract
 public enum ResourceStockPolicySaleCommitPhase
 {
     PhysicalCommitted = 1,
-    IncomePublished = 2
+    IncomePublished = 2,
+    LedgerCommitted = 3,
+    Acknowledged = 4
 }
 
 [Serializable]
@@ -325,6 +379,7 @@ public sealed class ResourceStockPolicySaleTransferReceipt
     public List<string> sourceStackIds = new List<string>();
     public int quantity;
     public long inputMassGrams;
+    public long physicalOutcomeOwnerRevision;
 
     public ResourceStockPolicySaleTransferReceipt Clone()
     {
@@ -345,12 +400,22 @@ public sealed class ResourceStockPolicyPendingSale
     public string destinationId = string.Empty;
     public int quantity;
     public int proceeds;
+    public int unitPrice;
+    public int saleRateBasisPoints;
+    public int absoluteDay;
     public ResourceStockPolicySaleCommitPhase phase;
     public string operationId = string.Empty;
     public string reasonCode = string.Empty;
     public string commitId = string.Empty;
     public List<string> sourceStackIds = new List<string>();
     public long inputMassGrams;
+    public long physicalOutcomeOwnerRevision;
+    public string economyTransactionId = string.Empty;
+    public int balanceBefore;
+    public int balanceAfter;
+    public string outcomeResultKey = string.Empty;
+    public string outcomeId = string.Empty;
+    public string outcomeDigest = string.Empty;
 
     public ResourceStockPolicyPendingSale Clone()
     {
@@ -378,7 +443,8 @@ public enum RegionalSupplyDeliveryCommitPhase
 {
     None = 0,
     PhysicalCommitted = 1,
-    RewardPublished = 2
+    RewardPublished = 2,
+    OutcomeCommitted = 3
 }
 
 [Serializable]
@@ -400,6 +466,61 @@ public sealed class RegionalSupplyDeliveryTransferReceipt
             sourceStackIds ?? new List<string>());
         return clone;
     }
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class RegionalSupplyRewardReceipt
+{
+    public string operationId = string.Empty;
+    public string transactionId = string.Empty;
+    public int amount;
+    public int balanceBefore;
+    public int balanceAfter;
+
+    public RegionalSupplyRewardReceipt Clone() =>
+        (RegionalSupplyRewardReceipt)MemberwiseClone();
+}
+
+public readonly struct RegionalSupplyContractOutcomeReservation
+{
+    public RegionalSupplyContractOutcomeReservation(string token)
+    {
+        Token = token?.Trim() ?? string.Empty;
+    }
+
+    public string Token { get; }
+    public bool IsValid => Token.Length > 0;
+}
+
+public interface IRegionalSupplyContractOutcomePort
+{
+    bool TryReserveStatus(
+        RegionalSupplyContractState contract,
+        RegionalSupplyContractStatus before,
+        RegionalSupplyContractStatus after,
+        string action,
+        bool succeeded,
+        int absoluteDay,
+        out RegionalSupplyContractOutcomeReservation reservation,
+        out string failureReason);
+    bool TryCommitStatus(
+        in RegionalSupplyContractOutcomeReservation reservation,
+        RegionalSupplyContractState contract,
+        string reason,
+        out string resultKey,
+        out string failureReason);
+    bool TryReserveCompletion(
+        RegionalSupplyContractState contract,
+        int absoluteDay,
+        out RegionalSupplyContractOutcomeReservation reservation,
+        out string failureReason);
+    bool TryCommitCompletion(
+        in RegionalSupplyContractOutcomeReservation reservation,
+        RegionalSupplyContractState contract,
+        out string resultKey,
+        out string failureReason);
+    void Cancel(in RegionalSupplyContractOutcomeReservation reservation);
 }
 
 [Serializable]
@@ -434,6 +555,12 @@ public sealed class RegionalSupplyContractState
     public List<string> deliverySourceStackIds = new List<string>();
     public int deliveryQuantity;
     public long deliveryMassGrams;
+    public string rewardTransactionId = string.Empty;
+    public int rewardBalanceBefore;
+    public int rewardBalanceAfter;
+    public string acceptanceOutcomeResultKey = string.Empty;
+    public string terminalOutcomeResultKey = string.Empty;
+    public string deliveryOutcomeResultKey = string.Empty;
     public bool inputOwnerActive;
     public int inputDestinationX;
     public int inputDestinationY;
@@ -460,7 +587,7 @@ public sealed class RegionalSupplyContractState
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonRegionalSupplyContractSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 5;
 
     public int version = CurrentVersion;
     public int currentDay = 1;

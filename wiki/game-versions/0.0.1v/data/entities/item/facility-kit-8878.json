@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "주민의 유전 정보와 치료·계승에 필요한 기록을 보관하는 유전 기록고 설치 부품이며, 베르사디온의 시설과도 체결 규격이 맞는다.",
+  "in_game_description": "유전 기록고에서 표본과 기록을 조사하는 공정을 맡기 위해 준비한 설치 부품이다. 베르사디온의 유전 기록고는 계약자가 손을 떼면 마나빛도 천천히 사라진다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "숨겨진 원정지의 위험과 약점을 해독하는 부적이다. 밀로세아 가도의 길잡이 부적에는 지나온 검문소 방향으로 매듭을 하나씩 더해 길을 잃어도 역순으로 풀 수 있게 한다.",
+  "in_game_description": "숨겨진 원정지의 위험과 약점을 해독하는 부적이다. 밀로세아 가도를 지난 길잡이 부적 묶음에는 마지막 검문소의 색실이 하나씩 더해진다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

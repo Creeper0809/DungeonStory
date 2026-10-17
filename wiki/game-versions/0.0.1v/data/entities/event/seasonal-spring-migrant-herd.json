@@ -16,10 +16,20 @@
   "game_version": "0.0.1v",
   "group": "events-campaign",
   "kind": "event",
-  "relations": [],
+  "relations": [
+    {
+      "amount": null,
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "deep-goat",
+      "target_spoiler_tier": "none",
+      "target_title": "심층염소",
+      "type": "references"
+    }
+  ],
   "schema_version": 1,
   "slug": "seasonal-spring-migrant-herd",
   "spoiler_tier": "warning",
-  "summary": "번식지로 향하는 초식동물이 밭을 지나며 포식자도 끌어들인다.",
+  "summary": "봄 외곽 초지에 심층염소 세 마리가 도착해 사냥·포획하거나 그대로 지나가게 둘 수 있다.",
   "title": "이동 초식군"
 }

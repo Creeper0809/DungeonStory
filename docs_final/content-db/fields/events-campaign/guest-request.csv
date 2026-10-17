@@ -6,20 +6,31 @@ GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-b
 GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,authoringRevision,1,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,kind,0,GuestRequestKind,Luxury Meal,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,riskReason,실패 결과가 세력 원한 5를 추가한다.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,deadlineDays,4,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.items.0.itemDefinitionId,food:lavish-vegan,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.items.0.amount,8,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.items.0.consume,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.facilities.0.buildingDefinitionId,building:festival-common-hall,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.facilities,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.research,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.characters,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.factions,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.worldMetrics,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.requiredFlags,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,venueRequirements.anchor.exactBuildingDefinitionIds,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,venueRequirements.anchor.facilityRoles,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,venueRequirements.requiredRoomFacilityRoles,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,venueRequirements.requiredRoomFacilities,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,venueRequirements.minimumSeats,8,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,venueRequirements.minimumTables,8,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,venueRequirements.minimumServiceCapacity,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,venueRequirements.minimumEventCells,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,venueRequirements.minimumVacantBeds,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,venueRequirements.requireResidentHeadroom,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,venueRequirements.requireWetBath,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,venueRequirements.requireEmergencySurgeryFacility,0,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
 GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,successEffects.0.targetId,guest-service,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:allergen-banquet,guest-request:allergen-banquet,successEffects.0.amount,267,,,explicit-serialized
@@ -39,20 +50,31 @@ GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit
 GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,authoringRevision,1,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,riskReason,실패 결과가 세력 원한 5를 추가한다.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,deadlineDays,5,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.items.0.itemDefinitionId,tool:field-repair-kit,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.items.0.amount,6,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.items.0.consume,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.facilities.0.buildingDefinitionId,building:smith-workshop,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.facilities,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.research,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.characters,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.factions,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.worldMetrics,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.requiredFlags,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,venueRequirements.anchor.exactBuildingDefinitionIds,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,venueRequirements.anchor.facilityRoles,64,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,venueRequirements.requiredRoomFacilityRoles,64,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,venueRequirements.requiredRoomFacilities,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,venueRequirements.minimumSeats,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,venueRequirements.minimumTables,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,venueRequirements.minimumServiceCapacity,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,venueRequirements.minimumEventCells,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,venueRequirements.minimumVacantBeds,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,venueRequirements.requireResidentHeadroom,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,venueRequirements.requireWetBath,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,venueRequirements.requireEmergencySurgeryFacility,0,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
 GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,successEffects.0.targetId,guest-service,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:bodyguard-kit,guest-request:bodyguard-kit,successEffects.0.amount,1248,,,explicit-serialized
@@ -72,20 +94,31 @@ GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation
 GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,authoringRevision,1,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,kind,0,GuestRequestKind,Luxury Meal,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,riskReason,실패 결과가 세력 원한 5를 추가한다.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,deadlineDays,5,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.items.0.itemDefinitionId,food:lavish-meat,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.items.0.amount,4,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.items.0.consume,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.facilities.0.buildingDefinitionId,building:luxury-dining-room,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.facilities,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.research,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.characters,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.factions,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.worldMetrics,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.requiredFlags,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,venueRequirements.anchor.exactBuildingDefinitionIds,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,venueRequirements.anchor.facilityRoles,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,venueRequirements.requiredRoomFacilityRoles,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,venueRequirements.requiredRoomFacilities,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,venueRequirements.minimumSeats,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,venueRequirements.minimumTables,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,venueRequirements.minimumServiceCapacity,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,venueRequirements.minimumEventCells,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,venueRequirements.minimumVacantBeds,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,venueRequirements.requireResidentHeadroom,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,venueRequirements.requireWetBath,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,venueRequirements.requireEmergencySurgeryFacility,0,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
 GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,successEffects.0.targetId,guest-service,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:coronation-feast,guest-request:coronation-feast,successEffects.0.amount,144,,,explicit-serialized
@@ -105,20 +138,31 @@ GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-samp
 GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,authoringRevision,1,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,kind,5,GuestRequestKind,Research,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,riskReason,실패 결과가 세력 원한 5를 추가한다.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,deadlineDays,6,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.items.0.itemDefinitionId,sample:antigen:cave-flu,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.items.0.amount,3,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.items.0.consume,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.facilities.0.buildingDefinitionId,building:vaccine-laboratory,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.facilities,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.research,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.characters,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.factions,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.worldMetrics,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.requiredFlags,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,venueRequirements.anchor.exactBuildingDefinitionIds.0,building:8876,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,venueRequirements.anchor.facilityRoles,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,venueRequirements.requiredRoomFacilityRoles,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,venueRequirements.requiredRoomFacilities,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,venueRequirements.minimumSeats,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,venueRequirements.minimumTables,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,venueRequirements.minimumServiceCapacity,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,venueRequirements.minimumEventCells,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,venueRequirements.minimumVacantBeds,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,venueRequirements.requireResidentHeadroom,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,venueRequirements.requireWetBath,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,venueRequirements.requireEmergencySurgeryFacility,0,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
 GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,successEffects.0.targetId,guest-service,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:disease-sample,guest-request:disease-sample,successEffects.0.amount,80,,,explicit-serialized
@@ -138,20 +182,31 @@ GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency
 GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,authoringRevision,1,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,kind,1,GuestRequestKind,Medical,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,riskReason,실패 결과가 세력 원한 5를 추가한다.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,deadlineDays,2,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.items.0.itemDefinitionId,medicine:advanced,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.items.0.amount,3,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.items.0.consume,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.facilities.0.buildingDefinitionId,building:surgery-room,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.facilities,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.research,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.characters,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.factions,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.worldMetrics,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.requiredFlags,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,venueRequirements.anchor.exactBuildingDefinitionIds,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,venueRequirements.anchor.facilityRoles,4096,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,venueRequirements.requiredRoomFacilityRoles,4096,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,venueRequirements.requiredRoomFacilities,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,venueRequirements.minimumSeats,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,venueRequirements.minimumTables,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,venueRequirements.minimumServiceCapacity,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,venueRequirements.minimumEventCells,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,venueRequirements.minimumVacantBeds,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,venueRequirements.requireResidentHeadroom,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,venueRequirements.requireWetBath,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,venueRequirements.requireEmergencySurgeryFacility,1,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
 GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,successEffects.0.targetId,guest-service,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:emergency-surgery,guest-request:emergency-surgery,successEffects.0.amount,940,,,explicit-serialized
@@ -171,20 +226,31 @@ GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,d
 GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,authoringRevision,1,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,kind,4,GuestRequestKind,Refuge,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,riskReason,실패 결과가 세력 원한 5를 추가한다.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,deadlineDays,4,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.items.0.itemDefinitionId,food:preserved-ration,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.items.0.amount,20,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.items.0.consume,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.facilities.0.buildingDefinitionId,building:guest-dormitory,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.facilities,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.research,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.characters,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.factions,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.worldMetrics,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.requiredFlags,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,venueRequirements.anchor.exactBuildingDefinitionIds,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,venueRequirements.anchor.facilityRoles,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,venueRequirements.requiredRoomFacilityRoles,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,venueRequirements.requiredRoomFacilities,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,venueRequirements.minimumSeats,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,venueRequirements.minimumTables,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,venueRequirements.minimumServiceCapacity,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,venueRequirements.minimumEventCells,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,venueRequirements.minimumVacantBeds,4,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,venueRequirements.requireResidentHeadroom,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,venueRequirements.requireWetBath,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,venueRequirements.requireEmergencySurgeryFacility,0,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
 GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,successEffects.0.targetId,guest-service,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:flood-refuge,guest-request:flood-refuge,successEffects.0.amount,480,,,explicit-serialized
@@ -204,20 +270,31 @@ GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memori
 GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,authoringRevision,1,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,kind,3,GuestRequestKind,Spectacle,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,riskReason,실패 결과가 세력 원한 5를 추가한다.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,deadlineDays,5,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.items.0.itemDefinitionId,craft:candle,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.items.0.amount,10,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.items.0.consume,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.facilities.0.buildingDefinitionId,workstation:v19:memorial-room,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.facilities,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.research,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.characters,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.factions,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.worldMetrics,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.requiredFlags,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,venueRequirements.anchor.exactBuildingDefinitionIds.0,building:8887,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,venueRequirements.anchor.facilityRoles,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,venueRequirements.requiredRoomFacilityRoles,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,venueRequirements.requiredRoomFacilities,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,venueRequirements.minimumSeats,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,venueRequirements.minimumTables,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,venueRequirements.minimumServiceCapacity,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,venueRequirements.minimumEventCells,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,venueRequirements.minimumVacantBeds,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,venueRequirements.requireResidentHeadroom,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,venueRequirements.requireWetBath,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,venueRequirements.requireEmergencySurgeryFacility,0,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
 GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,successEffects.0.targetId,guest-service,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:memorial-performance,guest-request:memorial-performance,successEffects.0.amount,214,,,explicit-serialized
@@ -237,20 +314,31 @@ GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,d
 GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,authoringRevision,1,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,kind,6,GuestRequestKind,Armament,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,riskReason,실패 결과가 세력 원한 5를 추가한다.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,deadlineDays,4,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.items.0.itemDefinitionId,ammo:paper-cartridge,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.items.0.amount,30,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.items.0.consume,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.facilities.0.buildingDefinitionId,building:armory,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.facilities,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.research,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.characters,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.factions,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.worldMetrics,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.requiredFlags,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,venueRequirements.anchor.exactBuildingDefinitionIds,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,venueRequirements.anchor.facilityRoles,64,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,venueRequirements.requiredRoomFacilityRoles,64,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,venueRequirements.requiredRoomFacilities,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,venueRequirements.minimumSeats,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,venueRequirements.minimumTables,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,venueRequirements.minimumServiceCapacity,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,venueRequirements.minimumEventCells,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,venueRequirements.minimumVacantBeds,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,venueRequirements.requireResidentHeadroom,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,venueRequirements.requireWetBath,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,venueRequirements.requireEmergencySurgeryFacility,0,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
 GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,successEffects.0.targetId,guest-service,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:militia-arms,guest-request:militia-arms,successEffects.0.amount,480,,,explicit-serialized
@@ -294,6 +382,7 @@ GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circ
 GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,failureEffects.0.targetId,requesting-faction,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,failureEffects.0.amount,5,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,failureEffects.0.durationDays,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,riskTier,0,ExperienceEventRiskTier,None,implicit-csharp-default
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,m_Name,guest-request_persecuted-family,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,stableId,guest-request:persecuted-family,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,displayName,추방 가족의 은신,,,explicit-serialized
@@ -301,20 +390,31 @@ GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecute
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,authoringRevision,1,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,kind,4,GuestRequestKind,Refuge,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,riskReason,실패 결과가 세력 원한 5를 추가한다.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,deadlineDays,3,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.items.0.itemDefinitionId,resource:clean-water,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.items.0.amount,12,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.items.0.consume,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.facilities.0.buildingDefinitionId,building:family-quarters,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.facilities,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.research,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.characters,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.factions,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.worldMetrics,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.requiredFlags,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,venueRequirements.anchor.exactBuildingDefinitionIds.0,building:8883,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,venueRequirements.anchor.facilityRoles,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,venueRequirements.requiredRoomFacilityRoles,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,venueRequirements.requiredRoomFacilities,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,venueRequirements.minimumSeats,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,venueRequirements.minimumTables,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,venueRequirements.minimumServiceCapacity,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,venueRequirements.minimumEventCells,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,venueRequirements.minimumVacantBeds,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,venueRequirements.requireResidentHeadroom,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,venueRequirements.requireWetBath,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,venueRequirements.requireEmergencySurgeryFacility,0,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,successEffects.0.targetId,guest-service,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:persecuted-family,guest-request:persecuted-family,successEffects.0.amount,16,,,explicit-serialized
@@ -334,20 +434,31 @@ GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-scr
 GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,authoringRevision,1,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,kind,1,GuestRequestKind,Medical,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,riskReason,실패 결과가 세력 원한 5를 추가한다.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,deadlineDays,3,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.items.0.itemDefinitionId,medicine:antiseptic,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.items.0.amount,6,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.items.0.consume,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.facilities.0.buildingDefinitionId,building:isolation-ward,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.facilities,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.research,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.characters,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.factions,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.worldMetrics,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.requiredFlags,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,venueRequirements.anchor.exactBuildingDefinitionIds.0,building:8874,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,venueRequirements.anchor.facilityRoles,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,venueRequirements.requiredRoomFacilityRoles,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,venueRequirements.requiredRoomFacilities,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,venueRequirements.minimumSeats,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,venueRequirements.minimumTables,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,venueRequirements.minimumServiceCapacity,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,venueRequirements.minimumEventCells,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,venueRequirements.minimumVacantBeds,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,venueRequirements.requireResidentHeadroom,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,venueRequirements.requireWetBath,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,venueRequirements.requireEmergencySurgeryFacility,0,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
 GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,successEffects.0.targetId,guest-service,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:plague-screening,guest-request:plague-screening,successEffects.0.amount,120,,,explicit-serialized
@@ -367,20 +478,31 @@ GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-
 GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,authoringRevision,1,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,kind,2,GuestRequestKind,Trade,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,riskReason,실패 결과가 세력 원한 5를 추가한다.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,deadlineDays,7,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.items.0.itemDefinitionId,component:precision-parts,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.items.0.amount,4,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.items.0.consume,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.facilities.0.buildingDefinitionId,building:trade-counter,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.facilities,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.research,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.characters,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.factions,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.worldMetrics,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.requiredFlags,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,venueRequirements.anchor.exactBuildingDefinitionIds,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,venueRequirements.anchor.facilityRoles,2,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,venueRequirements.requiredRoomFacilityRoles,2,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,venueRequirements.requiredRoomFacilities,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,venueRequirements.minimumSeats,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,venueRequirements.minimumTables,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,venueRequirements.minimumServiceCapacity,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,venueRequirements.minimumEventCells,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,venueRequirements.minimumVacantBeds,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,venueRequirements.requireResidentHeadroom,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,venueRequirements.requireWetBath,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,venueRequirements.requireEmergencySurgeryFacility,0,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
 GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,successEffects.0.targetId,guest-service,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:precision-barter,guest-request:precision-barter,successEffects.0.amount,1547,,,explicit-serialized
@@ -400,20 +522,31 @@ GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archi
 GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,authoringRevision,1,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,kind,5,GuestRequestKind,Research,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,riskReason,실패 결과가 세력 원한 5를 추가한다.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,deadlineDays,8,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.items.0.itemDefinitionId,component:engineering-drawing,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.items.0.amount,2,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.items.0.consume,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.facilities.0.buildingDefinitionId,building:prototype-laboratory,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.facilities,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.research,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.characters,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.factions,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.worldMetrics,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.requiredFlags,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,venueRequirements.anchor.exactBuildingDefinitionIds.0,building:8825,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,venueRequirements.anchor.facilityRoles,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,venueRequirements.requiredRoomFacilityRoles,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,venueRequirements.requiredRoomFacilities,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,venueRequirements.minimumSeats,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,venueRequirements.minimumTables,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,venueRequirements.minimumServiceCapacity,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,venueRequirements.minimumEventCells,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,venueRequirements.minimumVacantBeds,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,venueRequirements.requireResidentHeadroom,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,venueRequirements.requireWetBath,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,venueRequirements.requireEmergencySurgeryFacility,0,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
 GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,successEffects.0.targetId,guest-service,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:sealed-archive,guest-request:sealed-archive,successEffects.0.amount,67,,,explicit-serialized
@@ -433,20 +566,31 @@ GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-
 GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,authoringRevision,1,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,kind,2,GuestRequestKind,Trade,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,riskTier,1,ExperienceEventRiskTier,Recoverable,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,riskReason,실패 결과가 세력 원한 5를 추가한다.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,deadlineDays,5,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.items.0.itemDefinitionId,material:charcoal,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.items.0.amount,12,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.items.0.consume,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.facilities.0.buildingDefinitionId,building:faction-audience-hall,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.facilities,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.research,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.characters,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.factions,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.worldMetrics,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.requiredFlags,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,serviceRequirements.excludedFlags,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,venueRequirements.anchor.exactBuildingDefinitionIds,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,venueRequirements.anchor.facilityRoles,2048,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,venueRequirements.requiredRoomFacilityRoles,2048,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,venueRequirements.requiredRoomFacilities,[],,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,venueRequirements.minimumSeats,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,venueRequirements.minimumTables,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,venueRequirements.minimumServiceCapacity,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,venueRequirements.minimumEventCells,3,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,venueRequirements.minimumVacantBeds,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,venueRequirements.requireResidentHeadroom,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,venueRequirements.requireWetBath,0,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,venueRequirements.requireEmergencySurgeryFacility,0,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,successEffects.0.kind,9,GuestRequestKind,알 수 없음 (9),explicit-serialized
 GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,successEffects.0.targetId,guest-service,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:winter-fuel-auction,guest-request:winter-fuel-auction,successEffects.0.amount,112,,,explicit-serialized

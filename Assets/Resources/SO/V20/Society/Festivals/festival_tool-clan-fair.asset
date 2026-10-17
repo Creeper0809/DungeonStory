@@ -22,7 +22,22 @@ MonoBehaviour:
   dayOfSeason: 18
   convertsActiveGrief: 0
   cultureId: culture:kobold-toolclan
-  requiredBuildingDefinitionId: building:apprentice-workbench
+  requiredBuildingDefinitionId: ""
+  venueRequirements:
+    anchor:
+      exactBuildingDefinitionIds:
+      - building:8861
+      facilityRoles: 0
+    requiredRoomFacilityRoles: 0
+    requiredRoomFacilities: []
+    minimumSeats: 0
+    minimumTables: 0
+    minimumServiceCapacity: 0
+    minimumEventCells: 6
+    minimumVacantBeds: 0
+    requireResidentHeadroom: 0
+    requireWetBath: 0
+    requireEmergencySurgeryFacility: 0
   requiredItems:
   - itemDefinitionId: component:machine-parts
     amount: 2

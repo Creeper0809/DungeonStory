@@ -5,7 +5,8 @@ public sealed class ProductionFacilityDestructiveDrainSaveSection :
     DungeonStrictJsonSaveSection<
         DungeonProductionFacilityDestructiveDrainSaveData,
         ProductionFacilityDestructiveDrainRestoreCandidate>,
-    IDungeonRollbackFreeSaveSection
+    IDungeonRollbackFreeSaveSection,
+    IDungeonSaveSectionVersionCompatibility
 {
     public const string Id =
         "economy.production-facility-destructive-drains";
@@ -22,7 +23,8 @@ public sealed class ProductionFacilityDestructiveDrainSaveSection :
         CharacterEnvironmentSaveSection.Id,
         ProductionGenericBillTerminalDrainSaveSection.Id,
         CombatEquipmentTerminalDrainSaveSection.Id,
-        ProductionApparelOrderTerminalDrainSaveSection.Id
+        ProductionApparelOrderTerminalDrainSaveSection.Id,
+        EnvironmentalFireSaveSection.Id
     };
 
     private readonly IProductionFacilityDestructiveDrainPersistence persistence;
@@ -47,6 +49,9 @@ public sealed class ProductionFacilityDestructiveDrainSaveSection :
         DungeonSaveRestorePhase.LateRuntimeState;
     public override IReadOnlyList<string> DependsOn => Dependencies;
 
+    public bool CanRestoreVersion(int sectionVersion) =>
+        sectionVersion is 3 or 4;
+
     protected override DungeonProductionFacilityDestructiveDrainSaveData
         CapturePayload() => persistence.Capture();
 
@@ -62,7 +67,7 @@ public sealed class ProductionFacilityDestructiveDrainSaveSection :
     protected override void PublishRestoreCandidateProjection(
         DungeonProductionFacilityDestructiveDrainSaveData payload,
         ProductionFacilityDestructiveDrainRestoreCandidate candidate) =>
-        lifecycleRestoreCandidates.SetDrain(payload);
+        lifecycleRestoreCandidates.SetDrain(candidate.Payload);
 
     protected override void ValidateRawPayload(string payloadJson)
     {
@@ -77,7 +82,7 @@ public sealed class ProductionFacilityDestructiveDrainSaveSection :
                 "lastConfirmedSerializedByteDigest"))
         {
             throw new InvalidOperationException(
-                "Production destructive-drain V3 payload is missing a required marker scalar field.");
+                "Production destructive-drain payload is missing a required marker scalar field.");
         }
     }
 

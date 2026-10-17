@@ -18,6 +18,7 @@ public sealed class DungeonRunFlowAggregateState
     public int BossCycle;
     public bool BossArmed;
     public bool BossActive;
+    public OwnerRunCompletionPendingData PendingCompletion;
 }
 
 public sealed class DungeonDebugModeState

@@ -10,7 +10,27 @@ public sealed class AnimalHusbandryAggregateState
         new();
     public Dictionary<BuildingInstanceId, AnimalPenPolicyData> Policies { get; } =
         new();
+    public List<AnimalHusbandryPendingOutcomeState> PendingOutcomes { get; } =
+        new();
+    public List<AnimalHusbandryPendingCommandFact> PendingCommandFacts { get; } = new();
+    public long NextOutcomeSequence { get; set; } = 1L;
     public float NextTickAt { get; set; }
+}
+
+public sealed class AnimalHusbandryPendingCommandFact
+{
+    public AnimalHusbandryPendingCommandFact(string publicationKey, AnimalHusbandryCommandFact fact)
+    {
+        if (string.IsNullOrWhiteSpace(publicationKey) || publicationKey != publicationKey.Trim()
+            || publicationKey.Length > 512 || publicationKey.Any(char.IsControl))
+            throw new InvalidOperationException("A canonical pending husbandry publication key is required.");
+        PublicationKey = publicationKey;
+        Fact = fact ?? throw new ArgumentNullException(nameof(fact));
+    }
+    public string PublicationKey { get; }
+    public AnimalHusbandryCommandFact Fact { get; }
+    public AnimalHusbandryPendingCommandSaveData Capture() => new()
+    { publicationKey = PublicationKey, fact = Fact.CaptureSaveData() };
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -42,7 +62,9 @@ public static class AnimalHusbandryStateCodec
             throw new InvalidOperationException(
                 $"Animal-husbandry payload version {saveData.version} is unsupported.");
         }
-        if (saveData.animals == null || saveData.penPolicies == null)
+        if (saveData.animals == null || saveData.penPolicies == null
+            || saveData.pendingOutcomes == null || saveData.pendingCommandFacts == null
+            || saveData.pendingCommandFacts.Count > 1)
         {
             throw new InvalidOperationException(
                 "Animal-husbandry payload collections must not be null.");
@@ -55,8 +77,14 @@ public static class AnimalHusbandryStateCodec
 
         AnimalHusbandryAggregateState restored = new()
         {
-            NextTickAt = nextTickAt
+            NextTickAt = nextTickAt,
+            NextOutcomeSequence = saveData.nextOutcomeSequence
         };
+        if (restored.NextOutcomeSequence <= 0L)
+        {
+            throw new InvalidOperationException(
+                "Animal-husbandry outcome sequence must be positive.");
+        }
         WildlifeInstanceId previousAnimalId = default;
         foreach (HusbandryAnimalSaveData saved in saveData.animals)
         {
@@ -93,6 +121,43 @@ public static class AnimalHusbandryStateCodec
             previousPenId = policy.PenId;
         }
 
+        string previousOperationId = null;
+        foreach (AnimalHusbandryPendingOutcomeSaveData saved in
+                 saveData.pendingOutcomes)
+        {
+            AnimalHusbandryPendingOutcomeState pending = BuildPendingOutcome(
+                saved,
+                getSpeciesProducts,
+                containsItem);
+            if (previousOperationId != null
+                && string.CompareOrdinal(
+                    previousOperationId,
+                    pending.OperationId) >= 0)
+            {
+                throw new InvalidOperationException(
+                    "Animal-husbandry pending outcomes must be uniquely sorted by operation ID.");
+            }
+            if (AnimalHusbandryDomainOperationIdentity.RequireSequence(pending.OperationId,
+                pending.Kind, pending.AnimalId.Value) >= restored.NextOutcomeSequence)
+                throw new InvalidOperationException("Husbandry pending work sequence conflicts with its owner.");
+            restored.PendingOutcomes.Add(pending);
+            previousOperationId = pending.OperationId;
+        }
+
+        foreach (AnimalHusbandryPendingCommandSaveData saved in saveData.pendingCommandFacts)
+        {
+            if (saved == null || saved.fact == null)
+                throw new InvalidOperationException("Husbandry pending command fact is missing.");
+            AnimalHusbandryCommandFact fact;
+            try { fact = AnimalHusbandryCommandFact.Restore(saved.fact, getSpeciesProducts, containsItem); }
+            catch (ArgumentException exception)
+            { throw new InvalidOperationException("Husbandry pending command fact is invalid.", exception); }
+            if (fact.Sequence >= restored.NextOutcomeSequence
+                || restored.PendingOutcomes.Any(value => value.OperationId == fact.OperationId))
+                throw new InvalidOperationException("Husbandry pending command sequence conflicts with its owner.");
+            restored.PendingCommandFacts.Add(new AnimalHusbandryPendingCommandFact(saved.publicationKey, fact));
+        }
+
         ValidateAggregateReferences(restored);
         return new AnimalHusbandryRestoreCandidate(restored);
     }
@@ -107,6 +172,7 @@ public static class AnimalHusbandryStateCodec
 
         return new DungeonAnimalHusbandrySaveData
         {
+            nextOutcomeSequence = state.NextOutcomeSequence,
             animals = state.Animals.Values
                 .OrderBy(value => value.AnimalId.Value, StringComparer.Ordinal)
                 .Select(CaptureAnimal)
@@ -114,11 +180,16 @@ public static class AnimalHusbandryStateCodec
             penPolicies = state.Policies.Values
                 .OrderBy(value => value.PenId.Value, StringComparer.Ordinal)
                 .Select(CapturePolicy)
-                .ToList()
+                .ToList(),
+            pendingOutcomes = state.PendingOutcomes
+                .OrderBy(value => value.OperationId, StringComparer.Ordinal)
+                .Select(CapturePendingOutcome)
+                .ToList(),
+            pendingCommandFacts = state.PendingCommandFacts.Select(value => value.Capture()).ToList()
         };
     }
 
-    private static HusbandryAnimalState BuildAnimal(
+    internal static HusbandryAnimalState BuildAnimal(
         HusbandryAnimalSaveData saved,
         Func<WildlifeSpeciesId, IReadOnlyCollection<ItemDefinitionId>> getSpeciesProducts,
         Func<ItemDefinitionId, bool> containsItem)
@@ -156,6 +227,7 @@ public static class AnimalHusbandryStateCodec
         RequireFiniteNonNegative(saved.manureProgressDays, animalId, "manure progress");
         RequireFiniteNonNegative(saved.pendingWorkCompleted, animalId, "pending work");
         if (saved.readyManureCycles < 0
+            || saved.pendingWorkContributions == null
             || saved.products == null
             || saved.statusParameters == null
             || saved.statusParameters.Any(parameter => parameter == null))
@@ -237,6 +309,9 @@ public static class AnimalHusbandryStateCodec
                 $"Animal '{animalId.Value}' pending product is absent from its product state.");
         }
 
+        List<CraftContributionSaveData> contributions =
+            BuildContributions(saved, animalId);
+
         return new HusbandryAnimalState
         {
             AnimalId = animalId,
@@ -257,13 +332,14 @@ public static class AnimalHusbandryStateCodec
             PendingWorkKind = saved.pendingWorkKind,
             PendingProductItemId = pendingProductId,
             PendingWorkCompleted = saved.pendingWorkCompleted,
+            PendingWorkContributions = contributions,
             StatusCode = saved.statusCode,
             StatusParameters = new List<string>(saved.statusParameters),
             Products = products
         };
     }
 
-    private static AnimalPenPolicyData BuildPolicy(
+    internal static AnimalPenPolicyData BuildPolicy(
         AnimalPenPolicySaveData saved,
         Func<WildlifeSpeciesId, IReadOnlyCollection<ItemDefinitionId>> getSpeciesProducts)
     {
@@ -347,9 +423,20 @@ public static class AnimalHusbandryStateCodec
                     $"Animal '{animal.AnimalId.Value}' has an invalid other-parent reference.");
             }
         }
+        foreach (AnimalHusbandryPendingOutcomeState pending in
+                 state.PendingOutcomes)
+        {
+            if (!state.Policies.ContainsKey(pending.PenId)
+                || pending.Kind != AnimalHusbandryOutcomeOperationKind.Slaughter
+                    && !state.Animals.ContainsKey(pending.AnimalId))
+            {
+                throw new InvalidOperationException(
+                    $"Pending husbandry outcome '{pending.OperationId}' has invalid aggregate references.");
+            }
+        }
     }
 
-    private static HusbandryAnimalSaveData CaptureAnimal(HusbandryAnimalState state) =>
+    internal static HusbandryAnimalSaveData CaptureAnimal(HusbandryAnimalState state) =>
         new()
         {
             animalInstanceId = state.AnimalId.Value,
@@ -370,6 +457,12 @@ public static class AnimalHusbandryStateCodec
             pendingWorkKind = state.PendingWorkKind,
             pendingProductItemDefinitionId = state.PendingProductItemId.Value,
             pendingWorkCompleted = state.PendingWorkCompleted,
+            pendingWorkContributions = (state.PendingWorkContributions
+                    ?? new List<CraftContributionSaveData>())
+                .Where(value => value != null)
+                .OrderBy(value => value.characterId, StringComparer.Ordinal)
+                .Select(value => value.Clone())
+                .ToList(),
             statusCode = state.StatusCode,
             statusParameters = new List<string>(
                 state.StatusParameters ?? new List<string>()),
@@ -385,7 +478,171 @@ public static class AnimalHusbandryStateCodec
                 .ToList()
         };
 
-    private static AnimalPenPolicySaveData CapturePolicy(AnimalPenPolicyData policy) =>
+    private static List<CraftContributionSaveData> BuildContributions(
+        HusbandryAnimalSaveData saved,
+        WildlifeInstanceId animalId)
+    {
+        var result = new List<CraftContributionSaveData>();
+        string previous = null;
+        foreach (CraftContributionSaveData value in saved.pendingWorkContributions)
+        {
+            string characterId = value?.characterId?.Trim() ?? string.Empty;
+            if (value == null
+                || characterId.Length == 0
+                || !string.Equals(characterId, value.characterId, StringComparison.Ordinal)
+                || !float.IsFinite(value.contributedWork)
+                || value.contributedWork <= 0f
+                || !float.IsFinite(value.relevantSkill)
+                || value.relevantSkill < 0f
+                || previous != null
+                && string.CompareOrdinal(previous, characterId) >= 0)
+            {
+                throw new InvalidOperationException(
+                    $"Animal '{animalId.Value}' has invalid or unsorted work contributions.");
+            }
+            result.Add(value.Clone());
+            previous = characterId;
+        }
+        if (saved.pendingWorkKind == AnimalHusbandryWorkKind.None
+            && result.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Animal '{animalId.Value}' has contributions without pending work.");
+        }
+        return result;
+    }
+
+    private static AnimalHusbandryPendingOutcomeState BuildPendingOutcome(
+        AnimalHusbandryPendingOutcomeSaveData saved,
+        Func<WildlifeSpeciesId, IReadOnlyCollection<ItemDefinitionId>> getSpeciesProducts,
+        Func<ItemDefinitionId, bool> containsItem)
+    {
+        if (saved == null
+            || string.IsNullOrWhiteSpace(saved.operationId)
+            || !string.Equals(saved.operationId, saved.operationId.Trim(), StringComparison.Ordinal)
+            || saved.operationId.Length > 512
+            || saved.kind is < AnimalHusbandryOutcomeOperationKind.Tame
+                or > AnimalHusbandryOutcomeOperationKind.Slaughter
+            || saved.absoluteDay < 1
+            || !((BuildingInstanceId)saved.penId).IsValid
+            || !((WildlifeInstanceId)saved.animalId).IsValid
+            || !((WildlifeSpeciesId)saved.speciesId).IsValid
+            || string.IsNullOrWhiteSpace(saved.workerId)
+            || string.IsNullOrWhiteSpace(saved.workerDisplayName)
+            || string.IsNullOrWhiteSpace(saved.publicationKey)
+            || saved.publicationKey != saved.publicationKey.Trim()
+            || saved.publicationKey.Length > 512 || saved.publicationKey.Any(char.IsControl)
+            || saved.completionPublicationKey == null
+            || saved.completionPublicationKey != saved.completionPublicationKey.Trim()
+            || saved.completionPublicationKey.Length > 512 || saved.completionPublicationKey.Any(char.IsControl)
+            || saved.animalStatesBefore == null || saved.animalStatesBefore.Count != 1
+            || saved.animalStatesAfter == null
+            || saved.animalStatesAfter.Count != (saved.kind == AnimalHusbandryOutcomeOperationKind.Slaughter ? 0 : 1)
+            || saved.contributions == null || saved.outputStacks == null
+            || saved.outputStacks.Any(value => value == null)
+            || saved.completedWorkMilliUnits <= 0
+            || saved.outputQuantity < 0
+            || saved.outputMassGrams < 0L)
+        {
+            throw new InvalidOperationException(
+                "Animal-husbandry pending outcome is invalid.");
+        }
+        ItemDefinitionId outputItemId = new(saved.outputItemId);
+        if (saved.completionIdentityRequired)
+        {
+            if (!Enum.IsDefined(typeof(CharacterCommandOrigin), saved.completionOrigin)
+                || !float.IsFinite(saved.completionContributionWorkUnits)
+                || saved.completionContributionWorkUnits <= 0f
+                || saved.completionContributionWorkUnits > saved.completedWorkMilliUnits / 1000f + 0.001f
+                || string.IsNullOrWhiteSpace(saved.completionSkillModifierProvenance)
+                || saved.completionPublicationKey.Length > 0 && !saved.outcomeCommitted)
+                throw new InvalidOperationException("Husbandry retained completion evidence is invalid.");
+        }
+        else if (saved.outcomeCommitted || saved.completionContributionWorkUnits != 0f
+            || saved.completionOrigin != CharacterCommandOrigin.Autonomous
+            || !string.IsNullOrEmpty(saved.completionPublicationKey)
+            || !string.IsNullOrEmpty(saved.completionSkillModifierProvenance))
+            throw new InvalidOperationException("Unowned husbandry completion contains retained identity evidence.");
+        if ((saved.outputQuantity > 0) != outputItemId.IsValid
+            || outputItemId.IsValid && !containsItem(outputItemId)
+            || saved.outputQuantity > 0 && saved.outputStacks.Count == 0
+            || saved.outputQuantity == 0
+                && (saved.outputMassGrams != 0L
+                    || saved.outputStacks.Count != 0
+                    || !string.IsNullOrEmpty(saved.carcassStackId)))
+        {
+            throw new InvalidOperationException(
+                "Animal-husbandry pending output evidence is inconsistent.");
+        }
+        var pending = new AnimalHusbandryPendingOutcomeState
+        {
+            OperationId = saved.operationId,
+            Kind = saved.kind,
+            AbsoluteDay = saved.absoluteDay,
+            PenId = new BuildingInstanceId(saved.penId),
+            AnimalId = new WildlifeInstanceId(saved.animalId),
+            SpeciesId = new WildlifeSpeciesId(saved.speciesId),
+            WorkerId = saved.workerId,
+            WorkerDisplayName = saved.workerDisplayName,
+            PublicationKey = saved.publicationKey,
+            AnimalStatesBefore = saved.animalStatesBefore.Select(value =>
+                BuildAnimal(value, getSpeciesProducts, containsItem)).ToList(),
+            AnimalStatesAfter = saved.animalStatesAfter.Select(value =>
+                BuildAnimal(value, getSpeciesProducts, containsItem)).ToList(),
+            CompletedWorkMilliUnits = saved.completedWorkMilliUnits,
+            Contributions = saved.contributions.ConvertAll(value => value?.Clone()),
+            OutputItemId = outputItemId,
+            OutputQuantity = saved.outputQuantity,
+            OutputMassGrams = saved.outputMassGrams,
+            OutputStacks = saved.outputStacks.ConvertAll(value =>
+                new AnimalHusbandryOutputStack { StackId = value.stackId, Quantity = value.quantity }),
+            CarcassStackId = saved.carcassStackId ?? string.Empty,
+            LastFailure = saved.lastFailure ?? string.Empty,
+            CompletionIdentityRequired = saved.completionIdentityRequired,
+            OutcomeCommitted = saved.outcomeCommitted,
+            CompletionPublicationKey = saved.completionPublicationKey,
+            CompletionOrigin = saved.completionOrigin,
+            CompletionContributionWorkUnits = saved.completionContributionWorkUnits,
+            CompletionSkillModifierProvenance = saved.completionSkillModifierProvenance ?? string.Empty
+        };
+        try { _ = new AnimalHusbandryWorkFact(pending); }
+        catch (ArgumentException exception)
+        { throw new InvalidOperationException("Husbandry pending work fact is invalid.", exception); }
+        return pending;
+    }
+
+    private static AnimalHusbandryPendingOutcomeSaveData CapturePendingOutcome(
+        AnimalHusbandryPendingOutcomeState value) => new()
+        {
+            operationId = value.OperationId,
+            kind = value.Kind,
+            absoluteDay = value.AbsoluteDay,
+            penId = value.PenId.Value,
+            animalId = value.AnimalId.Value,
+            speciesId = value.SpeciesId.Value,
+            workerId = value.WorkerId,
+            workerDisplayName = value.WorkerDisplayName,
+            publicationKey = value.PublicationKey,
+            animalStatesBefore = value.AnimalStatesBefore.Select(CaptureAnimal).ToList(),
+            animalStatesAfter = value.AnimalStatesAfter.Select(CaptureAnimal).ToList(),
+            completedWorkMilliUnits = value.CompletedWorkMilliUnits,
+            contributions = value.Contributions.ConvertAll(entry => entry?.Clone()),
+            outputItemId = value.OutputItemId.Value,
+            outputQuantity = value.OutputQuantity,
+            outputMassGrams = value.OutputMassGrams,
+            outputStacks = value.OutputStacks.ConvertAll(entry => new AnimalHusbandryOutputStackSaveData
+            { stackId = entry.StackId, quantity = entry.Quantity }),
+            carcassStackId = value.CarcassStackId,
+            lastFailure = value.LastFailure,
+            completionIdentityRequired = value.CompletionIdentityRequired,
+            outcomeCommitted = value.OutcomeCommitted,
+            completionPublicationKey = value.CompletionPublicationKey,
+            completionOrigin = value.CompletionOrigin,
+            completionContributionWorkUnits = value.CompletionContributionWorkUnits,
+            completionSkillModifierProvenance = value.CompletionSkillModifierProvenance
+        };
+
+    internal static AnimalPenPolicySaveData CapturePolicy(AnimalPenPolicyData policy) =>
         new()
         {
             penBuildingInstanceId = policy.PenId.Value,

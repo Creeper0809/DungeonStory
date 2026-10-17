@@ -9,6 +9,7 @@ public static class CircusSaveValidation
 {
     public const int MaximumOrders = 256;
     public const int MaximumCapturedWildlife = 512;
+    public const int MaximumWildlifeGameplayOutcomes = 128;
     public const int MaximumParticipantsPerGroup = 256;
     private const string OrderPrefix = "circus:";
     private const string FeedOperationPrefix = "captivity-wildlife-feed:";
@@ -41,7 +42,9 @@ public static class CircusSaveValidation
         {
             report.AddError("Circus order sequence cannot be negative.");
         }
-        if (payload.orders == null || payload.capturedWildlife == null)
+        if (payload.orders == null
+            || payload.capturedWildlife == null
+            || payload.wildlifeGameplayOutcomes == null)
         {
             report.AddError("Circus payload is missing a required list.");
             return;
@@ -55,6 +58,7 @@ public static class CircusSaveValidation
             report.AddError(
                 $"Circus payload exceeds {MaximumCapturedWildlife} captured wildlife.");
         }
+        ValidateWildlifeGameplayOutcomes(payload, report);
 
         HashSet<string> orderIds = new(StringComparer.Ordinal);
         int highestOrderSequence = 0;
@@ -74,9 +78,15 @@ public static class CircusSaveValidation
         }
 
         HashSet<string> wildlifeIds = new(StringComparer.Ordinal);
+        HashSet<string> companionOwnerIds = new(StringComparer.Ordinal);
         foreach (CapturedWildlifeState wildlife in payload.capturedWildlife)
         {
-            ValidateCapturedWildlife(wildlife, orderIds, wildlifeIds, report);
+            ValidateCapturedWildlife(
+                wildlife,
+                orderIds,
+                wildlifeIds,
+                companionOwnerIds,
+                report);
         }
 
         foreach (CircusShowOrder order in payload.orders.Where(
@@ -114,6 +124,13 @@ public static class CircusSaveValidation
         {
             CapturedWildlifeState restored = CreateRestoredCapturedWildlife(source);
             state.Captured.Add(restored.wildlifeId, restored);
+        }
+        state.NextGameplayOutcomeSequence =
+            payload.nextWildlifeGameplayOutcomeSequence;
+        foreach (WildlifeGameplayOutcomeSaveData source in
+                 payload.wildlifeGameplayOutcomes)
+        {
+            state.GameplayOutcomes.Add(source?.Clone());
         }
         return state;
     }
@@ -309,6 +326,7 @@ public static class CircusSaveValidation
         CapturedWildlifeState wildlife,
         ISet<string> orderIds,
         ISet<string> wildlifeIds,
+        ISet<string> companionOwnerIds,
         DungeonGameRestoreReport report)
     {
         string wildlifeId = wildlife?.wildlifeId ?? string.Empty;
@@ -351,7 +369,8 @@ public static class CircusSaveValidation
                 $"Captured wildlife '{wildlifeId}' has incoherent transport state.");
         }
 
-        if (!IsFiniteNonNegative(wildlife.nextCareAt)
+        if (!IsFiniteRange(wildlife.remainingCareSeconds, 0f,
+                CapturedWildlifeState.CareIntervalSeconds)
             || !IsFiniteRange(wildlife.escapeRisk, 0f, 100f)
             || !IsFiniteRange(wildlife.feedSicknessSeverity, 0f, 100f)
             || !IsFiniteRange(wildlife.lastFeedDiseaseChance, 0f, 1f))
@@ -360,6 +379,63 @@ public static class CircusSaveValidation
                 $"Captured wildlife '{wildlifeId}' has invalid numeric state.");
         }
         ValidateCapturedWildlifeFeed(wildlife, report);
+        ValidateCapturedWildlifeCapability(
+            wildlife,
+            companionOwnerIds,
+            report);
+    }
+
+    private static void ValidateCapturedWildlifeCapability(
+        CapturedWildlifeState wildlife,
+        ISet<string> companionOwnerIds,
+        DungeonGameRestoreReport report)
+    {
+        if (!CapturedWildlifeCapabilityStateCodec.TryRead(
+                wildlife.capabilityState,
+                out CapturedWildlifeRoleId roleId,
+                out string failureReason))
+        {
+            report.AddError(
+                $"Captured wildlife '{wildlife.wildlifeId}' has invalid capability state: {failureReason}");
+            return;
+        }
+
+        if (roleId.Equals(CapturedWildlifeRoleIds.Haul))
+        {
+            if (!CapturedWildlifeCapabilityStateCodec.TryReadHaul(
+                    wildlife.capabilityState,
+                    out _,
+                    out failureReason)
+                || !wildlife.isTamed
+                || wildlife.escaped
+                || wildlife.transportState != CapturedWildlifeTransportState.Penned
+                || !string.IsNullOrEmpty(wildlife.assignedShowOrderId))
+            {
+                report.AddError(
+                    $"Captured wildlife '{wildlife.wildlifeId}' has incoherent haul state: {failureReason}");
+            }
+            return;
+        }
+
+        if (!roleId.Equals(CapturedWildlifeRoleIds.Companion))
+        {
+            return;
+        }
+
+        if (!CapturedWildlifeCapabilityStateCodec.TryReadCompanion(
+                wildlife.capabilityState,
+                out CharacterId ownerId,
+                out _,
+                out failureReason)
+            || !wildlife.isTamed
+            || wildlife.escaped
+            || wildlife.transportState != CapturedWildlifeTransportState.Penned
+            || !string.IsNullOrEmpty(wildlife.assignedShowOrderId)
+            || !companionOwnerIds.Add(ownerId.Value))
+        {
+            report.AddError(
+                $"Captured wildlife '{wildlife.wildlifeId}' has incoherent companion state: {failureReason}");
+        }
     }
 
     private static void ValidateCapturedWildlifeFeed(
@@ -485,11 +561,200 @@ public static class CircusSaveValidation
             && string.Equals(value, OrderPrefix + sequence, StringComparison.Ordinal);
     }
 
+    private static void ValidateWildlifeGameplayOutcomes(
+        CircusSaveData payload,
+        DungeonGameRestoreReport report)
+    {
+        if (payload.nextWildlifeGameplayOutcomeSequence < 0)
+        {
+            report.AddError(
+                "Circus wildlife gameplay-outcome sequence cannot be negative.");
+        }
+        if (payload.wildlifeGameplayOutcomes.Count
+            > MaximumWildlifeGameplayOutcomes)
+        {
+            report.AddError(
+                $"Circus payload exceeds {MaximumWildlifeGameplayOutcomes} wildlife gameplay outcomes.");
+        }
+
+        var operations = new HashSet<string>(StringComparer.Ordinal);
+        var publicationKeys = new HashSet<string>(StringComparer.Ordinal);
+        long previousRevision = 0L;
+        foreach (WildlifeGameplayOutcomeSaveData outcome in
+                 payload.wildlifeGameplayOutcomes)
+        {
+            string operationId = outcome?.operationId?.Trim() ?? string.Empty;
+            string wildlifeId = outcome?.wildlifeId?.Trim() ?? string.Empty;
+            bool dtoValid = outcome != null;
+            bool dtoFailureReported = false;
+            if (outcome != null)
+            {
+                try
+                {
+                    outcome.Validate();
+                }
+                catch (ArgumentException exception)
+                {
+                    dtoValid = false;
+                    dtoFailureReported = true;
+                    report.AddError(
+                        $"Circus wildlife gameplay outcome '{operationId}' failed DTO validation: {exception.Message}");
+                }
+            }
+            bool publicationKeyValid = outcome != null
+                && IsCanonical(outcome.publicationKey)
+                && publicationKeys.Add(outcome.publicationKey);
+            bool action = outcome?.profile == WildlifeGameplayOutcomeProfile.Action;
+            bool knownEvent = outcome != null
+                && IsKnownWildlifeGameplayOutcomeEvent(
+                    outcome.profile,
+                    outcome.eventKind);
+            bool relatedActorValid = outcome != null
+                && (!RequiresRelatedActor(outcome.eventKind)
+                    || (IsCanonical(outcome.actorId)
+                        && IsCanonical(outcome.actorDisplayName)));
+            bool transitionValid = outcome != null
+                && IsValidWildlifeGameplayOutcomeTransition(outcome);
+            string expectedOperationId = outcome == null
+                ? string.Empty
+                : $"{(action ? "wildlife-action" : "wildlife-command")}:"
+                    + $"{outcome.eventKind}:{wildlifeId}:{outcome.ownerRevision}";
+            bool valid = outcome != null
+                && dtoValid
+                && outcome.schemaVersion
+                    == WildlifeGameplayOutcomeSaveData.CurrentSchemaVersion
+                && Enum.IsDefined(
+                    typeof(WildlifeGameplayOutcomeProfile),
+                    outcome.profile)
+                && knownEvent
+                && IsCanonical(outcome.operationId)
+                && string.Equals(
+                    operationId,
+                    expectedOperationId,
+                    StringComparison.Ordinal)
+                && operations.Add(operationId)
+                && IsCanonical(outcome.eventKind)
+                && IsCanonical(outcome.wildlifeId)
+                && IsCanonical(outcome.wildlifeSpeciesId)
+                && IsCanonical(outcome.wildlifeDisplayName)
+                && (!action
+                    || (IsCanonical(outcome.actorId)
+                        && IsCanonical(outcome.actorDisplayName)))
+                && IsCanonicalOptional(outcome.actorId)
+                && IsCanonicalOptional(outcome.actorDisplayName)
+                && IsCanonicalOptional(outcome.facilityId)
+                && IsCanonicalOptional(outcome.facilityDisplayName)
+                && IsCanonical(outcome.facilityId)
+                && relatedActorValid
+                && transitionValid
+                && outcome.healthBefore >= 0
+                && outcome.healthAfter >= 0
+                && outcome.damage == outcome.healthBefore - outcome.healthAfter
+                && outcome.ammunitionBefore >= 0
+                && outcome.ammunitionAfter >= 0
+                && outcome.ammunitionConsumed
+                    == outcome.ammunitionBefore - outcome.ammunitionAfter
+                && outcome.coverDamage >= 0
+                && outcome.outputQuantity >= 0
+                && outcome.outputMassGrams >= 0L
+                && IsCanonicalOptional(outcome.weaponDefinitionId)
+                && IsCanonicalOptional(outcome.weaponInstanceId)
+                && IsCanonicalOptional(outcome.ammunitionItemId)
+                && IsCanonicalOptional(outcome.bodyPart)
+                && IsCanonicalOptional(outcome.coverSourceId)
+                && IsCanonicalOptional(outcome.carcassStackId)
+                && IsCanonicalOptional(outcome.physicalChildResultKey)
+                && publicationKeyValid
+                && IsCanonical(outcome.reasonCode)
+                && outcome.absoluteDay >= 0
+                && outcome.ownerRevision > previousRevision
+                && outcome.ownerRevision
+                    <= payload.nextWildlifeGameplayOutcomeSequence;
+            if (!valid && !dtoFailureReported)
+            {
+                report.AddError(
+                    $"Circus payload contains invalid wildlife gameplay outcome '{operationId}'.");
+            }
+            previousRevision = Math.Max(
+                previousRevision,
+                outcome?.ownerRevision ?? 0L);
+        }
+    }
+
+    private static bool IsKnownWildlifeGameplayOutcomeEvent(
+        WildlifeGameplayOutcomeProfile profile,
+        string eventKind) => profile switch
+        {
+            WildlifeGameplayOutcomeProfile.Action => eventKind is
+                "capture-order"
+                or "capture-carry-started"
+                or "capture-penned",
+            WildlifeGameplayOutcomeProfile.Command => eventKind is
+                "capture-release"
+                or "companion-assigned"
+                or "companion-cleared"
+                or "haul-assigned"
+                or "haul-clear-requested"
+                or "haul-cleared",
+            _ => false
+        };
+
+    private static bool RequiresRelatedActor(string eventKind) => eventKind is
+        "companion-assigned"
+        or "companion-cleared";
+
+    private static bool IsValidWildlifeGameplayOutcomeTransition(
+        WildlifeGameplayOutcomeSaveData outcome)
+    {
+        if (!Enum.IsDefined(
+                typeof(CapturedWildlifeTransportState),
+                outcome.stateBefore)
+            || !Enum.IsDefined(
+                typeof(CapturedWildlifeTransportState),
+                outcome.stateAfter))
+        {
+            return false;
+        }
+
+        CapturedWildlifeTransportState before =
+            (CapturedWildlifeTransportState)outcome.stateBefore;
+        CapturedWildlifeTransportState after =
+            (CapturedWildlifeTransportState)outcome.stateAfter;
+        return outcome.eventKind switch
+        {
+            "capture-order" => before
+                == CapturedWildlifeTransportState.AwaitingTransport
+                && after == before,
+            "capture-carry-started" => before
+                == CapturedWildlifeTransportState.AwaitingTransport
+                && after == CapturedWildlifeTransportState.Transporting,
+            "capture-penned" => before
+                == CapturedWildlifeTransportState.Transporting
+                && after == CapturedWildlifeTransportState.Penned,
+            "capture-release" => after
+                == CapturedWildlifeTransportState.Released,
+            "companion-assigned" => outcome.flagAfter,
+            "companion-cleared" => outcome.flagBefore
+                && !outcome.flagAfter,
+            "haul-assigned" => !outcome.flagBefore
+                && outcome.flagAfter,
+            "haul-clear-requested" => outcome.flagBefore
+                && outcome.flagAfter,
+            "haul-cleared" => outcome.flagBefore
+                && !outcome.flagAfter,
+            _ => false
+        };
+    }
+
     private static bool IsCanonical(string value)
     {
         return !string.IsNullOrWhiteSpace(value)
             && string.Equals(value, value.Trim(), StringComparison.Ordinal);
     }
+
+    private static bool IsCanonicalOptional(string value) =>
+        value != null
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
     private static bool IsFinite(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value);

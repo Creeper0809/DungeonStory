@@ -232,7 +232,7 @@ public sealed class OperationsTabContentPresenter : IUITabContentPresenter
         builder.AppendLine($"런 변수: {(summary.HasRunVariables ? "활성" : "없음")}");
         builder.AppendLine();
         builder.AppendLine("운영 탭에 들어갈 핵심");
-        builder.AppendLine("- 일일 정산, 매출, 유지비, 순이익");
+        builder.AppendLine("- 일일 정산, 매출, 시설 계약비, 순이익");
         builder.AppendLine("- 방문자 수, 평균 만족도, 단골 변화");
         builder.AppendLine("- 당일 사건/알림 로그와 선택지");
         builder.AppendLine("- 다음 운영일 진행 버튼");

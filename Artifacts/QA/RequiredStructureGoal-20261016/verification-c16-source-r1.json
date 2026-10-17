@@ -1,0 +1,60 @@
+{
+  "target": "C16 V20CampaignApplicationAdapter",
+  "status": "RESPONSE_OWNER_AND_TRANSFER_LIFETIME_FIXED_SOURCE_VERIFIED_ACTUAL_PENDING",
+  "goalStatus": "active",
+  "completedTargets": 6,
+  "totalTargets": 32,
+  "sourceEdit": "CLOSED",
+  "authors": "READY/FROZEN",
+  "contract": "One observed response workflow owner; same Society command/query/DTO authority, no parent back-reference. Transient attempt binds exact AbilityMove+version, successful restore clears attempts without reopening tick fence; exact provenance required before movement wait/cancel. Abandoned/terminal attempts release references.",
+  "unchanged": {
+    "movedExactMethods": 9,
+    "whitelistedModifiedMethods": 3,
+    "retainedParentMethods": 11,
+    "existingFixtureMethodsExact": 19,
+    "publicCtorValidationDiagnosticInterfaces": "exact",
+    "registration": "same singleton plus successful restore hook",
+    "dtoVersionPolicyScenePrefabExistingGuid": "untouched"
+  },
+  "controlled": {
+    "fixtureChecks": 15,
+    "tickChecks": 3,
+    "evidence": "c16-campaign-response/controlled-r2/result.json",
+    "scope": "Full current runtime and real current Editor ownership fixture. Constructor-free AbilityMove shells with real managed ownership/provenance fields; no Unity object operators or native path/medical/carrying/official world restore. Actual Tick failure/retry/reentry with explicit empty Society query double."
+  },
+  "parity": "c16-campaign-response/static-parity-r1.txt",
+  "syntax": {
+    "files": 169,
+    "errors": 0
+  },
+  "currentManagedCompilation": {
+    "evidence": "c16-campaign-response/managed-final.json",
+    "runtime": 2718,
+    "editor": 1021,
+    "errors": 0,
+    "warnings": [
+      3,
+      23
+    ],
+    "sourceFiles": 3866,
+    "inputReferenceDrift": 0,
+    "scope": "Current runtime2718 r1 source unchanged; current Editor1021 r3. Original Unity defines/references/analyzers, Artifacts outputs. Buildings32/Economy95 validated C4 outputs, other named assemblies cached. Unity import/ILPP/native execution NOT_RUN."
+  },
+  "nativeFixture": {
+    "entry": "ArchitectureRefactorVerificationBatch.RunCampaign -> Wim040IncidentCompletionDebugScenarios.RunForArchitectureBatch -> RunIncidentTransferOwnershipContracts",
+    "compiled": true,
+    "managedHostExecuted": "managed ownership fixture with constructor-free shells only",
+    "UnityExecuted": false,
+    "pending": "Actual component fixture, coroutine wait/cancel, live medical carrying and official whole-world restore; existing Wim040ObservedIncidentLiveRunner.StartFocused covers real movement/medical path."
+  },
+  "repairHistory": [
+    "Editor r1 fixture namespace typo CS0234; r2 fixed to existing global BuildingInstanceId",
+    "controlled r1 rejected fixture facility: prefix by strict existing building: validator; only fixture IDs corrected, Editor r3 and controlled r2 PASS",
+    "Parity tooling corrected Roslyn omitted-array token whitespace and registration comparison to preserve other existing hooks; production code unchanged"
+  ],
+  "independentReview": "read-only READY/FROZEN, no concrete defect found; native paths unverified",
+  "sourcePin": "source-pin-c16-r1.json",
+  "toolPin": "tool-pin-c16-r1.json",
+  "knowledgeBase": "stale271, original source/callers used; related generation batch remains open",
+  "Unity": "NOT_RUN_USER_REQUEST_CODE_CLEANUP_CONTINUES"
+}

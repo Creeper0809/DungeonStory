@@ -1,0 +1,17 @@
+{
+  "facts": [
+    {
+      "label": "효과",
+      "value": "1개"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "characters-traits",
+  "kind": "character",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "acquired-trait-module-survival-instinct",
+  "spoiler_tier": "none",
+  "summary": "위험한 작업을 넘긴 경험이 위험 작업 중 사고 확률을 조금 낮춥니다.",
+  "title": "생존 본능"
+}

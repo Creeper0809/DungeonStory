@@ -1,0 +1,11 @@
+schemaVersion=1
+sourceBaseline=c03d2e0a1c68067de48840f3851b388483966a6e
+catalogInputDigest=sha256:1ae0286bd7d286052fa4de41c5ed5df008b4198a3a2434968bed8e5adb890360
+unityCompile=PASS
+v25NarrativeInferenceDebugScenarios=PASS;cases=12/12;covers=canonical-json-python-parity,catalog-byte-determinism,packet-parity,strict-response-contracts
+characterProgressionDebugScenarios=PASS;covers=all-eight-authored-module-effects,automatic-producer,pending-callback,whole-root-save-roundtrip
+facilityEvolutionDebugScenarios=PASS
+offenseRewardBossSealLifecycle=PASS;covers=first-region-award,duplicate-rejection,second-region-award,publish-failure,save-restore-reconciliation,exact-once
+physicalItemPilePlayMode=PASS;errors=0;warnings=0;artifact=Artifacts/QA/physical-item-pile-playmode-report.txt;artifactHash=sha256:4feb41e912b90028c71771c9173f5754f2c26d37d808e576219e8533e5c8977d
+knowledgeBaseRebuild=PASS;contentRows=3477;relations=6495;acquiredTraitSettings=1;acquiredTraitModules=8;failureCount=0
+narrativeAiImport=PENDING;trainingEligible=false-until-cross-workspace-import

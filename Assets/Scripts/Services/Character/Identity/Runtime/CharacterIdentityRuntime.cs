@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -89,14 +91,98 @@ public readonly struct ApparelChangedEvent : ICharacterIdentityEvent
 public readonly struct WorkCompletedIdentityEvent : ICharacterIdentityEvent
 {
     public WorkCompletedIdentityEvent(CharacterId character, string workId, string productId, CharacterCommandOrigin origin, int day)
-    { Character = character; WorkId = Required(workId); ProductId = productId?.Trim() ?? string.Empty; Origin = origin; AbsoluteDay = Math.Max(0, day); }
+        : this(
+            character,
+            workId,
+            productId,
+            origin,
+            day,
+            WorkCompletionIdentityReferenceDefaults.None,
+            WorkCompletionIdentityReferenceDefaults.LegacyTerminalOwner,
+            WorkCompletionIdentityReferenceDefaults.None,
+            WorkCompletionIdentityReferenceDefaults.None,
+            0f,
+            WorkCompletionIdentityReferenceDefaults.None)
+    {
+    }
+
+    public WorkCompletedIdentityEvent(
+        CharacterId character,
+        string workId,
+        string productId,
+        CharacterCommandOrigin origin,
+        int day,
+        string operationId,
+        string terminalOwnerId,
+        string childResultKey,
+        string targetEntityId,
+        float contributionWorkUnits,
+        string skillModifierProvenance =
+            WorkCompletionIdentityReferenceDefaults.None)
+    {
+        if (!character.IsValid)
+            throw new ArgumentException(
+                "A valid work-completion character is required.",
+                nameof(character));
+        if (!Enum.IsDefined(typeof(CharacterCommandOrigin), origin))
+            throw new ArgumentOutOfRangeException(nameof(origin));
+        if (day < 0)
+            throw new ArgumentOutOfRangeException(nameof(day));
+        if (!float.IsFinite(contributionWorkUnits)
+            || contributionWorkUnits < 0f)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(contributionWorkUnits));
+        }
+        Character = character;
+        WorkId = Required(workId);
+        ProductId = productId?.Trim() ?? string.Empty;
+        Origin = origin;
+        AbsoluteDay = day;
+        OperationId = Required(operationId);
+        TerminalOwnerId = Required(terminalOwnerId);
+        ChildResultKey = Required(childResultKey);
+        TargetEntityId = Required(targetEntityId);
+        ContributionWorkUnits = contributionWorkUnits;
+        SkillModifierProvenance = RequiredBoundedFact(
+            skillModifierProvenance,
+            nameof(skillModifierProvenance));
+    }
     public string EventId => "event:work-completed";
     public CharacterId Character { get; }
     public string WorkId { get; }
     public string ProductId { get; }
     public CharacterCommandOrigin Origin { get; }
     public int AbsoluteDay { get; }
+    public string OperationId { get; }
+    public string TerminalOwnerId { get; }
+    public string ChildResultKey { get; }
+    public string TargetEntityId { get; }
+    public float ContributionWorkUnits { get; }
+    public string SkillModifierProvenance { get; }
     private static string Required(string value) => string.IsNullOrWhiteSpace(value) ? throw new ArgumentException("Work id is required.") : value.Trim();
+    private static string RequiredBoundedFact(string value, string parameterName)
+    {
+        string normalized = Required(value);
+        if (!DomainFactValueSyntax.IsText(
+                normalized,
+                4096,
+                allowEmpty: false))
+        {
+            throw new ArgumentOutOfRangeException(
+                parameterName,
+                "Work-completion fact exceeds the gameplay outcome bound.");
+        }
+        return normalized;
+    }
+}
+
+public static class WorkCompletionIdentityReferenceDefaults
+{
+    public const string None = "none";
+    public const string LegacyTerminalOwner = "legacy-work-event";
+    public const string ExecutorTerminalOwner = "work-executor";
+    public const string CheckpointTerminalOwner = "work-checkpoint";
 }
 
 public readonly struct WorkCompletionIdentityDeliveryRequest
@@ -110,6 +196,40 @@ public readonly struct WorkCompletionIdentityDeliveryRequest
         string productId,
         CharacterCommandOrigin origin,
         int absoluteDay)
+        : this(
+            deliveryId,
+            producerStreamId,
+            operationSequence,
+            character,
+            workId,
+            productId,
+            origin,
+            absoluteDay,
+            WorkCompletionIdentityReferenceDefaults.None,
+            WorkCompletionIdentityReferenceDefaults.LegacyTerminalOwner,
+            WorkCompletionIdentityReferenceDefaults.None,
+            WorkCompletionIdentityReferenceDefaults.None,
+            0f,
+            WorkCompletionIdentityReferenceDefaults.None)
+    {
+    }
+
+    public WorkCompletionIdentityDeliveryRequest(
+        string deliveryId,
+        string producerStreamId,
+        int operationSequence,
+        CharacterId character,
+        string workId,
+        string productId,
+        CharacterCommandOrigin origin,
+        int absoluteDay,
+        string operationId,
+        string terminalOwnerId,
+        string childResultKey,
+        string targetEntityId,
+        float contributionWorkUnits,
+        string skillModifierProvenance =
+            WorkCompletionIdentityReferenceDefaults.None)
     {
         DeliveryId = RequireCanonical(deliveryId, nameof(deliveryId));
         ProducerStreamId = RequireCanonical(
@@ -124,13 +244,33 @@ public readonly struct WorkCompletionIdentityDeliveryRequest
         OperationSequence = operationSequence;
         Character = character;
         WorkId = RequireCanonical(workId, nameof(workId));
-        ProductId = RequireCanonical(productId, nameof(productId));
+        ProductId = OptionalCanonical(productId, nameof(productId));
         if (!Enum.IsDefined(typeof(CharacterCommandOrigin), origin))
             throw new ArgumentOutOfRangeException(nameof(origin));
         if (absoluteDay < 0)
             throw new ArgumentOutOfRangeException(nameof(absoluteDay));
+        if (!float.IsFinite(contributionWorkUnits)
+            || contributionWorkUnits < 0f)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(contributionWorkUnits));
+        }
         Origin = origin;
         AbsoluteDay = absoluteDay;
+        OperationId = RequireCanonical(operationId, nameof(operationId));
+        TerminalOwnerId = RequireCanonical(
+            terminalOwnerId,
+            nameof(terminalOwnerId));
+        ChildResultKey = RequireCanonical(
+            childResultKey,
+            nameof(childResultKey));
+        TargetEntityId = RequireCanonical(
+            targetEntityId,
+            nameof(targetEntityId));
+        ContributionWorkUnits = contributionWorkUnits;
+        SkillModifierProvenance = RequireBoundedFact(
+            skillModifierProvenance,
+            nameof(skillModifierProvenance));
         PayloadFingerprint = ComputeFingerprint(
             DeliveryId,
             ProducerStreamId,
@@ -139,7 +279,13 @@ public readonly struct WorkCompletionIdentityDeliveryRequest
             WorkId,
             ProductId,
             Origin,
-            AbsoluteDay);
+            AbsoluteDay,
+            OperationId,
+            TerminalOwnerId,
+            ChildResultKey,
+            TargetEntityId,
+            ContributionWorkUnits,
+            SkillModifierProvenance);
     }
 
     public string DeliveryId { get; }
@@ -150,6 +296,12 @@ public readonly struct WorkCompletionIdentityDeliveryRequest
     public string ProductId { get; }
     public CharacterCommandOrigin Origin { get; }
     public int AbsoluteDay { get; }
+    public string OperationId { get; }
+    public string TerminalOwnerId { get; }
+    public string ChildResultKey { get; }
+    public string TargetEntityId { get; }
+    public float ContributionWorkUnits { get; }
+    public string SkillModifierProvenance { get; }
     public string PayloadFingerprint { get; }
 
     public WorkCompletedIdentityEvent ToEvent() => new(
@@ -157,7 +309,13 @@ public readonly struct WorkCompletionIdentityDeliveryRequest
         WorkId,
         ProductId,
         Origin,
-        AbsoluteDay);
+        AbsoluteDay,
+        OperationId,
+        TerminalOwnerId,
+        ChildResultKey,
+        TargetEntityId,
+        ContributionWorkUnits,
+        SkillModifierProvenance);
 
     public static string ComputeFingerprint(
         string deliveryId,
@@ -168,9 +326,66 @@ public readonly struct WorkCompletionIdentityDeliveryRequest
         string productId,
         CharacterCommandOrigin origin,
         int absoluteDay)
+        => ComputeFingerprint(
+            deliveryId,
+            producerStreamId,
+            operationSequence,
+            character,
+            workId,
+            productId,
+            origin,
+            absoluteDay,
+            WorkCompletionIdentityReferenceDefaults.None,
+            WorkCompletionIdentityReferenceDefaults.LegacyTerminalOwner,
+            WorkCompletionIdentityReferenceDefaults.None,
+            WorkCompletionIdentityReferenceDefaults.None,
+            0f,
+            WorkCompletionIdentityReferenceDefaults.None);
+
+    public static string ComputeFingerprint(
+        string deliveryId,
+        string producerStreamId,
+        int operationSequence,
+        CharacterId character,
+        string workId,
+        string productId,
+        CharacterCommandOrigin origin,
+        int absoluteDay,
+        string operationId,
+        string terminalOwnerId,
+        string childResultKey,
+        string targetEntityId,
+        float contributionWorkUnits,
+        string skillModifierProvenance =
+            WorkCompletionIdentityReferenceDefaults.None)
     {
+        bool legacy = string.Equals(
+                operationId,
+                WorkCompletionIdentityReferenceDefaults.None,
+                StringComparison.Ordinal)
+            && string.Equals(
+                terminalOwnerId,
+                WorkCompletionIdentityReferenceDefaults.LegacyTerminalOwner,
+                StringComparison.Ordinal)
+            && string.Equals(
+                childResultKey,
+                WorkCompletionIdentityReferenceDefaults.None,
+                StringComparison.Ordinal)
+            && string.Equals(
+                targetEntityId,
+                WorkCompletionIdentityReferenceDefaults.None,
+                StringComparison.Ordinal)
+            && contributionWorkUnits == 0f;
+        bool hasSkillModifiers = !string.Equals(
+            skillModifierProvenance,
+            WorkCompletionIdentityReferenceDefaults.None,
+            StringComparison.Ordinal);
         CanonicalSemanticDigestBuilder digest = new();
-        digest.Append("work-completion-identity-delivery@1");
+        digest.Append(hasSkillModifiers
+            ? "work-completion-identity-delivery@3"
+            : legacy
+                ? "work-completion-identity-delivery@1"
+                : "work-completion-identity-delivery@2");
         digest.Append(deliveryId);
         digest.Append(producerStreamId);
         digest.Append(operationSequence);
@@ -179,7 +394,34 @@ public readonly struct WorkCompletionIdentityDeliveryRequest
         digest.Append(productId);
         digest.AppendEnum(origin);
         digest.Append(absoluteDay);
+        if (!legacy)
+        {
+            digest.Append(operationId);
+            digest.Append(terminalOwnerId);
+            digest.Append(childResultKey);
+            digest.Append(targetEntityId);
+            digest.AppendFloat(contributionWorkUnits);
+        }
+        if (hasSkillModifiers)
+            digest.Append(skillModifierProvenance);
         return digest.ComputeSha256();
+    }
+
+    private static string RequireBoundedFact(
+        string value,
+        string parameterName)
+    {
+        string canonical = RequireCanonical(value, parameterName);
+        if (!DomainFactValueSyntax.IsText(
+                canonical,
+                4096,
+                allowEmpty: false))
+        {
+            throw new ArgumentException(
+                "A bounded canonical fact is required.",
+                parameterName);
+        }
+        return canonical;
     }
 
     private static string RequireCanonical(string value, string parameterName)
@@ -189,6 +431,20 @@ public readonly struct WorkCompletionIdentityDeliveryRequest
             throw new ArgumentException(
                 "A nonempty canonical token is required.",
                 parameterName);
+        return value;
+    }
+
+    private static string OptionalCanonical(string value, string parameterName)
+    {
+        if (string.IsNullOrEmpty(value))
+            return string.Empty;
+        if (string.IsNullOrWhiteSpace(value)
+            || !string.Equals(value, value.Trim(), StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "An optional canonical token cannot contain surrounding whitespace.",
+                parameterName);
+        }
         return value;
     }
 }
@@ -344,8 +600,8 @@ public readonly struct ResearchOutcomeEvent : ICharacterIdentityEvent
 
 public readonly struct SocialConflictEvent : ICharacterIdentityEvent
 {
-    public SocialConflictEvent(CharacterId instigator, CharacterId target, string conflictId, float severity, CharacterCommandOrigin origin, int day)
-    { Instigator = Valid(instigator); Target = Valid(target); ConflictId = Text(conflictId); Severity = Mathf.Max(0f, severity); Origin = origin; AbsoluteDay = Math.Max(0, day); }
+    public SocialConflictEvent(CharacterId instigator, CharacterId target, string conflictId, float severity, CharacterCommandOrigin origin, int day, string operationId = "")
+    { Instigator = Valid(instigator); Target = Valid(target); ConflictId = Text(conflictId); Severity = Mathf.Max(0f, severity); Origin = origin; AbsoluteDay = Math.Max(0, day); OperationId = operationId?.Trim() ?? string.Empty; }
     public string EventId => "event:social-conflict";
     public CharacterId Instigator { get; }
     public CharacterId Target { get; }
@@ -353,20 +609,52 @@ public readonly struct SocialConflictEvent : ICharacterIdentityEvent
     public float Severity { get; }
     public CharacterCommandOrigin Origin { get; }
     public int AbsoluteDay { get; }
+    public string OperationId { get; }
     private static CharacterId Valid(CharacterId value) => value.IsValid ? value : throw new ArgumentException("Conflict participant is required.");
     private static string Text(string value) => string.IsNullOrWhiteSpace(value) ? throw new ArgumentException("Conflict id is required.") : value.Trim();
 }
 
 public readonly struct ApologyEvent : ICharacterIdentityEvent
 {
-    public ApologyEvent(CharacterId offender, CharacterId recipient, string offenseId, bool restitutionProvided, int day)
-    { Offender = Valid(offender); Recipient = Valid(recipient); OffenseId = Text(offenseId); RestitutionProvided = restitutionProvided; AbsoluteDay = Math.Max(0, day); }
+    public ApologyEvent(
+        CharacterId offender,
+        CharacterId recipient,
+        string offenseId,
+        bool restitutionProvided,
+        int day,
+        string operationId,
+        string offendingPublicationId,
+        string rootOperationId,
+        string causationRelationId)
+    {
+        Offender = Valid(offender);
+        Recipient = Valid(recipient);
+        OffenseId = Text(offenseId);
+        RestitutionProvided = restitutionProvided;
+        AbsoluteDay = Math.Max(0, day);
+        OperationId = operationId?.Trim() ?? string.Empty;
+        OffendingPublicationId = DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(offendingPublicationId, 1024, false)
+            ? offendingPublicationId
+            : throw new ArgumentException(
+                "The offending outcome is required.",
+                nameof(offendingPublicationId));
+        RootOperationId = DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsIdentity(rootOperationId)
+            ? rootOperationId
+            : throw new ArgumentException(
+                "The offending root operation is required.",
+                nameof(rootOperationId));
+        CausationRelationId = Text(causationRelationId);
+    }
     public string EventId => "event:apology";
     public CharacterId Offender { get; }
     public CharacterId Recipient { get; }
     public string OffenseId { get; }
     public bool RestitutionProvided { get; }
     public int AbsoluteDay { get; }
+    public string OperationId { get; }
+    public string OffendingPublicationId { get; }
+    public string RootOperationId { get; }
+    public string CausationRelationId { get; }
     public CharacterCommandOrigin Origin => CharacterCommandOrigin.DirectPlayerOrder;
     private static CharacterId Valid(CharacterId value) => value.IsValid ? value : throw new ArgumentException("Apology participant is required.");
     private static string Text(string value) => string.IsNullOrWhiteSpace(value) ? throw new ArgumentException("Offense id is required.") : value.Trim();
@@ -420,6 +708,40 @@ public readonly struct CharacterInjuredIdentityEvent : ICharacterIdentityEvent
         CombatDamageType damageType,
         float appliedDamage,
         int day)
+        : this(
+            character,
+            attacker,
+            damageType,
+            appliedDamage,
+            day,
+            string.Empty,
+            string.Empty,
+            default,
+            default,
+            string.Empty,
+            default,
+            string.Empty,
+            string.Empty,
+            CharacterCommandOrigin.ScriptedForced)
+    {
+    }
+
+    public CharacterInjuredIdentityEvent(
+        CharacterId character,
+        CharacterId attacker,
+        CombatDamageType damageType,
+        float appliedDamage,
+        int day,
+        string workAccidentOperationId,
+        string workAccidentWorkerDisplayName,
+        WorkTypeId workAccidentWorkTypeId,
+        BuildingInstanceId workAccidentFacilityInstanceId,
+        string workAccidentFacilityDisplayName,
+        CoreGridCell workAccidentLocation,
+        string workAccidentDamagedAnatomyNodeId,
+        string workAccidentObservedCause,
+        CharacterCommandOrigin origin,
+        float workAccidentRiskMultiplier = 0f)
     {
         Character = character.IsValid
             ? character
@@ -428,6 +750,48 @@ public readonly struct CharacterInjuredIdentityEvent : ICharacterIdentityEvent
         DamageType = damageType;
         AppliedDamage = Mathf.Max(0f, appliedDamage);
         AbsoluteDay = Math.Max(0, day);
+        WorkAccidentOperationId = workAccidentOperationId?.Trim()
+            ?? string.Empty;
+        WorkAccidentWorkerDisplayName =
+            workAccidentWorkerDisplayName?.Trim() ?? string.Empty;
+        WorkAccidentWorkTypeId = workAccidentWorkTypeId;
+        WorkAccidentFacilityInstanceId = workAccidentFacilityInstanceId;
+        WorkAccidentFacilityDisplayName =
+            workAccidentFacilityDisplayName?.Trim() ?? string.Empty;
+        WorkAccidentLocation = workAccidentLocation;
+        WorkAccidentDamagedAnatomyNodeId =
+            workAccidentDamagedAnatomyNodeId?.Trim() ?? string.Empty;
+        WorkAccidentObservedCause = workAccidentObservedCause?.Trim()
+            ?? string.Empty;
+        Origin = origin;
+        if (!float.IsFinite(workAccidentRiskMultiplier) || workAccidentRiskMultiplier < 0f)
+            throw new ArgumentOutOfRangeException(nameof(workAccidentRiskMultiplier));
+        WorkAccidentRiskMultiplier = workAccidentRiskMultiplier;
+        if (WorkAccidentOperationId.Length > 0
+            && (WorkAccidentWorkerDisplayName.Length == 0
+                || !WorkAccidentWorkTypeId.IsValid
+                || !WorkAccidentFacilityInstanceId.IsValid
+                || WorkAccidentFacilityDisplayName.Length == 0
+                || WorkAccidentDamagedAnatomyNodeId.Length == 0
+                || WorkAccidentObservedCause.Length == 0
+                || AppliedDamage <= 0f))
+        {
+            throw new ArgumentException(
+                "Work-accident injury evidence must contain the exact worker, work, facility, node, damage and observed cause.",
+                nameof(workAccidentOperationId));
+        }
+        if (WorkAccidentOperationId.Length == 0
+            && (WorkAccidentWorkerDisplayName.Length > 0
+                || WorkAccidentWorkTypeId.IsValid
+                || WorkAccidentFacilityInstanceId.IsValid
+                || WorkAccidentFacilityDisplayName.Length > 0
+                || WorkAccidentDamagedAnatomyNodeId.Length > 0
+                || WorkAccidentObservedCause.Length > 0))
+        {
+            throw new ArgumentException(
+                "Partial work-accident injury evidence is not allowed.",
+                nameof(workAccidentOperationId));
+        }
     }
 
     public string EventId => "event:character-injured";
@@ -436,7 +800,18 @@ public readonly struct CharacterInjuredIdentityEvent : ICharacterIdentityEvent
     public CombatDamageType DamageType { get; }
     public float AppliedDamage { get; }
     public int AbsoluteDay { get; }
-    public CharacterCommandOrigin Origin => CharacterCommandOrigin.ScriptedForced;
+    public string WorkAccidentOperationId { get; }
+    public string WorkAccidentWorkerDisplayName { get; }
+    public WorkTypeId WorkAccidentWorkTypeId { get; }
+    public BuildingInstanceId WorkAccidentFacilityInstanceId { get; }
+    public string WorkAccidentFacilityDisplayName { get; }
+    public CoreGridCell WorkAccidentLocation { get; }
+    public string WorkAccidentDamagedAnatomyNodeId { get; }
+    public string WorkAccidentObservedCause { get; }
+    public float WorkAccidentRiskMultiplier { get; }
+    public bool HasWorkAccidentEvidence =>
+        WorkAccidentOperationId.Length > 0;
+    public CharacterCommandOrigin Origin { get; }
 }
 
 public readonly struct ExpeditionOutcomeEvent : ICharacterIdentityEvent
@@ -480,11 +855,25 @@ public sealed class CharacterIdentityEventPublisher
 
 public sealed class WorkCompletionIdentityDeliveryLedger
 {
+    public const string DirectEventStreamId =
+        "work-identity:direct-events";
+    public const string DirectEventDeliveryPrefix =
+        "work-identity-direct:";
+
     private readonly Dictionary<string,
         WorkCompletionIdentityDeliveryCursorSaveData> cursors =
         new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> activeDeliveries =
         new(StringComparer.Ordinal);
+    private readonly HashSet<string> pendingObservations = new(StringComparer.Ordinal);
+    public bool HasPendingObservations => pendingObservations.Count != 0;
+
+    public WorkCompletionIdentityDeliveryCursorSaveData[] CapturePendingObservations()
+    {
+        if (activeDeliveries.Count != 0)
+            throw new InvalidOperationException("Work-completion delivery capture is unavailable during apply.");
+        return pendingObservations.Select(stream => cursors[stream].Clone()).ToArray();
+    }
 
     public IReadOnlyList<WorkCompletionIdentityDeliveryCursorSaveData> Capture()
     {
@@ -506,8 +895,13 @@ public sealed class WorkCompletionIdentityDeliveryLedger
         WorkCompletionIdentityDeliveryCursorSaveData[] candidate =
             ValidateAndClone(source);
         cursors.Clear();
+        pendingObservations.Clear();
         foreach (WorkCompletionIdentityDeliveryCursorSaveData cursor in candidate)
+        {
             cursors.Add(cursor.producerStreamId, cursor);
+            if (cursor.disposition == WorkCompletionIdentityDeliveryDisposition.EffectsAppliedPendingObservation)
+                pendingObservations.Add(cursor.producerStreamId);
+        }
     }
 
     public WorkCompletionIdentityDeliveryStatus Inspect(
@@ -543,12 +937,172 @@ public sealed class WorkCompletionIdentityDeliveryLedger
         }
 
         if (request.OperationSequence == checked(cursor.operationSequence + 1))
+        {
+            if (cursor.disposition == WorkCompletionIdentityDeliveryDisposition.EffectsAppliedPendingObservation)
+            { failureReason = "The preceding completion observation is still pending."; return WorkCompletionIdentityDeliveryStatus.Deferred; }
             return WorkCompletionIdentityDeliveryStatus.Applied;
+        }
 
         failureReason = request.OperationSequence < cursor.operationSequence
             ? "The completion delivery sequence is stale."
             : "The completion delivery sequence is not contiguous.";
         return WorkCompletionIdentityDeliveryStatus.Conflict;
+    }
+
+    public WorkCompletionIdentityDeliveryRequest CreateNextDirectRequest(
+        WorkCompletedIdentityEvent gameEvent)
+    {
+        if (activeDeliveries.ContainsKey(DirectEventStreamId))
+            throw new InvalidOperationException(
+                "A direct work-completion identity event is already applying.");
+        int operationSequence = cursors.TryGetValue(
+            DirectEventStreamId,
+            out WorkCompletionIdentityDeliveryCursorSaveData cursor)
+            ? checked(cursor.operationSequence + 1)
+            : 0;
+        if (cursor?.disposition == WorkCompletionIdentityDeliveryDisposition.EffectsAppliedPendingObservation)
+            throw new InvalidOperationException("The direct work-completion observation is still pending.");
+        return new WorkCompletionIdentityDeliveryRequest(
+            DirectEventDeliveryPrefix + operationSequence,
+            DirectEventStreamId,
+            operationSequence,
+            gameEvent.Character,
+            gameEvent.WorkId,
+            gameEvent.ProductId,
+            gameEvent.Origin,
+            gameEvent.AbsoluteDay,
+            gameEvent.OperationId,
+            gameEvent.TerminalOwnerId,
+            gameEvent.ChildResultKey,
+            gameEvent.TargetEntityId,
+            gameEvent.ContributionWorkUnits,
+            gameEvent.SkillModifierProvenance);
+    }
+
+    public static WorkCompletionIdentityDeliveryRequest CreateReferencedRequest(
+        WorkCompletedIdentityEvent gameEvent)
+    {
+        string child = gameEvent.ChildResultKey;
+        if (!DomainFactValueSyntax.IsText(child, 4096, false) || child != child.Trim()
+            || child == WorkCompletionIdentityReferenceDefaults.None)
+            throw new ArgumentException("Referenced completion requires its opaque child publication key.");
+        // The payload is deliberately not part of the identity. A changed retry
+        // must conflict with the original completion, not allocate a new delivery.
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append("work-completion-referenced-child@1");
+        digest.Append(child);
+        digest.Append(gameEvent.Character.Value);
+        string identity = digest.ComputeSha256();
+        return new WorkCompletionIdentityDeliveryRequest(
+            "work-identity-child:" + identity,
+            "work-identity:child:" + identity,
+            0,
+            gameEvent.Character,
+            gameEvent.WorkId,
+            gameEvent.ProductId,
+            gameEvent.Origin,
+            gameEvent.AbsoluteDay,
+            gameEvent.OperationId,
+            gameEvent.TerminalOwnerId,
+            gameEvent.ChildResultKey,
+            gameEvent.TargetEntityId,
+            gameEvent.ContributionWorkUnits,
+            gameEvent.SkillModifierProvenance);
+    }
+
+
+    public bool TryGetCommittedDisposition(
+        WorkCompletionIdentityDeliveryRequest request,
+        out WorkCompletionIdentityDeliveryDisposition disposition)
+    {
+        disposition = default;
+        if (!cursors.TryGetValue(
+                request.ProducerStreamId,
+                out WorkCompletionIdentityDeliveryCursorSaveData cursor)
+            || cursor.operationSequence != request.OperationSequence
+            || !string.Equals(
+                cursor.deliveryId,
+                request.DeliveryId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                cursor.payloadFingerprint,
+                request.PayloadFingerprint,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+        disposition = cursor.disposition;
+        return true;
+    }
+
+    public bool TryMarkNotificationAttempted(
+        WorkCompletionIdentityDeliveryRequest request, out bool alreadyAttempted)
+    {
+        alreadyAttempted = false;
+        if (activeDeliveries.ContainsKey(request.ProducerStreamId)
+            || !TryGetCommittedDisposition(request, out var disposition)
+            || disposition is not (WorkCompletionIdentityDeliveryDisposition.EffectsAppliedWithOutcome
+                or WorkCompletionIdentityDeliveryDisposition.TerminalRecipientUnavailable))
+            return false;
+        var cursor = cursors[request.ProducerStreamId];
+        alreadyAttempted = cursor.notificationAttempted;
+        cursor.notificationAttempted = true;
+        return true;
+    }
+
+    public bool TryGetCursor(WorkCompletionIdentityDeliveryRequest request, out WorkCompletionIdentityDeliveryCursorSaveData cursor)
+    {
+        cursor = null;
+        if (!TryGetCommittedDisposition(request, out _)) return false;
+        cursor = cursors[request.ProducerStreamId].Clone();
+        return true;
+    }
+
+    public void CommitObservation(WorkIdentityAppliedFact fact, string key, string id, string fingerprint, bool complete)
+    {
+        var request = fact.Request;
+        var candidate = new WorkCompletionIdentityDeliveryCursorSaveData
+        {
+            producerStreamId = request.ProducerStreamId, operationSequence = request.OperationSequence,
+            deliveryId = request.DeliveryId, payloadFingerprint = request.PayloadFingerprint,
+            disposition = complete ? WorkCompletionIdentityDeliveryDisposition.EffectsAppliedWithOutcome
+                : WorkCompletionIdentityDeliveryDisposition.EffectsAppliedPendingObservation,
+            observation = fact.Snapshot(), publicationKey = key,
+            publicationId = complete ? id : string.Empty, publicationFingerprint = complete ? fingerprint : string.Empty
+        };
+        ValidateObservation(candidate);
+        var state = Inspect(request, out string failure);
+        if (state != WorkCompletionIdentityDeliveryStatus.Applied
+            && !(state == WorkCompletionIdentityDeliveryStatus.AlreadyApplied
+                && cursors[request.ProducerStreamId].disposition == WorkCompletionIdentityDeliveryDisposition.EffectsAppliedPendingObservation
+                && cursors[request.ProducerStreamId].publicationKey == key))
+            throw new InvalidOperationException("Work identity observation cursor conflict: " + failure);
+        cursors[request.ProducerStreamId] = candidate;
+        if (complete) pendingObservations.Remove(request.ProducerStreamId);
+        else pendingObservations.Add(request.ProducerStreamId);
+    }
+
+    private static void ValidateObservation(WorkCompletionIdentityDeliveryCursorSaveData value)
+    {
+        bool hasObservation = value.disposition is WorkCompletionIdentityDeliveryDisposition.EffectsAppliedWithOutcome
+            or WorkCompletionIdentityDeliveryDisposition.EffectsAppliedPendingObservation;
+        bool complete = value.disposition == WorkCompletionIdentityDeliveryDisposition.EffectsAppliedWithOutcome;
+        if (value.observation == null || value.publicationKey == null || value.publicationId == null || value.publicationFingerprint == null)
+            throw new InvalidOperationException("Work identity observation fields are missing.");
+        if (!hasObservation)
+        {
+            if (!value.observation.IsEmpty || value.publicationKey.Length != 0 || value.publicationId.Length != 0 || value.publicationFingerprint.Length != 0)
+                throw new InvalidOperationException("Work identity non-observation cursor has a publication.");
+            return;
+        }
+        var fact = new WorkIdentityAppliedFact(value.observation);
+        if (fact.Request.DeliveryId != value.deliveryId || fact.Request.ProducerStreamId != value.producerStreamId
+            || fact.Request.OperationSequence != value.operationSequence || fact.Request.PayloadFingerprint != value.payloadFingerprint
+            || !DomainFactValueSyntax.IsText(value.publicationKey, 4096, false) || value.publicationKey != value.publicationKey.Trim()
+            || (complete ? !DomainFactValueSyntax.IsText(value.publicationId, 4096, false) || value.publicationId != value.publicationId.Trim()
+                || value.publicationFingerprint.Length != 64 || value.publicationFingerprint.Any(c => c is not (>= '0' and <= '9') and not (>= 'a' and <= 'f'))
+                : value.publicationId.Length != 0 || value.publicationFingerprint.Length != 0 || value.notificationAttempted))
+            throw new InvalidOperationException("Work identity observation cursor does not match its frozen fact.");
     }
 
     public WorkCompletionIdentityDeliveryStatus Commit(
@@ -561,11 +1115,13 @@ public sealed class WorkCompletionIdentityDeliveryLedger
                 typeof(WorkCompletionIdentityDeliveryDisposition),
                 disposition))
             throw new ArgumentOutOfRangeException(nameof(disposition));
+        if (disposition is WorkCompletionIdentityDeliveryDisposition.EffectsAppliedWithOutcome
+            or WorkCompletionIdentityDeliveryDisposition.EffectsAppliedPendingObservation)
+            throw new InvalidOperationException("Observed identity effects require a frozen observation and proof.");
         WorkCompletionIdentityDeliveryStatus status = Inspect(
             request,
             out failureReason);
-        if (status == WorkCompletionIdentityDeliveryStatus.Conflict
-            || status == WorkCompletionIdentityDeliveryStatus.AlreadyApplied)
+        if (status != WorkCompletionIdentityDeliveryStatus.Applied)
             return status;
         cursors[request.ProducerStreamId] = new()
         {
@@ -614,6 +1170,9 @@ public sealed class WorkCompletionIdentityDeliveryLedger
         if (activeDeliveries.ContainsKey(producerStreamId))
             throw new InvalidOperationException(
                 "An active work-completion delivery stream cannot retire.");
+        if (cursors.TryGetValue(producerStreamId, out var pending)
+            && pending.disposition == WorkCompletionIdentityDeliveryDisposition.EffectsAppliedPendingObservation)
+            throw new InvalidOperationException("A pending work-completion observation cannot retire.");
         cursors.Remove(producerStreamId);
         return true;
     }
@@ -628,6 +1187,7 @@ public sealed class WorkCompletionIdentityDeliveryLedger
                  source ?? Array.Empty<
                      WorkCompletionIdentityDeliveryCursorSaveData>())
         {
+            if (value != null) ValidateObservation(value);
             if (value == null
                 || string.IsNullOrWhiteSpace(value.producerStreamId)
                 || !string.Equals(
@@ -647,6 +1207,8 @@ public sealed class WorkCompletionIdentityDeliveryLedger
                 || !Enum.IsDefined(
                     typeof(WorkCompletionIdentityDeliveryDisposition),
                     value.disposition)
+                || value.notificationAttempted
+                    && value.disposition == WorkCompletionIdentityDeliveryDisposition.EffectsApplied
                 || !result.TryAdd(value.producerStreamId, value.Clone()))
                 throw new InvalidOperationException(
                     "Work-completion delivery cursor is invalid or duplicated.");
@@ -706,13 +1268,15 @@ public sealed class CharacterIdentityStateStore
     }
 
     private readonly Dictionary<string, Entry> states = new(StringComparer.Ordinal);
+    // Process-local invalidation only; saved rule payloads remain the authority.
+    public long Revision { get; private set; }
 
     public static string BuildKey(string characterId, string traitDefinitionId, string ruleId) =>
         $"{EscapeKeyPart(Required(characterId))}+{EscapeKeyPart(Required(traitDefinitionId))}+{EscapeKeyPart(Required(ruleId))}";
 
     [GameplayInternalOnly(
         "Only identity-rule runtimes may mutate their own stable rule-state record.",
-        "CharacterPersistentNeedRuntime|ExtremeTraitRuntime|CharacterRitualFastingRuntime")]
+        "CharacterPersistentNeedRuntime|ExtremeTraitRuleAccess|GoldenHarvestTraitRuntime|ForbiddenResearchLeapPreparation|CharacterRitualFastingRuntime")]
     public void Set(string characterId, string traitDefinitionId, string ruleId, int revision, string payload)
     {
         if (revision <= 0) throw new ArgumentOutOfRangeException(nameof(revision));
@@ -728,6 +1292,7 @@ public sealed class CharacterIdentityStateStore
                 statePayload = payload ?? string.Empty
             }
         };
+        Revision++;
     }
 
     public bool TryGet(
@@ -776,19 +1341,26 @@ public sealed class CharacterIdentityStateStore
             .ToArray();
         foreach (string key in keys)
             states.Remove(key);
+        if (keys.Length > 0) Revision++;
         return keys.Length;
     }
 
     [GameplayInternalOnly(
-        "A completed external owner retires a death-retained identity rule state.",
-        "ExtremeTraitRuntime")]
+        "Retire a death-retained state or restore the absent preimage of an uncommitted attempt.",
+        "GoldenHarvestTraitRuntime|ForbiddenResearchLeapPreparation|CharacterRitualFastingRuntime")]
     public bool RemoveRule(
         string characterId,
         string traitDefinitionId,
-        string ruleId) => states.Remove(BuildKey(
-            characterId,
-            traitDefinitionId,
-            ruleId));
+        string ruleId)
+    {
+        bool removed = states.Remove(BuildKey(characterId, traitDefinitionId, ruleId));
+        if (removed) Revision++;
+        return removed;
+    }
+
+    public IReadOnlyList<(string CharacterId, CharacterIdentityRuleStateSaveData State)> CaptureForRule(string ruleId) =>
+        states.Values.Where(value => value.State.ruleId == ruleId)
+            .Select(value => (value.CharacterId, value.State.Clone())).ToArray();
 
     public IReadOnlyList<CharacterIdentityRuntimeStateSaveData> Capture() => states
         .GroupBy(pair => pair.Value.CharacterId,
@@ -853,6 +1425,7 @@ public sealed class CharacterIdentityStateStore
         states.Clear();
         foreach (KeyValuePair<string, Entry> pair in restored)
             states.Add(pair.Key, pair.Value);
+        Revision++;
     }
 
     [GameplayInternalOnly(
@@ -876,6 +1449,8 @@ public sealed class CharacterIdentityStateStore
                 if (!traits.TryGetValue(Required(state.traitDefinitionId), out CharacterTraitSO trait)
                     || !(trait.identityRules ?? new List<CharacterIdentityRule>()).Any(rule => rule != null && string.Equals(rule.ruleId, state.ruleId?.Trim(), StringComparison.Ordinal)))
                     throw new InvalidOperationException($"Unknown identity rule state '{state?.traitDefinitionId}:{state?.ruleId}'.");
+                if (state.ruleId == CharacterRitualFastingRuntime.StateRuleId)
+                    CharacterRitualFastingRuntime.ValidateStatePayload(state.statePayload, characterId, state.traitDefinitionId);
                 string key = BuildKey(characterId, state.traitDefinitionId, state.ruleId);
                 if (!restored.TryAdd(key, new Entry
                     {
@@ -887,6 +1462,7 @@ public sealed class CharacterIdentityStateStore
         }
         states.Clear();
         foreach (var pair in restored) states.Add(pair.Key, pair.Value);
+        Revision++;
     }
 
     private static string Required(string value) => string.IsNullOrWhiteSpace(value)
@@ -909,14 +1485,14 @@ public sealed class CharacterPersistentNeedRuntimeState
 public sealed class CharacterPersistentNeedRuntime
 {
     private readonly CharacterIdentityStateStore states;
-    private readonly IGameClock gameClock;
+    private readonly IGameCalendar calendar;
 
     public CharacterPersistentNeedRuntime(
         CharacterIdentityStateStore states,
-        IGameClock gameClock)
+        IGameCalendar calendar)
     {
         this.states = states ?? throw new ArgumentNullException(nameof(states));
-        this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
     }
 
     public float ResolveMoodDelta(CharacterActor actor, string eventId)
@@ -928,9 +1504,7 @@ public sealed class CharacterPersistentNeedRuntime
         if (characterId.Length == 0)
             throw new InvalidOperationException(
                 "Persistent identity needs require a persistent character id.");
-        int absoluteDay = Math.Max(
-            0,
-            (int)Math.Floor(gameClock.Time / GameCalendarRules.SecondsPerDay));
+        int absoluteDay = calendar.Day;
         float moodDelta = 0f;
 
         foreach (CharacterTraitSO trait in actor.Progression.ResolveSelectedTraits()
@@ -999,9 +1573,7 @@ public sealed class CharacterPersistentNeedRuntime
         if (characterId.Length == 0)
             throw new InvalidOperationException(
                 "Persistent identity needs require a persistent character id.");
-        int absoluteDay = Math.Max(
-            0,
-            (int)Math.Floor(gameClock.Time / GameCalendarRules.SecondsPerDay));
+        int absoluteDay = calendar.Day;
         foreach (CharacterTraitSO trait in actor.Progression.ResolveSelectedTraits()
                      .Where(value => value != null)
                      .OrderBy(value => value.id))
@@ -1050,6 +1622,7 @@ public sealed class CharacterPersistentNeedRuntime
 public sealed class ExtremeCraftInspirationRuntimeState
 {
     public string lastProductDefinitionId = string.Empty;
+    public string lastCompletionOperationId = string.Empty;
     public int consecutiveEligibleCompletions;
     public float lastCompletionElapsedSeconds = -1f;
 }
@@ -1091,7 +1664,8 @@ public sealed class ExtremeCraftInspirationRuntime
         CharacterActor maker,
         string productDefinitionId,
         bool mythic,
-        float elapsedSeconds)
+        float elapsedSeconds,
+        string operationId = "")
     {
         CharacterTraitSO trait = maker?.Progression?.ResolveSelectedTraits()
             .FirstOrDefault(value => value != null
@@ -1113,6 +1687,16 @@ public sealed class ExtremeCraftInspirationRuntime
                 ?? new ExtremeCraftInspirationRuntimeState();
         }
 
+        string canonicalOperationId = operationId?.Trim() ?? string.Empty;
+        if (canonicalOperationId.Length > 0
+            && string.Equals(
+                state.lastCompletionOperationId,
+                canonicalOperationId,
+                StringComparison.Ordinal))
+        {
+            return 0f;
+        }
+
         float resetSeconds = Mathf.Max(1, rule.resetAfterHours)
             * (GameCalendarRules.SecondsPerDay / 24f);
         bool reset = !string.Equals(
@@ -1126,6 +1710,7 @@ public sealed class ExtremeCraftInspirationRuntime
             : Mathf.Max(1, state.consecutiveEligibleCompletions + 1);
         state.lastProductDefinitionId = definitionId;
         state.lastCompletionElapsedSeconds = Mathf.Max(0f, elapsedSeconds);
+        state.lastCompletionOperationId = canonicalOperationId;
 
         float moodDelta = 0f;
         if (mythic)
@@ -1302,8 +1887,12 @@ public static class CharacterAutonomousWorkPolicy
 
 public sealed class CharacterMoodPolicyService
 {
+    private const string RequiredFunctionalCapacityBelowThreshold =
+        "RequiredFunctionalCapacityBelowThreshold";
     private readonly CharacterIdentityRuleRouter router;
     private readonly CharacterPersistentNeedRuntime persistentNeeds;
+    public CharacterMoodApplicationRejection LastRejectedApplication { get; private set; }
+
     public CharacterMoodPolicyService(
         CharacterIdentityRuleRouter router,
         CharacterPersistentNeedRuntime persistentNeeds)
@@ -1317,7 +1906,19 @@ public sealed class CharacterMoodPolicyService
         "Typed identity adapters submit day-based mood impulses through immunity, transform and need policies.",
         "MealIdentityEventAdapter|WorkIdentityEventAdapter")]
     public float Apply(CharacterActor actor, string eventId, float baseDelta, int durationDays, string label)
+        => ApplyDaysCore(actor, eventId, baseDelta, durationDays, label, publish: true, out _);
+
+    internal float ApplyDaysBeforeOutcomeCommit(CharacterActor actor, string eventId, float baseDelta, int durationDays, string label)
+        => ApplyDaysCore(actor, eventId, baseDelta, durationDays, label, publish: false, out _);
+
+    internal float ApplyDaysWithoutNotification(CharacterActor actor, string eventId, float baseDelta,
+        int durationDays, string label, out bool applied)
+        => ApplyDaysCore(actor, eventId, baseDelta, durationDays, label, publish: false, out applied);
+
+    private float ApplyDaysCore(CharacterActor actor, string eventId, float baseDelta, int durationDays, string label,
+        bool publish, out bool applied)
     {
+        applied = false;
         if (actor == null) return 0f;
         float resolved = router.ResolveMood(actor, eventId, baseDelta)
             + persistentNeeds.ResolveMoodDelta(actor, eventId);
@@ -1330,26 +1931,22 @@ public sealed class CharacterMoodPolicyService
                 * GameCalendarRules.SecondsPerDay;
             if (resolved < 0f)
             {
-                CharacterPerformanceSnapshot duration = actor.Stats.EvaluatePerformance(
-                    CharacterPerformanceFormulaIds.NegativeMoodDuration);
-                if (!duration.IsApplicable)
-                    throw new InvalidOperationException(
-                        duration.Failure?.Message
-                        ?? "Negative mood duration is unavailable.");
-                durationSeconds *= duration.Value;
-                CharacterPerformanceExecutionTrace.Record(
-                    CharacterPerformanceFormulaIds.NegativeMoodDuration,
-                    "CharacterMoodPolicyService.Apply",
-                    durationDays * GameCalendarRules.SecondsPerDay,
-                    durationSeconds,
-                    eventId);
+                if (!TryResolveNegativeMoodDuration(
+                        actor,
+                        eventId,
+                        durationSeconds,
+                        durationDays * GameCalendarRules.SecondsPerDay,
+                        "CharacterMoodPolicyService.Apply",
+                        out durationSeconds))
+                    return 0f;
             }
-            actor.ApplyResolvedMoodFactor(
+            applied = actor.ApplyResolvedMoodFactor(
                 $"identity:{eventId}",
                 label?.Trim() ?? eventId,
                 resolved,
                 Mathf.Max(0f, durationSeconds),
-                1);
+                1,
+                publish);
         }
         return resolved;
     }
@@ -1363,8 +1960,33 @@ public sealed class CharacterMoodPolicyService
         float baseDelta,
         float durationSeconds,
         string label,
-        int maxStacks = 1)
+        int maxStacks = 1,
+        int absoluteDay = 0,
+        GameplayNarrativeEventContext eventContext = null)
+        => ApplySecondsCore(actor, eventId, baseDelta, durationSeconds, label,
+            maxStacks, publish: true, absoluteDay: absoluteDay,
+            eventContext: eventContext?.ToDomainContext(), applied: out _);
+
+    internal float ApplySecondsFromEvent(CharacterActor actor, string eventId, float baseDelta,
+        float durationSeconds, string label, int maxStacks, int absoluteDay, CharacterEventContext eventContext)
+        => ApplySecondsCore(actor, eventId, baseDelta, durationSeconds, label,
+            maxStacks, publish: true, absoluteDay: absoluteDay, eventContext: eventContext, applied: out _);
+
+    internal float ApplySecondsBeforeOutcomeCommit(
+        CharacterActor actor, string eventId, float baseDelta, float durationSeconds,
+        string label, int maxStacks, out bool applied)
+        => ApplySecondsCore(actor, eventId, baseDelta, durationSeconds, label,
+            maxStacks, publish: false, absoluteDay: 0, eventContext: null,
+            applied: out applied);
+
+    private float ApplySecondsCore(
+        CharacterActor actor, string eventId, float baseDelta, float durationSeconds,
+        string label, int maxStacks, bool publish, int absoluteDay,
+        CharacterEventContext eventContext, out bool applied)
     {
+        if (absoluteDay < 0)
+            throw new ArgumentOutOfRangeException(nameof(absoluteDay));
+        applied = false;
         if (actor == null) return 0f;
         float resolved = router.ResolveMood(actor, eventId, baseDelta)
             + persistentNeeds.ResolveMoodDelta(actor, eventId);
@@ -1379,29 +2001,157 @@ public sealed class CharacterMoodPolicyService
                 resolvedDuration = authoredDays * GameCalendarRules.SecondsPerDay;
             if (resolved < 0f)
             {
-                CharacterPerformanceSnapshot duration = actor.Stats.EvaluatePerformance(
-                    CharacterPerformanceFormulaIds.NegativeMoodDuration);
-                if (!duration.IsApplicable)
-                    throw new InvalidOperationException(
-                        duration.Failure?.Message
-                        ?? "Negative mood duration is unavailable.");
-                resolvedDuration *= duration.Value;
-                CharacterPerformanceExecutionTrace.Record(
-                    CharacterPerformanceFormulaIds.NegativeMoodDuration,
-                    "CharacterMoodPolicyService.ApplySeconds",
-                    durationSeconds,
-                    resolvedDuration,
-                    eventId);
+                if (!TryResolveNegativeMoodDuration(
+                        actor,
+                        eventId,
+                        resolvedDuration,
+                        durationSeconds,
+                        "CharacterMoodPolicyService.ApplySeconds",
+                        out resolvedDuration))
+                    return 0f;
             }
-            actor.ApplyResolvedMoodFactor(
+            applied = actor.ApplyResolvedMoodFactorFromEvent(
                 eventId?.Trim() ?? string.Empty,
                 label?.Trim() ?? eventId,
                 resolved,
                 Mathf.Max(0f, resolvedDuration),
-                Mathf.Max(1, maxStacks));
+                Mathf.Max(1, maxStacks),
+                publish,
+                absoluteDay,
+                eventContext);
         }
         return resolved;
     }
+
+    private bool TryResolveNegativeMoodDuration(
+        CharacterActor actor,
+        string eventId,
+        float durationSeconds,
+        float traceInputSeconds,
+        string consumerId,
+        out float resolvedDuration)
+    {
+        CharacterPerformanceSnapshot duration = actor.Stats.EvaluatePerformance(
+            CharacterPerformanceFormulaIds.NegativeMoodDuration);
+        if (duration.IsApplicable)
+        {
+            resolvedDuration = durationSeconds * duration.Value;
+            CharacterPerformanceExecutionTrace.Record(
+                CharacterPerformanceFormulaIds.NegativeMoodDuration,
+                consumerId,
+                traceInputSeconds,
+                resolvedDuration,
+                eventId);
+            return true;
+        }
+
+        if (string.Equals(
+                duration.Failure?.Code,
+                RequiredFunctionalCapacityBelowThreshold,
+                StringComparison.Ordinal))
+        {
+            LastRejectedApplication = new CharacterMoodApplicationRejection(
+                actor,
+                eventId,
+                duration.Failure);
+            resolvedDuration = 0f;
+            return false;
+        }
+
+        throw new InvalidOperationException(
+            duration.Failure?.Message
+            ?? "Negative mood duration is unavailable.");
+    }
+}
+
+public readonly struct SocialConflictCommittedReceiptEvent
+{
+    public SocialConflictCommittedReceiptEvent(
+        string operationId,
+        CharacterId instigator,
+        CharacterId target,
+        CharacterId customer,
+        SpeciesCultureId instigatorCulture,
+        SpeciesCultureId targetCulture,
+        BuildingInstanceId facilityInstanceId,
+        CoreGridCell location,
+        int absoluteDay)
+    {
+        OperationId = string.IsNullOrWhiteSpace(operationId)
+            ? throw new ArgumentException("Social conflict operation id is required.")
+            : operationId.Trim();
+        Instigator = instigator.IsValid
+            ? instigator
+            : throw new ArgumentException("Social conflict instigator is required.");
+        Target = target.IsValid
+            ? target
+            : throw new ArgumentException("Social conflict target is required.");
+        Customer = customer.IsValid
+            ? customer
+            : throw new ArgumentException("Social conflict customer is required.");
+        InstigatorCulture = instigatorCulture.IsValid
+            ? instigatorCulture
+            : throw new ArgumentException("Instigator culture is required.");
+        TargetCulture = targetCulture.IsValid
+            ? targetCulture
+            : throw new ArgumentException("Target culture is required.");
+        if (Instigator.Equals(Target))
+        {
+            throw new ArgumentException(
+                "Social conflict participants must be distinct.");
+        }
+        if (!Customer.Equals(Instigator) && !Customer.Equals(Target))
+        {
+            throw new ArgumentException(
+                "Social conflict customer must be a participant.");
+        }
+        if (InstigatorCulture.Equals(TargetCulture))
+        {
+            throw new ArgumentException(
+                "Social conflict cultures must be distinct.");
+        }
+        FacilityInstanceId = facilityInstanceId.IsValid
+            ? facilityInstanceId
+            : throw new ArgumentException("Visitor facility is required.");
+        Location = location;
+        AbsoluteDay = Math.Max(1, absoluteDay);
+    }
+
+    public string OperationId { get; }
+    public CharacterId Instigator { get; }
+    public CharacterId Target { get; }
+    public CharacterId Customer { get; }
+    public SpeciesCultureId InstigatorCulture { get; }
+    public SpeciesCultureId TargetCulture { get; }
+    public BuildingInstanceId FacilityInstanceId { get; }
+    public CoreGridCell Location { get; }
+    public int AbsoluteDay { get; }
+}
+
+public sealed class CharacterMoodApplicationRejection
+{
+    public CharacterMoodApplicationRejection(
+        CharacterActor actor,
+        string eventId,
+        CharacterPerformanceFailure failure)
+    {
+        Actor = actor;
+        EventId = eventId?.Trim() ?? string.Empty;
+        Failure = failure == null
+            ? null
+            : new CharacterPerformanceFailure
+            {
+                Code = failure.Code,
+                CapacityId = failure.CapacityId,
+                CurrentValue = failure.CurrentValue,
+                RequiredValue = failure.RequiredValue,
+                Message = failure.Message
+            };
+    }
+
+    public CharacterActor Actor { get; }
+    public string EventId { get; }
+    public CharacterPerformanceFailure Failure { get; }
 }
 
 public sealed class CombatIdentityEventAdapter : IStartable, IDisposable

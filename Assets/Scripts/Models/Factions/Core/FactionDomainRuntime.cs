@@ -19,6 +19,36 @@ namespace DungeonStory.Factions
         public int Current { get; }
     }
 
+    public readonly struct FactionRouteCreationMutationSnapshot
+    {
+        public FactionRouteCreationMutationSnapshot(
+            int routeCount,
+            int routeSequence,
+            int settlementSequence,
+            long allianceBenefitBalanceMilliEwu,
+            long allianceBenefitRefillRemainder,
+            int allianceBenefitLastRefillDay,
+            string allianceBenefitAuthorityDigest)
+        {
+            RouteCount = routeCount;
+            RouteSequence = routeSequence;
+            SettlementSequence = settlementSequence;
+            AllianceBenefitBalanceMilliEwu = allianceBenefitBalanceMilliEwu;
+            AllianceBenefitRefillRemainder = allianceBenefitRefillRemainder;
+            AllianceBenefitLastRefillDay = allianceBenefitLastRefillDay;
+            AllianceBenefitAuthorityDigest =
+                allianceBenefitAuthorityDigest ?? string.Empty;
+        }
+
+        public int RouteCount { get; }
+        public int RouteSequence { get; }
+        public int SettlementSequence { get; }
+        public long AllianceBenefitBalanceMilliEwu { get; }
+        public long AllianceBenefitRefillRemainder { get; }
+        public int AllianceBenefitLastRefillDay { get; }
+        public string AllianceBenefitAuthorityDigest { get; }
+    }
+
     /// <summary>
     /// Owns faction Aggregate access and deterministic diplomacy/route state
     /// transitions. Unity world, inventory, character, and event projections
@@ -49,6 +79,36 @@ namespace DungeonStory.Factions
         public int RouteSettlementOperationSequence =>
             State.RouteSettlementOperationSequence;
         public int GoodwillOperationSequence => State.GoodwillOperationSequence;
+        public int RelationshipObservationSequence => State.RelationshipObservationSequence;
+        public IReadOnlyList<FactionRelationshipObservationData> RelationshipObservations =>
+            State.RelationshipObservations.Select(value => value.Clone()).ToArray();
+
+        public void QueueRelationshipObservation(FactionRelationshipObservationData value)
+        {
+            if (State.RelationshipObservations.Count != 0 || value == null
+                || State.RelationshipObservationSequence == int.MaxValue
+                || value.sequence != State.RelationshipObservationSequence + 1)
+                throw new InvalidOperationException("faction-relationship-observation-sequence-conflict");
+            FactionRelationshipObservationValidation.Validate(value.sequence, new[] { value },
+                State.CurrentDay, State.Factions.Keys.ToArray());
+            State.RelationshipObservations.Add(value.Clone());
+            State.RelationshipObservationSequence = value.sequence;
+        }
+        public void AcknowledgeRelationshipObservation(int sequence, string key) =>
+            RemoveRelationshipObservation(sequence, key, false);
+        public void RollbackRelationshipObservation(int sequence, string key) =>
+            RemoveRelationshipObservation(sequence, key, true);
+        private void RemoveRelationshipObservation(int sequence, string key, bool rollback)
+        {
+            if (State.RelationshipObservations.Count != 1
+                || State.RelationshipObservations[0].sequence != sequence
+                || State.RelationshipObservations[0].publicationKey != key
+                || State.RelationshipObservationSequence != sequence)
+                throw new InvalidOperationException("faction-relationship-observation-ack-conflict");
+            State.RelationshipObservations.Clear();
+            if (rollback) State.RelationshipObservationSequence--;
+        }
+
         public long AllianceBenefitBalanceMilliEwu =>
             State.AllianceBenefitBalanceMilliEwu;
         public long AllianceBenefitRefillRemainder =>
@@ -455,6 +515,87 @@ namespace DungeonStory.Factions
             }
 
             return arrivals;
+        }
+
+        public IReadOnlyList<FactionRouteState> PreviewRouteArrivals(
+            float deltaSeconds,
+            float secondsPerHex)
+        {
+            if (secondsPerHex <= 0f)
+            {
+                throw new ArgumentOutOfRangeException(nameof(secondsPerHex));
+            }
+
+            List<FactionRouteState> arrivals = new();
+            foreach (FactionRouteState route in State.Routes.Where(value =>
+                         value != null
+                         && value.status is FactionRouteStatus.Traveling
+                             or FactionRouteStatus.Delayed))
+            {
+                if (route.delaySeconds > 0f
+                    && Math.Max(0f, route.delaySeconds - deltaSeconds) > 0f)
+                {
+                    continue;
+                }
+
+                float progress = route.segmentProgress
+                    + deltaSeconds / secondsPerHex;
+                int pathIndex = route.pathIndex;
+                while (progress >= 1f
+                    && pathIndex < route.path.Count - 1)
+                {
+                    progress -= 1f;
+                    pathIndex++;
+                }
+                if (pathIndex >= route.path.Count - 1)
+                {
+                    arrivals.Add(route);
+                }
+            }
+            return arrivals;
+        }
+
+        public FactionRouteCreationMutationSnapshot
+            CaptureRouteCreationMutationSnapshot()
+        {
+            FactionAggregateState state = State;
+            return new FactionRouteCreationMutationSnapshot(
+                state.Routes.Count,
+                state.RouteSequence,
+                state.RouteSettlementOperationSequence,
+                state.AllianceBenefitBalanceMilliEwu,
+                state.AllianceBenefitRefillRemainder,
+                state.AllianceBenefitLastRefillDay,
+                state.AllianceBenefitAuthorityDigest);
+        }
+
+        public void RestoreRouteCreationMutationSnapshot(
+            FactionRouteCreationMutationSnapshot snapshot)
+        {
+            FactionAggregateState state = State;
+            if (snapshot.RouteCount < 0
+                || snapshot.RouteCount > state.Routes.Count)
+            {
+                throw new InvalidOperationException(
+                    "Faction route rollback snapshot does not match the live aggregate.");
+            }
+            if (state.Routes.Count > snapshot.RouteCount)
+            {
+                state.Routes.RemoveRange(
+                    snapshot.RouteCount,
+                    state.Routes.Count - snapshot.RouteCount);
+            }
+            state.RouteSequence = snapshot.RouteSequence;
+            state.RouteSettlementOperationSequence =
+                snapshot.SettlementSequence;
+            state.AllianceBenefitBalanceMilliEwu =
+                snapshot.AllianceBenefitBalanceMilliEwu;
+            state.AllianceBenefitRefillRemainder =
+                snapshot.AllianceBenefitRefillRemainder;
+            state.AllianceBenefitLastRefillDay =
+                snapshot.AllianceBenefitLastRefillDay;
+            state.AllianceBenefitAuthorityDigest =
+                snapshot.AllianceBenefitAuthorityDigest;
         }
 
         public string AddRoute(FactionRouteState route)

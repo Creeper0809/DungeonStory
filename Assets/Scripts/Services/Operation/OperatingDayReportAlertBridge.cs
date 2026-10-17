@@ -23,6 +23,17 @@ public class OperatingDayReportAlertBridge : MonoBehaviour
             return;
         }
 
+        if (report.unpaidOperatingCost > 0)
+        {
+            PublishNonFatal(
+                () => gameEventBus.RaiseAlert(
+                    "임금 체불",
+                    $"미지급 임금 {report.unpaidOperatingCost}이 발생했습니다. 직원 불만이 증가합니다.",
+                    EventAlertImportance.High,
+                    "경제"),
+                "operating-day-wage-alert");
+        }
+
         gameEventBus.RaiseAlert(
             $"Day {report.day} 정산",
             report.ToDetailText(),
@@ -54,6 +65,21 @@ public class OperatingDayReportAlertBridge : MonoBehaviour
         {
             operatingDayReportSubscription ??=
                 gameEventBus.Subscribe<OperatingDayReportEvent>(OnTriggerEvent);
+        }
+    }
+
+    private static void PublishNonFatal(Action observer, string label)
+    {
+        try
+        {
+            observer?.Invoke();
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(label + ":" + exception.GetType().Name);
         }
     }
 }

@@ -1,0 +1,61 @@
+{
+  "status": "PASS",
+  "sourcePin": "source-pin-c11-r6.json",
+  "sourceFiles": 740,
+  "sourceDrift": 0,
+  "toolPin": "tool-pin-c11-r1.json",
+  "toolFiles": 8,
+  "toolDrift": 0,
+  "runtimeAndEditorCompile": "c11-equipment-evolution-r1/unity.log",
+  "runtimeCompileSeconds": 43.313241,
+  "latestEditorCompile": "c11-equipment-evolution-r5/unity.log",
+  "latestEditorCompileSeconds": 28.470903,
+  "cachedCurrentCompileSeconds": 2.611796,
+  "compilerErrors": 0,
+  "actualUnityContracts": 10,
+  "invalidPendingProgressCasesRejected": 16,
+  "blockedFullProgressCandidatesAccepted": 2,
+  "actualUnityExit": 0,
+  "ownedUnityAndCompilerProcessesAfterExit": 0,
+  "pureStartupGuardCases": 94,
+  "isolationProbe": "c11-equipment-evolution-r6/isolation-probe.txt",
+  "checkpoints": {
+    "reforge-pending-material": {
+      "completedWork": 0.0,
+      "requiredWork": 61.19999694824219,
+      "state": 1,
+      "materialsConsumed": true,
+      "pendingMaterialOperation": true
+    },
+    "reforge-pending-close": {
+      "completedWork": 61.19999694824219,
+      "requiredWork": 61.19999694824219,
+      "state": 2,
+      "materialsConsumed": true,
+      "pendingMaterialOperation": false
+    },
+    "reattunement-pending-material": {
+      "completedWork": 0.0,
+      "requiredWork": 45.89999771118164,
+      "state": 1,
+      "materialsConsumed": true,
+      "pendingMaterialOperation": true
+    },
+    "reattunement-pending-close": {
+      "completedWork": 45.89999771118164,
+      "requiredWork": 45.89999771118164,
+      "state": 2,
+      "materialsConsumed": true,
+      "pendingMaterialOperation": false
+    }
+  },
+  "scope": "actual EquipmentEvolutionRuntime commands and fresh parent/root/input-owner restore with controlled equipment/world/input ports; real material repository/query/disposition and ACK replay; existing actual input-owner and material restore regressions",
+  "limits": "physical child receipt service is retained across fresh parent restore; no complete world cold restore or natural UI/AI inference claim",
+  "failedAttempts": [
+    "verification-c11-r1.json",
+    "verification-c11-r2.json",
+    "verification-c11-r3.json",
+    "verification-c11-r4.json",
+    "verification-c11-r5.json"
+  ]
+}

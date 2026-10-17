@@ -82,6 +82,11 @@ public sealed class EconomyProjectInputOwnerDescriptor
 
 public interface IEconomyProjectInputOwnerRestoreRuntime
 {
+    bool TryValidateForRestore(
+        string ownerDomain,
+        IReadOnlyList<EconomyProjectInputOwnerDescriptor> descriptors,
+        out string failureReason);
+
     bool TryReplaceForRestore(
         string ownerDomain,
         IReadOnlyList<EconomyProjectInputOwnerDescriptor> descriptors,
@@ -89,8 +94,8 @@ public interface IEconomyProjectInputOwnerRestoreRuntime
 }
 
 /// <summary>
-/// Owns exact positive-gram FacilityBuffer claim/profile pairs for the three
-/// economy project families. The domain runtimes retain their existing typed
+/// Owns exact positive-gram FacilityBuffer claim/profile pairs for the supported
+/// economy and campaign project families. Domain runtimes retain their typed
 /// Sink/Transfer/WIP authorities; this class only owns destination admission
 /// and carried-aware terminal release.
 /// </summary>
@@ -311,6 +316,41 @@ public sealed class EconomyProjectInputOwnerRuntime :
         IReadOnlyList<EconomyProjectInputOwnerDescriptor> descriptors,
         out string failureReason)
     {
+        if (!TryBuildRestoreAuthorities(
+                ownerDomain,
+                descriptors,
+                out List<FacilityBufferDestinationClaim> desiredClaims,
+                out List<FacilityBufferCapacityProfile> desiredProfiles,
+                out failureReason))
+        {
+            return false;
+        }
+        return lifecycle.TryReplaceOwnedAuthorities(
+            ownerDomain,
+            desiredClaims,
+            desiredProfiles,
+            out failureReason);
+    }
+
+    public bool TryValidateForRestore(
+        string ownerDomain,
+        IReadOnlyList<EconomyProjectInputOwnerDescriptor> descriptors,
+        out string failureReason) => TryBuildRestoreAuthorities(
+        ownerDomain,
+        descriptors,
+        out _,
+        out _,
+        out failureReason);
+
+    private bool TryBuildRestoreAuthorities(
+        string ownerDomain,
+        IReadOnlyList<EconomyProjectInputOwnerDescriptor> descriptors,
+        out List<FacilityBufferDestinationClaim> desiredClaims,
+        out List<FacilityBufferCapacityProfile> desiredProfiles,
+        out string failureReason)
+    {
+        desiredClaims = new List<FacilityBufferDestinationClaim>();
+        desiredProfiles = new List<FacilityBufferCapacityProfile>();
         failureReason = string.Empty;
         if (!EconomyProjectInputOwnerAuthority.IsSupportedDomain(ownerDomain))
         {
@@ -332,8 +372,6 @@ public sealed class EconomyProjectInputOwnerRuntime :
             failureReason = "economy-input-owner-restore-set-invalid";
             return false;
         }
-        List<FacilityBufferDestinationClaim> desiredClaims = new();
-        List<FacilityBufferCapacityProfile> desiredProfiles = new();
         foreach (EconomyProjectInputOwnerDescriptor descriptor in ordered)
         {
             if (!TryProject(
@@ -353,11 +391,7 @@ public sealed class EconomyProjectInputOwnerRuntime :
                 descriptor,
                 projection.CapacityGrams));
         }
-        return lifecycle.TryReplaceOwnedAuthorities(
-            ownerDomain,
-            desiredClaims,
-            desiredProfiles,
-            out failureReason);
+        return true;
     }
 
     private bool TryProject(

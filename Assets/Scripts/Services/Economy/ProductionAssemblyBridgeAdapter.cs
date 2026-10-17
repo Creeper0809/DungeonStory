@@ -112,7 +112,10 @@ internal static class ProductionFacilityHandleProjection
             workstation == null
                 ? ProductionFacilityWorkstationLaneCapacityProfile.Empty
                 : ProductionFacilityCapacitySubjectAdapter
-                    .CaptureWorkstationLaneProfile(facility.BuildingData));
+                    .CaptureWorkstationLaneProfile(facility.BuildingData),
+            (facility.BuildingData?.GetAbility<BuildingAutomationAbility>()
+                ?.automaticQualityCap ?? 1f) * 100f,
+            facility.BuildingData?.objectName ?? string.Empty);
     }
 }
 
@@ -120,7 +123,7 @@ internal static class ProductionFacilityHandleProjection
 /// The only adapter allowed to unwrap production scene handles. It keeps the
 /// named Economy aggregate independent from Assembly-CSharp actor types.
 /// </summary>
-public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
+public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge, IProductionCraftQualityProjectionBridge
 {
     private readonly IProductionItemGateway items;
     private readonly IProductionOutputBufferGateway outputBuffer;
@@ -200,7 +203,8 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
                 nameof(runtimeObject));
         return new ProductionWorkerHandle(
             worker,
-            worker.Identity?.PersistentId ?? string.Empty);
+            worker.Identity?.PersistentId ?? string.Empty,
+            worker.Identity?.DisplayName?.Trim() ?? string.Empty);
     }
 
     public bool IsWorkerEligible(
@@ -596,6 +600,34 @@ public sealed class ProductionAssemblyBridgeAdapter : IProductionAssemblyBridge
         string itemId) => outputHandlers.CaptureDescriptor(
         outputLineId,
         itemId);
+
+    public float ApplyCraftQualityCeiling(
+        ProductionOutputCapabilityDescriptor descriptor,
+        float qualityModifier,
+        float maximumScore)
+    {
+        if (!outputHandlers.TryValidateExact(descriptor,
+                out IProductionOutputCapability capability, out DomainFailure failure))
+            throw new InvalidOperationException("Craft quality capability is invalid: " + failure.Code);
+        return capability is IProductionCraftQualityCeilingCapability quality
+            ? quality.ApplyCraftQualityCeiling(qualityModifier, maximumScore)
+            : qualityModifier;
+    }
+
+    public bool TryResolveCraftQualityTier(ProductionOutputCapabilityDescriptor descriptor,
+        float qualityModifier, float maximumScore, out int tier)
+    {
+        if (!outputHandlers.TryValidateExact(descriptor,
+                out IProductionOutputCapability capability, out DomainFailure failure))
+            throw new InvalidOperationException("Craft quality capability invalid: " + failure);
+        if (capability is IProductionDeterministicCraftQualityCapability quality)
+        {
+            tier = quality.ResolveCraftQualityTier(qualityModifier, maximumScore);
+            return true;
+        }
+        tier = -1;
+        return false;
+    }
 
     public bool TryValidateOutputCapability(
         ProductionOutputCapabilityDescriptor capability,

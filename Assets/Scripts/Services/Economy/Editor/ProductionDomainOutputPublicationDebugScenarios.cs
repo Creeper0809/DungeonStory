@@ -17,7 +17,9 @@ public static class ProductionDomainOutputPublicationDebugScenarios
 
     public static string VerifyAll()
     {
+        VerifyEmptyOwnerJsonRoundTrip();
         VerifyExactCommitAndIdempotentAcknowledgement();
+        VerifyPendingAndAcknowledgedRestoreJoins();
         VerifyReleaseRejectsDriftAndPreservesExactBatch();
         VerifyAcknowledgementFaultRollsBackMarkerAndRoute();
         VerifyCapacityWaitPreservesFrozenOwner();
@@ -26,6 +28,51 @@ public static class ProductionDomainOutputPublicationDebugScenarios
         VerifyCapabilityMaximumRejectsHeavyPreparedOutputAtomically();
         VerifyMaximumProofOrderingAndDuplicateGuard();
         return "PRODUCTION_DOMAIN_OUTPUT_PUBLICATION_PASS";
+    }
+
+    private static void VerifyEmptyOwnerJsonRoundTrip()
+    {
+        ProductionDomainOutputPublicationSaveData empty = JsonUtility.FromJson<
+            ProductionDomainOutputPublicationSaveData>(JsonUtility.ToJson(
+                new ProductionDomainOutputPublicationSaveData()));
+        bool committed = false;
+        string failureReason = "owner-null";
+        bool emptyRestorable = empty != null
+            && ProductionDomainOutputPublicationService
+                .TryValidateRestorableOwner(
+                    empty,
+                    out committed,
+                    out failureReason);
+        Require(empty != null
+                && empty.IsEmpty
+                && emptyRestorable
+                && !committed,
+            "A semantically empty gameplay-outcome attachment stopped an empty "
+            + "domain-output owner from surviving JSON round-trip: "
+            + failureReason);
+
+        DomainFixture fixture = new(occupiedMassGrams: 6_000L);
+        ProductionDomainOutputPublicationSaveData waiting = new();
+        ProductionDomainOutputPublicationResult result = Service(fixture)
+            .EnsureCommitted(waiting, Plan(quantity: 5));
+        ProductionDomainOutputPublicationSaveData restored = JsonUtility.FromJson<
+            ProductionDomainOutputPublicationSaveData>(JsonUtility.ToJson(waiting));
+        bool restoredCommitted = false;
+        string restoredFailure = "owner-null";
+        bool waitingRestorable = restored != null
+            && ProductionDomainOutputPublicationService
+                .TryValidateRestorableOwner(
+                    restored,
+                    out restoredCommitted,
+                    out restoredFailure);
+        Require(result.Status ==
+                ProductionDomainOutputPublicationStatus.WaitingForOutputSpace
+            && restored != null
+            && waitingRestorable
+            && !restoredCommitted,
+            "A waiting domain-output owner stopped being restorable after JSON "
+            + "round-trip: "
+            + restoredFailure);
     }
 
     private static void VerifyExactCommitAndIdempotentAcknowledgement()
@@ -58,6 +105,152 @@ public static class ProductionDomainOutputPublicationDebugScenarios
                 && string.IsNullOrEmpty(value.DestinationId)
                 && !value.HasDestinationPosition),
             "Domain output acknowledgement was not exact and idempotent.");
+    }
+
+    private static void VerifyPendingAndAcknowledgedRestoreJoins()
+    {
+        DomainFixture fixture = new();
+        IProductionDomainOutputPublicationService service = Service(fixture);
+        ProductionDomainOutputPublicationSaveData owner = new();
+        Require(service.EnsureCommitted(owner, Plan(quantity: 1)).IsCommitted,
+            "The restore-join fixture did not publish its pending batch.");
+        FacilityBufferPlannedOutputRestoreBatchSnapshot pending = fixture
+            .Publication.CapturePendingRestoreBatchesForEditorTest().Single();
+        ProductionDomainOutputRestoreGuard.ValidateIncoming(owner, pending);
+        RequireRestoreRejected(
+            () => ProductionDomainOutputRestoreGuard.ValidateAcknowledged(
+                owner,
+                pending),
+            "A pending domain-output batch was accepted as acknowledged.");
+
+        Require(service.TryAcknowledge(owner, out string acknowledgementFailure)
+                && owner.outputAcknowledged,
+            "The restore-join fixture did not acknowledge its output: "
+            + acknowledgementFailure);
+        FacilityBufferPlannedOutputRestoreBatchSnapshot acknowledged = fixture
+            .Publication.CaptureAcknowledgedRestoreBatchesForEditorTest()
+            .Single();
+        ProductionDomainOutputRestoreGuard.ValidateAcknowledged(owner, acknowledged);
+        RequireRestoreRejected(
+            () => ProductionDomainOutputRestoreGuard.ValidateIncoming(
+                owner,
+                acknowledged),
+            "An acknowledged domain-output batch was accepted as pending.");
+
+        FacilityBufferPlannedOutputRestoreStackSnapshot stack =
+            acknowledged.Stacks.Single();
+        Require(stack.State == WorldItemStackState.Loose
+                && string.IsNullOrEmpty(stack.DestinationId)
+                && stack.Position == new Vector2Int(
+                    owner.destinationX,
+                    owner.destinationY),
+            "The released domain-output restore batch lost its frozen route.");
+
+        RequireRestoreRejected(
+            () => ProductionDomainOutputRestoreGuard.ValidateAcknowledged(
+                owner,
+                ReplaceRestoreBatch(
+                    acknowledged,
+                    new string('0', 64),
+                    acknowledged.PlannedOutputFingerprint,
+                    acknowledged.TotalQuantity,
+                    acknowledged.TotalMassGrams,
+                    acknowledged.Stacks)),
+            "An acknowledged domain-output batch accepted a fingerprint drift.");
+        RequireRestoreRejected(
+            () => ProductionDomainOutputRestoreGuard.ValidateAcknowledged(
+                owner,
+                ReplaceSingleRestoreStack(
+                    acknowledged,
+                    ReplaceRestoreStack(
+                        stack,
+                        state: WorldItemStackState.FacilityOutputBuffer))),
+            "An acknowledged domain-output batch accepted a buffer state.");
+        RequireRestoreRejected(
+            () => ProductionDomainOutputRestoreGuard.ValidateAcknowledged(
+                owner,
+                ReplaceSingleRestoreStack(
+                    acknowledged,
+                    ReplaceRestoreStack(
+                        stack,
+                        destinationId: DomainFixture.DestinationId))),
+            "An acknowledged domain-output batch accepted a destination drift.");
+        RequireRestoreRejected(
+            () => ProductionDomainOutputRestoreGuard.ValidateAcknowledged(
+                owner,
+                ReplaceSingleRestoreStack(
+                    acknowledged,
+                    ReplaceRestoreStack(
+                        stack,
+                        position: new Vector2Int(
+                            owner.destinationX + 1,
+                            owner.destinationY)))),
+            "An acknowledged domain-output batch accepted a position drift.");
+        RequireRestoreRejected(
+            () => ProductionDomainOutputRestoreGuard.ValidateAcknowledged(
+                owner,
+                ReplaceRestoreBatch(
+                    acknowledged,
+                    acknowledged.OutcomeFingerprint,
+                    acknowledged.PlannedOutputFingerprint,
+                    acknowledged.TotalQuantity + 1,
+                    acknowledged.TotalMassGrams,
+                    new[] { ReplaceRestoreStack(
+                        stack,
+                        quantity: stack.Quantity + 1) })),
+            "An acknowledged domain-output batch accepted a quantity drift.");
+        RequireRestoreRejected(
+            () => ProductionDomainOutputRestoreGuard.ValidateAcknowledged(
+                owner,
+                ReplaceRestoreBatch(
+                    acknowledged,
+                    acknowledged.OutcomeFingerprint,
+                    acknowledged.PlannedOutputFingerprint,
+                    acknowledged.TotalQuantity,
+                    acknowledged.TotalMassGrams + 1L,
+                    new[] { ReplaceRestoreStack(
+                        stack,
+                        massGrams: stack.MassGrams + 1L) })),
+            "An acknowledged domain-output batch accepted a mass drift.");
+        RequireRestoreRejected(
+            () => ProductionDomainOutputRestoreGuard.ValidateAcknowledged(
+                owner,
+                ReplaceSingleRestoreStack(
+                    acknowledged,
+                    ReplaceRestoreStack(
+                        stack,
+                        itemInstanceId: "item-instance:qa:wrong"))),
+            "An acknowledged domain-output batch accepted an item identity drift.");
+
+        DomainFixture retainedFixture = new();
+        IProductionDomainOutputPublicationService retainedService =
+            Service(retainedFixture);
+        ProductionDomainOutputPublicationSaveData retainedOwner = new();
+        Require(retainedService.EnsureCommitted(
+                    retainedOwner,
+                    Plan(
+                        quantity: 1,
+                        acknowledgementDisposition:
+                            ProductionDomainOutputAcknowledgementDisposition
+                                .RetainFacilityOutputBuffer)).IsCommitted
+                && retainedService.TryAcknowledge(retainedOwner, out _),
+            "The retained restore-join fixture did not publish and acknowledge.");
+        FacilityBufferPlannedOutputRestoreBatchSnapshot retained = retainedFixture
+            .Publication.CaptureAcknowledgedRestoreBatchesForEditorTest()
+            .Single();
+        ProductionDomainOutputRestoreGuard.ValidateAcknowledged(
+            retainedOwner,
+            retained);
+        Require(retained.Stacks.All(value =>
+                    value.State == WorldItemStackState.FacilityOutputBuffer
+                    && string.Equals(
+                        value.DestinationId,
+                        retainedOwner.destinationId,
+                        StringComparison.Ordinal)
+                    && value.Position == new Vector2Int(
+                        retainedOwner.destinationX,
+                        retainedOwner.destinationY)),
+            "The retained domain-output restore batch lost its buffer route.");
     }
 
     private static void VerifyReleaseRejectsDriftAndPreservesExactBatch()
@@ -401,7 +594,10 @@ public static class ProductionDomainOutputPublicationDebugScenarios
 
     internal static IProductionDomainOutputPublicationService Service(
         DomainFixture fixture,
-        long maximumDefinitionUnitMassGrams = 0L) =>
+        long maximumDefinitionUnitMassGrams = 0L,
+        DungeonStory.Foundation.Facts.IDomainFactStagingPublisher facts = null,
+        DungeonStory.Foundation.Facts.IDomainFactRecoveryPublisher recovery = null,
+        DungeonStory.Foundation.Facts.IDomainFactDeliveryQuery deliveries = null) =>
         new ProductionDomainOutputPublicationService(
             new FixedFacilityQuery(fixture.Handle),
             new FixedDestinationAuthority(fixture.Handle, fixture.Profile),
@@ -411,10 +607,17 @@ public static class ProductionDomainOutputPublicationDebugScenarios
                 maximumDefinitionUnitMassGrams),
             fixture.Admission,
             fixture.Publication,
-            fixture.Mass);
+            fixture.Mass,
+            fixture.Publication,
+            fixture.Admission,
+            facts, recovery, deliveries);
 
-    private static ProductionDomainOutputPublicationPlan Plan(int quantity) =>
-        new(
+    private static ProductionDomainOutputPublicationPlan Plan(
+        int quantity,
+        ProductionDomainOutputAcknowledgementDisposition
+            acknowledgementDisposition =
+                ProductionDomainOutputAcknowledgementDisposition
+                    .ReleaseLooseOrDestination) => new(
             "domain-output-publication:qa:",
             "owner:1",
             "domain-output-batch:qa:owner:1",
@@ -429,7 +632,8 @@ public static class ProductionDomainOutputPublicationDebugScenarios
                     string.Empty,
                     Array.Empty<ItemInstanceComponentSaveData>(),
                     Capability("output:qa", "item:qa:a"))
-            });
+            },
+            acknowledgementDisposition: acknowledgementDisposition);
 
     private static ProductionDomainOutputPublicationPlan TwoLinePlan() => new(
         "domain-output-publication:qa-two-line:",
@@ -476,6 +680,75 @@ public static class ProductionDomainOutputPublicationDebugScenarios
                 new PhysicalMassGrams(value.massGrams),
                 value.itemInstanceId))
             .ToArray());
+
+    private static FacilityBufferPlannedOutputRestoreBatchSnapshot
+        ReplaceSingleRestoreStack(
+            FacilityBufferPlannedOutputRestoreBatchSnapshot source,
+            FacilityBufferPlannedOutputRestoreStackSnapshot replacement) =>
+        ReplaceRestoreBatch(
+            source,
+            source.OutcomeFingerprint,
+            source.PlannedOutputFingerprint,
+            source.TotalQuantity,
+            source.TotalMassGrams,
+            new[] { replacement });
+
+    private static FacilityBufferPlannedOutputRestoreBatchSnapshot
+        ReplaceRestoreBatch(
+            FacilityBufferPlannedOutputRestoreBatchSnapshot source,
+            string outcomeFingerprint,
+            string plannedOutputFingerprint,
+            int totalQuantity,
+            long totalMassGrams,
+            IReadOnlyList<FacilityBufferPlannedOutputRestoreStackSnapshot>
+                stacks) => new(
+            source.BatchCommitId,
+            outcomeFingerprint,
+            plannedOutputFingerprint,
+            totalQuantity,
+            totalMassGrams,
+            stacks);
+
+    private static FacilityBufferPlannedOutputRestoreStackSnapshot
+        ReplaceRestoreStack(
+            FacilityBufferPlannedOutputRestoreStackSnapshot source,
+            WorldItemStackState? state = null,
+            Vector2Int? position = null,
+            string destinationId = null,
+            int? quantity = null,
+            long? massGrams = null,
+            string itemInstanceId = null) => new(
+            source.BatchCommitId,
+            source.OutcomeFingerprint,
+            source.PlannedOutputFingerprint,
+            source.OutputLineId,
+            source.StackOrdinal,
+            source.StackId,
+            source.ItemId,
+            quantity ?? source.Quantity,
+            massGrams ?? source.MassGrams,
+            source.ComponentSignature,
+            state ?? source.State,
+            position ?? source.Position,
+            destinationId ?? source.DestinationId,
+            itemInstanceId ?? source.ItemInstanceId,
+            source.Components,
+            source.PreparedComponentFingerprint);
+
+    private static void RequireRestoreRejected(
+        Action action,
+        string message)
+    {
+        try
+        {
+            action();
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+        throw new InvalidOperationException(message);
+    }
 
     private static ProductionDomainOutputPublicationPlan UniquePlan(
         string instanceId)
@@ -559,16 +832,22 @@ public static class ProductionDomainOutputPublicationDebugScenarios
             IFacilityBufferPlannedOutputPublicationFaultInjector fault = null,
             IFacilityBufferPlannedOutputAcknowledgementFaultInjector
                 acknowledgementFault = null,
-            object runtimeObject = null)
+            object runtimeObject = null,
+            IDungeonItemCatalogProvider itemCatalog = null,
+            string facilityPersistentId = FacilityId)
         {
-            Mass = new FacilityBufferPlannedOutputPublicationDebugScenarios
-                .FakeMassQuery();
+            IDungeonItemCatalogProvider resolvedCatalog = itemCatalog
+                ?? new FacilityBufferPlannedOutputPublicationDebugScenarios
+                    .FakeCatalog();
+            Mass = itemCatalog == null
+                ? new FacilityBufferPlannedOutputPublicationDebugScenarios
+                    .FakeMassQuery()
+                : new PhysicalItemMassQuery(itemCatalog);
             Repository = new WorldItemRepository(
                 new GuidPersistentIdGenerator(),
                 new DungeonRuntimeAggregateRootStore());
             Query = new WorldItemQueryService(
-                new FacilityBufferPlannedOutputPublicationDebugScenarios
-                    .FakeCatalog(),
+                resolvedCatalog,
                 Mass,
                 Repository,
                 EditorNullItemMarkerPresenter.Instance);
@@ -579,7 +858,7 @@ public static class ProductionDomainOutputPublicationDebugScenarios
                         DropPosition,
                         OwnerDomain,
                         DestinationId,
-                        FacilityId,
+                        facilityPersistentId,
                         FacilityBufferDestinationAnchorKind.LiveBuilding),
                     out _,
                     out _),
@@ -593,7 +872,7 @@ public static class ProductionDomainOutputPublicationDebugScenarios
                 DropPosition,
                 OwnerDomain,
                 DestinationId,
-                FacilityId,
+                facilityPersistentId,
                 new PhysicalMassGrams(10_000L),
                 1L);
             Require(Admission.TryReplaceOwnedProfiles(
@@ -604,15 +883,14 @@ public static class ProductionDomainOutputPublicationDebugScenarios
                 "Domain publication fixture could not publish capacity.");
             Publication = new FacilityBufferPlannedOutputPublicationService(
                 Repository,
-                new FacilityBufferPlannedOutputPublicationDebugScenarios
-                    .FakeCatalog(),
+                resolvedCatalog,
                 Mass,
                 Admission,
                 fault,
                 acknowledgementFault);
             Handle = new ProductionFacilityHandle(
                 runtimeObject ?? new object(),
-                (BuildingInstanceId)FacilityId,
+                (BuildingInstanceId)facilityPersistentId,
                 DropPosition,
                 false,
                 string.Empty,

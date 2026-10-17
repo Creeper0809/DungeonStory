@@ -37,6 +37,9 @@ public sealed class RoomClippedLight2D : MonoBehaviour
         source = sourceBuilding;
         targetLight = light;
         configuredRadius = Mathf.Max(0.2f, radius);
+        // Authoring preview remains visible. Live emission is projected by the
+        // environment runtime after the same supply check used for field light.
+        SetEmissionEnabled(!Application.isPlaying);
         lastGridVersion = -1;
         lastRoomId = -1;
         lastLightPosition = new Vector3(float.NaN, float.NaN, float.NaN);
@@ -46,6 +49,11 @@ public sealed class RoomClippedLight2D : MonoBehaviour
     public void ForceRefresh()
     {
         RefreshShape(force: true);
+    }
+
+    public void SetEmissionEnabled(bool emitting)
+    {
+        if (targetLight != null) targetLight.enabled = emitting;
     }
 
     private void LateUpdate()

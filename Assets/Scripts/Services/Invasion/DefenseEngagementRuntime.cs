@@ -14,6 +14,10 @@ public sealed class DefenseEngagementRuntime :
 {
     private static readonly ProfilerMarker TickProfilerMarker =
         new ProfilerMarker("DefenseEngagementRuntime.Tick");
+    private static readonly ProfilerMarker SupportFillProfilerMarker =
+        new ProfilerMarker("DefenseEngagementRuntime.SupportFill");
+    private static readonly ProfilerMarker CombatExchangeProfilerMarker =
+        new ProfilerMarker("DefenseEngagementRuntime.CombatExchange");
 
     private readonly IStaffWorkforceQueryService workforceQuery;
     private readonly IGridSystemProvider gridProvider;
@@ -54,7 +58,7 @@ public sealed class DefenseEngagementRuntime :
         ammoResupply = requiredCombat.AmmoResupply;
         tacticalCoordinator = requiredCombat.Tactics;
         engagementStore = requiredCombat.Store;
-        guardControl = new DefenseGuardControlRuntime();
+        guardControl = new DefenseGuardControlRuntime(gameEventBus);
         rangedPositionPlanner = new DefenseRangedPositionPlanner(requiredCombat);
         rangedSupport = new DefenseRangedSupportRuntime(
             requiredWorld,
@@ -535,6 +539,9 @@ public sealed class DefenseEngagementRuntime :
             return false;
         }
 
+        if (!intruder.CanResolveDefeat(out failureReason))
+            return false;
+
         combatRuntime.ResolveIntruderDefeated(engagement);
         bool completed = !engagement.IsActive
             && !TryGetEngagement(intruder, out _)
@@ -726,6 +733,7 @@ public sealed class DefenseEngagementRuntime :
 
         if (!engagement.IsOwnerFinalDefense)
         {
+            using var sample = SupportFillProfilerMarker.Auto();
             TryFillRangedSupport(grid, engagement);
         }
         TickRangedSupport(grid, engagement, secondary: false);
@@ -768,6 +776,7 @@ public sealed class DefenseEngagementRuntime :
 
         if (engagement.ReserveGuard == null && !engagement.IsOwnerFinalDefense)
         {
+            using var sample = SupportFillProfilerMarker.Auto();
             TryFillReserve(grid, engagement);
         }
 
@@ -1052,6 +1061,7 @@ public sealed class DefenseEngagementRuntime :
 
     private void TickCombatExchange(DefenseEngagement engagement)
     {
+        using var sample = CombatExchangeProfilerMarker.Auto();
         combatRuntime.TickExchange(engagement, StartGuardMovement);
     }
 

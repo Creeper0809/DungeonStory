@@ -225,7 +225,7 @@ public static class FluidFacilityInputOwnerProjectionAuthority
 /// <summary>
 /// Owns the positive-gram FacilityBuffer boundaries used by manual fixtures,
 /// container-to-network transfer, and process-fluid manual fallback. The
-/// physical debit remains the Fluid V6 pending Transfer; this service owns only
+/// physical debit remains the Fluid V7 pending Transfer; this service owns only
 /// the exact live destination pair and retires custody before that pair.
 /// </summary>
 internal sealed class FluidFacilityInputOwnerAuthority :

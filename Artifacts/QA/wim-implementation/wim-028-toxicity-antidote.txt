@@ -1,0 +1,6 @@
+WIM-028 toxicity / antidote focused verification
+utc=2026-09-06T04:36:28.1368191Z
+[PASS] OVERDOSE_POLICY seed=10; overdose=+30 once; normal=+0; cap=100; day=30; multipliers=0.8/0.8; ui=actual-contribution; invalid=no-mutation
+[PASS] TREAT_BRIDGE_RETRY cancel=0; commit=1 physical; pending=actor+facility+service session; other-facility=rejected; restore=delta-once+ack; same-live-work=replay0; restore-clears-RunId-cache; HP=unchanged
+[PASS] LIVE_HEALTH_PANEL actor=character:staff:1:01; toxicity=100; penalty=20%; reason=detox-medicine-unavailable; rendered=독성 부담  100 / 100 · 작업/전투 -20% · 해독제 재고 없음
+failures=0

@@ -16,6 +16,6 @@
   "schema_version": 1,
   "slug": "building-landmark-sovereign-citadel",
   "spoiler_tier": "none",
-  "summary": "V20 hand-authored milestone landmark.",
+  "summary": "시설 동작은 BuildingStructuralIntegrityAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 3654 WU, 재료 석재 블록×36, 강철×27, 기계 부품×12, 시제품 설계 묶음×4이 필요하다. V20 hand-authored milestone landmark.",
   "title": "주권 성채"
 }

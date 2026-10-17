@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "sourceEditState": "BLOCKED_FROZEN",
+  "humanApprovalClaimed": false,
+  "contracts": [
+    {
+      "candidate": "CertifiedSeedPlanExecutionReceipt",
+      "owner": "CertifiedSeedRuntime.TryComplete/TryFinalizePublishedOutput",
+      "preparedAt": "after the exact production output plan, immutable facility/crop/item display snapshots, output mass, output fingerprint, and next owner revision are known; before EnsureCommitted mutates output publication",
+      "requiredCall": "production-output participant prepares CertifiedSeedCompletionOutcomeReceipt and returns a durable gameplay attachment",
+      "pendingSaveOwner": "CertifiedSeedOrderSaveData",
+      "requiredPendingFields": [
+        "gameplayResultProducerId",
+        "gameplayResultOperationId",
+        "gameplayResultOwnerRevision",
+        "gameplayOutcomeId",
+        "gameplayCanonicalDigest",
+        "gameplayLifecycle"
+      ],
+      "clearGate": "input acknowledgement, output acknowledgement, gameplay PublishedAcknowledged, matching result key, outcome ID, and canonical SHA-256 must all hold before orders.Remove",
+      "rollback": "output publication and gameplay prepared token cancel together before commit; a committed gameplay result is never rolled back and retains the order for reconciliation",
+      "factoryReady": "EnvironmentOutcomeReceiptFactory.CreateCertifiedSeedCompletion"
+    },
+    {
+      "candidate": "EnvironmentalFireFuelLossReceipt",
+      "owner": "EnvironmentalFireRuntime.TryIgnite through exact fuel disposition",
+      "preparedAt": "after exact ordered physical source slices and EnvironmentalFireFuelLossReceipt are calculated; before physical sink and fire-state insertion",
+      "requiredCall": "IOutcomeAwarePhysicalItemBatchDispositionService.TryCommitPending(inputs, Sink, operationId, reasonCode, participant, out receipt, out failure)",
+      "participantCall": "participant.TryPrepare(in PhysicalItemBatchDispositionReceipt, expectedOwnerRevision, out prepared, out failure)",
+      "pendingSaveOwner": "physical batch disposition row plus EnvironmentalFireSaveData",
+      "requiredPendingFields": [
+        "resultKey",
+        "outcomeId",
+        "canonicalDigest",
+        "lifecycle",
+        "orderedSourceSliceDigest",
+        "fireOwnerRevision"
+      ],
+      "clearGate": "physical sink pending and fire outcome pending remain until canonical PublishedAcknowledged",
+      "rollback": "failed outcome commit restores physical source slices and prevents fire-state insertion; after canonical commit only delivery/ack retry is allowed",
+      "factoryReady": "EnvironmentOutcomeReceiptFactory.CreateFireFuelLoss"
+    },
+    {
+      "candidate": "EnvironmentalFireWaterReceipt",
+      "owner": "EnvironmentalFireRuntime.TryApplySuppression/ApplySuppressionContribution",
+      "preparedAt": "after exact ordered water source slices, water mass, suppression before/after intensities, and facility/actor display snapshots are calculated; before water sink and intensity mutation",
+      "requiredCall": "IOutcomeAwarePhysicalItemBatchDispositionService.TryCommitPending(inputs, Sink, operationId, reasonCode, participant, out receipt, out failure)",
+      "participantCall": "participant.TryPrepare(in PhysicalItemBatchDispositionReceipt, expectedOwnerRevision, out prepared, out failure)",
+      "pendingSaveOwner": "physical batch disposition row plus EnvironmentalFireSuppressionOperationSaveData",
+      "requiredPendingFields": [
+        "resultKey",
+        "outcomeId",
+        "canonicalDigest",
+        "lifecycle",
+        "orderedSourceSliceDigest",
+        "suppressionOwnerRevision"
+      ],
+      "clearGate": "water acknowledgement and suppression pending clear only after canonical PublishedAcknowledged",
+      "rollback": "failed outcome commit restores exact water slices and prior intensity; after canonical commit only delivery/ack retry is allowed",
+      "factoryReady": "EnvironmentOutcomeReceiptFactory.CreateFireWaterConsumed"
+    },
+    {
+      "candidate": "SpeciesIncidentTriggeredEvent",
+      "owner": "CharacterSpeciesRuntime.TryTriggerIncident/HarpyGaleCommotionHandler",
+      "preparedAt": "reserve exact fixed outcome shape before handler; write final exact receipt after deterministic relocation receipt is known and before species state/event publication",
+      "requiredCall": "reversible physical relocation participant returning exact ordered source and destination slices plus a durable gameplay attachment",
+      "pendingSaveOwner": "physical relocation pending row plus CharacterSpeciesSaveSection",
+      "requiredPendingFields": [
+        "resultKey",
+        "outcomeId",
+        "canonicalDigest",
+        "lifecycle",
+        "sourceSliceDigest",
+        "destinationSliceDigest",
+        "speciesIncidentSequence"
+      ],
+      "clearGate": "relocation pending and species incident pending clear only after canonical PublishedAcknowledged",
+      "rollback": "failed write/commit restores exact source/destination stacks and every captured species/world aggregate; after canonical commit only reconciliation is permitted",
+      "partialClosure": "all non-Harpy handlers already use reserve-before-mutation and exact aggregate rollback; Harpy remains fail-closed"
+    }
+  ]
+}

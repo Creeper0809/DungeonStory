@@ -1,8 +1,10 @@
 using System;
+using DungeonStory.Foundation.Facts;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
+using VContainer;
 using VContainer.Unity;
 
 public static class AutomationLaborAccountingRules
@@ -116,6 +118,7 @@ internal sealed class AutomationRuntime :
     private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
     private readonly ISettlementLaborAccountingService laborAccounting;
     private readonly AutomationStateSession stateSession;
+    private readonly IInfrastructureFactJournal commandOutcomes;
     private IReadOnlyList<AutomationFacilitySnapshot> facilities =
         Array.Empty<AutomationFacilitySnapshot>();
     private readonly List<BuildableObject> automationFacilities =
@@ -133,6 +136,30 @@ internal sealed class AutomationRuntime :
         DungeonRuntimeAggregateRootStore aggregateRootStore,
         ISettlementLaborAccountingService laborAccounting,
         IMilestoneGameplayModifierQuery milestoneModifiers = null)
+        : this(
+            buildings,
+            power,
+            productionQuery,
+            productionWork,
+            clock,
+            aggregateRootStore,
+            laborAccounting,
+            milestoneModifiers,
+            null)
+    {
+    }
+
+    [Inject]
+    public AutomationRuntime(
+        IBuildingWorldQuery buildings,
+        IPowerInfrastructureQuery power,
+        IProductionBillQuery productionQuery,
+        IProductionBillWorkExecution productionWork,
+        IGameClock clock,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        ISettlementLaborAccountingService laborAccounting,
+        IMilestoneGameplayModifierQuery milestoneModifiers,
+        IInfrastructureFactJournal commandOutcomes)
     {
         this.buildings = buildings
             ?? throw new ArgumentNullException(nameof(buildings));
@@ -150,6 +177,7 @@ internal sealed class AutomationRuntime :
             ?? NeutralMilestoneGameplayModifierQuery.Instance;
         this.laborAccounting = laborAccounting
             ?? throw new ArgumentNullException(nameof(laborAccounting));
+        this.commandOutcomes = commandOutcomes;
         stateSession = new AutomationStateSession(this.aggregateRootStore);
         projectedRestoreRevision =
             this.aggregateRootStore.PublishedRestoreRevision;
@@ -161,6 +189,7 @@ internal sealed class AutomationRuntime :
     {
         get
         {
+            commandOutcomes?.AssertIdle();
             EnsureFacilities();
             RefreshSnapshots();
             return facilities;
@@ -169,6 +198,7 @@ internal sealed class AutomationRuntime :
 
     public void Tick()
     {
+        commandOutcomes?.AssertIdle();
         if (clock.IsPaused || clock.DeltaTime <= 0f)
         {
             return;
@@ -195,6 +225,7 @@ internal sealed class AutomationRuntime :
         BuildableObject facility,
         out AutomationFacilitySnapshot snapshot)
     {
+        commandOutcomes?.AssertIdle();
         snapshot = null;
         if (!TryResolve(
                 facility,
@@ -216,6 +247,7 @@ internal sealed class AutomationRuntime :
         BuildableObject facility,
         AutomationMode mode)
     {
+        commandOutcomes?.AssertIdle();
         if (!Enum.IsDefined(typeof(AutomationMode), mode)
             || !TryResolve(
                 facility,
@@ -250,15 +282,40 @@ internal sealed class AutomationRuntime :
                 transitionFailure);
         }
 
-        EnsureState(facilityId).SetMode(mode);
+        AutomationFacilityStateSession state = EnsureState(facilityId);
+        if (state.Mode == mode)
+            return InfrastructureCommandResult.Success();
+        if (!InfrastructureFactExecution.TryPrepare(
+                commandOutcomes,
+                IndustrialTransitionKind.AutomationModeChanged,
+                facilityId,
+                facility,
+                new IndustrialStateData { automationMode = state.Mode },
+                new IndustrialStateData { automationMode = mode },
+                out IDomainFactStage prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        AutomationInfrastructureMutationToken before =
+            stateSession.CaptureMutation();
+        state.SetMode(mode);
         Touch();
-        return InfrastructureCommandResult.Success();
+        DomainFactDelivery commit =
+            commandOutcomes.CommitReversible(prepared);
+        if (commit.Phase == DomainFactDeliveryPhase.Rejected)
+        {
+            stateSession.RestoreMutation(before);
+            ResetProjectionAfterRestore();
+        }
+        return commit.Completed ? InfrastructureCommandResult.Success() : InfrastructureFactExecution.CommitFailure(commit);
     }
 
     public InfrastructureCommandResult Maintain(
         BuildableObject facility,
         float amount)
     {
+        commandOutcomes?.AssertIdle();
         if (!TryResolve(
                 facility,
                 out string facilityId,
@@ -276,13 +333,51 @@ internal sealed class AutomationRuntime :
                 FailureCode.AutomationMaintenanceRequired);
         }
 
+        float nextMaintenance = Mathf.Clamp(
+            state.Maintenance + applied,
+            0f,
+            100f);
+        float nextFault = Mathf.Clamp(
+            state.Fault - applied * 0.5f,
+            0f,
+            100f);
+        if (Mathf.Approximately(state.Maintenance, nextMaintenance)
+            && Mathf.Approximately(state.Fault, nextFault)
+            && state.Status.Code == InfrastructureStatusCode.None)
+        {
+            return InfrastructureCommandResult.Success();
+        }
+        var beforeValue = new IndustrialStateData { maintenance = state.Maintenance, fault = state.Fault, status = state.Status.Code };
+        var afterValue = new IndustrialStateData { maintenance = nextMaintenance, fault = nextFault, status = InfrastructureStatusCode.None };
+        if (!InfrastructureFactExecution.TryPrepare(
+                commandOutcomes,
+                IndustrialTransitionKind.AutomationMaintained,
+                facilityId,
+                facility,
+                beforeValue,
+                afterValue,
+                out IDomainFactStage prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        AutomationInfrastructureMutationToken before =
+            stateSession.CaptureMutation();
         state.ApplyMaintenance(applied);
         Touch();
-        return InfrastructureCommandResult.Success();
+        DomainFactDelivery commit =
+            commandOutcomes.CommitReversible(prepared);
+        if (commit.Phase == DomainFactDeliveryPhase.Rejected)
+        {
+            stateSession.RestoreMutation(before);
+            ResetProjectionAfterRestore();
+        }
+        return commit.Completed ? InfrastructureCommandResult.Success() : InfrastructureFactExecution.CommitFailure(commit);
     }
 
     public float GetWorkSpeedMultiplier(BuildableObject facility)
     {
+        commandOutcomes?.AssertIdle();
         if (!TryResolve(
                 facility,
                 out string facilityId,
@@ -305,6 +400,7 @@ internal sealed class AutomationRuntime :
 
     public DungeonAutomationSaveData Capture()
     {
+        commandOutcomes?.AssertIdle();
         EnsureFacilities();
         return stateSession.Capture();
     }
@@ -312,6 +408,7 @@ internal sealed class AutomationRuntime :
     public AutomationRestoreCandidate PrepareRestore(
         DungeonAutomationSaveData snapshot)
     {
+        commandOutcomes?.AssertIdle();
         IndustrialInfrastructureSaveValidation.RequireValid(snapshot);
         return AutomationStateSession.CreateRestoreCandidate(
             snapshot?.facilities);
@@ -319,6 +416,7 @@ internal sealed class AutomationRuntime :
 
     public void Restore(AutomationRestoreCandidate candidate)
     {
+        commandOutcomes?.AssertIdle();
         if (candidate == null)
         {
             throw new ArgumentNullException(nameof(candidate));
@@ -373,13 +471,51 @@ internal sealed class AutomationRuntime :
                 0f,
                 100f);
         }
+        if (fault >= 100f
+            && state.Status.Code
+                != InfrastructureStatusCode.MaintenanceRequired)
+        {
+            var beforeValue = new IndustrialStateData { maintenance = state.Maintenance, fault = state.Fault, status = state.Status.Code };
+            var afterValue = new IndustrialStateData { maintenance = maintenance, fault = fault, status = InfrastructureStatusCode.MaintenanceRequired };
+            if (!InfrastructureFactExecution.TryPrepare(
+                    commandOutcomes,
+                    IndustrialTransitionKind
+                        .AutomationMaintenanceRequiredEntered,
+                    facilityId,
+                    facility,
+                    beforeValue,
+                    afterValue,
+                    out IDomainFactStage prepared,
+                    out _,
+                    new IndustrialTransitionDetails { continuousWear = true }))
+            {
+                return;
+            }
+
+            AutomationInfrastructureMutationToken before =
+                stateSession.CaptureMutation();
+            state.SetCondition(maintenance, fault);
+            state.SetStatus(new InfrastructureStatus(
+                InfrastructureStatusCode.MaintenanceRequired,
+                fault.ToString("R", System.Globalization.CultureInfo.InvariantCulture)));
+            Touch();
+            DomainFactDelivery commit =
+                commandOutcomes.CommitReversible(prepared);
+            if (commit.Phase == DomainFactDeliveryPhase.Rejected)
+            {
+                stateSession.RestoreMutation(before);
+                ResetProjectionAfterRestore();
+            }
+            return;
+        }
+
         state.SetCondition(maintenance, fault);
 
         if (state.Fault >= 100f)
         {
             state.SetStatus(new InfrastructureStatus(
                 InfrastructureStatusCode.MaintenanceRequired,
-                state.Fault.ToString("0.###")));
+                state.Fault.ToString("R", System.Globalization.CultureInfo.InvariantCulture)));
             return;
         }
 
@@ -391,10 +527,25 @@ internal sealed class AutomationRuntime :
 
         IReadOnlyList<ProductionBillSnapshot> bills =
             productionQuery.GetBills(facility);
-        ProductionBillSnapshot bill = bills.FirstOrDefault(candidate =>
-            string.IsNullOrWhiteSpace(candidate.ReservedWorkerId)
-            && candidate.Status is ProductionBillStatus.Ready
-                or ProductionBillStatus.InProgress);
+        ProductionBillSnapshot bill = null;
+        foreach (ProductionBillSnapshot candidate in bills)
+        {
+            if (!string.IsNullOrWhiteSpace(candidate.ReservedWorkerId)
+                || candidate.Status is not (ProductionBillStatus.Ready
+                    or ProductionBillStatus.InProgress or ProductionBillStatus.WaitingForMaterials))
+                continue;
+            if (candidate.MaterialsConsumed)
+            {
+                bill = candidate;
+                break;
+            }
+            // BeginWork refreshes missing exact-input requests without consuming an
+            // incomplete batch. Stock arriving after AddBill must not remain orphaned.
+            ProductionWorkBeginResult begin = productionWork.BeginWork(null, facility, candidate.WorkTypeId);
+            if (!begin.Succeeded) continue;
+            bill = begin.Bill;
+            break; // At most one successfully started cycle and one work tick.
+        }
         if (bill == null)
         {
             state.SetStatus(new InfrastructureStatus(
@@ -402,21 +553,6 @@ internal sealed class AutomationRuntime :
                     ? InfrastructureStatusCode.ProductionMaterialUnavailable
                     : InfrastructureStatusCode.ProductionOrderUnavailable));
             return;
-        }
-
-        if (!bill.MaterialsConsumed)
-        {
-            ProductionWorkBeginResult begin = productionWork.BeginWork(
-                null,
-                facility,
-                bill.WorkTypeId);
-            if (!begin.Succeeded)
-            {
-                state.SetStatus(new InfrastructureStatus(
-                    InfrastructureStatusCode.ProductionMaterialUnavailable));
-                return;
-            }
-            bill = begin.Bill;
         }
 
         float work = Mathf.Max(

@@ -1,0 +1,9 @@
+prepared=authored pen building:d6bd4677fb9d40d38b3301591c7a0062; pet=wild:9; penCell=(43, 0); hp=10; actual owner alternatives=3
+PASS ownerUI=character:staff:1:01
+pet=wild:9; petCell=(43, 0); petHP=10; owner=character:staff:1:01; ownerCell=(19, 0); gameTime=84.25282
+result=FAIL
+System.InvalidOperationException: Autonomous companion follow timed out: pet=wild:9; petCell=(43, 0); petHP=10; owner=character:staff:1:01; ownerCell=(19, 0); gameTime=84.25282
+  at Wim029CompanionLiveRunner+<WaitFor>d__22.MoveNext () [0x00089] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Captivity\Editor\Wim029CompanionLiveRunner.cs:246 
+  at Wim029CompanionLiveRunner+<Observe>d__18.MoveNext () [0x00051] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Captivity\Editor\Wim029CompanionLiveRunner.cs:66 
+scope=controlled authored initial pen/domestic birth, healthy staff and safe field; actual EventSystem owner assignment/change/clear, autonomous follow/return, current whole registry restore. Not natural capture/birth/construction, reciprocal combat, animal haul, daily balance or six-adult certification.
+cleanup=paused disposable main Play, operator stops; disk persistence disabled before owner UI; original environment restored

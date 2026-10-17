@@ -58,7 +58,9 @@ public class BuildableObject : MonoBehaviour,
     private bool detachedRestoreCandidate;
     private bool synchronizedWithPaidContracts;
     private bool runtimeTeardownCompleted;
+    private bool destructionInProgress;
     private bool destructionEventPublished;
+    private bool facilityUseObservationActive;
 
     public int GridId => id;
     public bool IsGridDestroyed => isDestroy;
@@ -91,6 +93,7 @@ public class BuildableObject : MonoBehaviour,
     public bool IsDamaged => isDamaged;
     public int FacilityLevel => facilityLevel;
     public bool IsDetachedRestoreCandidate => detachedRestoreCandidate;
+    internal bool IsRuntimeTeardownCompleted => runtimeTeardownCompleted;
     public BuildingInstanceId PersistentInstanceId =>
         (BuildingInstanceId)persistentInstanceId;
     public BuildingInstanceId BuildingInstanceId => PersistentInstanceId;
@@ -116,16 +119,26 @@ public class BuildableObject : MonoBehaviour,
         spatialQuery ??= new BuildableObjectSpatialQuery(transform, this);
     public int CurrentUserCount => Occupancy.CurrentUserCount;
     public FacilityRuntimeState FacilityState => facilityState ??= new FacilityRuntimeState();
+    public long SynthesisOutcomeRevision => FacilityState.synthesisOutcomeRevision;
+    internal long NextVandalismOperationSequence =>
+        FacilityState.nextVandalismOperationSequence;
+    internal FacilityVandalismCommitState LastVandalism =>
+        FacilityState.lastVandalism?.Clone()
+        ?? new FacilityVandalismCommitState();
     internal IBuildingWorldRegistryPort WorldRegistry => worldRegistry;
     internal IBuildingItemStackPort WorldItemStackRuntime => worldItemStackRuntime;
     internal IBuildingAbilityRuntimeDispatcher AbilityRuntimeDispatcher =>
         abilityRuntimeDispatcher;
+    public IEnumerable<TCapability> GetRuntimeAbilities<TCapability>() where TCapability : class =>
+        StateAndCapabilities.GetAbilityRuntimes<TCapability>(BuildingData?.AbilityModules, abilityRuntimeDispatcher);
     public int EffectiveCapacity => ResolveRoomFacilityPolicy().GetEffectiveCapacity(this);
 
     public int ActiveVisitReservationCount =>
         Occupancy.ActiveVisitReservationCount;
     public IReadOnlyList<CharacterId> CaptureVisitReservationIdsForDiagnostics() =>
         Occupancy.CaptureVisitReservationIdsForDiagnostics();
+    public bool IsActiveUser(CharacterId characterId) =>
+        Occupancy.IsActiveUser(characterId);
     public IBuildingCharacterPort WorkerReservation =>
         this is IParallelWorkerReservationFacility parallel
             ? parallel.PrimaryWorkerReservation
@@ -373,7 +386,12 @@ public class BuildableObject : MonoBehaviour,
         }
 
         buildingSO.ValidateAbilitiesOrThrow();
+        IReadOnlyList<object> abilityRuntimes = (abilityRuntimeDispatcher
+            ?? throw new InvalidOperationException($"{nameof(BuildableObject)} requires {nameof(IBuildingAbilityRuntimeDispatcher)} injection."))
+            .BindRuntimeAbilities(buildingSO.Abilities)
+            ?? throw new InvalidOperationException("Building ability dispatcher returned null runtime bindings.");
         BuildingData = buildingSO;
+        StateAndCapabilities.SetAbilityRuntimes(buildingSO.AbilityModules, abilityRuntimes, abilityRuntimeDispatcher);
         GridBuildingPlacement placement = buildingSO.Placement;
         id = buildingSO.id;
         isDestroy = false;
@@ -391,12 +409,9 @@ public class BuildableObject : MonoBehaviour,
         (evolutionState ?? throw new InvalidOperationException(
                 $"{nameof(BuildableObject)} requires {nameof(IBuildingEvolutionStatePort)} injection."))
             .EnsureInitialized(this);
-        foreach (BuildingAbility ability in buildingSO.Abilities)
+        foreach (IBuildingRuntimeStateAbility stateAbility in GetRuntimeAbilities<IBuildingRuntimeStateAbility>())
         {
-            if (ability is IBuildingRuntimeStateAbility stateAbility)
-            {
-                RegisterStateModule(stateAbility.CreateStateModule(this));
-            }
+            RegisterStateModule(stateAbility.CreateStateModule(this));
         }
         if (buildingSO.GetAbility<BuildingStructuralIntegrityAbility>() == null
             && BuildingStructuralIntegrityDefaults.TryCreate(
@@ -645,35 +660,53 @@ public class BuildableObject : MonoBehaviour,
 
     public void DestroySelf()
     {
-        if (runtimeTeardownCompleted)
+        if (runtimeTeardownCompleted || destructionInProgress)
         {
             return;
         }
 
+        string buildingLabel = name;
         isDestroy = true;
-        List<Exception> subscriberFailures = null;
+        destructionInProgress = true;
         try
         {
-            subscriberFailures = PublishDestroyedEventSafely();
+            List<Exception> failures = PublishDestroyedEventSafely();
+            try
+            {
+                TeardownRuntimeState(markDynamicStateDirty: true);
+            }
+            catch (Exception exception)
+            {
+                failures ??= new List<Exception>();
+                failures.Add(exception);
+            }
+
+            // Keep a failed teardown alive for an explicit retry. A subscriber
+            // can also have destroyed the Unity object synchronously already.
+            if (runtimeTeardownCompleted && this != null)
+            {
+                if (Application.isPlaying)
+                {
+                    Destroy(gameObject);
+                }
+                else
+                {
+                    DestroyImmediate(gameObject);
+                }
+            }
+
+            if (failures != null)
+            {
+                throw new AggregateException(
+                    runtimeTeardownCompleted
+                        ? $"{buildingLabel} destruction completed, but one or more destruction subscribers failed."
+                        : $"{buildingLabel} runtime teardown failed; destruction remains incomplete.",
+                    failures);
+            }
         }
         finally
         {
-            TeardownRuntimeState(markDynamicStateDirty: true);
-            if (Application.isPlaying)
-            {
-                Destroy(gameObject);
-            }
-            else
-            {
-                DestroyImmediate(gameObject);
-            }
-        }
-
-        if (subscriberFailures != null)
-        {
-            throw new AggregateException(
-                $"{name} destruction completed, but one or more destruction subscribers failed.",
-                subscriberFailures);
+            destructionInProgress = false;
         }
     }
 
@@ -722,7 +755,6 @@ public class BuildableObject : MonoBehaviour,
             return;
         }
 
-        runtimeTeardownCompleted = true;
         RemovePaidFacilityContractIfNeeded();
         ClearRuntimeOccupancyAndAssignments();
         UnregisterFromWorldRegistry();
@@ -731,6 +763,7 @@ public class BuildableObject : MonoBehaviour,
         {
             facilityCandidateCache.MarkDynamicStateDirty();
         }
+        runtimeTeardownCompleted = true;
     }
 
     private void ClearRuntimeOccupancyAndAssignments()
@@ -832,14 +865,64 @@ public class BuildableObject : MonoBehaviour,
     public BuildingRoomOperationalSnapshot GetRoomOperationalProfile() =>
         ResolveRoomFacilityPolicy().GetOperationalProfile(this);
 
-    public void RestoreFacilityState(FacilityRuntimeState state) =>
+    public void RestoreFacilityState(FacilityRuntimeState state)
+    {
+        RequireFacilityUseObservationIdle();
         StateAndCapabilities.RestoreFacilityState(FacilityState, state);
+    }
+
+    internal void CommitVandalismState(
+        FacilityVandalismCommitState committed)
+    {
+        committed = committed
+            ?? throw new ArgumentNullException(nameof(committed));
+        if (committed.facilityId != RequirePersistentInstanceId().Value
+            || committed.operationSequence != NextVandalismOperationSequence)
+            throw new InvalidOperationException("Facility vandalism receipt belongs to another owner or sequence.");
+        FacilityRuntimeState candidate = FacilityState.Clone();
+        candidate.nextVandalismOperationSequence = checked(
+            committed.operationSequence + 1L);
+        candidate.lastVandalism = committed.Clone();
+        if (!candidate.IsValid(out string error))
+        {
+            throw new InvalidOperationException(
+                "Facility vandalism state mutation rejected: " + error);
+        }
+        RestoreFacilityState(candidate);
+    }
+
+    public void SetSynthesisOutcomeRevision(long revision) =>
+        StateAndCapabilities.SetSynthesisOutcomeRevision(
+            FacilityState,
+            revision);
 
     public void RecordCompletedWorkCycle() =>
         StateAndCapabilities.RecordCompletedWorkCycle(FacilityState);
 
     public void SetCleanliness(float value) =>
         StateAndCapabilities.SetCleanliness(FacilityState, value);
+
+    public bool HasFacilityFuelSupply =>
+        FacilityState.remainingFuelGameSeconds > 0f;
+
+    internal void ReplaceFacilityFuelState(
+        float remainingFuelGameSeconds,
+        int nextFuelOperationSequence,
+        FacilityFuelCommitState pendingFuel)
+    {
+        FacilityRuntimeState candidate = StateAndCapabilities.ReplaceFuelState(
+            FacilityState,
+            remainingFuelGameSeconds,
+            nextFuelOperationSequence,
+            pendingFuel);
+        facilityState = candidate;
+        MarkFacilityDynamicStateDirty();
+    }
+
+    internal float ConsumeFacilityFuelGameSeconds(float requestedSeconds) =>
+        StateAndCapabilities.ConsumeFuelGameSeconds(
+            FacilityState,
+            requestedSeconds);
 
     public IReadOnlyList<IBuildingStateModule> GetStateModules() =>
         StateAndCapabilities.GetStateModules();
@@ -944,6 +1027,31 @@ public class BuildableObject : MonoBehaviour,
     public bool CompleteUse(IBuildingCharacterPort visitor)
     {
         bool completed = Occupancy.CompleteUse(visitor);
+        if (completed)
+        {
+            UntrackTransientOwnership(
+                visitor,
+                BuildingTransientOwnershipKind.ActiveUse);
+        }
+        return completed;
+    }
+
+    internal bool TryRestoreActiveUse(IBuildingCharacterPort visitor, out string failureReason)
+    {
+        if (!Occupancy.TryRestoreActiveUse(visitor, out failureReason)) return false;
+        TrackTransientOwnership(visitor, BuildingTransientOwnershipKind.ActiveUse);
+        return true;
+    }
+
+    public bool CompleteUse(
+        IBuildingCharacterPort visitor,
+        CharacterFacilityUseOutcomeReceipt receipt,
+        out FacilityVisitCommitResult commitResult)
+    {
+        bool completed = Occupancy.CompleteUse(
+            visitor,
+            receipt,
+            out commitResult);
         if (completed)
         {
             UntrackTransientOwnership(
@@ -1262,15 +1370,119 @@ public class BuildableObject : MonoBehaviour,
 
     internal void RecordFacilityUse(IBuildingCharacterPort visitor)
     {
-        FacilityState.completedUses++;
+        (visitEvents ?? throw new InvalidOperationException(
+                $"{nameof(BuildableObject)} requires {nameof(IBuildingVisitEventPort)} injection."))
+            .CommitVisit(visitor, this);
+    }
+
+    internal FacilityVisitCommitResult RecordFacilityUse(
+        IBuildingCharacterPort visitor,
+        CharacterFacilityUseOutcomeReceipt receipt) =>
+        (visitEvents ?? throw new InvalidOperationException(
+                $"{nameof(BuildableObject)} requires {nameof(IBuildingVisitEventPort)} injection."))
+            .CommitVisit(visitor, this, receipt);
+
+    internal FacilityVisitCommitResult ReconcilePendingFacilityUse() =>
+        (visitEvents ?? throw new InvalidOperationException(
+                $"{nameof(BuildableObject)} requires {nameof(IBuildingVisitEventPort)} injection."))
+            .ReconcilePendingVisit(this);
+
+    internal long AllocateFacilityUseOperationSequence()
+    {
+        RequireFacilityUseObservationIdle();
+        if (FacilityState.nextUseOperationSequence == long.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"Facility '{RequirePersistentInstanceId().Value}' exhausted use operation identities.");
+        }
+        long allocated = FacilityState.nextUseOperationSequence;
+        FacilityState.nextUseOperationSequence = checked(allocated + 1L);
+        MarkFacilityDynamicStateDirty();
+        return allocated;
+    }
+
+    internal void SavePendingFacilityUse(
+        FacilityUseCommitState pending,
+        bool applyCompletionMutation = false)
+    {
+        if (pending == null)
+            throw new ArgumentNullException(nameof(pending));
+        FacilityRuntimeState candidate = FacilityState.Clone();
+        if (candidate.IsUseAcknowledged(pending.operationSequence))
+            throw new InvalidOperationException("Facility use was already acknowledged.");
+        int index = candidate.pendingUses.FindIndex(value =>
+            value != null && value.operationSequence == pending.operationSequence);
+        candidate.activeUses.RemoveAll(value =>
+            value.operationSequence == pending.operationSequence);
+        if (applyCompletionMutation && index < 0)
+        {
+            if (candidate.completedUses == int.MaxValue)
+                throw new InvalidOperationException(
+                    $"Facility '{RequirePersistentInstanceId().Value}' cannot record more visits.");
+            candidate.completedUses = checked(candidate.completedUses + 1);
+            candidate.cleanliness = Mathf.Clamp(
+                candidate.cleanliness - 1.5f,
+                0f,
+                100f);
+        }
+        if (index >= 0)
+            candidate.pendingUses[index] = pending.Clone();
+        else
+            candidate.pendingUses.Add(pending.Clone());
+        candidate.pendingUses.Sort((left, right) =>
+            left.operationSequence.CompareTo(right.operationSequence));
+        if (!candidate.IsValid(out string error))
+            throw new InvalidOperationException(
+                "Facility use pending mutation rejected: " + error);
+        facilityState = candidate;
+        MarkFacilityDynamicStateDirty();
+    }
+
+    internal void AcknowledgeFacilityUse(long operationSequence)
+    {
+        FacilityRuntimeState candidate = FacilityState.Clone();
+        if (candidate.pendingUses.RemoveAll(value =>
+                value != null && value.operationSequence == operationSequence) == 0)
+            return;
+        candidate.acknowledgedUseRanges.Add(new FacilityUseAcknowledgementRange { first = operationSequence, last = operationSequence });
+        candidate.acknowledgedUseRanges.Sort((left, right) => left.first.CompareTo(right.first));
+        for (int index = candidate.acknowledgedUseRanges.Count - 1; index > 0; index--)
+        {
+            var current = candidate.acknowledgedUseRanges[index];
+            var previous = candidate.acknowledgedUseRanges[index - 1];
+            if (current.first > previous.last + 1) continue;
+            previous.last = Math.Max(previous.last, current.last);
+            candidate.acknowledgedUseRanges.RemoveAt(index);
+        }
+        if (!candidate.IsValid(out string error))
+            throw new InvalidOperationException(
+                "Facility use acknowledgement rejected: " + error);
+        facilityState = candidate;
+        MarkFacilityDynamicStateDirty();
+    }
+
+    internal void RequireFacilityUseObservationIdle()
+    {
+        if (facilityUseObservationActive) throw new InvalidOperationException("facility-use-observation-active");
+    }
+    internal void BeginFacilityUseObservation()
+    { RequireFacilityUseObservationIdle(); facilityUseObservationActive = true; }
+    internal void EndFacilityUseObservation() => facilityUseObservationActive = false;
+
+    internal void ApplyFacilityUseMutation()
+    {
+        if (FacilityState.completedUses == int.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"Facility '{RequirePersistentInstanceId().Value}' cannot record more visits.");
+        }
+
+        FacilityState.completedUses = checked(FacilityState.completedUses + 1);
         FacilityState.cleanliness = Mathf.Clamp(
             FacilityState.cleanliness - 1.5f,
             0f,
             100f);
         MarkFacilityDynamicStateDirty();
-        (visitEvents ?? throw new InvalidOperationException(
-                $"{nameof(BuildableObject)} requires {nameof(IBuildingVisitEventPort)} injection."))
-            .PublishVisit(visitor, this);
     }
 
     protected IGameClock GameClock => gameClock

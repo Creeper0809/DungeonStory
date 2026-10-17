@@ -1,0 +1,6 @@
+result=PASS
+forecast=lastMissingWater:99,consecutiveWaterShortageDays:30,healthRisk:0
+physical-sanitation=rotStacks:5,sanitationRisk:60,diseaseRisk:33
+food-shortage=days:1,diseaseRisk:7
+actual-thirst-owner=CharacterDeprivationRuntime
+actual-water-exposure-owner=CharacterWaterConsumedEvent->PopulationHealthRuntime

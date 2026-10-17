@@ -71,31 +71,31 @@ public static class GridVisualDebugScenarios
             new Vector2(1f, GridBuildingTileTransformCalculator.DefaultCellTileHeight)).y;
 
         return VerifySpriteTileTransform(
-                "Assets/Resources/SO/Building/P1/P1_RestRoom.asset",
-                expectedCenterOffsetX: 0.5f,
+                "Assets/Resources/SO/Building/Modular/R01_간이침대.asset",
+                expectedCenterOffsetX: 1f,
                 expectedCenterOffsetY: expectedVisualHeight * 0.5f,
-                expectedWidth: 3f,
+                expectedWidth: 2f,
                 expectedHeight: expectedVisualHeight,
                 tilemapLocalOffset: Vector2.zero)
             && VerifySpriteTileTransform(
-                "Assets/Resources/SO/Building/P1/P1_RestRoom.asset",
-                expectedCenterOffsetX: 0.5f,
+                "Assets/Resources/SO/Building/Modular/R01_간이침대.asset",
+                expectedCenterOffsetX: 1f,
                 expectedCenterOffsetY: expectedVisualHeight * 0.5f,
-                expectedWidth: 3f,
+                expectedWidth: 2f,
                 expectedHeight: expectedVisualHeight,
                 tilemapLocalOffset: new Vector2(0f, -0.5f))
             && VerifySpriteTileTransform(
-                "Assets/Resources/SO/Building/P1/P1_ResearchLab.asset",
+                "Assets/Resources/SO/Building/Modular/Q01_연구책상.asset",
                 expectedCenterOffsetX: 1f,
                 expectedCenterOffsetY: expectedVisualHeight * 0.5f,
-                expectedWidth: 4f,
+                expectedWidth: 2f,
                 expectedHeight: expectedVisualHeight,
                 tilemapLocalOffset: new Vector2(0.5f, -0.5f))
             && VerifySpriteTileTransform(
-                "Assets/Resources/SO/Building/P1/P1_MeatRestaurant.asset",
+                "Assets/Resources/SO/Building/Modular/D02_고기그릴.asset",
                 expectedCenterOffsetX: 1f,
                 expectedCenterOffsetY: expectedVisualHeight * 0.5f,
-                expectedWidth: 4f,
+                expectedWidth: 2f,
                 expectedHeight: expectedVisualHeight,
                 tilemapLocalOffset: new Vector2(0.5f, -0.5f));
     }
@@ -303,7 +303,7 @@ public static class GridVisualDebugScenarios
             "Assets/Resources/SO/Building/Hallway.asset");
         Tile doorTile = null;
         bool hasDoorTile = door?.tiles != null
-            && door.tiles.TryGetValue(GridTexture.TilemapLayer.BACK, out doorTile);
+            && door.tiles.TryGetValue(BuildingTilemapLayer.BACK, out doorTile);
         if (door == null
             || hallway == null
             || !door.IsDoor
@@ -401,9 +401,9 @@ public static class GridVisualDebugScenarios
         texture.wallTilemap = wallTilemap;
         texture.wall = wallTile;
         texture.floor = floorTile;
-        texture.buildingTilemapOdd = new Dictionary<GridTexture.TilemapLayer, Tilemap>
+        texture.buildingTilemapOdd = new Dictionary<BuildingTilemapLayer, Tilemap>
         {
-            [GridTexture.TilemapLayer.HALLWAY] = hallwayTilemap
+            [BuildingTilemapLayer.HALLWAY] = hallwayTilemap
         };
         texture.DrawBuilding(door, new Vector2Int(3, 0));
         bool directHallwayFootprintCleared = true;
@@ -526,7 +526,7 @@ public static class GridVisualDebugScenarios
             || door.height != 1
             || !door.unlocked
             || door.tiles == null
-            || !door.tiles.TryGetValue(GridTexture.TilemapLayer.BACK, out Tile doorTile)
+            || !door.tiles.TryGetValue(BuildingTilemapLayer.BACK, out Tile doorTile)
             || doorTile == null
             || doorTile.sprite == null)
         {
@@ -632,10 +632,13 @@ public static class GridVisualDebugScenarios
 
     private static void InjectBuildingDependencies(BuildableObject building)
     {
+        building.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+        if (building is Door door)
+            door.ConstructDoorVisualResources((IGameContentCatalog)CharacterAiEditorTestDependencies.ContentDefinitions);
         building.ConstructBuildableObject(
             new BuildingResearchWorkPortAdapter(BlueprintResearchWorkService),
             FacilityCandidateCacheService,
-            RoomFacilityPolicyService, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
+            RoomFacilityPolicyService, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
     }
 
     private static bool VerifySpriteTileTransform(
@@ -710,7 +713,8 @@ public static class GridVisualDebugScenarios
         public BlueprintResearchWorkResult ApplyApprovedResearchWork(
             CharacterActor researcher,
             BuildableObject researchFacility,
-            float approvedWorkUnits) =>
+            float approvedWorkUnits,
+            DurableFacilityEquipmentUseContext equipment = null) =>
             ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 

@@ -10,16 +10,35 @@
     },
     {
       "label": "종료 효과",
-      "value": "1개"
+      "value": "0개"
     }
   ],
   "game_version": "0.0.1v",
   "group": "events-campaign",
   "kind": "event",
-  "relations": [],
+  "relations": [
+    {
+      "amount": null,
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "record-arcane-index",
+      "target_spoiler_tier": "none",
+      "target_title": "비전 색인철",
+      "type": "produces-or-unlocks"
+    }
+  ],
   "schema_version": 1,
   "slug": "seasonal-winter-deep-echo",
   "spoiler_tier": "warning",
-  "summary": "조용해진 동굴에서 진실 수호자의 이동과 희귀 야생동물의 흔적이 함께 드러난다.",
+  "summary": "진행 자격을 갖춘 원정대가 진실 수호자의 심층 봉인소를 선택해 출발할 수 있다. 위험·확정 조우·실물 보상을 확인한 뒤 비용 없이 무시할 수 있다.",
   "title": "심층의 메아리"
 }

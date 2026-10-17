@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Foundation.Facts;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
@@ -9,6 +10,8 @@ using VContainer.Unity;
 internal sealed class FluidNetworkRuntime :
     IFluidInfrastructureQuery,
     IFluidInfrastructureTransaction,
+    IFluidInfrastructureMutationTransaction,
+    IManualWaterAvailabilityQuery,
     IManualWaterTransferTransaction,
     IFluidInfrastructureBatchTransaction,
     IFluidWastewaterTransaction,
@@ -19,7 +22,9 @@ internal sealed class FluidNetworkRuntime :
 {
     private const float TickInterval = 0.5f;
     private const float BackflowWarningInterval = 5f;
-    private const string BottledCleanWaterItemId = "resource:clean-water";
+    private const float LeakEpisodeWaterQuantum = 1f;
+    private const string BottledCleanWaterItemId =
+        FluidFacilityInputOwnerProjectionAuthority.CleanWaterItemId;
 
     private readonly IIndustrialInfrastructureTopologyRuntime topologyRuntime;
     private readonly IPowerInfrastructureQuery power;
@@ -27,18 +32,28 @@ internal sealed class FluidNetworkRuntime :
     private readonly IPhysicalItemBatchDispositionService physicalDispositions;
     private readonly IWorldFilthQuery filth;
     private readonly IGameClock clock;
+    private readonly IEnvironmentalFieldQuery environment;
+    private readonly ISeasonalEventQuery seasonalEvents;
     private readonly IFacilityCapabilityQuery facilities;
     private readonly IBuildingFacilityStateChangePort facilityStateChanges;
     private readonly FluidNetworkStateStore stateStore;
     private readonly FluidNetworkProjectionAdapter projectionAdapter;
+    private readonly ManualWaterTransferRuntime manualWater;
     private readonly IFluidFacilityInputOwnerAuthority inputOwners;
-    private readonly Dictionary<string, float> nextBackflowAt =
-        new Dictionary<string, float>(StringComparer.Ordinal);
-    private IReadOnlyList<WaterTransferFacilitySnapshot> waterTransfers =
-        Array.Empty<WaterTransferFacilitySnapshot>();
-    private float accumulated;
+    private readonly IInfrastructureFactJournal commandOutcomes;
+    private Dictionary<string, float> nextBackflowAt =>
+        projectionAdapter.NextBackflowAt;
+    private IReadOnlyList<WaterTransferFacilitySnapshot> waterTransfers
+    {
+        get => projectionAdapter.WaterTransfers;
+        set => projectionAdapter.WaterTransfers = value;
+    }
+    private float accumulated
+    {
+        get => projectionAdapter.Accumulated;
+        set => projectionAdapter.Accumulated = value;
+    }
 
-    [Inject]
     public FluidNetworkRuntime(
         IIndustrialInfrastructureTopologyRuntime topologyRuntime,
         IPowerInfrastructureQuery power,
@@ -46,6 +61,8 @@ internal sealed class FluidNetworkRuntime :
         IPhysicalItemBatchDispositionService physicalDispositions,
         IWorldFilthQuery filth,
         IGameClock clock,
+        IEnvironmentalFieldQuery environment,
+        ISeasonalEventQuery seasonalEvents,
         IFacilityCapabilityQuery facilities,
         IBuildingFacilityStateChangePort facilityStateChanges,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
@@ -61,6 +78,48 @@ internal sealed class FluidNetworkRuntime :
             physicalDispositions,
             filth,
             clock,
+            environment,
+            seasonalEvents,
+            facilities,
+            facilityStateChanges,
+            aggregateRootStore,
+            physicalMass,
+            destinationClaims,
+            destinationCapacities,
+            destinationLifecycle,
+            destinationReleases,
+            null)
+    {
+    }
+
+    [Inject]
+    public FluidNetworkRuntime(
+        IIndustrialInfrastructureTopologyRuntime topologyRuntime,
+        IPowerInfrastructureQuery power,
+        IWorldItemStackRuntime items,
+        IPhysicalItemBatchDispositionService physicalDispositions,
+        IWorldFilthQuery filth,
+        IGameClock clock,
+        IEnvironmentalFieldQuery environment,
+        ISeasonalEventQuery seasonalEvents,
+        IFacilityCapabilityQuery facilities,
+        IBuildingFacilityStateChangePort facilityStateChanges,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IPhysicalItemMassQuery physicalMass,
+        IFacilityBufferDestinationClaimAuthorityQuery destinationClaims,
+        IFacilityBufferMassCapacityAuthorityQuery destinationCapacities,
+        IFacilityBufferDestinationLifecycleCommand destinationLifecycle,
+        IFacilityBufferDestinationReleaseService destinationReleases,
+        IInfrastructureFactJournal commandOutcomes)
+        : this(
+            topologyRuntime,
+            power,
+            items,
+            physicalDispositions,
+            filth,
+            clock,
+            environment,
+            seasonalEvents,
             facilities,
             facilityStateChanges,
             aggregateRootStore,
@@ -69,7 +128,8 @@ internal sealed class FluidNetworkRuntime :
                 destinationClaims,
                 destinationCapacities,
                 destinationLifecycle,
-                destinationReleases))
+                destinationReleases),
+            commandOutcomes)
     {
     }
 
@@ -80,10 +140,13 @@ internal sealed class FluidNetworkRuntime :
         IPhysicalItemBatchDispositionService physicalDispositions,
         IWorldFilthQuery filth,
         IGameClock clock,
+        IEnvironmentalFieldQuery environment,
+        ISeasonalEventQuery seasonalEvents,
         IFacilityCapabilityQuery facilities,
         IBuildingFacilityStateChangePort facilityStateChanges,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
-        IFluidFacilityInputOwnerAuthority inputOwners)
+        IFluidFacilityInputOwnerAuthority inputOwners,
+        IInfrastructureFactJournal commandOutcomes = null)
     {
         this.topologyRuntime = topologyRuntime
             ?? throw new ArgumentNullException(nameof(topologyRuntime));
@@ -93,18 +156,31 @@ internal sealed class FluidNetworkRuntime :
             ?? throw new ArgumentNullException(nameof(physicalDispositions));
         this.filth = filth ?? throw new ArgumentNullException(nameof(filth));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.environment = environment
+            ?? throw new ArgumentNullException(nameof(environment));
+        this.seasonalEvents = seasonalEvents
+            ?? throw new ArgumentNullException(nameof(seasonalEvents));
         this.facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
         this.facilityStateChanges = facilityStateChanges
             ?? throw new ArgumentNullException(nameof(facilityStateChanges));
         this.inputOwners = inputOwners
             ?? throw new ArgumentNullException(nameof(inputOwners));
+        this.commandOutcomes = commandOutcomes;
         stateStore = new FluidNetworkStateStore(
             aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore)));
         projectionAdapter = new FluidNetworkProjectionAdapter(
             this.topologyRuntime,
             stateStore);
+        manualWater = new ManualWaterTransferRuntime(
+            this.topologyRuntime,
+            this.items,
+            this.physicalDispositions,
+            stateStore,
+            projectionAdapter,
+            this.inputOwners,
+            this.commandOutcomes);
     }
 
 #if UNITY_EDITOR
@@ -115,6 +191,8 @@ internal sealed class FluidNetworkRuntime :
         IPhysicalItemBatchDispositionService physicalDispositions,
         IWorldFilthQuery filth,
         IGameClock clock,
+        IEnvironmentalFieldQuery environment,
+        ISeasonalEventQuery seasonalEvents,
         IFacilityCapabilityQuery facilities,
         IBuildingFacilityStateChangePort facilityStateChanges,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
@@ -125,6 +203,8 @@ internal sealed class FluidNetworkRuntime :
             physicalDispositions,
             filth,
             clock,
+            environment,
+            seasonalEvents,
             facilities,
             facilityStateChanges,
             aggregateRootStore,
@@ -137,9 +217,11 @@ internal sealed class FluidNetworkRuntime :
 
     bool IFluidFacilityInputOwnerAuthority.TryReconcile(
         IndustrialTopologySnapshot topology,
-        out string failureReason) => inputOwners.TryReconcile(
-        topology,
-        out failureReason);
+        out string failureReason)
+    {
+        commandOutcomes?.AssertIdle();
+        return inputOwners.TryReconcile(topology, out failureReason);
+    }
 
     bool IFluidFacilityInputOwnerAuthority.TryEnsureManualDestination(
         BuildableObject facility,
@@ -147,6 +229,7 @@ internal sealed class FluidNetworkRuntime :
         float requestedWaterUnits,
         out string failureReason)
     {
+        commandOutcomes?.AssertIdle();
         EnsureTopology();
         return inputOwners.TryEnsureManualDestination(
             facility,
@@ -159,6 +242,7 @@ internal sealed class FluidNetworkRuntime :
     {
         get
         {
+            commandOutcomes?.AssertIdle();
             EnsureTopology();
             return projectionAdapter.GetSnapshots(Version);
         }
@@ -168,6 +252,7 @@ internal sealed class FluidNetworkRuntime :
     {
         get
         {
+            commandOutcomes?.AssertIdle();
             EnsureTopology();
             RefreshWaterTransferSnapshots();
             return waterTransfers;
@@ -176,15 +261,23 @@ internal sealed class FluidNetworkRuntime :
 
     public void Tick()
     {
+        commandOutcomes?.AssertIdle();
         if (clock.IsPaused || clock.DeltaTime <= 0f)
         {
             return;
         }
 
         EnsureTopology();
+        FlushPendingAutonomousOutcomes();
+        bool waterConditionChanged = ReconcileFrozenPipes();
         accumulated += clock.DeltaTime;
         if (accumulated < TickInterval)
         {
+            if (waterConditionChanged)
+            {
+                stateStore.Touch();
+            }
+            FlushPendingAutonomousOutcomes();
             return;
         }
 
@@ -195,6 +288,7 @@ internal sealed class FluidNetworkRuntime :
         ProcessWastewater(deltaTime);
         ApplyLeaksAndBackflow(deltaTime);
         stateStore.Touch();
+        FlushPendingAutonomousOutcomes();
     }
 
     public bool TryConsume(
@@ -204,6 +298,7 @@ internal sealed class FluidNetworkRuntime :
         out WorldWaterQuality consumedQuality,
         out DomainFailure failure)
     {
+        commandOutcomes?.AssertIdle();
         consumedQuality = WorldWaterQuality.Foul;
         failure = DomainFailure.None;
         if (amount <= 0f)
@@ -251,6 +346,7 @@ internal sealed class FluidNetworkRuntime :
         float amount,
         out DomainFailure failure)
     {
+        commandOutcomes?.AssertIdle();
         failure = DomainFailure.None;
         if (amount <= 0f)
         {
@@ -270,7 +366,7 @@ internal sealed class FluidNetworkRuntime :
         foreach (WorldWaterQuality quality in
                  FluidNodeWaterRules.GetConsumptionOrder(minimumQuality))
         {
-            if (GetNetworkWater(networkId, quality) + 0.0001f >= amount)
+            if (GetNetworkWaterReadOnly(networkId, quality) + 0.0001f >= amount)
             {
                 return true;
             }
@@ -287,6 +383,7 @@ internal sealed class FluidNetworkRuntime :
         IReadOnlyList<FluidNetworkBatchDemand> demands,
         out DomainFailure failure)
     {
+        commandOutcomes?.AssertIdle();
         failure = DomainFailure.None;
         if (demands == null)
         {
@@ -427,6 +524,7 @@ internal sealed class FluidNetworkRuntime :
         float amount,
         out float accepted)
     {
+        commandOutcomes?.AssertIdle();
         accepted = 0f;
         if (amount <= 0f)
         {
@@ -456,105 +554,31 @@ internal sealed class FluidNetworkRuntime :
         string destinationId,
         float amount,
         out DomainFailure failure)
+        => manualWater.TryConsumeManualContainer(consumer, destinationId, amount, out failure);
+
+    public FluidInfrastructureMutationToken CaptureMutation()
     {
-        failure = DomainFailure.None;
-        if (amount <= 0f)
-        {
-            return true;
-        }
-
-        EnsureTopology();
-        if (consumer == null
-            || string.IsNullOrWhiteSpace(destinationId)
-            || !string.Equals(
-                destinationId,
-                destinationId.Trim(),
-                StringComparison.Ordinal))
-        {
-            failure = new DomainFailure(
-                FailureCode.FluidManualWaterUnavailable);
-            return false;
-        }
-
-        string destination = destinationId;
-        if (!TryResolveManualWaterState(
-                consumer,
-                out string nodeId,
-                out FluidNodeState state))
-        {
-            failure = new DomainFailure(
-                FailureCode.FluidManualWaterUnavailable);
-            return false;
-        }
-
-        if (!inputOwners.TryEnsureManualDestination(
-                consumer,
-                destinationId,
-                amount,
-                out string ownerFailure))
-        {
-            throw new InvalidOperationException(
-                "Manual-water destination authority is unavailable: "
-                + ownerFailure);
-        }
-
-        ManualWaterTransferState pending = state.PendingManualWaterTransfers
-            .SingleOrDefault(value => value.ImmediateConsumption);
-        if (pending == null)
-        {
-            int sequence = state.NextImmediateManualWaterOperationSequence;
-            string operation =
-                FluidPhysicalOperationIdentity
-                    .FormatImmediateManualWaterOperationId(nodeId, sequence);
-            if (!TryStageManualWaterTransferCore(
-                    consumer,
-                    destination,
-                    amount,
-                    operation,
-                    sequence,
-                    immediateConsumption: true,
-                    out _,
-                    out failure))
-            {
-                return false;
-            }
-            pending = state.PendingManualWaterTransfers.Single(value =>
-                string.Equals(value.OperationId, operation, StringComparison.Ordinal));
-        }
-        else if (pending.OperationSequence
-                    != state.NextImmediateManualWaterOperationSequence
-                 || !string.Equals(
-                     pending.OperationId,
-                     FluidPhysicalOperationIdentity
-                         .FormatImmediateManualWaterOperationId(
-                             nodeId,
-                             pending.OperationSequence),
-                     StringComparison.Ordinal)
-                 || !string.Equals(
-                     pending.DestinationId,
-                     destination,
-                     StringComparison.Ordinal)
-                 || !Mathf.Approximately(pending.RequestedWaterUnits, amount))
-        {
-            failure = new DomainFailure(
-                FailureCode.IndustrialCommandInvalid,
-                pending.OperationId,
-                "manual-water-immediate-operation-conflict");
-            return false;
-        }
-
-        if (!TryApplyStagedManualWaterTransfer(
-                consumer,
-                pending.OperationId,
-                out _,
-                out failure))
-        {
-            return false;
-        }
-        return AcknowledgeManualWaterTransfer(
-            pending.OperationId,
-            out failure);
+        commandOutcomes?.AssertIdle();
+        return new(
+            stateStore.CaptureMutation(),
+            checked(stateStore.Version + 1));
     }
+
+    public void RestoreMutation(in FluidInfrastructureMutationToken token)
+    {
+        commandOutcomes?.AssertIdle();
+        if (!token.IsValid)
+            throw new ArgumentException(
+                "A valid fluid mutation token is required.", nameof(token));
+        stateStore.RestoreMutation(token.Before, token.ExpectedMutatedVersion);
+    }
+
+    public bool CanConsumeManualContainer(
+        BuildableObject consumer,
+        string destinationId,
+        float amount,
+        out DomainFailure failure)
+        => manualWater.CanConsumeManualContainer(consumer, destinationId, amount, out failure);
 
     public bool TryStageManualWaterTransfer(
         BuildableObject consumer,
@@ -562,339 +586,26 @@ internal sealed class FluidNetworkRuntime :
         float amount,
         string operationId,
         out ManualWaterTransferReceipt receipt,
-        out DomainFailure failure) =>
-        TryStageManualWaterTransferCore(
-            consumer,
-            destinationId,
-            amount,
-            operationId,
-            operationSequence: 0,
-            immediateConsumption: false,
-            out receipt,
-            out failure);
-
-    private bool TryStageManualWaterTransferCore(
-        BuildableObject consumer,
-        string destinationId,
-        float amount,
-        string operationId,
-        int operationSequence,
-        bool immediateConsumption,
-        out ManualWaterTransferReceipt receipt,
         out DomainFailure failure)
-    {
-        receipt = default;
-        failure = DomainFailure.None;
-        string destination = destinationId ?? string.Empty;
-        string operation = operationId ?? string.Empty;
-        if (consumer == null
-            || amount < 0f
-            || float.IsNaN(amount)
-            || float.IsInfinity(amount)
-            || destination.Length == 0
-            || operation.Length == 0
-            || (immediateConsumption
-                ? operationSequence <= 0
-                : operationSequence != 0)
-            || !string.Equals(destination, destination.Trim(), StringComparison.Ordinal)
-            || !string.Equals(operation, operation.Trim(), StringComparison.Ordinal))
-        {
-            failure = new DomainFailure(FailureCode.IndustrialCommandInvalid);
-            return false;
-        }
-
-        EnsureTopology();
-        if (!inputOwners.TryEnsureManualDestination(
-                consumer,
-                destination,
-                amount,
-                out string ownerFailure))
-        {
-            throw new InvalidOperationException(
-                "Staged manual-water destination authority is unavailable: "
-                + ownerFailure);
-        }
-        if (!TryResolveManualWaterState(consumer, out FluidNodeState state))
-        {
-            failure = new DomainFailure(FailureCode.FluidManualWaterUnavailable);
-            return false;
-        }
-
-        ManualWaterTransferState operationOwner = stateStore.Nodes.Values
-            .SelectMany(candidate => candidate.PendingManualWaterTransfers)
-            .SingleOrDefault(value => string.Equals(
-                value.OperationId,
-                operation,
-                StringComparison.Ordinal));
-        if (operationOwner != null
-            && !state.PendingManualWaterTransfers.Contains(operationOwner))
-        {
-            failure = new DomainFailure(
-                FailureCode.IndustrialCommandInvalid,
-                operation,
-                "manual-water-operation-owner-conflict");
-            return false;
-        }
-
-        ManualWaterTransferState existing = state.PendingManualWaterTransfers
-            .SingleOrDefault(value => string.Equals(
-                value.OperationId,
-                operation,
-                StringComparison.Ordinal));
-        if (existing != null)
-        {
-            if (!string.Equals(existing.DestinationId, destination, StringComparison.Ordinal)
-                || !Mathf.Approximately(existing.RequestedWaterUnits, amount)
-                || existing.OperationSequence != operationSequence
-                || existing.ImmediateConsumption != immediateConsumption)
-            {
-                failure = new DomainFailure(
-                    FailureCode.IndustrialCommandInvalid,
-                    operation,
-                    "manual-water-operation-conflict");
-                return false;
-            }
-            receipt = new ManualWaterTransferReceipt(existing);
-            return receipt.IsValid;
-        }
-
-        int requiredWaterUnits = Mathf.Max(
-            0,
-            Mathf.CeilToInt(amount - state.ManualWaterReserve - 0.0001f));
-        var pending = new ManualWaterTransferState
-        {
-            OperationId = operation,
-            DestinationId = destination,
-            OperationSequence = operationSequence,
-            ImmediateConsumption = immediateConsumption,
-            RequestedWaterUnits = amount,
-            TransferredWaterUnits = requiredWaterUnits
-        };
-        if (requiredWaterUnits > 0)
-        {
-            int remaining = requiredWaterUnits;
-            var inputs = new List<PhysicalItemTransformInput>();
-            foreach (WorldItemStackSnapshot stack in items.GetAllStacks()
-                         .Where(stack => stack != null
-                             && stack.State == WorldItemStackState.FacilityBuffer
-                             && !stack.HasReservations
-                             && string.Equals(
-                                 stack.ItemId,
-                                 BottledCleanWaterItemId,
-                                 StringComparison.Ordinal)
-                             && string.Equals(
-                                 stack.DestinationId,
-                                 destination,
-                                 StringComparison.Ordinal))
-                         .OrderBy(stack => stack.StackId, StringComparer.Ordinal))
-            {
-                int quantity = Mathf.Min(remaining, stack.AvailableQuantity);
-                if (quantity <= 0)
-                {
-                    continue;
-                }
-                inputs.Add(new PhysicalItemTransformInput(stack.StackId, quantity));
-                remaining -= quantity;
-                if (remaining == 0)
-                {
-                    break;
-                }
-            }
-
-            if (remaining > 0
-                || !physicalDispositions.TryCommitPending(
-                    inputs,
-                    PhysicalItemDispositionKind.Transfer,
-                    operation,
-                    FluidPhysicalOperationIdentity.ManualReserveReasonCode,
-                    out PhysicalItemBatchDispositionReceipt physicalReceipt,
-                    out _))
-            {
-                int routed = items.GetAllStacks()
-                    .Where(stack => stack != null
-                        && string.Equals(stack.ItemId, BottledCleanWaterItemId, StringComparison.Ordinal)
-                        && string.Equals(stack.DestinationId, destination, StringComparison.Ordinal))
-                    .Sum(stack => Mathf.Max(0, stack.Quantity));
-                int missing = Mathf.Max(0, requiredWaterUnits - routed);
-                if (missing > 0)
-                {
-                    items.TryRequestItemDelivery(
-                        BottledCleanWaterItemId,
-                        missing,
-                        consumer.centerPos,
-                        destination,
-                        out _,
-                        out _);
-                }
-                failure = new DomainFailure(
-                    FailureCode.FluidManualWaterUnavailable,
-                    destination);
-                return false;
-            }
-
-            pending.PhysicalCommitId = physicalReceipt.CommitId;
-            pending.RequestFingerprint = physicalReceipt.RequestFingerprint;
-            pending.InputMassGrams = physicalReceipt.InputMassGrams;
-            pending.SourceStackIds.AddRange(physicalReceipt.SourceStackIds);
-        }
-
-        state.PendingManualWaterTransfers.Add(pending);
-        stateStore.Touch();
-        receipt = new ManualWaterTransferReceipt(pending);
-        return receipt.IsValid;
-    }
+        => manualWater.TryStageManualWaterTransfer(consumer, destinationId, amount, operationId, out receipt, out failure);
 
     public bool TryApplyStagedManualWaterTransfer(
         BuildableObject consumer,
         string operationId,
         out ManualWaterTransferReceipt receipt,
         out DomainFailure failure)
-    {
-        receipt = default;
-        failure = DomainFailure.None;
-        string operation = operationId ?? string.Empty;
-        if (consumer == null
-            || operation.Length == 0
-            || !TryResolveManualWaterState(consumer, out FluidNodeState state))
-        {
-            failure = new DomainFailure(FailureCode.FluidManualWaterUnavailable);
-            return false;
-        }
-        ManualWaterTransferState pending = state.PendingManualWaterTransfers
-            .SingleOrDefault(value => string.Equals(
-                value.OperationId,
-                operation,
-                StringComparison.Ordinal));
-        if (pending == null)
-        {
-            failure = new DomainFailure(
-                FailureCode.FluidManualWaterUnavailable,
-                operation,
-                "manual-water-stage-missing");
-            return false;
-        }
-        if (!pending.FluidStateApplied)
-        {
-            float available = state.ManualWaterReserve
-                + pending.TransferredWaterUnits;
-            if (available + 0.0001f < pending.RequestedWaterUnits)
-            {
-                failure = new DomainFailure(
-                    FailureCode.FluidManualWaterUnavailable,
-                    operation,
-                    "manual-water-stage-underflow");
-                return false;
-            }
-            state.ManualWaterReserve = Mathf.Max(
-                0f,
-                available - pending.RequestedWaterUnits);
-            pending.FluidStateApplied = true;
-            stateStore.Touch();
-        }
-        receipt = new ManualWaterTransferReceipt(pending);
-        return receipt.IsValid;
-    }
+        => manualWater.TryApplyStagedManualWaterTransfer(consumer, operationId, out receipt, out failure);
 
     public bool AcknowledgeManualWaterTransfer(
         string operationId,
         out DomainFailure failure)
-    {
-        failure = DomainFailure.None;
-        string operation = operationId ?? string.Empty;
-        if (operation.Length == 0)
-        {
-            failure = new DomainFailure(FailureCode.FluidManualWaterUnavailable);
-            return false;
-        }
-        KeyValuePair<string, FluidNodeState> owner = stateStore.Nodes
-            .SingleOrDefault(candidate =>
-                candidate.Value.PendingManualWaterTransfers.Any(value =>
-                    string.Equals(
-                        value.OperationId,
-                        operation,
-                        StringComparison.Ordinal)));
-        FluidNodeState state = owner.Value;
-        ManualWaterTransferState pending = state?.PendingManualWaterTransfers
-            .SingleOrDefault(value => string.Equals(value.OperationId, operation, StringComparison.Ordinal));
-        if (pending == null)
-        {
-            return true;
-        }
-        if (!pending.FluidStateApplied)
-        {
-            failure = new DomainFailure(
-                FailureCode.FluidManualWaterUnavailable,
-                operation,
-                "manual-water-stage-not-applied");
-            return false;
-        }
-        if (pending.PhysicalCommitId.Length > 0
-            && !physicalDispositions.Acknowledge(
-                pending.PhysicalCommitId,
-                out string acknowledgeFailure))
-        {
-            failure = new DomainFailure(
-                FailureCode.FluidManualWaterUnavailable,
-                operation,
-                acknowledgeFailure);
-            return false;
-        }
-        if (pending.ImmediateConsumption)
-        {
-            if (pending.OperationSequence
-                    != state.NextImmediateManualWaterOperationSequence
-                || !string.Equals(
-                    pending.OperationId,
-                    FluidPhysicalOperationIdentity
-                        .FormatImmediateManualWaterOperationId(
-                            owner.Key,
-                            pending.OperationSequence),
-                    StringComparison.Ordinal))
-            {
-                failure = new DomainFailure(
-                    FailureCode.IndustrialCommandInvalid,
-                    operation,
-                    "manual-water-immediate-sequence-conflict");
-                return false;
-            }
-            state.NextImmediateManualWaterOperationSequence = checked(
-                state.NextImmediateManualWaterOperationSequence + 1);
-        }
-        state.PendingManualWaterTransfers.Remove(pending);
-        stateStore.Touch();
-        return true;
-    }
-
-    private bool TryResolveManualWaterState(
-        BuildableObject consumer,
-        out FluidNodeState state)
-    {
-        return TryResolveManualWaterState(consumer, out _, out state);
-    }
-
-    private bool TryResolveManualWaterState(
-        BuildableObject consumer,
-        out string nodeId,
-        out FluidNodeState state)
-    {
-        nodeId = IndustrialInfrastructureIdentity.GetNodeId(consumer);
-        if (string.IsNullOrWhiteSpace(nodeId))
-        {
-            state = null;
-            return false;
-        }
-        if (projectionAdapter.TryResolveState(consumer, out state))
-        {
-            return true;
-        }
-        state = stateStore.EnsureState(nodeId);
-        return true;
-    }
+        => manualWater.AcknowledgeManualWaterTransfer(operationId, out failure);
 
     public bool TryGetNetwork(
         BuildableObject building,
         out FluidNetworkSnapshot snapshot)
     {
+        commandOutcomes?.AssertIdle();
         EnsureTopology();
         snapshot = null;
         if (building == null)
@@ -930,6 +641,7 @@ internal sealed class FluidNetworkRuntime :
         out float accepted,
         out DomainFailure failure)
     {
+        commandOutcomes?.AssertIdle();
         accepted = 0f;
         failure = DomainFailure.None;
         if (amount <= 0f)
@@ -971,6 +683,7 @@ internal sealed class FluidNetworkRuntime :
         float amount,
         out float consumed)
     {
+        commandOutcomes?.AssertIdle();
         consumed = 0f;
         if (amount <= 0f)
         {
@@ -1000,6 +713,7 @@ internal sealed class FluidNetworkRuntime :
         float amount,
         out DomainFailure failure)
     {
+        commandOutcomes?.AssertIdle();
         failure = DomainFailure.None;
         if (amount <= 0f)
         {
@@ -1035,6 +749,7 @@ internal sealed class FluidNetworkRuntime :
     public InfrastructureCommandResult ClearBlockage(
         BuildableObject building)
     {
+        commandOutcomes?.AssertIdle();
         if (!projectionAdapter.TryResolveState(
                 building,
                 out FluidNodeState state))
@@ -1044,17 +759,40 @@ internal sealed class FluidNetworkRuntime :
         }
 
         bool changed = state.Blockage > 0.0001f;
+        if (!changed)
+            return InfrastructureCommandResult.Success();
+        string nodeId = IndustrialInfrastructureIdentity.GetNodeId(building);
+        if (!InfrastructureFactExecution.TryPrepare(
+                commandOutcomes,
+                IndustrialTransitionKind.FluidBlockageCleared,
+                nodeId,
+                building,
+                new IndustrialStateData { blockage = state.Blockage },
+                new IndustrialStateData { blockage = 0f },
+                out IDomainFactStage prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        FluidNetworkAggregateState before = stateStore.CaptureMutation();
         state.Blockage = 0f;
         stateStore.Touch();
-        if (changed)
-            facilityStateChanges.MarkDynamicStateDirty();
-        return InfrastructureCommandResult.Success();
+        DomainFactDelivery commit =
+            commandOutcomes.CommitReversible(prepared);
+        if (commit.Phase == DomainFactDeliveryPhase.Rejected)
+        {
+            stateStore.RestoreMutation(before, stateStore.Version);
+            return InfrastructureFactExecution.CommitFailure(commit);
+        }
+        NotifyFacilityStateChangedAfterCommit();
+        return commit.Completed ? InfrastructureCommandResult.Success() : InfrastructureFactExecution.CommitFailure(commit);
     }
 
     public InfrastructureCommandResult SetWaterTransferMode(
         BuildableObject building,
         WaterContainerTransferMode mode)
     {
+        commandOutcomes?.AssertIdle();
         if (!Enum.IsDefined(typeof(WaterContainerTransferMode), mode)
             || building?.BuildingData?.GetAbility<
                 BuildingWaterContainerTransferAbility>() == null
@@ -1066,11 +804,41 @@ internal sealed class FluidNetworkRuntime :
                 FailureCode.IndustrialCommandInvalid);
         }
 
+        if (state.TransferMode == mode
+            && Mathf.Approximately(state.TransferWork, 0f)
+            && state.TransferStatus.Code == InfrastructureStatusCode.None)
+        {
+            return InfrastructureCommandResult.Success();
+        }
+        string nodeId = IndustrialInfrastructureIdentity.GetNodeId(building);
+        var beforeValue = new IndustrialStateData { transferMode = state.TransferMode, work = state.TransferWork,
+            status = state.TransferStatus.Code, statusParameters = (state.TransferStatus.Parameters ?? Array.Empty<string>()).ToList() };
+        var afterValue = new IndustrialStateData { transferMode = mode, work = 0f, status = InfrastructureStatusCode.None };
+        if (!InfrastructureFactExecution.TryPrepare(
+                commandOutcomes,
+                IndustrialTransitionKind.WaterTransferModeChanged,
+                nodeId,
+                building,
+                beforeValue,
+                afterValue,
+                out IDomainFactStage prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        FluidNetworkAggregateState before = stateStore.CaptureMutation();
         state.TransferMode = mode;
         state.TransferWork = 0f;
         state.TransferStatus = InfrastructureStatus.None;
         stateStore.Touch();
-        return InfrastructureCommandResult.Success();
+        DomainFactDelivery commit =
+            commandOutcomes.CommitReversible(prepared);
+        if (commit.Phase == DomainFactDeliveryPhase.Rejected)
+        {
+            stateStore.RestoreMutation(before, stateStore.Version);
+            return InfrastructureFactExecution.CommitFailure(commit);
+        }
+        return commit.Completed ? InfrastructureCommandResult.Success() : InfrastructureFactExecution.CommitFailure(commit);
     }
 
     public bool TryGetMaintenance(
@@ -1078,6 +846,7 @@ internal sealed class FluidNetworkRuntime :
         out float blockage,
         out float leak)
     {
+        commandOutcomes?.AssertIdle();
         EnsureTopology();
         if (projectionAdapter.TryResolveState(
                 building,
@@ -1093,8 +862,58 @@ internal sealed class FluidNetworkRuntime :
         return false;
     }
 
+    public bool TryGetWaterCondition(
+        BuildableObject building,
+        out BuildingWaterConditionSnapshot snapshot)
+    {
+        commandOutcomes?.AssertIdle();
+        EnsureTopology();
+        snapshot = default;
+        if (building == null
+            || !projectionAdapter.TryResolveState(
+                building,
+                out FluidNodeState state))
+        {
+            return false;
+        }
+
+        SeasonalPipedWaterContribution contribution =
+            seasonalEvents.GetPipedWaterContribution();
+        bool sourceMatches = contribution.IsActive
+            && string.Equals(
+                state.FrozenPipeOccurrenceInstanceId,
+                contribution.OccurrenceInstanceId,
+                StringComparison.Ordinal);
+        bool hasTemperature = environment.TryGetCell(
+            building.centerPos,
+            out EnvironmentalCellSnapshot cell);
+        bool frozen = sourceMatches && state.FrozenPipeLatched;
+        bool recovering = frozen
+            && hasTemperature
+            && cell.TemperatureC > contribution.FreezeThresholdC
+            && cell.TemperatureC < contribution.RecoveryThresholdC;
+        snapshot = new BuildingWaterConditionSnapshot(
+            new BuildingInstanceId(
+                IndustrialInfrastructureIdentity.GetNodeId(building)),
+            contribution.IsActive
+                ? contribution.OccurrenceInstanceId
+                : string.Empty,
+            contribution.IsActive ? contribution.DefinitionId : string.Empty,
+            contribution.IsActive ? contribution.DisplayName : string.Empty,
+            contribution.IsActive ? contribution.RemainingDays : 0,
+            hasTemperature,
+            hasTemperature ? cell.TemperatureC : 0f,
+            frozen,
+            recovering,
+            frozen ? contribution.ThroughputMultiplier : 1f,
+            contribution.IsActive ? contribution.FreezeThresholdC : 0f,
+            contribution.IsActive ? contribution.RecoveryThresholdC : 0f);
+        return true;
+    }
+
     public InfrastructureCommandResult RepairLeak(BuildableObject building)
     {
+        commandOutcomes?.AssertIdle();
         if (!projectionAdapter.TryResolveState(
                 building,
                 out FluidNodeState state))
@@ -1104,15 +923,57 @@ internal sealed class FluidNetworkRuntime :
         }
 
         bool changed = state.Leak > 0.0001f;
+        if (!changed)
+            return InfrastructureCommandResult.Success();
+        string nodeId = IndustrialInfrastructureIdentity.GetNodeId(building);
+        if (TryResolveNode(nodeId, out IndustrialNodeDescriptor leakNode))
+        {
+            FinalizeLeakEpisode(leakNode, state, force: true);
+            FlushPendingAutonomousOutcomes();
+        }
+        if (!InfrastructureFactExecution.TryPrepare(
+                commandOutcomes,
+                IndustrialTransitionKind.FluidLeakRepaired,
+                nodeId,
+                building,
+                new IndustrialStateData { leak = state.Leak },
+                new IndustrialStateData { leak = 0f },
+                out IDomainFactStage prepared,
+                out InfrastructureCommandResult failure))
+        {
+            return failure;
+        }
+        FluidNetworkAggregateState before = stateStore.CaptureMutation();
         state.Leak = 0f;
         stateStore.Touch();
-        if (changed)
+        DomainFactDelivery commit =
+            commandOutcomes.CommitReversible(prepared);
+        if (commit.Phase == DomainFactDeliveryPhase.Rejected)
+        {
+            stateStore.RestoreMutation(before, stateStore.Version);
+            return InfrastructureFactExecution.CommitFailure(commit);
+        }
+        NotifyFacilityStateChangedAfterCommit();
+        return commit.Completed ? InfrastructureCommandResult.Success() : InfrastructureFactExecution.CommitFailure(commit);
+    }
+
+    private void NotifyFacilityStateChangedAfterCommit()
+    {
+        try
+        {
             facilityStateChanges.MarkDynamicStateDirty();
-        return InfrastructureCommandResult.Success();
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError(
+                "Facility state notification failed after committed fluid command: "
+                + exception);
+        }
     }
 
     public DungeonFluidInfrastructureSaveData Capture()
     {
+        commandOutcomes?.AssertIdle();
         EnsureTopology();
         return new DungeonFluidInfrastructureSaveData
         {
@@ -1141,7 +1002,35 @@ internal sealed class FluidNetworkRuntime :
                     pendingContainerFeed = ToSaveData(
                         pair.Value.PendingContainerFeed),
                     transferMode = pair.Value.TransferMode,
-                    transferWork = pair.Value.TransferWork
+                    transferWork = pair.Value.TransferWork,
+                    frozenPipeLatched = pair.Value.FrozenPipeLatched,
+                    frozenPipeOccurrenceInstanceId = pair.Value
+                        .FrozenPipeOccurrenceInstanceId,
+                    nextAutonomousOutcomeSequence = pair.Value
+                        .NextAutonomousOutcomeSequence,
+                    pendingAutonomousOutcomes = pair.Value
+                        .PendingAutonomousOutcomes
+                        .OrderBy(value => value.Sequence)
+                        .Select(value => new FluidAutonomousOutcomeSaveData
+                        {
+                            sequence = value.Sequence,
+                            fact = value.Fact.Clone()
+                        })
+                        .ToList(),
+                    leakEpisodeStartCleanWater = pair.Value
+                        .LeakEpisodeStartCleanWater,
+                    leakEpisodeStartUnsafeWater = pair.Value
+                        .LeakEpisodeStartUnsafeWater,
+                    leakEpisodeStartFoulWater = pair.Value
+                        .LeakEpisodeStartFoulWater,
+                    leakEpisodeCleanLoss = pair.Value.LeakEpisodeCleanLoss,
+                    leakEpisodeUnsafeLoss = pair.Value.LeakEpisodeUnsafeLoss,
+                    leakEpisodeFoulLoss = pair.Value.LeakEpisodeFoulLoss,
+                    leakEpisodeFilthAmount = pair.Value
+                        .LeakEpisodeFilthAmount,
+                    leakEpisodeFilthIds = pair.Value.LeakEpisodeFilthIds
+                        .OrderBy(value => value, StringComparer.Ordinal)
+                        .ToList()
                 })
                 .ToList()
         };
@@ -1150,6 +1039,7 @@ internal sealed class FluidNetworkRuntime :
     public FluidNetworkRestoreCandidate PrepareRestore(
         DungeonFluidInfrastructureSaveData snapshot)
     {
+        commandOutcomes?.AssertIdle();
         IndustrialInfrastructureSaveValidation.RequireValid(snapshot);
         FluidNetworkAggregateState restored = new FluidNetworkAggregateState
         {
@@ -1188,12 +1078,38 @@ internal sealed class FluidNetworkRuntime :
                     saved.transferMode)
                         ? saved.transferMode
                         : WaterContainerTransferMode.Disabled,
-                TransferWork = Mathf.Max(0f, saved.transferWork)
+                TransferWork = Mathf.Max(0f, saved.transferWork),
+                FrozenPipeLatched = saved.frozenPipeLatched,
+                FrozenPipeOccurrenceInstanceId =
+                    saved.frozenPipeOccurrenceInstanceId,
+                NextAutonomousOutcomeSequence =
+                    saved.nextAutonomousOutcomeSequence,
+                LeakEpisodeStartCleanWater =
+                    saved.leakEpisodeStartCleanWater,
+                LeakEpisodeStartUnsafeWater =
+                    saved.leakEpisodeStartUnsafeWater,
+                LeakEpisodeStartFoulWater =
+                    saved.leakEpisodeStartFoulWater,
+                LeakEpisodeCleanLoss = saved.leakEpisodeCleanLoss,
+                LeakEpisodeUnsafeLoss = saved.leakEpisodeUnsafeLoss,
+                LeakEpisodeFoulLoss = saved.leakEpisodeFoulLoss,
+                LeakEpisodeFilthAmount = saved.leakEpisodeFilthAmount
             };
             restoredNode.PendingManualWaterTransfers.AddRange(
                 (saved.pendingManualWaterTransfers
                     ?? new List<ManualWaterTransferSaveData>())
                 .Select(ToRuntimeState));
+            restoredNode.PendingAutonomousOutcomes.AddRange(
+                (saved.pendingAutonomousOutcomes
+                    ?? new List<FluidAutonomousOutcomeSaveData>())
+                .Select(value => new FluidAutonomousOutcomeState
+                {
+                    Sequence = value.sequence,
+                    Fact = value.fact.Clone()
+                }));
+            restoredNode.LeakEpisodeFilthIds.AddRange(
+                saved.leakEpisodeFilthIds
+                    ?? new List<string>());
             restored.Nodes[saved.buildingInstanceId.Trim()] = restoredNode;
         }
 
@@ -1202,6 +1118,7 @@ internal sealed class FluidNetworkRuntime :
 
     public void Restore(FluidNetworkRestoreCandidate candidate)
     {
+        commandOutcomes?.AssertIdle();
         if (candidate == null)
         {
             throw new ArgumentNullException(nameof(candidate));
@@ -1726,50 +1643,8 @@ internal sealed class FluidNetworkRuntime :
     private static string CreateWaterTransferDestinationId(string nodeId) =>
         $"plumbing:water-transfer:{nodeId}";
 
-    private void EnsureTopology()
-    {
-        if (projectionAdapter.EnsurePublishedRestoreRevision())
-        {
-            ResetTransientProjection();
-        }
-
-        IndustrialTopologySnapshot topology = topologyRuntime.Current;
-        if (!inputOwners.TryReconcile(topology, out string ownerFailure))
-        {
-            throw new InvalidOperationException(
-                "Fluid input destination authority reconciliation failed: "
-                + ownerFailure);
-        }
-        if (!projectionAdapter.TryUpdateTopologyVersion(
-                topology.SourceVersion))
-        {
-            return;
-        }
-
-        foreach (IndustrialNodeDescriptor node in topology.Nodes.Values.Where(
-                     node => (node.Channels
-                             & (UtilityChannel.CleanWater
-                                | UtilityChannel.Wastewater))
-                         != 0))
-        {
-            FluidNodeState state = stateStore.EnsureState(node.NodeId);
-            BuildingWaterStorageAbility storage =
-                node.Building.BuildingData
-                    .GetAbility<BuildingWaterStorageAbility>();
-            if (storage != null)
-            {
-                float waterCapacity = Mathf.Max(
-                    0f,
-                    storage.cleanWaterCapacity);
-                FluidNodeWaterRules.ClampToCapacity(state, waterCapacity);
-                state.Wastewater = Mathf.Min(
-                    state.Wastewater,
-                    Mathf.Max(0f, storage.wastewaterCapacity));
-            }
-        }
-
-        stateStore.Touch();
-    }
+    private void EnsureTopology() =>
+        projectionAdapter.EnsureTopology(inputOwners);
 
     private void ProduceWater(float deltaTime)
     {
@@ -1845,6 +1720,18 @@ internal sealed class FluidNetworkRuntime :
                    && GetNetworkWaterFreeCapacity(waterNetworkId)
                        + 0.0001f >= processor.waterOutput)
             {
+                RequireAutonomousSequenceAvailable(state, node.NodeId);
+                float wastewaterBefore = GetNetworkWastewater(wasteNetworkId);
+                float outputBefore = GetNetworkWater(
+                    waterNetworkId,
+                    processor.outputQuality);
+                float workBefore = state.ProcessorWork;
+                Dictionary<string, int> sludgeBefore =
+                    CaptureItemQuantitiesAt(
+                        node.Building.centerPos,
+                        processor.sludgeItemId);
+                FluidNetworkAggregateState mutationBefore =
+                    stateStore.CaptureMutation();
                 RemoveNetworkWastewater(
                     wasteNetworkId,
                     processor.wastewaterInput);
@@ -1853,17 +1740,41 @@ internal sealed class FluidNetworkRuntime :
                     processor.outputQuality,
                     processor.waterOutput);
                 state.ProcessorWork -= required;
+                int spawnedSludge = 0;
                 if (processor.sludgeAmount > 0
                     && !string.IsNullOrWhiteSpace(processor.sludgeItemId))
                 {
-                    items.SpawnItemAt(
+                    if (!items.SpawnItemAt(
                         processor.sludgeItemId.Trim(),
                         processor.sludgeAmount,
                         node.Building.centerPos,
                         WorldItemStackState.Loose,
                         string.Empty,
-                        out _);
+                        out spawnedSludge)
+                        || spawnedSludge != processor.sludgeAmount)
+                    {
+                        stateStore.RestoreMutation(
+                            mutationBefore,
+                            stateStore.Version);
+                        throw new InvalidOperationException(
+                            $"Wastewater batch sludge publication failed for '{node.NodeId}'.");
+                    }
                 }
+                float wastewaterAfter = GetNetworkWastewater(wasteNetworkId);
+                float outputAfter = GetNetworkWater(
+                    waterNetworkId,
+                    processor.outputQuality);
+                List<IndustrialItemDeltaData> sludgeSlices = CaptureItemDeltasAt(
+                    node.Building.centerPos,
+                    processor.sludgeItemId,
+                    sludgeBefore);
+                QueueFluidAutonomousOutcome(node, state, IndustrialTransitionKind.WastewaterBatchCompleted, node.NodeId,
+                    new IndustrialStateData { wastewater = wastewaterBefore, outputWater = outputBefore, work = workBefore },
+                    new IndustrialStateData { wastewater = wastewaterAfter, outputWater = outputAfter, work = state.ProcessorWork },
+                    new IndustrialTransitionDetails { wasteNetworkId = wasteNetworkId, waterNetworkId = waterNetworkId,
+                        outputQuality = processor.outputQuality, inputUsed = wastewaterBefore - wastewaterAfter,
+                        waterProduced = outputAfter - outputBefore, itemId = processor.sludgeItemId?.Trim() ?? "",
+                        quantity = spawnedSludge, itemDeltas = sludgeSlices });
             }
         }
     }
@@ -1880,6 +1791,9 @@ internal sealed class FluidNetworkRuntime :
             FluidNodeState state = stateStore.EnsureState(node.NodeId);
             if (state.Leak > 0f)
             {
+                float cleanBefore = state.CleanWater;
+                float unsafeBefore = state.UnsafeWater;
+                float foulBefore = state.FoulWater;
                 float leaked = Mathf.Min(
                     state.CleanWater + state.UnsafeWater + state.FoulWater,
                     state.Leak * 0.001f * deltaTime
@@ -1888,15 +1802,48 @@ internal sealed class FluidNetworkRuntime :
                     state,
                     WorldWaterQuality.Foul,
                     leaked);
+                if (leaked > 0.0001f)
+                {
+                    bool startsEpisode = LeakEpisodeLoss(state) <= 0.0001f;
+                    if (startsEpisode)
+                    {
+                        state.LeakEpisodeStartCleanWater = cleanBefore;
+                        state.LeakEpisodeStartUnsafeWater = unsafeBefore;
+                        state.LeakEpisodeStartFoulWater = foulBefore;
+                    }
+                    state.LeakEpisodeCleanLoss += Mathf.Max(
+                        0f,
+                        cleanBefore - state.CleanWater);
+                    state.LeakEpisodeUnsafeLoss += Mathf.Max(
+                        0f,
+                        unsafeBefore - state.UnsafeWater);
+                    state.LeakEpisodeFoulLoss += Mathf.Max(
+                        0f,
+                        foulBefore - state.FoulWater);
+                }
                 if (leaked > 0.02f)
                 {
-                    filth.AddFilth(
+                    WorldFilthSnapshot beforeFilth = FindSewageFilth(
+                        node.Building.centerPos);
+                    WorldFilthSnapshot afterFilth = filth.AddFilth(
                         WorldFilthType.Sewage,
                         node.Building.centerPos,
                         leaked * 2f,
                         string.Empty,
                         0.25f);
+                    state.LeakEpisodeFilthAmount += Mathf.Max(
+                        0f,
+                        afterFilth.Amount - beforeFilth.Amount);
+                    if (!string.IsNullOrWhiteSpace(afterFilth.FilthId)
+                        && !state.LeakEpisodeFilthIds.Contains(
+                            afterFilth.FilthId))
+                    {
+                        state.LeakEpisodeFilthIds.Add(afterFilth.FilthId);
+                        state.LeakEpisodeFilthIds.Sort(
+                            StringComparer.Ordinal);
+                    }
                 }
+                FinalizeLeakEpisode(node, state, force: false);
             }
         }
 
@@ -1942,32 +1889,179 @@ internal sealed class FluidNetworkRuntime :
             return;
         }
 
-        if (projectionAdapter.TryResolveState(
+        if (!projectionAdapter.TryResolveState(
                 building,
                 out FluidNodeState state))
         {
-            float previous = state.Blockage;
-            state.Blockage = Mathf.Clamp(
-                state.Blockage + Mathf.Max(1f, amount * 2f),
-                0f,
-                100f);
-            if (!Mathf.Approximately(previous, state.Blockage))
-                facilityStateChanges.MarkDynamicStateDirty();
+            return;
         }
 
-        filth.AddFilth(
+        string nodeId = IndustrialInfrastructureIdentity.GetNodeId(building);
+        if (!TryResolveNode(nodeId, out IndustrialNodeDescriptor node))
+        {
+            throw new InvalidOperationException(
+                $"Backflow node '{nodeId}' is absent from the industrial topology.");
+        }
+        RequireAutonomousSequenceAvailable(state, nodeId);
+        float previous = state.Blockage;
+        float next = Mathf.Clamp(
+            state.Blockage + Mathf.Max(1f, amount * 2f),
+            0f,
+            100f);
+        WorldFilthSnapshot beforeFilth = FindSewageFilth(building.centerPos);
+        state.Blockage = next;
+        if (!Mathf.Approximately(previous, state.Blockage))
+            facilityStateChanges.MarkDynamicStateDirty();
+
+        WorldFilthSnapshot afterFilth = filth.AddFilth(
             WorldFilthType.Sewage,
             building.centerPos,
             Mathf.Max(2f, amount * 8f),
             string.Empty,
             Mathf.Clamp01(0.35f + amount * 0.05f));
+        projectionAdapter.TryResolveNetwork(
+            building,
+            UtilityChannel.Wastewater,
+            out string networkId,
+            out _);
+        QueueFluidAutonomousOutcome(node, state, IndustrialTransitionKind.WastewaterBackflow, nodeId,
+            new IndustrialStateData { blockage = previous, filthId = beforeFilth.FilthId ?? "", filthAmount = beforeFilth.Amount },
+            new IndustrialStateData { blockage = next, filthId = afterFilth.FilthId ?? "", filthAmount = afterFilth.Amount },
+            new IndustrialTransitionDetails { wasteNetworkId = networkId ?? "", overflow = amount,
+                filthAdded = Mathf.Max(0f, afterFilth.Amount - beforeFilth.Amount) });
+        FlushPendingAutonomousOutcomes();
     }
 
     private float ResolveFlowMultiplier(IndustrialNodeDescriptor node)
     {
         FluidNodeState state = stateStore.EnsureState(node.NodeId);
+        SeasonalPipedWaterContribution contribution =
+            seasonalEvents.GetPipedWaterContribution();
+        float seasonalMultiplier = state.FrozenPipeLatched
+            && contribution.IsActive
+            && string.Equals(
+                state.FrozenPipeOccurrenceInstanceId,
+                contribution.OccurrenceInstanceId,
+                StringComparison.Ordinal)
+                ? contribution.ThroughputMultiplier
+                : 1f;
         return Mathf.Clamp01(
-            1f - state.Blockage / 100f - state.FaultEquivalent());
+            1f - state.Blockage / 100f - state.FaultEquivalent())
+            * seasonalMultiplier;
+    }
+
+    private bool ReconcileFrozenPipes()
+    {
+        bool changed = false;
+        SeasonalPipedWaterContribution contribution =
+            seasonalEvents.GetPipedWaterContribution();
+        foreach (IndustrialNodeDescriptor node in topologyRuntime.Current.Nodes
+                     .Values.Where(value => (value.Channels
+                         & (UtilityChannel.CleanWater
+                            | UtilityChannel.Wastewater)) != 0)
+                     .OrderBy(value => value.NodeId, StringComparer.Ordinal))
+        {
+            FluidNodeState state = stateStore.EnsureState(node.NodeId);
+            bool beforeLatched = state.FrozenPipeLatched;
+            string beforeSource = state.FrozenPipeOccurrenceInstanceId;
+            if (!contribution.IsActive)
+            {
+                state.FrozenPipeLatched = false;
+                state.FrozenPipeOccurrenceInstanceId = string.Empty;
+                if (beforeLatched)
+                {
+                    QueuePipeFreezeOutcome(
+                        node,
+                        state,
+                        IndustrialTransitionKind.PipeFreezeRecovered,
+                        beforeSource,
+                        string.Empty,
+                        true,
+                        false,
+                        null,
+                        contribution,
+                        "occurrence-ended");
+                }
+                changed |= beforeLatched || !string.IsNullOrEmpty(beforeSource);
+                continue;
+            }
+
+            if (!environment.TryGetCell(
+                    node.Building.centerPos,
+                    out EnvironmentalCellSnapshot cell))
+            {
+                throw new InvalidOperationException(
+                    $"Fluid node '{node.NodeId}' has no environmental cell for its active piped-water contribution.");
+            }
+
+            bool sameOccurrence = string.Equals(
+                state.FrozenPipeOccurrenceInstanceId,
+                contribution.OccurrenceInstanceId,
+                StringComparison.Ordinal);
+            state.FrozenPipeOccurrenceInstanceId =
+                contribution.OccurrenceInstanceId;
+            if (!sameOccurrence)
+            {
+                state.FrozenPipeLatched = false;
+            }
+            if (cell.TemperatureC <= contribution.FreezeThresholdC)
+            {
+                state.FrozenPipeLatched = true;
+            }
+            else if (cell.TemperatureC >= contribution.RecoveryThresholdC)
+            {
+                state.FrozenPipeLatched = false;
+            }
+            bool afterLatched = state.FrozenPipeLatched;
+            if (!sameOccurrence && beforeLatched)
+            {
+                QueuePipeFreezeOutcome(
+                    node,
+                    state,
+                    IndustrialTransitionKind.PipeFreezeRecovered,
+                    beforeSource,
+                    contribution.OccurrenceInstanceId,
+                    true,
+                    false,
+                    cell.TemperatureC,
+                    contribution,
+                    "occurrence-changed");
+            }
+            if (afterLatched && (!beforeLatched || !sameOccurrence))
+            {
+                QueuePipeFreezeOutcome(
+                    node,
+                    state,
+                    IndustrialTransitionKind.PipeFreezeLatched,
+                    sameOccurrence ? beforeSource : contribution.OccurrenceInstanceId,
+                    contribution.OccurrenceInstanceId,
+                    false,
+                    true,
+                    cell.TemperatureC,
+                    contribution,
+                    "freeze-threshold-crossed");
+            }
+            else if (!afterLatched && beforeLatched && sameOccurrence)
+            {
+                QueuePipeFreezeOutcome(
+                    node,
+                    state,
+                    IndustrialTransitionKind.PipeFreezeRecovered,
+                    beforeSource,
+                    contribution.OccurrenceInstanceId,
+                    true,
+                    false,
+                    cell.TemperatureC,
+                    contribution,
+                    "recovery-threshold-crossed");
+            }
+            changed |= beforeLatched != state.FrozenPipeLatched
+                || !string.Equals(
+                    beforeSource,
+                    state.FrozenPipeOccurrenceInstanceId,
+                    StringComparison.Ordinal);
+        }
+        return changed;
     }
 
     private float AddNetworkWater(
@@ -2017,6 +2111,20 @@ internal sealed class FluidNetworkRuntime :
             .Sum(node => FluidNodeWaterRules.GetWater(
                 stateStore.EnsureState(node.NodeId),
                 quality));
+    }
+
+    private float GetNetworkWaterReadOnly(
+        string networkId,
+        WorldWaterQuality quality)
+    {
+        return projectionAdapter.GetNetworkNodes(
+                UtilityChannel.CleanWater,
+                networkId)
+            .Sum(node => stateStore.CurrentNodes.TryGetValue(
+                    node.NodeId,
+                    out FluidNodeState state)
+                ? FluidNodeWaterRules.GetWater(state, quality)
+                : 0f);
     }
 
     private float GetNetworkWaterFreeCapacity(string networkId)
@@ -2138,16 +2246,216 @@ internal sealed class FluidNetworkRuntime :
         return amount - remaining;
     }
 
+    private void QueueFluidAutonomousOutcome(
+        IndustrialNodeDescriptor node,
+        FluidNodeState state,
+        IndustrialTransitionKind kind,
+        string targetId,
+        IndustrialStateData beforeValue,
+        IndustrialStateData afterValue,
+        IndustrialTransitionDetails details)
+    {
+        if (node == null || state == null)
+            throw new ArgumentNullException(node == null ? nameof(node) : nameof(state));
+        if (!IndustrialTransitionFact.IsAutonomous(kind)
+            || kind is IndustrialTransitionKind.PowerFuelConsumed
+                or IndustrialTransitionKind.PowerBreakerTripped)
+        {
+            throw new ArgumentOutOfRangeException(nameof(kind));
+        }
+        RequireAutonomousSequenceAvailable(state, node.NodeId);
+        int sequence = state.NextAutonomousOutcomeSequence;
+        string operation = $"fluid-autonomous:{node.NodeId}:{sequence:D8}";
+        var frozenDetails = details.Clone();
+        frozenDetails.operationId = operation;
+        var draft = InfrastructureFactExecution.CaptureDraft(commandOutcomes, kind, targetId, node.Building,
+            beforeValue, afterValue, frozenDetails);
+        state.PendingAutonomousOutcomes.Add(new FluidAutonomousOutcomeState { Sequence = sequence, Fact = draft });
+        state.NextAutonomousOutcomeSequence = checked(sequence + 1);
+        stateStore.Touch();
+    }
+
+    private void FlushPendingAutonomousOutcomes()
+    {
+        foreach (KeyValuePair<string, FluidNodeState> pair in stateStore.Nodes
+                     .OrderBy(value => value.Key, StringComparer.Ordinal))
+        {
+            if (pair.Value.PendingAutonomousOutcomes.Count == 0)
+                continue;
+            if (!TryResolveNode(pair.Key, out IndustrialNodeDescriptor node))
+            {
+                throw new InvalidOperationException(
+                    $"Fluid autonomous outcome owner '{pair.Key}' is absent from the topology.");
+            }
+
+            while (pair.Value.PendingAutonomousOutcomes.Count > 0)
+            {
+                FluidAutonomousOutcomeState pending = pair.Value
+                    .PendingAutonomousOutcomes[0];
+                if (commandOutcomes == null)
+                    throw new InvalidOperationException("industrial-fact-journal-missing");
+                if (!commandOutcomes.TryPrepare(pending.Fact, out IDomainFactStage prepared, out string failure))
+                {
+                    Debug.LogError(
+                        "Fluid autonomous gameplay outcome remains pending: "
+                        + pair.Key + ":" + pending.Sequence + ":"
+                        + failure);
+                    return;
+                }
+                try
+                {
+                    commandOutcomes.QueueCommitted(prepared);
+                }
+                catch (Exception exception)
+                {
+                    commandOutcomes.Cancel(prepared);
+                    Debug.LogError(
+                        "Fluid autonomous gameplay outcome queue failed and remains pending: "
+                        + pair.Key + ":" + pending.Sequence + ":"
+                        + exception.GetType().Name);
+                    return;
+                }
+
+                pair.Value.PendingAutonomousOutcomes.RemoveAt(0);
+                stateStore.Touch();
+                commandOutcomes.DeliverQueued(prepared.OwnerRevision, prepared);
+            }
+        }
+    }
+
+    private void FinalizeLeakEpisode(
+        IndustrialNodeDescriptor node,
+        FluidNodeState state,
+        bool force)
+    {
+        float totalLoss = LeakEpisodeLoss(state);
+        if (totalLoss <= 0.0001f
+            || !force && totalLoss + 0.0001f < LeakEpisodeWaterQuantum)
+        {
+            return;
+        }
+        RequireAutonomousSequenceAvailable(state, node.NodeId);
+        QueueFluidAutonomousOutcome(node, state, IndustrialTransitionKind.FluidLeakEpisode, node.NodeId,
+            new IndustrialStateData { cleanWater = state.LeakEpisodeStartCleanWater, unsafeWater = state.LeakEpisodeStartUnsafeWater,
+                foulWater = state.LeakEpisodeStartFoulWater, leak = state.Leak },
+            new IndustrialStateData { cleanWater = state.CleanWater, unsafeWater = state.UnsafeWater, foulWater = state.FoulWater },
+            new IndustrialTransitionDetails { cleanLoss = state.LeakEpisodeCleanLoss, unsafeLoss = state.LeakEpisodeUnsafeLoss,
+                foulLoss = state.LeakEpisodeFoulLoss, totalLoss = totalLoss, filthAdded = state.LeakEpisodeFilthAmount,
+                filthIds = state.LeakEpisodeFilthIds.OrderBy(value => value, StringComparer.Ordinal).ToList() });
+        ResetLeakEpisode(state);
+        stateStore.Touch();
+    }
+
+    private void QueuePipeFreezeOutcome(
+        IndustrialNodeDescriptor node,
+        FluidNodeState state,
+        IndustrialTransitionKind kind,
+        string beforeOccurrence,
+        string afterOccurrence,
+        bool beforeLatched,
+        bool afterLatched,
+        float? temperatureC,
+        SeasonalPipedWaterContribution contribution,
+        string reason)
+    {
+        QueueFluidAutonomousOutcome(node, state, kind, node.NodeId,
+            new IndustrialStateData { freezeLatched = beforeLatched, occurrenceId = beforeOccurrence ?? "",
+                hasTemperature = temperatureC.HasValue, temperatureC = temperatureC.GetValueOrDefault() },
+            new IndustrialStateData { freezeLatched = afterLatched, occurrenceId = afterOccurrence ?? "",
+                hasTemperature = temperatureC.HasValue, temperatureC = temperatureC.GetValueOrDefault() },
+            new IndustrialTransitionDetails { definitionId = contribution.DefinitionId ?? "",
+                freezeThresholdC = contribution.FreezeThresholdC, recoveryThresholdC = contribution.RecoveryThresholdC,
+                throughputMultiplier = contribution.ThroughputMultiplier, reason = reason });
+    }
+
+    private static float LeakEpisodeLoss(FluidNodeState state) =>
+        state.LeakEpisodeCleanLoss
+        + state.LeakEpisodeUnsafeLoss
+        + state.LeakEpisodeFoulLoss;
+
+    private static void ResetLeakEpisode(FluidNodeState state)
+    {
+        state.LeakEpisodeStartCleanWater = 0f;
+        state.LeakEpisodeStartUnsafeWater = 0f;
+        state.LeakEpisodeStartFoulWater = 0f;
+        state.LeakEpisodeCleanLoss = 0f;
+        state.LeakEpisodeUnsafeLoss = 0f;
+        state.LeakEpisodeFoulLoss = 0f;
+        state.LeakEpisodeFilthAmount = 0f;
+        state.LeakEpisodeFilthIds.Clear();
+    }
+
+    private static void RequireAutonomousSequenceAvailable(
+        FluidNodeState state,
+        string nodeId)
+    {
+        if (state.NextAutonomousOutcomeSequence <= 0
+            || state.NextAutonomousOutcomeSequence == int.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"Fluid autonomous outcome sequence exhausted for '{nodeId}'.");
+        }
+    }
+
+    private bool TryResolveNode(
+        string nodeId,
+        out IndustrialNodeDescriptor node) =>
+        topologyRuntime.Current.Nodes.TryGetValue(nodeId, out node);
+
+    private WorldFilthSnapshot FindSewageFilth(Vector2Int position) =>
+        filth.GetAt(position)
+            .FirstOrDefault(value => value.Type == WorldFilthType.Sewage
+                && !value.WallStain
+                && string.IsNullOrEmpty(value.SourceCharacterId));
+
+    private Dictionary<string, int> CaptureItemQuantitiesAt(
+        Vector2Int position,
+        string itemId)
+    {
+        string normalized = itemId?.Trim() ?? string.Empty;
+        if (normalized.Length == 0)
+            return new Dictionary<string, int>(StringComparer.Ordinal);
+        return items.GetStacksAt(position, includeStored: true)
+            .Where(value => value != null
+                && string.Equals(
+                    value.ItemId,
+                    normalized,
+                    StringComparison.Ordinal))
+            .ToDictionary(
+                value => value.StackId,
+                value => value.TotalQuantity,
+                StringComparer.Ordinal);
+    }
+
+    private List<IndustrialItemDeltaData> CaptureItemDeltasAt(
+        Vector2Int position,
+        string itemId,
+        IReadOnlyDictionary<string, int> before)
+    {
+        Dictionary<string, int> after = CaptureItemQuantitiesAt(
+            position,
+            itemId);
+        return after
+            .OrderBy(value => value.Key, StringComparer.Ordinal)
+            .Select(value => new
+            {
+                value.Key,
+                Delta = value.Value - (before != null
+                    && before.TryGetValue(value.Key, out int quantity)
+                        ? quantity
+                        : 0)
+            })
+            .Where(value => value.Delta > 0)
+            .Select(value => new IndustrialItemDeltaData { stackId = value.Key, quantity = value.Delta })
+            .ToList();
+    }
+
     private void ResetProjectionAfterRestore()
     {
         projectionAdapter.Reset(stateStore.PublishedRestoreRevision);
         ResetTransientProjection();
     }
 
-    private void ResetTransientProjection()
-    {
-        accumulated = 0f;
-        nextBackflowAt.Clear();
-        waterTransfers = Array.Empty<WaterTransferFacilitySnapshot>();
-    }
+    private void ResetTransientProjection() =>
+        projectionAdapter.ResetTransientProjection();
 }

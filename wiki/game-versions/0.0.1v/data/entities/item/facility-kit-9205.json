@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "외부와 단절된 생태계를 오래 보존하는 봉인 생태정원의 설치 부품이며, 므네실라에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "외부와 단절된 생태계를 오래 보존하는 봉인 생태정원의 설치 부품이다. 므네실라는 봉인 생태정원 안의 흙과 물을 외부 생태계와 섞이지 않는 하나의 순환으로 묶는다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

@@ -1,0 +1,77 @@
+{
+  "catalogHash": "sha256:0f6e4be939180f679109088e0e3eba59f85cfc5851ed2e01760daef9e14fe4a6",
+  "evidenceGateCount": 0,
+  "inputDigest": "sha256:a4d20f46f3e31b4b798e87e8a2dd3e78e360b1200a6981ae4291e4fdb167af2a",
+  "manifestFileCount": 276,
+  "negativeScenarioCount": 14,
+  "parityProfileCounts": {
+    "AcquiredTrait": 6,
+    "CharacterSkill": 2,
+    "EquipmentChoice": 2,
+    "EvolutionHistory": 2,
+    "FacilityEvolution": 2,
+    "Persona": 2
+  },
+  "requiredProvenanceCount": 182,
+  "scenarioMaterialSummary": {
+    "AcquiredTrait": {
+      "candidateMax": 21,
+      "candidateMin": 1,
+      "effectDescriptionMax": 6,
+      "effectDescriptionMin": 1,
+      "publicFactMax": 20,
+      "publicFactMin": 3
+    },
+    "CharacterSkill": {
+      "candidateMax": 3,
+      "candidateMin": 1,
+      "effectDescriptionMax": 24,
+      "effectDescriptionMin": 5,
+      "publicFactMax": 1,
+      "publicFactMin": 1
+    },
+    "EquipmentChoice": {
+      "candidateMax": 3,
+      "candidateMin": 2,
+      "effectDescriptionMax": 3,
+      "effectDescriptionMin": 2,
+      "publicFactMax": 2,
+      "publicFactMin": 2
+    },
+    "EvolutionHistory": {
+      "candidateMax": 3,
+      "candidateMin": 2,
+      "effectDescriptionMax": 3,
+      "effectDescriptionMin": 2,
+      "publicFactMax": 2,
+      "publicFactMin": 2
+    },
+    "FacilityEvolution": {
+      "candidateMax": 1,
+      "candidateMin": 1,
+      "effectDescriptionMax": 1,
+      "effectDescriptionMin": 1,
+      "publicFactMax": 2,
+      "publicFactMin": 2
+    },
+    "Persona": {
+      "candidateMax": 1,
+      "candidateMin": 1,
+      "effectDescriptionMax": 2,
+      "effectDescriptionMin": 2,
+      "publicFactMax": 5,
+      "publicFactMin": 5
+    }
+  },
+  "scenarioPositiveCount": 100,
+  "scenarioProfileCounts": {
+    "AcquiredTrait": 20,
+    "CharacterSkill": 20,
+    "EquipmentChoice": 15,
+    "EvolutionHistory": 15,
+    "FacilityEvolution": 15,
+    "Persona": 15
+  },
+  "status": "PASS",
+  "trainingEligible": false
+}

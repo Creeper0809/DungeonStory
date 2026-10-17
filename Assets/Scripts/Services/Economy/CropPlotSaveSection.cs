@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 
 public sealed class CropPlotSaveSection :
     DungeonStrictJsonSaveSection<
@@ -69,6 +70,70 @@ public sealed class CropPlotSaveSection :
 
     protected override DungeonCropPlotSaveData CapturePayload() =>
         persistence.Capture();
+
+    protected override void ValidateRawPayload(string payloadJson)
+    {
+        RequireTopLevelArrayFields(payloadJson, "plots");
+        JObject root = JObject.Parse(payloadJson, new JsonLoadSettings
+        {
+            DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error
+        });
+        foreach (JToken plot in (JArray)root["plots"])
+        {
+            if (plot["retirementPublicationKey"]?.Type != JTokenType.String)
+                throw new InvalidOperationException("Crop retirement publication key must be explicit.");
+            if (plot["failedOutcome"] is not JObject failed || plot["pendingHarvest"] is not JObject harvest
+                || harvest["terminalReceipt"] is not JObject terminal
+                || terminal["status"]?.Type != JTokenType.Integer || terminal["sourceDigest"]?.Type != JTokenType.String)
+                throw new InvalidOperationException("Crop terminal snapshots must be explicit.");
+            foreach (string name in new[] { "publicationKey", "publicationId", "publicationFingerprint" })
+                if (failed[name]?.Type != JTokenType.String)
+                    throw new InvalidOperationException("Crop failure requires an explicit publication field: " + name);
+            foreach (string name in new[] { "terminalPublicationKey", "terminalPublicationId", "terminalPublicationFingerprint",
+                "terminalPlotDisplayName", "terminalCropDisplayName", "completionPublicationKey",
+                "completionDeliveryId", "completionDeliveryFingerprint" })
+                if (harvest[name]?.Type != JTokenType.String)
+                    throw new InvalidOperationException("Crop harvest requires an explicit publication field: " + name);
+            if (plot["treatment"] is not JObject treatment
+                || treatment["locationX"]?.Type != JTokenType.Integer
+                || treatment["locationY"]?.Type != JTokenType.Integer)
+                throw new InvalidOperationException("Crop treatment publication must be explicit.");
+            foreach (string name in new[] { "publicationKey", "plotDisplayName", "itemDisplayName" })
+                if (treatment[name]?.Type != JTokenType.String)
+                    throw new InvalidOperationException("Crop treatment requires an explicit string: " + name);
+            if (plot["waterRefill"] is not JObject water
+                || water["locationX"]?.Type != JTokenType.Integer
+                || water["locationY"]?.Type != JTokenType.Integer)
+                throw new InvalidOperationException("Crop manual water publication must be explicit.");
+            foreach (string name in new[] { "publicationKey", "plotDisplayName", "itemDisplayName" })
+                if (water[name]?.Type != JTokenType.String)
+                    throw new InvalidOperationException("Crop manual water requires an explicit string: " + name);
+            if (plot["irrigationPublication"] is not JObject irrigation
+                || irrigation["pending"]?.Type != JTokenType.Boolean)
+                throw new InvalidOperationException("Crop irrigation publication must be explicit.");
+            foreach (string name in new[] { "operationId", "publicationKey", "publicationId", "fingerprint", "failureReason",
+                "plotId", "irrigatorId", "plotDisplayName", "irrigatorDisplayName", "networkId" })
+                if (irrigation[name]?.Type != JTokenType.String)
+                    throw new InvalidOperationException("Crop irrigation requires an explicit string: " + name);
+            foreach (string name in new[] { "operationSequence", "absoluteDay", "locationX", "locationY", "consumedQuality" })
+                if (irrigation[name]?.Type != JTokenType.Integer)
+                    throw new InvalidOperationException("Crop irrigation requires an explicit integer: " + name);
+            foreach (string name in new[] { "quantity", "waterBefore", "waterAfter", "networkWaterBefore", "networkWaterAfter" })
+                if (irrigation[name]?.Type is not (JTokenType.Float or JTokenType.Integer))
+                    throw new InvalidOperationException("Crop irrigation requires an explicit number: " + name);
+            foreach (string name in new[] { "cropSelectionOutcome", "goldenHarvestScheduleOutcome" })
+            {
+                if (plot[name] is not JObject command
+                    || command["publicationKey"]?.Type != JTokenType.String
+                    || command["plotDisplayName"]?.Type != JTokenType.String
+                    || command["cropDisplayName"]?.Type != JTokenType.String
+                    || command["locationX"]?.Type != JTokenType.Integer
+                    || command["locationY"]?.Type != JTokenType.Integer)
+                    throw new InvalidOperationException(
+                        "Crop command requires explicit publication identity and frozen presentation fields: " + name);
+            }
+        }
+    }
 
     protected override void ValidateParsedPayload(
         DungeonCropPlotSaveData payload) =>
@@ -181,9 +246,13 @@ public sealed class CropPlotSaveSection :
         CropHarvestOutputSaveData owner,
         FacilityBufferPlannedOutputRestoreBatchSnapshot batch)
     {
-        ProductionDomainOutputRestoreGuard.ValidateIncoming(
-            owner.outputPublication,
-            batch);
+        ValidateFrozenSeasonalPrimaryLoss(owner);
+        if (owner.phase == CropHarvestOutputPhase.OutputRestoredAwaitingFinalization)
+            ProductionDomainOutputRestoreGuard.ValidateAcknowledged(
+                owner.outputPublication, batch);
+        else
+            ProductionDomainOutputRestoreGuard.ValidateIncoming(
+                owner.outputPublication, batch);
         if (batch.Stacks.Count != 2)
             throw new InvalidOperationException(
                 "Crop harvest physical output is not an exact two-line batch: "
@@ -202,6 +271,9 @@ public sealed class CropPlotSaveSection :
             SeedLotItemStateCodec.Encode(owner.returnedSeedLot);
         string expectedSeedCanonical = expectedSeed.ToCanonicalString();
         string expectedSeedSignature =
+            FacilityBufferPlannedOutputPublicationService
+                .CreateRuntimeComponentSignature(new[] { expectedSeed });
+        string expectedSeedFingerprint =
             ProductionDomainOutputPublicationService
                 .CaptureComponentFingerprint(new[] { expectedSeed });
         bool valid = harvest != null
@@ -225,6 +297,10 @@ public sealed class CropPlotSaveSection :
             && string.Equals(
                 seed.ComponentSignature,
                 expectedSeedSignature,
+                StringComparison.Ordinal)
+            && string.Equals(
+                seed.PreparedComponentFingerprint,
+                expectedSeedFingerprint,
                 StringComparison.Ordinal);
         if (!valid)
             throw new InvalidOperationException(
@@ -232,10 +308,52 @@ public sealed class CropPlotSaveSection :
                 + owner.operationId);
     }
 
+    private static void ValidateFrozenSeasonalPrimaryLoss(
+        CropHarvestOutputSaveData owner)
+    {
+        if (owner == null)
+            throw new InvalidOperationException(
+                "Crop harvest seasonal-loss owner is missing.");
+        if (owner.seasonalPrimaryBatchLossPercent == 0)
+        {
+            if (!string.IsNullOrEmpty(
+                    owner.seasonalDamageSourceEventInstanceId)
+                || !string.IsNullOrEmpty(
+                    owner.seasonalDamageSourceDefinitionId)
+                || owner.primaryQuantityBeforeSeasonalLoss != 0
+                || owner.seasonalPrimaryLossQuantity != 0)
+                throw new InvalidOperationException(
+                    "Crop harvest contains partial seasonal-loss provenance.");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(
+                owner.seasonalDamageSourceEventInstanceId)
+            || string.IsNullOrWhiteSpace(
+                owner.seasonalDamageSourceDefinitionId)
+            || owner.primaryQuantityBeforeSeasonalLoss <= 0
+            || owner.seasonalPrimaryLossQuantity
+                != CropHarvestOutputRules.ResolvePrimaryBatchLoss(
+                    owner.primaryQuantityBeforeSeasonalLoss,
+                    owner.seasonalPrimaryBatchLossPercent)
+            || owner.harvestQuantity
+                != CropHarvestOutputRules.ApplyPrimaryBatchLoss(
+                    owner.primaryQuantityBeforeSeasonalLoss,
+                    owner.seasonalPrimaryBatchLossPercent))
+        {
+            throw new InvalidOperationException(
+                "Crop harvest seasonal-loss arithmetic or provenance drifted.");
+        }
+    }
+
     private void ValidateDetachedPlot(CropPlotSaveData plot)
     {
         CropHarvestOutputSaveData owner = plot?.pendingHarvest;
-        if (owner == null || owner.phase == CropHarvestOutputPhase.None)
+        CropWaterRefillSaveData water = plot?.waterRefill;
+        bool hasHarvest = owner != null
+            && owner.phase != CropHarvestOutputPhase.None;
+        bool hasWater = water != null
+            && water.phase != CropWaterRefillPhase.None;
+        if (!hasHarvest && !hasWater)
             return;
         if (!worldCandidates.TryGetBuildings(
                 out IReadOnlyList<BuildableObject> buildings)
@@ -252,10 +370,21 @@ public sealed class CropPlotSaveSection :
             .GetAbility<BuildingCropPlotAbility>();
         if (facility == null
             || facility.IsBuildingDestroyed
-            || plotAbility == null
-            || plotAbility.Indoor != owner.indoor)
+            || plotAbility == null)
             throw new InvalidOperationException(
-                "Crop harvest detached facility or indoor authority drifted: "
+                "Crop detached facility authority drifted: "
+                + (plot.buildingInstanceId ?? string.Empty));
+        if (hasWater
+            && !water.requiredWork.Equals(
+                CropWaterRules.RequireRefillWork(facility)))
+            throw new InvalidOperationException(
+                "Crop water-refill authored work drifted: "
+                + plot.buildingInstanceId);
+        if (!hasHarvest)
+            return;
+        if (plotAbility.Indoor != owner.indoor)
+            throw new InvalidOperationException(
+                "Crop harvest detached indoor authority drifted: "
                 + (plot.buildingInstanceId ?? string.Empty));
 
         ProductionOutputBatchMaximumMassProof proof = new(new[]

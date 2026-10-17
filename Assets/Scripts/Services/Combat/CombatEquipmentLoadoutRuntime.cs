@@ -40,6 +40,16 @@ public sealed class CombatEquipmentLoadoutRuntime
     public bool TryAssign(
         string characterId,
         string instanceId,
+        out string failureReason) => TryAssign(
+        characterId,
+        instanceId,
+        null,
+        out failureReason);
+
+    internal bool TryAssign(
+        string characterId,
+        string instanceId,
+        Func<bool> tryCommitPhysicalSource,
         out string failureReason)
     {
         failureReason = string.Empty;
@@ -71,17 +81,30 @@ public sealed class CombatEquipmentLoadoutRuntime
             return false;
         }
 
-        CharacterCombatLoadoutProfile profile = GetActiveProfile(
-            GetOrCreate(normalizedCharacterId));
-        if (!ValidateLayerConflict(profile, definition, out failureReason)
+        CharacterCombatLoadoutState validationState = States.TryGetValue(
+                normalizedCharacterId,
+                out CharacterCombatLoadoutState existing)
+            ? CloneLoadout(existing)
+            : CreateDefaultLoadout(normalizedCharacterId);
+        CharacterCombatLoadoutProfile validationProfile = GetActiveProfile(
+            validationState);
+        if (!ValidateLayerConflict(validationProfile, definition, out failureReason)
             || !ValidateHandOccupancyForAssignment(
-                profile,
+                validationProfile,
                 definition,
                 out failureReason))
         {
             return false;
         }
+        if (tryCommitPhysicalSource != null
+            && !tryCommitPhysicalSource())
+        {
+            failureReason = "equipment.assign.physical_absorb_failed";
+            return false;
+        }
 
+        CharacterCombatLoadoutProfile profile = GetActiveProfile(
+            GetOrCreate(normalizedCharacterId));
         store.RemoveEquipment(instance.instanceId);
         instance.ownerCharacterId = normalizedCharacterId;
         instance.sourceStackId = string.Empty;
@@ -244,9 +267,17 @@ public sealed class CombatEquipmentLoadoutRuntime
             return existing;
         }
 
-        CharacterCombatLoadoutState created = new CharacterCombatLoadoutState
+        CharacterCombatLoadoutState created = CreateDefaultLoadout(normalizedId);
+        States.Add(normalizedId, created);
+        return created;
+    }
+
+    private static CharacterCombatLoadoutState CreateDefaultLoadout(
+        string characterId)
+    {
+        return new CharacterCombatLoadoutState
         {
-            characterId = normalizedId,
+            characterId = characterId,
             activeProfileId = CombatLoadoutPresetIds.Peace,
             profiles = new List<CharacterCombatLoadoutProfile>
             {
@@ -288,15 +319,20 @@ public sealed class CombatEquipmentLoadoutRuntime
                     6)
             }
         };
-        States.Add(normalizedId, created);
-        return created;
     }
 
     public CharacterCombatLoadoutProfile GetActiveProfileSnapshot(string characterId)
     {
-        return string.IsNullOrWhiteSpace(characterId)
-            ? null
-            : GetActiveProfile(GetOrCreate(characterId)).Clone();
+        string normalizedId = characterId?.Trim() ?? string.Empty;
+        if (normalizedId.Length == 0)
+            return null;
+
+        // Default profiles are a read projection, not ownership admission.
+        // Battle-only combatants must not acquire persistent world loadouts
+        // merely because weapon selection reads their unarmed profile.
+        CharacterCombatLoadoutState state = States.TryGetValue(normalizedId, out var existing)
+            ? existing : CreateDefaultLoadout(normalizedId);
+        return GetActiveProfile(state).Clone();
     }
 
     public bool TryGetActiveProfileSnapshot(
@@ -449,6 +485,23 @@ public sealed class CombatEquipmentLoadoutRuntime
 
     public IReadOnlyList<CombatEquipmentInstance> ConfiscateAll(string characterId)
     {
+        return ConfiscateAll(
+            characterId,
+            CombatEquipmentWorldState.Loose);
+    }
+
+    public IReadOnlyList<CombatEquipmentInstance> ConfiscateAllForExpedition(
+        string characterId)
+    {
+        return ConfiscateAll(
+            characterId,
+            CombatEquipmentWorldState.ExpeditionPacked);
+    }
+
+    private IReadOnlyList<CombatEquipmentInstance> ConfiscateAll(
+        string characterId,
+        CombatEquipmentWorldState detachedWorldState)
+    {
         string normalized = characterId?.Trim() ?? string.Empty;
         if (normalized.Length == 0)
         {
@@ -466,12 +519,18 @@ public sealed class CombatEquipmentLoadoutRuntime
             store.RemoveEquipment(instance.instanceId);
             instance.ownerCharacterId = string.Empty;
             instance.sourceStackId = string.Empty;
-            instance.worldState = CombatEquipmentWorldState.Loose;
+            instance.worldState = detachedWorldState;
         }
         return confiscated.Select(instance => instance.Clone()).ToArray();
     }
 
-    public void HandleCharacterDeath(string characterId)
+    public void HandleCharacterDeath(string characterId) =>
+        RetireCharacterEquipment(characterId);
+
+    // A character leaving the saved world takes its equipment out of local
+    // custody just as death does. This command emits no death/story event and
+    // must not be used for downed capture candidates or restore retirement.
+    public void RetireCharacterEquipment(string characterId)
     {
         string normalized = characterId?.Trim() ?? string.Empty;
         if (normalized.Length == 0)
@@ -512,19 +571,15 @@ public sealed class CombatEquipmentLoadoutRuntime
         {
             return 0f;
         }
-        return Instances.Values
-            .Where(instance => string.Equals(
-                instance.ownerCharacterId,
-                characterId,
-                StringComparison.Ordinal))
-            .Sum(instance => catalog.TryGet(
-                    instance.definitionId,
-                    out CombatEquipmentDefinitionSO definition)
-                ? statProjector.Build(
-                    definition,
-                    crafting.ResolveInstanceMaterial(instance, definition),
-                    instance).Weight
-                : 0f);
+        long grams = 0;
+        foreach (CombatEquipmentInstance instance in Instances.Values)
+        {
+            if (!string.Equals(instance.ownerCharacterId, characterId, StringComparison.Ordinal)) continue;
+            if (!catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition))
+                throw new InvalidOperationException("Equipment burden has an unknown definition: " + instance.definitionId);
+            grams = checked(grams + statProjector.GetPhysicalMass(definition, instance).Value);
+        }
+        return grams / 1000f;
     }
 
     public IReadOnlyList<CharacterCombatLoadoutState> Capture()

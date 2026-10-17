@@ -20,9 +20,7 @@ public static class RegionalSupplyContractDeliveryOutbox
         RegionalSupplyDeliveryTransferReceipt receipt)
     {
         if (contract == null)
-        {
             throw new ArgumentNullException(nameof(contract));
-        }
         if (!ReceiptMatchesIdentity(contract, receipt)
             || receipt.sourceStackIds == null
             || receipt.sourceStackIds.Count == 0
@@ -50,9 +48,13 @@ public static class RegionalSupplyContractDeliveryOutbox
     public static bool TryFinalizePending(
         RegionalSupplyContractState contract,
         IRegionalSupplyContractCommandPort commands,
+        IRegionalSupplyContractOutcomePort outcomePort,
+        int absoluteDay,
         out string failureReason)
     {
         failureReason = string.Empty;
+        if (outcomePort == null)
+            throw new ArgumentNullException(nameof(outcomePort));
         if (!HasCanonicalPending(contract))
         {
             failureReason = "regional-supply-outbox-invalid";
@@ -67,23 +69,70 @@ public static class RegionalSupplyContractDeliveryOutbox
             return false;
         }
 
+        RegionalSupplyContractOutcomeReservation prepared = default;
+        bool hasPrepared = false;
+        if (contract.deliveryCommitPhase is
+            RegionalSupplyDeliveryCommitPhase.PhysicalCommitted
+            or RegionalSupplyDeliveryCommitPhase.RewardPublished)
+        {
+            if (!outcomePort.TryReserveCompletion(
+                    contract,
+                    Math.Max(0, absoluteDay),
+                    out prepared,
+                    out failureReason))
+                return false;
+            hasPrepared = true;
+        }
+
         if (contract.deliveryCommitPhase ==
             RegionalSupplyDeliveryCommitPhase.PhysicalCommitted)
         {
             if (!commands.TryAddContractIncome(
                     contract.rewardGold,
                     contract.deliveryOperationId,
+                    out RegionalSupplyRewardReceipt reward,
                     out failureReason))
             {
+                outcomePort.Cancel(prepared);
                 return false;
             }
+            if (!RewardMatches(contract, reward))
+            {
+                outcomePort.Cancel(prepared);
+                failureReason = "regional-supply-reward-receipt-mismatch";
+                return false;
+            }
+            contract.rewardTransactionId = reward.transactionId;
+            contract.rewardBalanceBefore = reward.balanceBefore;
+            contract.rewardBalanceAfter = reward.balanceAfter;
             contract.deliveryCommitPhase =
                 RegionalSupplyDeliveryCommitPhase.RewardPublished;
             contract.status = RegionalSupplyContractStatus.Completed;
             contract.lastStatus =
                 $"납품 완료 · {contract.rewardGold} 골드 획득";
         }
-        else if (contract.status != RegionalSupplyContractStatus.Completed)
+
+        if (contract.deliveryCommitPhase ==
+            RegionalSupplyDeliveryCommitPhase.RewardPublished)
+        {
+            if (!outcomePort.TryCommitCompletion(
+                    prepared,
+                    contract,
+                    out string resultKey,
+                    out failureReason))
+                return false;
+            contract.deliveryOutcomeResultKey = resultKey;
+            contract.deliveryCommitPhase =
+                RegionalSupplyDeliveryCommitPhase.OutcomeCommitted;
+        }
+        else if (hasPrepared)
+        {
+            outcomePort.Cancel(prepared);
+        }
+
+        if (contract.status != RegionalSupplyContractStatus.Completed
+            || contract.deliveryCommitPhase !=
+                RegionalSupplyDeliveryCommitPhase.OutcomeCommitted)
         {
             failureReason = "regional-supply-outbox-terminal-status-mismatch";
             return false;
@@ -92,9 +141,7 @@ public static class RegionalSupplyContractDeliveryOutbox
         if (!commands.AcknowledgeDeliveryTransfer(
                 contract.deliveryCommitId,
                 out failureReason))
-        {
             return false;
-        }
 
         Clear(contract);
         return true;
@@ -106,6 +153,7 @@ public static class RegionalSupplyContractDeliveryOutbox
         && contract.deliveryCommitPhase is
             RegionalSupplyDeliveryCommitPhase.PhysicalCommitted
             or RegionalSupplyDeliveryCommitPhase.RewardPublished
+            or RegionalSupplyDeliveryCommitPhase.OutcomeCommitted
         && IsCanonicalRequired(contract.deliveryOperationId)
         && string.Equals(
             contract.deliveryOperationId,
@@ -131,9 +179,17 @@ public static class RegionalSupplyContractDeliveryOutbox
             StringComparison.Ordinal)
         && (contract.deliveryCommitPhase ==
                 RegionalSupplyDeliveryCommitPhase.PhysicalCommitted
-            ? contract.status is RegionalSupplyContractStatus.Accepted
-                or RegionalSupplyContractStatus.Delivering
-            : contract.status == RegionalSupplyContractStatus.Completed);
+            ? (contract.status is RegionalSupplyContractStatus.Accepted
+                or RegionalSupplyContractStatus.Delivering)
+                && HasCanonicalRewardEmpty(contract)
+                && string.IsNullOrEmpty(contract.deliveryOutcomeResultKey)
+            : contract.status == RegionalSupplyContractStatus.Completed
+                && HasCanonicalReward(contract)
+                && (contract.deliveryCommitPhase ==
+                        RegionalSupplyDeliveryCommitPhase.OutcomeCommitted
+                    ? IsCanonicalRequired(contract.deliveryOutcomeResultKey)
+                    : string.IsNullOrEmpty(
+                        contract.deliveryOutcomeResultKey)));
 
     public static bool HasCanonicalEmpty(RegionalSupplyContractState contract) =>
         contract != null
@@ -142,7 +198,11 @@ public static class RegionalSupplyContractDeliveryOutbox
         && string.IsNullOrEmpty(contract.deliveryCommitId)
         && (contract.deliverySourceStackIds?.Count ?? 0) == 0
         && contract.deliveryQuantity == 0
-        && contract.deliveryMassGrams == 0L;
+        && contract.deliveryMassGrams == 0L
+        && HasCanonicalRewardEmpty(contract)
+        && (contract.status == RegionalSupplyContractStatus.Completed
+            ? IsCanonicalRequired(contract.deliveryOutcomeResultKey)
+            : string.IsNullOrEmpty(contract.deliveryOutcomeResultKey));
 
     private static void Clear(RegionalSupplyContractState contract)
     {
@@ -152,6 +212,9 @@ public static class RegionalSupplyContractDeliveryOutbox
         contract.deliverySourceStackIds.Clear();
         contract.deliveryQuantity = 0;
         contract.deliveryMassGrams = 0L;
+        contract.rewardTransactionId = string.Empty;
+        contract.rewardBalanceBefore = 0;
+        contract.rewardBalanceAfter = 0;
     }
 
     private static bool ReceiptMatchesSaved(
@@ -187,6 +250,32 @@ public static class RegionalSupplyContractDeliveryOutbox
         RegionalSupplyContractState contract) =>
         $"physical-batch-disposition:1:{contract.deliveryOperationId}:"
         + $"{contract.deliveryQuantity}:{contract.deliveryMassGrams}";
+
+    private static bool RewardMatches(
+        RegionalSupplyContractState contract,
+        RegionalSupplyRewardReceipt reward) =>
+        reward != null
+        && string.Equals(
+            reward.operationId,
+            contract.deliveryOperationId,
+            StringComparison.Ordinal)
+        && IsCanonicalRequired(reward.transactionId)
+        && reward.amount == contract.rewardGold
+        && reward.balanceBefore >= 0
+        && reward.balanceAfter - reward.balanceBefore == reward.amount;
+
+    private static bool HasCanonicalReward(
+        RegionalSupplyContractState contract) =>
+        IsCanonicalRequired(contract.rewardTransactionId)
+        && contract.rewardBalanceBefore >= 0
+        && contract.rewardBalanceAfter - contract.rewardBalanceBefore
+            == contract.rewardGold;
+
+    private static bool HasCanonicalRewardEmpty(
+        RegionalSupplyContractState contract) =>
+        string.IsNullOrEmpty(contract.rewardTransactionId)
+        && contract.rewardBalanceBefore == 0
+        && contract.rewardBalanceAfter == 0;
 
     private static bool IsCanonicalRequired(string value) =>
         !string.IsNullOrWhiteSpace(value)

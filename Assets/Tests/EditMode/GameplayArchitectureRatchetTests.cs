@@ -1400,6 +1400,8 @@ namespace DungeonStory.Tests.Architecture
                 "Character/Ability/AbilityWork.cs");
             SourceFile priorities = SourceBySuffix(
                 "Character/Work/WorkPriorityProfile.cs");
+            SourceFile workCommands = SourceBySuffix(
+                "Character/Work/WorkCommandResolver.cs");
             SourceFile survivalWork = SourceBySuffix(
                 "Survival/Work/SurvivalWorkExecutionHandler.cs");
             SourceFile repairWork = SourceBySuffix(
@@ -2443,7 +2445,7 @@ namespace DungeonStory.Tests.Architecture
                 priorities.Text,
                 Does.Not.Contain("TaskTypes =>"));
             Assert.That(
-                priorities.Text,
+                workCommands.Text,
                 Does.Contain("FacilityWorkTypeMap.Enumerate("));
             Assert.That(
                 aiMemory.Text,
@@ -3276,8 +3278,8 @@ namespace DungeonStory.Tests.Architecture
                 "UI/CharacterSummaryAiPresenter.cs");
             SourceFile ownerSelection = SourceBySuffix(
                 "Character/UI/OwnerSelectionPanel.cs");
-            SourceFile scheduling = SourceBySuffix(
-                "Infrastructure/CharacterAiSchedulingService.cs");
+            SourceFile diagnostics = SourceBySuffix(
+                "Character/AI/ICharacterAiDiagnosticsQuery.cs");
             SourceFile registration = SourceBySuffix(
                 "Infrastructure/Registration/DungeonAiRegistration.cs");
 
@@ -3305,7 +3307,7 @@ namespace DungeonStory.Tests.Architecture
                 Does.Not.Contain("IDungeonSceneComponentQuery"));
             Assert.That(ownerSelection.Text, Does.Not.Match(@"\bTime\."));
             Assert.That(
-                scheduling.Text,
+                diagnostics.Text,
                 Does.Contain("interface ICharacterAiDiagnosticsQuery"));
             Assert.That(
                 registration.Text,
@@ -3486,7 +3488,7 @@ namespace DungeonStory.Tests.Architecture
                 Does.Not.Match(@"\b(?:UnityEngine\.)?Random\."));
             Assert.That(
                 movement.Text,
-                Does.Contain(".Get(\"character-movement\")"));
+                Does.Contain("CharacterRandomStreamScopeIds.Movement(characterId)"));
         }
 
         [Test]

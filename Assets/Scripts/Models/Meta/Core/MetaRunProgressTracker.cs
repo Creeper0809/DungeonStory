@@ -17,6 +17,17 @@ internal sealed class MetaRunProgressAggregateState
     internal int OffenseSuccessCount { get; set; }
 }
 
+public sealed class MetaRunProgressTransactionSnapshot
+{
+    internal MetaRunProgressTransactionSnapshot(
+        MetaRunProgressAggregateState state)
+    {
+        State = state ?? throw new ArgumentNullException(nameof(state));
+    }
+
+    internal MetaRunProgressAggregateState State { get; }
+}
+
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class MetaRunProgressTracker
 {
@@ -56,13 +67,24 @@ public sealed class MetaRunProgressTracker
     public void RecordSynthesis(string recipeId, int resultBuildingId) { RecordRecipe(recipeId); RecordFacilityDiscovery(resultBuildingId); }
     public void RecordOffenseSuccess() => Writable.OffenseSuccessCount++;
 
+    public MetaRunProgressTransactionSnapshot CaptureTransactionState() =>
+        new(CloneState(State));
+
+    public void RestoreTransactionState(
+        MetaRunProgressTransactionSnapshot snapshot) =>
+        aggregateRootStore.Replace(
+            CloneState((snapshot
+                ?? throw new ArgumentNullException(nameof(snapshot))).State));
+
     public MetaRunResultBuildContext CreateResultContext(string ownerName, string reason, MetaRunEnvironmentSnapshot environment, DungeonRunOutcome outcome)
     {
         MetaRunProgressAggregateState current = State;
         return new MetaRunResultBuildContext(ownerName, reason, ElapsedSeconds, current.CurrentDay, current.SettlementCount,
             current.DefendedInvasionCount, current.MaxThreatStage, current.FinalInvasionThreat, current.DiscoveredFacilityIds.Count,
             current.UnlockedRecipeIds.Count, current.OffenseSuccessCount, environment.DifficultyMultiplier, environment.Difficulty,
-            environment.SurvivalPressure, outcome);
+            environment.SurvivalPressure, outcome,
+            environment.CompletedMilestoneIds,
+            environment.CommittedChoices);
     }
 
     public void Restore(float elapsedSeconds, int day, int settlements, int defended, InvasionThreatStage stage, float threat,

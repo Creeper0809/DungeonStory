@@ -451,7 +451,7 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
         timeScaleController = scaleController
             ?? throw new ArgumentNullException(nameof(scaleController));
 
-        automationDirectory = Path.Combine(Application.persistentDataPath, "Automation");
+        automationDirectory = Path.Combine(DungeonPersistencePaths.Root, "Automation");
         connectionPath = Path.Combine(automationDirectory, "bridge.json");
         Directory.CreateDirectory(automationDirectory);
         automationInput.Enable();

@@ -1,0 +1,10 @@
+result=PASS
+date=2026-09-13
+unity_compile=PASS; errors=0
+wim009_arcane_seasonal=PASS; authored mana lightning uses active powered I16 heat/fault and common ElectricalFault fire command; optional occurrence-bound encounter09 physical mana-crystal reward3; deep echo has no wildlife arrival and uses encounter31; current seasonal/offense save joins and exact reward handler validated
+wim009_existing_natural_cargo=PASS; report=wim-009-seasonal-drift-cargo-natural.txt; production day dispatch created physical Loose lumber6, ordinary AI carried and stored it, secured cargo survived expiry, and only unpicked cargo expired through a physical Sink
+wim009_existing_strategic_journey=PASS; report=offense-journey-playmode.txt; actual strategic UI/travel/battle/return/physical reward ownership path already validated and reused rather than rerun
+wim023_human_supply=PASS; species=Human/id11; customer=character-archetype:9010; ownerCandidate=false; visitorRecruitment=true; anatomy=anatomy:human/brain; neuralAssist=34WU/exact-part
+wim023_authored_publication=PASS; recipes15(M06/Craft;legacy32/32/36;new12x34); species24(9treatment+15install); installedParts13; catalogMembership; uniqueOutputLines; physical1.8kg-stack1; variantBindings5; humanCustomerSupply
+wim023_existing_clinical_chain=PASS; report=wim-023-main-produced-part-clinical-chain.txt; actual produced part, patient/UI, natural haul/surgery, installation and authored effect path already validated on the shared species-generic surgery runtime
+scope=final current-source compilation and focused closure of the previously missing WIM009 arcane contracts and WIM023 authored Human eligibility; no full-calendar replay, new balance simulation, or repeated full clinical journey

@@ -22,7 +22,21 @@ MonoBehaviour:
   dayOfSeason: 12
   convertsActiveGrief: 0
   cultureId: culture:demon-contract
-  requiredBuildingDefinitionId: building:faction-audience-hall
+  requiredBuildingDefinitionId: ""
+  venueRequirements:
+    anchor:
+      exactBuildingDefinitionIds: []
+      facilityRoles: 2048
+    requiredRoomFacilityRoles: 2048
+    requiredRoomFacilities: []
+    minimumSeats: 0
+    minimumTables: 0
+    minimumServiceCapacity: 0
+    minimumEventCells: 6
+    minimumVacantBeds: 0
+    requireResidentHeadroom: 0
+    requireWetBath: 0
+    requireEmergencySurgeryFacility: 0
   requiredItems:
   - itemDefinitionId: material:paper
     amount: 12

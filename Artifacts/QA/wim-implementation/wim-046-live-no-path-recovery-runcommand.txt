@@ -1,0 +1,1517 @@
+# WIM-046 live Door/Wall route public RunCommand
+
+status=READY_NOT_EXECUTED
+prerequisite=Run the existing protected Play prelude/start-party stages once, then pause with Time.timeScale=0. Do not run the WIM048 focused verifier or any restore command.
+scopeA=Stage A finds one current staff/Wall-7 work-access/InteriorDoor-8 tuple whose normal actor path crosses that exact door and whose actor-specific public Deny makes the same destination unreachable. It places nothing, spawns nothing, changes no work target, and restores the original individual door rule before every terminal result.
+scopeContinuation=The parameterized continuation consumes that exact tuple, creates only the authored Wall construction order/input, drives normal AI, changes Door access through the generated UI toggles, reads the existing Operations/Character diagnostics UI, and restores the original rule. It never restores a save, changes a slot/scene, or injects actor/action/failure state.
+
+## Stage A — bounded public sole-route preflight
+
+Run once with RunCommand. The command uses only public game types/members through
+the already-verified object/reflection pattern. `IGameClock` is resolved from its
+own `DungeonStory.Foundation` assembly. The player remains at game speed 0; the
+Editor is unpaused only so the incremental public path broker can advance frames.
+
+```csharp
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+
+internal class CommandScript : IRunCommand
+{
+    const int WallBuildingId = 7;
+    const int InteriorDoorBuildingId = 8;
+    const int MaximumCoarseCandidates = 96;
+    const double MaximumWallSeconds = 35d;
+
+    readonly List<(object Actor, object Door, Vector2Int Start,
+        Vector2Int Wall, Vector2Int Access, int CoarseSteps,
+        string ActorId)> candidates =
+        new List<(object, object, Vector2Int, Vector2Int, Vector2Int,
+            int, string)>();
+    object doorCommands;
+    object clock;
+    int index;
+    int lastFrame;
+    int requests;
+    double startedWall;
+    bool installed;
+    bool denyApplied;
+    object originalRule;
+    (object Actor, object Door, Vector2Int Start, Vector2Int Wall,
+        Vector2Int Access, int CoarseSteps, string ActorId) current;
+    bool hasCurrent;
+
+    static Type T(string name, string assemblyName = "Assembly-CSharp")
+    {
+        Type type = Type.GetType(name + ", " + assemblyName);
+        return type ?? throw new InvalidOperationException(
+            "Missing public type: " + name + ", " + assemblyName);
+    }
+
+    static object V(object value, string name)
+    {
+        if (value == null)
+            throw new InvalidOperationException("Public member owner is null: " + name);
+        Type type = value.GetType();
+        var property = type.GetProperty(name);
+        if (property != null && property.GetMethod != null
+            && property.GetMethod.IsPublic
+            && !property.GetMethod.IsStatic)
+            return property.GetValue(value);
+        var field = type.GetField(name);
+        if (field != null && field.IsPublic && !field.IsStatic)
+            return field.GetValue(value);
+        throw new InvalidOperationException(
+            "Missing public member " + type.FullName + "." + name);
+    }
+
+    static object InvokePublic(
+        object owner,
+        string name,
+        object[] args)
+    {
+        var methods = owner.GetType().GetMethods()
+            .Where(value => value.IsPublic
+                && !value.IsStatic
+                && value.Name == name
+                && value.GetParameters().Length == args.Length)
+            .ToArray();
+        if (methods.Length != 1)
+            throw new InvalidOperationException(
+                "Expected one public " + owner.GetType().FullName + "." + name
+                + "/" + args.Length + "; count=" + methods.Length);
+        return methods[0].Invoke(owner, args);
+    }
+
+    static object Call(object owner, string name, params object[] args) =>
+        InvokePublic(owner, name, args);
+
+    static object Resolve(
+        string typeName,
+        string assemblyName = "Assembly-CSharp")
+    {
+        Type scopeType = T("DungeonRuntimeLifetimeScope");
+        Component scope = Resources.FindObjectsOfTypeAll(scopeType)
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Single(value => value.gameObject.scene.isLoaded);
+        object container = V(scope, "Container");
+        var resolves = container.GetType().GetMethods()
+            .Where(value => value.IsPublic
+                && !value.IsStatic
+                && value.Name == "Resolve")
+            .Where(value =>
+            {
+                var parameters = value.GetParameters();
+                return parameters.Length == 2
+                    && parameters[0].ParameterType == typeof(Type)
+                    && parameters[1].ParameterType == typeof(object);
+            })
+            .ToArray();
+        if (resolves.Length != 1)
+            throw new InvalidOperationException(
+                "Expected one public instance Resolve(Type, object); count="
+                + resolves.Length);
+        return resolves[0].Invoke(
+            container,
+            new object[] { T(typeName, assemblyName), null });
+    }
+
+    static List<object> Seq(object value) =>
+        value == null
+            ? new List<object>()
+            : ((IEnumerable)value).Cast<object>().ToList();
+
+    static int DefinitionId(object building)
+    {
+        object data = V(building, "BuildingData");
+        return data == null ? -1 : Convert.ToInt32(V(data, "id"));
+    }
+
+    static string ActorId(object actor) =>
+        Convert.ToString(V(V(actor, "Identity"), "PersistentId"));
+
+    static Vector2Int Position(object value, string member) =>
+        (Vector2Int)V(value, member);
+
+    static bool PathContains(object path, Vector2Int position)
+    {
+        if (path == null)
+            return false;
+        foreach (object step in (IEnumerable)path)
+        {
+            if ((Vector2Int)V(step, "To") == position)
+                return true;
+        }
+        return false;
+    }
+
+    static int PathCount(object path) =>
+        path == null ? 0 : ((IEnumerable)path).Cast<object>().Count();
+
+    static object CharacterTraversalContext(object actor)
+    {
+        object identity = V(actor, "Identity");
+        object typedId = V(identity, "TypedPersistentId");
+        Type contextType = T("GridTraversalContext", "DungeonStory.Grid");
+        var factory = contextType.GetMethods()
+            .Single(value => value.IsPublic
+                && value.IsStatic
+                && value.Name == "ForCharacter"
+                && value.GetParameters().Length == 8);
+        return factory.Invoke(null, new object[]
+        {
+            typedId,
+            Enum.Parse(T("DoorAccessOverrideKind", "DungeonStory.Grid"), "None"),
+            Enum.Parse(T("GridMovementIntent", "DungeonStory.Grid"), "General"),
+            Activator.CreateInstance(T(
+                "ChildSafetyAuthorizationToken", "DungeonStory.Grid")),
+            0, 0, 0, 0
+        });
+    }
+
+    static string RequestExact(
+        (object Actor, object Door, Vector2Int Start, Vector2Int Wall,
+            Vector2Int Access, int CoarseSteps, string ActorId) candidate,
+        object grid,
+        out object path)
+    {
+        object broker = V(candidate.Actor, "PathSearchBroker");
+        if (broker == null)
+            throw new InvalidOperationException(
+                "Selected actor has no public PathSearchBroker.");
+        object[] args =
+        {
+            grid,
+            candidate.Start,
+            candidate.Access,
+            null,
+            Enum.Parse(T(
+                "GridPathSearchPriority", "DungeonStory.Grid"), "Urgent"),
+            CharacterTraversalContext(candidate.Actor)
+        };
+        object status = InvokePublic(broker, "RequestMovePathTo", args);
+        path = args[3];
+        return Convert.ToString(status);
+    }
+
+    public void Execute(ExecutionResult result)
+    {
+        if (!EditorApplication.isPlaying || !Application.isPlaying)
+            throw new InvalidOperationException(
+                "WIM046 preflight requires the existing protected Play session.");
+        if (!EditorApplication.isPaused
+            || !Mathf.Approximately(Time.timeScale, 0f))
+            throw new InvalidOperationException(
+                "Pause the protected Play and set Time.timeScale=0 first.");
+
+        clock = Resolve(
+            "DungeonStory.Foundation.IGameClock",
+            "DungeonStory.Foundation");
+        if (!(bool)V(clock, "IsPaused"))
+            throw new InvalidOperationException("Public game clock is not paused.");
+
+        object world = Resolve("ICharacterAiWorldRegistry");
+        object[] gridArgs = { null };
+        if (!(bool)InvokePublic(world, "TryGetGrid", gridArgs)
+            || gridArgs[0] == null)
+            throw new InvalidOperationException("Public live grid is unavailable.");
+        object grid = gridArgs[0];
+
+        List<object> actors = Seq(V(world, "Characters"))
+            .Where(value => value is Component component
+                && component.gameObject.scene.isLoaded
+                && component.gameObject.activeInHierarchy)
+            .Where(value => !(bool)V(value, "IsDead")
+                && (bool)V(value, "CanRunAi")
+                && !(bool)V(value, "IsOwner"))
+            .Where(value => ((Component)value).GetComponent(T("AbilityWork")) != null)
+            .OrderBy(ActorId, StringComparer.Ordinal)
+            .ToList();
+        if (actors.Count == 0)
+            throw new InvalidOperationException(
+                "No active non-owner AI worker with AbilityWork is available.");
+
+        List<object> doors = Seq(V(world, "Buildings"))
+            .Where(value => value is Component component
+                && component.gameObject.scene.isLoaded
+                && component.gameObject.activeInHierarchy)
+            .Where(value => DefinitionId(value) == InteriorDoorBuildingId)
+            .OrderBy(value => Position(value, "centerPos").y)
+            .ThenBy(value => Position(value, "centerPos").x)
+            .ToList();
+        if (doors.Count == 0)
+            throw new InvalidOperationException(
+                "No live authored InteriorDoor BuildingSO id=8 exists.");
+
+        object provider = Resolve("IDungeonGridBuildingControllerProvider");
+        object controller = V(provider, "Controller");
+        object wall = null;
+        try
+        {
+            Call(controller, "SetGridModeBuild");
+            Call(controller, "SelectBuildingById", WallBuildingId);
+            wall = V(controller, "SelectedBuilding");
+            if (wall == null || Convert.ToInt32(V(wall, "id")) != WallBuildingId)
+                throw new InvalidOperationException(
+                    "Public build selection did not resolve Wall BuildingSO id=7.");
+
+            int width = Convert.ToInt32(V(grid, "width"));
+            int height = Convert.ToInt32(V(grid, "height"));
+            foreach (object actor in actors)
+            {
+                Vector2Int start = (Vector2Int)Call(actor, "GetNowXY");
+                string actorId = ActorId(actor);
+                for (int y = 0; y < height; y++)
+                {
+                    for (int x = 1; x < width - 1; x++)
+                    {
+                        Vector2Int wallCell = new Vector2Int(x, y);
+                        if (!(bool)Call(controller, "IsBuildableAt", wallCell))
+                            continue;
+                        Vector2Int[] accessCells =
+                        {
+                            new Vector2Int(x - 1, y),
+                            new Vector2Int(x + 1, y)
+                        };
+                        foreach (Vector2Int access in accessCells)
+                        {
+                            if (!(bool)Call(grid, "IsValidGridPos", access)
+                                || !(bool)Call(grid, "IsWalkable", access)
+                                || access == start)
+                                continue;
+                            object coarsePath = Call(
+                                grid, "GetMovePathTo", start, access);
+                            int coarseSteps = PathCount(coarsePath);
+                            if (coarseSteps == 0)
+                                continue;
+                            List<object> crossedDoors = doors
+                                .Where(value => PathContains(
+                                    coarsePath, Position(value, "centerPos")))
+                                .ToList();
+                            if (crossedDoors.Count != 1)
+                                continue;
+                            candidates.Add((
+                                actor,
+                                crossedDoors[0],
+                                start,
+                                wallCell,
+                                access,
+                                coarseSteps,
+                                actorId));
+                        }
+                    }
+                }
+            }
+        }
+        finally
+        {
+            Call(controller, "SetGridModeNone");
+        }
+
+        candidates.Sort((left, right) =>
+        {
+            int order = left.CoarseSteps.CompareTo(right.CoarseSteps);
+            if (order != 0) return order;
+            order = string.CompareOrdinal(left.ActorId, right.ActorId);
+            if (order != 0) return order;
+            order = left.Wall.y.CompareTo(right.Wall.y);
+            if (order != 0) return order;
+            return left.Wall.x.CompareTo(right.Wall.x);
+        });
+        if (candidates.Count > MaximumCoarseCandidates)
+            candidates.RemoveRange(
+                MaximumCoarseCandidates,
+                candidates.Count - MaximumCoarseCandidates);
+        if (candidates.Count == 0)
+            throw new InvalidOperationException(
+                "No current legal Wall-7 access route crosses exactly one Door-8; "
+                + "stop without placement.");
+
+        doorCommands = Resolve("IDoorAccessCommandService");
+        lastFrame = Time.frameCount;
+        startedWall = EditorApplication.timeSinceStartup;
+        installed = true;
+        EditorApplication.update += OnEditorUpdate;
+        EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        Time.timeScale = 0f;
+        EditorApplication.isPaused = false;
+        result.Log(
+            "WIM046 PREFLIGHT_INSTALLED coarseCandidates={0};startFrame={1};speed={2}",
+            candidates.Count, lastFrame, Time.timeScale);
+    }
+
+    void OnEditorUpdate()
+    {
+        if (!installed)
+            return;
+        if (!EditorApplication.isPlaying || !Application.isPlaying)
+        {
+            CleanupForExit();
+            return;
+        }
+        if (EditorApplication.timeSinceStartup - startedWall >= MaximumWallSeconds)
+        {
+            Finish("INCOMPLETE_WALL_TIMEOUT", false,
+                "Incremental public path requests did not finish in the wall bound.");
+            return;
+        }
+
+        try
+        {
+            int frame = Time.frameCount;
+            if (frame <= lastFrame)
+                return;
+            lastFrame = frame;
+
+            object world = Resolve("ICharacterAiWorldRegistry");
+            object[] gridArgs = { null };
+            if (!(bool)InvokePublic(world, "TryGetGrid", gridArgs)
+                || gridArgs[0] == null)
+                throw new InvalidOperationException(
+                    "Live grid disappeared during preflight.");
+            object grid = gridArgs[0];
+
+            if (index >= candidates.Count)
+            {
+                Finish("INCOMPLETE_NO_SOLE_ROUTE", false,
+                    "All legal coarse candidates remained reachable under public Deny "
+                    + "or lacked an actor path through their Door-8.");
+                return;
+            }
+
+            if (!hasCurrent)
+            {
+                current = candidates[index];
+                current.Start = (Vector2Int)Call(current.Actor, "GetNowXY");
+                object policy = V(current.Door, "AccessPolicy");
+                originalRule = Call(
+                    policy, "GetIndividualRule", current.ActorId);
+                denyApplied = false;
+                hasCurrent = true;
+            }
+
+            string status = RequestExact(current, grid, out object path);
+            requests++;
+            if (string.Equals(status, "Pending", StringComparison.Ordinal))
+                return;
+
+            Vector2Int doorCell = Position(current.Door, "centerPos");
+            if (!denyApplied)
+            {
+                if (!string.Equals(status, "Reachable", StringComparison.Ordinal)
+                    || !PathContains(path, doorCell))
+                {
+                    AdvanceCandidate();
+                    return;
+                }
+
+                object deny = Enum.Parse(
+                    T("DoorAccessIndividualRule"), "Deny");
+                if (!(bool)Call(
+                        doorCommands,
+                        "SetIndividualRule",
+                        current.Door,
+                        current.ActorId,
+                        deny))
+                    throw new InvalidOperationException(
+                        "Public individual Deny was rejected.");
+                denyApplied = true;
+                return;
+            }
+
+            RestoreRule();
+            if (string.Equals(status, "Unreachable", StringComparison.Ordinal))
+            {
+                Finish("PASS", false,
+                    "actor=" + current.ActorId
+                    + ";door=" + doorCell
+                    + ";wall=" + current.Wall
+                    + ";workAccess=" + current.Access
+                    + ";originalRule=" + originalRule
+                    + ";allowedPathCrossedDoor=true;deniedPath=Unreachable"
+                    + ";coarseSteps=" + current.CoarseSteps
+                    + ";requests=" + requests);
+                return;
+            }
+            AdvanceCandidate();
+        }
+        catch (Exception exception)
+        {
+            Finish("FAILED_PUBLIC_PREFLIGHT", true,
+                exception.GetType().Name + ": " + exception.Message);
+        }
+    }
+
+    void AdvanceCandidate()
+    {
+        RestoreRule();
+        index++;
+        current = default;
+        hasCurrent = false;
+        originalRule = null;
+        denyApplied = false;
+    }
+
+    void RestoreRule()
+    {
+        if (!denyApplied || !hasCurrent || originalRule == null)
+            return;
+        bool restored = (bool)Call(
+            doorCommands,
+            "SetIndividualRule",
+            current.Door,
+            current.ActorId,
+            originalRule);
+        denyApplied = false;
+        if (!restored)
+            throw new InvalidOperationException(
+                "Public original individual door rule restore was rejected.");
+    }
+
+    void Finish(string outcome, bool error, string detail)
+    {
+        if (!installed)
+            return;
+        try
+        {
+            RestoreRule();
+        }
+        catch (Exception restoreFailure)
+        {
+            outcome = "FAILED_RULE_RESTORE";
+            error = true;
+            detail += "; ruleRestore=" + restoreFailure.GetType().Name
+                + ": " + restoreFailure.Message;
+        }
+        finally
+        {
+            Unsubscribe();
+            if (Application.isPlaying)
+            {
+                Time.timeScale = 0f;
+                EditorApplication.isPaused = true;
+            }
+        }
+
+        string message = "WIM046 PREFLIGHT_" + outcome
+            + ";tested=" + Math.Min(index + 1, candidates.Count)
+            + ";candidateCount=" + candidates.Count
+            + ";lastFrame=" + lastFrame
+            + ";paused=" + (Application.isPlaying
+                && EditorApplication.isPaused
+                && Mathf.Approximately(Time.timeScale, 0f))
+            + ";detail=" + detail;
+        if (error)
+            Debug.LogError(message);
+        else if (!string.Equals(outcome, "PASS", StringComparison.Ordinal))
+            Debug.LogWarning(message);
+        else
+            Debug.Log(message);
+    }
+
+    void OnPlayModeStateChanged(PlayModeStateChange state)
+    {
+        if (state != PlayModeStateChange.ExitingPlayMode
+            && state != PlayModeStateChange.EnteredEditMode)
+            return;
+        CleanupForExit();
+    }
+
+    void CleanupForExit()
+    {
+        if (!installed)
+            return;
+        try
+        {
+            if (EditorApplication.isPlaying)
+                RestoreRule();
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError(
+                "WIM046 PREFLIGHT_PLAY_EXIT_RULE_RESTORE_FAILED "
+                + exception.GetType().Name + ": " + exception.Message);
+        }
+        finally
+        {
+            Unsubscribe();
+        }
+    }
+
+    void Unsubscribe()
+    {
+        EditorApplication.update -= OnEditorUpdate;
+        EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+        installed = false;
+    }
+}
+```
+
+## Stage B/C/D — parameterized placement, actual UI denial, and recovery
+
+After Stage A PASS, replace only the eight scalar values at the top of this command with
+its exact `actor`, `door`, `wall`, `workAccess`, and `originalRule` values. Run
+once in the same paused protected Play. No generated type or state is shared
+between the two RunCommand compilations.
+
+```csharp
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+using TMPro;
+
+internal class CommandScript : IRunCommand
+{
+    // Replace these exact Stage-A values only.
+    const string ActorId = "<PASTE_STAGE_A_actor>";
+    const int DoorX = int.MinValue;
+    const int DoorY = int.MinValue;
+    const int WallX = int.MinValue;
+    const int WallY = int.MinValue;
+    const int WorkAccessX = int.MinValue;
+    const int WorkAccessY = int.MinValue;
+    const string OriginalRule = "<PASTE_STAGE_A_originalRule>";
+
+    const int WallBuildingId = 7;
+    const int InteriorDoorBuildingId = 8;
+    const float StartBoundGameSeconds = 30f;
+    const float DenialBoundGameSeconds = 25f;
+    const float RecoveryBoundGameSeconds = 120f;
+    const double WholeRunWallSeconds = 190d;
+
+    object actor;
+    object door;
+    object site;
+    object work;
+    object brain;
+    object move;
+    object grid;
+    object clock;
+    object workOrders;
+    object controller;
+    object constructWorkType;
+    string siteId;
+    string orderId;
+    int phase;
+    int lastUnityFrame;
+    long failuresBeforeDeny;
+    float completedAtAllow;
+    float phaseStartedGame;
+    double startedWall;
+    bool installed;
+    bool placed;
+    bool denyObserved;
+    bool operationsUiObserved;
+    bool characterUiObserved;
+    bool recoveryActionObserved;
+    int recoveryTargetBlockSamples;
+    string diagnosticEvidence = string.Empty;
+    string diagnosticTitle = string.Empty;
+    string diagnosticDetail = string.Empty;
+    string operationsRowEvidence = string.Empty;
+    string lastRecoveryTargetBlock = string.Empty;
+    string lastStartOrderId = string.Empty;
+    string lastStartAction = string.Empty;
+    string lastStartPhase = string.Empty;
+    string lastStartPhaseDetail = string.Empty;
+    string lastStartDestination = string.Empty;
+    string lastStartMovementOwner = string.Empty;
+    string lastStartNeeds = string.Empty;
+    bool lastStartWorkRoutine;
+    bool lastStartIsWorking;
+    bool lastStartExactTarget;
+
+    static Type T(string name, string assemblyName = "Assembly-CSharp")
+    {
+        Type type = Type.GetType(name + ", " + assemblyName);
+        return type ?? throw new InvalidOperationException(
+            "Missing public type: " + name + ", " + assemblyName);
+    }
+
+    static object V(object value, string name)
+    {
+        if (value == null)
+            throw new InvalidOperationException("Public member owner is null: " + name);
+        Type type = value.GetType();
+        var property = type.GetProperty(name);
+        if (property != null && property.GetMethod != null
+            && property.GetMethod.IsPublic
+            && !property.GetMethod.IsStatic)
+            return property.GetValue(value);
+        var field = type.GetField(name);
+        if (field != null && field.IsPublic && !field.IsStatic)
+            return field.GetValue(value);
+        throw new InvalidOperationException(
+            "Missing public member " + type.FullName + "." + name);
+    }
+
+    static object InvokePublic(
+        object owner,
+        string name,
+        object[] args)
+    {
+        var methods = owner.GetType().GetMethods()
+            .Where(value => value.IsPublic
+                && !value.IsStatic
+                && value.Name == name
+                && value.GetParameters().Length == args.Length)
+            .ToArray();
+        if (methods.Length != 1)
+            throw new InvalidOperationException(
+                "Expected one public " + owner.GetType().FullName + "." + name
+                + "/" + args.Length + "; count=" + methods.Length);
+        return methods[0].Invoke(owner, args);
+    }
+
+    static object Call(object owner, string name, params object[] args) =>
+        InvokePublic(owner, name, args);
+
+    static object Resolve(
+        string typeName,
+        string assemblyName = "Assembly-CSharp")
+    {
+        Type scopeType = T("DungeonRuntimeLifetimeScope");
+        Component scope = Resources.FindObjectsOfTypeAll(scopeType)
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Single(value => value.gameObject.scene.isLoaded);
+        object container = V(scope, "Container");
+        var resolves = container.GetType().GetMethods()
+            .Where(value => value.IsPublic
+                && !value.IsStatic
+                && value.Name == "Resolve")
+            .Where(value =>
+            {
+                var parameters = value.GetParameters();
+                return parameters.Length == 2
+                    && parameters[0].ParameterType == typeof(Type)
+                    && parameters[1].ParameterType == typeof(object);
+            })
+            .ToArray();
+        if (resolves.Length != 1)
+            throw new InvalidOperationException(
+                "Expected one public instance Resolve(Type, object); count="
+                + resolves.Length);
+        return resolves[0].Invoke(
+            container,
+            new object[] { T(typeName, assemblyName), null });
+    }
+
+    static List<object> Seq(object value) =>
+        value == null
+            ? new List<object>()
+            : ((IEnumerable)value).Cast<object>().ToList();
+
+    static int DefinitionId(object building)
+    {
+        object data = V(building, "BuildingData");
+        return data == null ? -1 : Convert.ToInt32(V(data, "id"));
+    }
+
+    static string PersistentBuildingId(object building) =>
+        Convert.ToString(V(V(building, "PersistentInstanceId"), "Value"));
+
+    static object FindActor(string persistentId)
+    {
+        object world = Resolve("ICharacterAiWorldRegistry");
+        object[] matches = Seq(V(world, "Characters"))
+            .Where(value => value is Component component
+                && component.gameObject.scene.isLoaded
+                && component.gameObject.activeInHierarchy)
+            .Where(value => string.Equals(
+                Convert.ToString(V(V(value, "Identity"), "PersistentId")),
+                persistentId,
+                StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1)
+            throw new InvalidOperationException(
+                "Expected one active actor " + persistentId
+                + "; count=" + matches.Length);
+        return matches[0];
+    }
+
+    static object FindBuilding(
+        int definitionId,
+        Vector2Int position,
+        bool requireConstructionSite)
+    {
+        object world = Resolve("ICharacterAiWorldRegistry");
+        Type siteType = T("ConstructionSite");
+        object[] matches = Seq(V(world, "Buildings"))
+            .Where(value => value is Component component
+                && component.gameObject.scene.isLoaded
+                && component.gameObject.activeInHierarchy)
+            .Where(value => DefinitionId(value) == definitionId
+                && (Vector2Int)V(value, "centerPos") == position
+                && siteType.IsInstanceOfType(value) == requireConstructionSite)
+            .ToArray();
+        if (matches.Length != 1)
+            throw new InvalidOperationException(
+                "Expected one building id=" + definitionId + "@" + position
+                + ", site=" + requireConstructionSite
+                + "; count=" + matches.Length);
+        return matches[0];
+    }
+
+    static int DictionaryQuantity(object dictionary, string key)
+    {
+        foreach (object entry in (IEnumerable)dictionary)
+        {
+            if (string.Equals(
+                    Convert.ToString(V(entry, "Key")), key,
+                    StringComparison.Ordinal))
+                return Convert.ToInt32(V(entry, "Value"));
+        }
+        return 0;
+    }
+
+    static int DictionaryCount(object dictionary) =>
+        ((IEnumerable)dictionary).Cast<object>().Count();
+
+    static string Sanitize(string value) =>
+        new string((value ?? string.Empty)
+            .Select(character => char.IsLetterOrDigit(character)
+                ? character
+                : '_')
+            .ToArray());
+
+    static Button FindActiveButton(string name)
+    {
+        return Resources.FindObjectsOfTypeAll<Button>()
+            .SingleOrDefault(value => value != null
+                && value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy
+                && value.name == name);
+    }
+
+    static void ClickActual(Selectable selectable, string label)
+    {
+        if (selectable == null
+            || !selectable.isActiveAndEnabled
+            || !selectable.gameObject.activeInHierarchy
+            || !selectable.IsInteractable())
+            throw new InvalidOperationException(
+                "Actual UI target is inactive or not interactable: " + label);
+        EventSystem eventSystem = EventSystem.current;
+        if (eventSystem == null)
+            throw new InvalidOperationException(
+                "EventSystem is unavailable for actual UI input: " + label);
+        RectTransform rect = selectable.transform as RectTransform;
+        Canvas canvas = selectable.GetComponentInParent<Canvas>();
+        Camera camera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? canvas.worldCamera
+            : null;
+        Vector2 point = rect != null
+            ? RectTransformUtility.WorldToScreenPoint(
+                camera, rect.TransformPoint(rect.rect.center))
+            : (Vector2)selectable.transform.position;
+        PointerEventData pointer = new PointerEventData(eventSystem)
+        {
+            button = PointerEventData.InputButton.Left,
+            position = point,
+            pressPosition = point
+        };
+        ExecuteEvents.Execute(
+            selectable.gameObject, pointer, ExecuteEvents.pointerEnterHandler);
+        ExecuteEvents.Execute(
+            selectable.gameObject, pointer, ExecuteEvents.pointerDownHandler);
+        ExecuteEvents.Execute(
+            selectable.gameObject, pointer, ExecuteEvents.pointerUpHandler);
+        if (!ExecuteEvents.Execute(
+                selectable.gameObject, pointer, ExecuteEvents.pointerClickHandler))
+            throw new InvalidOperationException(
+                "Actual UI target has no pointer-click handler: " + label);
+    }
+
+    static Transform FindActiveTransform(string name)
+    {
+        return Resources.FindObjectsOfTypeAll<Transform>()
+            .SingleOrDefault(value => value != null
+                && value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy
+                && value.name == name);
+    }
+
+    void OpenDoorDetail()
+    {
+        object presentation = Resolve(
+            "IBuildingInfoPresentationPort",
+            "DungeonStory.Buildings");
+        Call(presentation, "ShowBuildingInfo", door);
+        Canvas.ForceUpdateCanvases();
+        Button detail = FindActiveButton("CleanPriorityButton");
+        if (detail == null || !detail.interactable)
+            throw new InvalidOperationException(
+                "Actual Building summary detail button is unavailable.");
+        ClickActual(detail, "CleanPriorityButton");
+        Canvas.ForceUpdateCanvases();
+        if (FindActiveTransform("DoorAccessSubject_" + Sanitize(ActorId)) == null)
+            throw new InvalidOperationException(
+                "Actual Door individual-subject row is unavailable for " + ActorId);
+    }
+
+    string CurrentDoorRule()
+    {
+        object policy = V(door, "AccessPolicy");
+        return Convert.ToString(Call(policy, "GetIndividualRule", ActorId));
+    }
+
+    void SetDoorRuleThroughActualUi(string desiredRule)
+    {
+        if (CurrentDoorRule() == desiredRule)
+            return;
+        OpenDoorDetail();
+        Transform row = FindActiveTransform(
+            "DoorAccessSubject_" + Sanitize(ActorId));
+        string toggleName = desiredRule == "Deny"
+            ? "Toggle_개별_차단"
+            : desiredRule == "Allow"
+                ? "Toggle_개별_허용"
+                : CurrentDoorRule() == "Deny"
+                    ? "Toggle_개별_차단"
+                    : "Toggle_개별_허용";
+        Toggle toggle = row.GetComponentsInChildren<Toggle>(true)
+            .Single(value => value.name == toggleName);
+        ClickActual(toggle, toggleName);
+        Canvas.ForceUpdateCanvases();
+        if (!string.Equals(CurrentDoorRule(), desiredRule, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Actual Door UI did not commit " + desiredRule
+                + "; current=" + CurrentDoorRule());
+    }
+
+    object ReadOrder(bool required)
+    {
+        object[] args = { site, constructWorkType, null };
+        bool found = (bool)InvokePublic(
+            workOrders, "TryGetOrderFor", args);
+        if (required && (!found || args[2] == null))
+            throw new InvalidOperationException(
+                "Live Wall construction order disappeared before completion.");
+        return found ? args[2] : null;
+    }
+
+    float GameTime() => Convert.ToSingle(V(clock, "Time"));
+
+    string CapturePublicNeeds()
+    {
+        object snapshot = V(V(actor, "Stats"), "StatSnapshot");
+        string[] observed = { "HUNGER", "THIRST", "SLEEP" };
+        return string.Join(",", ((IEnumerable)snapshot).Cast<object>()
+            .Where(entry => observed.Contains(
+                Convert.ToString(V(entry, "Key"))))
+            .Select(entry => Convert.ToString(V(entry, "Key"))
+                + "=" + Convert.ToSingle(V(entry, "Value")).ToString("0.###")));
+    }
+
+    public void Execute(ExecutionResult result)
+    {
+        if (!EditorApplication.isPlaying || !Application.isPlaying)
+            throw new InvalidOperationException(
+                "WIM046 continuation requires the protected Play session.");
+        if (!EditorApplication.isPaused
+            || !Mathf.Approximately(Time.timeScale, 0f))
+            throw new InvalidOperationException(
+                "Run the continuation from paused speed 0.");
+        if (ActorId.StartsWith("<", StringComparison.Ordinal)
+            || DoorX == int.MinValue || DoorY == int.MinValue
+            || WallX == int.MinValue || WallY == int.MinValue
+            || WorkAccessX == int.MinValue || WorkAccessY == int.MinValue
+            || (OriginalRule != "GroupDefault" && OriginalRule != "Allow"))
+            throw new InvalidOperationException(
+                "Replace all eight Stage-A scalar parameters exactly; Deny is not an "
+                + "allowed starting rule for the proved reachable route.");
+
+        try
+        {
+            clock = Resolve(
+                "DungeonStory.Foundation.IGameClock",
+                "DungeonStory.Foundation");
+            if (!(bool)V(clock, "IsPaused"))
+                throw new InvalidOperationException("Public game clock is not paused.");
+
+            object world = Resolve("ICharacterAiWorldRegistry");
+            object[] gridArgs = { null };
+            if (!(bool)InvokePublic(world, "TryGetGrid", gridArgs)
+                || gridArgs[0] == null)
+                throw new InvalidOperationException("Public live grid is unavailable.");
+            grid = gridArgs[0];
+            actor = FindActor(ActorId);
+            door = FindBuilding(
+                InteriorDoorBuildingId,
+                new Vector2Int(DoorX, DoorY),
+                false);
+            if (!string.Equals(CurrentDoorRule(), OriginalRule, StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    "Door rule changed after Stage A: expected=" + OriginalRule
+                    + "; current=" + CurrentDoorRule());
+
+            work = ((Component)actor).GetComponent(T("AbilityWork"));
+            move = ((Component)actor).GetComponent(T("AbilityMove"));
+            brain = V(actor, "Brain");
+            if (work == null || move == null || brain == null)
+                throw new InvalidOperationException(
+                    "Actor lacks AbilityWork, AbilityMove, or AIBrain.");
+
+            object provider = Resolve("IDungeonGridBuildingControllerProvider");
+            controller = V(provider, "Controller");
+            object wall = null;
+            try
+            {
+                Call(controller, "SetGridModeBuild");
+                Call(controller, "SelectBuildingById", WallBuildingId);
+                wall = V(controller, "SelectedBuilding");
+                if (wall == null || Convert.ToInt32(V(wall, "id")) != WallBuildingId)
+                    throw new InvalidOperationException(
+                        "Public build selection did not resolve Wall id 7.");
+                Vector2Int wallCell = new Vector2Int(WallX, WallY);
+                if (!(bool)Call(controller, "IsBuildableAt", wallCell))
+                    throw new InvalidOperationException(
+                        "Stage-A Wall cell is no longer buildable: " + wallCell);
+                object[] placementArgs = { wall, wallCell, null };
+                if (!(bool)InvokePublic(
+                        controller, "TryPlaceConstructionSite", placementArgs))
+                    throw new InvalidOperationException(
+                        "Public Wall placement rejected: "
+                        + Convert.ToString(placementArgs[2]));
+                placed = true;
+            }
+            finally
+            {
+                Call(controller, "SetGridModeNone");
+            }
+
+            site = FindBuilding(
+                WallBuildingId,
+                new Vector2Int(WallX, WallY),
+                true);
+            siteId = PersistentBuildingId(site);
+            if (string.IsNullOrWhiteSpace(siteId))
+                throw new InvalidOperationException(
+                    "Wall construction site lacks persistent identity.");
+            Vector2Int exactWorkAccess = new Vector2Int(
+                WorkAccessX, WorkAccessY);
+            if (!(bool)Call(
+                    site,
+                    "IsWorkAccessGridPosition",
+                    grid,
+                    exactWorkAccess))
+                throw new InvalidOperationException(
+                    "Stage-A work access is no longer valid for the placed site: "
+                    + exactWorkAccess);
+
+            var constructField = T(
+                    "BuiltInWorkTypeIds", "DungeonStory.Work")
+                .GetField("Construct");
+            if (constructField == null
+                || !constructField.IsPublic
+                || !constructField.IsStatic)
+                throw new InvalidOperationException(
+                    "Public static BuiltInWorkTypeIds.Construct is unavailable.");
+            constructWorkType = constructField.GetValue(null);
+            workOrders = Resolve("IWorkOrderRuntime");
+            object order = ReadOrder(required: true);
+            orderId = Convert.ToString(V(order, "WorkOrderId"));
+            object requirements = V(order, "ItemMaterialRequirements");
+            if (DictionaryCount(requirements) != 1
+                || DictionaryQuantity(requirements, "material:stone-block") != 1)
+                throw new InvalidOperationException(
+                    "Wall-7 authored input is not exact stone-block x1.");
+
+            object items = Resolve("IWorldItemStackRuntime");
+            object itemState = Enum.Parse(
+                T("WorldItemStackState", "DungeonStory.Items"),
+                "FacilityBuffer");
+            object[] spawnArgs =
+            {
+                "material:stone-block",
+                1,
+                new Vector2Int(WallX, WallY),
+                itemState,
+                Convert.ToString(V(order, "MaterialDestinationId")),
+                null
+            };
+            if (!(bool)InvokePublic(items, "SpawnItemAt", spawnArgs)
+                || Convert.ToInt32(spawnArgs[5]) != 1)
+                throw new InvalidOperationException(
+                    "Exact public stone-block x1 FacilityBuffer spawn failed.");
+            if (!(bool)Call(workOrders, "RefreshMaterialsReady", site))
+                throw new InvalidOperationException(
+                    "Public RefreshMaterialsReady rejected exact Wall input.");
+            order = ReadOrder(required: true);
+            string readyStatus = Convert.ToString(V(order, "Status"));
+            if (readyStatus != "Ready" && readyStatus != "InProgress")
+                throw new InvalidOperationException(
+                    "Wall order is not Ready after exact input: " + readyStatus);
+
+            object search = Call(
+                grid, "SearchPath", (Vector2Int)Call(actor, "GetNowXY"));
+            object[] priorityArgs = { site, constructWorkType, search, null };
+            bool priorityAccepted = (bool)InvokePublic(
+                work, "TrySetPriorityWorkTarget", priorityArgs);
+            if (!priorityAccepted
+                || !ReferenceEquals(V(work, "PriorityWorkTarget"), site))
+                throw new InvalidOperationException(
+                    "Single public construct-priority request was rejected; no automatic "
+                    + "warning confirmation was attempted: "
+                    + Convert.ToString(priorityArgs[3]));
+
+            phase = 0;
+            phaseStartedGame = GameTime();
+            startedWall = EditorApplication.timeSinceStartup;
+            lastUnityFrame = Time.frameCount;
+            installed = true;
+            EditorApplication.update += OnEditorUpdate;
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+            Time.timeScale = 1f;
+            EditorApplication.isPaused = false;
+            result.Log(
+                "WIM046 CONTINUATION_INSTALLED actor={0};door=({1},{2});"
+                + "wall=({3},{4});site={5};order={6};workAccess=({7},{8});speed={9}",
+                ActorId, DoorX, DoorY, WallX, WallY, siteId, orderId,
+                WorkAccessX, WorkAccessY,
+                Time.timeScale);
+        }
+        catch
+        {
+            PauseAndUnsubscribe();
+            CleanupFailedFixture();
+            throw;
+        }
+    }
+
+    void OnEditorUpdate()
+    {
+        if (!installed)
+            return;
+        if (!EditorApplication.isPlaying || !Application.isPlaying)
+        {
+            Unsubscribe();
+            return;
+        }
+        if (EditorApplication.timeSinceStartup - startedWall
+            >= WholeRunWallSeconds)
+        {
+            Finish("INCOMPLETE_WALL_TIMEOUT", false,
+                "Whole continuation exceeded its wall bound.", cleanup: true);
+            return;
+        }
+
+        try
+        {
+            int frame = Time.frameCount;
+            if (frame <= lastUnityFrame)
+                return;
+            lastUnityFrame = frame;
+
+            if (phase == 0)
+                ObserveCommittedMovement();
+            else if (phase == 1)
+                ObserveNoPath();
+            else if (phase == 2)
+                ObserveOperationsUi();
+            else if (phase == 3)
+                ObserveCharacterUiAndAllow();
+            else if (phase == 4)
+                ObserveRecovery();
+        }
+        catch (Exception exception)
+        {
+            Finish("FAILED_PUBLIC_CONTINUATION", true,
+                exception.GetType().Name + ": " + exception.Message,
+                cleanup: true);
+        }
+    }
+
+    void ObserveCommittedMovement()
+    {
+        object order = ReadOrder(required: true);
+        lastStartOrderId = Convert.ToString(V(order, "WorkOrderId"));
+        if (!string.Equals(lastStartOrderId, orderId, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Wall work-order identity changed before committed approach: expected="
+                + orderId + "; current=" + lastStartOrderId);
+        lastStartWorkRoutine = (bool)V(
+            work, "HasActiveWorkRoutineForDiagnostics");
+        lastStartIsWorking = (bool)V(work, "isWorking");
+        lastStartExactTarget = ReferenceEquals(
+            V(work, "PriorityWorkTarget"), site);
+        lastStartMovementOwner = Convert.ToString(
+            V(move, "ActiveMovementOperationOwnerForDiagnostics"));
+        lastStartAction = Convert.ToString(V(brain, "CurrentActionDebugLabel"));
+        lastStartPhase = Convert.ToString(V(brain, "CurrentActionPhase"));
+        lastStartPhaseDetail = Convert.ToString(
+            V(brain, "CurrentActionPhaseDetail"));
+        lastStartDestination = Convert.ToString(
+            V(brain, "CurrentDestinationDebugLabel"));
+        lastStartNeeds = CapturePublicNeeds();
+
+        if (GameTime() - phaseStartedGame >= StartBoundGameSeconds)
+        {
+            Finish("INCOMPLETE_NO_COMMITTED_MOVEMENT", false,
+                "Priority AI did not commit a moving construction action; "
+                + "order=" + lastStartOrderId
+                + ";workRoutine=" + lastStartWorkRoutine
+                + ";isWorking=" + lastStartIsWorking
+                + ";exactTarget=" + lastStartExactTarget
+                + ";movementOwner=" + lastStartMovementOwner
+                + ";action=" + lastStartAction
+                + ";phase=" + lastStartPhase
+                + ";phaseDetail=" + lastStartPhaseDetail
+                + ";destination=" + lastStartDestination
+                + ";needs=" + lastStartNeeds,
+                cleanup: true);
+            return;
+        }
+        bool committedApproach = lastStartWorkRoutine
+            && lastStartIsWorking
+            && lastStartExactTarget
+            && string.Equals(
+                lastStartMovementOwner, "raw-path", StringComparison.Ordinal)
+            && string.Equals(lastStartPhase, "이동", StringComparison.Ordinal);
+        if (!committedApproach)
+            return;
+
+        Time.timeScale = 0f;
+        SetDoorRuleThroughActualUi("Deny");
+        denyObserved = CurrentDoorRule() == "Deny";
+        failuresBeforeDeny = Convert.ToInt64(V(brain, "RuntimeExecutionFailureCount"));
+        phase = 1;
+        phaseStartedGame = GameTime();
+        Time.timeScale = 1f;
+    }
+
+    void ObserveNoPath()
+    {
+        if (GameTime() - phaseStartedGame >= DenialBoundGameSeconds)
+        {
+            Finish("INCOMPLETE_NO_TYPED_NOPATH", false,
+                "Actual Door UI Deny did not produce bounded typed NoPath.",
+                cleanup: true);
+            return;
+        }
+        long failures = Convert.ToInt64(V(brain, "RuntimeExecutionFailureCount"));
+        if (failures <= failuresBeforeDeny)
+            return;
+        object failure = V(brain, "LastActionFailure");
+        string kind = Convert.ToString(V(failure, "Kind"));
+        if (!string.Equals(kind, "NoPath", StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "First post-Deny execution failure was " + kind
+                + ": " + Convert.ToString(V(failure, "Reason")));
+        object block = Call(brain, "CaptureCurrentOperationBlock");
+        string blockTarget = Convert.ToString(V(block, "TargetStableId"));
+        string blockFailure = Convert.ToString(
+            V(V(block, "Failure"), "Kind"));
+        string blockAxis = Convert.ToString(V(block, "Axis"));
+        if (!(bool)V(block, "HasObservation")
+            || !string.Equals(blockTarget, siteId, StringComparison.Ordinal)
+            || blockFailure != "NoPath"
+            || blockAxis != "Access")
+            throw new InvalidOperationException(
+                "AIBrain operation block mismatch: target=" + blockTarget
+                + "; failure=" + blockFailure + "; axis=" + blockAxis);
+
+        object diagnostics = Resolve("IGameplayFlowDiagnosticsQuery");
+        object snapshot = Call(diagnostics, "Capture");
+        object exact = Seq(V(snapshot, "Items")).FirstOrDefault(value =>
+            string.Equals(
+                Convert.ToString(V(value, "TargetStableId")),
+                siteId,
+                StringComparison.Ordinal)
+            && Convert.ToString(V(value, "FailureKind")) == "NoPath");
+        if (exact == null)
+            throw new InvalidOperationException(
+                "GameplayFlow diagnostics lacks the exact Wall-site NoPath item.");
+        diagnosticTitle = Convert.ToString(V(exact, "Title"));
+        diagnosticDetail = Convert.ToString(V(exact, "Detail"));
+        diagnosticEvidence = diagnosticTitle + " | " + diagnosticDetail;
+
+        Time.timeScale = 0f;
+        Button operations = FindActiveButton("TopTabButton_Operations_운영");
+        if (operations == null || !operations.interactable)
+            throw new InvalidOperationException(
+                "Actual Operations top-tab button is unavailable.");
+        ClickActual(operations, "TopTabButton_Operations_운영");
+        Canvas.ForceUpdateCanvases();
+        phase = 2;
+    }
+
+    void ObserveOperationsUi()
+    {
+        Transform section = FindActiveTransform("Section_작업·물류");
+        string expectedDetail = diagnosticDetail + " · 대상 " + siteId;
+        Transform exactRow = Resources.FindObjectsOfTypeAll<Transform>()
+            .Where(value => value != null
+                && value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy
+                && value.name.StartsWith("P0State_Flow_", StringComparison.Ordinal))
+            .SingleOrDefault(value =>
+            {
+                string[] texts = value.GetComponentsInChildren<TMP_Text>(false)
+                    .Select(text => text.text)
+                    .ToArray();
+                return texts.Any(text => string.Equals(
+                        text, diagnosticTitle, StringComparison.Ordinal))
+                    && texts.Any(text => string.Equals(
+                        text, expectedDetail, StringComparison.Ordinal));
+            });
+        if (section == null || exactRow == null)
+            throw new InvalidOperationException(
+                "Actual Operations 작업·물류 UI lacks the exact query-backed "
+                + "NoPath/site row: title=" + diagnosticTitle
+                + "; detail=" + expectedDetail);
+        operationsRowEvidence = diagnosticTitle + " | " + expectedDetail;
+        operationsUiObserved = true;
+
+        Component summary = Resources.FindObjectsOfTypeAll(
+                T("CharacterSummaryInfo"))
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Single(value => value.gameObject.scene.isLoaded);
+        Type infoFeedEventType = T("InfoFeedEvent");
+        object infoEvent = Activator.CreateInstance(
+            infoFeedEventType, new object[] { actor });
+        var infoFeedHandlers = summary.GetType().GetMethods()
+            .Where(value => value.IsPublic
+                && !value.IsStatic
+                && value.Name == "OnTriggerEvent")
+            .Where(value =>
+            {
+                var parameters = value.GetParameters();
+                return parameters.Length == 1
+                    && parameters[0].ParameterType == infoFeedEventType;
+            })
+            .ToArray();
+        if (infoFeedHandlers.Length != 1)
+            throw new InvalidOperationException(
+                "Expected one public CharacterSummaryInfo.OnTriggerEvent(InfoFeedEvent); count="
+                + infoFeedHandlers.Length);
+        infoFeedHandlers[0].Invoke(summary, new object[] { infoEvent });
+        Call(summary, "ShowAiTab");
+        Canvas.ForceUpdateCanvases();
+        diagnosticEvidence += " | characterDisplayObservation=requested";
+        phase = 3;
+    }
+
+    void ObserveCharacterUiAndAllow()
+    {
+        Component summary = Resources.FindObjectsOfTypeAll(
+                T("CharacterSummaryInfo"))
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Single(value => value.gameObject.scene.isLoaded);
+        GameObject root = (GameObject)V(summary, "UI");
+        string aiText = string.Join("\n", root
+            .GetComponentsInChildren<TMP_Text>(false)
+            .Select(value => value.text));
+        if (!aiText.Contains("실행 차단 관측", StringComparison.Ordinal)
+            || !aiText.Contains(siteId, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "Actual Character AI tab lacks exact execution-block/site text.");
+        characterUiObserved = true;
+
+        SetDoorRuleThroughActualUi("Allow");
+        object order = ReadOrder(required: true);
+        completedAtAllow = Convert.ToSingle(V(order, "CompletedWork"));
+        phase = 4;
+        phaseStartedGame = GameTime();
+        Time.timeScale = 1f;
+    }
+
+    void ObserveRecovery()
+    {
+        if (GameTime() - phaseStartedGame >= RecoveryBoundGameSeconds)
+        {
+            Finish("INCOMPLETE_RECOVERY_TIMEOUT", false,
+                "Same construction order did not complete after actual UI Allow.",
+                cleanup: true);
+            return;
+        }
+        object currentBlock = Call(brain, "CaptureCurrentOperationBlock");
+        bool hasCurrentBlock = (bool)V(currentBlock, "HasCurrentBlock");
+        string currentBlockTarget = Convert.ToString(
+            V(currentBlock, "TargetStableId"));
+        if (hasCurrentBlock
+            && string.Equals(currentBlockTarget, siteId, StringComparison.Ordinal))
+        {
+            recoveryTargetBlockSamples++;
+            lastRecoveryTargetBlock = "failure="
+                + Convert.ToString(V(V(currentBlock, "Failure"), "Kind"))
+                + ";axis=" + Convert.ToString(V(currentBlock, "Axis"));
+        }
+
+        object order = ReadOrder(required: false);
+        if (order != null)
+        {
+            string currentOrderId = Convert.ToString(V(order, "WorkOrderId"));
+            if (!string.Equals(currentOrderId, orderId, StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    "Site order identity changed during recovery: expected="
+                    + orderId + "; current=" + currentOrderId);
+            float completed = Convert.ToSingle(V(order, "CompletedWork"));
+            bool exactPriorityTarget = ReferenceEquals(
+                V(work, "PriorityWorkTarget"), site);
+            recoveryActionObserved |= completed > completedAtAllow
+                || (exactPriorityTarget
+                    && ((bool)V(work, "HasActiveWorkRoutineForDiagnostics")
+                        || (bool)V(move, "HasActiveMovementRoutineForDiagnostics")));
+            return;
+        }
+
+        object completedWall = FindBuilding(
+            WallBuildingId,
+            new Vector2Int(WallX, WallY),
+            false);
+        if (completedWall == null || !recoveryActionObserved)
+            throw new InvalidOperationException(
+                "Order ended without a normal recovery action/completed Wall.");
+        Time.timeScale = 0f;
+        SetDoorRuleThroughActualUi(OriginalRule);
+        object block = Call(brain, "CaptureCurrentOperationBlock");
+        bool retainedTargetBlock = (bool)V(block, "HasCurrentBlock")
+            && string.Equals(
+                Convert.ToString(V(block, "TargetStableId")),
+                siteId,
+                StringComparison.Ordinal);
+        if (retainedTargetBlock)
+            throw new InvalidOperationException(
+                "Successful recovery retained the same Wall-site operation block: "
+                + Convert.ToString(V(V(block, "Failure"), "Kind")));
+        Finish("PASS", false,
+            "actor=" + ActorId
+            + ";site=" + siteId
+            + ";order=" + orderId
+            + ";denyUi=" + denyObserved
+            + ";typedNoPath=true;operationsUi=" + operationsUiObserved
+            + ";characterUi=" + characterUiObserved
+            + ";allowUi=true;recoveryAction=" + recoveryActionObserved
+            + ";wallCompleted=true;ruleRestored=" + CurrentDoorRule()
+            + ";targetBlockCleared=true;targetBlockSamples="
+            + recoveryTargetBlockSamples
+            + ";lastTargetBlock=" + lastRecoveryTargetBlock
+            + ";operationsRow=" + operationsRowEvidence
+            + ";diagnostic=" + diagnosticEvidence,
+            cleanup: false);
+    }
+
+    void Finish(string outcome, bool error, string detail, bool cleanup)
+    {
+        if (!installed)
+            return;
+        bool restoreSucceeded = false;
+        string restoreFailure = string.Empty;
+        try
+        {
+            Time.timeScale = 0f;
+            SetDoorRuleThroughActualUi(OriginalRule);
+            restoreSucceeded = CurrentDoorRule() == OriginalRule;
+        }
+        catch (Exception exception)
+        {
+            restoreFailure = exception.GetType().Name + ": " + exception.Message;
+        }
+        if (!restoreSucceeded)
+        {
+            outcome = "FAILED_RULE_RESTORE";
+            error = true;
+            detail += "; restoreFailure=" + restoreFailure;
+        }
+        PauseAndUnsubscribe();
+        if (cleanup)
+            CleanupFailedFixture();
+
+        string message = "WIM046 CONTINUATION_" + outcome
+            + ";phase=" + phase
+            + ";unityFrame=" + lastUnityFrame
+            + ";gameTime=" + GameTime().ToString("R")
+            + ";paused=" + (Application.isPlaying
+                && EditorApplication.isPaused
+                && Mathf.Approximately(Time.timeScale, 0f))
+            + ";detail=" + detail;
+        if (error)
+            Debug.LogError(message);
+        else if (!string.Equals(outcome, "PASS", StringComparison.Ordinal))
+            Debug.LogWarning(message);
+        else
+            Debug.Log(message);
+    }
+
+    void CleanupFailedFixture()
+    {
+        try
+        {
+            if (work != null)
+                Call(work, "ClearPriorityWorkTarget");
+            Component existingSite = site as Component;
+            if (placed && existingSite == null)
+            {
+                site = FindBuilding(
+                    WallBuildingId,
+                    new Vector2Int(WallX, WallY),
+                    true);
+            }
+            if (placed && site is Component component && component != null)
+                Call(site, "CancelConstruction");
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError(
+                "WIM046 CONTINUATION_CLEANUP_FAILED "
+                + exception.GetType().Name + ": " + exception.Message);
+        }
+    }
+
+    void PauseAndUnsubscribe()
+    {
+        Unsubscribe();
+        if (Application.isPlaying)
+        {
+            Time.timeScale = 0f;
+            EditorApplication.isPaused = true;
+        }
+    }
+
+    void OnPlayModeStateChanged(PlayModeStateChange state)
+    {
+        if (state == PlayModeStateChange.ExitingPlayMode
+            || state == PlayModeStateChange.EnteredEditMode)
+            Unsubscribe();
+    }
+
+    void Unsubscribe()
+    {
+        EditorApplication.update -= OnEditorUpdate;
+        EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+        installed = false;
+    }
+}
+```
+
+## Readback and stop contract
+
+- Accept Stage A only on one terminal `WIM046 PREFLIGHT_PASS` with concrete `actor`, `door`, `wall`, and `workAccess`, `allowedPathCrossedDoor=true`, `deniedPath=Unreachable`, and `paused=true`. This proves a current legal placement candidate and sole actor route; it does not place Wall 7 or prove AI/UI behavior.
+- `INCOMPLETE_NO_SOLE_ROUTE` or `INCOMPLETE_WALL_TIMEOUT` is an honest current-layout blocker. Do not create a maze, teleport a worker, change a room, or substitute Door 1. `FAILED_*` is a command/readback failure and is not gameplay evidence.
+- The continuation accepts the Stage-A tuple as eight explicit scalar constants, revalidates it, then uses public `TryPlaceConstructionSite`, exact `material:stone-block` x1 `FacilityBuffer`, `RefreshMaterialsReady`, and `AbilityWork.TrySetPriorityWorkTarget`. It revalidates the same work-order ID and waits for the normal work coroutine's actual nested `raw-path`/`이동` approach before changing access; work-owned movement does not populate `HasActiveMovementRoutineForDiagnostics`.
+- Deny and Allow, the building-detail button, and the Operations tab are committed through active/interactable EventSystem pointer-click handlers. PASS additionally requires typed AIBrain `NoPath/Access`, the exact public diagnostics title plus its site-appended detail in the matching active Operations `작업·물류` row, same-order resumed work, completed Wall 7, the same target's current block cleared, and original door-rule restoration. `InfoFeedEvent` plus `ShowAiTab` is explicitly a public Character display observation, not player-input proof.
+- `INCOMPLETE_*` restores the door rule, clears the priority, and calls the construction site's public `CancelConstruction`. PASS leaves the completed runtime Wall in the disposable protected Play; pause, record the terminal line, then stop Play normally without saving the scene or any slot.
+- The target is `InteriorDoor.asset`/BuildingSO id 8 (`IsDungeonEntrance=false`), not the dungeon entrance Door id 1. Wall id 7 remains authored at stone-block x1 and 45 WU; this input does not change either value.
+
+## Exact type-to-assembly map checked against current asmdef ownership
+
+- `DungeonRuntimeLifetimeScope`, `ICharacterAiWorldRegistry`, `IDungeonGridBuildingControllerProvider`, `IWorkOrderRuntime`, `IWorldItemStackRuntime`, `IDoorAccessCommandService`, `IGameplayFlowDiagnosticsQuery`, `AbilityWork`, `AbilityMove`, `ConstructionSite`, `CharacterSummaryInfo`, `InfoFeedEvent`, and `DoorAccessIndividualRule`: global types in `Assembly-CSharp`.
+- `DungeonStory.Foundation.IGameClock`: namespaced type in `DungeonStory.Foundation`; `GridTraversalContext`, `DoorAccessOverrideKind`, `GridMovementIntent`, `ChildSafetyAuthorizationToken`, and `GridPathSearchPriority`: global types in `DungeonStory.Grid`.
+- `BuiltInWorkTypeIds`/`WorkTypeId`: global types in `DungeonStory.Work`; `WorldItemStackState`: global type in `DungeonStory.Items`; `IBuildingInfoPresentationPort`: global type in `DungeonStory.Buildings`.
+- Unity-side `Button`/`Toggle` and `TMP_Text` are compile-time package types and are not passed through `T`. No assembly scan or fallback is used. `Time.frameCount` only schedules incremental broker/UI samples; game-time bounds and evidence use the public Foundation `IGameClock.Time`.
+
+execution=NOT_RUN

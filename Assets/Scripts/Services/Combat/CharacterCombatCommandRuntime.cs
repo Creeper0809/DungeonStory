@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using static CharacterCombatCommandRuntimeRules;
 
@@ -34,7 +35,13 @@ public sealed class CharacterCombatCommandRuntime :
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly CharacterCombatCommandRestoreCoordinator restoreCoordinator;
     private readonly IGameEventBus gameEventBus;
-    private readonly IWorldUiHierarchy worldUiHierarchy;
+    private readonly ICombatCommandProjectilePresentation projectiles;
+    private readonly IDomainFactPublisher facts;
+    private readonly IDomainFactRecoveryPublisher factRecovery;
+    private readonly IGameCalendar calendar;
+    private bool cellShotMutationActive;
+    private string cellShotRecoveryFailure = string.Empty;
+    private float cellShotRecoveryDelay;
     private readonly Dictionary<string, float> nextMoveRetryAt =
         new Dictionary<string, float>(StringComparer.Ordinal);
     private readonly List<string> tickCommandActorIds = new List<string>();
@@ -63,7 +70,10 @@ public sealed class CharacterCombatCommandRuntime :
         CharacterCombatCommandCombatServices combat,
         CharacterCombatCommandWorldServices world,
         CharacterCombatCommandCollaborators collaborators,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IDomainFactPublisher facts,
+        IDomainFactRecoveryPublisher factRecovery,
+        IGameCalendar calendar)
     {
         combat = combat ?? throw new ArgumentNullException(nameof(combat));
         world = world ?? throw new ArgumentNullException(nameof(world));
@@ -71,6 +81,9 @@ public sealed class CharacterCombatCommandRuntime :
             ?? throw new ArgumentNullException(nameof(collaborators));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.factRecovery = factRecovery ?? throw new ArgumentNullException(nameof(factRecovery));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         gridProvider = world.GridProvider;
         equipment = combat.Equipment;
         resolution = combat.Resolution;
@@ -89,7 +102,7 @@ public sealed class CharacterCombatCommandRuntime :
         gameClock = world.GameClock;
         coverDurability = world.CoverDurability;
         gameEventBus = world.GameEventBus;
-        worldUiHierarchy = world.WorldUiHierarchy;
+        projectiles = collaborators.Projectiles;
         attackPositionPlanner = collaborators.AttackPositionPlanner;
         fallbackWeapons = collaborators.FallbackWeapons;
         resultApplier = collaborators.ResultApplier;
@@ -116,7 +129,11 @@ public sealed class CharacterCombatCommandRuntime :
     public CharacterCombatCommandRestoreCandidate PrepareRestore(CharacterCombatCommandSaveData saveData) =>
         restoreCoordinator.PrepareRestore(saveData);
     public void PublishRestore(CharacterCombatCommandRestoreCandidate candidate) => restoreCoordinator.PublishRestore(candidate);
-    public void BeginRestoreCandidate() => restoreCoordinator.BeginRestoreCandidate();
+    public void BeginRestoreCandidate()
+    {
+        if (cellShotMutationActive) throw new InvalidOperationException("Combat cell-shot mutation blocks restore.");
+        restoreCoordinator.BeginRestoreCandidate();
+    }
     public void PublishRestoreCandidate() => restoreCoordinator.PublishRestoreCandidate();
     public void RollbackPublishedRestoreCandidate() =>
         restoreCoordinator.RollbackPublishedRestoreCandidate();
@@ -126,7 +143,19 @@ public sealed class CharacterCombatCommandRuntime :
 
     internal void TickFrame()
     {
+        if (aggregateRootStore.IsRestoreStaging || restoreCoordinator.IsRestoring || cellShotMutationActive) return;
         float deltaTime = gameClock.DeltaTime;
+        if (deltaTime > 0f)
+        {
+            cellShotRecoveryDelay -= deltaTime;
+            if (cellShotRecoveryDelay <= 0f && aggregateState.PendingCellShots.Count > 0)
+            {
+                CombatCellShotJournal.Resume(writableAggregateState.PendingCellShots, factRecovery, out string failure);
+                if (failure.Length > 0 && failure != cellShotRecoveryFailure) Debug.LogWarning(failure);
+                cellShotRecoveryFailure = failure;
+                cellShotRecoveryDelay = 1f;
+            }
+        }
         if (commands.Count == 0 || deltaTime <= 0f)
         {
             return;
@@ -544,6 +573,7 @@ public sealed class CharacterCombatCommandRuntime :
 
     public CharacterCombatCommandSaveData Capture()
     {
+        if (cellShotMutationActive) throw new InvalidOperationException("Combat cell-shot mutation is still active.");
         return CharacterCombatCommandPersistence.Capture(aggregateState);
     }
 
@@ -721,35 +751,85 @@ public sealed class CharacterCombatCommandRuntime :
             }
             float tileManaCost = CharacterArcaneWeaponRules.GetManaCost(
                 weapon.DefinitionId);
+            int tileAmmunitionCost = CombatEquipmentRoleRules
+                .GetAmmunitionPerAttack(
+                    weapon,
+                    profile?.fireMode ?? CombatFireMode.Aimed);
             if (tileManaCost > 0f
                 && !mana.CanSpendMana(actor, tileManaCost, out string tileManaFailure))
             {
                 BlockCommand(command, tileManaFailure);
                 return;
             }
-            if (tileManaCost > 0f
-                && !manaCommands.TrySpendMana(actor, tileManaCost, out tileManaFailure))
-            {
-                BlockCommand(command, tileManaFailure);
-                return;
-            }
-
-            CombatCommandProjectileLauncher.Launch(
-                actor.transform.position,
-                grid.GetWorldPos(command.TargetCell),
-                weapon,
-                gameClock,
-                worldUiHierarchy);
-            equipment.TryConsumeLoadedAmmo(
-                weapon.InstanceId,
-                CombatEquipmentRoleRules.GetAmmunitionPerAttack(
-                    weapon,
-                    profile?.fireMode ?? CombatFireMode.Aimed));
-            command.attackCooldownRemaining = resolution.CalculateAttackInterval(
+            long tileAttackRevision = command.revision;
+            CombatFireMode tileFireMode =
+                profile?.fireMode ?? CombatFireMode.Aimed;
+            float manaBefore = mana.GetMana(actor).Current;
+            float manaAfter = Mathf.Max(0f, manaBefore - tileManaCost);
+            float cooldown = resolution.CalculateAttackInterval(
                 CreateCombatStats(actor, bodyHealth.GetSnapshot(actor), command),
                 weapon,
-                profile?.fireMode ?? CombatFireMode.Aimed);
-            command.status = "지정 칸 사격";
+                tileFireMode);
+            CombatOutcomeMechanicalMutation tileMechanicalMutation =
+                CreateCellFireMechanicalMutation(
+                    actor,
+                    command,
+                    tileAttackRevision,
+                    tileManaCost,
+                    weapon,
+                    tileAmmunitionCost,
+                    cooldown);
+            CombatCellShotFact fact;
+            try
+            {
+                fact = new CombatCellShotFact(new CombatCellShotFactData
+                {
+                    commandId = command.commandId, attackRevision = command.revision,
+                    actorId = GetId(actor), actorName = actor.Identity?.DisplayName ?? actor.name,
+                    absoluteDay = Mathf.Max(1, calendar.Day), targetX = command.targetX, targetY = command.targetY,
+                    weaponDefinitionId = weapon.DefinitionId, weaponInstanceId = weapon.InstanceId,
+                    damageType = weapon.Verb?.damageType ?? CombatDamageType.Pierce, fireMode = tileFireMode,
+                    requiresAmmunition = weapon.RequiresAmmo,
+                    ammunitionItemId = weapon.RequiresAmmo ? weapon.AmmunitionItemId : string.Empty,
+                    ammunitionBefore = weapon.RequiresAmmo ? weapon.LoadedAmmo : 0,
+                    ammunitionConsumed = weapon.RequiresAmmo ? tileAmmunitionCost : 0,
+                    ammunitionAfter = weapon.RequiresAmmo ? weapon.LoadedAmmo - tileAmmunitionCost : 0,
+                    manaBefore = manaBefore, manaCost = tileManaCost,
+                    manaSpent = manaBefore - manaAfter, manaAfter = manaAfter
+                });
+            }
+            catch (ArgumentException exception)
+            { BlockCommand(command, exception.Message); return; }
+            bool applied;
+            string publicationFailure;
+            cellShotMutationActive = true;
+            try
+            {
+                applied = CombatCellShotJournal.TryApply(writableAggregateState.PendingCellShots, facts, fact,
+                    tileMechanicalMutation.Apply,
+                    () => command.revision == tileAttackRevision + 1
+                        && mana.GetMana(actor).Current == manaAfter
+                        && (!weapon.RequiresAmmo || equipment.TryGetInstance(weapon.InstanceId, out var actualWeapon)
+                            && actualWeapon.loadedAmmo == weapon.LoadedAmmo - tileAmmunitionCost),
+                    tileMechanicalMutation.Rollback, out publicationFailure);
+            }
+            finally { cellShotMutationActive = false; }
+            if (!applied)
+            {
+                if (publicationFailure.Contains("CapacityDeferred", StringComparison.Ordinal)
+                    || publicationFailure == "combat-cell-shot-pending-capacity")
+                    WaitForOutcomeCapacity(command, publicationFailure);
+                else BlockCommand(command, publicationFailure);
+                return;
+            }
+            tileMechanicalMutation.Complete();
+            if (publicationFailure.Length > 0 && publicationFailure != cellShotRecoveryFailure)
+                Debug.LogWarning(publicationFailure);
+            cellShotRecoveryFailure = publicationFailure;
+            TryPresentCellFire(
+                actor,
+                grid.GetWorldPos(command.TargetCell),
+                weapon);
             MarkDirty();
             return;
         }
@@ -783,6 +863,29 @@ public sealed class CharacterCombatCommandRuntime :
         CombatFireMode mode = CharacterCombatCommandLifecyclePolicy.ResolveSupportedFireMode(
             weapon,
             profile?.fireMode ?? CombatFireMode.Aimed);
+        if (resolution is not ICombatResolutionTransactionService
+            transactionalResolution)
+        {
+            BlockCommand(command, "combat-resolution-transaction-boundary-missing");
+            return;
+        }
+        long attackRevision = command.revision;
+        string attackOperationId =
+            command.commandId + ":" + attackRevision;
+        if (!resultApplier.TryReserveDamageOutcome(
+                impactTarget,
+                attackOperationId,
+                attackRevision,
+                out ReservedCombatAction reservedDamage,
+                out bool capacityDeferred,
+                out string reserveFailure))
+        {
+            if (capacityDeferred)
+                WaitForOutcomeCapacity(command, reserveFailure);
+            else
+                BlockCommand(command, reserveFailure);
+            return;
+        }
         CharacterBodyHealthSnapshot attackerBody = bodyHealth.GetSnapshot(actor);
         CombatStatSnapshot defenderStats = participants.GetCombatStats(impactTarget);
         CharacterBodyHealthSnapshot defenderBody = impactTarget.IsCharacter
@@ -793,17 +896,12 @@ public sealed class CharacterCombatCommandRuntime :
         if (manaCost > 0f
             && !mana.CanSpendMana(actor, manaCost, out string manaFailure))
         {
+            resultApplier.CancelDamageOutcome(reservedDamage);
             BlockCommand(command, manaFailure);
             return;
         }
-        if (manaCost > 0f
-            && !manaCommands.TrySpendMana(actor, manaCost, out manaFailure))
-        {
-            BlockCommand(command, manaFailure);
-            return;
-        }
-        CombatAttackResult result = resolution.Resolve(new CombatAttackRequest(
-            command.commandId + ":" + command.revision++,
+        CombatAttackRequest attackRequest = new CombatAttackRequest(
+            attackOperationId,
             GetId(actor),
             impactTarget.Id,
             CreateCombatStats(actor, attackerBody, command),
@@ -827,48 +925,73 @@ public sealed class CharacterCombatCommandRuntime :
                 : Array.Empty<CombatArmorSnapshot>(),
             defenderShield: impactTarget.IsCharacter
                 ? equipment.GetShield(impactTarget.Id)
-                : default));
+                : default);
+        CombatAttackResult result = transactionalResolution.ResolveDetached(
+            attackRequest);
         if (!result.Executed)
         {
-            if (manaCost > 0f)
-                manaCommands.RefundFailedManaSpend(actor, manaCost);
+            resultApplier.CancelDamageOutcome(reservedDamage);
+            if (!transactionalResolution.TryApplyResolvedResultMutation(
+                    attackRequest,
+                    result,
+                    out string resolutionFailure))
+            {
+                BlockCommand(command, resolutionFailure);
+                return;
+            }
+            transactionalResolution.CompleteResolvedResultMutation(
+                attackRequest);
+            SetCommandRevision(command, checked((int)(attackRevision + 1L)));
             BlockCommand(command, result.FailureReason);
             return;
         }
-        ConsumePoweredAttack(weapon);
-        ConsumePoweredDefense(impactTarget, result);
-
-        CombatCommandProjectileLauncher.Launch(
+        string committedStatus = intercepted
+            ? $"{impactTarget.DisplayName} 오발 피격"
+            : result.Hit ? "사격 명중" : result.CoverBlocked ? "엄폐물 피격" : "사격 빗나감";
+        CombatOutcomeMechanicalMutation mechanicalMutation =
+            CreateCombatMechanicalMutation(
+                actor,
+                command,
+                attackRevision,
+                manaCost,
+                transactionalResolution,
+                attackRequest,
+                result,
+                impactTarget,
+                weapon,
+                consumeAmmunition: true,
+                mode,
+                committedStatus);
+        CombatOutcomeApplyResult apply = resultApplier.Apply(
+            impactTarget,
+            result,
+            actor,
+            GetName(actor),
+            weapon.Verb?.damageType ?? CombatDamageType.Pierce,
+            attackOperationId,
+            attackRevision,
+            reservedDamage,
+            mechanicalMutation,
+            CombatActionEvidenceData.Capture(
+                attackRequest,
+                result,
+                weapon.Verb?.damageType ?? CombatDamageType.Pierce));
+        if (!apply.Succeeded)
+        {
+            BlockCommand(command, apply.FailureReason);
+            return;
+        }
+        projectiles.Launch(
             actor.transform.position,
             impactTarget.IsCharacter
                 ? impactTarget.Character.transform.position
                 : impactTarget.Wildlife.transform.position,
-            weapon,
-            gameClock,
-            worldUiHierarchy);
+            weapon);
         DefenseCombatPresentation.Ensure(actor)?.PlayAttack(
             impactTarget.IsCharacter
                 ? impactTarget.Character.transform.position
                 : impactTarget.Wildlife.transform.position,
             weapon);
-        equipment.TryConsumeLoadedAmmo(
-            weapon.InstanceId,
-            Mathf.Max(1, result.AmmunitionConsumed));
-        resultApplier.Apply(
-            impactTarget,
-            result,
-            actor,
-            GetName(actor),
-            weapon.Verb?.damageType ?? CombatDamageType.Pierce);
-        resultApplier.ApplyArmorDurabilityDamage(result);
-        command.attackCooldownRemaining = resolution.CalculateAttackInterval(
-            CreateCombatStats(actor, attackerBody, command),
-            weapon,
-            mode);
-        command.state = CharacterCombatCommandState.Executing;
-        command.status = intercepted
-            ? $"{impactTarget.DisplayName} 오발 피격"
-            : result.Hit ? "사격 명중" : result.CoverBlocked ? "엄폐물 피격" : "사격 빗나감";
         MarkDirty();
     }
 
@@ -890,22 +1013,40 @@ public sealed class CharacterCombatCommandRuntime :
         CharacterBodyHealthSnapshot defenderBody = target.IsCharacter
             ? bodyHealth.GetSnapshot(target.Character)
             : default;
+        if (resolution is not ICombatResolutionTransactionService
+            transactionalResolution)
+        {
+            BlockCommand(command, "combat-resolution-transaction-boundary-missing");
+            return;
+        }
+        long attackRevision = command.revision;
+        string attackOperationId =
+            command.commandId + ":" + attackRevision;
+        if (!resultApplier.TryReserveDamageOutcome(
+                target,
+                attackOperationId,
+                attackRevision,
+                out ReservedCombatAction reservedDamage,
+                out bool capacityDeferred,
+                out string reserveFailure))
+        {
+            if (capacityDeferred)
+                WaitForOutcomeCapacity(command, reserveFailure);
+            else
+                BlockCommand(command, reserveFailure);
+            return;
+        }
         float manaCost = CharacterArcaneWeaponRules.GetManaCost(
             weapon.DefinitionId);
         if (manaCost > 0f
             && !mana.CanSpendMana(actor, manaCost, out string manaFailure))
         {
+            resultApplier.CancelDamageOutcome(reservedDamage);
             BlockCommand(command, manaFailure);
             return;
         }
-        if (manaCost > 0f
-            && !manaCommands.TrySpendMana(actor, manaCost, out manaFailure))
-        {
-            BlockCommand(command, manaFailure);
-            return;
-        }
-        CombatAttackResult result = resolution.Resolve(new CombatAttackRequest(
-            command.commandId + ":" + command.revision++,
+        CombatAttackRequest attackRequest = new CombatAttackRequest(
+            attackOperationId,
             GetId(actor),
             target.Id,
             CreateCombatStats(actor, attackerBody, command),
@@ -924,65 +1065,326 @@ public sealed class CharacterCombatCommandRuntime :
                 : Array.Empty<CombatArmorSnapshot>(),
             defenderShield: target.IsCharacter
                 ? equipment.GetShield(target.Id)
-                : default));
+                : default);
+        CombatAttackResult result = transactionalResolution.ResolveDetached(
+            attackRequest);
         if (!result.Executed)
         {
-            if (manaCost > 0f)
-                manaCommands.RefundFailedManaSpend(actor, manaCost);
+            resultApplier.CancelDamageOutcome(reservedDamage);
+            if (!transactionalResolution.TryApplyResolvedResultMutation(
+                    attackRequest,
+                    result,
+                    out string resolutionFailure))
+            {
+                BlockCommand(command, resolutionFailure);
+                return;
+            }
+            transactionalResolution.CompleteResolvedResultMutation(
+                attackRequest);
+            SetCommandRevision(command, checked((int)(attackRevision + 1L)));
             BlockCommand(command, result.FailureReason);
             return;
         }
-        ConsumePoweredAttack(weapon);
-        ConsumePoweredDefense(target, result);
-
-        Vector3 targetWorld = target.IsCharacter
-            ? target.Character.transform.position
-            : target.Wildlife.transform.position;
-        DefenseCombatPresentation.Ensure(actor)?.PlayAttack(targetWorld, weapon);
-        resultApplier.Apply(
+        CombatOutcomeMechanicalMutation mechanicalMutation =
+            CreateCombatMechanicalMutation(
+                actor,
+                command,
+                attackRevision,
+                manaCost,
+                transactionalResolution,
+                attackRequest,
+                result,
+                target,
+                weapon,
+                consumeAmmunition: false,
+                CombatFireMode.Aimed,
+                result.Hit ? "근접 공격 명중" : "근접 공격 빗나감");
+        CombatOutcomeApplyResult apply = resultApplier.Apply(
             target,
             result,
             actor,
             GetName(actor),
-            weapon.Verb?.damageType ?? CombatDamageType.Slash);
-        resultApplier.ApplyArmorDurabilityDamage(result);
-        command.attackCooldownRemaining = resolution.CalculateAttackInterval(
-            CreateCombatStats(actor, attackerBody, command),
-            weapon,
-            CombatFireMode.Aimed);
-        command.state = CharacterCombatCommandState.Executing;
-        command.status = result.Hit ? "근접 공격 명중" : "근접 공격 빗나감";
+            weapon.Verb?.damageType ?? CombatDamageType.Slash,
+            attackOperationId,
+            attackRevision,
+            reservedDamage,
+            mechanicalMutation,
+            CombatActionEvidenceData.Capture(
+                attackRequest,
+                result,
+                weapon.Verb?.damageType ?? CombatDamageType.Slash));
+        if (!apply.Succeeded)
+        {
+            BlockCommand(command, apply.FailureReason);
+            return;
+        }
+        Vector3 targetWorld = target.IsCharacter
+            ? target.Character.transform.position
+            : target.Wildlife.transform.position;
+        DefenseCombatPresentation.Ensure(actor)?.PlayAttack(targetWorld, weapon);
         MarkDirty();
     }
 
-    private void ConsumePoweredAttack(CombatWeaponSnapshot weapon)
+    private CombatOutcomeMechanicalMutation CreateCellFireMechanicalMutation(
+        CharacterActor actor,
+        CharacterCombatCommand command,
+        long attackRevision,
+        float manaCost,
+        CombatWeaponSnapshot weapon,
+        int ammunitionCost,
+        float cooldown)
     {
+        int previousRevision = command.revision;
+        int previousWatermark = commandRevisions[command.actorId];
+        float previousCooldown = command.attackCooldownRemaining;
+        CharacterCombatCommandState previousState = command.state;
+        string previousStatus = command.status;
+        float manaBefore = mana.GetMana(actor).Current;
+        float manaSpent = 0f;
+        bool ammunitionConsumed = false;
+
+        return new CombatOutcomeMechanicalMutation(
+            apply: () =>
+            {
+                if (manaCost > 0f)
+                {
+                    if (!manaCommands.TrySpendMana(
+                            actor,
+                            manaCost,
+                            out string manaFailure))
+                    {
+                        return string.IsNullOrWhiteSpace(manaFailure)
+                            ? "combat-cell-fire-mana-spend-failed"
+                            : manaFailure;
+                    }
+                    manaSpent = Mathf.Max(0f, manaBefore - mana.GetMana(actor).Current);
+                }
+                if (weapon?.RequiresAmmo == true)
+                {
+                    if (!equipment.TryConsumeLoadedAmmo(
+                            weapon.InstanceId,
+                            Mathf.Max(1, ammunitionCost)))
+                    {
+                        return "combat-cell-fire-ammunition-consume-failed";
+                    }
+                    ammunitionConsumed = true;
+                }
+
+                SetCommandRevision(command, checked((int)(attackRevision + 1L)));
+                command.attackCooldownRemaining = Mathf.Max(0f, cooldown);
+                command.state = CharacterCombatCommandState.Executing;
+                command.status = "지정 칸 사격";
+                return string.Empty;
+            },
+            rollback: () =>
+            {
+                if (ammunitionConsumed
+                    && (weapon == null
+                        || weapon.LoadedAmmo <= 0
+                        || !equipment.TryLoadExternalAmmunition(
+                            weapon.InstanceId,
+                            weapon.AmmunitionItemId,
+                            weapon.LoadedAmmo)))
+                {
+                    Debug.LogError(
+                        "Cell-fire ammunition rollback failed: "
+                        + (weapon?.InstanceId ?? "<missing>"));
+                }
+                ammunitionConsumed = false;
+                if (manaSpent > 0f)
+                    manaCommands.RefundFailedManaSpend(actor, manaSpent);
+                manaSpent = 0f;
+                command.revision = previousRevision;
+                commandRevisions[command.actorId] = previousWatermark;
+                command.attackCooldownRemaining = previousCooldown;
+                command.state = previousState;
+                command.status = previousStatus;
+            },
+            complete: () => { });
+    }
+
+    private void TryPresentCellFire(
+        CharacterActor actor,
+        Vector3 targetWorld,
+        CombatWeaponSnapshot weapon)
+    {
+        try
+        {
+            projectiles.Launch(
+                actor.transform.position,
+                targetWorld,
+                weapon);
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                "Cell-fire presentation failed after durable commit: "
+                + exception.GetType().Name);
+        }
+    }
+
+    private CombatOutcomeMechanicalMutation CreateCombatMechanicalMutation(
+        CharacterActor actor,
+        CharacterCombatCommand command,
+        long attackRevision,
+        float manaCost,
+        ICombatResolutionTransactionService transactionalResolution,
+        CombatAttackRequest attackRequest,
+        CombatAttackResult result,
+        CombatParticipantRef target,
+        CombatWeaponSnapshot weapon,
+        bool consumeAmmunition,
+        CombatFireMode mode,
+        string committedStatus)
+    {
+        int previousRevision = command.revision;
+        int previousWatermark = commandRevisions[command.actorId];
+        float previousCooldown = command.attackCooldownRemaining;
+        CharacterCombatCommandState previousState = command.state;
+        string previousStatus = command.status;
+        bool manaSpent = false;
+        bool resolutionPending = true;
+
+        return new CombatOutcomeMechanicalMutation(
+            apply: () =>
+            {
+                if (manaCost > 0f)
+                {
+                    if (!manaCommands.TrySpendMana(
+                            actor,
+                            manaCost,
+                            out string manaFailure))
+                    {
+                        return string.IsNullOrWhiteSpace(manaFailure)
+                            ? "combat-mana-spend-failed"
+                            : manaFailure;
+                    }
+                    manaSpent = true;
+                }
+
+                SetCommandRevision(command, checked((int)(attackRevision + 1L)));
+                if (!transactionalResolution.TryApplyResolvedResultMutation(
+                        attackRequest,
+                        result,
+                        out string resolutionFailure))
+                {
+                    resolutionPending = false;
+                    return resolutionFailure;
+                }
+
+                if (!TryConsumePoweredAttack(weapon, out string powerFailure)
+                    || !TryConsumePoweredDefense(
+                        target,
+                        result,
+                        out powerFailure))
+                {
+                    return powerFailure;
+                }
+                if (consumeAmmunition
+                    && weapon?.RequiresAmmo == true
+                    && !equipment.TryConsumeLoadedAmmo(
+                        weapon.InstanceId,
+                        Mathf.Max(1, result.AmmunitionConsumed)))
+                {
+                    return "combat-ammunition-consume-failed";
+                }
+                if (!resultApplier.TryApplyArmorDurabilityDamage(
+                        result,
+                        out string durabilityFailure))
+                {
+                    return durabilityFailure;
+                }
+
+                command.attackCooldownRemaining =
+                    resolution.CalculateAttackInterval(
+                        CreateCombatStats(
+                            actor,
+                            bodyHealth.GetSnapshot(actor),
+                            command),
+                        weapon,
+                        mode);
+                command.state = CharacterCombatCommandState.Executing;
+                command.status = committedStatus ?? string.Empty;
+                return string.Empty;
+            },
+            rollback: () =>
+            {
+                if (resolutionPending
+                    && !transactionalResolution
+                        .TryRollbackResolvedResultMutation(
+                            attackRequest,
+                            out string rollbackFailure))
+                {
+                    Debug.LogError(
+                        "Combat resolution rollback failed: "
+                        + rollbackFailure);
+                }
+                resolutionPending = false;
+                if (manaSpent)
+                    manaCommands.RefundFailedManaSpend(actor, manaCost);
+                manaSpent = false;
+                command.revision = previousRevision;
+                commandRevisions[command.actorId] = previousWatermark;
+                command.attackCooldownRemaining = previousCooldown;
+                command.state = previousState;
+                command.status = previousStatus;
+            },
+            complete: () =>
+            {
+                if (resolutionPending)
+                {
+                    transactionalResolution.CompleteResolvedResultMutation(
+                        attackRequest);
+                    resolutionPending = false;
+                }
+            });
+    }
+
+    private bool TryConsumePoweredAttack(
+        CombatWeaponSnapshot weapon,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
         if (weapon != null
             && (weapon.RoleFlags & CombatEquipmentRoleFlags.Powered) != 0
             && !string.IsNullOrWhiteSpace(weapon.InstanceId))
         {
-            equipment.TryConsumePower(weapon.InstanceId, 5f);
+            if (!equipment.TryConsumePower(weapon.InstanceId, 5f))
+            {
+                failureReason = "combat-powered-weapon-consume-failed";
+                return false;
+            }
         }
+        return true;
     }
 
-    private void ConsumePoweredDefense(
+    private bool TryConsumePoweredDefense(
         CombatParticipantRef target,
-        CombatAttackResult result)
+        CombatAttackResult result,
+        out string failureReason)
     {
+        failureReason = string.Empty;
         if (!target.IsCharacter)
         {
-            return;
+            return true;
         }
 
         CombatShieldSnapshot shield = equipment.GetShield(target.Id);
         if (shield.IsValid
             && (shield.RoleFlags & CombatEquipmentRoleFlags.Powered) != 0)
         {
-            equipment.TryConsumePower(shield.InstanceId, 3f);
+            if (!equipment.TryConsumePower(shield.InstanceId, 3f))
+            {
+                failureReason = "combat-powered-shield-consume-failed";
+                return false;
+            }
         }
         if (!result.Hit)
         {
-            return;
+            return true;
         }
 
         foreach (string instanceId in equipment.GetArmor(target.Id)
@@ -992,8 +1394,13 @@ public sealed class CharacterCombatCommandRuntime :
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Distinct(StringComparer.Ordinal))
         {
-            equipment.TryConsumePower(instanceId, 2f);
+            if (!equipment.TryConsumePower(instanceId, 2f))
+            {
+                failureReason = "combat-powered-armor-consume-failed:" + instanceId;
+                return false;
+            }
         }
+        return true;
     }
 
     private bool BeginReload(
@@ -1032,7 +1439,8 @@ public sealed class CharacterCombatCommandRuntime :
             weapon);
         command.state = CharacterCombatCommandState.Executing;
         command.status = "재장전 중";
-        command.revision = completeCommand ? -Mathf.Abs(command.revision + 1) : Mathf.Abs(command.revision);
+        if (completeCommand)
+            SetCommandRevision(command, checked(command.revision + 1));
         DefenseCombatPresentation.Ensure(actor)?.SetStatus(command.status, combatActive: true);
         DefenseCombatPresentation.Ensure(actor)?.PlayReload(weapon, command.reloadRemaining);
         MarkDirty();
@@ -1041,7 +1449,7 @@ public sealed class CharacterCombatCommandRuntime :
 
     private void CompleteReload(CharacterActor actor, CharacterCombatCommand command)
     {
-        bool completeCommand = command.type == CombatCommandType.Reload || command.revision < 0;
+        bool completeCommand = command.type == CombatCommandType.Reload;
         if (!equipment.TryReloadFromCharacterInventory(
                 GetId(actor),
                 command.weaponInstanceId,
@@ -1056,7 +1464,6 @@ public sealed class CharacterCombatCommandRuntime :
         }
 
         command.reloadRemaining = 0f;
-        command.revision = Mathf.Abs(command.revision);
         if (completeCommand)
         {
             CompleteCommand(command, $"{consumed}발 재장전 완료");
@@ -1272,6 +1679,33 @@ public sealed class CharacterCombatCommandRuntime :
         MarkDirty();
     }
 
+    private void SetCommandRevision(CharacterCombatCommand command, int revision)
+    {
+        // This watermark is persisted and validated against every active
+        // command. Keep it in the same mutation/rollback as the shot itself.
+        if (revision <= 0)
+            throw new InvalidOperationException("Combat command revision must remain positive.");
+        commandRevisions[command.actorId] = Math.Max(commandRevisions[command.actorId], revision);
+        command.revision = revision;
+    }
+
+    private void WaitForOutcomeCapacity(
+        CharacterCombatCommand command,
+        string reason)
+    {
+        if (command == null)
+            return;
+
+        // Capacity is transient infrastructure backpressure.  Keep the same
+        // command/revision and retry without consuming mana, ammunition, RNG,
+        // durability, cooldown, or any target state.
+        command.state = CharacterCombatCommandState.Queued;
+        command.status = string.IsNullOrWhiteSpace(reason)
+            ? "서사 원장 용량 대기"
+            : "서사 원장 용량 대기: " + reason;
+        MarkDirty();
+    }
+
     private bool RequireCombatStance(CharacterActor actor, out string message)
     {
         if (!CanCommand(actor, out message))
@@ -1317,6 +1751,8 @@ public sealed class CharacterCombatCommandRuntime :
     }
     private void OnRestorePublished()
     {
+        cellShotRecoveryDelay = 0f;
+        cellShotRecoveryFailure = string.Empty;
         nextMoveRetryAt.Clear(); tickCommandActorIds.Clear();
         commandView = Array.Empty<CharacterCombatCommand>(); viewDirty = true;
     }

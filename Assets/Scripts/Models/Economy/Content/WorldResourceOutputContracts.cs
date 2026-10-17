@@ -393,6 +393,54 @@ public sealed class WorldResourceResolvedOutputLineSaveData
 }
 
 [Serializable]
+public sealed class WorldResourcePublishedStackSaveData
+{
+    public string stackId = string.Empty;
+    public string outputLineId = string.Empty;
+    public string itemId = string.Empty;
+    public int quantity;
+    public long massGrams;
+    public string itemInstanceId = string.Empty;
+
+    public WorldResourcePublishedStackSaveData Clone() => new()
+    {
+        stackId = stackId ?? string.Empty,
+        outputLineId = outputLineId ?? string.Empty,
+        itemId = itemId ?? string.Empty,
+        quantity = quantity,
+        massGrams = massGrams,
+        itemInstanceId = itemInstanceId ?? string.Empty
+    };
+}
+
+public readonly struct WorldResourceOutputCommitReceipt
+{
+    public WorldResourceOutputCommitReceipt(
+        string batchCommitId,
+        string destinationId,
+        long totalMassGrams,
+        IReadOnlyList<WorldResourcePublishedStackSaveData> stacks)
+    {
+        BatchCommitId = batchCommitId ?? string.Empty;
+        DestinationId = destinationId ?? string.Empty;
+        TotalMassGrams = totalMassGrams;
+        Stacks = (stacks ?? Array.Empty<WorldResourcePublishedStackSaveData>())
+            .Select(value => value?.Clone())
+            .ToArray();
+    }
+
+    public string BatchCommitId { get; }
+    public string DestinationId { get; }
+    public long TotalMassGrams { get; }
+    public IReadOnlyList<WorldResourcePublishedStackSaveData> Stacks { get; }
+    public bool IsValid => !string.IsNullOrWhiteSpace(BatchCommitId)
+        && !string.IsNullOrWhiteSpace(DestinationId)
+        && TotalMassGrams > 0L
+        && Stacks != null
+        && Stacks.Count > 0;
+}
+
+[Serializable]
 public sealed class WorldResourcePendingOutputSaveData
 {
     public int rootSeed;
@@ -407,6 +455,19 @@ public sealed class WorldResourcePendingOutputSaveData
     public string outcomeFingerprint = string.Empty;
     public long physicalOutputMassGrams;
     public List<WorldResourceResolvedOutputLineSaveData> lines = new();
+    public List<CraftContributionSaveData> contributions = new();
+    public bool domainApplied;
+    public bool renewableSource;
+    public float sourceBefore;
+    public float sourceAfter;
+    public string sourcePatchId = string.Empty;
+    public string outputBatchCommitId = string.Empty;
+    public string outputDestinationId = string.Empty;
+    public List<WorldResourcePublishedStackSaveData> publishedStacks = new();
+    public int completedAbsoluteDay;
+    // Opaque identity reserved before dispatch; retained across uncertain acknowledgements.
+    public string parentPublicationKey = string.Empty;
+    public string parentResultKey = string.Empty;
 
     public bool IsEmpty => rootSeed == 0
         && cycleSequence == 0
@@ -419,7 +480,19 @@ public sealed class WorldResourcePendingOutputSaveData
         && outputFactorDenominator == 0L
         && string.IsNullOrEmpty(outcomeFingerprint)
         && physicalOutputMassGrams == 0L
-        && (lines == null || lines.Count == 0);
+        && (lines == null || lines.Count == 0)
+        && (contributions == null || contributions.Count == 0)
+        && !domainApplied
+        && !renewableSource
+        && sourceBefore == 0f
+        && sourceAfter == 0f
+        && string.IsNullOrEmpty(sourcePatchId)
+        && string.IsNullOrEmpty(outputBatchCommitId)
+        && string.IsNullOrEmpty(outputDestinationId)
+        && (publishedStacks == null || publishedStacks.Count == 0)
+        && completedAbsoluteDay == 0
+        && string.IsNullOrEmpty(parentPublicationKey)
+        && string.IsNullOrEmpty(parentResultKey);
 
     public WorldResourcePendingOutputSaveData Clone() => new()
     {
@@ -436,7 +509,24 @@ public sealed class WorldResourcePendingOutputSaveData
         physicalOutputMassGrams = physicalOutputMassGrams,
         lines = (lines ?? new List<WorldResourceResolvedOutputLineSaveData>())
             .Select(value => value?.Clone())
-            .ToList()
+            .ToList(),
+        contributions = (contributions ?? new List<CraftContributionSaveData>())
+            .Select(value => value?.Clone())
+            .ToList(),
+        domainApplied = domainApplied,
+        renewableSource = renewableSource,
+        sourceBefore = sourceBefore,
+        sourceAfter = sourceAfter,
+        sourcePatchId = sourcePatchId ?? string.Empty,
+        outputBatchCommitId = outputBatchCommitId ?? string.Empty,
+        outputDestinationId = outputDestinationId ?? string.Empty,
+        publishedStacks = (publishedStacks
+                ?? new List<WorldResourcePublishedStackSaveData>())
+            .Select(value => value?.Clone())
+            .ToList(),
+        completedAbsoluteDay = completedAbsoluteDay,
+        parentPublicationKey = parentPublicationKey ?? string.Empty,
+        parentResultKey = parentResultKey ?? string.Empty
     };
 }
 
@@ -476,6 +566,7 @@ public interface IWorldResourceOutputPublicationPort
     WorldResourceOutputCommitStatus CommitReleased(
         WorldResourceOutputPublicationTransaction transaction,
         Vector2Int position,
+        out WorldResourceOutputCommitReceipt receipt,
         out string failureReason);
 
     bool TryRollback(

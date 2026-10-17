@@ -1,0 +1,22 @@
+{
+  "center": {
+    "kind": "event",
+    "slug": "faction-contract-kobold-winter-fuel-demand",
+    "spoiler_tier": "none",
+    "title": "깊은톱니 굴 겨울 연료 요청"
+  },
+  "edges": [
+    {
+      "amount": "8",
+      "from": "event/faction-contract-kobold-winter-fuel-demand",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    }
+  ],
+  "schema_version": 1
+}

@@ -14,13 +14,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
   stableId: seasonal:autumn-migration-window
   displayName: "\uC9E7\uC740 \uC774\uB3D9\uCC3D"
-  description: "\uC548\uC815\uB41C \uB0A0\uC528\uAC00 \uC6D0\uC815\uACFC \uC57C\uC0DD\uB3D9\uBB3C
-    \uD3EC\uD68D\uC5D0 \uBAA8\uB450 \uC88B\uC740 \uAE30\uD68C\uB97C \uC5F0\uB2E4."
+  description: "\uAC00\uC744\uC758 \uC9E7\uC740 \uC774\uB3D9\uCC3D\uC5D0 \uC678\uACFD
+    \uCD08\uC9C0\uB85C \uD3EC\uC790\uD070\uC0AC\uC2B4 \uB450 \uB9C8\uB9AC\uAC00 \uB3C4\uCC29\uD574
+    \uC0AC\uB0E5\xB7\uD3EC\uD68D\uD560 \uC218 \uC788\uB2E4."
   authoringRevision: 1
   sourceNote: V20 hand-authored seasonal world event manifest.
   season: 2
   minimumDurationDays: 2
   maximumDurationDays: 3
+  worldWaterRegenerationMultiplier: 1
+  wildlifeArrivalProfile:
+    speciesId: spore_elk
+    exactCount: 2
+    requiredHabitatId: grass
+    qualification: 2
   affectedDomainIds:
   - expedition
   - wildlife
@@ -33,11 +40,7 @@ MonoBehaviour:
     worldMetrics: []
     requiredFlags: []
     excludedFlags: []
-  startEffects:
-  - kind: 12
-    targetId: migration-window
-    amount: 1
-    durationDays: 3
+  startEffects: []
   dailyEffects: []
   endEffects:
   - kind: 12

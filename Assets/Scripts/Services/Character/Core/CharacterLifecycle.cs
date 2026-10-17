@@ -43,9 +43,6 @@ public class CharacterLifecycle : SerializedMonoBehaviour
     private CharacterStats stats;
     [SerializeField]
     [ReadOnly]
-    private CharacterLog log;
-    [SerializeField]
-    [ReadOnly]
     private CharacterLifecycleState lifecycleState = CharacterLifecycleState.None;
     [SerializeField]
     [ReadOnly]
@@ -62,6 +59,7 @@ public class CharacterLifecycle : SerializedMonoBehaviour
     private CharacterLifecycleState lastTransitionNextState;
 
     public CharacterLifecycleState CurrentState => lifecycleState;
+    public long LifecycleRevision => lifecycleTransitionRevision;
     public bool IsAiPaused => aiPaused;
     public CharacterExpeditionRecoveryState ExpeditionRecovery => expeditionRecovery ??= new CharacterExpeditionRecoveryState();
     public bool IsUnpublishedComposition => unpublishedComposition;
@@ -197,7 +195,6 @@ public class CharacterLifecycle : SerializedMonoBehaviour
         abilityCache = GetComponent<CharacterAbilityCache>();
         visual = GetComponent<CharacterVisual>();
         stats = GetComponent<CharacterStats>();
-        log = GetComponent<CharacterLog>();
     }
 
     public void SetAiPaused(bool value)
@@ -237,14 +234,9 @@ public class CharacterLifecycle : SerializedMonoBehaviour
             work.PrepareForExpedition();
         }
 
-        log?.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Lifecycle,
-            CharacterActivityOutcomes.Departed,
-            "원정 출발",
-            actionId: "expedition",
-            sentiment: 0.15f));
         SetLifecycleState(CharacterLifecycleState.OnExpedition);
         visual?.SetRenderersVisible(false);
+        actor.PublishDomainEvent(new CharacterExpeditionPresenceChangedEvent(actor, true));
         return true;
     }
 
@@ -259,12 +251,7 @@ public class CharacterLifecycle : SerializedMonoBehaviour
         {
             visual?.SetRenderersVisible(true);
             SetLifecycleState(CharacterLifecycleState.Active);
-            log?.AddActivity(CharacterActivityEvent.Create(
-                CharacterActivityKinds.Lifecycle,
-                CharacterActivityOutcomes.Returned,
-                "원정 복귀",
-                actionId: "expedition",
-                sentiment: 0.55f));
+            actor.PublishDomainEvent(new CharacterExpeditionPresenceChangedEvent(actor, false));
             return;
         }
 
@@ -353,8 +340,25 @@ public class CharacterLifecycle : SerializedMonoBehaviour
 
     public void SetLifecycleState(CharacterLifecycleState nextState)
     {
+        ApplyLifecycleState(nextState, checked(lifecycleTransitionRevision + 1));
+    }
+
+    /// <summary>Restores the saved authority before any transition callback can observe it.</summary>
+    public void RestorePersistentState(CharacterLifecycleState savedState, long savedRevision)
+    {
+        if (!IsPublicationSuppressed)
+            throw new InvalidOperationException(
+                "Lifecycle restore requires an unpublished composition or detached restore candidate.");
+        ApplyLifecycleState(savedState, savedRevision);
+    }
+
+    private void ApplyLifecycleState(CharacterLifecycleState nextState, long revision)
+    {
+        if (!Enum.IsDefined(typeof(CharacterLifecycleState), nextState) || revision < 0)
+            throw new ArgumentOutOfRangeException(nameof(revision),
+                "A known lifecycle state and nonnegative revision are required.");
         CharacterLifecycleState previousState = lifecycleState;
-        lifecycleTransitionRevision = checked(lifecycleTransitionRevision + 1);
+        lifecycleTransitionRevision = revision;
         lastTransitionPreviousState = previousState;
         lastTransitionNextState = nextState;
         lifecycleTransitionInProgress = true;

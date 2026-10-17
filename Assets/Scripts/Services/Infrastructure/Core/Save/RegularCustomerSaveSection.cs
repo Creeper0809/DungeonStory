@@ -62,14 +62,44 @@ public sealed class RegularCustomerSaveSection :
         }
     }
 
-    protected override void ValidateRawPayload(string payloadJson) =>
-        RequireTopLevelArrayFields(payloadJson, "records");
+    protected override void ValidateRawPayload(string payloadJson)
+    {
+        RequireTopLevelArrayFields(payloadJson, "records", "pendingFacts");
+        ValidatePendingFactJson(payloadJson);
+    }
+
+    public static void ValidatePendingFactJson(string json)
+    {
+        var root = Newtonsoft.Json.Linq.JObject.Parse(json, new Newtonsoft.Json.Linq.JsonLoadSettings
+        { DuplicatePropertyNameHandling = Newtonsoft.Json.Linq.DuplicatePropertyNameHandling.Error });
+        if (root["pendingFacts"] is not Newtonsoft.Json.Linq.JArray rows)
+            throw new InvalidOperationException("regular-customer-pending-facts-missing");
+        foreach (var row in rows) ValidateShape(row, typeof(RegularCustomerPendingFactData));
+    }
+
+    private static void ValidateShape(Newtonsoft.Json.Linq.JToken token, Type type)
+    {
+        bool valid;
+        if (type == typeof(string)) valid = token?.Type == Newtonsoft.Json.Linq.JTokenType.String;
+        else if (type == typeof(bool)) valid = token?.Type == Newtonsoft.Json.Linq.JTokenType.Boolean;
+        else if (type == typeof(float)) valid = token?.Type is Newtonsoft.Json.Linq.JTokenType.Float or Newtonsoft.Json.Linq.JTokenType.Integer;
+        else if (type == typeof(int) || type.IsEnum) valid = token?.Type == Newtonsoft.Json.Linq.JTokenType.Integer;
+        else
+        {
+            if (token is not Newtonsoft.Json.Linq.JObject value)
+                throw new InvalidOperationException("regular-customer-pending-object-missing");
+            foreach (var field in type.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+                ValidateShape(value[field.Name], field.FieldType);
+            return;
+        }
+        if (!valid) throw new InvalidOperationException("regular-customer-pending-field-missing-or-invalid:" + type.Name);
+    }
 
     private void ValidatePayload(
         DungeonRegularCustomerSaveData payload,
         DungeonGameRestoreReport report)
     {
-        if (payload?.records == null)
+        if (payload?.records == null || payload.pendingFacts == null)
         {
             report.AddError("Regular-customer payload or record list is null.");
             return;
@@ -143,6 +173,39 @@ public sealed class RegularCustomerSaveSection :
                 report.AddError(
                     $"Regular customer '{id}' has invalid recruit capabilities {(int)saved.recruitCapabilities}.");
             }
+            if (!Enum.IsDefined(
+                    typeof(RegularCustomerRecruitDeliveryKind),
+                    saved.recruitDeliveryKind)
+                || saved.recruitDeliveryPending
+                    && (!saved.isRecruited
+                        || saved.recruitDeliveryKind
+                            == RegularCustomerRecruitDeliveryKind.None)
+                || !saved.recruitDeliveryPending
+                    && (saved.recruitDeliveryKind
+                            != RegularCustomerRecruitDeliveryKind.None
+                        || saved.pendingMercenaryRolePremium != 0)
+                || saved.recruitDeliveryKind
+                        != RegularCustomerRecruitDeliveryKind.Mercenary
+                    && saved.pendingMercenaryRolePremium != 0
+                || saved.pendingMercenaryRolePremium < 0
+                || saved.recruitDeliveryApplied
+                    != !string.IsNullOrEmpty(saved.recruitDeliveryActorId)
+                || saved.recruitDeliveryApplied
+                    && !IsCanonicalRequired(saved.recruitDeliveryActorId)
+                || !IsCanonicalOptional(
+                    saved.recruitDeliveryOutcomeResultKey)
+                || !saved.isRecruited
+                    && (saved.recruitDeliveryApplied
+                        || !string.IsNullOrEmpty(
+                            saved.recruitDeliveryOutcomeResultKey))
+                || !string.IsNullOrEmpty(
+                        saved.recruitDeliveryOutcomeResultKey)
+                    && (saved.recruitDeliveryPending
+                        || !saved.recruitDeliveryApplied))
+            {
+                report.AddError(
+                    $"Regular customer '{id}' has invalid pending recruit delivery state.");
+            }
         }
     }
 
@@ -170,4 +233,7 @@ public sealed class RegularCustomerSaveSection :
     private static bool IsCanonicalRequired(string value) =>
         !string.IsNullOrWhiteSpace(value)
         && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static bool IsCanonicalOptional(string value) =>
+        string.IsNullOrEmpty(value) || IsCanonicalRequired(value);
 }

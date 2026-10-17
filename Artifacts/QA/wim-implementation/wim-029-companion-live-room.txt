@@ -1,0 +1,9 @@
+prepared=authored pen building:0cda0aee00e34ee48b853a2786d3342c; pet=wild:9; penCell=(18, 1); hp=10; actual owner alternatives=3; hunger=0.2387451; thirst=0.2259266
+PASS ownerUI=character:staff:1:01
+pet=wild:9; petCell=(18, 1); petHP=10; hunger=0.2387451; thirst=0.2259266; intent=우리 안에서 대기; owner=character:staff:1:01; ownerCell=(19, 0); gameTime=0.3238919
+result=FAIL
+System.InvalidOperationException: Player move: 해당 칸까지 이어지는 경로가 없습니다.
+  at Wim029CompanionLiveRunner+<Run>d__19.MoveNext () [0x00e28] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Captivity\Editor\Wim029CompanionLiveRunner.cs:219 
+  at Wim029CompanionLiveRunner+<Observe>d__18.MoveNext () [0x00051] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Captivity\Editor\Wim029CompanionLiveRunner.cs:66 
+scope=controlled authored initial pen/domestic birth, healthy staff and safe field; actual EventSystem owner assignment/change/clear, autonomous follow/return, current whole registry restore. Not natural capture/birth/construction, reciprocal combat, animal haul, daily balance or six-adult certification.
+cleanup=paused disposable main Play, operator stops; disk persistence disabled before owner UI; original environment restored

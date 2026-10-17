@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Foundation.Facts;
 using System.Collections.Generic;
 
 internal sealed class ElectricalNetworkAggregateState
@@ -22,6 +23,7 @@ internal sealed class ElectricalNetworkAggregateState
                 Heat = source.Heat,
                 Fault = source.Fault,
                 BreakerTripped = source.BreakerTripped,
+                ConnectionEnabled = source.ConnectionEnabled,
                 Powered = source.Powered,
                 SuppliedFraction = source.SuppliedFraction,
                 NextFuelOperationSequence = source.NextFuelOperationSequence,
@@ -75,10 +77,30 @@ internal sealed class FluidNetworkAggregateState
                     ?? new ContainerWaterFeedState(),
                 TransferMode = source.TransferMode,
                 TransferWork = source.TransferWork,
-                TransferStatus = source.TransferStatus
+                TransferStatus = source.TransferStatus,
+                FrozenPipeLatched = source.FrozenPipeLatched,
+                FrozenPipeOccurrenceInstanceId =
+                    source.FrozenPipeOccurrenceInstanceId,
+                NextAutonomousOutcomeSequence =
+                    source.NextAutonomousOutcomeSequence,
+                LeakEpisodeStartCleanWater =
+                    source.LeakEpisodeStartCleanWater,
+                LeakEpisodeStartUnsafeWater =
+                    source.LeakEpisodeStartUnsafeWater,
+                LeakEpisodeStartFoulWater =
+                    source.LeakEpisodeStartFoulWater,
+                LeakEpisodeCleanLoss = source.LeakEpisodeCleanLoss,
+                LeakEpisodeUnsafeLoss = source.LeakEpisodeUnsafeLoss,
+                LeakEpisodeFoulLoss = source.LeakEpisodeFoulLoss,
+                LeakEpisodeFilthAmount = source.LeakEpisodeFilthAmount
             };
             clonedNode.PendingManualWaterTransfers.AddRange(
                 source.PendingManualWaterTransfers.ConvertAll(value => value.DeepClone()));
+            clonedNode.PendingAutonomousOutcomes.AddRange(
+                source.PendingAutonomousOutcomes.ConvertAll(
+                    value => value.DeepClone()));
+            clonedNode.LeakEpisodeFilthIds.AddRange(
+                source.LeakEpisodeFilthIds);
             clone.Nodes.Add(pair.Key, clonedNode);
         }
 
@@ -122,6 +144,27 @@ internal sealed class ConveyorAggregateState
             clone.Payloads.Add(pair.Key, pair.Value.DeepClone());
         }
 
+        return clone;
+    }
+}
+
+internal sealed class InfrastructureObservationAggregateState
+{
+    public long NextOwnerRevision = 1L;
+    public readonly SortedDictionary<long, InfrastructureObservationSaveData>
+        Pending = new();
+
+    public InfrastructureObservationAggregateState DeepClone()
+    {
+        InfrastructureObservationAggregateState clone = new()
+        {
+            NextOwnerRevision = NextOwnerRevision
+        };
+        foreach (KeyValuePair<long, InfrastructureObservationSaveData>
+                 pair in Pending)
+        {
+            clone.Pending.Add(pair.Key, pair.Value.Clone());
+        }
         return clone;
     }
 }

@@ -16,6 +16,17 @@
       "target_title": "공학 도면",
       "to": "item/component-engineering-drawing",
       "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/guest-request-sealed-archive",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8825",
+      "target_spoiler_tier": "none",
+      "target_title": "시제품 연구실",
+      "to": "facility/building-8825",
+      "type": "requires"
     }
   ],
   "schema_version": 1

@@ -166,6 +166,55 @@
     },
     {
       "amount": null,
+      "from": "recipe/recipe-surgery-balance-tail",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-brain-assist",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-heart-augmentation",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-heat-sac",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-hypha-core",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-night-eye",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-precision-hand",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
       "from": "recipe/recipe-surgery-prosthetic-arm",
       "label": "필요 조건",
       "to": "research/research-medical-prosthetics",
@@ -174,6 +223,41 @@
     {
       "amount": null,
       "from": "recipe/recipe-surgery-prosthetic-leg",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-pseudopods",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-reinforced-torso",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-sprint-joint",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-tail-balance-augmentation",
+      "label": "필요 조건",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-wing",
       "label": "필요 조건",
       "to": "research/research-medical-prosthetics",
       "type": "requires"

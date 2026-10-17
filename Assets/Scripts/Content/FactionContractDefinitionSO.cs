@@ -30,6 +30,7 @@ public static class AuthoredFactionContractBalanceRules
 public sealed class FactionContractDefinitionSO : V20AuthoredContentSO
 {
     public string factionId = string.Empty;
+    public string seasonalEventId = string.Empty;
     public V20FactionContractKind kind;
     [Min(1)] public int deadlineDays = 10;
     public V20ContentRequirementSet completionRequirements = new();
@@ -40,6 +41,13 @@ public sealed class FactionContractDefinitionSO : V20AuthoredContentSO
     {
         List<string> errors = base.ValidateDefinition().ToList();
         if (string.IsNullOrWhiteSpace(factionId)) errors.Add($"'{StableId}' requires a faction id.");
+        if (!string.IsNullOrEmpty(seasonalEventId)
+            && (string.IsNullOrWhiteSpace(seasonalEventId)
+                || !string.Equals(
+                    seasonalEventId,
+                    seasonalEventId.Trim(),
+                    System.StringComparison.Ordinal)))
+            errors.Add($"'{StableId}' has a non-canonical seasonal event id.");
         errors.AddRange((completionRequirements ?? new()).Validate(StableId));
         if (successEffects == null || successEffects.Count == 0 || successEffects.Any(value => value == null || !value.IsValid))
             errors.Add($"'{StableId}' requires success effects.");

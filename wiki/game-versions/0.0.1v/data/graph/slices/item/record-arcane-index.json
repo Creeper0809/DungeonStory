@@ -12,6 +12,13 @@
       "label": "생산·해금",
       "to": "item/record-arcane-index",
       "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "event/seasonal-winter-deep-echo",
+      "label": "생산·해금",
+      "to": "item/record-arcane-index",
+      "type": "produces-or-unlocks"
     }
   ],
   "schema_version": 1

@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 454c3edcc06dfbe40b8088f448f07f38, type: 3}
+  m_Name: seasonal_spring-drift-cargo
+  m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
+  stableId: seasonal:spring-drift-cargo
+  displayName: "\uD574\uBE59 \uD45C\uB958 \uD654\uBB3C"
+  description: "\uD574\uBE59\uC218\uC5D0 \uB5A0\uBC00\uB824\uC628 \uBAA9\uC7AC \uC5EC\uC12F \uAC1C\uAC00 \uC678\uACFD\uC5D0 \uB0A8\uC544 \uC788\uB2E4. \uAE30\uD55C \uC804 \uC2E4\uC81C \uC6B4\uBC18\uC73C\uB85C \uD68C\uC218\uD574\uC57C \uD55C\uB2E4."
+  authoringRevision: 2
+  sourceNote: WIM-009 approved physical seasonal drift-cargo occurrence.
+  season: 0
+  minimumDurationDays: 3
+  maximumDurationDays: 5
+  worldWaterRegenerationMultiplier: 1
+  powerAvailableSupplyCapacityMultiplier: 1
+  pipedWaterThroughputMultiplier: 1
+  pipedWaterFreezeThresholdC: 0
+  pipedWaterRecoveryThresholdC: 2
+  cropPrimaryBatchLossPercent: 0
+  requiredWeatherFrontId:
+  wildlifeArrivalProfile:
+    speciesId:
+    exactCount: 0
+    requiredHabitatId:
+    qualification: 0
+  driftCargoProfile:
+    itemId: material:lumber
+    exactQuantity: 6
+  affectedDomainIds:
+  - logistics
+  - facility
+  triggerRequirements:
+    items: []
+    facilities: []
+    research: []
+    characters: []
+    factions: []
+    worldMetrics: []
+    requiredFlags: []
+    excludedFlags: []
+  startEffects: []
+  dailyEffects: []
+  endEffects:
+  - kind: 12
+    targetId: resolved:seasonal:spring-drift-cargo
+    amount: 1
+    durationDays: 0

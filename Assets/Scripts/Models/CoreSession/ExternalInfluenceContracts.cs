@@ -31,6 +31,64 @@ public enum ExternalInfluenceTrailCharmCommitPhase
     IntelPublished = 2
 }
 
+public enum ExternalInfluenceOperationKind
+{
+    RenownChange = 1,
+    DreadChange = 2,
+    HostileRumorChange = 3,
+    EcologyPressureChange = 4,
+    ReconUpgrade = 5,
+    RumorMitigation = 6,
+    IntelUnlock = 7,
+    DreadDefense = 8,
+    EcologyRaid = 9
+}
+
+public enum ExternalInfluenceOperationPhase
+{
+    Applied = 1,
+    CostCommitted = 2,
+    ResultPublished = 3,
+    Completed = 4,
+    Failed = 5
+}
+
+public enum ExternalInfluenceCostKind
+{
+    None = 0,
+    Renown = 1,
+    Gold = 2,
+    ScoutingLabor = 3,
+    TrailCharm = 4,
+    Dread = 5
+}
+
+[Serializable]
+public sealed class ExternalInfluenceOperationSaveData
+{
+    public const int CurrentSchemaVersion = 1;
+
+    public int schemaVersion = CurrentSchemaVersion;
+    public long revision;
+    public string operationId = string.Empty;
+    public ExternalInfluenceOperationKind kind;
+    public ExternalInfluenceOperationPhase phase;
+    public string sourceId = string.Empty;
+    public string targetId = string.Empty;
+    public ExternalInfluenceCostKind costKind;
+    public float costAmount;
+    public float requestedAmount;
+    public float appliedAmount;
+    public float valueBefore;
+    public float valueAfter;
+    public int newlyRevealed;
+    public int resultCount;
+    public int recordedDay = -1;
+    public string financeTransactionId = string.Empty;
+    public string physicalCommitId = string.Empty;
+    public string failureReason = string.Empty;
+}
+
 public readonly struct CoreGridCell : IEquatable<CoreGridCell>
 {
     public CoreGridCell(int x, int y)
@@ -81,7 +139,7 @@ public readonly struct EcologyRaidSnapshot
 [Serializable]
 public sealed class DungeonExternalInfluenceSaveData
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
 
     public int version = CurrentVersion;
     public float renown;
@@ -113,6 +171,8 @@ public sealed class DungeonExternalInfluenceSaveData
     public int pendingTrailCharmQuantity;
     public long pendingTrailCharmMassGrams;
     public string pendingTrailCharmItemId = string.Empty;
+    public long nextOperationRevision = 1L;
+    public List<ExternalInfluenceOperationSaveData> operations = new();
 }
 
 public static class ExternalInfluenceTrailCharmSaveContract
@@ -215,7 +275,10 @@ public interface IExternalInfluenceRuntime : IExternalCombatInfluenceQuery
     void AddDread(float amount, string source);
     void AddHostileRumor(float amount, string source);
     void AddEcologyPressure(float amount, string source);
-    void AddScoutingLabor(float amount);
+    void AddScoutingLabor(
+        float amount,
+        int reconLevel,
+        int newlyRevealed);
     bool TryMitigateHostileRumor(
         HostileRumorMitigationMethod method,
         out float reducedAmount,

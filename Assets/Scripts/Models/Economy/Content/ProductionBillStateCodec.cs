@@ -18,10 +18,17 @@ public sealed class ProductionAggregateStateStore
     public IReadOnlyList<ProductionBillRecord> Bills => session.Bills;
     internal IReadOnlyList<ProductionWipTerminalReceiptSaveData> WipTerminalReceipts =>
         session.WipTerminalReceipts;
+    internal IReadOnlyCollection<ProductionCommandObservationSaveData>
+        PendingCommandObservations => session.PendingCommandObservations;
     internal int NextBillSequence
     {
         get => session.NextBillSequence;
         set => session.NextBillSequence = value;
+    }
+    internal long NextCommandSequence
+    {
+        get => session.NextCommandSequence;
+        set => session.NextCommandSequence = value;
     }
     internal int BillVersion => session.BillVersion;
     internal int StockSensorVersion => session.StockSensorVersion;
@@ -37,6 +44,15 @@ public sealed class ProductionAggregateStateStore
         PendingStockSensorRemovals => session.PendingStockSensorRemovals;
     internal void AddBill(ProductionBillRecord bill) => session.AddBill(bill);
     internal bool RemoveBill(ProductionBillRecord bill) => session.RemoveBill(bill);
+    internal void SetPendingCommandObservation(
+        ProductionCommandObservationSaveData pending) =>
+        session.SetPendingCommandObservation(pending);
+    internal bool TryGetPendingCommandObservation(
+        long ownerRevision,
+        out ProductionCommandObservationSaveData pending) =>
+        session.TryGetPendingCommandObservation(ownerRevision, out pending);
+    internal bool RemovePendingCommandObservation(long ownerRevision) =>
+        session.RemovePendingCommandObservation(ownerRevision);
     internal bool AddWipTerminalReceipt(
         ProductionWipTerminalReceiptSaveData receipt) =>
         session.AddWipTerminalReceipt(receipt);
@@ -103,6 +119,9 @@ internal static class ProductionBillStateCodec
 
     internal static DungeonProductionBillSaveData Capture(
         int nextBillSequence,
+        long nextCommandSequence,
+        IEnumerable<ProductionCommandObservationSaveData>
+            pendingCommandObservations,
         IEnumerable<ProductionBillRecord> bills,
         IEnumerable<string> installedStockSensorFacilityIds,
         IEnumerable<string> acknowledgedStockSensorFacilityIds,
@@ -117,6 +136,12 @@ internal static class ProductionBillStateCodec
         return new DungeonProductionBillSaveData
         {
             nextBillSequence = nextBillSequence,
+            nextCommandSequence = nextCommandSequence,
+            pendingCommandObservations = (pendingCommandObservations
+                    ?? Array.Empty<ProductionCommandObservationSaveData>())
+                .OrderBy(value => value.fact.ownerRevision)
+                .Select(value => value.Clone())
+                .ToList(),
             bills = (bills ?? Array.Empty<ProductionBillRecord>())
                 .Select(ToSaveData)
                 .ToList(),
@@ -179,6 +204,8 @@ internal static class ProductionBillStateCodec
                 $"Production-bill payload version {snapshot.version} is unsupported.");
         }
         if (snapshot.nextBillSequence <= 0
+            || snapshot.nextCommandSequence <= 0L
+            || snapshot.pendingCommandObservations == null
             || snapshot.bills == null
             || snapshot.installedStockSensorFacilityIds == null
             || snapshot.acknowledgedStockSensorFacilityIds == null
@@ -190,6 +217,10 @@ internal static class ProductionBillStateCodec
             throw new InvalidOperationException(
                 "Production-bill payload has missing collections or an invalid next sequence.");
         }
+
+        ValidatePendingCommandObservations(
+            snapshot.pendingCommandObservations,
+            snapshot.nextCommandSequence);
 
         ValidateCanonicalBuildingIds(
             snapshot.installedStockSensorFacilityIds,
@@ -237,6 +268,38 @@ internal static class ProductionBillStateCodec
                 "Production-bill next sequence collides with a persisted bill ID.");
         }
         ValidateWipTerminalReceipts(snapshot.wipTerminalReceipts, catalog);
+    }
+
+    private static void ValidatePendingCommandObservations(
+        IReadOnlyList<ProductionCommandObservationSaveData> pending,
+        long nextOwnerRevision)
+    {
+        long previous = 0L;
+        foreach (ProductionCommandObservationSaveData value in pending)
+        {
+            if (value?.fact == null
+                || value.fact.ownerRevision <= previous
+                || value.fact.ownerRevision <= 0L
+                || nextOwnerRevision > 0L
+                    && value.fact.ownerRevision >= nextOwnerRevision)
+            {
+                throw new InvalidOperationException(
+                    "Pending production command outcomes are invalid, unordered, or collide with the next owner revision.");
+            }
+            try
+            {
+                value.Validate(nextOwnerRevision);
+            }
+            catch (Exception exception) when (exception is ArgumentException
+                                               or InvalidOperationException
+                                               or OverflowException)
+            {
+                throw new InvalidOperationException(
+                    "Pending production command outcome has an invalid frozen receipt.",
+                    exception);
+            }
+            previous = value.fact.ownerRevision;
+        }
     }
 
     private static void ValidatePendingStockSensorInstalls(
@@ -632,6 +695,7 @@ internal static class ProductionBillStateCodec
             buildingInstanceId = record.buildingInstanceId.Value,
             mode = record.mode,
             remainingCycles = record.remainingCycles,
+            minimumCraftQuality = record.minimumCraftQuality,
             targetStock = record.targetStock,
             minimumReserve = record.minimumReserve,
             suspended = record.suspended,
@@ -641,6 +705,8 @@ internal static class ProductionBillStateCodec
             wipInputQuantity = record.wipInputQuantity,
             wipInputMassGrams = record.wipInputMassGrams,
             outputOutcomeResolved = record.outputOutcomeResolved,
+            completionObservations = record.CompletionObservation is { } completion
+                ? new List<ProductionCompletionObservationSaveData> { completion } : new(),
             resolvedOutputs = record.resolvedOutputs
                 .OrderBy(output => output.outputLineId, StringComparer.Ordinal)
                 .Select(output => output.Clone())
@@ -722,6 +788,13 @@ internal static class ProductionBillStateCodec
         ISet<ProductionBillId> billIds,
         ref int largestSequence)
     {
+        if (saved == null || saved.completionObservations == null || saved.completionObservations.Count > 1)
+            throw new InvalidOperationException("production-completion-observation-count-invalid");
+        foreach (var observation in saved.completionObservations)
+        {
+            if (observation == null) throw new InvalidOperationException("production-completion-observation-missing");
+            observation.Validate(saved.billId, saved.cycleSequence, saved.recipeId, saved.buildingInstanceId);
+        }
         if (saved == null)
         {
             throw new InvalidOperationException(
@@ -757,6 +830,7 @@ internal static class ProductionBillStateCodec
                 typeof(ProductionDistributionMode),
                 saved.distributionMode)
             || saved.remainingCycles < -1
+            || !ProductionQualityTargetRules.IsValidTarget(saved.minimumCraftQuality)
             || saved.cycleSequence < 1
             || saved.targetStock < 0
             || saved.minimumReserve < 0
@@ -776,11 +850,11 @@ internal static class ProductionBillStateCodec
         }
         if (!string.Equals(
                 saved.materialDestinationId,
-                ProductionBillRuntime.DestinationPrefix + billId.Value,
+                ProductionBillIdentity.DestinationPrefix + billId.Value,
                 StringComparison.Ordinal)
             || !string.Equals(
                 saved.outputDestinationId,
-                ProductionBillRuntime.OutputDestinationPrefix + buildingId.Value,
+                ProductionBillIdentity.OutputDestinationPrefix + buildingId.Value,
                 StringComparison.Ordinal))
         {
             throw new InvalidOperationException(

@@ -20,8 +20,10 @@ public class Shop : BuildableObject,
     private ShopCrimeRuntime crimeRuntime;
     private ShopServiceCompletion serviceCompletion;
     private ShopCustomerInteractionService customerInteraction;
-    private IBuildingVisitorPort worker;
-    private CharacterId workerCharacterId;
+    private ShopInteractionState interactionState = new();
+    internal ShopInteractionState InteractionState => interactionState;
+    private BuildingWorkerAllocation workerAllocation;
+    private IBuildingVisitorPort worker => workerAllocation?.Actor;
     private IGameMoneyAccount moneyAccount;
     private IFloatingNumberFeedbackService floatingNumberFeedbackService;
     private IBuildingWorkforceReplanPort workforceReplanService;
@@ -102,6 +104,8 @@ public class Shop : BuildableObject,
         Inventory.Reset();
         TryInitializeStock(requireCatalog: false);
         RegisterStateModule(new ShopStockStateModule(this));
+        interactionState = new ShopInteractionState();
+        RegisterStateModule(new ShopUseExecutionStateModule(this));
     }
 
     [Inject]
@@ -144,10 +148,106 @@ public class Shop : BuildableObject,
         // authored stock is therefore activated lazily at the first stock
         // query, after placement/restore has established BuildingInstanceId.
     }
+
+    [Inject]
+    public void ConstructShopCrimeFacts(
+        ShopliftingFactJournal facts,
+        IGameSessionStateProvider gameDataProvider)
+    {
+        Crime.ConfigureFacts(
+            facts ?? throw new ArgumentNullException(nameof(facts)),
+            gameDataProvider
+                ?? throw new ArgumentNullException(nameof(gameDataProvider)));
+    }
+#if UNITY_EDITOR
+    internal void ConfigureCrimeForDiagnostics(
+        IFacilityCrimeRiskEvaluator crimeRiskEvaluator,
+        IRandomStream randomStream)
+    {
+        Crime.Configure(
+            crimeRiskEvaluator
+                ?? throw new ArgumentNullException(nameof(crimeRiskEvaluator)),
+            randomStream
+                ?? throw new ArgumentNullException(nameof(randomStream)));
+    }
+#endif
     public bool HasAllocatedWorker => HasServingWorker;
 
     public IEnumerator Interact(IBuildingVisitorPort actor) =>
         CustomerInteraction.Interact(actor);
+
+    internal ShopUseExecutionState FindActiveShopUse(string actorId) =>
+        interactionState.activeUses.SingleOrDefault(value => value.actorId == actorId);
+
+    internal ShopUseExecutionState BeginShopExecution(IBuildingVisitorPort actor, ServiceSessionSnapshot session)
+    {
+        if (FindActiveShopUse(actor.BuildingCharacterId.Value) != null)
+            throw new InvalidOperationException("A shop execution already owns this actor.");
+        long sequence = interactionState.nextSequence;
+        long next = checked(sequence + 1);
+        AIAction action = actor.CurrentActionToken as AIAction;
+        var state = new ShopUseExecutionState
+        {
+            sequence = sequence,
+            operationId = ShopUseExecutionState.OperationFor(RequirePersistentInstanceId().Value, sequence),
+            actorId = actor.BuildingCharacterId.Value,
+            actionType = action?.actionset?.GetType().FullName ?? string.Empty,
+            actionBranch = (int)(action?.actionset?.Branch ?? CharacterAiBranch.None),
+            serviceSessionId = session?.SessionId ?? string.Empty,
+            selectionCount = actor.Shopping.GetShoppingCount(),
+            createsRevenue = CreatesRevenueFor(actor),
+            phase = ShopUseExecutionPhase.Selection
+        };
+        interactionState.nextSequence = next;
+        interactionState.activeUses.Add(state);
+        MarkFacilityDynamicStateDirty();
+        return state;
+    }
+
+    internal ShopUseCartLine RequirePurchaseLine(string operationId, int cartIndex, string actorId)
+    {
+        ShopUseExecutionState use = FindActiveShopUse(actorId);
+        if (use == null || use.operationId != operationId || use.phase != ShopUseExecutionPhase.Purchase
+            || use.purchaseIndex != cartIndex || cartIndex < 0 || cartIndex >= use.cart.Count)
+            throw new InvalidOperationException("Retail purchase execution/actor/slot mismatch.");
+        return use.cart[cartIndex];
+    }
+
+    internal void ValidatePurchaseBinding(RetailPurchaseRecoverySaveData recovery)
+    {
+        if (string.IsNullOrEmpty(recovery.shopUseOperationId)) return;
+        ShopUseExecutionState use = FindActiveShopUse(recovery.buyerId);
+        if (use == null) throw new InvalidOperationException("Retail purchase execution owner missing.");
+        use.ValidatePurchaseBinding(RequirePersistentInstanceId().Value, recovery);
+    }
+
+    internal void RecordPurchaseBinding(RetailPurchaseRecoverySaveData recovery)
+    {
+        ValidatePurchaseBinding(recovery);
+        if (string.IsNullOrEmpty(recovery.shopUseOperationId)) return;
+        ShopUseCartLine line = RequirePurchaseLine(recovery.shopUseOperationId,
+            recovery.shopUseCartIndex, recovery.buyerId);
+        line.purchaseOperationId = recovery.operationId;
+        line.pendingPurchaseOperationId = string.Empty;
+        line.committedLot = recovery.lot.Clone();
+        MarkFacilityDynamicStateDirty();
+    }
+
+    internal ShopInteractionState CaptureInteractionState()
+    {
+        ShopInteractionState snapshot = interactionState.Clone();
+        if (!snapshot.IsValid(RequirePersistentInstanceId().Value, out string error))
+            throw new InvalidOperationException(error);
+        return snapshot;
+    }
+
+    internal void RestoreInteractionState(ShopInteractionState snapshot)
+    {
+        if (snapshot == null || !snapshot.IsValid(RequirePersistentInstanceId().Value, out string error))
+            throw new InvalidOperationException("Invalid shop interaction restore.");
+        interactionState = snapshot.Clone();
+        MarkFacilityDynamicStateDirty();
+    }
 
     public override void ReleaseTransientCharacterOwnership(
         IBuildingVisitorPort actor,
@@ -158,7 +258,15 @@ public class Shop : BuildableObject,
             return;
         }
 
+        if (serviceSessionRuntime?.IsReplacedFacility(this) == true)
+        {
+            base.ReleaseTransientCharacterOwnership(actor, reason);
+            return;
+        }
+
         string actorId = actor.BuildingCharacterId.Value;
+        if (FindActiveShopUse(actorId)?.cart.Any(value => !string.IsNullOrEmpty(value.pendingPurchaseOperationId)) == true)
+            throw new InvalidOperationException("Shop release is deferred until its purchase receipt is settled.");
         string hubId = PersistentInstanceId.IsValid
             ? PersistentInstanceId.Value
             : string.Empty;
@@ -171,18 +279,21 @@ public class Shop : BuildableObject,
             .Select(session => session.SessionId)
             .ToArray() ?? Array.Empty<string>();
 
-        base.ReleaseTransientCharacterOwnership(actor, reason);
         for (int index = 0; index < sessions.Length; index++)
         {
-            serviceSessionRuntime.CancelSession(
+            if (!serviceSessionRuntime.CancelSession(
                 sessions[index],
                 string.IsNullOrWhiteSpace(reason)
                     ? "character-lifecycle-ended"
-                    : reason);
+                    : reason))
+                throw new InvalidOperationException("Shop release cancellation remains pending.");
         }
+        base.ReleaseTransientCharacterOwnership(actor, reason);
 
         // CharacterActor owns actor-wide meal cancellation once per lifecycle
         // transition.  A shop only releases ownership scoped to itself.
+        interactionState.activeUses.RemoveAll(value => value.actorId == actorId);
+        MarkFacilityDynamicStateDirty();
     }
 
     public static bool CreatesRevenueFor(IBuildingVisitorPort actor)
@@ -429,10 +540,69 @@ public class Shop : BuildableObject,
         out RetailStockLotSnapshot taken,
         out string failureReason)
     {
+        return TryTakeExactRetailLot(
+            saleItemId,
+            out taken,
+            out _,
+            out failureReason);
+    }
+
+    internal RetailRevenueModifierSnapshot CaptureRevenueModifierSnapshot()
+    {
+        PruneInvalidWorker();
+        if (worker == null)
+            return RetailRevenueModifierSnapshot.Unmodified;
+
+        BuildingVisitorSnapshot visitor = worker.VisitorSnapshot;
+        CharacterActor workerActor =
+            CharacterBuildingVisitorAdapter.GetActorOrNull(worker);
+        string provenance = CharacterSkillRuntimeEffects
+            .CaptureManagementModifierProvenance(
+                workerActor,
+                CharacterSkillTrigger.WorkCompleted,
+                new[] { "revenue" });
+        return new RetailRevenueModifierSnapshot(
+            visitor.PersistentId,
+            Mathf.Clamp(
+                visitor.RevenueMultiplier,
+                1f,
+                GoldEconomyBalanceRules.MaximumWorkerRevenuePremium),
+            provenance);
+    }
+
+    internal bool TryTakeExactRetailLot(
+        int saleItemId,
+        out RetailStockLotSnapshot taken,
+        out string unitOperationId,
+        out string failureReason)
+    {
         return Inventory.TryTakeExactLot(
             saleItemId,
             out taken,
+            out unitOperationId,
             out failureReason);
+    }
+
+    internal bool TryPreviewExactRetailLotOperationId(
+        int saleItemId,
+        out string unitOperationId)
+        => TryPreviewExactRetailLot(saleItemId, out _, out unitOperationId);
+
+    internal bool TryPreviewExactRetailLot(int saleItemId,
+        out RetailStockLotSnapshot source, out string unitOperationId)
+    {
+        SynchronizeAuthoredStock();
+        source = Inventory.CreateSnapshot().lots
+            .Where(lot => lot != null
+                && lot.saleItemId == saleItemId
+                && lot.quantity > 0)
+            .OrderBy(lot => lot.sourceOperationId, StringComparer.Ordinal)
+            .ThenBy(lot => lot.itemInstanceId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        unitOperationId = source == null
+            ? string.Empty
+            : $"retail-unit:{source.sourceOperationId}:ordinal:{source.quantity:D10}";
+        return unitOperationId.Length > 0;
     }
 
     internal bool TryRestoreTakenExactRetailLot(
@@ -466,6 +636,18 @@ public class Shop : BuildableObject,
             out failureReason);
     }
 
+    internal bool TryCommitRetailSinkReversible(RetailStockLotSnapshot lot,
+        out IRetailStockSinkTransaction transaction, out string failure)
+    {
+        transaction = null; failure = string.Empty;
+        if (lot == null) { failure = "retail-terminal-lot-missing"; return false; }
+        if (string.IsNullOrEmpty(lot.itemInstanceId))
+        { transaction = RetailEquipmentSinkTransaction.NoSecondaryOwner(); return true; }
+        if (retailStockPhysicalRuntime is IReversibleRetailStockPhysicalRuntime reversible)
+            return reversible.TryCommitExternalSinkReversible(lot, out transaction, out failure);
+        failure = "retail-reversible-physical-runtime-unavailable"; return false;
+    }
+
     private bool TryInitializeStock(bool requireCatalog)
     {
         return Inventory.TryInitialize(requireCatalog);
@@ -495,6 +677,8 @@ public class Shop : BuildableObject,
         if (!completed)
         {
             EndUse(actor);
+            interactionState.activeUses.RemoveAll(value => value.actorId == actor?.BuildingCharacterId.Value);
+            MarkFacilityDynamicStateDirty();
             return;
         }
 
@@ -505,7 +689,12 @@ public class Shop : BuildableObject,
                 + $"shop={RequirePersistentInstanceId().Value}; "
                 + $"actor={actor?.BuildingCharacterId.Value ?? "<missing>"}.");
         }
+        interactionState.activeUses.RemoveAll(value => value.actorId == actor?.BuildingCharacterId.Value);
+        MarkFacilityDynamicStateDirty();
     }
+
+    internal void ResumeFailedServiceCleanup(IBuildingVisitorPort actor, ShopUseExecutionState state) =>
+        CustomerInteraction.ResumeFailedServiceCleanup(actor, state);
 
     internal string DisplayNameForActivity => objectNameOrDefault();
     internal int CurrentGameFrame => GameFrameCount;
@@ -525,22 +714,15 @@ public class Shop : BuildableObject,
         PublishGameEvent(new FacilityStockConsumedEvent(actor, this, category, 1));
     }
 
-    internal void PublishShopliftingCrime(
-        IBuildingVisitorPort actor,
-        string detail,
-        int lossValue)
+    internal void PublishShopliftingCompleted(IBuildingVisitorPort actor, ShopliftingFact fact)
     {
-        PublishGameEvent(new FacilityCrimeEvent(
-            actor,
-            this,
-            FacilityCrimeKind.Shoplifting,
-            detail,
-            lossValue));
-        GameEventBus.RaiseAlert(
-            "도난 발생",
-            detail,
-            EventAlertImportance.Medium,
-            "범죄");
+        try { PublishGameEvent(new ShopliftingCompletedEvent(this, actor, fact)); }
+        catch (Exception error) when (error is not OutOfMemoryException
+            && error is not StackOverflowException && error is not AccessViolationException)
+        {
+            // Observation cannot turn an already-applied stock transaction into a failed checkout.
+            Debug.LogError("shoplifting-completed-observation:" + error.GetType().Name);
+        }
     }
 
     internal void PublishRestockEvent(
@@ -633,88 +815,95 @@ public class Shop : BuildableObject,
 
     public IEnumerator AllocateWorker(IBuildingVisitorPort actor)
     {
-        PruneInvalidWorker();
-        if (worker != null && worker != actor)
-        {
-            yield break;
-        }
-        worker = actor;
-        workerCharacterId = actor?.BuildingCharacterId ?? default;
-        TrackAllocatedWorkerOwnership(actor);
-        MarkFacilityDynamicStateDirty();
-        ReleaseWorkerReservation(actor);
-        if (actor == null || !actor.VisitorSnapshot.CanMove) yield break;
+        if (TryAllocateWorker(actor, actor?.CurrentActionToken, null,
+                out IBuildingWorkerAllocation allocation, out _))
+            yield return allocation.Approach();
+    }
 
-        Vector2 endPos = GetFacilityAnchorWorldPosition(
-            FacilityAnchorPurposeIds.Work,
-            actor.VisitorSnapshot.Position);
-        object currentAction = actor.CurrentActionToken;
-        actor.SetActionPhase("\uC791\uC5C5\uB300 \uC811\uADFC", this);
-        yield return actor.MoveTo(endPos, 1f, currentAction);
-        actor.ChangeLayer("DungeonMiddleObject");
-        yield return actor.MoveTo(
-            endPos + new Vector2(0, 0.15f),
-            3f,
-            currentAction);
-        actor.SetActionPhase("\uC791\uC5C5 \uC790\uC138", this);
-        actor.FaceRight();
+    public bool TryAllocateWorker(IBuildingVisitorPort actor, object expectedAction,
+        Func<bool> isRequestCurrent, out IBuildingWorkerAllocation allocation,
+        out string failureReason)
+    {
+        allocation = null;
+        PruneInvalidWorker();
+        if (actor == null || !actor.VisitorSnapshot.IsRuntimeActive)
+        {
+            failureReason = "worker-unavailable";
+            return false;
+        }
+        if (workerAllocation != null)
+        {
+            failureReason = "worker-already-allocated";
+            return false;
+        }
+        if (!CanAssignWorker(actor, out failureReason))
+            return false;
+        if (expectedAction != null && (!actor.IsCurrentAction(expectedAction)
+                || actor.IsCurrentActionEnded)
+            || isRequestCurrent != null && !isRequestCurrent())
+        {
+            failureReason = "worker-allocation-request-replaced";
+            return false;
+        }
+        var admitted = new BuildingWorkerAllocation(this, actor, expectedAction,
+            isRequestCurrent, value => ReferenceEquals(workerAllocation, value),
+            ReleaseWorkerAllocation,
+            GetFacilityAnchorWorldPosition(FacilityAnchorPurposeIds.Work,
+                actor.VisitorSnapshot.Position), new Vector3(0f, 0.15f),
+            ResolveWorkerExitPosition, "작업대 접근", "작업 자세");
+        workerAllocation = admitted;
+        allocation = admitted;
+        try
+        {
+            TrackAllocatedWorkerOwnership(actor);
+            ReleaseWorkerReservation(actor);
+            MarkFacilityDynamicStateDirty();
+            failureReason = string.Empty;
+            return true;
+        }
+        catch
+        {
+            admitted.Dispose();
+            throw;
+        }
     }
 
     public void DeallocateWorker(IBuildingVisitorPort actor)
     {
-        if (actor == null)
-        {
+        if (actor != null && ReferenceEquals(worker, actor))
+            workerAllocation.Dispose();
+    }
+
+    private void ReleaseWorkerAllocation(BuildingWorkerAllocation allocation)
+    {
+        if (!ReferenceEquals(workerAllocation, allocation))
             return;
-        }
-
-        PruneInvalidWorker();
-        if (worker != actor) return;
-
-        worker = null;
-        workerCharacterId = default;
-        UntrackAllocatedWorkerOwnership(actor);
+        workerAllocation = null;
+        UntrackTransientOwnership(allocation.CharacterId,
+            BuildingTransientOwnershipKind.AllocatedWorker);
         MarkFacilityDynamicStateDirty();
-        actor.SetActionPhase("\uC2DC\uC124 \uD1F4\uC7A5", this);
-        Vector3 actorPosition = actor.VisitorSnapshot.Position - new Vector3(0, 0.15f);
-        actor.SetWorldPosition(actorPosition);
-        Vector2Int actorGridPosition = grid != null
-            ? grid.GetXY(actorPosition)
-            : centerPos;
-        if (!ContainsGridPosition(actorGridPosition)
-            && TryGetFacilityOccupiedWorldPosition(actorPosition, out Vector3 exitPosition))
-        {
-            actor.SetWorldPosition(exitPosition);
-        }
-        actor.ChangeLayer("Default");
+    }
+
+    private Vector3 ResolveWorkerExitPosition(Vector3 position)
+    {
+        Vector2Int actorGridPosition = grid != null ? grid.GetXY(position) : centerPos;
+        return !ContainsGridPosition(actorGridPosition)
+            && TryGetFacilityOccupiedWorldPosition(position, out Vector3 exit)
+                ? exit : position;
     }
 
     private void PruneInvalidWorker()
     {
         if (worker == null)
-        {
             return;
-        }
-
         try
         {
             if (!worker.VisitorSnapshot.IsRuntimeActive)
-            {
-                UntrackTransientOwnership(
-                    workerCharacterId,
-                    BuildingTransientOwnershipKind.AllocatedWorker);
-                worker = null;
-                workerCharacterId = default;
-                MarkFacilityDynamicStateDirty();
-            }
+                workerAllocation.Dispose();
         }
         catch (MissingReferenceException)
         {
-            UntrackTransientOwnership(
-                workerCharacterId,
-                BuildingTransientOwnershipKind.AllocatedWorker);
-            worker = null;
-            workerCharacterId = default;
-            MarkFacilityDynamicStateDirty();
+            workerAllocation.Dispose();
         }
     }
 
@@ -745,6 +934,38 @@ public class Shop : BuildableObject,
     internal IShopServiceSessionCompletionPort CustomerServiceSessionCompletion =>
         serviceSessionCompletionPort;
     internal IGameMoneyAccount CustomerMoneyAccount => moneyAccount;
+    internal bool TryCommitExactRetailRevenue(
+        string unitOperationId,
+        string buyerId,
+        int amount,
+        out string failureReason)
+    {
+        int revenue = Mathf.Max(0, amount);
+        if (revenue == 0)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+        if (moneyAccount is not IIdempotentGameMoneyAccount idempotent)
+        {
+            failureReason = "retail-revenue-account-not-idempotent";
+            return false;
+        }
+        string operation = unitOperationId?.Trim() ?? string.Empty;
+        if (operation.Length == 0)
+        {
+            failureReason = "retail-revenue-operation-id-missing";
+            return false;
+        }
+        return idempotent.TryCreditOnce(
+            revenue,
+            new EconomyTransactionContext(
+                EconomyTransactionKind.GuestServiceIncome,
+                "retail-revenue:" + operation,
+                buyerId?.Trim() ?? string.Empty,
+                "손님 물품 판매"),
+            out failureReason);
+    }
     internal IRoomEnvironmentExperienceService CustomerRoomEnvironmentExperienceService =>
         roomEnvironmentExperienceService;
     internal IMealConsumptionRuntime CustomerMealConsumptionRuntime =>

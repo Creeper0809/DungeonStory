@@ -31,9 +31,16 @@ public static class V20NarrativeContentAssetBuilder
     {
         public string Id, Name, Description, FirstChoice, SecondChoice;
         public LifeEventCategory Category;
-        public bool Automatic;
+        public bool Automatic, RetirementSchedule;
+        public LifeEventOccurrencePolicy? OccurrencePolicy;
         public V20ContentEffectKind FirstEffect, SecondEffect;
         public float FirstAmount, SecondAmount;
+    }
+
+    private sealed class RiskProfile
+    {
+        public ExperienceEventRiskTier Tier;
+        public string Reason;
     }
 
     private sealed class CultureSpec
@@ -92,7 +99,7 @@ public static class V20NarrativeContentAssetBuilder
         E("life-event:foundling-question", "나는 어디서 왔어?", "입양된 아이가 자신의 친부모 기록을 보여 달라고 요청한다.", LifeEventCategory.Childhood, "기록을 함께 읽는다", "성년까지 봉인한다", V20ContentEffectKind.Relationship, 6, V20ContentEffectKind.Trauma, 3),
         E("life-event:dangerous-friendship", "위험 구역의 친구", "두 아이가 감독 없이 산업 구역을 지름길로 쓰다 적발됐다.", LifeEventCategory.Childhood, "안전 교육에 함께 참여시킨다", "통행을 엄격히 금지한다", V20ContentEffectKind.SkillExperience, 15, V20ContentEffectKind.Mood, -3),
         E("life-event:childhood-bully", "놀림의 대가", "문화가 다른 아이를 향한 반복적인 놀림이 다툼으로 번졌다.", LifeEventCategory.Childhood, "공개 화해 의식을 연다", "가해자를 별도 교육한다", V20ContentEffectKind.Relationship, 5, V20ContentEffectKind.WorkDelayDays, 1),
-        E("life-event:apprentice-mistake", "도제의 큰 실수", "도제가 귀한 중간재 한 묶음을 망치고 보고를 망설인다.", LifeEventCategory.Apprenticeship, "손실을 감수하고 원인을 가르친다", "재료 회수 작업을 맡긴다", V20ContentEffectKind.SkillExperience, 25, V20ContentEffectKind.Mood, -4),
+        E("life-event:apprentice-mistake", "도제의 큰 실수", "도제가 실제 제작에서 손실을 냈다.", LifeEventCategory.Apprenticeship, "손실을 감수하고 원인을 가르친다", "재료 회수 작업을 맡긴다", V20ContentEffectKind.SkillExperience, 25, V20ContentEffectKind.Mood, -4),
         E("life-event:stolen-design", "닮은 설계도", "경쟁 작업반이 도제의 시제품 설계를 자신의 성과로 제출했다.", LifeEventCategory.Apprenticeship, "공식 심사를 청구한다", "공동 설계로 타협한다", V20ContentEffectKind.WorldFlag, 1, V20ContentEffectKind.Relationship, 4),
         E("life-event:mentor-favor", "스승의 편애", "한 도제에게만 좋은 작업이 몰린다는 불만이 터졌다.", LifeEventCategory.Apprenticeship, "작업 배정을 공개한다", "스승의 재량을 지지한다", V20ContentEffectKind.Relationship, 5, V20ContentEffectKind.Mood, -3),
         E("life-event:masterpiece-commission", "첫 대작 의뢰", "대가 시험을 위한 장비 제작 의뢰가 들어왔다.", LifeEventCategory.Apprenticeship, "희귀 재료를 배정한다", "일반 재료로 실력을 증명한다", V20ContentEffectKind.AmbitionProgress, 50, V20ContentEffectKind.SkillExperience, 35),
@@ -104,8 +111,8 @@ public static class V20NarrativeContentAssetBuilder
         E("life-event:captains-test", "대장의 시험", "퇴로가 불안한 방어전에서 경비대장 후보가 위험한 역습을 제안한다.", LifeEventCategory.Career, "제한된 역습을 허가한다", "민간인 철수를 우선한다", V20ContentEffectKind.AmbitionProgress, 45, V20ContentEffectKind.Relationship, 6),
         E("life-event:disputed-thesis", "논쟁적인 논문", "새 발견이 수석 연구원의 기존 이론을 정면으로 반박한다.", LifeEventCategory.Career, "증거를 공개 검증한다", "추가 실험까지 보류한다", V20ContentEffectKind.SkillExperience, 30, V20ContentEffectKind.WorkDelayDays, 2),
         E("life-event:clinic-shortage", "누구를 먼저 치료할 것인가", "의약품이 부족한 날 직원과 외부 손님이 동시에 중증으로 쓰러졌다.", LifeEventCategory.Career, "위급도 순으로 배분한다", "공동체 구성원을 우선한다", V20ContentEffectKind.Health, 8, V20ContentEffectKind.FactionRapport, -6),
-        E("life-event:retirement-request", "도구를 내려놓는 날", "노년의 대가가 현장 은퇴와 후계자 지명을 요청한다.", LifeEventCategory.ElderRetirement, "은퇴와 멘토직을 보장한다", "한 계절 더 현장을 부탁한다", V20ContentEffectKind.Mood, 6, V20ContentEffectKind.WorkDelayDays, -2),
-        E("life-event:last-lesson", "마지막 수업", "쇠약해진 스승이 위험을 감수하고 마지막 실습을 열려 한다.", LifeEventCategory.ElderRetirement, "안전한 시연으로 바꾼다", "원래 실습을 지원한다", V20ContentEffectKind.SkillExperience, 25, V20ContentEffectKind.Health, -5),
+        Retirement("life-event:retirement-request", "도구를 내려놓는 날", "노년의 대가가 현장 은퇴와 후계자 지명을 요청한다.", "은퇴와 멘토직을 보장한다", "한 계절 더 현장을 부탁한다"),
+        E("life-event:last-lesson", "마지막 수업", "은퇴를 앞둔 스승이 PPE를 착용하고 마지막 실습을 했다.", LifeEventCategory.ElderRetirement, "안전한 시연으로 바꾼다", "원래 실습을 지원한다", V20ContentEffectKind.SkillExperience, 25, V20ContentEffectKind.Health, -5),
         E("life-event:lineage-relic", "유산의 행방", "가문의 유물을 계승할지 공동 랜드마크에 봉헌할지 결정해야 한다.", LifeEventCategory.DeathLegacy, "후계자에게 계승한다", "공동체에 봉헌한다", V20ContentEffectKind.Relationship, 7, V20ContentEffectKind.WorldFlag, 1),
         E("life-event:killer-sighted", "원수의 깃발", "원정 정찰대가 오래전 죽음의 책임자를 발견했다.", LifeEventCategory.DeathLegacy, "생포 작전을 준비한다", "복수를 접고 기록을 공개한다", V20ContentEffectKind.AmbitionProgress, 60, V20ContentEffectKind.Trauma, -8),
         Auto("life-event:first-lost-tooth", "첫 이갈이", "아이가 빠진 이를 문화 관습에 따라 간직한다.", LifeEventCategory.Childhood, V20ContentEffectKind.Mood, 2),
@@ -122,9 +129,46 @@ public static class V20NarrativeContentAssetBuilder
         Auto("life-event:story-compressed", "이름으로 남은 생애", "오래된 개인 기록이 가계의 핵심 이야기로 정리됐다.", LifeEventCategory.DeathLegacy, V20ContentEffectKind.WorldFlag, 1)
     };
 
+    private static readonly IReadOnlyDictionary<string,RiskProfile> ExperienceRisks =
+        new Dictionary<string,RiskProfile>(StringComparer.Ordinal)
+        {
+            ["life-event:first-forbidden-door"]=Risk(ExperienceEventRiskTier.Recoverable,"작성된 선택에 기분 -2가 있다."),
+            ["life-event:foundling-question"]=Risk(ExperienceEventRiskTier.Serious,"작성된 선택의 트라우마 +3이 지속된다."),
+            ["life-event:dangerous-friendship"]=Risk(ExperienceEventRiskTier.Recoverable,"작성된 선택에 기분 -3이 있다."),
+            ["life-event:childhood-bully"]=Risk(ExperienceEventRiskTier.Recoverable,"작성된 선택에 작업 지연 1일이 있다."),
+            ["life-event:apprentice-mistake"]=Risk(ExperienceEventRiskTier.Recoverable,"작성된 선택에 기분 -4가 있다."),
+            ["life-event:stolen-design"]=Risk(ExperienceEventRiskTier.None,"작성된 선택에 불리한 게임플레이 효과가 없고 관계 증가 또는 WorldFlag만 있다."),
+            ["life-event:mentor-favor"]=Risk(ExperienceEventRiskTier.Recoverable,"작성된 선택에 기분 -3이 있다."),
+            ["life-event:masterpiece-commission"]=Risk(ExperienceEventRiskTier.None,"작성된 선택에 불리한 게임플레이 효과가 없고 야망 진행 또는 경험치 증가만 있다."),
+            ["life-event:family-room"]=Risk(ExperienceEventRiskTier.None,"작성된 선택에 불리한 게임플레이 효과가 없고 관계 또는 기분 증가만 있다."),
+            ["life-event:guardian-oath"]=Risk(ExperienceEventRiskTier.None,"작성된 선택에 불리한 게임플레이 효과가 없고 관계 증가 또는 체력 회복만 있다."),
+            ["life-event:inherited-debt"]=Risk(ExperienceEventRiskTier.Recoverable,"작성된 선택에 세력 원한 8이 있다."),
+            ["life-event:cultural-petition"]=Risk(ExperienceEventRiskTier.None,"작성된 선택에 불리한 게임플레이 효과가 없고 기분 또는 관계 증가만 있다."),
+            ["life-event:position-rivalry"]=Risk(ExperienceEventRiskTier.None,"작성된 선택에 불리한 게임플레이 효과가 없고 경험치 또는 관계 증가만 있다."),
+            ["life-event:captains-test"]=Risk(ExperienceEventRiskTier.None,"작성된 선택에 불리한 게임플레이 효과가 없고 야망 진행 또는 관계 증가만 있다."),
+            ["life-event:disputed-thesis"]=Risk(ExperienceEventRiskTier.Recoverable,"작성된 선택에 작업 지연 2일이 있다."),
+            ["life-event:clinic-shortage"]=Risk(ExperienceEventRiskTier.Recoverable,"작성된 선택에 세력 신뢰 -6이 있다."),
+            ["life-event:retirement-request"]=Risk(ExperienceEventRiskTier.Serious,"작성된 선택이 은퇴 일정을 설정해 경력 종료를 만든다."),
+            ["life-event:last-lesson"]=Risk(ExperienceEventRiskTier.Serious,"작성된 선택에 비치명 체력 피해 -5가 있다."),
+            ["life-event:lineage-relic"]=Risk(ExperienceEventRiskTier.None,"작성된 선택에 불리한 게임플레이 효과가 없고 관계 증가 또는 WorldFlag만 있다."),
+            ["life-event:killer-sighted"]=Risk(ExperienceEventRiskTier.None,"작성된 선택에 불리한 게임플레이 효과가 없고 트라우마 -8만 있다."),
+            ["life-event:first-lost-tooth"]=Risk(ExperienceEventRiskTier.None,"작성된 자동 결과에 불리한 게임플레이 효과가 없다."),
+            ["life-event:shared-lullaby"]=Risk(ExperienceEventRiskTier.None,"작성된 자동 결과에 불리한 게임플레이 효과가 없다."),
+            ["life-event:first-safe-task"]=Risk(ExperienceEventRiskTier.None,"작성된 자동 결과에 불리한 게임플레이 효과가 없다."),
+            ["life-event:tool-inheritance"]=Risk(ExperienceEventRiskTier.None,"작성된 자동 결과에 불리한 게임플레이 효과가 없다."),
+            ["life-event:household-meal"]=Risk(ExperienceEventRiskTier.None,"작성된 자동 결과에 불리한 게임플레이 효과가 없다."),
+            ["life-event:newborn-welcome"]=Risk(ExperienceEventRiskTier.None,"작성된 자동 결과에 불리한 게임플레이 효과가 없다."),
+            ["life-event:quiet-promotion"]=Risk(ExperienceEventRiskTier.None,"작성된 자동 결과에 불리한 게임플레이 효과가 없다."),
+            ["life-event:shift-saved"]=Risk(ExperienceEventRiskTier.None,"작성된 자동 결과에 불리한 게임플레이 효과가 없다."),
+            ["life-event:retiree-story"]=Risk(ExperienceEventRiskTier.None,"작성된 자동 결과에 불리한 게임플레이 효과가 없다."),
+            ["life-event:elder-birthday"]=Risk(ExperienceEventRiskTier.None,"작성된 자동 결과에 불리한 게임플레이 효과가 없다."),
+            ["life-event:grave-visit"]=Risk(ExperienceEventRiskTier.None,"작성된 자동 결과에 불리한 게임플레이 효과가 없다."),
+            ["life-event:story-compressed"]=Risk(ExperienceEventRiskTier.None,"작성된 자동 결과에 불리한 게임플레이 효과가 없다.")
+        };
+
     private static readonly CultureSpec[] Cultures =
     {
-        C("culture:adventurer-frontier", "Adventurer", "개척자 연맹 문화", "서로 다른 고향의 규칙을 원정대식 실용주의로 엮는다.", "food:preserved-ration", "food:raw-monster-meat", "lit communal rooms", "전리품은 귀환자 전원이 확인한 뒤 나눈다."),
+        C("culture:adventurer-frontier", "Human", "개척자 연맹 문화", "서로 다른 고향의 규칙을 원정대식 실용주의로 엮는다.", "food:preserved-ration", "food:raw-monster-meat", "lit communal rooms", "전리품은 귀환자 전원이 확인한 뒤 나눈다."),
         C("culture:beastkin-pack", "Beastkin", "무리의 화로 문화", "식사와 휴식을 무리 단위로 공유하고 홀로 남는 이를 먼저 챙긴다.", "resource:meat", "medicine:strong-perfume", "warm shared quarters", "상대의 냄새표식을 허락 없이 지우지 않는다."),
         C("culture:demon-contract", "Demon", "재의 계약 문화", "말보다 기록된 약속을 중시하고 결연과 장례에 계약 소각을 쓴다.", "food:spiced-stew", "item:unsealed-oath", "warm dry rooms", "세 번 확인한 약속은 공개적으로 번복하지 않는다."),
         C("culture:golem-core", "Golem", "핵 공명 문화", "침묵의 정비와 기억 기록을 휴식으로 여기며 핵의 이력을 존중한다.", "tool:maintenance-kit", "resource:corrosive-slurry", "dry rune-powered alcoves", "다른 골렘의 핵각인을 허락 없이 읽지 않는다."),
@@ -202,6 +246,74 @@ public static class V20NarrativeContentAssetBuilder
         Debug.Log("V20_NARRATIVE_CONTENT=PASS; backgrounds=12; ambitions=18; lifeEvents=32; cultures=10; practices=20; total=92");
     }
 
+    [MenuItem("DungeonStory/V20/Build WIM-044 Retirement Request")]
+    public static void BuildWim044RetirementRequest()
+    {
+        EventSpec retirement = Events.Single(value => string.Equals(
+            value.Id,
+            "life-event:retirement-request",
+            StringComparison.Ordinal));
+        string assetPath = $"{Root}/LifeEvents/{Safe(retirement.Id)}.asset";
+        LifeEventDefinitionSO existing =
+            AssetDatabase.LoadAssetAtPath<LifeEventDefinitionSO>(assetPath);
+        bool existed = existing != null;
+        bool wasDirty = existed && EditorUtility.IsDirty(existing);
+        string before = existed ? EditorJsonUtility.ToJson(existing) : string.Empty;
+        LifeEventDefinitionSO asset = CreateEvent(retirement);
+        IReadOnlyList<string> errors = asset.ValidateDefinition();
+        if (errors.Count > 0)
+            throw new InvalidOperationException(string.Join(" | ", errors));
+        bool changed = !existed || !string.Equals(
+            before,
+            EditorJsonUtility.ToJson(asset),
+            StringComparison.Ordinal);
+        if (changed)
+            AssetDatabase.SaveAssetIfDirty(asset);
+        else if (!wasDirty)
+            EditorUtility.ClearDirty(asset);
+        Debug.Log("WIM044_RETIREMENT_REQUEST_ASSET=PASS; dirty="
+            + (changed ? 1 : 0) + "; saved=" + (changed ? 1 : 0));
+    }
+
+    [MenuItem("DungeonStory/V20/Apply WIM-039 Life Event Experience Risks (32)")]
+    public static void ApplyWim039LifeEventExperienceRisks()
+    {
+        string[] ids=Events.Select(spec=>spec.Id).ToArray();
+        if(ids.Length!=32 || ids.Distinct(StringComparer.Ordinal).Count()!=32
+            || ids.Any(id=>!ExperienceRisks.ContainsKey(id))
+            || ExperienceRisks.Keys.Any(id=>!ids.Contains(id,StringComparer.Ordinal)))
+            throw new InvalidOperationException("WIM-039 life-event risk manifest coverage is invalid.");
+        List<(LifeEventDefinitionSO Value,EventSpec Spec)> targets=Events.Select(spec=>(
+            AssetDatabase.LoadAssetAtPath<LifeEventDefinitionSO>($"{Root}/LifeEvents/{Safe(spec.Id)}.asset")
+                ?? throw new InvalidOperationException($"Life event '{spec.Id}' is missing."),spec)).ToList();
+        List<(LifeEventDefinitionSO Value,EventSpec Spec)> changes=new();
+        List<string> errors=new();
+        foreach((LifeEventDefinitionSO value,EventSpec spec) in targets)
+        {
+            LifeEventDefinitionSO staged=UnityEngine.Object.Instantiate(value);
+            try
+            {
+                ApplyRisk(staged,RiskFor(spec.Id));
+                errors.AddRange(staged.ValidateDefinition().Select(error=>$"{spec.Id}: {error}"));
+                if(RiskDiffers(value,staged)) changes.Add((value,spec));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(staged);
+            }
+        }
+        if(errors.Count>0) throw new InvalidOperationException(string.Join(" | ",errors));
+        List<string> dirty=changes.Where(change=>EditorUtility.IsDirty(change.Value)).Select(change=>change.Spec.Id).ToList();
+        if(dirty.Count>0) throw new InvalidOperationException($"WIM-039 refuses dirty life-event risk targets: {string.Join(",",dirty)}");
+        foreach((LifeEventDefinitionSO value,EventSpec spec) in changes)
+        {
+            ApplyRisk(value,RiskFor(spec.Id));
+            Dirty(value);
+            AssetDatabase.SaveAssetIfDirty(value);
+        }
+        Debug.Log($"WIM039_LIFE_EVENT_EXPERIENCE_RISKS=PASS; targets={targets.Count}; changed={changes.Count}; saved={changes.Count}");
+    }
+
     private static CharacterBackgroundDefinitionSO CreateBackground(BackgroundSpec spec)
     {
         CharacterBackgroundDefinitionSO value = Asset<CharacterBackgroundDefinitionSO>("Backgrounds", spec.Id);
@@ -233,15 +345,56 @@ public static class V20NarrativeContentAssetBuilder
     {
         LifeEventDefinitionSO value = Asset<LifeEventDefinitionSO>("LifeEvents", spec.Id);
         Meta(value, spec.Id, spec.Name, spec.Description);
+        ApplyRisk(value,RiskFor(spec.Id));
         value.category = spec.Category; value.automatic = spec.Automatic; value.emergency = false;
         value.responseDeadlineDays = spec.Automatic ? 1 : 3; value.cooldownDays = spec.Automatic ? 45 : 90;
         value.frequencyRule = LifeEventFrequencyRule.OncePerCharacter;
+        if (spec.OccurrencePolicy.HasValue)
+            value.occurrencePolicy = spec.OccurrencePolicy.Value;
         value.triggerRequirements = new V20ContentRequirementSet();
-        value.choices = spec.Automatic ? new List<V20ChoiceDefinition>() : new List<V20ChoiceDefinition>
-        {
-            Choice("first", spec.FirstChoice, Effect(spec.FirstEffect, EffectTarget(spec.FirstEffect, spec.Id), spec.FirstAmount)),
-            Choice("second", spec.SecondChoice, Effect(spec.SecondEffect, EffectTarget(spec.SecondEffect, spec.Id), spec.SecondAmount))
-        };
+        value.choices = spec.Automatic
+            ? new List<V20ChoiceDefinition>()
+            : spec.RetirementSchedule
+                ? new List<V20ChoiceDefinition>
+                {
+                    RetirementChoice(
+                        "first",
+                        spec.FirstChoice,
+                        Effect(
+                            V20ContentEffectKind.Mood,
+                            spec.Id,
+                            6),
+                        Effect(
+                            V20ContentEffectKind.RetirementSchedule,
+                            spec.Id,
+                            0,
+                            0)),
+                    RetirementChoice(
+                        "second",
+                        spec.SecondChoice,
+                        Effect(
+                            V20ContentEffectKind.RetirementSchedule,
+                            spec.Id,
+                            0,
+                            GameCalendarRules.DaysPerSeason))
+                }
+                : new List<V20ChoiceDefinition>
+                {
+                    Choice(
+                        "first",
+                        spec.FirstChoice,
+                        Effect(
+                            spec.FirstEffect,
+                            EffectTarget(spec.FirstEffect, spec.Id),
+                            spec.FirstAmount)),
+                    Choice(
+                        "second",
+                        spec.SecondChoice,
+                        Effect(
+                            spec.SecondEffect,
+                            EffectTarget(spec.SecondEffect, spec.Id),
+                            spec.SecondAmount))
+                };
         value.automaticEffects = spec.Automatic
             ? new List<V20ContentEffect> { Effect(spec.FirstEffect, EffectTarget(spec.FirstEffect, spec.Id), spec.FirstAmount) }
             : new List<V20ContentEffect>();
@@ -352,6 +505,17 @@ public static class V20NarrativeContentAssetBuilder
 
     private static string Safe(string value) => string.Concat(value.Select(character => Path.GetInvalidFileNameChars().Contains(character) || character == ':' ? '_' : character));
     private static void Meta(V20AuthoredContentSO value, string id, string name, string description) => value.ConfigureMetadata(id, name, description, 1, RevisionNote);
+    private static RiskProfile Risk(ExperienceEventRiskTier tier,string reason)=>new(){Tier=tier,Reason=reason};
+    private static RiskProfile RiskFor(string id)=>ExperienceRisks.TryGetValue(id,out RiskProfile risk)
+        ?risk:throw new InvalidOperationException($"WIM-039 risk profile is missing '{id}'.");
+    private static void ApplyRisk(LifeEventDefinitionSO value,RiskProfile risk)
+    {
+        value.riskTier=risk.Tier;
+        value.riskReason=risk.Reason;
+    }
+    private static bool RiskDiffers(LifeEventDefinitionSO value,LifeEventDefinitionSO staged)=>
+        value.riskTier!=staged.riskTier
+        || !string.Equals(value.riskReason,staged.riskReason,StringComparison.Ordinal);
     private static void Dirty(UnityEngine.Object value) => EditorUtility.SetDirty(value);
     private static V20ContentEffect Effect(V20ContentEffectKind kind, string target, float amount, int days = 0) => new() { kind = kind, targetId = target, amount = amount, durationDays = days };
     private static string EffectTarget(V20ContentEffectKind kind, string defaultTarget) =>
@@ -360,10 +524,40 @@ public static class V20NarrativeContentAssetBuilder
             or V20ContentEffectKind.FactionObligation
             ? "affected-faction"
             : defaultTarget;
-    private static V20ChoiceDefinition Choice(string id, string title, V20ContentEffect effect) => new() { choiceId = id, title = title, outcomeText = title, requirements = new V20ContentRequirementSet(), effects = new List<V20ContentEffect> { effect } };
+    private static V20ChoiceDefinition Choice(
+        string id,
+        string title,
+        params V20ContentEffect[] effects) => new()
+        {
+            choiceId = id,
+            title = title,
+            outcomeText = title,
+            requirements = new V20ContentRequirementSet(),
+            effects = effects.ToList()
+        };
+    private static V20ChoiceDefinition RetirementChoice(
+        string id,
+        string title,
+        params V20ContentEffect[] effects) => Choice(id, title, effects);
     private static BackgroundSpec B(string id, string name, string description, string skill, int experience, string memory, string faction, int reaction) => new() { Id = id, Name = name, Description = description, Skill = skill, Experience = experience, Memory = memory, Faction = faction, Reaction = reaction };
     private static AmbitionSpec A(string id, string name, string description, CharacterAmbitionCategory category, int target, string eventId, V20ContentEffectKind reward, string rewardTarget) => new() { Id = id, Name = name, Description = description, Category = category, Target = target, EventId = eventId, RewardKind = reward, RewardTarget = rewardTarget };
     private static EventSpec E(string id, string name, string description, LifeEventCategory category, string firstChoice, string secondChoice, V20ContentEffectKind firstEffect, float firstAmount, V20ContentEffectKind secondEffect, float secondAmount) => new() { Id = id, Name = name, Description = description, Category = category, FirstChoice = firstChoice, SecondChoice = secondChoice, FirstEffect = firstEffect, FirstAmount = firstAmount, SecondEffect = secondEffect, SecondAmount = secondAmount };
+    private static EventSpec Retirement(
+        string id,
+        string name,
+        string description,
+        string firstChoice,
+        string secondChoice) => new()
+        {
+            Id = id,
+            Name = name,
+            Description = description,
+            Category = LifeEventCategory.ElderRetirement,
+            FirstChoice = firstChoice,
+            SecondChoice = secondChoice,
+            RetirementSchedule = true,
+            OccurrencePolicy = LifeEventOccurrencePolicy.DailyCadence
+        };
     private static EventSpec Auto(string id, string name, string description, LifeEventCategory category, V20ContentEffectKind effect, float amount) => new() { Id = id, Name = name, Description = description, Category = category, Automatic = true, FirstEffect = effect, FirstAmount = amount };
     private static CultureSpec C(string id, string species, string name, string description, string preferred, string forbidden, string environment, string etiquette) => new() { Id = id, Species = species, Name = name, Description = description, PreferredItem = preferred, ForbiddenItem = forbidden, Environment = environment, Etiquette = etiquette };
     private static PracticeSpec P(string id, string culture, string name, string description, CulturalPracticeKind kind, string item, V20ContentEffectKind effect) => new() { Id = id, CultureId = culture, Name = name, Description = description, Kind = kind, RequiredItem = item, Effect = effect };

@@ -486,7 +486,8 @@ public readonly struct CombatStatSnapshot
         float dexterity,
         float healthMultiplier = 1f,
         float arcanePowerMultiplier = 1f,
-        bool hasArcanePowerMultiplier = false)
+        bool hasArcanePowerMultiplier = false,
+        float evasionChanceBonus = 0f)
     {
         Melee = Mathf.Max(0f, melee);
         Shooting = Mathf.Max(0f, shooting);
@@ -498,6 +499,7 @@ public readonly struct CombatStatSnapshot
         HealthMultiplier = Mathf.Max(0f, healthMultiplier);
         ArcanePowerMultiplier = Mathf.Max(0f, arcanePowerMultiplier);
         HasArcanePowerMultiplier = hasArcanePowerMultiplier;
+        EvasionChanceBonus = Mathf.Clamp(evasionChanceBonus, 0f, 0.35f);
     }
 
     public float Melee { get; }
@@ -515,6 +517,7 @@ public readonly struct CombatStatSnapshot
     /// </summary>
     public bool HasArcanePowerMultiplier { get; }
     public float ArcanePowerMultiplier { get; }
+    public float EvasionChanceBonus { get; }
 }
 
 public readonly struct CombatCoverSnapshot

@@ -19,6 +19,8 @@ MonoBehaviour:
   authoringRevision: 1
   sourceNote: V20 hand-authored faction/service manifest.
   kind: 5
+  riskTier: 1
+  riskReason: 작성된 대응에 작업 지연 1일 또는 세력 원한 10이 있다.
   triggerRequirements:
     items: []
     facilities: []

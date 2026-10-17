@@ -1,0 +1,7 @@
+[PASS] actual daily content transaction + postcommit event: growing/mature=10%, empty/later-sown=0%; preview/uncommitted event and duplicate/polling mutate nothing; actual crop presenter shows cost
+[PASS] invalid 11% current whole-world JSON rejected atomically; normal whole restore and exact replay preserve handled IDs/current-cycle provenance; real event expiry does not heal crop damage
+[PASS] actual harvest work freezes primary 6→6; loss=0; seed=2; malformed loss rejected, frozen restore/retry exact, released physical primary+seed publish once, next paid cycle clears damage
+[PASS] second real seasonal occurrence leaves already-frozen output unchanged, applies to a new cycle, caps old unharvested cycle at10%; clean frozen output is physically published exactly once
+result=PASS
+scope=actual main content transaction/postcommit dispatcher, registered crop consumer, current save, harvest work/physical output and crop presenter; owner/party UI is real, research/placement/growth/full-buffer are controlled setup; no natural crop growth/AI/six-adult balance/frost/whole-WIM009 claim
+cleanup=operator stops disposable Play; no scene or user persistence writes

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 
 /// <summary>
 /// An explicit diagnostics correlation established before a generic recipe
@@ -65,6 +66,99 @@ public enum ProductionRecipeExecutionPublicationKind
 {
     PreparedBatch = 0,
     ExactCapabilityUnits = 1
+}
+
+/// <summary>
+/// Immutable source fact for a completed prepared-output cycle that authored
+/// an explicit, non-physical declared loss. The production aggregate creates
+/// this only at its Completed-before-clear boundary.
+/// </summary>
+public sealed class ProductionDeclaredLossCycleReceipt
+{
+    public ProductionDeclaredLossCycleReceipt(
+        ProductionBillId billId,
+        int cycleSequence,
+        string recipeId,
+        BuildingInstanceId facilityId,
+        string workerPersistentId,
+        ProductionPreparedOutputBatchSaveData completedBatch,
+        DomainFactDelivery parentPublication = default)
+    {
+        if (!billId.IsValid)
+            throw new ArgumentException("A valid production bill is required.", nameof(billId));
+        if (cycleSequence <= 0)
+            throw new ArgumentOutOfRangeException(nameof(cycleSequence));
+        RecipeId = RequireCanonical(recipeId, nameof(recipeId));
+        if (!facilityId.IsValid)
+            throw new ArgumentException("A valid production facility is required.", nameof(facilityId));
+        WorkerPersistentId = RequireCanonical(
+            workerPersistentId,
+            nameof(workerPersistentId));
+        ProductionPreparedOutputContract.ValidateForBill(
+            completedBatch,
+            billId,
+            RecipeId,
+            cycleSequence,
+            ProductionOutputDestinationId.FromFacility(facilityId).Value);
+        if (completedBatch.phase != ProductionPreparedOutputPhase.Completed
+            || completedBatch.totalDeclaredLossMassGrams <= 0L)
+        {
+            throw new ArgumentException(
+                "A completed production batch with positive declared loss is required.",
+                nameof(completedBatch));
+        }
+
+        BillId = billId;
+        CycleSequence = cycleSequence;
+        FacilityId = facilityId;
+        BatchCommitId = RequireCanonical(
+            completedBatch.batchCommitId,
+            nameof(completedBatch));
+        OutcomeFingerprint = RequireDigest(
+            completedBatch.outcomeFingerprint,
+            nameof(completedBatch));
+        DeclaredLossMassGrams = completedBatch.totalDeclaredLossMassGrams;
+        SourceOperationId = "production-declared-loss:" + BatchCommitId;
+        ParentPublication = parentPublication;
+    }
+
+    public ProductionBillId BillId { get; }
+    public int CycleSequence { get; }
+    public string RecipeId { get; }
+    public BuildingInstanceId FacilityId { get; }
+    public string WorkerPersistentId { get; }
+    public string BatchCommitId { get; }
+    public string OutcomeFingerprint { get; }
+    public long DeclaredLossMassGrams { get; }
+    public string SourceOperationId { get; }
+    public DomainFactDelivery ParentPublication { get; }
+
+    private static string RequireCanonical(string value, string parameter)
+    {
+        if (string.IsNullOrWhiteSpace(value)
+            || !string.Equals(value, value.Trim(), StringComparison.Ordinal)
+            || value.Any(char.IsWhiteSpace))
+        {
+            throw new ArgumentException(
+                "A canonical production declared-loss identity is required.",
+                parameter);
+        }
+        return value;
+    }
+
+    private static string RequireDigest(string value, string parameter)
+    {
+        if (value == null
+            || value.Length != 64
+            || value.Any(character => !((character >= '0' && character <= '9')
+                || (character >= 'a' && character <= 'f'))))
+        {
+            throw new ArgumentException(
+                "A lowercase SHA-256 digest is required.",
+                parameter);
+        }
+        return value;
+    }
 }
 
 public sealed class ProductionRecipeExecutionOutputLineReceipt
@@ -165,7 +259,9 @@ public sealed class ProductionRecipeExecutionPhysicalSliceReceipt
         string stackId,
         int quantity,
         long massGrams,
-        string commitId)
+        string commitId,
+        string componentSignature = "",
+        string itemInstanceId = "")
     {
         OutputLineId = RequireCanonical(outputLineId, nameof(outputLineId));
         ItemId = RequireCanonical(itemId, nameof(itemId));
@@ -175,8 +271,24 @@ public sealed class ProductionRecipeExecutionPhysicalSliceReceipt
             throw new ArgumentOutOfRangeException(nameof(quantity));
         if (massGrams <= 0L)
             throw new ArgumentOutOfRangeException(nameof(massGrams));
+        if (!string.IsNullOrEmpty(componentSignature)
+            && !IsDigest(componentSignature))
+        {
+            throw new ArgumentException(
+                "An optional lowercase component SHA-256 is required.",
+                nameof(componentSignature));
+        }
+        if (!string.IsNullOrEmpty(itemInstanceId)
+            && !IsCanonical(itemInstanceId))
+        {
+            throw new ArgumentException(
+                "The optional physical item instance ID is not canonical.",
+                nameof(itemInstanceId));
+        }
         Quantity = quantity;
         MassGrams = massGrams;
+        ComponentSignature = componentSignature ?? string.Empty;
+        ItemInstanceId = itemInstanceId ?? string.Empty;
 
         CanonicalSemanticDigestBuilder digest = new();
         digest.Append("production-recipe-execution-physical-slice@1");
@@ -186,6 +298,8 @@ public sealed class ProductionRecipeExecutionPhysicalSliceReceipt
         digest.Append(Quantity);
         digest.Append(MassGrams);
         digest.Append(CommitId);
+        digest.Append(ComponentSignature);
+        digest.Append(ItemInstanceId);
         SourceDigest = digest.ComputeSha256();
     }
 
@@ -195,7 +309,19 @@ public sealed class ProductionRecipeExecutionPhysicalSliceReceipt
     public int Quantity { get; }
     public long MassGrams { get; }
     public string CommitId { get; }
+    public string ComponentSignature { get; }
+    public string ItemInstanceId { get; }
     public string SourceDigest { get; }
+
+    private static bool IsCanonical(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal)
+        && !value.Any(char.IsWhiteSpace);
+
+    private static bool IsDigest(string value) => value != null
+        && value.Length == 64
+        && value.All(character => (character >= '0' && character <= '9')
+            || (character >= 'a' && character <= 'f'));
 
     private static string RequireCanonical(string value, string parameter)
     {
@@ -480,13 +606,20 @@ public interface IProductionRecipeExecutionReceiptQuery
 
 /// <summary>
 /// Internal producer port used only by the generic production aggregate at
-/// the exact Completed-before-clear boundary. An uncorrelated normal gameplay
-/// cycle is intentionally a no-op.
+/// the exact Completed-before-clear boundary. Diagnostic receipt capture is
+/// opt-in; the actor-aware overload always exposes an authored declared loss.
 /// </summary>
 public interface IProductionRecipeExecutionReceiptAuthority :
     IProductionRecipeExecutionCorrelationCommand,
     IProductionRecipeExecutionReceiptQuery
 {
+    bool TryEnsureExactCapture(
+        ProductionBillId billId,
+        int cycleSequence,
+        string recipeId,
+        BuildingInstanceId facilityId,
+        out string failureReason);
+
     bool RequiresExactCapture(
         ProductionBillId billId,
         int cycleSequence);
@@ -511,11 +644,33 @@ public interface IProductionRecipeExecutionReceiptAuthority :
         IReadOnlyList<ProductionResolvedOutputSaveData> completedOutputs,
         out string failureReason);
 
+    bool TryCommitExactCompletedOutcome(
+        ProductionBillId billId,
+        int cycleSequence,
+        string recipeId,
+        BuildingInstanceId facilityId,
+        string workerPersistentId,
+        IReadOnlyList<ProductionResolvedOutputSaveData> completedOutputs,
+        string facilityDisplayName, string workerDisplayName, int absoluteDay,
+        out string failureReason);
+
     bool TryPublishCompleted(
         ProductionBillId billId,
         int cycleSequence,
         string recipeId,
         BuildingInstanceId facilityId,
+        string wipInputCommitId,
+        int wipInputQuantity,
+        long wipInputMassGrams,
+        ProductionPreparedOutputBatchSaveData completedBatch,
+        out string failureReason);
+
+    bool TryPublishCompleted(
+        ProductionBillId billId,
+        int cycleSequence,
+        string recipeId,
+        BuildingInstanceId facilityId,
+        string workerPersistentId,
         string wipInputCommitId,
         int wipInputQuantity,
         long wipInputMassGrams,
@@ -531,6 +686,17 @@ public sealed class EmptyProductionRecipeExecutionReceiptAuthority :
 
     private EmptyProductionRecipeExecutionReceiptAuthority()
     {
+    }
+
+    public bool TryEnsureExactCapture(
+        ProductionBillId billId,
+        int cycleSequence,
+        string recipeId,
+        BuildingInstanceId facilityId,
+        out string failureReason)
+    {
+        failureReason = "production-recipe-execution-receipt-authority-missing";
+        return false;
     }
 
     public bool RequiresExactCapture(
@@ -587,6 +753,25 @@ public sealed class EmptyProductionRecipeExecutionReceiptAuthority :
         return true;
     }
 
+    public bool TryPublishCompleted(
+        ProductionBillId billId,
+        int cycleSequence,
+        string recipeId,
+        BuildingInstanceId facilityId,
+        string workerPersistentId,
+        string wipInputCommitId,
+        int wipInputQuantity,
+        long wipInputMassGrams,
+        ProductionPreparedOutputBatchSaveData completedBatch,
+        out string failureReason)
+    {
+        failureReason = completedBatch?.totalDeclaredLossMassGrams > 0L
+            && !string.IsNullOrWhiteSpace(workerPersistentId)
+            ? "production-declared-loss-life-event-authority-missing"
+            : string.Empty;
+        return failureReason.Length == 0;
+    }
+
     public bool TryCaptureExactCommittedUnit(
         ProductionBillId billId,
         int cycleSequence,
@@ -613,5 +798,19 @@ public sealed class EmptyProductionRecipeExecutionReceiptAuthority :
     {
         failureReason = string.Empty;
         return true;
+    }
+
+    public bool TryCommitExactCompletedOutcome(
+        ProductionBillId billId,
+        int cycleSequence,
+        string recipeId,
+        BuildingInstanceId facilityId,
+        string workerPersistentId,
+        IReadOnlyList<ProductionResolvedOutputSaveData> completedOutputs,
+        string facilityDisplayName, string workerDisplayName, int absoluteDay,
+        out string failureReason)
+    {
+        failureReason = "production-gameplay-outcome-committer-missing";
+        return false;
     }
 }

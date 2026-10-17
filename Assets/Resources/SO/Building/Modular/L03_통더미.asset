@@ -152,4 +152,3 @@ MonoBehaviour:
         abilityId: BuildingWaterSourceAbility
         waterPerWork: 3
         workSeconds: 1.1
-        blockedByFreezingWeather: 0

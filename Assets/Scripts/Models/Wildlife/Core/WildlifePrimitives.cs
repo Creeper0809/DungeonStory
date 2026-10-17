@@ -158,7 +158,8 @@ public enum WildlifeFoodRaidCommitPhase
 {
     None = 0,
     ItemCommitted = 1,
-    RaidPublished = 2
+    RaidPublished = 2,
+    Acknowledged = 3
 }
 
 public static class WildlifeFoodRaidOutcomeCodes
@@ -171,9 +172,25 @@ public static class WildlifeFoodRaidOutcomeCodes
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class WildlifeFoodRaidOrderSaveData
 {
+    public const int CurrentOutcomeSchemaVersion = 2;
+
+    public int outcomeSchemaVersion;
     public string raidId = string.Empty;
     public string wildlifeId = string.Empty;
+    public string wildlifeSpeciesId = string.Empty;
+    public string wildlifeDisplayName = string.Empty;
     public string targetStackId = string.Empty;
+    public string targetItemId = string.Empty;
+    public string targetItemDisplayName = string.Empty;
+    public int requestedQuantity;
+    public int startX;
+    public int startY;
+    public float startedGameTime;
+    public int startedAbsoluteDay;
+    public int endX;
+    public int endY;
+    public float completedGameTime;
+    public int completedAbsoluteDay;
     public WildlifeFoodRaidOrderState state =
         WildlifeFoodRaidOrderState.Approaching;
     public int stolenQuantity;
@@ -185,14 +202,19 @@ public sealed class WildlifeFoodRaidOrderSaveData
     public List<string> dispositionSourceStackIds = new List<string>();
     public int dispositionQuantity;
     public long dispositionInputMassGrams;
+    public long dispositionOwnerRevision;
     public string dispositionItemId = string.Empty;
+    public WildlifeFoodRaidFactData fact = new();
+    public string publicationKey = string.Empty;
+    public string publicationId = string.Empty;
+    public string publicationFingerprint = string.Empty;
 }
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonWildlifeSaveData
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 10;
 
     public int version = CurrentVersion;
     public int nextSequence = 1;
@@ -200,10 +222,14 @@ public sealed class DungeonWildlifeSaveData
     public List<WildlifeSaveData> wildlife = new List<WildlifeSaveData>();
     public List<WildlifeCarcassFreshnessSaveData> carcasses =
         new List<WildlifeCarcassFreshnessSaveData>();
+    public List<WildlifeCarcassProcessingSaveData> carcassProcessing = new();
     public DungeonWildlifeEcosystemSaveData ecosystem =
         new DungeonWildlifeEcosystemSaveData();
     public List<WildlifeFoodRaidOrderSaveData> foodRaidOrders =
         new List<WildlifeFoodRaidOrderSaveData>();
+    public int nextGameplayOutcomeSequence;
+    public List<WildlifeGameplayOutcomeSaveData> gameplayOutcomes =
+        new List<WildlifeGameplayOutcomeSaveData>();
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

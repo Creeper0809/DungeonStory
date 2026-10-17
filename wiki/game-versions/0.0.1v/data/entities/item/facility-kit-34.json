@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "1성 냉기 분사구로 침입 경로를 막고 방어선을 유지하는 데 필요한 설치 부품이며, 크릭 제7굴의 시설과도 체결 규격이 맞는다.",
+  "in_game_description": "1성 냉기 분사구로 침입 경로를 막고 방어선을 유지하는 데 필요한 설치 부품이다. 크릭 제7굴의 1성 냉기 분사구에서 보이지 않는 사각은 실제 갱도 벽과 같은 붉은색으로 칠해진다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

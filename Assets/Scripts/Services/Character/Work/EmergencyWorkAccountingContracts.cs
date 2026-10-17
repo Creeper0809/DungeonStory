@@ -226,6 +226,7 @@ public interface IEmergencyWorkAccountingService
     EmergencyAccountingResult Reclassify(EmergencyWorkReclassification change);
     EmergencyAccountingResult Remove(EmergencyWorkCompletion completion);
     EmergencyReserveSnapshot CaptureSnapshot();
+    bool TryGetWorkerOperation(string workerId, out EmergencyWorkLedgerEntry entry);
 }
 
 public interface IEmergencyWorkAccountingReconciler

@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "phase": "phase80-evolution-outcomes",
+  "generatedAt": "2026-09-18",
+  "balanceImpact": "none-observational-ledger-only",
+  "rows": [
+    {
+      "candidate": "ApparelChangedEvent",
+      "classification": "Record",
+      "authoritativeReceipt": "ApparelChangeOutcomeReceipt",
+      "outcomeTypeId": "equipment.apparel-changed",
+      "producerId": "equipment.apparel-change",
+      "owner": "CharacterApparelAggregate",
+      "atomicity": "all receipt pages prepared before physical routing; owner revision committed before ledger commit; legacy event publishes only after ledger commit",
+      "status": "implemented"
+    },
+    {
+      "candidate": "CharacterAcquiredTraitReactionExecutedEvent",
+      "classification": "Record",
+      "authoritativeReceipt": "AcquiredTraitReactionOutcomeReceipt",
+      "outcomeTypeId": "trait.acquired-reaction-executed",
+      "producerId": "trait.acquired-reaction",
+      "owner": "CharacterAcquiredTraitSpecialReactionRuntime",
+      "atomicity": "receipt prepared before reaction revision and effect; ledger committed before the derived event",
+      "status": "implemented"
+    },
+    {
+      "candidate": "EquipmentStoredEvent",
+      "classification": "dependent-substitute-pending",
+      "authoritativeReceipt": null,
+      "outcomeTypeId": null,
+      "producerId": "ItemTransferService.TryDepositMassAdmittedCarriedItem",
+      "requiredSubstitute": "an authoritative warehouse-haul completion outcome preserving operation, admission, source/target stack, equipment identity, warehouse, carrier, quantity and mass",
+      "reason": "EquipmentStoredEvent is a low-detail notification, while no higher exact same-operation warehouse-haul receipt is ledger-integrated in phase80",
+      "status": "unresolved"
+    },
+    {
+      "candidate": "FacilityEvolutionCompletedEvent",
+      "classification": "Record",
+      "authoritativeReceipt": "FacilityEvolutionOutcomeReceipt",
+      "outcomeTypeId": "facility.evolution-completed",
+      "producerId": "facility.evolution",
+      "owner": "FacilityEvolutionEngine",
+      "atomicity": "receipt prepared before replacement; committed while the physical material receipt remains recoverable; derived completion event publishes after finalization",
+      "status": "implemented"
+    },
+    {
+      "candidate": "FacilityEvolutionMaterialCommitReceipt",
+      "classification": "NonResult",
+      "substituteOutcomeTypeId": "facility.evolution-completed",
+      "substituteProducer": "FacilityEvolutionEngine",
+      "preservedFacts": [
+        "material quantity",
+        "input mass grams",
+        "physical commit SHA-256 evidence",
+        "canonical source stack set SHA-256 evidence",
+        "source stack count",
+        "operation id",
+        "history revision"
+      ],
+      "reason": "the material commit is an internal pending stage of the same facility evolution; its exact provenance is preserved by the final authoritative facility result and ledger receipt",
+      "status": "implemented-substitute"
+    },
+    {
+      "candidate": "MemoryErasureSealUseCompletedEvent",
+      "classification": "Record",
+      "authoritativeReceipt": "MemoryErasureOutcomeReceipt",
+      "outcomeTypeId": "trait.memory-erasure-terminal",
+      "producerId": "trait.memory-erasure-seal",
+      "owner": "MemoryErasureSealTransactionService + MemoryErasureSealCommandService",
+      "atomicity": "capacity reserved before carried-item debit; exact physical commit and trait revision written before acknowledgement; ledger committed before the derived terminal event",
+      "status": "implemented"
+    },
+    {
+      "candidate": "ProductionApparelOrderSourceTerminalReceipt",
+      "classification": "dependent-substitute-pending",
+      "authoritativeReceipt": null,
+      "outcomeTypeId": null,
+      "producerId": "ProductionApparelOrderTerminalDrainOutbox",
+      "requiredSubstitute": "a ledger-integrated destructive-drain OwnerAcknowledged result preserving the exact source-terminal receipt and same step operation",
+      "reason": "the source terminal receipt is an internal phase, but no exact higher same-operation destructive-drain result is ledger-integrated in phase80",
+      "status": "unresolved"
+    },
+    {
+      "candidate": "ProductionApparelOrderTerminalEffectReceipt",
+      "classification": "dependent-substitute-pending",
+      "authoritativeReceipt": null,
+      "outcomeTypeId": null,
+      "producerId": "ProductionApparelOrderTerminalDrainOutbox",
+      "requiredSubstitute": "a ledger-integrated destructive-drain OwnerAcknowledged result preserving the exact terminal effect receipt and same step operation",
+      "reason": "the effect terminal receipt is an internal phase, but no exact higher same-operation destructive-drain result is ledger-integrated in phase80",
+      "status": "unresolved"
+    }
+  ],
+  "summary": {
+    "recordImplemented": 4,
+    "nonResultWithExactSubstitute": 1,
+    "dependentSubstitutePending": 3,
+    "unresolved": 3
+  },
+  "humanApprovalClaimed": false
+}

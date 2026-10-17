@@ -110,6 +110,15 @@ public sealed class EquipmentHistoryTransferRuntime
             failure = new DomainFailure(FailureCode.EquipmentLineageMismatch);
             return false;
         }
+        if (HasPendingFormulaPresentation(source.evolution)
+            || HasPendingFormulaPresentation(target.evolution))
+        {
+            failure = new DomainFailure(
+                FailureCode.HistoryTransferAlreadyActive,
+                string.Empty,
+                "equipment-formula-presentation-pending");
+            return false;
+        }
         if (source.moduleSlots?.Any(slot => slot != null
                 && !string.IsNullOrWhiteSpace(slot.moduleInstanceId)) == true)
         {
@@ -227,6 +236,15 @@ public sealed class EquipmentHistoryTransferRuntime
                 out CombatEquipmentInstance target))
         {
             failure = new DomainFailure(FailureCode.HistoryTransferEquipmentMissing);
+            return false;
+        }
+        if (HasPendingFormulaPresentation(source.evolution)
+            || HasPendingFormulaPresentation(target.evolution))
+        {
+            failure = new DomainFailure(
+                FailureCode.HistoryTransferAlreadyActive,
+                string.Empty,
+                "equipment-formula-presentation-pending");
             return false;
         }
         IReadOnlyList<WorldItemStackSnapshot> physicalStacks =
@@ -396,6 +414,13 @@ public sealed class EquipmentHistoryTransferRuntime
                     stack.DestinationId,
                     destinationId,
                     StringComparison.Ordinal));
+    }
+
+    private static bool HasPendingFormulaPresentation(EquipmentEvolutionState state)
+    {
+        return state?.presentationRequests?.Any(request => request != null
+            && request.state is EquipmentEvolutionPresentationState.PresentationPending
+                or EquipmentEvolutionPresentationState.AwaitingNarrativeRetry) == true;
     }
 
     private static bool TryRequireLineageFacility(

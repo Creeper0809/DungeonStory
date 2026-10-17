@@ -1,0 +1,13 @@
+{
+  "goal": {
+    "threadId": "01a13f77-5f72-7ff1-ad33-8a1de4a171e2",
+    "objective": "DungeonStory의 docs/code-audit/god-class-and-required-fixes-2026-10-16.md에 정리된 F1·F2 복원 계약 결함과 G1~G10 갓 클래스, 조건부 분리 20개를 모두 처리한다. 복원 후보 수명과 commit 이후 결과 계약을 먼저 고치고, 각 대상의 실제 업무·상태 소유권·실패 경계를 기준으로 의미 있는 책임 분리와 필요한 의존 방향 수정을 구현한다. 줄 수/partial/helper/인터페이스 파일 증가만으로 해결 처리하지 않는다. 조건부 대상도 모두 검토·수정하되 이미 독립 owner로 위임되거나 응집된 권위를 나누면 손상되는 부분은 구체적인 원본·호출자 근거와 함께 처리 판정을 남긴다. 기존 사용자 변경·저장 호환·씬/프리팹/MonoScript GUID·단일 쓰기 권위를 보존한다. 배치마다 현재 소스 컴파일과 해당 기능·취소·실패·저장 복원·동일 요청 재시도를 사용자 포커스에 간섭하지 않는 비대화형 station/desktop 격리 Unity 경로로 실제 검증한다. 요청 보고서와 루트 HANDOFF/task_plan/findings/progress를 실제 결과로 갱신하고, 모든 대상의 처리와 필요한 검증을 마친 뒤에만 Goal을 완료한다.",
+    "status": "complete",
+    "tokensUsed": 22777253,
+    "timeUsedSeconds": 70719,
+    "createdAt": 1792144599,
+    "updatedAt": 1792229057
+  },
+  "remainingTokens": null,
+  "completionBudgetReport": "Goal achieved. Report final usage from this tool result's structured goal fields. If `goal.tokenBudget` is present, include token usage from `goal.tokensUsed` and `goal.tokenBudget`. If `goal.timeUsedSeconds` is greater than 0, summarize elapsed time in a concise, human-friendly form appropriate to the response language."
+}

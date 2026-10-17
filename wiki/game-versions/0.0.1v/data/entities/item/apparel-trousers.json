@@ -10,12 +10,12 @@
     },
     {
       "label": "기준 가격",
-      "value": "19"
+      "value": "40"
     }
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "허리에서 발목까지 다리를 따로 감싸는 튼튼한 일상 바지다. 하르나크에서 만든 바지는 꼬리가 있는 주민도 입을 수 있도록 허리 뒤쪽 솔기를 고치기 쉽게 남겨 둔다.",
+  "in_game_description": "허리에서 발목까지 다리를 따로 감싸는 튼튼한 일상 바지다. 하르나크제 바지의 솔기 안에는 뿔, 날개와 꼬리를 위한 여유 천이 접혀 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

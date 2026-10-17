@@ -106,6 +106,34 @@
     },
     {
       "amount": "1",
+      "from": "recipe/recipe-surgery-brain-assist",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-heart-augmentation",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-heat-sac",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-night-eye",
+      "label": "필요 조건",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
       "from": "recipe/source-quarry",
       "label": "생산·해금",
       "to": "item/resource-mana-crystal",
@@ -152,6 +180,20 @@
       "label": "필요 조건",
       "to": "item/resource-mana-crystal",
       "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/seasonal-summer-mana-lightning",
+      "label": "생산·해금",
+      "to": "item/resource-mana-crystal",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "event/seasonal-winter-deep-echo",
+      "label": "생산·해금",
+      "to": "item/resource-mana-crystal",
+      "type": "produces-or-unlocks"
     },
     {
       "amount": null,

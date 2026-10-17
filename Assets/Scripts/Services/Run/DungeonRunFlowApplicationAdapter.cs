@@ -9,7 +9,8 @@ public class DungeonRunFlowApplicationAdapter :
     ITickable,
     IDisposable,
     IDungeonRunFlowRuntime,
-    IDungeonRunFlowRestorePublisher
+    IDungeonRunFlowRestorePublisher,
+    IDungeonSaveRestoreCompletedHook
 {
     private readonly IOwnerRunManagerProvider ownerProvider;
     private readonly InvasionThreatRuntime threat;
@@ -116,6 +117,15 @@ public class DungeonRunFlowApplicationAdapter :
         EnsureProjectionCurrent();
     }
 
+    public void OnRestoreCompleted()
+    {
+        // Character publication creates a fresh OwnerRunManager binding with
+        // IsRunEnded=false. Restore must project canonical run.flow before
+        // returning, not leave a terminal owner looking resumable for a tick.
+        EnsureProjectionCurrent();
+        projectedRestoreRevision = aggregateRootStore.PublishedRestoreRevision;
+    }
+
     public void OnTriggerEvent(OperatingDayStartedEvent eventType) =>
         ApplyTransition(DungeonRunFlowReducer.Reduce(
             State,
@@ -186,9 +196,17 @@ public class DungeonRunFlowApplicationAdapter :
         }
     }
 
-    public void PublishRestoreState(DungeonRunFlowAggregateState candidate) =>
-        aggregateRootStore.Replace(candidate
-            ?? throw new ArgumentNullException(nameof(candidate)));
+    public OwnerRunCompletionPendingData CapturePendingCompletion()
+    {
+        if (ownerProvider.TryGetManager(out var owner)) owner.AssertCompletionIdle();
+        return State.PendingCompletion?.Clone();
+    }
+
+    public void PublishRestoreState(DungeonRunFlowAggregateState candidate)
+    {
+        if (ownerProvider.TryGetManager(out var owner)) owner.AssertCompletionIdle();
+        aggregateRootStore.Replace(candidate ?? throw new ArgumentNullException(nameof(candidate)));
+    }
 
     private void ApplyTransition(
         DungeonRunFlowTransition transition,
@@ -198,13 +216,35 @@ public class DungeonRunFlowApplicationAdapter :
         {
             throw new ArgumentNullException(nameof(transition));
         }
+
+        for (int index = 0; index < transition.Effects.Count; index++)
+        {
+            DungeonRunFlowEffect effect = transition.Effects[index];
+            if (effect.Kind == DungeonRunFlowEffectKind.CompleteRun
+                && !CompleteRun(
+                    effect.Outcome,
+                    effect.Outcome == DungeonRunOutcome.Victory
+                        ? completionReason ?? "진실 발견"
+                        : "침공 방어 실패"))
+            {
+                return;
+            }
+        }
+
         if (transition.StateChanged)
         {
+            // CompleteRun can publish a pending observation while this older
+            // transition is executing. Do not overwrite its durable retry row.
+            transition.State.PendingCompletion = State.PendingCompletion?.Clone();
             aggregateRootStore.Replace(transition.State);
         }
 
         foreach (DungeonRunFlowEffect effect in transition.Effects)
         {
+            if (effect.Kind == DungeonRunFlowEffectKind.CompleteRun)
+            {
+                continue;
+            }
             ExecuteEffect(effect, completionReason);
         }
     }
@@ -256,13 +296,6 @@ public class DungeonRunFlowApplicationAdapter :
                 break;
             case DungeonRunFlowEffectKind.ForceArmedInvasion:
                 ForceArmedInvasion();
-                break;
-            case DungeonRunFlowEffectKind.CompleteRun:
-                CompleteRun(
-                    effect.Outcome,
-                    effect.Outcome == DungeonRunOutcome.Victory
-                        ? completionReason ?? "진실 발견"
-                        : "침공 방어 실패");
                 break;
         }
     }
@@ -353,7 +386,7 @@ public class DungeonRunFlowApplicationAdapter :
             "침입");
     }
 
-    private void CompleteRun(DungeonRunOutcome outcome, string reason)
+    private bool CompleteRun(DungeonRunOutcome outcome, string reason)
     {
         if (!ownerProvider.TryGetManager(out OwnerRunManager ownerManager)
             || ownerManager == null
@@ -361,7 +394,9 @@ public class DungeonRunFlowApplicationAdapter :
         {
             Debug.LogWarning(
                 $"Run completion could not be delivered to {nameof(OwnerRunManager)}.");
+            return false;
         }
+        return true;
     }
 
     private void RaisePhaseAlert(DungeonRunPhase phase)

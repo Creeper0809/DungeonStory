@@ -23,6 +23,7 @@ public static class V27ServiceContinuityEvidenceDebugScenarios
     {
         "Assets/Scripts/Services/Survival/Editor/PrimitiveStartSurvivalPlayModeVerifier.cs",
         "Assets/Scripts/Services/Survival/CharacterPrimitiveSurvivalRunner.cs",
+        "Assets/Scripts/Services/Survival/CharacterPrimitiveSurvivalCompletion.cs",
         "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveFieldMeal.cs",
         "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveLatrine.cs",
         "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveBucketWash.cs",
@@ -61,6 +62,8 @@ public static class V27ServiceContinuityEvidenceDebugScenarios
     private static readonly string[] SixAdultOutageMarkers =
     {
         "PASS V27_SIX_ADULT_OUTAGE_SIX_LIVE_ADULTS:",
+        "PASS V27_SIX_ADULT_OUTAGE_AUTHORED_CROP_WATER_STORAGE_MASS_LOOP:",
+        "PASS V27_SIX_ADULT_OUTAGE_SIX_COHORT_REPRESENTATIVE_APPAREL_MASS_AND_RECOVERY:",
         "PASS V27_SIX_ADULT_OUTAGE_ONE_GAME_DAY_ELAPSED:",
         "PASS V27_SIX_ADULT_OUTAGE_ALL_FIVE_FALLBACKS_COMPLETED:",
         "PASS V27_SIX_ADULT_OUTAGE_PHYSICAL_EXACT_NO_MINT:",

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 /// <summary>
 /// The only V18 save authority for expedition preparation, travel, decisions,
@@ -15,6 +16,9 @@ public sealed class OffenseAggregateSaveSection :
 
     private readonly IOffenseSaveService expedition;
     private readonly IOffenseCampaignRuntime campaign;
+    private readonly OffenseExpeditionResultPublicationRuntime resultPublications;
+    private readonly OffenseNodePublicationRuntime nodePublications;
+    private readonly OffenseBattleCommandPublicationRuntime battleCommandPublications;
     private readonly OffenseWorldStateSaveCodec world;
     private readonly IOffenseRegionRuntime regions;
     private readonly IOffenseReturnArrivalRuntime returnArrivals;
@@ -26,10 +30,16 @@ public sealed class OffenseAggregateSaveSection :
         OffenseWorldStateSaveCodec world,
         IOffenseRegionRuntime regions,
         IOffenseReturnArrivalRuntime returnArrivals,
-        OffenseAggregateAuthoredReferenceValidator authoredReferences)
+        OffenseAggregateAuthoredReferenceValidator authoredReferences,
+        OffenseExpeditionResultPublicationRuntime resultPublications,
+        OffenseNodePublicationRuntime nodePublications,
+        OffenseBattleCommandPublicationRuntime battleCommandPublications)
     {
         this.expedition = expedition
             ?? throw new ArgumentNullException(nameof(expedition));
+        this.resultPublications = resultPublications ?? throw new ArgumentNullException(nameof(resultPublications));
+        this.nodePublications = nodePublications ?? throw new ArgumentNullException(nameof(nodePublications));
+        this.battleCommandPublications = battleCommandPublications ?? throw new ArgumentNullException(nameof(battleCommandPublications));
         this.campaign = campaign
             ?? throw new ArgumentNullException(nameof(campaign));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
@@ -58,15 +68,68 @@ public sealed class OffenseAggregateSaveSection :
 
     protected override DungeonOffenseAggregateSaveData CapturePayload()
     {
-        return new DungeonOffenseAggregateSaveData
+        var captured = new DungeonOffenseAggregateSaveData
         {
             version = DungeonOffenseAggregateSaveData.CurrentVersion,
             campaign = campaign.Capture(),
             expedition = expedition.Capture(),
+            resultPublications = resultPublications.Capture(),
+            nodePublications = nodePublications.Capture(),
+            battleCommandPublications = battleCommandPublications.Capture(),
             world = world.CaptureState(),
             regions = regions.Capture(),
             returnArrivals = returnArrivals.Capture()
         };
+        OffenseArrivalSettlementRuntime.ProjectTerminalReceipts(captured.expedition, captured.returnArrivals);
+        return captured;
+    }
+
+    protected override void ValidateRawPayload(string payloadJson)
+    {
+        var root = JObject.Parse(payloadJson);
+        ValidateResultPublicationJson(root["resultPublications"], typeof(OffenseExpeditionResultPublicationSaveData));
+        ValidateResultPublicationJson(root["nodePublications"], typeof(OffenseNodePublicationSaveData));
+        ValidateResultPublicationJson(root["battleCommandPublications"], typeof(OffenseBattleCommandPublicationSaveData));
+        if (root["returnArrivals"]?["arrivals"] is not JArray arrivals)
+            throw new InvalidOperationException("offense-arrival-json-list-missing");
+        foreach (var arrival in arrivals)
+            ValidateResultPublicationJson(arrival["settlement"], typeof(OffenseArrivalSettlementObservationData));
+        var campaignData = root["campaign"] as JObject;
+        if (campaignData?["version"]?.Type != JTokenType.Integer
+            || campaignData["version"].Value<int>() != DungeonOffenseCampaignSaveData.CurrentVersion)
+            throw new InvalidOperationException("offense-campaign-v2-json-invalid");
+        var observation = campaignData["truthObservation"] as JObject;
+        if (observation == null || observation["hasFact"]?.Type != JTokenType.Boolean
+            || observation["pending"]?.Type != JTokenType.Boolean || observation["notificationPending"]?.Type != JTokenType.Boolean
+            || observation["publicationKey"]?.Type != JTokenType.String || observation["fact"] is not JObject fact)
+            throw new InvalidOperationException("offense-truth-observation-json-invalid");
+        foreach (string name in new[] { "targetId", "targetDisplayName", "truthTitle", "truthText" })
+            if (fact[name]?.Type != JTokenType.String) throw new InvalidOperationException("offense-truth-fact-json-missing:" + name);
+        if (fact["ownerRevision"]?.Type != JTokenType.Integer || fact["absoluteDay"]?.Type != JTokenType.Integer)
+            throw new InvalidOperationException("offense-truth-fact-json-number-invalid");
+    }
+
+    private static void ValidateResultPublicationJson(JToken token, Type type)
+    {
+        bool valid;
+        if (type == typeof(string)) valid = token?.Type == JTokenType.String;
+        else if (type == typeof(bool)) valid = token?.Type == JTokenType.Boolean;
+        else if (type == typeof(float) || type == typeof(double)) valid = token?.Type is JTokenType.Float or JTokenType.Integer;
+        else if (type.IsPrimitive || type.IsEnum) valid = token?.Type == JTokenType.Integer;
+        else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
+        {
+            if (token is not JArray array) throw new InvalidOperationException("offense-result-json-list-missing:" + type.Name);
+            foreach (var row in array) ValidateResultPublicationJson(row, type.GetGenericArguments()[0]);
+            return;
+        }
+        else
+        {
+            if (token is not JObject value) throw new InvalidOperationException("offense-result-json-object-missing:" + type.Name);
+            foreach (var field in type.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+                ValidateResultPublicationJson(value[field.Name], field.FieldType);
+            return;
+        }
+        if (!valid) throw new InvalidOperationException("offense-result-json-field-invalid:" + type.Name);
     }
 
     protected override void NormalizeRestorePayload(
@@ -126,7 +189,10 @@ public sealed class OffenseAggregateSaveSection :
             expeditionCandidate,
             regionCandidate,
             worldCandidate,
-            returnArrivalCandidate);
+            returnArrivalCandidate,
+            OffenseExpeditionResultPublicationRuntime.ValidateAndClone(data.resultPublications),
+            OffenseNodePublicationRuntime.ValidateAndClone(data.nodePublications),
+            OffenseBattleCommandPublicationRuntime.ValidateAndClone(data.battleCommandPublications));
     }
 
     protected override void PublishRestoreCandidate(
@@ -139,6 +205,9 @@ public sealed class OffenseAggregateSaveSection :
         world.PublishRestoreCandidate(candidate.World);
         expedition.PublishRestoreCandidate(candidate.Expedition);
         returnArrivals.PublishRestoreCandidate(candidate.ReturnArrivals);
+        resultPublications.Restore(candidate.ResultPublications);
+        nodePublications.Restore(candidate.NodePublications);
+        battleCommandPublications.Restore(candidate.BattleCommandPublications);
     }
 }
 
@@ -150,7 +219,10 @@ public sealed class OffenseAggregateRuntimeRestoreCandidate :
         OffenseExpeditionRestoreCandidate expedition,
         OffenseRegionRestoreCandidate regions,
         OffenseWorldRuntimeRestoreCandidate world,
-        OffenseReturnArrivalRestoreCandidate returnArrivals)
+        OffenseReturnArrivalRestoreCandidate returnArrivals,
+        OffenseExpeditionResultPublicationSaveData resultPublications,
+        OffenseNodePublicationSaveData nodePublications,
+        OffenseBattleCommandPublicationSaveData battleCommandPublications)
     {
         Campaign = campaign
             ?? throw new ArgumentNullException(nameof(campaign));
@@ -160,6 +232,9 @@ public sealed class OffenseAggregateRuntimeRestoreCandidate :
         World = world ?? throw new ArgumentNullException(nameof(world));
         ReturnArrivals = returnArrivals
             ?? throw new ArgumentNullException(nameof(returnArrivals));
+        ResultPublications = resultPublications ?? throw new ArgumentNullException(nameof(resultPublications));
+        NodePublications = nodePublications ?? throw new ArgumentNullException(nameof(nodePublications));
+        BattleCommandPublications = battleCommandPublications ?? throw new ArgumentNullException(nameof(battleCommandPublications));
     }
 
     internal OffenseCampaignRestoreCandidate Campaign { get; }
@@ -167,6 +242,9 @@ public sealed class OffenseAggregateRuntimeRestoreCandidate :
     internal OffenseRegionRestoreCandidate Regions { get; }
     internal OffenseWorldRuntimeRestoreCandidate World { get; }
     internal OffenseReturnArrivalRestoreCandidate ReturnArrivals { get; }
+    internal OffenseExpeditionResultPublicationSaveData ResultPublications { get; }
+    internal OffenseNodePublicationSaveData NodePublications { get; }
+    internal OffenseBattleCommandPublicationSaveData BattleCommandPublications { get; }
 
     public void RecordRestoreResult(DungeonGameRestoreReport report)
     {

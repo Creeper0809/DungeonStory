@@ -164,7 +164,8 @@ public static class SettlementPopulationPowerCheckpointDebugScenarios
             EmptyEvolutionModuleRegistry.Instance,
             EditorAllResearchRuntimeProvider.Instance,
             new ResourceEquipmentModuleCatalog(content),
-            UnavailableEquipmentPhysicalItemGateway.Instance);
+            UnavailableEquipmentPhysicalItemGateway.Instance,
+            calendar: new EditorFixedGameCalendar(137, 9));
         return new EquipmentFixture(runtime, repository);
     }
 

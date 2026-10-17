@@ -15,6 +15,11 @@ public sealed class GameplayFlowDiagnosticItem
     public GameplayFlowDiagnosticSeverity Severity { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Detail { get; set; } = string.Empty;
+    public bool IsCurrentOperationBlock { get; set; }
+    public string TargetStableId { get; set; } = string.Empty;
+    public CharacterOperationBlockAxis BlockAxis { get; set; }
+    public AIActionFailureKind FailureKind { get; set; }
+    public FailureCode DomainFailureCode { get; set; }
 }
 
 public sealed class GameplayFlowDiagnosticsSnapshot
@@ -34,8 +39,9 @@ public sealed class GameplayFlowWorkerSnapshot
     public bool CanRunAi { get; set; }
     public bool IsOffDuty { get; set; }
     public bool HaulEnabled { get; set; }
-    public bool HasHaulPlan { get; set; }
     public bool PathSearchDeferred { get; set; }
+    public CharacterOperationBlockSnapshot CurrentOperationBlock { get; set; }
+    public CharacterAiDecisionScheduleObservation DecisionSchedule { get; set; }
     public IReadOnlyCollection<string> EnabledWorkTypeIds { get; set; }
         = Array.Empty<string>();
 
@@ -66,17 +72,21 @@ public sealed class GameplayFlowDiagnosticsQuery : IGameplayFlowDiagnosticsQuery
     private readonly IWorldItemStackRuntime itemStacks;
     private readonly IStaffWorkforceQueryService workforce;
     private readonly IWarehouseWorldQuery warehouseWorld;
+    private readonly ICharacterAiDiagnosticsQuery aiDiagnostics;
 
     public GameplayFlowDiagnosticsQuery(
         IWorkOrderRuntime workOrders,
         IWorldItemStackRuntime itemStacks,
         IStaffWorkforceQueryService workforce,
-        IWarehouseWorldQuery warehouseWorld)
+        IWarehouseWorldQuery warehouseWorld,
+        ICharacterAiDiagnosticsQuery aiDiagnostics)
     {
         this.workOrders = workOrders ?? throw new ArgumentNullException(nameof(workOrders));
         this.itemStacks = itemStacks ?? throw new ArgumentNullException(nameof(itemStacks));
         this.workforce = workforce ?? throw new ArgumentNullException(nameof(workforce));
         this.warehouseWorld = warehouseWorld ?? throw new ArgumentNullException(nameof(warehouseWorld));
+        this.aiDiagnostics = aiDiagnostics
+            ?? throw new ArgumentNullException(nameof(aiDiagnostics));
     }
 
     public GameplayFlowDiagnosticsSnapshot Capture()
@@ -84,12 +94,9 @@ public sealed class GameplayFlowDiagnosticsQuery : IGameplayFlowDiagnosticsQuery
         WorldItemStackSnapshot[] stacks = itemStacks.GetAllStacks()
             .Where(stack => stack != null && stack.Quantity > 0)
             .ToArray();
-        bool hasUnassignedLooseStacks = stacks.Any(stack =>
-            stack.State == WorldItemStackState.Loose
-            && string.IsNullOrWhiteSpace(stack.DestinationId));
         IReadOnlyList<GameplayFlowWorkerSnapshot> workers = workforce.FindActiveWorkers()
             .Where(actor => actor != null)
-            .Select(actor => CreateWorkerSnapshot(actor, hasUnassignedLooseStacks))
+            .Select(CreateWorkerSnapshot)
             .ToArray();
         IReadOnlyList<GameplayFlowWarehouseSnapshot> warehouses = warehouseWorld.Warehouses
             .Where(warehouse => warehouse != null)
@@ -102,9 +109,7 @@ public sealed class GameplayFlowDiagnosticsQuery : IGameplayFlowDiagnosticsQuery
             warehouses);
     }
 
-    private GameplayFlowWorkerSnapshot CreateWorkerSnapshot(
-        CharacterActor actor,
-        bool evaluateHaulPlan)
+    private GameplayFlowWorkerSnapshot CreateWorkerSnapshot(CharacterActor actor)
     {
         if (!CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork work))
         {
@@ -126,12 +131,10 @@ public sealed class GameplayFlowDiagnosticsQuery : IGameplayFlowDiagnosticsQuery
             CanRunAi = actor.CanRunAi,
             IsOffDuty = work.IsOffDuty,
             HaulEnabled = haulEnabled,
-            HasHaulPlan = evaluateHaulPlan
-                && actor.CanRunAi
-                && !work.IsOffDuty
-                && haulEnabled
-                && itemStacks.HasAvailableHaulJob(actor),
             PathSearchDeferred = actor.Brain?.IsPathSearchDeferred == true,
+            CurrentOperationBlock = actor.Brain?
+                .CaptureCurrentOperationBlock() ?? default,
+            DecisionSchedule = aiDiagnostics.CaptureDecisionSchedule(actor),
             EnabledWorkTypeIds = enabledWorkTypes
         };
     }
@@ -163,6 +166,7 @@ public sealed class GameplayFlowDiagnosticsQuery : IGameplayFlowDiagnosticsQuery
 public static class GameplayFlowDiagnosticsBuilder
 {
     private const int MaxVisibleOrders = 7;
+    private const int MaxVisibleOperationBlocks = 4;
 
     public static GameplayFlowDiagnosticsSnapshot Build(
         IEnumerable<WorkOrderSaveData> orders,
@@ -190,6 +194,18 @@ public static class GameplayFlowDiagnosticsBuilder
         foreach (WorkOrderSaveData order in activeOrders.Take(MaxVisibleOrders))
         {
             items.Add(BuildOrderDiagnostic(order, allStacks, activeWorkers));
+        }
+
+        foreach (GameplayFlowWorkerSnapshot worker in activeWorkers
+                     .Where(value =>
+                         value.CurrentOperationBlock.HasObservation)
+                     .OrderBy(value => value.Name, StringComparer.Ordinal)
+                     .ThenBy(
+                         value => value.CurrentOperationBlock.TargetStableId,
+                         StringComparer.Ordinal)
+                     .Take(MaxVisibleOperationBlocks))
+        {
+            items.Add(BuildOperationBlockDiagnostic(worker));
         }
 
         WorldItemStackSnapshot[] looseStacks = allStacks
@@ -288,23 +304,176 @@ public static class GameplayFlowDiagnosticsBuilder
                 $"{totals} · 받아들일 빈 창고 공간이 없습니다. 창고 용량과 허용 품목을 확인하세요.");
         }
 
-        if (!workers.Any(worker => worker.HasHaulPlan))
+        GameplayFlowWorkerSnapshot observedHaulBlock = workers
+            .Where(worker =>
+                IsObservedHaulAction(worker.CurrentOperationBlock)
+                && worker.CurrentOperationBlock.HasCurrentBlock)
+            .OrderBy(worker => worker.Name, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (observedHaulBlock != null)
         {
-            if (workers.Any(worker => worker.PathSearchDeferred))
+            CharacterOperationBlockSnapshot block =
+                observedHaulBlock.CurrentOperationBlock;
+            if (block.Axis == CharacterOperationBlockAxis.Access
+                || block.Failure.Kind is AIActionFailureKind.NoPath
+                    or AIActionFailureKind.NoGrid
+                    or AIActionFailureKind.DestinationOccupied)
             {
-                return Warning(
-                    "바닥 물류 경로 계산 중",
-                    $"{totals} · 다음 AI 판단에서 운반 경로를 다시 확인합니다.");
+                return Critical(
+                    "바닥 물류",
+                    $"{totals} · 실제 운반 시도 차단: "
+                    + FormatOperationBlock(block, observedHaulBlock.DecisionSchedule));
             }
 
-            return Critical(
-                "바닥 물류",
-                $"{totals} · 하차장과 창고 사이의 이동 경로가 막혔습니다. 입구·문·저장 위치를 확인하세요.");
+            return Warning(
+                "바닥 물류 실행 대기",
+                $"{totals} · 실제 운반 관측: "
+                + FormatOperationBlock(block, observedHaulBlock.DecisionSchedule));
+        }
+
+        GameplayFlowWorkerSnapshot unconfirmedHaulObservation = workers
+            .Where(worker =>
+                IsObservedHaulAction(worker.CurrentOperationBlock)
+                && !worker.CurrentOperationBlock.HasCurrentBlock)
+            .OrderBy(worker => worker.Name, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (unconfirmedHaulObservation != null)
+        {
+            return Warning(
+                "바닥 물류 경로 현재성 미확인",
+                $"{totals} · 마지막 실제 운반 실패는 관측 이후 원본 상태가 "
+                + "바뀌었거나 아직 재평가되지 않았습니다: "
+                + FormatOperationBlock(
+                    unconfirmedHaulObservation.CurrentOperationBlock,
+                    unconfirmedHaulObservation.DecisionSchedule));
+        }
+
+        if (workers.Any(worker =>
+                worker.PathSearchDeferred
+                || worker.DecisionSchedule.IsRetry
+                    && worker.DecisionSchedule.RetryKind
+                        == CharacterAiRetryKind.PathSearch))
+        {
+            return Warning(
+                "바닥 물류 경로 계산 중",
+                $"{totals} · 실제 경로 계산 재개를 기다리고 있습니다.");
         }
 
         return Warning(
-            "바닥 물류 대기",
-            $"{totals} · 운반 가능 직원 {availableHaulers}명");
+            "바닥 물류 경로 미확인",
+            $"{totals} · 운반 가능 직원 {availableHaulers}명"
+            + " · 아직 실제 운반 시도의 경로 결과가 없습니다.");
+    }
+
+    private static GameplayFlowDiagnosticItem BuildOperationBlockDiagnostic(
+        GameplayFlowWorkerSnapshot worker)
+    {
+        CharacterOperationBlockSnapshot block = worker.CurrentOperationBlock;
+        if (!block.HasCurrentBlock)
+        {
+            return new GameplayFlowDiagnosticItem
+            {
+                Severity = GameplayFlowDiagnosticSeverity.Warning,
+                Title = $"[현재성 미확인] {worker.Name} · {block.TargetLabel}",
+                Detail = FormatOperationBlock(block, worker.DecisionSchedule),
+                IsCurrentOperationBlock = false,
+                TargetStableId = block.TargetStableId,
+                BlockAxis = block.Axis,
+                FailureKind = block.Failure.Kind,
+                DomainFailureCode = block.DomainFailure.Code
+            };
+        }
+
+        bool retryPending = worker.DecisionSchedule.IsRetry
+            || block.RetryKind == CharacterAiRetryKind.ExecutorDeferred;
+        return new GameplayFlowDiagnosticItem
+        {
+            Severity = retryPending
+                ? GameplayFlowDiagnosticSeverity.Warning
+                : GameplayFlowDiagnosticSeverity.Critical,
+            Title = retryPending
+                ? $"[재시도 대기] {worker.Name} · {block.TargetLabel}"
+                : $"[막힘] {worker.Name} · {block.TargetLabel}",
+            Detail = FormatOperationBlock(block, worker.DecisionSchedule),
+            IsCurrentOperationBlock = true,
+            TargetStableId = block.TargetStableId,
+            BlockAxis = block.Axis,
+            FailureKind = block.Failure.Kind,
+            DomainFailureCode = block.DomainFailure.Code
+        };
+    }
+
+    public static string FormatOperationBlock(
+        CharacterOperationBlockSnapshot block,
+        CharacterAiDecisionScheduleObservation schedule)
+    {
+        if (!block.HasObservation)
+        {
+            return "실행 차단 상태 미확인";
+        }
+
+        string failure = block.DomainFailure.IsFailure
+            ? block.DomainFailure.Code.ToString()
+            : block.Failure.Kind.ToString();
+        string retry = schedule.IsRetry
+            ? $"재시도 {FormatRetryKind(schedule.RetryKind)} "
+                + $"{schedule.RemainingSeconds:0.0}초 후"
+            : block.RetryKind == CharacterAiRetryKind.ExecutorDeferred
+                ? "실행기 재시도 대기 · 시각 미확인"
+                : "재시도 일정 없음";
+        string currentness = block.IsCurrentnessConfirmed
+            ? string.Empty
+            : $"관측 {block.ObservedAt:0.0} · 현재성 미확인 · ";
+        return currentness + $"{FormatBlockAxis(block.Axis)} · {failure}"
+            + $" · 작업 {block.ActionStableId} · 실행 #{block.ActionEpoch}"
+            + $" · {retry}";
+    }
+
+    public static string FormatBlockAxis(CharacterOperationBlockAxis axis)
+    {
+        return axis switch
+        {
+            CharacterOperationBlockAxis.Power => "전력",
+            CharacterOperationBlockAxis.Water => "물",
+            CharacterOperationBlockAxis.Fuel => "연료",
+            CharacterOperationBlockAxis.Cleanliness => "청결",
+            CharacterOperationBlockAxis.Environment => "환경",
+            CharacterOperationBlockAxis.Tool => "도구",
+            CharacterOperationBlockAxis.Access => "접근",
+            CharacterOperationBlockAxis.Identity => "작업자 정체성",
+            CharacterOperationBlockAxis.Risk => "위험",
+            CharacterOperationBlockAxis.Materials => "재료",
+            CharacterOperationBlockAxis.OutputSpace => "출력 공간",
+            CharacterOperationBlockAxis.Facility => "시설",
+            _ => "원인 미확인"
+        };
+    }
+
+    public static string FormatRetryKind(CharacterAiRetryKind retryKind)
+    {
+        return retryKind switch
+        {
+            CharacterAiRetryKind.CandidateEvaluation => "후보 평가",
+            CharacterAiRetryKind.PathSearch => "경로 계산",
+            CharacterAiRetryKind.FailureCooldown => "실패 쿨다운",
+            CharacterAiRetryKind.DecisionRetry => "판단",
+            CharacterAiRetryKind.ExecutorDeferred => "실행기",
+            _ => "없음"
+        };
+    }
+
+    private static bool IsObservedHaulAction(
+        CharacterOperationBlockSnapshot block)
+    {
+        return block.HasObservation
+            && (string.Equals(
+                    block.ActionStableId,
+                    BuiltInWorkTypeIds.Haul.Value,
+                    StringComparison.Ordinal)
+                || string.Equals(
+                    block.ActionStableId,
+                    BuiltInWorkTypeIds.Restock.Value,
+                    StringComparison.Ordinal));
     }
 
     private static GameplayFlowDiagnosticItem BuildOrderDiagnostic(

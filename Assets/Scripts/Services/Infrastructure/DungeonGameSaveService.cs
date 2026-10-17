@@ -14,7 +14,7 @@ public sealed class DungeonSaveSlotCatalog : IDungeonSaveSlotCatalog
 
     [VContainer.Inject]
     public DungeonSaveSlotCatalog()
-        : this(Path.Combine(Application.persistentDataPath, "Saves"))
+        : this(Path.Combine(DungeonPersistencePaths.Root, "Saves"))
     {
     }
 
@@ -167,6 +167,7 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
     private readonly IReadOnlyList<IDungeonCapturedSavePreflightValidator>
         capturedSaveValidators;
     private readonly IReadOnlyList<IDungeonSaveRestoreCompletedHook> restoreCompletedHooks;
+    private readonly DungeonRestoreSafetyRuntime restoreSafety;
 
     public DungeonGameSaveService(
         IDungeonSaveSectionRegistry saveSectionRegistry,
@@ -174,10 +175,13 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
         IEnumerable<IDungeonSaveCaptureGuard> captureGuards,
         IEnumerable<IDungeonCapturedSavePreflightValidator>
             capturedSaveValidators,
-        IEnumerable<IDungeonSaveRestoreCompletedHook> restoreCompletedHooks)
+        IEnumerable<IDungeonSaveRestoreCompletedHook> restoreCompletedHooks,
+        DungeonRestoreSafetyRuntime restoreSafety)
     {
         this.saveSectionRegistry = saveSectionRegistry
             ?? throw new ArgumentNullException(nameof(saveSectionRegistry));
+        this.restoreSafety = restoreSafety
+            ?? throw new ArgumentNullException(nameof(restoreSafety));
         this.preflightValidators = (preflightValidators
                 ?? throw new ArgumentNullException(nameof(preflightValidators)))
             .Where(validator => validator != null)
@@ -201,6 +205,8 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
 
     public DungeonGameSaveData Capture()
     {
+        restoreSafety.RequireSafeState("Save capture is blocked");
+        DungeonSaveEditorTrace.Record("capture.begin");
         for (int index = 0; index < captureGuards.Count; index++)
         {
             captureGuards[index].ValidateBeforeCapture();
@@ -216,13 +222,16 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
             sections = sections
         };
 
+        string capturedSnapshotSha256 = save.manifest.snapshotSha256;
         DungeonGameRestoreReport captureReport = new();
         foreach (IDungeonCapturedSavePreflightValidator validator in
                  capturedSaveValidators)
         {
             try
             {
+                DungeonSaveEditorTrace.Record("capture-preflight.before:" + validator.GetType().Name);
                 validator.Validate(save, captureReport);
+                DungeonSaveEditorTrace.Record("capture-preflight.after:" + validator.GetType().Name);
             }
             catch (Exception exception)
             {
@@ -236,6 +245,14 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
                 "Captured save failed aggregate preflight: "
                 + string.Join(" | ", captureReport.Errors));
         }
+        // Preflight validators are observers of the detached snapshot. Reject a
+        // validator that changed it after capture rather than resealing its edits.
+        if (save.manifest == null
+            || save.manifest.payloadHashVersion != DungeonSavePayloadIntegrity.CurrentVersion
+            || save.manifest.snapshotSha256 != capturedSnapshotSha256)
+            throw new InvalidOperationException("Captured save integrity failed: preflight changed the snapshot seal.");
+        if (!DungeonSaveManifest.TryValidate(save.manifest, save.sections, out string integrityFailure))
+            throw new InvalidOperationException("Captured save integrity failed: " + integrityFailure);
 
         return save;
     }
@@ -255,6 +272,23 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
     public bool TryRestore(DungeonGameSaveData saveData, out DungeonGameRestoreReport report)
     {
         report = new DungeonGameRestoreReport();
+        if (restoreSafety.RequiresRecovery)
+        {
+            report.AddError(restoreSafety.RecoveryMessage);
+            return false;
+        }
+        try { return TryRestoreCore(saveData, report); }
+        catch (Exception exception)
+        {
+            report.AddError(exception.Message);
+            return false;
+        }
+        finally { restoreSafety.ObserveRestoreResult(report); }
+    }
+
+    private bool TryRestoreCore(DungeonGameSaveData saveData, DungeonGameRestoreReport report)
+    {
+        DungeonSaveEditorTrace.Record("restore.begin");
         if (saveData == null)
         {
             report.AddError("Save data is null.");
@@ -279,11 +313,19 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
             return false;
         }
 
+        int payloadHashVersion = saveData.manifest.payloadHashVersion;
+        string snapshotSha256 = saveData.manifest.snapshotSha256;
+        if (payloadHashVersion == 0)
+            report.AddWarning("LegacySnapshotIntegrityAbsent: this legacy V24 save has no payload seal; "
+                + "content integrity is unverified. Domain preflight still applies; the input is not resealed.");
+
         foreach (IDungeonSavePreflightValidator validator in preflightValidators)
         {
             try
             {
+                DungeonSaveEditorTrace.Record("restore-preflight.before:" + validator.GetType().Name);
                 validator.Validate(saveData, report);
+                DungeonSaveEditorTrace.Record("restore-preflight.after:" + validator.GetType().Name);
             }
             catch (Exception exception)
             {
@@ -297,6 +339,19 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
             return false;
         }
 
+        if (saveData.manifest == null
+            || saveData.manifest.payloadHashVersion != payloadHashVersion
+            || saveData.manifest.snapshotSha256 != snapshotSha256)
+        {
+            report.AddError("Save preflight changed the snapshot seal.");
+            return false;
+        }
+        if (!DungeonSaveManifest.TryValidate(saveData.manifest, saveData.sections, out manifestError))
+        {
+            report.AddError("Save preflight changed snapshot content: " + manifestError);
+            return false;
+        }
+
         try
         {
             if (!saveSectionRegistry.RestoreAll(saveData.sections, report))
@@ -305,7 +360,18 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
             }
             for (int index = 0; index < restoreCompletedHooks.Count; index++)
             {
-                restoreCompletedHooks[index].OnRestoreCompleted();
+                IDungeonSaveRestoreCompletedHook hook = restoreCompletedHooks[index];
+                try
+                {
+                    DungeonSaveEditorTrace.Record("restore-hook.before:" + hook.GetType().Name);
+                    hook.OnRestoreCompleted();
+                    DungeonSaveEditorTrace.Record("restore-hook.after:" + hook.GetType().Name);
+                }
+                catch (Exception exception)
+                {
+                    report.AddError("Published restore hook '" + hook.GetType().Name
+                        + "' failed: " + exception.Message);
+                }
             }
         }
         catch (Exception exception)
@@ -392,7 +458,7 @@ public sealed class DungeonGameSaveSlotService : IDungeonGameSaveSlotService
     public string Save(string slotId, bool prettyPrint = false)
     {
         string path = slotCatalog.GetPath(slotId);
-        Directory.CreateDirectory(Path.GetDirectoryName(path) ?? Application.persistentDataPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(path) ?? DungeonPersistencePaths.Root);
         string temporaryPath = path + ".tmp";
         string backupPath = path + ".bak";
         string serialized = saveService.ToJson(saveService.Capture(), prettyPrint);
@@ -495,7 +561,7 @@ public sealed class DungeonGameSaveSlotService : IDungeonGameSaveSlotService
             }
 
             string corruptDirectory = Path.Combine(
-                Path.GetDirectoryName(path) ?? Application.persistentDataPath,
+                Path.GetDirectoryName(path) ?? DungeonPersistencePaths.Root,
                 "Corrupt");
             Directory.CreateDirectory(corruptDirectory);
             string name = Path.GetFileNameWithoutExtension(path);

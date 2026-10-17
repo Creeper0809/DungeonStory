@@ -42,6 +42,9 @@ public sealed class EventAlertSaveService : IEventAlertSaveService
                 sourceId = record.SourceId,
                 count = record.Count,
                 dismissed = runtime.IsDismissed(record),
+                resolved = record.IsResolved,
+                resultSummary = record.ResultSummary,
+                choiceFailureDetail = record.ChoiceFailureDetail,
                 choices = record.Choices.Select(choice => new DungeonEventAlertChoiceSaveData
                 {
                     label = choice.Label,
@@ -81,7 +84,10 @@ public sealed class EventAlertSaveService : IEventAlertSaveService
                         choice.actionId))
                     .ToList(),
                 record.dismissed,
-                record.sourceId))
+                record.sourceId,
+                record.resolved,
+                record.resultSummary,
+                record.choiceFailureDetail))
             .ToList());
         return new EventAlertRestoreCandidate(
             presentation.State,

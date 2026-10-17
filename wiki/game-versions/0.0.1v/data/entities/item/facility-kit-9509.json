@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "순환 이식대에서 환자를 진단하고 치료할 수 있게 꾸린 설치 부품이며, 므네실라에서도 같은 규격으로 조립한다.",
+  "in_game_description": "순환 이식대에서 환자를 진단하고 치료할 수 있게 꾸린 설치 부품이다. 므네실라식 순환 이식대의 바닥 홈은 환자, 도구와 세척수가 서로 다른 색으로 흘러 섞인 자리를 드러낸다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

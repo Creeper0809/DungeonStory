@@ -435,6 +435,12 @@
     {
       "reason": "no-public-canonical-target",
       "relation_type": "references",
+      "source": "acquired-trait:module:social-bridge",
+      "target": "effect:character:relationship-recovery:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
       "source": "trait:219",
       "target": "effect:character:relationship-recovery:multiply"
     },
@@ -980,12 +986,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "festival:dungeon-accord-day",
-      "target": "building:faction-audience-hall"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "characterspecies:5",
       "target": "effect:capacity:arcane-conduction:multiply"
@@ -1109,12 +1109,6 @@
       "relation_type": "references",
       "source": "culture:kobold-toolclan",
       "target": "item:broken-tool"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "festival:tool-clan-fair",
-      "target": "building:apprentice-workbench"
     },
     {
       "reason": "no-public-canonical-target",
@@ -1550,12 +1544,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "festival:clear-confluence",
-      "target": "building:clean-water-reservoir"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "character-archetype:9007",
       "target": "work:animal-care"
@@ -1751,18 +1739,6 @@
       "relation_type": "references",
       "source": "culture:orc-vigil",
       "target": "food:tiny-portion"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "festival:weapon-vigil",
-      "target": "building:armory"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "festival:pack-first-hunt",
-      "target": "building:festival-common-hall"
     },
     {
       "reason": "no-public-canonical-target",
@@ -2441,6 +2417,24 @@
       "relation_type": "references",
       "source": "trait:514",
       "target": "effect:character:research-speed:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "acquired-trait:module:scar-memory",
+      "target": "effect:character:negative-mood-duration:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "acquired-trait:module:survival-instinct",
+      "target": "effect:character:accident-chance:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "acquired-trait:module:survival-instinct",
+      "target": "work:dangerous"
     },
     {
       "reason": "no-public-canonical-target",
@@ -3447,6 +3441,192 @@
     {
       "reason": "no-public-canonical-target",
       "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:animal-care"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:butcher"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:clean"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:construct"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:cook"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:craft"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:dismantle"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:draw-water"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:gather"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:grand-project"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:guard"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:harvest"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:haul"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:hunt"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:logging"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:operate"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:perform"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:plumbing"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:quarry"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:reception"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:refuel"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:repair"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:rescue"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:research"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:rest"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:restock"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:sow"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:surgery"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:threat-mitigation"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:treat"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "character-archetype:9010",
+      "target": "work:warden"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
       "source": "character-archetype:9005",
       "target": "work:animal-care"
     },
@@ -3657,6 +3837,30 @@
     {
       "reason": "no-public-canonical-target",
       "relation_type": "references",
+      "source": "acquired-trait:module:night-vigil",
+      "target": "effect:character:work-speed:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "acquired-trait:module:night-vigil",
+      "target": "effect:character:work-speed:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "acquired-trait:module:night-vigil",
+      "target": "shift:day"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "acquired-trait:module:night-vigil",
+      "target": "shift:night"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
       "source": "trait:228",
       "target": "effect:character:work-speed:multiply"
     },
@@ -3749,18 +3953,6 @@
       "relation_type": "references",
       "source": "trait:108",
       "target": "work:research"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "festival:many-tables",
-      "target": "building:festival-common-hall"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "festival:open-sky-chorus",
-      "target": "building:weather-observation-tower"
     },
     {
       "reason": "no-public-canonical-target",
@@ -4197,6 +4389,12 @@
     {
       "reason": "no-public-canonical-target",
       "relation_type": "references",
+      "source": "acquired-trait:module:ritual-attunement",
+      "target": "effect:character:research-speed:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
       "source": "trait:505",
       "target": "effect:proficiency:medicine:starting-xp:addflat"
     },
@@ -4235,6 +4433,90 @@
       "relation_type": "changes-mood",
       "source": "background:ritual-test-subject",
       "target": "background-confidence"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "characterspecies:11",
+      "target": "effect:capacity:arcane-conduction:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "characterspecies:11",
+      "target": "effect:capacity:auditory-sensing:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "characterspecies:11",
+      "target": "effect:capacity:communication:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "characterspecies:11",
+      "target": "effect:capacity:immune-defense:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "characterspecies:11",
+      "target": "effect:capacity:intake-processing:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "characterspecies:11",
+      "target": "effect:capacity:mental-maintenance:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "characterspecies:11",
+      "target": "effect:capacity:physical-mobility:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "characterspecies:11",
+      "target": "effect:capacity:physical-power:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "characterspecies:11",
+      "target": "effect:capacity:power-circulation:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "characterspecies:11",
+      "target": "effect:capacity:precision-manipulation:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "characterspecies:11",
+      "target": "effect:capacity:purification-processing:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "characterspecies:11",
+      "target": "effect:capacity:respiratory-exchange:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "characterspecies:11",
+      "target": "effect:capacity:visual-discernment:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "characterspecies:11",
+      "target": "effect:capacity:vitality-response:multiply"
     },
     {
       "reason": "no-public-canonical-target",
@@ -4425,6 +4707,12 @@
     {
       "reason": "no-public-canonical-target",
       "relation_type": "references",
+      "source": "acquired-trait:module:work-rhythm",
+      "target": "effect:character:work-speed:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
       "source": "trait:221",
       "target": "effect:character:accident-chance:multiply"
     },
@@ -4478,9 +4766,9 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "festival:ash-oath",
-      "target": "building:faction-audience-hall"
+      "relation_type": "references",
+      "source": "acquired-trait:module:battle-temper",
+      "target": "effect:character:combat-power:multiply"
     },
     {
       "reason": "no-public-canonical-target",
@@ -4577,12 +4865,6 @@
       "relation_type": "references",
       "source": "trait:200",
       "target": "work:long-shift"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "festival:frontier-map-night",
-      "target": "building:expedition-map-room"
     },
     {
       "reason": "no-public-canonical-target",
@@ -4988,12 +5270,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "festival:spore-bloom",
-      "target": "building:cave-growing-rack"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "trait:229",
       "target": "effect:character:work-speed:multiply"
@@ -5204,12 +5480,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "festival:core-resonance",
-      "target": "building:rune-tuning-room"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "condition:core-corrosion",
       "target": "power-core"
@@ -5225,12 +5495,6 @@
       "relation_type": "references",
       "source": "trait:248",
       "target": "effect:proficiency:scholarship:starting-xp:addflat"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "festival:blood-lantern",
-      "target": "workstation:v19:memorial-room"
     },
     {
       "reason": "no-public-canonical-target",
@@ -5261,6 +5525,12 @@
       "relation_type": "references",
       "source": "trait:227",
       "target": "effect:work:salvage-yield:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "acquired-trait:module:steady-hands",
+      "target": "effect:craft:quality-score:addflat"
     },
     {
       "reason": "no-public-canonical-target",
@@ -5363,12 +5633,6 @@
       "relation_type": "changes-money",
       "source": "guest-request:winter-fuel-auction",
       "target": "guest-service"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "guest-request:winter-fuel-auction",
-      "target": "building:faction-audience-hall"
     },
     {
       "reason": "no-public-canonical-target",
@@ -5594,12 +5858,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "changes-threat",
-      "source": "seasonal:winter-hungry-pack",
-      "target": "hungry-pack"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "seasonal:winter-hungry-pack",
       "target": "defense"
@@ -5620,6 +5878,30 @@
       "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "faction-arc:myconid",
+      "target": "faction:dungeon:myconid"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-grievance",
+      "source": "faction-contract:myconid:winter-fuel-demand",
+      "target": "faction:dungeon:myconid"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-obligation",
+      "source": "faction-contract:myconid:winter-fuel-demand",
+      "target": "faction:dungeon:myconid"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-rapport",
+      "source": "faction-contract:myconid:winter-fuel-demand",
+      "target": "faction:dungeon:myconid"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "faction-contract:myconid:winter-fuel-demand",
       "target": "faction:dungeon:myconid"
     },
     {
@@ -5714,12 +5996,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "guest-request:allergen-banquet",
-      "target": "building:festival-common-hall"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "changes-faction-grievance",
       "source": "service-incident:forbiddenmeal",
       "target": "affected-faction"
@@ -5794,6 +6070,30 @@
       "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "faction-arc:kobold",
+      "target": "faction:dungeon:kobold"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-grievance",
+      "source": "faction-contract:kobold:winter-fuel-demand",
+      "target": "faction:dungeon:kobold"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-obligation",
+      "source": "faction-contract:kobold:winter-fuel-demand",
+      "target": "faction:dungeon:kobold"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-rapport",
+      "source": "faction-contract:kobold:winter-fuel-demand",
+      "target": "faction:dungeon:kobold"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "faction-contract:kobold:winter-fuel-demand",
       "target": "faction:dungeon:kobold"
     },
     {
@@ -6164,12 +6464,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "guest-request:plague-screening",
-      "target": "building:isolation-ward"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "adds-work-delay",
       "source": "faction-chapter:golem:3",
       "target": "faction-work:golem:3:bargain"
@@ -6322,6 +6616,30 @@
       "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "faction-arc:golem",
+      "target": "faction:dungeon:golem"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-grievance",
+      "source": "faction-contract:golem:winter-fuel-demand",
+      "target": "faction:dungeon:golem"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-obligation",
+      "source": "faction-contract:golem:winter-fuel-demand",
+      "target": "faction:dungeon:golem"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-rapport",
+      "source": "faction-contract:golem:winter-fuel-demand",
+      "target": "faction:dungeon:golem"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "faction-contract:golem:winter-fuel-demand",
       "target": "faction:dungeon:golem"
     },
     {
@@ -6482,12 +6800,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "changes-threat",
-      "source": "seasonal:winter-frozen-pipes",
-      "target": "frozen-pipes"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "seasonal:winter-frozen-pipes",
       "target": "facility"
@@ -6530,30 +6842,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "changes-threat",
-      "source": "seasonal:spring-nesting-season",
-      "target": "nests"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "references",
-      "source": "seasonal:spring-nesting-season",
-      "target": "facility"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "references",
-      "source": "seasonal:spring-nesting-season",
-      "target": "wildlife"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "sets-world-flag",
-      "source": "seasonal:spring-nesting-season",
-      "target": "resolved:seasonal:spring-nesting-season"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "changes-faction-rapport",
       "source": "seasonal:spring-seed-exchange",
       "target": "faction:dungeon:myconid"
@@ -6578,12 +6866,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "changes-threat",
-      "source": "seasonal:summer-mana-lightning",
-      "target": "mana-surge"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "seasonal:summer-mana-lightning",
       "target": "expedition"
@@ -6596,9 +6878,9 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "sets-world-flag",
+      "relation_type": "references",
       "source": "seasonal:summer-mana-lightning",
-      "target": "resolved:seasonal:summer-mana-lightning"
+      "target": "hostile"
     },
     {
       "reason": "no-public-canonical-target",
@@ -6701,12 +6983,6 @@
       "relation_type": "changes-money",
       "source": "guest-request:coronation-feast",
       "target": "guest-service"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "guest-request:coronation-feast",
-      "target": "building:luxury-dining-room"
     },
     {
       "reason": "no-public-canonical-target",
@@ -6818,12 +7094,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "guest-request:militia-arms",
-      "target": "building:armory"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "adds-work-delay",
       "source": "seasonal:winter-whiteout",
       "target": "whiteout"
@@ -6863,12 +7133,6 @@
       "relation_type": "changes-money",
       "source": "guest-request:flood-refuge",
       "target": "guest-service"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "guest-request:flood-refuge",
-      "target": "building:guest-dormitory"
     },
     {
       "reason": "no-public-canonical-target",
@@ -6974,12 +7238,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "guest-request:sealed-archive",
-      "target": "building:prototype-laboratory"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "changes-faction-grievance",
       "source": "seasonal:summer-wounded-mercenaries",
       "target": "faction:dungeon:beastkin"
@@ -7072,6 +7330,30 @@
       "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "faction-arc:beastkin",
+      "target": "faction:dungeon:beastkin"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-grievance",
+      "source": "faction-contract:beastkin:winter-fuel-demand",
+      "target": "faction:dungeon:beastkin"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-obligation",
+      "source": "faction-contract:beastkin:winter-fuel-demand",
+      "target": "faction:dungeon:beastkin"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-rapport",
+      "source": "faction-contract:beastkin:winter-fuel-demand",
+      "target": "faction:dungeon:beastkin"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "faction-contract:beastkin:winter-fuel-demand",
       "target": "faction:dungeon:beastkin"
     },
     {
@@ -7214,30 +7496,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "changes-faction-grievance",
-      "source": "guest-request:monster-circus",
-      "target": "requesting-faction"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "changes-faction-rapport",
-      "source": "guest-request:monster-circus",
-      "target": "requesting-faction"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "changes-money",
-      "source": "guest-request:monster-circus",
-      "target": "guest-service"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "guest-request:monster-circus",
-      "target": "building:circus-arena"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "changes-threat",
       "source": "seasonal:autumn-spoiled-silage",
       "target": "silage-fire"
@@ -7280,12 +7538,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "guest-request:bodyguard-kit",
-      "target": "building:smith-workshop"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "changes-faction-grievance",
       "source": "guest-request:emergency-surgery",
       "target": "requesting-faction"
@@ -7301,12 +7553,6 @@
       "relation_type": "changes-money",
       "source": "guest-request:emergency-surgery",
       "target": "guest-service"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "guest-request:emergency-surgery",
-      "target": "building:surgery-room"
     },
     {
       "reason": "no-public-canonical-target",
@@ -7742,9 +7988,9 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "changes-threat",
+      "relation_type": "references",
       "source": "seasonal:winter-deep-echo",
-      "target": "truth-guardian"
+      "target": "combat"
     },
     {
       "reason": "no-public-canonical-target",
@@ -7756,13 +8002,7 @@
       "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "seasonal:winter-deep-echo",
-      "target": "wildlife"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "sets-world-flag",
-      "source": "seasonal:winter-deep-echo",
-      "target": "resolved:seasonal:winter-deep-echo"
+      "target": "truth:guardian"
     },
     {
       "reason": "no-public-canonical-target",
@@ -8060,12 +8300,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "changes-threat",
-      "source": "seasonal:spring-migrant-herd",
-      "target": "herd"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "seasonal:spring-migrant-herd",
       "target": "agriculture"
@@ -8084,12 +8318,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "changes-threat",
-      "source": "seasonal:autumn-early-frost",
-      "target": "early-frost"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "seasonal:autumn-early-frost",
       "target": "agriculture"
@@ -8098,7 +8326,7 @@
       "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "seasonal:autumn-early-frost",
-      "target": "expedition"
+      "target": "environment"
     },
     {
       "reason": "no-public-canonical-target",
@@ -8271,6 +8499,30 @@
     {
       "reason": "no-public-canonical-target",
       "relation_type": "changes-faction-grievance",
+      "source": "faction-contract:demon:winter-fuel-demand",
+      "target": "faction:dungeon:demon"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-obligation",
+      "source": "faction-contract:demon:winter-fuel-demand",
+      "target": "faction:dungeon:demon"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-rapport",
+      "source": "faction-contract:demon:winter-fuel-demand",
+      "target": "faction:dungeon:demon"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "faction-contract:demon:winter-fuel-demand",
+      "target": "faction:dungeon:demon"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-grievance",
       "source": "faction-contract:demon:crisis",
       "target": "faction:dungeon:demon"
     },
@@ -8360,12 +8612,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "guest-request:memorial-performance",
-      "target": "workstation:v19:memorial-room"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "changes-faction-grievance",
       "source": "guest-request:precision-barter",
       "target": "requesting-faction"
@@ -8381,12 +8627,6 @@
       "relation_type": "changes-money",
       "source": "guest-request:precision-barter",
       "target": "guest-service"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "guest-request:precision-barter",
-      "target": "building:trade-counter"
     },
     {
       "reason": "no-public-canonical-target",
@@ -8536,12 +8776,6 @@
       "reason": "no-public-canonical-target",
       "relation_type": "sets-world-flag",
       "source": "seasonal:autumn-migration-window",
-      "target": "migration-window"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "sets-world-flag",
-      "source": "seasonal:autumn-migration-window",
       "target": "resolved:seasonal:autumn-migration-window"
     },
     {
@@ -8585,12 +8819,6 @@
       "relation_type": "changes-money",
       "source": "guest-request:persecuted-family",
       "target": "guest-service"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "guest-request:persecuted-family",
-      "target": "building:family-quarters"
     },
     {
       "reason": "no-public-canonical-target",
@@ -8681,12 +8909,6 @@
       "relation_type": "requires",
       "source": "faction-chapter:harpy:2",
       "target": "faction:dungeon:harpy"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "changes-threat",
-      "source": "seasonal:autumn-predator-descent",
-      "target": "predators"
     },
     {
       "reason": "no-public-canonical-target",
@@ -8816,12 +9038,6 @@
     },
     {
       "reason": "no-public-canonical-target",
-      "relation_type": "changes-threat",
-      "source": "seasonal:summer-heat-grid",
-      "target": "power-grid"
-    },
-    {
-      "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "seasonal:summer-heat-grid",
       "target": "facility"
@@ -8842,6 +9058,30 @@
       "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "faction-arc:harpy",
+      "target": "faction:dungeon:harpy"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-grievance",
+      "source": "faction-contract:harpy:winter-fuel-demand",
+      "target": "faction:dungeon:harpy"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-obligation",
+      "source": "faction-contract:harpy:winter-fuel-demand",
+      "target": "faction:dungeon:harpy"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "changes-faction-rapport",
+      "source": "faction-contract:harpy:winter-fuel-demand",
+      "target": "faction:dungeon:harpy"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "faction-contract:harpy:winter-fuel-demand",
       "target": "faction:dungeon:harpy"
     },
     {
@@ -9200,6 +9440,24 @@
     },
     {
       "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "seasonal:spring-drift-cargo",
+      "target": "facility"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "seasonal:spring-drift-cargo",
+      "target": "logistics"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "sets-world-flag",
+      "source": "seasonal:spring-drift-cargo",
+      "target": "resolved:seasonal:spring-drift-cargo"
+    },
+    {
+      "reason": "no-public-canonical-target",
       "relation_type": "adds-work-delay",
       "source": "seasonal:spring-thaw-flood",
       "target": "flood"
@@ -9221,12 +9479,6 @@
       "relation_type": "sets-world-flag",
       "source": "seasonal:spring-thaw-flood",
       "target": "resolved:seasonal:spring-thaw-flood"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "changes-threat",
-      "source": "seasonal:summer-vermin-bloom",
-      "target": "crop-pests"
     },
     {
       "reason": "no-public-canonical-target",
@@ -9275,12 +9527,6 @@
       "relation_type": "changes-money",
       "source": "guest-request:disease-sample",
       "target": "guest-service"
-    },
-    {
-      "reason": "no-public-canonical-target",
-      "relation_type": "requires",
-      "source": "guest-request:disease-sample",
-      "target": "building:vaccine-laboratory"
     },
     {
       "reason": "no-public-canonical-target",
@@ -9443,6 +9689,36 @@
       "relation_type": "references",
       "source": "building:1805",
       "target": "asset:DefenseWallLauncher_1_Damage"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "surgery:prosthetic:heat-sac/variant/demon-heat-sac",
+      "target": "effect:character:heat-exposure:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "surgery:prosthetic:leg:left/variant/beastkin-sprint-joint",
+      "target": "effect:character:move-speed:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "surgery:prosthetic:heart/variant/orc-combat-heart",
+      "target": "effect:character:maximum-health:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "surgery:prosthetic:brain/variant/human-neural-assist",
+      "target": "effect:character:work-speed:multiply"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "surgery:prosthetic:balance-tail/variant/kobold-tail-balance",
+      "target": "effect:combat:evasion-chance:add-flat"
     },
     {
       "reason": "no-public-canonical-target",
@@ -10131,6 +10407,18 @@
     {
       "reason": "no-public-canonical-target",
       "relation_type": "references",
+      "source": "recipe:surgery:reinforced-torso",
+      "target": "process-loss"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:reinforced-torso",
+      "target": "work:craft"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
       "source": "recipe:v22:apparel:golem-functional-lining",
       "target": "process-loss"
     },
@@ -10258,6 +10546,18 @@
       "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "recipe:supply:mushroom-substrate",
+      "target": "work:craft"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:hypha-core",
+      "target": "process-loss"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:hypha-core",
       "target": "work:craft"
     },
     {
@@ -12021,6 +12321,18 @@
     {
       "reason": "no-public-canonical-target",
       "relation_type": "references",
+      "source": "recipe:surgery:sprint-joint",
+      "target": "process-loss"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:sprint-joint",
+      "target": "work:craft"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
       "source": "recipe:component:waterwheel-drive-shaft",
       "target": "process-loss"
     },
@@ -12149,6 +12461,18 @@
       "relation_type": "references",
       "source": "source:spoilage-plant",
       "target": "work:operate"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:brain-assist",
+      "target": "process-loss"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:brain-assist",
+      "target": "work:craft"
     },
     {
       "reason": "no-public-canonical-target",
@@ -12363,6 +12687,18 @@
     {
       "reason": "no-public-canonical-target",
       "relation_type": "references",
+      "source": "recipe:surgery:heat-sac",
+      "target": "process-loss"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:heat-sac",
+      "target": "work:craft"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
       "source": "recipe:salted-meat-stew",
       "target": "process-loss"
     },
@@ -12406,6 +12742,42 @@
       "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "recipe:v22:apparel:surgical-apron",
+      "target": "work:craft"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:wing",
+      "target": "process-loss"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:wing",
+      "target": "work:craft"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:precision-hand",
+      "target": "process-loss"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:precision-hand",
+      "target": "work:craft"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:night-eye",
+      "target": "process-loss"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:night-eye",
       "target": "work:craft"
     },
     {
@@ -12491,6 +12863,18 @@
       "relation_type": "references",
       "source": "recipe:moonflower-tea",
       "target": "work:cook"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:pseudopods",
+      "target": "process-loss"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:pseudopods",
+      "target": "work:craft"
     },
     {
       "reason": "no-public-canonical-target",
@@ -12862,6 +13246,18 @@
       "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "recipe:medical:whole-body-regeneration-medium",
+      "target": "work:craft"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:heart-augmentation",
+      "target": "process-loss"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:heart-augmentation",
       "target": "work:craft"
     },
     {
@@ -13299,6 +13695,18 @@
     {
       "reason": "no-public-canonical-target",
       "relation_type": "references",
+      "source": "recipe:surgery:tail-balance-augmentation",
+      "target": "process-loss"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:tail-balance-augmentation",
+      "target": "work:craft"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
       "source": "recipe:material:cartridge-paper",
       "target": "process-loss"
     },
@@ -13366,6 +13774,18 @@
       "reason": "no-public-canonical-target",
       "relation_type": "references",
       "source": "recipe:material:plate-blank",
+      "target": "work:craft"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:balance-tail",
+      "target": "process-loss"
+    },
+    {
+      "reason": "no-public-canonical-target",
+      "relation_type": "references",
+      "source": "recipe:surgery:balance-tail",
       "target": "work:craft"
     },
     {

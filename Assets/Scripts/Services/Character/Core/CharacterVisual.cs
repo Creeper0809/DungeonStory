@@ -20,6 +20,8 @@ public class CharacterVisual : SerializedMonoBehaviour
     [SerializeField] private bool autoAlignVisualToFeet = true;
 
     private CharacterFacing facing;
+    private int layerRevision;
+    internal int LayerRevision => layerRevision;
     private Coroutine traversalVisibilityRestoreRoutine;
     private List<RendererVisibilityState> traversalRendererStates;
     private List<CanvasVisibilityState> traversalCanvasStates;
@@ -69,6 +71,7 @@ public class CharacterVisual : SerializedMonoBehaviour
 
     public void ChangeLayer(string layer)
     {
+        layerRevision++;
         EnsureVisualReferences();
         foreach (SpriteRenderer renderer in GetComponentsInChildren<SpriteRenderer>(true))
         {

@@ -15,6 +15,10 @@ public sealed class WorldItemStackRuntime :
     IWorldItemCarryRecoveryRuntime,
     IPhysicalItemRestoreStaging,
     IPhysicalItemRestoreCandidateQuery,
+    IPhysicalEffectReceiptQuery,
+    IPhysicalEffectReceiptAcknowledgement,
+    IPhysicalEffectReceiptRestoreQuery,
+    IPhysicalItemRestoreCandidateStackQuery,
     IProductionInputDestinationCustodyDrainRestoreCandidateQuery,
     IPhysicalItemRestoreCandidateOutputQuery,
     IFacilityBufferPlannedOutputRestoreCandidateQuery,
@@ -26,6 +30,8 @@ public sealed class WorldItemStackRuntime :
     IWorldItemMarkerDataSource,
     IHaulPlanBuilder,
     IWarehouseOverCapacityEvacuationQuery,
+    IActiveEmergencySupportHaulPlanRuntime,
+    IMemoryErasureSealStoredPickupRuntime,
     IStartable,
     ITickable,
     IDisposable
@@ -62,35 +68,7 @@ public sealed class WorldItemStackRuntime :
     private readonly IGameClock gameClock;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private int projectedRestoreRevision;
-    private IReadOnlyList<PhysicalItemRestoreCandidateDispositionSnapshot>
-        restoreCandidateDispositions;
-    private Dictionary<string, PhysicalItemRestoreCandidateDispositionSnapshot>
-        restoreCandidateDispositionsByOperation;
-    private IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData>
-        restoreCandidateInputDestinationDrains;
-    private Dictionary<string, ProductionInputDestinationCustodyDrainSaveData>
-        restoreCandidateInputDestinationDrainsByStep;
-    private IReadOnlyList<PhysicalItemRestoreCandidateOutputSnapshot>
-        restoreCandidateOutputs;
-    private Dictionary<string,
-        IReadOnlyList<PhysicalItemRestoreCandidateOutputSnapshot>>
-        restoreCandidateOutputsByCommit;
-    private IReadOnlyList<FacilityBufferPlannedOutputRestoreBatchSnapshot>
-        restoreCandidatePlannedOutputBatches;
-    private Dictionary<string, FacilityBufferPlannedOutputRestoreBatchSnapshot>
-        restoreCandidatePlannedOutputBatchesByCommit;
-    private IReadOnlyList<FacilityBufferPlannedOutputRestoreBatchSnapshot>
-        restoreCandidateAcknowledgedOutputBatches;
-    private Dictionary<string, FacilityBufferPlannedOutputRestoreBatchSnapshot>
-        restoreCandidateAcknowledgedOutputBatchesByCommit;
-    private IReadOnlyList<FacilityOutputExactRouteOutboxSaveData>
-        restoreCandidateExactOutputRoutes;
-    private Dictionary<string, FacilityOutputExactRouteOutboxSaveData>
-        restoreCandidateExactOutputRoutesByOperation;
-    private long restoreCandidateExactRouteCheckpointSequence;
-    private string restoreCandidateExactRouteCheckpointDigest = string.Empty;
-    private bool restoreCandidateLifetimeActive;
-    private bool restoreCandidateLifetimePublished;
+    private readonly PhysicalItemRestoreCandidateSession restoreCandidates;
 
     private List<WorldItemStackRecord> stacks => itemRepository.Records;
     private Dictionary<string, WorldItemStackRecord> stacksById => itemRepository.RecordsById;
@@ -142,6 +120,7 @@ public sealed class WorldItemStackRuntime :
             ?? throw new ArgumentNullException(nameof(batchDispositions));
         haulDeliveryIntentQuery = itemRepository.HaulDeliveryIntents;
         haulDeliveryIntentCommands = itemRepository.HaulDeliveryIntents;
+        restoreCandidates = new PhysicalItemRestoreCandidateSession(massQuery);
     }
 
     public bool TryCommitBatchPhysicalDisposition(
@@ -402,16 +381,22 @@ public sealed class WorldItemStackRuntime :
             }
         }
 
-        IReadOnlyList<OutputClearancePickupSlice> pickedOutputSlices =
-            CapturePlannedOutputPickupSlices(carried);
         bool committed = haulDeliveryIntentCommands.TryCommitPickup(
             operationId,
             inventory,
             out failureReason);
-        if (committed
-            && outputClearanceTelemetry != null
-            && pickedOutputSlices.Count > 0)
+        if (!committed || outputClearanceTelemetry?.IsCaptureActive != true)
+            return committed;
+
+        // Telemetry is not physical custody authority. A historical receipt can
+        // legitimately outlive a split/merge; diagnostics may reject that sample
+        // but must not strand carried items before the intent commit.
+        try
         {
+            IReadOnlyList<OutputClearancePickupSlice> pickedOutputSlices =
+                CapturePlannedOutputPickupSlices(carried);
+            if (pickedOutputSlices.Count == 0)
+                return true;
             long pickedAt = FacilityOutputClearanceTelemetryRuntime
                 .CaptureMicroGameHours(gameClock
                     ?? throw new InvalidOperationException(
@@ -427,6 +412,11 @@ public sealed class WorldItemStackRuntime :
                         slice.MassGrams,
                         pickedAt));
             }
+        }
+        catch (Exception exception)
+        {
+            outputClearanceTelemetry.RecordObservationFailure(
+                "haul-pickup-observation-failed:" + operationId + ":" + exception);
         }
         return committed;
     }
@@ -728,224 +718,109 @@ public sealed class WorldItemStackRuntime :
             itemRepository.CapturePendingWarehouseEvacuationIds());
     }
 
-    public void Dispose()
-    {
-        ClearPhysicalRestoreCandidateIndex();
-        restoreCandidateLifetimeActive = false;
-        restoreCandidateLifetimePublished = false;
-    }
+    public void Dispose() => restoreCandidates.Dispose();
 
-    public string ParticipantId =>
-        "999.world.physical-item-restore-candidate-lifetime";
-
-    public void BeginRestoreCandidate()
-    {
-        if (restoreCandidateLifetimeActive)
-        {
-            throw new InvalidOperationException(
-                "Physical-item restore candidate lifetime is already active.");
-        }
-        if (!IsCandidateAvailable)
-        {
-            throw new InvalidOperationException(
-                "Physical-item restore candidate lifetime requires a staged candidate index.");
-        }
-
-        restoreCandidateLifetimeActive = true;
-        restoreCandidateLifetimePublished = false;
-    }
-
-    public void PublishRestoreCandidate()
-    {
-        if (!restoreCandidateLifetimeActive
-            || restoreCandidateLifetimePublished
-            || !IsCandidateAvailable)
-        {
-            throw new InvalidOperationException(
-                "Physical-item restore candidate lifetime is not ready to publish.");
-        }
-
-        restoreCandidateLifetimePublished = true;
-    }
-
+    public string ParticipantId => restoreCandidates.ParticipantId;
+    public void BeginRestoreCandidate() => restoreCandidates.BeginRestoreCandidate();
+    public void PublishRestoreCandidate() => restoreCandidates.PublishRestoreCandidate();
     public void RollbackPublishedRestoreCandidate() =>
-        ResetPhysicalRestoreCandidateLifetime();
+        restoreCandidates.RollbackPublishedRestoreCandidate();
+    public void CompleteRestoreCandidate() => restoreCandidates.CompleteRestoreCandidate();
+    public void DiscardRestoreCandidate() => restoreCandidates.DiscardRestoreCandidate();
 
-    public void CompleteRestoreCandidate()
-    {
-        if (!restoreCandidateLifetimeActive
-            || !restoreCandidateLifetimePublished)
-        {
-            throw new InvalidOperationException(
-                "Physical-item restore candidate lifetime cannot complete.");
-        }
+    public bool IsCandidateAvailable => restoreCandidates.IsCandidateAvailable;
+    public bool IsPhysicalEffectReceiptCandidateAvailable =>
+        restoreCandidates.IsPhysicalEffectReceiptCandidateAvailable;
 
-        ResetPhysicalRestoreCandidateLifetime();
-    }
+    public int AvailablePhysicalEffectReceiptCapacity => itemRepository.AvailablePhysicalEffectReceiptCapacity;
 
-    public void DiscardRestoreCandidate() =>
-        ResetPhysicalRestoreCandidateLifetime();
+    public bool AcknowledgePhysicalEffectReceipts(IReadOnlyList<string> commitIds,
+        IPhysicalItemDispositionAcknowledgementParticipant parent, out string failureReason) =>
+        itemRepository.AcknowledgePhysicalEffectReceipts(commitIds, parent, out failureReason);
 
-    private void ResetPhysicalRestoreCandidateLifetime()
-    {
-        ClearPhysicalRestoreCandidateIndex();
-        restoreCandidateLifetimeActive = false;
-        restoreCandidateLifetimePublished = false;
-    }
+    public bool TryGetPhysicalEffectReceipt(PhysicalEffectReceiptKind kind, string operationId,
+        out PhysicalEffectReceiptSaveData receipt) =>
+        itemRepository.TryGetPhysicalEffectReceipt(kind, operationId, out receipt);
 
-    public bool IsCandidateAvailable => restoreCandidateDispositions != null;
+    public bool TryGetPhysicalEffectReceiptCandidate(PhysicalEffectReceiptKind kind, string operationId,
+        out PhysicalEffectReceiptSaveData receipt) =>
+        restoreCandidates.TryGetPhysicalEffectReceiptCandidate(kind, operationId, out receipt);
 
     public IReadOnlyList<PhysicalItemRestoreCandidateDispositionSnapshot>
-        PendingBatchDispositions => restoreCandidateDispositions
-            ?? Array.Empty<PhysicalItemRestoreCandidateDispositionSnapshot>();
+        PendingBatchDispositions => restoreCandidates.PendingBatchDispositions;
 
-    public bool TryGetPendingBatchDisposition(
-        string operationId,
-        out PhysicalItemRestoreCandidateDispositionSnapshot disposition)
-    {
-        disposition = null;
-        return restoreCandidateDispositionsByOperation != null
-            && restoreCandidateDispositionsByOperation.TryGetValue(
-                operationId ?? string.Empty,
-                out disposition);
-    }
+    public bool TryGetPendingBatchDisposition(string operationId,
+        out PhysicalItemRestoreCandidateDispositionSnapshot disposition) =>
+        restoreCandidates.TryGetPendingBatchDisposition(operationId, out disposition);
+
+    public bool TryGetStack(ItemInstanceId itemInstanceId,
+        out PhysicalItemRestoreCandidateStackSnapshot stack) =>
+        restoreCandidates.TryGetStack(itemInstanceId, out stack);
+
+    public bool TryGetStackById(string stackId,
+        out PhysicalItemRestoreCandidateStackSnapshot stack) =>
+        restoreCandidates.TryGetStackById(stackId, out stack);
 
     IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData>
         IProductionInputDestinationCustodyDrainRestoreCandidateQuery.Drains =>
-        restoreCandidateInputDestinationDrains
-        ?? Array.Empty<ProductionInputDestinationCustodyDrainSaveData>();
+        ((IProductionInputDestinationCustodyDrainRestoreCandidateQuery)restoreCandidates).Drains;
 
     bool IProductionInputDestinationCustodyDrainRestoreCandidateQuery.TryGetDrain(
-        string stepOperationId,
-        out ProductionInputDestinationCustodyDrainSaveData drain)
-    {
-        drain = null;
-        if (restoreCandidateInputDestinationDrainsByStep == null
-            || !restoreCandidateInputDestinationDrainsByStep.TryGetValue(
-                stepOperationId ?? string.Empty,
-                out ProductionInputDestinationCustodyDrainSaveData found))
-        {
-            return false;
-        }
-        drain = found.Clone();
-        return true;
-    }
+        string stepOperationId, out ProductionInputDestinationCustodyDrainSaveData drain) =>
+        ((IProductionInputDestinationCustodyDrainRestoreCandidateQuery)restoreCandidates)
+            .TryGetDrain(stepOperationId, out drain);
 
     IReadOnlyList<PhysicalItemRestoreCandidateOutputSnapshot>
         IPhysicalItemRestoreCandidateOutputQuery.CommittedOutputs =>
-        restoreCandidateOutputs
-        ?? Array.Empty<PhysicalItemRestoreCandidateOutputSnapshot>();
+        ((IPhysicalItemRestoreCandidateOutputQuery)restoreCandidates).CommittedOutputs;
 
-    bool IPhysicalItemRestoreCandidateOutputQuery.TryGetCommittedOutput(
-        string commitId,
-        out IReadOnlyList<PhysicalItemRestoreCandidateOutputSnapshot> outputs)
-    {
-        outputs = Array.Empty<PhysicalItemRestoreCandidateOutputSnapshot>();
-        return restoreCandidateOutputsByCommit != null
-            && restoreCandidateOutputsByCommit.TryGetValue(
-                commitId ?? string.Empty,
-                out outputs);
-    }
+    bool IPhysicalItemRestoreCandidateOutputQuery.TryGetCommittedOutput(string commitId,
+        out IReadOnlyList<PhysicalItemRestoreCandidateOutputSnapshot> outputs) =>
+        ((IPhysicalItemRestoreCandidateOutputQuery)restoreCandidates)
+            .TryGetCommittedOutput(commitId, out outputs);
 
     IReadOnlyList<FacilityBufferPlannedOutputRestoreBatchSnapshot>
         IFacilityBufferPlannedOutputRestoreCandidateQuery.Batches =>
-        restoreCandidatePlannedOutputBatches
-        ?? Array.Empty<FacilityBufferPlannedOutputRestoreBatchSnapshot>();
+        ((IFacilityBufferPlannedOutputRestoreCandidateQuery)restoreCandidates).Batches;
 
-    bool IFacilityBufferPlannedOutputRestoreCandidateQuery.TryGetBatch(
-        string batchCommitId,
-        out FacilityBufferPlannedOutputRestoreBatchSnapshot batch)
-    {
-        batch = null;
-        return restoreCandidatePlannedOutputBatchesByCommit != null
-            && restoreCandidatePlannedOutputBatchesByCommit.TryGetValue(
-                batchCommitId ?? string.Empty,
-                out batch);
-    }
+    bool IFacilityBufferPlannedOutputRestoreCandidateQuery.TryGetBatch(string batchCommitId,
+        out FacilityBufferPlannedOutputRestoreBatchSnapshot batch) =>
+        ((IFacilityBufferPlannedOutputRestoreCandidateQuery)restoreCandidates)
+            .TryGetBatch(batchCommitId, out batch);
 
     IReadOnlyList<FacilityBufferPlannedOutputRestoreBatchSnapshot>
         IFacilityBufferAcknowledgedOutputRestoreCandidateQuery.Batches =>
-        restoreCandidateAcknowledgedOutputBatches
-        ?? Array.Empty<FacilityBufferPlannedOutputRestoreBatchSnapshot>();
+        ((IFacilityBufferAcknowledgedOutputRestoreCandidateQuery)restoreCandidates).Batches;
 
-    bool IFacilityBufferAcknowledgedOutputRestoreCandidateQuery.TryGetBatch(
-        string batchCommitId,
-        out FacilityBufferPlannedOutputRestoreBatchSnapshot batch)
-    {
-        batch = null;
-        return restoreCandidateAcknowledgedOutputBatchesByCommit != null
-            && restoreCandidateAcknowledgedOutputBatchesByCommit.TryGetValue(
-                batchCommitId ?? string.Empty,
-                out batch);
-    }
+    bool IFacilityBufferAcknowledgedOutputRestoreCandidateQuery.TryGetBatch(string batchCommitId,
+        out FacilityBufferPlannedOutputRestoreBatchSnapshot batch) =>
+        ((IFacilityBufferAcknowledgedOutputRestoreCandidateQuery)restoreCandidates)
+            .TryGetBatch(batchCommitId, out batch);
 
     IReadOnlyList<FacilityOutputExactRouteOutboxSaveData>
         IFacilityOutputExactRouteRestoreCandidateQuery.Routes =>
-        restoreCandidateExactOutputRoutes
-        ?? Array.Empty<FacilityOutputExactRouteOutboxSaveData>();
+        ((IFacilityOutputExactRouteRestoreCandidateQuery)restoreCandidates).Routes;
+
+    long IFacilityOutputExactRouteRestoreCandidateQuery.LastConfirmedCheckpointSequence =>
+        ((IFacilityOutputExactRouteRestoreCandidateQuery)restoreCandidates).LastConfirmedCheckpointSequence;
+
+    string IFacilityOutputExactRouteRestoreCandidateQuery.LastConfirmedCheckpointDigest =>
+        ((IFacilityOutputExactRouteRestoreCandidateQuery)restoreCandidates).LastConfirmedCheckpointDigest;
+
+    bool IFacilityOutputExactRouteRestoreCandidateQuery.TryGetRoute(string routeOperationId,
+        out FacilityOutputExactRouteOutboxSaveData route) =>
+        ((IFacilityOutputExactRouteRestoreCandidateQuery)restoreCandidates)
+            .TryGetRoute(routeOperationId, out route);
 
     IReadOnlyList<FacilityOutputExactRouteDeliveryRevisionSnapshot>
-        IFacilityOutputExactRouteDeliveryRevisionRestoreCandidateQuery
-            .CurrentDeliveryRevisions =>
-        (restoreCandidateExactOutputRoutes
-                ?? Array.Empty<FacilityOutputExactRouteOutboxSaveData>())
-            .Select(CreateDeliveryRevisionSnapshot)
-            .ToArray();
+        IFacilityOutputExactRouteDeliveryRevisionRestoreCandidateQuery.CurrentDeliveryRevisions =>
+        ((IFacilityOutputExactRouteDeliveryRevisionRestoreCandidateQuery)restoreCandidates)
+            .CurrentDeliveryRevisions;
 
-    long IFacilityOutputExactRouteRestoreCandidateQuery
-        .LastConfirmedCheckpointSequence =>
-        restoreCandidateExactRouteCheckpointSequence;
-
-    string IFacilityOutputExactRouteRestoreCandidateQuery
-        .LastConfirmedCheckpointDigest =>
-        restoreCandidateExactRouteCheckpointDigest;
-
-    bool IFacilityOutputExactRouteRestoreCandidateQuery.TryGetRoute(
-        string routeOperationId,
-        out FacilityOutputExactRouteOutboxSaveData route)
-    {
-        route = null;
-        return restoreCandidateExactOutputRoutesByOperation != null
-            && restoreCandidateExactOutputRoutesByOperation.TryGetValue(
-                routeOperationId ?? string.Empty,
-                out route);
-    }
-
-    bool IFacilityOutputExactRouteDeliveryRevisionRestoreCandidateQuery
-        .TryGetCurrentDeliveryRevision(
-            string routeOperationId,
-            out FacilityOutputExactRouteDeliveryRevisionSnapshot revision)
-    {
-        revision = null;
-        if (restoreCandidateExactOutputRoutesByOperation == null
-            || !restoreCandidateExactOutputRoutesByOperation.TryGetValue(
-                routeOperationId ?? string.Empty,
-                out FacilityOutputExactRouteOutboxSaveData route))
-        {
-            return false;
-        }
-        revision = CreateDeliveryRevisionSnapshot(route);
-        return true;
-    }
-
-    private static FacilityOutputExactRouteDeliveryRevisionSnapshot
-        CreateDeliveryRevisionSnapshot(
-            FacilityOutputExactRouteOutboxSaveData route)
-    {
-        if (route == null)
-            throw new InvalidOperationException(
-                "Exact-route delivery revision source is null.");
-        return new FacilityOutputExactRouteDeliveryRevisionSnapshot(
-            route.routeOperationId,
-            route.physicalReceiptFingerprint,
-            route.currentDeliveryRevision,
-            route.currentDeliveryRevisionFingerprint,
-            route.currentDeliveryRerouteOperationId,
-            route.currentTargetDestinationId,
-            route.currentTargetPositionX,
-            route.currentTargetPositionY,
-            route.currentTargetAuthorityFingerprint);
-    }
+    bool IFacilityOutputExactRouteDeliveryRevisionRestoreCandidateQuery.TryGetCurrentDeliveryRevision(
+        string routeOperationId, out FacilityOutputExactRouteDeliveryRevisionSnapshot revision) =>
+        ((IFacilityOutputExactRouteDeliveryRevisionRestoreCandidateQuery)restoreCandidates)
+            .TryGetCurrentDeliveryRevision(routeOperationId, out revision);
 
     public DungeonPhysicalItemSaveData Capture()
     {
@@ -994,6 +869,7 @@ public sealed class WorldItemStackRuntime :
         DungeonPhysicalItemSaveData snapshot,
         IRestoreWorldCandidateQuery restoreWorldCandidates)
     {
+        restoreCandidates.EnsureCanStage();
         IRestoreWorldCandidateQuery candidates = restoreWorldCandidates
             ?? throw new ArgumentNullException(nameof(restoreWorldCandidates));
         if (!candidates.TryGetBuildings(
@@ -1007,240 +883,8 @@ public sealed class WorldItemStackRuntime :
             snapshot,
             candidateBuildings,
             massQuery);
-        PublishPhysicalRestoreCandidateIndex(staged);
+        restoreCandidates.Index(staged);
         return new PhysicalItemCandidateSaveRestoreStage(this, staged);
-    }
-
-    private void PublishPhysicalRestoreCandidateIndex(
-        WorldItemRestoreState staged)
-    {
-        if (staged?.RepositoryState == null)
-        {
-            throw new ArgumentNullException(nameof(staged));
-        }
-        if (restoreCandidateDispositions != null
-            || restoreCandidateDispositionsByOperation != null
-            || restoreCandidateInputDestinationDrains != null
-            || restoreCandidateInputDestinationDrainsByStep != null
-            || restoreCandidateOutputs != null
-            || restoreCandidateOutputsByCommit != null
-            || restoreCandidatePlannedOutputBatches != null
-            || restoreCandidatePlannedOutputBatchesByCommit != null
-            || restoreCandidateAcknowledgedOutputBatches != null
-            || restoreCandidateAcknowledgedOutputBatchesByCommit != null
-            || restoreCandidateExactOutputRoutes != null
-            || restoreCandidateExactOutputRoutesByOperation != null)
-        {
-            throw new InvalidOperationException(
-                "A physical-item restore candidate is already indexed.");
-        }
-
-        PhysicalItemRestoreCandidateDispositionSnapshot[] snapshots =
-            staged.RepositoryState.PendingBatchDispositions.Values
-                .OrderBy(value => value.operationId, StringComparer.Ordinal)
-                .Select(value =>
-                    new PhysicalItemRestoreCandidateDispositionSnapshot(value))
-                .ToArray();
-        Dictionary<string, PhysicalItemRestoreCandidateDispositionSnapshot>
-            byOperation = new(StringComparer.Ordinal);
-        foreach (PhysicalItemRestoreCandidateDispositionSnapshot snapshot in
-                 snapshots)
-        {
-            if (!byOperation.TryAdd(snapshot.OperationId, snapshot))
-            {
-                throw new InvalidOperationException(
-                    $"Duplicate physical restore candidate operation '{snapshot.OperationId}'.");
-            }
-        }
-
-        ProductionInputDestinationCustodyDrainSaveData[] inputDrains = staged
-            .RepositoryState.PendingProductionInputDestinationDrains.Values
-            .OrderBy(value => value.stepOperationId, StringComparer.Ordinal)
-            .Select(value => value.Clone())
-            .ToArray();
-        Dictionary<string, ProductionInputDestinationCustodyDrainSaveData>
-            inputDrainsByStep = new(StringComparer.Ordinal);
-        foreach (ProductionInputDestinationCustodyDrainSaveData drain in inputDrains)
-        {
-            if (drain == null
-                || !inputDrainsByStep.TryAdd(
-                    drain.stepOperationId,
-                    drain.Clone()))
-            {
-                throw new InvalidOperationException(
-                    $"Duplicate production input-destination drain restore candidate '{drain?.stepOperationId}'.");
-            }
-        }
-
-        PhysicalItemRestoreCandidateOutputSnapshot[] outputSnapshots =
-            staged.RepositoryState.Records
-                .Select(record => TryCreateCommittedOutputSnapshot(
-                    record,
-                    out PhysicalItemRestoreCandidateOutputSnapshot output)
-                    ? output
-                    : null)
-                .Where(output => output != null)
-                .OrderBy(output => output.CommitId, StringComparer.Ordinal)
-                .ThenBy(output => output.StackId, StringComparer.Ordinal)
-                .ToArray();
-        Dictionary<string,
-            IReadOnlyList<PhysicalItemRestoreCandidateOutputSnapshot>>
-            outputsByCommit = outputSnapshots
-                .GroupBy(output => output.CommitId, StringComparer.Ordinal)
-                .ToDictionary(
-                    group => group.Key,
-                    group => (IReadOnlyList<
-                        PhysicalItemRestoreCandidateOutputSnapshot>)
-                        Array.AsReadOnly(group.ToArray()),
-                    StringComparer.Ordinal);
-        FacilityBufferPlannedOutputRestoreBatchSnapshot[] plannedBatches =
-            FacilityBufferPlannedOutputRestoreCandidateFactory
-            .CapturePendingBatches(
-                staged.RepositoryState.Records,
-                massQuery)
-            .OrderBy(value => value.BatchCommitId, StringComparer.Ordinal)
-            .ToArray();
-        Dictionary<string, FacilityBufferPlannedOutputRestoreBatchSnapshot>
-            plannedByCommit = new(StringComparer.Ordinal);
-        foreach (FacilityBufferPlannedOutputRestoreBatchSnapshot planned in
-                 plannedBatches)
-        {
-            if (!plannedByCommit.TryAdd(planned.BatchCommitId, planned))
-            {
-                throw new InvalidOperationException(
-                    $"Duplicate planned-output restore batch '{planned.BatchCommitId}'.");
-            }
-        }
-        FacilityBufferPlannedOutputRestoreBatchSnapshot[] acknowledgedBatches =
-            FacilityBufferPlannedOutputRestoreCandidateFactory
-            .CaptureAcknowledgedBatches(
-                staged.RepositoryState.Records,
-                massQuery)
-            .OrderBy(value => value.BatchCommitId, StringComparer.Ordinal)
-            .ToArray();
-        Dictionary<string, FacilityBufferPlannedOutputRestoreBatchSnapshot>
-            acknowledgedByCommit = new(StringComparer.Ordinal);
-        foreach (FacilityBufferPlannedOutputRestoreBatchSnapshot acknowledged in
-                 acknowledgedBatches)
-        {
-            if (!acknowledgedByCommit.TryAdd(
-                    acknowledged.BatchCommitId,
-                    acknowledged))
-            {
-                throw new InvalidOperationException(
-                    $"Duplicate acknowledged-output restore batch '{acknowledged.BatchCommitId}'.");
-            }
-        }
-        FacilityOutputExactRouteOutboxSaveData[] exactRoutes =
-            (staged.ExactRouteCandidate?.Routes
-                ?? Array.Empty<FacilityOutputExactRouteOutboxSaveData>())
-            .OrderBy(value => value.routeOperationId, StringComparer.Ordinal)
-            .Select(value => value.Clone())
-            .ToArray();
-        long exactRouteCheckpointSequence = staged.ExactRouteCandidate?
-            .CheckpointSequence
-            ?? throw new InvalidOperationException(
-                "Physical restore has no exact-route checkpoint candidate.");
-        string exactRouteCheckpointDigest = staged.ExactRouteCandidate
-            .CheckpointDigest;
-        Dictionary<string, FacilityOutputExactRouteOutboxSaveData>
-            exactRoutesByOperation = new(StringComparer.Ordinal);
-        foreach (FacilityOutputExactRouteOutboxSaveData route in exactRoutes)
-        {
-            if (route == null
-                || !exactRoutesByOperation.TryAdd(
-                    route.routeOperationId,
-                    route))
-            {
-                throw new InvalidOperationException(
-                    $"Duplicate exact-output-route restore candidate '{route?.routeOperationId}'.");
-            }
-        }
-        // Candidate publication must be a non-failing pointer/map swap. Keep
-        // every potentially throwing projection and duplicate check above in
-        // locals so a rejected candidate cannot leave a partially visible
-        // cross-section restore index behind.
-        restoreCandidateDispositions = Array.AsReadOnly(snapshots);
-        restoreCandidateDispositionsByOperation = byOperation;
-        restoreCandidateInputDestinationDrains = Array.AsReadOnly(inputDrains);
-        restoreCandidateInputDestinationDrainsByStep = inputDrainsByStep;
-        restoreCandidateOutputs = Array.AsReadOnly(outputSnapshots);
-        restoreCandidateOutputsByCommit = outputsByCommit;
-        restoreCandidatePlannedOutputBatches = Array.AsReadOnly(plannedBatches);
-        restoreCandidatePlannedOutputBatchesByCommit = plannedByCommit;
-        restoreCandidateAcknowledgedOutputBatches =
-            Array.AsReadOnly(acknowledgedBatches);
-        restoreCandidateAcknowledgedOutputBatchesByCommit =
-            acknowledgedByCommit;
-        restoreCandidateExactOutputRoutes = Array.AsReadOnly(exactRoutes);
-        restoreCandidateExactOutputRoutesByOperation = exactRoutesByOperation;
-        restoreCandidateExactRouteCheckpointSequence =
-            exactRouteCheckpointSequence;
-        restoreCandidateExactRouteCheckpointDigest =
-            exactRouteCheckpointDigest;
-    }
-
-    private bool TryCreateCommittedOutputSnapshot(
-        WorldItemStackRecord record,
-        out PhysicalItemRestoreCandidateOutputSnapshot output)
-    {
-        output = null;
-        ItemInstanceComponentSaveData commitComponent = (record?.components
-                ?? new List<ItemInstanceComponentSaveData>())
-            .SingleOrDefault(value => value != null
-                && string.Equals(
-                    value.componentTypeId,
-                    ItemInstanceComponentIds.ProductionOutputCommit,
-                    StringComparison.Ordinal));
-        ItemStateValueSaveData commitField = commitComponent?.values
-            ?.SingleOrDefault(value => value != null
-                && string.Equals(value.key, "commit-id", StringComparison.Ordinal)
-                && value.kind == ItemStateValueKind.String);
-        string commitId = commitField?.stringValue ?? string.Empty;
-        if (record == null
-            || record.quantity <= 0
-            || string.IsNullOrWhiteSpace(commitId))
-        {
-            return false;
-        }
-
-        PhysicalItemMassSubject subject = PhysicalItemMassSubjectAdapter.Create(
-            massQuery,
-            (ItemDefinitionId)record.itemId,
-            record.itemInstanceId,
-            record.components);
-        long massGrams = massQuery.GetQuantityMass(
-            (ItemDefinitionId)record.itemId,
-            subject,
-            record.quantity).Value;
-        output = new PhysicalItemRestoreCandidateOutputSnapshot(
-            commitId,
-            record.stackId,
-            record.itemId,
-            record.quantity,
-            massGrams,
-            record.state,
-            record.position,
-            record.destinationId);
-        return true;
-    }
-
-    private void ClearPhysicalRestoreCandidateIndex()
-    {
-        restoreCandidateDispositions = null;
-        restoreCandidateDispositionsByOperation = null;
-        restoreCandidateInputDestinationDrains = null;
-        restoreCandidateInputDestinationDrainsByStep = null;
-        restoreCandidateOutputs = null;
-        restoreCandidateOutputsByCommit = null;
-        restoreCandidatePlannedOutputBatches = null;
-        restoreCandidatePlannedOutputBatchesByCommit = null;
-        restoreCandidateAcknowledgedOutputBatches = null;
-        restoreCandidateAcknowledgedOutputBatchesByCommit = null;
-        restoreCandidateExactOutputRoutes = null;
-        restoreCandidateExactOutputRoutesByOperation = null;
-        restoreCandidateExactRouteCheckpointSequence = 0L;
-        restoreCandidateExactRouteCheckpointDigest = string.Empty;
     }
 
     private void CommitRestore(WorldItemRestoreState staged)
@@ -1402,8 +1046,33 @@ public sealed class WorldItemStackRuntime :
         WorldItemStackState state,
         string destinationId,
         out string stackId)
+        => SpawnExistingUniqueItemAt(
+            itemId, itemInstanceId, position, state, destinationId,
+            Array.Empty<ItemInstanceComponentSaveData>(), out stackId);
+
+    public bool SpawnExistingUniqueItemAt(
+        string itemId,
+        ItemInstanceId itemInstanceId,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        IReadOnlyList<ItemInstanceComponentSaveData> components,
+        out string stackId)
     {
-        IReadOnlyList<ItemInstanceComponentSaveData> components =
+        stackId = string.Empty;
+        if (!itemInstanceId.IsValid
+            || components == null
+            || components.Any(component => component == null
+                || string.IsNullOrWhiteSpace(component.componentTypeId)
+                || string.Equals(component.componentTypeId,
+                    ItemInstanceComponentIds.Equipment, StringComparison.Ordinal)
+                || PlannedOutputPublicationComponentCodec.IsAnyMarker(component))
+            || components.Select(component => component.componentTypeId)
+                .Distinct(StringComparer.Ordinal).Count() != components.Count)
+        {
+            return false;
+        }
+        IReadOnlyList<ItemInstanceComponentSaveData> equipmentComponents =
             itemRepository.EquipmentInstances.TryGetValue(
                 itemInstanceId.Value,
                 out CombatEquipmentInstance equipment)
@@ -1428,7 +1097,7 @@ public sealed class WorldItemStackRuntime :
             destinationId,
             false,
             default,
-            components,
+            equipmentComponents.Concat(components).ToArray(),
             out stackId);
     }
 
@@ -1731,6 +1400,28 @@ public sealed class WorldItemStackRuntime :
         }
     }
 
+    public bool TryPreviewActiveEmergencySupportHaulPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason)
+    {
+        return haulPlanningService.TryPreviewActiveEmergencySupportPlan(
+            actor,
+            out plan,
+            out failureReason);
+    }
+
+    public bool TryReserveActiveEmergencySupportHaulPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason)
+    {
+        return haulPlanningService.TryReserveActiveEmergencySupportPlan(
+            actor,
+            out plan,
+            out failureReason);
+    }
+
     public bool TryReserveStoredItemForDirectPickup(
         CharacterActor actor,
         string itemId,
@@ -1746,6 +1437,150 @@ public sealed class WorldItemStackRuntime :
             out reservation,
             out pickupStandPosition,
             out failureReason);
+    }
+
+    [GameplayInternalOnly(
+        "The memory-erasure order reserves one exact warehouse stack under its own operation identity.",
+        "MemoryErasureSealCommandService")]
+    public bool TryReserveStoredMemoryErasureSeal(
+        CharacterActor actor,
+        string ownerOperationId,
+        out WorldItemReservedStackQuantity reservation,
+        out Vector2Int pickupStandPosition,
+        out string failureReason)
+    {
+        return warehouseService.TryReserveStoredForDirectPickup(
+            actor,
+            MemoryErasureSealItemRules.ItemId,
+            MemoryErasureSealItemRules.UseQuantity,
+            ItemReservationPurpose.DirectPlayerOrder,
+            ownerOperationId,
+            out reservation,
+            out pickupStandPosition,
+            out failureReason);
+    }
+
+    [GameplayInternalOnly(
+        "The memory-erasure order preserves the exact source warehouse on its one carried unit so active rollback can return it without a loose drop.",
+        "MemoryErasureSealCommandService")]
+    public bool TryPickupStoredMemoryErasureSeal(
+        CharacterActor actor,
+        CharacterCarryInventory carry,
+        WorldItemReservedStackQuantity reservation,
+        out int pickedUp,
+        out string failureReason)
+    {
+        pickedUp = 0;
+        failureReason = string.Empty;
+        if (actor == null
+            || carry == null
+            || !reservation.IsValid
+            || reservation.Quantity != MemoryErasureSealItemRules.UseQuantity
+            || !string.Equals(
+                reservation.ItemId,
+                MemoryErasureSealItemRules.ItemId,
+                StringComparison.Ordinal)
+            || !itemRepository.RecordsById.TryGetValue(
+                reservation.StackId,
+                out WorldItemStackRecord source)
+            || source == null
+            || source.state != WorldItemStackState.Stored
+            || !string.Equals(
+                source.itemId,
+                MemoryErasureSealItemRules.ItemId,
+                StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(source.sourceStorageDestinationId))
+        {
+            failureReason = "memory-erasure-seal-stored-source-invalid";
+            return false;
+        }
+
+        string sourceStorageDestinationId =
+            source.sourceStorageDestinationId.Trim();
+        if (!itemTransferService.TryPickupReservedStackQuantity(
+                actor,
+                carry,
+                reservation,
+                out pickedUp,
+                out failureReason)
+            || pickedUp != MemoryErasureSealItemRules.UseQuantity)
+        {
+            return false;
+        }
+
+        CharacterCarriedItemSaveData[] candidates = carry.Items
+            .Where(value => value != null
+                && value.quantity == MemoryErasureSealItemRules.UseQuantity
+                && string.Equals(
+                    value.ownerOperationId,
+                    reservation.OwnerOperationId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    value.sourceStackId,
+                    reservation.StackId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    value.itemId,
+                    MemoryErasureSealItemRules.ItemId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (candidates.Length != 1
+            || !itemRepository.RecordsById.TryGetValue(
+                candidates[0].carriedStackId,
+                out WorldItemStackRecord carried)
+            || carried == null
+            || carried.state != WorldItemStackState.Carried
+            || carried.quantity != MemoryErasureSealItemRules.UseQuantity)
+        {
+            failureReason =
+                "memory-erasure-seal-carried-source-binding-failed";
+            return false;
+        }
+
+        carried.sourceStorageDestinationId = sourceStorageDestinationId;
+        itemRepository.MarkChanged();
+        return true;
+    }
+
+    [GameplayInternalOnly(
+        "The memory-erasure order releases its lease and restores any remaining stored source route after cancellation or pickup.",
+        "MemoryErasureSealCommandService")]
+    public bool TryFinalizeStoredMemoryErasureSealPickup(
+        string ownerOperationId,
+        string sourceStackId,
+        ItemReservationReleaseReason releaseReason,
+        out string failureReason)
+    {
+        return warehouseService.TryFinalizeStoredDirectPickup(
+            ownerOperationId,
+            sourceStackId,
+            releaseReason,
+            out failureReason);
+    }
+
+    [GameplayInternalOnly(
+        "Active memory-erasure failures return their exact carried unit to the preserved source stack and warehouse.",
+        "MemoryErasureSealCommandService")]
+    public bool TryReturnCarriedMemoryErasureSealToStoredSource(
+        CharacterActor actor,
+        CharacterCarryInventory carry,
+        string ownerOperationId,
+        out string failureReason)
+    {
+        if (itemTransferService is
+            IMemoryErasureSealStoredCargoReturnService storedReturns)
+        {
+            return storedReturns
+                .TryReturnCarriedMemoryErasureSealToStoredSource(
+                    actor,
+                    carry,
+                    ownerOperationId,
+                    out failureReason);
+        }
+
+        failureReason =
+            "memory-erasure-seal-stored-return-service-missing";
+        return false;
     }
 
     public bool TryReserveAvailableItemForDirectPickup(
@@ -2077,10 +1912,19 @@ public sealed class WorldItemStackRuntime :
             WorldItemStackRuntime requiredOwner = owner
                 ?? throw new InvalidOperationException(
                     "Physical-item restore stage was already consumed.");
-            requiredOwner.CommitRestore(staged);
-            committed = true;
-            staged = null;
-            owner = null;
+            PhysicalItemRestoreCandidateSession candidates = requiredOwner.restoreCandidates;
+            candidates.BeginStageCommit(staged);
+            try
+            {
+                requiredOwner.CommitRestore(staged);
+                committed = true;
+                staged = null;
+                owner = null;
+            }
+            finally
+            {
+                candidates.EndStageCommit();
+            }
         }
 
         public void Discard()
@@ -2089,7 +1933,7 @@ public sealed class WorldItemStackRuntime :
             {
                 return;
             }
-            owner.ClearPhysicalRestoreCandidateIndex();
+            owner.restoreCandidates.DiscardIfCurrent(staged);
             staged = null;
             owner = null;
         }
@@ -2195,6 +2039,50 @@ public sealed class WorldItemStackRuntime :
         record.hasDestinationPosition = true;
         record.destinationPosition = destinationPosition;
         record.reservedByPersistentId = string.Empty;
+        MarkStacksChanged();
+        RefreshMarkerAt(record.position);
+        return true;
+    }
+
+    // Undo only routing metadata of the same unreserved item, never invent a
+    // destination or overwrite a route now owned by another operation.
+    public bool TryRestoreStackRoute(
+        WorldItemStackSnapshot original,
+        WorldItemStackState appliedState,
+        string appliedDestinationId,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (original == null || string.IsNullOrWhiteSpace(original.StackId)
+            || !stacksById.TryGetValue(original.StackId, out WorldItemStackRecord record)
+            || record == null || record.quantity != original.Quantity
+            || record.itemId != original.ItemId || record.itemInstanceId != original.ItemInstanceId
+            || record.position != original.Position)
+        {
+            failureReason = "items.route-rollback-owner-conflict";
+            return false;
+        }
+        bool alreadyRestored = record.state == original.State
+            && record.reservedQuantity == original.ReservedQuantity
+            && record.destinationId == original.DestinationId
+            && record.sourceStorageDestinationId == original.SourceStorageDestinationId
+            && record.hasDestinationPosition == original.HasDestinationPosition
+            && record.destinationPosition == original.DestinationPosition
+            && record.reservedByPersistentId == original.ReservedByPersistentId;
+        if (alreadyRestored) return true;
+        if (original.ReservedQuantity != 0 || record.reservedQuantity != 0
+            || record.state != appliedState || record.destinationId != appliedDestinationId
+            || FacilityOutputExactRouteCustodyCodec.HasAnyCustody(record.components))
+        {
+            failureReason = "items.route-rollback-route-conflict";
+            return false;
+        }
+        record.state = original.State;
+        record.destinationId = original.DestinationId;
+        record.sourceStorageDestinationId = original.SourceStorageDestinationId;
+        record.hasDestinationPosition = original.HasDestinationPosition;
+        record.destinationPosition = original.DestinationPosition;
+        record.reservedByPersistentId = original.ReservedByPersistentId;
         MarkStacksChanged();
         RefreshMarkerAt(record.position);
         return true;

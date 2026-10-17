@@ -31,6 +31,54 @@ internal sealed class CaptivityAggregateStateStore
         aggregateRootStore.Replace(state);
 }
 
+public interface ICaptivityOwnedCharacterIdQuery
+{
+    IReadOnlyCollection<CharacterId> GetOwnedCharacterIds();
+}
+
+public sealed class CaptivityOwnedCharacterIdQuery :
+    ICaptivityOwnedCharacterIdQuery
+{
+    private readonly CaptivityAggregateStateStore stateStore;
+
+    public CaptivityOwnedCharacterIdQuery(
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
+    {
+        stateStore = new CaptivityAggregateStateStore(aggregateRootStore);
+    }
+
+    public IReadOnlyCollection<CharacterId> GetOwnedCharacterIds()
+    {
+        HashSet<CharacterId> ids = new();
+        foreach (CaptiveState state in stateStore.State.Captives)
+        {
+            if (state == null)
+            {
+                throw new InvalidOperationException(
+                    "Captivity aggregate contains a null captive state.");
+            }
+            if (!state.IsInCustody && !state.IsMinion)
+            {
+                continue;
+            }
+
+            string rawId = state.captiveId;
+            CharacterId id = new(rawId);
+            if (!id.IsValid
+                || !string.Equals(rawId, id.Value, StringComparison.Ordinal)
+                || !ids.Add(id))
+            {
+                throw new InvalidOperationException(
+                    $"Captivity contains an invalid or duplicate owned CharacterId '{rawId ?? string.Empty}'.");
+            }
+        }
+
+        return ids
+            .OrderBy(id => id.Value, StringComparer.Ordinal)
+            .ToArray();
+    }
+}
+
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CaptivityQueryView
 {

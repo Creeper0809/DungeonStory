@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "술과 음료를 주문받아 잔에 따르고 손님에게 내도록 꾸린 술음료장 설치 부품이며, 큰솥의 몫을 따르는 시설과도 부품 규격이 맞는다.",
+  "in_game_description": "술음료장에서 용병의 조건을 확인하고 고용 계약을 맺도록 꾸린 설치 부품이다. 하르나크식 술음료장에는 큰솥의 몫을 받을 어린 주민과 부상자를 위한 낮은 자리가 비어 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

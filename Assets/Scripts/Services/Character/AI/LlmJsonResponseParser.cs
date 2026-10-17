@@ -11,20 +11,58 @@ public static class LlmJsonResponseParser
     public static bool TryParse<T>(string response, out T payload, out string error)
         where T : ILlmJsonPayload
     {
+        string exactProfile = typeof(T) == typeof(CustomerPersonaJsonDto)
+            ? LocalLlmRequestProfiles.Persona.Id
+            : typeof(T) == typeof(CharacterSkillGenerationResponseDto)
+                ? LocalLlmRequestProfiles.CharacterSkill.Id
+                : typeof(T) == typeof(CharacterSkillModuleSelectionResponseDto)
+                    ? LocalLlmRequestProfiles.CharacterSkillModuleSelection.Id
+                : typeof(T) == typeof(CharacterSkillLegacyGenerationResponseDto)
+                    ? "CharacterSkillLegacyV2"
+                : string.Empty;
+        if (!string.IsNullOrWhiteSpace(exactProfile))
+        {
+            return TryParse(exactProfile, response, out payload, out error);
+        }
         payload = default;
         error = string.Empty;
+        return TryExtractJsonObject(response, out string json, out error)
+            && TryParseJson(json, out payload, out error);
+    }
 
-        if (!TryExtractJsonObject(response, out string json, out error))
+    public static bool TryParse<T>(
+        string profileId,
+        string response,
+        out T payload,
+        out string error)
+        where T : ILlmJsonPayload
+    {
+        payload = default;
+        error = string.Empty;
+        string json;
+        if (NarrativeExactKeyContract.IsRegisteredProfile(profileId))
+        {
+            if (!NarrativeExactKeyContract.TryValidateProfileResponse(
+                    profileId,
+                    response,
+                    out json,
+                    out error))
+            {
+                return false;
+            }
+        }
+        else if (!TryExtractJsonObject(response, out json, out error))
         {
             return false;
         }
+        return TryParseJson(json, out payload, out error);
+    }
 
-        if (typeof(T) == typeof(CustomerPersonaJsonDto)
-            && !CustomerPersonaJsonDto.ValidateRawJson(json, out error))
-        {
-            return false;
-        }
-
+    private static bool TryParseJson<T>(string json, out T payload, out string error)
+        where T : ILlmJsonPayload
+    {
+        payload = default;
+        error = string.Empty;
         if (typeof(T) == typeof(MacroGoalJsonDto)
             && !MacroGoalJsonDto.ValidateRawJson(json, out error))
         {
@@ -230,27 +268,15 @@ public sealed class MoodImpulseJsonDto : ILlmJsonPayload
 [Serializable]
 public sealed class CustomerPersonaJsonDto : ILlmJsonPayload
 {
-    private const string NumericFieldPattern = "\"{0}\"\\s*:\\s*-?\\d+(?:\\.\\d+)?";
-
-    public string traitName;
+    public string personaName;
     public string flavorText;
-    public float selfCareMultiplier;
-    public float curiosityMultiplier;
-    public float shoppingMultiplier;
-    public float patienceMultiplier;
-    public float hungerCurveMultiplier;
-    public float funCurveMultiplier;
-    public float moodCurveMultiplier;
-    public string[] preferredFacilityTags;
-    public string[] usedMotifIds = Array.Empty<string>();
-    public string[] usedCharacterFactIds = Array.Empty<string>();
 
     public bool Validate(out string error)
     {
         error = string.Empty;
-        if (string.IsNullOrWhiteSpace(traitName))
+        if (string.IsNullOrWhiteSpace(personaName))
         {
-            error = "traitName is required.";
+            error = "personaName is required.";
             return false;
         }
 
@@ -260,87 +286,16 @@ public sealed class CustomerPersonaJsonDto : ILlmJsonPayload
             return false;
         }
 
-        if (preferredFacilityTags == null)
-        {
-            error = "preferredFacilityTags is required.";
-            return false;
-        }
-
-        return ValidateMultiplier(selfCareMultiplier, nameof(selfCareMultiplier), out error)
-            && ValidateMultiplier(curiosityMultiplier, nameof(curiosityMultiplier), out error)
-            && ValidateMultiplier(shoppingMultiplier, nameof(shoppingMultiplier), out error)
-            && ValidateMultiplier(patienceMultiplier, nameof(patienceMultiplier), out error)
-            && ValidateMultiplier(hungerCurveMultiplier, nameof(hungerCurveMultiplier), out error)
-            && ValidateMultiplier(funCurveMultiplier, nameof(funCurveMultiplier), out error)
-            && ValidateMultiplier(moodCurveMultiplier, nameof(moodCurveMultiplier), out error);
+        return true;
     }
 
     public CustomerPersonaData ToRuntimeData()
     {
         return new CustomerPersonaData
         {
-            traitName = traitName,
-            flavorText = flavorText,
-            selfCareMultiplier = selfCareMultiplier,
-            curiosityMultiplier = curiosityMultiplier,
-            shoppingMultiplier = shoppingMultiplier,
-            patienceMultiplier = patienceMultiplier,
-            hungerCurveMultiplier = hungerCurveMultiplier,
-            funCurveMultiplier = funCurveMultiplier,
-            moodCurveMultiplier = moodCurveMultiplier,
-            preferredFacilityTags = preferredFacilityTags ?? Array.Empty<string>()
+            traitName = personaName,
+            flavorText = flavorText
         };
-    }
-
-    public static bool ValidateRawJson(string json, out string error)
-    {
-        error = string.Empty;
-        string[] numericFields =
-        {
-            nameof(selfCareMultiplier),
-            nameof(curiosityMultiplier),
-            nameof(shoppingMultiplier),
-            nameof(patienceMultiplier),
-            nameof(hungerCurveMultiplier),
-            nameof(funCurveMultiplier),
-            nameof(moodCurveMultiplier)
-        };
-
-        foreach (string field in numericFields)
-        {
-            if (!HasRawNumber(json, field))
-            {
-                error = $"{field} must be a JSON number, not a string or null.";
-                return false;
-            }
-        }
-
-        if (string.IsNullOrWhiteSpace(json)
-            || !Regex.IsMatch(json, $"\"{nameof(preferredFacilityTags)}\"\\s*:\\s*\\["))
-        {
-            error = "preferredFacilityTags must be a JSON array.";
-            return false;
-        }
-
-        return true;
-    }
-
-    private static bool ValidateMultiplier(float value, string fieldName, out string error)
-    {
-        error = string.Empty;
-        if (value < 0.25f || value > 2f)
-        {
-            error = $"{fieldName} must be between 0.25 and 2.0.";
-            return false;
-        }
-
-        return true;
-    }
-
-    private static bool HasRawNumber(string json, string fieldName)
-    {
-        return !string.IsNullOrWhiteSpace(json)
-            && Regex.IsMatch(json, string.Format(NumericFieldPattern, Regex.Escape(fieldName)));
     }
 }
 

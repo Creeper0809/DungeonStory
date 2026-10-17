@@ -57,6 +57,27 @@
     },
     {
       "amount": "1",
+      "from": "recipe/recipe-surgery-balance-tail",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-hypha-core",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-precision-hand",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
       "from": "recipe/recipe-surgery-prosthetic-arm",
       "label": "필요 조건",
       "to": "item/material-lumber",
@@ -65,6 +86,41 @@
     {
       "amount": "1",
       "from": "recipe/recipe-surgery-prosthetic-leg",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-pseudopods",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-reinforced-torso",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-sprint-joint",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-tail-balance-augmentation",
+      "label": "필요 조건",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-wing",
       "label": "필요 조건",
       "to": "item/material-lumber",
       "type": "requires"
@@ -103,6 +159,13 @@
       "label": "생산·해금",
       "to": "item/material-lumber",
       "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "event/seasonal-spring-drift-cargo",
+      "label": "관련",
+      "to": "item/material-lumber",
+      "type": "references"
     },
     {
       "amount": null,

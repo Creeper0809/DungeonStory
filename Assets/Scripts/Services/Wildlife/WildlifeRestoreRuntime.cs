@@ -9,6 +9,7 @@ internal interface IWildlifeRestorePort
     void ReplacePopulation(WildlifePopulationState replacement);
     void RebuildPopulationRuntimes();
     void ReconcilePendingFoodRaids();
+    void ReconcilePendingGameplayOutcomes();
 }
 
 internal sealed class WildlifeRestoreCoordinator
@@ -82,7 +83,7 @@ internal sealed class WildlifeRestoreCoordinator
         WildlifeSaveValidation.ValidateWorldReferences(
             saveData,
             restoreGrid,
-            itemRuntime,
+            restoreServices.PhysicalItems,
             speciesCatalog,
             report);
         if (!report.Success)
@@ -181,11 +182,12 @@ internal sealed class WildlifeRestoreCoordinator
             ecosystemRuntime.ApplyRestoreCandidate(published.Ecosystem);
         publication.FreshnessTransaction =
             carcassService.ApplyFreshnessRestoreCandidate(
-                published.Carcasses);
+                published.Carcasses, published.Processing);
         port.ReplacePopulation(published.Population);
         publication.PopulationPublished = true;
         port.RebuildPopulationRuntimes();
         port.ReconcilePendingFoodRaids();
+        port.ReconcilePendingGameplayOutcomes();
         foreach (WildlifeActor actor in published.Population.Actors)
         {
             actor.PublishDetachedRestore();
@@ -302,7 +304,11 @@ internal sealed class WildlifeRestoreCoordinator
         {
             if (oldActor != null)
             {
-                Attempt(() => oldActor.gameObject.SetActive(false));
+                Attempt(() =>
+                {
+                    oldActor.PrepareForDespawn();
+                    oldActor.gameObject.SetActive(false);
+                });
             }
         }
 
@@ -371,10 +377,12 @@ internal sealed class WildlifeRestoreCoordinator
         }
 
         Vector2Int position = new Vector2Int(saveData.gridX, saveData.gridY);
+        bool canOccupyRestoredInterior = species.CanEnterDungeon
+            || saveData.state == WildlifeState.Captured;
         if (!WildlifeWorldRuntime.CanSpawnAt(
                 restoreGrid,
                 position,
-                species.CanEnterDungeon))
+                canOccupyRestoredInterior))
         {
             report.AddError(
                 $"Wildlife '{saveData.wildlifeId}' has an invalid or occupied restored position {position}.");

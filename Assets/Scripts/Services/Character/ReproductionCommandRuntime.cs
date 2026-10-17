@@ -38,7 +38,14 @@ public interface IReproductionCommand
 /// to a detached reproduction aggregate, consumes the batch atomically, and
 /// publishes only the prepared aggregate.
 /// </summary>
-public sealed class ReproductionCommandRuntime : IReproductionCommand
+public interface IReproductionStartRecovery
+{
+    bool TryResumePendingStarts(out DomainFailure failure);
+}
+
+public sealed class ReproductionCommandRuntime :
+    IReproductionCommand,
+    IReproductionStartRecovery
 {
     private const string CrossLineageMediumId =
         "medical:cross-lineage-medium";
@@ -56,7 +63,9 @@ public sealed class ReproductionCommandRuntime : IReproductionCommand
     private readonly IStockQuery stock;
     private readonly IItemReservationService reservations;
     private readonly IAtomicItemConsumptionService atomicItems;
+    private readonly IGameCalendar calendar;
     private readonly ReproductionDurableEquipmentUseRuntime breedingEquipment;
+    private readonly ReproductionTransitionPublication publications;
 
     public ReproductionCommandRuntime(
         IReproductionService reproduction,
@@ -72,7 +81,9 @@ public sealed class ReproductionCommandRuntime : IReproductionCommand
         IAtomicItemConsumptionService atomicItems,
         IDurableFacilityEquipmentPolicyQuery equipmentPolicies,
         IDurableFacilityEquipmentSlotCommand equipmentSlots,
-        IDurableFacilityEquipmentUseCommand equipmentUse)
+        IDurableFacilityEquipmentUseCommand equipmentUse,
+        ReproductionTransitionPublication publications,
+        IGameCalendar calendar)
     {
         this.reproduction = reproduction
             ?? throw new ArgumentNullException(nameof(reproduction));
@@ -96,6 +107,8 @@ public sealed class ReproductionCommandRuntime : IReproductionCommand
             equipmentPolicies,
             equipmentSlots,
             equipmentUse);
+        this.publications = publications ?? throw new ArgumentNullException(nameof(publications));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
     }
 
     public bool TryPlan(
@@ -245,6 +258,7 @@ public sealed class ReproductionCommandRuntime : IReproductionCommand
             aptitudes,
             startActive: false,
             fertilityTreatmentUsed: request.UseFertilityTreatment);
+        process.MarkPlannedTransition();
         string plannedProcessId = processId;
         if (reproduction.Processes.Any(value => string.Equals(
                 value.ProcessId,
@@ -255,14 +269,32 @@ public sealed class ReproductionCommandRuntime : IReproductionCommand
             failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
             return false;
         }
+        ReproductionWorldSaveData beforeWorld = persistence.Capture();
         if (!breedingEquipment.TryCommitPlan(
                 facility.RequirePersistentInstanceId(),
                 facility.centerPos,
-                () =>
+                equipmentContext =>
                 {
-                    reproduction.AddProcess(process);
-                    return true;
-                }))
+                    string costs = "durable:"
+                        + new DurableFacilityEquipmentUseEvidence(
+                            equipmentContext).ToCanonicalString();
+                    var candidate = persistence.PrepareRestore(beforeWorld);
+                    candidate.Add(process);
+                    ReproductionTransitionFact fact;
+                    try
+                    {
+                        fact = publications.Source.Create(null, process, "planned", "plan-command-accepted",
+                            costs, request.AbsoluteDay, new ReproductionFactLocation(
+                                facility.PersistentInstanceId.Value, string.Empty, facility.centerPos.x, facility.centerPos.y));
+                    }
+                    catch (Exception exception)
+                    {
+                        UnityEngine.Debug.LogWarning("reproduction-plan-fact:" + exception.Message);
+                        return false;
+                    }
+                    return publications.TryCommit(beforeWorld, candidate, process, fact, out _);
+                },
+                out _))
         {
             processId = string.Empty;
             failure = new DomainFailure(
@@ -297,7 +329,26 @@ public sealed class ReproductionCommandRuntime : IReproductionCommand
         string id = processId?.Trim() ?? string.Empty;
         ReproductionProcess live = reproduction.Processes.FirstOrDefault(value =>
             string.Equals(value.ProcessId, id, StringComparison.Ordinal));
-        if (live == null || live.Status != ReproductionProcessStatus.Planned)
+        if (live?.PendingTransition != null)
+        {
+            bool starting = live.PendingTransition.fact.transitionKind == "started";
+            if (live.PendingStart != null && live.PendingStart.useFertilityTreatment != useFertilityTreatment)
+            {
+                failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable, "reproduction-start-options-conflict");
+                return false;
+            }
+            if (!publications.TryResume(id, out failure)) return false;
+            live = reproduction.Processes.First(value => value.ProcessId == id);
+            if (starting) return live.Status == ReproductionProcessStatus.Active && live.PendingStart == null;
+        }
+        if (live == null
+            || live.Status != ReproductionProcessStatus.Planned
+                && !(live.Status == ReproductionProcessStatus.Active
+                    && live.PendingStart?.phase
+                        == ReproductionStartTransactionPhase.ObservationCommitted)
+            || live.PendingStart != null
+                && live.PendingStart.useFertilityTreatment
+                    != useFertilityTreatment)
         {
             failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
             return false;
@@ -312,60 +363,235 @@ public sealed class ReproductionCommandRuntime : IReproductionCommand
         string requiredFacility = RequiredFacilityDefinitionId(
             live.Mode,
             live.CrossLineageIncubatorUsed);
-        bool operational = facilities.FindOperational(
+        BuildableObject facility = facilities.FindOperational(
                 FacilityCapabilityKind.None,
                 requiredFacility)
-            .Any(value => string.Equals(
+            .FirstOrDefault(value => string.Equals(
                 value.PersistentInstanceId.Value,
                 live.SupportFacilityInstanceId,
                 StringComparison.Ordinal));
-        if (!operational)
+        if (facility == null)
         {
             failure = new DomainFailure(FailureCode.ServiceFeatureMissing);
             return false;
         }
 
-        List<(string itemId, int quantity)> costs = new();
-        if (live.CrossLineageIncubatorUsed)
-            costs.Add((CrossLineageMediumId, 1));
-        if (live.Mode == ReproductionMode.GolemAssembly)
-            costs.Add((GolemCoreCaseId, 1));
-        if (useFertilityTreatment)
-            costs.Add((FertilityTreatmentId, 1));
-        if (!TryReserveCosts(
-                costs,
-                $"reproduction-start:{id}",
-                out IReadOnlyList<ReservedItemConsumption> reserved,
-                out failure))
-            return false;
+        string owner = StartOperationId(id);
+        if (live.PendingStart == null)
+        {
+            List<(string itemId, int quantity)> costs = new();
+            if (live.CrossLineageIncubatorUsed)
+                costs.Add((CrossLineageMediumId, 1));
+            if (live.Mode == ReproductionMode.GolemAssembly)
+                costs.Add((GolemCoreCaseId, 1));
+            if (useFertilityTreatment)
+                costs.Add((FertilityTreatmentId, 1));
+            if (!TryReserveCosts(
+                    costs,
+                    owner,
+                    out IReadOnlyList<ReservedItemConsumption> reserved,
+                    out failure))
+                return false;
+            ReproductionStartCostSaveData[] snapshots = reserved
+                .Select(value => CreateStartCost(value))
+                .ToArray();
+            ReproductionWorldAggregate prepared = persistence.PrepareRestore(
+                persistence.Capture());
+            if (!prepared.TryGet(id, out ReproductionProcess planned))
+            {
+                Release(reserved, owner);
+                failure = new DomainFailure(
+                    FailureCode.ExternalInfluenceUnavailable);
+                return false;
+            }
+            planned.PrepareStartTransaction(
+                owner,
+                Math.Max(0, calendar.Day),
+                useFertilityTreatment,
+                snapshots);
+            persistence.PublishRestore(prepared);
+        }
+        return TryResumeStart(id, facility, out failure);
+    }
 
-        ReproductionWorldAggregate candidate;
-        try
+    public bool TryResumePendingStarts(out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        string[] pendingIds = reproduction.Processes
+            .Where(value => value.PendingStart != null)
+            .Select(value => value.ProcessId)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        for (int index = 0; index < pendingIds.Length; index++)
         {
-            candidate = persistence.PrepareRestore(persistence.Capture());
-            if (!candidate.TryGet(id, out ReproductionProcess planned))
-                throw new InvalidOperationException();
-            planned.SelectFertilityTreatment(useFertilityTreatment);
-            planned.Start();
+            ReproductionProcess process = reproduction.Processes.First(value =>
+                string.Equals(
+                    value.ProcessId,
+                    pendingIds[index],
+                    StringComparison.Ordinal));
+            if (!TryStart(
+                    process.ProcessId,
+                    process.PendingStart.useFertilityTreatment,
+                    out failure))
+                return false;
         }
-        catch (InvalidOperationException)
-        {
-            Release(reserved, $"reproduction-start:{id}");
-            failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
-            return false;
-        }
-
-        if (!atomicItems.TryConsumeReserved(
-                reserved,
-                $"reproduction-start:{id}",
-                out failure))
-        {
-            Release(reserved, $"reproduction-start:{id}");
-            return false;
-        }
-        persistence.PublishRestore(candidate);
         return true;
     }
+
+    private bool TryResumeStart(
+        string processId,
+        BuildableObject facility,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        ReproductionProcess live = reproduction.Processes.First(value =>
+            string.Equals(value.ProcessId, processId, StringComparison.Ordinal));
+        ReproductionStartTransactionSaveData pending = live.PendingStart;
+        if (pending == null)
+            return live.Status == ReproductionProcessStatus.Active;
+
+        if (pending.phase == ReproductionStartTransactionPhase.Prepared)
+        {
+            if (!TryEnsureStartMaterialsConsumed(pending, out failure))
+                return false;
+            ReproductionWorldAggregate consumedCandidate =
+                persistence.PrepareRestore(persistence.Capture());
+            consumedCandidate.TryGet(processId, out ReproductionProcess consumed);
+            consumed.MarkStartMaterialsConsumed();
+            persistence.PublishRestore(consumedCandidate);
+            live = consumed;
+            pending = live.PendingStart;
+        }
+
+        if (pending.phase == ReproductionStartTransactionPhase.MaterialsConsumed)
+        {
+            var beforeWorld = persistence.Capture();
+            ReproductionWorldAggregate candidate = persistence.PrepareRestore(beforeWorld);
+            candidate.TryGet(processId, out ReproductionProcess started);
+            ReproductionProcessSaveData before = started.Capture();
+            started.ApplyStartTransition();
+            ReproductionTransitionFact fact;
+            try
+            {
+                fact = publications.Source.Create(before, started, "started", "start-command-accepted",
+                    FormatCosts(before.pendingStart?.costs), before.pendingStart.absoluteDay,
+                    new ReproductionFactLocation(facility.PersistentInstanceId.Value, string.Empty,
+                        facility.centerPos.x, facility.centerPos.y));
+            }
+            catch (Exception exception)
+            {
+                failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable, "reproduction-start-fact:" + exception.Message);
+                return false;
+            }
+            return publications.TryCommit(beforeWorld, candidate, started, fact, out failure);
+        }
+
+        if (pending.phase == ReproductionStartTransactionPhase.ObservationCommitted)
+        {
+            ReproductionWorldAggregate completedCandidate =
+                persistence.PrepareRestore(persistence.Capture());
+            completedCandidate.TryGet(processId, out ReproductionProcess completed);
+            completed.CompleteStartTransaction();
+            persistence.PublishRestore(completedCandidate);
+            return true;
+        }
+
+        failure = new DomainFailure(
+            FailureCode.ExternalInfluenceUnavailable,
+            "reproduction-start-phase-invalid");
+        return false;
+    }
+
+    private bool TryEnsureStartMaterialsConsumed(
+        ReproductionStartTransactionSaveData pending,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        ReproductionStartCostSaveData[] costs = (pending.costs
+                ?? new List<ReproductionStartCostSaveData>())
+            .ToArray();
+        if (costs.Length == 0)
+            return true;
+        Dictionary<string, WorldItemStackSnapshot> stacks = stock.GetAllStacks()
+            .Where(value => value != null)
+            .ToDictionary(value => value.StackId, StringComparer.Ordinal);
+        bool before = costs.All(value =>
+            stacks.TryGetValue(value.stackId, out WorldItemStackSnapshot stack)
+            && stack.Quantity == value.quantityBefore);
+        bool after = costs.All(value =>
+            (stacks.TryGetValue(value.stackId, out WorldItemStackSnapshot stack)
+                ? stack.Quantity
+                : 0) == value.quantityAfter);
+        if (after)
+            return true;
+        if (!before)
+        {
+            failure = new DomainFailure(
+                FailureCode.ItemTransferConsumptionFailed,
+                "reproduction-start-material-state-conflict");
+            return false;
+        }
+        ReservedItemConsumption[] selected = costs.Select(value =>
+                new ReservedItemConsumption(value.stackId, value.quantity))
+            .ToArray();
+        if (!reservations.TryReserveQuantities(
+                selected,
+                pending.operationId,
+                ItemReservationPurpose.Medical,
+                $"reproduction:{pending.operationId}:materials"))
+        {
+            failure = new DomainFailure(FailureCode.ItemTransferStackUnavailable);
+            return false;
+        }
+        if (atomicItems.TryConsumeReserved(
+                selected,
+                pending.operationId,
+                out failure))
+            return true;
+        Release(selected, pending.operationId);
+        return false;
+    }
+
+    private ReproductionStartCostSaveData CreateStartCost(
+        ReservedItemConsumption value)
+    {
+        WorldItemStackSnapshot stack = stock.GetAllStacks().First(candidate =>
+            candidate != null
+            && string.Equals(
+                candidate.StackId,
+                value.StackId,
+                StringComparison.Ordinal));
+        return new ReproductionStartCostSaveData
+        {
+            stackId = value.StackId,
+            itemId = stack.ItemId,
+            quantity = value.Quantity,
+            quantityBefore = stack.Quantity,
+            quantityAfter = stack.Quantity - value.Quantity
+        };
+    }
+
+    private static string FormatCosts(
+        IEnumerable<ReproductionStartCostSaveData> costs)
+    {
+        string result = string.Join(
+            ",",
+            (costs ?? Array.Empty<ReproductionStartCostSaveData>())
+                .OrderBy(value => value.itemId, StringComparer.Ordinal)
+                .ThenBy(value => value.stackId, StringComparer.Ordinal)
+                .Select(value => string.Concat(
+                    value.itemId,
+                    "@",
+                    value.stackId,
+                    "x",
+                    value.quantity.ToString(
+                        System.Globalization.CultureInfo.InvariantCulture))));
+        return result.Length == 0 ? "none" : result;
+    }
+
+    private static string StartOperationId(string processId) =>
+        "reproduction-start:"
+        + ReproductionCommandIdentity.Hash(processId);
 
     private bool TryResolveAdult(
         CharacterId id,
@@ -480,7 +706,7 @@ public sealed class ReproductionCommandRuntime : IReproductionCommand
                                  StringComparison.Ordinal))
                          .OrderBy(value => value.StackId, StringComparer.Ordinal))
             {
-                int take = Math.Min(needed, stack.Quantity);
+                int take = Math.Min(needed, stack.AvailableQuantity);
                 result.Add(new ReservedItemConsumption(stack.StackId, take));
                 needed -= take;
                 if (needed == 0) break;
@@ -515,6 +741,27 @@ public sealed class ReproductionCommandRuntime : IReproductionCommand
         foreach (ReservedItemConsumption cost in costs
                      ?? Array.Empty<ReservedItemConsumption>())
             reservations.Release(cost.StackId, owner);
+    }
+}
+
+public sealed class ReproductionStartRecoveryAdapter : IStartable
+{
+    private readonly IReproductionStartRecovery recovery;
+
+    public ReproductionStartRecoveryAdapter(IReproductionStartRecovery recovery)
+    {
+        this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
+    }
+
+    public void Start()
+    {
+        if (!recovery.TryResumePendingStarts(out DomainFailure failure))
+        {
+            UnityEngine.Debug.LogError(
+                "Reproduction start recovery remains pending: "
+                + failure.Code + " "
+                + string.Join(",", failure.Parameters.ToArray()));
+        }
     }
 }
 

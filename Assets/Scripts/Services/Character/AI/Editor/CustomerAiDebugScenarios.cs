@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -85,12 +86,12 @@ public static class CustomerAiDebugScenarios
         report.AppendLine("section\tkey\tvalue");
 
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject lowFood = world.Place("P1_LowFoodShop", new Vector2Int(4, 0));
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(10, 0));
-        BuildableObject rest = world.Place("P1_RestRoom", new Vector2Int(16, 0));
-        BuildableObject toilet = world.Place("P1_Toilet", new Vector2Int(22, 0));
-        BuildableObject washroom = world.Place("P1_Washroom", new Vector2Int(28, 0));
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(34, 0));
+        BuildableObject lowFood = world.Place("D04_배식카운터", new Vector2Int(4, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(10, 0));
+        BuildableObject rest = world.Place("R01_간이침대", new Vector2Int(16, 0));
+        BuildableObject toilet = world.Place("H01_변기", new Vector2Int(22, 0));
+        BuildableObject washroom = world.Place("H03_세면대", new Vector2Int(28, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(34, 0));
         world.StaffShop(lowFood);
         world.StaffShop(general);
 
@@ -179,14 +180,15 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyRoleCandidateFiltering()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject lowFood = world.Place("P1_LowFoodShop", new Vector2Int(3, 0));
-        BuildableObject meat = world.Place("P1_MeatRestaurant", new Vector2Int(8, 0));
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(13, 0));
-        BuildableObject weapon = world.Place("P1_WeaponShop", new Vector2Int(18, 0));
-        BuildableObject rest = world.Place("P1_RestRoom", new Vector2Int(23, 0));
-        BuildableObject toilet = world.Place("P1_Toilet", new Vector2Int(28, 0));
-        BuildableObject washroom = world.Place("P1_Washroom", new Vector2Int(32, 0));
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(36, 0));
+        BuildableObject lowFood = world.Place("D04_배식카운터", new Vector2Int(3, 0));
+        BuildableObject meat = world.Place("D02_고기그릴", new Vector2Int(8, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(13, 0));
+        BuildableObject weapon = world.Place("S02_잡화진열선반", new Vector2Int(18, 0));
+        BuildableObject storageOnly = world.Place("S07_무기보관함", new Vector2Int(20, 0));
+        BuildableObject rest = world.Place("R01_간이침대", new Vector2Int(23, 0));
+        BuildableObject toilet = world.Place("H01_변기", new Vector2Int(28, 0));
+        BuildableObject washroom = world.Place("H03_세면대", new Vector2Int(32, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(36, 0));
         world.PlaceRoomDoorsFor(toilet);
         world.PlaceRoomDoorsFor(washroom);
         world.StaffShop(lowFood);
@@ -208,6 +210,7 @@ public static class CustomerAiDebugScenarios
             && !mealCandidates.Contains(rest)
             && interestCandidates.Contains(general)
             && interestCandidates.Contains(weapon)
+            && !interestCandidates.Contains(storageOnly)
             && interestCandidates.Contains(toilet)
             && interestCandidates.Contains(washroom)
             && interestCandidates.Contains(lab)
@@ -273,11 +276,11 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyNeedScoresDriveActionPriority()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject lowFood = world.Place("P1_LowFoodShop", new Vector2Int(4, 0));
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(10, 0));
-        world.Place("P1_RestRoom", new Vector2Int(16, 0));
-        BuildableObject toilet = world.Place("P1_Toilet", new Vector2Int(22, 0));
-        BuildableObject washroom = world.Place("P1_Washroom", new Vector2Int(28, 0));
+        BuildableObject lowFood = world.Place("D04_배식카운터", new Vector2Int(4, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(10, 0));
+        world.Place("R01_간이침대", new Vector2Int(16, 0));
+        BuildableObject toilet = world.Place("H01_변기", new Vector2Int(22, 0));
+        BuildableObject washroom = world.Place("H03_세면대", new Vector2Int(28, 0));
         world.PlaceRoomDoorsFor(toilet);
         world.PlaceRoomDoorsFor(washroom);
         world.StaffShop(lowFood);
@@ -325,8 +328,12 @@ public static class CustomerAiDebugScenarios
     private static bool VerifySpeciesPreferenceCanBeatDistance()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(3, 0));
-        BuildableObject weapon = world.Place("P1_WeaponShop", new Vector2Int(18, 0));
+        // Controlled affinity profiles test the scorer, not a promise that every
+        // authored retail fixture has the removed P1 weapon-shop preferences.
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(3, 0),
+            configureFixture: data => SetFixtureAffinity(data, "Slime", "Orc"));
+        BuildableObject weapon = world.Place("S02_잡화진열선반", new Vector2Int(18, 0),
+            configureFixture: data => SetFixtureAffinity(data, "Orc", "Slime"));
         world.StaffShop(general);
         world.StaffShop(weapon);
         GridPathSearchResult searchResult = world.Grid.SearchPath(Vector2Int.zero);
@@ -356,9 +363,9 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyToiletAndHygieneFacilityRecovery()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject restRoom = world.Place("P1_RestRoom", new Vector2Int(4, 0));
-        BuildableObject toilet = world.Place("P1_Toilet", new Vector2Int(8, 0));
-        BuildableObject washroom = world.Place("P1_Washroom", new Vector2Int(12, 0));
+        BuildableObject restRoom = world.Place("R01_간이침대", new Vector2Int(4, 0));
+        BuildableObject toilet = world.Place("H01_변기", new Vector2Int(8, 0));
+        BuildableObject washroom = world.Place("H03_세면대", new Vector2Int(12, 0));
         Facility restFacility = restRoom as Facility;
         Facility toiletFacility = toilet as Facility;
         Facility washroomFacility = washroom as Facility;
@@ -415,7 +422,7 @@ public static class CustomerAiDebugScenarios
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
         BuildableObject toilet = world.Place(
-            "P1_Toilet",
+            "H01_변기",
             new Vector2Int(8, 0));
         List<CharacterActor> occupants = new List<CharacterActor>();
         int capacity = Mathf.Max(1, toilet.EffectiveCapacity);
@@ -581,9 +588,12 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyVampireSelectsManaOrResearch()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(3, 0));
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(16, 0));
-        BuildableObject mana = world.Place("P1_ManaStorage", new Vector2Int(24, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(3, 0),
+            configureFixture: data => SetFixtureAffinity(data, null, "Vampire"));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(16, 0),
+            configureFixture: data => SetFixtureAffinity(data, "Vampire", null));
+        BuildableObject mana = world.Place("M02_마력저장조", new Vector2Int(24, 0),
+            configureFixture: data => SetFixtureAffinity(data, "Vampire", null));
         world.StaffShop(general);
         GridPathSearchResult searchResult = world.Grid.SearchPath(Vector2Int.zero);
 
@@ -607,9 +617,9 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyUnavailableFacilitiesAreExcluded()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject lowFood = world.Place("P1_LowFoodShop", new Vector2Int(4, 0));
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(10, 0));
-        BuildableObject rest = world.Place("P1_RestRoom", new Vector2Int(16, 0));
+        BuildableObject lowFood = world.Place("S01_판매카운터", new Vector2Int(4, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(10, 0));
+        BuildableObject rest = world.Place("R01_간이침대", new Vector2Int(16, 0));
         world.StaffShop(general);
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 10f, 20f, 10f, 20f);
         GridPathSearchResult searchResult = world.Grid.SearchPath(Vector2Int.zero);
@@ -655,7 +665,7 @@ public static class CustomerAiDebugScenarios
     private static bool VerifySelfServiceCheckoutWithoutWorker()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(4, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(4, 0));
         Shop shop = general as Shop;
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 20f);
         CharacterActor calmCustomer = world.CreateCustomer("Slime", new Vector2Int(1, 0), 90f, 90f, 90f, 90f);
@@ -703,7 +713,10 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyUnstaffedShopAllowsSelfServiceCheckout()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(4, 0));
+        // S01 is authored as staffed. Exercise the supported self-service
+        // capability using an isolated clone, never by editing the real asset.
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(4, 0),
+            configureFixture: data => data.AbilityModules.Remove<BuildingStaffedServiceAbility>());
         Shop shop = general as Shop;
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 20f);
         CharacterActor calmCustomer = world.CreateCustomer("Slime", new Vector2Int(1, 0), 90f, 90f, 90f, 90f);
@@ -770,7 +783,7 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyReplacedShopTransactionCannotCommit()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        Shop shop = world.Place("P1_GeneralStore", new Vector2Int(4, 0)) as Shop;
+        Shop shop = world.Place("S01_판매카운터", new Vector2Int(4, 0)) as Shop;
         CharacterActor customer = world.CreateCustomer(
             "Slime",
             Vector2Int.zero,
@@ -828,7 +841,7 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyConcurrentShopBuyersCannotOversellSingleStock()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        Shop shop = world.Place("P1_GeneralStore", new Vector2Int(4, 0)) as Shop;
+        Shop shop = world.Place("S01_판매카운터", new Vector2Int(4, 0)) as Shop;
         CharacterActor firstCustomer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 20f);
         CharacterActor secondCustomer = world.CreateCustomer("Slime", new Vector2Int(0, 1), 90f, 90f, 10f, 20f);
         AbilityShopping firstShopping = firstCustomer?.GetAbility<AbilityShopping>();
@@ -907,7 +920,7 @@ public static class CustomerAiDebugScenarios
                 firstResult.CommittedLot.sourceOperationId,
                 exactSource.sourceOperationId,
                 StringComparison.Ordinal)
-            && secondResult.FailureCode == "retail-lot-unavailable";
+            && secondResult.FailureCode == "retail-lot-unavailable-before-outcome-reservation";
         if (!passed)
         {
             Debug.LogError(
@@ -927,7 +940,7 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyRetailActivationAndRestockOwnershipRoundTrip()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        Shop shop = world.Place("P1_GeneralStore", new Vector2Int(4, 0)) as Shop;
+        Shop shop = world.Place("S01_판매카운터", new Vector2Int(4, 0)) as Shop;
         if (shop == null)
         {
             return false;
@@ -991,82 +1004,11 @@ public static class CustomerAiDebugScenarios
         return noSourceReplay && rejected && atomic;
     }
 
-    private static bool VerifyAuthoredUniqueRetailEquipmentCommitsExactSink()
-    {
-        using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        Shop shop = world.Place("P1_WeaponShop", new Vector2Int(4, 0)) as Shop;
-        CharacterActor customer = world.CreateCustomer(
-            "Slime",
-            Vector2Int.zero,
-            90f,
-            90f,
-            10f,
-            20f);
-        AbilityShopping shopping = customer?.GetAbility<AbilityShopping>();
-        RetailStockLotSnapshot source = shop?.CreateStockSnapshot().lots
-            .FirstOrDefault(lot => lot != null
-                && lot.quantity == 1
-                && !string.IsNullOrEmpty(lot.itemInstanceId));
-        if (shop == null || shopping == null || source == null)
-        {
-            return false;
-        }
-
-        int stockBefore = shop.GetStockCount();
-        ICombatEquipmentRuntime equipment =
-            CharacterAiEditorTestDependencies.CombatEquipment;
-        bool sourceExact = equipment.TryGetInstance(
-                source.itemInstanceId,
-                out CombatEquipmentInstance before)
-            && before.worldState == CombatEquipmentWorldState.RetailStock
-            && string.Equals(
-                before.sourceStackId,
-                source.sourceOperationId,
-                StringComparison.Ordinal)
-            && source.unitMassGrams > 0L
-            && !string.IsNullOrEmpty(source.componentFingerprint);
-        RetailProductSnapshot product = shop.ProductSnapshots.Single(snapshot =>
-            snapshot.Id == source.saleItemId);
-        RemainStock stock = new RemainStock(
-            product.Id,
-            product.Name,
-            25,
-            1,
-            Array.Empty<OnBuyItemSO>());
-        SetHoldingMoney(customer, 500);
-        AIActionSet shoppingSet = Resources.Load<AIActionSet>("SO/AI/Action/Shopping");
-        AIAction action = new AIAction(shoppingSet, AIActionPlan.AtDestination(shop));
-        customer.ai.bestAction = action;
-        customer.ai.isBestActionEnd = false;
-        BuildingRetailPurchaseCommitResult commit =
-            new BuildingRetailPurchaseCommitResult();
-        IEnumerator purchase = shopping.BuyItem(stock, 25, action, shop, commit);
-        bool reachedDelay = purchase.MoveNext();
-        bool continued = purchase.MoveNext();
-
-        bool passed = sourceExact
-            && reachedDelay
-            && !continued
-            && commit.IsResolved
-            && commit.Committed
-            && commit.CommittedLot != null
-            && string.Equals(
-                commit.CommittedLot.itemInstanceId,
-                source.itemInstanceId,
-                StringComparison.Ordinal)
-            && shop.GetStockCount() == stockBefore - 1
-            && !equipment.TryGetInstance(source.itemInstanceId, out _);
-        if (!passed)
-        {
-            Debug.LogError(
-                "Unique retail sink detail: "
-                + $"sourceExact={sourceExact}; delay={reachedDelay}; "
-                + $"continued={continued}; resolved={commit.IsResolved}; "
-                + $"committed={commit.Committed}; failure={commit.FailureCode}; "
-                + $"stock={stockBefore}->{shop.GetStockCount()}; instance={source.itemInstanceId}.");
-        }
-        return passed;
-    }
+    // Authored equipment is not guaranteed in the default opening stock. This
+    // fixture creates and binds a real unique lot from the authored catalog,
+    // then checks its exact physical sink, money and typed outcome.
+    private static bool VerifyAuthoredUniqueRetailEquipmentCommitsExactSink() =>
+        RetailPurchaseRecoveryB0T04DebugScenarios.VerifyAuthoredUniquePurchase();
 
     private static bool VerifyCheckoutPatienceStages()
     {
@@ -1093,8 +1035,8 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyAbandonedCheckoutPreservesVisit()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject shop = world.Place("P1_GeneralStore", new Vector2Int(4, 0));
-        BuildableObject alternative = world.Place("P1_WeaponShop", new Vector2Int(12, 0));
+        BuildableObject shop = world.Place("S01_판매카운터", new Vector2Int(4, 0));
+        BuildableObject alternative = world.Place("S01_판매카운터", new Vector2Int(12, 0));
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 20f);
         AbilityShopping shopping = customer.GetAbility<AbilityShopping>();
         // This row proves visit ownership, not purchasing-power balance. Keep
@@ -1117,7 +1059,7 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyCheckoutComplaintCreatesFacilityMemory()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject shop = world.Place("P1_GeneralStore", new Vector2Int(4, 0));
+        BuildableObject shop = world.Place("S01_판매카운터", new Vector2Int(4, 0));
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 20f);
         CharacterSocialMemory memory = customer.SocialMemory;
         float before = memory != null ? memory.GetFacilitySentiment(shop) : 0f;
@@ -1139,11 +1081,18 @@ public static class CustomerAiDebugScenarios
 
     private static bool VerifyCheckoutWaitCoroutineAbandons()
     {
+        FixedDeltaGameClock clock = new(0.2f);
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        Shop shop = world.Place("P1_GeneralStore", new Vector2Int(4, 0), requireStaffedService: true) as Shop;
-        CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 70f);
+        Shop shop = world.Place(
+            "S01_판매카운터",
+            new Vector2Int(4, 0),
+            requireStaffedService: true,
+            gameClock: clock) as Shop;
+        CharacterActor customer = world.CreateCustomer(
+            "Slime", Vector2Int.zero, 90f, 90f, 10f, 70f, gameClock: clock);
         AbilityShopping shopping = customer.GetAbility<AbilityShopping>();
-        if (shop == null || shopping == null || shop.HasServingWorker)
+        if (shop == null || shopping == null || shop.HasServingWorker
+            || !Mathf.Approximately(shop.CustomerGameDeltaTime, clock.DeltaTime))
         {
             return false;
         }
@@ -1151,39 +1100,39 @@ public static class CustomerAiDebugScenarios
         customer.Identity.Data.aiPersonality.patience = 0.25f;
         shopping.BeginVisitInteraction(shop);
         float moodBefore = customer.Mood.Value;
+        ShopUseExecutionState state = shop.BeginShopExecution(customer.BuildingVisitor, null);
+        state.Go(ShopUseExecutionPhase.Waiting);
 
         PropertyInfo interactionProperty = typeof(Shop).GetProperty(
             "CustomerInteraction",
             BindingFlags.Instance | BindingFlags.NonPublic);
         object interaction = interactionProperty?.GetValue(shop);
-        Type sessionType = typeof(Shop).Assembly.GetType(
-            "CheckoutWaitSession",
-            throwOnError: false);
         MethodInfo waitMethod = interaction?.GetType().GetMethod(
-            "WaitForServingWorkerWithPatience",
+            "WaitForSavedAttendant",
             BindingFlags.Instance | BindingFlags.NonPublic);
-        if (interaction == null || sessionType == null || waitMethod == null)
+        if (interaction == null || waitMethod == null)
         {
             Debug.LogError(
                 "Checkout wait fixture could not resolve the authoritative "
                 + $"interaction service: interaction={interaction != null}, "
-                + $"session={sessionType != null}, method={waitMethod != null}.");
+                + $"method={waitMethod != null}.");
             return false;
         }
 
-        object session = Activator.CreateInstance(sessionType);
         IEnumerator routine = waitMethod.Invoke(
             interaction,
-            new object[] { customer.BuildingVisitor, session }) as IEnumerator;
+            new object[] { customer.BuildingVisitor, null, state }) as IEnumerator;
         int steps = 0;
         while (routine != null && routine.MoveNext() && steps++ < 200)
         {
         }
 
-        bool abandoned = (bool)(sessionType.GetProperty("Abandoned")?.GetValue(session) ?? false);
         bool valid = routine != null
             && steps < 200
-            && abandoned
+            && state.checkoutAbandoned
+            && state.patience != null
+            && state.patienceElapsedSeconds >= state.patience.abandonSeconds
+            && 199f * clock.DeltaTime >= state.patience.abandonSeconds
             && shopping.LastVisitOutcome == ShoppingVisitOutcome.Abandoned
             && shop.WaitingCheckoutCount == 0
             && customer.Mood.Value < moodBefore
@@ -1193,7 +1142,10 @@ public static class CustomerAiDebugScenarios
             Debug.LogError(
                 "Checkout abandonment coroutine detail: "
                 + $"routine={routine != null}, steps={steps}, "
-                + $"abandoned={abandoned}, outcome={shopping.LastVisitOutcome}, "
+                + $"elapsed={state.patienceElapsedSeconds:0.###}/"
+                + $"{state.patience?.abandonSeconds:0.###}, "
+                + $"clock={shop.CustomerGameDeltaTime:0.###}, "
+                + $"abandoned={state.checkoutAbandoned}, outcome={shopping.LastVisitOutcome}, "
                 + $"waiting={shop.WaitingCheckoutCount}, "
                 + $"mood={moodBefore:0.###}->{customer.Mood.Value:0.###}, "
                 + $"sentiment={customer.SocialMemory.GetFacilitySentiment(shop):0.###}.");
@@ -1205,7 +1157,7 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyUnaffordableShopEndsVisitCycle()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(4, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(4, 0));
         world.StaffShop(general);
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 20f);
         AbilityShopping shopping = customer.GetAbility<AbilityShopping>();
@@ -1237,13 +1189,19 @@ public static class CustomerAiDebugScenarios
 
         try
         {
-            return shopping.ShouldEndVisitCycle()
+            string actorId = customer.Identity.PersistentId;
+            CharacterAiEditorTestDependencies.SetExitAdmissionCaptive(actorId, true);
+            bool captivityBlocksExit = !customer.GetAbility<AbilityMove>().CanStartExitDungeon(out _)
+                && !exit.CanStart(customer);
+            CharacterAiEditorTestDependencies.SetExitAdmissionCaptive(actorId, false);
+            return captivityBlocksExit && shopping.ShouldEndVisitCycle()
                 && !shopping.CanLookAround()
                 && shopping.ShouldExitDungeon()
                 && exit.CanStart(CharacterActor.From(customer));
         }
         finally
         {
+            CharacterAiEditorTestDependencies.SetExitAdmissionCaptive(customer.Identity.PersistentId, false);
             Object.DestroyImmediate(exit);
         }
     }
@@ -1323,7 +1281,7 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyUnavailableHighScoreNeedSelectsReachableAction()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject restRoom = world.Place("P1_RestRoom", new Vector2Int(6, 0));
+        BuildableObject restRoom = world.Place("R01_간이침대", new Vector2Int(6, 0));
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 5f, 5f, 90f, 90f);
         List<ScriptableObject> owned = new List<ScriptableObject>();
 
@@ -1355,8 +1313,8 @@ public static class CustomerAiDebugScenarios
     private static bool VerifyNoveltyAndCrowdScores()
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(4, 0));
-        BuildableObject rest = world.Place("P1_RestRoom", new Vector2Int(10, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(4, 0));
+        BuildableObject rest = world.Place("R01_간이침대", new Vector2Int(10, 0));
         world.StaffShop(general);
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 10f, 10f);
         GridPathSearchResult searchResult = world.Grid.SearchPath(Vector2Int.zero);
@@ -1585,7 +1543,7 @@ public static class CustomerAiDebugScenarios
     private static void AppendUnavailableHighScoreDecision(System.Text.StringBuilder report)
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject restRoom = world.Place("P1_RestRoom", new Vector2Int(6, 0));
+        BuildableObject restRoom = world.Place("R01_간이침대", new Vector2Int(6, 0));
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 5f, 5f, 90f, 90f);
         List<ScriptableObject> owned = new List<ScriptableObject>();
 
@@ -1617,11 +1575,11 @@ public static class CustomerAiDebugScenarios
     private static void AppendNeedScoreDecision(System.Text.StringBuilder report)
     {
         using CustomerAiScenarioWorld world = new CustomerAiScenarioWorld();
-        BuildableObject lowFood = world.Place("P1_LowFoodShop", new Vector2Int(4, 0));
-        BuildableObject general = world.Place("P1_GeneralStore", new Vector2Int(10, 0));
-        world.Place("P1_RestRoom", new Vector2Int(16, 0));
-        BuildableObject toilet = world.Place("P1_Toilet", new Vector2Int(22, 0));
-        BuildableObject washroom = world.Place("P1_Washroom", new Vector2Int(28, 0));
+        BuildableObject lowFood = world.Place("D04_배식카운터", new Vector2Int(4, 0));
+        BuildableObject general = world.Place("S01_판매카운터", new Vector2Int(10, 0));
+        world.Place("R01_간이침대", new Vector2Int(16, 0));
+        BuildableObject toilet = world.Place("H01_변기", new Vector2Int(22, 0));
+        BuildableObject washroom = world.Place("H03_세면대", new Vector2Int(28, 0));
         world.PlaceRoomDoorsFor(toilet);
         world.PlaceRoomDoorsFor(washroom);
         world.StaffShop(lowFood);
@@ -1746,6 +1704,29 @@ public static class CustomerAiDebugScenarios
         }
     }
 
+    private sealed class FixedDeltaGameClock : IGameClock
+    {
+        public FixedDeltaGameClock(float deltaTime)
+        {
+            DeltaTime = deltaTime;
+        }
+
+        public float DeltaTime { get; }
+        public float Time => 0f;
+        public int FrameCount => 0;
+        public bool IsPaused => false;
+    }
+
+    private static void SetFixtureAffinity(BuildingSO data, string preferred, string disliked)
+    {
+        data.AbilityModules.Remove<BuildingSpeciesAffinityAbility>();
+        data.AbilityModules.Add(new BuildingSpeciesAffinityAbility
+        {
+            preferredTags = preferred == null ? Array.Empty<string>() : new[] { preferred },
+            dislikedTags = disliked == null ? Array.Empty<string>() : new[] { disliked }
+        });
+    }
+
     internal sealed class CustomerAiScenarioWorld : IDisposable
     {
         private static readonly FieldInfo GridSystemInstanceField =
@@ -1797,21 +1778,25 @@ public static class CustomerAiDebugScenarios
         public BuildableObject Place(
             string assetName,
             Vector2Int position,
-            bool requireStaffedService = false)
+            bool requireStaffedService = false,
+            IGameClock gameClock = null,
+            Action<BuildingSO> configureFixture = null)
         {
             BuildingSO buildingData = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-                $"Assets/Resources/SO/Building/P1/{assetName}.asset");
+                $"Assets/Resources/SO/Building/Modular/{assetName}.asset");
             if (buildingData == null)
             {
                 throw new InvalidOperationException($"{assetName} asset not found.");
             }
 
-            if (requireStaffedService && !buildingData.RequiresStaffedService())
+            if (configureFixture != null || (requireStaffedService && !buildingData.RequiresStaffedService()))
             {
                 buildingData = Object.Instantiate(buildingData);
-                buildingData.name = $"{assetName} Staffed Checkout Test";
-                buildingData.AbilityModules.Add(new BuildingStaffedServiceAbility());
+                buildingData.name = $"{assetName} Controlled Customer AI Test";
                 scriptableObjects.Add(buildingData);
+                configureFixture?.Invoke(buildingData);
+                if (requireStaffedService && !buildingData.RequiresStaffedService())
+                    buildingData.AbilityModules.Add(new BuildingStaffedServiceAbility());
             }
 
             GridBuildingFactory factory = new GridBuildingFactory();
@@ -1822,7 +1807,7 @@ public static class CustomerAiDebugScenarios
             }
 
             objects.Add(building.gameObject);
-            CharacterAiEditorTestDependencies.Inject(building);
+            CharacterAiEditorTestDependencies.Inject(building, gameClock);
             building.SetGrid(Grid);
             building.Initialization(buildingData, position);
             bool registered = Grid.RegisterOccupant(
@@ -1915,7 +1900,10 @@ public static class CustomerAiDebugScenarios
             float hunger,
             float sleep,
             float fun,
-            float mood)
+            float mood,
+            IGameClock gameClock = null,
+            string persistentId = null,
+            bool includeCarryInventory = false)
         {
             GameObject obj = new GameObject($"Customer AI Test {speciesTag}");
             objects.Add(obj);
@@ -1925,7 +1913,11 @@ public static class CustomerAiDebugScenarios
             AIBrain brain = obj.AddComponent<AIBrain>();
             brain.availableActions = AiDebugScenarioActionFactory.CreateCustomerActions();
             CharacterActor character = obj.AddComponent<CharacterActor>();
-            CharacterAiEditorTestDependencies.Inject(obj);
+            if (includeCarryInventory) obj.AddComponent<CharacterCarryInventory>();
+            if (persistentId != null) obj.GetComponent<CharacterIdentity>().SetPersistentId(persistentId);
+            if (gameClock == null) CharacterAiEditorTestDependencies.Inject(obj);
+            else CharacterAiEditorTestDependencies.Inject(obj, scheduling: null,
+                gameClock: gameClock, pathSearchBroker: null, frameWorkBudget: null);
             CharacterAwakeMethod?.Invoke(character, null);
 
             CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
@@ -1948,19 +1940,23 @@ public static class CustomerAiDebugScenarios
             return character;
         }
 
-        public void StaffShop(BuildableObject building)
+        public CharacterActor StaffShop(BuildableObject building,
+            IGameClock gameClock = null, string persistentId = null, bool includeCarryInventory = false)
         {
             if (building is not Shop shop)
             {
-                return;
+                return null;
             }
 
-            CharacterActor worker = CreateStaff($"Worker {building.name}", building.centerPos);
+            CharacterActor worker = CreateStaff($"Worker {building.name}", building.centerPos,
+                gameClock, persistentId, includeCarryInventory);
             ShopWorkerField?.SetValue(shop, worker.BuildingVisitor);
             FacilityCandidateCache.MarkDynamicStateDirty();
+            return worker;
         }
 
-        private CharacterActor CreateStaff(string name, Vector2Int position)
+        private CharacterActor CreateStaff(string name, Vector2Int position,
+            IGameClock gameClock = null, string persistentId = null, bool includeCarryInventory = false)
         {
             GameObject obj = new GameObject($"Customer AI Test {name}");
             objects.Add(obj);
@@ -1969,7 +1965,11 @@ public static class CustomerAiDebugScenarios
             obj.AddComponent<AbilityShopping>();
             obj.AddComponent<AbilityWork>();
             CharacterActor character = obj.AddComponent<CharacterActor>();
-            CharacterAiEditorTestDependencies.Inject(obj);
+            if (includeCarryInventory) obj.AddComponent<CharacterCarryInventory>();
+            if (persistentId != null) obj.GetComponent<CharacterIdentity>().SetPersistentId(persistentId);
+            if (gameClock == null) CharacterAiEditorTestDependencies.Inject(obj);
+            else CharacterAiEditorTestDependencies.Inject(obj, scheduling: null,
+                gameClock: gameClock, pathSearchBroker: null, frameWorkBudget: null);
             CharacterAwakeMethod?.Invoke(character, null);
 
             CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(

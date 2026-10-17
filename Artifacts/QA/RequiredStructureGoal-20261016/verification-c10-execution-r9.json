@@ -1,0 +1,20 @@
+{
+  "target": "C10 CombatEquipmentCraftingRuntime",
+  "status": "ACTUAL_TARGET_VERIFIED",
+  "sourcePin": "source-pin-native-work-drain-r2.json",
+  "fullInputPin": "native-input-pin-r5.json",
+  "toolPin": "tool-pin-native-work-drain-r3.json",
+  "entry": "CombatEquipmentCraftCompletionOutcomeDebugScenarios.RunEec06FromBatch",
+  "mode": "edit -U0EEC06CombatCraft",
+  "run": "native-combat-craft-current-r2",
+  "report": "native-combat-craft-current-r2/combat-craft-eec06-report.txt",
+  "reportSha256": "869d472c4c35d7734c499fbb1db5eaf4a88b8e5adf08e81d91b958dce57b16ee",
+  "launcherExit": 0,
+  "marker": "U0_EEC06_COMBAT_CRAFT=PASS",
+  "currentCompile": "native-combat-craft-current-r1/unity.log; Editor compilation24.305611s, errors0; r1 memory guard before test, r2 unchanged-source cached process actual PASS",
+  "scope": "Actual production craft runtime with authored equipment/material/building definitions and real Unity worker/facility/exact physical repository. Controlled gateway/clock/outcome ports. Material allow/priority/order/policy/quality commands5, input source stacks2, output1/quality child1/completion parent1; unresolved WIP/fresh JSON restore, absent output null fields2, malformed optional rejects3/no owner mutation, sequence exhaustion/no mutation/retry, exact replay no duplicate. Terminal exact source removal/zero-WIP GC/crash-ahead retry/frozen source drift. Existing sequence native proof and current owner parity/factory11/rules7 managed checks retained. Not natural smith AI/UI or final cold whole-world claim.",
+  "isolation": "Per-run pure self-test and noninteractive window probe PASS; original memory/timeout guards; other apps/input unchanged",
+  "goalStatus": "active",
+  "targetedActualCompleted": 17,
+  "totalTargets": 32
+}

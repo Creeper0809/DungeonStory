@@ -1,5 +1,6 @@
 using System;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 
 public sealed class WildlifeWorldServices
 {
@@ -15,7 +16,10 @@ public sealed class WildlifeWorldServices
         IPhysicalItemBatchDispositionService batchDispositions,
         IGameCalendar calendar,
         IGameEventBus events,
-        IDiseaseDefinitionCatalog diseases)
+        IDiseaseDefinitionCatalog diseases,
+        IDomainFactPublisher facts,
+        IDomainFactRecoveryPublisher factRecovery,
+        IDomainFactStagingPublisher factStaging)
     {
         Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         Species = species ?? throw new ArgumentNullException(nameof(species));
@@ -30,6 +34,9 @@ public sealed class WildlifeWorldServices
         Calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         Events = events ?? throw new ArgumentNullException(nameof(events));
         Diseases = diseases ?? throw new ArgumentNullException(nameof(diseases));
+        Facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        FactRecovery = factRecovery ?? throw new ArgumentNullException(nameof(factRecovery));
+        FactStaging = factStaging ?? throw new ArgumentNullException(nameof(factStaging));
     }
 
     public IGridSystemProvider Grid { get; }
@@ -44,6 +51,9 @@ public sealed class WildlifeWorldServices
     public IGameCalendar Calendar { get; }
     public IGameEventBus Events { get; }
     public IDiseaseDefinitionCatalog Diseases { get; }
+    public IDomainFactPublisher Facts { get; }
+    public IDomainFactRecoveryPublisher FactRecovery { get; }
+    public IDomainFactStagingPublisher FactStaging { get; }
 }
 
 public sealed class WildlifeCombatServices
@@ -57,7 +67,8 @@ public sealed class WildlifeCombatServices
         CombatCoverServices coverServices,
         ICombatAmmoResupplyRuntime ammoResupply,
         IWildlifeCarcassService carcasses,
-        ICharacterPerformanceQuery performance)
+        ICharacterPerformanceQuery performance,
+        CharacterCombatTransactionFacade combatTransactions = null)
     {
         Resolution = resolution ?? throw new ArgumentNullException(nameof(resolution));
         Equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
@@ -71,6 +82,7 @@ public sealed class WildlifeCombatServices
         AmmoResupply = ammoResupply ?? throw new ArgumentNullException(nameof(ammoResupply));
         Carcasses = carcasses ?? throw new ArgumentNullException(nameof(carcasses));
         Performance = performance ?? throw new ArgumentNullException(nameof(performance));
+        CombatTransactions = combatTransactions;
     }
 
     public ICombatResolutionService Resolution { get; }
@@ -85,6 +97,7 @@ public sealed class WildlifeCombatServices
     public ICombatAmmoResupplyRuntime AmmoResupply { get; }
     public IWildlifeCarcassService Carcasses { get; }
     public ICharacterPerformanceQuery Performance { get; }
+    public CharacterCombatTransactionFacade CombatTransactions { get; }
 }
 
 public sealed class WildlifeExecutionServices
@@ -118,14 +131,17 @@ public sealed class WildlifeRestoreServices
 {
     public WildlifeRestoreServices(
         IRestoreWorldCandidateQuery worldCandidates,
-        IRestoreWorldCandidatePublisher candidatePublisher)
+        IRestoreWorldCandidatePublisher candidatePublisher,
+        IPhysicalItemRestoreCandidateStackQuery physicalItems)
     {
         WorldCandidates = worldCandidates
             ?? throw new ArgumentNullException(nameof(worldCandidates));
         CandidatePublisher = candidatePublisher
             ?? throw new ArgumentNullException(nameof(candidatePublisher));
+        PhysicalItems = physicalItems ?? throw new ArgumentNullException(nameof(physicalItems));
     }
 
     public IRestoreWorldCandidateQuery WorldCandidates { get; }
     public IRestoreWorldCandidatePublisher CandidatePublisher { get; }
+    public IPhysicalItemRestoreCandidateStackQuery PhysicalItems { get; }
 }

@@ -10,6 +10,7 @@ using VContainer.Unity;
 public interface IDungeonTitleUiEnvironment
 {
     IUiClock Clock { get; }
+    void EnterTitle();
     void ShowSettings();
     void QuitGame();
 }
@@ -32,6 +33,8 @@ public sealed class DungeonTitleUiEnvironment : IDungeonTitleUiEnvironment
     }
 
     public IUiClock Clock { get; }
+
+    public void EnterTitle() => timeScaleController.Scale = 1f;
 
     public void ShowSettings() => settingsUi.Show();
 
@@ -103,6 +106,7 @@ public sealed class DungeonTitleUiController : IStartable, IDisposable
 
     public void Start()
     {
+        environment.EnterTitle();
         Canvas canvas = canvasProvider.GetOrCreateCanvas();
         CreateTitleScreen(canvas.transform);
         RefreshSlots();

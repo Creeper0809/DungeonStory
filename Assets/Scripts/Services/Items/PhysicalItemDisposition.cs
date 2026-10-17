@@ -99,31 +99,33 @@ public static class PhysicalItemDispositionExtensions
             return false;
         }
 
-        PhysicalItemMassSubject subject = PhysicalItemMassSubjectAdapter.Create(
-            items.MassQuery,
-            (ItemDefinitionId)source.ItemId,
-            source.ItemInstanceId,
-            source.Components);
-        long inputMassGrams = items.MassQuery.GetQuantityMass(
-            (ItemDefinitionId)source.ItemId,
-            subject,
-            quantity).Value;
-        if (!items.TryConsumeStackQuantity(
+        // The source snapshot is detached from repository state. Retain it as
+        // the compatibility receipt while the authoritative mutation goes
+        // through the save-backed batch/outcome transaction. This prevents the
+        // legacy single-stack helper from bypassing gameplay-outcome prepare,
+        // joint commit, delivery replay and acknowledgement.
+        source.Quantity = quantity;
+        source.ReservedQuantity = 0;
+        if (!items.TryCommitBatchPhysicalDisposition(
+                new[]
+                {
+                    new PhysicalItemTransformInput(canonicalStackId, quantity)
+                },
+                kind,
+                canonicalOperation,
+                canonicalReason,
+                out PhysicalItemBatchDispositionReceipt batchReceipt,
+                out failureReason)
+            || !batchReceipt.IsCommitted
+            || batchReceipt.Quantity != quantity
+            || batchReceipt.SourceStackIds.Count != 1
+            || !string.Equals(
+                batchReceipt.SourceStackIds[0],
                 canonicalStackId,
-                quantity,
-                out WorldItemStackSnapshot consumed)
-            || consumed == null
-            || consumed.Quantity != quantity
-            || !string.Equals(
-                consumed.ItemId,
-                source.ItemId,
-                StringComparison.Ordinal)
-            || !string.Equals(
-                consumed.ItemInstanceId,
-                source.ItemInstanceId,
                 StringComparison.Ordinal))
         {
-            failureReason = "physical-disposition-commit-failed";
+            if (failureReason.Length == 0)
+                failureReason = "physical-disposition-commit-failed";
             return false;
         }
 
@@ -131,8 +133,8 @@ public static class PhysicalItemDispositionExtensions
             kind,
             canonicalOperation,
             canonicalReason,
-            consumed,
-            inputMassGrams);
+            source,
+            batchReceipt.InputMassGrams);
         if (!receipt.IsCommitted)
         {
             throw new InvalidOperationException(

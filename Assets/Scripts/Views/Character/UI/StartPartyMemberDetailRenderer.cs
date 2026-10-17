@@ -17,6 +17,11 @@ internal enum StartPartyDetailTab
 
 internal sealed class StartPartyMemberDetailRenderer
 {
+    private const int OwnerTraitDisplayLimit = 5;
+    private const int NonOwnerTraitDisplayLimit = 4;
+    private const float TraitChipFirstBottom = 0.64f;
+    private const float TraitChipVerticalStep = 0.15f;
+
     private readonly StartPartyPreparationViewFactory viewFactory;
     private readonly Action refresh;
     private readonly Action<StartPartyMemberPreparation, StartPartyRerollGroup?> reroll;
@@ -154,11 +159,20 @@ internal sealed class StartPartyMemberDetailRenderer
         Transform traits = CreatePanel(parent, "IdentityTraits", new Vector2(0.485f, 0.38f), new Vector2(0.955f, 0.72f), false);
         traits.GetComponent<Image>().color = DungeonUiTheme.SurfaceRaised;
         TMP_Text traitTitle = CreateText(traits, "TraitTitle", "\uD2B9\uC131", 20f, TextAlignmentOptions.MidlineLeft);
-        SetRect(traitTitle.rectTransform, new Vector2(0.05f, 0.78f), new Vector2(0.65f, 0.94f));
+        SetRect(traitTitle.rectTransform, new Vector2(0.05f, 0.82f), new Vector2(0.65f, 0.96f));
         traitTitle.fontStyle = FontStyles.Bold;
 
         IReadOnlyList<CharacterTraitSO> resolvedTraits = member.Progression?.ResolveSelectedTraits()
             ?? Array.Empty<CharacterTraitSO>();
+        int traitDisplayLimit = member.IsOwner
+            ? OwnerTraitDisplayLimit
+            : NonOwnerTraitDisplayLimit;
+        if (resolvedTraits.Count > traitDisplayLimit)
+        {
+            throw new InvalidOperationException(
+                $"{member.RosterLabel} has {resolvedTraits.Count} selected traits, exceeding its display limit of {traitDisplayLimit}.");
+        }
+
         if (resolvedTraits.Count == 0)
         {
             TMP_Text none = CreateText(traits, "TraitNone", "-", 17f, TextAlignmentOptions.TopLeft);
@@ -167,9 +181,9 @@ internal sealed class StartPartyMemberDetailRenderer
             return;
         }
 
-        for (int i = 0; i < resolvedTraits.Count && i < 4; i++)
+        for (int i = 0; i < resolvedTraits.Count; i++)
         {
-            RenderTraitChip(traits, resolvedTraits[i], 0.58f - i * 0.17f);
+            RenderTraitChip(traits, resolvedTraits[i], TraitChipFirstBottom - i * TraitChipVerticalStep);
         }
     }
 

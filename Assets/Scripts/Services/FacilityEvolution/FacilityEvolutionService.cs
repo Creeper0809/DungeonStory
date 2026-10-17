@@ -45,9 +45,10 @@ public readonly struct FacilityEvolutionMaterialCommitReceipt
     public IReadOnlyList<string> SourceStackIds { get; }
     public int Quantity { get; }
     public long InputMassGrams { get; }
-    public bool IsCommitted => OperationId.Length > 0
-        && ReasonCode.Length > 0
-        && CommitId.Length > 0
+    public bool IsCommitted => !string.IsNullOrEmpty(OperationId)
+        && !string.IsNullOrEmpty(ReasonCode)
+        && !string.IsNullOrEmpty(CommitId)
+        && SourceStackIds != null
         && SourceStackIds.Count > 0
         && Quantity > 0
         && InputMassGrams > 0L;
@@ -105,7 +106,17 @@ public readonly struct FacilityEvolutionProposal
         ProposalReasons = SnapshotDictionary(proposalReasons);
         MutationTagSuggestions = EventPayloadSnapshot.Copy(mutationTagSuggestions);
         FlavorText = flavorText ?? string.Empty;
-        Confidence = Mathf.Clamp01(confidence);
+        if (float.IsNaN(confidence)
+            || float.IsInfinity(confidence)
+            || confidence < 0f
+            || confidence > 1f)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(confidence),
+                confidence,
+                "Facility evolution proposal confidence must be between 0 and 1.");
+        }
+        Confidence = confidence;
         Source = source ?? string.Empty;
         StatusMessage = statusMessage ?? string.Empty;
         RejectedHintTexts = SnapshotDictionary(rejectedHintTexts);
@@ -461,6 +472,13 @@ public sealed class MemoryFacilityEvolutionResourceProvider : IFacilityEvolution
                 && receipt.IsCommitted;
         }
 
+        // Match the warehouse provider: no requirements mean no physical
+        // transaction, not a zero-quantity receipt with a commit identity.
+        if (required.Length == 0)
+        {
+            return true;
+        }
+
         Dictionary<string, int> totals = required
             .GroupBy(requirement => requirement.materialId, StringComparer.Ordinal)
             .ToDictionary(
@@ -636,6 +654,9 @@ public sealed class FacilityEvolutionCandidate
         ProposalStatusMessage = proposalStatusMessage ?? string.Empty;
         IdentityScore = identityScore;
         RejectedHintText = rejectedHintText ?? string.Empty;
+        OrderingSource = proposed
+            ? FacilityEvolutionCandidateOrderingSource.ModelOrRuleProposal
+            : FacilityEvolutionCandidateOrderingSource.UnproposedLegalTail;
     }
 
     public FacilityEvolutionRecipeSO Recipe { get; }
@@ -648,6 +669,13 @@ public sealed class FacilityEvolutionCandidate
     public string ProposalStatusMessage { get; }
     public FacilityEvolutionIdentityScore IdentityScore { get; }
     public string RejectedHintText { get; }
+    public FacilityEvolutionCandidateOrderingSource OrderingSource { get; }
+}
+
+public enum FacilityEvolutionCandidateOrderingSource
+{
+    ModelOrRuleProposal,
+    UnproposedLegalTail
 }
 
 public static class FacilityEvolutionUtility

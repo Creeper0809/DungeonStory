@@ -1,0 +1,26 @@
+{
+  "status": "G4_TARGETED_ACTUAL_COMPLETE",
+  "receipts": [
+    "verification-g4-cargo-execution-r1.json",
+    "verification-g4-reinforcement-native-compile-r3.json",
+    "verification-g4-reinforcement-execution-r3.json"
+  ],
+  "originalFailures": [
+    "verification-g4-reinforcement-execution-r1.json",
+    "verification-g4-reinforcement-execution-r2.json"
+  ],
+  "productionFixes": [
+    "Existing inactive composition callback adds missing guard work capability before DI/publication; stable ID assigned before Initialize.",
+    "Successful canonical actor IDs are ordered child receipts; only missing suffix retried, failed unpublished object discarded, post-publication response loss retained.",
+    "Existing version8 save admits strict arrived incomplete reinforcement prefix and retains legacy completed-shorter compatibility."
+  ],
+  "cargoScope": "Existing native causal/uncertain ACK/rollback/blocked release/checkpoint restore/tamper/retry with controlled collaborators; current native exact cargo save/tamper also PASS after Factions validator change. Cargo owner and non-reinforcement predicate unchanged.",
+  "reinforcementScope": "Controlled local faction route aggregate and real GameplayScene factory/registry/lifecycle; route JSON is not official whole-world pending faction-route restoration. Natural strategic route creation/AI/LLM not claimed.",
+  "finalIntegration": "PENDING",
+  "requiredIntegrationFollowup": "Official whole-world pending faction route restore with fresh actual actors/domain root including lost-response full prefix; assert actual root completion state/reference and no duplicate spawn. Current G4 fixture is local route JSON scope.",
+  "requiredIntegrationFollowupResolution": {
+    "status": "PASS",
+    "receipt": "verification-final-integration-r4.json",
+    "completionAudit": "completion-audit-final-r1.json"
+  }
+}

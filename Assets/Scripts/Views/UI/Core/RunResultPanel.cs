@@ -9,9 +9,11 @@ using UnityEngine.Scripting.APIUpdating;
 public class RunResultPanel : MonoBehaviour
 {
     private TMP_Text detailText;
+    private ScrollRect detailScroll;
     private Button nextRunButton;
     private IDungeonRunTransitionService transitionService;
     private IGameTimeScaleController timeScaleController;
+    private IDungeonRestoreSafetyQuery restoreSafety;
     private IRunResultTextQuery textQuery;
     private IRunResultThemeQuery theme;
     private bool pauseCaptured;
@@ -22,7 +24,8 @@ public class RunResultPanel : MonoBehaviour
         IDungeonRunTransitionService transitionService,
         IGameTimeScaleController timeScaleController,
         IRunResultTextQuery textQuery,
-        IRunResultThemeQuery theme)
+        IRunResultThemeQuery theme,
+        IDungeonRestoreSafetyQuery restoreSafety)
     {
         this.transitionService = transitionService
             ?? throw new System.ArgumentNullException(nameof(transitionService));
@@ -32,6 +35,8 @@ public class RunResultPanel : MonoBehaviour
             ?? throw new System.ArgumentNullException(nameof(textQuery));
         this.theme = theme
             ?? throw new System.ArgumentNullException(nameof(theme));
+        this.restoreSafety = restoreSafety
+            ?? throw new System.ArgumentNullException(nameof(restoreSafety));
     }
 
     public void Render(RunResultSnapshot result)
@@ -51,11 +56,17 @@ public class RunResultPanel : MonoBehaviour
                 ? result.ToDetailText()
                 : textQuery.Get(RunResultTextId.EmptyResult);
             detailText.color = theme.TextPrimary;
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(
+                detailText.rectTransform);
+            if (detailScroll != null)
+                detailScroll.verticalNormalizedPosition = 1f;
         }
 
         if (nextRunButton != null)
         {
-            nextRunButton.interactable = transitionService != null && !transitionService.IsTransitioning;
+            nextRunButton.interactable = !restoreSafety.RequiresRecovery
+                && transitionService != null && !transitionService.IsTransitioning;
         }
     }
 
@@ -64,7 +75,8 @@ public class RunResultPanel : MonoBehaviour
         gameObject.SetActive(false);
         if (pauseCaptured)
         {
-            timeScaleController.Scale = previousTimeScale;
+            if (!restoreSafety.RequiresRecovery)
+                timeScaleController.Scale = previousTimeScale;
             pauseCaptured = false;
         }
     }
@@ -73,7 +85,12 @@ public class RunResultPanel : MonoBehaviour
     {
         if (detailText != null && nextRunButton != null) return;
 
-        detailText = transform.Find("RunResultText")?.GetComponent<TMP_Text>()
+        detailScroll = transform.Find("RunResultScroll")
+            ?.GetComponent<ScrollRect>()
+            ?? GetComponentInChildren<ScrollRect>(true);
+        detailText = transform.Find("RunResultScroll/Viewport/RunResultText")
+            ?.GetComponent<TMP_Text>()
+            ?? transform.Find("RunResultText")?.GetComponent<TMP_Text>()
             ?? GetComponentInChildren<TMP_Text>(true);
         nextRunButton = transform.Find("NextRunButton")?.GetComponent<Button>();
         if (nextRunButton != null)
@@ -85,6 +102,11 @@ public class RunResultPanel : MonoBehaviour
 
     private void HandleNextRun()
     {
+        if (restoreSafety.RequiresRecovery)
+        {
+            if (nextRunButton != null) nextRunButton.interactable = false;
+            return;
+        }
         if (transitionService == null || transitionService.IsTransitioning)
         {
             return;

@@ -1,0 +1,13 @@
+startPartyPreparation=committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; tierZero=changed=True;columns=27->29;startX=17;entrance=(17, 0); liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Roma:-52782:character:staff:1:01:active=True,Miru:-52850:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-52754;id=character:staff:1:01;active=False || prepared-2:name=Miru;go=-52822;id=character:staff:1:02;active=False || scan:name=Roma;go=-52754;id=character:staff:1:01;active=True;retained=True || scan:name=Miru;go=-52822;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-52754;id=character:staff:1:01;active=True || retained:name=Miru;go=-52822;id=character:staff:1:02;active=True
+prepared=authored pen building:c4b785380ddb45f4baab13a84f36234e; pet=wild:9; penCell=(18, 1); hp=10; actual owner alternatives=3; hunger=0.2387451; thirst=0.2259266
+PASS ownerUI=character:staff:1:01; parentEvent=companion-assigned; ledgerDelta=1; pending=0
+PASS autonomousFollow (18, 1) -> (22, 1); owner=(24, 1)
+PASS wholeRegistryRestore owner/cooldown/envelope exact
+expectedInvalidOwner=Section 'circus' failed preflight: Circus restore candidate is invalid: Captured wildlife 'wild:9' references ineligible companion owner 'character:staff:wim-missing'.
+PASS invalidOwnerWholeRegistry liveCircus/HP/cell/roleUnchanged
+PASS ownerChangeUI=character:staff:1:02; parentEvent=companion-assigned; ledgerDelta=1; pending=0
+PASS clearUI/actualPenReturn=(18, 1); parentEvent=companion-cleared; ledgerDelta=1; pending=0
+pet=wild:9; petCell=(18, 1); petHP=10; hunger=0.2730787; thirst=0.2727453; intent=동행 이동 · 주인 추종; owner=character:staff:1:01; ownerCell=(23, 1); gameTime=11.07998
+result=PASS
+scope=controlled authored initial pen/domestic birth, healthy staff and safe field; actual EventSystem owner assignment/change/clear, autonomous follow/return, current whole registry restore. Not natural capture/birth/construction, reciprocal combat, animal haul, daily balance or six-adult certification.
+cleanup=paused disposable main Play, operator stops; disk persistence disabled before owner UI; original environment restored

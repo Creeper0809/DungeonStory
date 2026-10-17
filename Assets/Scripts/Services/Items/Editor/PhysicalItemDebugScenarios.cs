@@ -10,8 +10,226 @@ using UnityEngine;
 
 public static class PhysicalItemDebugScenarios
 {
+    public static void RunQuantityTransfersForBatch()
+    {
+        Require(Application.isBatchMode, "Quantity transfer validation requires isolated batch execution.");
+        Debug.Log(VerifyQuantityPartialExtraction());
+        Debug.Log(VerifyFacilityBufferRespectsForeignLeases());
+        Debug.Log(VerifyDirectConsumeRespectsForeignLease());
+        Debug.Log(VerifyCarriedReservationGrandfatherRestore());
+        Debug.Log("ARCHITECTURE_QUANTITY_TRANSFERS=PASS; failed extraction unchanged; same lease retry; protected consumption; carried restore");
+    }
+
+    public static void RunSaveValidationForBatch()
+    {
+        Require(Application.isBatchMode, "Physical save validation requires isolated batch execution.");
+        _ = VerifyTransientReservationPersistence();
+        _ = VerifyEquipmentInstancePhysicalAuthority();
+        _ = VerifyReservationCaptureRestoreGate();
+        _ = VerifyTypedPhysicalDisposition();
+        Debug.Log(VerifyPhysicalRestoreCandidateLifetime());
+        Debug.Log("ARCHITECTURE_PHYSICAL_STATE_SAVE=PASS; reservations; unique ownership; capture/restore gate; typed disposition");
+    }
+
     public static string VerifyQualityRejectedSaleForEditor() =>
         VerifyQualityRejectedUniqueDeliveryIdentity();
+
+    public static string VerifyExpeditionRecoveredEquipmentForEditor()
+    {
+        const string EnemyId = "character:qa-wim053-recovered-enemy";
+        var gateway = new EditorEquipmentPhysicalItemGatewayProxy();
+        WorldItemStackRuntime items = CreateRuntime(
+            out _, out CombatEquipmentRuntime equipment, out _, out _, out _,
+            equipmentGatewayOverride: gateway);
+        WorldItemStackRuntime restoredItems = null;
+        try
+        {
+            string[] ids = new[] { "weapon:dagger", "armor:gambeson" }.Select(definition =>
+            {
+                CombatEquipmentInstance instance = equipment.CreateInstance(
+                    definition, CombatEquipmentQuality.Normal, CombatEquipmentWorldState.Loose);
+                Require(equipment.TryAssignToCharacter(EnemyId, instance.instanceId, out string failure),
+                    "WIM053 recovered fixture enemy equip failed: " + failure);
+                return instance.instanceId;
+            }).ToArray();
+            IReadOnlyList<CombatEquipmentInstance> recovered = equipment.ConfiscateAllForExpedition(EnemyId);
+            Require(recovered.Count == 2 && ids.All(id => recovered.Count(row => row.instanceId == id) == 1),
+                "WIM053 expedition confiscation lost/duplicated weapon or armor");
+            equipment.HandleCharacterDeath(EnemyId); // Production completion retires the now-empty enemy loadout.
+            foreach (string id in ids)
+                Require(equipment.TryGetInstance(id, out CombatEquipmentInstance packed)
+                        && packed.worldState == CombatEquipmentWorldState.ExpeditionPacked
+                        && string.IsNullOrEmpty(packed.ownerCharacterId)
+                        && string.IsNullOrEmpty(packed.sourceStackId)
+                        && !items.GetAllStacks().Any(stack => stack.ItemInstanceId == id),
+                    "WIM053 recovered equipment was not retained as stack-free Packed custody");
+            string packedPhysical = JsonUtility.ToJson(items.Capture());
+            string packedCombat = JsonUtility.ToJson(equipment.Capture());
+            restoredItems = CreateRuntime(out _, out CombatEquipmentRuntime restoredEquipment);
+            restoredItems.Restore(items.Capture());
+            restoredEquipment.PublishRestoreCandidate(restoredEquipment.BuildRestoreCandidate(equipment.Capture()));
+            Require(packedPhysical == JsonUtility.ToJson(restoredItems.Capture())
+                    && packedCombat == JsonUtility.ToJson(restoredEquipment.Capture()),
+                "WIM053 pending recovered weapon/armor sections did not roundtrip exactly");
+            restoredItems.Dispose();
+            restoredItems = null;
+
+            int spawnAttempts = gateway.UniqueSpawnAttempts;
+            gateway.FailNextUniqueSpawn = true;
+            Require(!equipment.TryMaterializeRecoveredEquipment(ids[0], Vector2Int.zero, out string spawnFailure)
+                    && !string.IsNullOrEmpty(spawnFailure)
+                    && !gateway.FailNextUniqueSpawn && gateway.UniqueSpawnAttempts == spawnAttempts + 1
+                    && packedPhysical == JsonUtility.ToJson(items.Capture())
+                    && packedCombat == JsonUtility.ToJson(equipment.Capture()),
+                "WIM053 failed recovered spawn changed pending physical/equipment authority");
+            gateway.HideNextSpawnFromLookup = true;
+            Require(!equipment.TryMaterializeRecoveredEquipment(ids[0], Vector2Int.zero, out string linkFailure)
+                    && !string.IsNullOrEmpty(linkFailure)
+                    && !gateway.HideNextSpawnFromLookup
+                    && gateway.UniqueSpawnAttempts == spawnAttempts + 2 && gateway.HiddenSpawnLookupCount == 1
+                    && packedPhysical == JsonUtility.ToJson(items.Capture())
+                    && packedCombat == JsonUtility.ToJson(equipment.Capture()),
+                "WIM053 failed recovered link lost Packed custody or left a physical orphan");
+            foreach (string id in ids)
+            {
+                Require(equipment.TryMaterializeRecoveredEquipment(id, Vector2Int.zero, out string failure),
+                    "WIM053 recovered materialization failed: " + failure);
+                WorldItemStackSnapshot[] stacks = items.GetAllStacks().Where(stack => stack.ItemInstanceId == id).ToArray();
+                Require(stacks.Length == 1 && stacks[0].Quantity == 1
+                        && stacks[0].State == WorldItemStackState.Loose
+                        && equipment.TryGetInstance(id, out CombatEquipmentInstance loose)
+                        && loose.worldState == CombatEquipmentWorldState.Loose
+                        && loose.sourceStackId == stacks[0].StackId
+                        && string.IsNullOrEmpty(loose.ownerCharacterId),
+                    "WIM053 materialized equipment lacks its one exact Loose physical stack");
+                int attempts = gateway.UniqueSpawnAttempts;
+                string physicalBefore = JsonUtility.ToJson(items.Capture());
+                Require(!equipment.TryMaterializeRecoveredEquipment(id, Vector2Int.zero, out _)
+                        && gateway.UniqueSpawnAttempts == attempts
+                        && physicalBefore == JsonUtility.ToJson(items.Capture()),
+                    "WIM053 repeated recovery spawned or changed physical equipment");
+            }
+            restoredItems = CreateRuntime(out _, out restoredEquipment);
+            restoredItems.Restore(items.Capture());
+            restoredEquipment.PublishRestoreCandidate(restoredEquipment.BuildRestoreCandidate(equipment.Capture()));
+            Require(JsonUtility.ToJson(items.Capture()) == JsonUtility.ToJson(restoredItems.Capture())
+                    && JsonUtility.ToJson(equipment.Capture()) == JsonUtility.ToJson(restoredEquipment.Capture()),
+                "WIM053 materialized weapon/armor sections did not roundtrip exactly");
+            return "WIM053_RECOVERED_EQUIPMENT_ATOMIC=PASS;weaponAndArmor=2;packedRoundtrip=true;"
+                + "spawnAndLinkFailureExact=true;looseRoundtrip=true;duplicateSpawn=0;"
+                + "scope=public-domain-fixture;actualRunOwnershipAndReturnReceipts=separate-UI-scenario";
+        }
+        finally
+        {
+            restoredItems?.Dispose();
+            items.Dispose();
+        }
+    }
+
+    public static string VerifyPhysicalBackedEquipmentAssignmentForEditor()
+    {
+        const string CharacterId = "character:qa-wim053-equipment";
+        EditorEquipmentPhysicalItemGatewayProxy gateway = new();
+        WorldItemStackRuntime items = CreateRuntime(
+            out _, out CombatEquipmentRuntime equipment, out _, out _, out _,
+            equipmentGatewayOverride: gateway);
+        WorldItemStackRuntime restoredItems = null;
+        try
+        {
+            CombatEquipmentInstance incoming = equipment.CreateInstance(
+                "weapon:dagger", CombatEquipmentQuality.Normal,
+                CombatEquipmentWorldState.Carried);
+            string itemId = PhysicalItemIds.ForEquipment(incoming.definitionId);
+            Require(items.SpawnExistingUniqueItemAt(
+                    itemId, (ItemInstanceId)incoming.instanceId, Vector2Int.zero,
+                    WorldItemStackState.Carried, CharacterId, out string stackId)
+                && equipment.TryLinkToWorldStack(
+                    incoming.instanceId, stackId, CombatEquipmentWorldState.Carried),
+                "WIM053 could not prepare exact carried equipment fixture");
+            string physicalBefore = JsonUtility.ToJson(items.Capture());
+            string combatBefore = JsonUtility.ToJson(equipment.Capture());
+            gateway.FailNextAbsorption = true;
+            Require(!equipment.TryAssignToCharacter("", incoming.instanceId, out _)
+                    && gateway.AbsorptionAttempts == 0 && gateway.FailNextAbsorption,
+                "WIM053 invalid assignment reached physical absorption");
+            Require(!equipment.TryAssignToCharacter(CharacterId, incoming.instanceId, out string newFailure)
+                    && !string.IsNullOrWhiteSpace(newFailure)
+                    && gateway.AbsorptionAttempts == 1,
+                "WIM053 new-target absorption failure was not reported");
+            Require(physicalBefore == JsonUtility.ToJson(items.Capture())
+                    && combatBefore == JsonUtility.ToJson(equipment.Capture()),
+                "WIM053 failed absorption changed physical/unique state or created a loadout");
+
+            CombatEquipmentInstance existing = equipment.CreateInstance(
+                "weapon:dagger", CombatEquipmentQuality.Normal,
+                CombatEquipmentWorldState.Loose);
+            Require(equipment.TryAssignToCharacter(CharacterId, existing.instanceId, out _)
+                    && gateway.AbsorptionAttempts == 1,
+                "WIM053 source-free assignment changed its existing contract");
+            physicalBefore = JsonUtility.ToJson(items.Capture());
+            combatBefore = JsonUtility.ToJson(equipment.Capture());
+            gateway.FailNextAbsorption = true;
+            Require(!equipment.TryAssignToCharacter(CharacterId, incoming.instanceId, out _)
+                    && gateway.AbsorptionAttempts == 2
+                    && physicalBefore == JsonUtility.ToJson(items.Capture())
+                    && combatBefore == JsonUtility.ToJson(equipment.Capture()),
+                "WIM053 failed absorption changed an existing loadout or unique/physical state");
+
+            Require(equipment.TryAssignToCharacter(CharacterId, incoming.instanceId, out string failure),
+                $"WIM053 exact physical assignment failed: {failure}");
+            Require(gateway.AbsorptionAttempts == 3
+                    && !items.GetAllStacks().Any(stack => stack.StackId == stackId)
+                    && equipment.TryGetInstance(incoming.instanceId, out CombatEquipmentInstance equipped)
+                    && equipped.worldState == CombatEquipmentWorldState.Equipped
+                    && equipped.ownerCharacterId == CharacterId
+                    && string.IsNullOrEmpty(equipped.sourceStackId),
+                "WIM053 successful assignment left a physical projection or lost its unique owner");
+            string equippedPhysical = JsonUtility.ToJson(items.Capture());
+            string equippedCombat = JsonUtility.ToJson(equipment.Capture());
+            Require(equipment.TryAssignToCharacter(CharacterId, incoming.instanceId, out _)
+                    && gateway.AbsorptionAttempts == 3
+                    && equippedPhysical == JsonUtility.ToJson(items.Capture())
+                    && equippedCombat == JsonUtility.ToJson(equipment.Capture()),
+                "WIM053 repeated assignment duplicated a loadout or physical absorption");
+
+            restoredItems = CreateRuntime(out _, out CombatEquipmentRuntime restoredEquipment);
+            restoredItems.Restore(items.Capture());
+            restoredEquipment.PublishRestoreCandidate(
+                restoredEquipment.BuildRestoreCandidate(equipment.Capture()));
+            Require(equippedPhysical == JsonUtility.ToJson(restoredItems.Capture())
+                    && equippedCombat == JsonUtility.ToJson(restoredEquipment.Capture()),
+                "WIM053 equipped physical/equipment sections did not roundtrip exactly");
+            restoredItems.Dispose();
+            restoredItems = null;
+
+            equipment.HandleCharacterDeath(CharacterId);
+            Require(equipment.TryGetInstance(incoming.instanceId, out CombatEquipmentInstance lost)
+                    && lost.worldState == CombatEquipmentWorldState.Lost
+                    && string.IsNullOrEmpty(lost.ownerCharacterId)
+                    && string.IsNullOrEmpty(lost.sourceStackId)
+                    && !items.GetAllStacks().Any(stack => stack.ItemInstanceId == incoming.instanceId)
+                    && !equipment.Capture().loadouts.Any(row => row.characterId == CharacterId),
+                "WIM053 death left a stale physical stack or discarded the Lost instance");
+            DungeonPhysicalItemSaveData lostSave = items.Capture();
+            Require(lostSave.uniqueItems.Count(row => row.itemInstanceId == incoming.instanceId) == 1,
+                "WIM053 death deleted or duplicated the authoritative Lost item");
+            restoredItems = CreateRuntime(out _, out restoredEquipment);
+            restoredItems.Restore(lostSave);
+            restoredEquipment.PublishRestoreCandidate(
+                restoredEquipment.BuildRestoreCandidate(equipment.Capture()));
+            Require(JsonUtility.ToJson(lostSave) == JsonUtility.ToJson(restoredItems.Capture())
+                    && JsonUtility.ToJson(equipment.Capture()) == JsonUtility.ToJson(restoredEquipment.Capture()),
+                "WIM053 Lost item and empty loadout did not roundtrip exactly");
+            return "WIM053_PHYSICAL_ASSIGNMENT_ATOMIC=PASS;newAndExistingTargetFailureExact=true;"
+                + "sourceFreePreserved=true;equippedAndLostRoundtrip=true;physicalStacks=0;"
+                + "scope=public-domain-fixture;actualPickupAndCarryConsumption=separate-UI-scenario";
+        }
+        finally
+        {
+            restoredItems?.Dispose();
+            items.Dispose();
+        }
+    }
 
     private sealed class MutableGameClock : IGameClock
     {
@@ -37,6 +255,8 @@ public static class PhysicalItemDebugScenarios
         "Assets/Resources/SO/Building/Industrial/I18_계보_기록실.asset";
     private const string HaulingHarnessWorkwearPath =
         "Assets/Resources/SO/Environment/Workwear/HaulingHarness.asset";
+    private const string HaulingHarnessFixtureInstanceId =
+        "apparel-instance:qa-hauling-harness";
     private const string EquipmentForgeFacilityPath =
         "Assets/Resources/SO/Building/Modular/S08_대장작업대.asset";
 
@@ -51,6 +271,10 @@ public static class PhysicalItemDebugScenarios
         Run("catalog_equipment_fallback", VerifyCatalogEquipmentFallback, lines, errors);
         Run("carry_target_band_authority", VerifyCarryTargetBandAuthority, lines, errors);
         Run("carry_weight_penalty", VerifyCarryWeightPenalty, lines, errors);
+        Run("carry_unavailable_and_zero_movement",
+            VerifyUnavailableCarryAndZeroMovement,
+            lines,
+            errors);
         Run("equipped_hauling_harness_mass_single_authority",
             VerifyEquippedHaulingHarnessMassSingleAuthority,
             lines,
@@ -103,6 +327,7 @@ public static class PhysicalItemDebugScenarios
             lines,
             errors);
         Run("reservation_capture_restore_gate", VerifyReservationCaptureRestoreGate, lines, errors);
+        Run("physical_restore_candidate_lifetime", VerifyPhysicalRestoreCandidateLifetime, lines, errors);
         Run("cancelled_destination_releases_materials", VerifyCancelledDestinationReleasesMaterials, lines, errors);
         Run("typed_persistent_item_ids", VerifyTypedPersistentItemIds, lines, errors);
         Run("equipment_instance_physical_authority",
@@ -160,6 +385,67 @@ public static class PhysicalItemDebugScenarios
             throw new InvalidOperationException(
                 $"Physical item contracts failed ({errors.Count}). See {ReportPath}.");
         }
+    }
+
+    public static void RunExactAtomicConsumptionForBatch()
+    {
+        Require(Application.isBatchMode,
+            "Exact atomic consumption verification requires Unity batch mode.");
+
+        string baseline = VerifyQuantityExactAtomicConsume();
+        string retargeted = VerifyRetargetedExactAtomicConsumption();
+        string rollback = VerifyLateExactAtomicConsumptionRollback();
+        string invalid = VerifyInvalidExactAtomicConsumptionRejected();
+
+        Debug.Log(
+            "Exact atomic consumption PASS. "
+            + $"baseline=[{baseline}]; retargeted=[{retargeted}]; "
+            + $"rollback=[{rollback}]; invalid=[{invalid}]");
+    }
+
+    [MenuItem("DungeonStory/Debug/Items/Run Safe-Drink Restore Reservation")]
+    public static void RunSafeDrinkRestoreFromMenu()
+    {
+        string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        if (string.IsNullOrWhiteSpace(output) || !Path.IsPathRooted(output))
+            throw new InvalidOperationException("Safe-drink verification requires an explicit isolated evidence directory.");
+        Directory.CreateDirectory(output);
+        string focusedReportPath = Path.Combine(output, "safe-drink-restore-reservation.tsv");
+        List<string> lines = new() { "case\tresult\tdetails" };
+        List<string> errors = new();
+        Run(
+            "safe_drink_restored_action_reservation_retirement",
+            VerifySafeDrinkRestoredActionReservations,
+            lines,
+            errors);
+        Run(
+            "reservation_grandfather_restore",
+            VerifyReservationGrandfatherRestore,
+            lines,
+            errors);
+        using (var stream = new FileStream(focusedReportPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
+        using (var writer = new StreamWriter(stream))
+            foreach (string line in lines) writer.WriteLine(line);
+        if (errors.Count > 0)
+        {
+            Debug.LogError(
+                "Safe-drink restore reservation FAIL ("
+                + errors.Count
+                + "): "
+                + string.Join(" | ", errors)
+                + ". Report: "
+                + focusedReportPath);
+            throw new InvalidOperationException(
+                "Safe-drink restore reservation failed ("
+                + errors.Count
+                + "). See "
+                + focusedReportPath
+                + ".");
+        }
+
+        Debug.Log(
+            "Safe-drink restore reservation PASS. Report: "
+            + focusedReportPath);
     }
 
     [MenuItem("DungeonStory/Debug/Items/Run Combat Rejected Recovery Runtime Restore")]
@@ -291,6 +577,201 @@ public static class PhysicalItemDebugScenarios
         }
     }
 
+    private static string VerifyUnavailableCarryAndZeroMovement()
+    {
+        GameObject carrier = new("PhysicalItemUnavailableCarryTest");
+        try
+        {
+            CharacterCarryInventory inventory =
+                carrier.AddComponent<CharacterCarryInventory>();
+            CharacterActor actor = InitializeFixtureActor(carrier);
+            Require(ReferenceEquals(actor.CarryInventory, inventory),
+                "fixture actor did not cache its prepared carry inventory");
+            TestCatalogProvider catalog = new();
+            TestHaulingSettings settings = new(
+                CharacterCarryTuning.DefaultMaxCarryMultiplier);
+            inventory.Configure(
+                catalog,
+                new PhysicalItemMassQuery(catalog),
+                settings,
+                new CharacterCarryInventoryRegistry());
+            Require(inventory.TryAdd(
+                    "test:retained-load",
+                    "item:heavy",
+                    1,
+                    catalog,
+                    settings,
+                    out string addFailure),
+                $"failed to prepare retained carry load: {addFailure}");
+
+            FixedCharacterPerformanceQuery performance = new(
+                CreateCarryPerformanceSnapshot(
+                    0f,
+                    isApplicable: false,
+                    new CharacterPerformanceFailure
+                    {
+                        Code = "RequiredFunctionalCapacityBelowThreshold",
+                        CapacityId = CharacterFunctionalCapacityIds.PhysicalPower,
+                        CurrentValue = 0.09f,
+                        RequiredValue = 0.1f,
+                        Message = "fixture required physical power unavailable"
+                    }));
+            SetCharacterPerformanceAuthority(actor.Stats, performance);
+
+            Require(Mathf.Approximately(inventory.GetBaseCarryLimit(), 0f),
+                "required-capacity failure did not project zero carry capacity");
+            Require(Mathf.Approximately(inventory.GetMaxAllowedWeight(settings), 0f),
+                "zero base capacity did not project zero hard capacity");
+            Require(inventory.GetMaxAcceptableQuantity(
+                    "item:heavy",
+                    1,
+                    catalog,
+                    settings) == 0,
+                "zero capacity accepted a new pickup");
+            Require(Mathf.Approximately(
+                    inventory.GetMoveSpeedMultiplier(catalog, settings),
+                    0f),
+                "positive retained load with zero capacity did not stop movement");
+            Require(Mathf.Approximately(actor.GetMoveSpeed(), 0f),
+                "actor facade did not preserve carry-unavailable movement zero");
+            Require(Mathf.Approximately(
+                    CharacterMovementKinematics.GetMoveSpeed(actor, 1f),
+                    0f),
+                "movement kinematics replaced an actor movement zero");
+
+            inventory.RemoveAllItems();
+            Require(Mathf.Approximately(
+                    inventory.GetMoveSpeedMultiplier(catalog, settings),
+                    1f),
+                "empty inventory with zero capacity did not remain unburdened");
+            Require(actor.GetMoveSpeed() > 0f,
+                "empty inventory incorrectly made independent movement unavailable");
+
+            performance.Snapshot = CreateCarryPerformanceSnapshot(
+                0f,
+                isApplicable: false,
+                new CharacterPerformanceFailure
+                {
+                    Code = "MissingProficiencyContext",
+                    Message = "fixture missing authority"
+                });
+            Require(RejectsInvalidOperation(() => inventory.GetBaseCarryLimit()),
+                "unrecognized unavailable carry performance did not fail loud");
+
+            performance.Snapshot = CreateCarryPerformanceSnapshot(
+                0f,
+                isApplicable: false,
+                new CharacterPerformanceFailure
+                {
+                    Code = "RequiredFunctionalCapacityBelowThreshold",
+                    CapacityId = CharacterFunctionalCapacityIds.PhysicalPower,
+                    CurrentValue = 0.2f,
+                    RequiredValue = 0.1f,
+                    Message = "fixture corrupt threshold relation"
+                });
+            Require(RejectsInvalidOperation(() => inventory.GetBaseCarryLimit()),
+                "malformed required-capacity failure did not fail loud");
+
+            foreach (float invalidValue in new[]
+                     {
+                         0f,
+                         -0.1f,
+                         float.NaN,
+                         float.PositiveInfinity
+                     })
+            {
+                performance.Snapshot = CreateCarryPerformanceSnapshot(
+                    invalidValue,
+                    isApplicable: true,
+                    failure: null);
+                Require(
+                    RejectsArgumentOutOfRange(() => inventory.GetBaseCarryLimit()),
+                    $"applicable invalid carry performance {invalidValue} did not fail loud");
+            }
+
+            Require(Mathf.Approximately(
+                    CharacterMovementKinematics.GetMoveSpeed(null, 0f),
+                    0f),
+                "actor-less movement zero was replaced by a minimum fallback");
+            foreach (float invalidSpeed in new[]
+                     {
+                         -0.1f,
+                         float.NaN,
+                         float.PositiveInfinity
+                     })
+            {
+                Require(RejectsArgumentOutOfRange(() =>
+                        CharacterMovementKinematics.GetMoveSpeed(
+                            null,
+                            invalidSpeed)),
+                    $"invalid movement speed {invalidSpeed} did not fail loud");
+            }
+
+            return "capacity=0kg; pickup=0; loadedMove=0; emptyMove=positive; "
+                + "invalidApplicable=4; invalidUnavailable=2; invalidMovement=3";
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(carrier);
+        }
+    }
+
+    private static CharacterPerformanceSnapshot CreateCarryPerformanceSnapshot(
+        float value,
+        bool isApplicable,
+        CharacterPerformanceFailure failure) => new()
+    {
+        FormulaId = "performance:survival:haul-capacity",
+        DisplayName = "Fixture haul capacity",
+        Value = value,
+        IsApplicable = isApplicable,
+        Failure = failure,
+        Contributions = Array.Empty<CharacterPerformanceContributionTrace>()
+    };
+
+    private static void SetCharacterPerformanceAuthority(
+        CharacterStats stats,
+        ICharacterPerformanceQuery performance)
+    {
+        FieldInfo field = typeof(CharacterStats).GetField(
+            "performance",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        if (field == null)
+        {
+            throw new InvalidOperationException(
+                "CharacterStats performance authority field is missing.");
+        }
+
+        field.SetValue(
+            stats ?? throw new ArgumentNullException(nameof(stats)),
+            performance ?? throw new ArgumentNullException(nameof(performance)));
+    }
+
+    private static void SetActorWorldItemRuntime(
+        CharacterActor actor,
+        IWorldItemStackRuntime runtime)
+    {
+        CharacterActorRuntimeBridge bridge = (actor
+                ?? throw new ArgumentNullException(nameof(actor)))
+            .GetComponent<CharacterActorRuntimeBridge>()
+            ?? throw new InvalidOperationException(
+                "Fixture actor runtime bridge is missing.");
+        PropertyInfo property = typeof(CharacterActorRuntimeBridge).GetProperty(
+            nameof(CharacterActorRuntimeBridge.WorldItemStackRuntime),
+            BindingFlags.Instance | BindingFlags.Public);
+        MethodInfo setter = property?.GetSetMethod(nonPublic: true)
+            ?? throw new InvalidOperationException(
+                "Fixture actor world-item runtime setter is missing.");
+        setter.Invoke(
+            bridge,
+            new object[]
+            {
+                runtime ?? throw new ArgumentNullException(nameof(runtime))
+            });
+        Require(ReferenceEquals(bridge.WorldItemStackRuntime, runtime),
+            "Fixture actor did not retain the physical item runtime.");
+    }
+
     [MenuItem("DungeonStory/Debug/Items/Run Warehouse Stored Consumption Focused")]
     public static void RunWarehouseStoredConsumptionFocused()
     {
@@ -312,6 +793,10 @@ public static class PhysicalItemDebugScenarios
         List<string> errors = new();
         Run("carry_target_band_authority", VerifyCarryTargetBandAuthority, lines, errors);
         Run("carry_weight_penalty", VerifyCarryWeightPenalty, lines, errors);
+        Run("carry_unavailable_and_zero_movement",
+            VerifyUnavailableCarryAndZeroMovement,
+            lines,
+            errors);
         Run("equipped_hauling_harness_mass_single_authority",
             VerifyEquippedHaulingHarnessMassSingleAuthority,
             lines,
@@ -319,8 +804,8 @@ public static class PhysicalItemDebugScenarios
         lines.Insert(
             0,
             errors.Count == 0
-                ? "RESULT=PASS; cases=3; failed=0"
-                : $"RESULT=FAIL; cases=3; failed={errors.Count}");
+                ? "RESULT=PASS; cases=4; failed=0"
+                : $"RESULT=FAIL; cases=4; failed={errors.Count}");
         File.WriteAllLines(CarryCapacityReportPath, lines);
         if (errors.Count > 0)
         {
@@ -425,6 +910,7 @@ public static class PhysicalItemDebugScenarios
             "Authored hauling harness workwear authority is missing.");
 
         GameObject carrier = new("PhysicalItemHarnessMassTest");
+        WorldItemStackRuntime runtime = null;
         try
         {
             CharacterActor actor = InitializeFixtureActor(carrier);
@@ -444,11 +930,90 @@ public static class PhysicalItemDebugScenarios
                 massQuery,
                 settings,
                 new CharacterCarryInventoryRegistry());
+            FixedEnvironmentalWorkwearQuery workwear = new(harness);
             inventory.ConstructHaulingHarness(
-                new FixedEnvironmentalWorkwearQuery(harness),
+                workwear,
                 NoEnvironmentalWorkwearCommand.Instance);
             inventory.ConstructEquippedApparelMass(
                 new FixedEquippedApparelMassQuery(1150L));
+
+            runtime = CreateRuntime(
+                out WorldItemRepository repository,
+                out _,
+                out _,
+                out _,
+                out _,
+                itemCatalogOverride: catalog);
+            runtime.Start();
+            SetActorWorldItemRuntime(actor, runtime);
+            string equippedDestination =
+                CharacterApparelAggregate.EquippedDestinationPrefix
+                + actor.Identity.PersistentId;
+            ItemInstanceComponentSaveData[] harnessComponents =
+            {
+                ApparelItemStateCodec.Create(new ApparelInstanceState
+                {
+                    apparelDefinitionId = "apparel:hauling-harness",
+                    primaryMaterialId = "textile:common-wool",
+                    craftsmanshipQuality = CraftsmanshipQualityTier.Masterwork,
+                    sourceKind = TextileSourceKind.Animal,
+                    sourceDefinitionId = "textile:common-wool",
+                    size = ApparelSizeClass.Medium,
+                    durability = 37f,
+                    moisture = 0f,
+                    contamination = 0f,
+                    craftedAbsoluteDay = 11,
+                    deterministicBatchHash = 0xA11CEUL
+                })
+            };
+            string harnessStackId = WorldItemRepositoryEditorAccess.AddStack(
+                repository,
+                DurableToolItemRules.HaulingHarness,
+                1,
+                WorldItemStackState.Carried,
+                destinationId: equippedDestination,
+                itemInstanceId: HaulingHarnessFixtureInstanceId,
+                components: harnessComponents);
+            WorldItemStackSnapshot harnessStack = runtime.GetAllStacks()
+                .Single(stack => string.Equals(
+                    stack.StackId,
+                    harnessStackId,
+                    StringComparison.Ordinal));
+            Require(harnessStack.Quantity == 1
+                    && harnessStack.State == WorldItemStackState.Carried
+                    && string.Equals(
+                        harnessStack.ItemId,
+                        DurableToolItemRules.HaulingHarness,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        harnessStack.ItemInstanceId,
+                        HaulingHarnessFixtureInstanceId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        harnessStack.DestinationId,
+                        equippedDestination,
+                        StringComparison.Ordinal),
+                "Fixture hauling harness does not have exact equipped physical ownership.");
+            Require(workwear.TryGetEquippedItemInstance(
+                    actor.Identity.TypedPersistentId,
+                    out ItemInstanceId workwearInstanceId,
+                    out _)
+                    && string.Equals(
+                        workwearInstanceId.Value,
+                        harnessStack.ItemInstanceId,
+                        StringComparison.Ordinal),
+                "Workwear and physical harness instance identities differ.");
+            PhysicalItemMassSubject harnessMassSubject =
+                PhysicalItemMassSubjectAdapter.Create(
+                    runtime.MassQuery,
+                    (ItemDefinitionId)harnessStack.ItemId,
+                    harnessStack.ItemInstanceId,
+                    harnessStack.Components);
+            long actualHarnessMassGrams = runtime.MassQuery.GetStackUnitMass(
+                (ItemDefinitionId)harnessStack.ItemId,
+                harnessMassSubject).Value;
+            Require(actualHarnessMassGrams == 1150L,
+                $"Physical harness mass was {actualHarnessMassGrams}g instead of 1150g.");
 
             float performance = actor.Stats.EvaluatePerformance(
                 "performance:survival:haul-capacity").Value;
@@ -483,6 +1048,7 @@ public static class PhysicalItemDebugScenarios
         }
         finally
         {
+            runtime?.Dispose();
             UnityEngine.Object.DestroyImmediate(carrier);
         }
     }
@@ -1618,6 +2184,20 @@ public static class PhysicalItemDebugScenarios
                     out ItemQuantityLease lease,
                     out DomainFailure reserveFailure),
                 $"partial reserve failed: {reserveFailure}");
+            string beforeRejectedExtraction = JsonUtility.ToJson(runtime.Capture());
+            Require(!transfer.TryExtractReservedQuantity(
+                    lease.leaseId,
+                    2,
+                    new ItemTransitDestination(
+                        WorldItemStackState.InTransit,
+                        Vector2Int.zero,
+                        "character:carrier"),
+                    out ItemExtractionReceipt rejectedReceipt,
+                    out DomainFailure rejectedFailure)
+                && rejectedFailure.IsFailure
+                && rejectedReceipt.ExtractedQuantity == 0
+                && JsonUtility.ToJson(runtime.Capture()) == beforeRejectedExtraction,
+                "Rejected extraction changed physical authority or its reservation.");
             Require(transfer.TryExtractReservedQuantity(
                     lease.leaseId,
                     1,
@@ -1741,7 +2321,6 @@ public static class PhysicalItemDebugScenarios
             AtomicItemConsumptionService atomic = new(
                 repository,
                 EditorNullItemMarkerPresenter.Instance,
-                quantityReservations,
                 quantityReservations);
             Require(atomic.TryConsumeReserved(
                     new[] { new ReservedItemConsumption(stackId, 1) },
@@ -1766,6 +2345,334 @@ public static class PhysicalItemDebugScenarios
                 "same operation ID could not reserve again after completion");
             compatibility.Release(stackId, owner);
             return "reserved=1; consumed=1; remaining=9; owner-reuse=pass";
+        }
+        finally
+        {
+            runtime.Dispose();
+        }
+    }
+
+    private static string VerifyRetargetedExactAtomicConsumption()
+    {
+        WorldItemStackRuntime runtime = CreateRuntime(
+            out WorldItemRepository repository,
+            out _,
+            out ItemQuantityReservationService reservations,
+            out _);
+        try
+        {
+            const string itemId = "item:buffer";
+            const string owner = "medical:test:exact-retargeted";
+            string stackA = repository.AddEditorTestStack(
+                itemId, 10, WorldItemStackState.Loose);
+            string stackB = repository.AddEditorTestStack(
+                itemId, 10, WorldItemStackState.Loose);
+            string signature = ItemReservationSignature.Create(
+                itemId,
+                Array.Empty<ItemInstanceComponentSaveData>());
+            Require(reservations.TryReserve(
+                    owner,
+                    "character:test:exact-retargeted",
+                    ItemReservationPurpose.Medical,
+                    "medical:test:exact-retargeted",
+                    new ItemQuantityReservationRequest(
+                        new ItemStackId(stackA),
+                        2,
+                        signature),
+                    out ItemQuantityLease lease,
+                    out DomainFailure reserveFailure),
+                $"retargeted exact-consumption lease failed: {reserveFailure}");
+            Require(reservations.TryRetargetSlices(
+                    new Dictionary<string, IReadOnlyList<ItemLeaseSlice>>(
+                        StringComparer.Ordinal)
+                    {
+                        [lease.leaseId] = new[]
+                        {
+                            new ItemLeaseSlice
+                            {
+                                stackId = stackA,
+                                originStackId = stackA,
+                                expectedStackSignature = signature,
+                                quantity = 1
+                            },
+                            new ItemLeaseSlice
+                            {
+                                stackId = stackB,
+                                originStackId = stackB,
+                                expectedStackSignature = signature,
+                                quantity = 1
+                            }
+                        }
+                    },
+                    out DomainFailure retargetFailure),
+                $"exact-consumption slice retarget failed: {retargetFailure}");
+
+            AtomicItemConsumptionService atomic = new(
+                repository,
+                EditorNullItemMarkerPresenter.Instance,
+                reservations);
+            Require(atomic.TryConsumeReserved(
+                    new[] { new ReservedItemConsumption(stackB, 1) },
+                    owner,
+                    out DomainFailure consumeBFailure),
+                $"retargeted B slice consumption failed: {consumeBFailure}");
+
+            WorldItemStackSnapshot afterA = runtime.GetAllStacks()
+                .Single(stack => string.Equals(
+                    stack.StackId,
+                    stackA,
+                    StringComparison.Ordinal));
+            WorldItemStackSnapshot afterB = runtime.GetAllStacks()
+                .Single(stack => string.Equals(
+                    stack.StackId,
+                    stackB,
+                    StringComparison.Ordinal));
+            Require(afterA.Quantity == 10 && afterA.ReservedQuantity == 1,
+                "B slice consumption changed the lease's leading A slice");
+            Require(afterB.Quantity == 9 && afterB.ReservedQuantity == 0,
+                "B slice consumption did not consume the requested B reservation");
+
+            Require(atomic.TryConsumeReserved(
+                    new[] { new ReservedItemConsumption(stackA, 1) },
+                    owner,
+                    out DomainFailure consumeAFailure),
+                $"remaining A slice consumption failed: {consumeAFailure}");
+            WorldItemStackSnapshot finalA = runtime.GetAllStacks()
+                .Single(stack => string.Equals(
+                    stack.StackId,
+                    stackA,
+                    StringComparison.Ordinal));
+            Require(finalA.Quantity == 9 && finalA.ReservedQuantity == 0,
+                "remaining A slice was not consumed exactly once");
+            Require(!reservations.TryGetLeasesByOwner(owner, out _),
+                "completed retargeted exact consumption left a live lease");
+            return "B=10/1->9/0; A=10/1->9/0; leading-slice-theft=0";
+        }
+        finally
+        {
+            runtime.Dispose();
+        }
+    }
+
+    private static string VerifyLateExactAtomicConsumptionRollback()
+    {
+        WorldItemStackRuntime runtime = CreateRuntime(
+            out WorldItemRepository repository,
+            out _,
+            out ItemQuantityReservationService reservations,
+            out _);
+        try
+        {
+            const string itemId = "item:buffer";
+            const string owner = "medical:test:exact-rollback";
+            List<ItemInstanceComponentSaveData> originalComponents = new()
+            {
+                CreateQualityComponent("decent")
+            };
+            string createdA = repository.AddEditorTestStack(
+                itemId,
+                10,
+                WorldItemStackState.Loose,
+                components: originalComponents);
+            string createdB = repository.AddEditorTestStack(
+                itemId,
+                10,
+                WorldItemStackState.Loose,
+                components: originalComponents);
+            string firstStack = string.CompareOrdinal(createdA, createdB) < 0
+                ? createdA
+                : createdB;
+            string lateStack = string.Equals(
+                    firstStack,
+                    createdA,
+                    StringComparison.Ordinal)
+                ? createdB
+                : createdA;
+            string signature = ItemReservationSignature.Create(
+                itemId,
+                originalComponents);
+            Require(reservations.TryReserveBatch(
+                    owner,
+                    "character:test:exact-rollback",
+                    ItemReservationPurpose.Medical,
+                    "medical:test:exact-rollback",
+                    new[]
+                    {
+                        new ItemQuantityReservationRequest(
+                            new ItemStackId(firstStack),
+                            1,
+                            signature),
+                        new ItemQuantityReservationRequest(
+                            new ItemStackId(lateStack),
+                            1,
+                            signature)
+                    },
+                    out IReadOnlyList<ItemQuantityLease> leases,
+                    out DomainFailure reserveFailure),
+                $"rollback exact-consumption leases failed: {reserveFailure}");
+            ItemQuantityLease firstLeaseBefore = leases.Single(candidate =>
+                candidate.slices.Count == 1
+                && string.Equals(
+                    candidate.slices[0].stackId,
+                    firstStack,
+                    StringComparison.Ordinal));
+            Require(repository.SetEditorTestComponent(
+                    lateStack,
+                    CreateQualityComponent("poor")),
+                "failed to invalidate the late exact-consumption slice");
+
+            AtomicItemConsumptionService atomic = new(
+                repository,
+                EditorNullItemMarkerPresenter.Instance,
+                reservations);
+            Require(!atomic.TryConsumeReserved(
+                    new[]
+                    {
+                        new ReservedItemConsumption(firstStack, 1),
+                        new ReservedItemConsumption(lateStack, 1)
+                    },
+                    owner,
+                    out DomainFailure failure)
+                && failure.Code == FailureCode.ItemReservationSliceInvalid,
+                "late exact-consumption preflight failure was not reported");
+
+            WorldItemStackSnapshot firstAfterFailure = runtime.GetAllStacks()
+                .Single(stack => string.Equals(
+                    stack.StackId,
+                    firstStack,
+                    StringComparison.Ordinal));
+            WorldItemStackSnapshot lateAfterFailure = runtime.GetAllStacks()
+                .Single(stack => string.Equals(
+                    stack.StackId,
+                    lateStack,
+                    StringComparison.Ordinal));
+            Require(firstAfterFailure.Quantity == 10
+                    && lateAfterFailure.Quantity == 10,
+                "failed exact-consumption preflight changed physical quantities");
+            Require(reservations.GetReservedQuantity(
+                        new ItemStackId(firstStack)) == 1
+                    && reservations.GetReservedQuantity(
+                        new ItemStackId(lateStack)) == 1,
+                "failed exact-consumption preflight changed reserved quantities");
+            Require(reservations.TryGetLeasesByOwner(
+                    owner,
+                    out IReadOnlyList<ItemQuantityLease> leasesAfterFailure),
+                "failed exact-consumption preflight removed owner leases");
+            ItemQuantityLease firstLeaseAfter = leasesAfterFailure.Single(candidate =>
+                string.Equals(
+                    candidate.leaseId,
+                    firstLeaseBefore.leaseId,
+                    StringComparison.Ordinal));
+            Require(firstLeaseAfter.remainingQuantity
+                    == firstLeaseBefore.remainingQuantity
+                    && firstLeaseAfter.slices.Count == 1
+                    && firstLeaseAfter.slices[0].quantity
+                    == firstLeaseBefore.slices[0].quantity
+                    && string.Equals(
+                        firstLeaseAfter.slices[0].stackId,
+                        firstLeaseBefore.slices[0].stackId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        firstLeaseAfter.slices[0].originStackId,
+                        firstLeaseBefore.slices[0].originStackId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        firstLeaseAfter.slices[0].expectedStackSignature,
+                        firstLeaseBefore.slices[0].expectedStackSignature,
+                        StringComparison.Ordinal),
+                "failed exact-consumption preflight changed the first lease");
+
+            Require(repository.SetEditorTestComponent(
+                    lateStack,
+                    CreateQualityComponent("decent")),
+                "failed to restore the late exact-consumption slice signature");
+            Require(atomic.TryConsumeReserved(
+                    new[]
+                    {
+                        new ReservedItemConsumption(firstStack, 1),
+                        new ReservedItemConsumption(lateStack, 1)
+                    },
+                    owner,
+                    out DomainFailure retryFailure),
+                $"exact-consumption retry failed after repair: {retryFailure}");
+            Require(runtime.GetAllStacks().Where(stack =>
+                        string.Equals(stack.StackId, firstStack, StringComparison.Ordinal)
+                        || string.Equals(stack.StackId, lateStack, StringComparison.Ordinal))
+                    .All(stack => stack.Quantity == 9
+                        && stack.ReservedQuantity == 0),
+                "exact-consumption retry did not consume both repaired slices once");
+            return $"failure={failure.Code}; physical-rollback=2; lease-rollback=2; retry=pass";
+        }
+        finally
+        {
+            runtime.Dispose();
+        }
+    }
+
+    private static string VerifyInvalidExactAtomicConsumptionRejected()
+    {
+        WorldItemStackRuntime runtime = CreateRuntime(
+            out WorldItemRepository repository,
+            out _,
+            out ItemQuantityReservationService reservations,
+            out _);
+        try
+        {
+            const string itemId = "item:buffer";
+            const string owner = "medical:test:exact-invalid";
+            string stackId = repository.AddEditorTestStack(
+                itemId, 10, WorldItemStackState.Loose);
+            string signature = ItemReservationSignature.Create(
+                itemId,
+                Array.Empty<ItemInstanceComponentSaveData>());
+            Require(reservations.TryReserve(
+                    owner,
+                    "character:test:exact-invalid",
+                    ItemReservationPurpose.Medical,
+                    "medical:test:exact-invalid",
+                    new ItemQuantityReservationRequest(
+                        new ItemStackId(stackId),
+                        1,
+                        signature),
+                    out ItemQuantityLease leaseBefore,
+                    out DomainFailure reserveFailure),
+                $"invalid-input exact-consumption lease failed: {reserveFailure}");
+
+            AtomicItemConsumptionService atomic = new(
+                repository,
+                EditorNullItemMarkerPresenter.Instance,
+                reservations);
+            Require(!atomic.TryConsumeReserved(
+                    new ReservedItemConsumption[]
+                    {
+                        new(stackId, 1),
+                        default
+                    },
+                    owner,
+                    out DomainFailure failure)
+                && failure.IsFailure,
+                "invalid exact-consumption entry was silently discarded");
+
+            WorldItemStackSnapshot after = runtime.GetAllStacks()
+                .Single(stack => string.Equals(
+                    stack.StackId,
+                    stackId,
+                    StringComparison.Ordinal));
+            Require(after.Quantity == 10 && after.ReservedQuantity == 1,
+                "invalid exact-consumption input changed inventory or reservations");
+            Require(reservations.TryGetLeasesByOwner(
+                    owner,
+                    out IReadOnlyList<ItemQuantityLease> leasesAfter)
+                && leasesAfter.Count == 1
+                && leasesAfter[0].remainingQuantity == leaseBefore.remainingQuantity
+                && leasesAfter[0].slices.Count == 1
+                && leasesAfter[0].slices[0].quantity == 1
+                && string.Equals(
+                    leasesAfter[0].slices[0].stackId,
+                    stackId,
+                    StringComparison.Ordinal),
+                "invalid exact-consumption input changed the reserved lease");
+            return $"failure={failure.Code}; quantity=10; reserved=1; lease=unchanged";
         }
         finally
         {
@@ -2240,6 +3147,296 @@ public static class PhysicalItemDebugScenarios
         return $"intents={intents.Count}; restored=2; stack={stackId}";
     }
 
+    private static string VerifySafeDrinkRestoredActionReservations()
+    {
+        const string itemId = "item:buffer";
+        const string safeActorA = "character:qa-safe-drink-a";
+        const string safeActorB = "character:qa-safe-drink-b";
+        string safeOwnerA = CharacterSafeDrinkPlanner.ItemReservationOwnerId(
+            safeActorA,
+            42L);
+        string safeOwnerB = CharacterSafeDrinkPlanner.ItemReservationOwnerId(
+            safeActorB,
+            43L);
+        WorldItemStackRuntime source = CreateRuntime(
+            out WorldItemRepository sourceRepository,
+            out _,
+            out ItemQuantityReservationService sourceReservations,
+            out _);
+        WorldItemStackRuntime restored = null;
+        try
+        {
+            Dictionary<string, string> stackByOwner =
+                new(StringComparer.Ordinal);
+            string signature = ItemStackSignature.Create(
+                itemId,
+                Array.Empty<ItemInstanceComponentSaveData>());
+
+            void Reserve(
+                string ownerOperationId,
+                string ownerCharacterId,
+                ItemReservationPurpose purpose,
+                string cohort)
+            {
+                string stackId = sourceRepository.AddEditorTestStack(
+                    itemId,
+                    1,
+                    WorldItemStackState.Loose);
+                Require(sourceReservations.TryReserve(
+                        ownerOperationId,
+                        ownerCharacterId,
+                        purpose,
+                        cohort,
+                        new ItemQuantityReservationRequest(
+                            new ItemStackId(stackId),
+                            1,
+                            signature),
+                        out _,
+                        out DomainFailure failure),
+                    $"safe-drink restore fixture reserve failed for "
+                    + ownerOperationId
+                    + ": "
+                    + failure);
+                stackByOwner.Add(ownerOperationId, stackId);
+            }
+
+            Reserve(
+                safeOwnerA,
+                safeActorA,
+                ItemReservationPurpose.PersonalConsumption,
+                "safe-drink:" + safeActorA);
+            Reserve(
+                safeOwnerB,
+                safeActorB,
+                ItemReservationPurpose.PersonalConsumption,
+                "safe-drink:" + safeActorB);
+
+            const string mealOwner = "meal:qa-safe-drink-restore";
+            const string substanceOwner = "substance:qa-safe-drink-restore";
+            const string productionOwner = "production:qa-safe-drink-restore";
+            const string nearPrefixActor = "character:qa-safe-drink-near";
+            const string nearPrefixOwner =
+                "safe-drink:character:qa-safe-drink-nearby:0000000000000044";
+            const string wrongPurposeActor = "character:qa-safe-drink-wrong-purpose";
+            const string wrongCohortActor = "character:qa-safe-drink-wrong-cohort";
+            const string wrongOwnerActor = "character:qa-safe-drink-wrong-owner";
+            const string nonCanonicalActor = "character:qa-safe-drink-noncanonical";
+            string wrongPurposeOwner = CharacterSafeDrinkPlanner.ItemReservationOwnerId(
+                wrongPurposeActor,
+                45L);
+            string wrongCohortOwner = CharacterSafeDrinkPlanner.ItemReservationOwnerId(
+                wrongCohortActor,
+                46L);
+            string wrongOwnerOperation = CharacterSafeDrinkPlanner.ItemReservationOwnerId(
+                "character:qa-safe-drink-other-owner",
+                47L);
+            const string nonCanonicalOwner =
+                "safe-drink:character:qa-safe-drink-noncanonical:48";
+
+            Reserve(
+                mealOwner,
+                "character:qa-meal",
+                ItemReservationPurpose.Meal,
+                "meal:facility:qa:item:buffer");
+            Reserve(
+                substanceOwner,
+                "character:qa-substance",
+                ItemReservationPurpose.PersonalConsumption,
+                "substance:qa-safe-drink-restore");
+            Reserve(
+                productionOwner,
+                "character:qa-production",
+                ItemReservationPurpose.ProductionInput,
+                "production:qa-safe-drink-restore");
+            Reserve(
+                nearPrefixOwner,
+                nearPrefixActor,
+                ItemReservationPurpose.PersonalConsumption,
+                "safe-drink:" + nearPrefixActor);
+            Reserve(
+                wrongPurposeOwner,
+                wrongPurposeActor,
+                ItemReservationPurpose.Meal,
+                "safe-drink:" + wrongPurposeActor);
+            Reserve(
+                wrongCohortOwner,
+                wrongCohortActor,
+                ItemReservationPurpose.PersonalConsumption,
+                "safe-drink:character:qa-safe-drink-other-cohort");
+            Reserve(
+                wrongOwnerOperation,
+                wrongOwnerActor,
+                ItemReservationPurpose.PersonalConsumption,
+                "safe-drink:" + wrongOwnerActor);
+            Reserve(
+                nonCanonicalOwner,
+                nonCanonicalActor,
+                ItemReservationPurpose.PersonalConsumption,
+                "safe-drink:" + nonCanonicalActor);
+
+            string beforeBarrierJson = SerializeReservationIntents(
+                sourceReservations.CaptureReservationIntents());
+            using (sourceReservations.EnterCaptureBarrier())
+            {
+                Require(RejectsInvalidOperation(() =>
+                    {
+                        _ = CharacterSafeDrinkPlanner
+                            .ReleaseRestoredActionReservations(
+                                source.GetAllStacks(),
+                                sourceReservations);
+                    }),
+                    "safe-drink restore cleanup mutated under the capture barrier");
+                Require(beforeBarrierJson == SerializeReservationIntents(
+                        sourceReservations.CaptureReservationIntents()),
+                    "capture-barrier cleanup attempt changed leases");
+            }
+            using (sourceReservations.EnterRestoreBarrier())
+            {
+                Require(RejectsInvalidOperation(() =>
+                    {
+                        _ = CharacterSafeDrinkPlanner
+                            .ReleaseRestoredActionReservations(
+                                source.GetAllStacks(),
+                                sourceReservations);
+                    }),
+                    "safe-drink restore cleanup mutated under the restore barrier");
+                Require(beforeBarrierJson == SerializeReservationIntents(
+                        sourceReservations.CaptureReservationIntents()),
+                    "restore-barrier cleanup attempt changed leases");
+            }
+
+            string serialized = JsonUtility.ToJson(source.Capture());
+            DungeonPhysicalItemSaveData saved = JsonUtility.FromJson<
+                DungeonPhysicalItemSaveData>(serialized);
+            Require(saved != null
+                    && saved.reservationIntents != null
+                    && saved.reservationIntents.Count == 10,
+                "safe-drink restore fixture did not JSON-capture every reservation");
+            string allSavedIntentJson = SerializeReservationIntents(
+                saved.reservationIntents);
+            HashSet<string> retiredOwners = new(StringComparer.Ordinal)
+            {
+                safeOwnerA,
+                safeOwnerB
+            };
+            string preservedIntentJson = SerializeReservationIntents(
+                saved.reservationIntents.Where(intent =>
+                    intent != null
+                    && !retiredOwners.Contains(intent.ownerOperationId)));
+            int sourceQuantity = source.GetAllStacks().Sum(stack => stack.Quantity);
+
+            restored = CreateRuntime(
+                out _,
+                out _,
+                out ItemQuantityReservationService restoredReservations,
+                out _);
+            restored.Restore(JsonUtility.FromJson<DungeonPhysicalItemSaveData>(
+                serialized));
+            Require(allSavedIntentJson == SerializeReservationIntents(
+                    restored.Capture().reservationIntents),
+                "fresh physical restore changed reservation intent JSON before cleanup");
+            Require(stackByOwner.All(pair => restoredReservations
+                    .GetLeasesForStack(new ItemStackId(pair.Value))
+                    .Any(lease => lease.ownerOperationId == pair.Key)),
+                "fresh reservation ledger did not expose every restored owner by stack");
+
+            string quantityBeforeCleanup = CapturePhysicalQuantityFingerprint(
+                restored.GetAllStacks());
+            Require(sourceQuantity == restored.GetAllStacks().Sum(stack => stack.Quantity),
+                "fresh physical restore changed stack quantity");
+            int released = CharacterSafeDrinkPlanner.ReleaseRestoredActionReservations(
+                restored.GetAllStacks(),
+                restoredReservations);
+            Require(released == retiredOwners.Count,
+                $"safe-drink restore cleanup released {released}, expected {retiredOwners.Count}");
+            Require(retiredOwners.All(owner => !restoredReservations
+                    .TryGetLeasesByOwner(owner, out IReadOnlyList<ItemQuantityLease> retiredLeases)
+                    || retiredLeases.Count == 0),
+                "canonical safe-drink action lease survived restore cleanup");
+
+            string[] preservedOwners = stackByOwner.Keys
+                .Where(owner => !retiredOwners.Contains(owner))
+                .OrderBy(owner => owner, StringComparer.Ordinal)
+                .ToArray();
+            Require(preservedOwners.All(owner => restoredReservations
+                    .TryGetLeasesByOwner(owner, out IReadOnlyList<ItemQuantityLease> preservedLeases)
+                    && preservedLeases.Count == 1),
+                "restore cleanup released a meal, substance, production, or malformed safe-drink lease");
+            Require(preservedIntentJson == SerializeReservationIntents(
+                    restored.Capture().reservationIntents),
+                "restore cleanup changed retained reservation intent JSON");
+            Require(quantityBeforeCleanup == CapturePhysicalQuantityFingerprint(
+                    restored.GetAllStacks()),
+                "restore cleanup changed physical stack quantities");
+            Require(CharacterSafeDrinkPlanner.ReleaseRestoredActionReservations(
+                    restored.GetAllStacks(),
+                    restoredReservations) == 0,
+                "repeated safe-drink restore cleanup released another lease");
+            Require(preservedIntentJson == SerializeReservationIntents(
+                    restored.Capture().reservationIntents),
+                "repeated restore cleanup changed retained reservation intent JSON");
+
+            string retryOwner = CharacterSafeDrinkPlanner.ItemReservationOwnerId(
+                safeActorA,
+                99L);
+            string retryStackId = stackByOwner[safeOwnerA];
+            Require(restoredReservations.TryReserve(
+                    retryOwner,
+                    safeActorA,
+                    ItemReservationPurpose.PersonalConsumption,
+                    "safe-drink:" + safeActorA,
+                    new ItemQuantityReservationRequest(
+                        new ItemStackId(retryStackId),
+                        1,
+                        signature),
+                    out ItemQuantityLease retryLease,
+                    out DomainFailure retryFailure)
+                && retryLease != null
+                && retryLease.ownerOperationId == retryOwner,
+                "released safe-drink stack could not accept a new drink reservation: "
+                + retryFailure);
+            Require(quantityBeforeCleanup == CapturePhysicalQuantityFingerprint(
+                    restored.GetAllStacks()),
+                "new safe-drink reservation changed physical stack quantity");
+
+            return "saved=10; released=2; retained=8; barriers=2; freshRestore=true; "
+                + "quantityInvariant=true; retry=true";
+        }
+        finally
+        {
+            restored?.Dispose();
+            source.Dispose();
+        }
+    }
+
+    private static string SerializeReservationIntents(
+        IEnumerable<ItemReservationIntentSaveData> intents)
+    {
+        return JsonUtility.ToJson(new ReservationIntentEnvelope
+        {
+            reservationIntents = (intents ?? Array.Empty<ItemReservationIntentSaveData>())
+                .Where(intent => intent != null)
+                .ToList()
+        });
+    }
+
+    private static string CapturePhysicalQuantityFingerprint(
+        IEnumerable<WorldItemStackSnapshot> stacks)
+    {
+        return string.Join(
+            "|",
+            (stacks ?? Array.Empty<WorldItemStackSnapshot>())
+                .Where(stack => stack != null)
+                .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+                .Select(stack => stack.StackId + ":" + stack.Quantity));
+    }
+
+    [Serializable]
+    private sealed class ReservationIntentEnvelope
+    {
+        public List<ItemReservationIntentSaveData> reservationIntents = new();
+    }
+
     private static string VerifyCarriedReservationGrandfatherRestore()
     {
         WorldItemStackRuntime runtime = CreateRuntime(
@@ -2459,6 +3656,66 @@ public static class PhysicalItemDebugScenarios
             out _,
             gridProvider: gridProvider
                 ?? throw new ArgumentNullException(nameof(gridProvider)));
+    }
+
+    internal static WorldItemStackRuntime CreateDeliveryRuntimeForCrossDomainFixture(
+        IGridSystemProvider gridProvider,
+        out WorldItemRepository repository,
+        out ItemQuantityReservationService quantityReservations,
+        out IReservedItemTransferService reservedTransfer,
+        out IReservedPhysicalItemBatchDispositionService reservedBatch,
+        out IPhysicalItemBatchDispositionService batch,
+        out FacilityBufferDestinationClaimRegistry destinationClaims)
+    {
+        WorldItemStackRuntime runtime = CreateRuntime(
+            out repository,
+            out _,
+            out quantityReservations,
+            out reservedTransfer,
+            out destinationClaims,
+            gridProvider: gridProvider
+                ?? throw new ArgumentNullException(nameof(gridProvider)));
+        PhysicalItemBatchDispositionService dispositions = new(
+            repository,
+            runtime.MassQuery,
+            EditorNullItemMarkerPresenter.Instance,
+            quantityReservations);
+        reservedBatch = dispositions;
+        batch = dispositions;
+        return runtime;
+    }
+
+    internal static WorldItemStackRuntime CreateDeliveryRuntimeForCrossDomainFixture(
+        IGridSystemProvider gridProvider,
+        out WorldItemRepository repository,
+        out ItemQuantityReservationService quantityReservations,
+        out IReservedItemTransferService reservedTransfer,
+        out IReservedPhysicalItemBatchDispositionService reservedBatch,
+        out IPhysicalItemBatchDispositionService batch,
+        out FacilityBufferDestinationClaimRegistry destinationClaims,
+        out IDungeonRestoreTransactionParticipant exactRouteRestoreParticipant)
+    {
+        IDungeonRestoreTransactionParticipant captured = null;
+        WorldItemStackRuntime runtime = CreateRuntime(
+            out repository,
+            out _,
+            out quantityReservations,
+            out reservedTransfer,
+            out destinationClaims,
+            gridProvider: gridProvider
+                ?? throw new ArgumentNullException(nameof(gridProvider)),
+            exactRouteRestoreParticipantObserver: value => captured = value);
+        exactRouteRestoreParticipant = captured
+            ?? throw new InvalidOperationException(
+                "Cross-domain delivery fixture did not expose its exact-route restore participant.");
+        PhysicalItemBatchDispositionService dispositions = new(
+            repository,
+            runtime.MassQuery,
+            EditorNullItemMarkerPresenter.Instance,
+            quantityReservations);
+        reservedBatch = dispositions;
+        batch = dispositions;
+        return runtime;
     }
 
     private static string VerifyExpiredCommittedCarryRestore()
@@ -2971,7 +4228,10 @@ public static class PhysicalItemDebugScenarios
         out IReservedItemTransferService reservedTransfer,
         out IReservedPhysicalItemBatchDispositionService reservedBatch,
         out IPhysicalItemBatchDispositionService batch,
-        out IDungeonRestoreTransactionParticipant exactRouteRestoreParticipant)
+        out IDungeonRestoreTransactionParticipant exactRouteRestoreParticipant,
+        IPersistentIdGenerator persistentIdGenerator = null,
+        Func<WorldItemRepository, IPhysicalItemMassQuery, ItemQuantityReservationService,
+            PhysicalItemBatchDispositionService> batchDispositionFactory = null)
     {
         if (itemCatalog == null)
         {
@@ -2982,6 +4242,7 @@ public static class PhysicalItemDebugScenarios
             aggregateRootStore = new DungeonRuntimeAggregateRootStore();
         }
         IDungeonRestoreTransactionParticipant captured = null;
+        PhysicalItemBatchDispositionService sharedDispositions = null;
         WorldItemStackRuntime runtime = CreateRuntime(
             out repository,
             out equipmentRuntime,
@@ -2990,8 +4251,11 @@ public static class PhysicalItemDebugScenarios
             out _,
             itemCatalogOverride: itemCatalog,
             aggregateRootStoreOverride: aggregateRootStore,
-            exactRouteRestoreParticipantObserver: value => captured = value);
-        PhysicalItemBatchDispositionService service = new(
+            persistentIdGeneratorOverride: persistentIdGenerator,
+            exactRouteRestoreParticipantObserver: value => captured = value,
+            batchDispositionFactory: batchDispositionFactory == null ? null
+                : (r, m, q) => sharedDispositions = batchDispositionFactory(r, m, q));
+        PhysicalItemBatchDispositionService service = sharedDispositions ?? new(
             repository,
             runtime.MassQuery,
             EditorNullItemMarkerPresenter.Instance,
@@ -3043,8 +4307,11 @@ public static class PhysicalItemDebugScenarios
         bool enableRejectedRecovery = false,
         ICraftQualityResolver craftQualityResolver = null,
         ICharacterWorldQuery characterWorld = null,
+        IPersistentIdGenerator persistentIdGeneratorOverride = null,
         Action<IDungeonRestoreTransactionParticipant>
-            exactRouteRestoreParticipantObserver = null)
+            exactRouteRestoreParticipantObserver = null,
+        Func<WorldItemRepository, IPhysicalItemMassQuery, ItemQuantityReservationService,
+            PhysicalItemBatchDispositionService> batchDispositionFactory = null)
     {
         IGameContentCatalog gameContent = new ResourceGameContentCatalog(
             new UnityGameContentRootLoader());
@@ -3064,7 +4331,7 @@ public static class PhysicalItemDebugScenarios
         ICharacterAiWorldRegistry worldRegistry =
             CharacterAiEditorTestDependencies.WorldRegistry;
         repository = new WorldItemRepository(
-            new GuidPersistentIdGenerator(),
+            persistentIdGeneratorOverride ?? new GuidPersistentIdGenerator(),
             aggregateRootStoreOverride
             ?? new DungeonRuntimeAggregateRootStore());
         destinationClaims = new FacilityBufferDestinationClaimRegistry();
@@ -3129,6 +4396,7 @@ public static class PhysicalItemDebugScenarios
             materialCatalog: economyCatalog,
             evolutionModules: EmptyEvolutionModuleRegistry.Instance,
             itemStackRuntime: equipmentItemGateway,
+            calendar: new EditorFixedGameCalendar(137, 9),
             rejectedRecoveryProjector: rejectedRecoveryProjector,
             characterWorld: characterWorld,
             qualityResolver: craftQualityResolver);
@@ -3167,6 +4435,13 @@ public static class PhysicalItemDebugScenarios
             quantityReservations: quantityReservations,
             quantityLeaseMutations: quantityReservations,
             bufferAggregation: bufferAggregation,
+            physicalItemRelocations:
+                new DeterministicPhysicalItemRelocationOutcomeFixture()
+                    .CreateService(
+                        repository,
+                        massQuery,
+                        itemCatalog,
+                        EditorNullItemMarkerPresenter.Instance),
             warehouseMassAdmission: null,
             retailStockPhysical: retailStockPhysical);
         reservedTransfer = itemTransferService;
@@ -3199,7 +4474,8 @@ public static class PhysicalItemDebugScenarios
             itemTransferService: itemTransferService,
             performanceRecorder: new EditorCharacterAiPerformanceRecorder(),
             reservationPersistence: quantityReservations,
-            exactRouteOutboxPersistence: exactRouteAuthority);
+            exactRouteOutboxPersistence: exactRouteAuthority,
+            batchDispositionOverride: batchDispositionFactory?.Invoke(repository, massQuery, quantityReservations));
         equipmentItemGateway.Attach(runtime);
         return runtime;
     }
@@ -3506,6 +4782,11 @@ public static class PhysicalItemDebugScenarios
                     sequence: 1,
                     delivered,
                     proceeds: 1,
+                    unitPrice: 1,
+                    saleRateBasisPoints: 10000,
+                    quality: CraftsmanshipQualityTier.Normal,
+                    absoluteDay: 1,
+                    outcomeResultKey: "fixture.quality-sale|fixture-operation|1|0",
                     target,
                     requiresCombatAuthority: true);
             Require(equipment.TryBeginMarketSale(
@@ -4375,8 +5656,7 @@ public static class PhysicalItemDebugScenarios
                 .Create<IBuildingWorldRegistryPort>(),
             BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                 .Create<IBuildingItemStackPort>(),
-            BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
-                .Create<IBuildingAbilityRuntimeDispatcher>(),
+            CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
             new UnityGameClock(),
             BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                 .Create<IBuildingPaidFacilityContractPort>(),
@@ -4570,6 +5850,44 @@ public static class PhysicalItemDebugScenarios
         {
             throw new InvalidOperationException(message);
         }
+    }
+
+    private sealed class FixedCharacterPerformanceQuery :
+        ICharacterPerformanceQuery
+    {
+        public FixedCharacterPerformanceQuery(
+            CharacterPerformanceSnapshot snapshot)
+        {
+            Snapshot = snapshot
+                ?? throw new ArgumentNullException(nameof(snapshot));
+        }
+
+        public CharacterPerformanceSnapshot Snapshot { get; set; }
+
+        public CharacterFunctionalCapacitySnapshot GetFunctionalCapacities(
+            CharacterActor actor) => throw new InvalidOperationException(
+            "The carry-focused fixture does not project functional capacities.");
+
+        public CharacterPerformanceSnapshot Evaluate(
+            CharacterActor actor,
+            string formulaId,
+            float contextFactor = 1f,
+            GameplayEffectContext effectContext = null) => Snapshot;
+
+        public CharacterPerformanceSnapshot Evaluate(
+            CharacterActor actor,
+            string formulaId,
+            CharacterPerformanceEvaluationContext context) => Snapshot;
+
+        public CharacterPerformanceSnapshot EvaluateWork(
+            CharacterActor actor,
+            WorkTypeId workTypeId,
+            CharacterPerformanceResultChannel resultChannel,
+            CharacterPerformanceEvaluationContext context) => Snapshot;
+
+        public IReadOnlyList<CharacterPerformanceSnapshot> EvaluateDomain(
+            CharacterActor actor,
+            CharacterPerformanceFormulaDomain domain) => new[] { Snapshot };
     }
 
     private sealed class TestCatalogProvider : IDungeonItemCatalogProvider
@@ -5045,6 +6363,8 @@ public static class PhysicalItemDebugScenarios
                 physicalDispositions,
                 CreateNullProxy<IWorldFilthQuery>(),
                 CreateNullProxy<IGameClock>(),
+                NoEnvironmentalFieldQuery.Instance,
+                NeutralSeasonalEventQuery.Instance,
                 CreateNullProxy<IFacilityCapabilityQuery>(),
                 CreateNullProxy<IBuildingFacilityStateChangePort>(),
                 new DungeonRuntimeAggregateRootStore()
@@ -5060,6 +6380,19 @@ public static class PhysicalItemDebugScenarios
             return false;
         }
         catch (InvalidOperationException)
+        {
+            return true;
+        }
+    }
+
+    private static bool RejectsArgumentOutOfRange(Action action)
+    {
+        try
+        {
+            action();
+            return false;
+        }
+        catch (ArgumentOutOfRangeException)
         {
             return true;
         }
@@ -5158,6 +6491,66 @@ public static class PhysicalItemDebugScenarios
 
     private static T CreateNullProxy<T>() where T : class =>
         DispatchProxy.Create<T, PhysicalFixtureNullDispatchProxy>();
+
+    public static string VerifyPhysicalRestoreCandidateLifetime()
+    {
+        WorldItemStackRuntime source = CreateRuntime(out WorldItemRepository repository, out _);
+        IDungeonRestoreTransactionParticipant exactRoutes = null;
+        WorldItemStackRuntime restored = CreateRuntime(out _, out _, out _, out _, out _,
+            exactRouteRestoreParticipantObserver: participant => exactRoutes = participant);
+        try
+        {
+            string firstId = repository.AddEditorTestStack("item:buffer", 2, WorldItemStackState.Loose);
+            DungeonPhysicalItemSaveData saveA = JsonUtility.FromJson<DungeonPhysicalItemSaveData>(
+                JsonUtility.ToJson(source.Capture()));
+            string secondId = repository.AddEditorTestStack("item:buffer", 3, WorldItemStackState.Loose);
+            DungeonPhysicalItemSaveData saveB = JsonUtility.FromJson<DungeonPhysicalItemSaveData>(
+                JsonUtility.ToJson(source.Capture()));
+            var world = new FixedRestoreWorldCandidates(Array.Empty<BuildableObject>());
+            string liveBefore = JsonUtility.ToJson(restored.Capture());
+            IDungeonSaveRestoreStage stale = restored.StageTransactionalRestore(saveA, world);
+            restored.DiscardRestoreCandidate();
+            IDungeonSaveRestoreStage current = restored.StageTransactionalRestore(saveB, world);
+            bool staleRejected = false;
+            try { stale.Commit(new DungeonGameRestoreReport()); }
+            catch (InvalidOperationException) { staleRejected = true; }
+            Require(staleRejected && restored.IsCandidateAvailable
+                    && restored.TryGetStackById(secondId, out _)
+                    && liveBefore == JsonUtility.ToJson(restored.Capture()),
+                "stale physical restore stage changed live state or a newer candidate");
+            ((IDungeonDiscardableSaveRestoreStage)stale).Discard();
+            Require(restored.IsCandidateAvailable && restored.TryGetStackById(secondId, out _),
+                "stale physical restore discard cleared the newer candidate");
+            exactRoutes.BeginRestoreCandidate();
+            restored.BeginRestoreCandidate();
+            current.Commit(new DungeonGameRestoreReport());
+            exactRoutes.PublishRestoreCandidate();
+            restored.PublishRestoreCandidate();
+            exactRoutes.CompleteRestoreCandidate();
+            restored.CompleteRestoreCandidate();
+            Require(!restored.IsCandidateAvailable
+                    && restored.GetAllStacks().Count() == 2
+                    && restored.GetAllStacks().Single(value => value.StackId == firstId).Quantity == 2
+                    && restored.GetAllStacks().Single(value => value.StackId == secondId).Quantity == 3,
+                "current physical restore failed after stale commit/discard rejection");
+            IDungeonSaveRestoreStage rolledBack = restored.StageTransactionalRestore(saveA, world);
+            restored.BeginRestoreCandidate();
+            restored.RollbackPublishedRestoreCandidate();
+            IDungeonSaveRestoreStage replacement = restored.StageTransactionalRestore(saveB, world);
+            ((IDungeonDiscardableSaveRestoreStage)rolledBack).Discard();
+            Require(restored.IsCandidateAvailable && restored.TryGetStackById(secondId, out _),
+                "rolled-back physical stage cleared its replacement");
+            ((IDungeonDiscardableSaveRestoreStage)replacement).Discard();
+            Require(!restored.IsCandidateAvailable, "current physical stage did not discard its own view");
+            return "PHYSICAL_RESTORE_CANDIDATE_LIFETIME=PASS;jsonRoundtrip=true;staleCommitRejected=true;"
+                + "staleDiscardPreservesReplacement=true;currentCommitAndRollbackRetry=true";
+        }
+        finally
+        {
+            restored.Dispose();
+            source.Dispose();
+        }
+    }
 
     private static string VerifyTypedPhysicalDisposition()
     {
@@ -5408,12 +6801,22 @@ public static class PhysicalItemDebugScenarios
         {
             bool found = TryGetEquipped(characterId, out equipped);
             itemInstanceId = found
-                ? (ItemInstanceId)"apparel-instance:qa-hauling-harness"
+                ? (ItemInstanceId)HaulingHarnessFixtureInstanceId
                 : default;
             return found;
         }
 
         public int GetAvailableStock(string workwearId) => 0;
+
+        public bool CanAutoEquipForCold(
+            CharacterActor actor,
+            Vector2Int destination,
+            out DomainFailure failure)
+        {
+            failure = new DomainFailure(
+                FailureCode.EnvironmentWorkwearStockMissing);
+            return false;
+        }
     }
 
     private sealed class NoGridProvider : IGridSystemProvider

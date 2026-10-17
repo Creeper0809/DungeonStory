@@ -20,45 +20,127 @@ public sealed class CharacterRoomAssignmentSaveData
     public string householdId = string.Empty;
     public string roomBuildingId = string.Empty;
     public string bedBuildingId = string.Empty;
+    public int bedSlotIndex;
+}
+
+[Serializable]
+public sealed class HouseholdPendingAssignmentSaveData
+{
+    public string characterId = string.Empty;
+    public string preferredHouseholdId = string.Empty;
+    public string firstParentId = string.Empty;
+    public string secondParentId = string.Empty;
+    public string carrierId = string.Empty;
+    public int requestedAbsoluteDay;
+    public string reasonCode = string.Empty;
+    public long attemptRevision;
 }
 
 [Serializable]
 public sealed class HouseholdWorldSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
     public int version = CurrentVersion;
     public List<CharacterRoomAssignmentSaveData> assignments = new();
+    public List<HouseholdPendingAssignmentSaveData> pendingAssignments = new();
 }
 
 public sealed class CharacterHouseholdAggregate
 {
     private readonly Dictionary<CharacterId, CharacterRoomAssignmentSaveData> assignments = new();
+    private readonly Dictionary<CharacterId, HouseholdPendingAssignmentSaveData>
+        pendingAssignments = new();
+
+    public IReadOnlyList<CharacterRoomAssignmentSaveData> Assignments => assignments.Values
+        .OrderBy(value => value.characterId, StringComparer.Ordinal)
+        .Select(Clone)
+        .ToArray();
+    public IReadOnlyList<HouseholdPendingAssignmentSaveData> PendingAssignments =>
+        pendingAssignments.Values
+            .OrderBy(value => value.characterId, StringComparer.Ordinal)
+            .Select(Clone)
+            .ToArray();
 
     public void Assign(
         CharacterId characterId,
         HouseholdId householdId,
         BuildingInstanceId roomId,
-        BuildingInstanceId bedId)
+        BuildingInstanceId bedId,
+        int bedSlotIndex = 0)
     {
         if (!characterId.IsValid || !householdId.IsValid
-            || !roomId.IsValid || !bedId.IsValid)
+            || !roomId.IsValid || !bedId.IsValid || bedSlotIndex < 0)
             throw new InvalidOperationException("Room assignment requires canonical character, household, room, and bed ids.");
         if (assignments.Values.Any(value => string.Equals(
                 value.bedBuildingId, bedId.Value, StringComparison.Ordinal)
+            && value.bedSlotIndex == bedSlotIndex
             && !string.Equals(value.characterId, characterId.Value, StringComparison.Ordinal)))
-            throw new InvalidOperationException("A bed can be assigned to only one character.");
+            throw new InvalidOperationException("A bed slot can be assigned to only one character.");
         assignments[characterId] = new CharacterRoomAssignmentSaveData
         {
             characterId = characterId.Value,
             householdId = householdId.Value,
             roomBuildingId = roomId.Value,
-            bedBuildingId = bedId.Value
+            bedBuildingId = bedId.Value,
+            bedSlotIndex = bedSlotIndex
+        };
+        pendingAssignments.Remove(characterId);
+    }
+
+    public void MarkPending(
+        CharacterId characterId,
+        HouseholdId preferredHouseholdId,
+        CharacterId firstParentId,
+        CharacterId secondParentId,
+        CharacterId carrierId,
+        int requestedAbsoluteDay,
+        string reasonCode)
+    {
+        string normalizedReason = reasonCode?.Trim() ?? string.Empty;
+        if (!characterId.IsValid
+            || !firstParentId.IsValid
+            || requestedAbsoluteDay < 1
+            || normalizedReason.Length == 0
+            || normalizedReason.Length > 96
+            || secondParentId.Value.Length > 0 && !secondParentId.IsValid
+            || carrierId.Value.Length > 0 && !carrierId.IsValid)
+            throw new InvalidOperationException(
+                "A pending household assignment requires canonical birth facts and a reason.");
+
+        long revision = pendingAssignments.TryGetValue(
+                characterId,
+                out HouseholdPendingAssignmentSaveData existing)
+            ? checked(existing.attemptRevision + 1L)
+            : 1L;
+        assignments.Remove(characterId);
+        pendingAssignments[characterId] = new HouseholdPendingAssignmentSaveData
+        {
+            characterId = characterId.Value,
+            preferredHouseholdId = preferredHouseholdId.IsValid
+                ? preferredHouseholdId.Value
+                : string.Empty,
+            firstParentId = firstParentId.Value,
+            secondParentId = secondParentId.Value,
+            carrierId = carrierId.Value,
+            requestedAbsoluteDay = requestedAbsoluteDay,
+            reasonCode = normalizedReason,
+            attemptRevision = revision
         };
     }
 
-    public void Clear(CharacterId characterId) => assignments.Remove(characterId);
+    public void Clear(CharacterId characterId)
+    {
+        assignments.Remove(characterId);
+        pendingAssignments.Remove(characterId);
+    }
+    public void ClearPending(CharacterId characterId) =>
+        pendingAssignments.Remove(characterId);
     public bool TryGet(CharacterId id, out CharacterRoomAssignmentSaveData assignment) =>
         assignments.TryGetValue(id, out assignment);
+    public bool TryGetPending(
+        CharacterId id,
+        out HouseholdPendingAssignmentSaveData pending) =>
+        pendingAssignments.TryGetValue(id, out pending);
     public IReadOnlyList<CharacterId> GetMembers(HouseholdId householdId) =>
         assignments.Values
             .Where(value => string.Equals(
@@ -70,15 +152,16 @@ public sealed class CharacterHouseholdAggregate
             .ToArray();
     public HouseholdWorldSaveData Capture() => new()
     {
-        assignments = assignments.Values
-            .OrderBy(value => value.characterId, StringComparer.Ordinal)
-            .ToList()
+        assignments = Assignments.ToList(),
+        pendingAssignments = PendingAssignments.ToList()
     };
 
     public static CharacterHouseholdAggregate Restore(HouseholdWorldSaveData data)
     {
-        if (data == null || data.version != HouseholdWorldSaveData.CurrentVersion
-            || data.assignments == null)
+        if (data == null
+            || data.version is not 1 and not HouseholdWorldSaveData.CurrentVersion
+            || data.assignments == null
+            || data.version >= 2 && data.pendingAssignments == null)
             throw new InvalidOperationException("Household payload is incomplete or unsupported.");
         CharacterHouseholdAggregate result = new();
         foreach (CharacterRoomAssignmentSaveData assignment in data.assignments)
@@ -89,10 +172,57 @@ public sealed class CharacterHouseholdAggregate
                 new CharacterId(assignment.characterId),
                 new HouseholdId(assignment.householdId),
                 new BuildingInstanceId(assignment.roomBuildingId),
-                new BuildingInstanceId(assignment.bedBuildingId));
+                new BuildingInstanceId(assignment.bedBuildingId),
+                data.version >= 2 ? assignment.bedSlotIndex : 0);
+        }
+        foreach (HouseholdPendingAssignmentSaveData pending in
+                 data.pendingAssignments
+                 ?? new List<HouseholdPendingAssignmentSaveData>())
+        {
+            if (pending == null
+                || pending.attemptRevision < 1L)
+                throw new InvalidOperationException(
+                    "Household payload contains an invalid pending assignment.");
+            result.MarkPending(
+                new CharacterId(pending.characterId),
+                new HouseholdId(pending.preferredHouseholdId),
+                new CharacterId(pending.firstParentId),
+                new CharacterId(pending.secondParentId),
+                new CharacterId(pending.carrierId),
+                pending.requestedAbsoluteDay,
+                pending.reasonCode);
+            result.pendingAssignments[new CharacterId(pending.characterId)]
+                .attemptRevision = pending.attemptRevision;
         }
         return result;
     }
+
+    private static CharacterRoomAssignmentSaveData Clone(
+        CharacterRoomAssignmentSaveData value) => value == null
+        ? null
+        : new CharacterRoomAssignmentSaveData
+        {
+            characterId = value.characterId,
+            householdId = value.householdId,
+            roomBuildingId = value.roomBuildingId,
+            bedBuildingId = value.bedBuildingId,
+            bedSlotIndex = value.bedSlotIndex
+        };
+
+    private static HouseholdPendingAssignmentSaveData Clone(
+        HouseholdPendingAssignmentSaveData value) => value == null
+        ? null
+        : new HouseholdPendingAssignmentSaveData
+        {
+            characterId = value.characterId,
+            preferredHouseholdId = value.preferredHouseholdId,
+            firstParentId = value.firstParentId,
+            secondParentId = value.secondParentId,
+            carrierId = value.carrierId,
+            requestedAbsoluteDay = value.requestedAbsoluteDay,
+            reasonCode = value.reasonCode,
+            attemptRevision = value.attemptRevision
+        };
 }
 
 public enum CareerRank
@@ -123,6 +253,14 @@ public enum CareerHistoryEventKind
     Retired = 3
 }
 
+public enum RetirementScheduleStatus
+{
+    None = 0,
+    Pending = 1,
+    Completed = 2,
+    CancelledByDeath = 3
+}
+
 [Serializable]
 public sealed class CareerHistoryEventSaveData
 {
@@ -140,6 +278,12 @@ public sealed class CharacterCareerSaveData
     public string positionScopeId = string.Empty;
     public int retiredWorkAbsoluteDay;
     public float retiredWorkSeconds;
+    public RetirementScheduleStatus retirementScheduleStatus;
+    public string retirementEventId = string.Empty;
+    public string retirementChoiceId = string.Empty;
+    public int retirementDecisionAbsoluteDay;
+    public int retirementDueAbsoluteDay;
+    public int retirementTerminalAbsoluteDay;
     public int summarizedHistoryCount;
     public List<CareerHistoryEventSaveData> recentHistory = new();
 }
@@ -152,7 +296,13 @@ public readonly struct CharacterCareerSnapshot
         CareerPositionKind position,
         string positionScopeId,
         int retiredWorkAbsoluteDay,
-        float retiredWorkSeconds)
+        float retiredWorkSeconds,
+        RetirementScheduleStatus retirementScheduleStatus,
+        string retirementEventId,
+        string retirementChoiceId,
+        int retirementDecisionAbsoluteDay,
+        int retirementDueAbsoluteDay,
+        int retirementTerminalAbsoluteDay)
     {
         CharacterId = characterId;
         Retired = retired;
@@ -160,6 +310,12 @@ public readonly struct CharacterCareerSnapshot
         PositionScopeId = positionScopeId ?? string.Empty;
         RetiredWorkAbsoluteDay = retiredWorkAbsoluteDay;
         RetiredWorkSeconds = Math.Max(0f, retiredWorkSeconds);
+        RetirementScheduleStatus = retirementScheduleStatus;
+        RetirementEventId = retirementEventId ?? string.Empty;
+        RetirementChoiceId = retirementChoiceId ?? string.Empty;
+        RetirementDecisionAbsoluteDay = retirementDecisionAbsoluteDay;
+        RetirementDueAbsoluteDay = retirementDueAbsoluteDay;
+        RetirementTerminalAbsoluteDay = retirementTerminalAbsoluteDay;
     }
 
     public CharacterId CharacterId { get; }
@@ -168,12 +324,40 @@ public readonly struct CharacterCareerSnapshot
     public string PositionScopeId { get; }
     public int RetiredWorkAbsoluteDay { get; }
     public float RetiredWorkSeconds { get; }
+    public RetirementScheduleStatus RetirementScheduleStatus { get; }
+    public string RetirementEventId { get; }
+    public string RetirementChoiceId { get; }
+    public int RetirementDecisionAbsoluteDay { get; }
+    public int RetirementDueAbsoluteDay { get; }
+    public int RetirementTerminalAbsoluteDay { get; }
+}
+
+public readonly struct RetirementScheduleSnapshot
+{
+    public RetirementScheduleSnapshot(CharacterCareerSnapshot career)
+    {
+        CharacterId = career.CharacterId;
+        Status = career.RetirementScheduleStatus;
+        EventId = career.RetirementEventId;
+        ChoiceId = career.RetirementChoiceId;
+        DecisionAbsoluteDay = career.RetirementDecisionAbsoluteDay;
+        DueAbsoluteDay = career.RetirementDueAbsoluteDay;
+        TerminalAbsoluteDay = career.RetirementTerminalAbsoluteDay;
+    }
+
+    public CharacterId CharacterId { get; }
+    public RetirementScheduleStatus Status { get; }
+    public string EventId { get; }
+    public string ChoiceId { get; }
+    public int DecisionAbsoluteDay { get; }
+    public int DueAbsoluteDay { get; }
+    public int TerminalAbsoluteDay { get; }
 }
 
 [Serializable]
 public sealed class CharacterCareerWorldSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
     public int version = CurrentVersion;
     public List<CharacterCareerSaveData> characters = new();
     public List<CareerMentorshipSaveData> mentorships = new();
@@ -262,6 +446,14 @@ public sealed class CharacterCareerAggregate
         .Select(Snapshot)
         .ToArray();
 
+    public IReadOnlyList<RetirementScheduleSnapshot> RetirementSchedules => careers
+        .Values
+        .Where(value => value.retirementScheduleStatus !=
+            RetirementScheduleStatus.None)
+        .OrderBy(value => value.characterId, StringComparer.Ordinal)
+        .Select(value => new RetirementScheduleSnapshot(Snapshot(value)))
+        .ToArray();
+
     public CharacterCareerSaveData Require(CharacterId characterId)
     {
         if (!characterId.IsValid) throw new ArgumentException("A valid character is required.", nameof(characterId));
@@ -335,10 +527,126 @@ public sealed class CharacterCareerAggregate
 
     public void Retire(CharacterId characterId, int absoluteDay)
     {
+        if (absoluteDay < 1)
+            throw new ArgumentOutOfRangeException(nameof(absoluteDay));
         CharacterCareerSaveData state = Require(characterId);
         if (state.retired) return;
         state.retired = true;
         AddHistory(state, CareerHistoryEventKind.Retired, absoluteDay, "retired");
+        if (state.retirementScheduleStatus == RetirementScheduleStatus.Pending)
+        {
+            state.retirementScheduleStatus = RetirementScheduleStatus.Completed;
+            state.retirementTerminalAbsoluteDay = absoluteDay;
+        }
+    }
+
+    public bool CanScheduleRetirement(
+        CharacterId characterId,
+        out string reason)
+    {
+        reason = string.Empty;
+        if (!characterId.IsValid)
+        {
+            reason = "career:retirement-schedule-invalid";
+            return false;
+        }
+        if (!careers.TryGetValue(characterId, out CharacterCareerSaveData state))
+            return true;
+        if (state.retired)
+        {
+            reason = "career:already-retired";
+            return false;
+        }
+        if (state.retirementScheduleStatus != RetirementScheduleStatus.None)
+        {
+            reason = "career:retirement-already-scheduled";
+            return false;
+        }
+        return true;
+    }
+
+    public bool TryScheduleRetirement(
+        CharacterId characterId,
+        string eventId,
+        string choiceId,
+        int decisionAbsoluteDay,
+        int dueAbsoluteDay,
+        out string reason)
+    {
+        reason = string.Empty;
+        string normalizedEvent = eventId?.Trim() ?? string.Empty;
+        string normalizedChoice = choiceId?.Trim() ?? string.Empty;
+        if (!characterId.IsValid
+            || normalizedEvent.Length == 0
+            || normalizedChoice.Length == 0
+            || decisionAbsoluteDay < 1
+            || dueAbsoluteDay < decisionAbsoluteDay)
+        {
+            reason = "career:retirement-schedule-invalid";
+            return false;
+        }
+        if (!CanScheduleRetirement(characterId, out reason))
+            return false;
+
+        CharacterCareerSaveData state = Require(characterId);
+        state.retirementScheduleStatus = RetirementScheduleStatus.Pending;
+        state.retirementEventId = normalizedEvent;
+        state.retirementChoiceId = normalizedChoice;
+        state.retirementDecisionAbsoluteDay = decisionAbsoluteDay;
+        state.retirementDueAbsoluteDay = dueAbsoluteDay;
+        state.retirementTerminalAbsoluteDay = 0;
+        if (dueAbsoluteDay <= decisionAbsoluteDay)
+            CompleteScheduledRetirement(state, decisionAbsoluteDay);
+        return true;
+    }
+
+    public int CompleteDueRetirements(int absoluteDay)
+    {
+        if (absoluteDay < 1)
+            throw new ArgumentOutOfRangeException(nameof(absoluteDay));
+        CharacterCareerSaveData[] due = careers.Values
+            .Where(value => value.retirementScheduleStatus ==
+                    RetirementScheduleStatus.Pending
+                && value.retirementDueAbsoluteDay <= absoluteDay)
+            .OrderBy(value => value.retirementDueAbsoluteDay)
+            .ThenBy(value => value.characterId, StringComparer.Ordinal)
+            .ToArray();
+        foreach (CharacterCareerSaveData state in due)
+            CompleteScheduledRetirement(
+                state,
+                state.retirementDueAbsoluteDay);
+        return due.Length;
+    }
+
+    public bool CancelRetirementByDeath(
+        CharacterId characterId,
+        int absoluteDay)
+    {
+        if (absoluteDay < 1)
+            throw new ArgumentOutOfRangeException(nameof(absoluteDay));
+
+        CharacterId[] endedMentorships = mentorships
+            .Where(pair => pair.Key.Equals(characterId)
+                || string.Equals(
+                    pair.Value.mentorCharacterId,
+                    characterId.Value,
+                    StringComparison.Ordinal))
+            .Select(pair => pair.Key)
+            .ToArray();
+        foreach (CharacterId studentCharacterId in endedMentorships)
+            mentorships.Remove(studentCharacterId);
+
+        if (!careers.TryGetValue(
+                characterId,
+                out CharacterCareerSaveData state))
+            return false;
+        state.position = CareerPositionKind.None;
+        state.positionScopeId = string.Empty;
+        if (state.retirementScheduleStatus != RetirementScheduleStatus.Pending)
+            return false;
+        state.retirementScheduleStatus = RetirementScheduleStatus.CancelledByDeath;
+        state.retirementTerminalAbsoluteDay = absoluteDay;
+        return true;
     }
 
     public void AssignPosition(
@@ -500,7 +808,8 @@ public sealed class CharacterCareerAggregate
                     > CareerRules.RetireeMaximumSafeWorkSeconds + 0.001f
                 || source.recentHistory == null
                 || source.recentHistory.Count > CareerRules.MaximumRecentHistory
-                || source.recentHistory.Any(value => value == null || value.absoluteDay < 1))
+                || source.recentHistory.Any(value => value == null || value.absoluteDay < 1)
+                || !IsValidRetirementSchedule(source))
                 throw new InvalidOperationException("Career record is invalid or duplicated.");
             result.careers.Add(id, Clone(source));
         }
@@ -575,6 +884,12 @@ public sealed class CharacterCareerAggregate
         positionScopeId = value.positionScopeId,
         retiredWorkAbsoluteDay = value.retiredWorkAbsoluteDay,
         retiredWorkSeconds = value.retiredWorkSeconds,
+        retirementScheduleStatus = value.retirementScheduleStatus,
+        retirementEventId = value.retirementEventId,
+        retirementChoiceId = value.retirementChoiceId,
+        retirementDecisionAbsoluteDay = value.retirementDecisionAbsoluteDay,
+        retirementDueAbsoluteDay = value.retirementDueAbsoluteDay,
+        retirementTerminalAbsoluteDay = value.retirementTerminalAbsoluteDay,
         summarizedHistoryCount = value.summarizedHistoryCount,
         recentHistory = (value.recentHistory ?? new()).Select(entry => new CareerHistoryEventSaveData
         {
@@ -591,7 +906,64 @@ public sealed class CharacterCareerAggregate
             value.position,
             value.positionScopeId,
             value.retiredWorkAbsoluteDay,
-            value.retiredWorkSeconds);
+            value.retiredWorkSeconds,
+            value.retirementScheduleStatus,
+            value.retirementEventId,
+            value.retirementChoiceId,
+            value.retirementDecisionAbsoluteDay,
+            value.retirementDueAbsoluteDay,
+            value.retirementTerminalAbsoluteDay);
+
+    private static void CompleteScheduledRetirement(
+        CharacterCareerSaveData state,
+        int absoluteDay)
+    {
+        if (state.retirementScheduleStatus != RetirementScheduleStatus.Pending)
+            return;
+        state.retired = true;
+        state.retirementScheduleStatus = RetirementScheduleStatus.Completed;
+        state.retirementTerminalAbsoluteDay = absoluteDay;
+        AddHistory(state, CareerHistoryEventKind.Retired, absoluteDay, "retired");
+    }
+
+    private static bool IsValidRetirementSchedule(CharacterCareerSaveData state)
+    {
+        string eventId = state.retirementEventId?.Trim() ?? string.Empty;
+        string choiceId = state.retirementChoiceId?.Trim() ?? string.Empty;
+        bool empty = eventId.Length == 0
+            && choiceId.Length == 0
+            && state.retirementDecisionAbsoluteDay == 0
+            && state.retirementDueAbsoluteDay == 0
+            && state.retirementTerminalAbsoluteDay == 0;
+        return state.retirementScheduleStatus switch
+        {
+            RetirementScheduleStatus.None => empty,
+            RetirementScheduleStatus.Pending => !state.retired
+                && eventId.Length > 0
+                && choiceId.Length > 0
+                && state.retirementDecisionAbsoluteDay >= 1
+                && state.retirementDueAbsoluteDay >=
+                    state.retirementDecisionAbsoluteDay
+                && state.retirementTerminalAbsoluteDay == 0,
+            RetirementScheduleStatus.Completed => state.retired
+                && eventId.Length > 0
+                && choiceId.Length > 0
+                && state.retirementDecisionAbsoluteDay >= 1
+                && state.retirementDueAbsoluteDay >=
+                    state.retirementDecisionAbsoluteDay
+                && state.retirementTerminalAbsoluteDay >=
+                    state.retirementDecisionAbsoluteDay,
+            RetirementScheduleStatus.CancelledByDeath => !state.retired
+                && eventId.Length > 0
+                && choiceId.Length > 0
+                && state.retirementDecisionAbsoluteDay >= 1
+                && state.retirementDueAbsoluteDay >=
+                    state.retirementDecisionAbsoluteDay
+                && state.retirementTerminalAbsoluteDay >=
+                    state.retirementDecisionAbsoluteDay,
+            _ => false
+        };
+    }
 
     private static CareerMentorshipSnapshot Snapshot(CareerMentorshipSaveData value) =>
         new(
@@ -621,8 +993,12 @@ public sealed class CharacterCareerAggregate
 public interface ICareerService
 {
     IReadOnlyList<CareerMentorshipSnapshot> Mentorships { get; }
+    IReadOnlyList<RetirementScheduleSnapshot> RetirementSchedules { get; }
     bool TryGet(CharacterId characterId, out CharacterCareerSnapshot snapshot);
     void Retire(CharacterId characterId, int absoluteDay);
+    bool CanScheduleRetirement(CharacterId characterId, out string reason);
+    int CompleteDueRetirements(int absoluteDay);
+    bool CancelRetirementByDeath(CharacterId characterId, int absoluteDay);
     void AssignPosition(CharacterId characterId, CareerPositionKind position, string scopeId, int absoluteDay);
     bool CanPerformRetiredWork(
         CharacterId characterId,

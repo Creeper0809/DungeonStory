@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "활, 장신구와 룬 탄두의 재료이다. 라카쉬 세갈래길에서는 뿔의 성장 결을 따라 금이 갔는지 살피고, 온전한 밑동에만 제작용 표식을 낸다.",
+  "in_game_description": "활, 장신구와 룬 탄두의 재료이다. 라카쉬 세갈래길에서 손질한 뿔에는 먹을 몫과 만들 몫을 가르는 두 줄 칼집이 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

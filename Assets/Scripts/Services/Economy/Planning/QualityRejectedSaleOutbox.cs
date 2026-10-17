@@ -13,6 +13,10 @@ public interface IQualityRejectedSaleCommandPort
         QualityRejectedSalePending pending,
         out string failureReason);
 
+    bool TryPublishRejectedSaleFact(
+        QualityRejectedSalePending pending,
+        out string failureReason);
+
     bool TryReleaseRejectedSaleUniqueAuthority(
         QualityRejectedSalePending pending,
         out string failureReason);
@@ -36,6 +40,11 @@ public static class QualityRejectedSaleOutbox
         int sequence,
         WorldItemStackSnapshot source,
         int proceeds,
+        int unitPrice,
+        int saleRateBasisPoints,
+        CraftsmanshipQualityTier quality,
+        int absoluteDay,
+        string outcomeResultKey,
         FacilityBufferAcknowledgedOutputReleaseTarget target,
         bool requiresCombatAuthority)
     {
@@ -65,8 +74,13 @@ public static class QualityRejectedSaleOutbox
             destinationY = target.DestinationPosition.y,
             quantity = 1,
             proceeds = proceeds,
+            unitPrice = unitPrice,
+            saleRateBasisPoints = saleRateBasisPoints,
+            qualityTier = (int)quality,
+            absoluteDay = absoluteDay,
             requiresCombatAuthority = requiresCombatAuthority,
-            phase = QualityRejectedSaleCommitPhase.Prepared
+            phase = QualityRejectedSaleCommitPhase.Prepared,
+            outcomeResultKey = outcomeResultKey?.Trim() ?? string.Empty
         };
         if (!HasCanonicalPrepared(pending))
         {
@@ -90,6 +104,7 @@ public static class QualityRejectedSaleOutbox
         }
         pending.commitId = receipt.CommitId;
         pending.inputMassGrams = receipt.InputMassGrams;
+        pending.physicalOutcomeOwnerRevision = receipt.OwnerRevision;
         pending.phase = QualityRejectedSaleCommitPhase.PhysicalCommitted;
         return HasCanonicalPending(pending);
     }
@@ -141,6 +156,17 @@ public static class QualityRejectedSaleOutbox
 
         if (pending.phase == QualityRejectedSaleCommitPhase.IncomePublished)
         {
+            if (!commands.TryPublishRejectedSaleFact(
+                    pending,
+                    out failureReason))
+            {
+                return false;
+            }
+            pending.phase = QualityRejectedSaleCommitPhase.LedgerCommitted;
+        }
+
+        if (pending.phase == QualityRejectedSaleCommitPhase.LedgerCommitted)
+        {
             if (!commands.TryReleaseRejectedSaleUniqueAuthority(
                     pending,
                     out failureReason))
@@ -151,9 +177,17 @@ public static class QualityRejectedSaleOutbox
                 QualityRejectedSaleCommitPhase.UniqueAuthorityReleased;
         }
 
-        return commands.AcknowledgeRejectedSaleTransfer(
-            pending.commitId,
-            out failureReason);
+        if (pending.phase == QualityRejectedSaleCommitPhase.UniqueAuthorityReleased)
+        {
+            if (!commands.AcknowledgeRejectedSaleTransfer(
+                    pending.commitId,
+                    out failureReason))
+            {
+                return false;
+            }
+            pending.phase = QualityRejectedSaleCommitPhase.Acknowledged;
+        }
+        return pending.phase == QualityRejectedSaleCommitPhase.Acknowledged;
     }
 
     public static bool HasCanonicalPending(QualityRejectedSalePending pending) =>
@@ -172,6 +206,7 @@ public static class QualityRejectedSaleOutbox
         && string.Equals(receipt.ReasonCode, pending.reasonCode, StringComparison.Ordinal)
         && receipt.Quantity == 1
         && receipt.InputMassGrams > 0L
+        && receipt.OwnerRevision > 0L
         && (receipt.SourceStackIds ?? Array.Empty<string>()).Count == 1
         && string.Equals(
             receipt.SourceStackIds[0],
@@ -190,6 +225,7 @@ public static class QualityRejectedSaleOutbox
         && string.Equals(receipt.CommitId, pending.commitId, StringComparison.Ordinal)
         && receipt.Quantity == 1
         && receipt.InputMassGrams == pending.inputMassGrams
+        && receipt.OwnerRevision == pending.physicalOutcomeOwnerRevision
         && receipt.SourceStackIds.Count == 1
         && string.Equals(
             receipt.SourceStackIds[0],

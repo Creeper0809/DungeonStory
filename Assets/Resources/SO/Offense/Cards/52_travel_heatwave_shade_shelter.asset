@@ -1,0 +1,84 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb1545c617046a479f6260685aafe1a, type: 3}
+  m_Name: 52_travel_heatwave_shade_shelter
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseDecisionCardSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170351
+  cardId: travel_heatwave_shade_shelter
+  stage: 0
+  title: "그늘의 쉼터"
+  situation: "폭염 속 길가의 무너진 차양 아래에 잠시 몸을 숨길 그늘이 남아 있습니다."
+  requiredWorldTags:
+  - weather:heatwave
+  choices:
+  - choiceId: left
+    label: "그늘에서 쉰다"
+    description: "두 시간을 쉬어 열 노출과 대원의 스트레스를 낮춥니다."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "대기 2시간·스트레스 -9·노출 -8"
+    severity: 1
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7170170000000000058
+    - rid: 7170170000000000059
+    - rid: 7170170000000000060
+  - choiceId: right
+    label: "행군을 강행한다"
+    description: "시간을 아끼는 대신 더위와 긴장을 그대로 감수합니다."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "스트레스 +7·노출 +8"
+    severity: 1
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7170170000000000061
+    - rid: 7170170000000000062
+  references:
+    version: 2
+    RefIds:
+    - rid: 7170170000000000058
+      type: {class: OffenseTimeDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        elapsedHours: 2
+    - rid: 7170170000000000059
+      type: {class: OffenseStressDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        amount: -9
+    - rid: 7170170000000000060
+      type: {class: OffenseExposureDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        amount: -8
+    - rid: 7170170000000000061
+      type: {class: OffenseStressDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        amount: 7
+    - rid: 7170170000000000062
+      type: {class: OffenseExposureDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        amount: 8
+

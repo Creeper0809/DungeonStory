@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Foundation.Facts;
 using DungeonStory.Operation;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,6 +30,7 @@ public static class MetaProgressionDebugScenarios
         RunScenario("사장 생존 강화 효과", VerifyOwnerSurvivalUpgrades, errors);
         RunScenario("세 전략 계승 강화 실제 배율", VerifyStrategyUpgradeEffects, errors);
         RunScenario("미등록 메타 효과/안정 ID 확장", VerifyOpenMetaEffectRegistration, errors);
+        RunScenario("WIM-050 확정 런 결과 이력", VerifyCommittedRunResultHistory, errors);
 
         RunScenario("Strict meta save restore", VerifyStrictMetaSaveRestore, errors);
 
@@ -52,6 +54,15 @@ public static class MetaProgressionDebugScenarios
 
     public static bool RunStrictSaveInvalidNoMutationOnly() =>
         VerifyStrictMetaSaveRestore();
+
+    [MenuItem("DungeonStory/QA/Run WIM-050 Committed Run Result History")]
+    public static void RunWim050CommittedRunResultHistoryFromMenu()
+    {
+        if (!VerifyCommittedRunResultHistory())
+            throw new InvalidOperationException(
+                "WIM-050 committed run result history verification failed.");
+        Debug.Log("WIM050_COMMITTED_RUN_RESULT_HISTORY=PASS");
+    }
 
     private static void RunScenario(string name, Func<bool> scenario, List<string> errors)
     {
@@ -231,6 +242,12 @@ public static class MetaProgressionDebugScenarios
         DungeonSceneRuntimeReferences runReferences =
             EditorRuntimeReferenceFixtures.DungeonWithRunVariables;
         RunVariableRuntime runVariables = runReferences.RunVariables;
+        var runRoot = new DungeonRuntimeAggregateRootStore();
+        var runOutcomeFixture = new MigratedProducerOutcomeEditorFixture(
+            "run:meta-strategy-variables",
+            runRoot);
+        using DomainFactDispatcher runVariableFacts =
+            runOutcomeFixture.CreateRunVariableFacts();
         runVariables.Construct(
             new EmptyOwnerRunDataProvider(),
             EditorRuntimeReferenceFixtures.Invasion,
@@ -242,7 +259,9 @@ public static class MetaProgressionDebugScenarios
             new DungeonStory.Foundation.GameEventBus(),
             authored,
             authored,
-            new DungeonRuntimeAggregateRootStore());
+            runRoot,
+            runVariableFacts,
+            runVariableFacts);
         runVariables.StartRun(9405);
         RunVariableRuntimeReader runReader = new RunVariableRuntimeReader(
             runReferences,
@@ -327,6 +346,138 @@ public static class MetaProgressionDebugScenarios
             && immutableStableId;
     }
 
+    private static bool VerifyCommittedRunResultHistory()
+    {
+        bool rawShapeValid = VerifyCommittedRunResultRawShape();
+        CommittedRunChoiceSnapshot choice = new(
+            CommittedRunChoiceKind.SocietyEventChoice,
+            V20CampaignRuntime.SocietyChoiceOwnerId,
+            "life-event:retirement-request",
+            "event:31:life-event:retirement-request:wim050",
+            "second",
+            "qa:wim050:choice:0001",
+            1L);
+        FixedCommittedRunResultQuery history = new(
+            new CommittedRunResultSnapshot(
+                new[] { "ending:dungeon-sovereignty" },
+                new[] { choice }));
+        using ScenarioRuntime scenario = new(history);
+        int earnedBefore = scenario.Runtime.State.LifetimeEarnedCurrency;
+        RunResultSnapshot first = scenario.Runtime.EndRun(
+            "WIM-050 owner",
+            "committed history",
+            DungeonRunOutcome.Victory);
+        int earnedAfterFirst = scenario.Runtime.State.LifetimeEarnedCurrency;
+        RunResultSnapshot replay = scenario.Runtime.EndRun(
+            "ignored replay owner",
+            "ignored replay reason",
+            DungeonRunOutcome.Defeat);
+        MetaProgressionSaveSection section = new(scenario.Runtime);
+        string captured = section.Capture();
+
+        using ScenarioRuntime restored = new();
+        MetaProgressionSaveSection restoredSection = new(restored.Runtime);
+        IDungeonSaveRestoreStage staged = restoredSection.StageRestore(
+            captured,
+            restoredSection.SectionVersion,
+            new DungeonGameRestoreReport());
+        staged.Commit(new DungeonGameRestoreReport());
+        RunResultSnapshot roundTrip = restored.Runtime.LatestResult;
+
+        return first.completedMilestoneIds.SequenceEqual(
+                new[] { "ending:dungeon-sovereignty" })
+            && first.committedChoices.Count == 1
+            && first.committedChoices[0].OperationId ==
+                "qa:wim050:choice:0001"
+            && first.ToDetailText().Contains(
+                "life-event:retirement-request",
+                StringComparison.Ordinal)
+            && ReferenceEquals(first, replay)
+            && earnedAfterFirst > earnedBefore
+            && scenario.Runtime.State.LifetimeEarnedCurrency == earnedAfterFirst
+            && roundTrip != null
+            && roundTrip.completedMilestoneIds.SequenceEqual(
+                first.completedMilestoneIds)
+            && roundTrip.committedChoices.Count == 1
+            && roundTrip.committedChoices[0].OperationId ==
+                first.committedChoices[0].OperationId
+            && restored.Runtime.State.LifetimeEarnedCurrency == earnedAfterFirst
+            && rawShapeValid;
+    }
+
+    private static bool VerifyCommittedRunResultRawShape()
+    {
+        using ScenarioRuntime scenario = new();
+        MetaProgressionSaveSection section = new(scenario.Runtime);
+        string withoutResult = section.Capture();
+        string sparseWithoutResult = ReplaceRequiredJsonToken(
+            ReplaceRequiredJsonToken(
+                withoutResult,
+                "\"completedMilestoneIds\":[],",
+                string.Empty),
+            "\"committedChoices\":[]",
+            "\"committedChoices\":null");
+        section.ValidatePayload(
+            sparseWithoutResult,
+            section.SectionVersion,
+            new DungeonGameRestoreReport());
+
+        scenario.Runtime.EndRun(
+            "WIM-050 empty-history owner",
+            "empty committed history",
+            DungeonRunOutcome.Defeat);
+        string emptyResult = section.Capture();
+        section.ValidatePayload(
+            emptyResult,
+            section.SectionVersion,
+            new DungeonGameRestoreReport());
+
+        string missingMilestones = ReplaceRequiredJsonToken(
+            emptyResult,
+            "\"completedMilestoneIds\":[],",
+            string.Empty);
+        string nullChoices = ReplaceRequiredJsonToken(
+            emptyResult,
+            "\"committedChoices\":[]",
+            "\"committedChoices\":null");
+        return RejectRawMetaPayload(section, missingMilestones)
+            && RejectRawMetaPayload(section, nullChoices);
+    }
+
+    private static bool RejectRawMetaPayload(
+        MetaProgressionSaveSection section,
+        string payloadJson)
+    {
+        try
+        {
+            section.ValidatePayload(
+                payloadJson,
+                section.SectionVersion,
+                new DungeonGameRestoreReport());
+        }
+        catch (InvalidOperationException)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string ReplaceRequiredJsonToken(
+        string source,
+        string oldValue,
+        string newValue)
+    {
+        string replaced = source.Replace(oldValue, newValue);
+        if (string.Equals(source, replaced, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Expected JSON token '{oldValue}' was not captured.");
+        }
+
+        return replaced;
+    }
+
     private static CharacterActor CreateOwner(MetaProgressionRuntime runtime)
     {
         CharacterSO data = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
@@ -379,7 +530,7 @@ public static class MetaProgressionDebugScenarios
         DungeonGameRestoreReport report = new DungeonGameRestoreReport();
         IDungeonSaveRestoreStage staged = section.StageRestore(
             captured,
-            1,
+            section.SectionVersion,
             report);
         int earnedBeforeCommit = scenario.Runtime.State.LifetimeEarnedCurrency;
         staged.Commit(report);
@@ -397,7 +548,7 @@ public static class MetaProgressionDebugScenarios
         {
             section.StageRestore(
                 JsonUtility.ToJson(invalid),
-                1,
+                section.SectionVersion,
                 new DungeonGameRestoreReport());
         }
         catch (InvalidOperationException)
@@ -413,7 +564,10 @@ public static class MetaProgressionDebugScenarios
         bool legacyRejected = false;
         try
         {
-            section.StageRestore(captured, 0, new DungeonGameRestoreReport());
+            section.StageRestore(
+                captured,
+                section.SectionVersion - 1,
+                new DungeonGameRestoreReport());
         }
         catch (InvalidOperationException)
         {
@@ -451,36 +605,77 @@ public static class MetaProgressionDebugScenarios
         return building;
     }
 
+    private static DomainFactDispatcher CreateMetaFacts(
+        MigratedProducerOutcomeEditorFixture outcomes)
+    {
+        var dispatcher = new DomainFactDispatcher();
+        var commits = new GameplayDomainFactCommitGroup(
+            outcomes.Recorder,
+            outcomes.Ledger);
+        try
+        {
+            dispatcher.Subscribe(
+                "fixture:meta-upgrade-purchased",
+                new MigratedDomainFactObserver<MetaUpgradePurchaseDomainFact>(
+                    MetaProgressionFactMapping.Capture,
+                    outcomes.Transaction,
+                    commits));
+            dispatcher.Subscribe(
+                "fixture:meta-run-result",
+                new MigratedDomainFactObserver<MetaRunResultDomainFact>(
+                    MetaProgressionFactMapping.Capture,
+                    outcomes.Transaction,
+                    commits));
+            return dispatcher;
+        }
+        catch
+        {
+            dispatcher.Dispose();
+            throw;
+        }
+    }
+
     private sealed class ScenarioRuntime : IDisposable
     {
         private readonly GameObject runtimeObject;
+        private readonly DomainFactDispatcher domainFacts;
 
         public MetaProgressionRuntime Runtime { get; }
         public DungeonStory.Foundation.IGameEventBus GameEvents { get; }
 
-        public ScenarioRuntime()
+        public ScenarioRuntime(
+            ICommittedRunResultQuery committedRunResults = null)
         {
             DungeonStory.Foundation.UnityGameClock gameClock =
                 new DungeonStory.Foundation.UnityGameClock();
             GameEvents = new DungeonStory.Foundation.GameEventBus();
             runtimeObject = new GameObject("Meta Progression Scenario Runtime");
             Runtime = runtimeObject.AddComponent<MetaProgressionRuntime>();
+            var aggregateRootStore = new DungeonRuntimeAggregateRootStore();
+            var outcomeFixture = new MigratedProducerOutcomeEditorFixture(
+                "run:meta-progression",
+                aggregateRootStore);
             Runtime.Construct(
                 new MetaRunResultBuilder(),
                 new MetaRuntimeApplicationAdapter(
                     GameEvents,
                     EditorRuntimeReferenceFixtures.Invasion,
                     runVariables: null,
+                    committedRunResults
+                        ?? new FixedCommittedRunResultQuery(default),
                     new NoopRunResultPanelService()),
                 gameClock,
                 CreateAuthoredMetaCatalog(),
-                new DungeonRuntimeAggregateRootStore());
+                aggregateRootStore);
+            domainFacts = CreateMetaFacts(outcomeFixture);
+            Runtime.ConstructDomainFacts(domainFacts);
             Runtime.SetShowRunResultPanel(false);
             Runtime.StartNewRun();
         }
 
         public void Dispose()
         {
+            domainFacts.Dispose();
             foreach (BuildableObject facility in Object.FindObjectsByType<BuildableObject>(FindObjectsSortMode.None)
                          .Where((building) => building != null && building.name.Contains("발견 시설")))
             {
@@ -494,6 +689,25 @@ public static class MetaProgressionDebugScenarios
 
             Object.DestroyImmediate(runtimeObject);
         }
+    }
+
+    private sealed class FixedCommittedRunResultQuery :
+        ICommittedRunResultQuery
+    {
+        private readonly CommittedRunResultSnapshot snapshot;
+
+        public FixedCommittedRunResultQuery(
+            CommittedRunResultSnapshot snapshot) =>
+            this.snapshot = snapshot.CompletedMilestoneIds == null
+                ? new CommittedRunResultSnapshot(
+                    Array.Empty<string>(),
+                    Array.Empty<CommittedRunChoiceSnapshot>())
+                : snapshot;
+
+        public CommittedRunResultSnapshot CaptureCommittedRunResult() =>
+            new(
+                snapshot.CompletedMilestoneIds,
+                snapshot.CommittedChoices);
     }
 
     private sealed class CountingRunResultReadyListener : IDisposable
@@ -672,13 +886,23 @@ public static class MetaProgressionDebugScenarios
     {
         public IReadOnlyList<KnowledgeResidueTaskSnapshot> Tasks =>
             Array.Empty<KnowledgeResidueTaskSnapshot>();
+        public int NextTaskSequence => 1;
+        public int TaskIdentityGeneration =>
+            KnowledgeResidueTaskIdentity.OriginalGeneration;
         public bool TryQueueCodexAnalysis(out string message) { message = string.Empty; return false; }
         public bool TryQueueRegionReconnaissance(string regionId, out string message) { message = string.Empty; return false; }
         public bool HasProcessingWorkFor(BuildableObject facility) => false;
         public BlueprintResearchWorkResult ApplyWork(CharacterActor researcher, BuildableObject facility, float seconds) => default;
-        public BlueprintResearchWorkResult ApplyApprovedWork(CharacterActor researcher, BuildableObject facility, float approvedWorkUnits) => default;
+        public BlueprintResearchWorkResult ApplyApprovedWork(
+            CharacterActor researcher,
+            BuildableObject facility,
+            float approvedWorkUnits,
+            DurableFacilityEquipmentUseContext equipment = null) => default;
         public IReadOnlyList<KnowledgeResidueTaskSaveData> Capture() => Array.Empty<KnowledgeResidueTaskSaveData>();
-        public KnowledgeResidueRestoreCandidate PrepareRestore(IEnumerable<KnowledgeResidueTaskSaveData> tasks) =>
+        public KnowledgeResidueRestoreCandidate PrepareRestore(
+            IEnumerable<KnowledgeResidueTaskSaveData> tasks,
+            int nextTaskSequence = 0,
+            int taskIdentityGeneration = 0) =>
             new KnowledgeResidueRestoreCandidate(new KnowledgeResidueAggregateState());
         public void Restore(KnowledgeResidueRestoreCandidate candidate) { }
     }

@@ -1,0 +1,1 @@
+G4_ROUTE_DELIVERY_PARITY=PASS; moved=cargo7+reinforcement1; retained=69; public=18; constructors2=validation/getter/state-order exact; capture=parent reentry then same pending gate; constants3/pending exact; shared domain queries exact; Unity=NOT_RUN

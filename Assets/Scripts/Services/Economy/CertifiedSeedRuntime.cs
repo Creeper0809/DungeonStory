@@ -179,6 +179,9 @@ public sealed class CertifiedSeedRuntime :
     private readonly IPhysicalSeedLotGateway seedLots;
     private readonly IProductionOutputCapabilityRegistry outputCapabilities;
     private readonly IProductionDomainOutputPublicationService outputPublication;
+    private readonly IObservedProductionDomainOutputPublicationService
+        observedOutputPublication;
+    private readonly IGameCalendar calendar;
     private readonly IProductionFacilityMutationEpochQuery facilityMutations;
     private readonly ICertifiedSeedInputOwnerRuntime inputOwners;
     private readonly DungeonRuntimeAggregateRootStore rootStore;
@@ -392,6 +395,9 @@ public sealed class CertifiedSeedRuntime :
         IPhysicalSeedLotGateway seedLots,
         IProductionOutputCapabilityRegistry outputCapabilities,
         IProductionDomainOutputPublicationService outputPublication,
+        IObservedProductionDomainOutputPublicationService
+            observedOutputPublication,
+        IGameCalendar calendar,
         DungeonRuntimeAggregateRootStore rootStore,
         IProductionFacilityMutationEpochQuery facilityMutations,
         ICertifiedSeedInputOwnerRuntime inputOwners)
@@ -411,6 +417,10 @@ public sealed class CertifiedSeedRuntime :
             ?? throw new ArgumentNullException(nameof(outputCapabilities));
         this.outputPublication = outputPublication
             ?? throw new ArgumentNullException(nameof(outputPublication));
+        this.observedOutputPublication = observedOutputPublication
+            ?? throw new ArgumentNullException(
+                nameof(observedOutputPublication));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.rootStore = rootStore
             ?? throw new ArgumentNullException(nameof(rootStore));
         this.facilityMutations = facilityMutations
@@ -650,10 +660,30 @@ public sealed class CertifiedSeedRuntime :
             }
             ProductionDomainOutputPublicationPlan outputPlan =
                 CreateOutputPlan(order, crop.SeedItemId, facility);
-            ProductionDomainOutputPublicationResult publicationResult =
-                outputPublication.EnsureCommitted(
-                    order.outputPublication,
-                    outputPlan);
+            CertifiedSeedPlanExecutionReceipt sourceReceipt = new(order);
+            string facilityDisplayName = FacilityShopService.GetBuildingName(
+                facility.BuildingData);
+            string cropDisplayName = crop.DisplayName;
+            ProductionDomainOutputPublicationResult publicationResult;
+            try
+            {
+                publicationResult = observedOutputPublication.EnsureCommitted(
+                    order.outputPublication, outputPlan, preview =>
+                    {
+                        if (order.outputPublication.observationExpected)
+                            return RestoreCompletionFact(order, preview);
+                        var fact = CaptureCompletedFact(preview, outputPlan, sourceReceipt,
+                            facilityDisplayName, cropDisplayName);
+                        order.completionFact = fact.Snapshot();
+                        return fact;
+                    });
+            }
+            finally
+            {
+                // A rejected preparation/rolled-back output has no event to replay.
+                if (!order.outputPublication.observationExpected)
+                    order.completionFact = new CertifiedSeedCompletionFactData();
+            }
             if (!publicationResult.IsCommitted)
             {
                 return false;
@@ -666,6 +696,12 @@ public sealed class CertifiedSeedRuntime :
 
     private bool TryFinalizePublishedOutput(CertifiedSeedOrderSaveData order)
     {
+        // Keep both input and output receipts until observation is confirmed.
+        // Recovery replays the frozen fact; it never produces another seed.
+        if (order?.phase == CertifiedSeedOrderPhase.OutputPublished
+            && !observedOutputPublication.TryRecover(order.outputPublication, order.orderId,
+                preview => RestoreCompletionFact(order, preview), out _))
+            return false;
         if (order?.pendingInput == null
             || order.pendingInput.phase
                 != CropPhysicalCommitPhase.OutcomePublished
@@ -799,6 +835,112 @@ public sealed class CertifiedSeedRuntime :
                     new[] { seedState },
                     order.outputCapability.ToDescriptor())
             });
+    }
+
+    private CertifiedSeedCompletedFact CaptureCompletedFact(
+        ProductionDomainOutputFactPreview preview,
+        ProductionDomainOutputPublicationPlan plan,
+        CertifiedSeedPlanExecutionReceipt source,
+        string facilityDisplayName,
+        string cropDisplayName)
+    {
+        if (plan == null
+            || source == null
+            || !preview.Physical.IsValid
+            || preview.Physical.OwnerRevision <= 0L
+            || preview.Physical.Facts.Count != 1
+            || preview.Physical.Receipt.Stacks.Count != 1
+            || plan.Lines.Count != 1
+            || !string.Equals(
+                preview.OwnerId,
+                plan.OwnerId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                preview.OwnerId,
+                source.OutputOwnerId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                plan.BatchCommitId,
+                source.OutputBatchCommitId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                preview.Physical.Receipt.BatchCommitId,
+                plan.BatchCommitId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                preview.Fingerprint,
+                plan.OutcomeFingerprint,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                preview.Physical.Receipt.OutcomeFingerprint,
+                preview.Fingerprint,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                preview.Physical.Receipt.OwnerFacilityId,
+                source.FacilityInstanceId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "certified-seed-completion-preview-invalid");
+        }
+
+        ProductionDomainOutputLine expected = plan.Lines[0];
+        FacilityBufferPublishedOutputStackReceipt receiptOutput =
+            preview.Physical.Receipt.Stacks[0];
+        PreparedFacilityBufferOutputFact output = preview.Physical.Facts[0];
+        if (expected == null
+            || !output.IsValid
+            || string.IsNullOrWhiteSpace(output.DisplayName)
+            || !string.Equals(
+                output.Stack.StackId,
+                receiptOutput.StackId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                output.Stack.OutputLineId,
+                receiptOutput.OutputLineId,
+                StringComparison.Ordinal)
+            || !output.Stack.ItemDefinitionId.Equals(
+                receiptOutput.ItemDefinitionId)
+            || !string.Equals(
+                output.Stack.ItemInstanceId,
+                receiptOutput.ItemInstanceId,
+                StringComparison.Ordinal)
+            || output.Stack.Quantity != receiptOutput.Quantity
+            || output.Stack.MassGrams != receiptOutput.MassGrams
+            || !string.Equals(
+                expected.OutputLineId,
+                CertifiedSeedOutputCapability.OutputLineId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                output.Stack.OutputLineId,
+                expected.OutputLineId,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                output.Stack.ItemDefinitionId.Value,
+                expected.ItemId,
+                StringComparison.Ordinal)
+            || (expected.ItemInstanceId.Length > 0
+                && !string.Equals(
+                    output.Stack.ItemInstanceId,
+                    expected.ItemInstanceId,
+                    StringComparison.Ordinal))
+            || output.Stack.Quantity != expected.Quantity)
+        {
+            throw new InvalidOperationException(
+                "certified-seed-completion-output-drift");
+        }
+
+        return new CertifiedSeedCompletedFact(
+            source,
+            facilityDisplayName,
+            cropDisplayName,
+            output.Stack.ItemDefinitionId.Value,
+            output.DisplayName,
+            output.Stack.Quantity,
+            output.Stack.MassGrams,
+            preview.Fingerprint,
+            calendar.Day,
+            preview.Physical.OwnerRevision);
     }
 
     public static string CreateOutputOutcomeFingerprint(
@@ -1021,7 +1163,7 @@ public sealed class CertifiedSeedRuntime :
             || !string.Equals(cropId, order.cropId, StringComparison.Ordinal)
             || !crops.TryGetCrop(order.cropId, out CropDefinitionSO crop)
             || crop == null
-            || order.pendingInput == null)
+            || order.pendingInput == null || order.completionFact == null)
             throw new InvalidOperationException(
                 "Certified-seed order provenance is invalid.");
         if (order.phase == CertifiedSeedOrderPhase.Planned)
@@ -1029,7 +1171,8 @@ public sealed class CertifiedSeedRuntime :
             if (order.pendingInput.phase != CropPhysicalCommitPhase.None
                 || order.certifiedSeedLot != null
                 || order.outputCapability is { IsEmpty: false }
-                || order.outputPublication is { IsEmpty: false })
+                || order.outputPublication is { IsEmpty: false }
+                || !order.completionFact.IsEmpty)
                 throw new InvalidOperationException(
                     "Planned certified-seed order contains committed state.");
             return;
@@ -1152,6 +1295,18 @@ public sealed class CertifiedSeedRuntime :
                 "certified-seed-output-acknowledgement-phase-mismatch";
             return false;
         }
+        if (committed != (owner?.observationExpected == true)
+            || !committed && order.completionFact?.IsEmpty != true)
+        {
+            failureReason = "certified-seed-output-observation-phase-mismatch";
+            return false;
+        }
+        if (committed)
+        {
+            try { RestoreCompletionFact(order); }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or OverflowException)
+            { failureReason = "certified-seed-completion-fact-invalid:" + exception.Message; return false; }
+        }
         if (owner == null || owner.IsEmpty)
             return true;
         ItemInstanceComponentSaveData seedState =
@@ -1183,6 +1338,48 @@ public sealed class CertifiedSeedRuntime :
             ? string.Empty
             : "certified-seed-output-owner-provenance-drift";
         return matches;
+    }
+
+    internal static CertifiedSeedCompletedFact RestoreCompletionFact(CertifiedSeedOrderSaveData order)
+    {
+        var fact = CertifiedSeedCompletedFact.FromSave(order?.completionFact);
+        var owner = order.outputPublication;
+        var source = new CertifiedSeedPlanExecutionReceipt(order);
+        if (owner?.observationExpected != true || !owner.outputPublished || !owner.admissionCommitted
+            || owner.stacks?.Count != 1 || owner.stacks[0] == null
+            || source.SourceDigest != fact.SourceReceipt.SourceDigest
+            || owner.ownerFacilityId != source.FacilityInstanceId
+            || owner.batchCommitId != source.OutputBatchCommitId
+            || fact.OwnerRevision != owner.observationOwnerRevision
+            || fact.OutputOutcomeFingerprint != owner.outcomeFingerprint)
+            throw new InvalidOperationException("certified-seed-completion-owner-conflict");
+        var output = owner.stacks[0];
+        if (output.outputLineId != CertifiedSeedOutputCapability.OutputLineId
+            || output.itemId != fact.OutputItemDefinitionId || output.displayText != fact.OutputItemDisplayName
+            || output.quantity != fact.OutputQuantity || output.massGrams != fact.OutputMassGrams)
+            throw new InvalidOperationException("certified-seed-completion-physical-conflict");
+        return fact;
+    }
+
+    private static CertifiedSeedCompletedFact RestoreCompletionFact(
+        CertifiedSeedOrderSaveData order, ProductionDomainOutputFactPreview preview)
+    {
+        var fact = RestoreCompletionFact(order);
+        if (!preview.Physical.IsValid || preview.Physical.Facts.Count != 1
+            || preview.Physical.Receipt.Stacks.Count != 1 || preview.OwnerId != order.orderId
+            || preview.Fingerprint != fact.OutputOutcomeFingerprint
+            || preview.Physical.OwnerRevision != fact.OwnerRevision
+            || preview.Physical.Receipt.BatchCommitId != fact.SourceReceipt.OutputBatchCommitId)
+            throw new InvalidOperationException("certified-seed-replay-preview-conflict");
+        var output = preview.Physical.Facts[0];
+        var saved = order.outputPublication.stacks[0];
+        if (!output.IsValid || output.Stack.StackId != saved.stackId
+            || output.Stack.ItemDefinitionId.Value != fact.OutputItemDefinitionId
+            || output.Stack.OutputLineId != saved.outputLineId || output.Stack.ItemInstanceId != saved.itemInstanceId
+            || output.Stack.Quantity != fact.OutputQuantity || output.Stack.MassGrams != fact.OutputMassGrams
+            || output.DisplayName != fact.OutputItemDisplayName)
+            throw new InvalidOperationException("certified-seed-replay-output-conflict");
+        return fact;
     }
 
     private bool TryValidateOutputCapability(
@@ -1313,28 +1510,20 @@ public sealed class CertifiedSeedRuntime :
 }
 
 /// <summary>
-/// Completes hauled certification orders and exposes the player action through
-/// the existing persistent event-alert UI. Two alerts are used because the
-/// alert model intentionally caps one card at four choices.
+/// Completes hauled certification orders and publishes a neutral observation
+/// after the owner command returns.
 /// </summary>
 public sealed class CertifiedSeedApplicationAdapter : IStartable, IDisposable
 {
     private readonly ICertifiedSeedCommand commands;
-    private readonly IFacilityCapabilityQuery facilities;
-    private readonly IResourceEconomyContentCatalog crops;
     private readonly IGameEventBus events;
     private IDisposable daySubscription;
 
     public CertifiedSeedApplicationAdapter(
         ICertifiedSeedCommand commands,
-        IFacilityCapabilityQuery facilities,
-        IResourceEconomyContentCatalog crops,
         IGameEventBus events)
     {
         this.commands = commands ?? throw new ArgumentNullException(nameof(commands));
-        this.facilities = facilities
-            ?? throw new ArgumentNullException(nameof(facilities));
-        this.crops = crops ?? throw new ArgumentNullException(nameof(crops));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
     }
 
@@ -1350,33 +1539,6 @@ public sealed class CertifiedSeedApplicationAdapter : IStartable, IDisposable
     private void OnDayStarted(OperatingDayStartedEvent started)
     {
         commands.CompleteDeliveredPlans(started.day);
-        BuildableObject facility = CertifiedSeedFacilityEligibility
-            .FindOperational(facilities)
-            .FirstOrDefault();
-        if (facility == null) return;
-
-        CropDefinitionSO[] authored = crops.Crops
-            .Where(value => value != null
-                && !string.IsNullOrWhiteSpace(value.SeedItemId))
-            .OrderBy(value => value.CropId, StringComparer.Ordinal)
-            .ToArray();
-        for (int offset = 0; offset < authored.Length; offset += 4)
-        {
-            EventAlertChoice[] choices = authored.Skip(offset).Take(4)
-                .Select(crop => new EventAlertChoice(
-                    crop.DisplayName,
-                    "기존 종자 로트와 인증 꾸러미를 운반해 품질을 높이고 병원체 부하를 낮춥니다.",
-                    V21ContentAlertActionIds.CertifiedSeed(
-                        crop.CropId,
-                        facility.PersistentInstanceId.Value)))
-                .ToArray();
-            events.Publish(new EventAlertRequestedEvent(new EventAlertRequest(
-                "인증 품종 종자 생산",
-                "육종 온실에서 인증할 작물을 선택하십시오. 재료가 실제로 도착한 뒤 종자 로트가 배출됩니다.",
-                EventAlertImportance.Medium,
-                "V21 농업",
-                choices,
-                $"certified-seed:{facility.PersistentInstanceId.Value}:{offset / 4}")));
-        }
+        events.Publish(new CertifiedSeedPlansAdvancedFact(started.day));
     }
 }

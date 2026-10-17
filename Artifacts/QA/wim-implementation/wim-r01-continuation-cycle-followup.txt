@@ -1,0 +1,72 @@
+scope=followup to failed live-continuation, same world, no forced replan/action/progress/needs
+initialFailedGameTime=125.675705
+followupGameTime=157.826187
+initialPlayCanceledRunCount=0
+interpretation=initial 75wall timeout occurred while approaching workplace; later continuation exited with EnvironmentInterrupt; do not infer another workforce leak or increase timeout without isolating preparation
+observation=0
+{
+  "output": null,
+  "diagnostics": [],
+  "success": true,
+  "result": {
+    "HasActiveWorkRoutineForDiagnostics": true,
+    "HasActiveGenericProgressForDiagnostics": false,
+    "HasPendingResumedGenericProgressForDiagnostics": false,
+    "HasRoutineNeedWorkBlockForDiagnostics": false,
+    "IsRoutineNeedInterruptionFinalizing": false,
+    "LastPreWuExitKindForDiagnostics": 0,
+    "LastPreWuExitDetailForDiagnostics": "",
+    "ActiveWorkCancellationCountForDiagnostics": 0,
+    "LastActiveWorkCancellationReasonForDiagnostics": "",
+    "CurrentDutyState": 0,
+    "diagnostic": {
+      "DutyState": 0,
+      "ActorMissing": false,
+      "ExpeditionBlocked": false,
+      "PrioritySuppress": false,
+      "PriorityWork": false,
+      "UrgentPriorityWork": false,
+      "RoutineNeedBlocked": false,
+      "DiscontentBlocked": false,
+      "DiscontentReason": "",
+      "ConditionWouldTakeOffDuty": false,
+      "RestProtectionBlocked": false,
+      "CanStartByDutyGate": true
+    },
+    "brain": "행동: 일하기 (7.2s)\n단계: 작업대 접근\n목표: 연구책상\n경로: MovePath / 5칸\n예약: 연구책상\n기분: 62\n이유: 정상\n운반 계획: 운반 계획 없음\n적재: 0/28.7kg\n정리 사유: 진행 중"
+  }
+}
+
+observation=1
+{
+  "output": null,
+  "diagnostics": [],
+  "success": true,
+  "result": {
+    "gameTime": 157.826187,
+    "wall": 220.027618,
+    "cell": {
+      "x": 17,
+      "y": 0,
+      "magnitude": 17,
+      "sqrMagnitude": 289
+    },
+    "brain": "행동: 대기 (0.2s)\n단계: 길 비켜주기 / 다음 행동을 찾으며 움직이는 중\n목표: 없음\n경로: NoDestination / 0칸\n전환완충: 0.6s\n기분: 51.7\n이유: 정상\n운반 계획: 운반 계획 없음\n적재: 0/28.7kg\n정리 사유: 진행 중",
+    "ActiveWorkRunIdForDiagnostics": 2,
+    "HasActiveWorkRoutineForDiagnostics": false,
+    "HasActiveGenericProgressForDiagnostics": false,
+    "GenericCompletedWorkForDiagnostics": 0,
+    "GenericRequiredWorkForDiagnostics": 0,
+    "ActiveWorkCancellationCountForDiagnostics": 0,
+    "LastActiveWorkCancellationReasonForDiagnostics": "",
+    "participants": 0
+  }
+}
+
+observation=2
+{
+  "output": null,
+  "diagnostics": [],
+  "success": true,
+  "result": "{ failure = CharacterOperationBlockSnapshot, gate = CharacterAiRuntimeGateSnapshot, LastWorkOrderExecutionDetailForDiagnostics = stage=execution-no-order,workType=work:research,target=building:1f3ab6b1d24e4d09affbebd0b49f8290,expected=,actual=missing,status=missing,remaining=missing, LastPreWuExitKindForDiagnostics = EnvironmentInterrupt, LastPreWuExitDetailForDiagnostics = run=2/2,activeRun=True,actor=True,brain=True,actionEnd=True,target=True,destroyed=False,active=True,assigned=True,working=False,accident=False,emergencyRequested=False,emergencyEpoch=0,environmentInterrupted=True, cancellation = , rejected = 켜진 작업 우선순위가 없습니다 }"
+}

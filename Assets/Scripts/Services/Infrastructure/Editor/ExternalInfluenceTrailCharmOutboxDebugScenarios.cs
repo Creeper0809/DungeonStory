@@ -90,6 +90,7 @@ public static class ExternalInfluenceTrailCharmOutboxDebugScenarios
             RestoreSiteId,
             ExternalInfluenceRuntimeApplicationAdapter.TrailCharmItemId,
             receipt);
+        AddPendingIntelOperation(externalSave, RestoreSiteId, receipt);
         DungeonPhysicalItemSaveData physicalSave = source.Items.Capture();
 
         using Fixture restored = Fixture.Create();
@@ -124,9 +125,12 @@ public static class ExternalInfluenceTrailCharmOutboxDebugScenarios
             RestoreSiteId,
             ExternalInfluenceRuntimeApplicationAdapter.TrailCharmItemId,
             receipt);
+        AddPendingIntelOperation(save, RestoreSiteId, receipt);
         save.trailCharmCommitPhase =
             ExternalInfluenceTrailCharmCommitPhase.IntelPublished;
         save.intelUnlockedSiteIds.Add(RestoreSiteId);
+        save.operations.Single().phase =
+            ExternalInfluenceOperationPhase.ResultPublished;
         Require(source.Dispositions.Acknowledge(
                 receipt.CommitId,
                 out string acknowledgeFailure),
@@ -178,6 +182,29 @@ public static class ExternalInfluenceTrailCharmOutboxDebugScenarios
         {
             throw new InvalidOperationException(message);
         }
+    }
+
+    private static void AddPendingIntelOperation(
+        DungeonExternalInfluenceSaveData save,
+        string siteId,
+        PhysicalItemBatchDispositionReceipt receipt)
+    {
+        long revision = save.nextOperationRevision++;
+        save.operations.Add(new ExternalInfluenceOperationSaveData
+        {
+            revision = revision,
+            operationId = $"external-influence:intel:{siteId}",
+            kind = ExternalInfluenceOperationKind.IntelUnlock,
+            phase = ExternalInfluenceOperationPhase.CostCommitted,
+            sourceId = "external-influence:intel-unlock",
+            targetId = siteId,
+            costKind = ExternalInfluenceCostKind.TrailCharm,
+            costAmount = 1f,
+            appliedAmount = 1f,
+            valueBefore = 1f,
+            valueAfter = 0f,
+            physicalCommitId = receipt.CommitId
+        });
     }
 
     private static void RequireThrows<TException>(Action action, string message)

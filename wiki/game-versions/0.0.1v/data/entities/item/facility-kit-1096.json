@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "실내 재배조에 씨앗을 심고 작물의 성장 상태를 돌보는 데 필요한 설치 부품이며, 므네실라에서도 같은 규격으로 조립한다.",
+  "in_game_description": "실내 재배조에 씨앗을 심고 작물의 성장 상태를 돌보는 데 필요한 설치 부품이다. 므네실라의 실내 재배조에는 수확한 자리보다 쉬게 둔 흙에서 더 밝은 포자등이 켜진다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

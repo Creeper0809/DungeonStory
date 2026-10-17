@@ -96,7 +96,7 @@ public sealed class ProductionFacilityDestructiveDrainAuthorityStateQuery :
                 ProductionStockSensorDestinationAuthorityRuntime
                     .CapacitySchemaRevision),
             CapturePair(
-                ProductionBillRuntime.OutputDestinationPrefix + facilityId.Value,
+                ProductionBillIdentity.OutputDestinationPrefix + facilityId.Value,
                 ProductionOutputDestinationAuthorityRuntime.OwnerDomain,
                 facilityId,
                 ProductionOutputDestinationAuthorityRuntime

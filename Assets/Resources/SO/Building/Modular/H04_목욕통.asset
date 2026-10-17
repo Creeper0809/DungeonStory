@@ -184,7 +184,6 @@ MonoBehaviour:
         abilityId: BuildingWaterSourceAbility
         waterPerWork: 6
         workSeconds: 1.2
-        blockedByFreezingWeather: 1
     - rid: 7737211921440178706
       type: {class: BuildingMedicalAbility, ns: , asm: DungeonStory.Survival}
       data:

@@ -19,6 +19,7 @@ CropDefinitionSO|crop:bloodleaf,crop:bloodleaf,yield,4,,,explicit-serialized
 CropDefinitionSO|crop:bloodleaf,crop:bloodleaf,indoorAllowed,1,,,explicit-serialized
 CropDefinitionSO|crop:bloodleaf,crop:bloodleaf,temperatureRange.x,8,,,explicit-serialized
 CropDefinitionSO|crop:bloodleaf,crop:bloodleaf,temperatureRange.y,30,,,explicit-serialized
+CropDefinitionSO|crop:bloodleaf,crop:bloodleaf,lightProfile,3,CropLightProfile,Medium,explicit-serialized
 CropDefinitionSO|crop:cave-mushroom,crop:cave-mushroom,m_Name,crop_cave_mushroom,,,explicit-serialized
 CropDefinitionSO|crop:cave-mushroom,crop:cave-mushroom,id,10003,,,explicit-serialized
 CropDefinitionSO|crop:cave-mushroom,crop:cave-mushroom,cropId,crop:cave-mushroom,,,explicit-serialized
@@ -39,6 +40,7 @@ CropDefinitionSO|crop:cave-mushroom,crop:cave-mushroom,yield,5,,,explicit-serial
 CropDefinitionSO|crop:cave-mushroom,crop:cave-mushroom,indoorAllowed,1,,,explicit-serialized
 CropDefinitionSO|crop:cave-mushroom,crop:cave-mushroom,temperatureRange.x,3,,,explicit-serialized
 CropDefinitionSO|crop:cave-mushroom,crop:cave-mushroom,temperatureRange.y,26,,,explicit-serialized
+CropDefinitionSO|crop:cave-mushroom,crop:cave-mushroom,lightProfile,1,CropLightProfile,Light Independent,explicit-serialized
 CropDefinitionSO|crop:dreamleaf,crop:dreamleaf,m_Name,crop_dreamleaf,,,explicit-serialized
 CropDefinitionSO|crop:dreamleaf,crop:dreamleaf,id,10006,,,explicit-serialized
 CropDefinitionSO|crop:dreamleaf,crop:dreamleaf,cropId,crop:dreamleaf,,,explicit-serialized
@@ -59,6 +61,7 @@ CropDefinitionSO|crop:dreamleaf,crop:dreamleaf,yield,4,,,explicit-serialized
 CropDefinitionSO|crop:dreamleaf,crop:dreamleaf,indoorAllowed,1,,,explicit-serialized
 CropDefinitionSO|crop:dreamleaf,crop:dreamleaf,temperatureRange.x,6,,,explicit-serialized
 CropDefinitionSO|crop:dreamleaf,crop:dreamleaf,temperatureRange.y,26,,,explicit-serialized
+CropDefinitionSO|crop:dreamleaf,crop:dreamleaf,lightProfile,2,CropLightProfile,Shade,explicit-serialized
 CropDefinitionSO|crop:ember-cotton,crop:ember-cotton,m_Name,crop_ember-cotton,,,explicit-serialized
 CropDefinitionSO|crop:ember-cotton,crop:ember-cotton,id,9352,,,explicit-serialized
 CropDefinitionSO|crop:ember-cotton,crop:ember-cotton,cropId,crop:ember-cotton,,,explicit-serialized
@@ -79,6 +82,7 @@ CropDefinitionSO|crop:ember-cotton,crop:ember-cotton,yield,6,,,explicit-serializ
 CropDefinitionSO|crop:ember-cotton,crop:ember-cotton,indoorAllowed,1,,,explicit-serialized
 CropDefinitionSO|crop:ember-cotton,crop:ember-cotton,temperatureRange.x,14,,,explicit-serialized
 CropDefinitionSO|crop:ember-cotton,crop:ember-cotton,temperatureRange.y,42,,,explicit-serialized
+CropDefinitionSO|crop:ember-cotton,crop:ember-cotton,lightProfile,4,CropLightProfile,High,explicit-serialized
 CropDefinitionSO|crop:ember-root,crop:ember-root,m_Name,crop_ember_root,,,explicit-serialized
 CropDefinitionSO|crop:ember-root,crop:ember-root,id,10001,,,explicit-serialized
 CropDefinitionSO|crop:ember-root,crop:ember-root,cropId,crop:ember-root,,,explicit-serialized
@@ -99,6 +103,7 @@ CropDefinitionSO|crop:ember-root,crop:ember-root,yield,5,,,explicit-serialized
 CropDefinitionSO|crop:ember-root,crop:ember-root,indoorAllowed,1,,,explicit-serialized
 CropDefinitionSO|crop:ember-root,crop:ember-root,temperatureRange.x,2,,,explicit-serialized
 CropDefinitionSO|crop:ember-root,crop:ember-root,temperatureRange.y,28,,,explicit-serialized
+CropDefinitionSO|crop:ember-root,crop:ember-root,lightProfile,4,CropLightProfile,High,explicit-serialized
 CropDefinitionSO|crop:frost-flax,crop:frost-flax,m_Name,crop_frost-flax,,,explicit-serialized
 CropDefinitionSO|crop:frost-flax,crop:frost-flax,id,9351,,,explicit-serialized
 CropDefinitionSO|crop:frost-flax,crop:frost-flax,cropId,crop:frost-flax,,,explicit-serialized
@@ -119,6 +124,7 @@ CropDefinitionSO|crop:frost-flax,crop:frost-flax,yield,6,,,explicit-serialized
 CropDefinitionSO|crop:frost-flax,crop:frost-flax,indoorAllowed,1,,,explicit-serialized
 CropDefinitionSO|crop:frost-flax,crop:frost-flax,temperatureRange.x,-8,,,explicit-serialized
 CropDefinitionSO|crop:frost-flax,crop:frost-flax,temperatureRange.y,20,,,explicit-serialized
+CropDefinitionSO|crop:frost-flax,crop:frost-flax,lightProfile,3,CropLightProfile,Medium,explicit-serialized
 CropDefinitionSO|crop:mire-reed,crop:mire-reed,m_Name,crop_mire-reed,,,explicit-serialized
 CropDefinitionSO|crop:mire-reed,crop:mire-reed,id,9353,,,explicit-serialized
 CropDefinitionSO|crop:mire-reed,crop:mire-reed,cropId,crop:mire-reed,,,explicit-serialized
@@ -139,6 +145,7 @@ CropDefinitionSO|crop:mire-reed,crop:mire-reed,yield,6,,,explicit-serialized
 CropDefinitionSO|crop:mire-reed,crop:mire-reed,indoorAllowed,1,,,explicit-serialized
 CropDefinitionSO|crop:mire-reed,crop:mire-reed,temperatureRange.x,8,,,explicit-serialized
 CropDefinitionSO|crop:mire-reed,crop:mire-reed,temperatureRange.y,34,,,explicit-serialized
+CropDefinitionSO|crop:mire-reed,crop:mire-reed,lightProfile,3,CropLightProfile,Medium,explicit-serialized
 CropDefinitionSO|crop:moonflower,crop:moonflower,m_Name,crop_moonflower,,,explicit-serialized
 CropDefinitionSO|crop:moonflower,crop:moonflower,id,10005,,,explicit-serialized
 CropDefinitionSO|crop:moonflower,crop:moonflower,cropId,crop:moonflower,,,explicit-serialized
@@ -159,6 +166,7 @@ CropDefinitionSO|crop:moonflower,crop:moonflower,yield,3,,,explicit-serialized
 CropDefinitionSO|crop:moonflower,crop:moonflower,indoorAllowed,1,,,explicit-serialized
 CropDefinitionSO|crop:moonflower,crop:moonflower,temperatureRange.x,5,,,explicit-serialized
 CropDefinitionSO|crop:moonflower,crop:moonflower,temperatureRange.y,24,,,explicit-serialized
+CropDefinitionSO|crop:moonflower,crop:moonflower,lightProfile,2,CropLightProfile,Shade,explicit-serialized
 CropDefinitionSO|crop:night-grape,crop:night-grape,m_Name,crop_night_grape,,,explicit-serialized
 CropDefinitionSO|crop:night-grape,crop:night-grape,id,10002,,,explicit-serialized
 CropDefinitionSO|crop:night-grape,crop:night-grape,cropId,crop:night-grape,,,explicit-serialized
@@ -179,6 +187,7 @@ CropDefinitionSO|crop:night-grape,crop:night-grape,yield,5,,,explicit-serialized
 CropDefinitionSO|crop:night-grape,crop:night-grape,indoorAllowed,1,,,explicit-serialized
 CropDefinitionSO|crop:night-grape,crop:night-grape,temperatureRange.x,8,,,explicit-serialized
 CropDefinitionSO|crop:night-grape,crop:night-grape,temperatureRange.y,32,,,explicit-serialized
+CropDefinitionSO|crop:night-grape,crop:night-grape,lightProfile,2,CropLightProfile,Shade,explicit-serialized
 CropDefinitionSO|crop:shade-fiber,crop:shade-fiber,m_Name,crop_shade_fiber,,,explicit-serialized
 CropDefinitionSO|crop:shade-fiber,crop:shade-fiber,id,10007,,,explicit-serialized
 CropDefinitionSO|crop:shade-fiber,crop:shade-fiber,cropId,crop:shade-fiber,,,explicit-serialized
@@ -199,6 +208,7 @@ CropDefinitionSO|crop:shade-fiber,crop:shade-fiber,yield,6,,,explicit-serialized
 CropDefinitionSO|crop:shade-fiber,crop:shade-fiber,indoorAllowed,1,,,explicit-serialized
 CropDefinitionSO|crop:shade-fiber,crop:shade-fiber,temperatureRange.x,5,,,explicit-serialized
 CropDefinitionSO|crop:shade-fiber,crop:shade-fiber,temperatureRange.y,30,,,explicit-serialized
+CropDefinitionSO|crop:shade-fiber,crop:shade-fiber,lightProfile,2,CropLightProfile,Shade,explicit-serialized
 CropDefinitionSO|crop:spore-hemp,crop:spore-hemp,m_Name,crop_spore-hemp,,,explicit-serialized
 CropDefinitionSO|crop:spore-hemp,crop:spore-hemp,id,9354,,,explicit-serialized
 CropDefinitionSO|crop:spore-hemp,crop:spore-hemp,cropId,crop:spore-hemp,,,explicit-serialized
@@ -219,6 +229,7 @@ CropDefinitionSO|crop:spore-hemp,crop:spore-hemp,yield,6,,,explicit-serialized
 CropDefinitionSO|crop:spore-hemp,crop:spore-hemp,indoorAllowed,1,,,explicit-serialized
 CropDefinitionSO|crop:spore-hemp,crop:spore-hemp,temperatureRange.x,6,,,explicit-serialized
 CropDefinitionSO|crop:spore-hemp,crop:spore-hemp,temperatureRange.y,30,,,explicit-serialized
+CropDefinitionSO|crop:spore-hemp,crop:spore-hemp,lightProfile,3,CropLightProfile,Medium,explicit-serialized
 CropDefinitionSO|crop:twilight-grain,crop:twilight-grain,m_Name,crop_twilight_grain,,,explicit-serialized
 CropDefinitionSO|crop:twilight-grain,crop:twilight-grain,id,10000,,,explicit-serialized
 CropDefinitionSO|crop:twilight-grain,crop:twilight-grain,cropId,crop:twilight-grain,,,explicit-serialized
@@ -239,3 +250,4 @@ CropDefinitionSO|crop:twilight-grain,crop:twilight-grain,yield,6,,,explicit-seri
 CropDefinitionSO|crop:twilight-grain,crop:twilight-grain,indoorAllowed,1,,,explicit-serialized
 CropDefinitionSO|crop:twilight-grain,crop:twilight-grain,temperatureRange.x,4,,,explicit-serialized
 CropDefinitionSO|crop:twilight-grain,crop:twilight-grain,temperatureRange.y,30,,,explicit-serialized
+CropDefinitionSO|crop:twilight-grain,crop:twilight-grain,lightProfile,4,CropLightProfile,High,explicit-serialized

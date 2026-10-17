@@ -26,6 +26,19 @@ public static class IndustrialInfrastructureAssetBuilder
         public Color32 BaseColor;
         public Color32 AccentColor;
         public Func<IEnumerable<BuildingAbility>> CreateAbilities;
+        public WorkSpec ExplicitWork;
+        public bool IsWim016CropLighting;
+        public int? ExplicitSpriteMarker;
+    }
+
+    private sealed class WorkSpec
+    {
+        public float ConstructionWorkRequired;
+        public float RepairWorkRequired;
+        public float CleanWorkRequired;
+        public float OperateWorkRequired;
+        public ItemAmountDefinition[] ConstructionMaterials =
+            Array.Empty<ItemAmountDefinition>();
     }
 
     [MenuItem("DungeonStory/Content/Build Industrial Infrastructure")]
@@ -56,6 +69,59 @@ public static class IndustrialInfrastructureAssetBuilder
         AssetDatabase.SaveAssets();
     }
 
+    /// <summary>
+    /// Authors only the two approved WIM016 crop-lighting facilities and their
+    /// direct research and installation-kit links.  It deliberately avoids the
+    /// broad industrial and research rebuild entry points, which rewrite
+    /// unrelated authored assets.
+    /// </summary>
+    public static void BuildWim016CropLightingAssets()
+    {
+        Spec[] specs = CreateSpecs()
+            .Where(spec => spec.IsWim016CropLighting)
+            .ToArray();
+        ValidateWim016CropLightingIdentifiers(specs);
+        EnsureFolder(BuildingRoot);
+        EnsureFolder(SpriteRoot);
+
+        BuildingSO[] buildings = specs.Select(spec =>
+        {
+            string spritePath = $"{SpriteRoot}/{spec.Code}.png";
+            WriteSprite(spec, spritePath);
+            ConfigureSprite(spritePath);
+            return EnsureWim016CropLightingBuilding(spec, spritePath);
+        }).ToArray();
+
+        GameContentCatalogAssetBuilder.ReindexBuildingDefinitions();
+        ResearchProjectAssetBuilder.ApplyWim016CropLightingUnlocks();
+        GameContentCatalogAssetBuilder
+            .EnsureWim016CropLightingInstallationKitsForBuildings(
+            buildings);
+        foreach (BuildingSO building in buildings)
+        {
+            AssetDatabase.SaveAssetIfDirty(building);
+        }
+
+        Debug.Log(
+            "WIM016 crop-lighting assets authored: "
+            + string.Join(", ", specs.Select(spec =>
+                $"{spec.Code}/{spec.Id}")));
+    }
+
+    public static IReadOnlyDictionary<string, string[]>
+        GetWim016CropLightingResearchUnlockCodes()
+    {
+        return CreateSpecs()
+            .Where(spec => spec.IsWim016CropLighting)
+            .GroupBy(spec => spec.ResearchId, StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(spec => spec.Code)
+                    .OrderBy(code => code, StringComparer.Ordinal)
+                    .ToArray(),
+                StringComparer.Ordinal);
+    }
+
     public static IReadOnlyDictionary<string, string[]> GetResearchUnlockCodes()
     {
         return CreateSpecs()
@@ -69,7 +135,7 @@ public static class IndustrialInfrastructureAssetBuilder
                 StringComparer.Ordinal);
     }
 
-    private static void EnsureBuilding(Spec spec, string spritePath)
+    private static BuildingSO EnsureBuilding(Spec spec, string spritePath)
     {
         string path = $"{BuildingRoot}/{spec.Code}_{Sanitize(spec.Name)}.asset";
         BuildingSO building = AssetDatabase.LoadAssetAtPath<BuildingSO>(path);
@@ -80,6 +146,126 @@ public static class IndustrialInfrastructureAssetBuilder
         }
 
         Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
+        ConfigureBuilding(building, spec, sprite, clearTiles: true);
+        EditorUtility.SetDirty(building);
+        return building;
+    }
+
+    private static BuildingSO EnsureWim016CropLightingBuilding(
+        Spec spec,
+        string spritePath)
+    {
+        if (spec == null || !spec.IsWim016CropLighting)
+        {
+            throw new ArgumentException(
+                "WIM016 crop-lighting authoring only accepts its approved specs.",
+                nameof(spec));
+        }
+
+        string path = $"{BuildingRoot}/{spec.Code}_{Sanitize(spec.Name)}.asset";
+        BuildingSO building = AssetDatabase.LoadAssetAtPath<BuildingSO>(path);
+        bool created = building == null;
+        if (created)
+        {
+            building = ScriptableObject.CreateInstance<BuildingSO>();
+            AssetDatabase.CreateAsset(building, path);
+        }
+
+        Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
+        if (!created && MatchesWim016CropLightingAuthoring(building, spec, sprite))
+        {
+            return building;
+        }
+
+        ConfigureBuilding(building, spec, sprite, clearTiles: created);
+        EditorUtility.SetDirty(building);
+        return building;
+    }
+
+    private static bool MatchesWim016CropLightingAuthoring(
+        BuildingSO building,
+        Spec spec,
+        Sprite sprite)
+    {
+        if (building == null)
+        {
+            return false;
+        }
+
+        BuildingSO expected = ScriptableObject.CreateInstance<BuildingSO>();
+        try
+        {
+            ConfigureBuilding(expected, spec, sprite, clearTiles: false);
+            if (building.id != expected.id
+                || !string.Equals(
+                    building.objectName,
+                    expected.objectName,
+                    StringComparison.Ordinal)
+                || building.sprite != expected.sprite
+                || building.icon != expected.icon
+                || building.width != expected.width
+                || building.height != expected.height
+                || building.layer != expected.layer
+                || building.category != expected.category
+                || building.horizontalDraggable != expected.horizontalDraggable
+                || building.verticalDraggable != expected.verticalDraggable
+                || building.runtimeArchetype != expected.runtimeArchetype
+                || building.unlocked != expected.unlocked)
+            {
+                return false;
+            }
+
+            Type[] expectedTypes =
+            {
+                typeof(BuildingFacilityPartAbility),
+                typeof(BuildingEconomyAbility),
+                typeof(BuildingWorkAmountAbility),
+                typeof(BuildingUtilityConnectionAbility),
+                typeof(BuildingPowerConsumerAbility),
+                typeof(BuildingLightingAbility),
+                typeof(BuildingFacilityAbility)
+            };
+            IReadOnlyList<BuildingAbility> actualAbilities = building.Abilities;
+            IReadOnlyList<BuildingAbility> expectedAbilities = expected.Abilities;
+            if (actualAbilities.Count != expectedTypes.Length
+                || expectedAbilities.Count != expectedTypes.Length)
+            {
+                return false;
+            }
+
+            foreach (Type type in expectedTypes)
+            {
+                BuildingAbility[] actual = actualAbilities
+                    .Where(ability => ability != null && ability.GetType() == type)
+                    .ToArray();
+                BuildingAbility[] desired = expectedAbilities
+                    .Where(ability => ability != null && ability.GetType() == type)
+                    .ToArray();
+                if (actual.Length != 1
+                    || desired.Length != 1
+                    || !string.Equals(
+                        JsonUtility.ToJson(actual[0]),
+                        JsonUtility.ToJson(desired[0]),
+                        StringComparison.Ordinal))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(expected);
+        }
+    }
+
+    private static void ConfigureBuilding(
+        BuildingSO building,
+        Spec spec,
+        Sprite sprite,
+        bool clearTiles)
+    {
         building.id = spec.Id;
         building.objectName = spec.Name;
         building.sprite = sprite;
@@ -92,7 +278,10 @@ public static class IndustrialInfrastructureAssetBuilder
         building.verticalDraggable = false;
         building.runtimeArchetype =
             BuildingRuntimeArchetypeKindExtensions.FromComponentType(spec.RuntimeType);
-        building.tiles = null;
+        if (clearTiles)
+        {
+            building.tiles = null;
+        }
         building.unlocked = false;
 
         BuildingAbilityCollection abilities = new BuildingAbilityCollection();
@@ -108,6 +297,7 @@ public static class IndustrialInfrastructureAssetBuilder
             ?.Where(ability => ability != null)
             .ToArray()
             ?? Array.Empty<BuildingAbility>();
+        WorkSpec explicitWork = spec.ExplicitWork;
         float baseWork = ResolveConstructionBaseWork(authoredAbilities);
         float footprint = Mathf.Clamp(
             1f + 0.30f * (Mathf.Max(1, spec.Width) - 1),
@@ -117,18 +307,27 @@ public static class IndustrialInfrastructureAssetBuilder
             1f + 0.10f * Mathf.Max(0, authoredAbilities.Length - 1),
             1f,
             1.5f);
-        float constructionWork = RoundTo(baseWork * footprint * capability, 4f);
+        float constructionWork = explicitWork != null
+            ? explicitWork.ConstructionWorkRequired
+            : RoundTo(baseWork * footprint * capability, 4f);
         BuildingWorkAmountAbility workAmount = new BuildingWorkAmountAbility
         {
             constructionWorkRequired = constructionWork,
-            repairWorkRequired = RoundTo(constructionWork * 0.30f, 2f),
-            cleanWorkRequired = RoundTo(
-                Mathf.Clamp(constructionWork * 0.05f, 6f, 28f),
-                2f),
-            operateWorkRequired = 10f
+            repairWorkRequired = explicitWork != null
+                ? explicitWork.RepairWorkRequired
+                : RoundTo(constructionWork * 0.30f, 2f),
+            cleanWorkRequired = explicitWork != null
+                ? explicitWork.CleanWorkRequired
+                : RoundTo(
+                    Mathf.Clamp(constructionWork * 0.05f, 6f, 28f),
+                    2f),
+            operateWorkRequired = explicitWork != null
+                ? explicitWork.OperateWorkRequired
+                : 10f
         };
         workAmount.SetConstructionMaterials(
-            ResolveConstructionMaterials(spec, authoredAbilities));
+            explicitWork?.ConstructionMaterials
+            ?? ResolveConstructionMaterials(spec, authoredAbilities));
         abilities.Add(workAmount);
         foreach (BuildingAbility ability in authoredAbilities)
         {
@@ -159,7 +358,43 @@ public static class IndustrialInfrastructureAssetBuilder
         }
 
         building.ValidateAbilitiesOrThrow();
-        EditorUtility.SetDirty(building);
+    }
+
+    private static void ValidateWim016CropLightingIdentifiers(
+        IReadOnlyList<Spec> specs)
+    {
+        if (specs == null || specs.Count != 2)
+        {
+            throw new InvalidOperationException(
+                "WIM016 crop-lighting authoring requires exactly two approved specs.");
+        }
+
+        BuildingSO[] allBuildings = LoadAllBuildings();
+        foreach (Spec spec in specs)
+        {
+            string expectedPath = $"{BuildingRoot}/{spec.Code}_{Sanitize(spec.Name)}.asset";
+            BuildingSO[] idMatches = allBuildings
+                .Where(building => building.id == spec.Id)
+                .ToArray();
+            BuildingSO[] codeMatches = allBuildings
+                .Where(building => string.Equals(
+                    building.GetAbility<BuildingFacilityPartAbility>()?.code,
+                    spec.Code,
+                    StringComparison.Ordinal))
+                .ToArray();
+            if (idMatches.Any(building => !string.Equals(
+                    AssetDatabase.GetAssetPath(building),
+                    expectedPath,
+                    StringComparison.Ordinal))
+                || codeMatches.Any(building => !string.Equals(
+                    AssetDatabase.GetAssetPath(building),
+                    expectedPath,
+                    StringComparison.Ordinal)))
+            {
+                throw new InvalidOperationException(
+                    $"WIM016 crop-lighting identifier collision for '{spec.Code}/{spec.Id}'.");
+            }
+        }
     }
 
     private static IReadOnlyList<ItemAmountDefinition> ResolveConstructionMaterials(
@@ -666,6 +901,46 @@ public static class IndustrialInfrastructureAssetBuilder
                     intensity = 1.2f,
                     radius = 5.5f
                 }),
+            CropLightingMachine("I19", 9828, "태양등", 1,
+                "research:industry:electric-lighting", warning, iron,
+                new WorkSpec
+                {
+                    ConstructionWorkRequired = 720f,
+                    RepairWorkRequired = 216f,
+                    CleanWorkRequired = 28f,
+                    OperateWorkRequired = 0f,
+                    ConstructionMaterials = new[]
+                    {
+                        new ItemAmountDefinition("material:stone-block", 4),
+                        new ItemAmountDefinition("material:iron-ingot", 4),
+                        new ItemAmountDefinition("material:cloth", 2),
+                        new ItemAmountDefinition("component:insulated-wiring", 4)
+                    }
+                },
+                4f,
+                4f,
+                9f),
+            CropLightingMachine("I20", 9829, "인공태양", 3,
+                "research:industry:mana-power", mana, warning,
+                new WorkSpec
+                {
+                    ConstructionWorkRequired = 1800f,
+                    RepairWorkRequired = 540f,
+                    CleanWorkRequired = 28f,
+                    OperateWorkRequired = 0f,
+                    ConstructionMaterials = new[]
+                    {
+                        new ItemAmountDefinition("material:stone-block", 8),
+                        new ItemAmountDefinition("material:steel-ingot", 6),
+                        new ItemAmountDefinition("material:cloth", 2),
+                        new ItemAmountDefinition("component:insulated-wiring", 8),
+                        new ItemAmountDefinition("component:rune-conductor", 2),
+                        new ItemAmountDefinition("material:mana-alloy", 1)
+                    }
+                },
+                12f,
+                12f,
+                17f),
             Machine("I16", 9825, "전기 제련 도가니", 2,
                 "research:industry:electric-smelting", iron, copper,
                 new BuildingUtilityConnectionAbility
@@ -682,6 +957,50 @@ public static class IndustrialInfrastructureAssetBuilder
                 {
                     outputCategory = StockCategory.General,
                     amount = 1
+                },
+                new BuildingEnvironmentalFireAbility
+                {
+                    acceptedSources =
+                        DungeonStory.Environment.EnvironmentalFireIgnitionSources
+                            .ElectricalFault
+                        | DungeonStory.Environment.EnvironmentalFireIgnitionSources
+                            .ProcessAccident
+                        | DungeonStory.Environment.EnvironmentalFireIgnitionSources
+                            .Spread,
+                    fuelCapacity = 1f,
+                    maximumIntensity = 0.8f,
+                    growthPerTick = 0.05f,
+                    fuelConsumedPerTick = 0.1f,
+                    damagePerTick = 12f,
+                    minimumSpreadIntensity = 0.55f,
+                    spreadChancePerTick = 0.1f,
+                    spreadIgnitionMultiplier = 0.5f,
+                    waterSuppressionPerUnit = 0.5f,
+                    electricalIgnitionHeat = 90f,
+                    electricalIgnitionFault = 5f,
+                    electricalIgnitionWindowSeconds = 30f,
+                    electricalIgnitionChancePerWindow = 0.15f,
+                    electricalIgnitionIntensity = 0.25f
+                },
+                new BuildingActiveHeatFireSourceAbility
+                {
+                    requiresPower = true,
+                    requiresActiveUser = true,
+                    ignitionWindowSeconds = 30f,
+                    ignitionChancePerWindow = 0.15f,
+                    ignitionIntensity = 0.25f
+                },
+                new BuildingProcessAccidentFireSourceAbility
+                {
+                    workTypeId = "work:operate",
+                    ignitionIntensity = 0.25f
+                },
+                new BuildingStructuralIntegrityAbility
+                {
+                    maxHitPoints = 148f,
+                    toughness = 12f,
+                    repairHitPointsPerWork = 2f,
+                    breachable = true
                 }),
             Machine("I17", 9826, "룬 조율실", 2,
                 "research:equipment:rune-module-tuning", mana, warning,
@@ -840,6 +1159,41 @@ public static class IndustrialInfrastructureAssetBuilder
         Spec spec = BaseSpec(code, id, name, research, baseColor, accent,
             GridLayer.Building, BuildingCategory.Resource, abilities);
         spec.Width = width;
+        return spec;
+    }
+
+    private static Spec CropLightingMachine(
+        string code,
+        int id,
+        string name,
+        int width,
+        string research,
+        Color32 baseColor,
+        Color32 accent,
+        WorkSpec work,
+        float utilityThroughput,
+        float powerDemand,
+        float lightRadius)
+    {
+        Spec spec = Machine(code, id, name, width, research, baseColor, accent,
+            new BuildingUtilityConnectionAbility
+            {
+                channels = UtilityChannel.Power,
+                maxThroughput = utilityThroughput
+            },
+            new BuildingPowerConsumerAbility
+            {
+                demandPerSecond = powerDemand,
+                priority = PowerPriority.Essential
+            },
+            new BuildingLightingAbility
+            {
+                intensity = 1f,
+                radius = lightRadius
+            });
+        spec.ExplicitWork = work;
+        spec.IsWim016CropLighting = true;
+        spec.ExplicitSpriteMarker = id % 4;
         return spec;
     }
 
@@ -1124,7 +1478,8 @@ public static class IndustrialInfrastructureAssetBuilder
             }
         }
 
-        int marker = Math.Abs(spec.Code.GetHashCode()) % 4;
+        int marker = spec.ExplicitSpriteMarker
+            ?? Math.Abs(spec.Code.GetHashCode()) % 4;
         for (int x = inset + 3 + marker; x < width - inset - 2; x += 6)
         {
             for (int y = inset + 3; y < top - 2; y += 5)

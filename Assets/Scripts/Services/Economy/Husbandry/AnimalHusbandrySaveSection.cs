@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 public sealed class AnimalHusbandrySaveSection :
@@ -16,7 +17,8 @@ public sealed class AnimalHusbandrySaveSection :
         WildlifeSaveSection.Id,
         CircusSaveSection.Id,
         PhysicalItemsSaveSection.Id,
-        ModularFacilityWorldSaveSection.Id
+        ModularFacilityWorldSaveSection.Id,
+        MigratedProducerOutcomeSaveSection.Id
     };
 
     private readonly IAnimalHusbandryPersistence persistence;
@@ -90,6 +92,26 @@ public sealed class AnimalHusbandrySaveSection :
         }
         try
         {
+            var root = JObject.Parse(payloadJson, new JsonLoadSettings
+            { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
+            if (root["pendingCommandFacts"] is not JArray pendingCommands)
+                throw new InvalidOperationException("Husbandry pendingCommandFacts array is missing.");
+            foreach (JToken pending in pendingCommands)
+                if (pending is not JObject || pending["publicationKey"]?.Type != JTokenType.String
+                    || pending["fact"] is not JObject fact
+                    || fact["kind"]?.Type != JTokenType.Integer
+                    || fact["operationId"]?.Type != JTokenType.String
+                    || fact["absoluteDay"]?.Type != JTokenType.Integer
+                    || fact["policyStates"] is not JArray || fact["animalStates"] is not JArray)
+                    throw new InvalidOperationException("Husbandry pending command shape is invalid.");
+            if (root["pendingOutcomes"] is not JArray pendingWork)
+                throw new InvalidOperationException("Husbandry pending work array is missing.");
+            foreach (JToken pending in pendingWork)
+                if (pending is not JObject || pending["publicationKey"]?.Type != JTokenType.String
+                    || pending["animalStatesBefore"] is not JArray || pending["animalStatesAfter"] is not JArray
+                    || pending["contributions"] is not JArray || pending["outputStacks"] is not JArray
+                    || pending["completionPublicationKey"]?.Type != JTokenType.String)
+                    throw new InvalidOperationException("Husbandry pending work shape is invalid.");
             return JsonUtility.FromJson<DungeonAnimalHusbandrySaveData>(payloadJson)
                 ?? throw new InvalidOperationException(
                     $"{SectionId} payload deserialized to null.");
@@ -118,10 +140,10 @@ public static class BatchBSpeciesHusbandryDebugScenarios
 
     private static void VerifySaveContracts()
     {
-        Require(CharacterSpeciesRuntimeSaveData.CurrentVersion == 3,
-            "Character-species payload must be exact V3.");
-        Require(DungeonAnimalHusbandrySaveData.CurrentVersion == 2,
-            "Animal-husbandry payload must be exact V2.");
+        Require(CharacterSpeciesRuntimeSaveData.CurrentVersion == 4,
+            "Character-species payload must be exact V4.");
+        Require(DungeonAnimalHusbandrySaveData.CurrentVersion == 5,
+            "Animal-husbandry payload must be exact V5; beta saves have no migration.");
         Require(typeof(IDungeonSaveSectionPreflight)
                 .IsAssignableFrom(typeof(SpeciesRuntimeSaveSection))
             && typeof(IDungeonRollbackFreeSaveSection)

@@ -1,0 +1,13 @@
+Inspect=Facility
+Inspect=Shop
+Inspect=ConstructionSite
+Inspect=CharacterBuildingVisitorAdapter
+Inspect=WorkTaskExecutor
+Inspect=WorkRunRuntime
+Inspect=AbilityWork
+Inspect=CharacterActor
+Inspect=CharacterVisual
+Inspect=work-body
+Inspect=shared-run-bodies
+Inspect=executed-members
+C4_SOURCE_PARITY=PASS; retainedMethods=445; existingPublicMethods=217; constructors/serialized/base/existingNonWorkerState=unchanged; workBody=onlyAdmissionScopeAndEightReleases; sharedRunBodies=unchangedAfterScopeGuards; executedOwnerFacadeActorAbilityMembers=matched; clusterRoles=6; Unity=NOT_RUN

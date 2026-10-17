@@ -1,0 +1,43 @@
+fixture-only occurrence replacement=event:1:guest-request:memorial-performance:7A53E4EA; original capture valid; unaccepted and no physical delivery owner
+baseline rawMoney=5000; rapport=0; stock=2
+PASS actual notice acceptance with no RF25: active pending, physical debit0, reward0, notice retained
+fixture room-space=(x:30, y:0, width:4, height:1) free=
+fixture room-space=(x:17, y:1, width:10, height:1) free=(17, 1)
+fixture room-space=(x:28, y:1, width:5, height:1) free=(28, 1),(29, 1)
+fixture room-space=(x:34, y:1, width:3, height:1) free=
+fixture room-space=(x:38, y:1, width:4, height:1) free=
+fixture room-space=(x:18, y:2, width:3, height:1) free=
+fixture room-space=(x:22, y:2, width:4, height:1) free=(22, 2)
+fixture room-space=(x:27, y:2, width:6, height:1) free=(27, 2),(28, 2),(29, 2)
+fixture room-space=(x:34, y:2, width:4, height:1) free=
+fixture room-space=(x:39, y:2, width:3, height:1) free=
+fixture authored RF25 instance=building:5f1e46c38e0e4e3f96789c7b37ea9d17; anchor=(27, 2)
+fixture room-space=(x:30, y:0, width:4, height:1) free=
+fixture room-space=(x:17, y:1, width:10, height:1) free=(17, 1)
+fixture room-space=(x:28, y:1, width:5, height:1) free=(28, 1),(29, 1)
+fixture room-space=(x:34, y:1, width:3, height:1) free=
+fixture room-space=(x:38, y:1, width:4, height:1) free=
+fixture room-space=(x:18, y:2, width:3, height:1) free=
+fixture room-space=(x:22, y:2, width:4, height:1) free=(22, 2)
+fixture room-space=(x:27, y:2, width:6, height:1) free=(28, 2),(29, 2)
+fixture room-space=(x:34, y:2, width:4, height:1) free=
+fixture room-space=(x:39, y:2, width:3, height:1) free=
+fixture authored RF25 instance=building:aeb0fe6f408f49d3a598733e87f65768; anchor=(28, 1)
+PASS actual room/anchor, deterministic candidate order, frozen exact identity and stale-coordinate rejection
+PASS actual furniture upper bounds and physical room-cell bound; raw seats=0; tables=0; service=0
+PASS same-room selector OR/AND, dropoff/actor cell exclusion, absent participants, physical/Society query purity
+venue-query-scope=registered main services and authored RF25 in actual main room; guest EventSystem/haul/restore follows in this run; festival attendance, cross-room claims and six-adult capacity remain separate
+delivery gameSeconds=43.96739; wallSeconds=10.95402; carried=True; arrived=True; destination=facility-input:exact:run.guest-request:event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live
+PASS actual AI pickup/move/arrival and physical commit=physical-batch-disposition:1:guest-request-transfer:event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live:2:1800
+PASS Society candidate rejected: foreign occurrence destination
+PASS Society candidate rejected: committed receipt without active input owner
+invalid whole restore accepted=False; errors=Failed to stage section 'society.events': Incoming guest-request Transfer 'guest-request-transfer:event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live' has no exact society owner.; sameSociety=True; sameFactions=True; samePhysical=True; sameMoney=True; sameLedger=True
+PASS missing incoming Society owner rejected atomically: Failed to stage section 'society.events': Incoming guest-request Transfer 'guest-request-transfer:event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live' has no exact society owner.
+PASS exact whole pending JSON restore with normal completed hooks
+PASS terminal +67 money/+4 rapport, drawing debit2 once, receipt ACK, replayMutation0; replayAccepted=False
+final stock=0; destination=facility-input:exact:run.guest-request:event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live; carried=True; arrived=True
+money raw=5067; requestAdjusted=5067
+observed money transaction={"transactionId":"economy:00000001","kind":14,"sourceId":"content:v21-content|society|event%3A2%3Aguest-request%3Asealed-archive%3Awim037-live|fulfill","targetId":"","description":"GuestRequestDeliveryOutcome","amount":67,"balanceBefore":5000,"balanceAfter":5067,"gameTime":44.66591262817383,"succeeded":true,"failureReason":""}
+result=PASS
+scope=controlled authored occurrence/day2, RF25 buildings and two physical drawings; actual EventSystem notice/accept, autonomous haul, terminal reward and current whole save. Not natural request selection, construction cost, venue9 authoring, onsite work or six-adult balance.
+cleanup=paused disposable main Play; disk persistence disabled before owner UI; operator stops without scene/profile/save writes

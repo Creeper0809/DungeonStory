@@ -1,0 +1,22 @@
+WIM032_033_FACTION_CONTRACTS_LIVE=PASS
+WIM-032/033 live faction-contract verification
+utc=2026-09-07T21:19:45.9873850Z
+[INFO] FIXTURE_BOOTSTRAP production prepared-party commit; committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; tierZero=changed=True;columns=27->29;startX=17;entrance=(17, 0); liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Arin:-2586646:character:staff:1:02:active=True,Roma:-2586578:character:staff:1:01:active=True; diagnostics=prepared-1:name=Roma;go=-2586550;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-2586618;id=character:staff:1:02;active=False || scan:name=Roma;go=-2586550;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-2586618;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-2586550;id=character:staff:1:01;active=True || retained:name=Arin;go=-2586618;id=character:staff:1:02;active=True
+[PASS] FIXTURE_CLOCK verification=1; originalTimeScale=0; originalPaused=True; cleanup=restore-original-authority
+[PASS] FIXTURE_READY owner=1; workers=3; grid=1; dropoff=(16, 0); eventSystem=1; worldMap=1; factionCampaign=1; administration=authored-fixture:R07:building:844cce614e7048f4a9eaa5a39dee3ccb@(29, 1); administrativeSeal=authored-fixture:stack:1db3443d5d37475da3ee053e0f143859; contract=faction-contract:beastkin:crisis; blockedPickup=(0, 1); temporaryRun=1; autosave=isolated
+[PASS] FACTION_WHOLE_REGISTRY local-malformed=preflight-reject; valid=preflight+staged-restore
+[PASS] LIVE_AUTHORITIES container+whole-save resolved
+[PASS] ADMINISTRATION_EQUIPMENT first-ui=pending/no-credit; natural-haul=SupplyReady; second-ui=accept; sealQuantity=1; durability=160->159
+[PASS] UI_ACCEPT_DECLINE_REOPEN pointer path; declineMutation=0
+[PASS] SHORTAGE_BLOCKED whole-save active/no-receipt
+[PASS] BLOCKED_PATH invariant material=exact; reward=unchanged; observed=Assigned:1,Carried:0,InTransit:0,Arrived:0
+[INFO] PARTIAL_EXPIRY_DAY calendar=2; event=2; evaluated=2; success=True; failure=none
+[PASS] PARTIAL_EXPIRY_RECOVERY production-day owner=retired; physical=Loose; quantity=exact; observed=Assigned:1,Carried:0,InTransit:0,Arrived:1
+[PASS] FACTION_STAGED_JOIN mismatch=reject/no-mutation; exact=whole-registry-restore
+[PASS] PENDING_OVERDUE_RESTORE physical receipt preserved past deadline
+[PASS] REWARD_WHOLE_SAVE authored campaign effects exactly once
+[PASS] ACK_EXACT_ONCE pending=0; rewardDuplicate=0; terminalRestore=exact
+[PASS] CLEANUP baseline whole-save restored
+[PASS] CLEANUP clock restored; paused=True; timeScale=0
+[PASS] CLEANUP autosave remained isolated through PlayMode exit
+failures=0

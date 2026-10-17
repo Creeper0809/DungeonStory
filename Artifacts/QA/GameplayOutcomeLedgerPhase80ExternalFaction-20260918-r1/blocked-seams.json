@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "phase": "phase80-external-faction-outcomes",
+  "generatedAt": "2026-09-18",
+  "rows": [
+    {
+      "candidate": "ExpeditionOutcomeEvent",
+      "actualOwner": "OffenseExpeditionResultFinalizer orchestrating OffenseExpeditionRuntime result history, OffenseRewardRuntime, MetaProgressionRuntime, OffenseCampaignRuntime and OffenseWorldSimulation",
+      "currentMutationPoint": "Finalize records meta success, applies rewards/physical grants, optionally resolves a world site, inserts result history and advances campaign before PublishIdentityOutcome publishes the event",
+      "requiredDetachedOrRollbackState": "OffenseAggregateSaveSection candidates plus MetaProgressionSaveSection candidate and every reward physical/economy pending receipt",
+      "recommendedMinimumSeam": "introduce an OffenseExpeditionFinalizationTransaction that projects the exact terminal result and participants, reserves ledger capacity, stages reward/campaign/meta/history candidates and durable physical receipts, then publishes all candidates with a persistent finalization outbox before legacy events"
+    },
+    {
+      "candidate": "ExteriorVisitorReceptionAppliedEvent",
+      "actualOwner": "ExteriorIncidentHandlerBase over ExteriorIncidentRuntimeState plus CharacterActor mood state",
+      "currentMutationPoint": "TryApplyReceptionOnEntry sets receptionApplied/progress and calls visitor.ApplyMoodFactor before EventBus.Publish",
+      "requiredDetachedOrRollbackState": "ExteriorActivitySaveSection incident candidate and the character mood/CharacterWorld save owner",
+      "recommendedMinimumSeam": "add an exterior reception transaction port that clones the incident and character mood effect, prepares one exact outcome before either mutation, publishes both candidates and the outcome at one revision, then emits the event"
+    },
+    {
+      "candidate": "FactionContractDeliveryReceipt",
+      "actualOwner": "V20ContentResolutionService with V20CampaignRuntime/FactionCampaignSaveSection and IPhysicalFacilityItemBatchTransferGateway pending disposition authority",
+      "currentMutationPoint": "AdvanceFactionContractDeliveries commits TryCommitTransferPending first, then PublishFactionMutation stores FactionContractDeliveryReceipt in the campaign delivery outbox",
+      "requiredDetachedOrRollbackState": "FactionCampaignSaveSection candidate plus the exact PhysicalItemBatchDisposition pending receipt and input-owner authority",
+      "recommendedMinimumSeam": "reserve the outcome before TryCommitTransferPending; extend the existing faction delivery outbox row with result key/revision; publish the detached faction candidate and commit the ledger before physical acknowledgement"
+    },
+    {
+      "candidate": "FactionRouteArrivedEvent",
+      "actualOwner": "FactionRuntimeApplicationAdapter/DungeonFactionDomain with route state, physical cargo publication and reinforcement materialization",
+      "currentMutationPoint": "CompleteRoute calls TryDeliverCargo or MaterializeReinforcements and only afterwards publishes FactionRouteArrivedEvent",
+      "requiredDetachedOrRollbackState": "FactionSaveSection route candidate plus PhysicalItemsSaveSection exact-source publication or character/reinforcement spawn state",
+      "recommendedMinimumSeam": "add a persistent route-terminal outbox containing the frozen route/cargo/settlement facts; reserve before cargo/reinforcement commit; mark the route arrived and commit the outcome from that outbox; emit the event only after terminal acknowledgement"
+    },
+    {
+      "candidate": "FactionRouteCargoDeliveryReceipt",
+      "actualOwner": "DungeonFactionDomain route.cargoDelivery plus IPhysicalItemExactSourcePublicationService",
+      "currentMutationPoint": "TryCommitCargo calls exactSources.TryCommitReleased, validates the physical receipt, then domain.MarkCargoDelivered writes the projected receipt",
+      "requiredDetachedOrRollbackState": "FactionSaveSection route candidate and the pending PhysicalItemExactSourcePublicationTransaction/receipt",
+      "recommendedMinimumSeam": "reserve from ProjectCargoReceipt before TryCommitReleased; persist result key with route cargoDelivery; commit MarkCargoDelivered and ledger while the physical publication is still pending; acknowledge/remove pendingCargo only afterward"
+    },
+    {
+      "candidate": "FactionRouteSettlementReceipt",
+      "actualOwner": "FactionRuntimeApplicationAdapter/DungeonFactionDomain plus IGameMoneyAccount trade debit or faction alliance-benefit budget authority",
+      "currentMutationPoint": "TryCreateRoute spends money or reserves alliance benefit before domain.AddRoute freezes FactionRouteSettlementReceipt into the route",
+      "requiredDetachedOrRollbackState": "FactionSaveSection route/budget candidate, exact economy transaction/refund recovery record and alliance budget reservation state",
+      "recommendedMinimumSeam": "project and prepare the settlement outcome before debit; extend tradeSettlementRecovery/alliance reservation with the outcome result key; publish the detached route candidate and outcome before completing debit recovery"
+    },
+    {
+      "candidate": "FactionTrustChangedEvent",
+      "actualOwner": "FactionRuntimeApplicationAdapter/DungeonFactionDomain plus V20CampaignRuntime relationship state; goodwill/betrayal paths also own physical transfer or loot state",
+      "currentMutationPoint": "TryAdjustTrust applies campaign change before publish; TryOfferGoodwill finalizes the physical outbox before publish; TryBetray applies loot, faction and campaign transitions before each publish",
+      "requiredDetachedOrRollbackState": "FactionSaveSection candidate, FactionCampaignSaveSection candidate and applicable physical disposition/loot outbox",
+      "recommendedMinimumSeam": "create one FactionTrustTransitionTransaction per operation that freezes every transition, reserves all rows, stages both faction projections and any physical receipt in a persistent outbox, then commits them as a batch before notifications"
+    },
+    {
+      "candidate": "FestivalCelebratedEvent",
+      "actualOwner": "FestivalExecutionRuntime coordinating FestivalExecutionSaveSection, psychosocial state, CharacterActor mood, V20 faction campaign and ritual fasting",
+      "currentMutationPoint": "ResolveOccurrence publishes psychosocial restore, applies actor mood and faction rapport, then publishes FestivalCelebratedEvent before completing fasts and terminal festival state",
+      "requiredDetachedOrRollbackState": "FestivalExecutionSaveSection candidate, psychosocial candidate, character mood save owner, FactionCampaignSaveSection candidate and ritual-fasting state",
+      "recommendedMinimumSeam": "introduce a FestivalResolutionTransaction with precomputed valid attendance/outcome facts; prepare before any effect; stage all five authorities and a persistent festival terminal outbox; publish atomically or roll back every candidate; emit event after outcome commit"
+    },
+    {
+      "candidate": "FestivalOutcomeEvent",
+      "actualOwner": "none; the type has zero producers, while FestivalIdentityEventAdapter is its only subscriber",
+      "currentMutationPoint": "none; FestivalExecutionRuntime currently applies festival mood directly and publishes only FestivalCelebratedEvent",
+      "requiredDetachedOrRollbackState": "the future FestivalResolutionTransaction and its exact per-participant outcome mapping",
+      "recommendedMinimumSeam": "after FestivalCelebratedEvent is atomically integrated, either emit one exact per-participant identity event from the same outbox or remove FestivalOutcomeEvent/FestivalIdentityEventAdapter with proof that participant, festival, outcome and day are preserved by the integrated substitute"
+    },
+    {
+      "candidate": "OffenseExpeditionArrivalReceipt",
+      "actualOwner": "OffenseReturnArrivalRuntime/OffenseReturnArrivalAggregateState",
+      "currentMutationPoint": "CreateSettlementReceipt snapshots already-mutated arrival state for query, save restore and OffenseExpeditionArrivalResolvedEvent",
+      "requiredDetachedOrRollbackState": "OffenseAggregateSaveSection returnArrivals candidate with a persistent arrival terminal revision/outbox",
+      "recommendedMinimumSeam": "integrate the higher arrival-resolved outcome first with the complete ordered receipt vector; only then classify each low-level receipt NonResult against that exact substitute"
+    },
+    {
+      "candidate": "OffenseExpeditionArrivalResolvedEvent",
+      "actualOwner": "OffenseReturnArrivalRuntime/OffenseReturnArrivalAggregateState",
+      "currentMutationPoint": "TryFinalizeResolvedArrival writes terminal stage, settled counts, risk and status directly, then publishes the event",
+      "requiredDetachedOrRollbackState": "OffenseAggregateSaveSection returnArrivals clone plus stable observations from CaptivitySaveSection/WildlifeSaveSection",
+      "recommendedMinimumSeam": "add an arrival owner revision; calculate receipts on a cloned aggregate; prepare before replacement; replace aggregate and commit one exact outcome at that revision; legacy publish follows delivery"
+    },
+    {
+      "candidate": "OffenseExpeditionCurrencyReceipt",
+      "actualOwner": "OffenseExpeditionRun return state plus IIdempotentGameMoneyAccount",
+      "currentMutationPoint": "ReleaseResourcesWithReceipt credits money with TryCreditOnce, then calls CompleteReturningFieldFunds and RecordReturnCurrencyReceipts",
+      "requiredDetachedOrRollbackState": "OffenseAggregateSaveSection expedition candidate and the idempotent economy transaction record",
+      "recommendedMinimumSeam": "reserve before TryCreditOnce; persist currency receipt/result key in the expedition return outbox immediately after the idempotent credit; integrate the final return outcome before clearing the pending economy operation"
+    },
+    {
+      "candidate": "OffenseExpeditionItemReceipt",
+      "actualOwner": "OffenseExpeditionRun plus OffensePreparationService physical outputs, CombatEquipmentRuntime recovery and OffenseRewardRuntime grants",
+      "currentMutationPoint": "item receipts are appended after supply/loot publication, equipment materialization or reward grant has already committed",
+      "requiredDetachedOrRollbackState": "OffenseAggregateSaveSection expedition candidate plus PhysicalItemsSaveSection, CombatEquipmentSaveSection and reward pending receipts",
+      "recommendedMinimumSeam": "give each physical stage a persistent exact receipt/result-key outbox and integrate either the authoritative return or reward aggregate before acknowledging those stage receipts"
+    },
+    {
+      "candidate": "OffenseExpeditionReturnReceipt",
+      "actualOwner": "OffenseExpeditionReturnPort coordinating OffenseExpeditionRun, OffensePreparationService, CombatEquipmentRuntime and IGameMoneyAccount",
+      "currentMutationPoint": "ReleaseResourcesWithReceipt performs physical supply/loot returns, recovered-equipment materialization and money credit, then marks ReturnResourcesCommitted and constructs the aggregate receipt",
+      "requiredDetachedOrRollbackState": "OffenseAggregateSaveSection expedition candidate, preparation packing state, PhysicalItemsSaveSection, CombatEquipmentSaveSection and economy transaction state",
+      "recommendedMinimumSeam": "add a durable expedition-return transaction/outbox that accumulates exact idempotent stage receipts; reserve the final outcome before the first missing stage; commit ReturnResourcesCommitted plus ledger only when all stages are present; acknowledge stages after"
+    },
+    {
+      "candidate": "OffenseExpeditionTreatmentReceipt",
+      "actualOwner": "OffenseExpeditionRun treatmentReceipts reflecting CharacterBodyHealthRuntime/field-medical effects",
+      "currentMutationPoint": "RecordHealing computes health already gained and RecordStabilization observes an already-applied stabilization before appending a receipt",
+      "requiredDetachedOrRollbackState": "OffenseAggregateSaveSection expedition candidate and CharacterBodyHealthSaveSection medical mutation candidate",
+      "recommendedMinimumSeam": "move receipt construction to the field-medical command boundary before body mutation; reserve there; commit the body-health candidate, expedition treatment outbox and ledger at one medical operation revision"
+    },
+    {
+      "candidate": "OffensePhysicalItemCommitReceipt",
+      "actualOwner": "OffensePreparationService/OffenseSupplyPhysicalCustodyGateway over physical source publication",
+      "currentMutationPoint": "ReturnSuppliesWithReceipt and DepositLootWithReceipt create the receipt only after TryEnsureReturnOutputs has committed physical output publication",
+      "requiredDetachedOrRollbackState": "OffensePreparation packing candidate and PhysicalItemsSaveSection exact source-publication receipt",
+      "recommendedMinimumSeam": "reserve before physical source publication; store the exact item commit and result key in the packing/return outbox; integrate the higher return outcome before source-publication acknowledgement"
+    },
+    {
+      "candidate": "OffenseRewardGrantedEvent",
+      "actualOwner": "OffenseExpeditionResultFinalizer plus OffenseRewardRuntime and physical/economy reward authorities",
+      "currentMutationPoint": "rewards.ApplyExpeditionRewards and reward item receipt aggregation complete before gameEventBus.Publish",
+      "requiredDetachedOrRollbackState": "OffenseAggregateSaveSection reward/result candidate and every physical, currency, blueprint/meta reward commit receipt",
+      "recommendedMinimumSeam": "introduce a reward-grant transaction that precomputes legal grant results, reserves the outcome, commits each idempotent reward into a persistent reward outbox and commits the exact aggregate outcome before event publication"
+    },
+    {
+      "candidate": "OffenseSupplyCustodyReceipt",
+      "actualOwner": "OffensePreparationService ExpeditionSupplyPackage plus IPhysicalItemBatchDispositionGateway",
+      "currentMutationPoint": "TryConsumePackedSupplies calls TryCommitTransferPending first, then package.RecordCustody, then acknowledges the transfer",
+      "requiredDetachedOrRollbackState": "OffenseAggregateSaveSection packing candidate and PhysicalItemBatchDisposition pending receipt",
+      "recommendedMinimumSeam": "reserve before TryCommitTransferPending; persist receipt/result key through package.RecordCustody; commit ledger while the disposition remains pending; acknowledge only after delivery"
+    },
+    {
+      "candidate": "RunStartVariablesSelectedEvent",
+      "actualOwner": "RunVariableRuntime/RunVariableAggregateState plus IRandomStreamProvider",
+      "currentMutationPoint": "StartRun assigns runSeed, reseeds the provider, consumes selector RNG and sets StartVariables before publishing",
+      "requiredDetachedOrRollbackState": "RunVariableSaveSection aggregate candidate plus a reversible/deterministic run-variable RNG state",
+      "recommendedMinimumSeam": "reserve fixed maximum shape before reseed; select from an operation-local deterministic stream derived from seed; write the actual receipt; replace a detached aggregate with persistent outcome revision/outbox; commit before event/alert"
+    },
+    {
+      "candidate": "RunVariableActivatedEvent",
+      "actualOwner": "RunVariableRuntime/RunVariableAggregateState",
+      "currentMutationPoint": "ActivateOperationVariable removes/replaces the active definition in mutable state before publishing",
+      "requiredDetachedOrRollbackState": "RunVariableSaveSection aggregate candidate with persistent outcome revision and pending result key",
+      "recommendedMinimumSeam": "clone the aggregate, apply activation to the clone, prepare the exact definition snapshot, atomically replace/commit at the new revision, and publish only after delivery"
+    },
+    {
+      "candidate": "RunVariableExpiredEvent",
+      "actualOwner": "RunVariableRuntime/RunVariableAggregateState",
+      "currentMutationPoint": "OnTriggerEvent(OperatingDayEndedEvent) advances/removes every active variable in place, then publishes one event per expired definition",
+      "requiredDetachedOrRollbackState": "RunVariableSaveSection aggregate candidate with an ordered persistent expiration outbox",
+      "recommendedMinimumSeam": "advance a clone and pre-reserve every expired row before replacement; store the ordered receipts/result keys in the aggregate outbox so partial ledger commit is retryable; clear rows only after each acknowledgement"
+    },
+    {
+      "candidate": "V20ContentEffectsResolvedEvent",
+      "actualOwner": "V20CampaignApplicationAdapter/V20ContentResolutionService coordinating career, psychosocial, health, relationship, faction, money, item, world-flag, threat and occurrence authorities",
+      "currentMutationPoint": "ContentResolutionService applies heterogeneous effects; V20SocietyEventAlertProjection.PublishResolved emits the summary afterwards; milestone completion also publishes a synthetic empty-effect result after milestone evaluation",
+      "requiredDetachedOrRollbackState": "FactionCampaignSaveSection and all effect-specific save-owner candidates plus the occurrence lifecycle/outbox and physical/economy receipts",
+      "recommendedMinimumSeam": "add a ContentResolutionTransaction that preflights and stages effect-specific detached candidates, freezes the exact ordered effect vector and occurrence id, reserves ledger capacity, commits a persistent resolution outbox with all authority revisions, then applies notifications; split milestone completion into its own authoritative receipt"
+    }
+  ],
+  "rowCount": 22,
+  "observerOnlyIntegrationAccepted": false,
+  "humanApprovalClaimed": false
+}

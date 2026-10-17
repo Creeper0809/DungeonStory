@@ -1,0 +1,15 @@
+{
+  "arguments": [
+    "C:\\Users\\vulpo\\AppData\\Local\\Microsoft\\WindowsApps\\unity.EXE",
+    "command",
+    "eval",
+    "--project-path",
+    "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory",
+    "--format",
+    "json",
+    "--detach",
+    "--code",
+    "var m = typeof(V25NarrativeInferenceDebugScenarios).GetMethod(\"VerifyContextAwareScheduling\",\n                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);\n                if (m == null) throw new System.InvalidOperationException(\"Focused method missing\");\n                var r = m.Invoke(null, null);\n                if (r is bool && !(bool)r) throw new System.InvalidOperationException(\"Focused check returned false\");\n                return new { passed = true, owner = \"V25NarrativeInferenceDebugScenarios\", method = \"VerifyContextAwareScheduling\" };"
+  ],
+  "cwd": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory"
+}

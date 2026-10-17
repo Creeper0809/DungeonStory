@@ -3,6 +3,10 @@
     {
       "label": "분류",
       "value": "Elder Retirement"
+    },
+    {
+      "label": "비고",
+      "value": "현재 비활성화 — 원인 시스템 구현 후 활성화 예정"
     }
   ],
   "game_version": "0.0.1v",

@@ -538,9 +538,14 @@ public sealed class FacilityRelocationWorldService :
             : new GameObject(MarkerObjectName);
         marker.transform.SetParent(source.transform, false);
         marker.transform.localPosition = new Vector3(0f, 0.08f, 0f);
-        SpriteRenderer renderer =
-            marker.GetComponent<SpriteRenderer>()
-            ?? marker.AddComponent<SpriteRenderer>();
+        SpriteRenderer renderer = marker.GetComponent<SpriteRenderer>();
+        // UnityEngine.Object can retain a managed reference after its native
+        // component is destroyed. The null-coalescing operator does not use
+        // Unity's destroyed-object equality, so test it explicitly here.
+        if (renderer == null)
+        {
+            renderer = marker.AddComponent<SpriteRenderer>();
+        }
         renderer.sprite = markerSprite != null
             ? markerSprite
             : markerSprite = CreateMarkerSprite();

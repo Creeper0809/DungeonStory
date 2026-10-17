@@ -33,7 +33,7 @@ public sealed class MetaProfileStore : IMetaProfileStore
 {
     public MetaProfileStore()
     {
-        ProfilePath = Path.Combine(Application.persistentDataPath, "Profile", "meta-profile.json");
+        ProfilePath = Path.Combine(DungeonPersistencePaths.Root, "Profile", "meta-profile.json");
     }
 
     public string ProfilePath { get; }
@@ -102,6 +102,7 @@ public sealed class MetaProfileStore : IMetaProfileStore
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class MetaProfilePersistenceService :
     IStartable,
+    ILateTickable,
     IDisposable
 {
     private const string AutoSaveSlot = "autosave";
@@ -112,6 +113,7 @@ public sealed class MetaProfilePersistenceService :
     private IDisposable runResultSubscription;
     private IDisposable upgradeSubscription;
     private bool started;
+    private bool finalRunSavePending;
 
     public MetaProfilePersistenceService(
         IMetaProfileStore store,
@@ -150,11 +152,23 @@ public sealed class MetaProfilePersistenceService :
         upgradeSubscription?.Dispose();
         upgradeSubscription = null;
         started = false;
+        finalRunSavePending = false;
     }
 
     public void OnTriggerEvent(RunResultReadyEvent eventType)
     {
         SaveProfile();
+        // RunResultReady can be nested inside CharacterDeathEvent. Saving
+        // here captures before the remaining death handlers and outcome
+        // commits finish. The same frame's late tick owns the final snapshot.
+        finalRunSavePending = true;
+    }
+
+    public void LateTick()
+    {
+        if (!started || !finalRunSavePending)
+            return;
+        finalRunSavePending = false;
         try
         {
             slotService.Save(AutoSaveSlot);

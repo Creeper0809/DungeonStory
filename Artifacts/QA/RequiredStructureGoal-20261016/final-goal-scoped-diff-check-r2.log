@@ -1,0 +1,5 @@
+warning: in the working copy of 'Assets/Scripts/Services/Character/Ability/AbilityMove.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Assets/Scripts/Services/Character/Core/CharacterActor.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Assets/Scripts/Services/Factions/Editor/FactionCargoPublicationDebugScenarios.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Assets/Scripts/Services/Infrastructure/Registration/DungeonFactionWarRegistration.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/dev/unity-workflow.md', LF will be replaced by CRLF the next time Git touches it

@@ -1,0 +1,34 @@
+{
+  "success": true,
+  "command": "job wait",
+  "data": {
+    "jobId": "62f3d8323170470b9989988638631053",
+    "command": "eval",
+    "state": "completed",
+    "cancellationRequested": false,
+    "result": {
+      "output": null,
+      "diagnostics": [],
+      "success": true,
+      "command": "eval",
+      "result": {
+        "passed": true,
+        "firstInputDigest": "sha256:36231ec549f97b53c3d0a33cd31386d818efaa79e8e36bd00d3ffb264c00c185",
+        "secondInputDigest": "sha256:36231ec549f97b53c3d0a33cd31386d818efaa79e8e36bd00d3ffb264c00c185",
+        "byteCount": 4732116,
+        "firstSha256": "sha256:274ebc754311f89142c66a7387b6f5116d52badbddb8cbdf590a04457625141f",
+        "secondSha256": "sha256:274ebc754311f89142c66a7387b6f5116d52badbddb8cbdf590a04457625141f"
+      },
+      "executionTimeMs": 29510,
+      "message": null,
+      "error": null,
+      "errorDetails": null,
+      "executedAt": "2026-09-15T15:12:15.0644784Z"
+    },
+    "error": null,
+    "errorDetails": null,
+    "progress": null
+  },
+  "errors": [],
+  "warnings": []
+}

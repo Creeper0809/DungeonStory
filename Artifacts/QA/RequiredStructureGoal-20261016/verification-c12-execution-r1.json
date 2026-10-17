@@ -1,0 +1,34 @@
+{
+  "entry": "FacilityOutputExactRouteDebugScenarios.RunAll",
+  "evidence": [
+    "native-exact-route-current-r1/unity.log",
+    "native-exact-route-current-r1/launcher-exit.txt",
+    "native-core-fixture-fix/core-target-coverage-review.txt"
+  ],
+  "scope": "14 unconditional assertion groups: exact partition/mass, replay/conflict, ACK, stateful/perishable route, malformed/stale restore, delivery overlay lifecycle, checkpoint-GC publish/rollback/replay and physical deferral. Real route service/repository with controlled catalog/mass/marker collaborators.",
+  "executionEvidence": "The existing entry has no success marker. Review confirmed all 14 calls are unconditional, assertion failures propagate, the configured exact Unity executeMethod returned normally with exit 0 and no test exception. This is not an exit-code-only claim.",
+  "checks": [
+    "VerifyExactSplitReplayAndAcknowledgement",
+    "VerifyPreparedFingerprintMismatchFailsClosed",
+    "VerifyStatefulSplitAndUniquePartialRejection",
+    "VerifyPerishableFreshnessRouteIdentityAndRestoreGuards",
+    "VerifyMultiStepPartialRouteRestore",
+    "VerifyRoutableDescendantPartitionRestore",
+    "VerifyDeliveryRevisionOverlayRoundTripAndTamperGuards",
+    "VerifyDeliveryOverlayParticipantLifecycle",
+    "VerifyWarehouseFallbackRecoveryRestore",
+    "VerifyRestoreAcknowledgementAndRollback",
+    "VerifyCheckpointGcStablePublishRollbackAndRestore",
+    "VerifyCheckpointGcPhysicalDeferral",
+    "VerifyCheckpointGcCoverageReplayAndStaleGuards",
+    "VerifyCheckpointGcApiAndRawSaveGuards"
+  ],
+  "target": "C12",
+  "status": "implemented_and_targeted_actual_verified",
+  "currentCompile": "verification-native-current-source-r2.json",
+  "limitations": [
+    "Controlled native fixture scope; no natural UI/AI claim.",
+    "Cold official whole-world integration remains a separate final goal gate."
+  ],
+  "goalStatus": "active"
+}

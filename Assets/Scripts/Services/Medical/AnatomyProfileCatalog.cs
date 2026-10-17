@@ -563,7 +563,9 @@ public static class AnatomyProfileDefaults
                     CombatBodyPart.LeftLeg),
                 Node("leg:right", "오른다리", "torso", AnatomyNodeKind.Limb,
                     AnatomyFunction.Mobility, 20f, 0.5f, false, true, "legs",
-                    CombatBodyPart.RightLeg)
+                    CombatBodyPart.RightLeg),
+                Node("balance-tail", "평형 꼬리깃", "torso", AnatomyNodeKind.Limb,
+                    AnatomyFunction.Mobility, 18f, 0.2f, false, true)
             });
     }
 

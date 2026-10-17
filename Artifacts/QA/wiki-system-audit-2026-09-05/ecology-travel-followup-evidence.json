@@ -1,0 +1,200 @@
+{
+  "head": "c03d2e0a1c68067de48840f3851b388483966a6e",
+  "scope": "selected source sections and 12 crop authoring/wiki records; hashes do not imply full-file semantic review",
+  "sourceCount": 48,
+  "cropCount": 12,
+  "sources": [
+    {
+      "path": "Assets/Resources/SO/Economy/Crops/crop_bloodleaf.asset",
+      "sha256": "0f030f118f571d11a73b01139c11e22ea978f4c73365c27e6c3bfaba99aa7d02"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Crops/crop_cave_mushroom.asset",
+      "sha256": "6175b5753d648f5557a154029ba16ed44bf4e268e52c75c63e1f8907ef36f003"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Crops/crop_dreamleaf.asset",
+      "sha256": "2a2498ad6599c5ffe3c59d4e433de5ccb1cb2a1b51d6baab1b760c91f2d4ee84"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Crops/crop_ember_root.asset",
+      "sha256": "769725ce84ab1e00fec975480d31437a94c5a5208f617c18dec70cd9d921f162"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Crops/crop_moonflower.asset",
+      "sha256": "d457e52e90c3e77417a6246a222111198baa770b43704d4100324217a50e43c7"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Crops/crop_night_grape.asset",
+      "sha256": "7a5d6965cbf5cc95d58cd42707651217915adebf236e10e68cbf46716911c216"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Crops/crop_shade_fiber.asset",
+      "sha256": "e0578d52593cd368a6008270c35d265eec090f7005e137e69b0501d87b2cedc0"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Crops/crop_twilight_grain.asset",
+      "sha256": "b3999c6621268294aa8a7a8bd9a0a48bed7c22e563413dfaf8fcf221e5f4a249"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Crops/V22Textiles/crop_ember-cotton.asset",
+      "sha256": "c671bb3942ce84c5d86294a6322b525020b0b120a6e81f82b543c052ea2c51a5"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Crops/V22Textiles/crop_frost-flax.asset",
+      "sha256": "ac12b881579a2d5995e19abd2afd1caff68647ce12a9b44936bd47f78ebf98fb"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Crops/V22Textiles/crop_mire-reed.asset",
+      "sha256": "c070cff31893a2eb0b4fefa33661af1075c36418329cd96cc292bba4ec3dd1ea"
+    },
+    {
+      "path": "Assets/Resources/SO/Economy/Crops/V22Textiles/crop_spore-hemp.asset",
+      "sha256": "b00fa932867e52007b1f37851576f6d3998b1ea9bc683778818ccde6e186fb81"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/AnimalHusbandryModels.cs",
+      "sha256": "5b6a814b2b97bd0f91c72de038cc72ef5103ac348a84a47a2a796e9a55475267"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/CropDefinitionSO.cs",
+      "sha256": "a87c9be9a7966382830863db633a00735c2ec880586684115dd3bb44e50a71e8"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/CropEcologyDomain.cs",
+      "sha256": "4727579675ef3d699cab6fa3d9813c7ef225057122f1f19d75013b3d76698566"
+    },
+    {
+      "path": "Assets/Scripts/Models/Wildlife/Core/WildlifeEcosystemRuntime.cs",
+      "sha256": "be104637862a9fa4f1e46d8c36dc5b15cfeb729cf416f7f18fa2bbd2d5bcf01b"
+    },
+    {
+      "path": "Assets/Scripts/Models/Wildlife/Core/WildlifeHusbandryProfile.cs",
+      "sha256": "bbf1bea82e1d6386ffeb95c4288643fc1fb2db7cd2c1262f5eacaa26018d89a7"
+    },
+    {
+      "path": "Assets/Scripts/Models/Wildlife/Core/WildlifePrimitives.cs",
+      "sha256": "cd186d3b6bce0629073c2321f2578bfcb09acf56d18dc86eb97eb752920fd7b1"
+    },
+    {
+      "path": "Assets/Scripts/Models/Wildlife/Core/WildlifeSpeciesDefinition.cs",
+      "sha256": "caa4d0daaad071e7d5640c996200a418a34ee5dc0e76e74f7098ad604b80c23a"
+    },
+    {
+      "path": "Assets/Scripts/Models/Wildlife/Core/WildlifeSpeciesSO.cs",
+      "sha256": "66b9c08cccc5383a5dda6483b425129539b173ee1aabd01ad8ad76663ec0e173"
+    },
+    {
+      "path": "Assets/Scripts/Services/Character/PopulationHealthRuntime.cs",
+      "sha256": "7ccc594a7d6cf295856e8fdd562a962b917745c5c1b470280213b4dfd47a8e46"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/CropCycleInputRequirementAuthority.cs",
+      "sha256": "95370591e044adb724909f878d2647e0601d3ad79dee816fa8a0ca74cbb276f6"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/CropEcologyRuntime.cs",
+      "sha256": "37ff59b1b825835ad0e0a1a067940c8625b4c116b45f0df5a5a1d98ac1f4578e"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/CropHarvestSpecialThroughputContributor.cs",
+      "sha256": "d21bc2a78950077b9a15e91b77dde6185800a701a6068ba45c9ecd49a24b9b72"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/CropPlotRuntime.cs",
+      "sha256": "002dd813a15f279866b0b0e518f4d57c95df919d26e607d52198915dbd45dcc2"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/Husbandry/AnimalHusbandryRuntime.cs",
+      "sha256": "668648e4572ddb9673a3ab1afa0688d735e81a46d6bcd00728d37cd294556536"
+    },
+    {
+      "path": "Assets/Scripts/Services/Offense/OffenseExpeditionLaunchService.cs",
+      "sha256": "66e9181f361ac8c1b1a7fabdd4851064a4e639628f84b632adfd20d62bee0bb3"
+    },
+    {
+      "path": "Assets/Scripts/Services/Offense/OffenseStrategicExpeditionServices.cs",
+      "sha256": "87a96a1abe225cbb62a2bfd993925b132f7d8951ab4d961ef8581d2f8a4981f8"
+    },
+    {
+      "path": "Assets/Scripts/Services/Offense/Strategic/OffenseHexWorldSimulation.cs",
+      "sha256": "031b333b2298ad905273eaa0fc2bf6898ee5c1929299a2ab34ae05e5915d670b"
+    },
+    {
+      "path": "Assets/Scripts/Services/Offense/Strategic/OffenseStrategicModels.cs",
+      "sha256": "2d7d1e209edcab08e1c9596c5f196843d0125fe55da65afb42ea09b54d2b1984"
+    },
+    {
+      "path": "Assets/Scripts/Services/Offense/Strategic/OffenseTravelAndDecisionRuntime.cs",
+      "sha256": "26e0fb4ecfe6224068dc7f14bf56f3b36bdb0d7bdc4044b9bc6f00672d14df74"
+    },
+    {
+      "path": "Assets/Scripts/Services/Wildlife/WildlifeDiseaseVectorRuntime.cs",
+      "sha256": "d51a3801ab19e7e9b061268964da21cb47ce69086f7c74909aaf1aecc948a97c"
+    },
+    {
+      "path": "Assets/Scripts/Services/Wildlife/WildlifeRuntime.cs",
+      "sha256": "66f0bce397232dacaf6f61b8f4e270642d2333bbb6f3a85e6d6c04aefcfb9084"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/expeditions.md",
+      "sha256": "63b17ff7e89572566536676dff09479ca437eacf774ff6946ece19a08ffa7e63"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/food-and-ecology.md",
+      "sha256": "bdd663e3f06508f073d3cfd9eaeae448e7774133b88634f7ca5722eb3c6d4f1d"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/weather-seasons-and-environment.md",
+      "sha256": "6519ba14d5cca983df15a3e678340e601bd233bce5c12a41ad24bcb3975490fb"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/crop-bloodleaf.json",
+      "sha256": "cdd7e00c482a8979b3d15207f466f7ab58a0373afd115e6e979303b640a5cad7"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/crop-cave-mushroom.json",
+      "sha256": "f0dcb5200b90119bc2b73a859848f688abf31d8d68cbbdd5d25eb84b087a1fc9"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/crop-dreamleaf.json",
+      "sha256": "f0f33f5a3e6a14db40195a00154f63771415de2f4ef66a67322f393537988d6e"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/crop-ember-cotton.json",
+      "sha256": "bcfe41155e00f5850531e04a9883981fccdf426a61bb7c3401969adee9db1c02"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/crop-ember-root.json",
+      "sha256": "5a693a0bbb03ccf024d758c3a2896378e7224f99f5798eee61fb73ba193ecc83"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/crop-frost-flax.json",
+      "sha256": "e09090aacb336bc1f9247360d012e8f634636931efc302ac863a28666a86fd1a"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/crop-mire-reed.json",
+      "sha256": "acf8fb3add7b1db704a1ed2011cbe6604c098aca3e121d68447e33d75b124f7c"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/crop-moonflower.json",
+      "sha256": "9c55230d95b0fc6c709d4898deaaacdf85d99030cc2a77632a287885c297c18e"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/crop-night-grape.json",
+      "sha256": "f6482334efa718f52cf45d43abd5f4fed08149dcff6ff451c17044dfe9494dab"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/crop-shade-fiber.json",
+      "sha256": "bef349073d37c800de63e27fe3145b9b82920bcb63cac6102cb76f50652358f1"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/crop-spore-hemp.json",
+      "sha256": "a6b8c5ac95abcaf1faf3ff1953e365b68760948d95acfc1411a0f52659e7e340"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/data/entities/nature/crop-twilight-grain.json",
+      "sha256": "c34b968508c8dc181f617b562f91ed38eb8c2a6858563c990c28fa3336042ef9"
+    }
+  ]
+}

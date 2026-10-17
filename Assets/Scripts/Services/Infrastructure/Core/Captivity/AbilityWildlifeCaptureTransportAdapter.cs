@@ -17,6 +17,8 @@ public sealed class AbilityWildlifeCaptureTransport : MonoBehaviour
         = string.Empty;
     public int DeliveryStandSearchDeferralCountForDiagnostics
         { get; private set; }
+    public int PickupSearchDeferralCountForDiagnostics { get; private set; }
+    public int PickupRetargetCountForDiagnostics { get; private set; }
 
     public void Configure(IWildlifeCaptureTransportAbilityPort port)
     {
@@ -50,6 +52,8 @@ public sealed class AbilityWildlifeCaptureTransport : MonoBehaviour
         transportExecutionActive = true;
         LastTerminalFailureReasonForDiagnostics = string.Empty;
         DeliveryStandSearchDeferralCountForDiagnostics = 0;
+        PickupSearchDeferralCountForDiagnostics = 0;
+        PickupRetargetCountForDiagnostics = 0;
         if (!port.TryBeginActionOwnership(
                 activeWildlifeId,
                 out string ownershipFailure))
@@ -76,6 +80,11 @@ public sealed class AbilityWildlifeCaptureTransport : MonoBehaviour
 
     private IEnumerator TransportRoutine(string wildlifeId)
     {
+        // StartCoroutine runs synchronously until its first yield. Publish the
+        // caller's capture-order receipt before carry can mutate the same owner
+        // revision, including the already-adjacent pickup case. Ownership and
+        // stale-movement cancellation are still acquired atomically by StartTransport.
+        yield return null;
         if (!OwnsActionIntent())
         {
             Fail("Wildlife transport started without AI action ownership.");
@@ -93,19 +102,69 @@ public sealed class AbilityWildlifeCaptureTransport : MonoBehaviour
             yield break;
         }
 
-        if (!port.TryCreatePickupMovement(
-                wildlifePosition,
-                out IEnumerator pickupMovement))
+        // An order reserves transport; it does not immobilize live wildlife.
+        // Finish and validate each real approach leg before planning another.
+        // Never treat aborted movement as successful pursuit of a moved target.
+        while (transportExecutionActive)
         {
-            Fail("생포한 동물에게 갈 수 없습니다.");
-            yield break;
-        }
+            if (!OwnsActionIntent())
+            {
+                Fail("Wildlife transport lost AI action ownership while approaching the animal.");
+                yield break;
+            }
+            if (!port.TryGetTransportState(
+                    wildlifeId, out state, out wildlifePosition,
+                    out wildlifeName, out failureReason))
+            {
+                Fail(failureReason);
+                yield break;
+            }
+            Vector2Int carrierPosition = port.Position;
+            if (Mathf.Abs(carrierPosition.x - wildlifePosition.x)
+                + Mathf.Abs(carrierPosition.y - wildlifePosition.y) <= 1)
+            {
+                break;
+            }
 
-        port.SetActionPhase("운반 상자를 들고 동물에게 이동", wildlifeName);
-        yield return RunMovementWhileTransportValid(
-            pickupMovement,
-            wildlifeId,
-            "approaching the animal");
+            CaptivityMovementResolution resolution = port.ResolvePickupMovement(
+                wildlifePosition, out Vector2Int pickupStand,
+                out IEnumerator pickupMovement);
+            if (resolution == CaptivityMovementResolution.Pending)
+            {
+                PickupSearchDeferralCountForDiagnostics = checked(
+                    PickupSearchDeferralCountForDiagnostics + 1);
+                port.SetActionPhase("포획 동물 접근 경로 계산", wildlifeName);
+                yield return null;
+                continue;
+            }
+            if (resolution != CaptivityMovementResolution.Ready)
+            {
+                Fail("생포한 동물에게 갈 수 없습니다.");
+                yield break;
+            }
+
+            port.SetActionPhase("운반 상자를 들고 동물에게 이동", wildlifeName);
+            yield return RunMovementWhileTransportValid(
+                pickupMovement, wildlifeId, "approaching the animal");
+            if (!transportExecutionActive) yield break;
+            if (!port.TryValidateMovementArrival(pickupStand, out failureReason))
+            {
+                Fail(failureReason);
+                yield break;
+            }
+            if (!port.TryGetTransportState(
+                    wildlifeId, out state, out Vector2Int currentTarget,
+                    out wildlifeName, out failureReason))
+            {
+                Fail(failureReason);
+                yield break;
+            }
+            if (currentTarget != wildlifePosition)
+            {
+                PickupRetargetCountForDiagnostics = checked(
+                    PickupRetargetCountForDiagnostics + 1);
+            }
+        }
         if (!transportExecutionActive)
         {
             yield break;

@@ -1,0 +1,56 @@
+WIM029 companion data/authoring evidence
+2026-09-11; main F project; official Unity MCP; current-source compile PASS
+Runtime assembly SHA256 FE1B06924D70A931F084E2606B5C7F8286383CECADBCA9A5141693A1CC735A29
+Data test source SHA256 E473DDC009E4827F609E3E577BE9C525F4D47BACBC2EDFDF90CF3DBEE67EB65A
+Tests ran on compiled source before the unrelated R01-only actionset correction; that edit does not change these contracts.
+Data fixture: exact profile/canonical role envelope/invalid payload checks, not actual UI/AI/save-world lifecycle.
+Authoring check: AssetDatabase loaded all18 actual WildlifeSpeciesSO assets and called ValidateDefinition/ToDefinition. Only cave_hound enabled companion, previous HP10/speed1/retaliation0/dailyFood1/dailyWater1 preserved; no asset writes.
+
+PASS PROFILE_DEFAULTS_AND_SNAPSHOT
+PASS PROFILE_REJECTS_CLOSE_RADIUS_ZERO
+PASS PROFILE_REJECTS_RESUME_NOT_ABOVE_CLOSE
+PASS PROFILE_REJECTS_LEASH_BELOW_RESUME
+PASS PROFILE_REJECTS_DECISION_INTERVAL_ZERO
+PASS PROFILE_REJECTS_DECISION_INTERVAL_ABOVE_MAXIMUM
+PASS PROFILE_REJECTS_NAN_DAMAGE
+PASS PROFILE_REJECTS_NEGATIVE_COOLDOWN
+PASS PROFILE_REJECTS_INFINITE_COOLDOWN
+PASS PROFILE_REJECTS_TWO_CELL_MELEE
+PASS PROFILE_REJECTS_TWO_COMPANIONS_PER_OWNER
+PASS CAPABILITY_NONE_EXACT_TUPLE_AND_READ
+PASS CAPABILITY_COMPANION_EXACT_ROUND_TRIP_AND_CLONE
+PASS CAPABILITY_REJECTS_NULL_STATE
+PASS CAPABILITY_REJECTS_UNKNOWN_ENVELOPE_VERSION
+PASS CAPABILITY_REJECTS_UNKNOWN_ROLE
+PASS CAPABILITY_REJECTS_SPACED_ROLE_WITHOUT_NORMALIZING
+PASS CAPABILITY_REJECTS_NONE_PAYLOAD
+PASS COMPANION_REJECTS_UNKNOWN_PAYLOAD_VERSION
+PASS COMPANION_REJECTS_MISSING_OWNER
+PASS COMPANION_REJECTS_MISSING_COOLDOWN
+PASS COMPANION_REJECTS_MALFORMED_JSON
+PASS COMPANION_REJECTS_NEGATIVE_COOLDOWN
+PASS CAPABILITY_RESERVED_HAUL_REJECTED
+RESULT=PASS; passed=24; failed=0; rows=24
+
+PASS ash_crawler; authoredCompanion=False; runtimeCompanion=False; source=Assets/Resources/SO/V20/Ecology/Wildlife/wildlife_ash_crawler.asset
+PASS carrion_drake; authoredCompanion=False; runtimeCompanion=False; source=Assets/Resources/SO/V20/Ecology/Wildlife/wildlife_carrion_drake.asset
+PASS cave_hound; authoredCompanion=True; runtimeCompanion=True; source=Assets/Resources/SO/V20/Ecology/Wildlife/wildlife_cave_hound.asset
+PASS crystal_beetle; authoredCompanion=False; runtimeCompanion=False; source=Assets/Resources/SO/V20/Ecology/Wildlife/wildlife_crystal_beetle.asset
+PASS deep_goat; authoredCompanion=False; runtimeCompanion=False; source=Assets/Resources/SO/V20/Ecology/Wildlife/wildlife_deep_goat.asset
+PASS ember_lizard; authoredCompanion=False; runtimeCompanion=False; source=Assets/Resources/SO/V20/Ecology/Wildlife/wildlife_ember_lizard.asset
+PASS frost_ram; authoredCompanion=False; runtimeCompanion=False; source=Assets/Resources/SO/V20/Ecology/Wildlife/wildlife_frost_ram.asset
+PASS glow_moth; authoredCompanion=False; runtimeCompanion=False; source=Assets/Resources/SO/V20/Ecology/Wildlife/wildlife_glow_moth.asset
+PASS mana_wisp; authoredCompanion=False; runtimeCompanion=False; source=Assets/Resources/SO/V20/Ecology/Wildlife/wildlife_mana_wisp.asset
+PASS mire_leech; authoredCompanion=False; runtimeCompanion=False; source=Assets/Resources/SO/V20/Ecology/Wildlife/wildlife_mire_leech.asset
+PASS silk_spider; authoredCompanion=False; runtimeCompanion=False; source=Assets/Resources/SO/V20/Ecology/Wildlife/wildlife_silk_spider.asset
+PASS spore_elk; authoredCompanion=False; runtimeCompanion=False; source=Assets/Resources/SO/V20/Ecology/Wildlife/wildlife_spore_elk.asset
+PASS tunnel_mole; authoredCompanion=False; runtimeCompanion=False; source=Assets/Resources/SO/V20/Ecology/Wildlife/wildlife_tunnel_mole.asset
+PASS cave_rat; authoredCompanion=False; runtimeCompanion=False; source=Assets/Resources/SO/Wildlife/Species/Wildlife_CaveRat.asset
+PASS moss_boar; authoredCompanion=False; runtimeCompanion=False; source=Assets/Resources/SO/Wildlife/Species/Wildlife_MossBoar.asset
+PASS rune_deer; authoredCompanion=False; runtimeCompanion=False; source=Assets/Resources/SO/Wildlife/Species/Wildlife_RuneDeer.asset
+PASS shadow_hare; authoredCompanion=False; runtimeCompanion=False; source=Assets/Resources/SO/Wildlife/Species/Wildlife_ShadowHare.asset
+PASS shadow_wolf; authoredCompanion=False; runtimeCompanion=False; source=Assets/Resources/SO/Wildlife/Species/Wildlife_ShadowWolf.asset
+RESULT=PASS; definitions=18; authoredRoles=1; noAssetWrites=true
+
+NOT_RUN: companion owner UI/follow/combat/whole-world companion restore. Reciprocal intruder target enumeration and animal haul still unimplemented; WIM029 parent OPEN.
+

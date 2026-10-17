@@ -133,6 +133,11 @@ public sealed class ConveyorPhysicalCustodySaveValidation :
             }
 
             WorldItemStackSaveData stack = matchingStacks[0];
+            if (WildlifeHaulCargoCustodyCodec.HasAny(stack.components))
+            {
+                throw new InvalidOperationException(
+                    $"Conveyor payload '{payload.payloadId}' cannot dual-own wildlife-haul cargo '{stack.stackId}'.");
+            }
             if (stack.state != WorldItemStackState.InTransit
                 || !string.Equals(
                     stack.destinationId,
@@ -152,6 +157,12 @@ public sealed class ConveyorPhysicalCustodySaveValidation :
         foreach (WorldItemStackSaveData stack in physical.stacks.Where(
                      value => value?.state == WorldItemStackState.InTransit))
         {
+            if (WildlifeHaulCargoCustodyCodec.TryRead(
+                    stack.components,
+                    out _))
+            {
+                continue;
+            }
             if (!payloadsById.TryGetValue(
                     stack.destinationId,
                     out ConveyorPayloadSaveData payload)

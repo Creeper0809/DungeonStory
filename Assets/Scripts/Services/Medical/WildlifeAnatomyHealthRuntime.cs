@@ -105,6 +105,33 @@ public sealed class WildlifeAnatomyHealthRuntime :
         return true;
     }
 
+    public bool TryStopBleeding(
+        WildlifeActor actor,
+        string nodeId,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (actor == null || !actor.IsAlive)
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryWildlifeSubjectUnavailable,
+                actor?.WildlifeId ?? string.Empty);
+            return false;
+        }
+
+        AnatomyNodeHealthState node = Find(GetOrCreate(actor), nodeId);
+        if (node == null || node.missing)
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryTargetNodeUnavailable,
+                nodeId ?? string.Empty);
+            return false;
+        }
+
+        node.bleedingPerSecond = 0f;
+        return true;
+    }
+
     public bool TryRemoveNode(
         WildlifeActor actor,
         string nodeId,

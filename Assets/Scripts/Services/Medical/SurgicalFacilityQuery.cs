@@ -87,6 +87,33 @@ public sealed class SurgicalFacilityQuery : ISurgicalFacilityQuery
             blockFailure);
     }
 
+    public SurgicalFacilitySnapshot Evaluate(
+        BuildableObject primaryFacility,
+        SurgicalProcedureSO procedure)
+    {
+        if (procedure == null)
+        {
+            return Blocked(primaryFacility);
+        }
+
+        int requiredPrimaryId = procedure.PrimaryFacilityDefinitionId;
+        if (requiredPrimaryId < 0)
+        {
+            return Blocked(
+                primaryFacility,
+                $"invalid-primary-building:{requiredPrimaryId}");
+        }
+        if (requiredPrimaryId != 0
+            && primaryFacility?.BuildingData?.id != requiredPrimaryId)
+        {
+            return Blocked(
+                primaryFacility,
+                $"primary-building:{requiredPrimaryId}");
+        }
+
+        return Evaluate(primaryFacility, procedure.RequiredFacilityTags);
+    }
+
     public bool TryFindBestFacility(
         SurgicalSubjectRef subject,
         SurgicalProcedureSO procedure,
@@ -131,7 +158,7 @@ public sealed class SurgicalFacilityQuery : ISurgicalFacilityQuery
                 && candidate.BuildingData?.Abilities?
                     .OfType<ISurgicalFacilityAbility>()
                     .Any(ability => ability.IsPrimaryOperatingFacility) == true)
-            .Select(candidate => Evaluate(candidate, procedure.RequiredFacilityTags))
+            .Select(candidate => Evaluate(candidate, procedure))
             .Where(snapshot => includeBlocked || snapshot.IsAvailable)
             .OrderByDescending(snapshot => snapshot.SuccessBonus)
             .ThenByDescending(snapshot => snapshot.Sterility)
@@ -150,7 +177,8 @@ public sealed class SurgicalFacilityQuery : ISurgicalFacilityQuery
     }
 
     private static SurgicalFacilitySnapshot Blocked(
-        BuildableObject facility)
+        BuildableObject facility,
+        string reason = null)
     {
         return new SurgicalFacilitySnapshot(
             facility,
@@ -162,7 +190,9 @@ public sealed class SurgicalFacilityQuery : ISurgicalFacilityQuery
             Array.Empty<BuildableObject>(),
             new DomainFailure(
                 FailureCode.SurgeryFacilityUnavailable,
-                facility != null
+                !string.IsNullOrWhiteSpace(reason)
+                    ? reason
+                    : facility != null
                     ? facility.RequirePersistentInstanceId().Value
                     : string.Empty));
     }

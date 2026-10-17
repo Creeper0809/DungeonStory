@@ -15,126 +15,17 @@ public sealed class CropTreatmentOwnerValidationSnapshot
     public CropTreatmentOrderSaveData Owner { get; set; }
 }
 
+public sealed class CropWaterRefillOwnerValidationSnapshot
+{
+    public string PlotId { get; set; } = string.Empty;
+    public int NextOperationSequence { get; set; }
+    public CropWaterRefillSaveData Owner { get; set; }
+}
+
 public sealed class CropHarvestOwnerValidationSnapshot
 {
     public string PlotId { get; set; } = string.Empty;
     public CropHarvestOutputSaveData Owner { get; set; }
-}
-
-public static class CropHarvestCompletionDeliveryRestoreJoin
-{
-    public static void Validate(
-        IEnumerable<CropPlotSaveData> plots,
-        IEnumerable<WorkCompletionIdentityDeliveryCursorSaveData> deliveries)
-    {
-        WorkCompletionIdentityDeliveryCursorSaveData[] cursors =
-            WorkCompletionIdentityDeliveryLedger.ValidateAndClone(deliveries);
-        Dictionary<string, WorkCompletionIdentityDeliveryCursorSaveData>
-            byStream = cursors.ToDictionary(
-                value => value.producerStreamId,
-                StringComparer.Ordinal);
-        HashSet<string> cropStreams = new(StringComparer.Ordinal);
-        foreach (CropPlotSaveData plot in plots ?? Array.Empty<CropPlotSaveData>())
-        {
-            if (plot == null
-                || string.IsNullOrWhiteSpace(plot.buildingInstanceId)
-                || !string.Equals(
-                    plot.buildingInstanceId,
-                    plot.buildingInstanceId.Trim(),
-                    StringComparison.Ordinal))
-                throw new InvalidOperationException(
-                    "Crop completion delivery join contains an invalid plot.");
-            string streamId = CropPlotRuntime.HarvestCompletionStreamPrefix
-                + plot.buildingInstanceId;
-            if (!cropStreams.Add(streamId))
-                throw new InvalidOperationException(
-                    "Crop completion delivery join contains duplicate plot streams.");
-            byStream.TryGetValue(streamId, out WorkCompletionIdentityDeliveryCursorSaveData cursor);
-            CropHarvestOutputSaveData pending = plot.pendingHarvest;
-            if (pending == null || pending.phase == CropHarvestOutputPhase.None)
-            {
-                if (cursor != null
-                    && (plot.nextHarvestOperationSequence <= 0
-                        || cursor.operationSequence >=
-                            plot.nextHarvestOperationSequence
-                        || !string.Equals(
-                            cursor.deliveryId,
-                            CropPlotRuntime.HarvestCompletionDeliveryPrefix
-                                + CropPlotRuntime.FormatHarvestOperationId(
-                                    new BuildingInstanceId(
-                                        plot.buildingInstanceId),
-                                    cursor.operationSequence),
-                            StringComparison.Ordinal)))
-                    throw new InvalidOperationException(
-                        "Crop completion delivery cursor is ahead of its plot sequence.");
-                continue;
-            }
-            if (string.IsNullOrEmpty(pending.harvesterId))
-            {
-                if (!string.IsNullOrEmpty(pending.completionDeliveryId)
-                    || !string.IsNullOrEmpty(
-                        pending.completionDeliveryFingerprint))
-                    throw new InvalidOperationException(
-                        "Workerless crop owner has completion delivery provenance.");
-                if (cursor != null
-                    && (cursor.operationSequence >= pending.operationSequence
-                        || !MatchesHistoricalDeliveryId(
-                            plot.buildingInstanceId,
-                            cursor)))
-                    throw new InvalidOperationException(
-                        "Workerless crop owner has a current or invalid completion cursor.");
-                continue;
-            }
-
-            WorkCompletionIdentityDeliveryRequest request =
-                CropPlotRuntime.CreateHarvestCompletionDelivery(
-                    new BuildingInstanceId(plot.buildingInstanceId),
-                    pending);
-            bool exactCurrent = cursor != null
-                && cursor.operationSequence == request.OperationSequence
-                && string.Equals(
-                    cursor.deliveryId,
-                    request.DeliveryId,
-                    StringComparison.Ordinal)
-                && string.Equals(
-                    cursor.payloadFingerprint,
-                    request.PayloadFingerprint,
-                    StringComparison.Ordinal);
-            bool previous = cursor == null && request.OperationSequence == 0
-                || cursor != null
-                && cursor.operationSequence == request.OperationSequence - 1
-                && MatchesHistoricalDeliveryId(
-                    plot.buildingInstanceId,
-                    cursor);
-            if (pending.completionEventPublished ? !exactCurrent
-                : !exactCurrent && !previous)
-                throw new InvalidOperationException(
-                    "Crop completion owner and identity delivery cursor do not join.");
-        }
-
-        WorkCompletionIdentityDeliveryCursorSaveData orphan = cursors
-            .FirstOrDefault(value =>
-                value.producerStreamId.StartsWith(
-                    CropPlotRuntime.HarvestCompletionStreamPrefix,
-                    StringComparison.Ordinal)
-                && !cropStreams.Contains(value.producerStreamId));
-        if (orphan != null)
-            throw new InvalidOperationException(
-                "Crop completion delivery cursor has no owning crop plot: "
-                + orphan.producerStreamId);
-    }
-
-    private static bool MatchesHistoricalDeliveryId(
-        string plotId,
-        WorkCompletionIdentityDeliveryCursorSaveData cursor) =>
-        cursor != null
-        && string.Equals(
-            cursor.deliveryId,
-            CropPlotRuntime.HarvestCompletionDeliveryPrefix
-                + CropPlotRuntime.FormatHarvestOperationId(
-                    new BuildingInstanceId(plotId),
-                    cursor.operationSequence),
-            StringComparison.Ordinal);
 }
 
 /// <summary>
@@ -196,6 +87,9 @@ public sealed class CropPhysicalRestoreGuard :
             certifiedSeeds.PhysicalOrders,
             physicalCandidates);
         ValidateTreatmentOwnerSet(
+            plots.PhysicalTransactionStates,
+            physicalCandidates);
+        ValidateWaterRefillOwnerSet(
             plots.PhysicalTransactionStates,
             physicalCandidates);
         ValidateEcologyEnvelopes(
@@ -465,17 +359,23 @@ public sealed class CropPhysicalRestoreGuard :
         if (treatment == null
             || treatment.phase is CropTreatmentOrderPhase.None
                 or CropTreatmentOrderPhase.WaitingForDelivery
-                or CropTreatmentOrderPhase.ReadyForWork
-                or CropTreatmentOrderPhase.Working
-                or CropTreatmentOrderPhase.OutcomePublished)
+                or CropTreatmentOrderPhase.ReadyForWork)
+            return;
+        string expected = treatment.phase is
+            CropTreatmentOrderPhase.OutcomePublished
+            or CropTreatmentOrderPhase.LedgerCommitted
+                ? treatment.ecologyAfterFingerprint
+                : treatment.ecologyBeforeFingerprint;
+        if (treatment.phase == CropTreatmentOrderPhase.Working
+            && string.IsNullOrEmpty(expected))
             return;
         string treatmentActual =
             CropPhysicalTransactionOutbox.CreateEcologyFingerprint(
                 ecologyPlots,
                 plotId);
-        if (string.IsNullOrWhiteSpace(treatment.ecologyBeforeFingerprint)
+        if (string.IsNullOrWhiteSpace(expected)
             || !string.Equals(
-                treatment.ecologyBeforeFingerprint,
+                expected,
                 treatmentActual,
                 StringComparison.Ordinal))
             throw new InvalidOperationException(
@@ -558,6 +458,131 @@ public sealed class CropPhysicalRestoreGuard :
             });
         }
         ValidateTreatmentOwnerSnapshots(snapshots, query);
+    }
+
+    internal static void ValidateWaterRefillOwnerSet(
+        IReadOnlyCollection<CropPlotState> plots,
+        IPhysicalItemRestoreCandidateQuery query)
+    {
+        List<CropWaterRefillOwnerValidationSnapshot> snapshots = new();
+        foreach (CropPlotState plot in plots ?? Array.Empty<CropPlotState>())
+        {
+            if (plot == null) continue;
+            snapshots.Add(new CropWaterRefillOwnerValidationSnapshot
+            {
+                PlotId = plot.PlotId.Value,
+                NextOperationSequence = plot.NextWaterRefillOperationSequence,
+                Owner = plot.WaterRefill
+            });
+        }
+        ValidateWaterRefillOwnerSnapshots(snapshots, query);
+    }
+
+    public static void ValidateWaterRefillOwnerSnapshots(
+        IReadOnlyCollection<CropWaterRefillOwnerValidationSnapshot> snapshots,
+        IPhysicalItemRestoreCandidateQuery query)
+    {
+        Dictionary<string, CropWaterRefillSaveData> owners =
+            new(StringComparer.Ordinal);
+        foreach (CropWaterRefillOwnerValidationSnapshot snapshot in
+                 snapshots ?? Array.Empty<CropWaterRefillOwnerValidationSnapshot>())
+        {
+            CropWaterRefillSaveData owner = snapshot?.Owner;
+            if (owner == null
+                || owner.phase is CropWaterRefillPhase.None
+                    or CropWaterRefillPhase.WaitingForDelivery
+                    or CropWaterRefillPhase.ReadyForWork
+                    or CropWaterRefillPhase.Working)
+                continue;
+            string expected = CropPlotRuntime.FormatWaterRefillOperationId(
+                (BuildingInstanceId)snapshot.PlotId,
+                snapshot.NextOperationSequence);
+            if (owner.phase is not CropWaterRefillPhase.InputCommitted
+                    and not CropWaterRefillPhase.OutcomePublished
+                || !string.Equals(
+                    owner.operationId,
+                    expected,
+                    StringComparison.Ordinal)
+                || !owners.TryAdd(owner.operationId, owner))
+                throw new InvalidOperationException(
+                    "Crop water-refill owner is invalid or duplicated: "
+                    + (owner.operationId ?? string.Empty));
+        }
+
+        if (query == null || !query.IsCandidateAvailable)
+        {
+            if (owners.Count == 0) return;
+            throw new InvalidOperationException(
+                "Crop water-refill restore requires the incoming item candidate.");
+        }
+        foreach (CropWaterRefillSaveData owner in owners.Values)
+        {
+            string[] sources = (owner.sourceStackIds ?? new List<string>())
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray();
+            bool exactOwnerProvenance = owner.sourceStackIds != null
+                && owner.sourceStackIds.Count > 0
+                && owner.sourceStackIds.All(value =>
+                    !string.IsNullOrWhiteSpace(value)
+                    && string.Equals(
+                        value,
+                        value.Trim(),
+                        StringComparison.Ordinal))
+                && owner.sourceStackIds.Distinct(StringComparer.Ordinal).Count()
+                    == owner.sourceStackIds.Count
+                && owner.sourceStackIds.SequenceEqual(
+                    sources,
+                    StringComparer.Ordinal)
+                && !string.IsNullOrWhiteSpace(owner.commitId)
+                && !string.IsNullOrWhiteSpace(
+                    owner.physicalRequestFingerprint)
+                && owner.inputQuantity > 0
+                && owner.inputMassGrams > 0L;
+            if (!exactOwnerProvenance
+                || !query.TryGetPendingBatchDisposition(
+                    owner.operationId,
+                    out PhysicalItemRestoreCandidateDispositionSnapshot receipt)
+                || receipt.Kind != PhysicalItemDispositionKind.Transfer
+                || !string.Equals(
+                    receipt.OperationId,
+                    owner.operationId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    receipt.ReasonCode,
+                    ProductionItemGateway.WipInputPhysicalReasonCode,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    receipt.CommitId,
+                    owner.commitId,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    receipt.RequestFingerprint,
+                    owner.physicalRequestFingerprint,
+                    StringComparison.Ordinal)
+                || receipt.Quantity != owner.inputQuantity
+                || receipt.InputMassGrams != owner.inputMassGrams
+                || !receipt.SourceStackIds.SequenceEqual(
+                    sources,
+                    StringComparer.Ordinal))
+                throw new InvalidOperationException(
+                    "Crop water-refill owner has no exact incoming receipt: "
+                    + owner.operationId);
+        }
+
+        foreach (PhysicalItemRestoreCandidateDispositionSnapshot receipt in
+                 query.PendingBatchDispositions
+                 ?? Array.Empty<PhysicalItemRestoreCandidateDispositionSnapshot>())
+        {
+            if (receipt?.OperationId == null
+                || !receipt.OperationId.StartsWith(
+                    CropPlotRuntime.WaterRefillOperationPrefix,
+                    StringComparison.Ordinal))
+                continue;
+            if (!owners.ContainsKey(receipt.OperationId))
+                throw new InvalidOperationException(
+                    "Incoming crop water-refill receipt has no domain owner: "
+                    + receipt.OperationId);
+        }
     }
 
     public static void ValidateTreatmentOwnerSnapshots(

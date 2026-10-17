@@ -16,6 +16,17 @@
       "target_title": "양초",
       "to": "item/craft-candle",
       "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "character/festival-blood-lantern",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8887",
+      "target_spoiler_tier": "none",
+      "target_title": "추모실",
+      "to": "facility/building-8887",
+      "type": "requires"
     }
   ],
   "schema_version": 1

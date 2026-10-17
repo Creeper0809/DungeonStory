@@ -1,0 +1,6 @@
+setup=actual owner/party UI; authored P23 factory at (31, 0); no irrigation fixture or extra expansion
+[PASS] InputCommitted: whole-world JSON join; altered mass atomic rejection; water=1; consumed=1; sequence+1; pending receipt ACK; terminal restore/retry unchanged
+[PASS] OutcomePublished: whole-world JSON join; altered mass atomic rejection; water=1; consumed=1; sequence+1; pending receipt ACK; terminal restore/retry unchanged
+result=PASS
+scope=current registered whole-world restore and crop recovery/physical ACK; actual typed WIP transfer backs controlled InputCommitted/OutcomePublished checkpoints; no naturally interrupted callback, AI delivery, full crop cycle or six-adult balance claim
+cleanup=operator stops disposable Play; no scene or user persistence writes

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 
 public sealed class BlueprintResearchRestoreCandidate
 {
@@ -23,7 +24,7 @@ public sealed class BlueprintResearchSaveSection :
     IDungeonRollbackFreeSaveSection
 {
     public const string Id = "research.blueprints";
-    private const int CurrentVersion = 6;
+    private const int CurrentVersion = 8;
 
     private static readonly string[] Dependencies =
     {
@@ -81,11 +82,95 @@ public sealed class BlueprintResearchSaveSection :
         DungeonSaveRestorePhase.RuntimeState;
     public override IReadOnlyList<string> DependsOn => Dependencies;
 
+    protected override void ValidateRawPayload(string payloadJson) => ValidatePublicationJson(payloadJson);
+
+    internal static void ValidatePublicationJson(string payloadJson)
+    {
+        JObject root = JObject.Parse(payloadJson);
+        ValidateKnowledgePublicationJson(root);
+        if (root["completedProjectResults"] is not JArray results
+            || root["pendingWorkPublication"] is not JObject pending
+            || pending["active"]?.Type != JTokenType.Boolean)
+            throw new InvalidOperationException("Research V8 publication fields are missing or malformed.");
+        foreach (JToken row in results)
+            if (row is not JObject value || value["projectId"]?.Type != JTokenType.String
+                || value["publicationKey"]?.Type != JTokenType.String)
+                throw new InvalidOperationException("Research V8 completion reference is malformed.");
+        if (pending["publicationKey"]?.Type != JTokenType.String)
+            throw new InvalidOperationException("Research publication reference is missing.");
+        if (!(bool)pending["active"])
+        {
+            if (!string.IsNullOrEmpty((string)pending["publicationKey"]))
+                throw new InvalidOperationException("Inactive research publication retains an unacknowledged reference.");
+            return;
+        }
+        if (pending["fact"] is not JObject fact || fact["hasEquipment"]?.Type != JTokenType.Boolean
+            || fact["unlocks"] is not JArray unlocks)
+            throw new InvalidOperationException("Pending research fact is missing.");
+        RequireFields(fact, typeof(ResearchWorkPublicationData), "equipment");
+        foreach (var unlock in unlocks)
+        {
+            if (unlock is not JObject value) throw new InvalidOperationException("Pending research unlock is missing.");
+            RequireFields(value, typeof(ResearchUnlockFactData));
+        }
+        if ((bool)fact["hasEquipment"])
+        {
+            if (fact["equipment"] is not JObject equipment)
+                throw new InvalidOperationException("Pending research equipment is missing.");
+            RequireFields(equipment, typeof(ResearchEquipmentUseData));
+        }
+    }
+
+    private static void ValidateKnowledgePublicationJson(JObject root)
+    {
+        if (root["knowledgeTasks"] is not JArray tasks)
+            throw new InvalidOperationException("Research V8 knowledge tasks are missing.");
+        foreach (JToken row in tasks)
+        {
+            if (row is not JObject task || task["completionPublicationKey"]?.Type != JTokenType.String
+                || task["completionOwnerRevision"]?.Type != JTokenType.Integer
+                || task["dispositionPhase"]?.Type != JTokenType.Integer
+                || task["completionFact"] is not JObject fact
+                || fact["experience"] is not JObject experience || fact["physical"] is not JObject physical
+                || physical["sourceFacts"] is not JArray sources || physical["sourceStackIds"] is not JArray)
+                throw new InvalidOperationException("Knowledge publication fields are missing or malformed.");
+            RequireFields(experience, typeof(KnowledgeCompletionExperienceData));
+            RequireFields(physical, typeof(PhysicalItemBatchDispositionSaveData));
+            if ((int)task["dispositionPhase"] == (int)KnowledgeResidueDispositionPhase.AwaitingInput)
+            {
+                if ((long)task["completionOwnerRevision"] != 0
+                    || (string)task["completionPublicationKey"] != string.Empty
+                    || fact.ToObject<KnowledgeCompletionFactData>()?.IsEmpty != true)
+                    throw new InvalidOperationException("Unapplied knowledge task retains a completion fact.");
+                continue;
+            }
+            if ((int)task["dispositionPhase"] != (int)KnowledgeResidueDispositionPhase.RewardsApplied)
+                throw new InvalidOperationException("Applied knowledge task has no complete frozen fact.");
+            foreach (JToken source in sources)
+            {
+                if (source is not JObject value) throw new InvalidOperationException("Knowledge input source is missing.");
+                RequireFields(value, typeof(PhysicalItemDispositionSourceFactSaveData));
+            }
+        }
+    }
+
+    private static void RequireFields(JObject value, Type type, string optional = null)
+    {
+        foreach (var field in type.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public))
+            if (field.Name != optional && (value[field.Name] == null || value[field.Name].Type == JTokenType.Null))
+                throw new InvalidOperationException("Pending research fact field is missing: " + field.Name);
+    }
+
     protected override DungeonResearchSaveData CapturePayload()
     {
         bool usesProjectAuthority = projectCatalog.Projects.Count > 0;
         return new DungeonResearchSaveData
         {
+            outcomeSequence = runtime.State.OutcomeSequence,
+            pendingWorkPublication = runtime.State.PendingPublication ?? new(),
+            nextKnowledgeTaskSequence = knowledgeProcessing.NextTaskSequence,
+            knowledgeTaskIdentityGeneration =
+                knowledgeProcessing.TaskIdentityGeneration,
             tasks = usesProjectAuthority
                 ? new List<DungeonResearchTaskSaveData>()
                 : runtime.State.Tasks
@@ -127,6 +212,14 @@ public sealed class BlueprintResearchSaveSection :
             completedProjectIds = runtime.State.Projects.CompletedProjectIds
                 .OrderBy(id => id, StringComparer.Ordinal)
                 .ToList(),
+            completedProjectResults = runtime.State.CompletedProjectResultKeys
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .Select(pair => new DungeonResearchCompletionResultSaveData
+                {
+                    projectId = pair.Key,
+                    publicationKey = pair.Value
+                })
+                .ToList(),
             projectQueue = runtime.State.Projects.Queue
                 .Select(entry => new DungeonResearchQueueEntrySaveData
                 {
@@ -135,7 +228,20 @@ public sealed class BlueprintResearchSaveSection :
                 })
                 .ToList(),
             activeProjectId = runtime.State.Projects.ActiveProjectId.Value,
-            materializeLegacyBlueprintItems = false
+            materializeLegacyBlueprintItems = false,
+            shopFulfillments = runtime.State.CaptureShopFulfillments()
+                .Select(value => new FacilityShopFulfillmentSaveData
+                {
+                    purchaseResultKey = value.PurchaseResultKey,
+                    offerTypeId = value.OfferTypeId,
+                    offerDataId = value.OfferDataId,
+                    itemDefinitionId = value.ItemDefinitionId,
+                    itemDisplayName = value.ItemDisplayName,
+                    phase = value.Phase,
+                    stackId = value.StackId,
+                    itemInstanceId = value.ItemInstanceId
+                })
+                .ToList()
         };
     }
 
@@ -148,7 +254,10 @@ public sealed class BlueprintResearchSaveSection :
             source.knowledgeTasks,
             physicalCandidates);
         KnowledgeResidueRestoreCandidate knowledge =
-            knowledgeProcessing.PrepareRestore(source.knowledgeTasks);
+            knowledgeProcessing.PrepareRestore(
+                source.knowledgeTasks,
+                source.nextKnowledgeTaskSequence,
+                source.knowledgeTaskIdentityGeneration);
         return new BlueprintResearchRestoreCandidate(restored, knowledge);
     }
 
@@ -156,7 +265,34 @@ public sealed class BlueprintResearchSaveSection :
         DungeonResearchSaveData source)
     {
         _ = ValidateAndBuildResearchState(source);
-        _ = knowledgeProcessing.PrepareRestore(source.knowledgeTasks);
+        _ = knowledgeProcessing.PrepareRestore(
+            source.knowledgeTasks,
+            source.nextKnowledgeTaskSequence,
+            source.knowledgeTaskIdentityGeneration);
+    }
+
+    protected override void NormalizeRestorePayload(DungeonResearchSaveData payload, DungeonGameRestoreReport report)
+    {
+        if (payload.nextKnowledgeTaskSequence == 0)
+        {
+            payload.knowledgeTaskIdentityGeneration =
+                KnowledgeResidueTaskIdentity.MigratedGeneration;
+            payload.nextKnowledgeTaskSequence = 1;
+            report?.AddWarning(
+                "KnowledgeTaskIdentityHistoryMissing: legacy allocation history is unavailable; "
+                + "future tasks were moved to the disjoint generation-2 namespace without guessing old IDs.");
+        }
+        else if (payload.knowledgeTaskIdentityGeneration == 0)
+        {
+            payload.knowledgeTaskIdentityGeneration =
+                KnowledgeResidueTaskIdentity.OriginalGeneration;
+        }
+        payload.shopFulfillments ??= new List<FacilityShopFulfillmentSaveData>();
+        if (payload.knowledgeTasks?.Any(task => task != null
+                && task.dispositionPhase != KnowledgeResidueDispositionPhase.AwaitingInput
+                && task.completionOwnerRevision == 0) == true)
+            report?.AddWarning("KnowledgeLegacyCompletionPending: split-commit reward/input state requires reconciliation; "
+                + "the runtime will not guess success or reapply a reward.");
     }
 
     private BlueprintResearchState ValidateAndBuildResearchState(
@@ -166,7 +302,7 @@ public sealed class BlueprintResearchSaveSection :
         if (source.materializeLegacyBlueprintItems)
         {
             throw new InvalidOperationException(
-                "Research V6 cannot materialize legacy blueprint items.");
+                "Research V7 cannot materialize legacy blueprint items.");
         }
 
         Dictionary<int, FacilityBlueprintSO> blueprints = BuildBlueprintIndex();
@@ -178,9 +314,50 @@ public sealed class BlueprintResearchSaveSection :
         HashSet<string> recipes = CollectResearchRecipeIds(blueprints, projects);
 
         BlueprintResearchState restored = new BlueprintResearchState();
+        restored.RestoreOutcomeSequence(source.outcomeSequence);
         RestoreBlueprintState(source, restored, blueprints, buildings, recipes);
+        RestoreShopFulfillments(source.shopFulfillments, restored);
         RestoreProjectState(source, restored, projects);
+        restored.RestorePendingPublication(source.pendingWorkPublication?.active == true ? source.pendingWorkPublication : null);
         return restored;
+    }
+
+    private static void RestoreShopFulfillments(
+        IReadOnlyList<FacilityShopFulfillmentSaveData> saved,
+        BlueprintResearchState restored)
+    {
+        foreach (FacilityShopFulfillmentSaveData row in saved
+                     ?? Array.Empty<FacilityShopFulfillmentSaveData>())
+        {
+            if (row == null
+                || string.IsNullOrWhiteSpace(row.purchaseResultKey)
+                || string.IsNullOrWhiteSpace(row.offerTypeId)
+                || row.offerDataId < 0
+                || string.IsNullOrWhiteSpace(row.itemDefinitionId)
+                || !Enum.IsDefined(typeof(FacilityShopFulfillmentPhase), row.phase)
+                || (row.phase == FacilityShopFulfillmentPhase.Pending
+                    && (!string.IsNullOrEmpty(row.stackId)
+                        || !string.IsNullOrEmpty(row.itemInstanceId)))
+                || (row.phase == FacilityShopFulfillmentPhase.Spawned
+                    && (string.IsNullOrWhiteSpace(row.stackId)
+                        || !string.IsNullOrEmpty(row.itemInstanceId)))
+                || (row.phase == FacilityShopFulfillmentPhase.Delivered
+                    && (string.IsNullOrWhiteSpace(row.stackId)
+                        || string.IsNullOrWhiteSpace(row.itemInstanceId))))
+                throw new InvalidOperationException(
+                    "Research shop fulfillment payload is invalid.");
+            restored.RestoreShopFulfillment(new FacilityShopFulfillmentRecord
+            {
+                PurchaseResultKey = row.purchaseResultKey,
+                OfferTypeId = row.offerTypeId,
+                OfferDataId = row.offerDataId,
+                ItemDefinitionId = row.itemDefinitionId,
+                ItemDisplayName = row.itemDisplayName ?? string.Empty,
+                Phase = row.phase,
+                StackId = row.stackId ?? string.Empty,
+                ItemInstanceId = row.itemInstanceId ?? string.Empty
+            });
+        }
     }
 
     protected override void PublishRestoreCandidate(
@@ -273,18 +450,9 @@ public sealed class BlueprintResearchSaveSection :
             if (task.dispositionPhase ==
                 KnowledgeResidueDispositionPhase.AwaitingInput)
             {
-                if (hasReceipt)
-                {
-                    RequireKnowledgeResidueReceipt(task, receipt, false);
-                    task.sinkRequestFingerprint = receipt.RequestFingerprint;
-                    task.sinkSourceStackIds = receipt.SourceStackIds
-                        .OrderBy(value => value, StringComparer.Ordinal)
-                        .ToList();
-                    task.sinkInputMassGrams = receipt.InputMassGrams;
-                    task.sinkCommitId = receipt.CommitId;
-                    task.dispositionPhase =
-                        KnowledgeResidueDispositionPhase.InputCommitted;
-                }
+                if (hasReceipt || task.completionOwnerRevision != 0 || task.completionFact?.IsEmpty != true
+                    || task.completionPublicationKey != string.Empty)
+                    throw new InvalidOperationException("Unapplied knowledge owner has a pending debit or reward fact: " + task.taskId);
                 continue;
             }
 
@@ -295,6 +463,10 @@ public sealed class BlueprintResearchSaveSection :
                     + task.sinkOperationId);
             }
             RequireKnowledgeResidueReceipt(task, receipt, true);
+            KnowledgeResidueCompletionTransaction.RestoreFact(task);
+            if (!receipt.PublicationExpected || receipt.PublicationKey != task.completionPublicationKey
+                || receipt.OwnerRevision != task.completionOwnerRevision)
+                throw new InvalidOperationException("Knowledge completion publication reference mismatch: " + task.taskId);
         }
 
         foreach (PhysicalItemRestoreCandidateDispositionSnapshot receipt in
@@ -537,6 +709,24 @@ public sealed class BlueprintResearchSaveSection :
             }
         }
 
+        HashSet<string> resultIds = new(StringComparer.Ordinal);
+        foreach (DungeonResearchCompletionResultSaveData saved in
+                 source.completedProjectResults
+                     ?? new List<DungeonResearchCompletionResultSaveData>())
+        {
+            if (saved == null
+                || !resultIds.Add(saved.projectId)
+                || !completedIds.Contains(saved.projectId)
+                || string.IsNullOrWhiteSpace(saved.publicationKey))
+            {
+                throw new InvalidOperationException(
+                    "Completed research result key is missing or inconsistent.");
+            }
+            restored.RecordCompletedProjectResultKey(
+                saved.projectId,
+                saved.publicationKey);
+        }
+
         HashSet<string> queuedIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (DungeonResearchQueueEntrySaveData saved in source.projectQueue)
         {
@@ -601,10 +791,12 @@ public sealed class BlueprintResearchSaveSection :
             || source.projectProgress == null
             || source.completedProjectIds == null
             || source.projectQueue == null
+            || source.completedProjectResults == null
+            || source.pendingWorkPublication == null
             || source.activeProjectId == null)
         {
             throw new InvalidOperationException(
-                "Research V6 payload is missing a required field or collection.");
+                "Research V7 payload is missing a required field or collection.");
         }
     }
 

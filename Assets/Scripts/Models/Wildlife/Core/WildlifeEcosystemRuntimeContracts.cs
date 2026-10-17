@@ -124,6 +124,9 @@ public interface IWildlifeEcosystemWorldPort
         string sourceId,
         float amount,
         out float consumed);
+    bool TryGetTemperatureC(
+        Vector2Int position,
+        out float temperatureC);
 }
 
 public interface IWildlifeEcosystemPresentationPort : IDisposable

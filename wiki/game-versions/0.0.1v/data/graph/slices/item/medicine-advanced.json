@@ -84,6 +84,41 @@
       "type": "requires"
     },
     {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-brain-assist",
+      "label": "필요 조건",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-heart-augmentation",
+      "label": "필요 조건",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-heat-sac",
+      "label": "필요 조건",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-hypha-core",
+      "label": "필요 조건",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-night-eye",
+      "label": "필요 조건",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
       "amount": "3",
       "from": "event/guest-request-emergency-surgery",
       "label": "필요 조건",

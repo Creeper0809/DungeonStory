@@ -25,12 +25,15 @@ public sealed class CircusSaveSection :
 
     private readonly ICircusPersistence persistence;
     private readonly IPhysicalItemRestoreCandidateQuery physicalCandidates;
+    private readonly CircusProgramRegistry programs;
 
-    public CircusSaveSection(ICircusPersistence persistence, IPhysicalItemRestoreCandidateQuery physicalCandidates)
+    public CircusSaveSection(ICircusPersistence persistence, IPhysicalItemRestoreCandidateQuery physicalCandidates,
+        CircusProgramRegistry programs)
     {
         this.persistence = persistence
             ?? throw new ArgumentNullException(nameof(persistence));
         this.physicalCandidates = physicalCandidates ?? throw new ArgumentNullException(nameof(physicalCandidates));
+        this.programs = programs ?? throw new ArgumentNullException(nameof(programs));
     }
 
     public override string SectionId => Id;
@@ -41,6 +44,52 @@ public sealed class CircusSaveSection :
 
     protected override CircusSaveData CapturePayload() =>
         persistence.Capture();
+
+    protected override void ValidateRawPayload(string payloadJson)
+    {
+        var root = Newtonsoft.Json.Linq.JObject.Parse(payloadJson);
+        if (root["nextWildlifeGameplayOutcomeSequence"]?.Type
+                != Newtonsoft.Json.Linq.JTokenType.Integer
+            || root["wildlifeGameplayOutcomes"]
+                is not Newtonsoft.Json.Linq.JArray rows)
+        {
+            throw new InvalidOperationException(
+                "Circus current schema requires wildlife gameplay-outcome state.");
+        }
+
+        foreach (Newtonsoft.Json.Linq.JToken row in rows)
+        {
+            if (row is not Newtonsoft.Json.Linq.JObject data)
+            {
+                throw new InvalidOperationException(
+                    "Circus wildlife gameplay outcome requires an object.");
+            }
+            foreach (System.Reflection.FieldInfo field in
+                     typeof(WildlifeGameplayOutcomeSaveData).GetFields(
+                         System.Reflection.BindingFlags.Public
+                         | System.Reflection.BindingFlags.Instance))
+            {
+                Newtonsoft.Json.Linq.JTokenType expected =
+                    field.FieldType == typeof(string)
+                        ? Newtonsoft.Json.Linq.JTokenType.String
+                        : field.FieldType == typeof(bool)
+                            ? Newtonsoft.Json.Linq.JTokenType.Boolean
+                            : field.FieldType.IsEnum
+                                || field.FieldType == typeof(int)
+                                || field.FieldType == typeof(long)
+                                ? Newtonsoft.Json.Linq.JTokenType.Integer
+                                : throw new InvalidOperationException(
+                                    "Unsupported circus wildlife gameplay outcome field: "
+                                    + field.Name);
+                if (data[field.Name]?.Type != expected)
+                {
+                    throw new InvalidOperationException(
+                        "Circus wildlife gameplay outcome field missing or invalid: "
+                        + field.Name);
+                }
+            }
+        }
+    }
 
     protected override void NormalizeRestorePayload(
         CircusSaveData payload,
@@ -107,9 +156,14 @@ public sealed class CircusSaveSection :
 
     protected override void ValidateParsedPayload(CircusSaveData payload)
     {
-        _ = persistence.BuildRestore(payload)
-            ?? throw new InvalidOperationException(
-                "Circus restore candidate builder returned null.");
+        // A preflight candidate cannot depend on an unbuilt incoming world or
+        // consume Captivity's staged candidate. All world/physical joins remain
+        // mandatory in BuildRestoreCandidate before any section commits.
+        DungeonGameRestoreReport report = new();
+        CircusSaveValidation.Validate(payload, programs, report);
+        if (!report.Success)
+            throw new InvalidOperationException("Circus payload is invalid: "
+                + string.Join(" | ", report.Errors));
     }
 
     public static void ValidatePhysicalRestoreCandidate(CircusSaveData payload, IPhysicalItemRestoreCandidateQuery query)

@@ -258,6 +258,19 @@
       "type": "references"
     }
   ],
+  "character/character-archetype-9010": [
+    {
+      "amount": null,
+      "from": "character/character-archetype-9010",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "characterspecies-11",
+      "target_spoiler_tier": "none",
+      "target_title": "인간",
+      "to": "character/characterspecies-11",
+      "type": "references"
+    }
+  ],
   "character/characterspecies-1": [
     {
       "amount": null,
@@ -325,6 +338,41 @@
       "target_spoiler_tier": "none",
       "target_title": "Reproduction_Adventurer",
       "to": "character/reproduction-adventurer",
+      "type": "references"
+    }
+  ],
+  "character/characterspecies-11": [
+    {
+      "amount": null,
+      "from": "character/characterspecies-11",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "funeral-culture-human",
+      "target_spoiler_tier": "none",
+      "target_title": "Funeral_Human",
+      "to": "character/funeral-culture-human",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-11",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "life-history-human",
+      "target_spoiler_tier": "none",
+      "target_title": "Life_Human",
+      "to": "character/life-history-human",
+      "type": "references"
+    },
+    {
+      "amount": null,
+      "from": "character/characterspecies-11",
+      "label": "관련",
+      "target_kind": "character",
+      "target_slug": "reproduction-human",
+      "target_spoiler_tier": "none",
+      "target_title": "Reproduction_Human",
+      "to": "character/reproduction-human",
       "type": "references"
     }
   ],
@@ -949,6 +997,17 @@
       "target_title": "양초",
       "to": "item/craft-candle",
       "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "character/festival-blood-lantern",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8887",
+      "target_spoiler_tier": "none",
+      "target_title": "추모실",
+      "to": "facility/building-8887",
+      "type": "requires"
     }
   ],
   "character/festival-clear-confluence": [
@@ -962,6 +1021,17 @@
       "target_title": "깨끗한 물",
       "to": "item/resource-clean-water",
       "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "character/festival-clear-confluence",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1060",
+      "target_spoiler_tier": "none",
+      "target_title": "목욕통",
+      "to": "facility/building-1060",
+      "type": "requires"
     }
   ],
   "character/festival-core-resonance": [
@@ -974,6 +1044,17 @@
       "target_spoiler_tier": "none",
       "target_title": "정비 키트",
       "to": "item/tool-maintenance-kit",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "character/festival-core-resonance",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-9826",
+      "target_spoiler_tier": "none",
+      "target_title": "룬 조율실",
+      "to": "facility/building-9826",
       "type": "requires"
     }
   ],
@@ -1001,6 +1082,17 @@
       "target_title": "종이",
       "to": "item/material-paper",
       "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "character/festival-frontier-map-night",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1047",
+      "target_spoiler_tier": "none",
+      "target_title": "전술지도탁자",
+      "to": "facility/building-1047",
+      "type": "requires"
     }
   ],
   "character/festival-many-tables": [
@@ -1026,6 +1118,17 @@
       "target_spoiler_tier": "none",
       "target_title": "밤포도",
       "to": "item/resource-night-grape",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "character/festival-open-sky-chorus",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8851",
+      "target_spoiler_tier": "none",
+      "target_title": "기상 관측탑",
+      "to": "facility/building-8851",
       "type": "requires"
     }
   ],
@@ -1053,6 +1156,17 @@
       "target_title": "동굴버섯",
       "to": "item/resource-cave-mushroom",
       "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "character/festival-spore-bloom",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8803",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴 재배 선반",
+      "to": "facility/building-8803",
+      "type": "requires"
     }
   ],
   "character/festival-tool-clan-fair": [
@@ -1066,6 +1180,17 @@
       "target_title": "기계 부품",
       "to": "item/component-machine-parts",
       "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "character/festival-tool-clan-fair",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8861",
+      "target_spoiler_tier": "none",
+      "target_title": "도제 작업대",
+      "to": "facility/building-8861",
+      "type": "requires"
     }
   ],
   "character/festival-weapon-vigil": [
@@ -1078,6 +1203,28 @@
       "target_spoiler_tier": "none",
       "target_title": "숯",
       "to": "item/material-charcoal",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "character/festival-weapon-vigil",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-1055",
+      "target_spoiler_tier": "none",
+      "target_title": "무기로커",
+      "to": "facility/building-1055",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "character/festival-weapon-vigil",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8830",
+      "target_spoiler_tier": "none",
+      "target_title": "정비 부품함",
+      "to": "facility/building-8830",
       "type": "requires"
     }
   ],
@@ -6758,6 +6905,19 @@
       "type": "requires"
     }
   ],
+  "event/faction-contract-beastkin-winter-fuel-demand": [
+    {
+      "amount": "8",
+      "from": "event/faction-contract-beastkin-winter-fuel-demand",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    }
+  ],
   "event/faction-contract-demon-crisis": [
     {
       "amount": "1",
@@ -6794,6 +6954,19 @@
       "target_spoiler_tier": "none",
       "target_title": "종이",
       "to": "item/material-paper",
+      "type": "requires"
+    }
+  ],
+  "event/faction-contract-demon-winter-fuel-demand": [
+    {
+      "amount": "8",
+      "from": "event/faction-contract-demon-winter-fuel-demand",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "to": "item/material-charcoal",
       "type": "requires"
     }
   ],
@@ -6836,6 +7009,19 @@
       "type": "requires"
     }
   ],
+  "event/faction-contract-golem-winter-fuel-demand": [
+    {
+      "amount": "8",
+      "from": "event/faction-contract-golem-winter-fuel-demand",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    }
+  ],
   "event/faction-contract-harpy-crisis": [
     {
       "amount": "6",
@@ -6872,6 +7058,19 @@
       "target_spoiler_tier": "none",
       "target_title": "밧줄",
       "to": "item/material-rope",
+      "type": "requires"
+    }
+  ],
+  "event/faction-contract-harpy-winter-fuel-demand": [
+    {
+      "amount": "8",
+      "from": "event/faction-contract-harpy-winter-fuel-demand",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "to": "item/material-charcoal",
       "type": "requires"
     }
   ],
@@ -6914,6 +7113,19 @@
       "type": "requires"
     }
   ],
+  "event/faction-contract-kobold-winter-fuel-demand": [
+    {
+      "amount": "8",
+      "from": "event/faction-contract-kobold-winter-fuel-demand",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "to": "item/material-charcoal",
+      "type": "requires"
+    }
+  ],
   "event/faction-contract-myconid-crisis": [
     {
       "amount": "4",
@@ -6950,6 +7162,19 @@
       "target_spoiler_tier": "none",
       "target_title": "동굴버섯",
       "to": "item/resource-cave-mushroom",
+      "type": "requires"
+    }
+  ],
+  "event/faction-contract-myconid-winter-fuel-demand": [
+    {
+      "amount": "8",
+      "from": "event/faction-contract-myconid-winter-fuel-demand",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-charcoal",
+      "target_spoiler_tier": "none",
+      "target_title": "숯",
+      "to": "item/material-charcoal",
       "type": "requires"
     }
   ],
@@ -7003,6 +7228,17 @@
       "target_title": "동굴 독감 항원 표본",
       "to": "item/sample-antigen-cave-flu",
       "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/guest-request-disease-sample",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8876",
+      "target_spoiler_tier": "none",
+      "target_title": "백신 연구실",
+      "to": "facility/building-8876",
+      "type": "requires"
     }
   ],
   "event/guest-request-emergency-surgery": [
@@ -7042,6 +7278,17 @@
       "target_title": "양초",
       "to": "item/craft-candle",
       "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/guest-request-memorial-performance",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8887",
+      "target_spoiler_tier": "none",
+      "target_title": "추모실",
+      "to": "facility/building-8887",
+      "type": "requires"
     }
   ],
   "event/guest-request-militia-arms": [
@@ -7068,6 +7315,17 @@
       "target_title": "깨끗한 물",
       "to": "item/resource-clean-water",
       "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/guest-request-persecuted-family",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8883",
+      "target_spoiler_tier": "none",
+      "target_title": "가족실 칸막이",
+      "to": "facility/building-8883",
+      "type": "requires"
     }
   ],
   "event/guest-request-plague-screening": [
@@ -7080,6 +7338,17 @@
       "target_spoiler_tier": "none",
       "target_title": "소독제",
       "to": "item/medicine-antiseptic",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/guest-request-plague-screening",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8874",
+      "target_spoiler_tier": "none",
+      "target_title": "격리 병동",
+      "to": "facility/building-8874",
       "type": "requires"
     }
   ],
@@ -7106,6 +7375,17 @@
       "target_spoiler_tier": "none",
       "target_title": "공학 도면",
       "to": "item/component-engineering-drawing",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "event/guest-request-sealed-archive",
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8825",
+      "target_spoiler_tier": "none",
+      "target_title": "시제품 연구실",
+      "to": "facility/building-8825",
       "type": "requires"
     }
   ],
@@ -7625,7 +7905,7 @@
   ],
   "event/life-event-retirement-request": [
     {
-      "amount": "-2",
+      "amount": "0",
       "from": "event/life-event-retirement-request",
       "label": "연결",
       "target_kind": "event",
@@ -7633,7 +7913,18 @@
       "target_spoiler_tier": "warning",
       "target_title": "도구를 내려놓는 날",
       "to": "event/life-event-retirement-request",
-      "type": "adds-work-delay"
+      "type": "unknown-effect"
+    },
+    {
+      "amount": "0",
+      "from": "event/life-event-retirement-request",
+      "label": "연결",
+      "target_kind": "event",
+      "target_slug": "life-event-retirement-request",
+      "target_spoiler_tier": "warning",
+      "target_title": "도구를 내려놓는 날",
+      "to": "event/life-event-retirement-request",
+      "type": "unknown-effect"
     },
     {
       "amount": "6",
@@ -8346,6 +8637,32 @@
       "type": "changes-trauma"
     }
   ],
+  "event/seasonal-autumn-migration-window": [
+    {
+      "amount": null,
+      "from": "event/seasonal-autumn-migration-window",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "spore-elk",
+      "target_spoiler_tier": "none",
+      "target_title": "포자큰사슴",
+      "to": "nature/spore-elk",
+      "type": "references"
+    }
+  ],
+  "event/seasonal-autumn-predator-descent": [
+    {
+      "amount": null,
+      "from": "event/seasonal-autumn-predator-descent",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "carrion-drake",
+      "target_spoiler_tier": "none",
+      "target_title": "시체청소 비룡",
+      "to": "nature/carrion-drake",
+      "type": "references"
+    }
+  ],
   "event/seasonal-autumn-rot-cart": [
     {
       "amount": "9",
@@ -8357,6 +8674,19 @@
       "target_title": "장부패증",
       "to": "medical/disease-gut-rot",
       "type": "adds-disease-exposure"
+    }
+  ],
+  "event/seasonal-spring-drift-cargo": [
+    {
+      "amount": null,
+      "from": "event/seasonal-spring-drift-cargo",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "references"
     }
   ],
   "event/seasonal-spring-fever-camp": [
@@ -8372,6 +8702,19 @@
       "type": "adds-disease-exposure"
     }
   ],
+  "event/seasonal-spring-migrant-herd": [
+    {
+      "amount": null,
+      "from": "event/seasonal-spring-migrant-herd",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "deep-goat",
+      "target_spoiler_tier": "none",
+      "target_title": "심층염소",
+      "to": "nature/deep-goat",
+      "type": "references"
+    }
+  ],
   "event/seasonal-spring-spore-rain": [
     {
       "amount": "8",
@@ -8385,17 +8728,17 @@
       "type": "adds-disease-exposure"
     }
   ],
-  "event/seasonal-summer-dry-well": [
+  "event/seasonal-summer-mana-lightning": [
     {
-      "amount": "6",
-      "from": "event/seasonal-summer-dry-well",
-      "label": "연결",
+      "amount": null,
+      "from": "event/seasonal-summer-mana-lightning",
+      "label": "생산·해금",
       "target_kind": "item",
-      "target_slug": "resource-clean-water",
+      "target_slug": "resource-mana-crystal",
       "target_spoiler_tier": "none",
-      "target_title": "깨끗한 물",
-      "to": "item/resource-clean-water",
-      "type": "consumes-item"
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "produces-or-unlocks"
     }
   ],
   "event/seasonal-summer-smoke-valley": [
@@ -8424,17 +8767,41 @@
       "type": "adds-disease-exposure"
     }
   ],
-  "event/seasonal-winter-fuel-demand": [
+  "event/seasonal-winter-deep-echo": [
     {
-      "amount": "8",
-      "from": "event/seasonal-winter-fuel-demand",
-      "label": "연결",
+      "amount": null,
+      "from": "event/seasonal-winter-deep-echo",
+      "label": "생산·해금",
       "target_kind": "item",
-      "target_slug": "material-charcoal",
+      "target_slug": "record-arcane-index",
       "target_spoiler_tier": "none",
-      "target_title": "숯",
-      "to": "item/material-charcoal",
-      "type": "consumes-item"
+      "target_title": "비전 색인철",
+      "to": "item/record-arcane-index",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": null,
+      "from": "event/seasonal-winter-deep-echo",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "event/seasonal-winter-hungry-pack": [
+    {
+      "amount": null,
+      "from": "event/seasonal-winter-hungry-pack",
+      "label": "관련",
+      "target_kind": "nature",
+      "target_slug": "cave-hound",
+      "target_spoiler_tier": "none",
+      "target_title": "동굴사냥개",
+      "to": "nature/cave-hound",
+      "type": "references"
     }
   ],
   "event/service-incident-brawl": [
@@ -11035,6 +11402,17 @@
     }
   ],
   "nature/crystal-beetle": [
+    {
+      "amount": "1",
+      "from": "nature/crystal-beetle",
+      "label": "관련",
+      "target_kind": "item",
+      "target_slug": "resource-crystal-beetle-carapace",
+      "target_spoiler_tier": "none",
+      "target_title": "수정딱정벌레 갑각",
+      "to": "item/resource-crystal-beetle-carapace",
+      "type": "references"
+    },
     {
       "amount": null,
       "from": "nature/crystal-beetle",
@@ -21731,6 +22109,405 @@
       "type": "requires"
     }
   ],
+  "recipe/recipe-surgery-balance-tail": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-balance-tail",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "surgery-prosthetic-balance-tail",
+      "target_spoiler_tier": "none",
+      "target_title": "평형 꼬리 보철",
+      "to": "item/surgery-prosthetic-balance-tail",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-balance-tail",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "가죽",
+      "to": "item/material-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-balance-tail",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-surgery-balance-tail",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-balance-tail",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    }
+  ],
+  "recipe/recipe-surgery-brain-assist": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-brain-assist",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "surgery-prosthetic-brain-variant-human-neural-assist",
+      "target_spoiler_tier": "none",
+      "target_title": "인간 신경 보조기",
+      "to": "item/surgery-prosthetic-brain-variant-human-neural-assist",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-brain-assist",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-brain-assist",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약품",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-brain-assist",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-brain-assist",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    }
+  ],
+  "recipe/recipe-surgery-heart-augmentation": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-heart-augmentation",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "surgery-prosthetic-heart-variant-orc-combat-heart",
+      "target_spoiler_tier": "none",
+      "target_title": "오크 전투 심장",
+      "to": "item/surgery-prosthetic-heart-variant-orc-combat-heart",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-heart-augmentation",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약품",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-heart-augmentation",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-surgery-heart-augmentation",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-heart-augmentation",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    }
+  ],
+  "recipe/recipe-surgery-heat-sac": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-heat-sac",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "surgery-prosthetic-heat-sac-variant-demon-heat-sac",
+      "target_spoiler_tier": "none",
+      "target_title": "데몬 열낭 보강기",
+      "to": "item/surgery-prosthetic-heat-sac-variant-demon-heat-sac",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-heat-sac",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-heat-sac",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약품",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-heat-sac",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-heat-sac",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    }
+  ],
+  "recipe/recipe-surgery-hypha-core": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-hypha-core",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "surgery-prosthetic-hypha-core",
+      "target_spoiler_tier": "none",
+      "target_title": "균핵 보철",
+      "to": "item/surgery-prosthetic-hypha-core",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-hypha-core",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-hypha-core",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-hypha-core",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약품",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-hypha-core",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    }
+  ],
+  "recipe/recipe-surgery-night-eye": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-night-eye",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "surgery-prosthetic-night-eye-left",
+      "target_spoiler_tier": "none",
+      "target_title": "왼쪽 야간안 보철",
+      "to": "item/surgery-prosthetic-night-eye-left",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-night-eye",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-night-eye",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "medicine-advanced",
+      "target_spoiler_tier": "none",
+      "target_title": "고급 약품",
+      "to": "item/medicine-advanced",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-night-eye",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "resource-mana-crystal",
+      "target_spoiler_tier": "none",
+      "target_title": "마나 결정",
+      "to": "item/resource-mana-crystal",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-night-eye",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    }
+  ],
+  "recipe/recipe-surgery-precision-hand": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-precision-hand",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "surgery-prosthetic-hand-left",
+      "target_spoiler_tier": "none",
+      "target_title": "왼손 정밀 보철",
+      "to": "item/surgery-prosthetic-hand-left",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-precision-hand",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-precision-hand",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-surgery-precision-hand",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-precision-hand",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    }
+  ],
   "recipe/recipe-surgery-prosthetic-arm": [
     {
       "amount": "1",
@@ -21836,6 +22613,291 @@
     {
       "amount": null,
       "from": "recipe/recipe-surgery-prosthetic-leg",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    }
+  ],
+  "recipe/recipe-surgery-pseudopods": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-pseudopods",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "surgery-prosthetic-pseudopods",
+      "target_spoiler_tier": "none",
+      "target_title": "위족 보철",
+      "to": "item/surgery-prosthetic-pseudopods",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-pseudopods",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-pseudopods",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-surgery-pseudopods",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-pseudopods",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    }
+  ],
+  "recipe/recipe-surgery-reinforced-torso": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-reinforced-torso",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "surgery-prosthetic-torso",
+      "target_spoiler_tier": "none",
+      "target_title": "골격 보강 몸통",
+      "to": "item/surgery-prosthetic-torso",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-reinforced-torso",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-reinforced-torso",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-surgery-reinforced-torso",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-reinforced-torso",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    }
+  ],
+  "recipe/recipe-surgery-sprint-joint": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-sprint-joint",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "surgery-prosthetic-leg-left-variant-beastkin-sprint-joint",
+      "target_spoiler_tier": "none",
+      "target_title": "수인 질주 관절",
+      "to": "item/surgery-prosthetic-leg-left-variant-beastkin-sprint-joint",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-sprint-joint",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "가죽",
+      "to": "item/material-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-sprint-joint",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "3",
+      "from": "recipe/recipe-surgery-sprint-joint",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-sprint-joint",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    }
+  ],
+  "recipe/recipe-surgery-tail-balance-augmentation": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-tail-balance-augmentation",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "surgery-prosthetic-balance-tail-variant-kobold-tail-balance",
+      "target_spoiler_tier": "none",
+      "target_title": "코볼트 평형 꼬리 보강기",
+      "to": "item/surgery-prosthetic-balance-tail-variant-kobold-tail-balance",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-tail-balance-augmentation",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-leather",
+      "target_spoiler_tier": "none",
+      "target_title": "가죽",
+      "to": "item/material-leather",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-tail-balance-augmentation",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-surgery-tail-balance-augmentation",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-tail-balance-augmentation",
+      "label": "필요 조건",
+      "target_kind": "research",
+      "target_slug": "research-medical-prosthetics",
+      "target_spoiler_tier": "none",
+      "target_title": "보철 공학",
+      "to": "research/research-medical-prosthetics",
+      "type": "requires"
+    }
+  ],
+  "recipe/recipe-surgery-wing": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-wing",
+      "label": "생산·해금",
+      "target_kind": "item",
+      "target_slug": "surgery-prosthetic-wing-left",
+      "target_spoiler_tier": "none",
+      "target_title": "왼날개 보철",
+      "to": "item/surgery-prosthetic-wing-left",
+      "type": "produces-or-unlocks"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-wing",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-cloth",
+      "target_spoiler_tier": "none",
+      "target_title": "천",
+      "to": "item/material-cloth",
+      "type": "requires"
+    },
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-wing",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-lumber",
+      "target_spoiler_tier": "none",
+      "target_title": "목재",
+      "to": "item/material-lumber",
+      "type": "requires"
+    },
+    {
+      "amount": "2",
+      "from": "recipe/recipe-surgery-wing",
+      "label": "필요 조건",
+      "target_kind": "item",
+      "target_slug": "material-steel-ingot",
+      "target_spoiler_tier": "none",
+      "target_title": "강철",
+      "to": "item/material-steel-ingot",
+      "type": "requires"
+    },
+    {
+      "amount": null,
+      "from": "recipe/recipe-surgery-wing",
       "label": "필요 조건",
       "target_kind": "research",
       "target_slug": "research-medical-prosthetics",
@@ -34742,6 +35804,17 @@
       "target_title": "전기 아크등",
       "to": "facility/building-9824",
       "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-electric-lighting",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9828",
+      "target_spoiler_tier": "none",
+      "target_title": "태양등",
+      "to": "facility/building-9828",
+      "type": "unlocks-building"
     }
   ],
   "research/research-industry-electric-smelting": [
@@ -35224,6 +36297,17 @@
       "target_spoiler_tier": "none",
       "target_title": "마나 발전기",
       "to": "facility/building-9812",
+      "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "from": "research/research-industry-mana-power",
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9829",
+      "target_spoiler_tier": "none",
+      "target_title": "인공태양",
+      "to": "facility/building-9829",
       "type": "unlocks-building"
     }
   ],

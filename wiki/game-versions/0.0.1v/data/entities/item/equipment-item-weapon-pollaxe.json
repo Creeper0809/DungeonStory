@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "도끼날과 망치머리를 번갈아 써 중장갑 상대를 압박하는 양손 무기다. 특히 제4주조도시제 폴액스의 작은 홈은 몸을 바꿀 때 맞추는 수리 눈금이다.",
+  "in_game_description": "도끼날과 망치머리를 번갈아 써 중장갑 상대를 압박하는 양손 무기다. 제4주조도시제 폴액스의 작은 홈은 몸을 바꿀 때 맞추는 수리 눈금이다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

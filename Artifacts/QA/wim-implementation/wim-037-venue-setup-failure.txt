@@ -1,0 +1,10 @@
+result=FAIL
+main Unity compile=PASS; runtime=136E25EA48EBA4AAF8BA6269AFDB123B785D9A5AEB408E994D745F9EF73D2DBC; editor=42E61152E4428CB17C89F8A451BD9C7CD84C7068847834CAAF6AFC546833BC96
+entry=Wim037GuestDeliveryLiveRunner.StartVenueFocused
+phase=controlled occurrence preparation before notice acceptance/venue/haul
+exception=Society-event history bounds are invalid: ordinary=2/1, emergency=1/1, resolved=1/256.
+at=V20CampaignRuntime.ValidateSociety:3054 -> PrepareSociety -> Wim037GuestDeliveryLiveRunner.Run:187
+observed=stock2; no destination; carriedFalse; arrivedFalse; runtime paused and main Play stopped
+cause=fixture appended an ordinary occurrence to an already full valid early-game event slot
+correction=validate untouched capture; replace only unaccepted ordinary startup occurrences with no physical delivery owner inside the disposable fixture; retain actual production bounds/restore assertions
+scope=preparation failure, not a game delivery or venue assertion failure; accepted prior normal/cancel reports preserved

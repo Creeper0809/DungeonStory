@@ -1,0 +1,1 @@
+G9_TRAIT_INFERENCE_PARITY=PASS; transaction4/latch1/authority9; retained=76; public=35; serialized/DTO/Inject/state guard/validation/current ledger/evidence/lease+MayBeCommitted/rollback-retry/restore exact; no parent implementation/root cache; Unity=NOT_RUN

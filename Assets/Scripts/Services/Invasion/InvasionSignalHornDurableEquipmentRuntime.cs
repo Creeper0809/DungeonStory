@@ -94,16 +94,33 @@ public sealed class InvasionSignalHornDurableEquipmentRuntime
     {
         if (commitRally == null)
             throw new ArgumentNullException(nameof(commitRally));
+        return TryCommitRally(
+            signalPostId,
+            signalPostPosition,
+            _ => commitRally(),
+            out _,
+            out failureReason);
+    }
+
+    public bool TryCommitRally(
+        BuildingInstanceId signalPostId,
+        Vector2Int signalPostPosition,
+        Func<DurableFacilityEquipmentUseContext, bool> commitRally,
+        out DurableFacilityEquipmentUseResult useResult,
+        out string failureReason)
+    {
+        if (commitRally == null)
+            throw new ArgumentNullException(nameof(commitRally));
         DurableFacilityEquipmentAssignment assignment = CreateAssignment(
             signalPostId,
             signalPostPosition);
-        DurableFacilityEquipmentUseResult result = use.TryApplyWearAndEffect(
+        useResult = use.TryApplyWearAndEffect(
             assignment.Key,
             InvasionSignalHornDurableEquipmentPolicySource.RequirementId,
             WearPerRally,
             new RallyEffect(commitRally));
-        failureReason = result.FailureReason;
-        return result.Succeeded;
+        failureReason = useResult.FailureReason;
+        return useResult.Succeeded;
     }
 
     private DurableFacilityEquipmentAssignment CreateAssignment(
@@ -139,9 +156,10 @@ public sealed class InvasionSignalHornDurableEquipmentRuntime
 
     private sealed class RallyEffect : IDurableFacilityEquipmentEffectCommit
     {
-        private readonly Func<bool> commit;
+        private readonly Func<DurableFacilityEquipmentUseContext, bool> commit;
 
-        internal RallyEffect(Func<bool> commit)
+        internal RallyEffect(
+            Func<DurableFacilityEquipmentUseContext, bool> commit)
         {
             this.commit = commit ?? throw new ArgumentNullException(nameof(commit));
         }
@@ -179,7 +197,7 @@ public sealed class InvasionSignalHornDurableEquipmentRuntime
             DurableFacilityEquipmentUseContext context,
             out string failureReason)
         {
-            if (!commit())
+            if (!commit(context))
             {
                 failureReason = "invasion-signal-horn-rally-rejected";
                 return false;

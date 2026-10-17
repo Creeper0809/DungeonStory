@@ -401,6 +401,58 @@ internal sealed class StaffManagementSurfacePanel
             return;
         }
 
+        IReadOnlyList<CharacterManualSkillCommandState> manualSkills =
+            controller.GetManualSkillCommands(worker.Character);
+        if (manualSkills.Count > 0)
+        {
+            AddManagementBanner(
+                "사용 능력",
+                "자신/선택/무작위/전체 대상과 단일·방·N×N·던전 범위가 실제 규칙대로 적용됩니다.");
+        }
+        for (int i = 0; i < manualSkills.Count; i++)
+        {
+            CharacterManualSkillCommandState command = manualSkills[i];
+            string targeting = command.TargetingMode switch
+            {
+                CharacterSkillTargetingMode.Self => "자신",
+                CharacterSkillTargetingMode.PlayerSelected => "직접 선택",
+                CharacterSkillTargetingMode.DeterministicRandom => "무작위",
+                CharacterSkillTargetingMode.AllEligible => "전체",
+                _ => "알 수 없음"
+            };
+            string range = command.EffectArea == CharacterSkillEffectArea.Square
+                ? $"{command.AreaSize}×{command.AreaSize}"
+                : command.EffectArea switch
+                {
+                    CharacterSkillEffectArea.Single => "단일",
+                    CharacterSkillEffectArea.Room => "방 전체",
+                    CharacterSkillEffectArea.Dungeon => "던전 전체",
+                    _ => "알 수 없음"
+                };
+            string cooldown = command.IsReady
+                ? "사용 가능"
+                : $"재사용까지 {command.RemainingCooldownHours}시간";
+            CreateManagementCard(
+                $"P1Action_ManualSkill_{i}",
+                command.DisplayName,
+                $"대상 {targeting} / 범위 {range} / 지속 {command.DurationHours}시간 / {cooldown}\n{command.MechanicalDescription}",
+                command.IsReady ? "사용" : cooldown,
+                () =>
+                {
+                    bool success = controller.TryIssueManualSkillCommand(
+                        worker.Character,
+                        command.SkillId,
+                        out string message);
+                    gameEventBus.ShowNotice(
+                        message,
+                        success
+                            ? NoticeFeedEvent.Grade.NONE
+                            : NoticeFeedEvent.Grade.WARNING);
+                    Refresh();
+                },
+                104f);
+        }
+
         List<BuildableObject> facilities = (buildingWorldQuery?.Buildings
                 ?? Array.Empty<BuildableObject>())
             .Where((facility) => facility != null && !facility.isDestroy)

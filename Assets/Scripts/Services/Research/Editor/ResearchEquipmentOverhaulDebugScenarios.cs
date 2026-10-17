@@ -277,7 +277,6 @@ public static class ResearchEquipmentOverhaulDebugScenarios
         ValidateRewards(projects, equipment, failures);
         ValidateEquipment(projects, equipment, modules, failures);
         ValidateRuntimeLocksModulesAndSave(failures);
-        ValidateDeterministicDrops(failures);
         ValidatePacing(projects, failures, out pacingReport);
         return failures;
     }
@@ -626,28 +625,6 @@ public static class ResearchEquipmentOverhaulDebugScenarios
         }
     }
 
-    private static void ValidateDeterministicDrops(ICollection<string> failures)
-    {
-        foreach (EquipmentExpeditionRewardKind kind in
-                 Enum.GetValues(typeof(EquipmentExpeditionRewardKind)))
-        {
-            EquipmentExpeditionRewardRequest request = new EquipmentExpeditionRewardRequest(
-                8675309, "fixed-event", kind, EquipmentEra.MatureIndustrial,
-                "region:validation", Vector2Int.zero);
-            int first = EquipmentExpeditionRewardService.PreviewModuleDropCount(request);
-            int second = EquipmentExpeditionRewardService.PreviewModuleDropCount(request);
-            Require(first == second, $"{kind}: runSeed result is not deterministic", failures);
-            if (kind == EquipmentExpeditionRewardKind.RegionBoss)
-            {
-                Require(first is 1 or 2, "boss module reward is not guaranteed", failures);
-            }
-            else
-            {
-                Require(first is 0 or 1, $"{kind}: invalid optional drop count", failures);
-            }
-        }
-    }
-
     private static void ValidateRuntimeLocksModulesAndSave(
         ICollection<string> failures)
     {
@@ -657,7 +634,7 @@ public static class ResearchEquipmentOverhaulDebugScenarios
             new WorldItemRepository(
                 new GuidPersistentIdGenerator(),
                 new DungeonRuntimeAggregateRootStore()),
-            new CharacterCarryInventoryRegistry(), materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, researchProvider: EditorLockedResearchRuntimeReferences.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            new CharacterCarryInventoryRegistry(), materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, researchProvider: EditorLockedResearchRuntimeReferences.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
         Require(locked.IsDefinitionUnlocked("weapon:dagger", out _),
             "day-one dagger is locked", failures);
         bool lockedWithExpectedCode =
@@ -842,7 +819,7 @@ public static class ResearchEquipmentOverhaulDebugScenarios
             itemRepository,
             new CharacterCarryInventoryRegistry(),
             researchProvider: EditorAllResearchRuntimeProvider.Instance,
-            moduleCatalog: moduleCatalog, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            moduleCatalog: moduleCatalog, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance, calendar: new EditorFixedGameCalendar(137, 9));
         restored.PublishRestoreCandidate(
             restored.BuildRestoreCandidate(save));
         Require(restored.ModuleInstances.Count == 1

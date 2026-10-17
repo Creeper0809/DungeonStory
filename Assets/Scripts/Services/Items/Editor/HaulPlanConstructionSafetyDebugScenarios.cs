@@ -30,10 +30,29 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         int exitCode = 1;
         try
         {
+            string output = Environment.GetEnvironmentVariable(
+                "DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+            if (!string.IsNullOrWhiteSpace(output))
+            {
+                if (Directory.Exists(output) || File.Exists(output))
+                {
+                    throw new InvalidOperationException(
+                        "A new create-only haul regression output directory is required.");
+                }
+                Directory.CreateDirectory(output);
+            }
             UnityEditor.SceneManagement.EditorSceneManager.OpenScene(
                 "Assets/Scenes/GameplayScene.unity",
                 UnityEditor.SceneManagement.OpenSceneMode.Single);
-            exitCode = RunAll(logSuccess: true) ? 0 : 1;
+            bool passed = RunAll(logSuccess: true);
+            if (!string.IsNullOrWhiteSpace(output))
+            {
+                File.Copy(
+                    ReportPath,
+                    Path.Combine(output, "haul-construction-destination.tsv"),
+                    overwrite: false);
+            }
+            exitCode = passed ? 0 : 1;
         }
         catch (Exception exception)
         {
@@ -50,7 +69,10 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         List<string> lines = new List<string> { "case\tresult\tdetails" };
         List<string> errors = new List<string>();
 
-        Run("multi_stack_haul_plan", VerifyMultiStackHaulPlan, lines, errors);
+        Run("sequential_exact_warehouse_lots",
+            VerifySequentialExactWarehouseLots,
+            lines,
+            errors);
         Run("equipment_haul_lease_survives_world_state_transition",
             VerifyEquipmentHaulLeaseSurvivesWorldStateTransition,
             lines,
@@ -71,6 +93,10 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         Run("partial_heavy_stack_reservation", VerifyPartialHeavyStackReservation, lines, errors);
         Run("survival_stock_transit_reserve", VerifySurvivalStockTransitReserve, lines, errors);
         Run("raw_food_harvest_is_haulable", VerifyRawFoodHarvestIsHaulable, lines, errors);
+        Run("construction_destination_work_order_identity",
+            VerifyConstructionDestinationWorkOrderIdentity,
+            lines,
+            errors);
         Run("construction_safety_forced_warning", VerifyConstructionSafetyForcedWarning, lines, errors);
 
         File.WriteAllLines(ReportPath, lines);
@@ -93,8 +119,68 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         return true;
     }
 
+    public static bool RunHaulDeliveryPathFailureSnapshotFocused()
+    {
+        (string Name, HaulDeliveryPathFailureSnapshot Snapshot, bool Expected)[] cases =
+        {
+            ("default", default, false),
+            ("empty", new HaulDeliveryPathFailureSnapshot(
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                AIActionFailureKind.NoPath), false),
+            ("missing_source", new HaulDeliveryPathFailureSnapshot(
+                "operation",
+                string.Empty,
+                "destination",
+                "item",
+                AIActionFailureKind.NoPath), false),
+            ("missing_destination", new HaulDeliveryPathFailureSnapshot(
+                "operation",
+                "stack",
+                string.Empty,
+                "item",
+                AIActionFailureKind.NoPath), false),
+            ("missing_item", new HaulDeliveryPathFailureSnapshot(
+                "operation",
+                "stack",
+                "destination",
+                string.Empty,
+                AIActionFailureKind.NoPath), false),
+            ("complete_no_path", new HaulDeliveryPathFailureSnapshot(
+                "operation",
+                "stack",
+                "destination",
+                "item",
+                AIActionFailureKind.NoPath), true),
+            ("complete_other_failure", new HaulDeliveryPathFailureSnapshot(
+                "operation",
+                "stack",
+                "destination",
+                "item",
+                AIActionFailureKind.NoGrid), false)
+        };
+
+        foreach (var testCase in cases)
+        {
+            if (testCase.Snapshot.IsValid == testCase.Expected)
+                continue;
+
+            Debug.LogError(
+                "Haul delivery path-failure snapshot contract failed: "
+                + testCase.Name
+                + "; expected=" + testCase.Expected
+                + "; actual=" + testCase.Snapshot.IsValid + ".");
+            return false;
+        }
+
+        Debug.Log("Haul delivery path-failure snapshot contract PASS.");
+        return true;
+    }
+
     internal static string RunMultiStackHaulFocused() =>
-        VerifyMultiStackHaulPlan();
+        VerifySequentialExactWarehouseLots();
 
     internal static string RunPartialPickupFocused() =>
         VerifyPartialHeavyStackReservation();
@@ -314,7 +400,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             + focusedReportPath);
     }
 
-    private static string VerifyMultiStackHaulPlan()
+    private static string VerifySequentialExactWarehouseLots()
     {
         ScenarioRuntime scenario = ScenarioRuntime.Create(lightStockWeight: 1f);
         try
@@ -349,55 +435,134 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 "third stack spawn failed");
 
             long massBefore = ExactItemMassGrams(scenario, stockId);
+            Require(massBefore == 15_000L,
+                $"three exact five-unit lots must total 15000g, got {massBefore}g");
 
-            Require(scenario.Items.TryReserveBestHaulPlan(
-                    scenario.Actor,
-                    out WorldItemHaulPlan plan,
-                    out string failureReason),
-                "haul plan failed: " + failureReason);
-
-            int reserved = plan.ReservedStackQuantities.Sum(item => item.Quantity);
-            Require(plan.PickupLegs.Count >= 2, $"expected multiple pickup legs, got {plan.PickupLegs.Count}");
-            Require(plan.PrimaryDestination == WorldItemHaulDestinationKind.Warehouse,
-                $"unexpected destination {plan.PrimaryDestination}");
-            Require(reserved >= 10, $"expected at least two stacks reserved, got {reserved}");
-
-            int picked = 0;
-            foreach (WorldItemReservedStackQuantity reservation in plan.ReservedStackQuantities)
+            HashSet<string> operationIds = new(StringComparer.Ordinal);
+            int deposited = 0;
+            for (int lot = 1; lot <= 3; lot++)
             {
-                Require(scenario.Items.TryPickupReservedStackQuantity(
+                Require(scenario.Items.TryReserveBestHaulPlan(
                         scenario.Actor,
-                        scenario.Carry,
-                        reservation,
-                        out int pickedUp,
-                        out string pickupReason),
-                    "pickup failed: " + pickupReason);
-                picked += pickedUp;
+                        out WorldItemHaulPlan plan,
+                        out string failureReason),
+                    $"sequential exact warehouse lot {lot} plan failed: "
+                        + failureReason);
+                Require(plan.PickupLegs.Count == 1
+                        && plan.ReservedStackQuantities.Count == 1
+                        && plan.ReservedStackQuantities[0].Quantity == 5,
+                    $"warehouse lot {lot} was not one exact admitted five-unit lot: "
+                        + $"pickups={plan.PickupLegs.Count}; "
+                        + $"reservations={plan.ReservedStackQuantities.Count}; "
+                        + $"quantity={plan.ReservedStackQuantities.Sum(value => value.Quantity)}");
+
+                string operationId = CompleteExactWarehouseHaul(
+                    scenario,
+                    plan,
+                    expectedQuantity: 5,
+                    context: $"sequential warehouse lot {lot}");
+                Require(operationIds.Add(operationId),
+                    "sequential warehouse lots reused an operation identity: "
+                        + operationId);
+                deposited += 5;
+                Require(scenario.Warehouse.Inventory.GetStock(
+                            StockCategory.General) == deposited,
+                    $"warehouse total after lot {lot} was not {deposited}");
+                long massAfterLot = ExactItemMassGrams(scenario, stockId);
+                Require(massAfterLot == massBefore,
+                    $"warehouse lot {lot} changed exact physical mass: "
+                        + $"before={massBefore}; after={massAfterLot}");
             }
 
-            Require(picked == reserved, $"picked {picked}, reserved {reserved}");
-            Require(scenario.Items.TryDepositCarriedItems(
+            Require(operationIds.Count == 3,
+                "sequential warehouse lots did not retain three unique operations");
+            Require(!scenario.Items.HasAvailableHaulJob(scenario.Actor),
+                "a fourth warehouse haul job remained after all three lots");
+            Require(!scenario.Items.TryReserveBestHaulPlan(
                     scenario.Actor,
-                    scenario.Carry,
-                    scenario.Warehouse,
-                    out string depositReason),
-                "deposit failed: " + depositReason);
-            Require(!scenario.Carry.HasItems, "carry inventory still has items");
-            Require(scenario.Warehouse.Inventory.GetStock(StockCategory.General) >= picked,
-                "warehouse did not receive hauled stock");
+                    out _,
+                    out _),
+                "planner reserved a fourth warehouse haul job after all three lots");
+            Require(!scenario.Carry.HasItems
+                    && ExactItemMassGrams(scenario, stockId) == massBefore,
+                "sequential warehouse completion leaked carry or physical mass");
 
-            long massAfter = ExactItemMassGrams(scenario, stockId);
-            Require(massAfter == massBefore,
-                $"multi-stack haul changed physical mass: before={massBefore}; "
-                + $"after={massAfter}");
-
-            return $"pickups={plan.PickupLegs.Count}; reserved={reserved}; "
-                + $"deposited={picked}; massGrams={massAfter}";
+            return "SEQUENTIAL_EXACT_WAREHOUSE_LOTS_PASS;"
+                + $" operations={operationIds.Count}; deposited={deposited};"
+                + $" totals=5,10,15; massGrams={massBefore}; fourthJob=False";
         }
         finally
         {
             scenario.Dispose();
         }
+    }
+
+    private static string CompleteExactWarehouseHaul(
+        ScenarioRuntime scenario,
+        WorldItemHaulPlan plan,
+        int expectedQuantity,
+        string context)
+    {
+        string warehouseDestination =
+            WarehouseStorageIdentity.RequireDestinationId(scenario.Warehouse);
+        Require(plan != null
+                && plan.IsValid
+                && plan.PrimaryDestination
+                    == WorldItemHaulDestinationKind.Warehouse
+                && string.Equals(
+                    plan.PrimaryDestinationId,
+                    warehouseDestination,
+                    StringComparison.Ordinal)
+                && plan.PickupLegs.Count == 1
+                && plan.DeliveryLegs.Count == 1
+                && plan.ReservedStackQuantities.Count == 1,
+            context + " did not retain one exact warehouse lot");
+
+        WorldItemReservedStackQuantity reservation =
+            plan.ReservedStackQuantities[0];
+        string operationId = reservation.OwnerOperationId;
+        Require(expectedQuantity > 0
+                && reservation.Quantity == expectedQuantity
+                && reservation.DestinationKind
+                    == WorldItemHaulDestinationKind.Warehouse
+                && string.Equals(
+                    reservation.DestinationId,
+                    warehouseDestination,
+                    StringComparison.Ordinal)
+                && !string.IsNullOrWhiteSpace(operationId),
+            context + " changed quantity, destination, or operation identity");
+        Require(scenario.Items.TryPickupReservedStackQuantity(
+                scenario.Actor,
+                scenario.Carry,
+                reservation,
+                out int picked,
+                out string pickupFailure)
+            && picked == expectedQuantity,
+            context + " pickup failed: " + pickupFailure);
+        Require(scenario.Items.TryCommitHaulPickup(
+                operationId,
+                scenario.Carry,
+                out string commitFailure),
+            context + " pickup commit failed: " + commitFailure);
+        Require(scenario.Items.TryDepositCarriedItems(
+                scenario.Actor,
+                scenario.Carry,
+                scenario.Warehouse,
+                new[] { operationId },
+                out string depositFailure),
+            context + " owner-scoped deposit failed: " + depositFailure);
+        Require(scenario.Items.ReleaseHaulDeliveryIntent(operationId),
+            context + " did not release its committed delivery intent");
+        bool hasLeases = scenario.QuantityReservations.TryGetLeasesByOwner(
+            operationId,
+            out IReadOnlyList<ItemQuantityLease> remainingLeases);
+        Require(!scenario.Carry.HasItems
+                && !scenario.Items.TryCaptureHaulDeliveryIntent(
+                    operationId,
+                    out _)
+                && (!hasLeases || remainingLeases.Count == 0),
+            context + " leaked carry, delivery intent, or quantity lease");
+        return operationId;
     }
 
     private static string VerifyEquipmentHaulLeaseSurvivesWorldStateTransition()
@@ -790,6 +955,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     out int spawned)
                 && spawned == 10,
                 "survival stock spawn failed");
+            long massBefore = ExactItemMassGrams(scenario, foodId);
 
             Require(scenario.Items.TryReserveBestHaulPlan(
                     scenario.Actor,
@@ -799,25 +965,15 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             int firstReserved = firstPlan.ReservedStackQuantities.Sum(value => value.Quantity);
             Require(firstReserved == 9,
                 $"one active consumer serving must remain loose, reserved={firstReserved}");
-
-            foreach (WorldItemReservedStackQuantity reservation in firstPlan.ReservedStackQuantities)
-            {
-                Require(scenario.Items.TryPickupReservedStackQuantity(
-                        scenario.Actor,
-                        scenario.Carry,
-                        reservation,
-                        out _,
-                        out string pickupReason),
-                    "survival stock pickup failed: " + pickupReason);
-            }
-            Require(scenario.Items.TryDepositCarriedItems(
-                    scenario.Actor,
-                    scenario.Carry,
-                    scenario.Warehouse,
-                    out string depositReason),
-                "survival stock deposit failed: " + depositReason);
+            string firstOperationId = CompleteExactWarehouseHaul(
+                scenario,
+                firstPlan,
+                expectedQuantity: 9,
+                context: "initial survival stock lot");
             Require(scenario.Warehouse.Inventory.GetStock(StockCategory.Food) == 9,
                 "warehouse did not receive protected survival stock delivery");
+            Require(ExactItemMassGrams(scenario, foodId) == massBefore,
+                "initial survival stock delivery changed physical mass");
 
             Require(scenario.Items.TryReserveBestHaulPlan(
                     scenario.Actor,
@@ -827,8 +983,24 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             int secondReserved = secondPlan.ReservedStackQuantities.Sum(value => value.Quantity);
             Require(secondReserved == 1,
                 $"remaining serving should be haulable after warehouse reserve exists, reserved={secondReserved}");
+            string secondOperationId = CompleteExactWarehouseHaul(
+                scenario,
+                secondPlan,
+                expectedQuantity: 1,
+                context: "unlocked survival stock lot");
+            Require(!string.Equals(
+                    firstOperationId,
+                    secondOperationId,
+                    StringComparison.Ordinal),
+                "survival stock lots reused one haul operation identity");
+            Require(scenario.Warehouse.Inventory.GetStock(StockCategory.Food) == 10
+                    && ExactItemMassGrams(scenario, foodId) == massBefore
+                    && !scenario.Carry.HasItems,
+                "survival stock completion changed quantity, mass, or carry custody");
 
-            return $"firstReserved={firstReserved}; stored=9; secondReserved={secondReserved}";
+            return $"firstReserved={firstReserved}; storedAfterFirst=9; "
+                + $"secondReserved={secondReserved}; storedFinal=10; "
+                + $"massGrams={massBefore}; operations=unique";
         }
         finally
         {
@@ -1391,6 +1563,255 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         }
     }
 
+    private static string VerifyConstructionDestinationWorkOrderIdentity()
+    {
+        const string orderId = "work:qa-haul-construction-destination";
+        Vector2Int sitePosition = new(5, 1);
+        ScenarioRuntime scenario = ScenarioRuntime.Create(lightStockWeight: 1f);
+        GameObject siteObject = null;
+        GameObject duplicateSiteObject = null;
+        BuildingSO wallData = null;
+        ConstructionSite site = null;
+        ConstructionSite duplicateSite = null;
+        try
+        {
+            wallData = CreateBuildingData(
+                99003,
+                "운반 목적지 테스트 벽",
+                BuildingCategory.Wall,
+                GridLayer.Building);
+            siteObject = new GameObject("HaulConstructionDestinationSite");
+            site = siteObject.AddComponent<ConstructionSite>();
+            site.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+            site.ConstructBuildableObject(
+                new BuildingResearchWorkPortAdapter(
+                    new NoopBlueprintResearchWorkService()),
+                FacilityCandidateCache,
+                RoomFacilityPolicy,
+                combatEquipmentRuntime: null,
+                worldRegistry: null,
+                worldItemStackRuntime: null,
+                abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
+                gameClock: null,
+                paidFacilityContracts: null,
+                evolutionState: new FacilityEvolutionStateComponentFactory());
+            site.SetGrid(scenario.Grid);
+            site.Initialization(wallData, sitePosition);
+            site.ConfigureSite(orderId, () => true, () => { });
+            scenario.WorldRegistry.RegisterBuilding(site);
+
+            string canonicalDestination =
+                WorkConstructionInputOwnerAuthority.DestinationFor(orderId);
+            Require(WorldItemHaulDestinationAuthority.TryResolve(
+                    scenario.Grid,
+                    scenario.WorldRegistry,
+                    scenario.DestinationClaims,
+                    WorldItemHaulDestinationKind.FacilityBuffer,
+                    canonicalDestination,
+                    sitePosition,
+                    out WorldItemHaulDestinationAuthority.Resolution resolution,
+                    out string canonicalFailure),
+                "canonical construction destination did not resolve through the "
+                    + "normal no-work-query authority path: " + canonicalFailure);
+            Require(resolution.Kind
+                        == WorldItemHaulDestinationKind.FacilityBuffer
+                    && string.Equals(
+                        resolution.DestinationId,
+                        canonicalDestination,
+                        StringComparison.Ordinal)
+                    && resolution.Warehouse == null
+                    && resolution.DeliveryPosition == sitePosition
+                    && resolution.DropPosition == sitePosition,
+                "canonical construction destination changed kind, identity, or "
+                    + $"position: kind={resolution.Kind}; id={resolution.DestinationId}; "
+                    + $"delivery={resolution.DeliveryPosition}; drop={resolution.DropPosition}");
+
+            string legacyCoordinateDestination =
+                WorkOrderRuntime.ConstructionDestinationPrefix
+                + $"{wallData.id}:{sitePosition.x}:{sitePosition.y}";
+            Require(!WorldItemHaulDestinationAuthority.TryResolve(
+                    scenario.Grid,
+                    scenario.WorldRegistry,
+                    scenario.DestinationClaims,
+                    WorldItemHaulDestinationKind.FacilityBuffer,
+                    legacyCoordinateDestination,
+                    sitePosition,
+                    out _,
+                    out string legacyFailure)
+                && string.Equals(
+                    legacyFailure,
+                    "haul-destination-construction-order-missing-or-ambiguous:"
+                        + legacyCoordinateDestination,
+                    StringComparison.Ordinal),
+                "legacy coordinate construction destination was accepted or lost "
+                    + "its strict rejection: " + legacyFailure);
+
+            string wrongOrderDestination =
+                WorkConstructionInputOwnerAuthority.DestinationFor(
+                    "work:qa-haul-construction-destination-other");
+            Require(!WorldItemHaulDestinationAuthority.TryResolve(
+                    scenario.Grid,
+                    scenario.WorldRegistry,
+                    scenario.DestinationClaims,
+                    WorldItemHaulDestinationKind.FacilityBuffer,
+                    wrongOrderDestination,
+                    sitePosition,
+                    out _,
+                    out string wrongOrderFailure)
+                && string.Equals(
+                    wrongOrderFailure,
+                    "haul-destination-construction-order-missing-or-ambiguous:"
+                        + wrongOrderDestination,
+                    StringComparison.Ordinal),
+                "wrong construction order identity was accepted or lost its "
+                    + "strict rejection: " + wrongOrderFailure);
+
+            Vector2Int wrongPosition = new(sitePosition.x + 1, sitePosition.y);
+            Require(!WorldItemHaulDestinationAuthority.TryResolve(
+                    scenario.Grid,
+                    scenario.WorldRegistry,
+                    scenario.DestinationClaims,
+                    WorldItemHaulDestinationKind.FacilityBuffer,
+                    canonicalDestination,
+                    wrongPosition,
+                    out _,
+                    out string wrongPositionFailure)
+                && string.Equals(
+                    wrongPositionFailure,
+                    "haul-destination-construction-order-missing-or-ambiguous:"
+                        + canonicalDestination,
+                    StringComparison.Ordinal),
+                "construction destination resolved at the wrong position or lost "
+                    + "its strict rejection: " + wrongPositionFailure);
+
+            scenario.WorldRegistry.UnregisterBuilding(site);
+            Require(!WorldItemHaulDestinationAuthority.TryResolve(
+                    scenario.Grid,
+                    scenario.WorldRegistry,
+                    scenario.DestinationClaims,
+                    WorldItemHaulDestinationKind.FacilityBuffer,
+                    canonicalDestination,
+                    sitePosition,
+                    out _,
+                    out string missingSiteFailure)
+                && string.Equals(
+                    missingSiteFailure,
+                    "haul-destination-construction-order-missing-or-ambiguous:"
+                        + canonicalDestination,
+                    StringComparison.Ordinal),
+                "missing construction site was accepted or lost its strict "
+                    + "rejection: " + missingSiteFailure);
+            scenario.WorldRegistry.RegisterBuilding(site);
+
+            duplicateSiteObject = new GameObject(
+                "HaulConstructionDestinationDuplicateSite");
+            duplicateSite = duplicateSiteObject.AddComponent<ConstructionSite>();
+            duplicateSite.ConstructPersistentIdentity(
+                new GuidPersistentIdGenerator());
+            duplicateSite.ConstructBuildableObject(
+                new BuildingResearchWorkPortAdapter(
+                    new NoopBlueprintResearchWorkService()),
+                FacilityCandidateCache,
+                RoomFacilityPolicy,
+                combatEquipmentRuntime: null,
+                worldRegistry: null,
+                worldItemStackRuntime: null,
+                abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
+                gameClock: null,
+                paidFacilityContracts: null,
+                evolutionState: new FacilityEvolutionStateComponentFactory());
+            duplicateSite.SetGrid(scenario.Grid);
+            duplicateSite.Initialization(wallData, sitePosition);
+            duplicateSite.ConfigureSite(orderId, () => true, () => { });
+            scenario.WorldRegistry.RegisterBuilding(duplicateSite);
+            Require(!WorldItemHaulDestinationAuthority.TryResolve(
+                    scenario.Grid,
+                    scenario.WorldRegistry,
+                    scenario.DestinationClaims,
+                    WorldItemHaulDestinationKind.FacilityBuffer,
+                    canonicalDestination,
+                    sitePosition,
+                    out _,
+                    out string duplicateFailure)
+                && string.Equals(
+                    duplicateFailure,
+                    "haul-destination-construction-order-missing-or-ambiguous:"
+                        + canonicalDestination,
+                    StringComparison.Ordinal),
+                "duplicate same-order construction sites were accepted or lost "
+                    + "their strict rejection: " + duplicateFailure);
+            scenario.WorldRegistry.UnregisterBuilding(duplicateSite);
+
+            Require(scenario.Items.SpawnItemAt(
+                    LumberItemId,
+                    2,
+                    new Vector2Int(2, 1),
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out int spawned)
+                && spawned == 2,
+                "construction destination plan source spawn failed");
+            WorldItemStackSnapshot source = scenario.Items
+                .GetStacksAt(new Vector2Int(2, 1))
+                .Single(candidate => string.Equals(
+                    candidate.ItemId,
+                    LumberItemId,
+                    StringComparison.Ordinal));
+            Require(scenario.Items.TryRequestStackDelivery(
+                    source.StackId,
+                    2,
+                    sitePosition,
+                    canonicalDestination,
+                    out int requested,
+                    out string requestFailure)
+                && requested == 2,
+                "construction destination delivery request failed: "
+                    + requestFailure);
+            Require(scenario.Items.HasAvailableHaulJob(scenario.Actor),
+                "normal planner preview did not expose the canonical construction "
+                    + "destination");
+            Require(scenario.Items.TryReserveBestHaulPlan(
+                    scenario.Actor,
+                    out WorldItemHaulPlan plan,
+                    out string planFailure),
+                "normal planner could not reserve the canonical construction route: "
+                    + planFailure);
+            Require(plan.IsValid
+                    && plan.PrimaryDestination
+                        == WorldItemHaulDestinationKind.FacilityBuffer
+                    && string.Equals(
+                        plan.PrimaryDestinationId,
+                        canonicalDestination,
+                        StringComparison.Ordinal)
+                    && plan.DeliveryLegs.Count == 1
+                    && plan.DeliveryLegs[0].DeliveryPosition == sitePosition
+                    && plan.DeliveryLegs[0].DropPosition == sitePosition
+                    && plan.ReservedStackQuantities.Count == 1
+                    && string.Equals(
+                        plan.ReservedStackQuantities[0].DestinationId,
+                        canonicalDestination,
+                        StringComparison.Ordinal),
+                "normal planner reservation changed canonical construction identity, "
+                    + "kind, or exact position");
+
+            return "CONSTRUCTION_DESTINATION_WORK_ORDER_IDENTITY_PASS;"
+                + $" order={orderId}; destination={canonicalDestination};"
+                + " negatives=legacy,wrong-order,missing-site,wrong-position,duplicate;"
+                + $" reserved={plan.ReservedStackQuantities[0].Quantity}";
+        }
+        finally
+        {
+            if (duplicateSite != null)
+                scenario.WorldRegistry.UnregisterBuilding(duplicateSite);
+            if (site != null)
+                scenario.WorldRegistry.UnregisterBuilding(site);
+            DestroyImmediateSafe(duplicateSiteObject);
+            DestroyImmediateSafe(siteObject);
+            DestroyImmediateSafe(wallData);
+            scenario.Dispose();
+        }
+    }
+
     private static string VerifyConstructionSafetyForcedWarning()
     {
         Grid grid = CreateWalkableExteriorGrid();
@@ -1414,7 +1835,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 combatEquipmentRuntime: null,
                 worldRegistry: null,
                 worldItemStackRuntime: null,
-                abilityRuntimeDispatcher: null,
+                abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
                 gameClock: null,
                 paidFacilityContracts: null,
                 evolutionState: new FacilityEvolutionStateComponentFactory());
@@ -1528,7 +1949,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     combatEquipmentRuntime: null,
                     worldRegistry: null,
                     worldItemStackRuntime: null,
-                    abilityRuntimeDispatcher: null,
+                    abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
                     gameClock: null,
                     paidFacilityContracts: null,
                     evolutionState: new FacilityEvolutionStateComponentFactory());
@@ -1549,8 +1970,9 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 IItemHaulingSettingsProvider haulingSettings =
                     new TestHaulingSettings(1.5f);
                 ICharacterIdRegistry idRegistry = new TestIdRegistry();
+                IGameClock gameClock = new UnityGameClock();
                 IGridPathSearchBroker pathBroker =
-                    new GridPathSearchBroker(new UnityGameClock(), doorAccessQuery: null, performanceRecorder: null, costPolicy: null);
+                    new GridPathSearchBroker(gameClock, doorAccessQuery: null, performanceRecorder: null, costPolicy: null);
                 worldRegistry =
                     CharacterAiEditorTestDependencies.WorldRegistry;
                 worldRegistry.TryGetGrid(out previousWorldGrid);
@@ -1562,16 +1984,25 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     new GuidPersistentIdGenerator(),
                     new DungeonRuntimeAggregateRootStore());
                 FacilityBufferDestinationClaimRegistry destinationClaims = new();
+                IPhysicalItemMassQuery massQuery =
+                    new PhysicalItemMassQuery(itemCatalog);
                 IStockQuery stock = new PhysicalStockQuery(
                     repository,
                     itemCatalog,
-                    new PhysicalItemMassQuery(itemCatalog));
+                    massQuery);
                 warehouse.BindPhysicalStock(stock);
+                WarehouseMassAdmissionService warehouseMassAdmission = new(
+                    itemCatalog,
+                    massQuery,
+                    stock,
+                    worldRegistry,
+                    gameClock,
+                    repository);
                 ItemQuantityReservationService quantityReservations =
                     new ItemQuantityReservationService(
                         repository,
                         EditorNullItemMarkerPresenter.Instance,
-                        new UnityGameClock());
+                        gameClock);
                 IItemReservationService reservations = new ItemReservationService(
                     repository,
                     EditorNullItemMarkerPresenter.Instance,
@@ -1587,8 +2018,6 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     itemCatalog,
                     repository,
                     EditorNullItemMarkerPresenter.Instance);
-                IPhysicalItemMassQuery massQuery =
-                    new PhysicalItemMassQuery(itemCatalog);
                 WorldItemQueryService query = new WorldItemQueryService(
                     itemCatalog,
                     massQuery,
@@ -1605,7 +2034,8 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                         evolutionModules: EmptyEvolutionModuleRegistry.Instance,
                         researchProvider: EditorAllResearchRuntimeProvider.Instance,
                         moduleCatalog: new ResourceEquipmentModuleCatalog(gameContent),
-                        itemStackRuntime: equipmentItemGateway);
+                        itemStackRuntime: equipmentItemGateway,
+                        calendar: new EditorFixedGameCalendar(137, 9));
                 WorldItemHaulPlanningService haulPlanning =
                     new WorldItemHaulPlanningService(
                         gridProvider,
@@ -1617,7 +2047,8 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                         worldRegistry,
                         repository,
                         quantityReservations,
-                        destinationClaims);
+                        destinationClaims,
+                        warehouseMassAdmission: warehouseMassAdmission);
                 WorldItemReadServices readServices = new WorldItemReadServices(
                     itemCatalog,
                     massQuery,
@@ -1646,10 +2077,19 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                         gridProvider,
                         idRegistry,
                         reservations,
-                        quantityReservations),
+                        quantityReservations: quantityReservations,
+                        massAdmission: warehouseMassAdmission),
                     quantityReservations: quantityReservations,
                     quantityLeaseMutations: quantityReservations,
-                    bufferAggregation: bufferAggregation);
+                    bufferAggregation: bufferAggregation,
+                    physicalItemRelocations:
+                        new DeterministicPhysicalItemRelocationOutcomeFixture()
+                            .CreateService(
+                                repository,
+                                massQuery,
+                                itemCatalog,
+                                EditorNullItemMarkerPresenter.Instance),
+                    warehouseMassAdmission: warehouseMassAdmission);
                 items = WorldItemEditorTestFactory.Create(
                     gridProvider,
                     itemCatalog,
@@ -1659,7 +2099,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     new NoSpawnerProvider(),
                     pathBroker,
                     worldRegistry,
-                    new UnityGameClock(),
+                    gameClock,
                     repository,
                     reservations,
                     spawner,
@@ -1904,7 +2344,8 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         public BlueprintResearchWorkResult ApplyApprovedResearchWork(
             CharacterActor researcher,
             BuildableObject researchFacility,
-            float approvedWorkUnits) =>
+            float approvedWorkUnits,
+            DurableFacilityEquipmentUseContext equipment = null) =>
             ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 

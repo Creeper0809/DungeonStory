@@ -1,0 +1,20 @@
+WIM062 main Play request/UI prefix — PARTIAL PASS, whole haul witness FAILED
+Observed whole-report SHA256 before diagnostic edits/retry: F83AEE2F0B99FA5907F683E27E062404EF39806FD6AA29962A13220AE5778013.
+
+Main F Unity compile: runtime 2026-09-10 09:48:16 UTC, Editor 09:48:19 UTC.
+Before Play: IsPlaying/IsPaused/IsCompiling/IsUpdating false at276452.5116724; Console errors0 warnings0.
+SurvivalFoodRuntime.cs SHA256 A5A19AD673B3084EE2E51B75B19763BAD7A960B7B6A1D7B00E9143367AFD7146.
+
+Real StartParty owner/confirm UI produced3actors. Autosave/meta persistence disposed in protected disposable Play; current-format validated patient checkpoint (not natural disease generation).
+Actual placement: M01_응급처치대, center(36,0), facility building:f6defee93c224cd78b450d272dd63c7d.
+Actual warehouse building:fd6d1cee861d4b9fa16375c9992eb939; medicine craft:resin-balm.
+Warehouse-only medicine did not complete treatment. Actual request and read model both selected the expected facility/item/Standard/Requested.
+Exact destination: facility-input:exact:survival.character-consumables:v1:medical-treatment:building%3Af6defee93c224cd78b450d272dd63c7d:craft%3Aresin-balm.
+Player Health UI actual text: 치료 물자 · 일반 치료 · 배송 요청됨.
+
+Real defect corrected before this run: TryGetTreatmentSupply previously returned an earlier facility's AwaitingRequest instead of the actual requested route. Existing active treatment/pending detox precedence preserved; pending physical routes now outrank deterministic idle fallback. No query writes added.
+Earlier real default snapshot defect also corrected: uninitialized HaulDeliveryPathFailureSnapshot strings no longer throw during real actor query. Seven-case main focused table passed on runtime09:35:34/Editor09:35:38, Console0/0. WorldItemModels.cs SHA256 F6B0D133AF1AEB942CE14E6DD34A82F59BFB4E86CD630FE46E45F584459F3429; HaulPlanConstructionSafetyDebugScenarios.cs SHA256 B4799CF525C640AF38A48E913277FF3F0703227F589721626E891C92AFAF236D.
+
+Whole haul result: FAIL at159.043 wall seconds /120.092 game seconds. Desired delivery hook never fired; Requested remained. Carrier visited14cells and processed other warehouse hauls. Observed same medicine carried is NOT proof of the exact medical destination. NoPath/recovery/Ready UI NOT_TESTED. No timeout increase or assertion weakening.
+Follow-up: inspect actual work access AND exact delivery reachability; capture target custody and chosen plan legs. Missing destination classification was not found in static trace. Same-rank priority competition and delivery-cell accessibility remain distinct possibilities.
+Stop verified allflagsfalse at276689.177192. GameplayScene/settings/profile/autosave/migration hashes exactly unchanged; no scene/save writes. Prior core treatment/ACK/restore PASS retained, not rerun. Additional WIM062 remains OPEN.

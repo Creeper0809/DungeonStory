@@ -110,6 +110,9 @@ InitTestScene*.unity*
 # Design documents are local by default; explicitly listed authorities and curated guides are shared.
 docs/*
 !docs/README.md
+!docs/dev/
+docs/dev/*
+!docs/dev/*.md
 !docs/system-implementation-checklist.md
 !docs/handbook/
 !docs/handbook/*.md

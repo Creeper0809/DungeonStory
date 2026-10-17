@@ -1,0 +1,96 @@
+{
+  "status": "SOURCE_IMPLEMENTED_POST_VALIDATION_CONTRACT_UNIT_AND_STATIC_VERIFIED_UNITY_DEFERRED",
+  "goalStatus": "active",
+  "allGoalTargetsComplete": false,
+  "window": "All authors READY/FROZEN; SOURCE_EDIT closed; no UNITY_VERIFY launched",
+  "sourcePin": {
+    "path": "source-pin-g9-cleanup-r1.json",
+    "files": 818,
+    "drift": 0
+  },
+  "toolPin": {
+    "path": "tool-pin-g9-cleanup-r1.json",
+    "files": 8,
+    "drift": 0
+  },
+  "g9": {
+    "movedTransactions": 4,
+    "rollbackLatch": 1,
+    "authorityMembers": 9,
+    "retainedMethods": 76,
+    "publicMethods": 35,
+    "serializedStateAuthority": "CharacterProgression",
+    "singleOwner": "CharacterTraitInferenceTransaction owns inference validation/evidence/fact apply/rollback lifetime and current rollback gate; authority queries and commands use the original component state.",
+    "parity": "Serialized fields/DTO/API/Inject/validation/evidence/lease/MayBeCommitted/publication/rollback/retry/restore exact; no parent implementation or second state/root cache",
+    "consumerFilesUpdated": 7,
+    "readReview": "No additional confirmed defect; static only"
+  },
+  "limitedABICompilation": {
+    "status": "PASS",
+    "cachedProductionReferences": 44,
+    "existingFriendContract": "Assembly-CSharp-Editor",
+    "scope": "Current owner/authority only",
+    "fullCurrentParentOrUnityCompilation": "NOT_RUN"
+  },
+  "postValidationContractUnit": {
+    "status": "PASS",
+    "rows": 4,
+    "evidence": "g9-trait-inference/rollback-contract-r1.json",
+    "currentSourcesExecuted": [
+      "CharacterTraitInferenceTransaction",
+      "CharacterTraitInferenceAuthority",
+      "PreparedGameplayOutcomeEvidenceUse",
+      "CharacterTraitInferencePublicationRuntime"
+    ],
+    "cachedProductionTypes": "DTOs and DomainFactDispatcher",
+    "controlledPorts": [
+      "authority",
+      "memory",
+      "observer"
+    ],
+    "scope": "Private post-validation apply: cancellation fails twice then succeeds; exact retained token, publication save/admission gate, previous state/local evidence restore and idempotent recovery",
+    "selectionValidationFullProducerOrUnityClaimed": false
+  },
+  "syntax": {
+    "files": 111,
+    "errors": 0,
+    "UnitySemanticCompilation": "NOT_RUN",
+    "UnityExecution": "NOT_RUN"
+  },
+  "sameDefaultAssembly": [
+    "Assets/Scripts/Services/Character/Core/CharacterProgression.cs",
+    "Assets/Scripts/Services/Character/Core/CharacterTraitInferenceTransaction.cs",
+    "Assets/Scripts/Services/Character/Core/CharacterTraitInferenceAuthority.cs"
+  ],
+  "newMeta": {
+    "Assets/Scripts/Services/Character/Core/CharacterTraitInferenceTransaction.cs.meta": {
+      "guid": "82588dfc396b4703a4ecc7b3c3088a60",
+      "occurrences": 1
+    },
+    "Assets/Scripts/Services/Character/Core/CharacterTraitInferenceAuthority.cs.meta": {
+      "guid": "d3fd8daeda0a4d11bb0cce0c23fa625f",
+      "occurrences": 1
+    }
+  },
+  "knowledgeBase": {
+    "query": "CharacterProgression",
+    "observedAt": "start source813 snapshot",
+    "status": "STALE",
+    "failureCount": 121,
+    "exitCode": 1,
+    "action": "Original source fallback; related source batch open; no index rebuild"
+  },
+  "executionLimit": "User asked to continue code cleanup. No same-RAM-condition Unity retry or other-app/desktop-input actions. Current full Unity compile and actual inference/evidence cancellation/official restore/retry remain required.",
+  "remainingGoalWork": true,
+  "completedTargets": 6,
+  "totalTargets": 32,
+  "committedOrPushed": false,
+  "finalChecks": {
+    "reportLocalLinks": 597,
+    "missingLocalLinks": 0,
+    "newSourceWhitespace": "PASS",
+    "sourceAndContractInputHashesMatch": true,
+    "scopedDiffCheck": "PASS",
+    "ownedUnityLauncherCompiler": 0
+  }
+}

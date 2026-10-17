@@ -1,0 +1,33 @@
+status=FOCUSED_BATCH_PASS_WITH_BRIDGE_TIMEOUT_RECORDED
+originalWim=39/47; research=0/1; wiki=13/13; additionalWim=2/2; FIRE=0/4
+
+PRODUCTION_CHANGES
+WorkTargetSelector.cs SHA256=012B4A0690488BC35F879A8F18A27C9A1A6C813CCB6C065D56880DE2680209DF
+New8line change only: incomplete cached scan/no valid best -> FacilityCandidateDeferred. Prior dynamic-scan continuation preserved, no new timing/cache/save/fallback behavior.
+SurgeryContentAssetBuilder.cs SHA256=88059120E60D568C05A76F83A32FCA42A79E591F1E6AA4F7FC7C5334ADB63058
+12new recipes now use existing crafting/PrimaryOnly/weight1/Technician/minimum Apprentice profile; legacy3/BOM/WU/outputs/kg/effects unchanged. Strict profile validator added. Main generator and validator passed twice.
+Second-generation asset/meta byte identity:7171 paths under Assets/Resources/SO; both path+SHA256 aggregate hashes=C2539F6CDBC438114A81CB5195AE2ECAB126284B1EB0AE653CAF4E731771F637; extra diff0.
+An attempted full per-file pre-application capture was truncated by the tool and is NOT first-application diff evidence. Do not infer an exact changed-file count from that capture;12 is the explicitly corrected recipe set. Second-run aggregate is complete and independently compared.
+
+CURRENT_COMPILE_AND_TESTS
+Main compilation completed/failed=false/errors=[].
+Runtime Assembly-CSharp.dll=A3CE1739A229CD4E53257A089ABFC2852E85E95C437B9A1C5A8FDA89461958C6
+Final Assembly-CSharp-Editor.dll=58A469B0D64E7EB79B7DB7BA126C3B047F01903B18FCB1C53C47D6CA72DA22E4
+Medical root test=7F2C713AA5DCBE513CEE29E1D2C5ACF934BA5D0CFBDADDA659009A3081A79C6C
+Medical report=wim-023-main-prepared-part-production.txt SHA256=0414E18ED8967EDD6E1BB7A5FC2F032F676876BA8614B5B42A5FAFCD615ED8CB
+PASS actual main production commands: arm + human neural assist, exact physical inputs consumed, two unique part/physical instance/world stack/commit joins, FacilityOutputBuffer at exact M06 cell/destination,1800g each,total3600g,7200g capacity,reserved0; terminal re-execution duplicates0.
+Research root test=D7B5A3E17F75EFEEC85967B671CB2DFEC57705945F3AF28A05D5652A2253DC5A
+Research report=wim-r01-work-candidate-classification.txt SHA256=1A7EC9DB7246F4B7C1D5F53DAE7D54FC9C0CE6C0E420D2F33C266BA732D8917D
+PASS four controlled same-frame actual AIWork boundaries: incomplete empty deferred; completed empty hard NoDestination; partial valid usable; explicit path unaffected. Earlier diagnostic evidence remains separate, not a natural completion/stall-fix claim.
+Both test entrypoints used actual owner/party preparation and disabled user persistence. Medical public work commands are controlled, not natural AI crafting/hauling/install/surgery. Candidate scan fields are staged/restored, not a natural long-run result.
+
+FAILURE_HISTORY_AND_CONSOLE
+Keep dated first-profile/semantic/output-state failure reports. Profile absence was initially misattributed: ProductionBillRuntime.Tick reconciles before pause, and invalid profile throws there. Actual authored profile fixed. Root test also corrected output state FacilityBuffer -> FacilityOutputBuffer; gameplay output was already correct.
+Console query since8859/levelwarn returned latest100 with dropped=true:99 repeated invalid-profile errors33906..34004 plus bridge error34022. Full historical error count is not available from that page and is not reported as0.
+After34004, query returned exactly1 entry/no drop:34022 at11:57:05Z, Unity.Pipeline /api/exec main-thread5000ms timeout. Actual test continued and reportPASS was written11:57:07Z; running=False verified. NO duplicate invocation after timeout.
+Post-authoring-fix gameplay Warning/Error=0/0; total post-fix Console Warning/Error=0/1 because of the bridge timeout. Do not claim entire-turn Console0/0.
+Main Play stopped/ready11:57:54Z, compiling=false,reload=false,no in-flight runner.
+Protected GameplayScene/TestResults/migration marker/profile/autosave/settings6/6 hashes unchanged versus prior preserved baseline.
+
+REMAINING
+WIM023 actual hauling/admission/install and current installed-effect consumer witness remain. R01 timing/real-life interpretation remains; prior12/17 failure cause is not proved fixed by classification. Other original009/016/017/040/041/051/052, FIRE/7.4/final6adult remain. No whole-goal or balance completion.

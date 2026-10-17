@@ -14,13 +14,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
   stableId: seasonal:summer-heat-grid
   displayName: "\uD3ED\uC5FC \uC804\uB825\uBD80\uD558"
-  description: "\uB0C9\uAC01\uACFC \uC758\uB8CC \uC2DC\uC124\uC758 \uB3D9\uC2DC \uAC00\uB3D9\uC774
-    \uC804\uB825\uB9DD\uC744 \uC555\uBC15\uD55C\uB2E4."
+  description: "\uC0AC\uAC74 \uB3D9\uC548 \uC2E4\uC81C \uC804\uB825\uB9DD\uC758 \uBC1C\uC804\uC6D0\uACFC
+    \uCD95\uC804\uC9C0 \uBC29\uC804 \uAC00\uC6A9 \uACF5\uAE09\uB7C9\uC774 20% \uC904\uC5B4\uB4E0\uB2E4. \uBC30\uC120 \uC6A9\uB7C9\uACFC
+    \uC800\uC7A5 \uC804\uB825\uC740 \uC190\uC0C1\uB418\uC9C0 \uC54A\uB294\uB2E4."
   authoringRevision: 1
   sourceNote: V20 hand-authored seasonal world event manifest.
   season: 1
   minimumDurationDays: 2
   maximumDurationDays: 5
+  worldWaterRegenerationMultiplier: 1
+  powerAvailableSupplyCapacityMultiplier: 0.8
+  pipedWaterThroughputMultiplier: 1
+  pipedWaterFreezeThresholdC: 0
+  pipedWaterRecoveryThresholdC: 2
+  cropPrimaryBatchLossPercent: 0
+  requiredWeatherFrontId:
   affectedDomainIds:
   - facility
   - health
@@ -33,11 +41,7 @@ MonoBehaviour:
     worldMetrics: []
     requiredFlags: []
     excludedFlags: []
-  startEffects:
-  - kind: 14
-    targetId: power-grid
-    amount: 4
-    durationDays: 5
+  startEffects: []
   dailyEffects: []
   endEffects:
   - kind: 12

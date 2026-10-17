@@ -1,34 +1,5 @@
 using System;
 
-public interface ICharacterAiSchedulingService
-{
-    bool IsDrivingAi { get; }
-    bool IsSchedulerAvailable { get; }
-    void Register(CharacterActor actor);
-    void Unregister(CharacterActor actor);
-    void RequestImmediateDecision(CharacterActor actor);
-    bool TryConsumePathSearchBudget();
-    bool ShouldShowCharacterFeedback(CharacterActor actor);
-    bool ShouldCollectDetailedDiagnostics(CharacterActor actor);
-    int GetMovementFrameStride(CharacterActor actor);
-    double GetDecisionWorkSliceMilliseconds(CharacterActor actor);
-    void ResetPathSearchBudgetForDebug();
-}
-
-public interface ICharacterAiDiagnosticsQuery
-{
-    double LastProcessingMilliseconds { get; }
-    int LastPathSearchCount { get; }
-    int CurrentPathSearchBudget { get; }
-    float GetNextDecisionDelay(CharacterActor actor);
-}
-
-public interface ICharacterMoodImpulseQuery
-{
-    CharacterMoodImpulseType LastAppliedType { get; }
-    string LastAppliedActorName { get; }
-}
-
 public sealed class CharacterAiSchedulingService :
     ICharacterAiSchedulingService,
     ICharacterAiDiagnosticsQuery
@@ -70,6 +41,7 @@ public sealed class CharacterAiSchedulingService :
 
     public void Unregister(CharacterActor actor)
     {
+        actor?.Brain?.ClearOperationDiagnosticsForLifecycle();
         if (TryResolveScheduler(out CharacterAiScheduler resolvedScheduler))
         {
             resolvedScheduler.UnregisterActor(actor);
@@ -129,6 +101,14 @@ public sealed class CharacterAiSchedulingService :
         return TryResolveScheduler(out CharacterAiScheduler scheduler)
             ? scheduler.GetNextDecisionDelayForDebug(actor)
             : 0f;
+    }
+
+    public CharacterAiDecisionScheduleObservation CaptureDecisionSchedule(
+        CharacterActor actor)
+    {
+        return TryResolveScheduler(out CharacterAiScheduler scheduler)
+            ? scheduler.CaptureDecisionSchedule(actor)
+            : CharacterAiDecisionScheduleObservation.Unscheduled;
     }
 
     private bool TryResolveScheduler(out CharacterAiScheduler resolvedScheduler)

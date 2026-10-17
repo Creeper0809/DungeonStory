@@ -279,7 +279,8 @@ public enum OffenseRewardCategory
     Blueprint,
     StrategicPressure,
     RecruitCandidate,
-    Prisoner
+    Prisoner,
+    PhysicalItem
 }
 
 public static class OffenseRewardTypeIds
@@ -295,6 +296,7 @@ public static class OffenseRewardTypeIds
     public const string Prisoner = "offense.reward.candidate.prisoner";
     public const string SpecialMonster =
         "offense.reward.candidate.special-monster";
+    public const string PhysicalItem = "offense.reward.physical-item";
 }
 
 public static class OffenseStrategyBlueprintIds

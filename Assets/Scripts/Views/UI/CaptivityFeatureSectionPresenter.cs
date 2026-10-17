@@ -12,6 +12,7 @@ public sealed class CaptivityFeatureSectionPresenter :
     private readonly ICaptivityCommandService commands;
     private readonly CaptivityInteractionRegistry interactions;
     private readonly ICharacterAiWorldRegistry world;
+    private readonly ICharacterBodyHealthQuery bodyHealth;
     private readonly ICharacterSettlementStandingQuery standings;
     private string selectedCaptiveId = string.Empty;
     private string selectedMinionId = string.Empty;
@@ -22,6 +23,7 @@ public sealed class CaptivityFeatureSectionPresenter :
         ICaptivityCommandService commands,
         CaptivityInteractionRegistry interactions,
         ICharacterAiWorldRegistry world,
+        ICharacterBodyHealthQuery bodyHealth,
         ICharacterSettlementStandingQuery standings)
     {
         this.captivity = captivity
@@ -32,6 +34,8 @@ public sealed class CaptivityFeatureSectionPresenter :
             ?? throw new ArgumentNullException(nameof(interactions));
         this.world = world
             ?? throw new ArgumentNullException(nameof(world));
+        this.bodyHealth = bodyHealth
+            ?? throw new ArgumentNullException(nameof(bodyHealth));
         this.standings = standings
             ?? throw new ArgumentNullException(nameof(standings));
     }
@@ -139,7 +143,7 @@ public sealed class CaptivityFeatureSectionPresenter :
                 view,
                 "Captivity_BasicLabor",
                 "기본 노역",
-                "청소와 운반만 허용합니다. 순응도 50, 건강 40 이상이 필요합니다.",
+                "청소와 운반만 허용합니다. 순응도 50, 건강 40% 이상이 필요합니다.",
                 () => commands.TrySetLaborPermissions(
                     selected.captiveId,
                     CaptiveLaborPermission.Clean | CaptiveLaborPermission.Haul,
@@ -171,6 +175,7 @@ public sealed class CaptivityFeatureSectionPresenter :
                     captured.DisplayName,
                     $"필요 작업량 {captured.RequiredWork:0.#}"
                     + $" · 재료 {FormatMaterials(captured.MaterialRequirements)}"
+                    + FormatBodyDamageWarning(selected, captured)
                     + " · 담당자와 감방 시설이 필요합니다.",
                     () => TryStartInteraction(selected, captured));
             }
@@ -206,7 +211,7 @@ public sealed class CaptivityFeatureSectionPresenter :
         AddCommand(
             view,
             "Captivity_Ransom",
-            $"몸값 협상 · {selected.RansomValue:N0}",
+            $"몸값 협상 · {selected.CalculateRansomValue(GetHealthPercent(selected)):N0}",
             "몸값을 받고 석방합니다. 원한이 높으면 이후 보복 압력이 남습니다.",
             () => commands.TryRansom(
                     selected.captiveId,
@@ -612,11 +617,53 @@ public sealed class CaptivityFeatureSectionPresenter :
             && actor.TryGetAbility(out AbilityWork _);
     }
 
-    private static string CreateSummary(CaptiveState state)
+    private string CreateSummary(CaptiveState state)
     {
-        return $"{FormatStatus(state.status)} · 건강 {state.health:0}"
+        return $"{FormatStatus(state.status)} · 건강 {GetHealthPercent(state):0}%"
             + $" · 순응 {state.compliance:0} · 탈출 {state.escapeRisk:0}"
             + (state.falseCompliance ? " · 복종 진위 불명" : string.Empty);
+    }
+
+    private string FormatBodyDamageWarning(
+        CaptiveState state,
+        ICaptivityInteractionHandler handler)
+    {
+        if (!handler.BodyDamage.HasDamage)
+        {
+            return string.Empty;
+        }
+
+        if (!captivity.TryGetActor(state.captiveId, out CharacterActor actor))
+        {
+            return $" · 신체 피해 최대 체력의 {handler.BodyDamage.PercentOfMaximumHealth:0.#}%"
+                + " (현재 신체 정보 없음)";
+        }
+
+        CharacterVitalsSnapshot vitals = bodyHealth.GetVitals(actor);
+        CaptivityBodyDamageProjection projection = handler.BodyDamage.Project(
+            vitals.CurrentHealth,
+            vitals.MaximumHealth);
+        string healthProjection =
+            $"{projection.CurrentHealth:0.#}→{projection.ExpectedHealth:0.#}/{projection.MaximumHealth:0.#}";
+        return projection.IsLethal
+            ? $" · 치명적 위험: 최대 체력의 {projection.PercentOfMaximumHealth:0.#}% 피해"
+                + $" · 예상 {healthProjection} · 현재 체력으로 사망"
+            : $" · 신체 피해 최대 체력의 {projection.PercentOfMaximumHealth:0.#}%"
+                + $" · 예상 {healthProjection}";
+    }
+
+    private float GetHealthPercent(CaptiveState state)
+    {
+        if (state == null
+            || !captivity.TryGetActor(state.captiveId, out CharacterActor actor))
+        {
+            return 0f;
+        }
+
+        CharacterVitalsSnapshot vitals = bodyHealth.GetVitals(actor);
+        return CaptivityBodyHealthRules.GetHealthPercent(
+            vitals.CurrentHealth,
+            vitals.MaximumHealth);
     }
 
     private static string CreateDetailedSummary(CaptiveState state)

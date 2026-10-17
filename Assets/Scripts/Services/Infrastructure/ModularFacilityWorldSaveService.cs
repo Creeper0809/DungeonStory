@@ -71,7 +71,7 @@ public sealed class ModularFacilityWorldSaveService :
     IModularFacilityWorldSaveService,
     IDungeonRestoreTransactionParticipant
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 6;
 
     private readonly Func<int, BuildingSO> findBuildingData;
     private readonly IGridBuildingObjectFactory objectFactory;
@@ -193,6 +193,7 @@ public sealed class ModularFacilityWorldSaveService :
             version = CurrentVersion,
             gridWidth = grid.width,
             gridHeight = grid.height,
+            spaceExpansionPublication = grid.CaptureSpaceExpansionPublication(),
             gridCells = grid.GetCells()
                 .Where(cell => cell != null)
                 .OrderBy(cell => cell.Position.y)
@@ -647,6 +648,16 @@ public sealed class ModularFacilityWorldSaveService :
             return;
         }
 
+        try
+        {
+            DungeonSpaceExpandedFact.ValidateSavedPublication(snapshot);
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            report.AddError("Facility space publication is invalid: " + exception.Message);
+            return;
+        }
+
         Grid validation = CreateGridFromSnapshot(
             new Grid(
                 snapshot.gridWidth,
@@ -672,7 +683,7 @@ public sealed class ModularFacilityWorldSaveService :
         }
     }
 
-    private static Grid CreateGridFromSnapshot(
+    internal static Grid CreateGridFromSnapshot(
         Grid coordinateSource,
         ModularFacilityWorldSaveData snapshot)
     {
@@ -710,6 +721,7 @@ public sealed class ModularFacilityWorldSaveService :
             }
         }
 
+        restored.SetSpaceExpansionPublication(snapshot.spaceExpansionPublication);
         return restored;
     }
 
@@ -1187,6 +1199,7 @@ public sealed class ModularFacilityWorldSaveService :
 public sealed class ModularFacilityWorldSaveData
 {
     public int version = ModularFacilityWorldSaveService.CurrentVersion;
+    public DungeonSpaceExpansionPublicationData spaceExpansionPublication = new();
     public int gridWidth;
     public int gridHeight;
     public List<ModularFacilityGridCellSaveData> gridCells =
@@ -1391,7 +1404,7 @@ public static class ModularFacilityRelocationTopologyValidator
         FacilityEvolutionStateSnapshot snapshot;
         try
         {
-            snapshot = JsonUtility.FromJson<FacilityEvolutionStateSnapshot>(
+            snapshot = DungeonSaveJson.Deserialize<FacilityEvolutionStateSnapshot>(
                 modules[0].payload ?? string.Empty);
         }
         catch (Exception exception)

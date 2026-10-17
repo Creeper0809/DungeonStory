@@ -8,6 +8,9 @@ internal sealed class OwnerCommandSelectionState
 {
     private readonly List<CharacterActor> actors = new();
     private CharacterActor primary;
+    private long revision;
+
+    internal long Revision => revision;
 
     internal CharacterActor Primary
     {
@@ -16,7 +19,13 @@ internal sealed class OwnerCommandSelectionState
             Prune();
             return primary;
         }
-        set => primary = value;
+        set
+        {
+            if (ReferenceEquals(primary, value))
+                return;
+            AdvanceRevision();
+            primary = value;
+        }
     }
 
     internal IReadOnlyList<CharacterActor> Actors
@@ -29,6 +38,15 @@ internal sealed class OwnerCommandSelectionState
     }
 
     internal int Count => actors.Count;
+
+    internal void Select(CharacterActor actor, bool additive)
+    {
+        Prune();
+        if (!additive && (actors.Count != 1 || !ReferenceEquals(actors[0], actor)))
+            Clear();
+        Add(actor);
+        Primary = actor;
+    }
 
     internal IReadOnlyList<CharacterActor> GetCommandActors()
     {
@@ -50,6 +68,7 @@ internal sealed class OwnerCommandSelectionState
             return false;
         }
 
+        AdvanceRevision();
         actors.Add(actor);
         if (Application.isPlaying)
         {
@@ -60,6 +79,9 @@ internal sealed class OwnerCommandSelectionState
 
     internal void Clear()
     {
+        if (actors.Count == 0 && ReferenceEquals(primary, null))
+            return;
+        AdvanceRevision();
         foreach (CharacterActor actor in actors)
         {
             if (actor != null
@@ -88,14 +110,17 @@ internal sealed class OwnerCommandSelectionState
             {
                 nameplate.SetCommandSelected(false);
             }
+            AdvanceRevision();
             actors.RemoveAt(index);
         }
 
         if (!IsCommandable(primary))
         {
-            primary = actors.LastOrDefault();
+            Primary = actors.LastOrDefault();
         }
     }
+
+    private void AdvanceRevision() => revision = checked(revision + 1L);
 
     internal static bool IsCommandable(CharacterActor actor)
     {

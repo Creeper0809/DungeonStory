@@ -102,12 +102,34 @@ public sealed class CombatEquipmentCraftTerminalEffectSaveData
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class CombatCraftCommandReceiptSaveData
+{
+    public string commandKind = string.Empty;
+    public long revision;
+    public string beforeValue = string.Empty;
+    public string afterValue = string.Empty;
+    public int absoluteDay;
+
+    public CombatCraftCommandReceiptSaveData Clone() => new()
+    {
+        commandKind = commandKind ?? string.Empty,
+        revision = Math.Max(0L, revision),
+        beforeValue = beforeValue ?? string.Empty,
+        afterValue = afterValue ?? string.Empty,
+        absoluteDay = Math.Max(0, absoluteDay)
+    };
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CombatEquipmentCraftMaterialPolicySaveData
 {
     public string facilityKey = string.Empty;
     public string definitionId = string.Empty;
     public List<string> priorityMaterialIds = new List<string>();
     public List<string> allowedMaterialIds = new List<string>();
+    public long commandRevision;
+    public List<CombatCraftCommandReceiptSaveData> commandReceipts = new();
 
     public CombatEquipmentCraftMaterialPolicySaveData Clone()
     {
@@ -124,7 +146,12 @@ public sealed class CombatEquipmentCraftMaterialPolicySaveData
                 .Where(id => !string.IsNullOrWhiteSpace(id))
                 .Select(id => id.Trim())
                 .Distinct(StringComparer.Ordinal)
-                .ToList() ?? new List<string>()
+                .ToList() ?? new List<string>(),
+            commandRevision = Math.Max(0L, commandRevision),
+            commandReceipts = commandReceipts?
+                .Where(value => value != null)
+                .Select(value => value.Clone())
+                .ToList() ?? new List<CombatCraftCommandReceiptSaveData>()
         };
     }
 }
@@ -228,8 +255,12 @@ public sealed class CombatEquipmentCraftOrderSaveData
         CombatEquipmentQuality.Normal;
     public MythicProvenanceSaveData resolvedMythicProvenance;
     public string resolvedMakerCharacterId = string.Empty;
+    public string resolvedMakerDisplayName = string.Empty;
+    public int resolvedAbsoluteDay;
     public bool resolvedHadInspiration;
     public bool completionEffectsPublished;
+    public int qualityOutcomeSchemaVersion;
+    public bool qualityOutcomeCommitted;
     public bool outputPublished;
     public string outputOperationId = string.Empty;
     public string outputItemId = string.Empty;
@@ -242,6 +273,10 @@ public sealed class CombatEquipmentCraftOrderSaveData
     public string outputCommitId = string.Empty;
     public string outputInstanceId = string.Empty;
     public string outputStackId = string.Empty;
+    public long commandRevision;
+    public List<CombatCraftCommandReceiptSaveData> commandReceipts = new();
+    public string qualityOutcomeResultKey = string.Empty;
+    public CombatEquipmentCraftCompletionFactData completionFact = new();
 
     public float RemainingWork => Mathf.Max(0f, requiredWork - completedWork);
 
@@ -337,8 +372,15 @@ public sealed class CombatEquipmentCraftOrderSaveData
             resolvedQuality = resolvedQuality,
             resolvedMythicProvenance = resolvedMythicProvenance?.Clone(),
             resolvedMakerCharacterId = resolvedMakerCharacterId ?? string.Empty,
+            resolvedMakerDisplayName = resolvedMakerDisplayName ?? string.Empty,
+            resolvedAbsoluteDay = Mathf.Max(0, resolvedAbsoluteDay),
             resolvedHadInspiration = resolvedHadInspiration,
             completionEffectsPublished = completionEffectsPublished,
+            qualityOutcomeSchemaVersion = Mathf.Clamp(
+                qualityOutcomeSchemaVersion,
+                0,
+                1),
+            qualityOutcomeCommitted = qualityOutcomeCommitted,
             outputPublished = outputPublished,
             outputOperationId = outputOperationId ?? string.Empty,
             outputItemId = outputItemId ?? string.Empty,
@@ -352,7 +394,14 @@ public sealed class CombatEquipmentCraftOrderSaveData
             outputPreparedComponent = outputPreparedComponent?.Clone(),
             outputCommitId = outputCommitId ?? string.Empty,
             outputInstanceId = outputInstanceId ?? string.Empty,
-            outputStackId = outputStackId ?? string.Empty
+            outputStackId = outputStackId ?? string.Empty,
+            commandRevision = Math.Max(0L, commandRevision),
+            commandReceipts = commandReceipts?
+                .Where(value => value != null)
+                .Select(value => value.Clone())
+                .ToList() ?? new List<CombatCraftCommandReceiptSaveData>(),
+            qualityOutcomeResultKey = qualityOutcomeResultKey ?? string.Empty,
+            completionFact = completionFact?.Clone()
         };
     }
 }

@@ -1,0 +1,26 @@
+{
+  "facts": [
+    {
+      "label": "무게",
+      "value": "0.1kg"
+    },
+    {
+      "label": "한 칸 적재",
+      "value": "75개"
+    },
+    {
+      "label": "기준 가격",
+      "value": "0"
+    }
+  ],
+  "game_version": "0.0.1v",
+  "group": "items",
+  "in_game_description": "창고에서 사용해 선택한 후천 특성 하나를 소거하는 인장이다. 선천 특성, 서사 기록과 진행도는 지우지 않는다. 제4주조도시의 기억판 안치 기록에는 망각의 인장을 사용한 주민과 지운 선택을 함께 새겨 둔다.",
+  "kind": "item",
+  "relations": [],
+  "schema_version": 1,
+  "slug": "item-memory-erasure-seal",
+  "spoiler_tier": "none",
+  "summary": "후천 특성 하나를 지우는 지역 보스 최초 처치 보상이다.",
+  "title": "망각의 인장"
+}

@@ -222,6 +222,7 @@ public sealed class ProductionDomainPublishedStackSaveData
     public string stackId = string.Empty;
     public int quantity;
     public long massGrams;
+    public string displayText = string.Empty;
 
     public ProductionDomainPublishedStackSaveData Clone() => new()
     {
@@ -230,7 +231,8 @@ public sealed class ProductionDomainPublishedStackSaveData
         itemInstanceId = itemInstanceId ?? string.Empty,
         stackId = stackId ?? string.Empty,
         quantity = quantity,
-        massGrams = massGrams
+        massGrams = massGrams,
+        displayText = displayText ?? string.Empty
     };
 }
 
@@ -255,7 +257,7 @@ public enum ProductionDomainOutputAcknowledgementDisposition
 [Serializable]
 public sealed class ProductionDomainOutputPublicationSaveData
 {
-    public const int CurrentSchemaVersion = 6;
+    public const int CurrentSchemaVersion = 7;
 
     public int schemaVersion = CurrentSchemaVersion;
     public int publicationAttempt;
@@ -285,6 +287,12 @@ public sealed class ProductionDomainOutputPublicationSaveData
     public bool outputPublished;
     public bool admissionCommitted;
     public bool outputAcknowledged;
+    public bool observationExpected;
+    public long observationOwnerRevision;
+    public string observationKey = string.Empty;
+    public string observationId = string.Empty;
+    public string observationFingerprint = string.Empty;
+    public bool observationDelivered;
     [NonSerialized]
     public bool restoredInCurrentTransaction;
     public List<ProductionDomainPublishedStackSaveData> stacks = new();
@@ -318,6 +326,12 @@ public sealed class ProductionDomainOutputPublicationSaveData
         && !outputPublished
         && !admissionCommitted
         && !outputAcknowledged
+        && !observationExpected
+        && observationOwnerRevision == 0L
+        && string.IsNullOrEmpty(observationKey)
+        && string.IsNullOrEmpty(observationId)
+        && string.IsNullOrEmpty(observationFingerprint)
+        && !observationDelivered
         && (stacks == null || stacks.Count == 0);
 
     public ProductionDomainOutputPublicationSaveData Clone() => new()
@@ -349,6 +363,12 @@ public sealed class ProductionDomainOutputPublicationSaveData
         outputPublished = outputPublished,
         admissionCommitted = admissionCommitted,
         outputAcknowledged = outputAcknowledged,
+        observationExpected = observationExpected,
+        observationOwnerRevision = observationOwnerRevision,
+        observationKey = observationKey ?? string.Empty,
+        observationId = observationId ?? string.Empty,
+        observationFingerprint = observationFingerprint ?? string.Empty,
+        observationDelivered = observationDelivered,
         restoredInCurrentTransaction = restoredInCurrentTransaction,
         stacks = stacks?
             .Where(value => value != null)

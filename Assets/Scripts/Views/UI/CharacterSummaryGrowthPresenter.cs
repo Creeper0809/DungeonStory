@@ -100,6 +100,13 @@ public sealed class CharacterSummaryGrowthPresenter
                 .Where(trait => trait != null)
                 .Select(trait => trait.traitName));
             summaryText.text = BuildProgressionSummary(actor, progression, traits);
+            LayoutElement summaryLayout = summaryText.GetComponent<LayoutElement>();
+            if (summaryLayout != null)
+            {
+                float height = Mathf.Max(214f, summaryText.preferredHeight + 12f);
+                summaryLayout.minHeight = height;
+                summaryLayout.preferredHeight = height;
+            }
         }
 
         for (int i = 0; i < skillButtons.Length; i++)
@@ -184,13 +191,85 @@ public sealed class CharacterSummaryGrowthPresenter
         CharacterProgression progression,
         string traits)
     {
-        StringBuilder builder = new StringBuilder(384);
+        CharacterAcquiredTraitAggregateState acquiredTraits =
+            progression.CaptureAcquiredTraitState();
+        IReadOnlyList<CharacterAcquiredTraitInstanceState> activeTraits =
+            acquiredTraits.CaptureActiveInstances();
+        CharacterAcquiredTraitInstanceState[] erasedTraits = acquiredTraits.instances
+            .Where(value => value != null && value.erased)
+            .OrderBy(value => value.instanceId, StringComparer.Ordinal)
+            .ToArray();
+        bool hasExperienceScore = CharacterAcquiredTraitExperienceScore.TryCalculate(
+            progression.NarrativeLedger,
+            out int acquiredTraitExperience,
+            out string experienceFailure);
+        int nextThreshold = hasExperienceScore
+            ? CharacterAcquiredTraitExperienceScore.Thresholds
+                .FirstOrDefault(value => value > acquiredTraitExperience)
+            : 0;
+
+        StringBuilder builder = new StringBuilder(768);
         builder.AppendLine(
             $"Lv.{progression.Level}  ·  잠재력 {CharacterSkillDisplay.Potential(progression.PotentialGrade)}");
-        builder.AppendLine($"특성  {(string.IsNullOrWhiteSpace(traits) ? "없음" : traits)}");
+        builder.AppendLine($"기존 특성  {(string.IsNullOrWhiteSpace(traits) ? "없음" : traits)}");
+        if (!hasExperienceScore)
+        {
+            builder.AppendLine($"후천 특성 성장도 계산 불가 · {experienceFailure}");
+        }
+        else
+        {
+            string next = nextThreshold > 0 ? nextThreshold.ToString() : "MAX";
+            builder.AppendLine($"후천 특성 성장도 {acquiredTraitExperience}/{next}");
+        }
+
+        builder.AppendLine("후천 특성");
+        if (activeTraits.Count == 0)
+        {
+            builder.AppendLine("- 활성 후천 특성 없음");
+        }
+        else
+        {
+            foreach (CharacterAcquiredTraitInstanceState trait in activeTraits)
+            {
+                AppendAcquiredTrait(builder, trait, "- ");
+            }
+        }
+
+        builder.AppendLine("소거된 후천 특성");
+        if (erasedTraits.Length == 0)
+        {
+            builder.AppendLine("- 소거 기록 없음");
+        }
+        else
+        {
+            foreach (CharacterAcquiredTraitInstanceState trait in erasedTraits)
+            {
+                AppendAcquiredTrait(builder, trait, "- [소거] ");
+            }
+        }
+
         builder.AppendLine("레벨은 서사 기술과 선택지를 열며 능력치를 직접 올리지 않습니다.");
         builder.Append("실제 작업·전투 성장은 숙련 탭의 9종 XP와 속도·품질·사고 위험 효과를 확인하세요.");
         return builder.ToString();
+    }
+
+    private static void AppendAcquiredTrait(
+        StringBuilder builder,
+        CharacterAcquiredTraitInstanceState trait,
+        string prefix)
+    {
+        string evidence = trait.evidenceFactIds == null || trait.evidenceFactIds.Count == 0
+            ? "없음"
+            : string.Join(", ", trait.evidenceFactIds);
+        builder.Append(prefix)
+            .Append(string.IsNullOrWhiteSpace(trait.displayName)
+                ? trait.instanceId
+                : trait.displayName)
+            .Append(" · 이정표 ")
+            .Append(trait.manifestationMilestone)
+            .AppendLine();
+        builder.Append("  ").AppendLine(trait.description);
+        builder.Append("  근거: ").AppendLine(evidence);
     }
 
     private static CharacterSkillDraft GetCurrentActiveDraft(CharacterProgression progression)

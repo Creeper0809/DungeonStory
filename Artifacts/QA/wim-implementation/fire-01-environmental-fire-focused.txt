@@ -1,0 +1,7 @@
+result=PASS
+PASS electrical contact, breaker, generation and stored-power isolation gate
+PASS exact ignition replay and 13 WU initial attack
+PASS physical water pending receipt, current-format restore and exact acknowledgement
+PASS deterministic direct-neighbour spread, duplicate collapse and non-combustible rejection
+PASS process-accident receipt producer request contract, ineligible rejection and cause replay
+scope=isolated production EnvironmentalFireRuntime and process-accident producer with controlled target/access/power/water/command authorities; registered worker selection, hauling and scene overlay require the focused Play witness

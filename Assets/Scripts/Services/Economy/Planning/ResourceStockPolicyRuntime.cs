@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -70,9 +71,13 @@ public sealed class ResourceStockPolicyRuntime :
     private readonly ResourceStockPolicyProductionDependencies production;
     private readonly ICombatEquipmentRuntime combatEquipment;
     private readonly IIdempotentGameMoneyAccount money;
+    private readonly IGameMoneyTransactionQuery moneyTransactions;
     private readonly IGameClock gameClock;
+    private readonly IGameCalendar calendar;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly IEconomyProjectInputOwnerPort inputOwners;
+    private readonly IDomainFactPublisher domainFacts;
+    private readonly Dictionary<string, DomainFactLease> preparedSaleFacts = new(StringComparer.Ordinal);
     private readonly HashSet<string> reportedRejectedSaleFailures =
         new(StringComparer.Ordinal);
 
@@ -93,8 +98,10 @@ public sealed class ResourceStockPolicyRuntime :
         ICombatEquipmentRuntime combatEquipment,
         IIdempotentGameMoneyAccount money,
         IGameClock gameClock,
+        IGameCalendar calendar,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
-        IEconomyProjectInputOwnerPort inputOwners)
+        IEconomyProjectInputOwnerPort inputOwners,
+        IDomainFactPublisher domainFacts)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.logistics = logistics
@@ -104,11 +111,17 @@ public sealed class ResourceStockPolicyRuntime :
         this.combatEquipment = combatEquipment
             ?? throw new ArgumentNullException(nameof(combatEquipment));
         this.money = money ?? throw new ArgumentNullException(nameof(money));
+        moneyTransactions = money as IGameMoneyTransactionQuery
+            ?? throw new ArgumentException(
+                "The stock-policy runtime requires money transaction receipts.",
+                nameof(money));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
         this.inputOwners = inputOwners
             ?? throw new ArgumentNullException(nameof(inputOwners));
+        this.domainFacts = domainFacts ?? throw new ArgumentNullException(nameof(domainFacts));
     }
 
     public int Version => state.Version;
@@ -200,6 +213,7 @@ public sealed class ResourceStockPolicyRuntime :
                         EconomyProjectInputOwnerAuthority.StockPolicyDisabledReason,
                         out failureReason))
                     return false;
+                ClearInputOwner(copy);
             }
             else
             {
@@ -328,7 +342,15 @@ public sealed class ResourceStockPolicyRuntime :
 
         int owned = CountOwned(policy.itemId);
         int surplus = Mathf.Max(0, owned - policy.maximumStock);
-        if (surplus <= 0)
+        // Outbound stock is intentionally excluded from owned availability,
+        // but it remains this sale's input until physical export acknowledges it.
+        // Do not retire a destination just because its requested cargo is no
+        // longer part of free stock (including a fully delivered buffer).
+        int saleInput = policy.surplusDisposition == StockSurplusDisposition.Sell
+            ? CountAtDestination(policy.itemId,
+                ResourceStockPolicySaleOutbox.FormatDestinationId(policy.itemId), null)
+            : 0;
+        if (surplus <= 0 && saleInput <= 0)
         {
             if (!TryRetireInputOwner(
                     policy,
@@ -384,10 +406,11 @@ public sealed class ResourceStockPolicyRuntime :
         string destinationId =
             EconomyProjectInputOwnerAuthority.BuildStockPolicyDestinationId(
                 policy.itemId);
-        int delivered = CountAtDestination(
+        WorldItemStackSnapshot[] saleInputs = GetDestinationStacks(
             policy.itemId,
             destinationId,
-            WorldItemStackState.FacilityBuffer);
+            WorldItemStackState.FacilityBuffer).ToArray();
+        int delivered = saleInputs.Sum(stack => stack.Quantity);
         if (delivered >= minimumSaleBatch)
         {
             int proceeds = Mathf.FloorToInt(delivered * fractionalUnitProceeds);
@@ -406,6 +429,27 @@ public sealed class ResourceStockPolicyRuntime :
             string operationId = ResourceStockPolicySaleOutbox.FormatOperationId(
                 policy.itemId,
                 sequence);
+            int saleRateBasisPoints = Mathf.Clamp(
+                Mathf.RoundToInt(saleRate * 10000f),
+                1,
+                10000);
+            var proposed = new ResourceStockSaleFact(new ResourceStockPolicyPendingSale
+            {
+                sequence = sequence, operationId = operationId,
+                reasonCode = ResourceStockPolicySaleOutbox.TransferReason,
+                itemId = policy.itemId, destinationId = destinationId,
+                quantity = delivered, proceeds = proceeds, unitPrice = unitPrice,
+                saleRateBasisPoints = saleRateBasisPoints,
+                sourceStackIds = saleInputs.Select(stack => stack.StackId)
+                    .OrderBy(id => id, StringComparer.Ordinal).ToList(),
+                absoluteDay = Math.Max(0, calendar.Day)
+            }, completed: false);
+            if (!TryReserveSaleFact(proposed, operationId,
+                    out DomainFactLease preparedFact, out string reserveFailure))
+            {
+                SetStatus(policy, reserveFailure);
+                return;
+            }
             if (logistics.TransferGateway.TryCommitTransferPending(
                     destinationId,
                     new Dictionary<string, int>(StringComparer.Ordinal)
@@ -422,6 +466,10 @@ public sealed class ResourceStockPolicyRuntime :
                         sequence,
                         policy.itemId,
                         proceeds,
+                        unitPrice,
+                        saleRateBasisPoints,
+                        Math.Max(0, calendar.Day),
+                        preparedFact.PublicationKey,
                         ToSaleReceipt(physicalReceipt));
                 state.PendingSalesByItemId.Add(policy.itemId, pendingSale);
                 state.NextSaleSequence = checked(sequence + 1);
@@ -435,7 +483,15 @@ public sealed class ResourceStockPolicyRuntime :
                 return;
             }
 
+            CancelPreparedSaleFact(operationId);
             SetStatus(policy, transferReason);
+            return;
+        }
+
+        int pending = CountAtDestination(policy.itemId, destinationId, null);
+        if (pending > 0 && surplus <= pending)
+        {
+            SetStatus(policy, $"판매 집결 중 {pending}/{Mathf.Max(pending, surplus)}");
             return;
         }
 
@@ -445,7 +501,6 @@ public sealed class ResourceStockPolicyRuntime :
             return;
         }
 
-        int pending = CountAtDestination(policy.itemId, destinationId, null);
         int missing = Mathf.Max(0, surplus - pending);
         if (missing <= 0)
         {
@@ -469,9 +524,20 @@ public sealed class ResourceStockPolicyRuntime :
             return;
         }
 
+        // The authoritative input profile admits one authored stack at a time.
+        // Non-stackable equipment must sell in successive physical batches,
+        // not request the entire surplus into a one-item buffer.
+        int requestAmount = Mathf.Min(
+            missing,
+            Mathf.Max(0, resourceItem.MaxStack - pending));
+        if (requestAmount <= 0)
+        {
+            SetStatus(policy, $"판매 집결 중 {pending}/{surplus}");
+            return;
+        }
         logistics.ItemRuntime.TryRequestItemDelivery(
             policy.itemId,
-            missing,
+            requestAmount,
             dropoff,
             destinationId,
             out int requested,
@@ -578,6 +644,12 @@ public sealed class ResourceStockPolicyRuntime :
             if (!TryBeginRejectedQualitySale(
                     stack,
                     proceeds,
+                    Mathf.Max(1, stack.UnitPrice),
+                    Mathf.Clamp(
+                        Mathf.RoundToInt(saleRate * 10000f),
+                        1,
+                        10000),
+                    quality,
                     target,
                     out QualityRejectedSalePending pending,
                     out string consumeReason))
@@ -633,6 +705,9 @@ public sealed class ResourceStockPolicyRuntime :
     private bool TryBeginRejectedQualitySale(
         WorldItemStackSnapshot stack,
         int proceeds,
+        int unitPrice,
+        int saleRateBasisPoints,
+        CraftsmanshipQualityTier quality,
         FacilityBufferAcknowledgedOutputReleaseTarget target,
         out QualityRejectedSalePending pending,
         out string failureReason)
@@ -655,10 +730,34 @@ public sealed class ResourceStockPolicyRuntime :
             return false;
         }
 
+        string operationId = QualityRejectedSaleOutbox.FormatOperationId(
+            sequence,
+            stack.StackId);
+        var proposed = new QualityRejectedSaleFact(new QualityRejectedSalePending
+        {
+            sequence = sequence, operationId = operationId,
+            reasonCode = QualityRejectedSaleOutbox.TransferReason,
+            itemId = stack.ItemId, destinationId = target.DestinationId,
+            sourceStackId = stack.StackId, itemInstanceId = stack.ItemInstanceId,
+            quantity = 1, proceeds = proceeds, unitPrice = unitPrice,
+            saleRateBasisPoints = saleRateBasisPoints, qualityTier = (int)quality,
+            absoluteDay = Math.Max(0, calendar.Day), requiresCombatAuthority = combatBacked
+        }, completed: false);
+        if (!TryReserveSaleFact(proposed, operationId,
+                out DomainFactLease preparedFact, out failureReason))
+        {
+            return false;
+        }
+
         pending = QualityRejectedSaleOutbox.CreatePrepared(
             sequence,
             stack,
             proceeds,
+            unitPrice,
+            saleRateBasisPoints,
+            quality,
+            Math.Max(0, calendar.Day),
+            preparedFact.PublicationKey,
             target,
             combatBacked);
         state.PendingRejectedSalesByOperationId.Add(
@@ -706,10 +805,6 @@ public sealed class ResourceStockPolicyRuntime :
                 pending.operationId,
                 pending.reasonCode,
                 out PhysicalItemBatchDispositionReceipt receipt,
-                out failureReason)
-            || !QualityRejectedSaleOutbox.TryApplyPhysicalReceipt(
-                pending,
-                receipt,
                 out failureReason))
         {
             if (combatCustodyBound
@@ -729,6 +824,15 @@ public sealed class ResourceStockPolicyRuntime :
                 failureReason,
                 out failureReason);
         }
+        if (!QualityRejectedSaleOutbox.TryApplyPhysicalReceipt(
+                pending,
+                receipt,
+                out failureReason))
+        {
+            // The physical service owns a durable pending receipt at this point.
+            // Keep both owners so recovery can re-read and apply that exact receipt.
+            return false;
+        }
         return true;
     }
 
@@ -739,6 +843,7 @@ public sealed class ResourceStockPolicyRuntime :
     {
         if (pending != null)
         {
+            CancelPreparedSaleFact(pending.operationId);
             state.PendingRejectedSalesByOperationId.Remove(pending.operationId);
             state.Version++;
         }
@@ -904,7 +1009,11 @@ public sealed class ResourceStockPolicyRuntime :
     private int CountAtDestination(
         string itemId,
         string destinationId,
-        WorldItemStackState? requiredState)
+        WorldItemStackState? requiredState) =>
+        GetDestinationStacks(itemId, destinationId, requiredState).Sum(stack => stack.Quantity);
+
+    private IEnumerable<WorldItemStackSnapshot> GetDestinationStacks(
+        string itemId, string destinationId, WorldItemStackState? requiredState)
     {
         return logistics.ItemRuntime.GetAllStacks()
             .Where(stack => stack != null
@@ -915,8 +1024,7 @@ public sealed class ResourceStockPolicyRuntime :
                     destinationId,
                     StringComparison.Ordinal)
                 && (!requiredState.HasValue
-                    || stack.State == requiredState.Value))
-            .Sum(stack => stack.Quantity);
+                    || stack.State == requiredState.Value));
     }
 
     private void PrioritizeDestination(string destinationId)
@@ -982,6 +1090,10 @@ public sealed class ResourceStockPolicyRuntime :
                 this,
                 out failureReason))
         {
+            // The durable sale/physical owners carry retry state. A failed
+            // credit must not retain a process-local ledger reservation and
+            // prevent saving the pending disposal. Retry replays the exact saved key.
+            CancelPreparedSaleFact(pending?.operationId);
             if (pending != null && pending.phase != phaseBefore)
             {
                 state.Version++;
@@ -1012,15 +1124,39 @@ public sealed class ResourceStockPolicyRuntime :
         QualityRejectedSalePending pending,
         out string failureReason)
     {
-        return money.TryCreditOnce(
-            pending.proceeds,
-            new EconomyTransactionContext(
-                EconomyTransactionKind.SaleIncome,
+        if (!money.TryCreditOnce(
+                pending.proceeds,
+                new EconomyTransactionContext(
+                    EconomyTransactionKind.SaleIncome,
+                    pending.operationId,
+                    pending.itemId,
+                    "품질 미달 완제품 판매"),
+                out failureReason)
+            || !TryApplyMoneyReceipt(
                 pending.operationId,
-                pending.itemId,
-                "품질 미달 완제품 판매"),
-            out failureReason);
+                pending.proceeds,
+                out EconomyTransactionRecord receipt,
+                out failureReason))
+        {
+            return false;
+        }
+        pending.economyTransactionId = receipt.transactionId;
+        pending.balanceBefore = receipt.balanceBefore;
+        pending.balanceAfter = receipt.balanceAfter;
+        return true;
     }
+
+    public bool TryPublishRejectedSaleFact(
+        QualityRejectedSalePending pending,
+        out string failureReason) => TryPublishSaleFactCore(
+            new QualityRejectedSaleFact(pending, completed: true),
+            pending.operationId, pending.outcomeResultKey,
+            (key, id, fingerprint) =>
+            {
+                pending.outcomeResultKey = key;
+                pending.outcomeId = id;
+                pending.outcomeDigest = fingerprint;
+            }, out failureReason);
 
     public bool TryReleaseRejectedSaleUniqueAuthority(
         QualityRejectedSalePending pending,
@@ -1046,13 +1182,23 @@ public sealed class ResourceStockPolicyRuntime :
         ResourceStockPolicyPendingSale pending,
         out string failureReason)
     {
+        ResourceStockPolicySaleCommitPhase phaseBefore = pending?.phase
+            ?? ResourceStockPolicySaleCommitPhase.PhysicalCommitted;
         if (!ResourceStockPolicySaleOutbox.TryFinalizePending(
                 pending,
                 this,
                 out failureReason))
         {
+            // Keep the durable unpaid/paid owner, but release the transient
+            // fact lease so pending-owner capture remains possible.
+            CancelPreparedSaleFact(pending?.operationId);
+            if (pending != null && pending.phase != phaseBefore)
+                state.Version++;
             return false;
         }
+
+        if (pending.phase != phaseBefore)
+            state.Version++;
 
         if (!state.PendingSalesByItemId.Remove(pending.itemId))
         {
@@ -1066,7 +1212,10 @@ public sealed class ResourceStockPolicyRuntime :
             SetStatus(
                 policy,
                 $"초과 재고 {pending.quantity}개 판매 · {pending.proceeds} 골드");
-            if (!TryRetireInputOwner(
+            // A partial physical export must not cancel the remaining requested
+            // cargo or another in-flight haul to the same sale input owner.
+            if (CountAtDestination(policy.itemId, pending.destinationId, null) == 0
+                && !TryRetireInputOwner(
                     policy,
                     EconomyProjectInputOwnerAuthority.StockPolicySaleCompletedReason,
                     out string retireFailure))
@@ -1093,34 +1242,60 @@ public sealed class ResourceStockPolicyRuntime :
     }
 
     public bool TryPublishSaleIncome(
-        int amount,
-        string operationId,
-        string itemId,
+        ResourceStockPolicyPendingSale pending,
         out string failureReason)
     {
         failureReason = string.Empty;
-        if (amount <= 0
-            || string.IsNullOrWhiteSpace(operationId)
+        if (pending == null
+            || pending.proceeds <= 0
+            || string.IsNullOrWhiteSpace(pending.operationId)
             || !string.Equals(
-                operationId,
-                operationId.Trim(),
+                pending.operationId,
+                pending.operationId.Trim(),
                 StringComparison.Ordinal)
-            || string.IsNullOrWhiteSpace(itemId)
-            || !string.Equals(itemId, itemId.Trim(), StringComparison.Ordinal))
+            || string.IsNullOrWhiteSpace(pending.itemId)
+            || !string.Equals(
+                pending.itemId,
+                pending.itemId.Trim(),
+                StringComparison.Ordinal))
         {
             failureReason = "stock-policy-sale-income-invalid";
             return false;
         }
 
-        return money.TryCreditOnce(
-            amount,
-            new EconomyTransactionContext(
-                EconomyTransactionKind.SaleIncome,
-                operationId,
-                itemId,
-                "초과 재고 판매"),
-            out failureReason);
+        if (!money.TryCreditOnce(
+                pending.proceeds,
+                new EconomyTransactionContext(
+                    EconomyTransactionKind.SaleIncome,
+                    pending.operationId,
+                    pending.itemId,
+                    "초과 재고 판매"),
+                out failureReason)
+            || !TryApplyMoneyReceipt(
+                pending.operationId,
+                pending.proceeds,
+                out EconomyTransactionRecord receipt,
+                out failureReason))
+        {
+            return false;
+        }
+        pending.economyTransactionId = receipt.transactionId;
+        pending.balanceBefore = receipt.balanceBefore;
+        pending.balanceAfter = receipt.balanceAfter;
+        return true;
     }
+
+    public bool TryPublishSaleFact(
+        ResourceStockPolicyPendingSale pending,
+        out string failureReason) => TryPublishSaleFactCore(
+            new ResourceStockSaleFact(pending, completed: true),
+            pending.operationId, pending.outcomeResultKey,
+            (key, id, fingerprint) =>
+            {
+                pending.outcomeResultKey = key;
+                pending.outcomeId = id;
+                pending.outcomeDigest = fingerprint;
+            }, out failureReason);
 
     public bool AcknowledgeSaleTransfer(
         string commitId,
@@ -1137,8 +1312,121 @@ public sealed class ResourceStockPolicyRuntime :
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToList(),
         quantity = receipt.Quantity,
-        inputMassGrams = receipt.InputMassGrams
+        inputMassGrams = receipt.InputMassGrams,
+        physicalOutcomeOwnerRevision = receipt.OwnerRevision
     };
+
+    private bool TryReserveSaleFact<TFact>(in TFact proposed, string operationId,
+        out DomainFactLease lease, out string failureReason)
+    {
+        lease = default;
+        if (preparedSaleFacts.ContainsKey(operationId))
+        {
+            failureReason = "stock-policy-sale-fact-reservation-duplicate";
+            return false;
+        }
+        try
+        {
+            if (!domainFacts.TryReserve(proposed, out lease, out failureReason)) return false;
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            domainFacts.Cancel(lease);
+            lease = default;
+            failureReason = "stock-policy-sale-fact-reservation-failed:" + exception.Message;
+            return false;
+        }
+        if (string.IsNullOrWhiteSpace(lease.PublicationKey))
+        {
+            domainFacts.Cancel(lease);
+            lease = default;
+            failureReason = "stock-policy-sale-fact-publication-identity-missing";
+            return false;
+        }
+        preparedSaleFacts.Add(operationId, lease);
+        return true;
+    }
+
+    private void CancelPreparedSaleFact(string operationId)
+    {
+        if (!string.IsNullOrWhiteSpace(operationId)
+            && preparedSaleFacts.Remove(operationId, out var lease))
+            domainFacts.Cancel(lease);
+    }
+
+    private bool TryApplyMoneyReceipt(
+        string operationId,
+        int expectedAmount,
+        out EconomyTransactionRecord receipt,
+        out string failureReason)
+    {
+        if (!moneyTransactions.TryGetSuccessfulTransaction(
+                EconomyTransactionKind.SaleIncome,
+                operationId,
+                out receipt)
+            || receipt == null
+            || !receipt.succeeded
+            || receipt.amount != expectedAmount
+            || receipt.balanceBefore < 0
+            || receipt.balanceAfter != receipt.balanceBefore + expectedAmount
+            || string.IsNullOrWhiteSpace(receipt.transactionId))
+        {
+            failureReason = "stock-policy-sale-money-receipt-missing-or-mismatch";
+            return false;
+        }
+        failureReason = string.Empty;
+        return true;
+    }
+
+    private bool TryPublishSaleFactCore<TFact>(in TFact fact, string operationId,
+        string expectedKey, Action<string, string, string> acknowledge, out string failureReason)
+    {
+        DomainFactDelivery delivery;
+        try
+        {
+            if (preparedSaleFacts.Remove(operationId, out var lease))
+            {
+                if (lease.PublicationKey != expectedKey)
+                {
+                    domainFacts.Cancel(lease);
+                    failureReason = "stock-policy-sale-fact-publication-key-mismatch";
+                    return false;
+                }
+                delivery = domainFacts.Publish(lease, fact);
+            }
+            else
+            {
+                // The physical/money outbox is already durable. Reconcile its exact
+                // saved publication, including the full payload, without redoing effects.
+                if (domainFacts is not IDomainFactRecoveryPublisher recovery)
+                {
+                    failureReason = "stock-policy-sale-fact-recovery-unavailable";
+                    return false;
+                }
+                var results = new DomainFactDelivery[1];
+                recovery.ReplayBatch(new[] { DomainFactReplay.Create(expectedKey, fact) },
+                    results, out failureReason);
+                delivery = results[0];
+            }
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            // An observer exception is not proof of no durable commit. Keep
+            // the paid physical outbox and retry its exact identity next time.
+            failureReason = "stock-policy-sale-fact-pending-exception:" + exception.Message;
+            return false;
+        }
+        if (delivery.Phase is not (DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery)
+            || delivery.OperationKey != expectedKey || string.IsNullOrWhiteSpace(expectedKey)
+            || string.IsNullOrWhiteSpace(delivery.PublicationId) || delivery.Fingerprint.Length != 64)
+        {
+            failureReason = "stock-policy-sale-fact-pending:" + delivery.Phase + ":" + delivery.Detail;
+            return false;
+        }
+        acknowledge(delivery.OperationKey, delivery.PublicationId, delivery.Fingerprint);
+        failureReason = string.Empty;
+        return true;
+    }
 
     private void SetStatus(
         ResourceStockPolicyData policy,

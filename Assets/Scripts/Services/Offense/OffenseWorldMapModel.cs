@@ -30,6 +30,26 @@ public sealed class OffenseStockRewardSpec : OffenseRewardGrantSpec
 }
 
 [Serializable]
+public sealed class OffensePhysicalItemRewardSpec : OffenseRewardGrantSpec
+{
+    [SerializeField] private string itemId = string.Empty;
+
+    public OffensePhysicalItemRewardSpec()
+    {
+    }
+
+    public OffensePhysicalItemRewardSpec(string itemId)
+    {
+        this.itemId = itemId?.Trim() ?? string.Empty;
+    }
+
+    public string ItemId => itemId;
+    public override string RewardTypeId => OffenseRewardTypeIds.PhysicalItem;
+    public override OffenseRewardCategory Category =>
+        OffenseRewardCategory.PhysicalItem;
+}
+
+[Serializable]
 public sealed class OffenseRareFacilityRewardSpec : OffenseRewardGrantSpec
 {
     public override string RewardTypeId => OffenseRewardTypeIds.RareFacility;
@@ -163,6 +183,10 @@ public class OffenseTargetDefinition
     [Min(1f)] public float durationSeconds = 90f;
     [Min(1)] public int requiredMembers = 1;
     [Min(0f)] public float requiredPower;
+    public string seasonalOccurrenceInstanceId;
+    public string authoredEncounterId;
+    [TextArea] public string encounterPreviewText;
+    [TextArea] public string encounterRewardPreviewText;
     public OffenseRewardPreview[] rewards = Array.Empty<OffenseRewardPreview>();
 
     public bool IsValid => !string.IsNullOrWhiteSpace(id)
@@ -214,7 +238,9 @@ public class OffenseTargetDefinition
             regionDisplayName,
             factionId,
             strategicPressureAxis,
-            strategicPressureAmount);
+            strategicPressureAmount,
+            encounterPreviewText,
+            encounterRewardPreviewText);
     }
 
     internal OffenseTargetDefinition CreateRuntimeCopy()
@@ -239,6 +265,10 @@ public class OffenseTargetDefinition
             durationSeconds = durationSeconds,
             requiredMembers = requiredMembers,
             requiredPower = requiredPower,
+            seasonalOccurrenceInstanceId = seasonalOccurrenceInstanceId,
+            authoredEncounterId = authoredEncounterId,
+            encounterPreviewText = encounterPreviewText,
+            encounterRewardPreviewText = encounterRewardPreviewText,
             rewards = rewards != null
                 ? (OffenseRewardPreview[])rewards.Clone()
                 : Array.Empty<OffenseRewardPreview>()
@@ -271,7 +301,9 @@ public sealed class OffenseTargetSnapshot
         string regionDisplayName = "",
         string factionId = "",
         StrategicPressureAxis strategicPressureAxis = StrategicPressureAxis.None,
-        float strategicPressureAmount = 0f)
+        float strategicPressureAmount = 0f,
+        string encounterPreviewText = "",
+        string encounterRewardPreviewText = "")
     {
         this.id = id ?? string.Empty;
         this.title = title ?? string.Empty;
@@ -295,6 +327,9 @@ public sealed class OffenseTargetSnapshot
         this.factionId = factionId ?? string.Empty;
         this.strategicPressureAxis = strategicPressureAxis;
         this.strategicPressureAmount = Mathf.Max(0f, strategicPressureAmount);
+        this.encounterPreviewText = encounterPreviewText ?? string.Empty;
+        this.encounterRewardPreviewText =
+            encounterRewardPreviewText ?? string.Empty;
     }
 
     public string id { get; }
@@ -319,6 +354,8 @@ public sealed class OffenseTargetSnapshot
     public string factionId { get; }
     public StrategicPressureAxis strategicPressureAxis { get; }
     public float strategicPressureAmount { get; }
+    public string encounterPreviewText { get; }
+    public string encounterRewardPreviewText { get; }
 
     public OffenseTargetSnapshot Copy()
     {
@@ -337,7 +374,7 @@ public sealed class OffenseTargetSnapshot
             $"위험도: {danger:0.#}",
             $"필요 인력: {requiredMembers}",
             $"권장 전투력: {requiredPower:0.#}",
-            $"적 편성: {OffenseEncounterCatalog.GetEnemySummary(campaignOrder)}",
+            $"적 편성: {(string.IsNullOrWhiteSpace(encounterPreviewText) ? OffenseEncounterCatalog.GetEnemySummary(campaignOrder) : encounterPreviewText)}",
             "진행 방식: 행동과 대상을 직접 선택하는 턴제 전투"
         };
 
@@ -359,6 +396,8 @@ public sealed class OffenseTargetSnapshot
                 }
             }
         }
+        if (!string.IsNullOrWhiteSpace(encounterRewardPreviewText))
+            lines.Add($"- 조우 전리품: {encounterRewardPreviewText}");
 
         return string.Join("\n", lines);
     }

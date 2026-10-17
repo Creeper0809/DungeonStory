@@ -1,0 +1,15 @@
+{
+  "arguments": [
+    "C:\\Users\\vulpo\\AppData\\Local\\Microsoft\\WindowsApps\\unity.EXE",
+    "command",
+    "eval",
+    "--project-path",
+    "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory",
+    "--format",
+    "json",
+    "--detach",
+    "--code",
+    "return new {\n exporter = typeof(NarrativeControlledInputExporter).FullName,\n skill = typeof(NarrativeControlledSkillCapture).FullName,\n facility = typeof(NarrativeControlledFacilityCapture).FullName,\n equipment = typeof(NarrativeControlledEquipmentCapture).FullName\n};"
+  ],
+  "cwd": "F:\\01_Programming\\01_Project\\02_Unity\\DungeonStory"
+}

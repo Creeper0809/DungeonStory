@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
@@ -86,6 +87,8 @@ public static class AnimalHusbandryWorkRules
         state.PendingWorkKind = kind;
         state.PendingProductItemId = productId;
         state.PendingWorkCompleted = 0f;
+        (state.PendingWorkContributions ??= new List<CraftContributionSaveData>())
+            .Clear();
     }
 
     public static void ResetPendingWork(HusbandryAnimalState state)
@@ -93,6 +96,8 @@ public static class AnimalHusbandryWorkRules
         state.PendingWorkKind = AnimalHusbandryWorkKind.None;
         state.PendingProductItemId = default;
         state.PendingWorkCompleted = 0f;
+        (state.PendingWorkContributions ??= new List<CraftContributionSaveData>())
+            .Clear();
     }
 
     public static AnimalHusbandryWorkSnapshot Unavailable(

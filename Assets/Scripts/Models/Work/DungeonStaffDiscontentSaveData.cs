@@ -60,9 +60,13 @@ public class StaffDiscontentRules
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonStaffDiscontentSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 4;
 
     public int version = CurrentVersion;
+    public long outcomeRevision;
+    public long transitionRevision;
+    public StaffDiscontentObservationData responseObservation = new();
+    public StaffDiscontentObservationData transitionObservation = new();
     public List<DungeonStaffDiscontentRecordSaveData> records =
         new List<DungeonStaffDiscontentRecordSaveData>();
 }
@@ -77,10 +81,55 @@ public sealed class DungeonStaffDiscontentRecordSaveData
     public StaffDiscontentOutcome outcome = StaffDiscontentOutcome.None;
     public float mood = 100f;
     public int lowMoodDays;
+    public int localRebellionDays;
+    public int lastProcessedAbsoluteDay = -1;
     public bool permanentLoss;
     public bool departed;
     public bool localRebellion;
     public bool ownerThreat;
     public bool isolated;
     public bool suppressed;
+
+    public DungeonStaffDiscontentRecordSaveData Clone() => (DungeonStaffDiscontentRecordSaveData)MemberwiseClone();
+}
+
+public enum StaffDiscontentFactKind { DailyTransition, Response }
+
+[Serializable]
+public sealed class StaffDiscontentFactData
+{
+    public StaffDiscontentFactKind kind;
+    public long revision;
+    public int absoluteDay;
+    public StaffDiscontentOutcome transition;
+    public StaffRebellionResponseType responseType;
+    public string responderId = string.Empty;
+    public string responderDisplayName = string.Empty;
+    public bool moodApplied;
+    public float resolvedMoodDelta;
+    public DungeonStaffDiscontentRecordSaveData before;
+    public DungeonStaffDiscontentRecordSaveData after;
+
+    public StaffDiscontentFactData Clone()
+    {
+        var clone = (StaffDiscontentFactData)MemberwiseClone();
+        clone.before = before?.Clone(); clone.after = after?.Clone();
+        return clone;
+    }
+}
+
+[Serializable]
+public sealed class StaffDiscontentObservationData
+{
+    // JsonUtility materializes inline null classes. Persist an explicit empty value instead.
+    public StaffDiscontentFactData fact = new()
+    {
+        before = new DungeonStaffDiscontentRecordSaveData(),
+        after = new DungeonStaffDiscontentRecordSaveData()
+    };
+    public string publicationKey = string.Empty;
+    public bool pending;
+    public bool notificationPending;
+    public StaffDiscontentObservationData Clone() => new()
+    { fact = fact?.Clone(), publicationKey = publicationKey, pending = pending, notificationPending = notificationPending };
 }

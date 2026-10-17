@@ -5,7 +5,7 @@ SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-fronti
 SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,description,서로 다른 고향의 규칙을 원정대식 실용주의로 엮는다.,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,authoringRevision,1,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,defaultSpeciesId,Adventurer,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,defaultSpeciesId,Human,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,preferredItemIds.0,food:preserved-ration,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,forbiddenItemIds.0,food:raw-monster-meat,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,preferredFacilityIds,[],,,explicit-serialized

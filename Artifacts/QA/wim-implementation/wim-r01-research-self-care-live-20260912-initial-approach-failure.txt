@@ -1,0 +1,27 @@
+controlledEnvironment=22C/air100/light100 every5 game seconds through existing field persistence; original restored during cleanup; character exposure/needs simulation remains active
+[PASS] actual preparation estimate=adult1/45WU/day/0.4day; actual enqueue; cap1/17WU unchanged
+worker=character:staff:1:01; action=Work (AIWork); research=True; participants=0; progress=0; generic=0/0; thirst=66.66672; cell=(31, 1); gameTime=103.5326; wall=112.9848; cancellation=; preWuExit=None/; brain=행동: 일하기 (44.6s)
+단계: 이동 / MovePath / 32칸
+목표: 연구책상
+경로: MovePath / 32칸
+예약: 연구책상
+기분: 56.8
+이유: 정상
+운반 계획: 운반 계획 없음
+적재: 0/28.7kg
+정리 사유: 진행 중
+result=FAIL
+System.InvalidOperationException: Initial normal research/cycle witness timed out: worker=character:staff:1:01; action=Work (AIWork); research=True; participants=0; progress=0; generic=0/0; thirst=66.66672; cell=(31, 1); gameTime=103.5326; wall=112.9698; cancellation=; preWuExit=None/; brain=행동: 일하기 (44.6s)
+단계: 이동 / MovePath / 32칸
+목표: 연구책상
+경로: MovePath / 32칸
+예약: 연구책상
+기분: 56.8
+이유: 정상
+운반 계획: 운반 계획 없음
+적재: 0/28.7kg
+정리 사유: 진행 중
+  at WimR01ResearchSelfCareLiveRunner+<WaitFor>d__30.MoveNext () [0x00089] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Economy\Editor\WimR01ResearchSelfCareLiveRunner.cs:400 
+  at WimR01ResearchSelfCareLiveRunner+<Observe>d__27.MoveNext () [0x00051] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Economy\Editor\WimR01ResearchSelfCareLiveRunner.cs:75 
+scope=actual owner/party and research UI; single real staff AI, physical drink and resume; safe environmental field, one initial healthy-needs setup, priorities and one routine-thirst perturbation are controlled. Exposure and needs are NOT repeatedly reset. No action-list replacement, forced drink/stop-work/progress, actual lamp/build-power, daily productivity, paired-run timing or collaborative-research claim.
+cleanup=paused disposable Play; operator stops; user persistence disabled before owner selection

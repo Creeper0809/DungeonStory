@@ -1,0 +1,40 @@
+STATE=BLOCKED_FROZEN
+CANDIDATES=9
+COMPLETE_SOURCE=5
+BLOCKED=4
+UNITY_EXECUTED=false
+CLI_BUILD_EXECUTED=false
+MCP_USED=false
+HUMAN_APPROVAL_CLAIMED=false
+CORE_API_FROZEN=true
+TRADE_API_FROZEN=false
+UNIQUE_CANDIDATE_TYPES=9
+TYPED_ADAPTERS=9
+TYPED_DESCRIPTORS=9
+ADAPTER_REGISTRATIONS=9
+DESCRIPTOR_REGISTRATIONS=9
+RECORD_PAYLOAD_ARRAYS=0
+OWNED_META_GUID_COLLISIONS=0
+SOURCE_HASH_MISMATCHES=0
+META_GUID_MISMATCHES=0
+DIFF_CHECK_ERRORS=0
+
+Implemented static invariants:
+- fixed-capacity value buffers; no per-record payload arrays or CloneOrEmpty allocations
+- immutable display snapshots are required; persistent IDs never substitute for missing display text
+- exact required role, metric, fact, tag, provenance, and direct-subject descriptor contracts
+- per-type allowed status, numeric range, integral-unit, terminal-status, intensity-direction, changed-condition, and non-zero-effect validation
+- no optional witness links and no lossy compaction
+- deterministic generic memory policy with no content-ID branching
+- owner rollback occurs only before durable ledger commit
+- ambiguous CommitPrepared exceptions are retained as durable-pending and never authorize domain rollback
+- delivery and acknowledgement exceptions are durable pending phases, not domain rollback
+- owner cleanup is permitted only at PublishedAcknowledged with canonical SHA-256
+- crop terminal owner keeps the exact source and output vector until canonical acknowledgement
+- crop post-commit cleanup failure is a deferred retry and cannot roll back a committed ledger result
+
+Pending static gates:
+- physical batch outcome participant API FROZEN signal
+- production output publication gameplay attachment
+- reversible physical relocation participant
+- final source hash manifest after SOURCE_EDIT ends

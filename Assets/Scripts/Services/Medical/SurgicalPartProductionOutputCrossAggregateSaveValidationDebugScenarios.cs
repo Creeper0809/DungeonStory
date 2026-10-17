@@ -163,6 +163,8 @@ public static class
         new()
         {
             partInstanceId = source.partInstanceId,
+            itemDefinitionId = source.itemDefinitionId,
+            physicalItemInstanceId = source.physicalItemInstanceId,
             kind = source.kind,
             nodeId = source.nodeId,
             displayName = source.displayName,
@@ -249,6 +251,7 @@ public static class
             SurgicalPartPreparedOutput prepared = new()
             {
                 ItemId = itemId,
+                PhysicalItemInstanceId = itemInstanceId,
                 PartInstanceId = partId,
                 NodeId = "arm:left",
                 DisplayName = "QA prosthetic arm " + suffix,
@@ -316,6 +319,8 @@ public static class
             SurgicalPartInstance part = new()
             {
                 partInstanceId = partId,
+                itemDefinitionId = itemId,
+                physicalItemInstanceId = itemInstanceId,
                 kind = SurgicalPartKind.Prosthetic,
                 nodeId = "arm:left",
                 displayName = prepared.DisplayName,

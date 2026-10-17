@@ -8,6 +8,13 @@
   "edges": [
     {
       "amount": null,
+      "from": "character/festival-open-sky-chorus",
+      "label": "필요 조건",
+      "to": "facility/building-8851",
+      "type": "requires"
+    },
+    {
+      "amount": null,
       "from": "research/research-climate-weather-observation",
       "label": "시설 해금",
       "to": "facility/building-8851",

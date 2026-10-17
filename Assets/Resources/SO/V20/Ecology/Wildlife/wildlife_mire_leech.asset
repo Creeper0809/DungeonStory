@@ -53,6 +53,14 @@ MonoBehaviour:
   nestTag: nest:mud-clutch
   breedingSeason: 1
   migrationPatternId: migration:flood-channel
+  migrationProfile:
+    capability: 3
+    detectionRadiusCells: 10
+    signalScore: 8
+    minimumWaterRemainingRatio: 0.25
+    minimumCarcassQuantity: 0
+    minimumTemperatureC: 0
+    maximumTemperatureC: 0
   diseaseVectorIds:
   - disease:blood-wasting
   activeSeasons: 0000000001000000

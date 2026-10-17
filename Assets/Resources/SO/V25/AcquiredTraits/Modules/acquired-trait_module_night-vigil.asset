@@ -1,0 +1,79 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa10b2a63b654e309daf38d4e7e5ecdc, type: 3}
+  m_Name: acquired-trait_module_night-vigil
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterAcquiredTraitModuleSO
+  moduleId: acquired-trait:module:night-vigil
+  displayName: "\uC57C\uAC04 \uACBD\uACC4"
+  description: "\uBC24\uC758 \uAE34 \uACBD\uACC4\uB97C \uC775\uD78C \uBAB8\uC740
+    \uC57C\uAC04\uC5D0\uB294 \uBE68\uB77C\uC9C0\uACE0 \uB0AE\uC5D0\uB294 \uC870\uAE08
+    \uB290\uB824\uC9D1\uB2C8\uB2E4."
+  cost: 2
+  conflictGroups:
+  - work-cycle
+  domainAffinities: 0000000006000000
+  effects:
+  - bindingId: acquired-trait:module:night-vigil:effect:0
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 1.04
+    condition: {fileID: 11400000, guid: 6a0b4ad09c2286341a8e5a53a47d8c35, type: 2}
+  - bindingId: acquired-trait:module:night-vigil:effect:1
+    definition: {fileID: 11400000, guid: c82e7a8d248986f4b8776ccbc743d601, type: 2}
+    value: 0.99
+    condition: {fileID: 11400000, guid: 13f507b576f7b954fad1350ef67d8168, type: 2}
+  drawbackBindingIds:
+  - acquired-trait:module:night-vigil:effect:1
+  specialReactions: []
+  capabilityId: acquired-trait:acquired-trait:module:night-vigil
+  formula:
+    appliedParameterIds:
+    - magnitude
+    baseCost: 1
+    triggerFrequencyCostPerUnit: 1
+    guaranteedProcCost: 1
+    areaCostPerExtraTarget: 1
+    multiEffectCostPerExtraEffect: 1
+    pairSynergyCosts: []
+    narrativeAffinity: 1
+    affinityKeys:
+    - Survival
+    - Work
+    conflictGroups:
+    - work-cycle
+    forbiddenSynergies: []
+    formatterId: acquired-trait:acquired-trait:module:night-vigil
+    applicatorId: acquired-trait:acquired-trait:module:night-vigil
+    parameterRanges:
+    - parameterId: magnitude
+      minimumUnits: 10000
+      maximumUnits: 14000
+      quantumUnits: 1000
+      decimalPlaces: 4
+      costPerQuantum: 1
+    - parameterId: duration
+      minimumUnits: 0
+      maximumUnits: 0
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: count
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: targetCount
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1

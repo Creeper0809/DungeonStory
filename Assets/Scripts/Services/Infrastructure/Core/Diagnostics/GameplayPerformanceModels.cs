@@ -536,7 +536,7 @@ public sealed class GameplayPerformanceOptions
             "-performance-disable-character-stats");
 
         string defaultDirectory = Path.Combine(
-            Application.persistentDataPath,
+            DungeonPersistencePaths.Root,
             "Performance");
         options.ReportPath = Path.GetFullPath(ReadString(
             arguments,

@@ -37,3 +37,4 @@ MonoBehaviour:
   yield: 5
   indoorAllowed: 1
   temperatureRange: {x: 2, y: 28}
+  lightProfile: 4

@@ -6,14 +6,20 @@ public sealed class AnimalHusbandryWorkHandle
 {
     public AnimalHusbandryWorkHandle(
         object targetRuntimeObject,
-        object workerRuntimeObject)
+        object workerRuntimeObject,
+        object executionContext = null)
     {
         TargetRuntimeObject = targetRuntimeObject;
         WorkerRuntimeObject = workerRuntimeObject;
+        ExecutionContext = executionContext;
     }
 
     public object TargetRuntimeObject { get; }
     public object WorkerRuntimeObject { get; }
+    public object ExecutionContext { get; }
+    // A projection of the domain owner's accepted terminal responsibility,
+    // not a second completion ledger or a claim that delivery already ran.
+    public bool CompletionIdentityOwnedByDomain { get; set; }
 }
 
 public interface IAnimalHusbandryWorkRuntimePort

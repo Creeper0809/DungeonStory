@@ -1,9 +1,58 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
+using VContainer;
 using VContainer.Unity;
+
+public interface ISurvivalRefuelCompletionCommand
+{
+    bool TryEnsureRefuelSupply(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        out bool completionOnly,
+        out DomainFailure failure);
+
+    bool TryApplyRefuelWork(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        out int amount,
+        out DomainFailure failure);
+}
+
+public readonly struct SurvivalFacilityFuelSupplyPlan
+{
+    public SurvivalFacilityFuelSupplyPlan(
+        string destinationId,
+        string itemId,
+        int requiredQuantity)
+    {
+        DestinationId = destinationId ?? string.Empty;
+        ItemId = itemId ?? string.Empty;
+        RequiredQuantity = requiredQuantity;
+    }
+
+    public string DestinationId { get; }
+    public string ItemId { get; }
+    public int RequiredQuantity { get; }
+}
+
+public interface ISurvivalRefuelSupplyQuery
+{
+    bool TryGetRefuelSupplyPlan(
+        BuildableObject building,
+        out SurvivalFacilityFuelSupplyPlan plan);
+}
+
+public interface ISurvivalFacilityFuelRetirement
+{
+    bool TryPrepareFacilityFuelRetirement(
+        BuildableObject building,
+        out string failureReason);
+}
 
 public sealed partial class SurvivalFoodRuntime :
     ISurvivalFoodQuery,
@@ -13,11 +62,18 @@ public sealed partial class SurvivalFoodRuntime :
     ICharacterNutritionRuntime,
     ISurvivalEnvironmentQuery,
     ISurvivalStorageEnvironmentSink,
+    ISurvivalTreatmentCompletionCommand,
+    ISurvivalRefuelCompletionCommand,
+    ISurvivalRefuelSupplyQuery,
+    ISurvivalFacilityFuelRetirement,
+    ISurvivalTreatmentTerminalMaintenance,
+    ISurvivalTreatmentSupplyQuery,
     IInitializable,
+    ITickable,
+    IDungeonSaveRestoreCompletedHook,
     IDisposable
 {
-    private const int DailyFuelDemand = 1;
-    private const float TreatmentMedicineHeal = 16f;
+    public const string TreatmentPhysicalSinkReason = SurvivalTreatmentIdentity.TreatmentPhysicalSinkReason;
     private const string CleanWaterItemId = "resource:clean-water";
     private const string CookedMealItemId = "survival:cooked_meal";
     private const string PreservedFoodItemId = "survival:preserved_food";
@@ -28,19 +84,59 @@ public sealed partial class SurvivalFoodRuntime :
     private readonly IItemDefinitionCatalog itemCatalog;
     private readonly IGameEventBus gameEventBus;
     private readonly IGameClock gameClock;
+    private readonly IGameCalendar calendar;
+    private readonly ICharacterConsumablesApplication consumables;
     private readonly IClimateQuery climate;
-    private readonly ISurvivalServiceSessionCapability serviceSessionRuntime;
+    private readonly SurvivalTreatmentRuntime treatment;
     private readonly SurvivalFoodStockRuntime stockRuntime;
     private readonly SurvivalFoodSpoilageRuntime spoilageRuntime;
     private readonly SurvivalFoodOverviewCache overviewCache;
     private readonly SurvivalMealLedger mealLedger;
     private readonly SurvivalEnvironmentRiskEvaluator environmentRisks;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private IDomainFactPublisher mealMissedFacts;
+    private IDomainFactRecoveryPublisher mealMissedRecovery;
+    private readonly Queue<int> pendingMealMissedDays = new();
+    private readonly HashSet<int> queuedMealMissedDays = new();
+    private float nextMealMissedRecoveryTime;
+    public string LastMealMissedRecoveryFailure { get; private set; } = string.Empty;
     private IDisposable operatingDayStartedSubscription;
     private IDisposable stockConsumedSubscription;
     private IDisposable physicalMealConsumedSubscription;
+
     private SurvivalWeatherType? debugWeatherOverride;
-    private string lastAnnouncedWeatherFrontId = string.Empty;
+#if UNITY_EDITOR
+    private bool debugIsolatedDailyNutritionHeld;
+    private int debugHeldDailyNutritionChecks;
+    public bool DebugIsolatedDailyNutritionHeld => debugIsolatedDailyNutritionHeld;
+    public int DebugHeldDailyNutritionChecks => debugHeldDailyNutritionChecks;
+
+    // Test preparation only: skip the daily meal/shortage calculation without
+    // fabricating meals, changing health, stock, ledger or the saved frontier.
+    // No such control exists in a player build or an interactive Editor.
+    public IDisposable DebugHoldDailyNutritionForIsolatedPreparation()
+    {
+        if (!Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification)
+            throw new InvalidOperationException("Daily nutrition hold requires isolated batch test preparation.");
+        if (debugIsolatedDailyNutritionHeld)
+            throw new InvalidOperationException("Daily nutrition preparation already has an owner.");
+        debugIsolatedDailyNutritionHeld = true;
+        debugHeldDailyNutritionChecks = 0;
+        return new IsolatedDailyNutritionHold(this);
+    }
+
+    private sealed class IsolatedDailyNutritionHold : IDisposable
+    {
+        private SurvivalFoodRuntime owner;
+        public IsolatedDailyNutritionHold(SurvivalFoodRuntime owner) => this.owner = owner;
+        public void Dispose()
+        {
+            if (owner == null) return;
+            owner.debugIsolatedDailyNutritionHeld = false;
+            owner = null;
+        }
+    }
+#endif
     private SurvivalFoodAggregateState aggregateState =>
         aggregateRootStore.GetOrCreate(() => new SurvivalFoodAggregateState());
     private DungeonSurvivalSaveData state => aggregateState.Data;
@@ -56,10 +152,12 @@ public sealed partial class SurvivalFoodRuntime :
         IGameEventBus gameEventBus,
         ICharacterAiWorldRegistry worldRegistry,
         IGameClock gameClock,
+        IGameCalendar calendar,
         IWorldThreatModifierQuery worldThreatModifiers,
         ISurvivalServiceSessionCapability serviceSessionRuntime,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
-        ICharacterCarryInventoryRegistry carryInventories = null)
+        ICharacterCarryInventoryRegistry carryInventories = null,
+        ICharacterConsumablesApplication consumables = null)
     {
         _ = dependencies ?? throw new ArgumentNullException(nameof(dependencies));
         this.speciesCatalog = speciesCatalog ?? throw new ArgumentNullException(nameof(speciesCatalog));
@@ -70,20 +168,31 @@ public sealed partial class SurvivalFoodRuntime :
         climate = dependencies.Climate;
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         worldThreatModifiers = worldThreatModifiers
             ?? throw new ArgumentNullException(nameof(worldThreatModifiers));
-        this.serviceSessionRuntime = serviceSessionRuntime
+        ISurvivalServiceSessionCapability treatmentSessions = serviceSessionRuntime
             ?? throw new ArgumentNullException(nameof(serviceSessionRuntime));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.consumables = consumables;
         stockRuntime = new SurvivalFoodStockRuntime(
             dependencies.GridSystemProvider,
             this.worldRegistry,
             this.itemStackRuntime,
             this.itemCatalog,
-            dependencies.StockQuery);
+            dependencies.StockQuery,
+            dependencies.PhysicalSinks,
+            dependencies.PackagedTare,
+            dependencies.Workforce,
+            dependencies.TreatmentBufferCapacities,
+            dependencies.TreatmentBufferOccupancy,
+            dependencies.TreatmentBufferClaims,
+            dependencies.FuelBufferLifecycle,
+            dependencies.FuelBufferRelease,
+            this.aggregateRootStore);
         spoilageRuntime = new SurvivalFoodSpoilageRuntime(
             this.itemStackRuntime,
             this.itemCatalog,
@@ -98,6 +207,17 @@ public sealed partial class SurvivalFoodRuntime :
             dependencies.GridSystemProvider,
             this.worldRegistry,
             worldThreatModifiers);
+        treatment = new SurvivalTreatmentRuntime(
+            this.worldRegistry, stockRuntime, treatmentSessions, this.consumables,
+            this.gameEventBus, this.aggregateRootStore);
+    }
+
+    [Inject]
+    public void ConstructMealMissedFacts(IDomainFactPublisher facts)
+    {
+        mealMissedFacts = facts ?? throw new ArgumentNullException(nameof(facts));
+        mealMissedRecovery = facts as IDomainFactRecoveryPublisher
+            ?? throw new ArgumentException("Missed meals require durable cohort recovery.", nameof(facts));
     }
 
     public int GetStoredStockCount(StockCategory category)
@@ -109,6 +229,36 @@ public sealed partial class SurvivalFoodRuntime :
         IEnvironmentalFieldQuery fieldQuery)
     {
         spoilageRuntime.ConfigureStorageEnvironment(fieldQuery);
+    }
+
+    public bool HasFuelSupply(BuildableObject building) =>
+        SurvivalFacilityWorkRules.IsEnvironmentalFuelConsumer(building)
+        && building.HasFacilityFuelSupply;
+
+    public float GetRemainingFuelGameSeconds(BuildableObject building) =>
+        SurvivalFacilityWorkRules.IsEnvironmentalFuelConsumer(building)
+            ? Mathf.Max(0f, building.FacilityState.remainingFuelGameSeconds)
+            : 0f;
+
+    public bool TryGetRefuelSupplyPlan(
+        BuildableObject building,
+        out SurvivalFacilityFuelSupplyPlan plan)
+    {
+        if (stockRuntime.TryGetFacilityFuelSupplyPlan(
+                building,
+                out string destinationId,
+                out string itemId,
+                out int requiredQuantity))
+        {
+            plan = new SurvivalFacilityFuelSupplyPlan(
+                destinationId,
+                itemId,
+                requiredQuantity);
+            return true;
+        }
+
+        plan = default;
+        return false;
     }
 
     public SurvivalEnvironmentSnapshot GetEnvironmentSnapshot()
@@ -126,27 +276,47 @@ public sealed partial class SurvivalFoodRuntime :
 
     public void Initialize()
     {
-        operatingDayStartedSubscription =
+        stockRuntime.TryRefreshFacilityFuelAuthorities();
+        if (!stockRuntime.TryRecoverFacilityFuelCommits(
+                out string fuelRecoveryFailure))
+        {
+            throw new InvalidOperationException(
+                "Facility fuel recovery failed: " + fuelRecoveryFailure);
+        }
+        operatingDayStartedSubscription ??=
             gameEventBus.Subscribe<OperatingDayStartedEvent>(OnTriggerEvent);
-        stockConsumedSubscription =
+        stockConsumedSubscription ??=
             gameEventBus.Subscribe<FacilityStockConsumedEvent>(OnTriggerEvent);
-        physicalMealConsumedSubscription =
+        physicalMealConsumedSubscription ??=
             gameEventBus.Subscribe<PhysicalMealConsumedEvent>(OnTriggerEvent);
+        OnRestoreCompleted();
     }
 
     public void Dispose()
     {
+#if UNITY_EDITOR
+        debugIsolatedDailyNutritionHeld = false;
+#endif
         operatingDayStartedSubscription?.Dispose();
         operatingDayStartedSubscription = null;
         stockConsumedSubscription?.Dispose();
         stockConsumedSubscription = null;
         physicalMealConsumedSubscription?.Dispose();
         physicalMealConsumedSubscription = null;
+        pendingMealMissedDays.Clear();
+        queuedMealMissedDays.Clear();
     }
 
     public void OnTriggerEvent(OperatingDayStartedEvent eventType)
     {
-        if (eventType.day <= 0 || state.lastProcessedDay == eventType.day)
+#if UNITY_EDITOR
+        if (debugIsolatedDailyNutritionHeld)
+        {
+            debugHeldDailyNutritionChecks++;
+            return;
+        }
+#endif
+        if (eventType.day <= 0 || state.lastProcessedDay >= eventType.day)
         {
             return;
         }
@@ -170,7 +340,7 @@ public sealed partial class SurvivalFoodRuntime :
 
         RecordMeal(
             consumer,
-            facility,
+            facility.RequirePersistentInstanceId(),
             itemId: string.Empty,
             displayName: string.Empty,
             dietClass: MealDietClass.Vegan,
@@ -183,7 +353,11 @@ public sealed partial class SurvivalFoodRuntime :
     public void OnTriggerEvent(PhysicalMealConsumedEvent eventType)
     {
         if (eventType.Actor == null
-            || eventType.Facility == null
+            || !eventType.FacilityId.IsValid
+            || eventType.Facility == null && !string.Equals(
+                eventType.FacilityId.Value,
+                CharacterConsumablesRuntime.FieldMealFacilityId,
+                StringComparison.Ordinal)
             || !eventType.Result.Success
             || !IsSurvivalConsumer(eventType.Actor))
         {
@@ -192,7 +366,7 @@ public sealed partial class SurvivalFoodRuntime :
 
         RecordMeal(
             eventType.Actor,
-            eventType.Facility,
+            eventType.FacilityId,
             eventType.Result.ItemId,
             eventType.Result.DisplayName,
             eventType.Result.DietClass,
@@ -205,15 +379,14 @@ public sealed partial class SurvivalFoodRuntime :
     private void ProcessDailySurvival(int day)
     {
         EnsureStateLists();
-        PublishMissedMealEvents(day);
-        AnnounceDangerousWeatherIfChanged();
+        consumables?.ProcessOperatingDay(day);
+        PublishWeatherSample();
         spoilageRuntime.Process(
             state,
             CurrentWeather,
             advanceTime: true);
-        RefreshDailyFoodForecast(day);
+        PublishMissedMealFactsAndRefreshFoodForecast(day);
         ConsumeDailyWater(day);
-        ConsumeDailyFuel();
         RefreshSurvivalRisks();
         ApplyHealthConsequences();
         InvalidateOverviewCache();
@@ -256,7 +429,7 @@ public sealed partial class SurvivalFoodRuntime :
         if (!validation.Success)
         {
             throw new InvalidOperationException(
-                "Survival resources restore rejected an invalid V5 candidate: "
+                "Survival resources restore rejected an invalid current candidate: "
                 + string.Join(" | ", validation.Errors));
         }
 
@@ -276,6 +449,16 @@ public sealed partial class SurvivalFoodRuntime :
         aggregateRootStore.Replace(
             (candidate ?? throw new ArgumentNullException(nameof(candidate)))
             .State);
+        treatment.ClearWorkOperationsAfterRestore();
+        stockRuntime.InvalidateFacilityFuelAuthorities();
+        stockRuntime.TryRefreshFacilityFuelAuthorities();
+        if (!stockRuntime.TryRecoverFacilityFuelCommits(
+                out string fuelRecoveryFailure))
+        {
+            throw new InvalidOperationException(
+                "Facility fuel restore recovery failed: "
+                + fuelRecoveryFailure);
+        }
         InvalidateOverviewCache();
     }
 
@@ -394,13 +577,17 @@ public sealed partial class SurvivalFoodRuntime :
             case var id when id == BuiltInWorkTypeIds.Cook:
                 return TryApplyCook(actor, building, out amount, out failure);
             case var id when id == BuiltInWorkTypeIds.Treat:
-                return TryApplyTreat(actor, building, out amount, out failure);
-            case var id when id == BuiltInWorkTypeIds.Refuel:
-                return SurvivalFacilityWorkRules.TryApplyRefuel(
+                return treatment.TryApplyTreat(
                     actor,
                     building,
-                    stockRuntime,
-                    state,
+                    default,
+                    out _,
+                    out amount,
+                    out failure);
+            case var id when id == BuiltInWorkTypeIds.Refuel:
+                return TryApplyRefuelWork(
+                    actor,
+                    building,
                     out amount,
                     out failure);
             default:
@@ -425,13 +612,12 @@ public sealed partial class SurvivalFoodRuntime :
             var id when id == BuiltInWorkTypeIds.Cook => building.BuildingData.GetAbility<BuildingCookingAbility>() is { } cooking
                 && stockRuntime.CountStoredStock(StockCategory.Food) >= Mathf.Max(1, cooking.inputFood)
                 && (!cooking.requiresFuel || stockRuntime.CountStoredStock(StockCategory.Fuel) > 0),
-            var id when id == BuiltInWorkTypeIds.Treat => building.BuildingData.GetAbility<BuildingMedicalAbility>() != null
-                && HasTreatableHealth()
-                && (building.BuildingData.GetAbility<BuildingMedicalAbility>()?.requiresMedicine != true
-                    || stockRuntime.CountStoredStock(StockCategory.Medicine) > 0
-                    || stockRuntime.CountStoredStock(StockCategory.Biological) > 0),
-            var id when id == BuiltInWorkTypeIds.Refuel => building.BuildingData.GetAbility<BuildingFuelConsumerAbility>() != null
-                && stockRuntime.CountStoredStock(StockCategory.Fuel) > 0,
+            var id when id == BuiltInWorkTypeIds.Treat =>
+                treatment.HasAvailableTreatment(building),
+            var id when id == BuiltInWorkTypeIds.Refuel =>
+                SurvivalFacilityWorkRules.IsEnvironmentalFuelConsumer(building)
+                && !building.HasFacilityFuelSupply
+                && stockRuntime.HasPotentialFacilityFuel(building),
             _ => false
         };
     }
@@ -450,13 +636,49 @@ public sealed partial class SurvivalFoodRuntime :
                 + (state.lastMissingWater > 0 ? 25f : 0f),
             var id when id == BuiltInWorkTypeIds.Cook => Mathf.Clamp(70f - (overview.ShortageDays * 12f), 8f, 80f)
                 + (overview.SpoilageWarningCount > 0 ? 15f : 0f),
-            var id when id == BuiltInWorkTypeIds.Treat => 35f + (overview.UntreatedCount * 25f) + Mathf.Clamp(overview.DiseaseRisk * 0.35f, 0f, 35f),
+            var id when id == BuiltInWorkTypeIds.Treat => 35f
+                + (overview.UntreatedCount * 25f)
+                + Mathf.Clamp(overview.DiseaseRisk * 0.35f, 0f, 35f)
+                + Mathf.Clamp(
+                    treatment.GetTreatmentToxicityUrgency(building),
+                    0f,
+                    35f),
             var id when id == BuiltInWorkTypeIds.Refuel => CurrentWeather == SurvivalWeatherType.ColdSnap
                 ? 75f
                 : Mathf.Clamp(overview.ExteriorNightDanger * 0.45f, 10f, 55f),
             _ => 0f
         };
     }
+
+    public bool TryEnsureRefuelSupply(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        out bool completionOnly,
+        out DomainFailure failure) => stockRuntime.TryEnsureFacilityFuelSupply(
+        actor,
+        building,
+        out completionOnly,
+        out failure);
+
+    public bool TryApplyRefuelWork(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        out int amount,
+        out DomainFailure failure)
+    {
+        if (!stockRuntime.TryCommitFacilityFuel(building, out amount, out failure))
+            return false;
+        if (amount > 0)
+            PublishWorkResult(new SurvivalFacilityWorkResultEvent(
+                SurvivalFacilityWorkResultKind.Refueling, actor, building, amount));
+        failure = DomainFailure.None;
+        return true;
+    }
+
+    public bool TryPrepareFacilityFuelRetirement(
+        BuildableObject building,
+        out string failureReason) => stockRuntime
+        .TryPrepareFacilityFuelRetirement(building, out failureReason);
 
     public int GetMealsConsumed(int day)
     {
@@ -498,45 +720,13 @@ public sealed partial class SurvivalFoodRuntime :
     }
 
     private IEnumerable<CharacterActor> GetSurvivalConsumers()
-    {
-        IReadOnlyList<CharacterActor> actors = worldRegistry.Characters;
-        for (int i = 0; i < actors.Count; i++)
-        {
-            CharacterActor actor = actors[i];
-            if (actor != null
-                && !actor.IsDead
-                && IsSurvivalConsumer(actor))
-            {
-                yield return actor;
-            }
-        }
-    }
+        => SurvivalConsumerSelection.GetSurvivalConsumers(worldRegistry);
 
     private int CountSurvivalConsumers()
-    {
-        int count = 0;
-        IReadOnlyList<CharacterActor> actors = worldRegistry.Characters;
-        for (int index = 0; index < actors.Count; index++)
-        {
-            CharacterActor actor = actors[index];
-            if (actor != null
-                && !actor.IsDead
-                && IsSurvivalConsumer(actor))
-            {
-                count++;
-            }
-        }
-
-        return count;
-    }
+        => SurvivalConsumerSelection.CountSurvivalConsumers(worldRegistry);
 
     private static bool IsSurvivalConsumer(CharacterActor actor)
-    {
-        return actor != null
-            && !actor.IsDead
-            && (actor.Role == CharacterRole.Owner
-                || CharacterWorkRoleUtility.TryGetWork(actor, out _));
-    }
+        => SurvivalConsumerSelection.IsSurvivalConsumer(actor);
 
     private int CountStoredFood()
     {
@@ -598,7 +788,7 @@ public sealed partial class SurvivalFoodRuntime :
 
     private void RecordMeal(
         CharacterActor consumer,
-        BuildableObject facility,
+        BuildingInstanceId facilityId,
         string itemId,
         string displayName,
         MealDietClass dietClass,
@@ -619,7 +809,7 @@ public sealed partial class SurvivalFoodRuntime :
             state,
             ref nextMealSequence,
             consumer,
-            facility,
+            facilityId,
             itemId,
             displayName,
             dietClass,
@@ -640,10 +830,7 @@ public sealed partial class SurvivalFoodRuntime :
                 mealTags,
                 wasSufficient: true,
                 CharacterCommandOrigin.Autonomous,
-                Mathf.Max(
-                    0,
-                    Mathf.FloorToInt(
-                        gameClock.Time / GameCalendarRules.SecondsPerDay))));
+                calendar.Day));
         }
         RefreshCurrentDayFoodSummary();
         InvalidateOverviewCache();
@@ -676,47 +863,167 @@ public sealed partial class SurvivalFoodRuntime :
         return tags.ToArray();
     }
 
-    private void PublishMissedMealEvents(int currentDay)
+    private void PublishMissedMealFactsAndRefreshFoodForecast(int currentDay)
     {
         int completedDay = Math.Max(0, currentDay - 1);
         if (completedDay <= 0)
-            return;
-        foreach (CharacterActor actor in GetSurvivalConsumers())
         {
-            if (!CharacterPersistentIdentity.TryGet(actor, out CharacterId characterId)
-                || GetMealsConsumed(characterId.Value, completedDay) > 0)
-                continue;
-            gameEventBus.Publish(new MealMissedEvent(
-                characterId,
-                consecutiveMisses: 1,
-                currentDay));
+            RefreshDailyFoodForecast(currentDay);
+            return;
+        }
+        string[] missed = GetSurvivalConsumers()
+            .Select(actor => CharacterPersistentIdentity.TryGet(actor, out CharacterId character)
+                && GetMealsConsumed(character.Value, completedDay) <= 0 ? character.Value : null)
+            .Where(character => character != null).Distinct(StringComparer.Ordinal)
+            .OrderBy(character => character, StringComparer.Ordinal).ToArray();
+        if (missed.Length == 0)
+        {
+            RefreshDailyFoodForecast(currentDay);
+            return;
+        }
+        if (mealMissedFacts == null || mealMissedRecovery == null)
+            throw new InvalidOperationException("Missed-meal fact publication is unavailable.");
+        if (state.missedMealCohorts.Count >= SurvivalMealMissedCohortSaveData.MaximumCohorts
+            || state.missedMealCohorts.Any(row => row.absoluteDay == currentDay))
+            throw new InvalidOperationException("Missed-meal day is already recorded or cohort capacity is exhausted.");
+        var facts = missed.Select((character, index) => new SurvivalMealMissedFact(new SurvivalMealMissedData
+        {
+            characterId = character, absoluteDay = currentDay, completedDay = completedDay,
+            consecutiveMisses = 1, cohortIndex = index, cohortSize = missed.Length
+        })).ToArray();
+        var leases = new List<DomainFactLease>(facts.Length);
+        var journal = new SurvivalMealMissedCohortSaveData { absoluteDay = currentDay };
+        // Only these five forecast fields are changed here. Restoring an entire
+        // aggregate would also rerun unrelated fuel/health restore side effects.
+        var before = (state.lastProcessedDay, state.lastNeededFood, state.lastConsumedFood,
+            state.lastMissingFood, state.consecutiveFoodShortageDays);
+        bool mayBeCommitted = false;
+        try
+        {
+            foreach (var fact in facts)
+            {
+                if (!mealMissedFacts.TryReserve(fact, out var lease, out string failure))
+                    throw new InvalidOperationException("Missed-meal fact reservation failed: " + failure);
+                leases.Add(lease);
+                journal.members.Add(new SurvivalMealMissedPublicationSaveData
+                { fact = fact.Snapshot(), publicationKey = lease.PublicationKey });
+            }
+            journal.Validate();
+            state.missedMealCohorts.Add(journal);
+            RefreshDailyFoodForecast(currentDay);
+            var results = new DomainFactDelivery[facts.Length];
+            bool accepted = mealMissedFacts.PublishBatch(facts.Select((fact, index) =>
+                DomainFactEmission.Create(leases[index], fact)).ToArray(), results, out string publicationFailure);
+            mayBeCommitted = results.Any(result => result.MayBeCommitted);
+            if (!mayBeCommitted)
+                throw new InvalidOperationException("Missed-meal cohort publication rejected: " + publicationFailure);
+            journal.publicationConfirmed = accepted && results.All(result => result.Completed);
+            if (!journal.publicationConfirmed) QueueMissedMealDay(currentDay);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException && exception is not AccessViolationException)
+        {
+            // By publisher contract, an escaped exception is pre-commit. Once a
+            // result may be committed, preserve its applied state and frozen keys.
+            if (!mayBeCommitted)
+            {
+                foreach (var lease in leases) mealMissedFacts.Cancel(lease);
+                state.missedMealCohorts.Remove(journal);
+                (state.lastProcessedDay, state.lastNeededFood, state.lastConsumedFood,
+                    state.lastMissingFood, state.consecutiveFoodShortageDays) = before;
+                InvalidateOverviewCache();
+            }
+            throw;
+        }
+        // These live domain notifications are not reissued by publication recovery.
+        foreach (var fact in facts)
+        {
+            var data = fact.Snapshot();
+            PublishPostCommitMealMissedEvent(new MealMissedEvent(
+                new CharacterId(data.characterId), data.consecutiveMisses, data.absoluteDay));
         }
     }
 
-    private void AnnounceDangerousWeatherIfChanged()
+    public void OnRestoreCompleted()
+    {
+        pendingMealMissedDays.Clear();
+        queuedMealMissedDays.Clear();
+        nextMealMissedRecoveryTime = 0f;
+        LastMealMissedRecoveryFailure = string.Empty;
+        foreach (var row in state.missedMealCohorts)
+            if (!row.publicationConfirmed) QueueMissedMealDay(row.absoluteDay);
+    }
+
+    public void Tick()
+    {
+        if (pendingMealMissedDays.Count == 0 || Time.unscaledTime < nextMealMissedRecoveryTime) return;
+        nextMealMissedRecoveryTime = Time.unscaledTime + 1f;
+        RecoverPendingMealMissedFacts();
+    }
+
+    public void RecoverPendingMealMissedFacts()
+    {
+        if (pendingMealMissedDays.Count == 0) return;
+        if (mealMissedRecovery == null)
+            throw new InvalidOperationException("Missed-meal fact recovery is unavailable.");
+        int count = Math.Min(4, pendingMealMissedDays.Count);
+        string failure = string.Empty;
+        for (int index = 0; index < count; index++)
+        {
+            int day = pendingMealMissedDays.Dequeue();
+            queuedMealMissedDays.Remove(day);
+            var journal = state.missedMealCohorts.FirstOrDefault(row => row.absoluteDay == day);
+            if (journal == null || journal.publicationConfirmed) continue;
+            var replays = journal.members.Select(row => DomainFactReplay.Create(
+                row.publicationKey, new SurvivalMealMissedFact(row.fact))).ToArray();
+            var results = new DomainFactDelivery[replays.Length];
+            bool completed = false;
+            string cohortFailure = string.Empty;
+            try
+            {
+                bool accepted = mealMissedRecovery.ReplayBatch(replays, results, out cohortFailure);
+                completed = accepted && results.All(result => result.Completed);
+                if (!completed && string.IsNullOrEmpty(cohortFailure))
+                    cohortFailure = string.Join(" | ", results.Select(result => result.Detail));
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                && exception is not StackOverflowException && exception is not AccessViolationException)
+            { cohortFailure = exception.Message; }
+            if (completed) journal.publicationConfirmed = true;
+            else
+            {
+                QueueMissedMealDay(day);
+                if (string.IsNullOrEmpty(failure)) failure = cohortFailure;
+            }
+        }
+        if (!string.IsNullOrEmpty(failure) && failure != LastMealMissedRecoveryFailure)
+            Debug.LogWarning("Missed-meal fact recovery pending: " + failure);
+        LastMealMissedRecoveryFailure = failure;
+    }
+
+    private void QueueMissedMealDay(int day)
+    { if (queuedMealMissedDays.Add(day)) pendingMealMissedDays.Enqueue(day); }
+
+    private void PublishPostCommitMealMissedEvent(in MealMissedEvent missed)
+    {
+        try { gameEventBus.Publish(missed); }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException && exception is not AccessViolationException)
+        {
+            Debug.LogError("meal-missed-fact-post-commit-observer:" + exception.GetType().Name);
+        }
+    }
+
+    private void PublishWeatherSample()
     {
         string currentFrontId = debugWeatherOverride.HasValue
             ? "debug:" + debugWeatherOverride.Value
             : climate.WeatherFrontId;
-        if (string.Equals(
-                currentFrontId,
-                lastAnnouncedWeatherFrontId,
-                StringComparison.Ordinal))
+        try { gameEventBus.Publish(new SurvivalWeatherSampledEvent(currentFrontId, CurrentWeather)); }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException && exception is not AccessViolationException)
         {
-            return;
-        }
-
-        lastAnnouncedWeatherFrontId = currentFrontId;
-        SurvivalWeatherType weather = CurrentWeather;
-        if (weather is SurvivalWeatherType.ColdSnap
-            or SurvivalWeatherType.HeatWave
-            or SurvivalWeatherType.Storm)
-        {
-            gameEventBus.RaiseAlert(
-                "날씨가 위험해집니다",
-                $"{SurvivalFacilityWorkRules.FormatWeather(weather)} 예보입니다. 연료, 조명, 외부 작업 상태를 확인하세요.",
-                EventAlertImportance.Medium,
-                "생존");
+            Debug.LogWarning("survival-weather-observation:" + exception.GetType().Name + ":" + exception.Message);
         }
     }
 
@@ -735,32 +1042,6 @@ public sealed partial class SurvivalFoodRuntime :
         state.consecutiveWaterShortageDays = missing > 0
             ? state.consecutiveWaterShortageDays + 1
             : 0;
-    }
-
-    private void ConsumeDailyFuel()
-    {
-        int need = DailyFuelDemand;
-        if (CurrentWeather == SurvivalWeatherType.ColdSnap)
-        {
-            need += 1;
-        }
-        need = Mathf.CeilToInt(
-            need * environmentRisks.GetThreatMultiplier(
-                OffenseThreatModifierKind.FuelConsumption));
-
-        int consumed = stockRuntime.WithdrawStock(StockCategory.Fuel, need);
-        state.lastConsumedFuel = consumed;
-        state.lastMissingFuel = Mathf.Max(0, need - consumed);
-        if (state.lastMissingFuel <= 0)
-        {
-            return;
-        }
-
-        gameEventBus.RaiseAlert(
-            "연료가 부족합니다",
-            "조명과 난방이 약해집니다. 밤 외부 위험과 추위 위험이 함께 오릅니다.",
-            EventAlertImportance.Medium,
-            "생존");
     }
 
     private void RefreshSurvivalRisks()
@@ -834,14 +1115,6 @@ public sealed partial class SurvivalFoodRuntime :
             return false;
         }
 
-        if (!CanDrawWater(building))
-        {
-            failure = new DomainFailure(
-                FailureCode.SurvivalWaterFrozen,
-                building.PersistentInstanceId.Value);
-            return false;
-        }
-
         amount = Mathf.Max(1, ability.waterPerWork);
         string waterItemId = RequireAuthoredItemId(
             CleanWaterItemId,
@@ -860,17 +1133,8 @@ public sealed partial class SurvivalFoodRuntime :
             amount = ModularFacilityRuntimeEffects.Produce(building, StockCategory.Water, amount);
         }
 
-        RecordWorkActivity(
-            actor,
-            building,
-            BuiltInWorkTypeIds.DrawWater,
-            amount > 0 ? BuildingActivityOutcomes.Completed : BuildingActivityOutcomes.Failed,
-            amount > 0
-                ? $"{SurvivalFacilityWorkRules.GetBuildingName(building)}에서 물 {amount}개를 길었다."
-                : "물을 담을 곳을 찾지 못했다.",
-            amount > 0 ? "water-drawn" : "water-output-failed",
-            amount,
-            amount <= 0);
+        PublishWorkResult(new SurvivalFacilityWorkResultEvent(
+            SurvivalFacilityWorkResultKind.WaterDrawing, actor, building, amount));
         failure = amount > 0
             ? DomainFailure.None
             : new DomainFailure(
@@ -950,17 +1214,8 @@ public sealed partial class SurvivalFoodRuntime :
             2f,
             120f,
             1);
-        RecordWorkActivity(
-            actor,
-            building,
-            BuiltInWorkTypeIds.Cook,
-            BuildingActivityOutcomes.Completed,
-            preservation != null
-                ? $"{SurvivalFacilityWorkRules.GetBuildingName(building)}에서 오래 둘 수 있는 보존 식량을 만들었다."
-                : $"{SurvivalFacilityWorkRules.GetBuildingName(building)}에서 따뜻한 식사를 만들었다.",
-            preservation != null ? "food-preserved" : "food-cooked",
-            amount,
-            false);
+        PublishWorkResult(new SurvivalFacilityWorkResultEvent(
+            SurvivalFacilityWorkResultKind.Cooking, actor, building, amount, preservedFood: preservation != null));
         failure = DomainFailure.None;
         return true;
     }
@@ -982,158 +1237,55 @@ public sealed partial class SurvivalFoodRuntime :
         return definition.ItemId;
     }
 
-    private bool TryApplyTreat(
+    public static string CreateTreatmentPhysicalOperationId(
+        string treatmentOperationId)
+        => SurvivalTreatmentIdentity.CreateTreatmentPhysicalOperationId(treatmentOperationId);
+
+    public bool TryGetTreatmentSupply(
+        CharacterId patientId,
+        out SurvivalTreatmentSupplySnapshot snapshot)
+        => treatment.TryGetTreatmentSupply(patientId, out snapshot);
+
+    public bool TryEnsureTreatmentSupply(
         IBuildingVisitorPort actor,
         BuildableObject building,
+        int workRunId,
+        out bool completionOnly,
+        out DomainFailure failure)
+        => treatment.TryEnsureTreatmentSupply(actor, building, workRunId, out completionOnly, out failure);
+
+    public bool TryApplyTreatmentWork(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        int workRunId,
         out int amount,
         out DomainFailure failure)
+        => treatment.TryApplyTreatmentWork(actor, building, workRunId, out amount, out failure);
+
+    public bool TryReconcileLostTreatmentOwners(out string failureReason)
     {
-        amount = 0;
-        BuildingMedicalAbility medical = building.BuildingData?.GetAbility<BuildingMedicalAbility>();
-        if (medical == null)
-        {
-            failure = new DomainFailure(
-                FailureCode.SurvivalTreatmentUnsupported,
-                building.PersistentInstanceId.Value);
+        stockRuntime.TryRefreshFacilityFuelAuthorities();
+        if (!treatment.TryReconcileLostTreatmentOwners(out failureReason))
             return false;
-        }
-
-        SurvivalHealthSaveData patientEntry = FindTreatmentEntry(building);
-        if (patientEntry == null)
-        {
-            failure = new DomainFailure(
-                FailureCode.SurvivalTreatmentTargetMissing,
-                building.PersistentInstanceId.Value);
-            return false;
-        }
-
-        bool usedBloodSubstitute = false;
-        CharacterActor patient = SurvivalFoodStatePersistence.FindActor(
-            GetSurvivalConsumers(), patientEntry.persistentId);
-        ServiceSessionSnapshot serviceSession = null;
-        BuildingServiceHubAbility serviceHub =
-            building.GetServiceHubAbility();
-        if (serviceHub != null
-            && !serviceSessionRuntime.TryBeginSession(
-                new ServiceSessionRequest
-                {
-                    Hub = building,
-                    Actor = patient,
-                    ProcessId = serviceHub.supportedProcessIds?
-                        .FirstOrDefault() ?? string.Empty,
-                    IsInternalActor = Shop.IsInternalStaffUse(patient?.BuildingVisitor),
-                    AdvertisedDemand = !Shop.IsInternalStaffUse(patient?.BuildingVisitor)
-                },
-                out serviceSession,
-                out DomainFailure serviceFailure))
-        {
-            failure = serviceFailure;
-            return false;
-        }
-        if (medical.requiresMedicine
-            && !stockRuntime.TryConsumeTreatmentMaterial(out usedBloodSubstitute))
-        {
-            if (serviceSession != null)
-            {
-                serviceSessionRuntime.CancelSession(
-                    serviceSession.SessionId,
-                    FailureCode.SurvivalTreatmentMaterialMissing.ToString());
-            }
-            failure = new DomainFailure(
-                FailureCode.SurvivalTreatmentMaterialMissing);
-            return false;
-        }
-
-        float treatmentEfficiency = usedBloodSubstitute ? 0.55f : 1f;
-        patientEntry.severity = Mathf.Clamp01(
-            patientEntry.severity
-            - (Mathf.Max(0f, medical.severityReduction) * treatmentEfficiency));
-        patientEntry.remainingSeconds = Mathf.Max(
-            0f,
-            patientEntry.remainingSeconds - (180f * treatmentEfficiency));
-        if (patientEntry.severity <= 0.05f || patientEntry.remainingSeconds <= 0f)
-        {
-            state.health.Remove(patientEntry);
-        }
-        else
-        {
-            patientEntry.state = SurvivalHealthState.Recovering;
-        }
-
-        patient?.Heal(TreatmentMedicineHeal * treatmentEfficiency);
-        if (usedBloodSubstitute && patient != null)
-        {
-            SurvivalHealthStateRules.RegisterOrRefresh(
-                state,
-                patient,
-                SurvivalHealthState.Exposed,
-                0.25f,
-                240f,
-                "불안정한 혈액 대체 치료");
-            patient.ApplyMoodFactor(
-                "survival:blood-treatment",
-                "정체불명의 혈액으로 치료받음",
-                -4f,
-                240f,
-                1);
-        }
-        patient?.ApplyMoodFactor(
-            "survival:treated",
-            "제때 치료받음",
-            3f,
-            180f,
-            1);
-        RecordWorkActivity(
-            actor,
-            building,
-            BuiltInWorkTypeIds.Treat,
-            BuildingActivityOutcomes.Completed,
-            $"{SurvivalFacilityWorkRules.GetBuildingName(building)}에서 {SurvivalFacilityWorkRules.GetActorName(patient, patientEntry.persistentId)}의 상태를 살폈다.",
-            "survival-treated",
-            0,
-            false);
-        amount = 1;
-        if (serviceSession != null
-            && !serviceSessionRuntime.TryCompleteSession(
-                serviceSession.SessionId,
-                out _,
-                out DomainFailure completionFailure))
-        {
-            serviceSessionRuntime.CancelSession(
-                serviceSession.SessionId,
-                completionFailure.Code.ToString());
-        }
-        failure = DomainFailure.None;
-        return true;
+        return stockRuntime.TryRecoverFacilityFuelCommits(out failureReason);
     }
 
-    private static void RecordWorkActivity(
-        IBuildingVisitorPort actor,
-        BuildableObject building,
-        WorkTypeId workTypeId,
-        string outcomeId,
-        string factText,
-        string reasonCode,
-        int quantity,
-        bool bubbleEligible)
+    internal const string DetoxOperationPrefix = SurvivalTreatmentIdentity.DetoxOperationPrefix;
+    internal const string TreatmentOperationPrefix = SurvivalTreatmentIdentity.TreatmentOperationPrefix;
+
+    private void PublishWorkResult(SurvivalFacilityWorkResultEvent fact)
     {
-        actor?.RecordActivity(
-            building,
-            new BuildingActivitySnapshot(
-                BuildingActivityKinds.Work,
-                outcomeId,
-                factText,
-                workTypeId.Value,
-                string.Empty,
-                reasonCode,
-                0f,
-                quantity,
-                bubbleEligible));
+        try { gameEventBus.Publish(fact); }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException && exception is not AccessViolationException)
+        {
+            Debug.LogWarning("survival-work-observation:" + exception.GetType().Name + ":" + exception.Message);
+        }
     }
 
     private bool CanDrawWater(BuildableObject building)
     {
-        return SurvivalFacilityWorkRules.CanDrawWater(building, CurrentWeather);
+        return SurvivalFacilityWorkRules.CanDrawWater(building);
     }
 
     private SurvivalWeatherType CurrentWeather =>
@@ -1166,20 +1318,6 @@ public sealed partial class SurvivalFoodRuntime :
             SurvivalWeatherType.Fog => 16f,
             _ => 18f
         };
-
-    private bool HasTreatableHealth()
-    {
-        return SurvivalHealthStateRules.HasTreatable(state);
-    }
-
-    private SurvivalHealthSaveData FindTreatmentEntry(
-        BuildableObject building)
-    {
-        bool useFirstActive = building.GetServiceHubAbility() != null
-            && serviceSessionRuntime.GetHubSnapshot(building).Mode
-                == ServiceOperationMode.Direct;
-        return SurvivalHealthStateRules.FindTreatmentEntry(state, useFirstActive);
-    }
 
     private bool HasActiveHealth(CharacterActor actor, SurvivalHealthState healthState)
     {

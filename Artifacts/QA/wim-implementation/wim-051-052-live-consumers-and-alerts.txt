@@ -1,0 +1,6 @@
+[PASS] registered disease consumer: baseline=0.8988764; axis=1.06; pressured=0.952809; exposure=2; disease=disease:deep-parasitosis
+[PASS] actual threat->director->intruder final combat: ownerHP=100->90; response owner released; damage retained in Recovery
+[PASS] registered day adapter/UI publishes old terminal before new active on day 110; old=endless-crisis:1:100; new=endless-crisis:2:110; seed=1; both details open
+result=PASS
+scope=actual main registered disease exposure, invasion candidate/director/final combat and EventAlert UI; controlled EndlessAge state/day/seed in disposable Play; existing focused policy/lifecycle/save proof reused; not a natural ten-day colony or six-adult recovery-burden witness
+cleanup=operator stops disposable protected Play; persistence disabled before owner selection; no scene/profile/save writes

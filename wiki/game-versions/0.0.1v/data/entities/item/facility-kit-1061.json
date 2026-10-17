@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "씻은 뒤 쓸 수건을 젖지 않게 걸어 두는 수건걸이 설치 부품이며, 므네실라에서도 같은 규격으로 조립한다.",
+  "in_game_description": "수건걸이로 오염과 쓰레기를 처리해 생활 공간을 깨끗이 유지하는 데 쓰는 설치 부품이다. 므네실라의 수건걸이에서 거른 물은 깨끗하면 초록 포자막이 피고, 오염이 남으면 검게 가라앉는다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

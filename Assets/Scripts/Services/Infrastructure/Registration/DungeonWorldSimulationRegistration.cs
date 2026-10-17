@@ -10,6 +10,13 @@ public static class DungeonWorldSimulationRegistration
         Scene scopeScene,
         WorldSimulationSceneReferences sceneReferences)
     {
+        builder.RegisterEvolutionGameplayOutcomeBridges();
+        builder.RegisterServiceSessionGameplayOutcomeBridge();
+        builder.RegisterFacilitySynthesisGameplayOutcomes();
+        builder.RegisterEntryPoint<FacilitySynthesisFactOutbox>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonRestoreTransactionParticipant>().As<IDungeonSaveRestoreCompletedHook>();
+        builder.RegisterProductionCommandGameplayOutcomes();
+        builder.RegisterInfrastructureCommandGameplayOutcomes();
         builder.RegisterInstance(sceneReferences
             ?? throw new System.ArgumentNullException(nameof(sceneReferences)));
         builder.Register<WorldDropZoneQuery>(Lifetime.Singleton)
@@ -111,6 +118,7 @@ public static class DungeonWorldSimulationRegistration
             .As<IDungeonSaveRestoreCompletedHook>();
         builder.Register<FacilityBufferMassAdmissionService>(Lifetime.Singleton)
             .As<IFacilityBufferMassAdmissionService>()
+            .As<IReversibleFacilityBufferPlannedOutputAdmissionService>()
             .As<IFacilityBufferPlannedOutputProjectionQuery>()
             .As<IFacilityBufferMassCapacityQuery>()
             .As<IFacilityBufferMassCapacityAuthorityQuery>()
@@ -118,7 +126,8 @@ public static class DungeonWorldSimulationRegistration
             .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<FacilityBufferPlannedOutputPublicationService>(
                 Lifetime.Singleton)
-            .As<IFacilityBufferPlannedOutputPublicationService>();
+            .As<IFacilityBufferPlannedOutputPublicationService>()
+            .As<IPreparedFacilityBufferOutputPublicationService>();
         builder.Register<FacilityOutputExactRouteService>(Lifetime.Singleton)
             .As<IFacilityOutputExactRoutePort>()
             .As<IFacilityOutputExactRouteOutboxQuery>()
@@ -161,17 +170,34 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<LeasedItemReservationService>(Lifetime.Singleton)
             .As<ILeasedItemReservationService>();
         builder.Register<AtomicItemConsumptionService>(Lifetime.Singleton)
-            .As<IAtomicItemConsumptionService>();
+            .As<IAtomicItemConsumptionService>()
+            .As<IIdempotentAtomicItemConsumptionService>();
         builder.Register<WorldItemSpawner>(Lifetime.Singleton)
             .As<IWorldItemSpawner>();
-        builder.Register<PhysicalItemTransformService>(Lifetime.Singleton)
-            .As<IPhysicalItemTransformService>();
-        builder.Register<PhysicalItemRelocationService>(Lifetime.Singleton)
-            .As<IPhysicalItemRelocationService>();
-        builder.Register<PhysicalItemBatchDispositionService>(Lifetime.Singleton)
+        builder.RegisterMigratedDomainFact<PhysicalItemTransformedFact>(
+            "log:physical-item-transformed", PhysicalItemTransformedFactMapping.Capture);
+        builder.RegisterMigratedDomainFact<WildlifeCarcassProcessedFact>(
+            "log:wildlife-carcass-processed", WildlifeCarcassProcessedFactMapping.Capture);
+        builder.RegisterEntryPoint<WildlifeCarcassActivityObserver>(Lifetime.Singleton);
+        builder.Register<PhysicalTransformationFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
+        builder.RegisterEntryPoint<PhysicalItemTransformService>(Lifetime.Singleton)
+            .As<IPhysicalItemTransformService>().As<IPhysicalItemTransformRecoveryService>()
+            .As<IDungeonSaveRestoreCompletedHook>();
+        builder.RegisterEntryPoint<PhysicalItemRelocationService>(Lifetime.Singleton)
+            .As<IPhysicalItemRelocationService>()
+            .As<IDungeonSaveRestoreCompletedHook>();
+        builder.Register<PreparedPhysicalItemRelocationService>(
+                Lifetime.Singleton)
+            .As<IPreparedPhysicalItemRelocationService>();
+        builder.RegisterEntryPoint<PhysicalItemBatchDispositionService>(Lifetime.Singleton)
+            .As<IDungeonSaveRestoreCompletedHook>()
             .As<IPhysicalItemBatchDispositionService>()
+            .As<IJointPhysicalItemBatchDispositionService>()
             .As<IReservedPhysicalItemBatchDispositionService>()
-            .As<ICarriedPhysicalItemBatchDispositionService>();
+            .As<IJointReservedPhysicalItemBatchDispositionService>()
+            .As<ICarriedPhysicalItemBatchDispositionService>()
+            .As<IReversibleCarriedPhysicalItemBatchDispositionService>();
         builder.Register<ProductionPhysicalCustodyDrainOutbox>(Lifetime.Singleton)
             .As<IProductionPhysicalCustodyDrainOutbox>();
         builder.Register<ProductionInputDestinationCustodyDrainOutbox>(Lifetime.Singleton)
@@ -214,6 +240,8 @@ public static class DungeonWorldSimulationRegistration
             .As<IItemTransferService>()
             .As<IReservedItemTransferService>()
             .As<IProductionCapacityRoutingActorQuiescence>();
+        builder.RegisterEntryPoint<WildlifeHaulItemRuntime>(Lifetime.Singleton)
+            .As<IWildlifeHaulItemRuntime>();
         builder.Register<
                 ProductionCapacityRoutingOperationAuthorityReleaseCoordinator>(
                 Lifetime.Singleton)
@@ -234,6 +262,10 @@ public static class DungeonWorldSimulationRegistration
             .As<IWorldItemStackRuntime>()
             .As<IPhysicalItemRestoreStaging>()
             .As<IPhysicalItemRestoreCandidateQuery>()
+            .As<IPhysicalEffectReceiptQuery>()
+            .As<IPhysicalEffectReceiptAcknowledgement>()
+            .As<IPhysicalEffectReceiptRestoreQuery>()
+            .As<IPhysicalItemRestoreCandidateStackQuery>()
             .As<IProductionInputDestinationCustodyDrainRestoreCandidateQuery>()
             .As<IPhysicalItemRestoreCandidateOutputQuery>()
             .As<IFacilityBufferPlannedOutputRestoreCandidateQuery>()
@@ -267,6 +299,7 @@ public static class DungeonWorldSimulationRegistration
             Lifetime.Singleton);
         builder.RegisterEntryPoint<ServiceSessionRuntime>(Lifetime.Singleton)
             .As<IServiceSessionRuntime>()
+            .As<IDungeonSaveRestoreCompletedHook>()
             .As<ISurvivalServiceSessionCapability>()
             .As<IServiceAvailabilityQuery>()
             .As<IServiceDemandPolicyRuntime>();
@@ -372,7 +405,8 @@ public static class DungeonWorldSimulationRegistration
             .As<IProductionResolvedOutputRestoreCapabilityValidatorRegistry>();
         builder.Register<ProductionDomainOutputPublicationService>(
                 Lifetime.Singleton)
-            .As<IProductionDomainOutputPublicationService>();
+            .As<IProductionDomainOutputPublicationService>()
+            .As<IObservedProductionDomainOutputPublicationService>();
         builder.Register<ProductionDomainOutputRestoreJoin>(Lifetime.Singleton)
             .As<IProductionDomainOutputRestoreJoin>();
         builder.Register<ProductionMaximumOutputFactorCatalog>(Lifetime.Singleton)
@@ -629,6 +663,10 @@ public static class DungeonWorldSimulationRegistration
             .As<IProductionRecipeExecutionReceiptAuthority>()
             .As<IProductionRecipeExecutionCorrelationCommand>()
             .As<IProductionRecipeExecutionReceiptQuery>();
+        builder.RegisterProductionCompletionFactObservation();
+        builder.Register<ProductionCompletionFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
+        builder.RegisterGameplayActionLogs(nameof(ProductionCompletedOutcomeAdapter));
         builder.Register<ProductionPreparedOutputRestoreJoin>(Lifetime.Singleton)
             .As<IProductionPreparedOutputRestoreJoin>();
         builder.Register<ProductionExactCapabilityOutputRestoreJoin>(
@@ -696,6 +734,19 @@ public static class DungeonWorldSimulationRegistration
             Lifetime.Singleton);
         builder.Register<ProductionStockSensorLifecycleContributor>(
             Lifetime.Singleton);
+        builder.RegisterEntryPoint<EnvironmentalFireDamageAuthority>(
+                Lifetime.Singleton)
+            .As<IEnvironmentalFireDamageAuthority>()
+            .As<IEnvironmentalFireDamageQuery>()
+            .As<IEnvironmentalFireDamagePersistence>()
+            .As<IDungeonSaveRestoreCompletedHook>()
+            .As<IDungeonRestoreTransactionParticipant>();
+        builder.RegisterEntryPoint<EnvironmentalFireResourceTransaction>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonSaveRestoreCompletedHook>().As<IDungeonRestoreTransactionParticipant>();
+        builder.Register<EnvironmentalFireDamageLifecycleContributor>(
+            Lifetime.Singleton);
+        builder.Register<BuildingDemolitionOutcomeLifecycleContributor>(
+            Lifetime.Singleton);
         builder.Register<ProductionOutputDestinationLifecycleQuery>(Lifetime.Singleton)
             .As<IProductionOutputDestinationLifecycleQuery>();
         builder.Register<ProductionPhysicalCustodyDrainService>(
@@ -747,6 +798,20 @@ public static class DungeonWorldSimulationRegistration
                 Lifetime.Singleton)
             .As<IProductionFacilityDestructiveDrainParticipant>()
             .As<IProductionFacilityDestructiveDrainCheckpointGcParticipant>();
+        builder.Register<EnvironmentalFireDamageDestructiveDrainParticipant>(
+                Lifetime.Singleton)
+            .AsSelf()
+            .As<IProductionFacilityDestructiveDrainParticipant>()
+            .As<IProductionFacilityDestructiveDrainCheckpointGcParticipant>();
+        builder.Register<BuildingDemolitionDestructiveDrainParticipant>(
+                Lifetime.Singleton)
+            .AsSelf()
+            .As<IProductionFacilityDestructiveDrainParticipant>()
+            .As<IProductionFacilityDestructiveDrainCheckpointGcParticipant>();
+        builder.Register<
+                ProductionFacilityDestructiveDrainPostWorldRemovalFinalizer>(
+                Lifetime.Singleton)
+            .As<IProductionFacilityDestructiveDrainPostWorldRemovalFinalizer>();
         builder.Register<ProductionFacilityDestructiveDrainParticipantRegistry>(
                 Lifetime.Singleton)
             .AsSelf()
@@ -768,7 +833,9 @@ public static class DungeonWorldSimulationRegistration
             .As<IProductionFacilityDestructiveDrainAuthorityRevoker>();
         builder.Register<ProductionFacilityDestructiveDrainWorldRemovalPort>(
                 Lifetime.Singleton)
-            .As<IProductionFacilityDestructiveDrainWorldRemovalPort>();
+            .As<IProductionFacilityDestructiveDrainWorldRemovalPort>()
+            .As<IDungeonSaveCaptureGuard>()
+            .As<IDungeonSaveRestoreCompletedHook>();
         builder.RegisterEntryPoint<
                 ProductionFacilityDestructiveDrainRecoveryRuntime>(
                 Lifetime.Singleton)
@@ -805,6 +872,8 @@ public static class DungeonWorldSimulationRegistration
             .As<IRegionalSupplyContractWorldQuery>()
             .As<IRegionalSupplyContractCommandPort>()
             .As<IRegionalSupplyContractSessionPort>();
+        builder.Register<RegionalSupplyContractOutcomeBridge>(Lifetime.Singleton)
+            .As<IRegionalSupplyContractOutcomePort>();
         builder.RegisterEntryPoint<RegionalSupplyContractRuntime>(
                 Lifetime.Singleton)
             .As<IRegionalSupplyContractRuntime>();
@@ -839,23 +908,82 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<AutomationPowerDemandRegistry>(Lifetime.Singleton)
             .As<IAutomationExecutionModeQuery>()
             .AsSelf();
+        builder.RegisterEntryPoint<InfrastructureObservationRuntime>(
+                Lifetime.Singleton)
+            .As<IInfrastructureFactJournal>()
+            .As<IInfrastructureObservationPersistence>();
         builder.RegisterEntryPoint<ElectricalNetworkRuntime>(
                 Lifetime.Singleton)
             .As<IPowerInfrastructureQuery>()
             .As<IPowerInfrastructureCommand>()
             .As<IPowerInfrastructurePersistence>();
+        builder.Register<EnvironmentalFireWorldAdapter>(Lifetime.Singleton)
+            .As<IEnvironmentalFireTargetQuery>()
+            .As<IEnvironmentalFireDamageCommand>()
+            .As<IEnvironmentalFireExposureTargetQuery>()
+            .As<IEnvironmentalFireFuelLossSink>()
+            .As<IEnvironmentalFireSuppressionAccessQuery>()
+            .As<IEnvironmentalFireElectricalSafetyQuery>()
+            .As<IEnvironmentalFireWaterSink>();
+        builder.RegisterInstance(new EnvironmentalFireRuntimeSettings(
+            tickInterval: 5f,
+            maximumInitialAttackIntensity: 0.35f,
+            initialAttackSuppressionPerWork: 0.02f));
+        builder.Register<EnvironmentalFireRuntime>(Lifetime.Singleton)
+            .AsSelf()
+            .As<IEnvironmentalFireQuery>()
+            .As<IEnvironmentalFireCommand>()
+            .As<IEnvironmentalFirePersistence>()
+            .As<IDungeonRestoreTransactionParticipant>();
+        builder.Register<ProcessAccidentEnvironmentalFireProducer>(
+                Lifetime.Singleton)
+            .As<IEnvironmentalFireProcessAccidentProducer>();
+        builder.Register<SeasonalFeedSelfHeatingTargetQuery>(
+                Lifetime.Singleton)
+            .As<ISeasonalFeedSelfHeatingTargetQuery>();
+        builder.RegisterEntryPoint<ElectricalEnvironmentalFireProducer>(
+            Lifetime.Singleton);
+        builder.RegisterEntryPoint<ActiveHeatEnvironmentalFireProducer>(
+            Lifetime.Singleton);
+        builder.RegisterEntryPoint<
+            AuthoredFlameImpactEnvironmentalFireProducer>(
+            Lifetime.Singleton);
+        builder.RegisterEntryPoint<
+            SeasonalFeedSelfHeatingEnvironmentalFireProducer>(
+            Lifetime.Singleton);
+        builder.RegisterEntryPoint<EnvironmentalFireApplicationAdapter>(
+            Lifetime.Singleton);
+        builder.RegisterEntryPoint<EnvironmentalFireResponseRuntime>(
+                Lifetime.Singleton)
+            .As<IEnvironmentalFireSuppressionWorkRuntime>();
+        // Fluid hysteresis consumes the already-published real cell temperature.
+        builder.Register<
+                DungeonStory.Environment.EnvironmentalFieldAggregateStateStore>(
+            Lifetime.Singleton);
+        builder.RegisterEntryPoint<EnvironmentalFieldRuntimeApplicationAdapter>(
+                Lifetime.Singleton)
+            .As<IEnvironmentalFieldQuery>()
+            .As<IEnvironmentalFieldCommand>()
+            .As<IEnvironmentalFieldPersistence>()
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.RegisterEntryPoint<FluidNetworkRuntime>(Lifetime.Singleton)
             .As<IFluidInfrastructureQuery>()
             .As<IFluidInfrastructureCommand>()
             .As<IFluidInfrastructureTransaction>()
+            .As<IFluidInfrastructureMutationTransaction>()
+            .As<IManualWaterAvailabilityQuery>()
             .As<IManualWaterTransferTransaction>()
             .As<IFluidInfrastructureBatchTransaction>()
             .As<IFluidWastewaterTransaction>()
             .As<IFluidInfrastructurePersistence>();
         builder.Register<WaterFixtureUseRuntime>(Lifetime.Singleton)
-            .As<IWaterFixtureUseRuntime>();
+            .As<IWaterFixtureUseRuntime>()
+            .As<IWaterFixtureUseQuery>();
         builder.Register<ProcessFluidUseRuntime>(Lifetime.Singleton)
             .As<IProcessFluidUseRuntime>();
+        builder.Register<CropIrrigationRuntime>(Lifetime.Singleton)
+            .As<ICropIrrigationRuntime>()
+            .As<ICropIrrigationSupplyTransaction>();
         builder.Register<ConveyorItemGateway>(Lifetime.Singleton);
         builder.RegisterEntryPoint<ConveyorRuntime>(Lifetime.Singleton)
             .As<IConveyorInfrastructureQuery>()
@@ -869,14 +997,6 @@ public static class DungeonWorldSimulationRegistration
             .As<IAutomationInfrastructureQuery>()
             .As<IAutomationInfrastructureCommand>()
             .As<IAutomationInfrastructurePersistence>();
-        builder.Register<
-                DungeonStory.Environment.EnvironmentalFieldAggregateStateStore>(
-            Lifetime.Singleton);
-        builder.RegisterEntryPoint<EnvironmentalFieldRuntimeApplicationAdapter>(
-                Lifetime.Singleton)
-            .As<IEnvironmentalFieldQuery>()
-            .As<IEnvironmentalFieldCommand>()
-            .As<IEnvironmentalFieldPersistence>();
         builder.Register<ResourceEnvironmentalWorkwearCatalog>(
                 Lifetime.Singleton)
             .As<IEnvironmentalWorkwearCatalog>();
@@ -895,8 +1015,14 @@ public static class DungeonWorldSimulationRegistration
             .As<ICraftQualityResolver>();
         builder.Register<TextileBatchCompactionService>(Lifetime.Singleton)
             .As<ITextileBatchCompactionService>();
+        builder.RegisterEntryPoint<ApparelPhysicalPublicationRuntime>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonRestoreTransactionParticipant>().As<IDungeonSaveRestoreCompletedHook>();
         builder.Register<ApparelPhysicalTransaction>(Lifetime.Singleton)
             .As<IApparelPhysicalTransaction>();
+        builder.RegisterMigratedDomainFact<ApparelWorkCompletedFact>(
+            "log:apparel-work-completed", ApparelWorkCompletedFactMapping.Capture);
+        builder.Register<ApparelWorkCompletedFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
         builder.Register<ApparelWorkOrderRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<IApparelWorkOrderCommand>()
@@ -914,6 +1040,8 @@ public static class DungeonWorldSimulationRegistration
             .As<IApparelMaterialProjector>();
         builder.Register<ApparelAvailabilityIndex>(Lifetime.Singleton)
             .As<IApparelAvailabilityIndex>();
+        builder.RegisterEntryPoint<ApparelChangePublicationRuntime>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonRestoreTransactionParticipant>().As<IDungeonSaveRestoreCompletedHook>();
         builder.Register<CharacterApparelAggregate>(Lifetime.Singleton)
             .AsSelf()
             .As<ICharacterApparelQuery>()
@@ -929,6 +1057,7 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<CharacterEnvironmentProtectionResolver>(
                 Lifetime.Singleton)
             .As<ICharacterEnvironmentProtectionResolver>();
+        builder.Register<ApparelConditionRuntime>(Lifetime.Singleton);
         builder.RegisterEntryPoint<CharacterEnvironmentUnityAdapter>(
                 Lifetime.Singleton)
             .As<ICharacterEnvironmentStatusQuery>()
@@ -959,7 +1088,14 @@ public static class DungeonWorldSimulationRegistration
             .As<ICharacterNeedBalanceRuntime>();
         builder.Register<CharacterDeprivationStateStore>(Lifetime.Singleton);
         builder.Register<CharacterPrimitiveSurvivalDependencies>(Lifetime.Singleton);
+        builder.RegisterMigratedDomainFact<PrimitiveSurvivalCompletedFact>(
+            "log:primitive-survival-completed", PrimitiveSurvivalCompletedFactMapping.Capture);
+        builder.RegisterEntryPoint<PrimitiveSurvivalActivityObserver>(Lifetime.Singleton);
+        builder.Register<PrimitiveSurvivalFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
         builder.Register<CharacterDeprivationWorldDependencies>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<SurvivalStateAlertObserver>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<SurvivalStateActivityObserver>(Lifetime.Singleton);
         builder.Register<CharacterDeprivationSystemDependencies>(Lifetime.Singleton);
         builder.Register<CharacterDeprivationAuthorityDependencies>(Lifetime.Singleton);
         builder.RegisterEntryPoint<CharacterDeprivationRuntime>(
@@ -975,6 +1111,7 @@ public static class DungeonWorldSimulationRegistration
             .As<IWorkConstructionInputOwnerRuntime>();
         builder.RegisterEntryPoint<WorkOrderRuntime>(Lifetime.Singleton)
             .As<IWorkOrderRuntime>()
+            .As<IRepairWorkOutcomeRuntime>()
             .As<IWorkOrderQuery>()
             .As<IWorkOrderDestructiveDrainRetentionQuery>()
             .As<IWorkOrderWorkerPolicyQuery>()
@@ -1055,6 +1192,7 @@ public static class DungeonWorldSimulationRegistration
             .As<IDungeonRestoreTransactionParticipant>();
         builder.RegisterEntryPoint<CertifiedSeedApplicationAdapter>(
             Lifetime.Singleton);
+        builder.RegisterEntryPoint<CertifiedSeedPresentationObserver>(Lifetime.Singleton);
         builder.RegisterEntryPoint<CropSeedBootstrapRuntime>(Lifetime.Singleton);
         builder.RegisterEntryPoint<CropPlotRuntime>(Lifetime.Singleton)
             .AsSelf()
@@ -1071,9 +1209,11 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<WildlifeCombatServices>(Lifetime.Singleton);
         builder.Register<WildlifeExecutionServices>(Lifetime.Singleton);
         builder.Register<WildlifeRestoreServices>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<WildlifeHuntActivityObserver>(Lifetime.Singleton);
         builder.RegisterEntryPoint<WildlifeRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<IWildlifeRuntime>()
+            .As<IWildlifeExternalArrivalRuntime>()
             .As<IWildlifeQuery>()
             .As<IWildlifeHuntCommandService>()
             .As<IDungeonRestoreTransactionParticipant>();
@@ -1088,14 +1228,24 @@ public static class DungeonWorldSimulationRegistration
             .As<IExternalInfluenceRuntime>()
             .As<IExternalCombatInfluenceQuery>();
         builder.Register<SurvivalFoodRuntimeDependencies>(Lifetime.Singleton);
+        builder.RegisterMigratedDomainFact<SurvivalMealMissedFact>(
+            "log:survival-meal-missed", SurvivalMealMissedFactMapping.Capture);
+        builder.Register<SurvivalMealMissedFactPreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
         builder.RegisterEntryPoint<SurvivalFoodRuntime>(Lifetime.Singleton)
+            .As<IDungeonSaveRestoreCompletedHook>()
             .As<ISurvivalFoodQuery>()
             .As<ISurvivalFoodCommand>()
             .As<ISurvivalFoodPersistence>()
             .As<ISurvivalFoodDebugCommand>()
             .As<ICharacterNutritionRuntime>()
             .As<ISurvivalEnvironmentQuery>()
-            .As<ISurvivalStorageEnvironmentSink>();
+            .As<ISurvivalRefuelCompletionCommand>()
+            .As<ISurvivalRefuelSupplyQuery>()
+            .As<ISurvivalFacilityFuelRetirement>()
+            .As<ISurvivalStorageEnvironmentSink>()
+            .As<ISurvivalTreatmentSupplyQuery>()
+            .As<ISurvivalTreatmentTerminalMaintenance>();
         builder.RegisterEntryPoint<SurvivalEnvironmentalFieldBridge>(
                 Lifetime.Singleton)
             .AsSelf();
@@ -1130,6 +1280,9 @@ public static class DungeonWorldSimulationRegistration
             .As<ICaptivityInteractionHandler>();
         builder.Register<CaptivityCoercionHandler>(Lifetime.Singleton)
             .As<ICaptivityInteractionHandler>();
+        builder.Register<CaptivityInterrogationCodexAdapter>(Lifetime.Singleton)
+            .As<ICaptivityInterrogationCodexPort>();
+        builder.RegisterEntryPoint<CaptivityInterrogationPresentationObserver>(Lifetime.Singleton);
         builder.Register<CaptivityInterrogationHandler>(Lifetime.Singleton)
             .As<ICaptivityInteractionHandler>();
         builder.Register<CaptivityIndoctrinationHandler>(Lifetime.Singleton)
@@ -1155,6 +1308,8 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<CaptivityCharacterContext>(Lifetime.Singleton);
         builder.Register<CaptivityWorldContext>(Lifetime.Singleton);
         builder.Register<CaptivitySessionContext>(Lifetime.Singleton);
+        builder.Register<CaptivityOwnedCharacterIdQuery>(Lifetime.Singleton)
+            .As<ICaptivityOwnedCharacterIdQuery>();
         builder.Register<CaptivityCareLaborInputOwnerRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<ICaptivityCareLaborInputOwnerRuntime>();
@@ -1202,7 +1357,18 @@ public static class DungeonWorldSimulationRegistration
             .As<IDungeonRestoreTransactionParticipant>();
         builder.RegisterEntryPoint<WildlifeCaptureRuntime>(Lifetime.Singleton)
             .As<IWildlifeCaptureRuntime>()
-            .As<IWildlifeCaptureTransportRuntime>();
+            .As<IWildlifeCaptureTransportRuntime>()
+            .As<IWildlifeCompanionRoleQuery>()
+            .As<IWildlifeCompanionRoleCommand>()
+            .As<IWildlifeCompanionAffiliationQuery>()
+            .As<IWildlifeCompanionRoleStateCommand>()
+            .As<IWildlifeHaulRoleQuery>()
+            .As<IWildlifeHaulRoleCommand>()
+            .As<IWildlifeHaulRoleStateCommand>();
+        builder.RegisterEntryPoint<WildlifeCompanionRoleRuntime>(
+            Lifetime.Singleton);
+        builder.RegisterEntryPoint<WildlifeHaulRoleRuntime>(Lifetime.Singleton)
+            .As<IWildlifeHaulLifecycleSink>();
         builder.RegisterEntryPoint<AnimalHusbandryRuntime>(Lifetime.Singleton)
             .As<IAnimalHusbandryQuery>()
             .As<IAnimalHusbandryCommand>()

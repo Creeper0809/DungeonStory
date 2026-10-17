@@ -150,11 +150,16 @@ public sealed class ResearchFacilityOperationFallbackHandler :
             .OrderBy(value => value.orderId, StringComparer.Ordinal)
             .FirstOrDefault();
         if (order == null
+            || context.ApprovedWork <= 0f
             || !apparelCommands.ApplyWork(
                 order.orderId,
                 CharacterBuildingVisitorAdapter.GetActorOrNull(context.Actor),
-                order.requiredWork - order.completedWork,
+                context.ApprovedWork,
                 out _))
+        {
+            return 0;
+        }
+        if (order.state != ApparelWorkOrderState.Completed)
         {
             return 0;
         }

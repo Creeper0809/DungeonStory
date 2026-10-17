@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 public enum ExteriorIncidentStage
@@ -171,37 +172,53 @@ public readonly struct ExteriorVisitorReceptionAppliedEvent
 
 public sealed class ExteriorIncidentActorService : IExteriorIncidentActorService
 {
+    // Exterior humans share an authored visitor profile, not an invasion
+    // archetype. Incident kind owns their role/behaviour and injury state.
+    private static readonly CharacterArchetypeId VisitorArchetypeId = new("character-archetype:9010");
     private readonly IGridSystemProvider gridProvider;
     private readonly ICharacterSpawnerProvider spawnerProvider;
     private readonly ICharacterSpawnObjectFactory objectFactory;
-    private readonly IInvasionIntruderDataProvider characterDataProvider;
+    private readonly IRunCharacterCatalog characterCatalog;
     private readonly ICharacterAiWorldRegistry worldRegistry;
+    private readonly ICharacterLifePublicationService lifePublication;
+    private readonly IGriefTraumaService grief;
     private readonly ICharacterBodyHealthQuery bodyHealthQuery;
     private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly ICharacterMedicalCommand medicalCommands;
+    private readonly ICharacterPopulationService population;
+    private readonly IPopulationHealthService populationHealth;
 
     public ExteriorIncidentActorService(
         IGridSystemProvider gridProvider,
         ICharacterSpawnerProvider spawnerProvider,
         ICharacterSpawnObjectFactory objectFactory,
-        IInvasionIntruderDataProvider characterDataProvider,
+        IRunCharacterCatalog characterCatalog,
         ICharacterAiWorldRegistry worldRegistry,
+        ICharacterLifePublicationService lifePublication,
+        IGriefTraumaService grief,
         ICharacterBodyHealthQuery bodyHealthQuery,
         ICharacterBodyHealthCommand bodyHealthCommands,
-        ICharacterMedicalCommand medicalCommands)
+        ICharacterMedicalCommand medicalCommands,
+        ICharacterPopulationService population,
+        IPopulationHealthService populationHealth)
     {
         this.gridProvider = gridProvider ?? throw new ArgumentNullException(nameof(gridProvider));
         this.spawnerProvider = spawnerProvider ?? throw new ArgumentNullException(nameof(spawnerProvider));
         this.objectFactory = objectFactory ?? throw new ArgumentNullException(nameof(objectFactory));
-        this.characterDataProvider = characterDataProvider
-            ?? throw new ArgumentNullException(nameof(characterDataProvider));
+        this.characterCatalog = characterCatalog
+            ?? throw new ArgumentNullException(nameof(characterCatalog));
         this.worldRegistry = worldRegistry ?? throw new ArgumentNullException(nameof(worldRegistry));
+        this.lifePublication = lifePublication
+            ?? throw new ArgumentNullException(nameof(lifePublication));
+        this.grief = grief ?? throw new ArgumentNullException(nameof(grief));
         this.bodyHealthQuery = bodyHealthQuery
             ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
         this.bodyHealthCommands = bodyHealthCommands
             ?? throw new ArgumentNullException(nameof(bodyHealthCommands));
         this.medicalCommands = medicalCommands
             ?? throw new ArgumentNullException(nameof(medicalCommands));
+        this.population = population ?? throw new ArgumentNullException(nameof(population));
+        this.populationHealth = populationHealth ?? throw new ArgumentNullException(nameof(populationHealth));
     }
 
     public bool TrySpawn(
@@ -214,7 +231,12 @@ public sealed class ExteriorIncidentActorService : IExteriorIncidentActorService
     {
         actor = null;
         failureReason = string.Empty;
-        if (string.IsNullOrWhiteSpace(actorId)
+        CharacterId canonicalActorId = new(actorId);
+        if (!canonicalActorId.IsValid
+            || !string.Equals(
+                actorId,
+                canonicalActorId.Value,
+                StringComparison.Ordinal)
             || !gridProvider.TryGetGrid(out Grid grid)
             || grid == null
             || !spawnerProvider.TryGetSpawner(out CharacterSpawner spawner)
@@ -225,15 +247,19 @@ public sealed class ExteriorIncidentActorService : IExteriorIncidentActorService
             return false;
         }
 
-        CharacterSO data = characterDataProvider.GetRequiredIntruderData(null);
+        CharacterSO data = characterCatalog.Characters.SingleOrDefault(value => value != null
+            && value.DefinitionId.Equals(VisitorArchetypeId));
         if (data == null)
         {
-            failureReason = "사건 인물 원형이 없습니다.";
+            failureReason = "사건 방문객 원형이 없습니다: " + VisitorArchetypeId.Value;
             return false;
         }
 
         GameObject instance = objectFactory.CreateInactive(
-            spawner.characterPrefab);
+            spawner.characterPrefab,
+            candidate => PrepareIncidentComposition(
+                candidate,
+                canonicalActorId));
         actor = instance.GetComponent<CharacterActor>();
         if (actor == null)
         {
@@ -245,14 +271,30 @@ public sealed class ExteriorIncidentActorService : IExteriorIncidentActorService
         instance.name = GetDisplayName(kind);
         instance.transform.position = grid.GetWorldPos(position);
         actor.Initialize(data);
-        CharacterType type = kind == ExteriorIncidentKind.Thief
-            ? CharacterType.Customer
-            : kind == ExteriorIncidentKind.InjuredReturnee
-                ? CharacterType.NPC
-                : CharacterType.Customer;
+        CharacterId composedActorId = CharacterPersistentIdentity.Require(actor);
+        if (!composedActorId.Equals(canonicalActorId))
+        {
+            objectFactory.Destroy(instance);
+            actor = null;
+            throw new InvalidOperationException(
+                $"Incident CharacterId '{composedActorId.Value}' changed during composition; "
+                + $"expected '{canonicalActorId.Value}'.");
+        }
+        // These are visitors, not promoted population staff. Injury is owned
+        // by Body Health/lifecycle and does not grant the NPC worker role.
+        // Keeping the authored Customer role also retains a rescued visitor
+        // after its incident becomes terminal, including medical/save joins.
+        CharacterType type = CharacterType.Customer;
         actor.characterType = type;
         actor.Identity?.SetCharacterType(type);
-        actor.Identity?.SetPersistentId(actorId);
+        if (kind == ExteriorIncidentKind.InjuredReturnee)
+        {
+            // RescueOrdered finishes the exterior request, not the patient's
+            // life in this world. Hand the exact visitor to population before
+            // that incident becomes terminal; medical care and ordinary exit
+            // continue under the existing visiting-profile owner.
+            population.SetSettlementStanding(actor, CharacterSettlementStanding.Visitor);
+        }
         if (downed)
         {
             ApplyInjuredState(actor);
@@ -260,9 +302,31 @@ public sealed class ExteriorIncidentActorService : IExteriorIncidentActorService
             medicalCommands.NotifyCharacterDowned(actor);
         }
 
+        lifePublication.EnsureRegistered(
+            composedActorId,
+            new CharacterSpeciesId(actor.SpeciesTag));
         objectFactory.Publish(instance);
 
         return true;
+    }
+
+    private static void PrepareIncidentComposition(
+        GameObject instance,
+        CharacterId canonicalActorId)
+    {
+        if (instance == null)
+        {
+            throw new ArgumentNullException(nameof(instance));
+        }
+
+        CharacterIdentity identity = instance.GetComponent<CharacterIdentity>();
+        if (identity == null)
+        {
+            throw new InvalidOperationException(
+                "An incident character candidate has no CharacterIdentity before composition.");
+        }
+
+        identity.SetPersistentId(canonicalActorId);
     }
 
     public bool TryFind(string actorId, out CharacterActor actor)
@@ -298,6 +362,14 @@ public sealed class ExteriorIncidentActorService : IExteriorIncidentActorService
             return;
         }
 
+        // This incident actor is destroyed, not retained as a returning
+        // population visitor. Retire pending exposure and active psychosocial
+        // ownership before removing the world identity. Disable/restore is not
+        // permanent departure; retained health and death/kinship history stay intact.
+        CharacterId characterId = CharacterPersistentIdentity.Require(actor);
+        populationHealth.RemovePendingExposures(characterId);
+        population.ReleaseVisitor(actor);
+        grief.RetireAfterDeparture(characterId);
         worldRegistry.UnregisterCharacter(actor);
         worldRegistry.UnregisterCharacterLifetime(actor);
         objectFactory.Destroy(actor.gameObject);
@@ -351,13 +423,20 @@ public abstract class ExteriorIncidentHandlerBase : IExteriorIncidentHandler
 {
     protected readonly IExteriorIncidentActorService Actors;
     protected readonly IGameEventBus EventBus;
+    private readonly IGameCalendar calendar;
+    private readonly IDomainFactPublisher domainFacts;
 
     protected ExteriorIncidentHandlerBase(
         IExteriorIncidentActorService actors,
-        IGameEventBus eventBus)
+        IGameEventBus eventBus,
+        IGameCalendar calendar,
+        IDomainFactPublisher domainFacts)
     {
         Actors = actors ?? throw new ArgumentNullException(nameof(actors));
         EventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.domainFacts = domainFacts
+            ?? throw new ArgumentNullException(nameof(domainFacts));
     }
 
     public abstract ExteriorIncidentKind Kind { get; }
@@ -448,26 +527,132 @@ public abstract class ExteriorIncidentHandlerBase : IExteriorIncidentHandler
             return false;
         }
 
-        state.receptionApplied = true;
-        state.progress = Mathf.Clamp(
-            state.progress + Mathf.Lerp(5f, 25f, zone.ReceptionReadiness / 100f),
-            0f,
-            100f);
-        if (Actors.TryFind(visitorId, out CharacterActor visitor))
+        if (!Actors.TryFind(visitorId, out CharacterActor visitor)
+            || visitor?.Stats == null)
         {
-            visitor.ApplyMoodFactor(
-                $"exterior:reception:{state.incidentId}",
+            return false;
+        }
+
+        int receptionDay = Math.Max(1, calendar.Day);
+        string factorId = $"exterior:reception:{state.incidentId}";
+        string displayName = visitor.Identity?.DisplayName;
+        var fact = new ExteriorVisitorReceptionFact(state.incidentId, visitorId,
+            displayName, factorId, receptionDay);
+        if (!domainFacts.TryReserve(
+                fact,
+                out DomainFactLease prepared,
+                out _))
+        {
+            return false;
+        }
+
+        ExteriorIncidentRuntimeState incidentBefore = null;
+        CharacterMoodDeliveryTransactionSnapshot moodBefore = null;
+        float resolvedMoodValue = 0f;
+        bool moodApplied = false;
+        try
+        {
+            incidentBefore = state.Clone();
+            moodBefore = visitor.Stats.CaptureMoodDeliveryTransactionState();
+
+            state.receptionApplied = true;
+            state.progress = Mathf.Clamp(
+                state.progress + Mathf.Lerp(
+                    5f,
+                    25f,
+                    zone.ReceptionReadiness / 100f),
+                0f,
+                100f);
+            resolvedMoodValue = visitor.ApplyMoodFactorBeforeOutcomeCommit(
+                factorId,
                 "입구에서 제대로 응대받음",
                 Mathf.Lerp(1f, 4f, zone.ReceptionReadiness / 100f),
                 180f,
-                1);
+                1,
+                out moodApplied);
+
+            DomainFactDelivery committed = domainFacts.Publish(prepared, fact);
+            if (!committed.MayBeCommitted)
+            {
+                RestoreReceptionState(
+                    state,
+                    incidentBefore,
+                    visitor.Stats,
+                    moodBefore);
+                return false;
+            }
+        }
+        catch
+        {
+            domainFacts.Cancel(prepared);
+            if (incidentBefore != null && moodBefore != null)
+            {
+                RestoreReceptionState(
+                    state,
+                    incidentBefore,
+                    visitor.Stats,
+                    moodBefore);
+            }
+            throw;
         }
 
-        EventBus.Publish(new ExteriorVisitorReceptionAppliedEvent(
-            state.incidentId,
-            visitorId,
-            zone.ReceptionReadiness));
+        try
+        {
+            if (moodApplied)
+                visitor.Stats.PublishCommittedMoodFactor(factorId, resolvedMoodValue, receptionDay);
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError("exterior-reception-committed-mood-observer:" + exception);
+        }
+        try
+        {
+            EventBus.Publish(new ExteriorVisitorReceptionAppliedEvent(
+                state.incidentId,
+                visitorId,
+                zone.ReceptionReadiness));
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                "exterior-reception-post-commit-observer:"
+                + exception.GetType().Name);
+        }
         return true;
+    }
+
+    private static void RestoreReceptionState(
+        ExteriorIncidentRuntimeState destination,
+        ExteriorIncidentRuntimeState snapshot,
+        CharacterStats stats,
+        CharacterMoodDeliveryTransactionSnapshot moodSnapshot)
+    {
+        destination.incidentId = snapshot.incidentId;
+        destination.kind = snapshot.kind;
+        destination.zoneId = snapshot.zoneId;
+        destination.text = snapshot.text;
+        destination.stage = snapshot.stage;
+        destination.outcome = snapshot.outcome;
+        destination.durationSeconds = snapshot.durationSeconds;
+        destination.remainingSeconds = snapshot.remainingSeconds;
+        destination.progress = snapshot.progress;
+        destination.receptionApplied = snapshot.receptionApplied;
+        destination.actorIds = new List<string>(
+            snapshot.actorIds ?? new List<string>());
+        destination.wildlifeIds = new List<string>(
+            snapshot.wildlifeIds ?? new List<string>());
+        destination.itemStackIds = new List<string>(
+            snapshot.itemStackIds ?? new List<string>());
+        destination.stolenItemId = snapshot.stolenItemId;
+        destination.stolenItemQuantity = snapshot.stolenItemQuantity;
+        destination.offerPrice = snapshot.offerPrice;
+        stats.RestoreMoodDeliveryTransactionState(moodSnapshot, publish: false);
     }
 }
 
@@ -485,9 +670,11 @@ public sealed class MerchantCartExteriorIncidentHandler :
         IWorldItemStackRuntime items,
         IPhysicalItemExactSourcePublicationService exactSources,
         IGameEventBus eventBus,
+        IGameCalendar calendar,
+        IDomainFactPublisher domainFacts,
         IGameMoneyAccount money,
         IDungeonDebugRuleQuery debugRules)
-        : base(actors, eventBus)
+        : base(actors, eventBus, calendar, domainFacts)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.exactSources = exactSources
@@ -750,8 +937,10 @@ public sealed class InformantExteriorIncidentHandler : ExteriorIncidentHandlerBa
     public InformantExteriorIncidentHandler(
         IExteriorIncidentActorService actors,
         IOffenseRegionRuntime regions,
-        IGameEventBus eventBus)
-        : base(actors, eventBus)
+        IGameEventBus eventBus,
+        IGameCalendar calendar,
+        IDomainFactPublisher domainFacts)
+        : base(actors, eventBus, calendar, domainFacts)
     {
         this.regions = regions ?? throw new ArgumentNullException(nameof(regions));
     }
@@ -828,8 +1017,10 @@ public sealed class ThiefExteriorIncidentHandler : ExteriorIncidentHandlerBase
     public ThiefExteriorIncidentHandler(
         IExteriorIncidentActorService actors,
         IWorldItemStackRuntime items,
-        IGameEventBus eventBus)
-        : base(actors, eventBus)
+        IGameEventBus eventBus,
+        IGameCalendar calendar,
+        IDomainFactPublisher domainFacts)
+        : base(actors, eventBus, calendar, domainFacts)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
     }
@@ -907,8 +1098,10 @@ public sealed class InjuredReturneeExteriorIncidentHandler : ExteriorIncidentHan
 {
     public InjuredReturneeExteriorIncidentHandler(
         IExteriorIncidentActorService actors,
-        IGameEventBus eventBus)
-        : base(actors, eventBus)
+        IGameEventBus eventBus,
+        IGameCalendar calendar,
+        IDomainFactPublisher domainFacts)
+        : base(actors, eventBus, calendar, domainFacts)
     {
     }
 
@@ -946,8 +1139,10 @@ public sealed class PredatorApproachExteriorIncidentHandler :
     public PredatorApproachExteriorIncidentHandler(
         IExteriorIncidentActorService actors,
         IGameEventBus eventBus,
+        IGameCalendar calendar,
+        IDomainFactPublisher domainFacts,
         IWildlifeRuntime wildlife)
-        : base(actors, eventBus)
+        : base(actors, eventBus, calendar, domainFacts)
     {
         this.wildlife = wildlife ?? throw new ArgumentNullException(nameof(wildlife));
     }
@@ -1021,8 +1216,10 @@ public sealed class CargoDamageExteriorIncidentHandler :
         IExteriorIncidentActorService actors,
         IWorldItemStackRuntime items,
         IPhysicalItemTransformService physicalTransforms,
-        IGameEventBus eventBus)
-        : base(actors, eventBus)
+        IGameEventBus eventBus,
+        IGameCalendar calendar,
+        IDomainFactPublisher domainFacts)
+        : base(actors, eventBus, calendar, domainFacts)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.physicalTransforms = physicalTransforms

@@ -140,6 +140,11 @@ public interface IItemQuantityReservationService
 
 public interface IItemQuantityLeaseMutation
 {
+    bool TryConsumeExactSlices(
+        string reservationOwnerId,
+        IReadOnlyList<ReservedItemConsumption> consumptions,
+        out DomainFailure failure);
+
     bool TryConsumeSlices(
         string leaseId,
         int quantity,
@@ -499,10 +504,22 @@ public sealed class ItemQuantityReservationService :
             failure = new DomainFailure(FailureCode.ItemReservationLeaseMissing, id);
             return false;
         }
+        if (!TryValidateLease(current, out failure))
+        {
+            if (clock.Time > current.expiresAtGameSeconds)
+                Release(id, ItemReservationReleaseReason.Expired);
+            return false;
+        }
+        lease = current.Clone();
+        return true;
+    }
+
+    private bool TryValidateLease(ItemQuantityLease current, out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
         if (clock.Time > current.expiresAtGameSeconds)
         {
-            Release(id, ItemReservationReleaseReason.Expired);
-            failure = new DomainFailure(FailureCode.ItemReservationLeaseExpired, id);
+            failure = new DomainFailure(FailureCode.ItemReservationLeaseExpired, current.leaseId);
             return false;
         }
         foreach (ItemLeaseSlice slice in current.slices)
@@ -521,12 +538,11 @@ public sealed class ItemQuantityReservationService :
             {
                 failure = new DomainFailure(
                     FailureCode.ItemReservationSliceInvalid,
-                    id,
+                    current.leaseId,
                     slice?.stackId ?? string.Empty);
                 return false;
             }
         }
-        lease = current.Clone();
         return true;
     }
 
@@ -686,6 +702,77 @@ public sealed class ItemQuantityReservationService :
             return 0;
         }
         return Math.Max(0, record.quantity - GetCachedReserved(stackId.Value));
+    }
+
+    public bool TryConsumeExactSlices(
+        string reservationOwnerId,
+        IReadOnlyList<ReservedItemConsumption> consumptions,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (consumptions == null || consumptions.Any(value => !value.IsValid))
+        {
+            failure = new DomainFailure(FailureCode.ItemReservationRequestInvalid,
+                reservationOwnerId ?? string.Empty);
+            return false;
+        }
+        if (consumptions.Count == 0) return true;
+        string owner = reservationOwnerId?.Trim() ?? string.Empty;
+        if (owner.Length == 0 || !leasesByOwnerOperationId.TryGetValue(owner, out List<string> ownedIds))
+        {
+            failure = new DomainFailure(FailureCode.ItemReservationLeaseMissing, owner);
+            return false;
+        }
+        var projected = new Dictionary<string, ItemQuantityLease>(StringComparer.Ordinal);
+        string[] orderedIds = ownedIds.OrderBy(value => value, StringComparer.Ordinal).ToArray();
+        foreach (var cost in consumptions.GroupBy(value => value.StackId, StringComparer.Ordinal)
+                     .OrderBy(group => group.Key, StringComparer.Ordinal))
+        {
+            int remaining = cost.Sum(value => value.Quantity);
+            foreach (string id in orderedIds)
+            {
+                if (remaining == 0) break;
+                if (!leasesById.TryGetValue(id, out ItemQuantityLease current)
+                    || !current.slices.Any(slice => slice.stackId == cost.Key && slice.quantity > 0)) continue;
+                if (!projected.TryGetValue(id, out ItemQuantityLease candidate))
+                {
+                    // Unlike Revalidate, a failed batch never expires or edits
+                    // a lease while validating a later member of the vector.
+                    if (!TryValidateLease(current, out failure)) return false;
+                    candidate = current.Clone();
+                    projected.Add(id, candidate);
+                }
+                foreach (ItemLeaseSlice slice in candidate.slices)
+                {
+                    if (slice.stackId != cost.Key || remaining == 0) continue;
+                    int take = Math.Min(remaining, slice.quantity);
+                    slice.quantity -= take;
+                    candidate.remainingQuantity -= take;
+                    remaining -= take;
+                }
+            }
+            if (remaining != 0)
+            {
+                failure = new DomainFailure(FailureCode.ItemReservationQuantityUnavailable, cost.Key);
+                return false;
+            }
+        }
+
+        // Only this owner writes the reservation indexes. No fallible validation
+        // remains between the first changed lease and the last one.
+        foreach (var pair in projected)
+        {
+            ItemQuantityLease current = leasesById[pair.Key];
+            foreach (ItemLeaseSlice slice in current.slices)
+                RemoveSliceIndex(current.leaseId, slice.stackId, slice.quantity);
+            current.slices = pair.Value.slices.Where(slice => slice.quantity > 0).ToList();
+            current.remainingQuantity = pair.Value.remainingQuantity;
+            foreach (ItemLeaseSlice slice in current.slices)
+                AddSliceIndex(current.leaseId, slice.stackId, slice.quantity);
+            if (current.remainingQuantity == 0) RemoveEmptyLease(current);
+        }
+        TouchStacks(consumptions.Select(value => value.StackId).Distinct(StringComparer.Ordinal));
+        return true;
     }
 
     public bool TryConsumeSlices(

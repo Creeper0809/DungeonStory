@@ -1,0 +1,104 @@
+{
+  "schema": "gameplay-outcome-ledger-nonresult-source-audit@1",
+  "generatedAt": "2026-09-18",
+  "sourceFrozen": false,
+  "finalVerificationPending": true,
+  "humanApprovalClaimed": false,
+  "rows": [
+    {
+      "candidate": "AnimalPenCompatibilityResult",
+      "category": "pure-query-or-projection",
+      "definitionPath": "Assets/Scripts/Models/Economy/Content/AnimalHusbandryModels.cs",
+      "definitionSha256": "5c928e36030b2b31d4b3ad47cd3f27ebd0768bf1bc34cbec98af4e53ab900499",
+      "authoritySymbol": "AnimalHusbandryRuntime.EvaluatePen",
+      "proof": "EvaluatePen only projects current pen compatibility for two UI consumers and does not commit a terminal gameplay mutation.",
+      "referencePaths": [
+        "Assets/Scripts/Services/Economy/Husbandry/AnimalHusbandryRuntime.cs",
+        "Assets/Scripts/Services/Economy/Husbandry/AnimalHusbandryRuntimePorts.cs",
+        "Assets/Scripts/Views/Wildlife/WildlifeInfoPanel.cs",
+        "Assets/Scripts/Views/Buildings/UI/AnimalHusbandryBuildingPanelPresenter.cs"
+      ]
+    },
+    {
+      "candidate": "BalanceAttributionResult",
+      "category": "debug-diagnostic",
+      "definitionPath": "Assets/Scripts/Services/Economy/V27BalanceAttribution.cs",
+      "definitionSha256": "0867cd18f99076ae5a684ca3b55f5acced8806733d44fdf89c041809883a0e83",
+      "authoritySymbol": "BalanceAttribution.Attribute",
+      "proof": "The result is an analytical attribution value consumed only by economy editor audit/debug scenarios and never owns player state.",
+      "referencePaths": [
+        "Assets/Scripts/Services/Economy/Editor/V27BalanceLedgerDebugScenarios.cs"
+      ]
+    },
+    {
+      "candidate": "BalanceSccAuditResult",
+      "category": "debug-diagnostic",
+      "definitionPath": "Assets/Scripts/Services/Economy/V27BalanceAttribution.cs",
+      "definitionSha256": "0867cd18f99076ae5a684ca3b55f5acced8806733d44fdf89c041809883a0e83",
+      "authoritySymbol": "BalanceSccAuditor.Audit",
+      "proof": "The result reports strongly connected component audit diagnostics and is consumed only by editor audit/debug tools.",
+      "referencePaths": [
+        "Assets/Scripts/Services/Economy/Editor/V27BalanceAudit.cs",
+        "Assets/Scripts/Services/Economy/Editor/V27BalanceLedgerDebugScenarios.cs"
+      ]
+    },
+    {
+      "candidate": "PairedRunWindowResult",
+      "category": "debug-diagnostic",
+      "definitionPath": "Assets/Scripts/Services/Economy/V27PopulationCapacityModels.cs",
+      "definitionSha256": "c05107be2ab834bc5e1fe75327c97488c037a237fbabcea11b90333fb5416ae8",
+      "authoritySymbol": "PairedRunWindowResult",
+      "proof": "The type is a paired-run measurement row produced and consumed by editor performance and population-capacity verification only.",
+      "referencePaths": [
+        "Assets/Scripts/Services/Economy/Editor/V27PairedClutterPlayModeVerifier.cs",
+        "Assets/Scripts/Services/Economy/Editor/V27PopulationCapacityDebugScenarios.cs"
+      ]
+    },
+    {
+      "candidate": "PreparedOutputPickupBoundaryResult",
+      "category": "preview-or-candidate",
+      "definitionPath": "Assets/Scripts/Services/Items/WorldItemWarehouseService.cs",
+      "definitionSha256": "7050fd93aeaef80c89b6b2277295e6e6558c6b8a576dd288ce436a8c5ccdc4f8",
+      "authoritySymbol": "WorldItemWarehouseService.ValidatePreparedOutputPickupBoundary",
+      "proof": "The internal value is a fail-closed pre-mutation boundary validation consumed before ItemTransferService applies source changes; it is not a committed result.",
+      "referencePaths": [
+        "Assets/Scripts/Services/Items/ItemTransferService.cs",
+        "Assets/Scripts/Services/Items/Diagnostics/PreparedOutputHaulPlannerGateDebugScenarios.cs"
+      ]
+    },
+    {
+      "candidate": "ShopFeatureCommandResult",
+      "category": "presentation-ui-wrapper",
+      "definitionPath": "Assets/Scripts/Views/UI/ShopFeatureSurfacePresenter.cs",
+      "definitionSha256": "8fe2eb5024678f0a8588b755439ed51ef8440343b428216664bd53e972b4510c",
+      "authoritySymbol": "ShopFeatureSurfacePresenter",
+      "proof": "The wrapper contains only succeeded/message for UI command feedback and delegates mutations to authoritative shop, procurement, and policy owners.",
+      "referencePaths": [
+        "Assets/Scripts/Views/UI/ShopFeatureSurfacePresenter.cs"
+      ]
+    },
+    {
+      "candidate": "WarehouseFeatureCommandResult",
+      "category": "presentation-ui-wrapper",
+      "definitionPath": "Assets/Scripts/Views/UI/WarehouseFeatureSurfacePresenter.cs",
+      "definitionSha256": "8d6d7627ca6778900342bb85c3493f99571ff392dc0efdb8baf93ce65897c730",
+      "authoritySymbol": "WarehouseFeatureCommandService",
+      "proof": "The wrapper contains only succeeded/message for warehouse UI feedback while authoritative result types and state owners perform each delegated operation.",
+      "referencePaths": [
+        "Assets/Scripts/Views/UI/WarehouseFeatureCommandService.cs",
+        "Assets/Scripts/Views/UI/WarehouseFeatureSurfacePresenter.cs"
+      ]
+    },
+    {
+      "candidate": "WasteFeedResult",
+      "category": "contract-or-interface",
+      "definitionPath": "Assets/Scripts/Models/Economy/Content/WasteProcessingModels.cs",
+      "definitionSha256": "0266d9bcd1bde1e43e3bc64575b7cf6afe0ef33efe24eedec9cc5bd510771a0a",
+      "authoritySymbol": "WasteFeedResult",
+      "proof": "Repository-wide source search finds only this declaration; no constructor, producer, consumer, or state mutation references the type.",
+      "referencePaths": [
+        "Assets/Scripts/Models/Economy/Content/WasteProcessingModels.cs"
+      ]
+    }
+  ]
+}

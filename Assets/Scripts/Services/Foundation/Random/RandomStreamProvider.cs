@@ -114,7 +114,8 @@ namespace DungeonStory.Foundation
 
     public sealed class RandomStreamProvider :
         IRandomStreamProvider,
-        IRandomStreamDiagnosticsQuery
+        IRandomStreamDiagnosticsQuery,
+        IDungeonPreStageRestoreTransactionParticipant
     {
         private readonly Dictionary<string, ProviderRandomStream> handles =
             new Dictionary<string, ProviderRandomStream>(StringComparer.Ordinal);
@@ -122,6 +123,42 @@ namespace DungeonStory.Foundation
         private readonly RandomStreamAggregateState standaloneState;
         private readonly Dictionary<string, long> drawCounts =
             new Dictionary<string, long>(StringComparer.Ordinal);
+        private Dictionary<string, long> previousDrawCounts;
+        private HashSet<string> previousHandleIds;
+
+        // Serialized streams are protected by the detached aggregate root.
+        // Diagnostics and cached handles also need the same failure boundary.
+        public string ParticipantId => "foundation.random-stream-diagnostics";
+
+        public void BeginRestoreCandidate()
+        {
+            if (previousDrawCounts != null)
+                throw new InvalidOperationException("Random stream restore is already active.");
+            previousDrawCounts = new Dictionary<string, long>(drawCounts, StringComparer.Ordinal);
+            previousHandleIds = new HashSet<string>(handles.Keys, StringComparer.Ordinal);
+        }
+
+        public void PublishRestoreCandidate() { }
+
+        public void RollbackPublishedRestoreCandidate() => DiscardRestoreCandidate();
+
+        public void DiscardRestoreCandidate()
+        {
+            if (previousDrawCounts != null)
+            {
+                drawCounts.Clear();
+                foreach (var pair in previousDrawCounts) drawCounts.Add(pair.Key, pair.Value);
+                foreach (string id in new List<string>(handles.Keys))
+                    if (!previousHandleIds.Contains(id)) handles.Remove(id);
+            }
+            CompleteRestoreCandidate();
+        }
+
+        public void CompleteRestoreCandidate()
+        {
+            previousDrawCounts = null;
+            previousHandleIds = null;
+        }
 
         public RandomStreamProvider()
             : this(1)

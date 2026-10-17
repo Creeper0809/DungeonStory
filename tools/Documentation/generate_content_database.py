@@ -94,6 +94,8 @@ GROUPS: dict[str, set[str]] = {
         "FuneralCultureSO",
         "FestivalDefinitionSO",
         "ProficiencyDefinitionSO",
+        "CharacterAcquiredTraitSettingsSO",
+        "CharacterAcquiredTraitModuleSO",
         "CharacterSO",
     },
     "events-campaign": {
@@ -271,6 +273,7 @@ CLASS_ID_FIELD = {
     "EnvironmentalWorkwearSO": "workwearId",
     "FacilityEvolutionRecordTokenDefinitionSO": "tokenId",
     "CharacterSO": "archetypeId",
+    "CharacterAcquiredTraitSettingsSO": "settingsId",
     "OffenseSiteArchetypeSO": "siteTypeId",
 }
 
@@ -1516,9 +1519,9 @@ def reason_for(
                 break
         construction_parts = []
         if work_amount:
-            construction_parts.append(f"작업량 {work_amount}")
+            construction_parts.append(f"작업량 {work_amount} WU")
         if materials:
-            construction_parts.append(f"재료 {summarize_pairs(materials, 4)}")
+            construction_parts.append(f"재료 {summarize_pairs(materials, len(materials))}")
         if construction_parts:
             clauses.append("건설에는 " + ", ".join(construction_parts) + "이 필요하다")
         if description:

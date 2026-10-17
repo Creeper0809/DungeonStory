@@ -1,6 +1,11 @@
 using System;
 using System.Collections.Generic;
 
+public static class DurableFacilityEquipmentPersistenceContract
+{
+    public const string SectionId = "items.durable-facility-equipment";
+}
+
 [Serializable]
 public sealed class DungeonDurableFacilityEquipmentSaveData
 {

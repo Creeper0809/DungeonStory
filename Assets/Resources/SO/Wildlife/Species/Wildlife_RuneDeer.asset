@@ -48,6 +48,8 @@ MonoBehaviour:
   laysEggs: 0
   bodySize: 1
   manureIntervalDays: 2
+  productComfortMinimumTemperatureC: 5
+  productComfortMaximumTemperatureC: 30
   husbandryProducts: []
   authoringRevision: 1
   preySpeciesIds:
@@ -57,6 +59,14 @@ MonoBehaviour:
   nestTag: nest:rune_deer
   breedingSeason: 0
   migrationPatternId: migration:rune_deer
+  migrationProfile:
+    capability: 1
+    detectionRadiusCells: 12
+    signalScore: 0
+    minimumWaterRemainingRatio: 0
+    minimumCarcassQuantity: 0
+    minimumTemperatureC: 0
+    maximumTemperatureC: 0
   diseaseVectorIds:
   - disease:cave-flu
   activeSeasons: 000000000100000002000000

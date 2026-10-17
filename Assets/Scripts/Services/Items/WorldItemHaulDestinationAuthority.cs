@@ -200,6 +200,12 @@ internal static class WorldItemHaulDestinationAuthority
                     requestedDropPosition,
                     out FacilityBufferDestinationClaim claim))
             {
+                if (destination.StartsWith(EnvironmentalFireWaterDestinationIdentity.Prefix, StringComparison.Ordinal)
+                    && !EnvironmentalFireWaterDestinationIdentity.IsExactEmergencySupportClaim(claim))
+                {
+                    failureReason = "haul-destination-fire-water-owner-mismatch:" + destination;
+                    return false;
+                }
                 if (claim.AnchorKind
                     == FacilityBufferDestinationAnchorKind.ReservedTarget)
                 {
@@ -234,6 +240,11 @@ internal static class WorldItemHaulDestinationAuthority
             }
             else
             {
+                if (destination.StartsWith(EnvironmentalFireWaterDestinationIdentity.Prefix, StringComparison.Ordinal))
+                {
+                    failureReason = "haul-destination-fire-water-claim-missing:" + destination;
+                    return false;
+                }
                 if (ReservedTargetDestinationIdentity.RequiresExactClaim(
                         destination))
                 {
@@ -281,8 +292,7 @@ internal static class WorldItemHaulDestinationAuthority
     }
 
     private static string BuildConstructionDestinationId(ConstructionSite site) =>
-        $"{WorkOrderRuntime.ConstructionDestinationPrefix}"
-        + $"{site.TargetBuilding.id}:{site.GridPosition.x}:{site.GridPosition.y}";
+        WorkConstructionInputOwnerAuthority.DestinationFor(site.WorkOrderId);
 
     internal static bool TryResolveDeliveryCell(
         Grid grid,

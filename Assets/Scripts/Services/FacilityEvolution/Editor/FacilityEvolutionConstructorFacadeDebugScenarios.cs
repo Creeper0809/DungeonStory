@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEngine;
 
@@ -18,7 +19,7 @@ public static class FacilityEvolutionConstructorFacadeDebugScenarios
 
         Debug.Log(
             "[FacilityEvolutionConstructorFacadeDebugScenarios] PASS "
-            + "FacilityEvolutionEngine=2, DefinitionContext=7, ExecutionContext=8");
+            + "FacilityEvolutionEngine=7, DefinitionContext=7, ExecutionContext=8");
     }
 
     public static bool Verify()
@@ -34,16 +35,30 @@ public static class FacilityEvolutionConstructorFacadeDebugScenarios
             .SelectMany(type => type.GetConstructors())
             .All(constructor => constructor.GetParameters().Length <= DependencyLimit);
         var engineConstructors = typeof(FacilityEvolutionEngine).GetConstructors();
-        bool engineUsesOnlyContexts = engineConstructors.Length == 1
-            && engineConstructors[0].GetParameters().Length == 2
+        bool engineUsesBoundedFacade = engineConstructors.Length == 1
+            && engineConstructors[0].GetParameters().Length == 7
             && engineConstructors[0].GetParameters()[0].ParameterType
                 == typeof(FacilityEvolutionDefinitionContext)
             && engineConstructors[0].GetParameters()[1].ParameterType
-                == typeof(FacilityEvolutionExecutionContext);
+                == typeof(FacilityEvolutionExecutionContext)
+            && engineConstructors[0].GetParameters()[2].ParameterType
+                == typeof(IDomainFactPublisher)
+            && engineConstructors[0].GetParameters()[3].ParameterType
+                == typeof(IDomainFactRecoveryPublisher)
+            && engineConstructors[0].GetParameters()[4].ParameterType
+                == typeof(IGameCalendar)
+            && engineConstructors[0].GetParameters()[5].ParameterType
+                == typeof(IGameplayOutcomeNarrativeEvidenceQuery)
+            && engineConstructors[0].GetParameters()[6].ParameterType
+                == typeof(IGameplayOutcomeEvidenceUseTransaction);
 
         return dependencyLimitSatisfied
-            && engineUsesOnlyContexts
-            && ThrowsArgumentNull(() => new FacilityEvolutionEngine(null, null))
+            && engineUsesBoundedFacade
+            && ThrowsArgumentNull(() => new FacilityEvolutionEngine(
+                null,
+                null,
+                null,
+                null))
             && ThrowsArgumentNull(() => new FacilityEvolutionDefinitionContext(
                 null,
                 null,

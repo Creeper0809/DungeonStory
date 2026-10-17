@@ -21,6 +21,7 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
     private readonly IOffenseFieldMobilityService fieldMobility;
     private readonly IGameEventBus gameEventBus;
     private readonly ICombatEquipmentRuntime combatEquipment;
+    private readonly IMemoryErasureSealBossAwardService memoryErasureSealAwards;
 
     public OffenseExpeditionBattleCompletionHandler(
         IOffenseBattleRuntime battleRuntime,
@@ -30,7 +31,8 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
         IOffenseReturnSafetyRuntime strategicReturnSafety,
         IOffenseFieldMobilityService fieldMobility,
         IGameEventBus gameEventBus,
-        ICombatEquipmentRuntime combatEquipment)
+        ICombatEquipmentRuntime combatEquipment,
+        IMemoryErasureSealBossAwardService memoryErasureSealAwards = null)
     {
         this.battleRuntime = battleRuntime
             ?? throw new ArgumentNullException(nameof(battleRuntime));
@@ -48,6 +50,7 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.combatEquipment = combatEquipment
             ?? throw new ArgumentNullException(nameof(combatEquipment));
+        this.memoryErasureSealAwards = memoryErasureSealAwards;
     }
 
     public void Handle(
@@ -69,6 +72,43 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
         bool victory = session.Outcome == OffenseBattleOutcome.Victory;
         if (victory)
         {
+            bool objectiveBattle = expedition.UsesWorldTravel
+                && expedition.WorldObjectiveBattleActive;
+            bool isRegionBoss = completedNode?.IsBoss == true;
+            if (expedition.UsesWorldTravel
+                && objectiveBattle
+                && strategicWorld.TryGetSite(
+                    expedition.WorldSiteId,
+                    out OffenseWorldSiteStateData site))
+            {
+                isRegionBoss = site?.fixedBoss == true;
+            }
+            if (isRegionBoss && memoryErasureSealAwards == null)
+            {
+                throw new InvalidOperationException(
+                    "A region-boss victory requires the memory-erasure seal award service.");
+            }
+            if (memoryErasureSealAwards != null)
+            {
+                MemoryErasureSealBossAwardResult award =
+                    memoryErasureSealAwards.TryAwardForVictory(
+                        expedition,
+                        completedNode,
+                        objectiveBattle);
+                if (award.Status == MemoryErasureSealBossAwardStatus.Failed)
+                {
+                    throw new InvalidOperationException(
+                        "Memory-erasure seal boss award failed: "
+                        + award.Detail);
+                }
+                if (award.Status == MemoryErasureSealBossAwardStatus.Awarded)
+                {
+                    gameEventBus.Publish(new OffenseExpeditionActivityFact(
+                        OffenseExpeditionActivity.RegionBossSealAwarded,
+                        expedition.ExpeditionId));
+                }
+            }
+
             foreach (string rewardItemId in session.EncounterRules.RewardItemIds)
             {
                 expedition.AddEncounterReward(rewardItemId);
@@ -78,7 +118,7 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
                              && value.IsDead))
             {
                 foreach (CombatEquipmentInstance recovered in
-                         combatEquipment.ConfiscateAllFromCharacter(
+                         combatEquipment.ConfiscateAllForExpedition(
                              defeated.PersistentId))
                 {
                     expedition.AddRecoveredEquipment(recovered.instanceId);
@@ -126,13 +166,22 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
                     session,
                     combatant,
                     null));
-                actor.Progression?.RecordNarrative(
-                    CharacterNarrativeDomain.Combat,
-                    victory ? "battle-victory" : "battle-survived",
-                    expedition.Target.id,
-                    victory ? "won" : "survived",
-                    combatant.TotalDamageTaken,
-                    triggerPassives: false);
+                if (actor.Progression != null)
+                {
+                    gameEventBus.Publish(new OffenseBattleExperienceFact(
+                        session.BattleId,
+                        expedition.ExpeditionId,
+                        combatant.PersistentId,
+                        actor.BuildingDisplayName,
+                        expedition.Target.id,
+                        expedition.Target.title ?? string.Empty,
+                        expedition.Target.regionDisplayName ?? string.Empty,
+                        expedition.Target.factionId ?? string.Empty,
+                        completedNode?.Id ?? string.Empty,
+                        completedNode?.Title ?? string.Empty,
+                        victory,
+                        combatant.TotalDamageTaken));
+                }
             }
             actor.Stats?.ChangesStat(CharacterCondition.SLEEP, victory ? -8f : -20f);
             actor.Stats?.ApplyMoodFactor(
@@ -173,11 +222,10 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
                     expedition,
                     out string mobilityMessage))
             {
-                gameEventBus.RaiseAlert(
-                    "원정대 조난",
-                    mobilityMessage,
-                    EventAlertImportance.High,
-                    "오펜스");
+                gameEventBus.Publish(new OffenseExpeditionActivityFact(
+                    OffenseExpeditionActivity.PartyStranded,
+                    expedition.ExpeditionId,
+                    message: mobilityMessage));
                 host.NotifyStateChanged();
                 return;
             }
@@ -224,11 +272,11 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
                 return;
             }
 
-            gameEventBus.RaiseAlert(
-                "목표 파괴",
-                $"{expedition.Target.title} 격파. 안전 이동 {granted}칸이 지급되었습니다. 다음 목적지를 선택하세요.",
-                EventAlertImportance.High,
-                "오펜스");
+            gameEventBus.Publish(new OffenseExpeditionActivityFact(
+                OffenseExpeditionActivity.ObjectiveDestroyed,
+                expedition.ExpeditionId,
+                targetTitle: expedition.Target.title ?? string.Empty,
+                count: granted));
             host.NotifyStateChanged();
             return;
         }
@@ -238,11 +286,10 @@ public sealed class OffenseExpeditionBattleCompletionHandler :
         if (!expedition.IsComplete)
         {
             host.NotifyStateChanged();
-            gameEventBus.RaiseAlert(
-                "원정 교전 승리",
-                $"{expedition.CurrentNode?.Title ?? expedition.Target.title}을 돌파했습니다. 다음 경로를 선택하세요.",
-                EventAlertImportance.Low,
-                "오펜스");
+            gameEventBus.Publish(new OffenseExpeditionActivityFact(
+                OffenseExpeditionActivity.RouteBattleCompleted,
+                expedition.ExpeditionId,
+                nodeTitle: expedition.CurrentNode?.Title ?? expedition.Target.title ?? string.Empty));
             return;
         }
 

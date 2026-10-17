@@ -15,6 +15,12 @@ public interface ICharacterEquipmentGameplayEffectSourceQuery
     IReadOnlyList<IGameplayEffectSource> GetEquipmentSources(CharacterActor actor);
 }
 
+public interface ICharacterSurgicalPartGameplayEffectSourceQuery
+{
+    IReadOnlyList<IGameplayEffectSource> GetInstalledPartSources(
+        CharacterActor actor);
+}
+
 public static class CharacterIncrementalGameplayEffectAuthority
 {
     public const string Schema =
@@ -135,6 +141,408 @@ public sealed class CharacterEquipmentGameplayEffectSourceQuery :
             }
         }
         return sources;
+    }
+}
+
+public sealed class CharacterSurgicalPartGameplayEffectSourceQuery :
+    ICharacterSurgicalPartGameplayEffectSourceQuery
+{
+    private sealed class InstalledPartEffectSource : IGameplayEffectSource
+    {
+        public InstalledPartEffectSource(
+            string partInstanceId,
+            IReadOnlyList<GameplayEffectBinding> effects)
+        {
+            SourceRef = new GameplayEffectSourceRef(
+                GameplayEffectSourceKind.SurgicalPart,
+                partInstanceId);
+            Effects = effects ?? Array.Empty<GameplayEffectBinding>();
+        }
+
+        public GameplayEffectSourceRef SourceRef { get; }
+        public IReadOnlyList<GameplayEffectBinding> Effects { get; }
+    }
+
+    private readonly Func<ISurgicalPartRuntime> partRuntime;
+    private readonly IItemDefinitionCatalog items;
+    private readonly IAnatomyHealthRuntime anatomy;
+    private readonly IAnatomyProfileCatalog anatomyProfiles;
+    private readonly ISurgeryOrderDemandQuery surgeryOrders;
+
+    public CharacterSurgicalPartGameplayEffectSourceQuery(
+        Func<ISurgicalPartRuntime> partRuntime,
+        IItemDefinitionCatalog items,
+        IAnatomyHealthRuntime anatomy,
+        IAnatomyProfileCatalog anatomyProfiles,
+        ISurgeryOrderDemandQuery surgeryOrders)
+    {
+        this.partRuntime = partRuntime
+            ?? throw new ArgumentNullException(nameof(partRuntime));
+        this.items = items ?? throw new ArgumentNullException(nameof(items));
+        this.anatomy = anatomy ?? throw new ArgumentNullException(nameof(anatomy));
+        this.anatomyProfiles = anatomyProfiles
+            ?? throw new ArgumentNullException(nameof(anatomyProfiles));
+        this.surgeryOrders = surgeryOrders
+            ?? throw new ArgumentNullException(nameof(surgeryOrders));
+    }
+
+    public IReadOnlyList<IGameplayEffectSource> GetInstalledPartSources(
+        CharacterActor actor)
+    {
+        if (actor == null) throw new ArgumentNullException(nameof(actor));
+        string characterId = actor.Identity?.PersistentId?.Trim()
+            ?? string.Empty;
+        if (characterId.Length == 0)
+            return Array.Empty<IGameplayEffectSource>();
+
+        ISurgicalPartRuntime parts = partRuntime()
+            ?? throw new InvalidOperationException(
+                "Installed surgical-part effect projection requires the surgical part runtime.");
+
+        AnatomyHealthSnapshot snapshot = anatomy.GetAnatomySnapshot(actor);
+        IReadOnlyList<AnatomyNodeHealthState> snapshotNodes = snapshot.Nodes
+            ?? throw new InvalidOperationException(
+                $"Installed surgical-part projection has no anatomy nodes for '{characterId}'.");
+        AnatomyNodeHealthState[] installedNodes = snapshotNodes
+            .Where(value => value != null
+                && !string.IsNullOrWhiteSpace(value.installedPartId))
+            .ToArray();
+        IReadOnlyList<SurgicalPartInstance> runtimeParts = parts.Parts
+            ?? throw new InvalidOperationException(
+                "Installed surgical-part effect projection requires the surgical part collection.");
+        SurgicalPartInstance[] installedParts = runtimeParts.Where(value =>
+                value != null
+                && value.installed
+                && string.Equals(
+                    value.installedSubjectId,
+                    characterId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (installedNodes.Length == 0)
+        {
+            if (installedParts.Length != 0)
+            {
+                throw new InvalidOperationException(
+                    $"Installed surgical part '{installedParts[0].partInstanceId}' has no unique anatomy forward reference for '{characterId}'.");
+            }
+            return Array.Empty<IGameplayEffectSource>();
+        }
+        if (!anatomyProfiles.TryGet(
+                snapshot.ProfileId,
+                out AnatomyProfileDefinition profile))
+        {
+            throw new InvalidOperationException(
+                $"Installed surgical-part projection references unknown anatomy profile "
+                + $"'{snapshot.ProfileId}' for '{characterId}'.");
+        }
+        IReadOnlyList<SurgeryOrder> activeOrders = surgeryOrders.ActiveOrders
+            ?? throw new InvalidOperationException(
+                "Installed surgical-part projection requires the active surgery-order collection.");
+
+        if (installedNodes.GroupBy(
+                node => node.installedPartId,
+                StringComparer.Ordinal)
+            .Any(group => group.Count() != 1))
+        {
+            throw new InvalidOperationException(
+                $"Installed surgical-part ownership has duplicate anatomy forward references for '{characterId}'.");
+        }
+
+        List<IGameplayEffectSource> sources = new();
+        foreach (AnatomyNodeHealthState node in installedNodes
+                     .OrderBy(value => value.nodeId, StringComparer.Ordinal))
+        {
+            SurgicalPartInstance[] matchingParts = runtimeParts
+                .Where(value => value != null
+                    && string.Equals(
+                        value.partInstanceId,
+                        node.installedPartId,
+                        StringComparison.Ordinal))
+                .ToArray();
+            if (matchingParts.Length != 1)
+            {
+                throw new InvalidOperationException(
+                    $"Installed surgical-part ownership has a missing or duplicate surgery owner "
+                    + $"for '{characterId}:{node.nodeId}'.");
+            }
+
+            SurgicalPartInstance part = matchingParts[0];
+            bool hasBodyCommittedIncomingOrder =
+                HasBodyCommittedIncomingOrder(
+                    activeOrders,
+                    characterId,
+                    node,
+                    part);
+            bool bodyCommittedIncoming = hasBodyCommittedIncomingOrder
+                && IsBodyCommittedReplacementIncoming(
+                    activeOrders,
+                    runtimeParts,
+                    installedNodes,
+                    characterId,
+                    node,
+                    part);
+            bool ownershipDrifted =
+                (!part.installed && !bodyCommittedIncoming)
+                || hasBodyCommittedIncomingOrder && !bodyCommittedIncoming
+                || part.installed
+                    && !string.Equals(
+                        part.installedSubjectId,
+                        characterId,
+                        StringComparison.Ordinal)
+                || part.kind != node.installedPartKind
+                || !SurgicalPartAnatomyCompatibility.IsCompatible(
+                    profile,
+                    part.nodeId,
+                    node.nodeId);
+            if (ownershipDrifted)
+            {
+                throw new InvalidOperationException(
+                    $"Installed surgical-part ownership drifted for '{characterId}:{node.nodeId}'.");
+            }
+            if (!part.installed)
+                continue;
+
+            string itemId = part.itemDefinitionId?.Trim() ?? string.Empty;
+            if (itemId.Length == 0)
+                continue;
+            if (!items.TryGet(new ItemDefinitionId(itemId), out ItemDefinitionSO item))
+            {
+                throw new InvalidOperationException(
+                    $"Installed surgical part '{part.partInstanceId}' references unknown item '{itemId}'.");
+            }
+            if (!item.TryGetFeature(
+                    out InstalledSurgicalPartEffectItemFeature feature))
+            {
+                continue;
+            }
+
+            int compatibleSlotCount = profile.Nodes.Count(candidate =>
+                candidate != null
+                && SurgicalPartAnatomyCompatibility.IsCompatible(
+                    profile,
+                    part.nodeId,
+                    candidate.NodeId));
+            if (compatibleSlotCount <= 0)
+            {
+                throw new InvalidOperationException(
+                    $"Installed surgical part '{part.partInstanceId}' has no authored compatible anatomy slot.");
+            }
+
+            float strength = Mathf.Clamp(
+                node.ConditionFactor
+                    * Mathf.Max(0f, node.installedPartEfficiency),
+                0f,
+                CharacterAnatomyStateBounds.MaximumInstalledPartEfficiency);
+            GameplayEffectBinding[] bindings = (feature.effects
+                    ?? new List<GameplayEffectBinding>())
+                .Where(value => value?.definition != null)
+                .Select(value => Scale(
+                    value,
+                    strength,
+                    compatibleSlotCount))
+                .ToArray();
+            if (bindings.Length > 0)
+            {
+                sources.Add(new InstalledPartEffectSource(
+                    part.partInstanceId,
+                    bindings));
+            }
+        }
+
+        foreach (SurgicalPartInstance part in installedParts)
+        {
+            int forwardReferenceCount = installedNodes.Count(node => string.Equals(
+                node.installedPartId,
+                part.partInstanceId,
+                StringComparison.Ordinal));
+            if (forwardReferenceCount == 1)
+                continue;
+            if (forwardReferenceCount == 0
+                && IsBodyCommittedReplacementOld(
+                    activeOrders,
+                    runtimeParts,
+                    installedNodes,
+                    characterId,
+                    part))
+            {
+                continue;
+            }
+            if (forwardReferenceCount != 1)
+            {
+                throw new InvalidOperationException(
+                    $"Installed surgical part '{part.partInstanceId}' has no unique anatomy forward reference for '{characterId}'.");
+            }
+        }
+
+        return sources;
+    }
+
+    private static bool HasBodyCommittedIncomingOrder(
+        IReadOnlyList<SurgeryOrder> activeOrders,
+        string characterId,
+        AnatomyNodeHealthState node,
+        SurgicalPartInstance incoming)
+    {
+        return activeOrders.Any(order => order != null
+            && order.replacementPhase ==
+                SurgicalPartReplacementPhase.BodyCommitted
+            && string.Equals(
+                order.subject?.subjectId,
+                characterId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.targetNodeId,
+                node.nodeId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                order.replacementIncomingPartId,
+                incoming.partInstanceId,
+                StringComparison.Ordinal));
+    }
+
+    private static bool IsBodyCommittedReplacementIncoming(
+        IReadOnlyList<SurgeryOrder> activeOrders,
+        IReadOnlyList<SurgicalPartInstance> runtimeParts,
+        IReadOnlyList<AnatomyNodeHealthState> installedNodes,
+        string characterId,
+        AnatomyNodeHealthState node,
+        SurgicalPartInstance incoming)
+    {
+        SurgeryOrder[] matches = activeOrders.Where(order => order != null
+                && order.replacementPhase ==
+                    SurgicalPartReplacementPhase.BodyCommitted
+                && string.Equals(
+                    order.subject?.subjectId,
+                    characterId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    order.targetNodeId,
+                    node.nodeId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    order.replacementIncomingPartId,
+                    incoming.partInstanceId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1
+            || string.IsNullOrWhiteSpace(
+                matches[0].replacementExpectedOldPartId))
+        {
+            return false;
+        }
+
+        SurgicalPartInstance[] previous = runtimeParts.Where(part => part != null
+                && string.Equals(
+                    part.partInstanceId,
+                    matches[0].replacementExpectedOldPartId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        return previous.Length == 1
+            && previous[0].installed
+            && string.Equals(
+                previous[0].installedSubjectId,
+                characterId,
+                StringComparison.Ordinal)
+            && !string.Equals(
+                previous[0].partInstanceId,
+                incoming.partInstanceId,
+                StringComparison.Ordinal)
+            && installedNodes.Count(nodeState => string.Equals(
+                nodeState.installedPartId,
+                previous[0].partInstanceId,
+                StringComparison.Ordinal)) == 0;
+    }
+
+    private static bool IsBodyCommittedReplacementOld(
+        IReadOnlyList<SurgeryOrder> activeOrders,
+        IReadOnlyList<SurgicalPartInstance> runtimeParts,
+        IReadOnlyList<AnatomyNodeHealthState> installedNodes,
+        string characterId,
+        SurgicalPartInstance previous)
+    {
+        SurgeryOrder[] matches = activeOrders.Where(order => order != null
+                && order.replacementPhase ==
+                    SurgicalPartReplacementPhase.BodyCommitted
+                && string.Equals(
+                    order.subject?.subjectId,
+                    characterId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    order.replacementExpectedOldPartId,
+                    previous.partInstanceId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1
+            || string.IsNullOrWhiteSpace(matches[0].replacementIncomingPartId)
+            || string.Equals(
+                matches[0].replacementIncomingPartId,
+                previous.partInstanceId,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        SurgicalPartInstance[] incoming = runtimeParts.Where(part => part != null
+                && string.Equals(
+                    part.partInstanceId,
+                    matches[0].replacementIncomingPartId,
+                    StringComparison.Ordinal))
+            .ToArray();
+        return incoming.Length == 1
+            && installedNodes.Count(node => string.Equals(
+                node.nodeId,
+                matches[0].targetNodeId,
+                StringComparison.Ordinal)
+                && string.Equals(
+                    node.installedPartId,
+                    incoming[0].partInstanceId,
+                    StringComparison.Ordinal)) == 1;
+    }
+
+    private static GameplayEffectBinding Scale(
+        GameplayEffectBinding source,
+        float strength,
+        int compatibleSlotCount)
+    {
+        if (compatibleSlotCount <= 0)
+            throw new ArgumentOutOfRangeException(nameof(compatibleSlotCount));
+
+        float scaledValue = source.definition.Operation switch
+        {
+            GameplayEffectOperation.Multiply =>
+                1f + (source.value - 1f) * strength,
+            GameplayEffectOperation.AddFlat or GameplayEffectOperation.AddPercent =>
+                source.value * strength,
+            _ => throw new InvalidOperationException(
+                $"Installed surgical-part effect '{source.bindingId}' uses unsupported operation "
+                + source.definition.Operation)
+        };
+        float value = scaledValue;
+        if (compatibleSlotCount > 1)
+        {
+            if (source.definition.Operation == GameplayEffectOperation.Multiply)
+            {
+                if (float.IsNaN(scaledValue)
+                    || float.IsInfinity(scaledValue)
+                    || scaledValue <= 0f)
+                {
+                    throw new InvalidOperationException(
+                        $"Installed surgical-part effect '{source.bindingId}' cannot allocate nonpositive or non-finite multiplier '{scaledValue}' across {compatibleSlotCount} compatible slots.");
+                }
+                value = Mathf.Pow(scaledValue, 1f / compatibleSlotCount);
+            }
+            else
+            {
+                value = scaledValue / compatibleSlotCount;
+            }
+        }
+        return new GameplayEffectBinding
+        {
+            bindingId = source.bindingId,
+            definition = source.definition,
+            value = value,
+            condition = source.condition
+        };
     }
 }
 
@@ -259,6 +667,7 @@ public sealed class CharacterDerivedStatsSnapshotProjector
     private readonly IGameContentDefinitionSource content;
     private readonly ICharacterEquipmentGameplayEffectSourceQuery equipment;
     private readonly ICharacterTransientGameplayEffectSourceQuery transient;
+    private readonly ICharacterSurgicalPartGameplayEffectSourceQuery surgicalParts;
     private readonly ExtremeTraitRuntime extremeTraits;
     private readonly IGameClock gameClock;
     private readonly Dictionary<string, CharacterDerivedStatsSnapshot> cache =
@@ -269,7 +678,8 @@ public sealed class CharacterDerivedStatsSnapshotProjector
         ICharacterEquipmentGameplayEffectSourceQuery equipment,
         ICharacterTransientGameplayEffectSourceQuery transient,
         ExtremeTraitRuntime extremeTraits,
-        IGameClock gameClock)
+        IGameClock gameClock,
+        ICharacterSurgicalPartGameplayEffectSourceQuery surgicalParts = null)
     {
         this.content = content ?? throw new ArgumentNullException(nameof(content));
         this.equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
@@ -277,6 +687,8 @@ public sealed class CharacterDerivedStatsSnapshotProjector
         this.extremeTraits = extremeTraits
             ?? throw new ArgumentNullException(nameof(extremeTraits));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.surgicalParts = surgicalParts
+            ?? NeutralCharacterSurgicalPartGameplayEffectSourceQuery.Instance;
     }
 
     public CharacterDerivedStatsSnapshot Project(
@@ -324,6 +736,34 @@ public sealed class CharacterDerivedStatsSnapshotProjector
         List<IGameplayEffectSource> sources = new();
         sources.AddRange(actor.Progression?.ResolveSelectedTraits()
             ?? Array.Empty<CharacterTraitSO>());
+        if (actor.Progression != null)
+        {
+            CharacterAcquiredTraitAggregateState acquired =
+                actor.Progression.CaptureAcquiredTraitState();
+            CharacterAcquiredTraitSettingsSO settings = null;
+            if (acquired.HasPersistentData)
+            {
+                CharacterAcquiredTraitSettingsSO[] authoredSettings =
+                    content.GetAll<CharacterAcquiredTraitSettingsSO>()
+                    .Where(value => value != null)
+                    .ToArray();
+                if (authoredSettings.Length != 1)
+                {
+                    throw new InvalidOperationException(
+                        "Non-empty acquired-trait state requires exactly one authored "
+                        + $"settings authority, but found {authoredSettings.Length}.");
+                }
+                settings = authoredSettings[0];
+            }
+            sources.AddRange(CharacterAcquiredTraitEffectSourceProjection.Project(
+                acquired,
+                actor.Progression.NarrativeLedger,
+                settings,
+                content.GetAll<CharacterAcquiredTraitModuleSO>()));
+            sources.AddRange(
+                CharacterSkillDrawbackEffectSourceProjection.Project(
+                    actor.Progression));
+        }
         CharacterSpeciesId speciesId = actor.profile?.PhenotypeSpeciesId ?? default;
         CharacterSpeciesSO species = content.GetAll<CharacterSpeciesSO>()
             .FirstOrDefault(value => value != null
@@ -331,6 +771,8 @@ public sealed class CharacterDerivedStatsSnapshotProjector
         if (species != null) sources.Add(species);
 
         sources.AddRange(equipment.GetEquipmentSources(actor)
+            ?? Array.Empty<IGameplayEffectSource>());
+        sources.AddRange(surgicalParts.GetInstalledPartSources(actor)
             ?? Array.Empty<IGameplayEffectSource>());
         sources.AddRange(transient.GetStatusSources(actor)
             ?? Array.Empty<IGameplayEffectSource>());
@@ -445,4 +887,15 @@ public sealed class CharacterDerivedStatsSnapshotProjector
             .Append(normalized)
             .Append('|');
     }
+}
+
+public sealed class NeutralCharacterSurgicalPartGameplayEffectSourceQuery :
+    ICharacterSurgicalPartGameplayEffectSourceQuery
+{
+    public static readonly NeutralCharacterSurgicalPartGameplayEffectSourceQuery
+        Instance = new();
+    private NeutralCharacterSurgicalPartGameplayEffectSourceQuery() { }
+
+    public IReadOnlyList<IGameplayEffectSource> GetInstalledPartSources(
+        CharacterActor actor) => Array.Empty<IGameplayEffectSource>();
 }

@@ -184,12 +184,13 @@ public static class EventAlertDebugScenarios
         try
         {
             RecordingChoiceActionDispatcher sourceDispatcher = new();
+            TrackingEventAlertViewPresenterFactory sourcePresenterFactory = new();
             EventAlertRuntime source = CreateRuntime(
                 sourceRoot,
                 new DungeonRuntimeAggregateRootStore(),
-                new TestEventAlertViewPresenterFactory(),
+                sourcePresenterFactory,
                 sourceDispatcher);
-            EventAlertRequest request = new EventAlertRequest(
+            EventAlertRequest initialRequest = new EventAlertRequest(
                 "Persistent action",
                 "Choice must survive save restore.",
                 EventAlertImportance.High,
@@ -202,8 +203,79 @@ public static class EventAlertDebugScenarios
                         "v21-content|society|event%3A1|fulfill")
                 },
                 "event:1");
-            source.OnTriggerEvent(new EventAlertRequestedEvent(request));
-            source.OnTriggerEvent(new EventAlertRequestedEvent(request));
+            source.OnTriggerEvent(new EventAlertRequestedEvent(initialRequest));
+            source.Open(source.EventLog.Single());
+
+            EventAlertRequest refreshedRequest = new EventAlertRequest(
+                "Ignored refreshed title",
+                "Opened detail must use the current body.",
+                EventAlertImportance.Low,
+                "Ignored refreshed category",
+                new[]
+                {
+                    new EventAlertChoice(
+                        "Refresh",
+                        "Current choice while open.",
+                        "v21-content|society|event%3A1|refresh")
+                },
+                "event:1");
+            source.OnTriggerEvent(new EventAlertRequestedEvent(refreshedRequest));
+            EventAlertRecord refreshed = source.EventLog.Single();
+            bool refreshedVisibleDetail = source.IsDetailVisible
+                && source.SelectedRecord == refreshed
+                && sourcePresenterFactory.Presenter.OpenDetailCount == 2
+                && sourcePresenterFactory.Presenter.LastOpenedRecord?.Detail
+                    == "Opened detail must use the current body."
+                && sourcePresenterFactory.Presenter.LastOpenedRecord.Choices[0].ActionId
+                    == "v21-content|society|event%3A1|refresh";
+
+            source.CloseDetail();
+            int openDetailCountBeforeClosedRefresh =
+                sourcePresenterFactory.Presenter.OpenDetailCount;
+            EventAlertRequest latestRequest = new EventAlertRequest(
+                "Ignored latest title",
+                "Closed detail must not reopen.",
+                EventAlertImportance.Low,
+                "Ignored latest category",
+                new[]
+                {
+                    new EventAlertChoice(
+                        "Resolve latest",
+                        "Latest persisted command.",
+                        "v21-content|society|event%3A1|fulfill-latest")
+                },
+                "event:1");
+            source.OnTriggerEvent(new EventAlertRequestedEvent(latestRequest));
+            EventAlertRecord latest = source.EventLog.Single();
+            bool rejectedEmptySource = !latest.TryRefreshSourceContent(
+                new EventAlertRequest(
+                    "Ignored rejected title",
+                    "Rejected empty source body.",
+                    EventAlertImportance.Low,
+                    "Ignored rejected category",
+                    sourceId: ""));
+            bool rejectedDifferentSource = !latest.TryRefreshSourceContent(
+                new EventAlertRequest(
+                    "Ignored rejected title",
+                    "Rejected different source body.",
+                    EventAlertImportance.Low,
+                    "Ignored rejected category",
+                    sourceId: "event:2"));
+            source.OnTriggerEvent(new EventAlertRequestedEvent(
+                new EventAlertRequest(
+                    "Persistent action",
+                    "Closed detail must not reopen.",
+                    EventAlertImportance.High,
+                    "V21")));
+            EventAlertRecord mixedSourceMatch = source.EventLog.Single();
+            bool mixedSourceMatchPreserved = mixedSourceMatch.Count == 1
+                && mixedSourceMatch.SourceId == "event:1"
+                && mixedSourceMatch.Detail == "Closed detail must not reopen."
+                && mixedSourceMatch.Choices[0].ActionId
+                    == "v21-content|society|event%3A1|fulfill-latest";
+            bool closedDetailStayedClosed = !source.IsDetailVisible
+                && sourcePresenterFactory.Presenter.OpenDetailCount
+                    == openDetailCountBeforeClosedRefresh;
             DungeonEventAlertSaveData save = CreateSaveService(source).Capture();
 
             RecordingChoiceActionDispatcher targetDispatcher = new();
@@ -219,14 +291,26 @@ public static class EventAlertDebugScenarios
             bool executed = target.ExecuteChoice(0);
 
             return source.EventLog.Count == 1
-                && source.EventLog[0].Count == 1
+                && mixedSourceMatch.Count == 1
+                && mixedSourceMatch.Title == "Persistent action"
+                && mixedSourceMatch.Importance == EventAlertImportance.High
+                && mixedSourceMatch.Category == "V21"
+                && mixedSourceMatch.Detail == "Closed detail must not reopen."
+                && mixedSourceMatch.Choices[0].ActionId
+                    == "v21-content|society|event%3A1|fulfill-latest"
+                && refreshedVisibleDetail
+                && closedDetailStayedClosed
+                && rejectedEmptySource
+                && rejectedDifferentSource
+                && mixedSourceMatchPreserved
                 && restored.SourceId == "event:1"
+                && restored.Detail == "Closed detail must not reopen."
                 && restored.Choices[0].ActionId
-                    == "v21-content|society|event%3A1|fulfill"
+                    == "v21-content|society|event%3A1|fulfill-latest"
                 && executed
                 && targetDispatcher.ActionIds.SequenceEqual(new[]
                 {
-                    "v21-content|society|event%3A1|fulfill"
+                    "v21-content|society|event%3A1|fulfill-latest"
                 })
                 && target.IsDismissed(restored)
                 && !target.IsDetailVisible;
@@ -728,6 +812,8 @@ public static class EventAlertDebugScenarios
         public bool IsDetailVisible { get; private set; }
         public int CreateCount { get; private set; }
         public int DestroyCount { get; private set; }
+        public int OpenDetailCount { get; private set; }
+        public EventAlertRecord LastOpenedRecord { get; private set; }
 
         public void ResetMutationCounts()
         {
@@ -740,8 +826,15 @@ public static class EventAlertDebugScenarios
         public void CreateButton(EventAlertRecord record) => CreateCount++;
         public void UpdateButton(EventAlertRecord record) { }
         public void RemoveButton(EventAlertRecord record) { }
-        public void OpenDetail(EventAlertRecord record) =>
+        public void OpenDetail(EventAlertRecord record)
+        {
             IsDetailVisible = record != null;
+            if (record != null)
+            {
+                OpenDetailCount++;
+                LastOpenedRecord = record;
+            }
+        }
         public void CloseDetail() => IsDetailVisible = false;
     }
 

@@ -1,0 +1,45 @@
+# WIM-048 full-save verifier RunCommand input
+
+status=NOT_AUTHORIZED_SAFETY
+purpose=Preserve the exact minimum Unity RunCommand input before the next authorized run.
+productionChange=false
+sourceAuthority=Assets/Scripts/Services/Invasion/Editor/DefenseEngagementPlayModeVerifier.cs
+sourceSha256=37C6B1E87F8062881A1D3DFF32C082CA8CBFAC14101782F0FF3F04279F4BC58E
+
+## Exact RunCommand input
+
+```csharp
+using System;
+using UnityEditor;
+
+internal class CommandScript : IRunCommand
+{
+    public void Execute(ExecutionResult result)
+    {
+        if (EditorApplication.isPlaying)
+        {
+            throw new InvalidOperationException(
+                "WIM048 focused verifier requires its public EditMode clean-scene preflight.");
+        }
+
+        DefenseEngagementPlayModeVerifier
+            .RunWim048ResidentRoomEvacuationFocused();
+        result.Log("WIM048 focused public verifier requested exactly once");
+    }
+}
+```
+
+## Current public API chain owned by the verifier
+
+- Public EditMode entry: `DefenseEngagementPlayModeVerifier.RunWim048ResidentRoomEvacuationFocused()`.
+- Clean-scene request and disposable Play bootstrap: canonical `GameplayScene`, one loaded clean scene, pending request consumed once.
+- Production preparation/selection: `IStartPartyPreparationService` + `IPreparedStartPartyGameplayApplier`; normal residents selected through `ICharacterSettlementStandingQuery`.
+- Work access: public `CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork)`; then public `AbilityWork.SetWorkPriority(BuiltInWorkTypeIds.Guard, WorkPriorityLevel.Off)`. The RunCommand itself never references `CharacterActor`, `AbilityWork`, `GetComponent<AbilityWork>()`, dynamic binding, `System.Reflection`, or non-public APIs.
+- Room/Defense route: public `IBuildingFeatureQueryService.Capture`, `IBuildingFeatureCommandService.DesignateResidentEvacuationRoom`, `InvasionDirectorRuntime.TrySpawnIntruder`, and `IDefenseFeatureCommandService.RequestResidentEvacuation`.
+- Full current-save route: public `IDungeonGameSaveService.Capture -> ToJson -> FromJson -> TryRestore`; current registration invokes `IDungeonSaveRestoreCompletedHook` after all save sections publish.
+- Post-restore authority: active actor reacquired by stable persistent ID, public evacuation zone/participant/target checked immediately and on the next normal frame; bounded Holding and cleanup remain verifier-owned.
+- No slot save/load/delete, scene Save/Discard, private reflection, forced flags, approval mutation, or source/SO edit is present in this input.
+
+compileReferenceGuard=PASS_BY_CONSTRUCTION:no-direct-CharacterActor-or-AbilityWork-reference
+execution=NOT_RUN
+safetyDecision=Rejected: this full verifier owns automatic party preparation, does not dispose persistence before runtime setup, and does not perform the required public TierZero reconciliation before its post-party baseline.

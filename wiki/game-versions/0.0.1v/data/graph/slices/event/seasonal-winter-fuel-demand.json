@@ -5,18 +5,6 @@
     "spoiler_tier": "warning",
     "title": "연료 쟁탈"
   },
-  "edges": [
-    {
-      "amount": "8",
-      "from": "event/seasonal-winter-fuel-demand",
-      "label": "연결",
-      "target_kind": "item",
-      "target_slug": "material-charcoal",
-      "target_spoiler_tier": "none",
-      "target_title": "숯",
-      "to": "item/material-charcoal",
-      "type": "consumes-item"
-    }
-  ],
+  "edges": [],
   "schema_version": 1
 }

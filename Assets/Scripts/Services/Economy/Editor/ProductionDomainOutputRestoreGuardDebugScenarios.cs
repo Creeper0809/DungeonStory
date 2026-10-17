@@ -27,7 +27,10 @@ public static class ProductionDomainOutputRestoreGuardDebugScenarios
 
     private static void VerifyCertifiedSaveSectionAdoptsBeforePublication()
     {
-        ProductionDomainOutputPublicationSaveData owner = Owner();
+        // This fixture isolates the persisted owner/physical-marker join; the
+        // canonical fact and ledger proof are covered by integration scenarios.
+        ProductionDomainOutputPublicationSaveData owner =
+            ObservedCertifiedOwner(delivered: true);
         CertifiedSeedWorldSaveData payload = new()
         {
             nextOrderSequence = 2,
@@ -68,16 +71,77 @@ public static class ProductionDomainOutputRestoreGuardDebugScenarios
             || restored.phase != CertifiedSeedOrderPhase
                 .OutputRestoredAwaitingInputAcknowledgement
             || !restored.outputPublication.outputAcknowledged
+            || !restored.outputPublication.observationDelivered
+            || string.IsNullOrEmpty(restored.outputPublication.observationId)
+            || restored.outputPublication.observationFingerprint != Digest('d')
+            || restored.outputPublication.stacks.Single().displayText !=
+                "QA certified seed"
             || publication.AcknowledgementCount != 1)
         {
             throw new InvalidOperationException(
                 "Certified-seed save restore did not atomically adopt its pending output.");
         }
+
+        owner = ObservedCertifiedOwner(delivered: false);
+        payload = new CertifiedSeedWorldSaveData
+        {
+            nextOrderSequence = 2,
+            orders = new List<CertifiedSeedOrderSaveData>
+            {
+                new()
+                {
+                    orderId = "certified-seed-order:00000001",
+                    orderSequence = 1,
+                    facilityInstanceId = owner.ownerFacilityId,
+                    phase = CertifiedSeedOrderPhase.OutputPublished,
+                    outputCapability =
+                        ProductionOutputCapabilitySaveData.Freeze(Capability()),
+                    outputPublication = owner
+                }
+            }
+        };
+        publication = new RecordingPublication();
+        persistence = new FixedCertifiedPersistence();
+        section = new CertifiedSeedSaveSection(
+            persistence,
+            new EmptyCertifiedInputDescriptorSource(),
+            new AcceptingCertifiedInputOwners(),
+            new ProductionDomainOutputRestoreJoin(
+                new FixedQuery(Incoming(owner)),
+                publication),
+            Registry(),
+            new AcceptingDetachedCapacityGuard());
+        report = new DungeonGameRestoreReport();
+        section.Restore(
+            JsonUtility.ToJson(payload),
+            CertifiedSeedWorldSaveData.CurrentVersion,
+            report);
+        restored = persistence.RestoredOrders.SingleOrDefault();
+        if (!report.Success
+            || restored == null
+            || restored.phase != CertifiedSeedOrderPhase.OutputPublished
+            || !restored.outputPublication.outputPublished
+            || restored.outputPublication.outputAcknowledged
+            || !restored.outputPublication.observationExpected
+            || restored.outputPublication.observationOwnerRevision <= 0L
+            || string.IsNullOrEmpty(restored.outputPublication.observationKey)
+            || restored.outputPublication.observationDelivered
+            || !string.IsNullOrEmpty(restored.outputPublication.observationId)
+            || !string.IsNullOrEmpty(
+                restored.outputPublication.observationFingerprint)
+            || restored.outputPublication.stacks.Single().displayText !=
+                "QA certified seed"
+            || publication.AcknowledgementCount != 0)
+        {
+            throw new InvalidOperationException(
+                "Certified-seed save restore did not retain the physical marker while observation delivery remained unknown.");
+        }
     }
 
     private static void VerifyCertifiedAcknowledgementFailurePreservesRuntime()
     {
-        ProductionDomainOutputPublicationSaveData owner = Owner();
+        ProductionDomainOutputPublicationSaveData owner =
+            ObservedCertifiedOwner(delivered: true);
         CertifiedSeedWorldSaveData payload = new()
         {
             nextOrderSequence = 2,
@@ -305,6 +369,24 @@ public static class ProductionDomainOutputRestoreGuardDebugScenarios
             }
         }
         };
+    }
+
+    private static ProductionDomainOutputPublicationSaveData
+        ObservedCertifiedOwner(bool delivered)
+    {
+        ProductionDomainOutputPublicationSaveData owner = Owner();
+        owner.observationExpected = true;
+        owner.observationOwnerRevision = 1L;
+        owner.observationKey = "domain-fact:certified-seed:qa:owner:1";
+        owner.observationId = delivered
+            ? "gameplay-outcome:certified-seed:qa:owner:1"
+            : string.Empty;
+        owner.observationFingerprint = delivered
+            ? Digest('d')
+            : string.Empty;
+        owner.observationDelivered = delivered;
+        owner.stacks[0].displayText = "QA certified seed";
+        return owner;
     }
 
     private static ProductionOutputCapabilityDescriptor Capability() => new(

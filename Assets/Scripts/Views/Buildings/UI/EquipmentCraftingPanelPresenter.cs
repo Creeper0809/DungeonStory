@@ -335,6 +335,10 @@ public sealed class EquipmentCraftingPanelPresenter :
                 $"EquipmentCraftControls_{index}",
                 34f);
             created.Add(controls);
+            CraftQualityAttemptEstimate estimate = equipment.CaptureCraftQualityEstimate(order.orderId);
+            AddText(parent, GameplayUiPresentationText.QualityEstimate(estimate), font, 12f,
+                estimate.NeedsLowProbabilityWarning ? DungeonUiTheme.Warning : DungeonUiTheme.TextSecondary,
+                90f, created);
             AddButton(
                 controls.transform,
                 $"작업자 {FormatWorkerMode(order.workerPolicy)}",

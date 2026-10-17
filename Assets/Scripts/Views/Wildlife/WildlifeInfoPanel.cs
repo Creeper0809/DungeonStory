@@ -17,6 +17,10 @@ public sealed class WildlifeInfoPanel : UIPopUp
     private IAnimalHusbandryCommand husbandryCommands;
     private ICharacterAiWorldRegistry worldRegistry;
     private ISurgeryPlanningWindowService surgeryWindowService;
+    private IWildlifeCompanionRoleQuery companionRoles;
+    private IWildlifeCompanionRoleCommand companionCommands;
+    private IWildlifeHaulRoleQuery haulRoles;
+    private IWildlifeHaulRoleCommand haulCommands;
     private GameObject uiRoot;
     private TMP_Text titleText;
     private TMP_Text bodyText;
@@ -25,6 +29,7 @@ public sealed class WildlifeInfoPanel : UIPopUp
     private IGameEventBus gameEventBus;
     private IDisposable infoFeedSubscription;
     private string actionMessage = string.Empty;
+    private GameObject companionOwnerPanel;
 
     public WildlifeActor CurrentWildlife => current;
     public bool IsShowingWildlife => current != null
@@ -67,6 +72,28 @@ public sealed class WildlifeInfoPanel : UIPopUp
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         SubscribeToInfoFeed();
+    }
+
+    [Inject]
+    public void ConstructWildlifeCompanionRoles(
+        IWildlifeCompanionRoleQuery companionRoles,
+        IWildlifeCompanionRoleCommand companionCommands)
+    {
+        this.companionRoles = companionRoles
+            ?? throw new ArgumentNullException(nameof(companionRoles));
+        this.companionCommands = companionCommands
+            ?? throw new ArgumentNullException(nameof(companionCommands));
+    }
+
+    [Inject]
+    public void ConstructWildlifeHaulRoles(
+        IWildlifeHaulRoleQuery haulRoles,
+        IWildlifeHaulRoleCommand haulCommands)
+    {
+        this.haulRoles = haulRoles
+            ?? throw new ArgumentNullException(nameof(haulRoles));
+        this.haulCommands = haulCommands
+            ?? throw new ArgumentNullException(nameof(haulCommands));
     }
 
     private void Start()
@@ -137,6 +164,10 @@ public sealed class WildlifeInfoPanel : UIPopUp
         }
 
         current = null;
+        if (companionOwnerPanel != null)
+        {
+            Destroy(companionOwnerPanel);
+        }
     }
 
     private void EnsureView()
@@ -230,18 +261,20 @@ public sealed class WildlifeInfoPanel : UIPopUp
         CreateBottomButton(parent, 3, "생포·방생", ToggleCapture);
         CreateBottomButton(parent, 4, "도축 지정", ToggleSlaughter);
         CreateBottomButton(parent, 5, "수술 계획", OpenSurgery);
+        CreateBottomButton(parent, 6, "동행 주인", ToggleCompanionOwnerPanel);
+        CreateBottomButton(parent, 7, "독립 운반", ToggleHaulRole);
     }
 
     private void CreateBottomButton(Transform parent, int index, string label, Action action)
     {
         Button button = CreateButton("Action_" + index, parent, label, action);
         RectTransform rect = button.GetComponent<RectTransform>();
-        const float buttonCount = 6f;
+        const float buttonCount = 8f;
         rect.anchorMin = new Vector2(index / buttonCount, 0f);
         rect.anchorMax = new Vector2((index + 1) / buttonCount, 0f);
         rect.pivot = new Vector2(0.5f, 0f);
         rect.offsetMin = new Vector2(index == 0 ? 18f : 8f, 22f);
-        rect.offsetMax = new Vector2(index == 5 ? -18f : -8f, 66f);
+        rect.offsetMax = new Vector2(index == 7 ? -18f : -8f, 66f);
     }
 
     private void Render()
@@ -368,6 +401,170 @@ public sealed class WildlifeInfoPanel : UIPopUp
         surgeryWindowService.Open(current, transform);
     }
 
+    private void ToggleCompanionOwnerPanel()
+    {
+        if (companionOwnerPanel != null)
+        {
+            Destroy(companionOwnerPanel);
+            companionOwnerPanel = null;
+            return;
+        }
+        if (current == null || companionRoles == null || companionCommands == null)
+        {
+            return;
+        }
+
+        companionOwnerPanel = new GameObject(
+            "WildlifeCompanionOwnerPanel",
+            typeof(RectTransform),
+            typeof(Image));
+        companionOwnerPanel.transform.SetParent(uiRoot.transform, false);
+        RectTransform panel = companionOwnerPanel.GetComponent<RectTransform>();
+        panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
+        panel.pivot = new Vector2(0.5f, 0.5f);
+        panel.sizeDelta = new Vector2(390f, 420f);
+        companionOwnerPanel.GetComponent<Image>().color = DungeonUiTheme.SurfaceRaised;
+
+        TMP_Text heading = CreateText(
+            "Heading",
+            panel,
+            21f,
+            FontStyles.Bold,
+            TextAlignmentOptions.Center);
+        heading.rectTransform.anchorMin = new Vector2(0f, 1f);
+        heading.rectTransform.anchorMax = new Vector2(1f, 1f);
+        heading.rectTransform.pivot = new Vector2(0.5f, 1f);
+        heading.rectTransform.offsetMin = new Vector2(16f, -58f);
+        heading.rectTransform.offsetMax = new Vector2(-16f, -12f);
+        heading.text = "동행 주인 선택";
+
+        CharacterActor[] owners = worldRegistry.Characters
+            .Where(actor => WildlifeCaptureRuntime.IsEligibleOwner(actor)
+                && CharacterPersistentIdentity.TryGet(actor, out _))
+            .OrderBy(actor => CharacterPersistentIdentity.Require(actor).Value,
+                StringComparer.Ordinal)
+            .ToArray();
+
+        RectTransform viewport = CreateRect("OwnerViewport", panel);
+        viewport.anchorMin = Vector2.zero;
+        viewport.anchorMax = Vector2.one;
+        viewport.offsetMin = new Vector2(24f, 70f);
+        viewport.offsetMax = new Vector2(-24f, -66f);
+        Image viewportImage = viewport.gameObject.AddComponent<Image>();
+        viewportImage.color = new Color(1f, 1f, 1f, 0.01f);
+        viewport.gameObject.AddComponent<RectMask2D>();
+        ScrollRect scroll = viewport.gameObject.AddComponent<ScrollRect>();
+        scroll.horizontal = false;
+        scroll.vertical = true;
+        scroll.movementType = ScrollRect.MovementType.Clamped;
+        scroll.scrollSensitivity = 20f;
+
+        RectTransform content = CreateRect("OwnerContent", viewport);
+        content.anchorMin = new Vector2(0f, 1f);
+        content.anchorMax = new Vector2(1f, 1f);
+        content.pivot = new Vector2(0.5f, 1f);
+        content.anchoredPosition = Vector2.zero;
+        content.sizeDelta = Vector2.zero;
+        VerticalLayoutGroup layout = content.gameObject.AddComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset(6, 6, 6, 6);
+        layout.spacing = 8f;
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+        ContentSizeFitter fitter = content.gameObject.AddComponent<ContentSizeFitter>();
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        scroll.viewport = viewport;
+        scroll.content = content;
+
+        for (int index = 0; index < owners.Length; index++)
+        {
+            CharacterActor owner = owners[index];
+            Button select = CreateButton(
+                "Owner_" + index,
+                content,
+                owner.Identity?.DisplayName ?? owner.name,
+                () => SelectCompanionOwner(owner));
+            LayoutElement row = select.gameObject.AddComponent<LayoutElement>();
+            row.minHeight = 34f;
+            row.preferredHeight = 34f;
+        }
+
+        Button clear = CreateButton(
+            "ClearRole",
+            panel,
+            "동행 해제",
+            ClearCompanionOwner);
+        RectTransform clearRect = clear.GetComponent<RectTransform>();
+        clearRect.anchorMin = clearRect.anchorMax = new Vector2(0f, 0f);
+        clearRect.pivot = new Vector2(0f, 0f);
+        clearRect.anchoredPosition = new Vector2(26f, 18f);
+        clearRect.sizeDelta = new Vector2(150f, 38f);
+
+        Button close = CreateButton(
+            "Close",
+            panel,
+            "닫기",
+            ToggleCompanionOwnerPanel);
+        RectTransform closeRect = close.GetComponent<RectTransform>();
+        closeRect.anchorMin = closeRect.anchorMax = new Vector2(1f, 0f);
+        closeRect.pivot = new Vector2(1f, 0f);
+        closeRect.anchoredPosition = new Vector2(-26f, 18f);
+        closeRect.sizeDelta = new Vector2(150f, 38f);
+    }
+
+    private void SelectCompanionOwner(CharacterActor owner)
+    {
+        string failureReason = string.Empty;
+        actionMessage = current != null
+            && CharacterPersistentIdentity.TryGet(owner, out CharacterId ownerId)
+            && companionCommands.TryAssignCompanion(
+                current.WildlifeId,
+                ownerId,
+                out failureReason)
+                    ? "동행 주인을 배정했습니다. 공격 준비 시간이 적용됩니다."
+                    : failureReason ?? "동행 주인을 배정할 수 없습니다.";
+        ToggleCompanionOwnerPanel();
+        Render();
+    }
+
+    private void ClearCompanionOwner()
+    {
+        string failureReason = string.Empty;
+        actionMessage = current != null
+            && companionCommands.TryClearCompanion(
+                current.WildlifeId,
+                out failureReason)
+                    ? "동행 역할을 해제했습니다."
+                    : failureReason ?? "동행 역할을 해제할 수 없습니다.";
+        ToggleCompanionOwnerPanel();
+        Render();
+    }
+
+    private void ToggleHaulRole()
+    {
+        if (current == null || haulRoles == null || haulCommands == null)
+        {
+            return;
+        }
+
+        bool assigned = haulRoles.TryGetHaul(
+            current.WildlifeId,
+            out WildlifeHaulAssignmentSnapshot assignment);
+        string failureReason = string.Empty;
+        actionMessage = assigned
+            ? haulCommands.TryClearHaul(current.WildlifeId, out failureReason)
+                ? assignment.Phase is CapturedWildlifeHaulPhase.CargoOwned
+                        or CapturedWildlifeHaulPhase.ReleasePending
+                    ? "독립 운반 역할 해제를 요청했습니다. 보유 화물은 먼저 배송합니다."
+                    : "독립 운반 역할을 해제했습니다."
+                : failureReason
+            : haulCommands.TryAssignHaul(current.WildlifeId, out failureReason)
+                ? "독립 운반 역할을 배정했습니다."
+                : failureReason;
+        Render();
+    }
+
     private string FormatHusbandryState(string wildlifeId)
     {
         if (!husbandryQuery.TryGetAnimal(
@@ -425,9 +622,29 @@ public sealed class WildlifeInfoPanel : UIPopUp
             CapturedWildlifeTransportState.Escaped => "탈출",
             _ => captured.transportState.ToString()
         };
+        string role = companionRoles != null
+            && companionRoles.TryGetCompanion(
+                wildlifeId,
+                out WildlifeCompanionAssignmentSnapshot assignment)
+                ? $" · 동행 주인 {FormatOwnerName(assignment.OwnerId)}"
+                : haulRoles != null
+                    && haulRoles.TryGetHaul(
+                        wildlifeId,
+                        out WildlifeHaulAssignmentSnapshot haul)
+                        ? $" · 독립 운반 {FormatHaulPhase(haul.Phase)}"
+                        : string.Empty;
         return string.IsNullOrWhiteSpace(captured.lastCareStatus)
-            ? state
-            : $"{state} · {captured.lastCareStatus}";
+            ? state + role
+            : $"{state}{role} · {captured.lastCareStatus}";
+    }
+
+    private string FormatOwnerName(CharacterId ownerId)
+    {
+        CharacterActor owner = worldRegistry.Characters.FirstOrDefault(actor =>
+            actor != null
+            && CharacterPersistentIdentity.TryGet(actor, out CharacterId id)
+            && id.Equals(ownerId));
+        return owner?.Identity?.DisplayName ?? ownerId.Value;
     }
 
     private static int Manhattan(Vector2Int a, Vector2Int b)
@@ -551,6 +768,16 @@ public sealed class WildlifeInfoPanel : UIPopUp
     {
         return $"{Mathf.Clamp01(value) * 100f:0}%";
     }
+
+    private static string FormatHaulPhase(CapturedWildlifeHaulPhase phase) =>
+        phase switch
+        {
+            CapturedWildlifeHaulPhase.Idle => "대기",
+            CapturedWildlifeHaulPhase.Reserved => "픽업 이동",
+            CapturedWildlifeHaulPhase.CargoOwned => "배송 이동",
+            CapturedWildlifeHaulPhase.ReleasePending => "해제 전 배송",
+            _ => phase.ToString()
+        };
 
     private static string FormatEmpty(string value)
     {

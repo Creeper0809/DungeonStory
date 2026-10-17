@@ -87,6 +87,9 @@ public sealed class IndustrialFeatureSurfacePresenter :
     private readonly Dictionary<string, BuildableObject> buildingsByNodeId =
         new Dictionary<string, BuildableObject>(StringComparer.Ordinal);
     private int indexedBuildingVersion = int.MinValue;
+    private readonly HashSet<string> expandedConveyorDestinations = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, int> conveyorChoicePages = new(StringComparer.Ordinal);
+    private const int ConveyorChoicesPerPage = 8;
 
     public IndustrialFeatureSurfacePresenter(
         IndustrialPowerFluidContext utilities,
@@ -165,6 +168,17 @@ public sealed class IndustrialFeatureSurfacePresenter :
                 $"생산 {network.ProductionPerSecond:0.0}/s · 수요 {network.DemandPerSecond:0.0}/s · 공급 {network.SuppliedPerSecond:0.0}/s\n"
                 + $"축전 {network.StoredPower:0.0}/{network.StorageCapacity:0.0}"
                 + (network.Tripped ? " · 차단기 작동" : string.Empty);
+            if (network.CapacitySourceOccurrenceInstanceId.Length > 0)
+            {
+                float reduction = (1f - network.AvailableSourceMultiplier)
+                    * 100f;
+                detail +=
+                    $"\n가용 전원 {network.NominalAvailableSourcePerSecond:0.0}→{network.AvailableSourcePerSecond:0.0}/s"
+                    + $" · {network.CapacitySourceDisplayName} -{reduction:0}%"
+                    + (network.CapacitySourceRemainingDays > 0
+                        ? $" · 남은 {network.CapacitySourceRemainingDays}일"
+                        : " · 오늘 종료");
+            }
             view.AddDataCard(
                 $"IndustryPower_{network.NetworkId}",
                 network.NetworkId,
@@ -172,6 +186,26 @@ public sealed class IndustrialFeatureSurfacePresenter :
                 "새로고침",
                 view.RequestRefresh,
                 CardHeight);
+        }
+
+        foreach (PowerNodeSnapshot node in networks.SelectMany(network => network.Nodes)
+                     .Where(value => value.HasControllableConnection)
+                     .OrderBy(value => value.BuildingId.Value, StringComparer.Ordinal))
+        {
+            PowerNodeSnapshot captured = node;
+            BuildableObject building = FindBuilding(captured.BuildingId.Value);
+            view.AddDataCard(
+                $"IndustryPowerConnection_{captured.BuildingId.Value}",
+                GetBuildingName(building, captured.BuildingId.Value),
+                $"전력 {(captured.ConnectionEnabled ? "연결" : "차단")} · 최대 통과 {captured.MaximumThroughput:0.###}/s",
+                captured.ConnectionEnabled ? "전력 차단" : "전력 연결",
+                () =>
+                {
+                    view.ShowFeedback(FormatCommandResult(
+                        powerCommands.SetConnectionEnabled(building, !captured.ConnectionEnabled)));
+                    view.RequestRefresh();
+                },
+                82f);
         }
 
         PowerNodeSnapshot[] consumerNodes = networks
@@ -437,6 +471,20 @@ public sealed class IndustrialFeatureSurfacePresenter :
                                 changed => changed.filterQuality =
                                     !filter.filterQuality))
                     };
+                if (building?.BuildingData?.GetAbility<BuildingConveyorPortAbility>() != null)
+                {
+                    view.AddDataCard(
+                        $"ConveyorDestination_{capturedNode.BuildingId.Value}", "컨베이어 목적지",
+                        string.IsNullOrEmpty(capturedNode.DestinationId) ? "미설정" : capturedNode.DestinationId
+                            + (conveyorQuery.GetDestinationChoices(building).Any(choice => choice.DestinationId == capturedNode.DestinationId)
+                                ? "" : " · 철거/연결/출력 위치 확인 필요"), "목적지 선택",
+                        () =>
+                        {
+                            if (!expandedConveyorDestinations.Add(capturedNode.BuildingId.Value))
+                                expandedConveyorDestinations.Remove(capturedNode.BuildingId.Value);
+                            view.RequestRefresh();
+                        }, 120f);
+                }
                 if (building?.BuildingData?.GetAbility<
                         BuildingConveyorOverflowAbility>() != null)
                 {
@@ -570,7 +618,125 @@ public sealed class IndustrialFeatureSurfacePresenter :
                     steppers,
                     actions,
                     steppers.Count > 1 ? 174f : 134f);
+                if (building?.BuildingData?.GetAbility<BuildingConveyorPortAbility>() != null
+                    && expandedConveyorDestinations.Contains(capturedNode.BuildingId.Value))
+                    AddConveyorDestinations(view, building, capturedNode);
+                AddConveyorFilterLists(view, building, capturedNode, filter);
             }
+        }
+    }
+
+    private void AddConveyorFilterLists(IFeatureSurfaceView view, BuildableObject building,
+        ConveyorNodeSnapshot node, ConveyorFilterCriteria filter)
+    {
+        string prefix = "ConveyorChoices_" + node.BuildingId.Value + "_";
+        var actions = new List<FeatureSurfaceAction>();
+        void Toggle(string kind, string label) => actions.Add(new FeatureSurfaceAction(kind, label, () =>
+        {
+            if (!conveyorChoicePages.Remove(prefix + kind)) conveyorChoicePages.Add(prefix + kind, 0);
+            view.RequestRefresh();
+        }));
+        Toggle("Item", "품목 " + filter.itemIds.Count);
+        Toggle("Category", "분류 " + filter.stockCategories.Count);
+        Toggle("Material", "장비 재료 " + filter.materialIds.Count);
+        bool hasOverflow = building?.BuildingData?.GetAbility<BuildingConveyorOverflowAbility>() != null;
+        if (hasOverflow) Toggle("Reserve", "예비창고 선택");
+        view.AddControlCard(prefix + "Lists", "운반 허용 목록",
+            "품목 또는 분류 · 둘 다 비우면 전체. 장비 재료/품질/신선도는 추가 조건입니다.",
+            Array.Empty<FeatureSurfaceStepper>(), actions, 134f);
+        if (conveyorChoicePages.ContainsKey(prefix + "Item"))
+            AddConveyorChoicePage(view, prefix + "Item", conveyorQuery.GetItemFilterChoices(),
+                filter.itemIds, id => ApplyFilterChange(view, building, filter, changed =>
+                { if (!changed.itemIds.Remove(id)) changed.itemIds.Add(id); }));
+        if (conveyorChoicePages.ContainsKey(prefix + "Category"))
+            AddConveyorChoicePage(view, prefix + "Category", conveyorQuery.GetStockCategoryFilterChoices()
+                .Select(category => new ConveyorFilterChoice(category.ToString(), category.ToString())).ToArray(),
+                filter.stockCategories.Select(category => category.ToString()).ToArray(),
+                id => ApplyFilterChange(view, building, filter, changed =>
+                {
+                    StockCategory category = (StockCategory)Enum.Parse(typeof(StockCategory), id);
+                    if (!changed.stockCategories.Remove(category)) changed.stockCategories.Add(category);
+                }));
+        if (conveyorChoicePages.ContainsKey(prefix + "Material"))
+        {
+            view.AddLabel("장비 인스턴스의 재료를 검사합니다. 일반 원료는 품목/분류에서 선택하세요.", 14f, 44f);
+            AddConveyorChoicePage(view, prefix + "Material", conveyorQuery.GetMaterialFilterChoices(),
+                filter.materialIds, id => ApplyFilterChange(view, building, filter, changed =>
+                { if (!changed.materialIds.Remove(id)) changed.materialIds.Add(id); }));
+        }
+        if (!hasOverflow) return;
+        var warehouses = conveyorQuery.GetReserveWarehouseChoices();
+        string reserveStatus = string.IsNullOrEmpty(node.ReserveWarehouseId) ? "미설정" : node.ReserveWarehouseId;
+        if (!string.IsNullOrEmpty(node.ReserveWarehouseId)
+            && !warehouses.Any(choice => choice.DestinationId == node.ReserveWarehouseId))
+            reserveStatus += " · 창고 소실/사용 불가";
+        view.AddLabel("정책: " + FormatOverflowPolicy(node.OverflowPolicy) + "\n예비창고: " + reserveStatus, 14f, 52f);
+        if (!conveyorChoicePages.ContainsKey(prefix + "Reserve")) return;
+        void SelectReserve(string id)
+        {
+            view.ShowFeedback(FormatCommandResult(conveyorCommands.SetOverflowPolicy(building, node.OverflowPolicy, id)));
+            view.RequestRefresh();
+        }
+        view.AddDataCard(prefix + "ReserveClear", "예비창고 해제", "화물은 벨트에 유지됩니다.",
+            "해제", () => SelectReserve(string.Empty), CardHeight);
+        AddConveyorChoicePage(view, prefix + "Reserve", warehouses.Select(choice => new ConveyorFilterChoice(
+                choice.DestinationId, GetBuildingName(FindBuilding(choice.FacilityId), choice.FacilityId)
+                    + $" · {choice.MaximumMassGrams / 1000d:0.###} kg (여유량은 입고 시 검사)")).ToArray(),
+            new[] { node.ReserveWarehouseId }, SelectReserve);
+    }
+
+    private void AddConveyorChoicePage(IFeatureSurfaceView view, string key,
+        IReadOnlyList<ConveyorFilterChoice> choices, IReadOnlyCollection<string> selected, Action<string> select)
+    {
+        int last = Math.Max(0, (choices.Count - 1) / ConveyorChoicesPerPage);
+        int page = Math.Min(conveyorChoicePages[key], last);
+        conveyorChoicePages[key] = page;
+        view.AddControlCard(key + "Page", $"선택 목록 {page + 1}/{last + 1}", $"전체 {choices.Count}개 · 선택 {selected.Count}개",
+            new[] { new FeatureSurfaceStepper(key + "Paging", "페이지", (page + 1).ToString(),
+                () => { conveyorChoicePages[key] = Math.Max(0, page - 1); view.RequestRefresh(); },
+                () => { conveyorChoicePages[key] = Math.Min(last, page + 1); view.RequestRefresh(); }) },
+            Array.Empty<FeatureSurfaceAction>(), 134f);
+        foreach (var choice in choices.Skip(page * ConveyorChoicesPerPage).Take(ConveyorChoicesPerPage))
+        {
+            var captured = choice;
+            view.AddDataCard(key + "_" + choice.Id, choice.DisplayName, choice.Id,
+                selected.Contains(choice.Id) ? "선택됨" : "선택", () => select(captured.Id), CardHeight);
+        }
+    }
+
+    private static string FormatOverflowPolicy(ConveyorOverflowPolicy policy) => policy switch
+    {
+        ConveyorOverflowPolicy.ReserveWarehouseThenLoose => "예비창고 · 실패 시 화물 유지",
+        ConveyorOverflowPolicy.AnyCompatibleWarehouseThenLoose => "호환 창고 검색 · 실패 시 화물 유지",
+        ConveyorOverflowPolicy.LooseOnly => "명시적 바닥 배출",
+        ConveyorOverflowPolicy.ManualApproval => "화물별 승인 후 배출",
+        _ => "알 수 없는 정책"
+    };
+
+    private void AddConveyorDestinations(IFeatureSurfaceView view, BuildableObject building, ConveyorNodeSnapshot node)
+    {
+        var choices = conveyorQuery.GetDestinationChoices(building);
+        view.AddDataCard("ConveyorDestinationClear_" + node.BuildingId.Value, "목적지 해제",
+            "신규 자동 적재를 중지합니다. 이미 운반 중인 화물의 목적지는 유지합니다.", "해제",
+            () =>
+            {
+                view.ShowFeedback(FormatCommandResult(conveyorCommands.SetPortDestination(building, string.Empty)));
+                view.RequestRefresh();
+            }, CardHeight);
+        if (choices.Count == 0)
+            view.AddLabel("선택 가능한 연결 없음: 출력 포트를 시설의 입고 위치에 연결하고 먼저 출력 목적지를 설정하세요.", 14f, 52f);
+        foreach (var choice in choices)
+        {
+            var captured = choice;
+            string ownerName = GetBuildingName(FindBuilding(choice.OwnerFacilityId), choice.OwnerFacilityId);
+            view.AddDataCard("ConveyorDestinationChoice_" + node.BuildingId.Value + "_" + choice.DestinationId,
+                ownerName, choice.DestinationId + $"\n입고 위치 {choice.DropPosition} · 용량 {choice.MaximumMassGrams / 1000d:0.###} kg"
+                    + " · 품목/전력/잔량은 실제 배송 시 재검증", "선택",
+                () =>
+                {
+                    view.ShowFeedback(FormatCommandResult(conveyorCommands.SetPortDestination(building, captured.DestinationId)));
+                    view.RequestRefresh();
+                }, CardHeight);
         }
     }
 

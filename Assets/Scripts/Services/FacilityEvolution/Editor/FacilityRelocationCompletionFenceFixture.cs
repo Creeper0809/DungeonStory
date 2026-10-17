@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using VContainer;
@@ -15,6 +16,9 @@ public static class FacilityRelocationCompletionFenceFixture
             Grid grid = new(8, 8);
             TestBuildableObject source =
                 sourceObject.AddComponent<TestBuildableObject>();
+            source.RestorePersistentIdentity(
+                new BuildingInstanceId(
+                    "building:test:facility-relocation-completion-fence"));
             source.InitializePackedCandidate(grid, definition, new Vector2Int(3, 3));
 
             RejectingMutationFence fence = new();
@@ -158,6 +162,104 @@ public static class FacilityRelocationCompletionFenceFixture
         }
     }
 
+    private sealed class CompletionFenceRetargetParticipant :
+        IProductionFacilityRetargetParticipant
+    {
+        private readonly IProductionFacilityMutationFence fence;
+
+        internal CompletionFenceRetargetParticipant(
+            IProductionFacilityMutationFence fence) =>
+            this.fence = fence ?? throw new ArgumentNullException(nameof(fence));
+
+        public string ParticipantId => "completion-fence-recheck";
+
+        public bool TryPrepare(
+            IReadOnlyList<ProductionFacilityRetargetRequest> orderedRequests,
+            string operationId,
+            out ProductionFacilityRetargetParticipantPlan plan,
+            out string failureReason)
+        {
+            plan = null;
+            if (orderedRequests == null
+                || orderedRequests.Count != 1
+                || orderedRequests[0]?.SourceFacility?.RuntimeObject
+                    is not BuildableObject source)
+            {
+                failureReason = "qa-relocation-completion-source-invalid";
+                return false;
+            }
+
+            if (!fence.TryRequireNoAuthority(
+                    source,
+                    orderedRequests[0].MutationKind,
+                    out failureReason))
+            {
+                return false;
+            }
+
+            string fingerprint = ProductionFacilityDestructiveDrainCanonical
+                .ComputeFingerprint(
+                    ParticipantId + "|" + operationId + "|"
+                    + source.RequirePersistentInstanceId().Value);
+            plan = ProductionFacilityRetargetParticipantPlan.Create(
+                ParticipantId,
+                fingerprint,
+                new NoOpRetargetState(fingerprint));
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryCommit(
+            ProductionFacilityRetargetParticipantPlan plan,
+            IReadOnlyList<ProductionFacilityRetargetBinding> orderedBindings,
+            out string committedFingerprint,
+            out string failureReason) => TryCapture(
+            plan,
+            out committedFingerprint,
+            out failureReason);
+
+        public bool TryRollback(
+            ProductionFacilityRetargetParticipantPlan plan,
+            out string rolledBackFingerprint,
+            out string failureReason) => TryCapture(
+            plan,
+            out rolledBackFingerprint,
+            out failureReason);
+
+        public bool TryCaptureCurrentFingerprint(
+            ProductionFacilityRetargetParticipantPlan plan,
+            out string currentFingerprint,
+            out string failureReason) => TryCapture(
+            plan,
+            out currentFingerprint,
+            out failureReason);
+
+        private static bool TryCapture(
+            ProductionFacilityRetargetParticipantPlan plan,
+            out string fingerprint,
+            out string failureReason)
+        {
+            if (plan?.ParticipantState is not NoOpRetargetState state)
+            {
+                fingerprint = string.Empty;
+                failureReason = "qa-relocation-completion-plan-invalid";
+                return false;
+            }
+
+            fingerprint = state.Fingerprint;
+            failureReason = string.Empty;
+            return true;
+        }
+
+        private sealed class NoOpRetargetState
+        {
+            internal NoOpRetargetState(string fingerprint) =>
+                Fingerprint = fingerprint;
+
+            internal string Fingerprint { get; }
+        }
+    }
+
     private sealed class RejectingMutationFence :
         IProductionFacilityMutationFence
     {
@@ -236,9 +338,19 @@ public static class FacilityRelocationCompletionFenceFixture
     private sealed class ScenarioObjectResolver : IObjectResolver
     {
         private readonly IProductionFacilityMutationFence fence;
+        private readonly IProductionFacilityRetargetTransaction retarget;
 
-        internal ScenarioObjectResolver(IProductionFacilityMutationFence fence) =>
+        internal ScenarioObjectResolver(IProductionFacilityMutationFence fence)
+        {
             this.fence = fence ?? throw new ArgumentNullException(nameof(fence));
+            retarget = new ProductionFacilityRetargetTransaction(
+                new ProductionFacilityRetargetParticipantRegistry(
+                    new IProductionFacilityRetargetParticipant[]
+                    {
+                        new CompletionFenceRetargetParticipant(this.fence)
+                    }),
+                new ProductionFacilityMutationEpochRuntime());
+        }
 
         public object ApplicationOrigin => null;
         public DiagnosticsCollector Diagnostics { get; set; }
@@ -252,6 +364,11 @@ public static class FacilityRelocationCompletionFenceFixture
             if (type == typeof(IProductionFacilityMutationFence))
             {
                 resolved = fence;
+                return true;
+            }
+            if (type == typeof(IProductionFacilityRetargetTransaction))
+            {
+                resolved = retarget;
                 return true;
             }
             resolved = null;

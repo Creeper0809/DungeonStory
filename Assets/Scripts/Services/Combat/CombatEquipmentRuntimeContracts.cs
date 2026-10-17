@@ -43,6 +43,7 @@ public interface ICombatEquipmentRuntime :
     IBuildingEquipmentCraftingRuntimePort,
     ICombatFallbackWeaponRuntimePort
 {
+    CraftQualityAttemptEstimate CaptureCraftQualityEstimate(string orderId);
     IReadOnlyList<CombatEquipmentDefinitionSO> Definitions { get; }
     IReadOnlyCollection<CombatEquipmentInstance> Instances { get; }
     bool TryGetDefinition(string definitionId, out CombatEquipmentDefinitionSO definition);
@@ -189,6 +190,19 @@ public interface ICombatEquipmentRuntime :
         Vector2Int position,
         out string stackId,
         out string failureReason);
+    bool TryAssignPickedEquipmentToCharacter(
+        string characterId,
+        string instanceId,
+        CharacterCarryInventory inventory,
+        string sourceStackId,
+        string itemId,
+        out string failureReason);
+    bool TryUnequipSlotToWorld(
+        string characterId,
+        CombatEquipmentLoadoutSlot slot,
+        Vector2Int position,
+        out IReadOnlyList<string> stackIds,
+        out string failureReason);
     bool TrySetWorldStateBySourceStack(string sourceStackId, CombatEquipmentWorldState worldState);
     bool TryMarkLost(string instanceId);
     bool TryBindRetailStock(
@@ -261,16 +275,25 @@ public interface ICombatEquipmentRuntime :
         string ammunitionItemId,
         int amount);
     bool TryApplyDurabilityDamage(string instanceId, float damage);
+    bool TryApplyArcaneOverchargeDurabilityDamage(
+        string instanceId,
+        float damage);
+    bool TryRollbackArcaneOverchargeDurabilityDamage(
+        string instanceId,
+        float durabilityRatio);
     bool TryDetachForMaintenance(
         string instanceId,
         out CombatEquipmentInstance detached);
     IReadOnlyList<CombatEquipmentInstance> ConfiscateAllFromCharacter(
+        string characterId);
+    IReadOnlyList<CombatEquipmentInstance> ConfiscateAllForExpedition(
         string characterId);
     bool TryMaterializeRecoveredEquipment(
         string instanceId,
         Vector2Int position,
         out string failureReason);
     void HandleCharacterDeath(string characterId);
+    void RetireCharacterEquipment(string characterId);
     bool TryRestoreDurability(string instanceId, float durabilityRatio);
     IReadOnlyCollection<EquipmentModuleInstance> ModuleInstances { get; }
     IReadOnlyList<EquipmentHistoryTransferOrder> HistoryTransferOrders { get; }

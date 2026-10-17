@@ -1163,6 +1163,9 @@ public static class ResearchTreeDebugScenarios
     {
         public IReadOnlyList<KnowledgeResidueTaskSnapshot> Tasks =>
             Array.Empty<KnowledgeResidueTaskSnapshot>();
+        public int NextTaskSequence => 1;
+        public int TaskIdentityGeneration =>
+            KnowledgeResidueTaskIdentity.OriginalGeneration;
 
         public bool TryQueueCodexAnalysis(out string message)
         {
@@ -1186,13 +1189,16 @@ public static class ResearchTreeDebugScenarios
         public BlueprintResearchWorkResult ApplyApprovedWork(
             CharacterActor researcher,
             BuildableObject facility,
-            float approvedWorkUnits) => default;
+            float approvedWorkUnits,
+            DurableFacilityEquipmentUseContext equipment = null) => default;
 
         public IReadOnlyList<KnowledgeResidueTaskSaveData> Capture() =>
             Array.Empty<KnowledgeResidueTaskSaveData>();
 
         public KnowledgeResidueRestoreCandidate PrepareRestore(
-            IEnumerable<KnowledgeResidueTaskSaveData> tasks) =>
+            IEnumerable<KnowledgeResidueTaskSaveData> tasks,
+            int nextTaskSequence = 0,
+            int taskIdentityGeneration = 0) =>
             new KnowledgeResidueRestoreCandidate(
                 new KnowledgeResidueAggregateState());
 

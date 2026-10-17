@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 
 public sealed class CertifiedSeedSaveSection :
     DungeonStrictJsonSaveSection<
@@ -56,6 +57,47 @@ public sealed class CertifiedSeedSaveSection :
     protected override CertifiedSeedWorldSaveData CapturePayload() =>
         persistence.Capture();
 
+    protected override void ValidateRawPayload(string payloadJson) => ValidatePublicationJson(payloadJson);
+
+    internal static void ValidatePublicationJson(string payloadJson)
+    {
+        var root = JObject.Parse(payloadJson);
+        RequireFields(root, typeof(CertifiedSeedWorldSaveData));
+        if (root["orders"] is not JArray orders)
+            throw new InvalidOperationException("Certified-seed V7 orders are missing.");
+        foreach (var row in orders)
+        {
+            if (row is not JObject order || order["completionFact"] is not JObject fact
+                || order["outputPublication"] is not JObject output)
+                throw new InvalidOperationException("Certified-seed V7 observation fields are missing.");
+            RequireFields(fact, typeof(CertifiedSeedCompletionFactData));
+            RequireFields(output, typeof(ProductionDomainOutputPublicationSaveData));
+            if (output["stacks"] is not JArray stacks)
+                throw new InvalidOperationException("Certified-seed output stacks are missing.");
+            foreach (var item in stacks)
+            {
+                if (item is not JObject stack)
+                    throw new InvalidOperationException("Certified-seed output stack is malformed.");
+                RequireFields(stack, typeof(ProductionDomainPublishedStackSaveData));
+            }
+        }
+    }
+
+    private static void RequireFields(JObject value, Type type)
+    {
+        foreach (var field in type.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public))
+        {
+            if (field.IsDefined(typeof(NonSerializedAttribute), false)) continue;
+            var token = value[field.Name];
+            var expected = field.FieldType == typeof(string) ? JTokenType.String
+                : field.FieldType == typeof(bool) ? JTokenType.Boolean
+                : field.FieldType.IsEnum || field.FieldType == typeof(int) || field.FieldType == typeof(long)
+                    ? JTokenType.Integer : JTokenType.Array;
+            if (token == null || token.Type != expected)
+                throw new InvalidOperationException("Certified-seed fact field is missing or malformed: " + field.Name);
+        }
+    }
+
     protected override void ValidateParsedPayload(
         CertifiedSeedWorldSaveData payload) =>
         _ = persistence.BuildRestore(payload);
@@ -84,13 +126,15 @@ public sealed class CertifiedSeedSaveSection :
             switch (order.phase)
             {
                 case CertifiedSeedOrderPhase.OutputPublished:
-                    acknowledgements.Add(
-                        outputRestoreJoin.AdoptPending(
-                            order.outputPublication));
-                    order.outputPublication.outputAcknowledged = true;
-                    order.outputPublication.restoredInCurrentTransaction = true;
-                    order.phase = CertifiedSeedOrderPhase
-                        .OutputRestoredAwaitingInputAcknowledgement;
+                    var acknowledgement = outputRestoreJoin.AdoptPending(order.outputPublication);
+                    // An uncertain observer reply must retain its physical marker for exact replay.
+                    if (order.outputPublication.observationDelivered)
+                    {
+                        acknowledgements.Add(acknowledgement);
+                        order.outputPublication.outputAcknowledged = true;
+                        order.outputPublication.restoredInCurrentTransaction = true;
+                        order.phase = CertifiedSeedOrderPhase.OutputRestoredAwaitingInputAcknowledgement;
+                    }
                     break;
 
                 case CertifiedSeedOrderPhase

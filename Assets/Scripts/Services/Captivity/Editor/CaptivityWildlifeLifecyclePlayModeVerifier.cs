@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
+using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -20,22 +22,64 @@ using VContainer.Unity;
 /// </summary>
 public static class CaptivityWildlifeLifecyclePlayModeVerifier
 {
-    public const string ReportPath =
+    internal const string FullMode = "full";
+    internal const string TransportOnlyMode = "transport-only";
+    internal const string FeedColdResumeMode = "feed-cold-resume";
+    internal const string HusbandryPendingColdResumeMode = "husbandry-pending-cold-resume";
+    internal const string HusbandryPendingResumeWorldVariable = "DUNGEONSTORY_HUSBANDRY_PENDING_RESUME_WORLD";
+    internal const string HusbandryPendingResumeHashVariable = "DUNGEONSTORY_HUSBANDRY_PENDING_RESUME_SHA256";
+    internal const string FeedResumeWorldVariable = "DUNGEONSTORY_FEED_RESUME_WORLD";
+    internal const string FeedResumeHashVariable = "DUNGEONSTORY_FEED_RESUME_SHA256";
+    internal const string FeedObservationHashVariable = "DUNGEONSTORY_FEED_OBSERVATION_SHA256";
+    private const string DefaultReportPath =
         "Artifacts/QA/captivity-wildlife-lifecycle-playmode.txt";
+    internal const string E11ReportPathEnvironmentVariable =
+        "DUNGEONSTORY_U0_E11_CAPTURE_REPORT_PATH";
+    internal const string BackgroundNarrativeDeferralVariable =
+        "DUNGEONSTORY_CAPTIVITY_BACKGROUND_LLM_DEFER";
+    internal const string LiveNarrativeCaptureVariable =
+        "DUNGEONSTORY_LIVE_NARRATIVE_CAPTURE";
+    public static string ReportPath
+    {
+        get
+        {
+            string configured = Environment.GetEnvironmentVariable(
+                E11ReportPathEnvironmentVariable);
+            return string.IsNullOrWhiteSpace(configured)
+                ? DefaultReportPath
+                : configured;
+        }
+    }
     private const string PendingPath =
         "Temp/captivity-wildlife-lifecycle-playmode.flag";
     private const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
     private static readonly List<string> teardownConsoleIssues = new();
     private static bool teardownConsoleCaptureArmed;
+    private static bool batchExitArmed;
 
     [MenuItem("DungeonStory/Debug/QA/Run Captivity Wildlife Lifecycle Matrix")]
-    public static void RequestRun()
+    public static void RequestRun() => RequestRun(FullMode);
+
+    [MenuItem("DungeonStory/Debug/QA/Run Wildlife Capture Transport Only")]
+    public static void RequestTransportOnlyRun() =>
+        RequestRun(TransportOnlyMode);
+
+    private static void RequestRun(string mode)
     {
+        if (mode != FullMode && mode != TransportOnlyMode && mode != FeedColdResumeMode && mode != HusbandryPendingColdResumeMode)
+            throw new InvalidOperationException("Unknown captivity verification mode: " + mode);
         Directory.CreateDirectory("Temp");
-        File.WriteAllText(PendingPath, DateTime.UtcNow.ToString("O"));
+        File.WriteAllText(PendingPath, mode);
         if (EditorApplication.isPlaying)
         {
-            StartRunner(exitPlayMode: false);
+            StartRunner(
+                exitPlayMode: false,
+                transportOnly: string.Equals(
+                    mode,
+                    TransportOnlyMode,
+                    StringComparison.Ordinal),
+                feedColdResume: mode == FeedColdResumeMode,
+                husbandryPendingColdResume: mode == HusbandryPendingColdResumeMode);
             return;
         }
 
@@ -49,15 +93,246 @@ public static class CaptivityWildlifeLifecyclePlayModeVerifier
         EditorApplication.EnterPlaymode();
     }
 
+    public static void RunBatch()
+    {
+        RunBatch(FullMode);
+    }
+
+    public static void RunTransportBatch()
+    {
+        RunBatch(TransportOnlyMode);
+    }
+
+    public static void RunFeedColdResumeBatch() => RunBatch(FeedColdResumeMode);
+    public static void RunHusbandryPendingColdResumeBatch() => RunBatch(HusbandryPendingColdResumeMode);
+
+    // A diagnostic of the exact scheduling/comparison expressions, not a
+    // substitute for executing WildlifeCaptureRuntime or a gameplay PASS.
+    public static void RunCareClockBoundaryBatch()
+    {
+        string configured = Environment.GetEnvironmentVariable(
+            "DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        if (!Application.isBatchMode || EditorApplication.isPlaying
+            || string.IsNullOrWhiteSpace(configured)
+            || !Path.IsPathRooted(configured)
+            || !Path.GetFullPath(configured).StartsWith(
+                Path.GetFullPath("Artifacts/QA") + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Care clock diagnostic requires a scoped isolated EditMode batch.");
+        string report = Path.Combine(configured, "wildlife-care-clock-boundary.json");
+        var observations = new JArray();
+        var failures = new JArray();
+        int falseRejections = 0;
+        int productionAccepted = 0;
+        int invalidRejected = 0;
+        var validator = typeof(WildlifeCaptureRuntime).GetMethod("CaptureRemainingCareDelay",
+            System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("The actual production care deadline validator is missing.");
+        foreach (float time in new[] { 0.1f, 0.3f, 1.1f, 3.9f, 4.1f, 7.1f,
+            9.208319f, 15.1f, 31.1f, 63.1f, 127.1f, 255.1f, 1023.1f, 65531.1f })
+        {
+            IGameClock probeClock = new CareClockExpressionProbe(time);
+            var state = new CapturedWildlifeState
+            {
+                wildlifeId = "fixture:care-clock",
+                nextCareAt = probeClock.Time + CapturedWildlifeState.CareIntervalSeconds,
+                remainingCareSeconds = 0.25f
+            };
+            float capturedAt = probeClock.Time;
+            float roundedMaximum = BitConverter.ToSingle(BitConverter.GetBytes(
+                capturedAt + CapturedWildlifeState.CareIntervalSeconds), 0);
+            bool rejected = state.nextCareAt > capturedAt + CapturedWildlifeState.CareIntervalSeconds;
+            if (rejected) falseRejections++;
+            bool accepted = TryProbeRemainingCareDelay(validator, state, capturedAt,
+                out float remaining, out string validFailure);
+            if (accepted && remaining >= 0f && remaining <= CapturedWildlifeState.CareIntervalSeconds
+                && state.remainingCareSeconds == 0.25f) productionAccepted++;
+            else failures.Add("legitimate clock=" + capturedAt.ToString("R") + ": " + validFailure);
+            float outside = BitConverter.ToSingle(BitConverter.GetBytes(
+                BitConverter.ToInt32(BitConverter.GetBytes(roundedMaximum), 0) + 1), 0);
+            var invalid = state.Clone();
+            invalid.nextCareAt = outside;
+            bool outsideRejected = !TryProbeRemainingCareDelay(validator, invalid, capturedAt,
+                out _, out string outsideFailure)
+                && outsideFailure.Contains("care delay exceeds its normal interval", StringComparison.Ordinal)
+                && invalid.remainingCareSeconds == 0.25f;
+            if (outsideRejected) invalidRejected++;
+            else failures.Add("next-representable clock=" + capturedAt.ToString("R") + ": " + outsideFailure);
+            observations.Add(new JObject
+            {
+                ["clock"] = capturedAt,
+                ["clockBits"] = BitConverter.ToInt32(BitConverter.GetBytes(capturedAt), 0),
+                ["storedDeadline"] = state.nextCareAt,
+                ["deadlineBits"] = BitConverter.ToInt32(BitConverter.GetBytes(state.nextCareAt), 0),
+                ["roundedMaximum"] = roundedMaximum,
+                ["exactMathematicalMaximum"] = (double)capturedAt + CapturedWildlifeState.CareIntervalSeconds,
+                ["directExpressionRejectsLegitimateStoredDeadline"] = rejected,
+                ["roundedMaximumRejects"] = state.nextCareAt > roundedMaximum,
+                ["productionAccepted"] = accepted,
+                ["productionRemainingCareSeconds"] = accepted ? new JValue(remaining) : JValue.CreateNull(),
+                ["nextRepresentableDeadline"] = outside,
+                ["nextRepresentableDeadlineRejected"] = outsideRejected
+            });
+        }
+        foreach (float invalidDeadline in new[] { float.NaN, float.PositiveInfinity, float.NegativeInfinity, -0.1f })
+        {
+            var invalid = new CapturedWildlifeState { wildlifeId = "fixture:care-clock:invalid", nextCareAt = invalidDeadline };
+            bool invalidFailed = !TryProbeRemainingCareDelay(validator, invalid, 1f, out _, out string invalidFailure)
+                && invalidFailure.Contains("invalid care deadline", StringComparison.Ordinal);
+            if (invalidFailed) invalidRejected++;
+            else failures.Add("invalid deadline=" + invalidDeadline.ToString("R") + ": " + invalidFailure);
+        }
+        var overdue = new CapturedWildlifeState { wildlifeId = "fixture:care-clock:overdue", nextCareAt = 0f };
+        bool overdueReady = TryProbeRemainingCareDelay(validator, overdue, 1f, out float overdueRemaining, out string overdueFailure)
+            && overdueRemaining == 0f;
+        if (!overdueReady) failures.Add("overdue care: " + overdueFailure);
+        Directory.CreateDirectory(configured);
+        using (var stream = new FileStream(report, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
+        using (var writer = new StreamWriter(stream))
+            writer.Write(new JObject
+            {
+                ["schemaVersion"] = 1,
+                ["status"] = failures.Count == 0 ? "PRODUCTION_CARE_DEADLINE_BOUNDARY_PASS" : "PRODUCTION_CARE_DEADLINE_BOUNDARY_FAIL",
+                ["legacyExpressionFalseRejections"] = falseRejections,
+                ["productionAccepted"] = productionAccepted,
+                ["invalidRejected"] = invalidRejected,
+                ["overdueReadyForNormalTick"] = overdueReady,
+                ["observations"] = observations,
+                ["failures"] = failures,
+                ["productionDeadlineValidatorExecuted"] = true,
+                ["productionOwnerExecuted"] = false,
+                ["gameplayPassClaimed"] = false,
+                ["trainingEligible"] = false
+            }.ToString());
+        if (failures.Count != 0)
+            throw new InvalidOperationException("Production care deadline boundary failed; inspect " + report);
+        Debug.Log("CARE_CLOCK_PRODUCTION_BOUNDARY_PASS accepted=" + productionAccepted
+            + "; rejectedInvalid=" + invalidRejected + "; overdueReady=" + overdueReady);
+    }
+
+    private static bool TryProbeRemainingCareDelay(System.Reflection.MethodInfo validator,
+        CapturedWildlifeState state, float capturedAt, out float remaining, out string failure)
+    {
+        try
+        {
+            remaining = (float)validator.Invoke(null, new object[] { state, capturedAt });
+            failure = string.Empty;
+            return true;
+        }
+        catch (System.Reflection.TargetInvocationException error)
+            when (error.InnerException is InvalidOperationException invalid)
+        {
+            remaining = 0f;
+            failure = invalid.Message;
+            return false;
+        }
+    }
+
+    private sealed class CareClockExpressionProbe : IGameClock
+    {
+        internal CareClockExpressionProbe(float time) => Time = time;
+        public float DeltaTime => 0f;
+        public float Time { get; }
+        public int FrameCount => 0;
+        public bool IsPaused => true;
+    }
+
+    private static void RunBatch(string mode)
+    {
+        string configured = Environment.GetEnvironmentVariable(
+            E11ReportPathEnvironmentVariable);
+        if (!string.IsNullOrWhiteSpace(configured)
+            && (File.Exists(ReportPath)
+                || (mode == TransportOnlyMode
+                    && File.Exists(Path.ChangeExtension(ReportPath, ".raw.json")))))
+        {
+            throw new InvalidOperationException(
+                "E11 capture evidence is immutable and already exists: "
+                + ReportPath);
+        }
+        bool deferBackgroundNarrative = Application.isBatchMode
+            && (mode == FullMode || mode == TransportOnlyMode
+                || mode == FeedColdResumeMode || mode == HusbandryPendingColdResumeMode);
+        if (deferBackgroundNarrative)
+        {
+            if (EditorApplication.isPlaying
+                || !DungeonPersistencePaths.IsIsolatedVerification
+                || string.IsNullOrWhiteSpace(configured)
+                || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(
+                    LiveNarrativeCaptureVariable))
+                || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(
+                    BackgroundNarrativeDeferralVariable)))
+            {
+                throw new InvalidOperationException(
+                    "Background narrative deferral requires a fresh, explicitly bound isolated batch.");
+            }
+            // Set before scene/Play startup so the existing capture mode never
+            // starts a native host. This fixture does not supply any response.
+            Environment.SetEnvironmentVariable(LiveNarrativeCaptureVariable, "1");
+            Environment.SetEnvironmentVariable(BackgroundNarrativeDeferralVariable, "1");
+        }
+        try
+        {
+            if (!batchExitArmed)
+            {
+                batchExitArmed = true;
+                EditorApplication.playModeStateChanged += ExitBatchAfterRun;
+            }
+            RequestRun(mode);
+        }
+        catch
+        {
+            if (deferBackgroundNarrative) ClearBackgroundNarrativeDeferral();
+            throw;
+        }
+    }
+
+    private static void ClearBackgroundNarrativeDeferral()
+    {
+        if (Environment.GetEnvironmentVariable(BackgroundNarrativeDeferralVariable) != "1")
+            return;
+        Environment.SetEnvironmentVariable(LiveNarrativeCaptureVariable, null);
+        Environment.SetEnvironmentVariable(BackgroundNarrativeDeferralVariable, null);
+    }
+
+    private static void ExitBatchAfterRun(PlayModeStateChange change)
+    {
+        if (change != PlayModeStateChange.EnteredEditMode || !batchExitArmed)
+            return;
+        EditorApplication.playModeStateChanged -= ExitBatchAfterRun;
+        batchExitArmed = false;
+        // All Play queues have already torn down. No queued request is released
+        // into a response-less capture dispatch while the fixture is ending.
+        ClearBackgroundNarrativeDeferral();
+        EditorApplication.delayCall += () =>
+        {
+            bool passed = File.Exists(ReportPath)
+                && File.ReadLines(ReportPath).Any(line =>
+                    line.StartsWith("RESULT=PASS", StringComparison.Ordinal));
+            EditorApplication.Exit(passed ? 0 : 1);
+        };
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
         if (!File.Exists(PendingPath)) return;
+        string mode = File.ReadAllText(PendingPath).Trim();
+        if (mode != FullMode && mode != TransportOnlyMode && mode != FeedColdResumeMode && mode != HusbandryPendingColdResumeMode)
+            throw new InvalidOperationException("Unknown pending captivity verification mode: " + mode);
         File.Delete(PendingPath);
-        StartRunner(exitPlayMode: true);
+        StartRunner(
+            exitPlayMode: true,
+            transportOnly: string.Equals(
+                mode,
+                TransportOnlyMode,
+                StringComparison.Ordinal),
+            feedColdResume: mode == FeedColdResumeMode,
+            husbandryPendingColdResume: mode == HusbandryPendingColdResumeMode);
     }
 
-    private static void StartRunner(bool exitPlayMode)
+    private static void StartRunner(bool exitPlayMode, bool transportOnly, bool feedColdResume,
+        bool husbandryPendingColdResume)
     {
         if (UnityEngine.Object.FindFirstObjectByType<
                 CaptivityWildlifeLifecyclePlayModeRunner>() != null)
@@ -68,7 +343,7 @@ public static class CaptivityWildlifeLifecyclePlayModeVerifier
         CaptivityWildlifeLifecyclePlayModeRunner runner =
             new GameObject(nameof(CaptivityWildlifeLifecyclePlayModeRunner))
                 .AddComponent<CaptivityWildlifeLifecyclePlayModeRunner>();
-        runner.Configure(exitPlayMode);
+        runner.Configure(exitPlayMode, transportOnly, feedColdResume, husbandryPendingColdResume);
     }
 
     internal static void ArmTeardownConsoleCapture()
@@ -149,13 +424,17 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
     private readonly List<FixtureBuildingSnapshot> fixtureBuildingSnapshots =
         new();
     private readonly List<AreaSnapshot> areaSnapshots = new();
-    private readonly List<DisplacedMovementSnapshot> displacedMovementBuildings =
+    private readonly List<PreparedOriginalBuildingSnapshot> preparedOriginalBuildings =
         new();
     private readonly List<DisplacedWildlifeSnapshot> displacedWildlife = new();
     private readonly List<MonoBehaviourState> pausedAi = new();
     private readonly List<IGridOccupant> faultWalls = new();
 
     private bool exitPlayMode;
+    private bool transportOnly;
+    private bool feedColdResume;
+    private bool husbandryPendingColdResume;
+    private bool IsColdResume => feedColdResume || husbandryPendingColdResume;
     private float oldTimeScale;
     private DungeonRuntimeLifetimeScope scope;
     private ICharacterAiWorldRegistry world;
@@ -187,7 +466,6 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
     private IExperiencePacingRuntime experiencePacing;
     private InvasionThreatRuntime invasionThreat;
     private InvasionDirectorRuntime invasionDirector;
-    private IInvasionSaveService invasionSaveService;
     private IDisposable invasionStartedProbeSubscription;
     private IDisposable invasionResolvedProbeSubscription;
     private IDisposable invasionCandidateProbeSubscription;
@@ -204,14 +482,19 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
     private ICharacterMedicalCommand medicalCommands;
     private ICharacterDeprivationRuntime deprivationRuntime;
     private IGameCalendar calendar;
+    private GameplayOutcomeLedger outcomeLedger;
+    private readonly JArray e11TransportObservations = new();
+    private string e11TransportWildlifeId;
+    private bool e11TransportRawWritten;
     private CharacterActor worker;
     private CharacterActor captiveActor;
     private AbilityWork workerWork;
     private WorkPriorityLevel oldAnimalCarePriority;
     private CharacterType captiveOldType;
-    private CharacterLifecycleState captiveOldLifecycle;
-    private bool captiveOldPaused;
     private List<DungeonSaveSectionEnvelope> baseline;
+    private IDungeonGameSaveService gameSaveService;
+    private DungeonGameSaveData baselineSaveData;
+    private ModularFacilityWorldSaveData baselineFacilityWorld;
     private CaptivitySaveData confinedPayload;
     private BuildableObject housing;
     private BuildableObject pen;
@@ -223,9 +506,21 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
     private Vector2Int escapeExteriorAnchorCell;
     private string fixtureStage = string.Empty;
     private string placementFailure = string.Empty;
+    private bool verificationBodyCompleted;
+    private bool runFinished;
+    private LocalLlmRequestQueue deferredNarrativeQueue;
+    private float nextMemoryObservation;
+    private int memoryObservationCount;
+    private string lastMemoryObservation = "memoryDiagnostic=NOT_OBSERVED";
 
-    public void Configure(bool shouldExitPlayMode) =>
+    public void Configure(bool shouldExitPlayMode, bool runTransportOnly, bool runFeedColdResume,
+        bool runHusbandryPendingColdResume)
+    {
         exitPlayMode = shouldExitPlayMode;
+        transportOnly = runTransportOnly;
+        feedColdResume = runFeedColdResume;
+        husbandryPendingColdResume = runHusbandryPendingColdResume;
+    }
 
     private IEnumerator Start()
     {
@@ -234,14 +529,61 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         Application.logMessageReceived += CaptureConsoleIssue;
         try
         {
-            yield return ResolveAndBuildFixture();
-            if (failures.Count == 0) yield return EstablishConfinedCaptive();
-            if (failures.Count == 0) yield return VerifyEscapeRows();
-            if (failures.Count == 0) yield return VerifyTransportRows();
-            if (failures.Count == 0) yield return VerifyAnimalCareRow();
+            ObserveBatchMemory();
+            if (Application.isBatchMode)
+            {
+                // One explicit preparation collection, before fixture commands.
+                // Do not collect during gameplay to conceal retained growth.
+                long managedBefore = UnityEngine.Profiling.Profiler.GetMonoUsedSizeLong();
+                int collectionsBefore = GC.CollectionCount(GC.MaxGeneration);
+                GC.Collect();
+                rows.Add("INFO\tBATCH_STARTUP_GC_PREPARATION\t"
+                    + $"managedBeforeBytes={managedBefore};"
+                    + $"managedAfterBytes={UnityEngine.Profiling.Profiler.GetMonoUsedSizeLong()};"
+                    + $"fullCollections={collectionsBefore}->{GC.CollectionCount(GC.MaxGeneration)};"
+                    + "one-preparation-only;gameplay-collection=false;trainingEligible=false");
+                ObserveBatchMemory();
+                WriteReport();
+            }
+            if (!transportOnly && !IsColdResume)
+                Check(CaptiveEscapeOutcomeDebugScenarios.RunCanonicalSaveRoundTrip(),
+                    "ESCAPE_OUTCOME_CANONICAL_SAVE_REPLAY_AND_TIER_REJECTION",
+                    "four canonical kinds;exact hashes preserved;replay duplicate0;"
+                    + "production memory schedule/slice;initial Recent/retained Episodic;"
+                    + "immutable tier mutation rejected by canonical initial-row guard;"
+                    + "rejection leaves live ledger unchanged;"
+                    + "controlled-contract-test;trainingEligible=false");
+            if (!IsColdResume) yield return VerifyPickupRetargetContract();
+            if (failures.Count == 0) yield return ResolveAndBuildFixture();
+            if (feedColdResume && failures.Count == 0)
+                yield return VerifyCompletedFeedColdResume();
+            if (husbandryPendingColdResume && failures.Count == 0)
+                yield return VerifyHusbandryPendingColdResume();
+            if (!transportOnly && !IsColdResume && failures.Count == 0)
+                yield return EstablishConfinedCaptive();
+            if (!transportOnly && !IsColdResume && failures.Count == 0)
+                yield return VerifyEscapeRows();
+            if (!IsColdResume && failures.Count == 0)
+                yield return transportOnly ? VerifyE11TransportGuarded() : VerifyTransportRows();
+            if (!transportOnly && !IsColdResume && failures.Count == 0)
+                yield return VerifyAnimalCareRow();
+            verificationBodyCompleted = true;
         }
         finally
         {
+            if (Application.isBatchMode)
+            {
+                Check(deferredNarrativeQueue != null
+                    && deferredNarrativeQueue.RunningCount == 0
+                    && !deferredNarrativeQueue.IsBundledModelStarting
+                    && !deferredNarrativeQueue.IsBundledModelRunning
+                    && !deferredNarrativeQueue.HasConfiguredEndpoint,
+                    "BACKGROUND_LLM_DEFERRED_THROUGH_RUN",
+                    $"queued={deferredNarrativeQueue?.QueuedCount};"
+                    + $"running={deferredNarrativeQueue?.RunningCount};"
+                    + "requests-retained-until-normal-queue-teardown;"
+                    + "no-response-provider;trainingEligible=false");
+            }
             Cleanup();
             Application.logMessageReceived -= CaptureConsoleIssue;
             Check(consoleIssues.Count == 0,
@@ -250,6 +592,7 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
                     ? "0/0"
                     : string.Join(" | ", consoleIssues));
             Time.timeScale = oldTimeScale;
+            runFinished = true;
             WriteReport();
             if (exitPlayMode)
             {
@@ -268,6 +611,42 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         }
     }
 
+    private void Update()
+    {
+        if (!Application.isBatchMode
+            || runFinished
+            || Time.realtimeSinceStartup < nextMemoryObservation)
+        {
+            return;
+        }
+
+        ObserveBatchMemory();
+        WriteReport();
+    }
+
+    private void ObserveBatchMemory(string phaseOverride = null)
+    {
+        if (!Application.isBatchMode) return;
+        nextMemoryObservation = Time.realtimeSinceStartup + 1f;
+        string phase = phaseOverride ?? (rows.Count == 0
+            ? "before-first-check"
+            : rows[rows.Count - 1].Split('\t')[1]);
+        lastMemoryObservation =
+            $"memoryDiagnostic=qa-observation-only;sample={++memoryObservationCount};"
+            + $"phase={phase};frame={Time.frameCount};"
+            + $"realtime={Time.realtimeSinceStartup:0.###};unityScaledTime={Time.time:0.###};"
+            + $"calendarHours={calendar?.AbsoluteHour};"
+            + $"managedUsedBytes={UnityEngine.Profiling.Profiler.GetMonoUsedSizeLong()};"
+            + $"managedHeapBytes={UnityEngine.Profiling.Profiler.GetMonoHeapSizeLong()};"
+            + $"engineAllocatedBytes={UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong()};"
+            + $"engineReservedBytes={UnityEngine.Profiling.Profiler.GetTotalReservedMemoryLong()}";
+        File.AppendAllText(
+            Path.ChangeExtension(
+                CaptivityWildlifeLifecyclePlayModeVerifier.ReportPath,
+                ".memory.tsv"),
+            lastMemoryObservation + Environment.NewLine);
+    }
+
     private IEnumerator ResolveAndBuildFixture()
     {
         float deadline = Time.realtimeSinceStartup + 15f;
@@ -281,6 +660,51 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         Check(scope?.Container != null, "LIVE_SCOPE", scope?.name ?? "missing");
         if (scope?.Container == null) yield break;
 
+        if (Application.isBatchMode)
+        {
+            deferredNarrativeQueue = scope.Container
+                .Resolve<ILocalLlmRuntimeProvider>().GetRequiredRuntime()
+                as LocalLlmRequestQueue;
+            bool prepared = DungeonPersistencePaths.IsIsolatedVerification
+                && Environment.GetEnvironmentVariable(
+                    CaptivityWildlifeLifecyclePlayModeVerifier.BackgroundNarrativeDeferralVariable) == "1"
+                && Environment.GetEnvironmentVariable(
+                    CaptivityWildlifeLifecyclePlayModeVerifier.LiveNarrativeCaptureVariable) == "1"
+                && deferredNarrativeQueue != null
+                && deferredNarrativeQueue.RunningCount == 0
+                && !deferredNarrativeQueue.IsBundledModelStarting
+                && !deferredNarrativeQueue.IsBundledModelRunning
+                && !deferredNarrativeQueue.HasConfiguredEndpoint
+                && deferredNarrativeQueue.CaptureReadiness().State
+                    == LocalLlmRuntimeReadinessState.Starting;
+            Check(prepared, "BACKGROUND_LLM_DEFERRAL_PREPARATION",
+                $"queuePresent={deferredNarrativeQueue != null};"
+                + $"running={deferredNarrativeQueue?.RunningCount};"
+                + $"hostStarting={deferredNarrativeQueue?.IsBundledModelStarting};"
+                + $"hostRunning={deferredNarrativeQueue?.IsBundledModelRunning};"
+                + "isolated-non-target-preparation;trainingEligible=false");
+            if (!prepared) yield break;
+            int queuedBeforeDeferral = deferredNarrativeQueue.QueuedCount;
+            deferredNarrativeQueue.ConfigureIsolatedRequestCapture(request =>
+                Check(false, "BACKGROUND_LLM_UNEXPECTED_DISPATCH",
+                    "Background requests must remain queued in this fixture."));
+            deferredNarrativeQueue.ConfigureIsolatedAutomaticDispatch(false);
+            Check(deferredNarrativeQueue.QueuedCount == queuedBeforeDeferral
+                && deferredNarrativeQueue.CaptureReadiness().State
+                    == LocalLlmRuntimeReadinessState.Ready,
+                "BACKGROUND_LLM_REQUESTS_RETAINED",
+                $"queued={queuedBeforeDeferral}->{deferredNarrativeQueue.QueuedCount};"
+                + "clear=false;abort=false;response-provider=false;trainingEligible=false");
+            if (failures.Count != 0) yield break;
+        }
+
+        ObserveBatchMemory("before-persistence-dispose");
+        (scope.Container.Resolve<IDungeonSaveCommandService>() as IDisposable)
+            ?.Dispose();
+        ObserveBatchMemory("after-dungeon-persistence-dispose");
+        scope.Container.Resolve<MetaProfilePersistenceService>().Dispose();
+        ObserveBatchMemory("after-meta-persistence-dispose");
+
         world = scope.Container.Resolve<ICharacterAiWorldRegistry>();
         proficiencies = scope.Container.Resolve<ICharacterProficiencyQuery>();
         bodyHealthQuery = scope.Container.Resolve<ICharacterBodyHealthQuery>();
@@ -289,13 +713,17 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         medicalCommands = scope.Container.Resolve<ICharacterMedicalCommand>();
         deprivationRuntime = scope.Container.Resolve<ICharacterDeprivationRuntime>();
         calendar = scope.Container.Resolve<IGameCalendar>();
+        outcomeLedger = scope.Container.Resolve<GameplayOutcomeLedger>();
+        ObserveBatchMemory("after-character-owner-resolve");
         if (world.Characters.Count(actor =>
                 actor != null
                 && !actor.IsDead
                 && HasCanonicalProficiencyProfile(actor)) < 2)
         {
+            ObserveBatchMemory("before-start-party-commit");
             rows.Add("INFO\tSTART_PARTY\t"
                 + StartPartyPreparationPlayModeVerifier.RunFastCommitForDebug());
+            ObserveBatchMemory("after-start-party-commit");
             for (int frame = 0; frame < 8; frame++) yield return null;
         }
         // Start-party setup normalizes the global simulation speed. Restore
@@ -321,6 +749,7 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         if (worker == null || captiveActor == null) yield break;
 
         saveRegistry = scope.Container.Resolve<IDungeonSaveSectionRegistry>();
+        gameSaveService = scope.Container.Resolve<IDungeonGameSaveService>();
         aggregateStore = scope.Container.Resolve<DungeonRuntimeAggregateRootStore>();
         captivityPersistence = scope.Container.Resolve<ICaptivityPersistence>();
         captivity = scope.Container.Resolve<ICaptivityRuntime>();
@@ -352,7 +781,6 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             FindObjectsInactive.Include);
         invasionDirector = FindFirstObjectByType<InvasionDirectorRuntime>(
             FindObjectsInactive.Include);
-        invasionSaveService = scope.Container.Resolve<IInvasionSaveService>();
         BeginInvasionEventDiagnostics();
         bool isolatedInvasionFixture = experiencePacing != null
             && !experiencePacing.AllowsRandomInvasion
@@ -370,63 +798,248 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             "LIVE_GRID", grid != null ? $"{grid.width}x{grid.height}" : "missing");
         if (grid == null) yield break;
 
-        baseline = saveRegistry.CaptureAll();
+        baselineSaveData = gameSaveService.Capture();
+        baseline = baselineSaveData.sections;
+        baselineFacilityWorld = JsonUtility.FromJson<ModularFacilityWorldSaveData>(
+            baseline.Single(value => value.sectionId == ModularFacilityWorldSaveSection.Id)
+                .payloadJson);
         PauseOtherAi();
         worker.TryGetAbility(out workerWork);
         oldAnimalCarePriority = workerWork != null
             ? workerWork.WorkPriorities.GetPriority(BuiltInWorkTypeIds.AnimalCare)
             : WorkPriorityLevel.Off;
         captiveOldType = captiveActor.characterType;
-        captiveOldLifecycle = captiveActor.CurrentLifecycleState;
-        captiveOldPaused = captiveActor.IsAiPaused();
+        // The cold route restores the exact incoming world, not new GUID rooms.
+        if (IsColdResume) yield break;
 
-        Check(CreateAuthoredRoom(), "AUTHORED_ROOM",
-            $"housing={housing != null};pen={pen != null};faultPen={faultPen != null};room={fixtureRoom?.Id};stage={fixtureStage}");
+        List<ActorAiPauseState> preparationPauses = world.Characters
+            .Where(actor => actor != null)
+            .Select(actor => new ActorAiPauseState(actor, actor.IsAiPaused()))
+            .ToList();
+        try
+        {
+            foreach (ActorAiPauseState state in preparationPauses)
+            {
+                CharacterActor actor = state.Actor;
+                actor.SetAiPaused(true);
+                actor.Brain?.StopCurrentActionForReplan("qa-room-preparation");
+                actor.GetComponent<AbilityHaul>()?.StopHauling("qa-room-preparation");
+                actor.GetComponent<AbilityMove>()?.CancelActiveMovement("qa-room-preparation");
+            }
+            int settledFrames = 0;
+            float roomPreparationDeadline = Time.realtimeSinceStartup + 3f;
+            while (settledFrames < 2 && Time.realtimeSinceStartup < roomPreparationDeadline)
+            {
+                yield return null;
+                settledFrames = preparationPauses.All(state =>
+                    IsFixtureActorQuiescent(state.Actor)) ? settledFrames + 1 : 0;
+            }
+            Check(settledFrames >= 2, "FIXTURE_ORIGINAL_OWNERS_QUIESCENT",
+                $"actors={preparationPauses.Count};settled={settledFrames}/2;"
+                + "actual-cancellation-before-building-preparation;trainingEligible=false");
+            if (settledFrames < 2) yield break;
+            Check(CreateAuthoredRoom(), "AUTHORED_ROOM",
+                $"housing={housing != null};pen={pen != null};faultPen={faultPen != null};room={fixtureRoom?.Id};stage={fixtureStage}");
+        }
+        finally
+        {
+            RestoreActorAiPauseStates(preparationPauses);
+        }
+    }
+
+    private bool IsFixtureActorQuiescent(CharacterActor actor)
+    {
+        AbilityWork work = actor?.GetComponent<AbilityWork>();
+        return actor != null
+            && actor.Brain?.bestAction == null
+            && actor.Brain?.IsExternallyDrivenActionActive != true
+            && actor.GetComponent<AbilityHaul>()?.IsHauling != true
+            && work?.isWorking != true
+            && work?.HasActiveWorkRoutineForDiagnostics != true
+            && actor.GetComponent<AbilityMove>()?.HasActiveMovementRoutineForDiagnostics != true
+            && world.GetTransientBuildingOwnershipCount(actor.Identity.TypedPersistentId) == 0;
     }
 
     private IEnumerator EstablishConfinedCaptive()
     {
-        worker.transform.position = grid.GetWorldPos(workerCell);
-        captiveActor.transform.position = grid.GetWorldPos(captiveCell);
-        worker.SetLifecycleState(CharacterLifecycleState.Active);
-        captiveActor.characterType = CharacterType.Intruder;
-        captiveActor.SetLifecycleState(CharacterLifecycleState.Downed);
-        captiveActor.SetAiPaused(true);
-
-        CharacterCarryInventory inventory = CharacterCarryInventory.Ensure(worker);
-        IDungeonItemCatalogProvider catalog =
-            scope.Container.Resolve<IDungeonItemCatalogProvider>();
-        IItemHaulingSettingsProvider hauling =
-            scope.Container.Resolve<IItemHaulingSettingsProvider>();
-        bool supplied = inventory.TryAdd(
-            "qa:captivity-wildlife:restraint",
-            CaptivityItemDefinitions.RestraintsItemId,
-            1,
-            catalog,
-            hauling,
-            out string reason);
-        bool ordered = supplied
-            && captivityCommands.TryOrderCapture(captiveActor, worker, out reason);
-        Check(ordered, "CAPTIVE_CAPTURE_STARTED", reason);
-        if (!ordered) yield break;
-
-        string captiveId = CharacterPersistentIdentity.Require(captiveActor).Value;
-        float deadline = Time.realtimeSinceStartup + 30f;
-        while (Time.realtimeSinceStartup < deadline)
+        bool wasPaused = worker.IsAiPaused();
+        try
         {
-            if (captivity.TryGetCaptive(captiveId, out CaptiveState state)
-                && state?.status == CaptivityStatus.Confined)
+            worker.SetLifecycleState(CharacterLifecycleState.Active);
+            worker.SetAiPaused(true);
+            worker.Brain?.StopCurrentActionForReplan("qa-captive-capture-preparation");
+            AbilityHaul preparationHaul = worker.GetComponent<AbilityHaul>();
+            AbilityMove preparationMove = worker.GetComponent<AbilityMove>();
+            preparationHaul?.StopHauling("qa-captive-capture-preparation");
+            preparationMove?.CancelActiveMovement("qa-captive-capture-preparation");
+            // Lifecycle cleanup can close an earlier visit/movement and change
+            // position synchronously. Finish it before placing either actor.
+            Vector2Int captiveBeforeCleanup = captiveActor.GetNowXY();
+            captiveActor.characterType = CharacterType.Intruder;
+            captiveActor.SetLifecycleState(CharacterLifecycleState.Downed);
+            captiveActor.SetAiPaused(true);
+            AbilityMove captivePreparationMove = captiveActor.GetComponent<AbilityMove>();
+            AbilityWork captivePreparationWork = captiveActor.GetComponent<AbilityWork>();
+            AbilityHaul captivePreparationHaul = captiveActor.GetComponent<AbilityHaul>();
+            rows.Add("INFO\tCAPTIVE_CAPTURE_LIFECYCLE_PREPARATION\t"
+                + $"position={captiveBeforeCleanup}->{captiveActor.GetNowXY()};"
+                + $"lifecycle={captiveActor.CurrentLifecycleState};"
+                + $"moveCancel={captivePreparationMove?.LastActionMovementCancellationReasonForDiagnostics};"
+                + "position-not-yet-prepared;trainingEligible=false");
+            int settledFrames = 0;
+            float settleDeadline = Time.realtimeSinceStartup + 3f;
+            while (settledFrames < 2 && Time.realtimeSinceStartup < settleDeadline)
             {
-                break;
+                yield return null;
+                bool settled = worker.Brain?.bestAction == null
+                    && worker.Brain?.IsExternallyDrivenActionActive != true
+                    && preparationHaul?.IsHauling != true
+                    && workerWork?.isWorking != true
+                    && workerWork?.HasActiveWorkRoutineForDiagnostics != true
+                    && preparationMove?.HasActiveMovementRoutineForDiagnostics != true
+                    && captiveActor.Brain?.bestAction == null
+                    && captiveActor.Brain?.IsExternallyDrivenActionActive != true
+                    && captivePreparationHaul?.IsHauling != true
+                    && captivePreparationWork?.isWorking != true
+                    && captivePreparationWork?.HasActiveWorkRoutineForDiagnostics != true
+                    && captivePreparationMove?.HasActiveMovementRoutineForDiagnostics != true;
+                settledFrames = settled ? settledFrames + 1 : 0;
             }
-            yield return null;
+            Check(settledFrames >= 2, "CAPTIVE_CAPTURE_ATOMIC_PREPARATION",
+                $"settled={settledFrames}/2;paused={worker.IsAiPaused()};"
+                + $"action={worker.Brain?.bestAction?.actionset?.GetType().Name};"
+                + $"external={worker.Brain?.IsExternallyDrivenActionActive};"
+                + $"haul={preparationHaul?.IsHauling};work={workerWork?.isWorking}:"
+                + $"{workerWork?.HasActiveWorkRoutineForDiagnostics};"
+                + $"movement={preparationMove?.HasActiveMovementRoutineForDiagnostics};"
+                + $"captiveAction={captiveActor.Brain?.bestAction?.actionset?.GetType().Name};"
+                + $"captiveExternal={captiveActor.Brain?.IsExternallyDrivenActionActive};"
+                + $"captiveHaul={captivePreparationHaul?.IsHauling};"
+                + $"captiveWork={captivePreparationWork?.isWorking}:"
+                + $"{captivePreparationWork?.HasActiveWorkRoutineForDiagnostics};"
+                + $"captiveMovement={captivePreparationMove?.HasActiveMovementRoutineForDiagnostics};"
+                + "trainingEligible=false;previous-work-stopped-before-position-preparation");
+            if (settledFrames < 2) yield break;
+
+            // The initial Downed transition above only closes existing owners.
+            // Prepare the existing test-only capture eligibility after the frame
+            // barrier, before placement, with no yield before the real command.
+            captiveActor.characterType = CharacterType.Intruder;
+            captiveActor.SetLifecycleState(CharacterLifecycleState.Downed);
+            captiveActor.SetAiPaused(true);
+            worker.transform.position = grid.GetWorldPos(workerCell);
+            captiveActor.transform.position = grid.GetWorldPos(captiveCell);
+            CharacterLifecycle captiveLifecycle = captiveActor.GetComponent<CharacterLifecycle>();
+            bool preparationPositionExact = worker.GetNowXY() == workerCell
+                && captiveActor.GetNowXY() == captiveCell
+                && captiveLifecycle != null
+                && captiveLifecycle.transform == captiveActor.transform;
+            Check(preparationPositionExact, "CAPTIVE_CAPTURE_POSITION_PREPARATION",
+                $"worker={worker.GetNowXY()}/{workerCell};"
+                + $"captive={captiveActor.GetNowXY()}/{captiveCell};"
+                + $"actorWorld={captiveActor.transform.position};"
+                + $"lifecycleWorld={captiveLifecycle?.transform.position};"
+                + $"sameTransform={captiveLifecycle != null && captiveLifecycle.transform == captiveActor.transform};"
+                + "position-after-lifecycle-cleanup;trainingEligible=false");
+            if (!preparationPositionExact) yield break;
+
+            bool captureEligibilityPrepared = !captiveActor.IsDead
+                && captiveActor.characterType == CharacterType.Intruder
+                && captiveActor.CurrentLifecycleState == CharacterLifecycleState.Downed;
+            Check(captureEligibilityPrepared, "CAPTIVE_CAPTURE_ELIGIBILITY_PREPARATION",
+                $"role={captiveActor.characterType};dead={captiveActor.IsDead};"
+                + $"lifecycle={captiveActor.CurrentLifecycleState};"
+                + $"bodyDowned={bodyHealthQuery.GetSnapshot(captiveActor).Downed};"
+                + "explicit-test-only-lifecycle-preparation;natural-injury=false;trainingEligible=false");
+            if (!captureEligibilityPrepared) yield break;
+
+            IDoorAccessQuery doorAccess = scope.Container.Resolve<IDoorAccessQuery>();
+            GridTraversalContext workerContext = GridTraversalContext.ForCharacter(
+                CharacterPersistentIdentity.Require(worker),
+                DoorAccessOverrideKind.None);
+            Vector2Int subjectCell = captiveActor.GetNowXY();
+            Vector2Int legacySubjectCell = new(subjectCell.x + 2, subjectCell.y);
+            GridPathSearchResult approach = grid.SearchPathTo(
+                worker.GetNowXY(), subjectCell,
+                position => doorAccess.CanTraverse(grid, position, workerContext, out _),
+                DefaultGridTraversalCostPolicy.Instance, workerContext);
+            GridPathSearchResult legacyApproach = grid.SearchPathTo(
+                worker.GetNowXY(), legacySubjectCell,
+                position => doorAccess.CanTraverse(grid, position, workerContext, out _),
+                DefaultGridTraversalCostPolicy.Instance, workerContext);
+            bool approachReady = approach?.ContainsPosition(subjectCell) == true;
+            Check(approachReady, "CAPTIVE_CAPTURE_APPROACH_GEOMETRY",
+                $"worker={worker.GetNowXY()};subject={subjectCell};housing={housing.centerPos};"
+                + $"reachable={approachReady};legacySubject={legacySubjectCell};"
+                + $"legacyReachable={legacyApproach?.ContainsPosition(legacySubjectCell) == true};"
+                + "query=normal-character-traversal;actual-broker-terminal-still-required");
+            if (!approachReady) yield break;
+
+            CharacterCarryInventory inventory = CharacterCarryInventory.Ensure(worker);
+            IDungeonItemCatalogProvider catalog =
+                scope.Container.Resolve<IDungeonItemCatalogProvider>();
+            IItemHaulingSettingsProvider hauling =
+                scope.Container.Resolve<IItemHaulingSettingsProvider>();
+            bool supplied = inventory.TryAdd(
+                "qa:captivity-wildlife:restraint",
+                CaptivityItemDefinitions.RestraintsItemId,
+                1,
+                catalog,
+                hauling,
+                out string reason);
+            bool ordered = supplied
+                && captivityCommands.TryOrderCapture(captiveActor, worker, out reason);
+            Check(ordered, "CAPTIVE_CAPTURE_STARTED", reason);
+            if (!ordered) yield break;
+
+            string captiveId = CharacterPersistentIdentity.Require(captiveActor).Value;
+            AbilityCaptiveEscort escort = worker.GetComponent<AbilityCaptiveEscort>();
+            string lastObservedState = null;
+            float deadline = Time.realtimeSinceStartup + 30f;
+            while (Time.realtimeSinceStartup < deadline)
+            {
+                if (captivity.TryGetCaptive(captiveId, out CaptiveState state))
+                {
+                    string observedState = $"{state?.status}|{state?.lastResult}|"
+                        + $"{escort?.IsEscorting}|{worker.Brain?.ExternalIntentOwnerId}";
+                    if (!string.Equals(lastObservedState, observedState, StringComparison.Ordinal))
+                    {
+                        rows.Add("INFO\tCAPTIVE_CAPTURE_OBSERVED\t"
+                            + $"frame={Time.frameCount};worker={worker.GetNowXY()};"
+                            + $"subject={captiveActor.GetNowXY()};status={state?.status};"
+                            + $"result={state?.lastResult};escorting={escort?.IsEscorting};"
+                            + $"paused={worker.IsAiPaused()};external={worker.Brain?.IsExternallyDrivenActionActive};"
+                            + $"owner={worker.Brain?.ExternalIntentOwnerId};phase={worker.Brain?.CurrentActionPhase};"
+                            + $"gridRevision={grid.TraversalVersion};"
+                            + (pathSearchBroker as GridPathSearchBroker)?.DescribeExactSearchForDiagnostics(
+                                grid, worker.GetNowXY(), captiveActor.GetNowXY(), workerContext));
+                        lastObservedState = observedState;
+                    }
+                    if (state?.status == CaptivityStatus.Confined
+                        || (state?.status == CaptivityStatus.AwaitingCapture
+                            && escort?.IsEscorting != true))
+                    {
+                        // A production terminal failure is already final. Do not wait
+                        // thirty seconds for an unrelated autonomous action to overwrite it.
+                        break;
+                    }
+                }
+                yield return null;
+            }
+            bool confined = captivity.TryGetCaptive(captiveId, out CaptiveState captured)
+                && captured?.status == CaptivityStatus.Confined;
+            Check(confined, "CAPTIVE_CAPTURE_TERMINAL",
+                $"status={captured?.status};result={captured?.lastResult};"
+                + $"worker={worker.GetNowXY()};subject={captiveActor.GetNowXY()};"
+                + $"housing={housing.centerPos};phase={worker.Brain?.CurrentActionPhase};"
+                + $"moveFailure={worker.GetComponent<AbilityMove>()?.LastGridMoveFailureReason}");
+            if (!confined) yield break;
+            confinedPayload = Clone(captivityPersistence.Capture());
         }
-        bool confined = captivity.TryGetCaptive(captiveId, out CaptiveState captured)
-            && captured?.status == CaptivityStatus.Confined;
-        Check(confined, "CAPTIVE_CAPTURE_TERMINAL",
-            $"status={captured?.status};result={captured?.lastResult}");
-        if (!confined) yield break;
-        confinedPayload = Clone(captivityPersistence.Capture());
+        finally
+        {
+            worker.SetAiPaused(wasPaused);
+        }
     }
 
     private IEnumerator VerifyEscapeRows()
@@ -543,10 +1156,19 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         started = probe.Started;
         reason = probe.Reason;
         ability = captiveActor.GetComponent<AbilityCaptiveEscape>();
-        if (started && ability != null) ability.enabled = false;
+        captivity.TryGetCaptive(captiveId, out CaptiveState beforeDisable);
+        bool activeBeforeDisable = started
+            && beforeDisable?.status == CaptivityStatus.EscapeAttempt
+            && ability?.IsEscaping == true;
+        Check(activeBeforeDisable,
+            "ESCAPE_DISABLE_ACTIVE",
+            $"started={started};status={beforeDisable?.status};"
+            + $"active={ability?.IsEscaping};position={captiveActor.GetNowXY()};"
+            + $"reason={reason}");
+        if (activeBeforeDisable) ability.enabled = false;
         yield return null;
         captivity.TryGetCaptive(captiveId, out CaptiveState disabled);
-        Check(started && disabled?.status == CaptivityStatus.Confined
+        Check(activeBeforeDisable && disabled?.status == CaptivityStatus.Confined
               && ability?.IsEscaping != true,
             "ESCAPE_DISABLE_TERMINAL",
             $"status={disabled?.status};active={ability?.IsEscaping}");
@@ -564,42 +1186,117 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         Check(routeProbe.Ready,
             "ESCAPE_SUCCESS_ROUTE_PREFLIGHT", routeProbe.Detail);
         captivity.TryGetCaptive(captiveId, out state);
+        int successInitialAttempts = state.failedEscapeAttempts;
         probe = new EscapeStartProbe();
         yield return TryBeginEscapeThroughInvasion(state, "qa-success", probe);
         started = probe.Started;
         reason = probe.Reason;
         Check(started, "ESCAPE_SUCCESS_STARTED", reason);
-        yield return WaitUntil(() =>
-            captivity.TryGetCaptive(captiveId, out CaptiveState current)
-            && current?.status == CaptivityStatus.Escaped, 30f);
         AbilityMove successExitMove =
             captiveActor.GetComponent<AbilityMove>();
-        yield return WaitUntil(() =>
+        ability = captiveActor.GetComponent<AbilityCaptiveEscape>();
+        float escapeObservationStartedAt = Time.realtimeSinceStartup;
+        float escapeObservationStartedScaledTime = Time.time;
+        float escapeObservationStartedGameTime =
+            successExitMove?.GameClockTimeForDiagnostics ?? -1f;
+        int escapeObservationStartedFrame = Time.frameCount;
+        float escapeObservationDeadline = escapeObservationStartedAt + 30f;
+        float lastEscapeObservationAt = float.NegativeInfinity;
+        string lastEscapeObservation = null;
+        while (Time.realtimeSinceStartup < escapeObservationDeadline)
         {
-            bool escapedState = captivity.TryGetCaptive(
-                    captiveId,
-                    out CaptiveState current)
-                && current?.status == CaptivityStatus.Escaped;
-            bool movementTerminal = successExitMove == null
-                || (!successExitMove.IsSystemMoveInProgress
-                    && !successExitMove
-                        .HasActiveMovementRoutineForDiagnostics);
-            bool lifecycleHandoffTerminal = captiveActor == null
-                || !captiveActor.gameObject.activeInHierarchy
-                || captiveActor.CurrentLifecycleState
-                    != CharacterLifecycleState.ExitingDungeon;
-            return escapedState
-                && movementTerminal
-                && lifecycleHandoffTerminal
-                && captiveActor?.Brain?.IsExternallyDrivenActionActive
-                    != true;
-        }, 30f);
+            captivity.TryGetCaptive(captiveId, out CaptiveState current);
+            string observation = $"{current?.status}|{current?.lastResult}|"
+                + $"{current?.failedEscapeAttempts}|{captiveActor.GetNowXY()}|"
+                + $"{captiveActor.CurrentLifecycleState}|{ability?.IsEscaping}|"
+                + $"{successExitMove?.IsSystemMoveInProgress}|"
+                + $"{successExitMove?.LastGridMoveFailureReason}|"
+                + $"{successExitMove?.LastActionMovementCancellationReasonForDiagnostics}";
+            if (!string.Equals(lastEscapeObservation, observation, StringComparison.Ordinal)
+                || Time.realtimeSinceStartup - lastEscapeObservationAt >= 5f)
+            {
+                CharacterBodyHealthSnapshot health =
+                    bodyHealthQuery.GetSnapshot(captiveActor);
+                rows.Add("INFO\tESCAPE_SUCCESS_OBSERVED\t"
+                    + $"frame={Time.frameCount};frames={Time.frameCount - escapeObservationStartedFrame};"
+                    + $"realElapsed={Time.realtimeSinceStartup - escapeObservationStartedAt:0.###};"
+                    + $"scaledElapsed={Time.time - escapeObservationStartedScaledTime:0.###};"
+                    + $"gameTime={successExitMove?.GameClockTimeForDiagnostics};"
+                    + $"gameDelta={successExitMove?.GameClockDeltaTimeForDiagnostics};"
+                    + $"gameStart={escapeObservationStartedGameTime};hour={calendar.AbsoluteHour};"
+                    + $"status={current?.status};result={current?.lastResult};"
+                    + $"attempts={successInitialAttempts}->{current?.failedEscapeAttempts};"
+                    + $"position={captiveActor.GetNowXY()};destination={current?.escapeDestination};"
+                    + $"lifecycle={captiveActor.CurrentLifecycleState};health={captiveActor.CurrentHealth};"
+                    + $"bodyDowned={health.Downed};escapeActive={ability?.IsEscaping};"
+                    + $"pass={ability?.HasEscapePassForDiagnostics};"
+                    + $"systemMove={successExitMove?.IsSystemMoveInProgress};"
+                    + $"moveRoutine={successExitMove?.HasActiveMovementRoutineForDiagnostics};"
+                    + $"moveFailure={successExitMove?.LastGridMoveFailureReason};"
+                    + $"moveCancel={successExitMove?.LastActionMovementCancellationReasonForDiagnostics};"
+                    + $"moveOwner={successExitMove?.ActiveMovementOperationOwnerForDiagnostics};"
+                    + $"movePreemption={successExitMove?.LastMovementOperationPreemptionForDiagnostics};"
+                    + $"phase={captiveActor.Brain?.CurrentActionPhase};gridRevision={grid.TraversalVersion}");
+                lastEscapeObservation = observation;
+                lastEscapeObservationAt = Time.realtimeSinceStartup;
+            }
+            if (current?.status == CaptivityStatus.Escaped
+                || (current?.status == CaptivityStatus.Confined
+                    && current.failedEscapeAttempts > successInitialAttempts
+                    && ability?.IsEscaping != true))
+            {
+                // A real terminal failure cannot become a successful escape by
+                // waiting through unrelated gameplay. Preserve its reason now.
+                break;
+            }
+            yield return null;
+        }
+        bool escapeSucceeded = captivity.TryGetCaptive(
+                captiveId, out CaptiveState observedEscape)
+            && observedEscape?.status == CaptivityStatus.Escaped;
+        if (escapeSucceeded)
+        {
+            yield return WaitUntil(() =>
+            {
+                bool movementTerminal = successExitMove == null
+                    || (!successExitMove.IsSystemMoveInProgress
+                        && !successExitMove.HasActiveMovementRoutineForDiagnostics);
+                bool lifecycleHandoffTerminal = captiveActor == null
+                    || !captiveActor.gameObject.activeInHierarchy
+                    || captiveActor.CurrentLifecycleState
+                        != CharacterLifecycleState.ExitingDungeon;
+                return movementTerminal
+                    && lifecycleHandoffTerminal
+                    && captiveActor?.Brain?.IsExternallyDrivenActionActive != true;
+            }, 30f);
+            string completedOwnerBefore = JsonUtility.ToJson(captivityPersistence.Capture());
+            CharacterLifecycleState completedLifecycle = captiveActor.CurrentLifecycleState;
+            CharacterType completedType = captiveActor.characterType;
+            bool completedPaused = captiveActor.IsAiPaused();
+            // Replay the same production callback used by lifecycle cleanup,
+            // after real arrival/completion. No terminal state is injected.
+            escape.FailEscape(captiveId, captiveActor, "qa-late-exit-lifecycle-callback");
+            captivity.TryGetCaptive(captiveId, out CaptiveState afterLateFailure);
+            Check(afterLateFailure?.status == CaptivityStatus.Escaped
+                && afterLateFailure.escapeOutcomeRevision > 0L
+                && string.Equals(completedOwnerBefore,
+                    JsonUtility.ToJson(captivityPersistence.Capture()), StringComparison.Ordinal)
+                && captiveActor.CurrentLifecycleState == completedLifecycle
+                && captiveActor.characterType == completedType
+                && captiveActor.IsAiPaused() == completedPaused,
+                "ESCAPE_COMPLETED_LATE_FAILURE_REPLAY_NO_MUTATION",
+                $"status={afterLateFailure?.status};revision={afterLateFailure?.escapeOutcomeRevision};"
+                + $"attempts={afterLateFailure?.failedEscapeAttempts};"
+                + $"lifecycle={completedLifecycle}->{captiveActor.CurrentLifecycleState};"
+                + "actual-arrival/owner-completion;explicit-production-callback-replay;trainingEligible=false");
+        }
         captivity.TryGetCaptive(captiveId, out CaptiveState escaped);
         ability = captiveActor.GetComponent<AbilityCaptiveEscape>();
         CharacterAiRuntimeGateSnapshot exitGate =
             captiveActor.Brain.CaptureRuntimeGateSnapshot();
         bool exitHandoffTerminal =
-            successExitMove?.IsSystemMoveInProgress != true
+            escaped?.status == CaptivityStatus.Escaped
+            && successExitMove?.IsSystemMoveInProgress != true
             && successExitMove?.HasActiveMovementRoutineForDiagnostics
                 != true
             && captiveActor.CurrentLifecycleState
@@ -609,7 +1306,14 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         Check(escaped?.status == CaptivityStatus.Escaped
               && ability?.IsEscaping != true,
             "ESCAPE_SUCCESS_TERMINAL",
-            $"status={escaped?.status};active={ability?.IsEscaping}");
+            $"status={escaped?.status};active={ability?.IsEscaping};"
+            + $"result={escaped?.lastResult};attempts={successInitialAttempts}->{escaped?.failedEscapeAttempts};"
+            + $"position={captiveActor.GetNowXY()};destination={escaped?.escapeDestination};"
+            + $"lifecycle={captiveActor.CurrentLifecycleState};health={captiveActor.CurrentHealth};"
+            + $"moveFailure={successExitMove?.LastGridMoveFailureReason};"
+            + $"realElapsed={Time.realtimeSinceStartup - escapeObservationStartedAt:0.###};"
+            + $"scaledElapsed={Time.time - escapeObservationStartedScaledTime:0.###};"
+            + $"frames={Time.frameCount - escapeObservationStartedFrame}");
         Check(exitHandoffTerminal,
             "ESCAPE_SUCCESS_EXIT_HANDOFF_TERMINAL",
             $"lifecycle={captiveActor.CurrentLifecycleState};"
@@ -627,24 +1331,109 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
     {
         int activeIntrudersBeforeRestore =
             invasionDirector?.ActiveIntruders.Count ?? -1;
-        bool invasionRestored = RestoreBaselineSection(
-            InvasionSaveSection.Id,
-            invasionSaveService as IDungeonRestoreTransactionParticipant,
-            out string invasionRestoreDetail);
-        bool invasionAuthorityClean = invasionRestored
-            && invasionDirector != null
-            && invasionDirector.ActiveIntruders.Count == 0;
+        bool retaliationProduced = invasionDirector != null
+            && activeIntrudersBeforeRestore > 0
+            && invasionCandidateEventCount > 0;
+        Check(retaliationProduced, "ESCAPE_RETALIATION_PRODUCED",
+            $"activeIntruders={activeIntrudersBeforeRestore};"
+            + $"candidateEvents={invasionCandidateEventCount};"
+            + $"startedEvents={invasionStartedEventCount}");
+        if (!retaliationProduced) yield break;
+
+        CharacterActor[] fixtureIntruders = invasionDirector.ActiveIntruders
+            .Select(runtime => runtime != null ? runtime.IntruderActor : null)
+            .ToArray();
+        HashSet<string> departingIds = fixtureIntruders
+            .Select(actor => actor.Identity.PersistentId)
+            .ToHashSet(StringComparer.Ordinal);
+        ICombatEquipmentRuntime equipment =
+            scope.Container.Resolve<ICombatEquipmentRuntime>();
+        DungeonCombatEquipmentSaveData equipmentBefore = equipment.Capture();
+        CombatEquipmentInstance[] departingEquipment = equipment.Instances
+            .Where(instance => departingIds.Contains(instance.ownerCharacterId))
+            .Select(instance => instance.Clone())
+            .ToArray();
+        string otherLoadoutsBefore = string.Join("\n", equipmentBefore.loadouts
+            .Where(state => !departingIds.Contains(state.characterId))
+            .OrderBy(state => state.characterId, StringComparer.Ordinal)
+            .Select(state => JsonUtility.ToJson(state)));
+        string otherEquipmentBefore = string.Join("\n", equipment.Instances
+            .Where(instance => !departingIds.Contains(instance.ownerCharacterId))
+            .OrderBy(instance => instance.instanceId, StringComparer.Ordinal)
+            .Select(instance => JsonUtility.ToJson(instance)));
+        HashSet<string> departingEquipmentIds = departingEquipment
+            .Select(instance => instance.instanceId).ToHashSet(StringComparer.Ordinal);
+        int instanceCountBefore = equipment.Instances.Count;
+        // The actual retaliation has already been observed. End this unrelated
+        // fixture through the real withdrawal owner. Restore-only retirement
+        // cannot be used outside its complete world replacement transaction.
+        // This preparation is not a battle victory or natural training sample.
+        int withdrawn = invasionDirector.WithdrawActiveIntrudersForFinalInvasion();
+        bool invasionAuthorityClean = withdrawn == fixtureIntruders.Length
+            && invasionDirector.ActiveIntruders.Count == 0
+            && fixtureIntruders.All(actor => actor == null
+                || (!actor.gameObject.activeInHierarchy
+                    && actor.CurrentLifecycleState == CharacterLifecycleState.Despawned));
         Check(invasionAuthorityClean,
-            "ESCAPE_RETALIATION_INVASION_RESTORED",
+            "ESCAPE_RETALIATION_FIXTURE_INTRUDERS_REMOVED",
             $"activeIntruders={activeIntrudersBeforeRestore}"
             + $"->{invasionDirector?.ActiveIntruders.Count};"
             + $"candidateEvents={invasionCandidateEventCount};"
             + $"startedEvents={invasionStartedEventCount};"
-            + $"detail={invasionRestoreDetail}");
+            + $"withdrawn={withdrawn};"
+            + "owner=InvasionDirectorRuntime.WithdrawActiveIntrudersForFinalInvasion;"
+            + "battleVictory=false;invasionSaveRestore=NOT_RUN;trainingEligible=false");
         if (!invasionAuthorityClean)
         {
             yield break;
         }
+
+        DungeonCombatEquipmentSaveData equipmentAfter = equipment.Capture();
+        bool loadoutsRetired = !equipmentAfter.loadouts.Any(
+            state => departingIds.Contains(state.characterId));
+        bool ownedEquipmentRetired = departingEquipment.Length > 0
+            && equipment.Instances.Count == instanceCountBefore
+            && departingEquipment.All(before => equipment.Instances.Any(after =>
+                after.instanceId == before.instanceId
+                && after.definitionId == before.definitionId
+                && after.ownerCharacterId == string.Empty
+                && after.sourceStackId == string.Empty
+                && after.worldState == CombatEquipmentWorldState.Lost));
+        string otherLoadoutsAfter = string.Join("\n", equipmentAfter.loadouts
+            .Where(state => !departingIds.Contains(state.characterId))
+            .OrderBy(state => state.characterId, StringComparer.Ordinal)
+            .Select(state => JsonUtility.ToJson(state)));
+        string otherEquipmentAfter = string.Join("\n", equipment.Instances
+            .Where(instance => !departingEquipmentIds.Contains(instance.instanceId))
+            .OrderBy(instance => instance.instanceId, StringComparer.Ordinal)
+            .Select(instance => JsonUtility.ToJson(instance)));
+        Check(loadoutsRetired && ownedEquipmentRetired,
+            "ESCAPE_WITHDRAWAL_EQUIPMENT_RETIRED",
+            $"characters={departingIds.Count};equipment={departingEquipment.Length};"
+            + $"loadoutsRetired={loadoutsRetired};equipmentLost={ownedEquipmentRetired};"
+            + "deathEventInjected=false;trainingEligible=false");
+        Check(otherLoadoutsBefore == otherLoadoutsAfter
+                && otherEquipmentBefore == otherEquipmentAfter,
+            "ESCAPE_WITHDRAWAL_OTHER_EQUIPMENT_UNCHANGED",
+            "Other character loadouts and equipment must remain byte-exact.");
+        string retiredLoadoutsBeforeReplay = JsonUtility.ToJson(equipmentAfter);
+        string retiredInstancesBeforeReplay = string.Join("\n", equipment.Instances
+            .OrderBy(instance => instance.instanceId, StringComparer.Ordinal)
+            .Select(instance => JsonUtility.ToJson(instance)));
+        string retiredModulesBeforeReplay = string.Join("\n", equipment.ModuleInstances
+            .OrderBy(module => module.instanceId, StringComparer.Ordinal)
+            .Select(module => JsonUtility.ToJson(module)));
+        foreach (string characterId in departingIds)
+            equipment.RetireCharacterEquipment(characterId);
+        Check(retiredLoadoutsBeforeReplay == JsonUtility.ToJson(equipment.Capture())
+                && retiredInstancesBeforeReplay == string.Join("\n", equipment.Instances
+                    .OrderBy(instance => instance.instanceId, StringComparer.Ordinal)
+                    .Select(instance => JsonUtility.ToJson(instance)))
+                && retiredModulesBeforeReplay == string.Join("\n", equipment.ModuleInstances
+                    .OrderBy(module => module.instanceId, StringComparer.Ordinal)
+                    .Select(module => JsonUtility.ToJson(module))),
+            "ESCAPE_WITHDRAWAL_EQUIPMENT_REPLAY_UNCHANGED",
+            "Repeated retirement must change neither equipment, modules nor loadouts.");
 
         int startedBefore = invasionStartedEventCount;
         int resolvedBefore = invasionResolvedEventCount;
@@ -740,6 +1529,13 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             + $"timeScale={Time.timeScale:0.###};"
             + $"incident={DescribeInvasionIncident()};"
             + $"trace=[{string.Join(" | ", invasionEventTrace.TakeLast(12))}]");
+        if (clean)
+        {
+            DungeonGameSaveData savedAfterWithdrawal = gameSaveService.Capture();
+            Check(savedAfterWithdrawal != null,
+                "ESCAPE_WITHDRAWAL_OFFICIAL_CAPTURE",
+                "Official aggregate preflight, not a filtered DTO capture.");
+        }
     }
 
     private bool RecoverCaptiveThroughMedicalAuthority(out string detail)
@@ -843,6 +1639,136 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             + $"gridRevision={grid.TraversalVersion}";
     }
 
+    private IEnumerator VerifyPickupRetargetContract()
+    {
+        string[] scenarios = { "MOVING_TARGET_PENDING", "ADJACENT_PUBLICATION", "ARRIVAL_FAILED", "UNREACHABLE", "PENDING_OWNER_LOST" };
+        foreach (string scenario in scenarios)
+        {
+            GameObject probeObject = new("QA Wildlife Pickup Contract");
+            AbilityWildlifeCaptureTransport ability =
+                probeObject.AddComponent<AbilityWildlifeCaptureTransport>();
+            PickupContractPort probe = new(scenario);
+            try
+            {
+                ability.Configure(probe);
+                ability.StartTransport("qa-pickup-contract");
+                bool startsBeforeEffects = ability.IsTransporting
+                    && probe.Owned && probe.CarryCount == 0 && probe.CompleteCount == 0;
+                if (scenario == "PENDING_OWNER_LOST")
+                {
+                    for (int frame = 0; frame < 4 && ability.IsTransporting
+                        && ability.PickupSearchDeferralCountForDiagnostics == 0; frame++)
+                        yield return null;
+                    probe.Owned = false;
+                }
+                for (int frame = 0; frame < 12 && ability.IsTransporting; frame++)
+                    yield return null;
+                bool adjacent = scenario == "ADJACENT_PUBLICATION";
+                bool success = scenario == "MOVING_TARGET_PENDING" || adjacent;
+                Check(!ability.IsTransporting
+                    && startsBeforeEffects
+                    && probe.EndCount == 1 && probe.ReplanCount == 1
+                    && (success
+                        ? probe.FailureCount == 0 && probe.CarryCount == 1
+                            && probe.CompleteCount == 1 && probe.ApproachCount == (adjacent ? 0 : 2)
+                            && probe.MaximumCarryDistance == 1
+                            && ability.PickupRetargetCountForDiagnostics == (adjacent ? 0 : 1)
+                            && ability.PickupSearchDeferralCountForDiagnostics == (adjacent ? 0 : 1)
+                        : probe.FailureCount == 1 && probe.CarryCount == 0
+                            && probe.CompleteCount == 0
+                            && (scenario != "PENDING_OWNER_LOST"
+                                || ability.PickupSearchDeferralCountForDiagnostics > 0)
+                            && !string.IsNullOrEmpty(ability.LastTerminalFailureReasonForDiagnostics)),
+                    "PICKUP_CONTRACT_" + scenario,
+                    $"active={ability.IsTransporting};startBeforeEffects={startsBeforeEffects};approaches={probe.ApproachCount};"
+                    + $"pending={ability.PickupSearchDeferralCountForDiagnostics};"
+                    + $"retargets={ability.PickupRetargetCountForDiagnostics};"
+                    + $"carry={probe.CarryCount};complete={probe.CompleteCount};"
+                    + $"failure={probe.FailureCount};end={probe.EndCount};"
+                    + $"replan={probe.ReplanCount};distance={probe.MaximumCarryDistance};"
+                    + $"reason={ability.LastTerminalFailureReasonForDiagnostics};"
+                    + "controlled-port-contract;not-world-gameplay;trainingEligible=false");
+            }
+            finally
+            {
+                Destroy(probeObject);
+            }
+        }
+    }
+
+    private sealed class PickupContractPort : IWildlifeCaptureTransportAbilityPort
+    {
+        private readonly string scenario;
+        private Vector2Int target = new(4, 0);
+        private bool deferred;
+        public PickupContractPort(string scenario)
+        {
+            this.scenario = scenario;
+            if (scenario == "ADJACENT_PUBLICATION") target = Vector2Int.right;
+        }
+        public Vector2Int Position { get; private set; }
+        public bool Owned;
+        public int ApproachCount, CarryCount, CompleteCount, FailureCount, EndCount, ReplanCount;
+        public int MaximumCarryDistance;
+        public bool TryBeginActionOwnership(string id, out string reason)
+        { Owned = true; reason = string.Empty; return true; }
+        public bool HasActionOwnership() => Owned;
+        public void EndActionOwnership(bool clearFailures)
+        { if (Owned || FailureCount > EndCount) EndCount++; Owned = false; }
+        public void CancelActionOwnership() { Owned = false; }
+        public bool TryGetTransportState(string id, out CapturedWildlifeState state,
+            out Vector2Int position, out string name, out string reason)
+        {
+            state = new CapturedWildlifeState { penPosition = Position };
+            position = target; name = "QA contract animal"; reason = string.Empty;
+            return true;
+        }
+        public CaptivityMovementResolution ResolvePickupMovement(Vector2Int position,
+            out Vector2Int stand, out IEnumerator movement)
+        {
+            stand = position + Vector2Int.left; movement = null;
+            if (scenario == "UNREACHABLE") return CaptivityMovementResolution.Unreachable;
+            if (scenario == "PENDING_OWNER_LOST" || !deferred)
+            { deferred = true; return CaptivityMovementResolution.Pending; }
+            ApproachCount++;
+            movement = Approach(stand);
+            return CaptivityMovementResolution.Ready;
+        }
+        private IEnumerator Approach(Vector2Int stand)
+        {
+            yield return null;
+            if (scenario == "ARRIVAL_FAILED") yield break;
+            Position = stand;
+            if (ApproachCount == 1) target = new Vector2Int(6, 0);
+        }
+        public bool TryValidateMovementArrival(Vector2Int destination, out string reason)
+        { reason = Position == destination ? string.Empty : "qa-planned-stand-not-reached"; return Position == destination; }
+        public bool TryBeginCarry(string id, out string reason)
+        {
+            int distance = Mathf.Abs(Position.x - target.x) + Mathf.Abs(Position.y - target.y);
+            MaximumCarryDistance = distance; reason = distance <= 1 ? string.Empty : "qa-too-far";
+            if (distance > 1) return false;
+            CarryCount++; return true;
+        }
+        public WildlifeDeliveryStandResolution ResolveDeliveryStand(string id,
+            out CapturedWildlifeState state, out string reason)
+        {
+            state = new CapturedWildlifeState { penPosition = Position };
+            reason = string.Empty; return WildlifeDeliveryStandResolution.Ready;
+        }
+        public bool TryCreateMovement(Vector2Int destination, CaptivityAbilityAccessKind access,
+            out IEnumerator movement) { movement = Empty(); return true; }
+        public bool TryCreateDeliveryMovement(Vector2Int destination, out IEnumerator movement)
+        { movement = Empty(); return true; }
+        private static IEnumerator Empty() { yield break; }
+        public IDisposable BeginTransportPass(string id) => null;
+        public bool TryCompleteCarry(string id, out string reason)
+        { CompleteCount++; reason = string.Empty; return true; }
+        public void FailCarry(string id, string reason) { FailureCount++; }
+        public void SetActionPhase(string phase, string detail) { }
+        public void RequestImmediateReplan(bool clearFailures) { ReplanCount++; }
+    }
+
     private IEnumerator VerifyTransportRows()
     {
         worker.SetLifecycleState(CharacterLifecycleState.Active);
@@ -912,10 +1838,9 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         Vector2Int successAnimalSourceCell = successAnimal.GridPosition;
         Transform successAnimalParentBeforeTransport =
             successAnimal.transform.parent;
-        // Capture eligibility must be established before the incremental
-        // path preflight yields. A live wildlife brain may otherwise leave the
-        // authored source cell while the broker is still building its search,
-        // invalidating both the warmed pickup path and the ownership handoff.
+        // Damage establishes capture eligibility, not immobilization. Wildlife
+        // may move through the preflight and actual approach; production must
+        // resolve its live location rather than fake a fixed captured target.
         DamageForCapture(successAnimal);
         PickupDeliveryPreflightProbe pickupProbe = new();
         yield return PlaceWorkerAtReachablePickupAndDeliveryStand(
@@ -929,8 +1854,22 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         if (!pickupReady) yield break;
         int transportTerminalBefore =
             worker.Brain?.ExternalIntentTerminalCount ?? 0;
+        string successWildlifeId = successAnimal.WildlifeId;
+        e11TransportWildlifeId = successWildlifeId;
+        ObserveE11Transport("prepared-before-order", true, "controlled eligibility/path preparation; no capture terminal injection");
+        int captureOrderBefore = CountWildlifeOutcome(
+            EnvironmentOutcomeIds.WildlifeActionProducer,
+            "capture-order",
+            successWildlifeId);
         bool ordered = capture.TryOrderCapture(successAnimal, worker, pen, out string reason);
         Check(ordered, "TRANSPORT_SUCCESS_STARTED", reason);
+        Check(CountWildlifeOutcome(
+                EnvironmentOutcomeIds.WildlifeActionProducer,
+                "capture-order",
+                successWildlifeId) == captureOrderBefore + 1,
+            "TRANSPORT_CAPTURE_ORDER_PARENT_RESULT_ONCE",
+            $"wildlife={successWildlifeId};before={captureOrderBefore};"
+            + $"after={CountWildlifeOutcome(EnvironmentOutcomeIds.WildlifeActionProducer, "capture-order", successWildlifeId)}");
         AbilityWildlifeCaptureTransport transport =
             worker.GetComponent<AbilityWildlifeCaptureTransport>();
         capture.TryGetCaptured(
@@ -979,6 +1918,24 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             pickupProbe,
             transportObservation);
         capture.TryGetCaptured(successAnimal.WildlifeId, out CapturedWildlifeState penned);
+        int carryStartedCount = CountWildlifeOutcome(
+            EnvironmentOutcomeIds.WildlifeActionProducer,
+            "capture-carry-started",
+            successWildlifeId);
+        int pennedCount = CountWildlifeOutcome(
+            EnvironmentOutcomeIds.WildlifeActionProducer,
+            "capture-penned",
+            successWildlifeId);
+        Check(carryStartedCount == 1 && pennedCount == 1,
+            "TRANSPORT_CARRIER_PEN_PARENT_RESULTS_ONCE",
+            $"wildlife={successWildlifeId};carry={carryStartedCount};penned={pennedCount};"
+            + $"pending={circusPersistence.Capture().wildlifeGameplayOutcomes.Count}");
+        rows.Add("INFO\tTRANSPORT_LIVE_PICKUP_PURSUIT\t"
+            + $"source={successAnimalSourceCell};live={successAnimal.GridPosition};"
+            + $"retargets={transport?.PickupRetargetCountForDiagnostics};"
+            + $"pending={transport?.PickupSearchDeferralCountForDiagnostics};"
+            + $"terminalFailure={transport?.LastTerminalFailureReasonForDiagnostics};"
+            + "actual-production-approach;no-immobilization-or-capture-terminal-injection");
         AbilityMove transportMove = worker.GetComponent<AbilityMove>();
         Vector2Int deliveryPosition = penned?.penPosition ?? default;
         GridCell deliveryCell = penned != null
@@ -1220,9 +2177,49 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             + $"->{worker.Brain?.ExternalIntentTerminalCount}:"
             + $"{worker.Brain?.LastExternalIntentTerminalKind};"
             + $"failure={transport?.LastTerminalFailureReasonForDiagnostics}");
-        capture.TryRelease(successAnimal.WildlifeId, out _);
+        if (!transportOnly && failures.Count == 0)
+        {
+            yield return VerifyCapturedAnimalTamingCompletion(successWildlifeId);
+            if (failures.Count != 0) yield break;
+            yield return VerifyCapturedAnimalSlaughterCompletion(successWildlifeId);
+            if (failures.Count != 0) yield break;
+            successAnimal = wildlife.Wildlife.SingleOrDefault(value =>
+                value != null && value.WildlifeId == successWildlifeId);
+            Check(successAnimal != null,
+                "TAME_RESTORED_CAPTURE_ACTOR_FOR_RELEASE", successWildlifeId);
+            if (successAnimal == null) yield break;
+        }
+        int releaseBefore = CountWildlifeOutcome(
+            EnvironmentOutcomeIds.WildlifeCommandProducer,
+            "capture-release",
+            successWildlifeId);
+        bool released = capture.TryRelease(
+            successAnimal.WildlifeId,
+            out string releaseReason);
+        int releaseAfter = CountWildlifeOutcome(
+            EnvironmentOutcomeIds.WildlifeCommandProducer,
+            "capture-release",
+            successWildlifeId);
+        CircusSaveData afterReleaseSave = circusPersistence.Capture();
+        Check(released
+              && releaseAfter == releaseBefore + 1
+              && afterReleaseSave.wildlifeGameplayOutcomes.Count == 0,
+            "TRANSPORT_RELEASE_PARENT_RESULT_ONCE",
+            $"released={released};reason={releaseReason};before={releaseBefore};"
+            + $"after={releaseAfter};pending={afterReleaseSave.wildlifeGameplayOutcomes.Count}");
         Destroy(successAnimal.gameObject);
         yield return null;
+
+        // The E11 capture-outcome witness is intentionally bounded to the
+        // complete successful transport lifecycle. The full verifier keeps
+        // the independent source-loss, path-loss, lifecycle and alert rows.
+        // Running those after four committed parent outcomes can exercise the
+        // global ledger page-capacity policy instead of the capture contract
+        // this focused entry point is meant to prove.
+        if (transportOnly)
+        {
+            yield break;
+        }
 
         WildlifeActor lostAnimal = SpawnCaptureAnimal(FindFarWalkable(worker.GetNowXY()));
         Check(lostAnimal != null, "TRANSPORT_SOURCE_LOSS_SOURCE", lostAnimal?.WildlifeId ?? "missing");
@@ -1366,7 +2363,20 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         if (penLossAnimal != null)
         {
             DamageForCapture(penLossAnimal);
+            string penLossId = penLossAnimal.WildlifeId;
+            int penLossOrderBefore = CountWildlifeOutcome(
+                EnvironmentOutcomeIds.WildlifeActionProducer, "capture-order", penLossId);
             ordered = capture.TryOrderCapture(penLossAnimal, worker, faultPen, out reason);
+            Check(ordered
+                && CountWildlifeOutcome(EnvironmentOutcomeIds.WildlifeActionProducer,
+                    "capture-order", penLossId) == penLossOrderBefore + 1
+                && CountWildlifeOutcome(EnvironmentOutcomeIds.WildlifeActionProducer,
+                    "capture-carry-started", penLossId) == 0,
+                "TRANSPORT_ADJACENT_ORDER_PUBLISHED_BEFORE_CARRY",
+                $"ordered={ordered};reason={reason};wildlife={penLossId};"
+                + $"order={CountWildlifeOutcome(EnvironmentOutcomeIds.WildlifeActionProducer, "capture-order", penLossId)};"
+                + $"carry={CountWildlifeOutcome(EnvironmentOutcomeIds.WildlifeActionProducer, "capture-carry-started", penLossId)};"
+                + "real-command-return-before-async-carry;no-owner-revision-rewrite");
             if (ordered) faultPen.DestroySelf();
             yield return null;
             yield return null;
@@ -2198,41 +3208,13 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             : itemRuntime.MassQuery
                 .GetDefinitionUnitMass((ItemDefinitionId)feedItemId)
                 .Value;
-        int feedQuantityBefore = CountFacilityItem(penId, feedItemId);
-        bool feedSpawned = !string.IsNullOrEmpty(feedItemId)
-            && itemRuntime.SpawnItemAt(
-                feedItemId,
-                1,
-                pen.centerPos,
-                WorldItemStackState.FacilityBuffer,
-                penId,
-                out int spawnedFeed)
-            && spawnedFeed == 1;
-        WorldItemStackSnapshot feedSource = itemRuntime.GetAllStacks()
-            .Where(stack => stack != null
-                && stack.State == WorldItemStackState.FacilityBuffer
-                && string.Equals(stack.DestinationId, penId, StringComparison.Ordinal)
-                && string.Equals(stack.ItemId, feedItemId, StringComparison.Ordinal))
-            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
-            .FirstOrDefault();
-        Check(feedSpawned
-              && feedSource != null
-              && expectedFeedMass > 0L,
-            "ANIMAL_CARE_FEED_SOURCE_PHYSICAL",
-            $"item={feedItemId};spawned={feedSpawned};"
-            + $"stack={feedSource?.StackId};mass={expectedFeedMass};"
-            + $"before={feedQuantityBefore};after={CountFacilityItem(penId, feedItemId)}");
-        if (!feedSpawned || feedSource == null || expectedFeedMass <= 0L)
-        {
-            yield break;
-        }
-        float feedHungerBefore = animal.Hunger;
+        string careAnimalId = animal.WildlifeId;
         CircusSaveData circus = Clone(circusPersistence.Capture());
         circus.capturedWildlife.RemoveAll(item =>
-            item != null && item.wildlifeId == animal.WildlifeId);
+            item != null && item.wildlifeId == careAnimalId);
         circus.capturedWildlife.Add(new CapturedWildlifeState
         {
-            wildlifeId = animal.WildlifeId,
+            wildlifeId = careAnimalId,
             speciesId = animal.SpeciesId,
             penId = penId,
             penPosition = pen.centerPos,
@@ -2242,7 +3224,85 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             nextCareAt = 0f,
             lastCareStatus = "qa-penned"
         });
-        Check(RestoreCircus(circus), "ANIMAL_CARE_CIRCUS_V18_RESTORE", animal.WildlifeId);
+        // First publish the explicit test roster, so the registered input owner
+        // derives its real demand/claim/capacity. Do not invent a buffer owner.
+        bool rosterRestored = RestoreCircus(circus);
+        WildlifeActor[] preparedAnimals = world.Wildlife
+            .Where(value => value != null && value.WildlifeId == careAnimalId)
+            .ToArray();
+        Check(rosterRestored && preparedAnimals.Length == 1,
+            "ANIMAL_CARE_ROSTER_PREPARATION_RESTORE",
+            $"id={careAnimalId};restored={rosterRestored};matches={preparedAnimals.Length};"
+            + "explicit-test-roster;trainingEligible=false");
+        if (!rosterRestored || preparedAnimals.Length != 1) yield break;
+        animal = preparedAnimals[0];
+        IWildlifeCareInputOwnerRuntime careOwner =
+            scope.Container.Resolve<IWildlifeCareInputOwnerRuntime>();
+        bool ownerReady = careOwner.TryReconcileLive(out string ownerFailure);
+        string feedDestinationId = WildlifeCareInputOwnerAuthority
+            .FormatDestinationId(penId);
+        Check(ownerReady, "ANIMAL_CARE_FEED_OWNER_READY",
+            $"destination={feedDestinationId};reason={ownerFailure};"
+            + "registered-owner-command;trainingEligible=false");
+        if (!ownerReady) yield break;
+        int feedQuantityBefore = CountFacilityItem(feedDestinationId, feedItemId);
+        bool feedSpawned = !string.IsNullOrEmpty(feedItemId)
+            && itemRuntime.SpawnItemAt(
+                feedItemId,
+                1,
+                pen.centerPos,
+                WorldItemStackState.FacilityBuffer,
+                feedDestinationId,
+                out int spawnedFeed)
+            && spawnedFeed == 1;
+        WorldItemStackSnapshot feedSource = itemRuntime.GetAllStacks()
+            .Where(stack => stack != null
+                && stack.State == WorldItemStackState.FacilityBuffer
+                && string.Equals(stack.DestinationId, feedDestinationId, StringComparison.Ordinal)
+                && string.Equals(stack.ItemId, feedItemId, StringComparison.Ordinal))
+            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        Check(feedSpawned
+              && feedSource != null
+              && expectedFeedMass > 0L,
+            "ANIMAL_CARE_FEED_SOURCE_PHYSICAL",
+            $"item={feedItemId};spawned={feedSpawned};"
+            + $"stack={feedSource?.StackId};mass={expectedFeedMass};"
+            + $"destination={feedDestinationId};"
+            + $"before={feedQuantityBefore};after={CountFacilityItem(feedDestinationId, feedItemId)}");
+        if (!feedSpawned || feedSource == null || expectedFeedMass <= 0L)
+        {
+            yield break;
+        }
+        float feedHungerBefore = animal.Hunger;
+        circus = Clone(circusPersistence.Capture());
+        bool circusRestored = RestoreCircus(circus);
+        Check(circusRestored, "ANIMAL_CARE_CIRCUS_V18_RESTORE", careAnimalId);
+        if (!circusRestored) yield break;
+        WildlifeActor[] restoredAnimals = world.Wildlife
+            .Where(value => value != null && value.WildlifeId == careAnimalId)
+            .ToArray();
+        bool careAnimalRebound = restoredAnimals.Length == 1;
+        Check(careAnimalRebound, "ANIMAL_CARE_WILDLIFE_ID_REBOUND",
+            $"id={careAnimalId};matches={restoredAnimals.Length};trainingEligible=false");
+        if (!careAnimalRebound) yield break;
+        animal = restoredAnimals[0];
+        bool preparationRestoredExactly = CountFacilityItem(feedDestinationId, feedItemId)
+                == feedQuantityBefore + 1
+            && itemRuntime.GetAllStacks().Any(stack => stack != null
+                && stack.StackId == feedSource.StackId
+                && stack.State == WorldItemStackState.FacilityBuffer
+                && stack.DestinationId == feedDestinationId && stack.ItemId == feedItemId
+                && stack.AvailableQuantity == stack.Quantity
+                && stack.ReservedQuantity == 0 && !stack.Forbidden
+                && string.IsNullOrEmpty(stack.ReservedByPersistentId))
+            && Mathf.Approximately(animal.Hunger, feedHungerBefore);
+        Check(preparationRestoredExactly, "ANIMAL_CARE_PREPARATION_RESTORE_EXACT",
+            $"id={careAnimalId};stack={feedSource.StackId};"
+            + $"destination={feedDestinationId};"
+            + $"quantity={CountFacilityItem(feedDestinationId, feedItemId)};hunger={animal.Hunger:0.####};"
+            + "before-runtime-feed=true;trainingEligible=false");
+        if (!preparationRestoredExactly) yield break;
 
         string feedOperationId = CapturedWildlifeFeedOutbox.FormatOperationId(
             animal.WildlifeId,
@@ -2264,7 +3324,7 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
                 && !CapturedWildlifeFeedOutbox.HasPending(fedState);
             return feedCommitted;
         }, 5f);
-        int feedQuantityAfter = CountFacilityItem(penId, feedItemId);
+        int feedQuantityAfter = CountFacilityItem(feedDestinationId, feedItemId);
         float expectedHungerAfter = Mathf.Clamp01(feedHungerBefore - 0.72f);
         bool physicalSinkExact = feedCommitted
             && feedQuantityAfter == feedQuantityBefore
@@ -2310,6 +3370,99 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         {
             yield break;
         }
+
+        // Preserve the actual completed feed before any later animal-care
+        // setup. This official snapshot is the immutable cold-process input,
+        // not a hand-authored or upgraded older QA world.
+        captiveActor.SetAiPaused(true);
+        captiveActor.characterType = captiveOldType;
+        DungeonGameSaveData completedFeedWorld = gameSaveService.Capture();
+        DungeonSaveSectionEnvelope completedFeedCircusSection = completedFeedWorld.sections
+            .Single(section => section.sectionId == CircusSaveSection.Id);
+        CircusSaveData completedFeedCircus = JsonUtility.FromJson<CircusSaveData>(
+            completedFeedCircusSection.payloadJson);
+        CapturedWildlifeState completedFeedTimer = completedFeedCircus.capturedWildlife
+            .Single(value => value.wildlifeId == careAnimalId);
+        capture.TryGetCaptured(careAnimalId, out CapturedWildlifeState liveFeedTimer);
+        float expectedCareRemaining = Math.Min(CapturedWildlifeState.CareIntervalSeconds,
+            Math.Max(0f, liveFeedTimer.nextCareAt - scope.Container.Resolve<IGameClock>().Time));
+        Check(completedFeedCircusSection.sectionVersion == CircusSaveData.CurrentVersion
+              && completedFeedCircus.version == 8 && completedFeedTimer.nextCareAt == 0f
+              && !completedFeedCircusSection.payloadJson.Contains("\"nextCareAt\"")
+              && completedFeedTimer.remainingCareSeconds == expectedCareRemaining
+              && completedFeedTimer.remainingCareSeconds <= CapturedWildlifeState.CareIntervalSeconds,
+            "ANIMAL_CARE_REMAINING_DELAY_SAVE_EXACT",
+            $"version={completedFeedCircus.version};remaining={completedFeedTimer.remainingCareSeconds:R};"
+            + $"expected={expectedCareRemaining:R};runtimeDeadline={liveFeedTimer.nextCareAt:R};absoluteDeadlineSerialized=false");
+        if (failures.Count != 0) yield break;
+        string completedFeedJson = gameSaveService.ToJson(completedFeedWorld, true);
+        CircusProgramRegistry programs = scope.Container.Resolve<CircusProgramRegistry>();
+        bool invalidCareDelaysRejected = true;
+        foreach (float invalidDelay in new[] { -0.1f,
+                     CapturedWildlifeState.CareIntervalSeconds + 0.1f,
+                     float.NaN, float.PositiveInfinity })
+        {
+            CircusSaveData invalidDelayPayload = JsonUtility.FromJson<CircusSaveData>(
+                completedFeedCircusSection.payloadJson);
+            invalidDelayPayload.capturedWildlife.Single(value => value.wildlifeId == careAnimalId)
+                .remainingCareSeconds = invalidDelay;
+            DungeonGameRestoreReport invalidDelayReport = new();
+            CircusSaveValidation.Validate(invalidDelayPayload, programs, invalidDelayReport);
+            invalidCareDelaysRejected &= !invalidDelayReport.Success
+                && invalidDelayReport.Errors.Any(error => error.Contains("invalid numeric state"));
+        }
+        CircusSaveData legacyTimerPayload = JsonUtility.FromJson<CircusSaveData>(
+            completedFeedCircusSection.payloadJson);
+        legacyTimerPayload.version = 6;
+        DungeonGameRestoreReport legacyTimerReport = new();
+        CircusSaveValidation.Validate(legacyTimerPayload, programs, legacyTimerReport);
+        Check(invalidCareDelaysRejected && !legacyTimerReport.Success
+              && legacyTimerReport.Errors.Any(error => error.Contains("version 6 is invalid")),
+            "ANIMAL_CARE_DELAY_INVALID_AND_OLD_VERSION_REJECTED",
+            "negative/over-interval/NaN/infinity delays rejected;V6 rejected;no-live-mutation;no-migration");
+        if (failures.Count != 0) yield break;
+        string feedWorldPath = Path.Combine(Path.GetDirectoryName(
+            CaptivityWildlifeLifecyclePlayModeVerifier.ReportPath), "completed-feed-world.json");
+        string feedObservationPath = Path.ChangeExtension(feedWorldPath, ".observation.json");
+        if (File.Exists(feedWorldPath) || File.Exists(feedObservationPath))
+            throw new InvalidOperationException("Completed feed checkpoint evidence already exists.");
+        byte[] worldBytes = new System.Text.UTF8Encoding(false).GetBytes(completedFeedJson);
+        using System.Security.Cryptography.SHA256 worldHasher =
+            System.Security.Cryptography.SHA256.Create();
+        CompletedFeedCheckpointObservation feedObservation = new()
+        {
+            worldSha256 = BitConverter.ToString(worldHasher.ComputeHash(worldBytes))
+                .Replace("-", string.Empty).ToLowerInvariant(),
+            gameTime = scope.Container.Resolve<IGameClock>().Time,
+            absoluteDay = calendar.Day,
+            animalId = careAnimalId,
+            penId = penId,
+            feedItemId = feedItemId,
+            operationId = feedOperationId,
+            commitId = expectedFeedCommitId,
+            consumedQuantity = 1,
+            consumedMassGrams = expectedFeedMass,
+            remainingQuantity = feedQuantityAfter,
+            hungerBefore = feedHungerBefore,
+            hungerAfter = animal.Hunger,
+            healthAfter = animal.CurrentHealth,
+            feedSequence = savedFeedState.nextFeedOperationSequence
+        };
+        using (FileStream stream = new(feedWorldPath, FileMode.CreateNew,
+                   FileAccess.Write, FileShare.Read)) stream.Write(worldBytes, 0, worldBytes.Length);
+        using (FileStream stream = new(feedObservationPath, FileMode.CreateNew,
+                   FileAccess.Write, FileShare.Read))
+        using (StreamWriter writer = new(stream, new System.Text.UTF8Encoding(false)))
+            writer.Write(JsonUtility.ToJson(feedObservation, true));
+        Check(completedFeedWorld.sections.Count == baselineSaveData.sections.Count
+              && savedFeedActor.lastCaptiveFeedCommitId == feedObservation.commitId
+              && feedObservation.feedSequence == 1,
+            "ANIMAL_CARE_COMPLETED_FEED_OFFICIAL_CHECKPOINT",
+            $"sections={completedFeedWorld.sections.Count};animal={careAnimalId};"
+            + $"commit={feedObservation.commitId};gameTime={feedObservation.gameTime:0.###};"
+            + $"worldSha256={feedObservation.worldSha256};"
+            + "actual-consumption-then-official-save;not-cold-process-resume;trainingEligible=false");
+        if (failures.Count != 0) yield break;
 
         DungeonAnimalHusbandrySaveData husbandry = new();
         husbandry.penPolicies.Add(new AnimalPenPolicySaveData
@@ -2414,6 +3567,7 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             yield break;
         }
         EmergencyReserveSnapshot ledgerBefore = emergencyAccounting.CaptureSnapshot();
+        RecordAnimalCareAccounting("BEFORE_START");
         AnimalCareStartObservation initialStart = new();
         yield return ObserveAnimalCareStart(initialStart, "qa-animal-care");
         Check(initialStart.Neutralized,
@@ -2542,6 +3696,7 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             yield break;
         }
 
+        RecordAnimalCareAccounting("BEFORE_DOWNED");
         bodyHealthCommands.ApplySnapshot(
             worker,
             new CharacterBodyHealthSnapshot(
@@ -2569,6 +3724,7 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             && !workerWork.HasActiveWorkRoutineForDiagnostics
             && pen.WorkerReservation == null
             && pen.CurrentUserCount == 0;
+        RecordAnimalCareAccounting("SYNCHRONOUS_DOWNED");
         yield return null;
         yield return null;
         husbandryQuery.TryGetAnimal(
@@ -2596,6 +3752,7 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
                 out CharacterAiActionTerminalKind downedTerminal)
             && downedTerminal == CharacterAiActionTerminalKind.Cancelled;
         EmergencyReserveSnapshot ledgerAfter = emergencyAccounting.CaptureSnapshot();
+        RecordAnimalCareAccounting("DELAYED_DOWNED");
         Check(!workerWork.isWorking
               && !workerWork.HasActiveWorkRoutineForDiagnostics
               && synchronousCleanup
@@ -2703,6 +3860,718 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             "ANIMAL_CARE_PEN_DESTROY_EXACT_CLEANUP",
             $"started={targetRunStarted};working={workerWork.isWorking};routine={workerWork.HasActiveWorkRoutineForDiagnostics};paths={gate.LivePathRequests};reservations={gate.LiveReservations}");
     }
+
+    private IEnumerator VerifyCapturedAnimalTamingCompletion(string animalId)
+    {
+        WildlifeInstanceId typedId = new(animalId);
+        string penId = pen.RequirePersistentInstanceId().Value;
+        string workerId = CharacterPersistentIdentity.Require(worker).Value;
+        IGameClock clock = scope.Container.Resolve<IGameClock>();
+        ICharacterEnvironmentStatusQuery environment = scope.Container
+            .Resolve<ICharacterEnvironmentStatusQuery>();
+        float syncStart = clock.Time;
+        float syncDeadline = Time.realtimeSinceStartup + 8f;
+        HusbandryAnimalState initial = null;
+        while (!husbandryQuery.TryGetAnimal(typedId, out initial)
+               && clock.Time - syncStart < 10f
+               && Time.realtimeSinceStartup < syncDeadline)
+        {
+            yield return null;
+        }
+        AnimalHusbandryWorkSnapshot work = default;
+        bool realRoster = initial != null && initial.PenId.Value == penId
+            && !initial.Tamed && initial.TamingProgress == 0f
+            && husbandryQuery.TryGetWork(pen, worker, out work)
+            && work.AnimalId.Equals(typedId)
+            && work.Kind == AnimalHusbandryWorkKind.Tame
+            && work.RequiredWork > 0f && work.CompletedWork == 0f;
+        Check(realRoster, "TAME_REAL_CAPTURE_HUSBANDRY_REGISTERED",
+            $"animal={animalId};pen={initial?.PenId.Value};tamed={initial?.Tamed};"
+            + $"progress={initial?.TamingProgress};kind={work.Kind};"
+            + $"required={work.RequiredWork};completed={work.CompletedWork};"
+            + "production-tick-registration;roster-or-terminal-injection=false");
+        if (!realRoster) yield break;
+
+        WorkCompletionIdentityDeliveryLedger deliveries = scope.Container
+            .Resolve<WorkCompletionIdentityDeliveryLedger>();
+        string cursorsBefore = JsonUtility.ToJson(new TameDeliveryCursorEvidence
+        {
+            cursors = deliveries.Capture().ToList()
+        });
+        HashSet<string> identitiesBefore = outcomeLedger.CaptureGameplayOutcomes()
+            .exactOutcomes.Where(value => value.producerId
+                == WorkCompletionIdentityOutcomeIds.ProducerId)
+            .Select(TameResultKey).ToHashSet(StringComparer.Ordinal);
+        int childrenBefore = CaptureTameChildren(animalId).Length;
+        AnimalHusbandryRuntime owner = husbandryQuery as AnimalHusbandryRuntime;
+        IWorkCompletionIdentityDeliveryCommand actualCompletion = scope.Container
+            .Resolve<IWorkCompletionIdentityDeliveryCommand>();
+        CharacterIdentityEventPublisher actualEvents = scope.Container
+            .Resolve<CharacterIdentityEventPublisher>();
+        IDomainFactPublisher productionFacts = scope.Container
+            .Resolve<IDomainFactPublisher>();
+        HeldTameCompletionCommand heldCompletion = new(actualCompletion, animalId);
+        Check(owner != null, "TAME_REGISTERED_COMPLETION_OWNER", "registered runtime, not injected animal state");
+        if (owner == null) yield break;
+        using var routedFacts = new HusbandryCompletionDomainFactTestPublisher(
+            productionFacts,
+            heldCompletion,
+            actualEvents,
+            deliveries,
+            new WorkIdentityAppliedFactMapping(outcomeLedger, outcomeLedger));
+        owner.ConstructDomainFacts(routedFacts);
+        try
+        {
+        workerWork.SetWorkPriority(BuiltInWorkTypeIds.AnimalCare,
+            WorkPriorityLevel.Priority1);
+        AnimalCareStartObservation start = new();
+        yield return ObserveAnimalCareStart(start, "qa-real-capture-tame-complete");
+        Check(start.Started && start.Neutralized && start.PriorityAccepted
+              && start.PriorityTargetMatches && start.PriorityWorkTypeMatches
+              && start.PreferredCommitCount == 1,
+            "TAME_REAL_CAPTURE_BRAIN_AIWORK_STARTED",
+            start.Detail + ";" + start.PriorityArbitrationDetail);
+        if (!start.Started) yield break;
+
+        // This is a new complete-work observation, not a timeout extension of
+        // the partial-care fault matrix. Non-target resident needs are explicit
+        // test preparation; animal state, work rate and required work are not.
+        float gameStart = clock.Time;
+        float gameBudget = work.RequiredWork * 20f + 60f;
+        float wallDeadline = Time.realtimeSinceStartup + 120f;
+        float lastProgressGameTime = gameStart;
+        float nextNeutralize = gameStart + 5f;
+        float lastProgress = 0f;
+        int progressSamples = 0;
+        int frames = 0;
+        bool stalled = false;
+        bool completed = false;
+        HusbandryAnimalState final = initial;
+        while (clock.Time - gameStart < gameBudget
+               && Time.realtimeSinceStartup < wallDeadline)
+        {
+            frames++;
+            husbandryQuery.TryGetAnimal(typedId, out final);
+            if (frames <= 128)
+            {
+                CharacterAiRuntimeDiagnosticsSnapshot diagnostics =
+                    worker.Brain.CaptureRuntimeDiagnostics();
+                CharacterAiRuntimeGateSnapshot gate = diagnostics.Gate;
+                rows.Add("INFO\tTAME_REAL_CAPTURE_FRAME\t"
+                    + $"frame={Time.frameCount};game={clock.Time:0.###};delta={clock.DeltaTime:0.###};"
+                    + $"progress={final?.TamingProgress:0.######};kind={final?.PendingWorkKind};"
+                    + $"manure={final?.ReadyManureCycles};products="
+                    + string.Join(",", final?.Products?.Select(value =>
+                        $"{value.ItemId.Value}:{value.ReadyCycles}") ?? Array.Empty<string>())
+                    + $";tamed={final?.Tamed};action={worker.Brain.bestAction?.actionset?.GetType().Name};"
+                    + $"epoch={worker.Brain.RuntimeActionEpoch};phase={worker.Brain.CurrentActionPhase};"
+                    + $"phaseDetail={worker.Brain.CurrentActionPhaseDetail};failure={worker.Brain.LastActionFailure};"
+                    + $"lastExecutionFailure={diagnostics.LastExecutionFailureDetail};"
+                    + $"lastReplan={diagnostics.LastInterruptedReplanDetail};"
+                    + $"working={workerWork.isWorking};routine={workerWork.HasActiveWorkRoutineForDiagnostics};"
+                    + $"assigned={workerWork.AssignedWorkTypeId.Value};target={workerWork.assignedShop?.name};"
+                    + $"cancel={workerWork.ActiveWorkCancellationCountForDiagnostics}:"
+                    + $"{workerWork.LastActiveWorkCancellationReasonForDiagnostics};"
+                    + $"preWu={workerWork.LastPreWuExitKindForDiagnostics}:"
+                    + $"{workerWork.LastPreWuExitDetailForDiagnostics};duty={workerWork.CurrentDutyState};"
+                    + $"routineNeed={workerWork.LastWorkRunInterruptedForRoutineNeed};"
+                    + $"env={environment.GetPhysiologicalBand(new CharacterId(workerId))}/"
+                    + $"{environment.GetVisualBand(new CharacterId(workerId))};"
+                    + $"needs={DescribeAnimalCareNeeds(worker.Stats)};"
+                    + $"terminals={gate.ActionCompleted}/{gate.ActionFailed}/{gate.ActionCancelled};"
+                    + $"neutralizeDue={clock.Time >= nextNeutralize}");
+            }
+            if (final?.TamingProgress > lastProgress)
+            {
+                lastProgress = final.TamingProgress;
+                lastProgressGameTime = clock.Time;
+                progressSamples++;
+            }
+            if (final?.Tamed == true && final.TamingProgress == 1f
+                && CaptureTameChildren(animalId).Length == childrenBefore + 1
+                && !workerWork.isWorking
+                && !workerWork.HasActiveWorkRoutineForDiagnostics)
+            {
+                // The actual effect/child/work phase ends before the held
+                // identity is released. Exact identity completion remains a
+                // mandatory later phase after official pending-world restore.
+                completed = true;
+                break;
+            }
+            if (clock.Time - lastProgressGameTime >= 20f)
+            {
+                stalled = true;
+                break;
+            }
+            if (clock.Time >= nextNeutralize)
+            {
+                nextNeutralize = clock.Time + 5f;
+                long epochBefore = worker.Brain.RuntimeActionEpoch;
+                AIAction actionBefore = worker.Brain.bestAction;
+                long cancellationBefore = workerWork.ActiveWorkCancellationCountForDiagnostics;
+                // The full deprivation reset is a quiescent setup boundary
+                // which intentionally cancels live actions. During execution
+                // maintain test-only needs without resetting their actor owner.
+                bool neutral = TryNeutralizeAnimalCareSubject(
+                    out string needDetail, resetDeprivation: false);
+                bool actionPreserved = worker.Brain.RuntimeActionEpoch == epochBefore
+                    && ReferenceEquals(worker.Brain.bestAction, actionBefore)
+                    && workerWork.ActiveWorkCancellationCountForDiagnostics == cancellationBefore;
+                Check(neutral && actionPreserved,
+                    "TAME_NON_TARGET_PREPARATION_PRESERVES_ACTION",
+                    $"epoch={epochBefore}->{worker.Brain.RuntimeActionEpoch};"
+                    + $"sameAction={ReferenceEquals(worker.Brain.bestAction, actionBefore)};"
+                    + $"cancel={cancellationBefore}->{workerWork.ActiveWorkCancellationCountForDiagnostics};"
+                    + needDetail + ";trainingEligible=false");
+                if (!neutral || !actionPreserved)
+                {
+                    yield break;
+                }
+            }
+            yield return null;
+        }
+        capture.TryGetCaptured(animalId, out CapturedWildlifeState captured);
+        if (!completed)
+        {
+            rows.Add("INFO\tTAME_INTERRUPTION_RECENT_CHARACTER_LOG\t"
+                + string.Join(" | ", worker.Log.TakeLast(12)));
+            rows.Add("INFO\tTAME_INTERRUPTION_RUNTIME_TRACE\t"
+                + worker.Brain.CaptureRuntimeDiagnostics().FormatRecentTrace());
+        }
+        Check(completed && captured?.isTamed == true
+              && captured.transportState == CapturedWildlifeTransportState.Penned
+              && final?.AnimalId.Equals(typedId) == true,
+            "TAME_REAL_CAPTURE_EFFECT_AND_WORK_COMPLETE",
+            $"animal={animalId};tamed={final?.Tamed}/{captured?.isTamed};"
+            + $"progress={lastProgress:0.######};samples={progressSamples};frames={frames};"
+            + $"gameSeconds={clock.Time - gameStart:0.###}/{gameBudget:0.###};"
+            + $"stalled={stalled};phase={worker.Brain?.CurrentActionPhase};"
+            + $"failure={worker.Brain?.LastActionFailure};working={workerWork.isWorking};"
+            + $"routine={workerWork.HasActiveWorkRoutineForDiagnostics};"
+            + "actual-Brain-AIWork-AbilityWork-WorkTaskExecutor;trainingEligible=false");
+        if (!completed) yield break;
+
+        worker.SetAiPaused(true);
+        worker.Brain.StopCurrentActionForReplan("qa-completed-tame-save");
+        workerWork.ClearPriorityWorkTarget();
+        float pendingDeadline = Time.realtimeSinceStartup + 5f;
+        while (heldCompletion.DeferredAttempts == 0 && Time.realtimeSinceStartup < pendingDeadline)
+            yield return null;
+        AnimalHusbandryPendingOutcomeSaveData pendingIdentity = husbandryPersistence
+            .Capture().pendingOutcomes.SingleOrDefault(value => value.animalId == animalId);
+        rows.Add("INFO\tTAME_DEFERRED_BOUNDARY_PENDING_EXACT\t"
+            + JsonUtility.ToJson(pendingIdentity));
+        foreach (GameplayOutcomeSnapshot observedIdentity in outcomeLedger.CaptureGameplayOutcomes()
+                     .exactOutcomes.Where(value => value.producerId == WorkCompletionIdentityOutcomeIds.ProducerId
+                         && !identitiesBefore.Contains(TameResultKey(value))))
+            rows.Add("INFO\tTAME_DEFERRED_BOUNDARY_NEW_IDENTITY_EXACT\t"
+                + JsonUtility.ToJson(observedIdentity));
+        bool retainedPending = pendingIdentity != null && pendingIdentity.completionIdentityRequired
+            && pendingIdentity.outcomeCommitted
+            && NoHusbandryCompletionCursor(pendingIdentity, deliveries.Capture())
+            && heldCompletion.DeferredAttempts > 0
+            && CaptureTameChildren(animalId).Length == childrenBefore + 1
+            && !outcomeLedger.CaptureGameplayOutcomes().exactOutcomes.Any(value =>
+                value.producerId == WorkCompletionIdentityOutcomeIds.ProducerId
+                && !identitiesBefore.Contains(TameResultKey(value)));
+        Check(retainedPending, "TAME_IDENTITY_DEFERRED_AFTER_REAL_EFFECT",
+            $"animal={animalId};heldAttempts={heldCompletion.DeferredAttempts};"
+            + $"child={pendingIdentity?.publicationKey};"
+            + $"approvedContribution={pendingIdentity?.completionContributionWorkUnits};"
+            + "test-only-delivery-deferral;no-effect-or-child-injection");
+        if (!retainedPending) yield break;
+
+        captiveActor.SetAiPaused(true);
+        captiveActor.characterType = captiveOldType;
+        DungeonGameSaveData pendingWorld = gameSaveService.Capture();
+        string pendingJson = gameSaveService.ToJson(pendingWorld, true);
+        string pendingEvidence = Path.Combine(Path.GetDirectoryName(
+            CaptivityWildlifeLifecyclePlayModeVerifier.ReportPath),
+            "real-capture-tame-identity-pending-world.json");
+        using (FileStream stream = new(pendingEvidence, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
+        using (StreamWriter writer = new(stream, new System.Text.UTF8Encoding(false))) writer.Write(pendingJson);
+        string pendingFrozen = JsonUtility.ToJson(pendingIdentity);
+        bool pendingRestored = RestoreCircus(null, gameSaveService.FromJson(pendingJson));
+        AnimalHusbandryPendingOutcomeSaveData restoredPending = husbandryPersistence.Capture()
+            .pendingOutcomes.SingleOrDefault(value => value.animalId == animalId);
+        Check(pendingRestored && restoredPending != null
+              && JsonUtility.ToJson(restoredPending) == pendingFrozen
+              && CaptureTameChildren(animalId).Length == childrenBefore + 1,
+            "TAME_PENDING_IDENTITY_OFFICIAL_WORLD_RESTORE",
+            $"success={pendingRestored};sections={pendingWorld.sections.Count};"
+            + $"sameChild={restoredPending?.publicationKey};frozen-request-exact;"
+            + "same-process-fresh-world;not-cold-process-resume");
+        if (!pendingRestored || restoredPending == null) yield break;
+        AnimalHusbandryPendingOutcomeState restoredCompletion = owner
+            .BuildRestore(husbandryPersistence.Capture()).State.PendingOutcomes
+            .Single(value => value.AnimalId.Value == animalId).Clone();
+        worker.SetAiPaused(true);
+        worker.Brain.StopCurrentActionForReplan("qa-tame-pending-identity-restored");
+        // The real effect/child is committed, but its canonical identity delivery
+        // is still held. Validate the wrong animal before the first valid ACK,
+        // then verify changed same-sequence replay separately after completion.
+        WorkCompletedIdentityEvent pendingTerminal = AnimalHusbandryCompletionObservation
+            .CreateCompletionEvent(restoredCompletion);
+        WorkCompletedIdentityEvent pendingWrongAnimal = new(pendingTerminal.Character,
+            pendingTerminal.WorkId, "tame|wild:qa-other-animal", pendingTerminal.Origin,
+            pendingTerminal.AbsoluteDay, pendingTerminal.OperationId,
+            pendingTerminal.TerminalOwnerId, pendingTerminal.ChildResultKey,
+            pendingTerminal.TargetEntityId, pendingTerminal.ContributionWorkUnits,
+            pendingTerminal.SkillModifierProvenance);
+        WorkCompletionIdentityDeliveryRequest wrongChildRequest =
+            WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(pendingWrongAnimal);
+        Check(!deliveries.Capture().Any(value =>
+                value.producerStreamId == wrongChildRequest.ProducerStreamId),
+            "TAME_WRONG_ANIMAL_CHILD_FRESH_CANONICAL_DELIVERY", wrongChildRequest.ProducerStreamId);
+        string wrongChildOwnerBefore = JsonUtility.ToJson(husbandryPersistence.Capture());
+        string wrongChildLedgerBefore = JsonUtility.ToJson(outcomeLedger.CaptureGameplayOutcomes());
+        string wrongChildCursorsBefore = JsonUtility.ToJson(new TameDeliveryCursorEvidence
+            { cursors = deliveries.Capture().ToList() });
+        WorkCompletionIdentityDeliveryResult wrongChildResult = actualCompletion.EnsureApplied(wrongChildRequest);
+        Check(wrongChildResult.Status == WorkCompletionIdentityDeliveryStatus.Conflict
+              && wrongChildResult.FailureReason.StartsWith(
+                  "work-identity-husbandry-child-payload-conflict:", StringComparison.Ordinal)
+              && wrongChildOwnerBefore == JsonUtility.ToJson(husbandryPersistence.Capture())
+              && wrongChildLedgerBefore == JsonUtility.ToJson(outcomeLedger.CaptureGameplayOutcomes())
+              && wrongChildCursorsBefore == JsonUtility.ToJson(new TameDeliveryCursorEvidence
+                  { cursors = deliveries.Capture().ToList() }),
+            "TAME_WRONG_ANIMAL_CHILD_REJECTED_WITHOUT_MUTATION", wrongChildResult.FailureReason);
+        heldCompletion.Hold = false;
+        float identityDeadline = Time.realtimeSinceStartup + 5f;
+        while (husbandryPersistence.Capture().pendingOutcomes.Any(value => value.animalId == animalId)
+               && Time.realtimeSinceStartup < identityDeadline)
+            yield return null;
+        GameplayOutcomeSnapshot[] children = CaptureTameChildren(animalId);
+        GameplayOutcomeSnapshot child = children.Length == childrenBefore + 1
+            ? children.Last() : null;
+        GameplayOutcomeSnapshot[] identities = outcomeLedger.CaptureGameplayOutcomes()
+            .exactOutcomes.Where(value => value.producerId
+                    == WorkCompletionIdentityOutcomeIds.ProducerId
+                && !identitiesBefore.Contains(TameResultKey(value))).ToArray();
+        GameplayOutcomeSnapshot identity = identities.Length == 1 ? identities[0] : null;
+        double childWork = child?.metrics.FirstOrDefault(value => value.metricId
+            == MigratedProducerOutcomeIds.CompletedWorkMetric.Value)?.value
+            ?? double.NaN;
+        Check(child != null && child.status == GameplayOutcomeStatus.Succeeded
+              && TameFact(child, "animal-id") == animalId
+              && TameFact(child, "pen-id") == penId
+              && TameFact(child, "worker-id") == workerId
+              && child.participants.Any(value => value.entityId == workerId
+                  && value.roleId == MigratedProducerOutcomeIds.ActorRole.Value)
+              && Math.Abs(childWork - Math.Round(work.RequiredWork * 1000d)) <= 1d
+              && husbandryPersistence.Capture().pendingOutcomes.Count == 0,
+            "TAME_CHILD_EXACT_IDENTITY_WORK_ONCE",
+            $"animal={animalId};children={childrenBefore}->{children.Length};"
+            + $"child={TameResultKey(child)};worker={TameFact(child, "worker-id")};"
+            + $"workMilli={childWork}/{work.RequiredWork * 1000d};pending="
+            + husbandryPersistence.Capture().pendingOutcomes.Count);
+        Check(identity != null && identity.status == GameplayOutcomeStatus.Succeeded
+              && TameFact(identity, WorkCompletionIdentityOutcomeIds.WorkIdFact.Value)
+                  == BuiltInWorkTypeIds.AnimalCare.Value
+              && identity.participants.Any(value => value.entityId == workerId)
+              && identity.subjects.Any(value => value.entityId == penId
+                  && value.entityKindId == WorkCompletionIdentityOutcomeIds.BuildingKind.Value)
+              && identity.sequence > child?.sequence
+              && TameFact(identity, WorkCompletionIdentityOutcomeIds.ChildResultKeyFact.Value)
+                  == TameResultKey(child)
+              && TameFact(identity, WorkCompletionIdentityOutcomeIds.TerminalOwnerFact.Value)
+                  == child?.producerId
+              && cursorsBefore != JsonUtility.ToJson(new TameDeliveryCursorEvidence
+                  { cursors = deliveries.Capture().ToList() }),
+            "TAME_WORK_IDENTITY_ONCE",
+            $"identities={identities.Length};identity={TameResultKey(identity)};"
+            + $"target={penId};"
+            + $"childReference={TameFact(identity, WorkCompletionIdentityOutcomeIds.ChildResultKeyFact.Value)}");
+        if (child == null || identity == null || failures.Count != 0) yield break;
+
+        captiveActor.SetAiPaused(true);
+        captiveActor.characterType = captiveOldType;
+        DungeonGameSaveData completedSave = gameSaveService.Capture();
+        string json = gameSaveService.ToJson(completedSave, true);
+        string evidencePath = Path.Combine(Path.GetDirectoryName(
+            CaptivityWildlifeLifecyclePlayModeVerifier.ReportPath),
+            "real-capture-tame-completed-world.json");
+        using (FileStream stream = new(evidencePath, FileMode.CreateNew,
+                   FileAccess.Write, FileShare.Read))
+        using (StreamWriter writer = new(stream, new System.Text.UTF8Encoding(false)))
+            writer.Write(json);
+        bool restored = RestoreCircus(null, gameSaveService.FromJson(json));
+        WildlifeActor[] restoredAnimals = wildlife.Wildlife.Where(value =>
+            value != null && value.WildlifeId == animalId).ToArray();
+        husbandryQuery.TryGetAnimal(typedId, out HusbandryAnimalState restoredState);
+        capture.TryGetCaptured(animalId, out CapturedWildlifeState restoredCaptured);
+        GameplayOutcomeSnapshot[] restoredChildren = CaptureTameChildren(animalId);
+        GameplayOutcomeSnapshot[] restoredIdentities = outcomeLedger.CaptureGameplayOutcomes()
+            .exactOutcomes.Where(value => TameResultKey(value) == TameResultKey(identity)).ToArray();
+        Check(restored && restoredAnimals.Length == 1
+              && restoredState?.Tamed == true && restoredState.TamingProgress == 1f
+              && restoredCaptured?.isTamed == true
+              && restoredCaptured.penId == penId
+              && restoredChildren.Length == children.Length
+              && restoredChildren.Last().immutablePayloadHash == child.immutablePayloadHash
+              && restoredIdentities.Length == 1
+              && restoredIdentities[0].immutablePayloadHash == identity.immutablePayloadHash,
+            "TAME_COMPLETED_OFFICIAL_WORLD_RESTORE",
+            $"success={restored};sections={completedSave.sections.Count};"
+            + $"animal={animalId}:{restoredAnimals.Length};tamed={restoredState?.Tamed};"
+            + $"children={restoredChildren.Length};identities={restoredIdentities.Length};"
+            + "same-process-fresh-world;not-cold-process-resume");
+        if (!restored || worker == null || pen == null) yield break;
+        worker.SetAiPaused(true);
+        worker.Brain.StopCurrentActionForReplan("qa-restored-tame-retry");
+        string animalBeforeRetry = JsonUtility.ToJson(husbandryPersistence.Capture());
+        string ledgerBeforeRetry = JsonUtility.ToJson(outcomeLedger.CaptureGameplayOutcomes());
+        bool retry = scope.Container.Resolve<IAnimalHusbandryCommand>().ApplyWork(
+            pen, worker, typedId, AnimalHusbandryWorkKind.Tame,
+            work.RequiredWork, out bool retryCompleted);
+        Check(!retry && !retryCompleted
+              && animalBeforeRetry == JsonUtility.ToJson(husbandryPersistence.Capture())
+              && ledgerBeforeRetry == JsonUtility.ToJson(outcomeLedger.CaptureGameplayOutcomes()),
+            "TAME_COMPLETED_RETRY_NO_EFFECT_OR_DUPLICATE",
+            $"accepted={retry};completed={retryCompleted};animal={animalId};"
+            + "owner-state-and-ledger-byte-exact;no-terminal-injection");
+        WorkCompletedIdentityEvent terminal = AnimalHusbandryCompletionObservation.CreateCompletionEvent(
+            restoredCompletion);
+        string replayLedger = JsonUtility.ToJson(outcomeLedger.CaptureGameplayOutcomes());
+        string replayCursors = JsonUtility.ToJson(new TameDeliveryCursorEvidence
+            { cursors = deliveries.Capture().ToList() });
+        WorkCompletionIdentityDeliveryResult replayIdentity = actualCompletion.EnsureApplied(
+            WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(terminal));
+        Check(replayIdentity.Status == WorkCompletionIdentityDeliveryStatus.AlreadyApplied
+              && replayLedger == JsonUtility.ToJson(outcomeLedger.CaptureGameplayOutcomes())
+              && replayCursors == JsonUtility.ToJson(new TameDeliveryCursorEvidence
+                  { cursors = deliveries.Capture().ToList() }),
+            "TAME_REFERENCED_IDENTITY_REPLAY_BYTE_EXACT", replayIdentity.Status.ToString());
+        WorkCompletedIdentityEvent wrongAnimal = new(terminal.Character, terminal.WorkId,
+            "tame|wild:qa-other-animal", terminal.Origin, terminal.AbsoluteDay,
+            terminal.OperationId, terminal.TerminalOwnerId, terminal.ChildResultKey,
+            terminal.TargetEntityId, terminal.ContributionWorkUnits, terminal.SkillModifierProvenance);
+        WorkCompletionIdentityDeliveryResult wrongAnimalResult = actualCompletion.EnsureApplied(
+            WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(wrongAnimal));
+        Check(wrongAnimalResult.Status == WorkCompletionIdentityDeliveryStatus.Conflict
+              && wrongAnimalResult.FailureReason
+                  == "The completion delivery sequence has conflicting provenance."
+              && animalBeforeRetry == JsonUtility.ToJson(husbandryPersistence.Capture())
+              && replayLedger == JsonUtility.ToJson(outcomeLedger.CaptureGameplayOutcomes())
+              && replayCursors == JsonUtility.ToJson(new TameDeliveryCursorEvidence
+                  { cursors = deliveries.Capture().ToList() }),
+            "TAME_CHANGED_EVENT_SEQUENCE_REJECTED_WITHOUT_MUTATION", wrongAnimalResult.FailureReason);
+
+        }
+        finally
+        {
+            owner.ConstructDomainFacts(productionFacts);
+        }
+    }
+
+    private IEnumerator VerifyCapturedAnimalSlaughterCompletion(string animalId)
+    {
+        WildlifeInstanceId typedId = new(animalId);
+        string penId = pen.RequirePersistentInstanceId().Value;
+        string workerId = CharacterPersistentIdentity.Require(worker).Value;
+        WildlifeActor target = wildlife.Wildlife.SingleOrDefault(value =>
+            value != null && value.WildlifeId == animalId);
+        bool valid = target != null && target.IsAlive
+            && husbandryQuery.TryGetAnimal(typedId, out HusbandryAnimalState initial)
+            && initial.Tamed && !initial.SlaughterDesignated;
+        Check(valid, "SLAUGHTER_REAL_TAMED_SOURCE", animalId);
+        if (!valid) yield break;
+        string carcassItemId = target.Species.CarcassItemId;
+        long unitMass = itemRuntime.MassQuery.GetDefinitionUnitMass(
+            new ItemDefinitionId(carcassItemId)).Value;
+        HashSet<string> originalStacks = itemRuntime.GetAllStacks()
+            .Select(value => value.StackId).ToHashSet(StringComparer.Ordinal);
+        string branchJson = gameSaveService.ToJson(gameSaveService.Capture(), true);
+        AnimalHusbandryRuntime owner = husbandryQuery as AnimalHusbandryRuntime;
+        IAnimalHusbandryCommand commands = scope.Container.Resolve<IAnimalHusbandryCommand>();
+        IWorkCompletionIdentityDeliveryCommand actualCompletion = scope.Container
+            .Resolve<IWorkCompletionIdentityDeliveryCommand>();
+        CharacterIdentityEventPublisher events = scope.Container.Resolve<CharacterIdentityEventPublisher>();
+        WorkCompletionIdentityDeliveryLedger deliveries = scope.Container
+            .Resolve<WorkCompletionIdentityDeliveryLedger>();
+        IDomainFactPublisher productionFacts = scope.Container
+            .Resolve<IDomainFactPublisher>();
+        IWildlifeCarcassService carcasses = scope.Container.Resolve<IWildlifeCarcassService>();
+        HashSet<string> identitiesBefore = outcomeLedger.CaptureGameplayOutcomes().exactOutcomes
+            .Where(value => value.producerId == WorkCompletionIdentityOutcomeIds.ProducerId)
+            .Select(TameResultKey).ToHashSet(StringComparer.Ordinal);
+        int childrenBefore = CaptureSlaughterChildren(animalId).Length;
+        int releasesBefore = CountWildlifeOutcome(EnvironmentOutcomeIds.WildlifeCommandProducer,
+            "capture-release", animalId);
+        HeldTameCompletionCommand held = new(actualCompletion, animalId, "slaughter");
+        Check(owner != null && childrenBefore == 0, "SLAUGHTER_REGISTERED_OWNER", animalId);
+        if (owner == null || childrenBefore != 0) yield break;
+        using var routedFacts = new HusbandryCompletionDomainFactTestPublisher(
+            productionFacts,
+            held,
+            events,
+            deliveries,
+            new WorkIdentityAppliedFactMapping(outcomeLedger, outcomeLedger));
+        owner.ConstructDomainFacts(routedFacts);
+        try
+        {
+            bool designated = commands.DesignateSlaughter(typedId, true, out AnimalHusbandryFailure failure);
+            AnimalHusbandryWorkSnapshot work = default;
+            bool selected = husbandryQuery.TryGetWork(pen, worker, out work)
+                && work.AnimalId.Equals(typedId) && work.Kind == AnimalHusbandryWorkKind.Slaughter
+                && work.RequiredWork > 0f && work.CompletedWork == 0f;
+            Check(designated && selected, "SLAUGHTER_NORMAL_DESIGNATION_SELECTS_WORK",
+                $"accepted={designated};failure={failure};kind={work.Kind};required={work.RequiredWork};"
+                + "terminal-or-work-injection=false;trainingEligible=false");
+            if (!designated || !selected) yield break;
+            workerWork.SetWorkPriority(BuiltInWorkTypeIds.AnimalCare, WorkPriorityLevel.Priority1);
+            AnimalCareStartObservation start = new();
+            yield return ObserveAnimalCareStart(start, "qa-real-capture-slaughter");
+            Check(start.Started && start.Neutralized && start.PriorityAccepted
+                  && start.PriorityTargetMatches && start.PriorityWorkTypeMatches
+                  && start.PreferredCommitCount == 1,
+                "SLAUGHTER_REAL_BRAIN_AIWORK_STARTED", start.Detail + ";" + start.PriorityArbitrationDetail);
+            if (!start.Started || failures.Count != 0) yield break;
+            IGameClock clock = scope.Container.Resolve<IGameClock>();
+            float gameStart = clock.Time;
+            float gameBudget = work.RequiredWork * 20f + 60f;
+            float wallDeadline = Time.realtimeSinceStartup + 120f;
+            float progressAt = gameStart;
+            float nextNeutralize = gameStart + 5f;
+            float lastProgress = 0f;
+            int samples = 0;
+            bool completed = false;
+            bool stalled = false;
+            while (clock.Time - gameStart < gameBudget && Time.realtimeSinceStartup < wallDeadline)
+            {
+                if (CaptureSlaughterChildren(animalId).Length == childrenBefore + 1
+                    && !workerWork.isWorking && !workerWork.HasActiveWorkRoutineForDiagnostics)
+                {
+                    completed = true;
+                    break;
+                }
+                husbandryQuery.TryGetAnimal(typedId, out HusbandryAnimalState current);
+                if (current?.PendingWorkCompleted > lastProgress)
+                {
+                    lastProgress = current.PendingWorkCompleted;
+                    progressAt = clock.Time;
+                    samples++;
+                }
+                if (clock.Time - progressAt >= 20f) { stalled = true; break; }
+                if (clock.Time >= nextNeutralize)
+                {
+                    nextNeutralize = clock.Time + 5f;
+                    long epoch = worker.Brain.RuntimeActionEpoch;
+                    AIAction action = worker.Brain.bestAction;
+                    long cancellations = workerWork.ActiveWorkCancellationCountForDiagnostics;
+                    bool neutral = TryNeutralizeAnimalCareSubject(out string detail, resetDeprivation: false);
+                    bool preserved = epoch == worker.Brain.RuntimeActionEpoch
+                        && ReferenceEquals(action, worker.Brain.bestAction)
+                        && cancellations == workerWork.ActiveWorkCancellationCountForDiagnostics;
+                    Check(neutral && preserved, "SLAUGHTER_NON_TARGET_PREPARATION_PRESERVES_ACTION",
+                        detail + $";actionPreserved={preserved};trainingEligible=false");
+                    if (!neutral || !preserved) yield break;
+                }
+                yield return null;
+            }
+            Check(completed && !capture.TryGetCaptured(animalId, out _)
+                  && !husbandryQuery.TryGetAnimal(typedId, out _)
+                  && !wildlife.Wildlife.Any(value => value != null && value.WildlifeId == animalId)
+                  && (target == null || !target.IsAlive)
+                  && CountWildlifeOutcome(EnvironmentOutcomeIds.WildlifeCommandProducer,
+                      "capture-release", animalId) == releasesBefore + 1,
+                "SLAUGHTER_ACTUAL_DEATH_RELEASE_REGISTRY_REMOVAL",
+                $"completed={completed};animal={animalId};samples={samples};work={lastProgress};"
+                + $"gameSeconds={clock.Time - gameStart}/{gameBudget};stalled={stalled};"
+                + $"phase={worker.Brain.CurrentActionPhase};failure={worker.Brain.LastActionFailure};"
+                + "actual-Brain-AIWork-AbilityWork-WorkTaskExecutor;trainingEligible=false");
+            if (!completed || failures.Count != 0) yield break;
+            worker.SetAiPaused(true);
+            worker.Brain.StopCurrentActionForReplan("qa-slaughter-completed-save");
+            workerWork.ClearPriorityWorkTarget();
+            AnimalHusbandryPendingOutcomeSaveData pending = husbandryPersistence.Capture()
+                .pendingOutcomes.SingleOrDefault(value => value.animalId == animalId);
+            WorldItemStackSnapshot[] outputs = itemRuntime.GetAllStacks().Where(value =>
+                !originalStacks.Contains(value.StackId) && value.ItemId == carcassItemId).ToArray();
+            WorldItemStackSnapshot stack = outputs.Length == 1 ? outputs[0] : null;
+            GameplayOutcomeSnapshot child = CaptureSlaughterChildren(animalId).SingleOrDefault();
+            string outputFact = stack == null ? string.Empty
+                : $"item={carcassItemId};quantity=1;massGrams={unitMass};stacks={stack.StackId}:1;carcass={stack.StackId}";
+            double childWork = child?.metrics.FirstOrDefault(value => value.metricId
+                == MigratedProducerOutcomeIds.CompletedWorkMetric.Value)?.value ?? double.NaN;
+            Check(stack != null && stack.Quantity == 1 && unitMass > 0 && child != null
+                  && child.status == GameplayOutcomeStatus.Succeeded
+                  && TameFact(child, "physical-output") == outputFact
+                  && TameFact(child, "animal-id") == animalId && TameFact(child, "pen-id") == penId
+                  && TameFact(child, "worker-id") == workerId
+                  && Math.Abs(childWork - Math.Round(work.RequiredWork * 1000d)) <= 1d
+                  && carcasses.CaptureFreshness().Count(value => value.stackId == stack.StackId
+                      && value.speciesId == TameFact(child, MigratedProducerOutcomeIds.SpeciesFact.Value)) == 1
+                  && pending != null && pending.outcomeCommitted && pending.completionIdentityRequired
+                  && NoHusbandryCompletionCursor(pending, deliveries.Capture()) && held.DeferredAttempts > 0
+                  && pending.carcassStackId == stack.StackId
+                  && pending.publicationKey == TameResultKey(child)
+                  && !outcomeLedger.CaptureGameplayOutcomes().exactOutcomes.Any(value =>
+                      value.producerId == WorkCompletionIdentityOutcomeIds.ProducerId
+                      && !identitiesBefore.Contains(TameResultKey(value))),
+                "SLAUGHTER_PHYSICAL_CHILD_AND_PENDING_IDENTITY_EXACT",
+                $"output={outputFact};actual={TameFact(child, "physical-output")};workMilli={childWork};"
+                + $"child={TameResultKey(child)};held={held.DeferredAttempts};"
+                + "identity-only-test-deferral;effect-and-child-injection=false");
+            if (failures.Count != 0) yield break;
+            DungeonGameSaveData pendingWorld = gameSaveService.Capture();
+            string pendingJson = gameSaveService.ToJson(pendingWorld, true);
+            WriteSlaughterCheckpoint("real-capture-slaughter-identity-pending-world.json", pendingJson);
+            string frozenPending = JsonUtility.ToJson(pending);
+            bool restored = RestoreCircus(null, gameSaveService.FromJson(pendingJson));
+            AnimalHusbandryPendingOutcomeSaveData restoredPending = husbandryPersistence.Capture()
+                .pendingOutcomes.SingleOrDefault(value => value.animalId == animalId);
+            Check(restored && restoredPending != null && JsonUtility.ToJson(restoredPending) == frozenPending
+                  && CaptureSlaughterChildren(animalId).Single().immutablePayloadHash == child.immutablePayloadHash
+                  && itemRuntime.GetAllStacks().Count(value => value.StackId == stack.StackId
+                      && value.Quantity == 1 && value.ItemId == carcassItemId) == 1
+                  && !capture.TryGetCaptured(animalId, out _)
+                  && !wildlife.Wildlife.Any(value => value != null && value.WildlifeId == animalId),
+                "SLAUGHTER_PENDING_OFFICIAL_WORLD_RESTORE",
+                $"success={restored};sections={pendingWorld.sections.Count};same-request/child/physical;"
+                + "same-process-fresh-world;not-cold-process-resume");
+            if (!restored || restoredPending == null || failures.Count != 0) yield break;
+            AnimalHusbandryPendingOutcomeState completion = owner.BuildRestore(husbandryPersistence.Capture())
+                .State.PendingOutcomes.Single(value => value.AnimalId.Value == animalId).Clone();
+            held.Hold = false;
+            float identityDeadline = Time.realtimeSinceStartup + 5f;
+            while (husbandryPersistence.Capture().pendingOutcomes.Any(value => value.animalId == animalId)
+                   && Time.realtimeSinceStartup < identityDeadline) yield return null;
+            GameplayOutcomeSnapshot[] identities = outcomeLedger.CaptureGameplayOutcomes().exactOutcomes
+                .Where(value => value.producerId == WorkCompletionIdentityOutcomeIds.ProducerId
+                    && !identitiesBefore.Contains(TameResultKey(value))).ToArray();
+            GameplayOutcomeSnapshot identity = identities.Length == 1 ? identities[0] : null;
+            Check(identity != null && identity.status == GameplayOutcomeStatus.Succeeded
+                  && identity.sequence > child.sequence
+                  && TameFact(identity, WorkCompletionIdentityOutcomeIds.ChildResultKeyFact.Value) == TameResultKey(child)
+                  && TameFact(identity, WorkCompletionIdentityOutcomeIds.TerminalOwnerFact.Value) == child.producerId
+                  && TameFact(identity, WorkCompletionIdentityOutcomeIds.WorkIdFact.Value) == BuiltInWorkTypeIds.AnimalCare.Value
+                  && identity.participants.Any(value => value.entityId == workerId)
+                  && identity.subjects.Any(value => value.entityId == penId)
+                  && husbandryPersistence.Capture().pendingOutcomes.Count == 0,
+                "SLAUGHTER_COMPLETION_IDENTITY_EXACT_JOIN_ONCE", TameResultKey(identity));
+            if (failures.Count != 0) yield break;
+            string completedJson = gameSaveService.ToJson(gameSaveService.Capture(), true);
+            WriteSlaughterCheckpoint("real-capture-slaughter-completed-world.json", completedJson);
+            restored = RestoreCircus(null, gameSaveService.FromJson(completedJson));
+            Check(restored && CaptureSlaughterChildren(animalId).Single().immutablePayloadHash == child.immutablePayloadHash
+                  && outcomeLedger.CaptureGameplayOutcomes().exactOutcomes.Count(value =>
+                      TameResultKey(value) == TameResultKey(identity)
+                      && value.immutablePayloadHash == identity.immutablePayloadHash) == 1
+                  && itemRuntime.GetAllStacks().Count(value => value.StackId == stack.StackId
+                      && value.ItemId == carcassItemId && value.Quantity == 1) == 1
+                  && !capture.TryGetCaptured(animalId, out _) && !husbandryQuery.TryGetAnimal(typedId, out _),
+                "SLAUGHTER_COMPLETED_OFFICIAL_WORLD_RESTORE", $"success={restored};carcass={stack.StackId}");
+            if (!restored || failures.Count != 0) yield break;
+            List<DungeonSaveSectionEnvelope> beforeReplay = saveRegistry.CaptureAll();
+            WorkCompletedIdentityEvent terminal = AnimalHusbandryCompletionObservation.CreateCompletionEvent(completion);
+            WorkCompletionIdentityDeliveryResult replay = actualCompletion.EnsureApplied(
+                WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(terminal));
+            bool retried = commands.ApplyWork(pen, worker, typedId, AnimalHusbandryWorkKind.Slaughter,
+                work.RequiredWork, out bool retryCompleted);
+            List<DungeonSaveSectionEnvelope> afterReplay = saveRegistry.CaptureAll();
+            Check(replay.Status == WorkCompletionIdentityDeliveryStatus.AlreadyApplied
+                  && !retried && !retryCompleted && beforeReplay.Count == afterReplay.Count
+                  && beforeReplay.All(before => afterReplay.Any(after => after.sectionId == before.sectionId
+                      && after.sectionVersion == before.sectionVersion && after.payloadJson == before.payloadJson)),
+                "SLAUGHTER_COMPLETED_REPLAY_ALL_SECTIONS_BYTE_EXACT",
+                $"identity={replay.Status};workAccepted={retried};completed={retryCompleted};sections={afterReplay.Count}");
+        }
+        finally { owner.ConstructDomainFacts(productionFacts); }
+        if (failures.Count != 0) yield break;
+        bool branchRestored = RestoreCircus(null, gameSaveService.FromJson(branchJson));
+        Check(branchRestored && husbandryQuery.TryGetAnimal(typedId, out HusbandryAnimalState branchAnimal)
+              && branchAnimal.Tamed && !branchAnimal.SlaughterDesignated
+              && CaptureSlaughterChildren(animalId).Length == childrenBefore,
+            "SLAUGHTER_TEST_BRANCH_RESTORE_FOR_EXISTING_RELEASE",
+            "official-original-tame-world;test-only-branch;trainingEligible=false");
+    }
+
+    private GameplayOutcomeSnapshot[] CaptureSlaughterChildren(string animalId) =>
+        outcomeLedger.CaptureGameplayOutcomes().exactOutcomes.Where(value =>
+            value.outcomeTypeId == MigratedProducerOutcomeCatalog.Get(
+                MigratedProducerOutcomeKind.AnimalHusbandryWorkResult).OutcomeTypeId.Value
+            && TameFact(value, "husbandry-kind") == "slaughter"
+            && TameFact(value, "animal-id") == animalId).OrderBy(value => value.sequence).ToArray();
+
+    private static void WriteSlaughterCheckpoint(string name, string json)
+    {
+        string path = Path.Combine(Path.GetDirectoryName(
+            CaptivityWildlifeLifecyclePlayModeVerifier.ReportPath), name);
+        using FileStream stream = new(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+        using StreamWriter writer = new(stream, new System.Text.UTF8Encoding(false));
+        writer.Write(json);
+    }
+
+    private sealed class HeldTameCompletionCommand : IWorkCompletionIdentityDeliveryCommand
+    {
+        private readonly IWorkCompletionIdentityDeliveryCommand actual;
+        private readonly string product;
+        private readonly string deferredReason;
+        public bool Hold = true;
+        public int DeferredAttempts;
+        public HeldTameCompletionCommand(IWorkCompletionIdentityDeliveryCommand actual, string animalId,
+            string workKind = "tame")
+        {
+            this.actual = actual;
+            product = workKind + "|" + animalId;
+            deferredReason = "qa-test-only-held-" + workKind + "-identity";
+        }
+        public WorkCompletionIdentityDeliveryResult EnsureApplied(WorkCompletionIdentityDeliveryRequest request)
+        {
+            if (Hold && request.WorkId == BuiltInWorkTypeIds.AnimalCare.Value && request.ProductId == product)
+            {
+                DeferredAttempts++;
+                return new(WorkCompletionIdentityDeliveryStatus.Deferred, deferredReason);
+            }
+            return actual.EnsureApplied(request);
+        }
+        public bool RetireProducerStream(string producerStreamId) => actual.RetireProducerStream(producerStreamId);
+    }
+
+    [Serializable]
+    private sealed class TameDeliveryCursorEvidence
+    {
+        public List<WorkCompletionIdentityDeliveryCursorSaveData> cursors = new();
+    }
+
+    [Serializable]
+    private sealed class CompletedFeedCheckpointObservation
+    {
+        public string schema = "dungeonstory-completed-feed-checkpoint@1";
+        public string worldSha256;
+        public float gameTime;
+        public int absoluteDay;
+        public string animalId;
+        public string penId;
+        public string feedItemId;
+        public string operationId;
+        public string commitId;
+        public int consumedQuantity;
+        public long consumedMassGrams;
+        public int remainingQuantity;
+        public float hungerBefore;
+        public float hungerAfter;
+        public int healthAfter;
+        public long feedSequence;
+        public bool trainingEligible = false;
+        public bool coldProcessResumeExecuted = false;
+    }
+
+    private GameplayOutcomeSnapshot[] CaptureTameChildren(string animalId) =>
+        outcomeLedger.CaptureGameplayOutcomes().exactOutcomes.Where(value =>
+            value.outcomeTypeId == MigratedProducerOutcomeCatalog.Get(
+                MigratedProducerOutcomeKind.AnimalHusbandryWorkResult).OutcomeTypeId.Value
+            && TameFact(value, "husbandry-kind") == "tame"
+            && TameFact(value, "animal-id") == animalId).OrderBy(value => value.sequence).ToArray();
+
+    private static string TameFact(GameplayOutcomeSnapshot value, string factId) =>
+        value?.facts.FirstOrDefault(fact => fact.factId == factId)?.value ?? string.Empty;
+
+    private static string TameResultKey(GameplayOutcomeSnapshot value) =>
+        value == null ? string.Empty : new GameplayResultKey(value.producerId,
+            new GameplayOperationId(value.operationId), value.commitRevision,
+            value.localResultIndex).ToString();
 
     private IEnumerator ObserveAnimalCareStart(
         AnimalCareStartObservation observation,
@@ -3054,7 +4923,8 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             + $"failure={brain.LastActionFailure}";
     }
 
-    private bool TryNeutralizeAnimalCareSubject(out string detail)
+    private bool TryNeutralizeAnimalCareSubject(out string detail,
+        bool resetDeprivation = true)
     {
         CharacterStats stats = worker?.Stats;
         if (stats == null || deprivationRuntime == null)
@@ -3081,7 +4951,7 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             100f,
             Array.Empty<CharacterMoodFactorSnapshot>());
 
-        bool deprivationReset = deprivationRuntime
+        bool deprivationReady = !resetDeprivation || deprivationRuntime
             .DebugResetForDeterministicScenario(worker);
         bool routineDrink = deprivationRuntime.NeedsRoutineDrink(
             worker,
@@ -3097,14 +4967,14 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
                 worker,
                 CharacterCondition.THIRST);
         float effectiveMood = CharacterMoodImpulseUtility.GetMood01(worker);
-        bool neutral = deprivationReset
+        bool neutral = deprivationReady
             && !routineDrink
             && !drinkRunnerActive
             && !hungerEmergency
             && !thirstEmergency
             && effectiveMood >= 0.9f;
 
-        detail = $"reset={deprivationReset};"
+        detail = $"resetRequested={resetDeprivation};deprivationReady={deprivationReady};"
             + $"needs={DescribeAnimalCareNeeds(stats)};"
             + $"routineDrink={routineDrink}:{routineDrinkReason};"
             + $"drinkRunner={drinkRunnerActive};"
@@ -3307,6 +5177,22 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
     {
         const int roomWidth = 10;
         const int roomHeight = 3;
+        fixtureStage = "capture-supported-baseline-layout";
+        if (!DungeonSpaceGridLayout.TryCapture(
+                grid,
+                out DungeonInteriorLayoutSnapshot baselineLayout,
+                out string baselineLayoutFailure))
+        {
+            fixtureStage = "baseline-layout-invalid:" + baselineLayoutFailure;
+            return false;
+        }
+        if (baselineLayout.ColumnCount != DungeonSpaceExpansionCatalog.InitialInteriorColumns
+            && !DungeonSpaceExpansionCatalog.All.Any(definition =>
+                definition.TargetInteriorColumns == baselineLayout.ColumnCount))
+        {
+            fixtureStage = $"baseline-layout-unsupported:{baselineLayout.ColumnCount}";
+            return false;
+        }
         fixtureStage = "load-authored-assets";
         BuildingSO hallway = AssetDatabase.LoadAssetAtPath<BuildingSO>(
             "Assets/Resources/SO/Building/Hallway.asset");
@@ -3343,6 +5229,18 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         fixtureStage = "find-clear-footprint";
         for (int x = 1; x <= grid.width - roomWidth - 4; x++)
         {
+            // Stay inside the existing supported interior: an arbitrary clear
+            // exterior span invents an unsupported width, not a real expansion.
+            IReadOnlyList<Vector2Int> candidateStairCells = stair.GetGridPosList(
+                new Vector2Int(x + roomWidth + 1, row));
+            if (x < baselineLayout.StartX
+                || x + roomWidth > baselineLayout.EndExclusiveX
+                || candidateStairCells.Any(position =>
+                    position.x < baselineLayout.StartX
+                    || position.x >= baselineLayout.EndExclusiveX))
+            {
+                continue;
+            }
             bool clear = true;
             HashSet<BuildableObject> candidates = new();
             HashSet<WildlifeActor> wildlifeCandidates = new();
@@ -3362,13 +5260,19 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
                     IGridOccupant occupant = cell.GetOccupant(layer);
                     if (occupant == null)
                         continue;
+                    if (layer == GridLayer.Hallway
+                        && CanReuseFixtureHallway(occupant, position))
+                    {
+                        continue;
+                    }
                     // Wildlife owns a real production grid layer and can cover
                     // every legal 10x3 span on the authored 60x3 map.  It is
                     // safe to remove only the animals inside the chosen bounded
                     // fixture span because the full V18 baseline was captured
                     // before this scan and is restored atomically in Cleanup.
-                    // Characters, facilities, doors and all other hard
-                    // occupants remain non-displaceable.
+                    // Actors and unknown occupants remain non-displaceable.
+                    // Only original buildings wholly inside this test footprint
+                    // can be retired by their real owner and restored from V18.
                     if (layer == GridLayer.Wildlife
                         && occupant is WildlifeActor wildlifeActor
                         && wildlifeActor.IsAlive)
@@ -3376,21 +5280,16 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
                         wildlifeCandidates.Add(wildlifeActor);
                         continue;
                     }
-                    if ((layer != GridLayer.Building
-                            && layer != GridLayer.Hallway)
-                        || occupant is not BuildableObject movement
-                        || movement is Facility
-                        || movement is Door
-                        || movement.Facility != null
-                        || !movement.IsGridMovement
-                        || movement.BlocksGridMovement)
+                    if (!CanRetireFixtureBuilding(occupant, layer,
+                            x, roomWidth + 3, roomHeight,
+                            out BuildableObject originalBuilding))
                     {
                         clear = false;
                         lastRejectedCell =
                             $"hard-occupant:{position}:layer={layer}:type={occupant.GetType().Name}";
                         break;
                     }
-                    candidates.Add(movement);
+                    candidates.Add(originalBuilding);
                 }
             }
             if (clear)
@@ -3432,6 +5331,11 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
                     {
                         IGridOccupant occupant = cell.GetOccupant(layer);
                         if (occupant == null) continue;
+                        if (layer == GridLayer.Hallway
+                            && CanReuseFixtureHallway(occupant, position))
+                        {
+                            continue;
+                        }
                         if (layer == GridLayer.Wildlife
                             && occupant is WildlifeActor wildlifeActor
                             && wildlifeActor.IsAlive)
@@ -3439,21 +5343,16 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
                             wildlifeCandidates.Add(wildlifeActor);
                             continue;
                         }
-                        if ((layer != GridLayer.Building
-                                && layer != GridLayer.Hallway)
-                            || occupant is not BuildableObject movement
-                            || movement is Facility
-                            || movement is Door
-                            || movement.Facility != null
-                            || !movement.IsGridMovement
-                            || movement.BlocksGridMovement)
+                        if (!CanRetireFixtureBuilding(occupant, layer,
+                                x, roomWidth + 3, roomHeight,
+                                out BuildableObject originalBuilding))
                         {
                             clear = false;
                             lastRejectedCell =
                                 $"escape-hard-occupant:{position}:layer={layer}:type={occupant.GetType().Name}";
                             break;
                         }
-                        candidates.Add(movement);
+                        candidates.Add(originalBuilding);
                     }
                 }
             }
@@ -3478,6 +5377,37 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
 
         escapeConnectorCell = new Vector2Int(start + roomWidth, row + 1);
         escapeExteriorAnchorCell = new Vector2Int(start + roomWidth + 3, row);
+
+        fixtureStage = "retire-bounded-original-buildings";
+        foreach (BuildableObject building in selectedDisplacements
+                     .OrderBy(value => value.centerPos.y)
+                     .ThenBy(value => value.centerPos.x)
+                     .ThenBy(value => value.RequirePersistentInstanceId().Value,
+                         StringComparer.Ordinal))
+        {
+            string id = building.RequirePersistentInstanceId().Value;
+            ModularFacilityBuildingSaveData saved = baselineFacilityWorld.buildings
+                .Single(value => value.persistentInstanceId == id);
+            PreparedOriginalBuildingSnapshot snapshot = new(
+                building, saved, building.buildPoses.ToArray());
+            // Keep the receipt before calling the real owner: subscriber errors
+            // still leave cleanup responsible for restoring the original world.
+            preparedOriginalBuildings.Add(snapshot);
+            building.DestroySelf();
+            bool removed = building.IsBuildingDestroyed
+                && !world.Buildings.Any(value => ReferenceEquals(value, building))
+                && snapshot.Positions.All(position => !ReferenceEquals(
+                    grid.GetGridCell(position)?.GetOccupant(saved.layer), building));
+            Check(removed, "FIXTURE_ORIGINAL_BUILDING_RETIRED",
+                $"id={id};definition={saved.buildingId};anchor={building.centerPos};"
+                + $"cells={snapshot.Positions.Count};removed={removed};"
+                + "owner=DestroySelf;bounded-test-preparation;trainingEligible=false");
+            if (!removed)
+            {
+                fixtureStage = "original-building-retirement-failed:" + id;
+                return false;
+            }
+        }
 
         fixtureStage = "displace-bounded-wildlife";
         foreach (WildlifeActor wildlifeActor in selectedWildlifeDisplacements
@@ -3528,8 +5458,16 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         }
 
         Vector2Int stairAnchor = new(start + roomWidth + 1, row);
-        foreach (Vector2Int position in stair.GetGridPosList(stairAnchor))
+        IReadOnlyList<Vector2Int> stairFootprint = stair.GetGridPosList(stairAnchor);
+        int stairFirstColumn = stairFootprint.Min(position => position.x);
+        int stairLastColumn = stairFootprint.Max(position => position.x);
+        // The authored stair is 3x2. Its entire columns, not only its two
+        // landing rows, must extend the contiguous saved interior. Keeping an
+        // upper landing Exterior also lets escape finish before interruption.
+        for (int x = stairFirstColumn; x <= stairLastColumn; x++)
+        for (int y = 0; y < grid.height; y++)
         {
+            Vector2Int position = new(x, y);
             GridCell cell = grid.GetGridCell(position);
             if (cell == null)
             {
@@ -3543,40 +5481,6 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             {
                 fixtureStage =
                     $"escape-stair-area-mutation-failed:{position}:actual={cell.AreaType}";
-                return false;
-            }
-        }
-
-        foreach (BuildableObject movement in selectedDisplacements
-                     .OrderBy(value => value.centerPos.y)
-                     .ThenBy(value => value.centerPos.x)
-                     .ThenBy(value => value.GridId))
-        {
-            GridLayer layer = movement.BuildingData.Placement.Layer;
-            Vector2Int[] positions = movement.buildPoses.ToArray();
-            bool connectPositions = movement.BuildingData.Placement.IsMovement;
-            if (!grid.RemoveOccupant(
-                    movement,
-                    layer,
-                    positions,
-                    connectPositions))
-            {
-                fixtureStage =
-                    $"movement-displacement-failed:{movement.GridId}:layer={layer}";
-                return false;
-            }
-            displacedMovementBuildings.Add(new DisplacedMovementSnapshot(
-                movement,
-                layer,
-                positions,
-                connectPositions));
-            if (!positions.All(position =>
-                    grid.GetGridCell(position)?.ContainsOccupant(
-                        layer,
-                        movement) == false))
-            {
-                fixtureStage =
-                    $"movement-displacement-verification-failed:{movement.GridId}:layer={layer}";
                 return false;
             }
         }
@@ -3618,12 +5522,10 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             fixtureStage = "escape-stair-placement-failed:" + placementFailure;
             return false;
         }
-        // The lower stair landing and the authored exterior anchor must form
-        // one contiguous exterior lane.  Captivity escape uses the production
-        // path broker to discover an ExteriorPath destination; leaving the
-        // landing as DungeonInterior creates an authored-looking stair that
-        // cannot actually reach an exterior destination.
-        for (int x = start + roomWidth; x <= start + roomWidth + 3; x++)
+        // Exterior begins beyond the complete stair footprint. The lower
+        // landing stays Interior and connects to a real ExteriorPath exit;
+        // the production path broker and stair traversal own the departure.
+        for (int x = stairLastColumn + 1; x <= escapeExteriorAnchorCell.x; x++)
         {
             Vector2Int position = new(x, row);
             GridCell cell = grid.GetGridCell(position);
@@ -3643,9 +5545,18 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             }
         }
         fixtureStage = "place-interior-hallway";
+        int reusedInteriorHallways = 0;
         for (int dx = 1; dx < roomWidth - 1; dx++)
         {
-            if (Place(factory, hallway, new Vector2Int(start + dx, row + 1)) == null)
+            Vector2Int position = new(start + dx, row + 1);
+            if (CanReuseFixtureHallway(
+                    grid.GetGridCell(position)?.GetOccupant(GridLayer.Hallway),
+                    position))
+            {
+                reusedInteriorHallways++;
+                continue;
+            }
+            if (Place(factory, hallway, position) == null)
             {
                 fixtureStage = $"hallway-placement-failed:offset={dx};{placementFailure}";
                 return false;
@@ -3680,7 +5591,10 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         }
         rooms.Clear();
         workerCell = new Vector2Int(start + 5, row + 1);
-        captiveCell = new Vector2Int(start + 8, row + 1);
+        // Separate initial subject approach from the later housing delivery.
+        // Static reachability of either side does not prove that the actual
+        // asynchronous approach succeeds; retain the production terminal check.
+        captiveCell = new Vector2Int(start + 6, row + 1);
         RoomInstance housingRoom = null;
         RoomInstance penRoom = null;
         RoomInstance faultPenRoom = null;
@@ -3712,9 +5626,83 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             fixtureStage = "escape-connection-invalid:" + escapeFailure;
             return false;
         }
+        if (!DungeonSpaceGridLayout.TryCapture(
+                grid,
+                out DungeonInteriorLayoutSnapshot fixtureLayout,
+                out string layoutFailure))
+        {
+            fixtureStage = "escape-layout-not-save-valid:" + layoutFailure;
+            return false;
+        }
+        if (fixtureLayout.StartX != baselineLayout.StartX
+            || fixtureLayout.ColumnCount != baselineLayout.ColumnCount
+            || fixtureLayout.EntrancePosition != baselineLayout.EntrancePosition)
+        {
+            fixtureStage = $"escape-layout-baseline-changed:"
+                + $"columns={baselineLayout.ColumnCount}->{fixtureLayout.ColumnCount};"
+                + $"start={baselineLayout.StartX}->{fixtureLayout.StartX};"
+                + $"entrance={baselineLayout.EntrancePosition}->{fixtureLayout.EntrancePosition}";
+            return false;
+        }
         fixtureStage =
-            $"ready:bounds={start},{row}..{start + roomWidth - 1},{row + roomHeight - 1};room={fixtureRoom.Id};escape={escapeConnectorCell}->{escapeExteriorAnchorCell};displacedMovement={displacedMovementBuildings.Count};displacedWildlife={displacedWildlife.Count};areas={areaSnapshots.Count}";
+            $"ready:bounds={start},{row}..{start + roomWidth - 1},{row + roomHeight - 1};room={fixtureRoom.Id};escape={escapeConnectorCell}->{escapeExteriorAnchorCell};layoutColumns={fixtureLayout.ColumnCount};baselineUnchanged=True;reusedInteriorHallways={reusedInteriorHallways};preparedOriginalBuildings={preparedOriginalBuildings.Count};displacedWildlife={displacedWildlife.Count};areas={areaSnapshots.Count}";
         return true;
+    }
+
+    private bool CanRetireFixtureBuilding(
+        IGridOccupant occupant, GridLayer layer, int start, int width, int height,
+        out BuildableObject building)
+    {
+        building = occupant as BuildableObject;
+        // Actual authored facilities also own WallFixture/CeilingFixture/etc.
+        // Eligibility is their exact captured owner/definition/layer/footprint,
+        // not a guessed two-layer whitelist. Unfinished construction is excluded.
+        if (layer == GridLayer.Construction
+            || building == null || building is Hallway
+            || building.IsBuildingDestroyed || building.IsDetachedRestoreCandidate
+            || !building.gameObject.activeInHierarchy
+            || !ReferenceEquals(building.Grid, grid)
+            || building.BuildingData == null
+            || building.BuildingData.Placement.Layer != layer
+            || !building.PersistentInstanceId.IsValid
+            || building.buildPoses == null || building.buildPoses.Count == 0)
+            return false;
+        BuildableObject original = building;
+        string id = original.PersistentInstanceId.Value;
+        ModularFacilityBuildingSaveData[] saved = baselineFacilityWorld?.buildings
+            .Where(value => value.persistentInstanceId == id).ToArray()
+            ?? Array.Empty<ModularFacilityBuildingSaveData>();
+        return saved.Length == 1
+            && saved[0].buildingId == original.BuildingData.id
+            && saved[0].centerX == original.centerPos.x
+            && saved[0].centerY == original.centerPos.y
+            && saved[0].layer == layer
+            && saved[0].hasRuntimeLayer && !saved[0].relocationPacked
+            && saved[0].runtimeLayer == layer
+            && saved[0].width == original.BuildingData.Placement.Width
+            && saved[0].height == original.BuildingData.Placement.Height
+            && world.Buildings.Count(value => ReferenceEquals(value, original)) == 1
+            && world.Buildings.Count(value => value != null
+                && value.PersistentInstanceId.IsValid
+                && value.PersistentInstanceId.Value == id) == 1
+            && original.buildPoses.All(position =>
+                position.x >= start && position.x < start + width
+                && position.y >= 0 && position.y < height
+                && ReferenceEquals(grid.GetGridCell(position)?.GetOccupant(layer), original));
+    }
+
+    private bool CanReuseFixtureHallway(IGridOccupant occupant, Vector2Int position)
+    {
+        return occupant is Hallway floor
+            && !floor.IsBuildingDestroyed
+            && floor.gameObject.activeInHierarchy
+            && ReferenceEquals(floor.Grid, grid)
+            && floor.BuildingData != null
+            && floor.BuildingData.Placement.Layer == GridLayer.Hallway
+            && floor.buildPoses?.Contains(position) == true
+            && ReferenceEquals(
+                grid.GetGridCell(position)?.GetOccupant(GridLayer.Hallway),
+                floor);
     }
 
     private bool TryValidateEscapeConnection(
@@ -3729,7 +5717,8 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             CharacterPersistentIdentity.Require(captiveActor),
             DoorAccessOverrideKind.CaptiveEscape,
             GridMovementIntent.EscapeHazard);
-        bool connectorWalkable = connector?.IsWalkableArea == true
+        bool connectorWalkable = connector?.AreaType == GridCellAreaType.DungeonInterior
+            && connector.IsWalkableArea
             && grid.IsWalkable(escapeConnectorCell);
         bool anchorWalkable = anchor?.AreaType == GridCellAreaType.ExteriorPath
             && anchor.IsWalkableArea
@@ -3749,9 +5738,15 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         Vector2Int lowerLanding = new(
             escapeConnectorCell.x,
             escapeConnectorCell.y - 1);
+        GridCell lowerLandingCell = grid.GetGridCell(lowerLanding);
+        bool lowerLandingReady = lowerLandingCell?.AreaType
+                == GridCellAreaType.DungeonInterior
+            && lowerLandingCell.IsWalkableArea
+            && grid.IsWalkable(lowerLanding);
+        int firstExteriorColumn = escapeStair.buildPoses.Max(position => position.x) + 1;
         Vector2Int[] exteriorChain = Enumerable.Range(
-                lowerLanding.x,
-                escapeExteriorAnchorCell.x - lowerLanding.x + 1)
+                firstExteriorColumn,
+                escapeExteriorAnchorCell.x - firstExteriorColumn + 1)
             .Select(x => new Vector2Int(x, lowerLanding.y))
             .ToArray();
         bool exteriorChainReady = exteriorChain.All(position =>
@@ -3762,7 +5757,7 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
                 && grid.IsWalkable(position);
         });
         GridPathSearchResult search = grid.SearchPathWithTraversalFilter(
-            captiveCell,
+            housing.centerPos,
             position => doorAccess.CanTraverse(
                 grid,
                 position,
@@ -3770,10 +5765,12 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
                 out _));
         bool routeReady = search != null
             && search.ContainsPosition(escapeConnectorCell)
+            && search.ContainsPosition(lowerLanding)
             && search.ContainsPosition(escapeExteriorAnchorCell);
         if (connectorWalkable
             && anchorWalkable
             && stairLink
+            && lowerLandingReady
             && doorAllowed
             && exteriorChainReady
             && routeReady)
@@ -3784,6 +5781,7 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
 
         failure = $"connectorWalkable={connectorWalkable};"
             + $"anchorWalkable={anchorWalkable};stairLink={stairLink};"
+            + $"lowerLandingReady={lowerLandingReady};"
             + $"doorAllowed={doorAllowed};doorDenial={doorDenial};"
             + $"exteriorChainReady={exteriorChainReady};routeReady={routeReady};"
             + $"connector={DescribeCell(escapeConnectorCell)};"
@@ -3878,50 +5876,21 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
 
     private string ResolveAuthoredFeedItemId(WildlifeActor animal)
     {
-        WildlifeDietType diet = wildlifeSpecies.TryGetSpecies(
-                animal.SpeciesId,
-                out WildlifeSpeciesDefinition species)
-            ? species.Diet
-            : WildlifeDietType.Omnivore;
-        string preferred = diet == WildlifeDietType.Herbivore
-            ? "feed:hay"
-            : "feed:dog-food";
-        if (resourceCatalog.TryGetItem(
-                preferred,
-                out ResourceItemDefinitionSO authored)
-            && IsFeedAllowed(diet, authored.IngredientTags))
+        if (!wildlifeSpecies.TryGetSpecies(animal.SpeciesId,
+                out WildlifeSpeciesDefinition species))
         {
-            return authored.ItemId;
+            return string.Empty;
         }
 
+        // Test stock must be edible under the same category and diet policy as
+        // production, not a separate ingredient-tag-only approximation.
         return resourceCatalog.Items
-            .Where(item => item != null
-                && item.StockCategory == StockCategory.Food
-                && IsFeedAllowed(diet, item.IngredientTags))
-            .OrderBy(item => item.ItemId, StringComparer.Ordinal)
+            .Where(item => WildlifeFeedSelectionRules.IsAllowed(species.Diet, item))
+            .OrderBy(item => WildlifeFeedSelectionRules.GetPreference(species.Diet, item))
+            .ThenBy(item => item.UnitPrice)
+            .ThenBy(item => item.ItemId, StringComparer.Ordinal)
             .Select(item => item.ItemId)
             .FirstOrDefault() ?? string.Empty;
-    }
-
-    private static bool IsFeedAllowed(
-        WildlifeDietType diet,
-        ResourceIngredientTag tags)
-    {
-        bool plant = (tags & (ResourceIngredientTag.Plant
-            | ResourceIngredientTag.Fungus)) != 0;
-        bool animal = (tags & (ResourceIngredientTag.Meat
-            | ResourceIngredientTag.Blood
-            | ResourceIngredientTag.Fat
-            | ResourceIngredientTag.Egg
-            | ResourceIngredientTag.Milk)) != 0;
-        bool spoiled = (tags & ResourceIngredientTag.Spoiled) != 0;
-        return diet switch
-        {
-            WildlifeDietType.Herbivore => plant && !animal,
-            WildlifeDietType.Carnivore => animal,
-            WildlifeDietType.Scavenger => animal || spoiled,
-            _ => plant || animal
-        };
     }
 
     private int CountFacilityItem(string destinationId, string itemId)
@@ -4036,7 +6005,7 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         GridTraversalContext traversal = GridTraversalContext.ForCharacter(
             CharacterPersistentIdentity.Require(worker),
             DoorAccessOverrideKind.EscortPass);
-        // Mirror CaptivityAbilityUnityPort.TryCreateAdjacentMovement exactly.
+        // Use the same adjacent candidates as production ResolveAdjacentMovement.
         // A wildlife-layer occupant does not block grid movement, so the
         // target cell itself is a lawful final pickup stand.  This matters on
         // a one-cell exterior stair landing where none of the four adjacent
@@ -4120,6 +6089,43 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             + $"deliveryCandidates={deliveryStands.Length};"
             + $"deferred={deferred};doors={DescribeFixtureDoors()};"
             + "no lawful source/pickup/delivery EscortPass triple";
+        // Diagnose the failed production-broker preparation without replacing
+        // it. This read-only search must never supply a Ready plan or command.
+        if (sourceCells.Length > 0)
+        {
+            Vector2Int diagnosticPickup = sourceCells[0] + Vector2Int.left;
+            if (grid.IsValidGridPos(diagnosticPickup)
+                && grid.IsWalkable(diagnosticPickup))
+            {
+                IDoorAccessQuery doorAccess = scope.Container.Resolve<IDoorAccessQuery>();
+                GridPathSearchResult diagnosticSearch = grid.SearchPathWithTraversalFilter(
+                    diagnosticPickup,
+                    position => doorAccess.CanTraverse(grid, position, traversal, out _));
+                rows.Add("INFO\tTRANSPORT_LAWFUL_FAILURE_DIRECT_SEARCH\t"
+                    + $"pickup={diagnosticPickup};gridRevision={grid.TraversalVersion};"
+                    + "delivery=["
+                    + string.Join("|", deliveryStands.Select(position =>
+                        $"{position}:reachable={diagnosticSearch?.ContainsPosition(position)}"))
+                    + "];diagnosticOnly=true;fallback=false;trainingEligible=false");
+            }
+        }
+        int diagnosticFirstColumn = fixtureRoom.Cells.Min(position => position.x);
+        Vector2Int[] diagnosticCells = Enumerable.Range(
+                diagnosticFirstColumn,
+                escapeExteriorAnchorCell.x - diagnosticFirstColumn + 1)
+            .SelectMany(x => Enumerable.Range(0, grid.height)
+                .Select(y => new Vector2Int(x, y)))
+            .ToArray();
+        CharacterBodyHealthSnapshot diagnosticBody = bodyHealthQuery.GetSnapshot(worker);
+        rows.Add("INFO\tTRANSPORT_LAWFUL_FAILURE_TOPOLOGY\t"
+            + $"actor={DescribeLiveActor(worker)};bodyDowned={diagnosticBody.Downed};"
+            + $"mobility={diagnosticBody.Mobility};"
+            + $"external={worker.Brain?.IsExternallyDrivenActionActive};"
+            + $"owner={worker.Brain?.ExternalIntentOwnerId};"
+            + $"pen={pen.RequirePersistentInstanceId().Value};"
+            + $"room={fixtureRoom.Id};gridRevision={grid.TraversalVersion};"
+            + "cells=[" + string.Join("|", diagnosticCells.Select(DescribeCell))
+            + "];diagnosticOnly=true;trainingEligible=false");
     }
 
     private IEnumerator PlaceWorkerAtReachablePickupAndDeliveryStand(
@@ -4198,6 +6204,7 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
 
         Vector2Int selectedPickup = default;
         Queue<GridMoveStep> selectedPickupPath = null;
+        bool controlledCarrierStartPlacement = false;
         foreach (Vector2Int pickup in pickupCandidates)
         {
             if (!grid.IsValidGridPos(pickup)
@@ -4227,11 +6234,81 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         }
         if (selectedPickupPath == null)
         {
-            probe.Detail = $"animal={source};carrier={carrierStart};"
-                + $"pickupCandidates={searchedPickupStands};"
-                + $"deferred={deferred};"
-                + "no production pickup approach path";
-            yield break;
+            Vector2Int[] fixtureStarts = grid.GetCells()
+                .Where(cell => cell != null
+                    && cell.AreaType == GridCellAreaType.ExteriorPath
+                    && grid.IsWalkable(cell.Position)
+                    && IsUnoccupiedTransportStand(cell)
+                    && Mathf.Abs(cell.Position.x - source.x)
+                        + Mathf.Abs(cell.Position.y - source.y) is >= 2 and <= 8)
+                .OrderBy(cell => expectedPlan != null
+                        && cell.Position == expectedPlan.SourceCell
+                    ? 0
+                    : 1)
+                .ThenBy(cell => Mathf.Abs(cell.Position.x - source.x)
+                    + Mathf.Abs(cell.Position.y - source.y))
+                .ThenBy(cell => cell.Position.y)
+                .ThenBy(cell => cell.Position.x)
+                .Select(cell => cell.Position)
+                .ToArray();
+            foreach (Vector2Int fixtureStart in fixtureStarts)
+            {
+                GridPathSearchResult fixtureSearch = null;
+                while (Time.realtimeSinceStartup < deadline
+                       && !pathSearchBroker.TryGetSearch(
+                           grid,
+                           fixtureStart,
+                           out fixtureSearch,
+                           GridPathSearchPriority.Urgent,
+                           pickupTraversal))
+                {
+                    deferred++;
+                    yield return null;
+                }
+                if (fixtureSearch == null)
+                {
+                    continue;
+                }
+                foreach (Vector2Int pickup in pickupCandidates)
+                {
+                    if (!grid.IsValidGridPos(pickup)
+                        || !grid.IsWalkable(pickup))
+                    {
+                        continue;
+                    }
+                    Queue<GridMoveStep> pickupPath =
+                        fixtureSearch.GetMovePathTo(pickup);
+                    if (pickupPath == null
+                        || pickupPath.Count == 0
+                        || !GridMovePathRules.TryGetPathDestination(
+                            pickupPath,
+                            out Vector2Int pickupPathEnd)
+                        || pickupPathEnd != pickup)
+                    {
+                        continue;
+                    }
+                    carrierStart = fixtureStart;
+                    selectedPickup = pickup;
+                    selectedPickupPath = pickupPath;
+                    controlledCarrierStartPlacement = true;
+                    worker.transform.position = grid.GetWorldPos(carrierStart);
+                    yield return null;
+                    break;
+                }
+                if (selectedPickupPath != null)
+                {
+                    break;
+                }
+            }
+            if (selectedPickupPath == null)
+            {
+                probe.Detail = $"animal={source};carrier={carrierStart};"
+                    + $"pickupCandidates={searchedPickupStands};"
+                    + $"fixtureStarts={fixtureStarts.Length};"
+                    + $"deferred={deferred};"
+                    + "no production pickup approach path";
+                yield break;
+            }
         }
 
         GridPathSearchResult search = null;
@@ -4281,6 +6358,7 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
                 + $"pickupSteps={selectedPickupPath.Count};"
                 + $"deliverySteps={path.Count};"
                 + $"pathWorldDistance={probe.PathWorldDistance:0.###};"
+                + $"controlledCarrierStartPlacement={controlledCarrierStartPlacement};"
                 + $"deferred={deferred};"
                 + $"pickupCell={DescribeCell(selectedPickup)};"
                 + $"deliveryCell={DescribeCell(delivery)};"
@@ -4486,6 +6564,408 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         faultWalls.Clear();
     }
 
+    private static bool NoHusbandryCompletionCursor(AnimalHusbandryPendingOutcomeSaveData pending,
+        IEnumerable<WorkCompletionIdentityDeliveryCursorSaveData> cursors)
+    {
+        var request = AnimalHusbandryCompletionObservation.CreateSavedRequest(pending);
+        return pending.completionPublicationKey == WorkCompletionIdentityOutcomeIds.ResultKey(request).ToString()
+            && !cursors.Any(value => value.producerStreamId == request.ProducerStreamId);
+    }
+
+    private IEnumerator VerifyHusbandryPendingColdResume()
+    {
+        string path = Environment.GetEnvironmentVariable(
+            CaptivityWildlifeLifecyclePlayModeVerifier.HusbandryPendingResumeWorldVariable);
+        string expectedHash = Environment.GetEnvironmentVariable(
+            CaptivityWildlifeLifecyclePlayModeVerifier.HusbandryPendingResumeHashVariable);
+        string qaRoot = Path.GetFullPath("Artifacts/QA") + Path.DirectorySeparatorChar;
+        bool inputBound = DungeonPersistencePaths.IsIsolatedVerification
+            && !string.IsNullOrWhiteSpace(path) && Path.IsPathRooted(path)
+            && Path.GetFullPath(path).StartsWith(qaRoot, StringComparison.OrdinalIgnoreCase)
+            && Path.GetFileName(path) == "real-capture-slaughter-identity-pending-world.json"
+            && File.Exists(path) && !string.IsNullOrWhiteSpace(expectedHash);
+        Check(inputBound, "HUSBANDRY_COLD_EXPLICIT_SOURCE", path ?? "missing");
+        if (!inputBound) yield break;
+        byte[] bytes = File.ReadAllBytes(path);
+        using System.Security.Cryptography.SHA256 hasher = System.Security.Cryptography.SHA256.Create();
+        string Hash(byte[] value) => BitConverter.ToString(hasher.ComputeHash(value))
+            .Replace("-", string.Empty).ToLowerInvariant();
+        Check(string.Equals(Hash(bytes), expectedHash, StringComparison.OrdinalIgnoreCase),
+            "HUSBANDRY_COLD_SOURCE_HASH", Hash(bytes));
+        if (failures.Count != 0) yield break;
+        string json = System.Text.Encoding.UTF8.GetString(bytes);
+        DungeonGameSaveData incoming = gameSaveService.FromJson(json);
+        DungeonAnimalHusbandrySaveData source = JsonUtility.FromJson<DungeonAnimalHusbandrySaveData>(
+            incoming.sections.Single(value => value.sectionId == AnimalHusbandrySaveSection.Id).payloadJson);
+        GameplayOutcomeLedgerSaveData sourceLedger = JsonUtility.FromJson<GameplayOutcomeLedgerSaveData>(
+            incoming.sections.Single(value => value.sectionId == "world.gameplay-outcome-ledger").payloadJson);
+        CharacterNarrativeWorldSaveData sourceNarrative = JsonUtility.FromJson<CharacterNarrativeWorldSaveData>(
+            incoming.sections.Single(value => value.sectionId == CharacterNarrativeSaveSection.Id).payloadJson);
+        AnimalHusbandryPendingOutcomeSaveData saved = source.pendingOutcomes.SingleOrDefault();
+        IGameClock clock = scope.Container.Resolve<IGameClock>();
+        Check(clock.Time < 5f && incoming.sections.Count == baseline.Count
+              && source.version == DungeonAnimalHusbandrySaveData.CurrentVersion
+              && saved != null && saved.kind == AnimalHusbandryOutcomeOperationKind.Slaughter
+              && saved.outcomeCommitted && saved.completionIdentityRequired
+              && NoHusbandryCompletionCursor(saved, sourceNarrative.workCompletionDeliveries),
+            "HUSBANDRY_COLD_FRESH_PROCESS_PENDING_STATE",
+            $"pid={System.Diagnostics.Process.GetCurrentProcess().Id};freshClock={clock.Time};"
+            + $"sections={incoming.sections.Count};version={source.version};animal={saved?.animalId};"
+            + "original-pending-not-recreated;trainingEligible=false");
+        if (failures.Count != 0) yield break;
+        GameplayOutcomeSnapshot[] sourceChildren = sourceLedger.exactOutcomes.Where(value =>
+            TameResultKey(value) == saved.publicationKey).ToArray();
+        GameplayOutcomeSnapshot wrongKindChild = sourceLedger.exactOutcomes.SingleOrDefault(value =>
+            TameFact(value, "husbandry-kind") == "tame" && TameFact(value, "animal-id") == saved.animalId);
+        Check(sourceChildren.Length == 1 && wrongKindChild != null
+              && TameFact(sourceChildren[0], "husbandry-kind") == "slaughter"
+              && TameFact(sourceChildren[0], "animal-id") == saved.animalId,
+            "HUSBANDRY_COLD_ORIGINAL_CHILD_JOIN", saved.publicationKey);
+        if (failures.Count != 0) yield break;
+        GameplayOutcomeSnapshot child = sourceChildren[0];
+        AnimalHusbandryRuntime owner = husbandryQuery as AnimalHusbandryRuntime;
+        IWorkCompletionIdentityDeliveryCommand actual = scope.Container.Resolve<IWorkCompletionIdentityDeliveryCommand>();
+        CharacterIdentityEventPublisher publisher = scope.Container.Resolve<CharacterIdentityEventPublisher>();
+        WorkCompletionIdentityDeliveryLedger deliveries = scope.Container
+            .Resolve<WorkCompletionIdentityDeliveryLedger>();
+        IDomainFactPublisher productionFacts = scope.Container
+            .Resolve<IDomainFactPublisher>();
+        HeldTameCompletionCommand held = new(actual, saved.animalId, "slaughter");
+        List<WorkCompletedIdentityEvent> observed = new();
+        using IDisposable subscription = gameEvents.Subscribe<WorkCompletedIdentityEvent>(observed.Add);
+        Check(owner != null, "HUSBANDRY_COLD_REGISTERED_OWNER", "production singleton");
+        if (owner == null) yield break;
+        AnimalHusbandryPendingOutcomeState completion = owner.BuildRestore(source).State.PendingOutcomes.Single().Clone();
+        WorkCompletedIdentityEvent terminal = AnimalHusbandryCompletionObservation.CreateCompletionEvent(completion);
+        int MatchedEvents() => observed.Count(value => value.WorkId == terminal.WorkId
+            && value.ProductId == terminal.ProductId && value.Character.Equals(terminal.Character));
+        bool SameSections(List<DungeonSaveSectionEnvelope> before, List<DungeonSaveSectionEnvelope> after) =>
+            before.Count == after.Count && before.All(left => after.Any(right => right.sectionId == left.sectionId
+                && right.sectionVersion == left.sectionVersion && right.payloadJson == left.payloadJson));
+        bool PhysicalAndChildExact() => CaptureSlaughterChildren(saved.animalId).Length == 1
+            && CaptureSlaughterChildren(saved.animalId)[0].immutablePayloadHash == child.immutablePayloadHash
+            && itemRuntime.GetAllStacks().Count(value => value.StackId == saved.carcassStackId
+                && value.ItemId == saved.outputItemId && value.Quantity == saved.outputQuantity) == 1
+            && saved.outputQuantity == 1 && saved.outputMassGrams == itemRuntime.MassQuery
+                .GetDefinitionUnitMass(new ItemDefinitionId(saved.outputItemId)).Value
+            && !capture.TryGetCaptured(saved.animalId, out _)
+            && !husbandryQuery.TryGetAnimal(new WildlifeInstanceId(saved.animalId), out _)
+            && !wildlife.Wildlife.Any(value => value != null && value.WildlifeId == saved.animalId);
+        using var routedFacts = new HusbandryCompletionDomainFactTestPublisher(
+            productionFacts,
+            held,
+            publisher,
+            deliveries,
+            new WorkIdentityAppliedFactMapping(outcomeLedger, outcomeLedger));
+        owner.ConstructDomainFacts(routedFacts);
+        try
+        {
+            CharacterActor oldWorker = worker;
+            CharacterActor oldCaptive = captiveActor;
+            string captiveId = captiveActor.Identity.PersistentId;
+            bool restored = gameSaveService.TryRestore(incoming, out DungeonGameRestoreReport report);
+            Check(restored, "HUSBANDRY_COLD_OFFICIAL_WORLD_RESTORE",
+                $"sections={incoming.sections.Count};errors={string.Join(" | ", report.Errors)};no-DTO-edit");
+            if (!restored) yield break;
+            bool reboundGrid = world.TryGetGrid(out Grid restoredGrid) && restoredGrid != null;
+            grid = restoredGrid;
+            CharacterActor[] actors = CharacterActorCollection.DistinctByGameObject(world.Characters)
+                .Where(value => value != null && value.HasBeenPublished && !value.IsDetachedRestoreCandidate
+                    && !value.IsUnpublishedComposition && value.Identity?.TypedPersistentId.IsValid == true).ToArray();
+            worker = actors.SingleOrDefault(value => value.Identity.PersistentId == saved.workerId);
+            captiveActor = actors.SingleOrDefault(value => value.Identity.PersistentId == captiveId);
+            workerWork = worker != null ? worker.GetComponent<AbilityWork>() : null;
+            BuildableObject[] pens = world.Buildings.Where(value => value != null && !value.IsGridDestroyed
+                && value.PersistentInstanceId.IsValid && value.PersistentInstanceId.Value == saved.penId).ToArray();
+            pen = pens.Length == 1 ? pens[0] : null;
+            Check(reboundGrid && worker != null && captiveActor != null && workerWork != null && pen != null
+                  && ReferenceEquals(pen.Grid, grid)
+                  && actors.GroupBy(value => value.Identity.PersistentId).All(group => group.Count() == 1)
+                  && (oldWorker == null || !oldWorker.gameObject.activeInHierarchy)
+                  && (oldCaptive == null || !oldCaptive.gameObject.activeInHierarchy),
+                "HUSBANDRY_COLD_STABLE_WORLD_REBOUND", $"worker={saved.workerId};pen={saved.penId};captive={captiveId}");
+            if (failures.Count != 0) yield break;
+            PauseOtherAi();
+            AnimalHusbandryPendingOutcomeSaveData current = husbandryPersistence.Capture().pendingOutcomes.SingleOrDefault();
+            Check(current != null && JsonUtility.ToJson(current) == JsonUtility.ToJson(saved)
+                  && PhysicalAndChildExact() && MatchedEvents() == 0,
+                "HUSBANDRY_COLD_PENDING_REQUEST_EFFECT_CHILD_EXACT",
+                $"pending={current?.publicationKey};carcass={saved.carcassStackId};events={MatchedEvents()};"
+                + "read-only-candidate;effect/child-injection=false");
+            if (failures.Count != 0) yield break;
+            held.Hold = false;
+            float wallDeadline = Time.realtimeSinceStartup + 30f;
+            float gameDeadline = clock.Time + 8f;
+            while (husbandryPersistence.Capture().pendingOutcomes.Count != 0
+                   && Time.realtimeSinceStartup < wallDeadline && clock.Time < gameDeadline) yield return null;
+            GameplayOutcomeSnapshot[] identities = outcomeLedger.CaptureGameplayOutcomes().exactOutcomes.Where(value =>
+                value.producerId == WorkCompletionIdentityOutcomeIds.ProducerId
+                && TameFact(value, WorkCompletionIdentityOutcomeIds.ChildResultKeyFact.Value) == TameResultKey(child)).ToArray();
+            WorkCompletedIdentityEvent[] matched = observed.Where(value => value.WorkId == terminal.WorkId
+                && value.ProductId == terminal.ProductId && value.Character.Equals(terminal.Character)).ToArray();
+            Check(husbandryPersistence.Capture().pendingOutcomes.Count == 0 && PhysicalAndChildExact()
+                  && identities.Length == 1 && identities[0].status == GameplayOutcomeStatus.Succeeded
+                  && identities[0].sequence > child.sequence && matched.Length == 1
+                  && matched[0].ChildResultKey == terminal.ChildResultKey
+                  && matched[0].OperationId == terminal.OperationId && matched[0].TerminalOwnerId == terminal.TerminalOwnerId
+                  && matched[0].TargetEntityId == terminal.TargetEntityId
+                  && matched[0].ContributionWorkUnits == terminal.ContributionWorkUnits,
+                "HUSBANDRY_COLD_NORMAL_TICK_IDENTITY_AND_INDEPENDENT_BUS_ONCE",
+                $"clock={clock.Time};identity={identities.Length};events={matched.Length};"
+                + $"carcass={saved.carcassStackId};ownerTick-only;trainingEligible=false");
+            if (failures.Count != 0) yield break;
+            List<DungeonSaveSectionEnvelope> beforeReplay = saveRegistry.CaptureAll();
+            WorkCompletionIdentityDeliveryResult replay = actual.EnsureApplied(
+                WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(terminal));
+            List<DungeonSaveSectionEnvelope> afterReplay = saveRegistry.CaptureAll();
+            Check(replay.Status == WorkCompletionIdentityDeliveryStatus.AlreadyApplied
+                  && MatchedEvents() == 1 && SameSections(beforeReplay, afterReplay) && PhysicalAndChildExact(),
+                "HUSBANDRY_COLD_REPLAY_ALL_SECTIONS_AND_BUS_UNCHANGED",
+                $"status={replay.Status};sections={beforeReplay.Count};events={MatchedEvents()}");
+            if (failures.Count != 0) yield break;
+            WriteSlaughterCheckpoint("husbandry-cold-resumed-world.json",
+                gameSaveService.ToJson(gameSaveService.Capture(), true));
+
+            // Only the in-memory negative input is altered. Both child rows
+            // really exist, but a tame child must not authenticate slaughter.
+            DungeonGameSaveData wrongChild = gameSaveService.FromJson(json);
+            DungeonSaveSectionEnvelope wrongSection = wrongChild.sections.Single(value => value.sectionId == AnimalHusbandrySaveSection.Id);
+            DungeonAnimalHusbandrySaveData wrongPayload = JsonUtility.FromJson<DungeonAnimalHusbandrySaveData>(wrongSection.payloadJson);
+            wrongPayload.pendingOutcomes.Single().publicationKey = TameResultKey(wrongKindChild);
+            wrongSection.payloadJson = JsonUtility.ToJson(wrongPayload);
+            wrongChild.manifest = DungeonSaveManifest.Capture(wrongChild.sections);
+            held.Hold = true;
+            List<DungeonSaveSectionEnvelope> beforeBad = saveRegistry.CaptureAll();
+            CharacterActor workerBeforeBad = worker;
+            Grid gridBeforeBad = grid;
+            bool acceptedBad = gameSaveService.TryRestore(wrongChild, out DungeonGameRestoreReport badReport);
+            List<DungeonSaveSectionEnvelope> afterBad = saveRegistry.CaptureAll();
+            IRestoreWorldCandidateQuery candidates = scope.Container.Resolve<IRestoreWorldCandidateQuery>();
+            string[] changed = beforeBad.Where(left => !afterBad.Any(right => right.sectionId == left.sectionId
+                && right.sectionVersion == left.sectionVersion && right.payloadJson == left.payloadJson))
+                .Select(value => value.sectionId).ToArray();
+            Check(!acceptedBad && !badReport.Success && badReport.Errors.Count > 0
+                  && badReport.Errors.Any(error => error.Contains("Husbandry completion identity restore join is invalid:"))
+                  && SameSections(beforeBad, afterBad) && MatchedEvents() == 1
+                  && world.Characters.Any(value => ReferenceEquals(value, workerBeforeBad))
+                  && world.TryGetGrid(out Grid gridAfterBad) && ReferenceEquals(gridBeforeBad, gridAfterBad)
+                  && !candidates.TryGetBuildings(out _) && !candidates.TryGetCharacters(out _),
+                "HUSBANDRY_COLD_WRONG_KIND_CHILD_REJECTED_BEFORE_PUBLICATION",
+                $"accepted={acceptedBad};success={badReport.Success};changed={string.Join(",", changed)};"
+                + $"child={TameResultKey(wrongKindChild)};errors={string.Join(" | ", badReport.Errors)};"
+                + "manifest-resealed-memory-clone;original-file-unmodified;trainingEligible=false");
+            Check(Hash(File.ReadAllBytes(path)) == expectedHash.ToLowerInvariant(),
+                "HUSBANDRY_COLD_ORIGINAL_FILE_UNCHANGED", Hash(bytes));
+        }
+        finally { owner.ConstructDomainFacts(productionFacts); }
+    }
+
+    private IEnumerator VerifyCompletedFeedColdResume()
+    {
+        string sourcePath = Environment.GetEnvironmentVariable(
+            CaptivityWildlifeLifecyclePlayModeVerifier.FeedResumeWorldVariable);
+        string sourceHash = Environment.GetEnvironmentVariable(
+            CaptivityWildlifeLifecyclePlayModeVerifier.FeedResumeHashVariable);
+        string observationHash = Environment.GetEnvironmentVariable(
+            CaptivityWildlifeLifecyclePlayModeVerifier.FeedObservationHashVariable);
+        string qaRoot = Path.GetFullPath("Artifacts/QA") + Path.DirectorySeparatorChar;
+        bool inputBound = DungeonPersistencePaths.IsIsolatedVerification
+            && !string.IsNullOrWhiteSpace(sourcePath) && Path.IsPathRooted(sourcePath)
+            && Path.GetFullPath(sourcePath).StartsWith(qaRoot, StringComparison.OrdinalIgnoreCase)
+            && File.Exists(sourcePath) && !string.IsNullOrWhiteSpace(sourceHash)
+            && !string.IsNullOrWhiteSpace(observationHash);
+        Check(inputBound, "FEED_COLD_EXPLICIT_INPUT", sourcePath ?? "missing");
+        if (!inputBound) yield break;
+        string observationPath = Path.ChangeExtension(sourcePath, ".observation.json");
+        Check(File.Exists(observationPath), "FEED_COLD_OBSERVATION_EXISTS", observationPath);
+        if (!File.Exists(observationPath)) yield break;
+        byte[] sourceBytes = File.ReadAllBytes(sourcePath);
+        byte[] observationBytes = File.ReadAllBytes(observationPath);
+        using System.Security.Cryptography.SHA256 hasher = System.Security.Cryptography.SHA256.Create();
+        string Hash(byte[] bytes) => BitConverter.ToString(hasher.ComputeHash(bytes))
+            .Replace("-", string.Empty).ToLowerInvariant();
+        CompletedFeedCheckpointObservation observed = JsonUtility.FromJson<CompletedFeedCheckpointObservation>(
+            System.Text.Encoding.UTF8.GetString(observationBytes));
+        bool hashesMatch = string.Equals(Hash(sourceBytes), sourceHash, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(Hash(observationBytes), observationHash, StringComparison.OrdinalIgnoreCase)
+            && observed != null && observed.schema == "dungeonstory-completed-feed-checkpoint@1"
+            && observed.worldSha256 == Hash(sourceBytes)
+            && !observed.trainingEligible && !observed.coldProcessResumeExecuted
+            && observed.consumedQuantity == 1 && observed.consumedMassGrams > 0
+            && observed.feedSequence == 1 && !string.IsNullOrWhiteSpace(observed.commitId);
+        Check(hashesMatch, "FEED_COLD_SOURCE_HASHES", $"world={Hash(sourceBytes)};observation={Hash(observationBytes)}");
+        if (!hashesMatch) yield break;
+        DungeonGameSaveData incoming = gameSaveService.FromJson(System.Text.Encoding.UTF8.GetString(sourceBytes));
+        CircusSaveData sourceCircus = JsonUtility.FromJson<CircusSaveData>(incoming.sections
+            .Single(section => section.sectionId == CircusSaveSection.Id).payloadJson);
+        CapturedWildlifeState sourceState = sourceCircus.capturedWildlife.SingleOrDefault(
+            value => value != null && value.wildlifeId == observed.animalId);
+        IGameClock clock = scope.Container.Resolve<IGameClock>();
+        float rawClock = clock.Time;
+        Check(rawClock < observed.gameTime && incoming.sections.Count == baseline.Count
+              && sourceCircus.version == CircusSaveData.CurrentVersion
+              && sourceState != null && sourceState.penId == observed.penId
+              && sourceState.nextFeedOperationSequence == observed.feedSequence
+              && CapturedWildlifeFeedOutbox.HasEmptyProvenance(sourceState),
+            "FEED_COLD_FRESH_TIMELINE_AND_SAVED_STATE",
+            $"rawClock={rawClock};savedClock={observed.gameTime};sections={incoming.sections.Count};animal={observed.animalId}");
+        if (failures.Count != 0) yield break;
+        string workerId = worker.Identity.PersistentId;
+        string captiveId = captiveActor.Identity.PersistentId;
+        CharacterActor oldWorker = worker;
+        CharacterActor oldCaptive = captiveActor;
+        IRestoreWorldCandidateQuery candidateQuery = scope.Container.Resolve<IRestoreWorldCandidateQuery>();
+        IRestoreWorldCandidatePublisher candidatePublisher = scope.Container.Resolve<IRestoreWorldCandidatePublisher>();
+        bool cleanCandidateBoundary = !candidateQuery.TryGetBuildings(out _)
+            && !candidateQuery.TryGetCharacters(out _);
+        Check(cleanCandidateBoundary, "FEED_COLD_DETACHED_INDEX_EMPTY", "before official restore");
+        if (!cleanCandidateBoundary) yield break;
+        List<DungeonSaveSectionEnvelope> beforePartial = saveRegistry.CaptureAll();
+        bool partialRejected = false;
+        try
+        {
+            candidatePublisher.SetFacilityCandidate(grid, world.Buildings.ToArray());
+            CaptivitySaveData sourceCaptivity = JsonUtility.FromJson<CaptivitySaveData>(incoming.sections
+                .Single(section => section.sectionId == CaptivitySaveSection.Id).payloadJson);
+            captivityPersistence.BuildRestore(sourceCaptivity);
+        }
+        catch (InvalidOperationException exception)
+        {
+            partialRejected = exception.Message.Contains("complete detached facility and character worlds");
+            rows.Add("INFO\tFEED_COLD_PARTIAL_CANDIDATE_REJECTION\t" + exception.Message);
+        }
+        finally
+        {
+            candidatePublisher.ClearFacilityCandidate();
+        }
+        List<DungeonSaveSectionEnvelope> afterPartial = saveRegistry.CaptureAll();
+        bool partialUnchanged = beforePartial.Count == afterPartial.Count
+            && beforePartial.All(before => afterPartial.Any(after => after.sectionId == before.sectionId
+                && after.sectionVersion == before.sectionVersion && after.payloadJson == before.payloadJson));
+        Check(partialRejected && partialUnchanged && !candidateQuery.TryGetBuildings(out _)
+              && !candidateQuery.TryGetCharacters(out _),
+            "FEED_COLD_PARTIAL_CANDIDATE_REJECTED_NO_LIVE_FALLBACK",
+            $"rejected={partialRejected};allSectionsUnchanged={partialUnchanged};trainingEligible=false");
+        if (failures.Count != 0) yield break;
+        // Corrupt only an in-memory QA copy: the original checkpoint remains
+        // immutable. The named building exists in incoming world but is an
+        // animal pen, not valid captive housing, so DTO validation alone is
+        // insufficient and the real world-bound staging join must reject it.
+        DungeonGameSaveData wrongHousing = gameSaveService.FromJson(
+            System.Text.Encoding.UTF8.GetString(sourceBytes));
+        DungeonSaveSectionEnvelope wrongHousingSection = wrongHousing.sections
+            .Single(section => section.sectionId == CaptivitySaveSection.Id);
+        CaptivitySaveData wrongHousingPayload = JsonUtility.FromJson<CaptivitySaveData>(
+            wrongHousingSection.payloadJson);
+        wrongHousingPayload.captives.Single(value => value.captiveId == captiveId)
+            .housingBuildingId = observed.penId;
+        wrongHousingSection.payloadJson = JsonUtility.ToJson(wrongHousingPayload, false);
+        // Seal the intentionally malformed in-memory world with its own
+        // manifest so rejection must come from the cross-domain join, not a
+        // stale hash. The immutable source bytes/manifest are not changed.
+        wrongHousing.manifest = DungeonSaveManifest.Capture(wrongHousing.sections);
+        List<DungeonSaveSectionEnvelope> beforeWrongHousing = saveRegistry.CaptureAll();
+        bool wrongHousingAccepted = gameSaveService.TryRestore(wrongHousing,
+            out DungeonGameRestoreReport wrongHousingReport);
+        List<DungeonSaveSectionEnvelope> afterWrongHousing = saveRegistry.CaptureAll();
+        bool wrongHousingUnchanged = beforeWrongHousing.Count == afterWrongHousing.Count
+            && beforeWrongHousing.All(before => afterWrongHousing.Any(after =>
+                after.sectionId == before.sectionId && after.sectionVersion == before.sectionVersion
+                && after.payloadJson == before.payloadJson));
+        Check(!wrongHousingAccepted && wrongHousingUnchanged
+              && wrongHousingReport.Errors.Any(error => error.Contains("references invalid housing"))
+              && ReferenceEquals(worker, oldWorker) && ReferenceEquals(captiveActor, oldCaptive)
+              && world.TryGetGrid(out Grid unchangedGrid) && ReferenceEquals(grid, unchangedGrid)
+              && !candidateQuery.TryGetBuildings(out _) && !candidateQuery.TryGetCharacters(out _),
+            "FEED_COLD_BAD_HOUSING_STAGING_REJECTED_NO_MUTATION",
+            $"accepted={wrongHousingAccepted};allSectionsUnchanged={wrongHousingUnchanged};"
+            + $"errors={string.Join(" | ", wrongHousingReport.Errors)};trainingEligible=false");
+        if (failures.Count != 0) yield break;
+        bool restored = gameSaveService.TryRestore(incoming, out DungeonGameRestoreReport restoreReport);
+        Check(restored, "FEED_COLD_OFFICIAL_WORLD_RESTORE",
+            $"sections={incoming.sections.Count};errors={string.Join(" | ", restoreReport.Errors)};no-DTO-edit;trainingEligible=false");
+        if (!restored) yield break;
+        bool gridRebound = world.TryGetGrid(out Grid restoredGrid) && restoredGrid != null;
+        CharacterActor[] actors = CharacterActorCollection.DistinctByGameObject(world.Characters)
+            .Where(value => value != null && value.HasBeenPublished
+                && !value.IsDetachedRestoreCandidate && !value.IsUnpublishedComposition
+                && value.Identity != null && value.Identity.TypedPersistentId.IsValid).ToArray();
+        worker = actors.SingleOrDefault(value => value.Identity.PersistentId == workerId);
+        captiveActor = actors.SingleOrDefault(value => value.Identity.PersistentId == captiveId);
+        workerWork = worker != null ? worker.GetComponent<AbilityWork>() : null;
+        grid = restoredGrid;
+        BuildableObject[] pens = world.Buildings.Where(value => value != null && !value.IsGridDestroyed
+            && value.PersistentInstanceId.IsValid && value.PersistentInstanceId.Value == observed.penId).ToArray();
+        pen = pens.Length == 1 ? pens[0] : null;
+        WildlifeActor[] animals = wildlife.Wildlife.Where(value => value != null
+            && value.WildlifeId == observed.animalId).ToArray();
+        bool rebound = gridRebound && worker != null && captiveActor != null && workerWork != null
+            && pens.Length == 1 && ReferenceEquals(pen.Grid, grid) && animals.Length == 1
+            && actors.GroupBy(value => value.Identity.PersistentId).All(group => group.Count() == 1)
+            && (oldWorker == null || !oldWorker.gameObject.activeInHierarchy)
+            && (oldCaptive == null || !oldCaptive.gameObject.activeInHierarchy);
+        Check(rebound, "FEED_COLD_STABLE_ID_REBOUND",
+            $"animal={observed.animalId}:{animals.Length};pen={observed.penId}:{pens.Length};worker={workerId};captive={captiveId}");
+        if (!rebound) yield break;
+        PauseOtherAi();
+        WildlifeActor animal = animals[0];
+        capture.TryGetCaptured(observed.animalId, out CapturedWildlifeState state);
+        string destination = WildlifeCareInputOwnerAuthority.FormatDestinationId(observed.penId);
+        bool exact = state != null && state.nextFeedOperationSequence == observed.feedSequence
+            && CapturedWildlifeFeedOutbox.HasEmptyProvenance(state)
+            && state.lastFeedItemId == observed.feedItemId && state.penId == observed.penId
+            && animal.LastCaptiveFeedCommitId == observed.commitId
+            && animal.Hunger == observed.hungerAfter && animal.CurrentHealth == observed.healthAfter
+            && CountFacilityItem(destination, observed.feedItemId) == observed.remainingQuantity
+            && !batchDispositions.TryGetPending(observed.operationId, out _);
+        Check(exact, "FEED_COLD_COMPLETED_CONSUMPTION_AND_EFFECT_EXACT",
+            $"sequence={state?.nextFeedOperationSequence};commit={animal.LastCaptiveFeedCommitId};"
+            + $"quantity={CountFacilityItem(destination, observed.feedItemId)};hunger={animal.Hunger:R};health={animal.CurrentHealth}");
+        if (!exact) yield break;
+        List<DungeonSaveSectionEnvelope> beforeReplay = saveRegistry.CaptureAll();
+        bool accepted = animal.TryApplyCaptiveFeedOutcome(observed.commitId,
+            observed.hungerAfter, observed.healthAfter, out bool applied);
+        List<DungeonSaveSectionEnvelope> afterReplay = saveRegistry.CaptureAll();
+        string[] changedSections = beforeReplay.Where(before => !afterReplay.Any(after =>
+            after.sectionId == before.sectionId && after.sectionVersion == before.sectionVersion
+            && after.payloadJson == before.payloadJson)).Select(value => value.sectionId).ToArray();
+        Check(accepted && !applied && changedSections.Length == 0
+              && beforeReplay.Count == afterReplay.Count,
+            "FEED_COLD_SAME_COMMIT_REPLAY_NO_MUTATION",
+            $"accepted={accepted};applied={applied};changedSections={string.Join(",", changedSections)};sections={beforeReplay.Count}");
+        // Restoration must also resume the real periodic owner, not leave its
+        // old process timestamp hundreds of seconds ahead of the fresh clock.
+        float restoredDue = state.nextCareAt;
+        bool careDueBounded = restoredDue >= clock.Time
+            && restoredDue <= clock.Time + CapturedWildlifeState.CareIntervalSeconds + 0.001f
+            && Math.Abs(restoredDue - clock.Time - sourceState.remainingCareSeconds) <= 0.001f
+            && sourceState.nextCareAt == 0f;
+        Check(careDueBounded, "FEED_COLD_NORMAL_CARE_CADENCE",
+            $"clock={clock.Time:R};due={restoredDue:R};savedRemaining={sourceState.remainingCareSeconds:R};normalInterval=5");
+        if (!careDueBounded || failures.Count != 0) yield break;
+        float wallDeadline = Time.realtimeSinceStartup + 30f;
+        float gameDeadline = clock.Time + 8f;
+        while (state.nextCareAt <= restoredDue && clock.Time < gameDeadline
+               && Time.realtimeSinceStartup < wallDeadline)
+        {
+            yield return null;
+            if (!capture.TryGetCaptured(observed.animalId, out state) || state == null)
+            {
+                Check(false, "FEED_COLD_OWNER_TARGET_LOST", observed.animalId);
+                yield break;
+            }
+        }
+        Check(state.nextCareAt > restoredDue && state.nextFeedOperationSequence == observed.feedSequence
+              && CapturedWildlifeFeedOutbox.HasEmptyProvenance(state)
+              && animal.LastCaptiveFeedCommitId == observed.commitId
+              && CountFacilityItem(destination, observed.feedItemId) == observed.remainingQuantity,
+            "FEED_COLD_OWNER_TICK_WITHOUT_SECOND_CONSUMPTION",
+            $"clock={clock.Time:R};due={restoredDue:R}->{state.nextCareAt:R};sequence={state.nextFeedOperationSequence}");
+        Check(Hash(File.ReadAllBytes(sourcePath)) == observed.worldSha256
+              && Hash(File.ReadAllBytes(observationPath)) == observationHash.ToLowerInvariant(),
+            "FEED_COLD_SOURCE_FILES_UNCHANGED", "immutable original checkpoint and observation;trainingEligible=false");
+    }
+
     private bool RestoreCaptivity(CaptivitySaveData payload) =>
         RestoreSection(
             CaptivitySaveSection.Id,
@@ -4520,39 +7000,126 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         return RestoreCaptivity(payload);
     }
 
-    private bool RestoreCircus(CircusSaveData payload)
+    private bool RestoreCircus(CircusSaveData payload,
+        DungeonGameSaveData completedWorld = null)
     {
-        IDungeonSaveSection captivitySection = saveRegistry.OrderedSections
-            .Single(section => section.SectionId == CaptivitySaveSection.Id);
-        IDungeonSaveSection circusSection = saveRegistry.OrderedSections
-            .Single(section => section.SectionId == CircusSaveSection.Id);
-        HashSet<string> actual = new(StringComparer.Ordinal)
+        // Circus validates physical receipts against the incoming staged world.
+        // Reuse every registered section/participant, not dependency ID markers.
+        // This is test-only roster preparation; subsequent feed/tame effects
+        // must still be produced by the normal runtime and AI paths.
+        string workerId = worker.Identity.PersistentId;
+        string captiveId = captiveActor.Identity.PersistentId;
+        string housingId = housing.RequirePersistentInstanceId().Value;
+        string penId = pen.RequirePersistentInstanceId().Value;
+        string faultPenId = faultPen != null && !faultPen.IsGridDestroyed
+            ? faultPen.RequirePersistentInstanceId().Value : null;
+        string[] fixtureIds = fixtureBuildingSnapshots.Select(snapshot =>
+                snapshot.Building != null && !snapshot.Building.IsGridDestroyed
+                    ? snapshot.Building.RequirePersistentInstanceId().Value
+                    : null)
+            .ToArray();
+        CharacterActor previousCaptive = captiveActor;
+        captiveActor.SetAiPaused(true);
+        captiveActor.characterType = captiveOldType;
+        Check(captiveActor.characterType == captiveOldType
+              && captiveActor.Identity.PersistentId == captiveId,
+            "ANIMAL_CARE_CAPTIVE_ROLE_RESTORE_PREPARATION",
+            $"id={captiveId};role={captiveActor.characterType};"
+            + "identityUnchanged=True;activationInjected=false;trainingEligible=false");
+        DungeonGameSaveData preparationSave = completedWorld ?? gameSaveService.Capture();
+        List<DungeonSaveSectionEnvelope> envelopes = preparationSave.sections;
+        if (completedWorld == null)
         {
-            CaptivitySaveSection.Id,
-            CircusSaveSection.Id
-        };
-        List<IDungeonSaveSection> sections = captivitySection.DependsOn
-            .Concat(circusSection.DependsOn)
-            .Where(id => !actual.Contains(id))
-            .Distinct(StringComparer.Ordinal)
-            .Select(id => (IDungeonSaveSection)new DependencyMarkerSection(id))
-            .Concat(new[] { captivitySection, circusSection })
-            .ToList();
-        DungeonSaveSectionRegistry registry = new(
-            sections,
-            aggregateStore,
-            new[]
-            {
-                captivityPersistence as IDungeonRestoreTransactionParticipant,
-                circusPersistence as IDungeonRestoreTransactionParticipant
-            }.Where(value => value != null).ToArray());
-        List<DungeonSaveSectionEnvelope> envelopes = registry.CaptureAll();
-        envelopes.Single(value => value.sectionId == CircusSaveSection.Id)
-            .payloadJson = JsonUtility.ToJson(Clone(payload));
-        DungeonGameRestoreReport report = new();
-        bool restored = registry.RestoreAll(envelopes, report);
-        if (!restored) rows.Add("INFO\tCIRCUS_RESTORE_ERROR\t" + string.Join(" | ", report.Errors));
-        return restored;
+            envelopes.Single(value => value.sectionId == CircusSaveSection.Id)
+                .payloadJson = JsonUtility.ToJson(Clone(payload));
+            preparationSave.manifest = DungeonSaveManifest.Capture(envelopes);
+        }
+        bool restored = gameSaveService.TryRestore(preparationSave,
+            out DungeonGameRestoreReport report);
+        rows.Add("INFO\tANIMAL_CARE_REGISTERED_WORLD_RESTORE\t"
+            + $"sections={envelopes.Count};success={restored};"
+            + "official-save-service-preflight/manifest/completed-hooks;trainingEligible=false");
+        if (!restored)
+        {
+            rows.Add("INFO\tCIRCUS_RESTORE_ERROR\t" + string.Join(" | ", report.Errors));
+            return false;
+        }
+
+        bool gridRebound = world.TryGetGrid(out Grid restoredGrid)
+            && restoredGrid != null;
+        if (!gridRebound)
+        {
+            Check(false, "ANIMAL_CARE_WORLD_ID_REBOUND", "published grid missing");
+            return false;
+        }
+        grid = restoredGrid;
+        CharacterActor[] publishedActors = CharacterActorCollection
+            .DistinctByGameObject(world.Characters)
+            .Where(value => value != null && value.HasBeenPublished
+                && !value.IsUnpublishedComposition && !value.IsDetachedRestoreCandidate
+                && !value.IsDead && value.Identity != null
+                && value.Identity.TypedPersistentId.IsValid)
+            .ToArray();
+        CharacterActor[] workers = publishedActors
+            .Where(value => value.Identity.PersistentId == workerId).ToArray();
+        CharacterActor[] captives = publishedActors
+            .Where(value => value.Identity.PersistentId == captiveId).ToArray();
+        string[] duplicateIds = publishedActors
+            .GroupBy(value => value.Identity.PersistentId, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1).Select(group => group.Key).ToArray();
+        bool actorsRebound = workers.Length == 1 && captives.Length == 1
+            && duplicateIds.Length == 0
+            && (previousCaptive == null || !previousCaptive.gameObject.activeInHierarchy);
+        worker = workers.Length == 1 ? workers[0] : null;
+        captiveActor = captives.Length == 1 ? captives[0] : null;
+        workerWork = worker != null ? worker.GetComponent<AbilityWork>() : null;
+
+        BuildableObject[] buildings = world.Buildings
+            .Where(value => value != null && !value.IsGridDestroyed).ToArray();
+        bool buildingsRebound = true;
+        fixtureBuildings.Clear();
+        for (int index = 0; index < fixtureBuildingSnapshots.Count; index++)
+        {
+            FixtureBuildingSnapshot old = fixtureBuildingSnapshots[index];
+            string id = fixtureIds[index];
+            if (id == null) continue;
+            BuildableObject[] matches = buildings.Where(value =>
+                value.PersistentInstanceId.IsValid
+                && value.PersistentInstanceId.Value == id).ToArray();
+            BuildableObject replacement = matches.Length == 1 ? matches[0] : null;
+            buildingsRebound &= replacement != null
+                && ReferenceEquals(replacement.Grid, grid)
+                && old.Positions.All(position =>
+                    grid.GetGridCell(position)?.ContainsOccupant(
+                        old.Layer, replacement) == true);
+            fixtureBuildingSnapshots[index] = new FixtureBuildingSnapshot(
+                replacement, old.Layer, old.Positions, old.ConnectPositions);
+            if (replacement != null) fixtureBuildings.Add(replacement);
+        }
+        housing = buildings.SingleOrDefault(value => value.PersistentInstanceId.IsValid
+            && value.PersistentInstanceId.Value == housingId);
+        pen = buildings.SingleOrDefault(value => value.PersistentInstanceId.IsValid
+            && value.PersistentInstanceId.Value == penId);
+        // Preserve the same live fault pen when restoring before pen-loss;
+        // after that branch it is absent and must not be recreated.
+        faultPen = faultPenId == null ? null : buildings.SingleOrDefault(value =>
+            value.PersistentInstanceId.IsValid
+            && value.PersistentInstanceId.Value == faultPenId);
+        rooms.Clear();
+        RoomInstance penRoom = null;
+        bool roomRebound = pen != null && rooms.TryGetRoom(pen, out penRoom)
+            && penRoom != null && penRoom.IsUsable;
+        fixtureRoom = penRoom;
+        bool rebound = actorsRebound && workerWork != null && buildingsRebound
+            && housing != null && pen != null && roomRebound;
+        Check(rebound, "ANIMAL_CARE_WORLD_ID_REBOUND",
+            $"worker={workerId}:{workers.Length};captive={captiveId}:{captives.Length};"
+            + $"duplicates={string.Join(",", duplicateIds)};buildings={buildingsRebound};"
+            + $"room={fixtureRoom?.Id};oldCaptiveRetired={previousCaptive == null || !previousCaptive.gameObject.activeInHierarchy};"
+            + "registered-transaction=true;trainingEligible=false");
+        if (!rebound) return false;
+        PauseOtherAi();
+        return true;
     }
 
     private bool RestoreHusbandry(DungeonAnimalHusbandrySaveData payload) =>
@@ -4665,56 +7232,6 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         return restored;
     }
 
-    private bool RestoreBaselineSection(
-        string sectionId,
-        IDungeonRestoreTransactionParticipant participant,
-        out string detail)
-    {
-        detail = string.Empty;
-        DungeonSaveSectionEnvelope baselineEnvelope = baseline?
-            .FirstOrDefault(value => string.Equals(
-                value.sectionId,
-                sectionId,
-                StringComparison.Ordinal));
-        if (baselineEnvelope == null)
-        {
-            detail = "baseline-section-missing:" + sectionId;
-            return false;
-        }
-
-        IDungeonSaveSection section = saveRegistry.OrderedSections
-            .Single(candidate => candidate.SectionId == sectionId);
-        HashSet<string> actual = new(StringComparer.Ordinal)
-        {
-            sectionId
-        };
-        List<IDungeonSaveSection> sections = section.DependsOn
-            .Where(id => !actual.Contains(id))
-            .Distinct(StringComparer.Ordinal)
-            .Select(id => (IDungeonSaveSection)new DependencyMarkerSection(id))
-            .Append(section)
-            .ToList();
-        DungeonSaveSectionRegistry registry = new(
-            sections,
-            aggregateStore,
-            participant != null
-                ? new[] { participant }
-                : Array.Empty<IDungeonRestoreTransactionParticipant>());
-        List<DungeonSaveSectionEnvelope> envelopes = registry.CaptureAll();
-        DungeonSaveSectionEnvelope target = envelopes.Single(value =>
-            string.Equals(
-                value.sectionId,
-                sectionId,
-                StringComparison.Ordinal));
-        target.payloadJson = baselineEnvelope.payloadJson;
-        DungeonGameRestoreReport report = new();
-        bool restored = registry.RestoreAll(envelopes, report);
-        detail = restored
-            ? "restored:" + sectionId
-            : string.Join(" | ", report.Errors);
-        return restored;
-    }
-
     private static T Clone<T>(T value) =>
         JsonUtility.FromJson<T>(JsonUtility.ToJson(value));
 
@@ -4731,9 +7248,41 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         {
             AIBrain brain = actor.Brain;
             if (brain == null) continue;
-            pausedAi.Add(new MonoBehaviourState(brain, brain.enabled));
+            if (!pausedAi.Any(state => ReferenceEquals(state.Behaviour, brain)))
+                pausedAi.Add(new MonoBehaviourState(brain, brain.enabled));
             if (actor != worker) brain.enabled = false;
         }
+    }
+
+    private void RecordAnimalCareAccounting(string stage)
+    {
+        EmergencyReserveSnapshot snapshot = emergencyAccounting.CaptureSnapshot();
+        List<string> details = new();
+        int listedOperations = 0;
+        foreach (CharacterActor actor in world.Characters
+                     .Where(value => value != null && value.Identity != null)
+                     .OrderBy(value => value.Identity.PersistentId, StringComparer.Ordinal))
+        {
+            string actorId = actor.Identity.PersistentId;
+            bool hasOperation = emergencyAccounting.TryGetWorkerOperation(
+                actorId,
+                out EmergencyWorkLedgerEntry entry);
+            if (hasOperation) listedOperations++;
+            AbilityWork actorWork = actor.GetComponent<AbilityWork>();
+            details.Add(
+                $"actor={actorId};targetWorker={ReferenceEquals(actor, worker)};"
+                + $"lifecycle={actor.CurrentLifecycleState};brainEnabled={actor.Brain?.enabled};"
+                + $"working={actorWork?.isWorking};routine={actorWork?.HasActiveWorkRoutineForDiagnostics};"
+                + $"operation={(hasOperation ? entry.OperationId : "none")};"
+                + $"operationWorker={(hasOperation ? entry.WorkerId : "none")};"
+                + $"type={(hasOperation ? entry.WorkTypeId.ToString() : "none")};"
+                + $"remainingMilliWu={(hasOperation ? entry.RemainingMilliWu : 0)};"
+                + $"sequence={(hasOperation ? entry.MutationSequence : 0)}");
+        }
+        rows.Add($"INFO\tANIMAL_CARE_ACCOUNTING_{stage}\t"
+                 + $"frame={Time.frameCount};gameTime={Time.time:0.###};"
+                 + $"globalActive={snapshot.ActiveOperationCount};listedOperations={listedOperations};"
+                 + string.Join(" | ", details));
     }
 
     private void Cleanup()
@@ -4773,29 +7322,6 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         fixtureBuildings.Clear();
         fixtureBuildingSnapshots.Clear();
 
-        bool displacedRestored = true;
-        foreach (DisplacedMovementSnapshot displaced in displacedMovementBuildings)
-        {
-            bool registered = displaced.Building != null
-                && grid != null
-                && grid.RegisterOccupant(
-                    displaced.Building,
-                    displaced.Layer,
-                    displaced.Positions,
-                    displaced.ConnectPositions);
-            bool exact = registered
-                && displaced.Positions.All(position =>
-                    grid.GetGridCell(position)?.ContainsOccupant(
-                        displaced.Layer,
-                        displaced.Building) == true);
-            displacedRestored &= exact;
-        }
-        Check(
-            displacedRestored,
-            "FIXTURE_MOVEMENT_RESTORE",
-            $"count={displacedMovementBuildings.Count};exact={displacedRestored}");
-        displacedMovementBuildings.Clear();
-
         bool areasRestored = true;
         foreach (AreaSnapshot snapshot in areaSnapshots)
         {
@@ -4819,15 +7345,103 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         {
             if (saveRegistry != null && baseline != null)
             {
-                DungeonGameRestoreReport report = new();
-                if (!saveRegistry.RestoreAll(baseline, report))
+                string preparedCaptiveId = null;
+                if (!transportOnly && captiveActor != null)
+                {
+                    preparedCaptiveId = captiveActor.Identity.PersistentId;
+                    captiveActor.SetAiPaused(true);
+                    // The fixture borrowed a staff actor and changed only its
+                    // role. An escaped Intruder is no longer captivity-owned,
+                    // so restore that preparation before the world owner finds
+                    // and retires the old staff instance during baseline restore.
+                    captiveActor.characterType = captiveOldType;
+                    Check(captiveActor.characterType == captiveOldType
+                        && captiveActor.Identity.PersistentId == preparedCaptiveId,
+                        "FIXTURE_CAPTIVE_ROLE_RESTORED_FOR_BASELINE",
+                        $"id={preparedCaptiveId};role={captiveActor.characterType};"
+                        + "identityUnchanged=True;activationInjected=false;trainingEligible=false");
+                }
+                if (!gameSaveService.TryRestore(baselineSaveData,
+                        out DungeonGameRestoreReport report))
                     Check(false, "BASELINE_RESTORE", string.Join(" | ", report.Errors));
                 else
                 {
+                    CharacterActor[] publishedActors = CharacterActorCollection
+                        .DistinctByGameObject(world.Characters)
+                        .Where(actor => actor != null
+                            && actor.HasBeenPublished
+                            && !actor.IsUnpublishedComposition
+                            && !actor.IsDetachedRestoreCandidate
+                            && !actor.IsDead
+                            && actor.Progression != null
+                            && actor.Identity != null
+                            && actor.Identity.TypedPersistentId.IsValid)
+                        .ToArray();
+                    string[] duplicateIds = publishedActors
+                        .GroupBy(actor => actor.Identity.PersistentId, StringComparer.Ordinal)
+                        .Where(group => group.Count() > 1)
+                        .Select(group => group.Key)
+                        .ToArray();
+                    int restoredCaptiveCount = preparedCaptiveId == null ? 0
+                        : publishedActors.Count(actor => actor.Identity.PersistentId == preparedCaptiveId);
+                    bool oldCaptiveRetired = preparedCaptiveId == null
+                        || captiveActor == null
+                        || !captiveActor.gameObject.activeInHierarchy;
+                    Check(duplicateIds.Length == 0 && oldCaptiveRetired
+                        && (preparedCaptiveId == null || restoredCaptiveCount == 1),
+                        "FIXTURE_CHARACTER_IDENTITY_RESTORE",
+                        $"published={publishedActors.Length};duplicates={string.Join(",", duplicateIds)};"
+                        + $"captive={preparedCaptiveId};restoredCount={restoredCaptiveCount};"
+                        + $"oldInstanceRetired={oldCaptiveRetired}");
                     Grid restoredGrid = null;
                     bool restoredGridResolved =
                         world?.TryGetGrid(out restoredGrid) == true
                         && restoredGrid != null;
+                    List<string> buildingRestoreMismatches = new();
+                    foreach (PreparedOriginalBuildingSnapshot snapshot in preparedOriginalBuildings)
+                    {
+                        ModularFacilityBuildingSaveData saved = snapshot.Saved;
+                        BuildableObject[] matching = world.Buildings.Where(value =>
+                            value != null && value.PersistentInstanceId.IsValid
+                            && value.PersistentInstanceId.Value == saved.persistentInstanceId)
+                            .ToArray();
+                        BuildableObject restored = matching.Length == 1 ? matching[0] : null;
+                        bool exact = restoredGridResolved && restored != null
+                            && !restored.IsBuildingDestroyed && !restored.IsDetachedRestoreCandidate
+                            && restored.gameObject.activeInHierarchy
+                            && !ReferenceEquals(restored, snapshot.Original)
+                            && (snapshot.Original == null || snapshot.Original.IsBuildingDestroyed)
+                            && ReferenceEquals(restored.Grid, restoredGrid)
+                            && restored.BuildingData != null
+                            && restored.BuildingData.id == saved.buildingId
+                            && restored.BuildingData.GetFacilityCode() == saved.code
+                            && restored.BuildingData.Placement.Layer == saved.layer
+                            && restored.BuildingData.Placement.Width == saved.width
+                            && restored.BuildingData.Placement.Height == saved.height
+                            && restored.centerPos == new Vector2Int(saved.centerX, saved.centerY)
+                            && restored.FacilityLevel == saved.facilityLevel
+                            && restored.IsDamaged == saved.isDamaged
+                            && (restored is not IWarehouseFacility warehouse
+                                || world.Warehouses.Count(value => ReferenceEquals(value, warehouse)) == 1)
+                            && (restored is not IRetailFacility retail
+                                || world.RetailFacilities.Count(value => ReferenceEquals(value, retail)) == 1)
+                            && restored.buildPoses.Count == snapshot.Positions.Count
+                            && snapshot.Positions.All(position =>
+                                restored.buildPoses.Contains(position)
+                                && ReferenceEquals(restoredGrid.GetGridCell(position)
+                                    ?.GetOccupant(saved.layer), restored));
+                        if (!exact)
+                            buildingRestoreMismatches.Add($"{saved.persistentInstanceId}:"
+                                + $"definition={saved.buildingId};count={matching.Length};"
+                                + $"restored={restored?.BuildingData?.id}@{restored?.centerPos}");
+                    }
+                    Check(restoredGridResolved && buildingRestoreMismatches.Count == 0,
+                        "FIXTURE_ORIGINAL_BUILDINGS_BASELINE_RESTORE",
+                        $"count={preparedOriginalBuildings.Count};"
+                        + $"exact={restoredGridResolved && buildingRestoreMismatches.Count == 0};"
+                        + $"mismatches=[{string.Join(" | ", buildingRestoreMismatches)}];"
+                        + "identity=id+definition+placement+single-world/grid-registration;"
+                        + "actual-whole-world-restore;trainingEligible=false");
                     List<string> wildlifeRestoreMismatches = new();
                     bool wildlifeRestored = restoredGridResolved
                         && displacedWildlife.All(snapshot =>
@@ -4885,13 +7499,41 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             Check(false, "BASELINE_RESTORE_EXCEPTION", exception.Message);
         }
         displacedWildlife.Clear();
+        preparedOriginalBuildings.Clear();
     }
 
     private void Check(bool success, string id, string detail)
     {
         rows.Add($"{(success ? "PASS" : "FAIL")}\t{id}\t{detail}");
         if (!success) failures.Add(id + ": " + detail);
+        if (id == "TRANSPORT_CAPTURE_ORDER_PARENT_RESULT_ONCE"
+            || id == "TRANSPORT_SUCCESS_ATOMIC_PICKUP_OWNERSHIP"
+            || id == "TRANSPORT_CARRIER_PEN_PARENT_RESULTS_ONCE"
+            || id == "TRANSPORT_SUCCESS_CAPTURE_STATE"
+            || id == "TRANSPORT_SUCCESS_TERMINAL"
+            || id == "TRANSPORT_RELEASE_PARENT_RESULT_ONCE")
+        {
+            ObserveE11Transport(id, success, detail);
+        }
+        ObserveBatchMemory();
         WriteReport();
+    }
+
+    private int CountWildlifeOutcome(
+        string producerId,
+        string eventKind,
+        string wildlifeId)
+    {
+        string operationPrefix = producerId ==
+                EnvironmentOutcomeIds.WildlifeCommandProducer
+            ? $"wildlife-command:{eventKind}:{wildlifeId}:"
+            : $"wildlife-action:{eventKind}:{wildlifeId}:";
+        return outcomeLedger?.CaptureGameplayOutcomes().exactOutcomes.Count(value =>
+            value != null
+            && string.Equals(value.producerId, producerId, StringComparison.Ordinal)
+            && value.operationId.StartsWith(
+                operationPrefix,
+                StringComparison.Ordinal)) ?? 0;
     }
 
     private bool HasCanonicalProficiencyProfile(CharacterActor candidate)
@@ -4935,19 +7577,144 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         }
     }
 
+    private IEnumerator VerifyE11TransportGuarded()
+    {
+        var pending = new Stack<IEnumerator>();
+        pending.Push(VerifyTransportRows());
+        try
+        {
+            while (pending.Count > 0)
+            {
+                bool moved = false;
+                object value = null;
+                Exception failure = null;
+                try
+                {
+                    moved = pending.Peek().MoveNext();
+                    if (moved) value = pending.Peek().Current;
+                }
+                catch (Exception exception) { failure = exception; }
+                if (failure != null)
+                {
+                    Check(false, "E11_TRANSPORT_UNHANDLED_FAILURE", failure.ToString());
+                    yield break;
+                }
+                if (!moved)
+                {
+                    (pending.Pop() as IDisposable)?.Dispose();
+                    continue;
+                }
+                if (value is IEnumerator nested) pending.Push(nested);
+                else yield return value;
+            }
+        }
+        finally
+        {
+            while (pending.Count > 0) (pending.Pop() as IDisposable)?.Dispose();
+        }
+    }
+
+    private void ObserveE11Transport(string stage, bool checkPassed, string detail)
+    {
+        if (!transportOnly || IsColdResume || string.IsNullOrWhiteSpace(
+                Environment.GetEnvironmentVariable(CaptivityWildlifeLifecyclePlayModeVerifier.E11ReportPathEnvironmentVariable)))
+            return;
+        var physical = itemRuntime as WorldItemStackRuntime
+            ?? throw new InvalidOperationException("E11 capture requires the real physical-item owner.");
+        WildlifeActor animal = wildlife.Wildlife.SingleOrDefault(value => value != null
+            && value.WildlifeId == e11TransportWildlifeId);
+        var observationClock = scope.Container.Resolve<IGameClock>();
+        bool capturedStatePresent = capture.TryGetCaptured(e11TransportWildlifeId, out var capturedState);
+        var observation = new JObject
+        {
+            ["stage"] = stage,
+            ["checkPassed"] = checkPassed,
+            ["detail"] = detail,
+            ["wildlifeId"] = e11TransportWildlifeId,
+            ["workerId"] = CharacterPersistentIdentity.Require(worker).Value,
+            ["workerPosition"] = new JObject { ["x"] = worker.GetNowXY().x, ["y"] = worker.GetNowXY().y },
+            ["actorPresent"] = animal != null,
+            ["actorHealth"] = animal != null ? new JValue(animal.CurrentHealth) : JValue.CreateNull(),
+            ["actorPosition"] = animal != null
+                ? (JToken)new JObject { ["x"] = animal.GridPosition.x, ["y"] = animal.GridPosition.y }
+                : JValue.CreateNull(),
+            ["externalIntentActive"] = worker.Brain.IsExternallyDrivenActionActive,
+            ["externalIntentOwnerId"] = worker.Brain.ExternalIntentOwnerId,
+            ["externalIntentTerminalCount"] = worker.Brain.ExternalIntentTerminalCount,
+            ["externalIntentTerminalKind"] = worker.Brain.LastExternalIntentTerminalKind.ToString(),
+            ["gameClock"] = observationClock.Time,
+            ["gameFrame"] = observationClock.FrameCount,
+            ["capturedStatePresent"] = capturedStatePresent,
+            ["careDeadline"] = capturedStatePresent ? new JValue(capturedState.nextCareAt) : JValue.CreateNull(),
+            ["careInterval"] = CapturedWildlifeState.CareIntervalSeconds,
+            ["canonicalCaptureCompleted"] = false
+        };
+        // Preserve the real deadline/clock and partial stage even if a strict
+        // production Capture rejects it; that rejection remains a test FAIL.
+        e11TransportObservations.Add(observation);
+        rows.Add("INFO\tE11_CANONICAL_CAPTURE_CLOCK\t"
+            + $"stage={stage};clock={observationClock.Time:R};"
+            + $"deadline={(capturedStatePresent ? capturedState.nextCareAt.ToString("R") : "absent")};"
+            + $"interval={CapturedWildlifeState.CareIntervalSeconds:R};canonicalCaptureCompleted=false");
+        WriteReport();
+        observation["circus"] = JObject.Parse(JsonUtility.ToJson(circusPersistence.Capture()));
+        observation["wildlife"] = JObject.Parse(JsonUtility.ToJson(wildlife.Capture()));
+        observation["physical"] = JObject.Parse(JsonUtility.ToJson(physical.Capture()));
+        observation["ledger"] = JObject.Parse(JsonUtility.ToJson(outcomeLedger.CaptureGameplayOutcomes()));
+        observation["canonicalCaptureCompleted"] = true;
+    }
+
     private void WriteReport()
     {
-        Directory.CreateDirectory("Artifacts/QA");
+        string reportPath =
+            CaptivityWildlifeLifecyclePlayModeVerifier.ReportPath;
+        Directory.CreateDirectory(
+            Path.GetDirectoryName(reportPath) ?? "Artifacts/QA");
+        string reportMode = husbandryPendingColdResume
+            ? CaptivityWildlifeLifecyclePlayModeVerifier.HusbandryPendingColdResumeMode : feedColdResume
+            ? CaptivityWildlifeLifecyclePlayModeVerifier.FeedColdResumeMode : transportOnly
+            ? CaptivityWildlifeLifecyclePlayModeVerifier.TransportOnlyMode
+            : CaptivityWildlifeLifecyclePlayModeVerifier.FullMode;
         List<string> report = new()
         {
             "# Captivity / Wildlife production-live lifecycle matrix",
-            $"RESULT={(failures.Count == 0 ? "PASS" : "FAIL")}; failures={failures.Count}",
-            "fixture=GameplayScene+official-start-party+authored-room+V18-save-boundary",
-            "terminal-policy=no-direct-runtime-terminal-calls"
+            $"RESULT={(!runFinished ? "RUNNING" : verificationBodyCompleted && failures.Count == 0 ? "PASS" : "FAIL")}; failures={failures.Count}",
+            $"mode={reportMode}",
+            $"runFinished={runFinished};verificationBodyCompleted={verificationBodyCompleted}",
+            lastMemoryObservation,
+            IsColdResume ? "fixture=GameplayScene+official-save-service+cold-process-immutable-checkpoint"
+                : "fixture=GameplayScene+official-start-party+authored-room+V18-save-boundary",
+            husbandryPendingColdResume ? "terminal-policy=pending-world-restore+normal-owner-Tick+referenced-identity;no-effect-or-child-injection"
+                : feedColdResume ? "terminal-policy=completed-world-restore+same-commit-idempotency-call;no-new-terminal-injection"
+                : "terminal-policy=no-direct-runtime-terminal-calls"
         };
         report.AddRange(rows);
         report.AddRange(failures.Select(value => "FAILURE\t" + value));
-        File.WriteAllLines(CaptivityWildlifeLifecyclePlayModeVerifier.ReportPath, report);
+        File.WriteAllLines(reportPath, report);
+        if (runFinished && !e11TransportRawWritten && transportOnly && !IsColdResume
+            && !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(
+                CaptivityWildlifeLifecyclePlayModeVerifier.E11ReportPathEnvironmentVariable)))
+        {
+            var raw = new JObject
+            {
+                ["schemaVersion"] = 1,
+                ["mode"] = reportMode,
+                ["passed"] = verificationBodyCompleted && failures.Count == 0,
+                ["trainingEligible"] = false,
+                ["naturalGameplay"] = false,
+                ["fixtureScope"] = "authored room/official start party/spawned eligible animal/legal path preparation; actual Ability/external-intent transport and public release",
+                ["coldProcessRestore"] = false,
+                ["observations"] = e11TransportObservations,
+                ["checks"] = new JArray(rows),
+                ["failures"] = new JArray(failures),
+                ["consoleIssues"] = new JArray(consoleIssues)
+            };
+            using var stream = new FileStream(Path.ChangeExtension(reportPath, ".raw.json"),
+                FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+            using var writer = new StreamWriter(stream);
+            writer.Write(raw.ToString());
+            e11TransportRawWritten = true;
+        }
     }
 
     private readonly struct AreaSnapshot
@@ -4973,24 +7740,21 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         public string Detail = string.Empty;
     }
 
-    private readonly struct DisplacedMovementSnapshot
+    private readonly struct PreparedOriginalBuildingSnapshot
     {
-        public DisplacedMovementSnapshot(
-            BuildableObject building,
-            GridLayer layer,
-            IReadOnlyList<Vector2Int> positions,
-            bool connectPositions)
+        public PreparedOriginalBuildingSnapshot(
+            BuildableObject original,
+            ModularFacilityBuildingSaveData saved,
+            IReadOnlyList<Vector2Int> positions)
         {
-            Building = building;
-            Layer = layer;
+            Original = original;
+            Saved = saved;
             Positions = positions;
-            ConnectPositions = connectPositions;
         }
 
-        public BuildableObject Building { get; }
-        public GridLayer Layer { get; }
+        public BuildableObject Original { get; }
+        public ModularFacilityBuildingSaveData Saved { get; }
         public IReadOnlyList<Vector2Int> Positions { get; }
-        public bool ConnectPositions { get; }
     }
 
     private readonly struct FixtureBuildingSnapshot

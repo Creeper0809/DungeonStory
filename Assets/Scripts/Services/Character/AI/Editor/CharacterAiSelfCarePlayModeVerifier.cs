@@ -18,6 +18,43 @@ public static class CharacterAiSelfCarePlayModeVerifier
         "Artifacts/QA/character-ai-self-care-playmode.txt";
     private const string PendingFlagPath =
         "Temp/character-ai-self-care-playmode.flag";
+    private const string A09SafeDrinkEnvironmentVariable =
+        "DUNGEONSTORY_A09_SAFE_DRINK";
+    private const string ReportPathEnvironmentVariable =
+        "DUNGEONSTORY_A09_SAFE_DRINK_REPORT_PATH";
+
+    internal static bool A09SafeDrinkRequested => string.Equals(
+        Environment.GetEnvironmentVariable(
+            A09SafeDrinkEnvironmentVariable)?.Trim(),
+        "1",
+        StringComparison.Ordinal);
+
+    internal static string ActiveReportPath
+    {
+        get
+        {
+            string relative = Environment.GetEnvironmentVariable(
+                    ReportPathEnvironmentVariable)?.Trim();
+            if (string.IsNullOrWhiteSpace(relative))
+                relative = ReportPath;
+            string root = Path.GetFullPath(Path.Combine(
+                Application.dataPath,
+                ".."));
+            string absolute = Path.GetFullPath(Path.Combine(root, relative));
+            string qaRoot = Path.GetFullPath(Path.Combine(
+                root,
+                "Artifacts",
+                "QA"));
+            if (!absolute.StartsWith(
+                    qaRoot + Path.DirectorySeparatorChar,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "Self-care report must remain under Artifacts/QA.");
+            }
+            return absolute;
+        }
+    }
 
     [MenuItem("DungeonStory/Debug/QA/Run Character AI Self-Care PlayMode Verification")]
     public static void RunFromMenu() => RequestRun();
@@ -43,15 +80,44 @@ public static class CharacterAiSelfCarePlayModeVerifier
         StartRunner();
     }
 
-    private static void StartRunner()
+    internal static void StartIsolatedFromFacade(
+        IEnumerable<string> initialWarnings,
+        IEnumerable<string> initialErrors)
     {
-        if (UnityEngine.Object.FindFirstObjectByType<
-                CharacterAiSelfCarePlayModeRunner>() != null)
+        if (!Application.isBatchMode
+            || !EditorApplication.isPlaying
+            || !DungeonPersistencePaths.IsIsolatedVerification
+            || !A09SafeDrinkRequested)
         {
-            return;
+            throw new InvalidOperationException(
+                "A09 safe-drink verification requires the active isolated PlayMode facade.");
         }
 
-        new GameObject("Character AI Self-Care PlayMode Runner")
+        string reportPath = ActiveReportPath;
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath));
+        if (File.Exists(reportPath))
+        {
+            throw new InvalidOperationException(
+                "Existing A09 safe-drink evidence must be preserved.");
+        }
+
+        CharacterAiSelfCarePlayModeRunner runner = StartRunner();
+        runner.A09DrinkOnly = true;
+        runner.ExitBatchProcessOnCompletion = true;
+        runner.AddInitialConsoleIssues(initialWarnings, initialErrors);
+    }
+
+    private static CharacterAiSelfCarePlayModeRunner StartRunner()
+    {
+        CharacterAiSelfCarePlayModeRunner existing =
+            UnityEngine.Object.FindFirstObjectByType<
+                CharacterAiSelfCarePlayModeRunner>();
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        return new GameObject("Character AI Self-Care PlayMode Runner")
             .AddComponent<CharacterAiSelfCarePlayModeRunner>();
     }
 }
@@ -78,6 +144,18 @@ public sealed class CharacterAiSelfCarePlayModeRunner : MonoBehaviour
     private ICharacterNeedBalanceRuntime needBalance;
     private ICharacterSubstanceRuntime substances;
     private float originalTimeScale;
+    public bool A09DrinkOnly { get; set; }
+    public bool ExitBatchProcessOnCompletion { get; set; }
+
+    public void AddInitialConsoleIssues(
+        IEnumerable<string> warnings,
+        IEnumerable<string> errors)
+    {
+        if (warnings != null)
+            consoleIssues.AddRange(warnings.Select(value => "Warning:" + value));
+        if (errors != null)
+            consoleIssues.AddRange(errors.Select(value => "Error:" + value));
+    }
 
     private IEnumerator Start()
     {
@@ -92,7 +170,8 @@ public sealed class CharacterAiSelfCarePlayModeRunner : MonoBehaviour
             if (failures.Count == 0)
             {
                 yield return VerifyRoutineDrink();
-                yield return VerifyScheduledSubstanceUse();
+                if (!A09DrinkOnly)
+                    yield return VerifyScheduledSubstanceUse();
             }
         }
         finally
@@ -101,12 +180,22 @@ public sealed class CharacterAiSelfCarePlayModeRunner : MonoBehaviour
             Application.logMessageReceived -= CaptureIssue;
             Time.timeScale = originalTimeScale;
             WriteReport();
+            bool passed = failures.Count == 0;
             Destroy(gameObject);
-            EditorApplication.delayCall += () =>
+            if (ExitBatchProcessOnCompletion)
             {
-                if (EditorApplication.isPlaying)
-                    EditorApplication.isPlaying = false;
-            };
+                DungeonFullWorldRoundTripPlayModeFacade.CleanupTransientArtifacts();
+                EditorApplication.delayCall += () =>
+                    EditorApplication.Exit(passed ? 0 : 1);
+            }
+            else
+            {
+                EditorApplication.delayCall += () =>
+                {
+                    if (EditorApplication.isPlaying)
+                        EditorApplication.isPlaying = false;
+                };
+            }
         }
     }
 
@@ -480,6 +569,12 @@ public sealed class CharacterAiSelfCarePlayModeRunner : MonoBehaviour
         List<string> lines = new()
         {
             "CHARACTER_AI_SELF_CARE_PLAYMODE",
+            "scope=" + (A09DrinkOnly
+                ? "official-GameplayScene+live-Brain-AIDrink+CharacterSafeReliefRunner-A09"
+                : "self-care-drink-and-substance"),
+            "fullAuditClosure=false",
+            "humanApprovalClaimed=false",
+            "trainingEligible=false",
             $"checks={checks.Count}; failures={failures.Count}; consoleIssues={consoleIssues.Count}",
             "case\tresult\tdetail"
         };
@@ -490,7 +585,7 @@ public sealed class CharacterAiSelfCarePlayModeRunner : MonoBehaviour
             lines.Add("FAILURES");
             lines.AddRange(failures);
         }
-        File.WriteAllLines(CharacterAiSelfCarePlayModeVerifier.ReportPath, lines);
+        File.WriteAllLines(CharacterAiSelfCarePlayModeVerifier.ActiveReportPath, lines);
         if (failures.Count == 0) Debug.Log("CHARACTER_AI_SELF_CARE=PASS");
         else Debug.LogError("CHARACTER_AI_SELF_CARE=FAIL; " + string.Join(" | ", failures));
     }

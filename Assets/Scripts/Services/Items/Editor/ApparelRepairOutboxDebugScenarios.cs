@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEngine;
 
@@ -22,9 +23,25 @@ public static class ApparelRepairOutboxDebugScenarios
         Debug.Log("Apparel repair pending outbox PASS. " + details);
     }
 
+    public static bool RunAll(bool throwOnFailure = true)
+    {
+        try
+        {
+            _ = VerifyRepairPendingOutboxAndRestore();
+            return true;
+        }
+        catch
+        {
+            if (throwOnFailure)
+                throw;
+            return false;
+        }
+    }
+
     internal static string VerifyRepairPendingOutboxAndRestore()
     {
         WorldItemStackRuntime items = null;
+        DomainFactDispatcher facts = null;
         GameObject facilityObject = null;
         try
         {
@@ -51,6 +68,16 @@ public static class ApparelRepairOutboxDebugScenarios
                 new PhysicalItemMassQuery(items.CatalogProvider),
                 EditorNullItemMarkerPresenter.Instance);
             FailOnceAcknowledgementDisposition disposition = new(innerDisposition);
+            var outcomeFixture = new MigratedProducerOutcomeEditorFixture(
+                "run:apparel-repair-outbox");
+            var outcomeProbe = new MigratedProducerOutcomeProbeTransaction(
+                outcomeFixture.Transaction,
+                outcomeFixture.Recorder)
+            {
+                TargetKind = MigratedProducerOutcomeKind
+                    .ApparelWorkOrderTerminalResult
+            };
+            facts = outcomeFixture.CreateApparelWorkFacts(outcomeProbe);
             ApparelWorkOrderRuntime runtime = new(
                 apparel,
                 textiles,
@@ -58,6 +85,7 @@ public static class ApparelRepairOutboxDebugScenarios
                 new LeasedItemReservationService(items, quantityReservations, clock),
                 new FixtureFacilityCapabilityQuery(facility),
                 clock,
+                new EditorFixedGameCalendar(137, 9),
                 disposition,
                 BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                     .Create<IApparelPhysicalTransaction>(),
@@ -65,7 +93,8 @@ public static class ApparelRepairOutboxDebugScenarios
                     .Create<IProductionOutputMaximumMassRegistry>(),
                 new ProductionFacilityMutationEpochRuntime(),
                 performance: BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
-                    .Create<ICharacterPerformanceQuery>());
+                    .Create<ICharacterPerformanceQuery>(),
+                facts: facts);
 
             const string instanceId = "apparel-instance:qa-repair-outbox";
             string targetStackId = WorldItemRepositoryEditorAccess.AddStack(
@@ -129,6 +158,27 @@ public static class ApparelRepairOutboxDebugScenarios
                     && ReadDurability(items, targetStackId) == 70f,
                 "rejected pending repair cancellation mutated its order, receipt, materials, or target");
 
+            outcomeProbe.FaultMode = MigratedProducerOutcomeFaultMode
+                .RejectReservation;
+            Require(!runtime.ApplyWork(
+                    firstOrderId,
+                    1f,
+                    out DomainFailure reservationFailure)
+                    && reservationFailure.Code
+                        == FailureCode.ApparelTransferFailed,
+                "injected apparel parent reservation rejection succeeded");
+            ApparelWorkOrderSaveData reservedPending = runtime.CaptureOrders()
+                .Single();
+            Require(reservedPending.terminalOutcomeReady
+                    && reservedPending.repairCommitPhase
+                        == ApparelRepairCommitPhase.None
+                    && !reservedPending.terminalPublicationConfirmed
+                    && string.IsNullOrEmpty(
+                        reservedPending.terminalPublicationKey)
+                    && Quantity(items, ThreadItemId) == initialThread - 1
+                    && Quantity(items, ScrapItemId) == initialScrap - 1,
+                "parent reservation rejection repeated or lost repair effects");
+            outcomeProbe.FaultMode = MigratedProducerOutcomeFaultMode.None;
             Require(runtime.ApplyWork(firstOrderId, 1f, out DomainFailure retryFailure),
                 $"repair retry did not finalize: {retryFailure}");
             Require(runtime.CaptureOrders().Length == 0,
@@ -189,25 +239,123 @@ public static class ApparelRepairOutboxDebugScenarios
                     && ReadDurability(items, targetStackId) == 70f,
                 "rejected restore changed live order, item, or receipt authority");
 
-            runtime.BeginRestoreCandidate();
-            runtime.PublishRestoreOrders(
-                runtime.PrepareRestoreOrders(new[] { Clone(livePending) }));
-            runtime.PublishRestoreCandidate();
-            runtime.CompleteRestoreCandidate();
-            Require(runtime.ParticipantId == "226.world.apparel-work-orders",
-                $"unexpected restore participant id: {runtime.ParticipantId}");
-            Require(runtime.CaptureOrders().Length == 0
-                    && !disposition.TryGetPending(livePending.repairOperationId, out _)
-                    && Quantity(items, ThreadItemId) == restoreThreadBefore - 1
-                    && Quantity(items, ScrapItemId) == restoreScrapBefore - 1
+            outcomeProbe.FaultMode = MigratedProducerOutcomeFaultMode
+                .RejectCommit;
+            Require(!runtime.ApplyWork(
+                    restoreOrderId,
+                    1f,
+                    out DomainFailure parentFailure)
+                    && parentFailure.Code == FailureCode.ApparelTransferFailed,
+                "injected apparel parent rejection unexpectedly succeeded");
+            ApparelWorkOrderSaveData parentPending = runtime.CaptureOrders()
+                .Single();
+            Require(parentPending.terminalOutcomeReady
+                    && !parentPending.terminalPublicationConfirmed
+                    && string.IsNullOrEmpty(
+                        parentPending.terminalPublicationKey)
+                    && parentPending.repairCommitPhase
+                        == ApparelRepairCommitPhase.None
+                    && parentPending.terminalMaterialCommitId
+                        == livePending.repairCommitId
+                    && !disposition.TryGetPending(
+                        livePending.repairOperationId,
+                        out _)
+                    && Quantity(items, ThreadItemId)
+                        == restoreThreadBefore - 1
+                    && Quantity(items, ScrapItemId)
+                        == restoreScrapBefore - 1
                     && ReadDurability(items, targetStackId) == 70f,
-                "normal restore did not finalize exactly once");
+                "parent rejection did not retain the exact applied repair receipt");
+            Require(!runtime.Cancel(
+                    restoreOrderId,
+                    out DomainFailure parentCancelFailure)
+                    && parentCancelFailure.Code
+                        == FailureCode.ApparelRecoveryDeferred,
+                "pending apparel parent could be cancelled after physical commit");
+
+            ApparelWorkOrderRuntime restored = new(
+                apparel,
+                textiles,
+                items,
+                new LeasedItemReservationService(
+                    items,
+                    quantityReservations,
+                    clock),
+                new FixtureFacilityCapabilityQuery(facility),
+                clock,
+                new EditorFixedGameCalendar(137, 9),
+                disposition,
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IApparelPhysicalTransaction>(),
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IProductionOutputMaximumMassRegistry>(),
+                new ProductionFacilityMutationEpochRuntime(),
+                performance: BatchACoreSessionSaveDebugScenarios
+                    .DefaultInterfaceProxy
+                    .Create<ICharacterPerformanceQuery>(),
+                facts: facts);
+            restored.PublishRestoreOrders(
+                restored.PrepareRestoreOrders(
+                    new[] { Clone(parentPending) }));
+            outcomeProbe.FaultMode = MigratedProducerOutcomeFaultMode.None;
+            string frozenTerminal = JsonUtility.ToJson(parentPending);
+            Require(restored.ApplyWork(
+                    restoreOrderId,
+                    1f,
+                    out DomainFailure retryParentFailure),
+                "saved apparel parent did not retry: "
+                + Describe(retryParentFailure));
+            Require(restored.ParticipantId ==
+                    "226.world.apparel-work-orders",
+                $"unexpected restore participant id: {restored.ParticipantId}");
+            Require(restored.CaptureOrders().Length == 0
+                    && Quantity(items, ThreadItemId)
+                        == restoreThreadBefore - 1
+                    && Quantity(items, ScrapItemId)
+                        == restoreScrapBefore - 1
+                    && ReadDurability(items, targetStackId) == 70f,
+                "saved parent retry repeated or lost the physical repair");
+            GameplayOutcomeReplayIdentity identity =
+                MigratedProducerOutcomeE2EAssertions.RequireExact(
+                    outcomeFixture,
+                    MigratedProducerOutcomeKind
+                        .ApparelWorkOrderTerminalResult,
+                    outcomeProbe,
+                    frozenTerminal,
+                    "order=" + restoreOrderId + "|outcome=durable");
+            Require(outcomeFixture.Ledger.TryGetExact(
+                    identity.OutcomeId,
+                    out GameplayOutcomeSnapshot exact)
+                    && exact.participants.Any(value =>
+                        value.entityKindId
+                            == MigratedProducerOutcomeIds.ItemKind.Value
+                        && value.entityId == instanceId)
+                    && Metric(exact, "count") == 1d
+                    && Metric(exact, "quantity") == 2d
+                    && Metric(exact, "mass") > 0d,
+                "apparel parent omitted the exact garment or repair inputs");
+            int reservations = outcomeProbe.ReservationCount(
+                MigratedProducerOutcomeKind.ApparelWorkOrderTerminalResult);
+            int commits = outcomeProbe.CommitCount(
+                MigratedProducerOutcomeKind.ApparelWorkOrderTerminalResult);
+            Require(!restored.ApplyWork(
+                    restoreOrderId,
+                    1f,
+                    out _)
+                    && outcomeProbe.ReservationCount(
+                        MigratedProducerOutcomeKind
+                            .ApparelWorkOrderTerminalResult) == reservations
+                    && outcomeProbe.CommitCount(
+                        MigratedProducerOutcomeKind
+                            .ApparelWorkOrderTerminalResult) == commits,
+                "completed apparel parent replay created a duplicate");
 
             return $"retry={firstOrderId}; restore={restoreOrderId}; "
-                + $"participant={runtime.ParticipantId}; materials=1+1; durability=70";
+                + $"participant={restored.ParticipantId}; materials=1+1; durability=70";
         }
         finally
         {
+            facts?.Dispose();
             items?.Dispose();
             if (facilityObject != null)
             {
@@ -261,6 +409,9 @@ public static class ApparelRepairOutboxDebugScenarios
         return state.durability;
     }
 
+    private static double Metric(GameplayOutcomeSnapshot exact, string id) =>
+        exact.metrics.Single(value => value.metricId == id).value;
+
     private static ApparelWorkOrderSaveData Clone(ApparelWorkOrderSaveData source) =>
         JsonUtility.FromJson<ApparelWorkOrderSaveData>(JsonUtility.ToJson(source));
 
@@ -289,8 +440,7 @@ public static class ApparelRepairOutboxDebugScenarios
                 .Create<IBuildingWorldRegistryPort>(),
             BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                 .Create<IBuildingItemStackPort>(),
-            BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
-                .Create<IBuildingAbilityRuntimeDispatcher>(),
+            CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
             new UnityGameClock(),
             BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                 .Create<IBuildingPaidFacilityContractPort>(),

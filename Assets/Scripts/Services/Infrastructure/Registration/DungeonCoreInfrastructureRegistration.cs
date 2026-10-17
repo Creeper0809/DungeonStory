@@ -42,7 +42,7 @@ public static class DungeonCoreInfrastructureRegistration
         builder.RegisterInstance(sceneRuntimeReferences.RunVariables
                 ?? throw new InvalidOperationException(
                     "Gameplay composition requires RunVariableRuntime."))
-            .As<IRunVariableRuntime>();
+            .As<IRunVariableRuntime>().As<IDungeonSaveRestoreCompletedHook>();
         builder.RegisterInstance(userSettingsTargets
             ?? throw new ArgumentNullException(nameof(userSettingsTargets)));
         builder.RegisterInstance(validationReferences
@@ -69,14 +69,25 @@ public static class DungeonCoreInfrastructureRegistration
             .As<IDungeonRestoreTransactionParticipant>();
         builder.RegisterEntryPoint<GameCalendarRuntime>(Lifetime.Singleton)
             .As<IGameCalendar>();
+        builder.RegisterEntryPoint<GameplayOutcomeConsolidationRuntime>(
+                Lifetime.Singleton)
+            .As<IInitializable>()
+            .As<ITickable>()
+            .As<IGameplayOutcomeConsolidationPumpDiagnostics>();
         builder.Register<ResourceClimateDefinitionCatalog>(Lifetime.Singleton)
             .As<IClimateDefinitionCatalog>();
         builder.RegisterEntryPoint<ClimateRuntime>(Lifetime.Singleton)
             .As<IClimateQuery>()
             .As<IClimatePersistence>();
+        builder.Register<DungeonRestoreSafetyRuntime>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonRestoreSafetyQuery>();
         builder.Register<GameSpeedController>(Lifetime.Singleton)
             .As<IGameSpeedController>();
         builder.Register<TreasuryEconomyAggregateStateStore>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<StockSupplyFactJournal>(Lifetime.Singleton)
+            .AsSelf().As<IStockSupplyFactPublisher>().As<IDungeonSaveRestoreCompletedHook>();
+        builder.RegisterMigratedDomainFact<StockSupplyCompletedFact>(
+            "log:economy.warehouse-delivery", StockSupplyCompletedFactMapping.Capture);
         builder.Register<TreasuryEconomyPersistence>(Lifetime.Singleton)
             .As<ITreasuryEconomyPersistence>();
         builder.RegisterEntryPoint<EconomyTransactionLedgerRuntime>(
@@ -86,10 +97,15 @@ public static class DungeonCoreInfrastructureRegistration
         builder.Register<GameMoneyAccount>(Lifetime.Singleton)
             .As<IGameMoneyAccount>()
             .As<IIdempotentGameMoneyAccount>();
+        builder.RegisterEntryPoint<OperatingDayFactJournal>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonRestoreTransactionParticipant>().As<IDungeonSaveRestoreCompletedHook>();
+        builder.RegisterMigratedDomainFact<OperatingDaySettledFact>(
+            "log:operating-day-settled", OperatingDaySettledFactMapping.Capture);
         builder.Register<EmploymentContractRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<IEmploymentStandingCommand>()
             .As<IEmploymentContractRuntime>();
+        builder.RegisterEntryPoint<EmploymentContractAlertObserver>(Lifetime.Singleton);
         builder.Register<PaidFacilityContractRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<IPaidFacilityContractRuntime>()
@@ -198,13 +214,19 @@ public static class DungeonCoreInfrastructureRegistration
         builder.Register<DungeonStory.Characters.CharacterIdRegistry>(Lifetime.Singleton);
         builder.Register<CharacterIdRegistryAdapter>(Lifetime.Singleton)
             .As<ICharacterIdRegistry>();
+        builder.RegisterFactory<IExteriorIncidentRuntime>(
+            resolver => () => resolver.Resolve<IExteriorIncidentRuntime>(),
+            Lifetime.Singleton);
         builder.Register<CharacterWorldSaveService>(Lifetime.Singleton)
             .As<ICharacterWorldSaveService>()
             .As<ICharacterWorldPersistenceIdentityQuery>()
             .As<ICharacterConsumablesPersistentActorQuery>()
             .As<ICharacterHaulDeliveryRestoreQuery>()
-            .As<IDungeonRestoreTransactionParticipant>();
+            .As<IDungeonRestoreTransactionParticipant>()
+            .As<IDungeonSaveRestoreCompletedHook>();
         builder.Register<HaulDeliveryIntentRestoreCoordinator>(Lifetime.Singleton)
+            .As<IDungeonRestoreTransactionParticipant>();
+        builder.Register<RestockCargoRestoreCoordinator>(Lifetime.Singleton)
             .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<OperatingDaySettlementSaveService>(Lifetime.Singleton)
             .As<IOperatingDaySettlementSaveService>();

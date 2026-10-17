@@ -5,6 +5,7 @@ using UnityEngine;
 internal sealed class CharacterMedicalAggregateState
 {
     internal List<CharacterMedicalOrder> Orders { get; } = new();
+    internal List<CharacterMedicalPendingFactData> PendingProcedureFacts { get; } = new();
     internal int OrderSequence { get; set; }
 
     internal CharacterMedicalAggregateState Clone()
@@ -18,6 +19,7 @@ internal sealed class CharacterMedicalAggregateState
             clone.Orders.Add(CharacterMedicalOrderPersistence.Clone(order));
         }
 
+        foreach (var pending in PendingProcedureFacts) clone.PendingProcedureFacts.Add(pending?.Clone());
         return clone;
     }
 }

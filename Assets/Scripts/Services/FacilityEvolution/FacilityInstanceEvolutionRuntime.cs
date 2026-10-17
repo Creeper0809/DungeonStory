@@ -103,7 +103,8 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         float mastery,
         float amount = 1f,
         string actorId = "",
-        IEnumerable<string> sourceTags = null)
+        IEnumerable<string> sourceTags = null,
+        GameplayNarrativeEventContext narrativeContext = null)
     {
         FacilityEvolutionStateComponent component = RequireComponent(facility);
         component.InitializeIfNeeded(facility);
@@ -114,7 +115,8 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             amount,
             actorId,
             state.facilityPersistentId,
-            sourceTags);
+            sourceTags,
+            narrativeContext: narrativeContext);
         state.mastery = Mathf.Max(0f, state.mastery + Mathf.Max(0f, mastery));
         EnsureNarrativeSnapshot(state);
         EnsureCandidates(facility, component, state);
@@ -127,10 +129,17 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         BuildableObject facility)
     {
         FacilityEvolutionState state = GetState(facility);
-        return Array.AsReadOnly(state.pendingCandidates
-            .Where(candidate => candidate != null)
-            .Select(candidate => candidate.Clone())
-            .ToArray());
+        List<FacilityGenerationCandidate> eligible = new();
+        foreach (FacilityGenerationCandidate candidate in state.pendingCandidates
+                     ?? new List<FacilityGenerationCandidate>())
+        {
+            if (candidate != null
+                && IsEligibleForNewGeneration(facility, candidate, out _))
+            {
+                eligible.Add(candidate.Clone());
+            }
+        }
+        return Array.AsReadOnly(eligible.ToArray());
     }
 
     public bool TryQueueCandidate(
@@ -181,6 +190,11 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         if (candidate == null)
         {
             failureReason = "선택한 시설 개조 후보를 찾을 수 없습니다.";
+            return false;
+        }
+
+        if (!IsEligibleForNewGeneration(facility, candidate, out failureReason))
+        {
             return false;
         }
 
@@ -531,6 +545,13 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         if (state.modificationOrder != null)
         {
             FacilityModificationOrder order = state.modificationOrder;
+            if (!IsEligibleForNewGeneration(
+                    facility, order.candidate, out failureReason))
+            {
+                order.state = EvolutionReforgeOrderState.Blocked;
+                component.ReplaceInstanceEvolution(state);
+                return false;
+            }
             if (!EnsureMaterialsReady(order, out failureReason))
             {
                 component.ReplaceInstanceEvolution(state);
@@ -850,6 +871,11 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             return false;
         }
 
+        if (!IsEligibleForNewGeneration(facility, candidate, out failureReason))
+        {
+            return false;
+        }
+
         if (!moduleRegistry.TryGet(
                 candidate.benefitModuleId,
                 out EvolutionModuleDefinition module))
@@ -1122,8 +1148,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         string catalystFamily = CatalystFamilies[
             random.NextInt(0, CatalystFamilies.Length)];
 
-        state.pendingHistoryHash = historyHash;
-        state.pendingCandidates = new List<FacilityGenerationCandidate>
+        FacilityGenerationCandidate[] generated =
         {
             CreateCandidate(
                 state,
@@ -1156,7 +1181,66 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
                 catalystProgressionLevel,
                 new EvolutionModuleActivationRule())
         };
+        List<FacilityGenerationCandidate> eligible = new();
+        List<string> rejectedReasons = new();
+        foreach (FacilityGenerationCandidate candidate in generated)
+        {
+            if (IsEligibleForNewGeneration(
+                    facility, candidate, out string rejectionReason))
+            {
+                eligible.Add(candidate);
+            }
+            else
+            {
+                rejectedReasons.Add(rejectionReason);
+            }
+        }
+        if (eligible.Count == 0)
+            throw new InvalidOperationException(
+                "Facility generation has no eligible candidates: "
+                + string.Join("; ", rejectedReasons
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .Distinct(StringComparer.Ordinal)));
+
+        state.pendingHistoryHash = historyHash;
+        state.pendingCandidates = eligible;
         component.ReplaceInstanceEvolution(state);
+    }
+
+    /// <summary>
+    /// New facility-generation candidates may not pair a benefit with its own
+    /// same-axis burden. This gate intentionally does not alter already
+    /// committed nodes, whose historical effects remain readable/projectable.
+    /// </summary>
+    private bool IsEligibleForNewGeneration(
+        BuildableObject targetFacility,
+        FacilityGenerationCandidate candidate,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (candidate == null || string.IsNullOrWhiteSpace(candidate.benefitModuleId))
+        {
+            failureReason = "시설 개조 후보의 이로운 효과가 비어 있습니다.";
+            return false;
+        }
+        if (!moduleRegistry.TryGet(candidate.benefitModuleId,
+                out EvolutionModuleDefinition module))
+        {
+            failureReason = "시설 개조 후보의 효과가 등록되지 않았습니다: "
+                + candidate.benefitModuleId;
+            return false;
+        }
+        if (!FacilityEvolutionModifierApplicability
+                .IsPositiveModuleEligibleForNewGeneration(
+                    targetFacility?.BuildingData,
+                    module,
+                    out string eligibilityFailure))
+        {
+            failureReason = "시설 개조 후보가 대상 시설에 적용될 수 없습니다: "
+                + eligibilityFailure;
+            return false;
+        }
+        return true;
     }
 
     private void EnsureNarrativeSnapshot(FacilityEvolutionState state)

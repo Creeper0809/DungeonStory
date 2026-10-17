@@ -1,0 +1,11 @@
+case	result
+prepared-participant-cancel	PASS
+stale-stage-rejected-twice	PASS
+stale-discard-preserves-next-candidate	PASS
+prepared-duplicate-and-null-stage-preserve-state	PASS
+stage-consumes-once-token-discard-is-harmless	PASS
+staged-admission-precedes-payload-validation	PASS
+staged-cancel-is-idempotent	PASS
+direct-stage-rejection-retains-discardable-token	PASS
+fresh-prepare-after-both-cancellation-paths	PASS
+live-world-and-input-unchanged	PASS

@@ -10,6 +10,7 @@ public static class CharacterCombatCommandPersistence
         return new CharacterCombatCommandSaveData
         {
             commandSequence = state.CommandSequence,
+            pendingCellShots = state.PendingCellShots.Select(entry => entry.Clone()).ToList(),
             stanceCharacterIds = state.CombatStance
                 .OrderBy(id => id, StringComparer.Ordinal)
                 .ToList(),

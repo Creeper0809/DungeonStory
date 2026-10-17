@@ -1,0 +1,4 @@
+result=PASS
+PASS actual CreateEvent freezes Serious/nonlethal risk; cloned later authoring does not change saved occurrence; source SO unchanged
+PASS invalid enum/missing reason rejected without publication; shared seasonal payload not forced to carry society risk
+scope=local production campaign/current-format state and cloned definition; not natural event eligibility, external effects, whole-world restore or six-adult play

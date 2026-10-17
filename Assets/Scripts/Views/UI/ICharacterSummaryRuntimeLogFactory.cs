@@ -40,6 +40,7 @@ public interface ICharacterSummaryGeneratedView
         Button healthTabButton,
         Button captivityActionButton,
         Button dietPolicyButton,
+        Button mealQualityButton,
         Button surgeryCommandButton,
         Button automaticSurgeryButton,
         Button substanceSelectionButton,
@@ -61,7 +62,8 @@ public interface ICharacterSummaryGeneratedView
         GameObject tabContent,
         Button tabButton,
         Button globalPolicyButton,
-        Button characterPermissionButton);
+        Button characterPermissionButton,
+        Button familyPlanningPolicyButton);
 
     void BindGeneratedGrowth(
         Slider experience,
@@ -158,27 +160,34 @@ public sealed class CharacterSummaryPopulationActions
 {
     private readonly Action toggleGlobalApprenticeship;
     private readonly Action toggleCharacterApprenticeship;
+    private readonly Action cycleFamilyPlanningPolicy;
 
     public CharacterSummaryPopulationActions(
         Action toggleGlobalApprenticeship,
-        Action toggleCharacterApprenticeship)
+        Action toggleCharacterApprenticeship,
+        Action cycleFamilyPlanningPolicy)
     {
         this.toggleGlobalApprenticeship = toggleGlobalApprenticeship
             ?? throw new ArgumentNullException(nameof(toggleGlobalApprenticeship));
         this.toggleCharacterApprenticeship = toggleCharacterApprenticeship
             ?? throw new ArgumentNullException(nameof(toggleCharacterApprenticeship));
+        this.cycleFamilyPlanningPolicy = cycleFamilyPlanningPolicy
+            ?? throw new ArgumentNullException(nameof(cycleFamilyPlanningPolicy));
     }
 
     public void ToggleGlobalApprenticeship() =>
         toggleGlobalApprenticeship();
     public void ToggleCharacterApprenticeship() =>
         toggleCharacterApprenticeship();
+    public void CycleFamilyPlanningPolicy() =>
+        cycleFamilyPlanningPolicy();
 }
 
 public sealed class CharacterSummaryHealthActions
 {
     private readonly Action executeCaptivityAction;
     private readonly Action cycleDietPolicy;
+    private readonly Action cycleMealQualityLimit;
     private readonly Action openSurgeryWindow;
     private readonly Action toggleAutomaticEmergencySurgery;
     private readonly Action selectNextSubstance;
@@ -187,6 +196,7 @@ public sealed class CharacterSummaryHealthActions
     public CharacterSummaryHealthActions(
         Action executeCaptivityAction,
         Action cycleDietPolicy,
+        Action cycleMealQualityLimit,
         Action openSurgeryWindow,
         Action toggleAutomaticEmergencySurgery,
         Action selectNextSubstance,
@@ -196,6 +206,8 @@ public sealed class CharacterSummaryHealthActions
             ?? throw new ArgumentNullException(nameof(executeCaptivityAction));
         this.cycleDietPolicy = cycleDietPolicy
             ?? throw new ArgumentNullException(nameof(cycleDietPolicy));
+        this.cycleMealQualityLimit = cycleMealQualityLimit
+            ?? throw new ArgumentNullException(nameof(cycleMealQualityLimit));
         this.openSurgeryWindow = openSurgeryWindow
             ?? throw new ArgumentNullException(nameof(openSurgeryWindow));
         this.toggleAutomaticEmergencySurgery = toggleAutomaticEmergencySurgery
@@ -210,6 +222,8 @@ public sealed class CharacterSummaryHealthActions
 
     public void ExecuteCaptivityAction() => executeCaptivityAction();
     public void CycleDietPolicy() => cycleDietPolicy();
+    [GameplayEntryPoint("CharacterSummaryRuntimeLogFactory MealQuality button; WimMealQualityPlayModeVerifier")]
+    public void CycleMealQualityLimit() => cycleMealQualityLimit();
     public void OpenSurgeryWindow() => openSurgeryWindow();
     public void ToggleAutomaticEmergencySurgery() =>
         toggleAutomaticEmergencySurgery();

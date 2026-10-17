@@ -63,7 +63,8 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         ICharacterDeprivationCommand deprivationCommands,
         ICharacterWorldQuery characterWorld = null,
         CharacterIdentityEventPublisher identityEvents = null,
-        IGameCalendar calendar = null)
+        IGameCalendar calendar = null,
+        ICharacterVandalismCommand vandalismCommands = null)
     {
         this.deprivationQuery = deprivationQuery
             ?? throw new ArgumentNullException(nameof(deprivationQuery));
@@ -73,7 +74,8 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             RunSelectedAction,
             characterWorld,
             identityEvents,
-            calendar);
+            calendar,
+            vandalismCommands);
     }
 
     public CharacterAiDecisionTickResult RunRootDecision(CharacterActor actor)
@@ -93,6 +95,15 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             {
                 return deprivation;
             }
+        }
+
+        // Urgent scheduler ticks still inspect critical/breakdown state above,
+        // but cannot start a second selected owner beside a live external lease.
+        // Higher external intents retain their existing explicit arbitration.
+        if (actor?.Brain?.IsExternallyDrivenActionActive == true)
+        {
+            return CharacterAiDecisionRules.Result(true, CharacterAiBranch.LockedAction,
+                "External Intent", actor.Brain.CurrentActionPhaseDetail, blackboard);
         }
 
         if (HasLockedAction(actor))
@@ -635,17 +646,19 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             blackboard.ClearCommitment(CharacterAiInterruptReason.ManualReplan, "Idle behavior selected.");
             blackboard.RecordSelectedUtilitySummary($"AmbientIdle utility=explicit behavior={behaviorName}");
             blackboard.SetIntent(CharacterAiBranch.Idle, behaviorName, "RunIdleBehavior", behaviorName);
-            actor.AddActivity(CharacterActivityEvent.InternalAi(
-                CharacterActivityOutcomes.Started,
+            actor.PublishAiDiagnostic(new CharacterAiDiagnosticEvent(
+                actor,
+                CharacterAiDiagnosticTransition.IdleSelected,
                 "idle-selected",
-                $"AI idle: {behaviorName}"));
+                behaviorName));
             return CharacterAiDecisionRules.Result(true, CharacterAiBranch.Idle, "RunIdleBehavior", behaviorName, blackboard);
         }
 
-        actor.AddActivity(CharacterActivityEvent.InternalAi(
-            CharacterActivityOutcomes.Failed,
+        actor.PublishAiDiagnostic(new CharacterAiDiagnosticEvent(
+            actor,
+            CharacterAiDiagnosticTransition.IdleFailed,
             "idle-failed",
-            $"AI idle failed: {failureReason}"));
+            failureReason));
         if (actor.Brain != null)
         {
             actor.Brain.isBestActionEnd = true;

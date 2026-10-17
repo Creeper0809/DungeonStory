@@ -136,6 +136,8 @@ public static class PreparedOutputCustodyCarryBoundaryDebugScenarios
             "Assets/Scripts/Services/Items/ItemTransferService.cs");
         string carrySource = File.ReadAllText(carryPath);
         string transferSource = File.ReadAllText(transferPath);
+        string retailSource = File.ReadAllText(Path.Combine(
+            projectRoot, "Assets/Scripts/Services/Items/ReservedRetailStockTransferService.cs"));
 
         Require(Count(carrySource, "HasPreparedOutputCustody(item)") >= 6,
             "Direct carry consumer custody guards are incomplete.");
@@ -150,16 +152,16 @@ public static class PreparedOutputCustodyCarryBoundaryDebugScenarios
                 transferSource,
                 "prepared-output-route-protected-contextless-drop") == 2,
             "Contextless drop guard count changed; update the audited manifest.");
-        Require(transferSource.Contains(
+        Require(retailSource.Contains(
                 "retail-transfer-prepared-output-route-protected",
                 StringComparison.Ordinal)
-            && transferSource.Contains(
+            && retailSource.Contains(
                 "retail-transfer-prepared-output-route-protected-precommit",
                 StringComparison.Ordinal),
             "Retail transfer lacks preflight or immediate precommit custody guard.");
         Require(Count(
                 transferSource,
-                "RemoveItemsOwnedByOperationsForPhysicalTransfer(") >= 4,
+                "RemoveItemsOwnedByOperationsForPhysicalTransfer(") == 3,
             "Typed recovery drop no longer uses explicit physical transfer.");
 
         string[] productionFiles = Directory.GetFiles(
@@ -187,9 +189,10 @@ public static class PreparedOutputCustodyCarryBoundaryDebugScenarios
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();
         Require(directRemoveCallsites.Length == 3
-            && directRemoveCallsites.All(value => value.Contains(
-                "ItemTransferService.cs:",
-                StringComparison.Ordinal)),
+            && directRemoveCallsites.Count(value => value.Contains(
+                "ItemTransferService.cs:", StringComparison.Ordinal)) == 2
+            && directRemoveCallsites.Count(value => value.Contains(
+                "ReservedRetailStockTransferService.cs:", StringComparison.Ordinal)) == 1,
             "Unaudited production direct carry-removal callsite(s): "
             + string.Join(", ", directRemoveCallsites));
     }

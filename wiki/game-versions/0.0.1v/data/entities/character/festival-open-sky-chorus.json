@@ -5,6 +5,15 @@
   "kind": "character",
   "relations": [
     {
+      "amount": null,
+      "label": "필요 조건",
+      "target_kind": "facility",
+      "target_slug": "building-8851",
+      "target_spoiler_tier": "none",
+      "target_title": "기상 관측탑",
+      "type": "requires"
+    },
+    {
       "amount": "10",
       "label": "필요 조건",
       "target_kind": "item",

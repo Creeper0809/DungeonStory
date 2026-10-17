@@ -8,6 +8,10 @@
 
 ## 권장 열람 경로
 
+게임 원장과 학습 입력 연결의 2026-09-26 재감사 후속 수정은 [Unity 수정 실행 설계](dev/ledger-training-audit-remediation.md)를 따른다. 원장·owner·시간·장기 실행·replay·증거 봉인 절차이며, AI 생성/검수 설계는 해당 문서의 형제 저장소 링크로 분리한다.
+
+개발 작업의 공통 원칙은 [루트 AGENTS.md](../AGENTS.md)에 있다. 상세 실행법은 작업에 따라 [검증 도구](dev/verification.md), [Unity 실행](dev/unity-workflow.md), [아키텍처 변경·확장 인증](dev/architecture-review.md) 중 필요한 것만 읽는다.
+
 1. [게임 정체성과 운영 순환](handbook/01-game-vision-and-player-loop.md)
 2. [시설 합성과 사용 기반 진화](architecture/systems/19-facility-synthesis-and-use-based-evolution.md)
 3. [사용 이력 기반 진화 아키텍처](architecture/07-history-driven-evolution-architecture.md)

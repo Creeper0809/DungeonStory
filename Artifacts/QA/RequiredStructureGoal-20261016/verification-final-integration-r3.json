@@ -1,0 +1,17 @@
+{
+  "status": "CURRENT_RUNTIME_EDITOR_COMPILE_PASS_PARTIAL_CHECKPOINT_THEN_MEMORY_GUARD",
+  "run": "native-final-faction-world-current-r3",
+  "launcherTerminal": 1,
+  "unityExit": null,
+  "memoryFailure": "System.InvalidOperationException: QA_MEMORY_PRESSURE: stopping only this owned isolated job; availablePhysicalBytes=313966592; availableCommitBytes=10602295296; requiredPhysicalBytes=1073741824; requiredCommitBytes=2147483648; no other application or OS setting was changed.\n   \uc704\uce58: IsolatedUnityLauncher.RequireMemoryHeadroom(MemoryStatus memory, Boolean starting)\n   \uc704\uce58: IsolatedUnityLauncher.IsolatedStation.Run(String executable, String[] arguments, String workingDirectory, Int32 timeoutSeconds)\n   \uc704\uce58: IsolatedUnityLauncher.Main(String[] args)",
+  "compileSeconds": [
+    "40.446704"
+  ],
+  "compileErrors": 0,
+  "scope": "Source-pinned current code reached completed partial-prefix world checkpoint after official pending restore/current-root retry/guard-marker/life-narrative/idempotent hook/entry Active assertions. Completed restore, response-loss case, final baseline and suite PASS are NOT proven.",
+  "checkpoints": {
+    "faction-world-partial-prefix-pending.json": "626b96945d90b4b36775647b12324d02f0f8749ea29395b21c352a04bbd68746",
+    "faction-world-partial-prefix-completed.json": "230ef7ff0ad247643cfe48f79ac78dfadbe285395ce9d778402bbcca3c864cc8"
+  },
+  "next": "Same frozen current DLL cached Play run, avoid Runtime/Editor compilation memory; guard/station/desktop/input criteria unchanged. No other apps touched."
+}

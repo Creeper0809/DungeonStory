@@ -1220,6 +1220,7 @@ public static class V27PhysicalMassExplicitSemanticDebugScenarios
             new[]
             {
                 "resource:bone",
+                "resource:crystal-beetle-carapace",
                 "resource:fang",
                 "resource:fat",
                 "resource:hide",

@@ -1,0 +1,20 @@
+{
+  "Assets/Scripts/Models/Factions/Core/DungeonFactionDefinitionSO.cs": "e6b83c6d3b0e66e11b0e6a0a1009bf15a58ba4d9de5542a289d218e208528937",
+  "Assets/Scripts/Models/Factions/Core/DungeonFactionDefinitionSO.cs.meta": "3058908cf21ae0d88c5d5646134a1a66ab2f48247226dd7d9394516b3be99e85",
+  "Assets/Scripts/Models/Factions/Core/DungeonStory.Factions.asmdef": "bcae0a39f090b3fd6f37d21fc1c48a16462a7f90e781d2b374880f6b33f3cd8e",
+  "Assets/Scripts/Models/Factions/Core/DungeonStory.Factions.asmdef.meta": "e3534aaa6c120d55c483643937d8abb443065f589e9f6ba9a2fdd10b868ebd01",
+  "Assets/Scripts/Models/Factions/Core/FactionAggregateState.cs": "c63777ac6280de6ffccc4325164ba9b6022d8f2136b54be90b668bd587a088fe",
+  "Assets/Scripts/Models/Factions/Core/FactionAggregateState.cs.meta": "99497b8e69865f3837dfedfb8516d981faf832df6196126932277034dc22f8fb",
+  "Assets/Scripts/Models/Factions/Core/FactionAllianceBenefitBudgetSO.cs": "8ffcd1589da32e81a99796e55453ac0389b6a6401be278e1a66f5970af201ba0",
+  "Assets/Scripts/Models/Factions/Core/FactionAllianceBenefitBudgetSO.cs.meta": "6c2ebcd4c370fa172c06c14cdb5b7ec0cd6688942ee476fbe26dc327e46da788",
+  "Assets/Scripts/Models/Factions/Core/FactionDomainRuntime.cs": "031edd0ccb4003180b945e6906f03701a55d6b3527625db61fefda30fbc3e44f",
+  "Assets/Scripts/Models/Factions/Core/FactionDomainRuntime.cs.meta": "6acb52fa6a6a42c9e1d80fd6d1847317c0f25c1783f63bc3ea322937fe0de090",
+  "Assets/Scripts/Models/Factions/Core/FactionModels.cs": "33553b2da4b495d1045de02d37dab1216c10d752837c1b0786b0d08b1b576725",
+  "Assets/Scripts/Models/Factions/Core/FactionModels.cs.meta": "e77f413ab76f1a05e58bdf18f4b5ddc5ac980c3d6d98b71abf52117688900811",
+  "Assets/Scripts/Models/Factions/Core/FactionPayloadValidation.cs": "057e1503745f7c79c0e50866c827bd5b527168c58dd573e0f02ac67cc97e98e1",
+  "Assets/Scripts/Models/Factions/Core/FactionPayloadValidation.cs.meta": "2414c4cd289a07907fcc3836a0bf240269d53c066f8ab7b20941139a2af4b2ee",
+  "Assets/Scripts/Models/Factions/Core/FactionRelationshipObservationData.cs": "d6ea5c3a91af64b54edd51f69bb79cc606362da750db8afa8a38fd924c6707d8",
+  "Assets/Scripts/Models/Factions/Core/FactionRelationshipObservationData.cs.meta": "35bf2cc0bab64d33ab20ce0fa2e3744ac07e3d15213732c390cd5d12636f3d94",
+  "Assets/Scripts/Models/Factions/Core/FactionRouteObservationData.cs": "7a20e8514be71576032edb0192fc6b82bdfa5af0c70b3826814d0b9359ca0a1e",
+  "Assets/Scripts/Models/Factions/Core/FactionRouteObservationData.cs.meta": "78cd67487be7a3a5bb709777b799698e1a41310de8dac7f559b8cfd3e2c38961"
+}

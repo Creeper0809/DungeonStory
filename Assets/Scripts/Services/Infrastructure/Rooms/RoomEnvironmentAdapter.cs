@@ -442,8 +442,19 @@ public sealed class RoomEnvironmentEvaluator : IRoomEnvironmentEvaluator
             }
 
             operationalCleanlinessTotal += fixture.FacilityState.cleanliness;
+            bool fuelConsumer = fixture.BuildingData
+                .GetAbility<BuildingFuelConsumerAbility>() != null;
+            bool fuelFacilityOperational = fixture.isActiveAndEnabled
+                && !fixture.IsDetachedRestoreCandidate
+                && !(fixture.IsDamaged
+                    && fixture.Facility?.disabledWhenDamaged == true);
+            bool operatingFuelAvailable = !fuelConsumer
+                || (fuelFacilityOperational && fixture.HasFacilityFuelSupply);
             BuildingTemperatureAbility temperatureAbility = fixture.BuildingData.GetAbility<BuildingTemperatureAbility>();
-            if (temperatureAbility != null)
+            if (temperatureAbility != null
+                && operatingFuelAvailable
+                && fixture.BuildingData
+                    .GetAbility<BuildingThermalEmitterAbility>() == null)
             {
                 temperatureSupport += Mathf.Abs(temperatureAbility.roomTemperatureOffset)
                     + temperatureAbility.coldProtection
@@ -458,7 +469,7 @@ public sealed class RoomEnvironmentEvaluator : IRoomEnvironmentEvaluator
             }
 
             BuildingLightingAbility lightingAbility = fixture.BuildingData.GetAbility<BuildingLightingAbility>();
-            if (lightingAbility != null)
+            if (lightingAbility != null && operatingFuelAvailable)
             {
                 lightingSupport += lightingAbility.intensity * lightingAbility.radius * 12f;
             }
@@ -532,7 +543,8 @@ public sealed class RoomEnvironmentEvaluator : IRoomEnvironmentEvaluator
         {
             temperatureC = physicalEnvironment.TemperatureC;
             temperature = 100f
-                - Mathf.Abs(physicalEnvironment.TemperatureC - 22f) * 5f;
+                - Mathf.Abs(physicalEnvironment.TemperatureC - 22f) * 5f
+                + temperatureSupport;
             ventilation = physicalEnvironment.AirQuality;
             lighting = physicalEnvironment.LightLevel;
         }

@@ -19,6 +19,8 @@ MonoBehaviour:
   authoringRevision: 1
   sourceNote: V20 hand-authored faction/service manifest.
   kind: 0
+  riskTier: 2
+  riskReason: 작성된 대응에 비치명 체력 피해 -3이 있다.
   triggerRequirements:
     items: []
     facilities: []

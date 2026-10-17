@@ -1,0 +1,9 @@
+[PASS] announcement event publishes venue/preparation/deadline and host/skip action IDs without automatic scheduling
+[PASS] explicit roster canonicalized without replacement; below-minimum roster rejected; host -> physical input owner -> 18:00 cancellation; stock preserved; retry stable
+[PASS] decline is cost-free, terminal and idempotent for the occurrence
+[PASS] exact 24.9/25/24.9 attendance boundary, success/partial/failure and direct fire stop; terminal retry no duplicate
+[PASS] detached current-format capture, staged publication rollback, exact physical join and orphan receipt rejection
+[PASS] real AI festival lease and movement; EmergencyNeed preemption pauses personal attendance; release rejoins; no-path publishes failure and releases ownership
+result=PASS
+scope=production FestivalExecutionRuntime and FestivalVenueAlertApplicationAdapter with registered main character/grid/calendar/event/item/input-owner/sink/work/faction dependencies; controlled test-only festival and venue selector; announcement host/skip action IDs, exact submitted/preview/revalidated roster and capacity, actual host/cancel ownership, decline, 24.9/25/24.9 attendance grading, AI movement, EmergencyNeed preemption/rejoin, no-path release, field-fire stop, persistence transaction and physical-join rejection; authored live16 venue mappings are separate accepted evidence; not a free-running calendar occurrence or six-adult balance run
+cleanup=paused disposable protected Play; disk persistence disabled before owner selection; operator stops without scene/profile/save writes

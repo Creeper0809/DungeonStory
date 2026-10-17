@@ -1,5 +1,6 @@
 using System;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine.Scripting.APIUpdating;
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -12,7 +13,10 @@ public sealed class ProductionBillOrderDependencies
         ProductionAggregateStateStore stateStore,
         IProductionInputDestinationClaimRuntime inputDestinationClaims,
         IProductionFacilityMutationEpochQuery facilityMutationEpoch,
-        IRecipeBalanceWorkCalculator balanceWorkCalculator = null)
+        IRecipeBalanceWorkCalculator balanceWorkCalculator = null,
+        IDomainFactStagingPublisher commandObservations = null,
+        IDomainFactRecoveryPublisher commandRecovery = null,
+        IGameCalendar calendar = null)
     {
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         Bridge = bridge ?? throw new ArgumentNullException(nameof(bridge));
@@ -25,6 +29,9 @@ public sealed class ProductionBillOrderDependencies
         FacilityMutationEpoch = facilityMutationEpoch
             ?? throw new ArgumentNullException(nameof(facilityMutationEpoch));
         BalanceWorkCalculator = balanceWorkCalculator;
+        CommandObservations = commandObservations;
+        CommandRecovery = commandRecovery;
+        Calendar = calendar;
     }
 
     public IResourceEconomyContentCatalog Catalog { get; }
@@ -34,7 +41,11 @@ public sealed class ProductionBillOrderDependencies
     public IProductionInputDestinationClaimRuntime InputDestinationClaims { get; }
     public IProductionFacilityMutationEpochQuery FacilityMutationEpoch { get; }
     public IRecipeBalanceWorkCalculator BalanceWorkCalculator { get; }
+    public IDomainFactStagingPublisher CommandObservations { get; }
+    public IDomainFactRecoveryPublisher CommandRecovery { get; }
+    public IGameCalendar Calendar { get; }
 }
+
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class ProductionBillExecutionDependencies

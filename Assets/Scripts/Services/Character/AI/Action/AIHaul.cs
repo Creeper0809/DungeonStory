@@ -28,7 +28,7 @@ public sealed class AIHaul : AIActionSet
         float baseScore)
     {
         AbilityHaul haul = AbilityHaul.Ensure(actor);
-        if (haul == null || !haul.CanStartHauling(out _))
+        if (haul == null)
         {
             return 0f;
         }
@@ -38,10 +38,25 @@ public sealed class AIHaul : AIActionSet
         // independent of whether autonomous hauling is currently enabled.
         if (haul.HasBoundDeliveryIntent)
         {
+            if (!haul.CanStartHauling(out _))
+            {
+                return 0f;
+            }
             return Mathf.Clamp01(Mathf.Max(baseScore, 0.98f));
         }
 
-        if (!TryGetEnabledPriority(actor, out WorkPriorityLevel priority))
+        WorkPriorityLevel priority;
+        if (TryGetEnabledPriority(actor, out priority))
+        {
+            if (!haul.CanStartHauling(out _))
+            {
+                return 0f;
+            }
+        }
+        else if (!TryGetActiveEmergencySupportPriority(
+                     actor,
+                     haul,
+                     out priority))
         {
             return 0f;
         }
@@ -63,9 +78,17 @@ public sealed class AIHaul : AIActionSet
     public override bool CanStart(CharacterActor actor)
     {
         AbilityHaul haul = AbilityHaul.Ensure(actor);
-        return haul != null
-            && (haul.HasBoundDeliveryIntent || TryGetEnabledPriority(actor, out _))
-            && haul.CanStartHauling(out _);
+        if (haul == null)
+        {
+            return false;
+        }
+        if (haul.HasBoundDeliveryIntent)
+        {
+            return haul.CanStartHauling(out _);
+        }
+        return TryGetEnabledPriority(actor, out _)
+            ? haul.CanStartHauling(out _)
+            : TryGetActiveEmergencySupportPriority(actor, haul, out _);
     }
 
     public override bool CanContinue(CharacterActor actor, AIAction runningAction, out string stopReason)
@@ -83,7 +106,20 @@ public sealed class AIHaul : AIActionSet
 
     public override void Execute(CharacterActor actor)
     {
-        AbilityHaul.Ensure(actor)?.StartHauling();
+        AbilityHaul haul = AbilityHaul.Ensure(actor);
+        if (haul == null)
+        {
+            return;
+        }
+        if (haul.HasBoundDeliveryIntent
+            || TryGetEnabledPriority(actor, out _))
+        {
+            haul.StartHauling();
+            return;
+        }
+
+        haul.StartActiveEmergencySupportHauling(
+            BuiltInWorkTypeIds.ThreatMitigation);
     }
 
     public override void OnStop(CharacterActor actor, AIAction runningAction, string reason)
@@ -101,6 +137,13 @@ public sealed class AIHaul : AIActionSet
             return false;
         }
 
+        // Emergency-response staffing suppresses only autonomous hauling.
+        // Bound delivery intents return before this query and remain resumable.
+        if (!work.IsWorkTypeAllowedByEmergencyResponseGate(BuiltInWorkTypeIds.Haul))
+        {
+            return false;
+        }
+
         // A priority-work target is an explicit player command. AIHaul is a
         // separate autonomous work branch and must not become the score-based
         // fallback while the commanded AIWork candidate is waiting for its
@@ -113,5 +156,29 @@ public sealed class AIHaul : AIActionSet
 
         priority = work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Haul);
         return priority != WorkPriorityLevel.Off;
+    }
+
+    private static bool TryGetActiveEmergencySupportPriority(
+        CharacterActor actor,
+        AbilityHaul haul,
+        out WorkPriorityLevel priority)
+    {
+        priority = WorkPriorityLevel.Off;
+        if (actor == null
+            || haul == null
+            || !actor.TryGetAbility(out AbilityWork work)
+            || work.WorkPriorities == null
+            || !work.HasEmergencyResponseWorkGateForDiagnostics
+            || work.EmergencyResponseOnlyWorkTypeForDiagnostics
+                != BuiltInWorkTypeIds.ThreatMitigation)
+        {
+            return false;
+        }
+
+        priority = work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Haul);
+        return priority != WorkPriorityLevel.Off
+            && haul.CanStartActiveEmergencySupportHauling(
+                BuiltInWorkTypeIds.ThreatMitigation,
+                out _);
     }
 }

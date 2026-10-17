@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using Unity.Profiling;
 using UnityEngine;
 using VContainer.Unity;
@@ -28,6 +29,8 @@ public sealed class AnimalHusbandryRuntime :
     private readonly IWorldItemStackRuntime itemRuntime;
     private readonly IWildlifeCarcassService carcassService;
     private readonly IGameClock clock;
+    private readonly IGameCalendar calendar;
+    private readonly IEnvironmentalFieldQuery environmentalField;
     private readonly IFacilityCapabilityQuery facilities;
     private readonly IBuildingFacilityStateChangePort facilityCandidateCache;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
@@ -45,7 +48,11 @@ public sealed class AnimalHusbandryRuntime :
         new List<CapturedWildlifeState>();
     private readonly AnimalHusbandryPolicyEvaluator policyEvaluator;
     private readonly AnimalHusbandryCommandService commandService;
+    private IDomainFactPublisher domainFacts;
     private int projectedRestoreRevision;
+
+    internal string LastOutcomeFailureForDebug { get; private set; } =
+        string.Empty;
 
     private AnimalHusbandryAggregateState State =>
         aggregateRootStore.GetOrCreate(() => new AnimalHusbandryAggregateState());
@@ -65,6 +72,8 @@ public sealed class AnimalHusbandryRuntime :
         IWorldItemStackRuntime itemRuntime,
         IWildlifeCarcassService carcassService,
         IGameClock clock,
+        IGameCalendar calendar,
+        IEnvironmentalFieldQuery environmentalField,
         IFacilityCapabilityQuery facilities,
         IBuildingFacilityStateChangePort facilityCandidateCache,
         DungeonRuntimeAggregateRootStore aggregateRootStore)
@@ -88,6 +97,9 @@ public sealed class AnimalHusbandryRuntime :
         this.carcassService = carcassService
             ?? throw new ArgumentNullException(nameof(carcassService));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.environmentalField = environmentalField
+            ?? throw new ArgumentNullException(nameof(environmentalField));
         this.facilities = facilities
             ?? throw new ArgumentNullException(nameof(facilities));
         this.facilityCandidateCache = facilityCandidateCache
@@ -95,6 +107,10 @@ public sealed class AnimalHusbandryRuntime :
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
     }
+
+    [VContainer.Inject]
+    public void ConstructDomainFacts(IDomainFactPublisher publisher) => domainFacts = publisher
+        ?? throw new ArgumentNullException(nameof(publisher));
 
     public IReadOnlyList<HusbandryAnimalState> Animals =>
         animals.Values
@@ -115,6 +131,8 @@ public sealed class AnimalHusbandryRuntime :
         using (TickProfilerMarker.Auto())
         {
             EnsureRestoreProjectionCurrent();
+            if (!TryRetryPendingCommandFact()) return;
+            RetryPendingOutcomes();
             if (clock.IsPaused
                 || clock.DeltaTime <= 0f
                 || clock.Time + 0.001f < nextTickAt)
@@ -190,6 +208,43 @@ public sealed class AnimalHusbandryRuntime :
         return false;
     }
 
+    public bool TryGetProductThermalSnapshot(
+        WildlifeInstanceId animalId,
+        out AnimalProductThermalSnapshot snapshot)
+    {
+        if (!animalId.IsValid
+            || !animals.TryGetValue(
+                animalId,
+                out HusbandryAnimalState state))
+        {
+            snapshot = default;
+            return false;
+        }
+        if (!TryGetSpecies(state, out WildlifeSpeciesDefinition species))
+        {
+            throw new InvalidOperationException(
+                $"Husbandry animal '{animalId.Value}' references unknown species "
+                + $"'{state.SpeciesId.Value}'.");
+        }
+        if (!captureRuntime.TryGetCaptured(
+                animalId.Value,
+                out CapturedWildlifeState captured)
+            || captured == null
+            || captured.escaped
+            || captured.transportState != CapturedWildlifeTransportState.Penned)
+        {
+            snapshot = CreateUnavailableProductThermalSnapshot(
+                state,
+                species,
+                default,
+                AnimalProductThermalStatusCode.PenPositionUnavailable);
+            return true;
+        }
+
+        snapshot = CreateProductThermalSnapshot(state, species, captured);
+        return true;
+    }
+
     public AnimalPenPolicyData GetPenPolicy(BuildingInstanceId penId)
     {
         if (!penId.IsValid)
@@ -218,12 +273,19 @@ public sealed class AnimalHusbandryRuntime :
         AnimalPenPolicyData policy,
         out AnimalHusbandryFailure failure)
     {
-        bool changed = commandService.SetPenPolicy(policy, out failure);
-        if (changed)
-        {
-            facilityCandidateCache.MarkDynamicStateDirty();
-        }
-        return changed;
+        _ = RequireDomainFacts();
+        if (!TryRetryPendingCommandFact())
+        { failure = OutcomeFailure(LastOutcomeFailureForDebug); return false; }
+        RetryPendingOutcomes();
+        if (!commandService.TryNormalizePenPolicy(policy, out AnimalPenPolicyData normalized, out failure))
+            return false;
+        AnimalPenPolicyData before = GetPolicyInternal(normalized.PenId).Clone();
+        if (PoliciesEqual(before, normalized))
+        { failure = AnimalHusbandryFailure.None; return false; }
+        var fact = new AnimalHusbandryCommandFact(
+            CreateOperationId(AnimalHusbandryOutcomeOperationKind.SetPenPolicy, normalized.PenId.Value),
+            Math.Max(1, calendar.Day), before, normalized);
+        return TryCommitCommandFact(fact, () => commandService.ApplyPenPolicy(normalized), out failure);
     }
 
     public bool DesignateSlaughter(
@@ -231,16 +293,115 @@ public sealed class AnimalHusbandryRuntime :
         bool designated,
         out AnimalHusbandryFailure failure)
     {
-        bool changed = commandService.DesignateSlaughter(
-            animalId,
-            designated,
-            out failure);
-        if (changed)
-        {
-            facilityCandidateCache.MarkDynamicStateDirty();
-        }
-        return changed;
+        _ = RequireDomainFacts();
+        if (!TryRetryPendingCommandFact())
+        { failure = OutcomeFailure(LastOutcomeFailureForDebug); return false; }
+        RetryPendingOutcomes();
+        if (!commandService.TryGetSlaughterDesignationTarget(animalId, designated,
+                out HusbandryAnimalState animal, out failure))
+            return false;
+        if (animal.SlaughterDesignated == designated && (designated || !animal.AutoSlaughterDesignated))
+        { failure = AnimalHusbandryFailure.None; return false; }
+        HusbandryAnimalState after = animal.Clone();
+        AnimalHusbandryCommandService.ApplySlaughterDesignation(after, designated);
+        var fact = new AnimalHusbandryCommandFact(
+            CreateOperationId(AnimalHusbandryOutcomeOperationKind.DesignateSlaughter, animal.AnimalId.Value),
+            Math.Max(1, calendar.Day), animal, after);
+        return TryCommitCommandFact(fact,
+            () => AnimalHusbandryCommandService.ApplySlaughterDesignation(animal, designated), out failure);
     }
+
+    private IDomainFactPublisher RequireDomainFacts() => domainFacts
+        ?? throw new InvalidOperationException("Husbandry requires a domain fact publisher.");
+
+    private bool TryCommitCommandFact(AnimalHusbandryCommandFact fact, Action apply,
+        out AnimalHusbandryFailure failure)
+    {
+        IDomainFactPublisher publisher = RequireDomainFacts();
+        if (!publisher.TryReserve(fact, out var lease, out string reserveFailure))
+        {
+            LastOutcomeFailureForDebug = reserveFailure;
+            failure = OutcomeFailure(reserveFailure);
+            return false;
+        }
+        AnimalHusbandryPendingCommandFact pending;
+        DungeonAnimalHusbandrySaveData before;
+        try
+        {
+            pending = new AnimalHusbandryPendingCommandFact(lease.PublicationKey, fact);
+            before = AnimalHusbandryStateCodec.Capture(State);
+        }
+        catch { publisher.Cancel(lease); throw; }
+        bool publicationInvoked = false;
+        DomainFactDelivery result;
+        try
+        {
+            apply();
+            AdvanceOutcomeSequence();
+            State.PendingCommandFacts.Add(pending);
+            // Once publication starts, an exception cannot prove that the
+            // observer's durable commit failed. Keep the applied domain state.
+            publicationInvoked = true;
+            result = publisher.Publish(lease, fact);
+        }
+        catch (Exception exception)
+        {
+            if (!publicationInvoked)
+            {
+                publisher.Cancel(lease);
+                RestoreCommandSnapshot(before);
+                throw;
+            }
+            result = DomainFactDelivery.Uncertain("husbandry-command-dispatch-unconfirmed:" + exception.Message);
+        }
+        if (result.Phase == DomainFactDeliveryPhase.Rejected)
+        {
+            RestoreCommandSnapshot(before);
+            LastOutcomeFailureForDebug = result.Detail;
+            failure = OutcomeFailure(result.Detail);
+            return false;
+        }
+        facilityCandidateCache.MarkDynamicStateDirty();
+        if (!IsKnownFactDelivery(result, pending.PublicationKey))
+        {
+            LastOutcomeFailureForDebug = "husbandry-command-delivery-unconfirmed:" + result.Detail;
+            failure = OutcomeFailure(LastOutcomeFailureForDebug);
+            return false;
+        }
+        State.PendingCommandFacts.Remove(pending);
+        LastOutcomeFailureForDebug = string.Empty;
+        failure = AnimalHusbandryFailure.None;
+        return true;
+    }
+
+    private bool TryRetryPendingCommandFact()
+    {
+        if (State.PendingCommandFacts.Count == 0) return true;
+        if (State.PendingCommandFacts.Count != 1)
+            throw new InvalidOperationException("Husbandry command pending capacity is invalid.");
+        AnimalHusbandryPendingCommandFact pending = State.PendingCommandFacts[0];
+        if (domainFacts is not IDomainFactRecoveryPublisher recovery)
+        { LastOutcomeFailureForDebug = "husbandry-command-recovery-unavailable"; return false; }
+        var results = new DomainFactDelivery[1];
+        try
+        {
+            if (!recovery.ReplayBatch(new[] { DomainFactReplay.Create(pending.PublicationKey, pending.Fact) },
+                    results, out string failure))
+            { LastOutcomeFailureForDebug = failure; return false; }
+        }
+        catch (Exception exception)
+        { LastOutcomeFailureForDebug = "husbandry-command-replay-unconfirmed:" + exception.Message; return false; }
+        if (!IsKnownFactDelivery(results[0], pending.PublicationKey))
+        { LastOutcomeFailureForDebug = "husbandry-command-replay-unconfirmed:" + results[0].Detail; return false; }
+        State.PendingCommandFacts.Clear();
+        LastOutcomeFailureForDebug = string.Empty;
+        return true;
+    }
+
+    private static bool IsKnownFactDelivery(DomainFactDelivery result, string key) =>
+        (result.Phase is DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery)
+        && result.OperationKey == key && !string.IsNullOrEmpty(result.PublicationId)
+        && result.Fingerprint?.Length == 64;
 
     public bool TryGetWork(
         BuildableObject pen,
@@ -294,16 +455,59 @@ public sealed class AnimalHusbandryRuntime :
         AnimalHusbandryWorkKind kind,
         float amount,
         out bool completed)
+        => ApplyWorkCore(pen, worker, animalId, kind, amount, null, out completed);
+
+    public bool ApplyWork(
+        BuildableObject pen,
+        CharacterActor worker,
+        WildlifeInstanceId animalId,
+        AnimalHusbandryWorkKind kind,
+        float amount,
+        WorkExecutionContext executionContext,
+        out bool completed)
+    {
+        if (executionContext == null
+            || !ReferenceEquals(executionContext.Actor, worker)
+            || !ReferenceEquals(executionContext.Target, pen)
+            || executionContext.WorkTypeId != BuiltInWorkTypeIds.AnimalCare)
+            throw new ArgumentException("Husbandry completion requires the exact actor/pen/work execution.");
+        _ = RequireDomainFacts();
+        return ApplyWorkCore(pen, worker, animalId, kind, amount,
+            executionContext, out completed);
+    }
+
+    private bool ApplyWorkCore(
+        BuildableObject pen,
+        CharacterActor worker,
+        WildlifeInstanceId animalId,
+        AnimalHusbandryWorkKind kind,
+        float amount,
+        WorkExecutionContext executionContext,
+        out bool completed)
     {
         completed = false;
+        if (!TryRetryPendingCommandFact()) return false;
+        IDomainFactPublisher publisher = RequireDomainFacts();
+        RetryPendingOutcomes();
+        // One unresolved work publication holds the observer's owner revision.
+        // Another animal must not advance that same stream past the saved key.
+        if (State.PendingOutcomes.Any(value => !value.OutcomeCommitted)) return false;
         if (pen == null
+            || worker == null
             || amount <= 0f
             || !animalId.IsValid
+            || State.PendingOutcomes.Any(value =>
+                value.AnimalId.Equals(animalId))
             || !animals.TryGetValue(animalId, out HusbandryAnimalState state)
             || !state.PenId.Equals(GetPenId(pen)))
         {
             return false;
         }
+        CharacterId workerId = CharacterPersistentIdentity.Require(worker);
+        string workerDisplayName = worker.Identity?.DisplayName?.Trim()
+            ?? string.Empty;
+        if (workerDisplayName.Length == 0)
+            workerDisplayName = workerId.Value;
 
         BuildingBeastPenAbility ability =
             pen.BuildingData.GetBeastPenAbility();
@@ -313,129 +517,490 @@ public sealed class AnimalHusbandryRuntime :
         }
 
         float required = GetRequiredWork(state, kind, ability);
-        PreparePendingWork(state, kind);
-        switch (kind)
+        HusbandryAnimalState progress = state.Clone();
+        PreparePendingWork(progress, kind);
+        float current = kind == AnimalHusbandryWorkKind.Tame
+            ? Mathf.Clamp01(progress.TamingProgress) * required
+            : Mathf.Clamp(progress.PendingWorkCompleted, 0f, required);
+        float accepted = Mathf.Min(Mathf.Max(0f, amount), required - current);
+        if (accepted <= 0f)
+            return false;
+        if (current + accepted + 0.001f < required)
         {
-            case AnimalHusbandryWorkKind.Tame:
+            PreparePendingWork(state, kind);
+            RecordContribution(state, workerId.Value, accepted);
+            if (kind == AnimalHusbandryWorkKind.Tame)
+            {
                 state.TamingProgress = Mathf.Clamp01(
-                    state.TamingProgress + amount / required);
-                completed = state.TamingProgress >= 0.999f;
-                if (completed)
-                {
+                    (current + accepted) / required);
+            }
+            else
+            {
+                state.PendingWorkCompleted = current + accepted;
+            }
+            return true;
+        }
+
+        AnimalHusbandryOutcomeOperationKind outcomeKind =
+            AnimalHusbandryOutcomeEvidenceBuilder.ToOutcomeKind(kind);
+        ItemDefinitionId outputItemId = default;
+        int outputQuantity = 0;
+        long outputMassGrams = 0L;
+        AnimalProductProgressState product = null;
+        WildlifeHusbandryProductDefinition productDefinition = null;
+        WildlifeActor slaughterTarget = null;
+        if (kind == AnimalHusbandryWorkKind.CollectProduct)
+        {
+            product = state.Products.FirstOrDefault(item =>
+                item != null && item.ReadyCycles > 0);
+            if (product == null
+                || !TryGetProductDefinition(
+                    state,
+                    product.ItemId,
+                    out productDefinition))
+            {
+                return false;
+            }
+            outputItemId = new ItemDefinitionId(productDefinition.ItemId);
+            outputQuantity = productDefinition.Amount;
+        }
+        else if (kind == AnimalHusbandryWorkKind.CollectManure)
+        {
+            if (state.ReadyManureCycles <= 0)
+                return false;
+            outputItemId = ManureItemId;
+            outputQuantity = 1;
+        }
+        else if (kind == AnimalHusbandryWorkKind.Slaughter)
+        {
+            slaughterTarget = FindActor(state.AnimalId);
+            if (slaughterTarget == null
+                || !slaughterTarget.IsAlive
+                || slaughterTarget.Species == null)
+            {
+                return false;
+            }
+            outputItemId = new ItemDefinitionId(
+                slaughterTarget.Species.CarcassItemId);
+            outputQuantity = 1;
+        }
+        if (outputItemId.IsValid)
+        {
+            outputMassGrams = itemRuntime.MassQuery
+                .GetDefinitionUnitMass(outputItemId).Value * outputQuantity;
+        }
+
+        List<CraftContributionSaveData> contributors = AnimalHusbandryOutcomeEvidenceBuilder.CaptureContributions(
+            progress,
+            workerId.Value,
+            accepted);
+        string operationId = CreateOperationId(outcomeKind, animalId.Value);
+        var pending = new AnimalHusbandryPendingOutcomeState
+        {
+            OperationId = operationId,
+            Kind = outcomeKind,
+            AbsoluteDay = Math.Max(1, calendar.Day),
+            PenId = state.PenId,
+            AnimalId = state.AnimalId,
+            SpeciesId = state.SpeciesId,
+            WorkerId = workerId.Value,
+            WorkerDisplayName = workerDisplayName,
+            AnimalStatesBefore = new List<HusbandryAnimalState> { state.Clone() },
+            CompletedWorkMilliUnits = AnimalHusbandryOutcomeEvidenceBuilder.ToMilliWork(required),
+            Contributions = contributors,
+            OutputItemId = outputItemId,
+            OutputQuantity = outputQuantity,
+            OutputMassGrams = outputMassGrams
+        };
+        if (!publisher.TryReserve(
+                new AnimalHusbandryWorkFact(pending, proposal: true),
+                out DomainFactLease prepared,
+                out string reserveFailure))
+        {
+            LastOutcomeFailureForDebug = reserveFailure;
+            return false;
+        }
+
+        pending.PublicationKey = prepared.PublicationKey;
+        if (executionContext != null)
+        {
+            pending.CompletionIdentityRequired = true;
+            pending.CompletionOrigin = executionContext.CommandOrigin;
+            // Persistent work records the accepted delta immediately after this
+            // command returns. Earlier labor comes from the executor query;
+            // this final delta is the actual amount accepted by this owner.
+            pending.CompletionContributionWorkUnits =
+                executionContext.ApprovedWorkUnits + accepted;
+            pending.CompletionSkillModifierProvenance =
+                CharacterSkillRuntimeEffects.CaptureWorkModifierProvenance(
+                    worker, BuiltInWorkTypeIds.AnimalCare);
+            try { _ = new AnimalHusbandryCompletionFact(pending); }
+            catch
+            {
+                publisher.Cancel(prepared);
+                throw;
+            }
+        }
+
+        Vector2Int outputPosition = kind == AnimalHusbandryWorkKind.Slaughter
+            ? slaughterTarget.GridPosition
+            : pen.centerPos;
+        IReadOnlyDictionary<string, int> outputBefore = outputItemId.IsValid
+            ? CaptureItemQuantities(outputPosition, outputItemId)
+            : null;
+        try
+        {
+            PreparePendingWork(state, kind);
+            switch (kind)
+            {
+                case AnimalHusbandryWorkKind.Tame:
+                    if (!captureRuntime.TrySetTamed(
+                            state.AnimalId.Value,
+                            true,
+                            out _))
+                    {
+                        publisher.Cancel(prepared);
+                        return false;
+                    }
+                    RecordContribution(state, workerId.Value, accepted);
                     state.Tamed = true;
                     state.TamingProgress = 1f;
                     SetStatus(state, AnimalHusbandryStatusCode.TamingCompleted);
-                    captureRuntime.TrySetTamed(
-                        state.AnimalId.Value,
-                        true,
-                        out _);
                     ResetPendingWork(state);
-                    facilityCandidateCache.MarkDynamicStateDirty();
-                }
-                return true;
+                    break;
 
-            case AnimalHusbandryWorkKind.CollectProduct:
-                AnimalProductProgressState product = state.Products
-                    .FirstOrDefault(item => item != null && item.ReadyCycles > 0);
-                if (product == null
-                    || !TryGetProductDefinition(
+                case AnimalHusbandryWorkKind.CollectProduct:
+                    if (!itemRuntime.SpawnItemAt(
+                            outputItemId.Value,
+                            outputQuantity,
+                            pen.centerPos,
+                            WorldItemStackState.Loose,
+                            string.Empty,
+                            out int spawned)
+                        || spawned != outputQuantity)
+                    {
+                        publisher.Cancel(prepared);
+                        if (spawned != 0)
+                        {
+                            throw new InvalidOperationException(
+                                "Husbandry product output partially spawned.");
+                        }
+                        SetStatus(
+                            state,
+                            AnimalHusbandryStatusCode.ProductStorageUnavailable,
+                            outputItemId.Value);
+                        return false;
+                    }
+                    RecordContribution(state, workerId.Value, accepted);
+                    state.PendingWorkCompleted = required;
+                    _ = TryCommitReadyCycleAfterSpawn(
                         state,
-                        product.ItemId,
-                        out WildlifeHusbandryProductDefinition definition))
-                {
+                        product.ReadyCycles,
+                        outputQuantity,
+                        true,
+                        spawned,
+                        out int productCycles);
+                    product.ReadyCycles = productCycles;
+                    SetStatus(
+                        state,
+                        AnimalHusbandryStatusCode.ProductCollected,
+                        outputItemId.Value);
+                    break;
+
+                case AnimalHusbandryWorkKind.CollectManure:
+                    if (!itemRuntime.SpawnItemAt(
+                            outputItemId.Value,
+                            outputQuantity,
+                            pen.centerPos,
+                            WorldItemStackState.Loose,
+                            string.Empty,
+                            out int manureSpawned)
+                        || manureSpawned != outputQuantity)
+                    {
+                        publisher.Cancel(prepared);
+                        if (manureSpawned != 0)
+                        {
+                            throw new InvalidOperationException(
+                                "Husbandry manure output partially spawned.");
+                        }
+                        SetStatus(
+                            state,
+                            AnimalHusbandryStatusCode.ManureStorageUnavailable);
+                        return false;
+                    }
+                    RecordContribution(state, workerId.Value, accepted);
+                    state.PendingWorkCompleted = required;
+                    _ = TryCommitReadyCycleAfterSpawn(
+                        state,
+                        state.ReadyManureCycles,
+                        outputQuantity,
+                        true,
+                        manureSpawned,
+                        out int manureCycles);
+                    state.ReadyManureCycles = manureCycles;
+                    SetStatus(
+                        state,
+                        AnimalHusbandryStatusCode.ManureCollected);
+                    break;
+
+                case AnimalHusbandryWorkKind.Slaughter:
+                    RecordContribution(state, workerId.Value, accepted);
+                    state.PendingWorkCompleted = required;
+                    slaughterTarget.ApplyDamage(
+                        slaughterTarget.CurrentHealth,
+                        worker);
+                    if (!carcassService.TrySpawnCarcass(
+                            slaughterTarget,
+                            out string carcassStackId))
+                    {
+                        throw new InvalidOperationException(
+                            "Slaughter completed fatal damage without a physical carcass.");
+                    }
+                    pending.CarcassStackId = carcassStackId;
+                    captureRuntime.TryRelease(state.AnimalId.Value, out _);
+                    wildlifeRuntime.TryRemoveArrival(state.AnimalId.Value);
+                    RemoveAnimal(state.AnimalId);
+                    break;
+
+                default:
+                    publisher.Cancel(prepared);
                     return false;
-                }
+            }
+        }
+        catch
+        {
+            publisher.Cancel(prepared);
+            throw;
+        }
 
-                state.PendingWorkCompleted = Mathf.Min(
-                    required,
-                    state.PendingWorkCompleted + amount);
-                if (state.PendingWorkCompleted + 0.001f < required)
+        if (outputItemId.IsValid)
+        {
+            pending.OutputStacks = AnimalHusbandryOutcomeEvidenceBuilder.CaptureOutputDeltas(
+                outputBefore,
+                CaptureItemQuantities(outputPosition, outputItemId),
+                outputQuantity);
+        }
+        if (kind != AnimalHusbandryWorkKind.Slaughter)
+            pending.AnimalStatesAfter.Add(state.Clone());
+        State.PendingOutcomes.Add(pending);
+        AdvanceOutcomeSequence();
+        completed = true;
+        facilityCandidateCache.MarkDynamicStateDirty();
+        if (!TryCommitPreparedPending(publisher, prepared, pending))
+        {
+            return true;
+        }
+        LastOutcomeFailureForDebug = string.Empty;
+        return true;
+    }
+
+    private void RetryPendingOutcomes()
+    {
+        if (State.PendingOutcomes.Count == 0) return;
+        if (RequireDomainFacts() is not IDomainFactRecoveryPublisher recovery)
+            throw new InvalidOperationException("Husbandry work requires durable fact recovery.");
+        foreach (AnimalHusbandryPendingOutcomeState pending in State.PendingOutcomes.ToArray())
+        {
+            if (!pending.OutcomeCommitted)
+            {
+                var results = new DomainFactDelivery[1];
+                try
                 {
-                    return true;
+                    if (!recovery.ReplayBatch(new[]
+                        { DomainFactReplay.Create(pending.PublicationKey, new AnimalHusbandryWorkFact(pending)) },
+                        results, out string failure))
+                    {
+                        pending.LastFailure = failure;
+                        LastOutcomeFailureForDebug = failure;
+                        continue;
+                    }
                 }
-
-                product.ReadyCycles = Mathf.Max(0, product.ReadyCycles - 1);
-                completed = itemRuntime.SpawnItemAt(
-                    new ItemDefinitionId(definition.ItemId).Value,
-                    definition.Amount,
-                    pen.centerPos,
-                    WorldItemStackState.Loose,
-                    string.Empty,
-                    out int spawned)
-                    && spawned > 0;
-                SetStatus(
-                    state,
-                    completed
-                        ? AnimalHusbandryStatusCode.ProductCollected
-                        : AnimalHusbandryStatusCode.ProductStorageUnavailable,
-                    definition.ItemId);
-                facilityCandidateCache.MarkDynamicStateDirty();
-                if (completed)
+                catch (Exception exception) when (exception is not OutOfMemoryException
+                    && exception is not StackOverflowException && exception is not AccessViolationException)
                 {
-                    ResetPendingWork(state);
+                    pending.LastFailure = "husbandry-work-replay-unconfirmed:" + exception.Message;
+                    LastOutcomeFailureForDebug = pending.LastFailure;
+                    continue;
                 }
-                return completed;
-
-            case AnimalHusbandryWorkKind.CollectManure:
-                state.PendingWorkCompleted = Mathf.Min(
-                    required,
-                    state.PendingWorkCompleted + amount);
-                if (state.PendingWorkCompleted + 0.001f < required)
+                if (!IsKnownFactDelivery(results[0], pending.PublicationKey))
                 {
-                    return true;
+                    pending.LastFailure = "husbandry-work-replay-unconfirmed:" + results[0].Detail;
+                    LastOutcomeFailureForDebug = pending.LastFailure;
+                    continue;
                 }
-
-                state.ReadyManureCycles = Mathf.Max(
-                    0,
-                    state.ReadyManureCycles - 1);
-                completed = itemRuntime.SpawnItemAt(
-                    ManureItemId.Value,
-                    1,
-                    pen.centerPos,
-                    WorldItemStackState.Loose,
-                    string.Empty,
-                    out int manureSpawned)
-                    && manureSpawned > 0;
-                SetStatus(
-                    state,
-                    completed
-                        ? AnimalHusbandryStatusCode.ManureCollected
-                        : AnimalHusbandryStatusCode.ManureStorageUnavailable);
-                facilityCandidateCache.MarkDynamicStateDirty();
-                if (completed)
-                {
-                    ResetPendingWork(state);
-                }
-                return completed;
-
-            case AnimalHusbandryWorkKind.Slaughter:
-                state.PendingWorkCompleted = Mathf.Min(
-                    required,
-                    state.PendingWorkCompleted + amount);
-                if (state.PendingWorkCompleted + 0.001f < required)
-                {
-                    return true;
-                }
-
-                WildlifeActor actor = FindActor(state.AnimalId);
-                if (actor == null || !actor.IsAlive)
-                {
-                    return false;
-                }
-
-                actor.ApplyDamage(actor.CurrentHealth, worker);
-                carcassService.SpawnCarcass(actor);
-                captureRuntime.TryRelease(state.AnimalId.Value, out _);
-                wildlifeRuntime.TryRemoveArrival(state.AnimalId.Value);
-                RemoveAnimal(state.AnimalId);
-                facilityCandidateCache.MarkDynamicStateDirty();
-                completed = true;
-                return true;
-
-            default:
-                return false;
+                pending.OutcomeCommitted = pending.CompletionIdentityRequired;
+            }
+            if (!TryDeliverCompletionIdentity(pending)) continue;
+            State.PendingOutcomes.Remove(pending);
+            LastOutcomeFailureForDebug = string.Empty;
         }
     }
+
+    private bool TryCommitPreparedPending(
+        IDomainFactPublisher publisher,
+        in DomainFactLease prepared,
+        AnimalHusbandryPendingOutcomeState pending)
+    {
+        DomainFactDelivery delivery;
+        try { delivery = publisher.Publish(prepared, new AnimalHusbandryWorkFact(pending)); }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException && exception is not AccessViolationException)
+        { delivery = DomainFactDelivery.Uncertain("husbandry-work-publication-exception:" + exception.Message); }
+        if (!IsKnownFactDelivery(delivery, pending.PublicationKey))
+        {
+            // Physical effects already happened. Even explicit observer rejection
+            // retains this exact fact/key; retry must never redo work or outputs.
+            pending.LastFailure = "husbandry-work-delivery-unconfirmed:" + delivery.Detail;
+            LastOutcomeFailureForDebug = pending.LastFailure;
+            return false;
+        }
+        if (pending.CompletionIdentityRequired)
+        {
+            pending.OutcomeCommitted = true;
+            // Deliver on the next owner tick, after the executor records its
+            // final accepted labor delta. This completion boundary is unchanged.
+            pending.LastFailure = "completion-identity-awaiting-owner-tick";
+            return false;
+        }
+        State.PendingOutcomes.Remove(pending);
+        return true;
+    }
+
+    private bool TryDeliverCompletionIdentity(AnimalHusbandryPendingOutcomeState pending)
+    {
+        if (!pending.CompletionIdentityRequired) return true;
+        if (!pending.OutcomeCommitted)
+            throw new InvalidOperationException("Husbandry completion requires confirmed work publication.");
+        IDomainFactPublisher publisher = RequireDomainFacts();
+        var fact = new AnimalHusbandryCompletionFact(pending);
+        DomainFactDelivery delivery;
+        try
+        {
+            if (string.IsNullOrEmpty(pending.CompletionPublicationKey))
+            {
+                if (!publisher.TryReserve(fact, out DomainFactLease lease, out string failure))
+                    delivery = DomainFactDelivery.Reject(failure);
+                else
+                {
+                    // Retain the opaque key before crossing the observer boundary.
+                    // An unknown acknowledgement never permits a new identity.
+                    pending.CompletionPublicationKey = lease.PublicationKey;
+                    delivery = publisher.Publish(lease, fact);
+                }
+            }
+            else if (publisher is IDomainFactRecoveryPublisher recovery)
+            {
+                var results = new DomainFactDelivery[1];
+                delivery = recovery.ReplayBatch(new[]
+                    { DomainFactReplay.Create(pending.CompletionPublicationKey, fact) },
+                    results, out string failure)
+                    ? results[0] : DomainFactDelivery.Reject(failure);
+            }
+            else throw new InvalidOperationException("Husbandry completion requires durable fact recovery.");
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException && exception is not AccessViolationException)
+        { delivery = DomainFactDelivery.Uncertain("husbandry-completion-unconfirmed:" + exception.Message); }
+        if (!IsKnownFactDelivery(delivery, pending.CompletionPublicationKey))
+        {
+            pending.LastFailure = "husbandry-completion-unconfirmed:" + delivery.Detail;
+            LastOutcomeFailureForDebug = pending.LastFailure;
+            return false;
+        }
+        return true;
+    }
+
+    private string CreateOperationId(
+        AnimalHusbandryOutcomeOperationKind kind,
+        string subjectId)
+    {
+        if (State.NextOutcomeSequence <= 0L
+            || State.NextOutcomeSequence == long.MaxValue)
+        {
+            throw new InvalidOperationException(
+                "Animal-husbandry outcome sequence is exhausted.");
+        }
+        string subject = subjectId?.Trim() ?? string.Empty;
+        if (subject.Length == 0)
+            throw new ArgumentException("A husbandry outcome subject is required.", nameof(subjectId));
+        return AnimalHusbandryDomainOperationIdentity.Format(kind, subject, State.NextOutcomeSequence);
+    }
+
+    private void AdvanceOutcomeSequence()
+    {
+        State.NextOutcomeSequence = checked(State.NextOutcomeSequence + 1L);
+    }
+
+    private static AnimalHusbandryFailure OutcomeFailure(string detail) =>
+        new(
+            AnimalHusbandryFailureCode.OutcomeUnavailable,
+            string.IsNullOrWhiteSpace(detail)
+                ? "animal-husbandry-outcome-unavailable"
+                : detail);
+
+    private void RestoreCommandSnapshot(
+        DungeonAnimalHusbandrySaveData snapshot)
+    {
+        AnimalHusbandryRestoreCandidate candidate = BuildRestore(snapshot);
+        aggregateRootStore.Replace(candidate.State);
+        facilityCandidateCache.MarkDynamicStateDirty();
+    }
+
+    private static bool PoliciesEqual(AnimalPenPolicyData left, AnimalPenPolicyData right) =>
+        left != null && right != null && left.PenId.Equals(right.PenId)
+        && left.allowHerbivores == right.allowHerbivores && left.allowOmnivores == right.allowOmnivores
+        && left.allowCarnivores == right.allowCarnivores && left.allowScavengers == right.allowScavengers
+        && left.allowFemales == right.allowFemales && left.allowMales == right.allowMales
+        && left.allowJuveniles == right.allowJuveniles && left.maximumAnimals == right.maximumAnimals
+        && left.breedingAllowed == right.breedingAllowed && left.protectPregnant == right.protectPregnant
+        && left.allowRiskyMixing == right.allowRiskyMixing && left.adultFemaleLimit == right.adultFemaleLimit
+        && left.adultMaleLimit == right.adultMaleLimit && left.juvenileLimit == right.juvenileLimit
+        && left.minimumBreedingFemales == right.minimumBreedingFemales
+        && left.minimumBreedingMales == right.minimumBreedingMales
+        && left.AllowedSpeciesIds != null && right.AllowedSpeciesIds != null
+        && left.AllowedSpeciesIds.Select(value => value.Value).OrderBy(value => value, StringComparer.Ordinal)
+            .SequenceEqual(right.AllowedSpeciesIds.Select(value => value.Value)
+                .OrderBy(value => value, StringComparer.Ordinal), StringComparer.Ordinal);
+
+    private static void RecordContribution(
+        HusbandryAnimalState state,
+        string workerId,
+        float amount)
+    {
+        if (state == null || string.IsNullOrWhiteSpace(workerId) || amount <= 0f)
+            throw new InvalidOperationException("A positive husbandry work contribution is required.");
+        state.PendingWorkContributions ??= new List<CraftContributionSaveData>();
+        CraftContributionSaveData contribution =
+            state.PendingWorkContributions.FirstOrDefault(value =>
+                value != null
+                && string.Equals(
+                    value.characterId,
+                    workerId,
+                    StringComparison.Ordinal));
+        if (contribution == null)
+        {
+            contribution = new CraftContributionSaveData
+            {
+                characterId = workerId
+            };
+            state.PendingWorkContributions.Add(contribution);
+        }
+        contribution.contributedWork += amount;
+        state.PendingWorkContributions.Sort((left, right) =>
+            string.CompareOrdinal(left.characterId, right.characterId));
+    }
+
+    private IReadOnlyDictionary<string, int> CaptureItemQuantities(
+        Vector2Int position,
+        ItemDefinitionId itemId) => itemRuntime
+        .GetStacksAt(position, includeStored: true)
+        .Where(value => value != null
+            && string.Equals(value.ItemId, itemId.Value, StringComparison.Ordinal))
+        .GroupBy(value => value.StackId, StringComparer.Ordinal)
+        .ToDictionary(
+            group => group.Key,
+            group => group.Sum(value => value.Quantity),
+            StringComparer.Ordinal);
 
     public AnimalPenCompatibilityResult EvaluatePen(BuildingInstanceId penId)
     {
@@ -583,13 +1148,15 @@ public sealed class AnimalHusbandryRuntime :
 
     public DungeonAnimalHusbandrySaveData Capture()
     {
+        // Capture must not publish into a different section after that section
+        // has already been captured by the official aggregate save.
         return AnimalHusbandryStateCodec.Capture(State);
     }
 
     public AnimalHusbandryRestoreCandidate BuildRestore(
         DungeonAnimalHusbandrySaveData saveData)
     {
-        return AnimalHusbandryStateCodec.BuildRestore(
+        AnimalHusbandryRestoreCandidate candidate = AnimalHusbandryStateCodec.BuildRestore(
             saveData,
             clock.Time + TickIntervalSeconds,
             id => speciesCatalog.TryGetSpecies(
@@ -600,6 +1167,10 @@ public sealed class AnimalHusbandryRuntime :
                         .ToArray()
                     : null,
             id => itemCatalog.TryGet(id, out _));
+        foreach (AnimalHusbandryPendingOutcomeState pending in candidate.State.PendingOutcomes)
+            if (pending.CompletionIdentityRequired)
+                _ = new AnimalHusbandryCompletionFact(pending);
+        return candidate;
     }
 
     public void Restore(AnimalHusbandryRestoreCandidate candidate)
@@ -819,10 +1390,26 @@ public sealed class AnimalHusbandryRuntime :
 
             if (state.Tamed && GetGrowthStage(state, profile) == AnimalGrowthStage.Adult)
             {
-                AdvanceProducts(
-                    state,
-                    profile,
-                    elapsedDays * comfortMultiplier);
+                if (profile.Products.Count > 0
+                    && capturedById.TryGetValue(
+                        state.AnimalId,
+                        out CapturedWildlifeState productCare))
+                {
+                    AnimalProductThermalSnapshot thermal =
+                        CreateProductThermalSnapshot(
+                            state,
+                            species,
+                            productCare);
+                    if (thermal.HasTemperature)
+                    {
+                        AdvanceProducts(
+                            state,
+                            profile,
+                            elapsedDays
+                            * comfortMultiplier
+                            * thermal.ProductProgressMultiplier);
+                    }
+                }
                 state.ManureProgressDays += elapsedDays;
                 while (state.ManureProgressDays >= profile.ManureIntervalDays)
                 {
@@ -845,7 +1432,7 @@ public sealed class AnimalHusbandryRuntime :
                 continue;
             }
 
-            TryBeginPregnancy(state, profile, compatibilityRisk);
+            TryBeginPregnancy(state, species, compatibilityRisk);
         }
     }
 
@@ -902,15 +1489,103 @@ public sealed class AnimalHusbandryRuntime :
         }
     }
 
+    private AnimalProductThermalSnapshot CreateProductThermalSnapshot(
+        HusbandryAnimalState state,
+        WildlifeSpeciesDefinition species,
+        CapturedWildlifeState captured)
+    {
+        if (captured == null
+            || captured.escaped
+            || captured.transportState != CapturedWildlifeTransportState.Penned)
+        {
+            return CreateUnavailableProductThermalSnapshot(
+                state,
+                species,
+                default,
+                AnimalProductThermalStatusCode.PenPositionUnavailable);
+        }
+        if (!string.Equals(
+                captured.wildlifeId,
+                state.AnimalId.Value,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                captured.speciesId,
+                state.SpeciesId.Value,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                captured.penId,
+                state.PenId.Value,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Husbandry animal '{state.AnimalId.Value}' does not match its "
+                + "captured pen authority.");
+        }
+
+        Vector2Int penPosition = captured.penPosition;
+        if (!environmentalField.IsInitialized
+            || !environmentalField.TryGetCell(
+                penPosition,
+                out EnvironmentalCellSnapshot environment))
+        {
+            return CreateUnavailableProductThermalSnapshot(
+                state,
+                species,
+                penPosition,
+                AnimalProductThermalStatusCode.EnvironmentalFieldUnavailable);
+        }
+
+        float outsideDistance =
+            WildlifeProductThermalRules.CalculateDegreesOutsideComfort(
+                environment.TemperatureC,
+                species.ProductComfortMinimumTemperatureC,
+                species.ProductComfortMaximumTemperatureC);
+        float progressMultiplier =
+            WildlifeProductThermalRules.CalculateProductProgressMultiplier(
+                environment.TemperatureC,
+                species.ProductComfortMinimumTemperatureC,
+                species.ProductComfortMaximumTemperatureC);
+        return new AnimalProductThermalSnapshot(
+            state.AnimalId,
+            penPosition,
+            AnimalProductThermalStatusCode.Available,
+            environment.TemperatureC,
+            species.ProductComfortMinimumTemperatureC,
+            species.ProductComfortMaximumTemperatureC,
+            outsideDistance,
+            progressMultiplier);
+    }
+
+    private static AnimalProductThermalSnapshot
+        CreateUnavailableProductThermalSnapshot(
+            HusbandryAnimalState state,
+            WildlifeSpeciesDefinition species,
+            Vector2Int penPosition,
+            AnimalProductThermalStatusCode statusCode)
+    {
+        return new AnimalProductThermalSnapshot(
+            state.AnimalId,
+            penPosition,
+            statusCode,
+            0f,
+            species.ProductComfortMinimumTemperatureC,
+            species.ProductComfortMaximumTemperatureC,
+            0f,
+            0f);
+    }
+
     private void TryBeginPregnancy(
         HusbandryAnimalState female,
-        WildlifeHusbandryProfile profile,
+        WildlifeSpeciesDefinition species,
         float compatibilityRisk)
     {
+        WildlifeHusbandryProfile profile = species?.Husbandry
+            ?? throw new ArgumentNullException(nameof(species));
         if (!female.Tamed
             || female.Sex != AnimalSex.Female
             || female.BreedingCooldownDays > 0f
             || compatibilityRisk >= 0.8f
+            || !IsBreedingSeason(species, calendar.Season)
             || GetGrowthStage(female, profile) != AnimalGrowthStage.Adult)
         {
             return;
@@ -968,6 +1643,55 @@ public sealed class AnimalHusbandryRuntime :
             profile.LaysEggs
                 ? AnimalHusbandryStatusCode.Brooding
                 : AnimalHusbandryStatusCode.Pregnant);
+    }
+
+    internal static bool IsBreedingSeason(
+        WildlifeSpeciesDefinition species,
+        Season season)
+    {
+        return species != null && species.BreedingSeason == season;
+    }
+
+    internal static bool TryCommitReadyCycleAfterSpawn(
+        HusbandryAnimalState state,
+        int readyCycles,
+        int requestedAmount,
+        bool spawnAccepted,
+        int spawnedAmount,
+        out int remainingReadyCycles)
+    {
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+        if (readyCycles <= 0 || requestedAmount <= 0 || spawnedAmount < 0)
+        {
+            throw new InvalidOperationException(
+                "A husbandry collection commit requires positive ready cycles and output amount.");
+        }
+
+        remainingReadyCycles = readyCycles;
+        bool exactOutput = spawnedAmount == requestedAmount;
+        if (spawnAccepted != exactOutput)
+        {
+            throw new InvalidOperationException(
+                $"Husbandry output violated the exact spawn contract: "
+                + $"requested={requestedAmount};spawned={spawnedAmount};accepted={spawnAccepted}.");
+        }
+        if (!exactOutput)
+        {
+            if (spawnedAmount != 0)
+            {
+                throw new InvalidOperationException(
+                    $"Husbandry output partially spawned: "
+                    + $"requested={requestedAmount};spawned={spawnedAmount}.");
+            }
+            return false;
+        }
+
+        remainingReadyCycles = readyCycles - 1;
+        ResetPendingWork(state);
+        return true;
     }
 
     private void TryCompleteBirth(

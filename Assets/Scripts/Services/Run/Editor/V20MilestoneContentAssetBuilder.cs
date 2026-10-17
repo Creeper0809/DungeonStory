@@ -10,6 +10,8 @@ public static class V20MilestoneContentAssetBuilder
     private const string CatalogPath = "Assets/Resources/SO/Content/GameDomainContentCatalog.asset";
     private const string ItemCatalogPath = "Assets/Resources/SO/Content/ItemDefinitionCatalog.asset";
     private const string Root = "Assets/Resources/SO/V20/Milestones";
+    private const string EndlessPolicyPath =
+        Root + "/Endless/EndlessCrisisPolicy.asset";
 
     private sealed class Spec
     {
@@ -75,6 +77,116 @@ public static class V20MilestoneContentAssetBuilder
         AssetDatabase.Refresh();
         Debug.Log("V20_MILESTONE_CONTENT=PASS; milestones=9; landmarks=9; netNew=18; v20NetNewTotal=450");
     }
+
+    [MenuItem("DungeonStory/V20/Build Endless Crisis Policy (1)")]
+    public static void BuildEndlessCrisisPolicy()
+    {
+        EnsureFolder("Assets/Resources/SO/V20", "Milestones");
+        EnsureFolder(Root, "Endless");
+        GameDomainContentCatalogSO catalog = AssetDatabase
+            .LoadAssetAtPath<GameDomainContentCatalogSO>(CatalogPath)
+            ?? throw new InvalidOperationException(
+                "Domain content catalog is missing.");
+        EndlessCrisisPolicyDefinitionSO policy =
+            Asset<EndlessCrisisPolicyDefinitionSO>(EndlessPolicyPath);
+        List<EndlessCrisisAxisPolicy> authoredAxes = new()
+        {
+            Axis(EndlessCrisisAxis.Climate, "기후", 0.90f, 0.94f),
+            Axis(EndlessCrisisAxis.Faction, "세력", 0.90f, 0.94f),
+            Axis(EndlessCrisisAxis.Disease, "질병", 1.10f, 1.06f),
+            Axis(EndlessCrisisAxis.Logistics, "물류", 0.90f, 0.94f),
+            Axis(EndlessCrisisAxis.Combat, "전투", 1.10f, 1.06f)
+        };
+        bool policyChanged = !MatchesEndlessCrisisPolicy(
+            policy,
+            authoredAxes);
+        if (policyChanged)
+        {
+            policy.stableId = EndlessCrisisPolicyDefinitionSO.RequiredStableId;
+            policy.singleAxisProbabilityPercent = 70;
+            policy.pressureDurationDays = 3;
+            policy.singleAxisRecoveryDays = 7;
+            policy.compoundAxisRecoveryDays = 8;
+            policy.axes = authoredAxes;
+            EditorUtility.SetDirty(policy);
+        }
+        IReadOnlyList<string> errors = policy.ValidateDefinition();
+        if (errors.Count > 0)
+            throw new InvalidOperationException(string.Join(" | ", errors));
+
+        ScriptableObject[] definitions = catalog.Definitions
+            .Where(value => value is not EndlessCrisisPolicyDefinitionSO)
+            .Append(policy)
+            .Distinct()
+            .OrderBy(value => value.GetType().FullName, StringComparer.Ordinal)
+            .ThenBy(value => value.name, StringComparer.Ordinal)
+            .ToArray();
+        bool catalogChanged = !catalog.Definitions.SequenceEqual(definitions);
+        if (catalogChanged)
+        {
+            catalog.SetDefinitions(definitions);
+            EditorUtility.SetDirty(catalog);
+        }
+        if (policyChanged)
+            AssetDatabase.SaveAssetIfDirty(policy);
+        if (catalogChanged)
+            AssetDatabase.SaveAssetIfDirty(catalog);
+        Debug.Log(
+            "V20_ENDLESS_CRISIS_POLICY=PASS; policies=1; axes=5; "
+            + "singlePercent=70; pressureDays=3; recovery=7/8");
+    }
+
+    private static bool MatchesEndlessCrisisPolicy(
+        EndlessCrisisPolicyDefinitionSO policy,
+        IReadOnlyList<EndlessCrisisAxisPolicy> authoredAxes)
+    {
+        if (policy == null
+            || !string.Equals(
+                policy.stableId,
+                EndlessCrisisPolicyDefinitionSO.RequiredStableId,
+                StringComparison.Ordinal)
+            || policy.singleAxisProbabilityPercent != 70
+            || policy.pressureDurationDays != 3
+            || policy.singleAxisRecoveryDays != 7
+            || policy.compoundAxisRecoveryDays != 8
+            || policy.axes == null
+            || policy.axes.Count != authoredAxes.Count)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < authoredAxes.Count; index++)
+        {
+            EndlessCrisisAxisPolicy current = policy.axes[index];
+            EndlessCrisisAxisPolicy expected = authoredAxes[index];
+            if (current == null
+                || current.axis != expected.axis
+                || !string.Equals(
+                    current.displayName,
+                    expected.displayName,
+                    StringComparison.Ordinal)
+                || current.singleAxisMultiplier
+                    != expected.singleAxisMultiplier
+                || current.compoundAxisMultiplier
+                    != expected.compoundAxisMultiplier)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static EndlessCrisisAxisPolicy Axis(
+        EndlessCrisisAxis axis,
+        string displayName,
+        float single,
+        float compound) => new()
+    {
+        axis = axis,
+        displayName = displayName,
+        singleAxisMultiplier = single,
+        compoundAxisMultiplier = compound
+    };
 
     private static EndingDefinitionSO CreateEnding(Spec spec)
     {

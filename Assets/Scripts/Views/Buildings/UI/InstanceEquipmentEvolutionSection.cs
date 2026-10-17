@@ -348,9 +348,11 @@ public sealed class InstanceEquipmentEvolutionSection
             AddLabel(
                 row.transform,
                 $"{presentation.ResolveNodeName(node)} · {(active ? "공명 중" : "휴면")}\n"
-                + (string.IsNullOrWhiteSpace(node.description)
-                    ? FormatEffectId(node.effectId)
-                    : node.description),
+                + (node.formulaVersion > 0
+                    ? node.mechanicalDescription + "\n" + node.narrativeFlavor
+                    : string.IsNullOrWhiteSpace(node.description)
+                        ? FormatEffectId(node.effectId)
+                        : node.description),
                 font,
                 384f,
                 active

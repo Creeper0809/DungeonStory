@@ -10,8 +10,15 @@ public sealed class CharacterConsumablesApplicationPorts :
     ICharacterConsumablesInventoryPort,
     ICharacterConsumablesEventPort,
     ICharacterConsumablesWorkforcePort,
-    ICharacterRitualFastingMealPort
+    ICharacterRitualFastingMealPort,
+    ICharacterConsumablesEffectTransactionPort
 {
+    private sealed class EffectTransactionSnapshot
+    {
+        internal CharacterMoodDeliveryTransactionSnapshot Stats;
+        internal CharacterProgressionSnapshot Progression;
+        internal DungeonCharacterBodyHealthSaveData Body;
+    }
     private readonly IItemDefinitionCatalog catalog;
     private readonly IWorldItemStackRuntime items;
     private readonly ICharacterAiWorldRegistry world;
@@ -22,16 +29,16 @@ public sealed class CharacterConsumablesApplicationPorts :
     private readonly ICharacterNarrativeCatalog narrativeCatalog;
     private readonly ICharacterRitualFastingQuery ritualFastingQuery;
     private readonly ICharacterRitualFastingCommand ritualFastingCommand;
-    private readonly IItemQuantityReservationService quantityReservations;
-    private readonly IReservedItemTransferService reservedTransfers;
-    private readonly IReservedPhysicalItemBatchDispositionService
-        reservedBatchDispositions;
-    private readonly IPhysicalItemBatchDispositionService batchDispositions;
-    private readonly IPackagedLotTareDispositionService tareDispositions;
+    private readonly ICharacterBodyHealthCommand bodyHealthCommands;
+    private readonly ICharacterBodyHealthPersistence bodyHealthPersistence;
     private readonly IWorkforceReplanService workforce;
-    private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
+    private readonly CharacterConsumablesWorldReferences references;
+    private readonly CharacterConsumablesPhysicalInventory physicalInventory;
     private readonly Dictionary<string, HashSet<string>> mealFacilitySlotOwners =
         new(StringComparer.Ordinal);
+#if UNITY_EDITOR
+    internal Func<CharacterMealEffectCommand, bool> DebugRejectMealEffects { get; set; }
+#endif
 
     public CharacterConsumablesApplicationPorts(
         IItemDefinitionCatalog catalog,
@@ -50,7 +57,9 @@ public sealed class CharacterConsumablesApplicationPorts :
         IRestoreWorldCandidateQuery restoreWorldCandidates = null,
         IReservedPhysicalItemBatchDispositionService reservedBatchDispositions = null,
         IPhysicalItemBatchDispositionService batchDispositions = null,
-        IPackagedLotTareDispositionService tareDispositions = null)
+        IPackagedLotTareDispositionService tareDispositions = null,
+        ICharacterBodyHealthCommand bodyHealthCommands = null,
+        ICharacterBodyHealthPersistence bodyHealthPersistence = null)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
@@ -64,13 +73,13 @@ public sealed class CharacterConsumablesApplicationPorts :
         this.narrativeCatalog = narrativeCatalog;
         this.ritualFastingQuery = ritualFastingQuery;
         this.ritualFastingCommand = ritualFastingCommand;
-        this.quantityReservations = quantityReservations;
-        this.reservedTransfers = reservedTransfers;
-        this.reservedBatchDispositions = reservedBatchDispositions;
-        this.batchDispositions = batchDispositions;
-        this.tareDispositions = tareDispositions;
+        this.bodyHealthCommands = bodyHealthCommands;
+        this.bodyHealthPersistence = bodyHealthPersistence;
         this.workforce = workforce;
-        this.restoreWorldCandidates = restoreWorldCandidates;
+        references = new CharacterConsumablesWorldReferences(world, restoreWorldCandidates);
+        physicalInventory = new CharacterConsumablesPhysicalInventory(items, references,
+            quantityReservations, reservedTransfers, reservedBatchDispositions,
+            batchDispositions, tareDispositions);
     }
 
     public void RequestOneHaulerToReplan(CharacterId requestingCharacterId) =>
@@ -96,30 +105,9 @@ public sealed class CharacterConsumablesApplicationPorts :
         .OrderBy(id => id.Value, StringComparer.Ordinal)
         .ToArray();
 
-    private IReadOnlyList<CharacterActor> GetReferenceCharacters()
-    {
-        if (restoreWorldCandidates != null
-            && restoreWorldCandidates.TryGetCharacters(
-                out IReadOnlyList<CharacterActor> candidates))
-        {
-            return candidates;
-        }
+    private IReadOnlyList<CharacterActor> GetReferenceCharacters() => references.GetCharacters();
 
-        // Consumable execution is an active-world concern. Include the active
-        // registry as the primary authority while retaining lifetime entries
-        // for suspended/restorable actors. This also makes owner replacement
-        // atomic from the consumer's perspective when the old owner is
-        // destroyed at end-of-frame.
-        return CharacterActorCollection.DistinctByGameObject(
-            world.Characters.Concat(world.AllCharacters));
-    }
-
-    private IReadOnlyList<BuildableObject> GetReferenceBuildings() =>
-        restoreWorldCandidates != null
-        && restoreWorldCandidates.TryGetBuildings(
-            out IReadOnlyList<BuildableObject> candidates)
-            ? candidates
-            : world.Buildings;
+    private IReadOnlyList<BuildableObject> GetReferenceBuildings() => references.GetBuildings();
 
     public bool TryGetActor(
         CharacterId id,
@@ -139,7 +127,10 @@ public sealed class CharacterConsumablesApplicationPorts :
             actor.Mood.Value,
             GetNeed(actor, CharacterCondition.HUNGER),
             combatStance.IsInCombatStance(actor),
-            actor.GetNowXY());
+            actor.GetNowXY(),
+            actor.Identity?.DisplayName ?? id.Value,
+            CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork work)
+                && work.RequiresRoutineNeedRecovery(CharacterCondition.HUNGER));
         return true;
     }
 
@@ -352,6 +343,9 @@ public sealed class CharacterConsumablesApplicationPorts :
     {
         if (!operationId.IsValid || !characterId.IsValid || !facilityId.IsValid)
             return false;
+        BuildableObject building = FindFacility(facilityId);
+        if (building == null)
+            return false;
         string facility = facilityId.Value;
         if (!mealFacilitySlotOwners.TryGetValue(
                 facility,
@@ -364,8 +358,7 @@ public sealed class CharacterConsumablesApplicationPorts :
         if (owners.Contains(operationId.Value))
             return true;
 
-        BuildableObject building = FindFacility(facilityId);
-        int capacity = Mathf.Max(1, building?.EffectiveCapacity ?? 1);
+        int capacity = Mathf.Max(1, building.EffectiveCapacity);
         return owners.Count < capacity && owners.Add(operationId.Value);
     }
 
@@ -415,12 +408,32 @@ public sealed class CharacterConsumablesApplicationPorts :
                 == CharacterRitualFastPhase.Fasting;
     }
 
-    public void RecordMealConsumed(
+    public bool CanReceiveMealPostCommitObservers(CharacterId id)
+    {
+        CharacterActor actor = FindActor(id);
+        // Paused or suspended living actors still own their persistent traits.
+        // Despawned/dead actors and removed restore owners do not receive live notifications.
+        return actor != null && !actor.IsDead;
+    }
+
+    public bool RecordMealConsumed(
         CharacterId characterId,
-        bool directPlayerOrder)
+        bool directPlayerOrder,
+        CharacterMealConsumedFact meal,
+        string mealResultKey,
+        out string failureReason)
     {
         CharacterActor actor = RequireActor(characterId);
-        ritualFastingCommand?.RecordMealConsumed(actor, directPlayerOrder);
+        failureReason = string.Empty;
+        if (ritualFastingCommand != null)
+            return ritualFastingCommand.RecordMealConsumed(actor, directPlayerOrder,
+                meal, mealResultKey, out failureReason);
+        if (ritualFastingQuery?.GetStatus(actor).Available == true)
+        {
+            failureReason = "ritual-fasting-command-unavailable";
+            return false;
+        }
+        return true;
     }
 
     public void RecoverHunger(CharacterId id, float amount)
@@ -461,6 +474,29 @@ public sealed class CharacterConsumablesApplicationPorts :
     public void ApplyDamage(CharacterId id, float amount, string reason) =>
         RequireActor(id).ApplyDamage(amount, reason);
 
+    public void ApplyContaminatedMealDamage(
+        CharacterId id,
+        float amount,
+        string reason)
+    {
+        CharacterActor actor = RequireActor(id);
+        if (bodyHealthCommands == null)
+        {
+            actor.ApplyDamage(amount, reason);
+            return;
+        }
+
+        // Ingested harm is systemic core damage. Route it through the canonical
+        // localized body command so anatomy, aggregate vitals, Downed and death
+        // are published in one synchronous authority boundary.
+        bodyHealthCommands.ApplyLocalizedDamage(
+            actor,
+            CombatBodyPart.Torso,
+            amount,
+            reason,
+            allowDeath: true);
+    }
+
     public void RecordNeedNarrative(
         CharacterId id,
         string factId,
@@ -474,6 +510,166 @@ public sealed class CharacterConsumablesApplicationPorts :
             outcome,
             value);
 
+    public bool TryApplyMealEffects(
+        in CharacterMealEffectCommand command,
+        out CharacterConsumablesEffectEvidence evidence,
+        out string failureReason)
+    {
+#if UNITY_EDITOR
+        if (DebugRejectMealEffects?.Invoke(command) == true)
+        {
+            evidence = default;
+            failureReason = "qa-con03-meal-effects-rejected";
+            return false;
+        }
+#endif
+        CharacterActor actor = FindActor(command.CharacterId);
+        if (actor == null || actor.Stats == null)
+        {
+            evidence = default;
+            failureReason = "meal-effect-actor-missing";
+            return false;
+        }
+        EffectTransactionSnapshot before = CaptureEffectTransaction(actor);
+        try
+        {
+            RecoverHunger(command.CharacterId, command.Nutrition);
+            if (command.PolicyViolation)
+            {
+                RecordNeedNarrative(
+                    command.CharacterId,
+                    "diet:emergency-violation",
+                    command.ItemId,
+                    "survived",
+                    1f);
+            }
+            if (!Mathf.Approximately(command.Mood, 0f))
+            {
+                ApplyBestMealMood(
+                    command.CharacterId,
+                    $"Ate {command.DisplayName}",
+                    command.Mood,
+                    180f);
+            }
+            if (command.ApplyContaminationDamage)
+            {
+                ApplyContaminatedMealDamage(
+                    command.CharacterId,
+                    3f,
+                    "contaminated meal");
+            }
+            evidence = new CharacterConsumablesEffectEvidence(
+                GetSnapshotStat(before.Stats, CharacterCondition.HUNGER),
+                actor.Stats.GetConditionValue(CharacterCondition.HUNGER),
+                before.Stats.CurrentHealth,
+                actor.Stats.CurrentHealth,
+                GetSnapshotStat(before.Stats, CharacterCondition.MOOD),
+                actor.Stats.Mood);
+            failureReason = string.Empty;
+            return true;
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            RestoreEffectTransaction(actor, before);
+            evidence = default;
+            failureReason = "meal-effect-transaction-rolled-back:"
+                + exception.GetType().Name;
+            return false;
+        }
+    }
+
+    private static float GetSnapshotStat(
+        CharacterMoodDeliveryTransactionSnapshot snapshot,
+        CharacterCondition condition) =>
+        snapshot != null
+        && snapshot.Stats != null
+        && snapshot.Stats.TryGetValue(condition, out float value)
+            ? value
+            : 0f;
+
+    public bool TryApplySubstanceEffects(
+        in CharacterSubstanceEffectCommand command,
+        out string failureReason)
+    {
+        CharacterActor actor = FindActor(command.CharacterId);
+        if (actor == null || actor.Stats == null)
+        {
+            failureReason = "substance-effect-actor-missing";
+            return false;
+        }
+        EffectTransactionSnapshot before = CaptureEffectTransaction(actor);
+        try
+        {
+            if (!Mathf.Approximately(command.Mood, 0f))
+            {
+                ApplyMood(
+                    command.CharacterId,
+                    $"substance:{command.ItemId}",
+                    command.DisplayName,
+                    command.Mood,
+                    command.DurationSeconds);
+            }
+            RecordNeedNarrative(
+                command.CharacterId,
+                $"substance:{command.ItemId}",
+                command.ItemId,
+                command.Overdosed ? "overdose" : "consumed",
+                command.Tolerance);
+            if (command.Overdosed)
+            {
+                ApplyMood(
+                    command.CharacterId,
+                    $"substance:overdose:{command.ItemId}",
+                    $"{command.DisplayName} overdose",
+                    -12f,
+                    300f);
+                ApplyDamage(
+                    command.CharacterId,
+                    command.OverdoseDamage,
+                    $"{command.DisplayName} overdose");
+            }
+            failureReason = string.Empty;
+            return true;
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            RestoreEffectTransaction(actor, before);
+            failureReason = "substance-effect-transaction-rolled-back:"
+                + exception.GetType().Name;
+            return false;
+        }
+    }
+
+    private EffectTransactionSnapshot CaptureEffectTransaction(
+        CharacterActor actor) => new()
+    {
+        Stats = actor.Stats.CaptureMoodDeliveryTransactionState(),
+        Progression = actor.Progression?.CapturePersistentState(),
+        Body = bodyHealthPersistence?.Capture()
+    };
+
+    private void RestoreEffectTransaction(
+        CharacterActor actor,
+        EffectTransactionSnapshot snapshot)
+    {
+        if (snapshot.Body != null && bodyHealthPersistence != null)
+        {
+            bodyHealthPersistence.PublishRestore(
+                bodyHealthPersistence.PrepareRestore(snapshot.Body));
+        }
+        if (snapshot.Progression != null)
+        {
+            actor.Progression?.RestorePersistentState(snapshot.Progression);
+        }
+        actor.Stats.RestoreMoodDeliveryTransactionState(snapshot.Stats);
+    }
+
     public IReadOnlyList<CharacterConsumablesStackSnapshot> GetAllStacks() =>
         items.GetAllStacks()
             .Where(stack => stack != null)
@@ -485,6 +681,22 @@ public sealed class CharacterConsumablesApplicationPorts :
         catalog.All
             .Where(item => item != null && item.TryGetFeature(out SubstanceItemFeature _))
             .Select(ToSubstanceSnapshot)
+            .OrderBy(item => item.Id.Value, StringComparer.Ordinal)
+            .ToArray();
+
+    public IReadOnlyList<CharacterDetoxMedicineDefinitionSnapshot> GetDetoxMedicines() =>
+        catalog.All
+            .Where(item => item != null
+                && item.TryGetFeature(out MedicineItemFeature medicine)
+                && IsFinitePositive(medicine.detoxReduction))
+            .Select(item =>
+            {
+                item.TryGetFeature(out MedicineItemFeature medicine);
+                return new CharacterDetoxMedicineDefinitionSnapshot(
+                    (ConsumableItemDefinitionId)item.ItemId,
+                    item.DisplayName,
+                    medicine.detoxReduction);
+            })
             .OrderBy(item => item.Id.Value, StringComparer.Ordinal)
             .ToArray();
 
@@ -529,6 +741,26 @@ public sealed class CharacterConsumablesApplicationPorts :
         return false;
     }
 
+    public bool TryResolveDetoxMedicine(
+        ConsumableItemDefinitionId id,
+        out CharacterDetoxMedicineDefinitionSnapshot medicine)
+    {
+        if (id.IsValid
+            && catalog.TryGet((ItemDefinitionId)id.Value, out ItemDefinitionSO item)
+            && item != null
+            && item.TryGetFeature(out MedicineItemFeature feature)
+            && IsFinitePositive(feature.detoxReduction))
+        {
+            medicine = new CharacterDetoxMedicineDefinitionSnapshot(
+                id,
+                item.DisplayName,
+                feature.detoxReduction);
+            return true;
+        }
+        medicine = default;
+        return false;
+    }
+
     public bool TryResolveSubstance(
         ConsumableItemDefinitionId id,
         out CharacterConsumablesSubstanceDefinitionSnapshot substance)
@@ -547,243 +779,59 @@ public sealed class CharacterConsumablesApplicationPorts :
     }
 
     public bool TryConsume(ItemStackId stackId, int quantity) =>
-        stackId.IsValid
-        && quantity > 0
-        && items.TryCommitPhysicalDisposition(
-            stackId.Value,
-            quantity,
-            PhysicalItemDispositionKind.Sink,
-            $"character-consumable:{stackId.Value}:{quantity}",
-            "character-consumable-consumed",
-            out _,
-            out _);
+        physicalInventory.TryConsume(stackId, quantity);
 
     public bool TryConsumeForCharacter(
         CharacterId characterId,
         ItemStackId stackId,
-        int quantity)
-    {
-        if (!stackId.IsValid || quantity <= 0)
-            return false;
-        WorldItemStackSnapshot stack = items.GetAllStacks().FirstOrDefault(candidate =>
-            candidate != null
-            && string.Equals(candidate.StackId, stackId.Value, StringComparison.Ordinal));
-        if (stack == null)
-            return false;
-        if (stack.State != WorldItemStackState.Carried)
-            return TryConsume(stackId, quantity);
-
-        CharacterActor actor = FindActor(characterId);
-        CharacterCarryInventory carry = actor != null
-            ? CharacterCarryInventory.Ensure(actor)
-            : null;
-        if (carry == null
-            || carry.Items.Where(item => item != null
-                    && string.Equals(
-                        item.carriedStackId,
-                        stackId.Value,
-                        StringComparison.Ordinal)
-                    && string.Equals(item.itemId, stack.ItemId, StringComparison.Ordinal))
-                .Sum(item => item.quantity) < quantity)
-        {
-            return false;
-        }
-
-        CharacterCarryInventorySaveData carryBefore = carry.Capture();
-        if (!carry.TryConsumeCarriedStack(
-                stackId.Value,
-                stack.ItemId,
-                quantity))
-            return false;
-        if (!items.TryCommitPhysicalDisposition(
-                stackId.Value,
-                quantity,
-                PhysicalItemDispositionKind.Sink,
-                $"character-consumable:{characterId.Value}:{stackId.Value}:{quantity}",
-                "character-carried-consumable-consumed",
-                out _,
-                out _))
-        {
-            carry.Restore(carryBefore);
-            return false;
-        }
-        return true;
-    }
+        int quantity) =>
+        physicalInventory.TryConsumeForCharacter(characterId, stackId, quantity);
 
     public bool TryReserveMealQuantity(
         ConsumableOperationId operationId,
         CharacterId characterId,
         BuildingInstanceId facilityId,
         ItemStackId stackId,
-        out string leaseId)
-    {
-        leaseId = string.Empty;
-        if (quantityReservations == null)
-            return true;
-        WorldItemStackSnapshot stack = items.GetAllStacks().FirstOrDefault(value =>
-            value != null && string.Equals(
-                value.StackId,
-                stackId.Value,
-                StringComparison.Ordinal));
-        if (stack == null)
-            return false;
-        if (!quantityReservations.TryReserve(
-                operationId.Value,
-                characterId.Value,
-                ItemReservationPurpose.Meal,
-                $"meal:{facilityId.Value}:{stack.ItemId}",
-                new ItemQuantityReservationRequest(
-                    stackId,
-                    1,
-                    stack.ReservationSignature),
-                out ItemQuantityLease lease,
-                out _))
-        {
-            return false;
-        }
-        leaseId = lease.leaseId;
-        return true;
-    }
+        out string leaseId) =>
+        physicalInventory.TryReserveMealQuantity(operationId, characterId, facilityId, stackId, out leaseId);
 
-    public bool RevalidateMealQuantity(string leaseId, ItemStackId stackId)
-    {
-        if (quantityReservations == null)
-            return string.IsNullOrWhiteSpace(leaseId);
-        return quantityReservations.Revalidate(
-                leaseId,
-                out ItemQuantityLease lease,
-                out _)
-            && lease.slices.Any(slice => slice != null
-                && slice.quantity >= 1);
-    }
+    public bool RevalidateMealQuantity(string leaseId, ItemStackId stackId) =>
+        physicalInventory.RevalidateMealQuantity(leaseId, stackId);
 
     public bool TryResolveMealQuantityStack(
         string leaseId,
-        out ItemStackId stackId)
-    {
-        stackId = default;
-        if (quantityReservations == null
-            || !quantityReservations.Revalidate(
-                leaseId,
-                out ItemQuantityLease lease,
-                out _))
-        {
-            return false;
-        }
-        ItemLeaseSlice slice = lease.slices
-            .Where(value => value != null && value.quantity > 0)
-            .OrderBy(value => value.stackId, StringComparer.Ordinal)
-            .FirstOrDefault();
-        if (slice == null)
-            return false;
-        stackId = new ItemStackId(slice.stackId);
-        return stackId.IsValid;
-    }
+        out ItemStackId stackId) =>
+        physicalInventory.TryResolveMealQuantityStack(leaseId, out stackId);
 
     public bool TryRebindMealQuantityLease(
         ConsumableOperationId operationId,
         out string leaseId,
-        out ItemStackId stackId)
-    {
-        leaseId = string.Empty;
-        stackId = default;
-        if (quantityReservations == null
-            || !operationId.IsValid
-            || !quantityReservations.TryGetLeasesByOwner(
-                operationId.Value,
-                out IReadOnlyList<ItemQuantityLease> leases))
-        {
-            return false;
-        }
-        ItemQuantityLease lease = leases
-            .Where(value => value != null
-                && value.purpose == ItemReservationPurpose.Meal
-                && value.remainingQuantity >= 1)
-            .OrderBy(value => value.leaseId, StringComparer.Ordinal)
-            .FirstOrDefault();
-        ItemLeaseSlice slice = lease?.slices
-            .Where(value => value != null && value.quantity > 0)
-            .OrderBy(value => value.stackId, StringComparer.Ordinal)
-            .FirstOrDefault();
-        if (lease == null || slice == null)
-            return false;
-        leaseId = lease.leaseId;
-        stackId = new ItemStackId(slice.stackId);
-        return stackId.IsValid;
-    }
+        out ItemStackId stackId) =>
+        physicalInventory.TryRebindMealQuantityLease(operationId, out leaseId, out stackId);
 
     public bool TryConsumeReservedMealQuantity(
         string leaseId,
         ItemStackId stackId,
-        int quantity)
-    {
-        if (quantityReservations == null || reservedTransfers == null)
-            return string.IsNullOrWhiteSpace(leaseId) && TryConsume(stackId, quantity);
-        return reservedTransfers.TryConsumeReservedQuantity(
-            leaseId,
-            quantity,
-            out _);
-    }
+        int quantity) =>
+        physicalInventory.TryConsumeReservedMealQuantity(leaseId, stackId, quantity);
 
     public bool TryCommitReservedMealQuantityPending(
         ConsumableOperationId operationId,
         string leaseId,
         int quantity,
         out CharacterMealPhysicalCommitSnapshot commit,
-        out string failureReason)
-    {
-        commit = default;
-        if (reservedBatchDispositions == null)
-        {
-            failureReason = "meal-reserved-pending-service-missing";
-            return false;
-        }
-        if (!reservedBatchDispositions.TryCommitReservedSinkPending(
-                leaseId,
-                quantity,
-                operationId.Value,
-                CharacterConsumablesRuntime.MealPhysicalSinkReason,
-                out PhysicalItemBatchDispositionReceipt receipt,
-                out failureReason))
-        {
-            return false;
-        }
-        commit = ToMealCommit(receipt);
-        return true;
-    }
+        out string failureReason) =>
+        physicalInventory.TryCommitReservedMealQuantityPending(operationId, leaseId, quantity, out commit, out failureReason);
 
     public bool TryGetPendingMealConsumption(
         ConsumableOperationId operationId,
-        out CharacterMealPhysicalCommitSnapshot commit)
-    {
-        commit = default;
-        if (batchDispositions == null
-            || !batchDispositions.TryGetPending(
-                operationId.Value,
-                out PhysicalItemBatchDispositionReceipt receipt)
-            || receipt.Kind != PhysicalItemDispositionKind.Sink
-            || !string.Equals(
-                receipt.ReasonCode,
-                CharacterConsumablesRuntime.MealPhysicalSinkReason,
-                StringComparison.Ordinal))
-        {
-            return false;
-        }
-        commit = ToMealCommit(receipt);
-        return true;
-    }
+        out CharacterMealPhysicalCommitSnapshot commit) =>
+        physicalInventory.TryGetPendingMealConsumption(operationId, out commit);
 
     public bool TryAcknowledgeMealConsumption(
         string commitId,
-        out string failureReason)
-    {
-        if (batchDispositions == null)
-        {
-            failureReason = "meal-pending-ack-service-missing";
-            return false;
-        }
-        return batchDispositions.Acknowledge(commitId, out failureReason);
-    }
+        out string failureReason) =>
+        physicalInventory.TryAcknowledgeMealConsumption(commitId, out failureReason);
 
     public bool TryAcknowledgeMealConsumption(
         CharacterId characterId,
@@ -791,150 +839,34 @@ public sealed class CharacterConsumablesApplicationPorts :
         int quantity,
         string commitId,
         out string failureReason) =>
-        TryPublishTareAndAcknowledge(
-            characterId,
-            itemId,
-            quantity,
-            commitId,
-            "meal",
-            out failureReason);
+        physicalInventory.TryAcknowledgeMealConsumption(characterId, itemId, quantity, commitId, out failureReason);
+
+    public bool TryAcknowledgeMealConsumption(
+        CharacterId characterId,
+        ConsumableItemDefinitionId itemId,
+        int quantity,
+        string commitId,
+        Vector2Int consumptionPosition,
+        out string failureReason) =>
+        physicalInventory.TryAcknowledgeMealConsumption(characterId, itemId, quantity, commitId, consumptionPosition, out failureReason);
 
     public bool TryCommitSubstanceConsumptionPending(
         ConsumableOperationId operationId,
         CharacterId characterId,
         ItemStackId stackId,
         out CharacterSubstancePhysicalCommitSnapshot commit,
-        out string failureReason)
-    {
-        commit = default;
-        if (batchDispositions == null)
-        {
-            failureReason = "substance-pending-service-missing";
-            return false;
-        }
-        if (TryGetPendingSubstanceConsumption(operationId, out commit))
-        {
-            failureReason = string.Empty;
-            return true;
-        }
-
-        WorldItemStackSnapshot stack = items.GetAllStacks().FirstOrDefault(value =>
-            value != null
-            && string.Equals(value.StackId, stackId.Value, StringComparison.Ordinal));
-        if (stack == null)
-        {
-            failureReason = "substance-source-stack-missing";
-            return false;
-        }
-
-        CharacterCarryInventory carry = null;
-        CharacterCarryInventorySaveData carryBefore = null;
-        if (stack.State == WorldItemStackState.Carried)
-        {
-            CharacterActor actor = FindActor(characterId);
-            carry = actor != null ? CharacterCarryInventory.Ensure(actor) : null;
-            if (carry == null
-                || carry.Items.Where(item => item != null
-                        && string.Equals(
-                            item.carriedStackId,
-                            stackId.Value,
-                            StringComparison.Ordinal)
-                        && string.Equals(
-                            item.itemId,
-                            stack.ItemId,
-                            StringComparison.Ordinal))
-                    .Sum(item => item.quantity) < 1)
-            {
-                failureReason = "substance-carried-source-missing";
-                return false;
-            }
-            carryBefore = carry.Capture();
-            if (!carry.TryConsumeCarriedStack(stackId.Value, stack.ItemId, 1))
-            {
-                failureReason = "substance-carried-debit-failed";
-                return false;
-            }
-        }
-
-        try
-        {
-            failureReason = string.Empty;
-            PhysicalItemBatchDispositionReceipt receipt = default;
-            bool committed;
-            if (stack.State == WorldItemStackState.Carried)
-            {
-                committed = batchDispositions is ICarriedPhysicalItemBatchDispositionService
-                    carriedDispositions
-                    && carriedDispositions.TryCommitCarriedSinkPending(
-                        stackId.Value,
-                        1,
-                        operationId.Value,
-                        CharacterConsumablesRuntime.SubstancePhysicalSinkReason,
-                        out receipt,
-                        out failureReason);
-            }
-            else
-            {
-                committed = batchDispositions.TryCommitPending(
-                    new[] { new PhysicalItemTransformInput(stackId.Value, 1) },
-                    PhysicalItemDispositionKind.Sink,
-                    operationId.Value,
-                    CharacterConsumablesRuntime.SubstancePhysicalSinkReason,
-                    out receipt,
-                    out failureReason);
-            }
-            if (!committed)
-            {
-                if (string.IsNullOrEmpty(failureReason)
-                    && stack.State == WorldItemStackState.Carried)
-                {
-                    failureReason = "substance-carried-pending-service-missing";
-                }
-                carry?.Restore(carryBefore);
-                return false;
-            }
-            commit = ToSubstanceCommit(receipt);
-            return true;
-        }
-        catch
-        {
-            carry?.Restore(carryBefore);
-            throw;
-        }
-    }
+        out string failureReason) =>
+        physicalInventory.TryCommitSubstanceConsumptionPending(operationId, characterId, stackId, out commit, out failureReason);
 
     public bool TryGetPendingSubstanceConsumption(
         ConsumableOperationId operationId,
-        out CharacterSubstancePhysicalCommitSnapshot commit)
-    {
-        commit = default;
-        if (batchDispositions == null
-            || !batchDispositions.TryGetPending(
-                operationId.Value,
-                out PhysicalItemBatchDispositionReceipt receipt)
-            || receipt.Kind != PhysicalItemDispositionKind.Sink
-            || !string.Equals(
-                receipt.ReasonCode,
-                CharacterConsumablesRuntime.SubstancePhysicalSinkReason,
-                StringComparison.Ordinal))
-        {
-            return false;
-        }
-        commit = ToSubstanceCommit(receipt);
-        return true;
-    }
+        out CharacterSubstancePhysicalCommitSnapshot commit) =>
+        physicalInventory.TryGetPendingSubstanceConsumption(operationId, out commit);
 
     public bool TryAcknowledgeSubstanceConsumption(
         string commitId,
-        out string failureReason)
-    {
-        if (batchDispositions == null)
-        {
-            failureReason = "substance-pending-ack-service-missing";
-            return false;
-        }
-        return batchDispositions.Acknowledge(commitId, out failureReason);
-    }
+        out string failureReason) =>
+        physicalInventory.TryAcknowledgeSubstanceConsumption(commitId, out failureReason);
 
     public bool TryAcknowledgeSubstanceConsumption(
         CharacterId characterId,
@@ -942,87 +874,33 @@ public sealed class CharacterConsumablesApplicationPorts :
         int quantity,
         string commitId,
         out string failureReason) =>
-        TryPublishTareAndAcknowledge(
-            characterId,
-            itemId,
-            quantity,
-            commitId,
-            "substance",
-            out failureReason);
+        physicalInventory.TryAcknowledgeSubstanceConsumption(characterId, itemId, quantity, commitId, out failureReason);
 
-    private bool TryPublishTareAndAcknowledge(
+    public bool TryCommitDetoxConsumptionPending(
+        ConsumableOperationId operationId,
+        ItemStackId stackId,
+        out CharacterDetoxPhysicalCommitSnapshot commit,
+        out string failureReason) =>
+        physicalInventory.TryCommitDetoxConsumptionPending(operationId, stackId, out commit, out failureReason);
+
+    public bool TryGetPendingDetoxConsumption(
+        ConsumableOperationId operationId,
+        out CharacterDetoxPhysicalCommitSnapshot commit) =>
+        physicalInventory.TryGetPendingDetoxConsumption(operationId, out commit);
+
+    public bool TryAcknowledgeDetoxConsumption(
         CharacterId characterId,
         ConsumableItemDefinitionId itemId,
         int quantity,
         string commitId,
-        string consumerKind,
-        out string failureReason)
-    {
-        if (batchDispositions == null)
-        {
-            failureReason = consumerKind + "-pending-ack-service-missing";
-            return false;
-        }
-        bool isPackagedLot = items.MassQuery is IPackagedLotDefinitionQuery packagedLots
-            && packagedLots.TryGetPackagedLot(
-                (ItemDefinitionId)itemId.Value,
-                out _);
-        if (isPackagedLot && tareDispositions == null)
-        {
-            failureReason = consumerKind + "-packaged-tare-service-missing";
-            return false;
-        }
-        if (tareDispositions != null)
-        {
-            CharacterActor actor = FindActor(characterId);
-            if (actor == null || quantity <= 0 || !itemId.IsValid)
-            {
-                failureReason = consumerKind + "-tare-output-context-invalid";
-                return false;
-            }
-            if (!tareDispositions.EnsureTerminalSinkOutputs(
-                    new Dictionary<string, int>(StringComparer.Ordinal)
-                    {
-                        [itemId.Value] = quantity
-                    },
-                    actor.GetNowXY(),
-                    commitId,
-                    out _,
-                    out failureReason))
-            {
-                return false;
-            }
-        }
-        return batchDispositions.Acknowledge(commitId, out failureReason);
-    }
+        out string failureReason) =>
+        physicalInventory.TryAcknowledgeDetoxConsumption(characterId, itemId, quantity, commitId, out failureReason);
 
-    private static CharacterMealPhysicalCommitSnapshot ToMealCommit(
-        PhysicalItemBatchDispositionReceipt receipt) => new(
-        receipt.OperationId,
-        receipt.ReasonCode,
-        receipt.CommitId,
-        receipt.SourceStackIds,
-        receipt.Quantity,
-        receipt.InputMassGrams);
+    private static bool IsFinitePositive(float value) =>
+        !float.IsNaN(value) && !float.IsInfinity(value) && value > 0f;
 
-    private static CharacterSubstancePhysicalCommitSnapshot ToSubstanceCommit(
-        PhysicalItemBatchDispositionReceipt receipt) => new(
-        receipt.OperationId,
-        receipt.ReasonCode,
-        receipt.CommitId,
-        receipt.SourceStackIds,
-        receipt.Quantity,
-        receipt.InputMassGrams);
-
-    public void ReleaseMealQuantity(string leaseId)
-    {
-        if (quantityReservations != null && !string.IsNullOrWhiteSpace(leaseId))
-        {
-            quantityReservations.Release(
-                leaseId,
-                ItemReservationReleaseReason.Cancelled);
-        }
-    }
+    public void ReleaseMealQuantity(ConsumableOperationId operationId) =>
+        physicalInventory.ReleaseMealQuantity(operationId);
 
     public bool TryRequestDelivery(
         ConsumableItemDefinitionId itemId,
@@ -1054,7 +932,8 @@ public sealed class CharacterConsumablesApplicationPorts :
             consumedEvent.OperationId,
             actor,
             facility,
-            MealConsumptionResult.FromCore(consumedEvent.Result)));
+            MealConsumptionResult.FromCore(consumedEvent.Result),
+            consumedEvent.FacilityId));
     }
 
     internal static CharacterConsumablesMealDefinitionSnapshot ToMealSnapshot(
@@ -1084,21 +963,11 @@ public sealed class CharacterConsumablesApplicationPorts :
             food.qualityBand,
             food.servingRole);
 
-    private CharacterActor FindActor(CharacterId id) =>
-        id.IsValid
-            ? GetReferenceCharacters().FirstOrDefault(actor => actor != null
-                && CharacterPersistentIdentity.Require(actor).Equals(id))
-            : null;
+    private CharacterActor FindActor(CharacterId id) => references.FindActor(id);
 
-    private CharacterActor RequireActor(CharacterId id) =>
-        FindActor(id) ?? throw new InvalidOperationException(
-            $"Consumables actor '{id.Value}' is unavailable.");
+    private CharacterActor RequireActor(CharacterId id) => references.RequireActor(id);
 
-    private BuildableObject FindFacility(BuildingInstanceId id) =>
-        id.IsValid
-            ? world.Buildings.FirstOrDefault(building => building != null
-                && building.RequirePersistentInstanceId().Equals(id))
-            : null;
+    private BuildableObject FindFacility(BuildingInstanceId id) => references.FindFacility(id);
 
     private CharacterConsumablesStackSnapshot ToSnapshot(
         WorldItemStackSnapshot stack)
@@ -1177,6 +1046,9 @@ public sealed class CharacterConsumablesApplicationPorts :
                 feature.moodEffect,
                 feature.workSpeedEffect,
                 feature.combatEffect,
+                feature.fatigueAccumulationReduction,
+                feature.researchSpeedEffect,
+                feature.suppressesPerceivedPain,
                 feature.durationSeconds,
                 (item as ResourceItemDefinitionSO)?.RequiredResearchId
                     ?? string.Empty));
@@ -1202,6 +1074,7 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
     ICharacterConsumablesQuery,
     ICharacterConsumablesCommand,
     IFieldMealConsumptionCommand,
+    IPrimitiveFieldMealConsumptionCommand,
     ICharacterDietPolicyRuntime,
     IMealConsumptionRuntime,
     ICharacterMealOperationCancellation,
@@ -1218,8 +1091,25 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
     public CharacterDietPolicyKind GetPolicy(CharacterActor actor) =>
         runtime.GetDietPolicy(GetCharacterId(actor));
 
-    public void SetPolicy(CharacterActor actor, CharacterDietPolicyKind policy) =>
-        runtime.SetDietPolicy(GetCharacterId(actor), policy);
+    public CharacterConsumablesPolicyChangeResult SetPolicy(
+        CharacterActor actor,
+        CharacterDietPolicyKind policy) =>
+        runtime.SetDietPolicy(
+            GetCharacterId(actor),
+            policy,
+            "character-summary-ui");
+
+    public CharacterMealQualityLimit GetMealQualityLimit(CharacterActor actor) =>
+        runtime.GetMealQualityLimit(GetCharacterId(actor));
+
+    [GameplayEntryPoint("CharacterSummaryHealthPresenter.CycleMealQualityLimit; WimMealQualityPlayModeVerifier")]
+    public CharacterConsumablesPolicyChangeResult SetMealQualityLimit(
+        CharacterActor actor,
+        CharacterMealQualityLimit qualityLimit) =>
+        runtime.SetMealQualityLimit(
+            GetCharacterId(actor),
+            qualityLimit,
+            "character-summary-ui");
 
     public bool IsAllowed(CharacterActor actor, ResourceItemDefinitionSO meal) =>
         meal != null && runtime.IsMealAllowed(
@@ -1277,6 +1167,19 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
         return success;
     }
 
+    public bool TryConsumePrimitiveFieldMeal(
+        CharacterActor actor,
+        ItemStackId stackId,
+        out MealConsumptionResult result)
+    {
+        bool success = runtime.TryConsumePrimitiveFieldMeal(
+            GetCharacterId(actor),
+            stackId,
+            out CharacterConsumablesMealResult coreResult);
+        result = MealConsumptionResult.FromCore(coreResult);
+        return success;
+    }
+
     public bool TryGetMealOperationResult(
         ConsumableOperationId operationId,
         out MealConsumptionResult result)
@@ -1302,7 +1205,7 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
         string substanceId) =>
         runtime.GetSubstancePolicy(GetCharacterId(actor), substanceId);
 
-    public void SetPolicy(
+    public CharacterConsumablesPolicyChangeResult SetPolicy(
         CharacterActor actor,
         string substanceId,
         SubstancePolicyMode mode,
@@ -1313,7 +1216,8 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
             substanceId,
             mode,
             moodThreshold,
-            scheduledHour);
+            scheduledHour,
+            "character-summary-ui");
 
     public CharacterSubstanceState GetState(
         CharacterActor actor,
@@ -1394,6 +1298,14 @@ public sealed class CharacterConsumablesCompatibilityAdapter :
         runtime.GetWorkSpeedMultiplier(GetCharacterId(actor));
     public float GetCombatMultiplier(CharacterActor actor) =>
         runtime.GetCombatMultiplier(GetCharacterId(actor));
+    public float GetFatigueAccumulationMultiplier(CharacterActor actor) =>
+        runtime.GetFatigueAccumulationMultiplier(GetCharacterId(actor));
+    public float GetResearchSpeedMultiplier(CharacterActor actor) =>
+        runtime.GetResearchSpeedMultiplier(GetCharacterId(actor));
+    public bool SuppressesPerceivedPain(CharacterActor actor) =>
+        runtime.SuppressesPerceivedPain(GetCharacterId(actor));
+    public CharacterToxicityStatus GetToxicityStatus(CharacterActor actor) =>
+        runtime.GetToxicityStatus(GetCharacterId(actor));
     public void Tick() => runtime.Tick();
 
     private static CharacterId GetCharacterId(CharacterActor actor) =>

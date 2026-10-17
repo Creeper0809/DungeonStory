@@ -423,7 +423,7 @@ public sealed class ProductionOutputDestinationAuthorityRuntime :
             failureReason = "production-output-revoke-facility-invalid";
             return false;
         }
-        string destinationId = ProductionBillRuntime.OutputDestinationPrefix
+        string destinationId = ProductionBillIdentity.OutputDestinationPrefix
             + facilityId.Value;
         FacilityBufferDestinationClaim[] targetClaims = claimAuthority
             .CaptureAuthorityClaims()
@@ -504,7 +504,7 @@ public sealed class ProductionOutputDestinationAuthorityRuntime :
             failureReason = "production-output-facility-invalid";
             return false;
         }
-        string destinationId = ProductionBillRuntime.OutputDestinationPrefix
+        string destinationId = ProductionBillIdentity.OutputDestinationPrefix
             + facility.InstanceId.Value;
         claim = new FacilityBufferDestinationClaim(
             destinationId,

@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "제재소에서 생산 주문을 처리하는 공정을 맡기 위해 준비한 설치 부품이며, 크릭 제7굴의 시설과도 체결 규격이 맞는다.",
+  "in_game_description": "제재소에서 생산 주문을 처리하는 공정을 맡기 위해 준비한 설치 부품이다. 크릭 제7굴의 제재소에서 처음 나온 재료에는 대장보다 도제의 이름이 먼저 붙는다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

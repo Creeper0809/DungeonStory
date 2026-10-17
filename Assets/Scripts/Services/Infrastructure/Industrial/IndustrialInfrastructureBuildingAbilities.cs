@@ -120,6 +120,20 @@ public sealed class BuildingWaterContainerTransferAbility : BuildingAbility
 }
 
 [Serializable]
+[BuildingAbilityDisplayName("작물 관개")]
+public sealed class BuildingCropIrrigationAbility : BuildingAbility
+{
+    [Min(1), InspectorName("관개 반경 (맨해튼)")]
+    public int rangeManhattan = 4;
+
+    [Min(0.1f), InspectorName("회당 공급량")]
+    public float waterPerRefill = 1f;
+
+    [Min(0.1f), InspectorName("최소 공급 간격 (초)")]
+    public float minimumRefillIntervalSeconds = 1f;
+}
+
+[Serializable]
 [BuildingAbilityDisplayName("급배수 시설")]
 public sealed class BuildingWaterFixtureAbility : BuildingAbility
 {

@@ -1,0 +1,2737 @@
+# WIM053 executed continuation evidence — 2026-09-10
+
+Scope: the executed SEQUENCE on actual run 553998e5f2bf4ef78fc4fe713ee7e101, not a standalone reusable zero-loot verifier. The first command is a context-bound paused public full-restore utility: its fixed run/pendingRecovered log fields are NOT internally guarded. Its actual context is bound by the preserved pre-restore checkpoint wim-053-actual-casualty-553998e5-checkpoint.json (SHA256 C76F0FFF1BE997A2FA57A48085A94D773AF8C4736EA3DE666F36ACFFFC45A4FB) and the immediately subsequent second command, which DOES guard the exact run, Lost dagger, dead member, living survivor and empty recovered IDs. Do not reuse the first command's PASS marker alone as identity or zero-loot proof.
+
+The second command reuses the existing reviewed QA helpers and continues only remaining return/arrival/detail/final-save. It does not relaunch, complete research, create stock, force victory, fabricate receipts, or claim reobserved battle/active-casualty stages. Source-wide compiler remains runtimeECD07CAF/Editor9064D95F. Preparation/bootstrap evidence is in the existing report; a transient runtime registration is not natural site discovery. This sequence proves the actual zero-loot case; nonzero pending-loot whole-world restore remains NOT_OBSERVED here and is not inferred from the separate public-domain Packed/Loose fixture.
+
+Review correction changes this explanation only; both executed C# blocks below are preserved. Original artifact SHA256 before the explanation correction: 7D0A6E8997473121BAFE189289AEAF051F83D581008A22620DB314A4C60140D2. Block content SHA256 (UTF-8, exact text between csharp fences): first F96873E47B0C3DA195CC24ECD33EE61D52B30C0300E9449354F7549DE71B9C0A; second F44E67F0A1DAE23773A782B75D125FF95B84233F83BA5B2FB62F49A1390D9C17. Independent Terra review accepted the combined checkpoint/restore/guarded-continuation evidence after this scope distinction; no unexecuted guard is claimed.
+
+## Executed context-bound full restore (identity comes from the surrounding sequence)
+
+```csharp
+using System;
+using System.Collections;
+using System.Linq;
+using UnityEngine;
+using UnityEditor;
+
+internal class CommandScript : IRunCommand
+{
+    private static Type T(string name, string assembly = "Assembly-CSharp") => Type.GetType(name + ", " + assembly)
+        ?? throw new InvalidOperationException("MISSING_PUBLIC_TYPE:" + name);
+    private static object P(object value, string name) => value.GetType().GetProperty(name).GetValue(value);
+    private static object F(object value, string name) => value.GetType().GetField(name).GetValue(value);
+    private static object[] Items(object value) => ((IEnumerable)value).Cast<object>().ToArray();
+    private static object Call(object target, string name, params object[] args)
+    {
+        var method = target.GetType().GetMethods().Where(m => m.IsPublic && !m.IsStatic
+            && m.Name == name && m.GetParameters().Length == args.Length)
+            .Single(m => m.GetParameters().Select((p, i) => args[i] == null
+                || p.ParameterType.IsInstanceOfType(args[i])).All(v => v));
+        return method.Invoke(target, args);
+    }
+    private static object Resolve(string name, string assembly = "Assembly-CSharp")
+    {
+        var scope = Resources.FindObjectsOfTypeAll(T("DungeonRuntimeLifetimeScope"))
+            .OfType<MonoBehaviour>().Single(v => v.gameObject.scene.isLoaded && v.gameObject.activeInHierarchy);
+        object container = P(scope, "Container");
+        return container.GetType().GetMethod("Resolve", new[] { typeof(Type), typeof(object) })
+            .Invoke(container, new object[] { T(name, assembly), null });
+    }
+    public void Execute(ExecutionResult result)
+    {
+        if (!Application.isPlaying || !EditorApplication.isPaused || Time.timeScale != 0f)
+            throw new InvalidOperationException("WIM053_CAPTURE_PAUSED_REQUIRED");
+        object saves = Resolve("IDungeonGameSaveService", "DungeonStory.Infrastructure");
+        object data = Call(saves, "Capture");
+        string json = Convert.ToString(Call(saves, "ToJson", data, false));
+        object[] args = { Call(saves, "FromJson", json), null };
+        bool accepted;
+        try { accepted = (bool)Call(saves, "TryRestore", args); }
+        finally { Time.timeScale = 0f; }
+        if (!accepted || args[1] == null || !(bool)P(args[1], "Success"))
+            throw new InvalidOperationException("WIM053_ACTUAL_ZERO_LOOT_FULLSAVE_FAILED;"
+                + (args[1] == null ? "no-report" : string.Join("|", Items(P(args[1], "Errors")).Select(Convert.ToString))));
+        object after = Call(Resolve("IDungeonGameSaveService", "DungeonStory.Infrastructure"), "Capture");
+        foreach (string sectionId in new[] { "offense.aggregate", "items.physical" })
+        {
+            string beforePayload = Convert.ToString(F(Items(F(data, "sections")).Single(s => Convert.ToString(F(s, "sectionId")) == sectionId), "payloadJson"));
+            string afterPayload = Convert.ToString(F(Items(F(after, "sections")).Single(s => Convert.ToString(F(s, "sectionId")) == sectionId), "payloadJson"));
+            if (beforePayload != afterPayload) throw new InvalidOperationException("WIM053_ACTUAL_ZERO_LOOT_RESTORE_CHANGED:" + sectionId);
+        }
+        result.Log("WIM053_ACTUAL_ZERO_LOOT_FULLSAVE_PASS;expedition=553998e5f2bf4ef78fc4fe713ee7e101;fullRestore=true;offenseAndPhysicalExact=true;pendingRecovered=0;scope=actual-active-casualty-synchronous-restore;nonzeroLootEvidence=false");
+    }
+}
+```
+
+## Executed actual post-battle continuation
+
+```csharp
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using TMPro;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+internal sealed class CommandScript : IRunCommand
+{
+    private static readonly string[] ProjectIds =
+    {
+        "research:commerce:logistics",
+        "research:survival:sanitation",
+        "research:survival:support",
+        "research:survival:preservation",
+        "research:survival:field-rations"
+    };
+
+    private static readonly string[][] ExpectedPrerequisites =
+    {
+        Array.Empty<string>(),
+        Array.Empty<string>(),
+        new[] { "research:survival:sanitation" },
+        new[] { "research:survival:support" },
+        new[]
+        {
+            "research:commerce:logistics",
+            "research:survival:preservation"
+        }
+    };
+
+    private static readonly float[] ExpectedWork = { 17f, 17f, 28f, 42f, 60f };
+    private static readonly int[][] ExpectedBuildingUnlocks =
+    {
+        new[] { 8806 },
+        new[] { 1097 },
+        new[] { 1021, 1022, 1024, 1025, 1060, 1063, 1054 },
+        new[] { 1088, 1613, 1617 },
+        Array.Empty<int>()
+    };
+
+    private static readonly string[][] ExpectedRecipeUnlocks =
+    {
+        new[] { "recipe:v22:apparel:hauling-harness" },
+        Array.Empty<string>(),
+        Array.Empty<string>(),
+        Array.Empty<string>(),
+        Array.Empty<string>()
+    };
+
+    private const float WallLimitSeconds = 420f;
+    private const float GameClockLimitSeconds = 600f;
+    private const float FloatTolerance = 0.0002f;
+
+    private readonly List<string> fixtureRows = new();
+    private readonly List<string> battleRows = new();
+    private readonly List<string> decisionRows = new();
+    private readonly List<string> rewardEventIds = new();
+    private readonly Dictionary<string, int> expectedConsumption =
+        new(StringComparer.Ordinal);
+
+    private IDisposable rewardSubscription;
+    private bool playExitCleanupInstalled;
+    private bool segmentRestored;
+    private bool segmentAdvanced;
+    private bool departureObserved;
+    private bool battleObserved;
+    private bool battleTerminalObserved;
+    private bool battleVictoryObserved;
+    private string observedBattleOutcome = string.Empty;
+    private object observedBattleSource;
+    private Delegate observedBattleHandler;
+    private bool returnIssued;
+    private bool detourIssued;
+    private int detourDecisionBaseline;
+    private bool resumedPreparedPlay;
+    private int decisionCount;
+    private int battleTurns;
+    private int consecutiveNoEffectBattleTurns;
+    private float enemyDamage;
+    private string expeditionId = string.Empty;
+    private string terminal = "FAILED before fixture setup";
+
+    private object researchRuntime;
+    private object expeditionRuntime;
+    private object offenseQuery;
+    private object panels;
+    private object world;
+    private object targets;
+    private object preparation;
+    private object travel;
+    private object decisions;
+    private object battle;
+    private object director;
+    private object returnArrivals;
+    private object rewardRuntime;
+    private object gameClock;
+
+    private int savedCurrentQ;
+    private int savedCurrentR;
+    private int savedDestinationQ;
+    private int savedDestinationR;
+    private int savedSegmentQ;
+    private int savedSegmentR;
+    private int savedEventSequence;
+    private float savedTraversalCost;
+    private float savedElapsed;
+    private float savedDuration;
+    private float savedRoad;
+    private float savedWeather;
+    private float savedLoad;
+    private float savedMovement;
+    private float savedMilestone;
+    private float savedFacility;
+    private string savedDestinationSite = string.Empty;
+    private string savedPath = string.Empty;
+    private float saveClock;
+    private int saveBytes;
+
+    private static Type T(string fullName, string assemblyName)
+    {
+        Type type = Type.GetType(fullName + ", " + assemblyName);
+        return type ?? throw new InvalidOperationException(
+            "Missing exact public type: " + fullName + ", " + assemblyName);
+    }
+
+    private static object P(object value, string name)
+    {
+        var property = value?.GetType().GetProperty(name);
+        if (property == null || property.GetMethod == null || !property.GetMethod.IsPublic)
+        {
+            throw new InvalidOperationException("Missing public property: " + name);
+        }
+        return property.GetValue(value);
+    }
+
+    private static object F(object value, string name)
+    {
+        var field = value?.GetType().GetField(name);
+        if (field == null || !field.IsPublic)
+        {
+            throw new InvalidOperationException("Missing public field: " + name);
+        }
+        return field.GetValue(value);
+    }
+
+    private static object PF(object value, string name)
+    {
+        var property = value?.GetType().GetProperty(name);
+        if (property != null && property.GetMethod != null && property.GetMethod.IsPublic)
+        {
+            return property.GetValue(value);
+        }
+        var field = value?.GetType().GetField(name);
+        if (field != null && field.IsPublic)
+        {
+            return field.GetValue(value);
+        }
+        throw new InvalidOperationException("Missing public member: " + name);
+    }
+
+    private static object InvokePublic(object value, string name, params object[] arguments)
+    {
+        var methods = value?.GetType().GetMethods()
+            .Where(method => method.IsPublic && !method.IsStatic
+                && string.Equals(method.Name, name, StringComparison.Ordinal)
+                && method.GetParameters().Length == arguments.Length)
+            .ToArray() ?? Array.Empty<System.Reflection.MethodInfo>();
+        if (methods.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Expected one public " + name + " overload; count=" + methods.Length);
+        }
+        return methods[0].Invoke(value, arguments);
+    }
+
+    private static object InvokeStatic(Type type, string name, params object[] arguments)
+    {
+        var methods = type.GetMethods()
+            .Where(method => method.IsPublic && method.IsStatic
+                && string.Equals(method.Name, name, StringComparison.Ordinal)
+                && method.GetParameters().Length == arguments.Length)
+            .ToArray();
+        if (methods.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Expected one public static " + type.FullName + "." + name
+                + " overload; count=" + methods.Length);
+        }
+        return methods[0].Invoke(null, arguments);
+    }
+
+    private static List<object> Items(object values)
+    {
+        return values is IEnumerable enumerable
+            ? enumerable.Cast<object>().Where(value => value != null).ToList()
+            : new List<object>();
+    }
+
+    private static int CountOf(object values) => Items(values).Count;
+
+    private static string IdValue(object value)
+    {
+        return value == null ? string.Empty : Convert.ToString(PF(value, "Value"));
+    }
+
+    private static MonoBehaviour FindScopeHost()
+    {
+        Type scopeType = T("DungeonRuntimeLifetimeScope", "Assembly-CSharp");
+        MonoBehaviour[] matches = Resources.FindObjectsOfTypeAll(scopeType)
+            .Cast<UnityEngine.Object>()
+            .OfType<MonoBehaviour>()
+            .Where(value => value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy)
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Expected one active loaded DungeonRuntimeLifetimeScope; count="
+                + matches.Length);
+        }
+        return matches[0];
+    }
+
+    private static object Resolve(string fullName, string assemblyName = "Assembly-CSharp")
+    {
+        object container = P(FindScopeHost(), "Container");
+        var resolve = container.GetType().GetMethod(
+            "Resolve", new[] { typeof(Type), typeof(object) });
+        if (resolve == null || !resolve.IsPublic)
+        {
+            throw new InvalidOperationException("Public Resolve(Type, object) is unavailable.");
+        }
+        return resolve.Invoke(container, new object[] { T(fullName, assemblyName), null });
+    }
+
+    private static object FindLoadedComponent(string fullName)
+    {
+        Type type = T(fullName, "Assembly-CSharp");
+        object[] matches = Resources.FindObjectsOfTypeAll(type)
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Where(value => value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy)
+            .Cast<object>()
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Expected one active loaded " + fullName + "; count=" + matches.Length);
+        }
+        return matches[0];
+    }
+
+    private static Button[] ActiveOffenseButtons()
+    {
+        List<Button> buttons = new();
+        foreach (string panelName in new[]
+                 {
+                     "OffenseBattlePanel",
+                     "OffenseExpeditionPanel",
+                     "OffenseWorldMapPanel"
+                 })
+        {
+            Type panelType = T(panelName, "Assembly-CSharp");
+            foreach (Component panel in Resources.FindObjectsOfTypeAll(panelType)
+                         .Cast<UnityEngine.Object>()
+                         .OfType<Component>()
+                         .Where(value => value.gameObject.scene.isLoaded
+                             && value.gameObject.activeInHierarchy))
+            {
+                buttons.AddRange(panel.GetComponentsInChildren<Button>(false));
+            }
+        }
+        return buttons.Where(button => button != null
+                && button.gameObject.activeInHierarchy
+                && button.enabled
+                && button.interactable
+                && button.IsInteractable())
+            .Distinct()
+            .ToArray();
+    }
+
+    private static string Label(Button button)
+    {
+        return button?.GetComponentInChildren<TMP_Text>(true)?.text ?? string.Empty;
+    }
+
+    private static void PointerClick(Button button, string phase)
+    {
+        if (button == null || !button.gameObject.activeInHierarchy
+            || !button.enabled || !button.interactable || !button.IsInteractable()
+            || EventSystem.current == null || !EventSystem.current.isActiveAndEnabled)
+        {
+            throw new InvalidOperationException(
+                "WIM017053_UI_TARGET_MISSING;phase=" + phase
+                + ";button=" + (button == null ? "<null>" : button.name));
+        }
+        PointerEventData pointer = new(EventSystem.current);
+        ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerEnterHandler);
+        ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerDownHandler);
+        ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerUpHandler);
+        ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerClickHandler);
+    }
+
+    private static void ClickByName(string name, string phase)
+    {
+        PointerClick(ActiveOffenseButtons().SingleOrDefault(button =>
+            string.Equals(button.name, name, StringComparison.Ordinal)), phase);
+    }
+
+    private static void ClickExact(string text, string phase)
+    {
+        PointerClick(ActiveOffenseButtons().FirstOrDefault(button =>
+            string.Equals(Label(button), text, StringComparison.Ordinal)), phase);
+    }
+
+    private static void ClickContaining(string text, string phase)
+    {
+        PointerClick(ActiveOffenseButtons().FirstOrDefault(button =>
+            Label(button).Contains(text, StringComparison.Ordinal)), phase);
+    }
+
+    private static Button ExpeditionTopTab()
+    {
+        Type bindingType = T("UITabButtonBinding", "DungeonStory.Presentation");
+        Type tabType = T("TabId", "DungeonStory.Presentation");
+        object expected = Enum.Parse(tabType, "Expedition", false);
+        Button[] matches = Resources.FindObjectsOfTypeAll(bindingType)
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Where(value => value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy
+                && Equals(P(value, "Id"), expected))
+            .Select(value => value.GetComponent<Button>())
+            .Where(value => value != null && value.gameObject.activeInHierarchy)
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Expected one semantic Expedition top tab; count=" + matches.Length);
+        }
+        return matches[0];
+    }
+
+    private static Button ActiveButtonByName(string name)
+    {
+        Button[] matches = Resources.FindObjectsOfTypeAll<Button>()
+            .Where(button => button != null
+                && button.gameObject.scene.isLoaded
+                && button.gameObject.activeInHierarchy
+                && string.Equals(button.name, name, StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Expected one active button " + name + "; count=" + matches.Length);
+        }
+        return matches[0];
+    }
+
+    private static object ProjectId(string value)
+    {
+        return Activator.CreateInstance(
+            T("ResearchProjectId", "DungeonStory.Research"),
+            new object[] { value });
+    }
+
+    private static object FindProject(object runtime, string id)
+    {
+        object catalog = P(runtime, "ProjectCatalog");
+        Type idType = T("ResearchProjectId", "DungeonStory.Research");
+        var method = catalog.GetType().GetMethods().Single(candidate =>
+            candidate.IsPublic && !candidate.IsStatic
+            && string.Equals(candidate.Name, "TryGet", StringComparison.Ordinal)
+            && candidate.GetParameters().Length == 2
+            && candidate.GetParameters()[0].ParameterType == idType
+            && candidate.GetParameters()[1].IsOut);
+        object[] arguments = { ProjectId(id), null };
+        if (!(bool)method.Invoke(catalog, arguments) || arguments[1] == null)
+        {
+            throw new InvalidOperationException("Authored research project missing: " + id);
+        }
+        return arguments[1];
+    }
+
+    private static bool ProjectCompleted(object runtime, string id)
+    {
+        object projects = P(P(runtime, "State"), "Projects");
+        return (bool)InvokePublic(projects, "IsCompleted", ProjectId(id));
+    }
+
+    private static bool ContainsInt(object values, int expected)
+    {
+        return Items(values).Any(value => Convert.ToInt32(value) == expected);
+    }
+
+    private static bool ContainsString(object values, string expected)
+    {
+        return Items(values).Any(value => string.Equals(
+            Convert.ToString(value), expected, StringComparison.Ordinal));
+    }
+
+    private void CompleteResearchFixture()
+    {
+        researchRuntime = FindLoadedComponent("BlueprintResearchRuntime");
+        object state = P(researchRuntime, "State");
+        var completion = researchRuntime.GetType().GetMethods().Single(method =>
+            method.IsPublic && !method.IsStatic
+            && string.Equals(method.Name,
+                "TryCompleteProjectImmediatelyForVerification",
+                StringComparison.Ordinal)
+            && method.GetParameters().Length == 2
+            && method.GetParameters()[0].ParameterType
+                == T("ResearchProjectId", "DungeonStory.Research")
+            && method.GetParameters()[1].IsOut);
+
+        for (int index = 0; index < ProjectIds.Length; index++)
+        {
+            string id = ProjectIds[index];
+            object project = FindProject(researchRuntime, id);
+            string[] declared = Items(P(project, "Prerequisites"))
+                .Select(value => IdValue(P(value, "ProjectId")))
+                .ToArray();
+            if (!declared.SequenceEqual(ExpectedPrerequisites[index],
+                    StringComparer.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "WIM017053_FIXTURE_DECLARED_PREREQUISITE_MISMATCH;project=" + id
+                    + ";expected=" + string.Join(",", ExpectedPrerequisites[index])
+                    + ";actual=" + string.Join(",", declared));
+            }
+            if (Mathf.Abs(Convert.ToSingle(P(project, "RequiredWork"))
+                    - ExpectedWork[index]) > FloatTolerance
+                || Convert.ToInt32(P(project, "MaximumResearchers")) != 1)
+            {
+                throw new InvalidOperationException(
+                    "WIM017053_FIXTURE_AUTHORED_WORK_OR_CAP_MISMATCH;project=" + id);
+            }
+            if (ProjectCompleted(researchRuntime, id))
+            {
+                throw new InvalidOperationException(
+                    "WIM017053_FIXTURE_PROJECT_NOT_FRESH;project=" + id);
+            }
+            foreach (string prerequisite in declared)
+            {
+                if (!ProjectCompleted(researchRuntime, prerequisite))
+                {
+                    throw new InvalidOperationException(
+                        "WIM017053_FIXTURE_PREREQUISITE_NOT_COMPLETED;project=" + id
+                        + ";prerequisite=" + prerequisite);
+                }
+            }
+
+            int[] authoredBuildings = Items(P(project, "Unlocks"))
+                .Where(value => value.GetType().Name == "BlueprintBuildingUnlock")
+                .Select(value => Convert.ToInt32(P(value, "BuildingId")))
+                .ToArray();
+            string[] authoredRecipes = Items(P(project, "Unlocks"))
+                .Where(value => value.GetType().Name == "BlueprintRecipeUnlock")
+                .Select(value => Convert.ToString(F(value, "recipeId")))
+                .ToArray();
+            if (!authoredBuildings.SequenceEqual(ExpectedBuildingUnlocks[index])
+                || !authoredRecipes.SequenceEqual(
+                    ExpectedRecipeUnlocks[index], StringComparer.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "WIM017053_FIXTURE_AUTHORED_UNLOCK_MISMATCH;project=" + id);
+            }
+
+            int blueprintId = Convert.ToInt32(P(project, "BlueprintId"));
+            bool expectsBlueprint = string.Equals(
+                id, "research:survival:support", StringComparison.Ordinal);
+            if ((expectsBlueprint && (blueprintId != 6103
+                    || !string.Equals(Convert.ToString(P(project, "BlueprintRule")),
+                        "Required", StringComparison.Ordinal)))
+                || (!expectsBlueprint && blueprintId != -1))
+            {
+                throw new InvalidOperationException(
+                    "WIM017053_FIXTURE_BLUEPRINT_CONTRACT_MISMATCH;project=" + id
+                    + ";blueprint=" + blueprintId);
+            }
+
+            object[] arguments = { ProjectId(id), string.Empty };
+            bool completed = (bool)completion.Invoke(researchRuntime, arguments);
+            string reason = Convert.ToString(arguments[1]);
+            if (!completed || !string.IsNullOrEmpty(reason)
+                || !ProjectCompleted(researchRuntime, id))
+            {
+                throw new InvalidOperationException(
+                    "WIM017053_FIXTURE_CANONICAL_COMPLETION_FAILED;project=" + id
+                    + ";reason=" + reason);
+            }
+
+            foreach (int buildingId in ExpectedBuildingUnlocks[index])
+            {
+                if (!ContainsInt(P(state, "UnlockedBuildingIds"), buildingId))
+                {
+                    throw new InvalidOperationException(
+                        "WIM017053_FIXTURE_BUILDING_UNLOCK_MISSING;project=" + id
+                        + ";building=" + buildingId);
+                }
+            }
+            foreach (string recipeId in ExpectedRecipeUnlocks[index])
+            {
+                if (!ContainsString(P(state, "UnlockedRecipeIds"), recipeId))
+                {
+                    throw new InvalidOperationException(
+                        "WIM017053_FIXTURE_RECIPE_UNLOCK_MISSING;project=" + id
+                        + ";recipe=" + recipeId);
+                }
+            }
+            if (expectsBlueprint
+                && !ContainsInt(P(state, "CompletedBlueprintIds"), 6103))
+            {
+                throw new InvalidOperationException(
+                    "WIM017053_FIXTURE_BLUEPRINT6103_COMPLETION_MISSING.");
+            }
+            fixtureRows.Add(id + "{prerequisites=" + string.Join(",", declared)
+                + ";work=" + ExpectedWork[index]
+                + ";max=1;blueprint=" + blueprintId
+                + ";buildings=" + string.Join(",", authoredBuildings)
+                + ";recipes=" + string.Join(",", authoredRecipes) + "}");
+        }
+    }
+
+    private bool SelectPreparedEntry()
+    {
+        researchRuntime = FindLoadedComponent("BlueprintResearchRuntime");
+        bool[] completed = ProjectIds
+            .Select(id => ProjectCompleted(researchRuntime, id))
+            .ToArray();
+        if (completed.Any(value => value) && completed.Any(value => !value))
+        {
+            throw new InvalidOperationException(
+                "WIM017053_MIXED_RESEARCH_FIXTURE_STATE;completed="
+                + string.Join(",", ProjectIds.Where((_, index) => completed[index])));
+        }
+        return completed.All(value => value);
+    }
+
+    private void ValidatePreparedResumeResearch()
+    {
+        object state = P(researchRuntime, "State");
+        for (int index = 0; index < ProjectIds.Length; index++)
+        {
+            string id = ProjectIds[index];
+            if (!ProjectCompleted(researchRuntime, id))
+            {
+                throw new InvalidOperationException(
+                    "WIM017053_RESUME_PROJECT_MISSING;project=" + id);
+            }
+            foreach (int buildingId in ExpectedBuildingUnlocks[index])
+            {
+                if (!ContainsInt(P(state, "UnlockedBuildingIds"), buildingId))
+                {
+                    throw new InvalidOperationException(
+                        "WIM017053_RESUME_BUILDING_UNLOCK_MISSING;project=" + id
+                        + ";building=" + buildingId);
+                }
+            }
+            foreach (string recipeId in ExpectedRecipeUnlocks[index])
+            {
+                if (!ContainsString(P(state, "UnlockedRecipeIds"), recipeId))
+                {
+                    throw new InvalidOperationException(
+                        "WIM017053_RESUME_RECIPE_UNLOCK_MISSING;project=" + id
+                        + ";recipe=" + recipeId);
+                }
+            }
+        }
+        if (!ContainsInt(P(state, "CompletedBlueprintIds"), 6103)
+            || !(bool)InvokeStatic(
+                T("OffenseExpeditionAccessRules", "Assembly-CSharp"),
+                "IsUnlocked", state))
+        {
+            throw new InvalidOperationException(
+                "WIM017053_RESUME_BLUEPRINT_OR_ACCESS_QUERY_MISSING.");
+        }
+        fixtureRows.Clear();
+        fixtureRows.Add("RESUME_PREPARED{projects=5;blueprint=6103;access=true}");
+    }
+
+    private void ResolveJourneyAuthorities()
+    {
+        expeditionRuntime = FindLoadedComponent("OffenseExpeditionRuntime");
+        rewardRuntime = FindLoadedComponent("OffenseRewardRuntime");
+        offenseQuery = Resolve("IOffenseQuery");
+        panels = Resolve("IOffensePanelService");
+        world = Resolve("IOffenseWorldSimulation");
+        targets = Resolve("IOffenseStrategicTargetService");
+        preparation = Resolve("IOffensePreparationService");
+        travel = Resolve("IOffenseTravelRuntime");
+        decisions = Resolve("IOffenseDecisionRuntime");
+        battle = Resolve("IOffenseBattleRuntime");
+        director = Resolve("IOffenseBattleDirector");
+        returnArrivals = Resolve("IOffenseReturnArrivalRuntime");
+        gameClock = Resolve(
+            "DungeonStory.Foundation.IGameClock", "DungeonStory.Foundation");
+    }
+
+    private static string ActorId(object actor)
+    {
+        object identity = P(actor, "Identity");
+        return identity == null ? string.Empty : Convert.ToString(P(identity, "PersistentId"));
+    }
+
+    private static string ActorName(object actor)
+    {
+        object identity = P(actor, "Identity");
+        return identity == null ? string.Empty : Convert.ToString(P(identity, "DisplayName"));
+    }
+
+    private object[] ActiveAvailableActors()
+    {
+        return Items(InvokePublic(expeditionRuntime, "GetAvailableMemberActors"))
+            .Where(actor => string.Equals(
+                Convert.ToString(P(actor, "CurrentLifecycleState")),
+                "Active", StringComparison.Ordinal)
+                && !string.IsNullOrWhiteSpace(ActorId(actor)))
+            .Take(5)
+            .ToArray();
+    }
+
+    private const bool LossArrivalScenario = true;
+    private string lossActorId = string.Empty;
+    private string lossInstanceId = string.Empty;
+    private string lossItemId = string.Empty;
+    private bool deathLossObserved;
+    private string[] completedEnemyIds = Array.Empty<string>();
+    private bool casualtyRoundtripObserved;
+    private bool escapeObserved;
+    private string escapedArrivalFingerprint = string.Empty;
+
+    private static void SetFixtureField(object fixture, string name, object value)
+    {
+        var field = fixture.GetType().GetField(name);
+        if (field == null || !field.IsPublic)
+            throw new InvalidOperationException("WIM053_FIXTURE_PUBLIC_FIELD_MISSING:" + name);
+        field.SetValue(fixture, value);
+    }
+
+    private void PrepareConvoyFixture()
+    {
+        if (Items(P(world, "Sites")).Any(site => (bool)P(site, "IsActive")
+                && string.Equals(Convert.ToString(F(site, "archetypeId")), "prisoner_convoy",
+                    StringComparison.Ordinal)
+                && string.Equals(Convert.ToString(F(site, "state")), "Revealed",
+                    StringComparison.Ordinal))) return;
+        object authored = Resources.Load("SO/Offense/Sites/prisoner_convoy",
+            T("OffenseSiteArchetypeSO", "DungeonStory.Offense"));
+        if (authored == null) throw new InvalidOperationException("WIM053_AUTHORED_CONVOY_MISSING.");
+        object dungeon = P(world, "DungeonCoord");
+        var occupied = Items(P(world, "Sites")).Where(site => (bool)P(site, "IsActive")).ToArray();
+        object tile = Items(P(world, "Tiles"))
+            .Where(value => !(bool)F(value, "blocked")
+                && Convert.ToInt32(InvokePublic(world, "GetMinimumStepDistance",
+                    dungeon, P(value, "Coord"))) > 0
+                && !occupied.Any(site => Convert.ToInt32(F(site, "q")) == Convert.ToInt32(F(value, "q"))
+                    && Convert.ToInt32(F(site, "r")) == Convert.ToInt32(F(value, "r"))))
+            .OrderBy(value => Convert.ToInt32(InvokePublic(world, "GetMinimumStepDistance",
+                dungeon, P(value, "Coord"))))
+            .ThenBy(value => Convert.ToInt32(F(value, "q")))
+            .ThenBy(value => Convert.ToInt32(F(value, "r"))).FirstOrDefault();
+        if (tile == null) throw new InvalidOperationException("WIM053_FREE_CONVOY_HEX_MISSING.");
+        object fixture = Activator.CreateInstance(T("OffenseWorldSiteStateData", "Assembly-CSharp"));
+        SetFixtureField(fixture, "siteId", "wim053:receipt-convoy");
+        foreach (string name in new[] { "displayName", "factionId", "pressureAxis", "pressureAmount" })
+            SetFixtureField(fixture, name, F(authored, name));
+        SetFixtureField(fixture, "archetypeId", F(authored, "siteTypeId"));
+        SetFixtureField(fixture, "q", F(tile, "q"));
+        SetFixtureField(fixture, "r", F(tile, "r"));
+        SetFixtureField(fixture, "regionId", F(tile, "regionId"));
+        SetFixtureField(fixture, "strength", F(authored, "minimumStrength"));
+        int day = Convert.ToInt32(P(world, "WorldDay"));
+        SetFixtureField(fixture, "createdDay", day);
+        SetFixtureField(fixture, "expiresDay", day + Convert.ToInt32(F(authored, "maximumLifetimeDays")));
+        SetFixtureField(fixture, "state", Enum.Parse(T("OffenseWorldSiteState", "Assembly-CSharp"), "Revealed"));
+        if (!(bool)InvokePublic(world, "TryRegisterStrategicSite", fixture))
+            throw new InvalidOperationException("WIM053_CONVOY_REGISTRATION_FAILED.");
+        Debug.Log("WIM053_CONVOY_FIXTURE;site=wim053:receipt-convoy;strength="
+            + F(fixture, "strength") + ";q=" + F(tile, "q") + ";r=" + F(tile, "r")
+            + ";naturalDiscoveryEvidence=false");
+    }
+
+    private IEnumerator PrepareLossEquipment(object[] actors)
+    {
+        if (actors.Length < 2) throw new InvalidOperationException("WIM053_SURVIVOR_AND_SUBJECT_REQUIRED.");
+        object actor = actors.OrderBy(ActorId, StringComparer.Ordinal).First();
+        lossActorId = ActorId(actor);
+        if (!lossActorId.StartsWith("character:staff:", StringComparison.Ordinal))
+            throw new InvalidOperationException("WIM053_NONOWNER_STAFF_REQUIRED.");
+        object equipment = Resolve("ICombatEquipmentRuntime");
+        object quality = Enum.Parse(T("CombatEquipmentQuality", "DungeonStory.Combat"), "Normal");
+        object instance = InvokePublic(equipment, "CreateExternalInstance", "weapon:dagger", quality, "");
+        lossInstanceId = Convert.ToString(F(instance, "instanceId"));
+        object[] definitionArgs = { "weapon:dagger", null };
+        if (!(bool)InvokePublic(equipment, "TryGetDefinition", definitionArgs))
+            throw new InvalidOperationException("WIM053_DAGGER_DEFINITION_MISSING.");
+        lossItemId = Convert.ToString(P(definitionArgs[1], "ItemId"));
+        object[] dropoffArgs = { Vector2Int.zero };
+        if (!(bool)InvokePublic(Resolve("IWorldDropZoneQuery"), "TryGetDeliveryDropoff", dropoffArgs))
+            throw new InvalidOperationException("WIM053_PHYSICAL_GEAR_DROPOFF_MISSING.");
+        object[] dropArgs = { lossInstanceId, dropoffArgs[0], null, null };
+        if (!(bool)InvokePublic(equipment, "TryDropExistingEquipmentToWorld", dropArgs))
+            throw new InvalidOperationException("WIM053_GEAR_PHYSICAL_SOURCE_FAILED:" + dropArgs[3]);
+        object physicalItems = Resolve("IWorldItemStackRuntime");
+        string looseStackId = Convert.ToString(dropArgs[2]);
+        if (!(bool)InvokePublic(physicalItems, "PrioritizeHaul", looseStackId))
+            throw new InvalidOperationException("WIM053_GEAR_NORMAL_HAUL_PRIORITY_REJECTED:" + looseStackId);
+        float storedDeadline = Time.realtimeSinceStartup + 45f;
+        bool stored = false;
+        Time.timeScale = 1f;
+        while (Time.realtimeSinceStartup < storedDeadline)
+        {
+            yield return null;
+            object exactStack = Items(InvokePublic(physicalItems, "GetAllStacks")).SingleOrDefault(value =>
+                string.Equals(Convert.ToString(P(value, "ItemInstanceId")), lossInstanceId, StringComparison.Ordinal));
+            object[] storedArgs = { lossInstanceId, null };
+            stored = exactStack != null
+                && string.Equals(Convert.ToString(P(exactStack, "State")), "Stored", StringComparison.Ordinal)
+                && (bool)InvokePublic(equipment, "TryGetInstance", storedArgs)
+                && string.Equals(Convert.ToString(F(storedArgs[1], "worldState")), "Stored", StringComparison.Ordinal);
+            if (stored) break;
+        }
+        Time.timeScale = 0f;
+        if (!stored) throw new InvalidOperationException("WIM053_GEAR_NORMAL_HAUL_NOT_STORED:" + looseStackId);
+        Debug.Log("WIM053_LOSS_GEAR_STORED;sourceStack=" + looseStackId + ";instance=" + lossInstanceId
+            + ";physicalAndEquipmentJoin=Stored;normalHaul=true");
+        InvokePublic(expeditionRuntime, "ShowExpeditionPanel");
+        yield return null;
+        ClickContaining(ActorName(actor), "loss-equipment-member");
+        yield return null;
+        int count = Convert.ToInt32(InvokePublic(expeditionRuntime, "GetAvailableEquipmentCount", "weapon:dagger"));
+        string label = "무기 장착: " + P(definitionArgs[1], "DisplayName") + " x" + count;
+        ClickExact(label, "loss-equipment-pickup-request");
+        float until = Time.realtimeSinceStartup + 30f;
+        Time.timeScale = 1f;
+        bool equipped = false;
+        while (Time.realtimeSinceStartup < until)
+        {
+            yield return null;
+            object profile = InvokePublic(equipment, "GetActiveProfileSnapshot", lossActorId);
+            equipped = profile != null && string.Equals(Convert.ToString(F(profile, "activeWeaponInstanceId")),
+                lossInstanceId, StringComparison.Ordinal);
+            if (equipped) break;
+        }
+        Time.timeScale = 0f;
+        if (!equipped) throw new InvalidOperationException("WIM053_ACTUAL_GEAR_PICKUP_NOT_COMPLETED.");
+        Component carry = ((Component)actor).GetComponent(T("CharacterCarryInventory", "Assembly-CSharp"));
+        object[] assignedArgs = { lossInstanceId, null };
+        if (carry == null
+            || Items(P(carry, "Items")).Any(row => Convert.ToString(F(row, "itemInstanceId")) == lossInstanceId)
+            || Items(InvokePublic(physicalItems, "GetAllStacks")).Any(row =>
+                Convert.ToString(P(row, "ItemInstanceId")) == lossInstanceId)
+            || !(bool)InvokePublic(equipment, "TryGetInstance", assignedArgs)
+            || Convert.ToString(F(assignedArgs[1], "worldState")) != "Equipped"
+            || Convert.ToString(F(assignedArgs[1], "ownerCharacterId")) != lossActorId
+            || !string.IsNullOrEmpty(Convert.ToString(F(assignedArgs[1], "sourceStackId"))))
+            throw new InvalidOperationException("WIM053_EQUIP_PICKUP_DID_NOT_TRANSFER_EXACT_PHYSICAL_CUSTODY");
+        Debug.Log("WIM053_ACTUAL_EQUIP_CUSTODY_PASS;actor=" + lossActorId
+            + ";instance=" + lossInstanceId + ";physicalStacks=0;carryEntries=0;uniqueState=Equipped");
+        ClickExact("닫기", "loss-equipment-panel-close");
+        yield return null;
+        Debug.Log("WIM053_LOSS_GEAR_EQUIPPED;actor=" + lossActorId + ";instance=" + lossInstanceId
+            + ";item=" + lossItemId + ";physicalPickup=true;normalCraftEvidence=false");
+    }
+
+    private void ApplyPostBattleDeathFixture(object expedition)
+    {
+        if (Items(P(expedition, "EquipmentBaselines")).Count(value =>
+                string.Equals(Convert.ToString(P(value, "InstanceId")), lossInstanceId, StringComparison.Ordinal)) != 1)
+            throw new InvalidOperationException("WIM053_LOSS_INSTANCE_NOT_IN_LAUNCH_BASELINE.");
+        object[] members = Items(P(expedition, "MemberActors")).ToArray();
+        object actor = members.SingleOrDefault(value =>
+            string.Equals(ActorId(value), lossActorId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("WIM053_BASELINED_MEMBER_MISSING_AFTER_BATTLE.");
+        object[] living = members.Where(value => !(bool)P(value, "IsDead")).ToArray();
+        object equipment = Resolve("ICombatEquipmentRuntime");
+        object[] currentArgs = { lossInstanceId, null };
+        if (!(bool)InvokePublic(equipment, "TryGetInstance", currentArgs))
+            throw new InvalidOperationException("WIM053_BASELINED_GEAR_MISSING_AFTER_BATTLE.");
+        if ((bool)P(actor, "IsDead"))
+        {
+            if (living.Length == 0
+                || !string.Equals(Convert.ToString(F(currentArgs[1], "worldState")), "Lost", StringComparison.Ordinal))
+                throw new InvalidOperationException("WIM053_PREEXISTING_DEATH_WITHOUT_SURVIVOR_OR_EXACT_GEAR_LOSS.");
+            deathLossObserved = true;
+            Debug.Log("WIM053_ACTUAL_DEATH_GEAR_LOSS;actor=" + lossActorId
+                + ";instance=" + lossInstanceId + ";worldState=Lost"
+                + ";alreadyDeadAfterBattle=true;additionalDamageApplied=false;naturalDeathCauseNotAsserted=true");
+            return;
+        }
+        if (living.Length < 2) throw new InvalidOperationException("WIM053_NO_SURVIVOR_FOR_DEATH_FIXTURE.");
+        if (!string.Equals(Convert.ToString(F(currentArgs[1], "worldState")), "Equipped", StringComparison.Ordinal))
+            throw new InvalidOperationException("WIM053_BASELINED_GEAR_NOT_EQUIPPED_BEFORE_DEATH.");
+        object anatomy = Resolve("IAnatomyHealthRuntime");
+        object snapshot = InvokeActorQuery(anatomy, "GetAnatomySnapshot", actor);
+        object[] profileArgs = { Convert.ToString(P(snapshot, "ProfileId")), null };
+        if (!(bool)InvokePublic(Resolve("IAnatomyProfileCatalog", "DungeonStory.Medical"), "TryGet", profileArgs))
+            throw new InvalidOperationException("WIM053_CURRENT_ANATOMY_PROFILE_MISSING.");
+        object profile = profileArgs[1];
+        object vital = Items(P(snapshot, "Nodes")).FirstOrDefault(node => {
+            object[] args = { Convert.ToString(F(node, "nodeId")), null };
+            return !(bool)F(node, "missing") && Convert.ToSingle(F(node, "currentHealth")) > 0f
+                && (bool)InvokePublic(profile, "TryGetNode", args) && (bool)P(args[1], "Vital");
+        });
+        if (vital == null) throw new InvalidOperationException("WIM053_LIVE_VITAL_NODE_MISSING.");
+        string nodeId = Convert.ToString(F(vital, "nodeId"));
+        Debug.Log("WIM053_BEFORE_VITAL_DAMAGE;actor=" + lossActorId + ";profile=" + P(snapshot, "ProfileId")
+            + ";node=" + nodeId + ";health=" + F(vital, "currentHealth")
+            + ";lifecycle=" + P(actor, "CurrentLifecycleState") + ";battleOutcome=" + observedBattleOutcome);
+        if (!(bool)InvokePublic(anatomy, "TryDamageNode", actor, nodeId,
+                Convert.ToSingle(F(vital, "currentHealth")), 0f, "WIM053 protected member death fixture"))
+            throw new InvalidOperationException("WIM053_VITAL_DAMAGE_COMMAND_REJECTED.");
+        currentArgs = new object[] { lossInstanceId, null };
+        if (!(bool)P(actor, "IsDead") || !(bool)InvokePublic(equipment, "TryGetInstance", currentArgs)
+            || !string.Equals(Convert.ToString(F(currentArgs[1], "worldState")), "Lost", StringComparison.Ordinal)
+            || living.Where(value => !string.Equals(ActorId(value), lossActorId, StringComparison.Ordinal))
+                .All(value => (bool)P(value, "IsDead")))
+            throw new InvalidOperationException("WIM053_DEATH_EVENT_GEAR_LOSS_NOT_COMMITTED.");
+        deathLossObserved = true;
+        Debug.Log("WIM053_ACTUAL_DEATH_GEAR_LOSS;actor=" + lossActorId + ";node=" + nodeId
+            + ";instance=" + lossInstanceId + ";worldState=Lost;naturalDeathEvidence=false");
+    }
+
+    private string ActiveCasualtyFingerprint(object captured)
+    {
+        object run = FindActiveExpedition(expeditionId)
+            ?? throw new InvalidOperationException("WIM053_CASUALTY_ACTIVE_RUN_MISSING");
+        object[] members = Items(P(run, "MemberActors")).ToArray();
+        object casualty = members.Single(value => ActorId(value) == lossActorId);
+        if (!(bool)P(casualty, "IsDead") || members.All(value => (bool)P(value, "IsDead"))
+            || Items(P(run, "EquipmentBaselines")).Count(value =>
+                Convert.ToString(P(value, "InstanceId")) == lossInstanceId) != 1)
+            throw new InvalidOperationException("WIM053_CASUALTY_OR_SURVIVOR_BASELINE_CHANGED");
+        object equipment = Resolve("ICombatEquipmentRuntime");
+        object[] instanceArgs = { lossInstanceId, null };
+        if (!(bool)InvokePublic(equipment, "TryGetInstance", instanceArgs)
+            || Convert.ToString(F(instanceArgs[1], "worldState")) != "Lost")
+            throw new InvalidOperationException("WIM053_CASUALTY_EXACT_LOST_INSTANCE_CHANGED");
+        object equipmentSave = InvokePublic(equipment, "Capture");
+        if (completedEnemyIds.Length == 0 || Items(F(equipmentSave, "loadouts")).Any(row =>
+                completedEnemyIds.Contains(Convert.ToString(F(row, "characterId")), StringComparer.Ordinal)))
+            throw new InvalidOperationException("WIM053_COMPLETED_ENEMY_LOADOUT_NOT_RETIRED");
+        string[] recoveredIds = Items(P(run, "RecoveredEquipmentInstanceIds"))
+            .Select(Convert.ToString).OrderBy(id => id, StringComparer.Ordinal).ToArray();
+        if (recoveredIds.Length == 0 || recoveredIds.Distinct(StringComparer.Ordinal).Count() != recoveredIds.Length)
+            throw new InvalidOperationException("WIM053_ACTUAL_RECOVERED_EQUIPMENT_NOT_OBSERVED");
+        object[] physical = Items(InvokePublic(Resolve("IWorldItemStackRuntime"), "GetAllStacks")).ToArray();
+        var recoveredRows = new List<string>();
+        foreach (string id in recoveredIds)
+        {
+            object[] pendingArgs = { id, null };
+            if (!(bool)InvokePublic(equipment, "TryGetInstance", pendingArgs)
+                || Convert.ToString(F(pendingArgs[1], "worldState")) != "ExpeditionPacked"
+                || !string.IsNullOrEmpty(Convert.ToString(F(pendingArgs[1], "ownerCharacterId")))
+                || !string.IsNullOrEmpty(Convert.ToString(F(pendingArgs[1], "sourceStackId")))
+                || physical.Any(stack => Convert.ToString(P(stack, "ItemInstanceId")) == id))
+                throw new InvalidOperationException("WIM053_PENDING_RECOVERED_CUSTODY_INVALID:" + id);
+            recoveredRows.Add(id + ":" + JsonUtility.ToJson(pendingArgs[1]));
+        }
+        object section = Items(F(captured, "sections")).Single(row =>
+            Convert.ToString(F(row, "sectionId")) == "characters.world");
+        object savedWorld = JsonUtility.FromJson(Convert.ToString(F(section, "payloadJson")),
+            T("DungeonCharacterWorldSaveData", "Assembly-CSharp"));
+        var rows = new List<string>();
+        foreach (object member in Items(P(run, "MemberStates")).OrderBy(
+                     value => ActorId(P(value, "Actor")), StringComparer.Ordinal))
+        {
+            object actor = P(member, "Actor");
+            string id = ActorId(actor);
+            object saved = Items(F(savedWorld, "actors")).Single(row =>
+                Convert.ToString(F(row, "persistentId")) == id);
+            if (Convert.ToString(F(saved, "lifecycleState")) != Convert.ToString(P(actor, "CurrentLifecycleState")))
+                throw new InvalidOperationException("WIM053_CASUALTY_SAVED_LIFECYCLE_MISMATCH:" + id);
+            rows.Add(id + ":" + P(actor, "CurrentLifecycleState") + ":" + P(member, "IsAlive")
+                + ":" + P(member, "Formation") + ":" + P(member, "Stress") + ":" + P(member, "TotalDamageTaken")
+                + ":" + F(saved, "currentHealth") + ":" + F(saved, "injurySeverity")
+                + ":" + JsonUtility.ToJson(F(saved, "carryInventory")));
+        }
+        return string.Join("|", rows) + "|lost=" + JsonUtility.ToJson(instanceArgs[1])
+            + "|equipment=" + JsonUtility.ToJson(equipmentSave)
+            + "|pendingRecovered=" + string.Join("|", recoveredRows);
+    }
+
+    private static string CasualtySectionFingerprint(object captured)
+    {
+        return string.Join("|", Items(F(captured, "sections"))
+            .OrderBy(row => Convert.ToString(F(row, "sectionId")), StringComparer.Ordinal)
+            .Select(row => JsonUtility.ToJson(row)));
+    }
+
+    private void VerifyLivingTombstoneRejected(object saves, object captured, string validJson)
+    {
+        string before = CasualtySectionFingerprint(captured);
+        int events = rewardEventIds.Count;
+        object invalid = InvokePublic(saves, "FromJson", validJson);
+        object envelope = Items(F(invalid, "sections")).Single(row =>
+            Convert.ToString(F(row, "sectionId")) == "characters.world");
+        object worldCopy = JsonUtility.FromJson(Convert.ToString(F(envelope, "payloadJson")),
+            T("DungeonCharacterWorldSaveData", "Assembly-CSharp"));
+        object casualtyCopy = Items(F(worldCopy, "actors")).Single(row =>
+            Convert.ToString(F(row, "persistentId")) == lossActorId);
+        if (Convert.ToString(F(casualtyCopy, "lifecycleState")) != "Despawned"
+            || Convert.ToSingle(F(casualtyCopy, "currentHealth")) > 0f)
+            throw new InvalidOperationException("WIM053_NEGATIVE_REQUIRES_ACTUAL_SAVED_CASUALTY");
+        var lifecycleField = casualtyCopy.GetType().GetField("lifecycleState");
+        lifecycleField.SetValue(casualtyCopy, Enum.Parse(lifecycleField.FieldType, "Active", false));
+        casualtyCopy.GetType().GetField("currentHealth").SetValue(casualtyCopy, 1f);
+        envelope.GetType().GetField("payloadJson").SetValue(envelope, JsonUtility.ToJson(worldCopy));
+        object[] args = { invalid, null };
+        bool accepted;
+        try { accepted = (bool)InvokePublic(saves, "TryRestore", args); }
+        finally { Time.timeScale = 0f; }
+        string expected = "Character '" + lossActorId + "' is both living and archived as a tombstone.";
+        if (accepted || args[1] == null || (bool)P(args[1], "Success")
+            || !Items(P(args[1], "Errors")).Any(error =>
+                string.Equals(Convert.ToString(error), expected, StringComparison.Ordinal)))
+            throw new InvalidOperationException("WIM053_LIVING_TOMBSTONE_ACCEPTED_OR_WRONG_REJECTION;"
+                + (args[1] == null ? "no-report" : string.Join("|", Items(P(args[1], "Errors")).Select(Convert.ToString))));
+        // No yield: a rejected restore must not publish any section or reward change.
+        // Ordinary wildlife RNG may advance on a player frame even at timeScale zero.
+        object unchanged = InvokePublic(saves, "Capture");
+        if (!string.Equals(before, CasualtySectionFingerprint(unchanged), StringComparison.Ordinal)
+            || rewardEventIds.Count != events)
+            throw new InvalidOperationException("WIM053_LIVING_TOMBSTONE_REJECT_CHANGED_LIVE_STATE");
+        Debug.Log("WIM053_LIVING_TOMBSTONE_REJECTED_ATOMIC;actor=" + lossActorId
+            + ";allSectionsExact=true;rewardEventsUnchanged=true;scope=synchronous-public-restore");
+    }
+
+    private IEnumerator VerifyActiveCasualtyRoundtrip()
+    {
+        float previousScale = Time.timeScale;
+        Time.timeScale = 0f;
+        try
+        {
+            yield return null; // Complete real battle cleanup before capturing its owners.
+            ResolveJourneyAuthorities();
+            if ((bool)P(battle, "HasActiveBattle"))
+                throw new InvalidOperationException("WIM053_CASUALTY_BATTLE_NOT_COMPLETE");
+            object saves = Resolve("IDungeonGameSaveService", "DungeonStory.Infrastructure");
+            object captured = InvokePublic(saves, "Capture");
+            string before = ActiveCasualtyFingerprint(captured);
+            string offenseBefore = CaptureOffenseJson();
+            int events = rewardEventIds.Count;
+            string json = Convert.ToString(InvokePublic(saves, "ToJson", captured, false));
+            VerifyLivingTombstoneRejected(saves, captured, json);
+            object[] args = { InvokePublic(saves, "FromJson", json), null };
+            bool restored;
+            try { restored = (bool)InvokePublic(saves, "TryRestore", args); }
+            finally { Time.timeScale = 0f; }
+            if (!restored || args[1] == null || !(bool)P(args[1], "Success"))
+                throw new InvalidOperationException("WIM053_ACTIVE_CASUALTY_FULLSAVE_FAILED;"
+                    + (args[1] == null ? "no-report" : string.Join("|", Items(P(args[1], "Errors")).Select(Convert.ToString))));
+            yield return null;
+            ResolveJourneyAuthorities();
+            object recaptured = InvokePublic(Resolve("IDungeonGameSaveService", "DungeonStory.Infrastructure"), "Capture");
+            if (!string.Equals(before, ActiveCasualtyFingerprint(recaptured), StringComparison.Ordinal)
+                || !string.Equals(offenseBefore, CaptureOffenseJson(), StringComparison.Ordinal)
+                || rewardEventIds.Count != events)
+                throw new InvalidOperationException("WIM053_ACTIVE_CASUALTY_RESTORE_CHANGED_STATE_OR_REGRANTED");
+            casualtyRoundtripObserved = true;
+            Debug.Log("WIM053_ACTIVE_CASUALTY_FULLSAVE_PASS;expedition=" + expeditionId
+                + ";actor=" + lossActorId + ";lostInstance=" + lossInstanceId
+                + ";memberStatesExact=true;survivorPreserved=true;enemyLoadouts=0;offenseExact=true;rewardEventsUnchanged=true");
+            Debug.Log("WIM053_PENDING_RECOVERED_FULLSAVE_PASS;expedition=" + expeditionId
+                + ";runOwned=true;state=ExpeditionPacked;physicalStacks=0;exactUniqueRoundtrip=true");
+        }
+        finally { Time.timeScale = previousScale; }
+    }
+
+    private IEnumerator ObserveUncontainedArrival()
+    {
+        float until = Time.realtimeSinceStartup + 170f;
+        Time.timeScale = 1f;
+        bool physicalObserved = false;
+        float nextPresenceCheck = 0f;
+        while (Time.realtimeSinceStartup < until)
+        {
+            object[] rows = Items(P(returnArrivals, "Arrivals")).Where(row =>
+                string.Equals(Convert.ToString(F(row, "expeditionId")), expeditionId, StringComparison.Ordinal)).ToArray();
+            foreach (object row in rows)
+            {
+                var ids = Items(F(row, "materializedIds")).Select(Convert.ToString).ToArray();
+                if (!physicalObserved && ids.Length > 0)
+                {
+                    var live = Resources.FindObjectsOfTypeAll(T("CharacterActor", "Assembly-CSharp"))
+                        .OfType<Component>().Where(actor => actor.gameObject.scene.isLoaded).ToArray();
+                    if (ids.All(id => live.Any(actor => string.Equals(ActorId(actor), id, StringComparison.Ordinal)
+                            && !(bool)P(actor, "IsDead"))))
+                    {
+                        physicalObserved = true;
+                        Debug.Log("WIM053_REAL_PRISONER_ARRIVAL;expedition=" + expeditionId
+                            + ";arrival=" + F(row, "arrivalId") + ";actors=" + string.Join(",", ids));
+                    }
+                }
+            }
+            var receipts = Items(InvokePublic(returnArrivals, "GetSettlementReceipts", expeditionId));
+            if (receipts.Count > 0 && receipts.All(value =>
+                    !string.Equals(Convert.ToString(P(value, "resolution")), "Pending", StringComparison.Ordinal)))
+            {
+                if (!physicalObserved || receipts.Any(value =>
+                        Convert.ToInt32(P(value, "materializedAmount")) <= 0
+                        || Convert.ToInt32(P(value, "escapedAmount")) != Convert.ToInt32(P(value, "materializedAmount"))
+                        || Convert.ToInt32(P(value, "securedAmount")) != 0))
+                    throw new InvalidOperationException("WIM053_EXPECTED_UNCONTAINED_ESCAPE_NOT_OBSERVED.");
+                escapedArrivalFingerprint = ArrivalFingerprint(receipts);
+                escapeObserved = true;
+                Debug.Log("WIM053_ACTUAL_ARRIVAL_ESCAPE;" + escapedArrivalFingerprint);
+                Time.timeScale = 0f;
+                yield break;
+            }
+            // Check after terminal receipts: legitimate escape destroys the actor
+            // and publishes its receipt synchronously. A missing pending actor is
+            // already a failed fixture and must not consume the entire deadline.
+            if (physicalObserved && Time.realtimeSinceStartup >= nextPresenceCheck)
+            {
+                nextPresenceCheck = Time.realtimeSinceStartup + 0.5f;
+                var live = Resources.FindObjectsOfTypeAll(T("CharacterActor", "Assembly-CSharp"))
+                    .OfType<Component>().Where(actor => actor.gameObject.scene.isLoaded).ToArray();
+                foreach (object row in rows)
+                {
+                    var escaped = Items(F(row, "escapedIds")).Select(Convert.ToString).ToArray();
+                    foreach (string id in Items(F(row, "materializedIds")).Select(Convert.ToString)
+                                 .Where(id => !escaped.Contains(id, StringComparer.Ordinal)))
+                    {
+                        Component actor = live.SingleOrDefault(value =>
+                            string.Equals(ActorId(value), id, StringComparison.Ordinal));
+                        if (actor == null || (bool)P(actor, "IsDead"))
+                            throw new InvalidOperationException("WIM053_PENDING_ARRIVAL_SUBJECT_LOST;actor=" + id
+                                + ";missing=" + (actor == null) + ";unityTime=" + Time.time
+                                + ";risk=" + F(row, "escapeRisk") + ";status=" + F(row, "lastStatus"));
+                    }
+                }
+            }
+            yield return null;
+        }
+        Time.timeScale = 0f;
+        throw new InvalidOperationException("WIM053_ARRIVAL_ESCAPE_DEADLINE;");
+    }
+
+    private object SelectTarget(object[] availableActors, out object site)
+    {
+        foreach (object candidateSite in Items(P(world, "Sites"))
+                     .Where(value => (bool)P(value, "IsActive")
+                         && (!LossArrivalScenario || string.Equals(Convert.ToString(F(value, "archetypeId")),
+                             "prisoner_convoy", StringComparison.Ordinal))
+                         && string.Equals(Convert.ToString(F(value, "state")),
+                             "Revealed", StringComparison.Ordinal))
+                     .OrderBy(value => Convert.ToSingle(F(value, "strength")))
+                     .ThenBy(value => Convert.ToString(F(value, "siteId")),
+                         StringComparer.Ordinal))
+        {
+            object[] arguments =
+            {
+                Convert.ToString(F(candidateSite, "siteId")),
+                null,
+                Activator.CreateInstance(
+                    T("OffenseHexCoord", "DungeonStory.Foundation"))
+            };
+            bool created = (bool)InvokePublic(targets, "TryCreateTarget", arguments);
+            object candidateTarget = arguments[1];
+            if (created && candidateTarget != null
+                && availableActors.Length >= Convert.ToInt32(F(candidateTarget, "requiredMembers")))
+            {
+                site = candidateSite;
+                return candidateTarget;
+            }
+        }
+        site = null;
+        return null;
+    }
+
+    private int AvailableRations(out int capacity)
+    {
+        object snapshot = InvokePublic(preparation, "Evaluate");
+        object rationType = Enum.Parse(
+            T("OffenseSupplyType", "DungeonStory.Offense"), "Rations", false);
+        int available = Convert.ToInt32(
+            InvokePublic(snapshot, "GetAvailable", rationType));
+        capacity = Convert.ToInt32(P(P(snapshot, "Preparation"), "SupplyCapacity"));
+        return available;
+    }
+
+    private static string RationDisplayName()
+    {
+        object rationType = Enum.Parse(
+            T("OffenseSupplyType", "DungeonStory.Offense"), "Rations", false);
+        return Convert.ToString(InvokeStatic(
+            T("OffenseSupplyCatalog", "Assembly-CSharp"),
+            "GetDisplayName", rationType));
+    }
+
+    private int PreparePhysicalMedicineFixture()
+    {
+        object medicineType = Enum.Parse(
+            T("OffenseSupplyType", "DungeonStory.Offense"), "Medicine", false);
+        object snapshot = InvokePublic(preparation, "Evaluate");
+        int available = Convert.ToInt32(InvokePublic(snapshot, "GetAvailable", medicineType));
+        if (Convert.ToInt32(P(P(snapshot, "Preparation"), "SupplyCapacity")) < 2)
+            throw new InvalidOperationException("WIM053_FIXTURE_SUPPLY_CAPACITY_BELOW_TWO.");
+        int spawned = 0;
+        if (available < 1)
+        {
+            object stacks = Resolve("IWorldItemStackRuntime");
+            object[] arguments = { "medicine:standard", 1, "WIM053 physical medicine fixture", 0 };
+            bool published = (bool)InvokePublic(stacks, "SpawnItemAtDropoff", arguments);
+            spawned = Convert.ToInt32(arguments[3]);
+            if (!published || spawned != 1)
+                throw new InvalidOperationException("WIM053_PHYSICAL_MEDICINE_SOURCE_FAILED;spawned=" + spawned);
+        }
+        snapshot = InvokePublic(preparation, "Evaluate");
+        available = Convert.ToInt32(InvokePublic(snapshot, "GetAvailable", medicineType));
+        if (available < 1)
+            throw new InvalidOperationException("WIM053_PHYSICAL_MEDICINE_NOT_AVAILABLE_FOR_PACKING.");
+        Debug.Log("WIM053_PHYSICAL_MEDICINE_FIXTURE;spawned=" + spawned
+            + ";available=" + available + ";normalProductionEvidence=false");
+        return available;
+    }
+
+
+    // Protected fixture only: existing Slime anatomy and authored kit, no synthetic species.
+    private const string FieldNodeId = "pseudopods";
+    private string fieldActorId = string.Empty;
+    private string fieldKitItemId = string.Empty;
+    private string fieldMedicalEvidence = string.Empty;
+    private object fieldKitType;
+    private bool fieldMedicalObserved;
+    private int fieldFixtureConsumed;
+
+    private static object InvokeActorQuery(object query, string methodName, object actor)
+    {
+        Type actorType = T("CharacterActor", "Assembly-CSharp");
+        var method = query.GetType().GetMethods().SingleOrDefault(value =>
+            value.IsPublic && !value.IsStatic
+            && string.Equals(value.Name, methodName, StringComparison.Ordinal)
+            && value.GetParameters().Length == 1
+            && value.GetParameters()[0].ParameterType == actorType);
+        if (method == null || !actorType.IsInstanceOfType(actor))
+            throw new InvalidOperationException("WIM053_ACTOR_QUERY_SIGNATURE_MISMATCH:" + methodName);
+        return method.Invoke(query, new[] { actor });
+    }
+
+    private bool HasNaturalSupplyConsumption()
+    {
+        return expectedConsumption.Any(pair => pair.Value >
+            (string.Equals(pair.Key, fieldKitItemId, StringComparison.Ordinal)
+                ? fieldFixtureConsumed : 0));
+    }
+
+    private void PreparePhysicalFieldKitFixture(object[] availableActors)
+    {
+        object member = availableActors.OrderBy(ActorId, StringComparer.Ordinal)
+            .FirstOrDefault(value => string.Equals(
+                Convert.ToString(P(value, "SpeciesTag")), "Slime", StringComparison.Ordinal));
+        if (member == null)
+            throw new InvalidOperationException("WIM053_EXISTING_SLIME_MEMBER_REQUIRED.");
+        fieldActorId = ActorId(member);
+        object anatomy = Resolve("IAnatomyHealthRuntime");
+        object snapshot = InvokeActorQuery(anatomy, "GetAnatomySnapshot", member);
+        if (!string.Equals(Convert.ToString(P(snapshot, "ProfileId")),
+                "anatomy:slime", StringComparison.Ordinal))
+            throw new InvalidOperationException("WIM053_SLIME_ANATOMY_PROFILE_MISMATCH.");
+        object profile = InvokePublic(
+            Resolve("IAnatomyProfileCatalog", "DungeonStory.Medical"),
+            "GetForSpecies", P(member, "SpeciesTag"));
+        object[] nodeArguments = { FieldNodeId, null };
+        if (!(bool)InvokePublic(profile, "TryGetNode", nodeArguments)
+            || (bool)P(nodeArguments[1], "Vital")
+            || !(bool)P(nodeArguments[1], "Removable"))
+            throw new InvalidOperationException("WIM053_NONVITAL_FIELD_NODE_REQUIRED.");
+        fieldKitType = InvokeStatic(T("OffenseSupplyCatalog", "Assembly-CSharp"), "GetFieldMedicalKit",
+            P(member, "SpeciesTag"));
+        fieldKitItemId = Convert.ToString(InvokeStatic(
+            T("OffenseSupplyCatalog", "Assembly-CSharp"), "GetPhysicalItemId", fieldKitType));
+        object available = InvokePublic(preparation, "Evaluate");
+        if (Convert.ToInt32(P(P(available, "Preparation"), "SupplyCapacity")) < 3)
+            throw new InvalidOperationException("WIM053_THREE_SUPPLY_SLOTS_REQUIRED.");
+        int count = Convert.ToInt32(InvokePublic(available, "GetAvailable", fieldKitType));
+        int spawned = 0;
+        if (count < 1)
+        {
+            object[] source = { fieldKitItemId, 1, "WIM053 physical field kit fixture", 0 };
+            if (!(bool)InvokePublic(Resolve("IWorldItemStackRuntime"), "SpawnItemAtDropoff", source)
+                || Convert.ToInt32(source[3]) != 1)
+                throw new InvalidOperationException("WIM053_PHYSICAL_FIELD_KIT_SOURCE_FAILED.");
+            spawned = Convert.ToInt32(source[3]);
+        }
+        count = Convert.ToInt32(InvokePublic(
+            InvokePublic(preparation, "Evaluate"), "GetAvailable", fieldKitType));
+        if (count < 1) throw new InvalidOperationException("WIM053_FIELD_KIT_NOT_PACKABLE.");
+        Debug.Log("WIM053_FIELD_KIT_PREPARED;actor=" + fieldActorId + ";item="
+            + fieldKitItemId + ";spawned=" + spawned + ";available=" + count
+            + ";normalProductionEvidence=false");
+    }
+
+    private IEnumerator ApplyFieldStabilizationThroughUi(object expedition)
+    {
+        float previousScale = Time.timeScale;
+        Time.timeScale = 0f;
+        try
+        {
+            object member = Items(P(expedition, "MemberActors")).Single(value =>
+                string.Equals(ActorId(value), fieldActorId, StringComparison.Ordinal));
+            object anatomy = Resolve("IAnatomyHealthRuntime");
+            object body = Resolve("ICharacterBodyHealthQuery");
+            object medical = Resolve("IOffenseFieldMedicalRuntime");
+            object before = InvokeActorQuery(anatomy, "GetAnatomySnapshot", member);
+            object node = Items(P(before, "Nodes")).Single(value =>
+                string.Equals(Convert.ToString(F(value, "nodeId")), FieldNodeId,
+                    StringComparison.Ordinal));
+            float damage = Convert.ToSingle(F(node, "currentHealth"));
+            if ((bool)P(member, "IsDead") || (bool)P(InvokeActorQuery(body, "GetSnapshot", member), "Downed")
+                || (bool)F(node, "missing") || damage <= 0f
+                || !string.Equals(Convert.ToString(P(before, "ProfileId")),
+                    "anatomy:slime", StringComparison.Ordinal))
+                throw new InvalidOperationException("WIM053_FIELD_DAMAGE_PREFLIGHT_FAILED.");
+            int stockBefore = Convert.ToInt32(InvokePublic(P(expedition, "Supplies"), "Get", fieldKitType));
+            CaptureExpectedConsumption(expedition);
+            expectedConsumption.TryGetValue(fieldKitItemId, out int consumedBefore);
+            int treatmentsBefore = CountOf(P(expedition, "TreatmentReceipts"));
+            if (stockBefore < 1) throw new InvalidOperationException("WIM053_PACKED_FIELD_KIT_MISSING.");
+            if (!(bool)InvokePublic(anatomy, "TryDamageNode", member, FieldNodeId,
+                    damage, 0f, "WIM053 protected nonvital field treatment fixture"))
+                throw new InvalidOperationException("WIM053_FIELD_DAMAGE_COMMAND_FAILED.");
+            object damaged = InvokeActorQuery(anatomy, "GetAnatomySnapshot", member);
+            object damagedNode = Items(P(damaged, "Nodes")).Single(value =>
+                string.Equals(Convert.ToString(F(value, "nodeId")), FieldNodeId,
+                    StringComparison.Ordinal));
+            if ((bool)P(member, "IsDead") || (bool)P(InvokeActorQuery(body, "GetSnapshot", member), "Downed")
+                || (bool)F(damagedNode, "missing")
+                || Convert.ToSingle(F(damagedNode, "currentHealth")) > 0.01f)
+                throw new InvalidOperationException("WIM053_FIELD_DAMAGE_UNSAFE_OR_NOT_APPLIED.");
+            InvokePublic(panels, "ShowWorldMap");
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            string kitLabel = Convert.ToString(InvokeStatic(
+                T("OffenseSupplyCatalog", "Assembly-CSharp"), "GetDisplayName", fieldKitType));
+            object progression = P(member, "Progression");
+            int level = progression == null ? 1 : Convert.ToInt32(P(progression, "Level"));
+            object identity = P(member, "Identity");
+            string actorName = identity == null ? ((UnityEngine.Object)member).name
+                : Convert.ToString(P(identity, "DisplayName"));
+            string actorLabel = string.Format(System.Globalization.CultureInfo.CurrentCulture,
+                "Lv.{0} {1} · 체력 {2:0}", level, actorName, P(member, "CurrentHealth"));
+            string label = "가고정 · " + actorLabel + " · 위족 [" + kitLabel + "]";
+            ClickExact(label, "actual-field-stabilization");
+            yield return null;
+            CaptureExpectedConsumption(expedition);
+            expectedConsumption.TryGetValue(fieldKitItemId, out int consumedAfter);
+            int stockAfter = Convert.ToInt32(InvokePublic(P(expedition, "Supplies"), "Get", fieldKitType));
+            object stabilization = Items(InvokePublic(medical, "GetStabilizations", expeditionId))
+                .Single(value => string.Equals(Convert.ToString(F(value, "characterId")), fieldActorId,
+                        StringComparison.Ordinal)
+                    && string.Equals(Convert.ToString(F(value, "anatomyNodeId")), FieldNodeId,
+                        StringComparison.Ordinal));
+            if (stockAfter != stockBefore - 1 || consumedAfter != consumedBefore + 1
+                || CountOf(P(expedition, "TreatmentReceipts")) != treatmentsBefore + 1
+                || !(bool)F(stabilization, "active") || !(bool)F(stabilization, "usedForNode")
+                || !Close(Convert.ToSingle(F(stabilization, "locomotionFloor")), 0.5f)
+                || !Close(Convert.ToSingle(F(stabilization, "sustainFloor")), 0.5f)
+                || string.IsNullOrWhiteSpace(Convert.ToString(F(stabilization, "consumedKitInstanceId"))))
+                throw new InvalidOperationException("WIM053_ACTUAL_FIELD_TREATMENT_OR_CONSUMPTION_MISMATCH.");
+            Canvas.ForceUpdateCanvases();
+            if (ActiveOffenseButtons().Any(button =>
+                    string.Equals(Label(button), label, StringComparison.Ordinal)))
+                throw new InvalidOperationException("WIM053_USED_FIELD_NODE_STILL_OFFERED.");
+            fieldFixtureConsumed = 1;
+            fieldMedicalObserved = true;
+            fieldMedicalEvidence = "actor=" + fieldActorId + ";node=" + FieldNodeId
+                + ";damage=" + damage + ";item=" + fieldKitItemId
+                + ";packed=" + stockBefore + "->" + stockAfter
+                + ";consumed=" + consumedBefore + "->" + consumedAfter
+                + ";treatments=" + treatmentsBefore + "->" + CountOf(P(expedition, "TreatmentReceipts"))
+                + ";active=true;used=true;locomotionFloor=0.5;sustainFloor=0.5;duplicateButton=false"
+                + ";naturalInjuryEvidence=false";
+            Debug.Log("WIM053_FIELD_STABILIZATION_PASS;" + fieldMedicalEvidence);
+        }
+        finally { Time.timeScale = previousScale; }
+    }
+
+    private void VerifyFieldTreatmentResult(object resultValue)
+    {
+        int matches = Items(P(resultValue, "treatmentReceipts")).Count(value =>
+            string.Equals(Convert.ToString(P(value, "kind")), "Stabilization", StringComparison.Ordinal)
+            && string.Equals(Convert.ToString(P(value, "characterId")), fieldActorId, StringComparison.Ordinal)
+            && string.Equals(Convert.ToString(P(value, "anatomyNodeId")), FieldNodeId, StringComparison.Ordinal)
+            && Close(Convert.ToSingle(P(value, "healedAmount")), 0f));
+        if (!fieldMedicalObserved || matches != 1
+            || !expectedConsumption.TryGetValue(fieldKitItemId, out int consumed) || consumed < 1)
+            throw new InvalidOperationException("WIM053_FIELD_TREATMENT_TERMINAL_RECORD_MISMATCH.");
+    }
+
+    private object FindActiveExpedition(string id)
+    {
+        return Items(P(expeditionRuntime, "ActiveExpeditions"))
+            .SingleOrDefault(value => string.Equals(
+                Convert.ToString(P(value, "ExpeditionId")), id,
+                StringComparison.Ordinal));
+    }
+
+    private object FindResult(string id)
+    {
+        return Items(P(expeditionRuntime, "ResultHistory"))
+            .FirstOrDefault(value => string.Equals(
+                Convert.ToString(P(value, "expeditionId")), id,
+                StringComparison.Ordinal));
+    }
+
+    private bool TryTravelState(out object state)
+    {
+        object[] arguments = { expeditionId, null };
+        bool found = (bool)InvokePublic(travel, "TryGetState", arguments);
+        state = arguments[1];
+        return found && state != null;
+    }
+
+    private bool TryDecision(out object decision)
+    {
+        object[] arguments = { expeditionId, null };
+        bool found = (bool)InvokePublic(decisions, "TryGetActiveDecision", arguments);
+        decision = arguments[1];
+        return found && decision != null;
+    }
+
+    private static string PathFingerprint(object state)
+    {
+        return string.Join(">", Items(F(state, "remainingPath"))
+            .Select(value => Convert.ToInt32(F(value, "q"))
+                + "," + Convert.ToInt32(F(value, "r"))));
+    }
+
+    private static bool Close(float left, float right)
+    {
+        return Mathf.Abs(left - right) <= FloatTolerance;
+    }
+
+    private void SaveSegment(object state)
+    {
+        savedCurrentQ = Convert.ToInt32(F(state, "currentQ"));
+        savedCurrentR = Convert.ToInt32(F(state, "currentR"));
+        savedDestinationQ = Convert.ToInt32(F(state, "destinationQ"));
+        savedDestinationR = Convert.ToInt32(F(state, "destinationR"));
+        savedDestinationSite = Convert.ToString(F(state, "destinationSiteId"));
+        savedPath = PathFingerprint(state);
+        savedRoad = Convert.ToSingle(F(state, "routeRoadMultiplier"));
+        savedWeather = Convert.ToSingle(F(state, "routeWeatherMultiplier"));
+        savedLoad = Convert.ToSingle(F(state, "routeLoadMultiplier"));
+        savedSegmentQ = Convert.ToInt32(F(state, "activeSegmentQ"));
+        savedSegmentR = Convert.ToInt32(F(state, "activeSegmentR"));
+        savedTraversalCost = Convert.ToSingle(F(state, "activeSegmentTraversalCost"));
+        savedElapsed = Convert.ToSingle(F(state, "progressToNextTile"));
+        savedDuration = Convert.ToSingle(F(state, "activeSegmentDurationSeconds"));
+        savedMovement = Convert.ToSingle(F(state, "movementTimeMultiplier"));
+        savedMilestone = Convert.ToSingle(F(state, "milestoneTimeMultiplier"));
+        savedFacility = Convert.ToSingle(F(state, "facilityTimeMultiplier"));
+        savedEventSequence = Convert.ToInt32(F(state, "eventSequence"));
+        saveClock = Convert.ToSingle(P(gameClock, "Time"));
+    }
+
+    private void RequireSegmentEqual(object state)
+    {
+        bool exact = Convert.ToInt32(F(state, "currentQ")) == savedCurrentQ
+            && Convert.ToInt32(F(state, "currentR")) == savedCurrentR
+            && Convert.ToInt32(F(state, "destinationQ")) == savedDestinationQ
+            && Convert.ToInt32(F(state, "destinationR")) == savedDestinationR
+            && string.Equals(Convert.ToString(F(state, "destinationSiteId")),
+                savedDestinationSite, StringComparison.Ordinal)
+            && string.Equals(PathFingerprint(state), savedPath, StringComparison.Ordinal)
+            && Convert.ToInt32(F(state, "activeSegmentQ")) == savedSegmentQ
+            && Convert.ToInt32(F(state, "activeSegmentR")) == savedSegmentR
+            && Convert.ToInt32(F(state, "eventSequence")) == savedEventSequence
+            && Close(Convert.ToSingle(F(state, "activeSegmentTraversalCost")), savedTraversalCost)
+            && Close(Convert.ToSingle(F(state, "progressToNextTile")), savedElapsed)
+            && Close(Convert.ToSingle(F(state, "activeSegmentDurationSeconds")), savedDuration)
+            && Close(Convert.ToSingle(F(state, "routeRoadMultiplier")), savedRoad)
+            && Close(Convert.ToSingle(F(state, "routeWeatherMultiplier")), savedWeather)
+            && Close(Convert.ToSingle(F(state, "routeLoadMultiplier")), savedLoad)
+            && Close(Convert.ToSingle(F(state, "movementTimeMultiplier")), savedMovement)
+            && Close(Convert.ToSingle(F(state, "milestoneTimeMultiplier")), savedMilestone)
+            && Close(Convert.ToSingle(F(state, "facilityTimeMultiplier")), savedFacility)
+            && !(bool)F(state, "pausedForDecision")
+            && !(bool)F(state, "pausedForBattle");
+        if (!exact)
+        {
+            throw new InvalidOperationException(
+                "WIM017_SEGMENT_FULLSAVE_RESTORE_MISMATCH;before=" + SegmentSummaryBefore()
+                + ";after=" + SegmentSummary(state));
+        }
+    }
+
+    private string SegmentSummaryBefore()
+    {
+        return "current=(" + savedCurrentQ + "," + savedCurrentR + ")"
+            + ";destination=(" + savedDestinationQ + "," + savedDestinationR
+            + "," + savedDestinationSite + ")"
+            + ";path=" + savedPath
+            + ";segment=(" + savedSegmentQ + "," + savedSegmentR + ")"
+            + ";cost=" + savedTraversalCost
+            + ";elapsed=" + savedElapsed + "/" + savedDuration
+            + ";route=" + savedRoad + "/" + savedWeather + "/" + savedLoad
+            + ";modifiers=" + savedMovement + "/" + savedMilestone + "/" + savedFacility
+            + ";eventSequence=" + savedEventSequence;
+    }
+
+    private static string SegmentSummary(object state)
+    {
+        return "current=(" + F(state, "currentQ") + "," + F(state, "currentR") + ")"
+            + ";destination=(" + F(state, "destinationQ") + ","
+            + F(state, "destinationR") + "," + F(state, "destinationSiteId") + ")"
+            + ";path=" + PathFingerprint(state)
+            + ";segment=(" + F(state, "activeSegmentQ") + ","
+            + F(state, "activeSegmentR") + ")"
+            + ";cost=" + F(state, "activeSegmentTraversalCost")
+            + ";elapsed=" + F(state, "progressToNextTile") + "/"
+            + F(state, "activeSegmentDurationSeconds")
+            + ";route=" + F(state, "routeRoadMultiplier") + "/"
+            + F(state, "routeWeatherMultiplier") + "/" + F(state, "routeLoadMultiplier")
+            + ";modifiers=" + F(state, "movementTimeMultiplier") + "/"
+            + F(state, "milestoneTimeMultiplier") + "/" + F(state, "facilityTimeMultiplier")
+            + ";eventSequence=" + F(state, "eventSequence");
+    }
+
+    private void CaptureExpectedConsumption(object expedition)
+    {
+        expectedConsumption.Clear();
+        foreach (object pair in Items(P(expedition, "ConsumedSupplies")))
+        {
+            object supplyType = P(pair, "Key");
+            int quantity = Convert.ToInt32(P(pair, "Value"));
+            string itemId = Convert.ToString(InvokeStatic(
+                T("OffenseSupplyCatalog", "Assembly-CSharp"),
+                "GetPhysicalItemId", supplyType));
+            if (quantity > 0)
+            {
+                expectedConsumption[itemId] = quantity;
+            }
+        }
+    }
+
+    private IEnumerator RestoreCurrentSegment()
+    {
+        Time.timeScale = 0f;
+        object saveService = Resolve(
+            "IDungeonGameSaveService", "DungeonStory.Infrastructure");
+        object captured = InvokePublic(saveService, "Capture");
+        string json = Convert.ToString(InvokePublic(saveService, "ToJson", captured, false));
+        object parsed = InvokePublic(saveService, "FromJson", json);
+        object[] restoreArguments = { parsed, null };
+        bool restored = false;
+        try
+        {
+            restored = (bool)InvokePublic(saveService, "TryRestore", restoreArguments);
+        }
+        finally
+        {
+            Time.timeScale = 0f;
+        }
+        object report = restoreArguments[1];
+        if (!restored || report == null || !(bool)P(report, "Success"))
+        {
+            string errors = report == null
+                ? "<no-report>"
+                : string.Join(" | ", Items(P(report, "Errors"))
+                    .Select(Convert.ToString));
+            throw new InvalidOperationException(
+                "WIM017_FULL_GAME_SAVE_RESTORE_FAILED;errors=" + errors);
+        }
+        saveBytes = json.Length;
+        yield return null;
+
+        ResolveJourneyAuthorities();
+        researchRuntime = FindLoadedComponent("BlueprintResearchRuntime");
+        object expedition = FindActiveExpedition(expeditionId);
+        if (expedition == null)
+        {
+            throw new InvalidOperationException(
+                "WIM017_FULLSAVE_ACTIVE_EXPEDITION_ID_NOT_REACQUIRED;id=" + expeditionId);
+        }
+        if (!TryTravelState(out object restoredState))
+        {
+            throw new InvalidOperationException(
+                "WIM017_FULLSAVE_TRAVEL_STATE_NOT_REACQUIRED;id=" + expeditionId);
+        }
+        RequireSegmentEqual(restoredState);
+        for (int index = 0; index < ProjectIds.Length; index++)
+        {
+            if (!ProjectCompleted(researchRuntime, ProjectIds[index]))
+            {
+                throw new InvalidOperationException(
+                    "WIM017_FULLSAVE_RESEARCH_FIXTURE_MISSING;project=" + ProjectIds[index]);
+            }
+        }
+        object researchState = P(researchRuntime, "State");
+        if (!ContainsInt(P(researchState, "CompletedBlueprintIds"), 6103))
+        {
+            throw new InvalidOperationException(
+                "WIM017_FULLSAVE_BLUEPRINT6103_MISSING.");
+        }
+        segmentRestored = true;
+        Debug.Log("WIM017_SEGMENT_FULLSAVE_RESTORE_PASS;before="
+            + SegmentSummaryBefore()
+            + ";after=" + SegmentSummary(restoredState)
+            + ";expeditionId=" + expeditionId + "->"
+            + Convert.ToString(P(expedition, "ExpeditionId"))
+            + ";sameExpeditionId=" + string.Equals(expeditionId,
+                Convert.ToString(P(expedition, "ExpeditionId")),
+                StringComparison.Ordinal)
+            + ";saveClock=" + saveClock
+            + ";jsonChars=" + json.Length);
+
+        float progressDeadline = Time.realtimeSinceStartup + 12f;
+        Time.timeScale = 1f;
+        while (Time.realtimeSinceStartup < progressDeadline)
+        {
+            yield return null;
+            if (Convert.ToSingle(P(gameClock, "Time")) <= saveClock + FloatTolerance
+                || !TryTravelState(out object nextState))
+            {
+                continue;
+            }
+            bool elapsedAdvanced = Convert.ToSingle(F(nextState, "progressToNextTile"))
+                > savedElapsed + FloatTolerance;
+            bool segmentTransitioned = Convert.ToInt32(F(nextState, "currentQ")) != savedCurrentQ
+                || Convert.ToInt32(F(nextState, "currentR")) != savedCurrentR
+                || Convert.ToInt32(F(nextState, "activeSegmentQ")) != savedSegmentQ
+                || Convert.ToInt32(F(nextState, "activeSegmentR")) != savedSegmentR
+                || !string.Equals(PathFingerprint(nextState), savedPath, StringComparison.Ordinal);
+            if (elapsedAdvanced || segmentTransitioned)
+            {
+                segmentAdvanced = true;
+                break;
+            }
+        }
+        if (!segmentAdvanced)
+        {
+            throw new InvalidOperationException(
+                "WIM017_FULLSAVE_SEGMENT_DID_NOT_RESUME_NORMAL_PROGRESS;clock="
+                + saveClock + "->" + P(gameClock, "Time"));
+        }
+        Debug.Log("WIM017_SEGMENT_NORMAL_PROGRESS_PASS;expeditionId="
+            + expeditionId + ";clock=" + saveClock + "->"
+            + P(gameClock, "Time") + ";currentSegment="
+            + (TryTravelState(out object currentState)
+                ? SegmentSummary(currentState)
+                : "<missing>"));
+    }
+
+    private static object FindCombatant(object session, string id)
+    {
+        return InvokePublic(session, "FindCombatant", id);
+    }
+
+    private static float TeamHealth(object session, string team)
+    {
+        return Items(P(session, "Combatants"))
+            .Where(value => string.Equals(Convert.ToString(P(value, "Team")),
+                    team, StringComparison.Ordinal)
+                && !(bool)P(value, "IsDead"))
+            .Sum(value => Mathf.Max(0f, Convert.ToSingle(P(value, "CurrentHealth"))));
+    }
+
+    private static int CardRank(object card, object combatant)
+    {
+        string action = Convert.ToString(F(card, "actionType"));
+        if (string.Equals(action, "Advance", StringComparison.Ordinal))
+        {
+            return string.Equals(Convert.ToString(P(combatant, "Formation")),
+                "Front", StringComparison.Ordinal) ? 4 : 0;
+        }
+        if (string.Equals(action, "BasicAttack", StringComparison.Ordinal)) return 1;
+        if (!string.Equals(action, "Ability", StringComparison.Ordinal)) return 4;
+        string sourceSkillId = Convert.ToString(F(card, "sourceSkillId"));
+        object ability = Items(P(combatant, "Abilities")).FirstOrDefault(value =>
+            string.Equals(Convert.ToString(P(value, "Id")), sourceSkillId,
+                StringComparison.Ordinal));
+        bool damaging = ability != null
+            && string.Equals(Convert.ToString(P(ability, "TargetRule")),
+                "Enemy", StringComparison.Ordinal)
+            && Items(P(ability, "Effects")).Any(effect =>
+                effect.GetType().Name == "OffenseDamageEffect"
+                && (Convert.ToSingle(P(effect, "BasicDamageMultiplier")) > 0f
+                    || Convert.ToSingle(P(effect, "FlatDamage")) > 0f));
+        return damaging ? 2 : 3;
+    }
+
+    private static int TacticalRank(object card)
+    {
+        return Convert.ToString(F(card, "tacticalTag")) switch
+        {
+            "Execute" => 0,
+            "Break" => 1,
+            "Maneuver" => 2,
+            "Intercept" => 3,
+            "Support" => 4,
+            _ => 5
+        };
+    }
+
+    private static string TacticalLabel(object value)
+    {
+        return Convert.ToString(value) switch
+        {
+            "Intercept" => "저지",
+            "Maneuver" => "기동",
+            "Break" => "파쇄",
+            "Support" => "지원",
+            "Execute" => "집행",
+            _ => "일반"
+        };
+    }
+
+    private static void ClickBattleCard(string text, int row)
+    {
+        TMP_Text deckName = Resources.FindObjectsOfTypeAll<TMP_Text>()
+            .SingleOrDefault(value => value != null
+                && value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy
+                && string.Equals(value.name, "DeckName_" + row,
+                    StringComparison.Ordinal));
+        if (!(deckName?.transform is RectTransform deckRect))
+        {
+            throw new InvalidOperationException(
+                "WIM053_BATTLE_DECK_ROW_MISSING;row=" + row);
+        }
+        Button button = ActiveOffenseButtons()
+            .Where(value => string.Equals(Label(value), text, StringComparison.Ordinal)
+                && value.transform is RectTransform)
+            .OrderBy(value => Mathf.Abs(
+                ((RectTransform)value.transform).anchorMax.y - deckRect.anchorMax.y))
+            .FirstOrDefault();
+        if (button == null
+            || Mathf.Abs(((RectTransform)button.transform).anchorMax.y
+                - deckRect.anchorMax.y) > 0.001f)
+        {
+            throw new InvalidOperationException(
+                "WIM053_BATTLE_CARD_UI_MISSING;row=" + row + ";label=" + text);
+        }
+        PointerClick(button, "battle-card-row-" + row);
+    }
+
+    private IEnumerator IssueBattleTurn()
+    {
+        object state = P(director, "State");
+        object session = P(battle, "Session");
+        if (state == null || session == null)
+        {
+            throw new InvalidOperationException("WIM053_BATTLE_AUTHORITY_MISSING.");
+        }
+        int turn = Convert.ToInt32(F(state, "turn"));
+        int roundBefore = Convert.ToInt32(P(session, "RoundNumber"));
+        long commandBefore = Convert.ToInt64(P(session, "LastProcessedCommandId"));
+        float allyBefore = TeamHealth(session, "Allies");
+        float enemyBefore = TeamHealth(session, "Enemies");
+        List<object> decks = Items(F(state, "decks"));
+        string deckReadiness = string.Join(",", decks.Select(deck =>
+        {
+            string id = Convert.ToString(F(deck, "characterId"));
+            object actor = FindCombatant(session, id);
+            return id + ":candidates=" + Items(F(deck, "candidates")).Count
+                + ":canTakeTurn=" + (actor == null ? "missing"
+                    : Convert.ToString(P(actor, "CanTakeTurn")));
+        }));
+        string[] availableDeckIds = decks
+            .Where(deck => Items(F(deck, "candidates")).Count > 0
+                && (bool)P(FindCombatant(session,
+                    Convert.ToString(F(deck, "characterId"))), "CanTakeTurn"))
+            .Select(deck => Convert.ToString(F(deck, "characterId")))
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        if (availableDeckIds.Length == 0)
+        {
+            throw new InvalidOperationException("WIM053_BATTLE_NO_AVAILABLE_COMMAND_DECK.");
+        }
+
+        List<string> cards = Items(F(state, "commandQueue"))
+            .Select(entry => "preserved:"
+                + Convert.ToString(F(entry, "characterId")) + ":"
+                + Convert.ToString(F(entry, "cardInstanceId")) + "->"
+                + Convert.ToString(F(entry, "targetIntentId")))
+            .ToList();
+        foreach (string actorId in availableDeckIds)
+        {
+            state = P(director, "State");
+            if (state == null || !(bool)P(battle, "HasActiveBattle"))
+            {
+                throw new InvalidOperationException(
+                    "WIM053_BATTLE_ENDED_DURING_COMMAND_SELECTION.");
+            }
+            if (Items(F(state, "commandQueue")).Any(entry => string.Equals(
+                    Convert.ToString(F(entry, "characterId")), actorId,
+                    StringComparison.Ordinal)))
+            {
+                continue;
+            }
+            decks = Items(F(state, "decks"));
+            object deck = decks.Single(value => string.Equals(
+                Convert.ToString(F(value, "characterId")), actorId,
+                StringComparison.Ordinal));
+            int row = decks.IndexOf(deck);
+            object combatant = FindCombatant(session, actorId);
+            object card = Items(F(deck, "candidates"))
+                .OrderBy(value => CardRank(value, combatant))
+                .ThenBy(TacticalRank)
+                .ThenByDescending(value => Convert.ToSingle(F(value, "power")))
+                .ThenByDescending(value => Convert.ToInt32(F(value, "executionStages")))
+                .ThenByDescending(value => Convert.ToInt32(F(value, "speed")))
+                .ThenBy(value => Convert.ToString(F(value, "instanceId")),
+                    StringComparer.Ordinal)
+                .FirstOrDefault();
+            object intent = Items(F(state, "enemyIntents"))
+                .Where(value =>
+                {
+                    object enemy = FindCombatant(session,
+                        Convert.ToString(F(value, "enemyId")));
+                    return enemy != null && !(bool)P(enemy, "IsDead")
+                        && !(bool)P(enemy, "IsDowned");
+                })
+                .OrderByDescending(value => Convert.ToSingle(F(value, "threat")))
+                .ThenBy(value => Convert.ToString(F(value, "intentId")),
+                    StringComparer.Ordinal)
+                .FirstOrDefault();
+            if (card == null || intent == null)
+            {
+                if (Items(F(state, "commandQueue")).Count > 0)
+                {
+                    break;
+                }
+                throw new InvalidOperationException(
+                    "WIM053_BATTLE_NO_INPUTTABLE_COMMAND;actor=" + actorId);
+            }
+            string cardLabel = Convert.ToString(F(card, "displayName")) + "\n"
+                + TacticalLabel(F(card, "tacticalTag")) + " · "
+                + F(card, "executionStages") + "단계 · 속도 " + F(card, "speed");
+            ClickBattleCard(cardLabel, row);
+            yield return null;
+
+            state = P(director, "State");
+            string intentId = Convert.ToString(F(intent, "intentId"));
+            intent = Items(F(state, "enemyIntents")).FirstOrDefault(value =>
+                string.Equals(Convert.ToString(F(value, "intentId")), intentId,
+                    StringComparison.Ordinal));
+            if (intent == null)
+            {
+                throw new InvalidOperationException(
+                    "WIM053_BATTLE_INTENT_DISAPPEARED_BEFORE_POINTER_COMMIT;id=" + intentId);
+            }
+            object enemyActor = FindCombatant(session, Convert.ToString(F(intent, "enemyId")));
+            string intentLabel = Convert.ToString(P(enemyActor, "DisplayName")) + "\n"
+                + TacticalLabel(F(intent, "tacticalTag")) + " "
+                + F(intent, "executionStages") + "단계";
+            ClickExact(intentLabel, "battle-intent-" + intentId);
+            yield return null;
+
+            state = P(director, "State");
+            bool queued = Items(F(state, "commandQueue")).Any(entry =>
+                string.Equals(Convert.ToString(F(entry, "characterId")), actorId,
+                    StringComparison.Ordinal)
+                && string.Equals(Convert.ToString(F(entry, "cardInstanceId")),
+                    Convert.ToString(F(card, "instanceId")), StringComparison.Ordinal)
+                && string.Equals(Convert.ToString(F(entry, "targetIntentId")),
+                    intentId, StringComparison.Ordinal));
+            if (!queued)
+            {
+                throw new InvalidOperationException(
+                    "WIM053_BATTLE_POINTER_DID_NOT_QUEUE_CARD;actor=" + actorId);
+            }
+            cards.Add(actorId + ":" + F(card, "displayName") + "->" + intentId);
+        }
+
+        state = P(director, "State");
+        int queuedCount = Items(F(state, "commandQueue")).Count;
+        int deckCount = Items(F(state, "decks")).Count;
+        if (queuedCount <= 0)
+        {
+            throw new InvalidOperationException(
+                "WIM053_BATTLE_EXECUTABLE_QUEUE_MISSING;available="
+                + availableDeckIds.Length);
+        }
+        ClickExact("명령 실행 " + queuedCount + "/" + deckCount,
+            "battle-execute");
+        yield return null;
+
+        bool battleTerminal = !(bool)P(battle, "HasActiveBattle");
+        object stateAfter = P(director, "State");
+        object finalization = P(director, "LastTurnFinalization");
+        bool finalizationSucceeded = Convert.ToBoolean(P(finalization, "Succeeded"));
+        string finalizationFailure = Convert.ToString(P(finalization, "FailureReason"));
+        List<object> resolvedCommands = Items(P(director, "LastResolvedTurn"));
+        List<object> resolvedEnemyIntents = Items(
+            P(director, "LastResolvedEnemyIntents"));
+        List<string> resolutions = new List<string>();
+        bool executedCommand = false;
+        foreach (object resolved in resolvedCommands)
+        {
+            object execution = F(resolved, "execution");
+            string commandOutcome = Convert.ToString(P(execution, "Outcome"));
+            executedCommand |= string.Equals(commandOutcome, "Executed",
+                StringComparison.Ordinal);
+            resolutions.Add("ally:" + Convert.ToString(F(resolved, "characterId"))
+                + ":" + commandOutcome + ":effect="
+                + P(execution, "AppliedAtLeastOneEffect")
+                + ":reason=" + P(execution, "FailureReason")
+                + ":target=" + P(execution, "FinalTargetId")
+                + ":stages=" + P(F(resolved, "clash"), "AllyStagesRemaining")
+                + "/" + P(F(resolved, "clash"), "EnemyStagesRemaining"));
+        }
+        foreach (object resolved in resolvedEnemyIntents)
+        {
+            object execution = F(resolved, "execution");
+            string commandOutcome = Convert.ToString(P(execution, "Outcome"));
+            executedCommand |= string.Equals(commandOutcome, "Executed",
+                StringComparison.Ordinal);
+            resolutions.Add("enemy:" + Convert.ToString(F(resolved, "enemyId"))
+                + ":" + commandOutcome + ":effect="
+                + P(execution, "AppliedAtLeastOneEffect")
+                + ":reason=" + P(execution, "FailureReason")
+                + ":target=" + P(execution, "FinalTargetId")
+                + ":stages=" + F(resolved, "requestedExecutionStages"));
+        }
+        if (!finalizationSucceeded)
+        {
+            throw new InvalidOperationException(
+                "WIM053_BATTLE_TURN_FINALIZATION_FAILED;turn=" + turn
+                + ";reason=" + finalizationFailure);
+        }
+        if (!battleTerminal && (stateAfter == null
+                || Convert.ToInt32(F(stateAfter, "turn")) <= turn
+                || Items(F(stateAfter, "commandQueue")).Count != 0))
+        {
+            throw new InvalidOperationException(
+                "WIM053_BATTLE_COMMAND_DID_NOT_ADVANCE_ATOMICALLY.");
+        }
+        float allyAfter = TeamHealth(session, "Allies");
+        float enemyAfter = TeamHealth(session, "Enemies");
+        long commandAfter = Convert.ToInt64(P(session, "LastProcessedCommandId"));
+        float actualEnemyDamage = Mathf.Max(0f, enemyBefore - enemyAfter);
+        float actualAllyDamage = Mathf.Max(0f, allyBefore - allyAfter);
+        if (executedCommand && commandAfter <= commandBefore)
+        {
+            throw new InvalidOperationException(
+                "WIM053_BATTLE_EXECUTED_COMMAND_ID_DID_NOT_ADVANCE;turn=" + turn
+                + ";before=" + commandBefore + ";after=" + commandAfter
+                + ";outcomes=" + string.Join(",", resolutions));
+        }
+        bool objectiveClockAdvanced = string.Equals(
+                Convert.ToString(P(P(session, "EncounterRules"), "Objective")),
+                "SurviveRounds", StringComparison.Ordinal)
+            && Convert.ToInt32(P(session, "RoundNumber")) > roundBefore;
+        if (!battleTerminal && actualEnemyDamage <= 0f && actualAllyDamage <= 0f
+            && !executedCommand && !objectiveClockAdvanced)
+        {
+            consecutiveNoEffectBattleTurns++;
+        }
+        else
+        {
+            consecutiveNoEffectBattleTurns = 0;
+        }
+        string battleRow = "turn=" + turn + ";round=" + roundBefore + "->"
+            + P(session, "RoundNumber") + ";command=" + commandBefore + "->"
+            + commandAfter + ";enemyDamage=" + actualEnemyDamage
+            + ";allyDamage=" + actualAllyDamage + ";terminal=" + battleTerminal
+            + ";directorFinalized=" + finalizationSucceeded
+            + ";finalizeReason=" + finalizationFailure
+            + ";outcomes=" + string.Join(",", resolutions)
+            + ";deckReadiness=" + deckReadiness
+            + ";cards=" + string.Join(",", cards);
+        battleRows.Add(battleRow);
+        Debug.Log("WIM053_BATTLE_TURN;" + battleRow);
+        if (consecutiveNoEffectBattleTurns >= 3)
+        {
+            throw new InvalidOperationException(
+                "WIM053_BATTLE_THREE_NO_EFFECT_TURNS.");
+        }
+        battleObserved = true;
+        battleTurns++;
+        enemyDamage += actualEnemyDamage;
+    }
+
+    private bool HasAffordableSupplyDebit(object choiceView)
+    {
+        string choiceId = Convert.ToString(P(choiceView, "ChoiceId"));
+        object[] args = { expeditionId, choiceId, null, 0, string.Empty };
+        if (!(bool)InvokePublic(decisions, "TryGetActiveChoice", args))
+        {
+            throw new InvalidOperationException(
+                "WIM053_ACTIVE_CHOICE_DEFINITION_UNAVAILABLE;choice="
+                + choiceId + ";reason=" + args[4]);
+        }
+        object expedition = FindActiveExpedition(expeditionId);
+        if (expedition == null)
+            throw new InvalidOperationException("WIM053_DECISION_EXPEDITION_MISSING.");
+        object supplies = P(expedition, "Supplies");
+        foreach (object effect in Items(F(args[2], "effects")))
+        {
+            if (!string.Equals(effect.GetType().Name, "OffenseSupplyDecisionEffect",
+                    StringComparison.Ordinal)) continue;
+            int amount = Convert.ToInt32(F(effect, "amount"));
+            if (amount < 0 && Convert.ToInt32(InvokePublic(supplies,
+                    "Get", F(effect, "supplyType"))) >= -amount)
+                return true;
+        }
+        return false;
+    }
+
+    private IEnumerator ResolveDecisionThroughUi(object decision)
+    {
+        string cardId = Convert.ToString(F(decision, "cardId"));
+        List<string> rejected = new();
+        foreach (object choice in Items(F(decision, "choices"))
+                     .OrderByDescending(HasAffordableSupplyDebit))
+        {
+            string choiceId = Convert.ToString(P(choice, "ChoiceId"));
+            string label = Convert.ToString(P(choice, "Label"));
+            Button button = ActiveOffenseButtons().FirstOrDefault(value =>
+                Label(value).Contains(label, StringComparison.Ordinal));
+            if (button == null)
+            {
+                rejected.Add(choiceId + ":missing");
+                continue;
+            }
+            PointerClick(button, "decision-" + cardId + "-" + choiceId);
+            yield return null;
+            if (!TryDecision(out _))
+            {
+                decisionCount++;
+                CaptureExpectedConsumption(FindActiveExpedition(expeditionId));
+                string row = "card=" + cardId + ";choice=" + choiceId
+                    + ";rejected=" + string.Join(",", rejected)
+                    + ";consumed=" + string.Join(",", expectedConsumption.Select(pair =>
+                        pair.Key + ":" + pair.Value));
+                decisionRows.Add(row);
+                Debug.Log("WIM053_DECISION_RESOLVED;" + row);
+                yield break;
+            }
+            rejected.Add(choiceId + ":not-resolved");
+        }
+        throw new InvalidOperationException(
+            "WIM053_DECISION_NO_PUBLIC_CHOICE_RESOLVED;card=" + cardId
+            + ";choices=" + string.Join(",", rejected));
+    }
+
+    private static uint DecisionHash(string id, int sequence, int q, int r)
+    {
+        unchecked
+        {
+            uint hash = 2166136261u;
+            foreach (char value in id ?? string.Empty)
+            {
+                hash ^= value;
+                hash *= 16777619u;
+            }
+            hash ^= (uint)sequence * 0x9E3779B9u;
+            hash ^= (uint)q * 0x85EBCA6Bu;
+            hash ^= (uint)r * 0xC2B2AE35u;
+            hash ^= hash >> 16;
+            return hash;
+        }
+    }
+
+    private object FindDecisionDetour(object travelState)
+    {
+        HashSet<string> occupied = new(StringComparer.Ordinal);
+        foreach (object site in Items(P(world, "Sites"))
+                     .Concat(Items(P(world, "UrgentSites"))))
+        {
+            if ((bool)P(site, "IsActive"))
+            {
+                occupied.Add(F(site, "q") + "," + F(site, "r"));
+            }
+        }
+        object dungeon = P(world, "DungeonCoord");
+        int dungeonQ = Convert.ToInt32(P(dungeon, "Q"));
+        int dungeonR = Convert.ToInt32(P(dungeon, "R"));
+        int currentQ = Convert.ToInt32(F(travelState, "currentQ"));
+        int currentR = Convert.ToInt32(F(travelState, "currentR"));
+        Type coordType = T("OffenseHexCoord", "DungeonStory.Foundation");
+        object current = Activator.CreateInstance(coordType,
+            new object[] { currentQ, currentR });
+        object profile = T("OffenseTravelProfile", "Assembly-CSharp")
+            .GetProperty("Default").GetValue(null);
+        foreach (object tile in Items(P(world, "Tiles"))
+                     .Where(value => !(bool)F(value, "blocked")
+                         && !(Convert.ToInt32(F(value, "q")) == dungeonQ
+                             && Convert.ToInt32(F(value, "r")) == dungeonR)
+                         && !occupied.Contains(F(value, "q") + "," + F(value, "r")))
+                     .OrderByDescending(value => HexDistance(currentQ, currentR,
+                         Convert.ToInt32(F(value, "q")),
+                         Convert.ToInt32(F(value, "r"))))
+                     .ThenBy(value => Convert.ToInt32(F(value, "q")))
+                     .ThenBy(value => Convert.ToInt32(F(value, "r"))))
+        {
+            object coord = P(tile, "Coord");
+            object[] arguments = { current, coord, profile, null, 0f };
+            bool found = (bool)InvokePublic(world, "TryFindPath", arguments);
+            List<object> path = found ? Items(arguments[3]) : new List<object>();
+            if (path.Count < 2) continue;
+            int sequence = Convert.ToInt32(F(travelState, "eventSequence"));
+            for (int index = 0; index < path.Count - 1; index++)
+            {
+                int q = Convert.ToInt32(P(path[index], "Q"));
+                int r = Convert.ToInt32(P(path[index], "R"));
+                if (DecisionHash(expeditionId, sequence + index, q, r) % 100u < 32u)
+                {
+                    return coord;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static int HexDistance(int aq, int ar, int bq, int br)
+    {
+        int dq = aq - bq;
+        int dr = ar - br;
+        int ds = -aq - ar - (-bq - br);
+        return Math.Max(Math.Abs(dq), Math.Max(Math.Abs(dr), Math.Abs(ds)));
+    }
+
+    private static int RewardAuthorityTotal(object rewardState)
+    {
+        int stock = Items(P(rewardState, "StockGrantedByCategory"))
+            .Sum(pair => Convert.ToInt32(P(pair, "Value")));
+        return Convert.ToInt32(P(rewardState, "MoneyEarned"))
+            + stock
+            + CountOf(P(rewardState, "RareFacilityBuildingIds"))
+            + CountOf(P(rewardState, "AcquiredBlueprintIds"));
+    }
+
+    private static string ArrivalFingerprint(object values)
+    {
+        return string.Join("|", Items(values)
+            .OrderBy(value => Convert.ToString(P(value, "arrivalId")),
+                StringComparer.Ordinal)
+            .Select(value => P(value, "arrivalId") + ":" + P(value, "kind")
+                + ":" + P(value, "requestedAmount")
+                + ":" + P(value, "materializedAmount")
+                + ":" + P(value, "securedAmount")
+                + ":" + P(value, "escapedAmount")
+                + ":" + P(value, "resolution")));
+    }
+
+    private static string ResultFingerprint(object result)
+    {
+        return Convert.ToString(InvokePublic(result, "ToDetailText"))
+            + "|grants=" + string.Join("/", Items(P(result, "grantedRewards"))
+                .Select(value => P(value, "category") + ":"
+                    + P(value, "requestedAmount") + ":"
+                    + P(value, "grantedAmount") + ":" + P(value, "success")))
+            + "|items=" + string.Join("/", Items(P(result, "itemReceipts"))
+                .Select(value => P(value, "kind") + ":" + P(value, "itemId")
+                    + ":" + P(value, "quantity") + ":" + P(value, "instanceId")
+                    + ":" + P(value, "durabilityLoss")))
+            + "|arrivals=" + ArrivalFingerprint(P(result, "arrivalReceipts"));
+    }
+
+    // Actual settled run only. Reuse the production full-save service in memory;
+    // no slot write, fabricated result DTO, or second reward command.
+    private static string ValuationTuple(object value)
+    {
+        return string.Join(":", new[] { "itemId", "quantity", "state", "acquisitionMilliEwuPerUnit",
+            "recoverableMilliEwuPerUnit", "basisId", "selectedSourceId" }.Select(name => Convert.ToString(P(value, name))));
+    }
+    private string ExactSettlementFingerprint()
+    {
+        object value = FindResult(expeditionId) ?? throw new InvalidOperationException("WIM053_NO_SETTLED_RESULT");
+        return ResultFingerprint(value) + "|valuation=" + string.Join("|", Items(P(value, "itemReceipts"))
+            .Select(row => ValuationTuple(P(row, "valuation"))));
+    }
+    private string CaptureOffenseJson()
+    {
+        return JsonUtility.ToJson(InvokePublic(Resolve("IOffenseSaveService"), "Capture"));
+    }
+    private void VerifyCurrentValuations()
+    {
+        object query = Resolve("IV27EmbeddedWorkValueProjectionQuery");
+        if (!(bool)P(query, "AuthorityAvailable")) throw new InvalidOperationException("WIM053_EWU_AUTHORITY_UNAVAILABLE");
+        object run = FindResult(expeditionId);
+        string detail = Convert.ToString(InvokePublic(run, "ToDetailText"));
+        int count = 0;
+        foreach (object row in Items(P(run, "itemReceipts")))
+        {
+            object value = P(row, "valuation");
+            string item = Convert.ToString(P(row, "itemId"));
+            object[] arguments = { item, Activator.CreateInstance(T("V27EmbeddedWorkValueProjection", "Assembly-CSharp")) };
+            if (!(bool)InvokePublic(query, "TryGet", arguments)
+                || Convert.ToString(P(value, "state")) != "Valued"
+                || Convert.ToString(P(value, "itemId")) != item
+                || Convert.ToInt32(P(value, "quantity")) != Convert.ToInt32(P(row, "quantity"))
+                || Convert.ToInt64(P(value, "acquisitionMilliEwuPerUnit")) != Convert.ToInt64(P(arguments[1], "AcquisitionMilliEwu"))
+                || Convert.ToInt64(P(value, "recoverableMilliEwuPerUnit")) != Convert.ToInt64(P(arguments[1], "RecoverableMilliEwu"))
+                || Convert.ToString(P(value, "basisId")) != Convert.ToString(P(arguments[1], "BasisId"))
+                || Convert.ToString(P(value, "selectedSourceId")) != Convert.ToString(P(arguments[1], "SelectedSourceId")))
+                throw new InvalidOperationException("WIM053_EXACT_VALUATION_MISMATCH:" + item);
+            string fragment = "취득 " + P(value,"acquisitionMilliEwuPerUnit") + "·회수 "
+                + P(value,"recoverableMilliEwuPerUnit") + " mEWU/개 (" + P(value,"basisId") + ")";
+            if (!detail.Contains(fragment)) throw new InvalidOperationException("WIM053_VALUATION_DETAIL_MISSING:" + item);
+            Debug.Log("WIM053_EXACT_VALUATION;" + ValuationTuple(value));
+            count++;
+        }
+        if(count == 0) throw new InvalidOperationException("WIM053_NO_SETTLED_ITEM_RECEIPTS");
+    }
+    private IEnumerator VerifySettledResultRoundtrip()
+    {
+        float previousScale = Time.timeScale;
+        Time.timeScale = 0f;
+        try
+        {
+            // Terminal arrival destroys the retired actor at Unity's frame end.
+            // Freeze game time but complete that boundary before aggregate capture.
+            yield return null;
+            object beforeResult = FindResult(expeditionId)
+                ?? throw new InvalidOperationException("WIM053_SETTLED_RESULT_MISSING_BEFORE_SAVE.");
+            VerifyCurrentValuations();
+            string before = ExactSettlementFingerprint();
+            string offenseBefore = CaptureOffenseJson();
+            int history = CountOf(P(expeditionRuntime, "ResultHistory"));
+            int rewards = RewardAuthorityTotal(P(rewardRuntime, "State"));
+            int events = rewardEventIds.Count;
+            object saveService = Resolve("IDungeonGameSaveService", "DungeonStory.Infrastructure");
+            object captured = InvokePublic(saveService, "Capture");
+            string json = Convert.ToString(InvokePublic(saveService, "ToJson", captured, false));
+            object parsed = InvokePublic(saveService, "FromJson", json);
+            object[] arguments = { parsed, null };
+            bool restored;
+            try { restored = (bool)InvokePublic(saveService, "TryRestore", arguments); }
+            finally { Time.timeScale = 0f; }
+            if (!restored || arguments[1] == null || !(bool)P(arguments[1], "Success"))
+                throw new InvalidOperationException("WIM053_SETTLED_FULLSAVE_RESTORE_FAILED;"
+                    + (arguments[1] == null ? "<no-report>" : string.Join("|",
+                        Items(P(arguments[1], "Errors")).Select(Convert.ToString))));
+            yield return null;
+            ResolveJourneyAuthorities();
+            object after = FindResult(expeditionId);
+            if (after == null
+                || !string.Equals(before, ExactSettlementFingerprint(), StringComparison.Ordinal)
+                || !string.Equals(offenseBefore, CaptureOffenseJson(), StringComparison.Ordinal)
+                || CountOf(P(expeditionRuntime, "ResultHistory")) != history
+                || RewardAuthorityTotal(P(rewardRuntime, "State")) != rewards
+                || rewardEventIds.Count != events)
+                throw new InvalidOperationException("WIM053_SETTLED_RESTORE_CHANGED_RESULT_OR_REGRANTED.");
+            object feature = InvokePublic(Resolve("IExpeditionFeatureQueryService"), "Capture");
+            string detail = Convert.ToString(InvokePublic(after, "ToDetailText"));
+            if (!Items(P(feature, "Results")).Any(row =>
+                    string.Equals(Convert.ToString(P(row, "Detail")), detail, StringComparison.Ordinal)))
+                throw new InvalidOperationException("WIM053_SETTLED_RESTORE_DETAIL_QUERY_MISMATCH.");
+            Debug.Log("WIM053_SETTLED_FULLSAVE_PASS;expedition=" + expeditionId
+                + ";jsonChars=" + json.Length + ";history=" + history
+                + ";rewardAuthority=" + rewards + "->" + RewardAuthorityTotal(P(rewardRuntime, "State"))
+                + ";rewardEvents=" + events + "->" + rewardEventIds.Count
+                + ";resultFingerprintEqual=true;detailQueryEqual=true;exactValuationTupleAndOffenseCaptureEqual=true");
+        }
+        finally { Time.timeScale = previousScale; }
+    }
+
+    private void SubscribeBattleCompletion()
+    {
+        observedBattleSource = battle;
+        var completionEvent = battle.GetType().GetEvent("BattleCompleted");
+        var callback = GetType().GetMethod("OnObservedBattleCompleted");
+        if (completionEvent == null || completionEvent.AddMethod == null || !completionEvent.AddMethod.IsPublic
+            || callback == null || !callback.IsPublic)
+            throw new InvalidOperationException("WIM053_PUBLIC_BATTLE_COMPLETION_EVENT_MISSING.");
+        observedBattleHandler = Delegate.CreateDelegate(completionEvent.EventHandlerType, this,
+            callback.MakeGenericMethod(T("OffenseBattleSession", "Assembly-CSharp")));
+        completionEvent.AddEventHandler(observedBattleSource, observedBattleHandler);
+    }
+
+    public void OnObservedBattleCompleted<TSession>(TSession session)
+    {
+        if (!string.Equals(Convert.ToString(P(session, "ExpeditionId")), expeditionId, StringComparison.Ordinal)) return;
+        completedEnemyIds = Items(P(session, "Combatants"))
+            .Where(value => Convert.ToString(P(value, "Team")) == "Enemies")
+            .Select(value => Convert.ToString(P(value, "PersistentId")))
+            .OrderBy(value => value, StringComparer.Ordinal).ToArray();
+        observedBattleOutcome = Convert.ToString(P(session, "Outcome"));
+        battleVictoryObserved = string.Equals(observedBattleOutcome, "Victory", StringComparison.Ordinal);
+        battleTerminalObserved = true;
+        Debug.Log("WIM053_ACTUAL_BATTLE_OUTCOME;expedition=" + expeditionId + ";outcome=" + observedBattleOutcome);
+    }
+
+    private void SubscribeRewardEvents()
+    {
+        object bus = Resolve(
+            "DungeonStory.Foundation.IGameEventBus", "DungeonStory.Foundation");
+        Type eventType = T("OffenseRewardGrantedEvent", "DungeonStory.Offense");
+        var subscribe = bus.GetType().GetMethods().Single(method => method.IsPublic
+            && method.IsGenericMethodDefinition
+            && string.Equals(method.Name, "Subscribe", StringComparison.Ordinal)
+            && method.GetParameters().Length == 1);
+        var callback = GetType().GetMethod("OnRewardGranted");
+        if (callback == null || !callback.IsPublic || !callback.IsGenericMethodDefinition)
+        {
+            throw new InvalidOperationException("Public reward callback is unavailable.");
+        }
+        Delegate handler = Delegate.CreateDelegate(
+            typeof(Action<>).MakeGenericType(eventType), this,
+            callback.MakeGenericMethod(eventType));
+        rewardSubscription = (IDisposable)subscribe.MakeGenericMethod(eventType)
+            .Invoke(bus, new object[] { handler });
+        if (rewardSubscription == null)
+        {
+            throw new InvalidOperationException("Reward subscription was not created.");
+        }
+    }
+
+    public void OnRewardGranted<TEvent>(TEvent value)
+    {
+        object result = P(value, "expeditionResult");
+        rewardEventIds.Add(result == null
+            ? "<null>"
+            : Convert.ToString(P(result, "expeditionId")));
+    }
+
+    private void InstallCleanup()
+    {
+        if (playExitCleanupInstalled) return;
+        EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        playExitCleanupInstalled = true;
+    }
+
+    private void Cleanup()
+    {
+        if (Application.isPlaying) Time.timeScale = 0f;
+        EditorApplication.isPaused = true;
+        rewardSubscription?.Dispose();
+        rewardSubscription = null;
+        if (observedBattleSource != null && observedBattleHandler != null)
+            observedBattleSource.GetType().GetEvent("BattleCompleted").RemoveEventHandler(
+                observedBattleSource, observedBattleHandler);
+        observedBattleSource = null;
+        observedBattleHandler = null;
+        if (playExitCleanupInstalled)
+        {
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            playExitCleanupInstalled = false;
+        }
+    }
+
+    private void OnPlayModeStateChanged(PlayModeStateChange change)
+    {
+        if (change == PlayModeStateChange.ExitingPlayMode
+            || change == PlayModeStateChange.EnteredEditMode)
+        {
+            Cleanup();
+        }
+    }
+
+    public void Execute(ExecutionResult result)
+    {
+        if (!Application.isPlaying || !EditorApplication.isPaused || Time.timeScale != 0f)
+            throw new InvalidOperationException("WIM053_ACTIVE_RESUME_REQUIRES_PAUSED_ACTUAL_RUN");
+        InstallCleanup();
+        try
+        {
+            ResolveJourneyAuthorities();
+            expeditionId = "553998e5f2bf4ef78fc4fe713ee7e101";
+            lossActorId = "character:staff:1:01";
+            lossInstanceId = "item-instance:955d9c7cee11474f819a9bda4bba8c55";
+            lossItemId = "equipment-item:weapon:dagger";
+            object run = FindActiveExpedition(expeditionId);
+            object[] args = { lossInstanceId, null };
+            if (run == null || !(bool)P(run, "WorldObjectiveCompleted")
+                || (bool)P(battle, "HasActiveBattle")
+                || CountOf(P(run, "RecoveredEquipmentInstanceIds")) != 0
+                || !(bool)InvokePublic(Resolve("ICombatEquipmentRuntime"), "TryGetInstance", args)
+                || Convert.ToString(F(args[1], "worldState")) != "Lost"
+                || !Items(P(run, "MemberActors")).Any(actor => ActorId(actor) == lossActorId && (bool)P(actor, "IsDead"))
+                || !Items(P(run, "MemberActors")).Any(actor => !(bool)P(actor, "IsDead")))
+                throw new InvalidOperationException("WIM053_ACTIVE_RESUME_ACTUAL_OWNERSHIP_CHANGED");
+            deathLossObserved = true; // Read back the actual previous battle's exact Lost item; apply no damage.
+            fixtureRows.Add("RESUME_ACTUAL_POST_BATTLE;previousFullRestore=WIM053_ACTUAL_ZERO_LOOT_FULLSAVE_PASS;noResearchOrLaunchReplay=true;pendingRecovered=0");
+            EditorApplication.isPaused = false;
+            FindScopeHost().StartCoroutine(RunSafely());
+            result.Log("WIM053_ACTUAL_POST_BATTLE_RESUME_INSTALLED;expedition=" + expeditionId
+                + ";scope=remaining-return-arrival-detail-fullsave;noNewBattle=true");
+        }
+        catch { Cleanup(); throw; }
+    }
+
+    private IEnumerator RunSafely()
+    {
+        IEnumerator run = Run();
+        try
+        {
+            while (true)
+            {
+                bool complete = false;
+                object current = null;
+                Exception failure = null;
+                try
+                {
+                    complete = !run.MoveNext();
+                    if (!complete) current = run.Current;
+                }
+                catch (Exception exception)
+                {
+                    failure = exception;
+                }
+                if (failure != null)
+                {
+                    terminal = "FAILED " + failure.GetBaseException().ToString();
+                    Debug.LogError("WIM053 POST_BATTLE_RESUME " + terminal);
+                    yield break;
+                }
+                if (complete) yield break;
+                yield return current;
+            }
+        }
+        finally
+        {
+            (run as IDisposable)?.Dispose();
+        }
+    }
+
+    private IEnumerator Run()
+    {
+        try
+        {
+            object expedition = FindActiveExpedition(expeditionId);
+            int historyBefore = CountOf(P(expeditionRuntime, "ResultHistory"));
+            int rewardBefore = RewardAuthorityTotal(P(rewardRuntime, "State"));
+            CaptureExpectedConsumption(expedition);
+            SubscribeRewardEvents();
+            float clockStart = Convert.ToSingle(P(gameClock, "Time"));
+            float wallDeadline = Time.realtimeSinceStartup + WallLimitSeconds;
+            Time.timeScale = 1f;
+
+            while (Time.realtimeSinceStartup < wallDeadline
+                && Convert.ToSingle(P(gameClock, "Time")) - clockStart
+                    < GameClockLimitSeconds)
+            {
+                expedition = FindActiveExpedition(expeditionId);
+                if (expedition == null) break;
+                // ConsumedSupplies starts empty. Preserve the final cumulative live
+                // value; only settlement decides whether positive consumption occurred.
+                CaptureExpectedConsumption(expedition);
+                if ((bool)P(expedition, "DepartureCompleted"))
+                {
+                    departureObserved = true;
+                }
+
+                if (!LossArrivalScenario && !segmentRestored && departureObserved
+                    && TryTravelState(out object checkpoint)
+                    && !(bool)F(checkpoint, "pausedForDecision")
+                    && !(bool)F(checkpoint, "pausedForBattle")
+                    && CountOf(F(checkpoint, "remainingPath")) > 0
+                    && Convert.ToSingle(F(checkpoint, "activeSegmentDurationSeconds")) > 0f
+                    && Convert.ToSingle(F(checkpoint, "progressToNextTile")) > FloatTolerance
+                    && Convert.ToSingle(F(checkpoint, "progressToNextTile"))
+                        < Convert.ToSingle(F(checkpoint, "activeSegmentDurationSeconds"))
+                            - FloatTolerance)
+                {
+                    SaveSegment(checkpoint);
+                    IEnumerator restore = RestoreCurrentSegment();
+                    while (restore.MoveNext()) yield return restore.Current;
+                    expedition = FindActiveExpedition(expeditionId);
+                    CaptureExpectedConsumption(expedition);
+                    continue;
+                }
+
+                if (TryDecision(out object decision))
+                {
+                    IEnumerator decisionUi = ResolveDecisionThroughUi(decision);
+                    while (decisionUi.MoveNext()) yield return decisionUi.Current;
+                    continue;
+                }
+
+                if ((bool)P(battle, "HasActiveBattle") && P(director, "State") != null)
+                {
+                    IEnumerator battleUi = IssueBattleTurn();
+                    while (battleUi.MoveNext()) yield return battleUi.Current;
+                    continue;
+                }
+                if (!LossArrivalScenario && battleObserved && !(bool)P(battle, "HasActiveBattle")
+                    && (bool)P(expedition, "WorldObjectiveCompleted"))
+                {
+                    battleTerminalObserved = true;
+                }
+
+                if (LossArrivalScenario && !deathLossObserved && battleTerminalObserved)
+                {
+                    if (!battleVictoryObserved)
+                        throw new InvalidOperationException("WIM053_CONVOY_VICTORY_NOT_OBSERVED:" + observedBattleOutcome);
+                    ApplyPostBattleDeathFixture(expedition);
+                    IEnumerator casualtyRestore = VerifyActiveCasualtyRoundtrip();
+                    while (casualtyRestore.MoveNext()) yield return casualtyRestore.Current;
+                    continue;
+                }
+
+                if (!LossArrivalScenario && !fieldMedicalObserved && battleTerminalObserved
+                    && (bool)P(expedition, "WorldObjectiveCompleted"))
+                {
+                    IEnumerator fieldTreatment = ApplyFieldStabilizationThroughUi(expedition);
+                    while (fieldTreatment.MoveNext()) yield return fieldTreatment.Current;
+                    continue;
+                }
+
+                if (!LossArrivalScenario && (bool)P(expedition, "WorldObjectiveCompleted")
+                    && !HasNaturalSupplyConsumption()
+                    && !detourIssued)
+                {
+                    if (!TryTravelState(out object detourTravel))
+                    {
+                        throw new InvalidOperationException(
+                            "WIM053_DECISION_DETOUR_TRAVEL_STATE_MISSING.");
+                    }
+                    object detour = FindDecisionDetour(detourTravel);
+                    if (detour == null)
+                    {
+                        throw new InvalidOperationException(
+                            "WIM053_NO_LAWFUL_DECISION_DETOUR.");
+                    }
+                    InvokePublic(panels, "ShowWorldMap");
+                    yield return null;
+                    ClickByName("Hex_" + P(detour, "Q") + "_" + P(detour, "R"),
+                        "decision-detour-hex");
+                    yield return null;
+                    ClickExact("선택한 칸으로 이동", "decision-detour-move");
+                    detourDecisionBaseline = decisionCount;
+                    detourIssued = true;
+                    yield return null;
+                    continue;
+                }
+
+                if ((bool)P(expedition, "WorldObjectiveCompleted")
+                    && !returnIssued
+                    && (LossArrivalScenario || HasNaturalSupplyConsumption()
+                        || !detourIssued || decisionCount > detourDecisionBaseline))
+                {
+                    object dungeon = P(world, "DungeonCoord");
+                    InvokePublic(panels, "ShowWorldMap");
+                    yield return null;
+                    ClickByName("Hex_" + P(dungeon, "Q") + "_" + P(dungeon, "R"),
+                        "return-dungeon-hex");
+                    yield return null;
+                    ClickExact("선택한 칸으로 이동", "return-move");
+                    returnIssued = true;
+                    yield return null;
+                    continue;
+                }
+                yield return null;
+            }
+
+            if (FindActiveExpedition(expeditionId) != null)
+            {
+                throw new InvalidOperationException(
+                    "WIM017053_BOUNDED_JOURNEY_TIMEOUT;clock=" + clockStart + "->"
+                    + P(gameClock, "Time") + ";departure=" + departureObserved
+                    + ";segmentRestore=" + segmentRestored
+                    + ";segmentAdvanced=" + segmentAdvanced
+                    + ";decisions=" + decisionCount + ";battleTurns=" + battleTurns
+                    + ";return=" + returnIssued);
+            }
+
+            if (LossArrivalScenario)
+            {
+                if (FindResult(expeditionId) == null)
+                    throw new InvalidOperationException("WIM053_RETURN_RESULT_MISSING_BEFORE_ARRIVAL_WAIT.");
+                IEnumerator arrival = ObserveUncontainedArrival();
+                while (arrival.MoveNext()) yield return arrival.Current;
+            }
+            object resultValue = FindResult(expeditionId);
+            if (resultValue == null || !(bool)P(resultValue, "success"))
+            {
+                throw new InvalidOperationException(
+                    "WIM053_SUCCESSFUL_SETTLEMENT_MISSING;result="
+                    + (resultValue == null ? "missing" : P(resultValue, "success")));
+            }
+            if (!returnIssued)
+                throw new InvalidOperationException("WIM053_RESUMED_RETURN_UI_NOT_OBSERVED");
+
+            List<object> receipts = Items(P(resultValue, "itemReceipts"));
+            Dictionary<string, int> consumed = receipts
+                .Where(value => string.Equals(Convert.ToString(P(value, "kind")),
+                    "SupplyConsumed", StringComparison.Ordinal))
+                .GroupBy(value => Convert.ToString(P(value, "itemId")),
+                    StringComparer.Ordinal)
+                .ToDictionary(group => group.Key,
+                    group => group.Sum(value => Convert.ToInt32(P(value, "quantity"))),
+                    StringComparer.Ordinal);
+            bool positiveSupplyConsumptionObserved = HasNaturalSupplyConsumption();
+            if (!positiveSupplyConsumptionObserved)
+            {
+                Debug.Log("WIM053_SUPPLY_ZERO_OBSERVATION;nonTerminal=true"
+                    + ";expedition=" + expeditionId
+                    + ";departure=" + departureObserved
+                    + ";segmentRestore=" + segmentRestored
+                    + ";segmentAdvanced=" + segmentAdvanced
+                    + ";decisions=" + decisionCount
+                    + ";battleTurns=" + battleTurns
+                    + ";return=" + returnIssued
+                    + ";actualSupplyReceipts="
+                    + string.Join(",", consumed.Select(pair =>
+                        pair.Key + ":" + pair.Value)));
+            }
+            if (expectedConsumption.Count != consumed.Count
+                || expectedConsumption.Any(pair =>
+                    !consumed.TryGetValue(pair.Key, out int amount)
+                    || amount != pair.Value))
+            {
+                throw new InvalidOperationException(
+                    "WIM053_PHYSICAL_CONSUMPTION_RECEIPT_MISMATCH;expected="
+                    + string.Join(",", expectedConsumption.Select(pair =>
+                        pair.Key + ":" + pair.Value)) + ";actual="
+                    + string.Join(",", consumed.Select(pair => pair.Key + ":" + pair.Value)));
+            }
+            if (!LossArrivalScenario) VerifyFieldTreatmentResult(resultValue);
+            else if (!deathLossObserved || !escapeObserved
+                || receipts.Count(value => string.Equals(Convert.ToString(P(value, "kind")), "EquipmentLost", StringComparison.Ordinal)
+                    && string.Equals(Convert.ToString(P(value, "instanceId")), lossInstanceId, StringComparison.Ordinal)
+                    && string.Equals(Convert.ToString(P(value, "itemId")), lossItemId, StringComparison.Ordinal)
+                    && Convert.ToInt32(P(value, "quantity")) == 1) != 1
+                || !string.Equals(ArrivalFingerprint(P(resultValue, "arrivalReceipts")), escapedArrivalFingerprint, StringComparison.Ordinal))
+                throw new InvalidOperationException("WIM053_LOSS_OR_ESCAPE_RESULT_MISMATCH.");
+            List<object> grants = Items(P(resultValue, "grantedRewards"));
+            if (grants.Count == 0 || grants.Any(value => !(bool)P(value, "success")))
+            {
+                throw new InvalidOperationException("WIM053_REWARD_GRANT_FAILED_OR_EMPTY.");
+            }
+            string liveArrivals = ArrivalFingerprint(
+                InvokePublic(returnArrivals, "GetSettlementReceipts", expeditionId));
+            string recordedArrivals = ArrivalFingerprint(P(resultValue, "arrivalReceipts"));
+            if (!string.Equals(liveArrivals, recordedArrivals, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "WIM053_RETURN_ARRIVAL_RECEIPT_MISMATCH;live=" + liveArrivals
+                    + ";recorded=" + recordedArrivals);
+            }
+            if (rewardEventIds.Count != 1
+                || !string.Equals(rewardEventIds[0], expeditionId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "WIM053_REWARD_EVENT_COUNT_OR_ID_MISMATCH;events="
+                    + string.Join(",", rewardEventIds));
+            }
+            int rewardAfterSettlement = RewardAuthorityTotal(P(rewardRuntime, "State"));
+            // This projection owns money/stock/facilities/blueprints, not arrival
+            // custody or regional pressure. Do not reject a valid convoy reward
+            // because those separate authorities leave this projection unchanged.
+            bool trackedRewardGranted = grants.Any(value =>
+                Convert.ToInt32(P(value, "grantedAmount")) > 0
+                && new[] { "Money", "Stock", "RareFacility", "Blueprint" }.Contains(
+                    Convert.ToString(P(value, "category")), StringComparer.Ordinal));
+            if (rewardAfterSettlement < rewardBefore
+                || (trackedRewardGranted && rewardAfterSettlement <= rewardBefore))
+            {
+                throw new InvalidOperationException(
+                    "WIM053_REWARD_AUTHORITY_DID_NOT_INCREASE;before=" + rewardBefore
+                    + ";after=" + rewardAfterSettlement);
+            }
+            if (TryTravelState(out _) || TryDecision(out _)
+                || (bool)P(battle, "HasActiveBattle") || P(director, "State") != null)
+            {
+                throw new InvalidOperationException(
+                    "WIM053_EXPEDITION_OWNERSHIP_LEAK_AFTER_SETTLEMENT.");
+            }
+
+            string fingerprintBeforeDetail = ResultFingerprint(resultValue);
+            int historyAtDetail = CountOf(P(expeditionRuntime, "ResultHistory"));
+            int eventsAtDetail = rewardEventIds.Count;
+            PointerClick(ExpeditionTopTab(), "expedition-result-tab");
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            object featureQuery = Resolve("IExpeditionFeatureQueryService");
+            object featureModel = InvokePublic(featureQuery, "Capture");
+            object featureRow = Items(P(featureModel, "Results")).Single(value =>
+                Convert.ToInt32(P(value, "Index")) == 0);
+            string resultDetail = Convert.ToString(InvokePublic(resultValue, "ToDetailText"));
+            if (!string.Equals(Convert.ToString(P(featureRow, "Detail")),
+                    resultDetail, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "WIM053_RESULT_DETAIL_MODEL_MISMATCH.");
+            }
+            PointerClick(ActiveButtonByName("P1Action_ExpeditionReward_0"),
+                "expedition-result-detail");
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            bool detailVisible = Resources.FindObjectsOfTypeAll<TMP_Text>()
+                .Any(value => value != null && value.gameObject.scene.isLoaded
+                    && value.gameObject.activeInHierarchy
+                    && string.Equals(value.text, resultDetail, StringComparison.Ordinal));
+            yield return null;
+            object requery = FindResult(expeditionId);
+            int rewardAfterDetail = RewardAuthorityTotal(P(rewardRuntime, "State"));
+            bool noRegrant = requery != null
+                && string.Equals(ResultFingerprint(requery), fingerprintBeforeDetail,
+                    StringComparison.Ordinal)
+                && CountOf(P(expeditionRuntime, "ResultHistory")) == historyAtDetail
+                && rewardEventIds.Count == eventsAtDetail
+                && rewardAfterDetail == rewardAfterSettlement;
+            if (!detailVisible || !noRegrant
+                || CountOf(P(expeditionRuntime, "ResultHistory")) != historyBefore + 1)
+            {
+                throw new InvalidOperationException(
+                    "WIM053_RESULT_DETAIL_OR_NO_REGRANT_FAILED;visible=" + detailVisible
+                    + ";noRegrant=" + noRegrant + ";history=" + historyBefore + "->"
+                    + CountOf(P(expeditionRuntime, "ResultHistory"))
+                    + ";authority=" + rewardAfterSettlement + "->" + rewardAfterDetail);
+            }
+
+            if (LossArrivalScenario)
+            {
+                IEnumerator settledSave = VerifySettledResultRoundtrip();
+                while (settledSave.MoveNext()) yield return settledSave.Current;
+            }
+
+            string receiptKinds = string.Join(",", receipts
+                .GroupBy(value => Convert.ToString(P(value, "kind")),
+                    StringComparer.Ordinal)
+                .OrderBy(group => group.Key, StringComparer.Ordinal)
+                .Select(group => group.Key + ":" + group.Sum(value =>
+                    Convert.ToInt32(P(value, "quantity")))));
+            bool equipmentLossObserved = receipts.Any(value => string.Equals(
+                Convert.ToString(P(value, "kind")), "EquipmentLost",
+                StringComparison.Ordinal));
+            bool supplyReturnObserved = receipts.Any(value => string.Equals(
+                Convert.ToString(P(value, "kind")), "SupplyReturned",
+                StringComparison.Ordinal));
+            bool arrivalObserved = CountOf(P(resultValue, "arrivalReceipts")) > 0;
+            string requiredStatus = (LossArrivalScenario ? deathLossObserved && escapeObserved : fieldMedicalObserved || positiveSupplyConsumptionObserved)
+                ? "PASS" : "INCOMPLETE WIM053_SUPPLY_CONSUMPTION_NOT_OBSERVED";
+            terminal = requiredStatus + " required path;optionalObserved={equipmentLoss="
+                + equipmentLossObserved + ";supplyReturn=" + supplyReturnObserved
+                + ";arrival=" + arrivalObserved + "}";
+            Debug.Log("WIM053 POST_BATTLE_RESUME " + requiredStatus
+                + ";settlementChecksPassed=true;positiveSupplyConsumptionObserved="
+                + positiveSupplyConsumptionObserved + ";fixture="
+                + string.Join("|", fixtureRows)
+                + ";expedition=" + expeditionId
+                + ";scenario=" + (LossArrivalScenario ? "loss-and-escape" : "field-medical")
+                + ";deathLossObserved=" + deathLossObserved + ";escapeObserved=" + escapeObserved
+                + ";fieldMedical=[" + fieldMedicalEvidence + "]"
+                + ";segment=" + SegmentSummaryBefore()
+                + ";saveBytes=" + saveBytes
+                + ";clock=" + clockStart + "->" + P(gameClock, "Time")
+                + ";decisions=" + string.Join("|", decisionRows)
+                + ";battles=" + string.Join("|", battleRows)
+                + ";consumed=" + string.Join(",", expectedConsumption.Select(pair =>
+                    pair.Key + ":" + pair.Value))
+                + ";receiptKinds=" + receiptKinds
+                + ";arrivals=" + recordedArrivals
+                + ";rewardEvents=" + string.Join(",", rewardEventIds)
+                + ";rewardAuthority=" + rewardBefore + "->" + rewardAfterSettlement
+                + "->" + rewardAfterDetail
+                + ";detailVisible=" + detailVisible
+                + ";noRegrant=" + noRegrant
+                + ";neutralWeatherObserved=" + Close(savedWeather, 1f)
+                + ";optionalEquipmentLoss="
+                + (equipmentLossObserved ? "OBSERVED" : "NOT_OBSERVED")
+                + ";optionalSupplyReturn="
+                + (supplyReturnObserved ? "OBSERVED" : "NOT_OBSERVED")
+                + ";optionalArrival="
+                + (arrivalObserved ? "OBSERVED" : "NOT_OBSERVED"));
+        }
+        finally
+        {
+            Cleanup();
+        }
+    }
+}
+
+```

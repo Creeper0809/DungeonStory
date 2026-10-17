@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa10b2a63b654e309daf38d4e7e5ecdc, type: 3}
+  m_Name: acquired-trait_module_ritual-attunement
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterAcquiredTraitModuleSO
+  moduleId: acquired-trait:module:ritual-attunement
+  displayName: "\uC758\uB840\uC801 \uACF5\uBA85"
+  description: "\uBC18\uBCF5\uD55C \uAD00\uCC30\uACFC \uC758\uB840\uAC00 \uC5F0\uAD6C\uC758
+    \uC9D1\uC911\uC744 \uB192\uC5EC \uC5F0\uAD6C \uC18D\uB3C4\uAC00 \uC870\uAE08
+    \uBE68\uB77C\uC9D1\uB2C8\uB2E4."
+  cost: 2
+  conflictGroups: []
+  domainAffinities: 0100000000000000
+  effects:
+  - bindingId: acquired-trait:module:ritual-attunement:effect:0
+    definition: {fileID: 11400000, guid: 3790d32843ae6be41bcfbace26296424, type: 2}
+    value: 1.04
+    condition: {fileID: 0}
+  drawbackBindingIds: []
+  specialReactions: []
+  capabilityId: acquired-trait:acquired-trait:module:ritual-attunement
+  formula:
+    appliedParameterIds:
+    - magnitude
+    baseCost: 1
+    triggerFrequencyCostPerUnit: 1
+    guaranteedProcCost: 1
+    areaCostPerExtraTarget: 1
+    multiEffectCostPerExtraEffect: 1
+    pairSynergyCosts: []
+    narrativeAffinity: 1
+    affinityKeys:
+    - FacilityUse
+    - Work
+    conflictGroups:
+    - capability:acquired-trait:acquired-trait:module:ritual-attunement
+    forbiddenSynergies: []
+    formatterId: acquired-trait:acquired-trait:module:ritual-attunement
+    applicatorId: acquired-trait:acquired-trait:module:ritual-attunement
+    parameterRanges:
+    - parameterId: magnitude
+      minimumUnits: 10000
+      maximumUnits: 14000
+      quantumUnits: 1000
+      decimalPlaces: 4
+      costPerQuantum: 1
+    - parameterId: duration
+      minimumUnits: 0
+      maximumUnits: 0
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: count
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: targetCount
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1

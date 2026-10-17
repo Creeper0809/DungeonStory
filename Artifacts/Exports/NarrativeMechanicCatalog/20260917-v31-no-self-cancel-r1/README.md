@@ -1,0 +1,23 @@
+# DungeonStory V25 Narrative Mechanic Package
+
+This immutable package contains controlled C# fixtures. It is not evidence of natural gameplay or human approval.
+
+## Regeneration
+
+In the authoritative DungeonStory Unity project, run `DungeonStory/Narrative/Export Mechanic Catalog`. The exporter captures every fixture through its named production producer and validator, computes full `inputDigest` provenance plus the distinct dirty-only `uncommittedSourceHash`, and writes a create-new directory through an atomic staging move. Existing versions are never overwritten. To attach raw test output, pass an immutable canonical JSON value as `rawTestResults` on `NarrativeMechanicCatalogExportRequest`; the resulting `raw_test_results.json` is delivery-only and does not enter catalog or training inputs.
+
+## Validation
+
+Verify every SHA-256 entry in `delivery_manifest.json`, then require its `currentCommit`, `inputDigest`, `uncommittedSourceHash`, and `catalogHash` to match the package. Recompute `uncommittedSourceHash` from schemaVersion 1 plus only non-clean declared source entries using canonical `path`, `sha256`, `gitStatus`, and `tracked` fields; the empty set is still hashed. Validate `scenarios_100.json` and `negative_scenarios.json` against `scenario_schema.json`. `continuity_scenarios.json` is a separate deterministic boundary-witness document; it is never added to the 100 accepted scenarios or 15 rejected scenarios. If `raw_test_results.json` is present, verify it through the normal delivery hashes but never treat it as catalog/model input, catalogHash/inputDigest material, or training evidence. Run `NarrativeMechanicCatalogExporter.CompareIndependentExports(() => new NarrativeMechanicCatalogUnityAssetSource()).RequireByteIdentical()` for a normal package, or pass the same immutable request to the overload when comparing a package with raw results, in the authoritative Unity Editor. Supply separately produced evidence gates before claiming training eligibility.
+
+## CharacterSkill public semantics
+
+CharacterSkill formula generation is authoritative in C#. `characterSkill.formulaPolicy` exports formulaVersion, catalogSha256, strength/soft-cap inputs, milestone weights and the instance-local drawback-credit policy. Every module exports a closed `formula` descriptor containing all four quantized ranges, costs, affinity/conflict declarations, formatterId and applicatorId. Missing metadata fails export. For formulaVersion 2 and later C# exposes all individually legal authored modules and evidence IDs; the model returns only `{selectionId,positiveModuleIds,drawbackModuleIds,evidenceFactIds,displayName,narrativeFlavor}`. C# rejects stale, invented, conflicting or negative-only selections and allocates all numeric values only after validation. A reachable, mandatory and inseparable drawback may finance only its attached generated instance; `positiveCost - drawbackCredit = netCost <= narrativeBudget`, and no credit enters a global or persistent budget. Legacy committed numeric instances remain load support and never authorize new mechanics.
+
+## Immutable reproduction
+
+A released v15 or v16 directory is immutable and must not be overwritten or served through a compatibility branch. Reproduce it only from its recorded game commit, source digest/inputDigest, catalogHash, exporter source provenance, and delivery-manifest file hashes. A changed semantics contract produces a new create-only export version and new hashes.
+
+## AI consumption
+
+The current NarrativeAI catalog importer reads only `catalog.json`; it does not ingest scenario files. A separate scenario adapter may consume `scenarios_100.json` and `negative_scenarios.json` only after `delivery_manifest.json` and `scenario_schema.json` validation. Its model-input allowlist is exactly `publicNarrativeContext` and `publicFacts`. It must never consume raw `request`, raw prompt, response, audit, semantic hashes, or fixture data. In particular exclude `responseJson`, expected or accepted outcomes, failure reasons, validator results, internal state, `authorityContext`, `fixtureInput`, `originalFactId`, and `sourceSubjectId`. Positive examples are exactly the accepted records in `scenarios_100.json`; command or validator rejections in `negative_scenarios.json` are evaluation-only and never count toward the 100 positives or become model input. `scenarios_100.json` uses schemaVersion 2 and `negative_scenarios.json` uses schemaVersion 3; an adapter must not fabricate candidates for a rejected command with an empty `fullLegalCandidates` array. Do not infer gameplay authority from generated prose.

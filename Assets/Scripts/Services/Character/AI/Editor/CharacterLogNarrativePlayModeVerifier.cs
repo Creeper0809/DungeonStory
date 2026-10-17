@@ -51,6 +51,8 @@ public sealed class CharacterLogNarrativePlayModeVerificationRunner : MonoBehavi
     private readonly List<string> failures = new List<string>();
     private readonly List<string> capturedErrors = new List<string>();
     private readonly List<string> capturedWarnings = new List<string>();
+    private readonly NarrativeRequestContextBuilder requestContexts =
+        NarrativeRequestContextTestFixture.CreateEmpty();
     private float originalTimeScale;
 
     private IEnumerator Start()
@@ -456,12 +458,18 @@ public sealed class CharacterLogNarrativePlayModeVerificationRunner : MonoBehavi
         button.OnPointerClick(eventData);
     }
 
-    private static CharacterLogNarrativeService CreateNarrativeService(
+    private CharacterLogNarrativeService CreateNarrativeService(
         ILocalLlmRuntimeProvider provider) =>
         new CharacterLogNarrativeService(
+            requestContexts,
             provider,
             new CharacterRecordTemplateBank(NarrativeText),
             NarrativeText);
+
+    private void OnDestroy()
+    {
+        requestContexts.Dispose();
+    }
 
     private static CharacterLog CreateProbeLog(
         string objectName,

@@ -1,9 +1,11 @@
 using System.Collections;
 using System;
 using System.Linq;
+using System.Text;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using VContainer;
 
 public static class PlayModeVerificationFrameWait
 {
@@ -119,12 +121,88 @@ public static class StartPartyPlayModeTestDriver
 
         if (confirm == null)
         {
-            Debug.LogError("Start party did not become ready after generated active and passive preparation.");
+            Debug.LogError(
+                "Start party did not become ready after generated active and passive preparation. "
+                + DescribePreparationState());
             yield break;
         }
 
         Click(confirm);
         yield return new WaitForSecondsRealtime(0.5f);
+    }
+
+    private static string DescribePreparationState()
+    {
+        try
+        {
+            DungeonPreparationLifetimeScope scope =
+                UnityEngine.Object.FindFirstObjectByType<DungeonPreparationLifetimeScope>();
+            IStartPartyPreparationService preparation = scope?.Container?
+                .Resolve<IStartPartyPreparationService>();
+            ICharacterSkillGenerationDiagnostics diagnostics = scope?.Container?
+                .Resolve<ICharacterSkillGenerationDiagnostics>();
+            LocalLlmRequestQueue queue =
+                UnityEngine.Object.FindFirstObjectByType<LocalLlmRequestQueue>(
+                    FindObjectsInactive.Include);
+            if (preparation == null)
+            {
+                return "preparation=missing";
+            }
+
+            StringBuilder text = new StringBuilder();
+            foreach (StartPartyMemberPreparation member in preparation.Members)
+            {
+                CharacterSkillDraft activeDraft = member?.Progression?.Drafts?
+                    .FirstOrDefault(draft => draft != null
+                        && draft.kind == CharacterSkillKind.Active
+                        && draft.unlockLevel == 1);
+                CharacterSkillDraft passiveDraft = member?.Progression?.Drafts?
+                    .FirstOrDefault(draft => draft != null
+                        && draft.kind == CharacterSkillKind.Passive
+                        && draft.unlockLevel == 1);
+                if (text.Length > 0)
+                {
+                    text.Append(" | ");
+                }
+
+                text.Append("member=").Append(member?.Index ?? -1)
+                    .Append(",owner=").Append(member?.IsOwner == true)
+                    .Append(",ready=").Append(member?.IsReadyToStart == true)
+                    .Append(",activeDraftReady=").Append(activeDraft?.isReady == true)
+                    .Append(",activeChosen=").Append(activeDraft?.permanentlyChosen == true)
+                    .Append(",activeCount=").Append(member?.Progression?.ActiveSkills?.Count ?? -1)
+                    .Append(",passiveDraftReady=").Append(passiveDraft?.isReady == true)
+                    .Append(",passiveCount=").Append(member?.Progression?.PassiveSkills?.Count ?? -1)
+                    .Append(",pendingKeys=")
+                    .Append(member?.Progression?.GrowthState?.pendingRequestKeys?.Count ?? -1);
+            }
+
+            text.Append(" | generatorPending=")
+                .Append(diagnostics?.PendingRequestCount ?? -1)
+                .Append(",lastDiagnostic=")
+                .Append(diagnostics?.LastDiagnostic ?? "missing");
+            if (queue != null)
+            {
+                LocalLlmRuntimeReadinessSnapshot readiness =
+                    queue.CaptureReadiness();
+                text.Append(" | llmReadiness=").Append(readiness.State)
+                    .Append(",queueQueued=").Append(queue.QueuedCount)
+                    .Append(",queueRunning=").Append(queue.RunningCount)
+                    .Append(",queueTimeouts=").Append(queue.TimeoutCount)
+                    .Append(",queueLastError=")
+                    .Append(string.IsNullOrWhiteSpace(queue.LastError)
+                        ? "<none>"
+                        : queue.LastError.Replace("\r", " ").Replace("\n", " "))
+                    .Append(",queueDiagnostic=")
+                    .Append(queue.GetRequestDiagnosticsForDebug()
+                        .Replace("\r", " ").Replace("\n", " "));
+            }
+            return text.ToString();
+        }
+        catch (Exception exception)
+        {
+            return "diagnostic-failed=" + exception.GetType().Name + ":" + exception.Message;
+        }
     }
 
     private static Button FindStartButton(bool requireInteractable)

@@ -60,8 +60,7 @@ internal static class WorkExecutionRules
 
         IBuildingVisitorPort visitor = actor?.BuildingVisitor;
         foreach (IBuildingExteriorWorkRuntimeAbility ability
-                 in target.BuildingData.Abilities
-                     .OfType<IBuildingExteriorWorkRuntimeAbility>())
+                 in target.GetRuntimeAbilities<IBuildingExteriorWorkRuntimeAbility>())
         {
             if (!ability.SupportsExteriorWork(workTypeId)
                 || !ability.IsExteriorWorkAvailable(

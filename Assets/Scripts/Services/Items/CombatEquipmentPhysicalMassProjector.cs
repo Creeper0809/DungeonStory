@@ -137,14 +137,8 @@ public static class PhysicalItemMassSubjectAdapter
         }
 
         PhysicalMassGrams preparedUnitMass =
-            massQuery.GetDefinitionUnitMass(itemId);
-        for (int index = 0; index < massContributions.Count; index++)
-        {
-            PhysicalItemMassContribution contribution = massContributions[index];
-            preparedUnitMass = preparedUnitMass.Add(
-                massQuery.GetDefinitionUnitMass(contribution.ItemId)
-                    .Multiply(contribution.Quantity));
-        }
+            CombatEquipmentPhysicalItemMassProjector.ResolveUnitMass(
+                massQuery, itemId, attachedModuleCount, ammunition);
 
         PhysicalItemComponentSnapshot snapshot = new(
             component.componentTypeId,
@@ -354,6 +348,30 @@ public static class PhysicalItemMassSubjectAdapter
 public sealed class CombatEquipmentPhysicalItemMassProjector :
     IPhysicalItemMassProjector
 {
+    // One gram composition for validated physical components and live equipment.
+    // Quality, material presentation and evolution do not rewrite physical mass.
+    public static PhysicalMassGrams ResolveUnitMass(
+        IPhysicalItemMassQuery massQuery,
+        ItemDefinitionId itemId,
+        int attachedModuleCount,
+        LoadedAmmunitionBatch ammunition)
+    {
+        if (massQuery == null) throw new ArgumentNullException(nameof(massQuery));
+        if (attachedModuleCount < 0)
+            throw new ArgumentOutOfRangeException(nameof(attachedModuleCount));
+        if (ammunition != null && ammunition.remaining < 0)
+            throw new InvalidOperationException("Equipment mass has negative ammunition.");
+
+        PhysicalMassGrams mass = massQuery.GetDefinitionUnitMass(itemId);
+        if (attachedModuleCount > 0)
+            mass = mass.Add(massQuery.GetDefinitionUnitMass(
+                (ItemDefinitionId)PhysicalItemIds.ForEquipmentModule()).Multiply(attachedModuleCount));
+        if (ammunition != null && ammunition.remaining > 0)
+            mass = mass.Add(massQuery.GetDefinitionUnitMass(
+                (ItemDefinitionId)ammunition.ammunitionItemId).Multiply(ammunition.remaining));
+        return mass;
+    }
+
     public CombatEquipmentPhysicalItemMassProjector(
         IPhysicalItemDefinitionMassProjector definitions)
     {

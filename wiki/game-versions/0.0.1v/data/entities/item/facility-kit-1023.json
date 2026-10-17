@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "휴식용소파에서 주민이 쉬거나 기본 욕구를 해결하도록 꾸린 설치 부품이며, 하르나크의 시설과도 체결 규격이 맞는다.",
+  "in_game_description": "휴식용소파에서 주민이 쉬거나 기본 욕구를 해결하도록 꾸린 설치 부품이다. 하르나크의 휴식용소파는 뿔, 날개와 꼬리가 눌리지 않도록 주민이 실제로 쉬는 자세를 보고 치수를 고친다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

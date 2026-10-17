@@ -4,7 +4,8 @@
   "references": [
     "DungeonStory.Economy",
     "DungeonStory.FacilityShop",
-    "DungeonStory.Foundation"
+    "DungeonStory.Foundation",
+    "DungeonStory.Items"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

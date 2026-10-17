@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "의복과 천을 손으로 빨고 헹굴 수 있도록 물을 받는 수조의 설치 부품이며, 라카쉬 세갈래길에서도 같은 규격으로 조립한다.",
+  "in_game_description": "손세탁 수조에서 채집물과 현장 표본을 정리하는 공정을 맡기 위해 준비한 설치 부품이다. 라카쉬 세갈래길식 손세탁 수조 주변은 짐수레 두 대와 피난 행렬이 엇갈릴 만큼 넓게 비워 둔다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

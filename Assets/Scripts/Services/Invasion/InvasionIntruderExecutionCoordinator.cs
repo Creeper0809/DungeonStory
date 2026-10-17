@@ -15,6 +15,7 @@ internal interface IInvasionIntruderExecutionHost
     bool Resolved { get; set; }
     float RallyRemainingSeconds { get; set; }
     IGameClock Clock { get; }
+    IGameCalendar Calendar { get; }
     IGameEventBus GameEventBus { get; }
     IInvasionIntruderContext Context { get; }
     IDefenseEngagementRuntime DefenseEngagement { get; }
@@ -71,7 +72,7 @@ internal sealed class InvasionIntruderExecutionCoordinator
 
     public void ApplyFinalCombat(CharacterActor owner)
     {
-        if (owner == null || host.Actor == null || host.Settings == null)
+        if (owner == null || host.Actor == null || host.Settings == null || host.Resolved)
         {
             return;
         }
@@ -79,8 +80,18 @@ internal sealed class InvasionIntruderExecutionCoordinator
         host.State = InvasionIntruderState.FinalCombat;
         host.GameEventBus.Publish(new InvasionFinalCombatStartedEvent(host.Actor, owner));
         owner.ApplyDamage(host.Settings.finalCombatDamage, "침입자 최종 교전");
-        host.Resolved = true;
-        host.GameEventBus.Publish(new InvasionResolvedEvent(!owner.IsDead, owner.IsDead ? 5f : 2f));
+        if (!host.Runtime.TryCommitResolution(
+                !owner.IsDead,
+                owner.IsDead ? 5f : 2f,
+                InvasionIntruderState.FinalCombat,
+                owner.IsDead
+                    ? InvasionResolutionKind.DefenderFell
+                    : InvasionResolutionKind.DefenderSurvived,
+                owner))
+        {
+            throw new InvalidOperationException(
+                "The final-combat invasion result could not be committed.");
+        }
     }
 
     public void ClearBreachState()
@@ -114,22 +125,43 @@ internal sealed class InvasionIntruderExecutionCoordinator
             return;
         }
 
-        host.HasBreachedDungeonInterior = true;
-        if (host.BreachEventRaised)
-        {
+        var fact = host.Runtime.CaptureLifecycleFact(InvasionLifecycleStage.Breached);
+        fact.cellX = cellPosition.x; fact.cellY = cellPosition.y;
+        bool previousBreached = host.HasBreachedDungeonInterior;
+        bool previousEventRaised = host.BreachEventRaised;
+        if (!host.Runtime.TryApplyLifecycle(fact,
+            () => { host.HasBreachedDungeonInterior = true; host.BreachEventRaised = true; },
+            () => { host.HasBreachedDungeonInterior = previousBreached; host.BreachEventRaised = previousEventRaised; }))
             return;
-        }
 
-        host.BreachEventRaised = true;
-        host.GameEventBus.Publish(new InvasionDungeonBreachedEvent(
-            host.Runtime,
-            host.Actor,
-            host.ThreatSnapshot));
-        host.GameEventBus.RaiseAlert(
+        PublishPostCommit(() => host.GameEventBus.Publish(
+            new InvasionDungeonBreachedEvent(
+                host.Runtime,
+                host.Actor,
+                host.ThreatSnapshot)),
+            "event");
+        PublishPostCommit(() => host.GameEventBus.RaiseAlert(
             "던전 내부 침입",
             "침입자가 내부에 진입했습니다. 당직 경비가 저지하러 이동합니다.",
             EventAlertImportance.High,
-            "방어");
+            "방어"),
+            "alert");
+    }
+
+    private static void PublishPostCommit(Action observer, string name)
+    {
+        try
+        {
+            observer?.Invoke();
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError("invasion-breach-post-commit-" + name + ":"
+                + exception.GetType().Name);
+        }
     }
 
     public IEnumerator Run(
@@ -167,12 +199,17 @@ internal sealed class InvasionIntruderExecutionCoordinator
         yield return host.Move.Move2PosBySpeed(entryDoorPosition);
 
         host.Context.TryGetGrid(out Grid grid);
-        if (grid != null && grid.IsValidGridPos(entryGridPosition))
+        if (host.Move.LastGridMoveFailureReason == GridMoveFailureReason.None
+            && grid != null && grid.IsValidGridPos(entryGridPosition))
         {
             yield return host.Move.Move2PosBySpeed(grid.GetWorldPos(entryGridPosition));
-            host.MarkDungeonBreached(grid, entryGridPosition);
+            if (host.Move.LastGridMoveFailureReason == GridMoveFailureReason.None)
+                host.MarkDungeonBreached(grid, host.Actor.GetNowXY());
         }
 
+        if (host.Actor == null || host.Actor.IsDead) { ResolveIntruderDefeated(); yield break; }
+        // A denied threshold is not an interior breach. Existing path/breach
+        // planning below owns how the intruder proceeds from its actual position.
         host.Actor.SetLifecycleState(CharacterLifecycleState.Active);
         yield return RunInside();
     }
@@ -546,9 +583,6 @@ internal sealed class InvasionIntruderExecutionCoordinator
             if (now >= host.NextStructureAttackAt
                 && host.Clock.DeltaTime > 0f)
             {
-                string targetName =
-                    host.BreachTarget.BuildingData?.objectName
-                    ?? host.BreachTarget.name;
                 if (host.StructuralIntegrity.TryGet(
                         host.BreachTarget,
                         out BuildingStructuralIntegritySnapshot snapshot))
@@ -566,18 +600,10 @@ internal sealed class InvasionIntruderExecutionCoordinator
                             damage);
                     if (result.Applied)
                     {
-                        host.Actor.AddActivity(
-                            CharacterActivityEvent.Facility(
-                                CharacterActivityKinds.Combat,
-                                CharacterActivityOutcomes.Damaged,
-                                $"{targetName} 돌파 {result.Damage:0.#}",
-                                host.BreachTarget,
-                                actionId: "invasion:breach-structure",
-                                reasonCode: host.EnragedBreach
-                                    ? "enraged-breach"
-                                    : "breach",
-                                value: result.Damage,
-                                bubbleEligible: true));
+                        PublishPostCommit(() => host.GameEventBus.Publish(
+                            new InvasionStructureHitEvent(host.Actor, host.BreachTarget, result.Damage, host.EnragedBreach)),
+                            "structure-hit");
+
                     }
                 }
 
@@ -658,8 +684,15 @@ internal sealed class InvasionIntruderExecutionCoordinator
     {
         if (!host.Resolved)
         {
-            host.Resolved = true;
-            host.GameEventBus.Publish(new InvasionResolvedEvent(true, 1f));
+            if (!host.Runtime.TryCommitResolution(
+                    defended: true,
+                    residualRisk: 1f,
+                    InvasionIntruderState.Finished,
+                    InvasionResolutionKind.IntruderDefeated))
+            {
+                throw new InvalidOperationException(
+                    "The defeated-intruder result could not be committed.");
+            }
         }
 
         host.Finish();
@@ -673,14 +706,32 @@ internal sealed class InvasionIntruderExecutionCoordinator
             return;
         }
 
-        host.Resolved = true;
-        host.State = InvasionIntruderState.Finished;
-        host.GameEventBus.RaiseAlert(
-            "침입자 철수",
-            "부상당한 침입자가 목표를 포기하고 물러났습니다.",
-            EventAlertImportance.Low,
-            "침입");
-        host.GameEventBus.Publish(new InvasionResolvedEvent(true, 0.5f));
+        if (!host.Runtime.TryCommitResolution(
+                defended: true,
+                residualRisk: 0.5f,
+                InvasionIntruderState.Finished,
+                InvasionResolutionKind.Retreated))
+        {
+            throw new InvalidOperationException(
+                "The retreated-intruder result could not be committed.");
+        }
+        try
+        {
+            host.GameEventBus.RaiseAlert(
+                "침입자 철수",
+                "부상당한 침입자가 목표를 포기하고 물러났습니다.",
+                EventAlertImportance.Low,
+                "침입");
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                "invasion-retreated-alert-observer:"
+                + exception.GetType().Name);
+        }
         host.Finish();
     }
 }

@@ -17,10 +17,12 @@ public sealed class CharacterSummaryHealthPresenter
     private readonly ICharacterConsumablesQuery consumablesQuery;
     private readonly ICharacterConsumablesCommand consumablesCommands;
     private readonly IResourceEconomyContentCatalog resourceCatalog;
+    private readonly ISurvivalTreatmentSupplyQuery treatmentSupply;
     private readonly CharacterSummaryCaptivityPresenter captivityPresenter;
 
     private TMP_Text summaryText;
     private Button dietPolicyButton;
+    private Button mealQualityButton;
     private Button surgeryCommandButton;
     private Button automaticSurgeryButton;
     private Button substanceSelectionButton;
@@ -33,6 +35,7 @@ public sealed class CharacterSummaryHealthPresenter
         ICharacterConsumablesQuery consumablesQuery,
         ICharacterConsumablesCommand consumablesCommands,
         IResourceEconomyContentCatalog resourceCatalog,
+        ISurvivalTreatmentSupplyQuery treatmentSupply,
         CharacterSummaryCaptivityPresenter captivityPresenter)
     {
         this.surgeryWindowService = surgeryWindowService
@@ -45,6 +48,8 @@ public sealed class CharacterSummaryHealthPresenter
             ?? throw new ArgumentNullException(nameof(consumablesCommands));
         this.resourceCatalog = resourceCatalog
             ?? throw new ArgumentNullException(nameof(resourceCatalog));
+        this.treatmentSupply = treatmentSupply
+            ?? throw new ArgumentNullException(nameof(treatmentSupply));
         this.captivityPresenter = captivityPresenter
             ?? throw new ArgumentNullException(nameof(captivityPresenter));
     }
@@ -53,6 +58,7 @@ public sealed class CharacterSummaryHealthPresenter
         TMP_Text generatedSummaryText,
         Button generatedCaptivityActionButton,
         Button generatedDietPolicyButton,
+        Button generatedMealQualityButton,
         Button generatedSurgeryCommandButton,
         Button generatedAutomaticSurgeryButton,
         Button generatedSubstanceSelectionButton,
@@ -60,6 +66,7 @@ public sealed class CharacterSummaryHealthPresenter
     {
         summaryText = generatedSummaryText;
         dietPolicyButton = generatedDietPolicyButton;
+        mealQualityButton = generatedMealQualityButton;
         surgeryCommandButton = generatedSurgeryCommandButton;
         automaticSurgeryButton = generatedAutomaticSurgeryButton;
         substanceSelectionButton = generatedSubstanceSelectionButton;
@@ -78,6 +85,20 @@ public sealed class CharacterSummaryHealthPresenter
         CharacterDietPolicyKind next = (CharacterDietPolicyKind)(
             ((int)current + 1) % Enum.GetValues(typeof(CharacterDietPolicyKind)).Length);
         consumablesCommands.SetPolicy(actor, next);
+        Refresh(actor);
+    }
+
+    [GameplayEntryPoint("CharacterSummaryInfo.CycleMealQualityLimit; WimMealQualityPlayModeVerifier")]
+    public void CycleMealQualityLimit(CharacterActor actor)
+    {
+        if (actor == null)
+            return;
+
+        CharacterMealQualityLimit current = consumablesQuery.GetMealQualityLimit(actor);
+        CharacterMealQualityLimit next = current == CharacterMealQualityLimit.Lavish
+            ? CharacterMealQualityLimit.Inherit
+            : (CharacterMealQualityLimit)((int)current + 1);
+        consumablesCommands.SetMealQualityLimit(actor, next);
         Refresh(actor);
     }
 
@@ -269,6 +290,26 @@ public sealed class CharacterSummaryHealthPresenter
             "CharacterSummary.Health.Consumables.DietPolicy",
             CharacterSummaryHealthStatusTextFormatter.DietPolicy(
                 consumablesQuery.GetPolicy(actor))));
+        CharacterToxicityStatus toxicity =
+            consumablesQuery.GetToxicityStatus(actor);
+        builder.AppendLine(CharacterSummaryHealthStatusTextFormatter.Get(
+            "CharacterSummary.Health.Consumables.ToxicityRow",
+            toxicity.Toxicity,
+            toxicity.PerformancePenalty * 100f,
+            CharacterSummaryHealthStatusTextFormatter.ToxicityTreatment(
+                toxicity)));
+        CharacterId characterId = CharacterPersistentIdentity.Require(actor);
+        if (treatmentSupply.TryGetTreatmentSupply(
+                characterId,
+                out SurvivalTreatmentSupplySnapshot supply))
+        {
+            builder.AppendLine(CharacterSummaryHealthStatusTextFormatter.Get(
+                "CharacterSummary.Health.Consumables.TreatmentSupply.Row",
+                CharacterSummaryHealthStatusTextFormatter.TreatmentKind(
+                    supply.Kind),
+                CharacterSummaryHealthStatusTextFormatter.TreatmentSupply(
+                    supply.State)));
+        }
         foreach (SubstanceDefinitionView substance in resourceCatalog.Substances)
         {
             CharacterSubstancePolicyState policy = consumablesQuery.GetPolicy(actor, substance.SubstanceId);
@@ -301,6 +342,15 @@ public sealed class CharacterSummaryHealthPresenter
 
     private void RefreshConsumableButtons(CharacterActor actor)
     {
+        if (mealQualityButton != null)
+        {
+            mealQualityButton.interactable = actor != null;
+            SetButtonLabel(mealQualityButton,
+                CharacterSummaryHealthStatusTextFormatter.Get(
+                    "CharacterSummary.Health.Button.MealQuality",
+                    CharacterSummaryHealthStatusTextFormatter.MealQualityLimit(
+                        consumablesQuery.GetMealQualityLimit(actor))));
+        }
         SetButtonLabel(
             dietPolicyButton,
             actor != null

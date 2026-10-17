@@ -30,10 +30,14 @@ public abstract class AIPrimitiveSurvivalAction : AIActionSet
             return true;
         }
 
-        actor?.AddActivity(CharacterActivityEvent.InternalAi(
-            CharacterActivityOutcomes.Cancelled,
-            "primitive-stale-execution-blocked",
-            $"Primitive fallback cancelled at execution because authored service became available: action={GetType().Name}."));
+        if (actor != null)
+        {
+            actor.PublishAiDiagnostic(new CharacterAiDiagnosticEvent(
+                actor,
+                CharacterAiDiagnosticTransition.PrimitiveStaleExecutionBlocked,
+                "primitive-stale-execution-blocked",
+                GetType().Name));
+        }
         actor?.Brain?.RequestImmediateReplan(clearFailures: true);
         return false;
     }
@@ -67,6 +71,20 @@ public abstract class AIPrimitiveSurvivalAction : AIActionSet
         FacilityRole facilityRole,
         CharacterCondition condition)
     {
+        return CanUsePrimitiveFallback(
+            actor,
+            facilityRole,
+            condition,
+            out _);
+    }
+
+    internal static bool CanUsePrimitiveFallback(
+        CharacterActor actor,
+        FacilityRole facilityRole,
+        CharacterCondition condition,
+        out bool pathSearchPending)
+    {
+        pathSearchPending = false;
         if (actor == null)
         {
             return false;
@@ -76,6 +94,7 @@ public abstract class AIPrimitiveSurvivalAction : AIActionSet
         GridPathSearchResult searchResult = brain?.GetPathSearch(actor);
         if (searchResult == null)
         {
+            pathSearchPending = true;
             // No published path snapshot is a Pending state regardless of
             // whether the broker has set its deferred bit yet. The previous
             // `!IsPathSearchDeferred` fallback opened a one-frame gap after a
@@ -94,8 +113,10 @@ public abstract class AIPrimitiveSurvivalAction : AIActionSet
             return false;
         }
 
-        if (CharacterNeedAiThresholds.IsEmergency(actor, condition))
+        if (CharacterNeedAiThresholds.IsEmergencyOrImminentPhysicalHarm(actor, condition))
         {
+            // Match deprivation dispatch and running lease urgency: an
+            // unbounded delivery request must not delay imminent physical care.
             // An occupied facility is not the same as absent infrastructure.
             // Compare the need that will remain after travel, queue waves, and
             // the actor's own service time. Primitive fallback is allowed only

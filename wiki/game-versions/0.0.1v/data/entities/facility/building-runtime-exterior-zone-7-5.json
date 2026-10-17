@@ -16,6 +16,6 @@
   "schema_version": 1,
   "slug": "building-runtime-exterior-zone-7-5",
   "spoiler_tier": "none",
-  "summary": "Generated immutable runtime building archetype authority.",
+  "summary": "시설의 고유 역할은 순찰 준비와 사건 탐지, 방문객 접수와 첫인상이다. 건설에는 작업량 18 WU, 재료 석재 블록×1이 필요하다. Generated immutable runtime building archetype authority.",
   "title": "외부 사건 지점"
 }

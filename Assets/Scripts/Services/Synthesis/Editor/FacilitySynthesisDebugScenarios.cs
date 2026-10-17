@@ -9,7 +9,7 @@ using VContainer;
 using VContainer.Diagnostics;
 using Object = UnityEngine.Object;
 
-public static class FacilitySynthesisDebugScenarios
+public static partial class FacilitySynthesisDebugScenarios
 {
     [MenuItem("DungeonStory/Debug/Synthesis/Run Modular Facility Synthesis Scenarios")]
     public static void RunFromMenu()
@@ -30,6 +30,8 @@ public static class FacilitySynthesisDebugScenarios
         RunScenario("세 전략의 배치 시설 합성", VerifyStrategySynthesis, errors);
         RunScenario("역순 선택에서도 선언 재료가 결과 앵커", VerifyDeclaredAnchorWinsSelectionOrder, errors);
         RunScenario("생산 권위 반영 실패 시 모든 재료와 epoch 복구", VerifyRetargetCommitFailureRestoresAllMaterials, errors);
+        RunScenario("원장 공동 커밋 거부 시 모든 재료와 epoch 복구", VerifyOutcomeCommitFailureRestoresAllMaterials, errors);
+        RunScenario("커밋 뒤 observer 예외가 합성을 재실행시키지 않음", VerifyObserverFailureDoesNotRepeatDomain, errors);
         RunScenario("모듈 시설 레벨 계승", VerifyLevelInheritance, errors);
         RunScenario("파손 모듈 재료 거부", VerifyDamagedMaterialRejected, errors);
         RunScenario("세 희귀 조합식 연구 해금", VerifyRareRecipesRequireResearch, errors);
@@ -148,6 +150,18 @@ public static class FacilitySynthesisDebugScenarios
             LoadRecipe(recipeAssetName),
             new[] { first, second },
             out FacilitySynthesisResult result);
+        bool revisionRoundTrip = false;
+        if (success && result.ResultBuilding != null)
+        {
+            FacilityRuntimeStateModule stateModule = new(result.ResultBuilding);
+            string payload = stateModule.CaptureState();
+            result.ResultBuilding.SetSynthesisOutcomeRevision(0L);
+            revisionRoundTrip = stateModule.TryRestoreState(
+                    stateModule.CurrentVersion,
+                    payload,
+                    out _)
+                && result.ResultBuilding.SynthesisOutcomeRevision == 1L;
+        }
 
         return success
             && result.Success
@@ -155,6 +169,9 @@ public static class FacilitySynthesisDebugScenarios
             && result.ResultBuilding.id == LoadBuilding(resultAssetName).id
             && result.ResultBuilding.centerPos == new Vector2Int(4, 0)
             && result.ResultBuilding.RequirePersistentInstanceId().Equals(anchorId)
+            && result.OutcomeOwnerRevision == 1L
+            && result.ResultBuilding.SynthesisOutcomeRevision == 1L
+            && revisionRoundTrip
             && CharacterAiEditorTestDependencies.WorldRegistry.Buildings.Count(building =>
                 building.BuildingInstanceId.Equals(anchorId)) == 1
             && CharacterAiEditorTestDependencies.WorldRegistry.Buildings.All(building =>
@@ -257,6 +274,71 @@ public static class FacilitySynthesisDebugScenarios
                 building.BuildingInstanceId.Equals(prepId)) == 1
             && !world.IsMutationFrozen(hearthId)
             && !world.IsMutationFrozen(prepId);
+    }
+
+    private static bool VerifyOutcomeCommitFailureRestoresAllMaterials()
+    {
+        using SynthesisScenarioWorld world = new SynthesisScenarioWorld(
+            rejectOutcomeCommit: true);
+        FacilitySynthesisRuntime runtime = world.CreateRuntime();
+        BuildableObject hearth = world.Place("D01_간이화덕", new Vector2Int(5, 0));
+        BuildableObject prep = world.Place("D03_조리손질대", new Vector2Int(13, 0));
+        BuildingInstanceId hearthId = hearth.RequirePersistentInstanceId();
+        BuildingInstanceId prepId = prep.RequirePersistentInstanceId();
+
+        bool rejected = !runtime.TrySynthesize(
+            LoadRecipe("RS_CommercialGrill"),
+            new[] { prep, hearth },
+            out FacilitySynthesisResult result);
+
+        return rejected
+            && result.Message.Contains("공동 커밋")
+            && !hearth.isDestroy
+            && !prep.isDestroy
+            && hearth.SynthesisOutcomeRevision == 0L
+            && prep.SynthesisOutcomeRevision == 0L
+            && ReferenceEquals(hearth.Grid, world.Grid)
+            && ReferenceEquals(prep.Grid, world.Grid)
+            && ReferenceEquals(
+                world.Grid.GetGridCell(hearth.centerPos)?.GetOccupant(
+                    hearth.BuildingData.Placement.Layer),
+                hearth)
+            && ReferenceEquals(
+                world.Grid.GetGridCell(prep.centerPos)?.GetOccupant(
+                    prep.BuildingData.Placement.Layer),
+                prep)
+            && CharacterAiEditorTestDependencies.WorldRegistry.Buildings.Count(building =>
+                building.BuildingInstanceId.Equals(hearthId)) == 1
+            && CharacterAiEditorTestDependencies.WorldRegistry.Buildings.Count(building =>
+                building.BuildingInstanceId.Equals(prepId)) == 1
+            && !world.IsMutationFrozen(hearthId)
+            && !world.IsMutationFrozen(prepId);
+    }
+
+    private static bool VerifyObserverFailureDoesNotRepeatDomain()
+    {
+        using SynthesisScenarioWorld world = new SynthesisScenarioWorld();
+        FacilitySynthesisRuntime runtime = world.CreateRuntime();
+        runtime.Completed += _ => throw new InvalidOperationException(
+            "fixture-completed-observer-fault");
+        using IDisposable subscription =
+            world.Events.Subscribe<FacilitySynthesisCompletedEvent>(_ =>
+                throw new InvalidOperationException("fixture-event-observer-fault"));
+        BuildableObject hearth = world.Place("D01_간이화덕", new Vector2Int(5, 0));
+        BuildableObject prep = world.Place("D03_조리손질대", new Vector2Int(13, 0));
+
+        bool success = runtime.TrySynthesize(
+            LoadRecipe("RS_CommercialGrill"),
+            new[] { prep, hearth },
+            out FacilitySynthesisResult result);
+
+        return success
+            && result.Success
+            && result.OutcomeOwnerRevision == 1L
+            && result.ResultBuilding != null
+            && result.ResultBuilding.SynthesisOutcomeRevision == 1L
+            && hearth.isDestroy
+            && prep.isDestroy;
     }
 
     private static bool VerifyRareRecipesRequireResearch()
@@ -390,17 +472,25 @@ public static class FacilitySynthesisDebugScenarios
             typeof(GridSystemManager).GetField("<grid>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
 
         private readonly GridSystemManager previousGridSystem;
+        private readonly GridSystemManager gridSystemManager;
         private readonly List<GameObject> objects = new List<GameObject>();
         private readonly BlueprintResearchState fallbackResearchState = new BlueprintResearchState();
         private readonly ScenarioObjectResolver objectResolver;
+        private readonly bool rejectOutcomeCommit;
         private BlueprintResearchRuntime researchRuntime;
+        private SynthesisObservationFixture defaultObservations;
 
-        public SynthesisScenarioWorld(bool failRetargetCommit = false)
+        public SynthesisScenarioWorld(
+            bool failRetargetCommit = false,
+            bool rejectOutcomeCommit = false)
         {
+            this.rejectOutcomeCommit = rejectOutcomeCommit;
             objectResolver = new ScenarioObjectResolver(failRetargetCommit);
             previousGridSystem = GridSystemInstanceField?.GetValue(null) as GridSystemManager;
-            Grid = new Grid(24, 1);
-            for (int x = 0; x < Grid.width; x++)
+            Grid = CreateScenarioGrid();
+            for (int x = 0;
+                 x < DungeonSpaceExpansionCatalog.InitialInteriorColumns;
+                 x++)
             {
                 Grid.RegisterOccupant(
                     new TestHallwayOccupant(),
@@ -412,18 +502,26 @@ public static class FacilitySynthesisDebugScenarios
             GameObject gridObject = new GameObject("Synthesis Scenario GridSystemManager");
             objects.Add(gridObject);
             GridSystemInstanceField?.SetValue(null, null);
-            GridSystemManager manager = gridObject.AddComponent<GridSystemManager>();
-            GridField?.SetValue(manager, Grid);
-            GridSystemInstanceField?.SetValue(null, manager);
+            gridSystemManager = gridObject.AddComponent<GridSystemManager>();
+            GridField?.SetValue(gridSystemManager, Grid);
+            GridSystemInstanceField?.SetValue(null, gridSystemManager);
         }
 
-        public Grid Grid { get; }
+        public Grid Grid { get; private set; }
+        public GameEventBus Events { get; } = new();
 
         public bool IsMutationFrozen(BuildingInstanceId facilityId) =>
             objectResolver.IsMutationFrozen(facilityId);
 
-        public FacilitySynthesisRuntime CreateRuntime()
+        public FacilitySynthesisRuntime CreateRuntime(
+            FacilitySynthesisFactOutbox exactFacts = null)
         {
+            if (exactFacts == null)
+            {
+                defaultObservations ??= new SynthesisObservationFixture(events: Events)
+                { RejectCommit = rejectOutcomeCommit };
+                exactFacts = defaultObservations.Outbox;
+            }
             GameObject obj = new GameObject("FacilitySynthesisRuntime_Test");
             objects.Add(obj);
             FacilitySynthesisRuntime runtime = obj.AddComponent<FacilitySynthesisRuntime>();
@@ -433,8 +531,27 @@ public static class FacilitySynthesisDebugScenarios
                 objectResolver,
                 CreateRecipeQuery(),
                 new GridBuildingObjectFactory(),
-                new DungeonStory.Foundation.GameEventBus());
+                Events,
+                EditorFixedGameCalendar.Instance,
+                exactFacts);
             return runtime;
+        }
+
+        internal bool TryPublishGrid(
+            Grid expectedCurrent,
+            Grid replacement,
+            out string failureReason)
+        {
+            if (!ReferenceEquals(Grid, expectedCurrent)
+                || replacement == null)
+            {
+                failureReason = "Synthesis scenario Grid publication expectation changed.";
+                return false;
+            }
+            Grid = replacement;
+            GridField?.SetValue(gridSystemManager, replacement);
+            failureReason = string.Empty;
+            return true;
         }
 
         public BlueprintResearchRuntime CreateResearchRuntime()
@@ -495,6 +612,7 @@ public static class FacilitySynthesisDebugScenarios
 
             GridSystemInstanceField?.SetValue(null, previousGridSystem);
             objectResolver.Dispose();
+            defaultObservations?.Dispose();
         }
 
         private BlueprintResearchState GetResearchState()
@@ -734,6 +852,28 @@ public static class FacilitySynthesisDebugScenarios
                 return true;
             }
         }
+
+        private static Grid CreateScenarioGrid()
+        {
+            Grid grid = new Grid(
+                DungeonSpaceExpansionCatalog.InitialInteriorColumns + 1,
+                DungeonSpaceExpansionCatalog.SupportedGridHeight);
+            for (int x = 0; x < grid.width; x++)
+            for (int y = 0; y < grid.height; y++)
+            {
+                Vector2Int position = new Vector2Int(x, y);
+                grid.SetAreaType(
+                    position,
+                    x < DungeonSpaceExpansionCatalog.InitialInteriorColumns
+                        ? x == 0 && y == 0
+                            ? GridCellAreaType.Entrance
+                            : GridCellAreaType.DungeonInterior
+                        : GridCellAreaType.BlockedExterior);
+                grid.SetTerrainType(position, GridCellTerrainType.Dry);
+            }
+            return grid;
+        }
+
     }
 
     private sealed class TestHallwayOccupant : IGridOccupant

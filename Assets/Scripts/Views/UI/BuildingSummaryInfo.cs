@@ -19,6 +19,7 @@ public class BuildingSummaryInfo : UIPopUp
     private TMP_Text contextActionLabel;
     private BuildableObject currentBuilding;
     private IGameEventBus gameEventBus;
+    private IGameplayOutcomePresentationQuery outcomePresentation;
     private IDisposable infoFeedSubscription;
 
     [Inject]
@@ -46,6 +47,14 @@ public class BuildingSummaryInfo : UIPopUp
         SubscribeToInfoFeed();
     }
 
+    [Inject]
+    public void ConstructGameplayOutcomePresentation(
+        IGameplayOutcomePresentationQuery outcomePresentation)
+    {
+        this.outcomePresentation = outcomePresentation
+            ?? throw new ArgumentNullException(nameof(outcomePresentation));
+    }
+
     private void Start()
     {
         GameObject uiRoot = RequireUiRoot();
@@ -70,7 +79,8 @@ public class BuildingSummaryInfo : UIPopUp
 
         BuildingSummaryPresentation presentation = ResolveSummaryFormatter().Format(building);
         RequireObjectNameText().text = presentation.ObjectName;
-        RequireStockText().text = presentation.StockText;
+        RequireStockText().text = AppendOutcomeHistory(
+            building, presentation.StockText);
         ConfigureContextAction(building);
     }
 
@@ -193,7 +203,8 @@ public class BuildingSummaryInfo : UIPopUp
         {
             filth.SetPriorityCleaning(!filth.IsPriorityCleaning);
             BuildingSummaryPresentation presentation = ResolveSummaryFormatter().Format(filth);
-            RequireStockText().text = presentation.StockText;
+            RequireStockText().text = AppendOutcomeHistory(
+                filth, presentation.StockText);
             ConfigureContextAction(filth);
             return;
         }
@@ -223,6 +234,24 @@ public class BuildingSummaryInfo : UIPopUp
         text.characterSpacing = 0f;
         text.raycastTarget = false;
         return text;
+    }
+
+    private string AppendOutcomeHistory(BuildableObject building, string summary)
+    {
+        if (outcomePresentation == null
+            || building == null
+            || !building.PersistentInstanceId.IsValid)
+            return summary ?? string.Empty;
+        GameplayOutcomePresentationPage page = outcomePresentation.GetEntityPage(
+            new GameplayEntityId(
+                new GameplayEntityKindId("facility"),
+                building.PersistentInstanceId.Value),
+            NarrativePerspectiveKind.Facility,
+            OutcomeCursor.FirstPage(8),
+            OutcomeFilter.All);
+        return (summary ?? string.Empty)
+            + "\n\n"
+            + outcomePresentation.FormatPage(page);
     }
 
     private TMP_Text CreateButtonLabel(Transform parent, string value)

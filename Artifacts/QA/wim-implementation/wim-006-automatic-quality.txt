@@ -1,0 +1,15 @@
+PASS
+main-gameplay-container=PASS
+quality-route=P11_직조기/recipe:cold-work-suit/equipment:cold-work-suit
+quality-route=P11_직조기/recipe:rune-cold-suit/equipment:rune-cold-suit
+quality-route=P11_직조기/recipe:slime-warming-pad/equipment:slime-warming-pad
+authored-automation-facilities=27
+authored-craft-quality-links=3
+authored-non-craft-links-unchanged=105
+craft-score-boundaries=10;manual-assist-mixed=PASS;passive-contribution-restore=PASS;physical-grade=PASS;frozen-replay=PASS;independent-worker-quality=PASS;output-capacity-regression=PASS
+production-aggregate-mixed-work-frozen-outcome-restore=PASS
+cap-change-after-freeze-reresolution-count=0
+passive-batch-production-regression=PASS
+surgical-performance-excluded=PASS
+automatic-tick-natural-production=NOT_RUN; focused aggregate and authored live registrations verified
+target-quality-orders=SEPARATE_MANUAL_PIPELINE; general bills have no requested quality target

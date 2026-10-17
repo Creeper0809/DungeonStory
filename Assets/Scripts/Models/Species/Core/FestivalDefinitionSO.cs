@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DungeonStory.Buildings;
 using UnityEngine;
 
 [CreateAssetMenu(
@@ -17,7 +18,10 @@ public sealed class FestivalDefinitionSO : ScriptableObject
     public int dayOfSeason = 1;
     public bool convertsActiveGrief;
     public string cultureId = string.Empty;
+    [Tooltip("When false, only the owner, residents, and minions may be assigned to this festival.")]
+    public bool allowsVisitors;
     public string requiredBuildingDefinitionId = string.Empty;
+    public FacilityVenueRequirements venueRequirements = new();
     public List<FestivalItemRequirement> requiredItems = new();
     [Min(1)] public int minimumParticipants = 1;
     public FestivalOutcomeDefinition successOutcome = new();
@@ -35,8 +39,9 @@ public sealed class FestivalDefinitionSO : ScriptableObject
         if (requiredItems == null || requiredItems.Count == 0
             || requiredItems.Exists(value => value == null || !value.IsValid))
             errors.Add($"'{StableId}' requires concrete physical inputs.");
-        if (string.IsNullOrWhiteSpace(requiredBuildingDefinitionId))
-            errors.Add($"'{StableId}' requires a physical festival facility.");
+        errors.AddRange((venueRequirements ?? new()).Validate(StableId));
+        if (!string.IsNullOrEmpty(requiredBuildingDefinitionId))
+            errors.Add($"'{StableId}' must author its facility through venue requirements only.");
         if (successOutcome == null || !successOutcome.IsValid
             || partialOutcome == null || !partialOutcome.IsValid
             || failureOutcome == null || !failureOutcome.IsValid)

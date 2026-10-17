@@ -14,13 +14,55 @@ MonoBehaviour:
   m_EditorClassIdentifier: DungeonStory.Content::SeasonalWorldEventDefinitionSO
   stableId: seasonal:summer-mana-lightning
   displayName: "\uB9C8\uB098 \uBC88\uAC1C"
-  description: "\uBE44\uC804 \uC7A5\uCE58\uAC00 \uACFC\uCDA9\uC804\uB418\uACE0 \uC6D0\uC815\uC9C0\uC5D0\uB294
-    \uD76C\uADC0 \uACB0\uC815\uC774 \uB178\uCD9C\uB41C\uB2E4."
-  authoringRevision: 1
-  sourceNote: V20 hand-authored seasonal world event manifest.
+  description: "사건 동안 실제 가동·통전 중인 지정 비전 제련 설비의 Heat/Fault 전기 발화 위험이 높아진다. 진행 자격이 있으면 번개결정 노두 원정을 출발하거나 비용 없이 지나갈 수 있다."
+  authoringRevision: 2
+  sourceNote: WIM-009 authored seasonal arcane facility/expedition contract.
   season: 1
   minimumDurationDays: 1
   maximumDurationDays: 3
+  worldWaterRegenerationMultiplier: 1
+  powerAvailableSupplyCapacityMultiplier: 1
+  pipedWaterThroughputMultiplier: 1
+  pipedWaterFreezeThresholdC: 0
+  pipedWaterRecoveryThresholdC: 2
+  cropPrimaryBatchLossPercent: 0
+  requiredWeatherFrontId: 
+  wildlifeArrivalProfile:
+    speciesId: 
+    exactCount: 0
+    requiredHabitatId: 
+    qualification: 0
+  driftCargoProfile:
+    itemId: 
+    exactQuantity: 0
+  manaLightningProfile:
+    eligibleBuildingDefinitionIds:
+    - 9825
+    minimumHeat: 80
+    minimumFault: 4
+    riskWindowSeconds: 30
+    additionalIgnitionChancePerWindow: 0.08
+    ignitionIntensity: 0.2
+  specialExpeditionProfile:
+    purpose: 1
+    siteArchetypeId: ritual_site
+    title: "번개결정 노두"
+    description: "마나 번개가 드러낸 결정 노두다. 출발하면 확정 조우를 돌파하고 실제 결정을 귀환시켜야 한다."
+    minimumDistanceSteps: 3
+    maximumDistanceSteps: 5
+    recommendedDanger: 45
+    durationSeconds: 110
+    requiredMembers: 2
+    recommendedPower: 42
+    campaignOrder: 2
+    authoredEncounterId: encounter:09
+    encounterPreviewText: "도시연맹 야전병원: 군단 외과의·장창병·화승총병"
+    encounterRewardPreviewText: "미감정 전리품 x1"
+    factionId: hostile
+    physicalRewards:
+    - itemId: resource:mana-crystal
+      displayLabel: "마나 결정"
+      exactQuantity: 3
   affectedDomainIds:
   - facility
   - expedition
@@ -30,17 +72,11 @@ MonoBehaviour:
     research: []
     characters: []
     factions: []
-    worldMetrics: []
+    worldMetrics:
+    - kind: 9
+      minimumValue: 1
     requiredFlags: []
     excludedFlags: []
-  startEffects:
-  - kind: 14
-    targetId: mana-surge
-    amount: 5
-    durationDays: 3
+  startEffects: []
   dailyEffects: []
-  endEffects:
-  - kind: 12
-    targetId: resolved:seasonal:summer-mana-lightning
-    amount: 1
-    durationDays: 0
+  endEffects: []

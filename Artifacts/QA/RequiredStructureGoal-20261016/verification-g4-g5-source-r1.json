@@ -1,0 +1,84 @@
+{
+  "status": "SOURCE_IMPLEMENTED_STATIC_VERIFIED_UNITY_DEFERRED",
+  "goalStatus": "active",
+  "allGoalTargetsComplete": false,
+  "window": "All authors READY/FROZEN; no UNITY_VERIFY launched",
+  "sourcePin": {
+    "path": "source-pin-g4-g5-cleanup-r1.json",
+    "files": 795
+  },
+  "toolPin": {
+    "path": "tool-pin-g1-g3-c10-cleanup-r1.json",
+    "files": 8,
+    "drift": 0
+  },
+  "g4": {
+    "movedMethods": 8,
+    "retainedMethods": 69,
+    "publicMethods": 18,
+    "constructors": 2,
+    "captureGate": "original parent reentry -> same pending cargo owner",
+    "sameBodies": "cargo7/reinforcement1/constants3/pending transaction and current domain queries",
+    "consumerFilesUpdated": 4,
+    "readReview": "No confirmed defect; static only"
+  },
+  "g5": {
+    "medicalMethods": 29,
+    "retainedMethods": 62,
+    "publicMethods": 41,
+    "sharedConsumerQueries": 3,
+    "stableIdentityMethod": 1,
+    "publicTreatmentInterfaces": 2,
+    "stableLiterals": 3,
+    "fuelOrder": "existing refresh -> same treatment reconciliation loop -> existing fuel recovery",
+    "restoreOrder": "existing root replace -> same work map clear -> existing fuel authority/recovery",
+    "sameState": "No copied root; existing survival DTO/stock/consumables/session authority",
+    "consumerFilesUpdated": 5,
+    "readReview": "No confirmed defect; static only"
+  },
+  "syntax": {
+    "files": 90,
+    "errors": 0,
+    "semanticCompilation": "NOT_RUN",
+    "UnityExecution": "NOT_RUN"
+  },
+  "sameDefaultAssembly": {
+    "Assets/Scripts/Services/Factions/FactionRouteCargoRuntime.cs": [
+      "Assembly-CSharp(default)"
+    ],
+    "Assets/Scripts/Services/Factions/FactionReinforcementMaterializer.cs": [
+      "Assembly-CSharp(default)"
+    ],
+    "Assets/Scripts/Services/Survival/SurvivalTreatmentRuntime.cs": [
+      "Assembly-CSharp(default)"
+    ],
+    "Assets/Scripts/Services/Survival/SurvivalTreatmentContracts.cs": [
+      "Assembly-CSharp(default)"
+    ],
+    "Assets/Scripts/Services/Survival/SurvivalConsumerSelection.cs": [
+      "Assembly-CSharp(default)"
+    ],
+    "Assets/Scripts/Services/Infrastructure/Save/ServiceExecutionOwnerSaveValidation.cs": [
+      "Assembly-CSharp(default)"
+    ],
+    "Assets/Scripts/Services/Survival/SurvivalSaveSections.cs": [
+      "Assembly-CSharp(default)"
+    ],
+    "Assets/Scripts/Services/Survival/SurvivalFoodStatePersistence.cs": [
+      "Assembly-CSharp(default)"
+    ]
+  },
+  "newMetaGuids": {
+    "files": 5,
+    "uniqueness": "Each occurs once in Assets; existing metas not edited"
+  },
+  "knowledgeBase": {
+    "query": "FactionRuntimeApplicationAdapter",
+    "result": "STALE",
+    "failures": 56,
+    "actionTaken": "source fallback; related source batch remains open; no index rebuild"
+  },
+  "executionLimit": "User asked to continue source cleanup. Same RAM-condition Unity retries remain deferred; no other apps or user desktop input touched. G4 cargo and reinforcement, G5 standard/detox treatment and official restore/retry actual verification remain required.",
+  "remainingGoalWork": true,
+  "committedOrPushed": false
+}

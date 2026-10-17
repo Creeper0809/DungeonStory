@@ -1,0 +1,278 @@
+# CombatImpactPresentation destroyed-pool boundary RunCommand
+
+status=READY_NOT_EXECUTED
+scope=One protected Play command only. It invokes the public static presentation API twice; it never issues an attack, applies damage, changes combat state, or reads/mutates the private pool.
+precondition=The current loaded Play scene is paused, and no existing `CombatImpactPresentation` component exists in that loaded scene. Stop rather than consume or destroy an existing visual.
+
+```csharp
+using System;
+using System.Collections;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+
+internal sealed class CommandScript : IRunCommand
+{
+    static Type ExactType(string fullName, string assemblyName)
+    {
+        Type type = Type.GetType(fullName + ", " + assemblyName);
+        return type ?? throw new InvalidOperationException(
+            "Missing exact runtime type: " + fullName + " from " + assemblyName);
+    }
+
+    static object P(object value, string name)
+    {
+        var property = value?.GetType().GetProperty(name);
+        if (property == null || property.GetMethod == null || !property.GetMethod.IsPublic)
+        {
+            throw new InvalidOperationException("Missing public property: " + name);
+        }
+        return property.GetValue(value);
+    }
+
+    static MonoBehaviour FindRuntimeScopeHost()
+    {
+        Type scopeType = ExactType(
+            "DungeonRuntimeLifetimeScope", "Assembly-CSharp");
+        return Resources.FindObjectsOfTypeAll(scopeType)
+            .Cast<UnityEngine.Object>()
+            .OfType<MonoBehaviour>()
+            .Single(value => value.gameObject.scene.isLoaded);
+    }
+
+    static object Resolve(Type type)
+    {
+        object container = P(FindRuntimeScopeHost(), "Container");
+        var resolve = container.GetType().GetMethod(
+            "Resolve", new[] { typeof(Type), typeof(object) });
+        if (resolve == null || !resolve.IsPublic)
+        {
+            throw new InvalidOperationException(
+                "Public Resolve(Type, object) is unavailable.");
+        }
+        return resolve.Invoke(container, new object[] { type, null });
+    }
+
+    static Component[] CaptureLoadedImpacts(Type impactType) =>
+        Resources.FindObjectsOfTypeAll(impactType)
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Where(value => value != null && value.gameObject.scene.isLoaded)
+            .ToArray();
+
+    static bool IsSame(Component candidate, Component[] baseline) =>
+        baseline.Any(value => ReferenceEquals(value, candidate));
+
+    static void PlayImpact(Type impactType, object clock, object hierarchy)
+    {
+        Type clockType = ExactType(
+            "DungeonStory.Foundation.IGameClock", "DungeonStory.Foundation");
+        Type hierarchyType = ExactType(
+            "IWorldUiHierarchy", "DungeonStory.Foundation");
+        var play = impactType.GetMethods().Single(value =>
+        {
+            var parameters = value.GetParameters();
+            return value.Name == "Play"
+                && value.IsPublic
+                && value.IsStatic
+                && parameters.Length == 5
+                && parameters[0].ParameterType == typeof(Vector3)
+                && parameters[1].ParameterType == ExactType(
+                    "CombatDamageType", "DungeonStory.Combat")
+                && parameters[2].ParameterType == clockType
+                && parameters[3].ParameterType == hierarchyType
+                && parameters[4].ParameterType == typeof(bool);
+        });
+        play.Invoke(null, new object[]
+        {
+            Vector3.zero,
+            Enum.Parse(ExactType("CombatDamageType", "DungeonStory.Combat"), "Blunt"),
+            clock,
+            hierarchy,
+            false
+        });
+    }
+
+    public void Execute(ExecutionResult result)
+    {
+        if (!EditorApplication.isPlaying || !Application.isPlaying
+            || !Mathf.Approximately(Time.timeScale, 0f))
+        {
+            throw new InvalidOperationException(
+                "Impact boundary probe requires the existing paused protected Play.");
+        }
+
+        Type impactType = ExactType(
+            "CombatImpactPresentation", "DungeonStory.Presentation");
+        Component[] baseline = CaptureLoadedImpacts(impactType);
+        if (baseline.Length != 0)
+        {
+            throw new InvalidOperationException(
+                "Stop: pre-existing impact visual(s) must not be consumed or destroyed.");
+        }
+
+        object clock = Resolve(ExactType(
+            "DungeonStory.Foundation.IGameClock", "DungeonStory.Foundation"));
+        object hierarchy = Resolve(ExactType(
+            "IWorldUiHierarchy", "DungeonStory.Foundation"));
+        if (clock == null || hierarchy == null)
+        {
+            throw new InvalidOperationException(
+                "Actual public clock or world-UI hierarchy is unavailable.");
+        }
+
+        FindRuntimeScopeHost().StartCoroutine(Run(
+            impactType, clock, hierarchy, baseline));
+        result.Log("CombatImpact pool boundary continuation installed;paused={0}",
+            Mathf.Approximately(Time.timeScale, 0f));
+    }
+
+    private const float MaximumWallSeconds = 10f;
+
+    private static IEnumerator Run(
+            Type impactType,
+            object clock,
+            object hierarchy,
+            Component[] baseline)
+        {
+            Component created = null;
+            Component replacement = null;
+            bool scenarioPassed = false;
+            string outcome = "FAILED before completed presentation sequence";
+            try
+            {
+                RequirePaused("before first public Play");
+                CommandScript.PlayImpact(impactType, clock, hierarchy);
+                created = CaptureNewLiveImpact(impactType, baseline, null);
+
+                Time.timeScale = 1f;
+                yield return WaitForInactive(created);
+                Time.timeScale = 0f;
+                RequirePaused("first normal completion");
+                RequireInactive(created, "first created impact did not complete normally");
+
+                // The command destroys only the exact newly created, now-pooled object.
+                UnityEngine.Object.Destroy(created.gameObject);
+                yield return null;
+                if (created != null)
+                {
+                    throw new InvalidOperationException(
+                        "The exact created pooled component was not destroyed.");
+                }
+
+                RequirePaused("before second public Play");
+                CommandScript.PlayImpact(impactType, clock, hierarchy);
+                replacement = CaptureNewLiveImpact(impactType, baseline, created);
+                if (ReferenceEquals(replacement, created))
+                {
+                    throw new InvalidOperationException(
+                        "Second public Play reused the destroyed component.");
+                }
+
+                scenarioPassed = true;
+                outcome = "created->normal completion->destroyed pooled instance->new live visual";
+            }
+            finally
+            {
+                Time.timeScale = 0f;
+                bool cleanupPassed = false;
+                try
+                {
+                    DestroyOnlyCreated(replacement, baseline);
+                    DestroyOnlyCreated(created, baseline);
+                    cleanupPassed = true;
+                    RequirePaused("created-object cleanup");
+                }
+                catch (Exception cleanupException)
+                {
+                    Time.timeScale = 0f;
+                    Debug.LogError("CombatImpact pool probe cleanup exception: "
+                        + cleanupException);
+                }
+
+                if (scenarioPassed && cleanupPassed)
+                {
+                    Debug.Log("CombatImpact pool probe PASS;" + outcome
+                        + ";cleanup=created-only;paused="
+                        + Mathf.Approximately(Time.timeScale, 0f));
+                }
+                else
+                {
+                    Debug.LogError("CombatImpact pool probe FAILED;" + outcome
+                        + ";cleanup=" + cleanupPassed + ";paused="
+                        + Mathf.Approximately(Time.timeScale, 0f));
+                }
+            }
+        }
+
+        private static Component CaptureNewLiveImpact(
+            Type impactType,
+            Component[] baseline,
+            Component excluded)
+        {
+            Component[] candidates = CaptureLoadedImpacts(impactType)
+                .Where(value => !IsSame(value, baseline)
+                    && !ReferenceEquals(value, excluded)
+                    && value.gameObject.activeInHierarchy)
+                .ToArray();
+            if (candidates.Length != 1)
+            {
+                throw new InvalidOperationException(
+                    "Expected exactly one new live impact visual; count="
+                    + candidates.Length);
+            }
+            return candidates[0];
+        }
+
+        private static IEnumerator WaitForInactive(Component impact)
+        {
+            float deadline = Time.realtimeSinceStartup + MaximumWallSeconds;
+            while (impact != null
+                   && impact.gameObject.activeInHierarchy
+                   && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
+        }
+
+        private static void RequireInactive(Component impact, string failure)
+        {
+            if (impact == null || impact.gameObject.activeInHierarchy)
+            {
+                throw new InvalidOperationException(failure);
+            }
+        }
+
+        private static void DestroyOnlyCreated(
+            Component impact,
+            Component[] baseline)
+        {
+            if (impact == null)
+            {
+                return;
+            }
+            if (IsSame(impact, baseline))
+            {
+                throw new InvalidOperationException(
+                    "Cleanup rejected an object that existed before this command.");
+            }
+            UnityEngine.Object.Destroy(impact.gameObject);
+        }
+
+        private static void RequirePaused(string step)
+        {
+            if (!Mathf.Approximately(Time.timeScale, 0f))
+            {
+                throw new InvalidOperationException("Expected paused step: " + step);
+            }
+        }
+}
+```
+
+## Stop / evidence contract
+
+- The only production call is the public `CombatImpactPresentation.Play(Vector3, CombatDamageType, IGameClock, IWorldUiHierarchy, bool)` API, resolved by its exact public parameter types: `CombatImpactPresentation, DungeonStory.Presentation`; `CombatDamageType, DungeonStory.Combat`; `IWorldUiHierarchy, DungeonStory.Foundation`; and `DungeonStory.Foundation.IGameClock, DungeonStory.Foundation`. No VContainer compile-time type is referenced.
+- First Play must yield exactly one new live component, then an inactive component after normal clock-driven completion. The command destroys that exact component, lets Unity process the destroy, invokes Play again, and requires a different new active component.
+- The private pool is neither inspected nor changed. Existing impact components cause a stop; cleanup schedules `Destroy` only for the command-created first/replacement objects, leaves time paused, and performs no combat, save, slot, asset, scene, or user-file operation.
+
+execution=NOT_RUN_PENDING_SINGLE_OPERATOR

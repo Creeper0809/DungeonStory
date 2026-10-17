@@ -1,0 +1,37 @@
+batch=WIM023 actual movement and heat consumers
+result=PASS bounded consumers; parent WIM023 remains OPEN
+mainProject=F:/01_Programming/01_Project/02_Unity/DungeonStory
+evidence=Artifacts/QA/wim-implementation/wim-023-main-movement-heat-consumers.txt
+evidenceSha256=AF5C2FC3AF3AE27B737C8F5FF2D58348D9934B4C63448610E8E4F92533237059
+
+CURRENT SOURCE AND COMPILE
+Assets/Scripts/Services/Items/Editor/Wim023MovementHeatLiveWitness.cs=F3ADA862AF31FAC9A6CE6EB5F2ED8C1030C11D5AE76E3203A4D91DB5C3491B5B
+Assets/Scripts/Services/Items/Editor/Wim023MovementHeatLiveWitness.cs.meta=C3C6CACDF0DD1221A076034DA8058862892BD45E544FC3E10A35D84597275F14
+Assets/Scripts/Services/Items/Editor/Wim023PartProductionLiveWitness.cs=BAAD0F2D47569BE94B01616582D4E5238E4756F042592ED0D13A1392E2483DD0
+Library/ScriptAssemblies/Assembly-CSharp.dll=9C74E1825030E69F7F543189B632BD0EA36ACB33CDFE5B91528D41B5EF711BB7
+Library/ScriptAssemblies/Assembly-CSharp-Editor.dll=2FB41824625B27D6281FF4FD1CF46386C7D9D1F283888B3DF4E66E3D273AF1D0
+recompile_status=completed; failed=false; errors=[]
+Production code/assets/balance values changed in this batch=0
+First affected compile failed sole root-test CS0029: generated CharacterId assigned to string at82. Corrected to typed var and Register(id). Console34145 retained; no old-DLL execution. Second affected compile PASS.
+
+EXECUTION AND SCOPE
+Single fresh main Play. After editor_status playing/not compiling/not reloading, one delayCall queued StartWim023MotionHeatConsumers. CLI response queued once; report then PASS and Wim023ProducerRunning=false independently observed. No timeouts/retries this batch.
+Actual authored Beastkin and Demon CharacterSO, actual prefab/factory, explicit persistent NPC/AbilityWork/proficiency100 composition. Historical part/body/order/receipt ownership prepared through registered current whole-save restore. No species substitution or production bypass added. Prepared history is not natural clinical proof.
+Movement: actual AbilityMove.Move2PosBySpeed -> actual CharacterWorldPositionMovement -> transform commits. Same first positive commit, samples2/stride1/dt.001. Distance0.001588821 ->0.001716614, ratio1.080432 (within independent1.08 +/- .001 assertion; float position resolution). Full healthy paired leg set, no endpoint clipping/failure. Clock and probe start position restored. This is bounded movement-consumer evidence, NOT pathfinding/AI navigation or natural movement scheduling certification.
+Heat: actual main CharacterEnvironmentUnityAdapter.Tick at50C/air100/light100; authored Demon safe max46/lethal max56. Controlled1second clock. Actual heatExposure delta0.8456475 ->0.676518, ratio.8. Exposure stays below25; actor currentHP unchanged. No exposure-state writes, clock restored and original field restored. This is actual aggregate consumer evidence, NOT natural weather/long-duration survival proof.
+Installed unique ownership and physical duplicate absence validated by current global restore and explicit part/instance joins in both cases.
+Actual combat and clinical accepted proofs were not replayed. Combat sourceABC62231/reportCB66D1BC remain unchanged.
+
+SAFETY AND FINAL STATE
+Final main editor_status=ready/stopped; compiling=false; reload=false; heartbeat2026-09-12T14:53:30.6364188Z.
+Console after corrected compile/Play: since34152 ->34152, entries[], dropped=false, new W/E0/0. Old test compile error and earlier bridge errors not cleared or represented as never occurring.
+All6 protected files exact before/after: GameplayScene.unity, persistent TestResults.xml, migration marker, meta-profile.json, autosave.json, user-settings.json. Persistence disabled before actual party selection; no scene save/restart/user save rewrite.
+All agents READY/FROZEN/completed. Main complex-test writer/integrator only; independent Sol source review one packet, Terra narrow thermal/eligibility read-only audits. No duplicate test implementation.
+Counts: original39/47(83.0% item ratio), research0/1, wiki13/13, additional062/0632/2, FIRE0/4. Newly closed children2, not a whole WIM or balance completion.
+
+REMAINING AND KNOWLEDGE BASIS
+WIM023 actual work-progress consumer remains: procedure:human-neural-assist requires allowedSpeciesIds human plus humanoid/brain. Existing humanoid Adventurer is NOT species-eligible; V20 Human enemy combatants are not surgical CharacterActors. Do not relabel another species or add a runtime fake Human to claim PASS. Keep this live-content/eligibility issue explicit for follow-up while other approved work continues.
+Other original open009/016/017/040/041/051/052; research015, FIRE4, plan7.4 and final6adult remain. Do not reopen accepted child evidence.
+Read-only query CharacterEnvironmentUnityAdapter/code: fresh content675deb05a751b052294779a585ae1080bb2345610e06108d6197e29705f39a35, system022803476422109f20947180eceb9c455bd2ef14945ea71c34959358e9868a84; matched services-infrastructure.csv:144. Initial combined term returned0; authoritative source confirmed, not declared absent.
+Direct sources: AbilityMove.cs, CharacterWorldPositionMovement.cs, CharacterEnvironmentRuntime.cs, EnvironmentalWorkwearRuntime.cs, SurgeryModels.cs, SurgeryOrderPlanningService.cs, authored Species_Demon.asset and procedure_human-neural-assist.asset. Existing source-derived KB exceptions manual44/duplicate10/unresolved25 not newly resolved. One batch-end regeneration follows code/document closure.
+Balance impact=none: existing approved paired movement+8% and heat-exposure-20% values unchanged; only their actual consumption verified. No future-content extension-closure or synthetic-canary claim.

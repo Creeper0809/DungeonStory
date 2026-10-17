@@ -36,18 +36,23 @@ public sealed class FacilityShopStateSnapshot
     public FacilityShopStateSnapshot(
         int currentOfferDay,
         IEnumerable<int> basicPurchaseBuildingIds,
-        IEnumerable<int> acquiredBlueprintIds)
+        IEnumerable<int> acquiredBlueprintIds,
+        int purchaseSequence = 0)
     {
+        if (purchaseSequence < 0)
+            throw new ArgumentOutOfRangeException(nameof(purchaseSequence));
         CurrentOfferDay = Math.Max(1, currentOfferDay);
         BasicPurchaseBuildingIds = Array.AsReadOnly(
             CanonicalIds(basicPurchaseBuildingIds));
         AcquiredBlueprintIds = Array.AsReadOnly(
             CanonicalIds(acquiredBlueprintIds));
+        PurchaseSequence = purchaseSequence;
     }
 
     public int CurrentOfferDay { get; }
     public IReadOnlyList<int> BasicPurchaseBuildingIds { get; }
     public IReadOnlyList<int> AcquiredBlueprintIds { get; }
+    public int PurchaseSequence { get; }
 
     private static int[] CanonicalIds(IEnumerable<int> ids) =>
         (ids ?? Array.Empty<int>())
@@ -71,12 +76,14 @@ internal sealed class FacilityShopAggregateState
     internal readonly HashSet<int> BasicPurchaseBuildingIds = new();
     internal readonly HashSet<int> AcquiredBlueprintIds = new();
     internal int CurrentOfferDay = 1;
+    internal int PurchaseSequence;
 
     internal FacilityShopAggregateState DeepClone()
     {
         FacilityShopAggregateState clone = new()
         {
-            CurrentOfferDay = CurrentOfferDay
+            CurrentOfferDay = CurrentOfferDay,
+            PurchaseSequence = PurchaseSequence
         };
         clone.BasicPurchaseBuildingIds.UnionWith(BasicPurchaseBuildingIds);
         clone.AcquiredBlueprintIds.UnionWith(AcquiredBlueprintIds);
@@ -117,6 +124,17 @@ public sealed class FacilityShopUnlockState
     public IReadOnlyCollection<int> AcquiredBlueprintIds =>
         Array.AsReadOnly(Current.AcquiredBlueprintIds.OrderBy(id => id).ToArray());
     public int CurrentOfferDay => Current.CurrentOfferDay;
+    public int PurchaseSequence => Current.PurchaseSequence;
+
+    public void CommitPurchaseSequence(int expectedPrevious)
+    {
+        if (expectedPrevious < 0
+            || expectedPrevious == int.MaxValue
+            || Current.PurchaseSequence != expectedPrevious)
+            throw new InvalidOperationException(
+                "Facility-shop purchase sequence changed before commit.");
+        Writable.PurchaseSequence = expectedPrevious + 1;
+    }
 
     public bool UnlockBasicPurchaseById(int buildingId) =>
         buildingId >= 0 && Writable.BasicPurchaseBuildingIds.Add(buildingId);
@@ -133,7 +151,8 @@ public sealed class FacilityShopUnlockState
         new(
             Current.CurrentOfferDay,
             Current.BasicPurchaseBuildingIds,
-            Current.AcquiredBlueprintIds);
+            Current.AcquiredBlueprintIds,
+            Current.PurchaseSequence);
 
     public void Restore(FacilityShopStateSnapshot snapshot)
     {
@@ -149,7 +168,8 @@ public sealed class FacilityShopUnlockState
         }
         FacilityShopAggregateState restored = new()
         {
-            CurrentOfferDay = snapshot.CurrentOfferDay
+            CurrentOfferDay = snapshot.CurrentOfferDay,
+            PurchaseSequence = snapshot.PurchaseSequence
         };
         restored.BasicPurchaseBuildingIds.UnionWith(
             snapshot.BasicPurchaseBuildingIds);

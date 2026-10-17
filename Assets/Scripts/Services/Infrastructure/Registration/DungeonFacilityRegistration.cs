@@ -15,6 +15,12 @@ public static class DungeonFacilityRegistration
 
         builder.RegisterInstance(runtimeReferences
             ?? throw new ArgumentNullException(nameof(runtimeReferences)));
+        builder.RegisterEntryPoint<ShopliftingFactJournal>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonRestoreTransactionParticipant>().As<IDungeonSaveRestoreCompletedHook>();
+        builder.RegisterMigratedDomainFact<ShopliftingFact>("log:shoplifting", ShopliftingFactMapping.Capture);
+        builder.RegisterMigratedDomainFact<RetailPurchaseFact>("log:retail-purchase", RetailPurchaseFactMapping.Capture);
+        builder.RegisterEntryPoint<ShopliftingActivityObserver>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<ShopInteractionObserver>(Lifetime.Singleton);
         builder.Register<DataCatalogFacilitySynthesisRecipeCatalog>(Lifetime.Singleton)
             .As<IFacilitySynthesisRecipeCatalog>();
         builder.Register<FacilitySynthesisRecipeQuery>(Lifetime.Singleton)
@@ -78,6 +84,8 @@ public static class DungeonFacilityRegistration
             .As<IDungeonRestoreTransactionParticipant>();
         builder.RegisterEntryPoint<FacilityEvolutionPendingMaterialProjection>(
             Lifetime.Singleton);
+        builder.RegisterEntryPoint<FacilityFormulaEvolutionPresentationRuntime>(
+            Lifetime.Singleton).AsSelf();
         builder.RegisterEntryPoint<FacilityEvolutionActivationProjection>(
             Lifetime.Singleton);
         builder.Register<FacilityEvolutionModifierQuery>(Lifetime.Singleton)

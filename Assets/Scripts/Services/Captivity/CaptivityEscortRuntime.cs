@@ -16,12 +16,14 @@ internal sealed class CaptivityEscortRuntime :
     private readonly IGridSystemProvider gridProvider;
     private readonly IDoorAccessCommandService doorAccessCommands;
     private readonly IGameClock gameClock;
+    private readonly CaptivityDurableToolRuntime durableTools;
     private readonly Dictionary<string, Transform> carriedParents =
         new Dictionary<string, Transform>(StringComparer.Ordinal);
 
     public CaptivityEscortRuntime(
         CaptivityActorAccess actors,
         CaptivityActorRuntimeLookup actorRuntime,
+        CaptivityDurableToolRuntime durableTools,
         CaptivityCharacterContext characters,
         CaptivityWorldContext world,
         CaptivitySessionContext session)
@@ -29,6 +31,8 @@ internal sealed class CaptivityEscortRuntime :
         this.actors = actors ?? throw new ArgumentNullException(nameof(actors));
         this.actorRuntime = actorRuntime
             ?? throw new ArgumentNullException(nameof(actorRuntime));
+        this.durableTools = durableTools
+            ?? throw new ArgumentNullException(nameof(durableTools));
         characters = characters
             ?? throw new ArgumentNullException(nameof(characters));
         world = world ?? throw new ArgumentNullException(nameof(world));
@@ -73,6 +77,17 @@ internal sealed class CaptivityEscortRuntime :
                 StringComparison.Ordinal))
         {
             failureReason = "호송 예약이 유효하지 않습니다.";
+            return false;
+        }
+        if (!state.IsInCustody
+            || subject.IsDead
+            || !subject.isActiveAndEnabled
+            || subject.CurrentLifecycleState == CharacterLifecycleState.Despawned
+            || carrier.IsDead
+            || !carrier.isActiveAndEnabled
+            || carrier.CurrentLifecycleState != CharacterLifecycleState.Active)
+        {
+            failureReason = "호송 대상이나 담당자가 더 이상 유효하지 않습니다.";
             return false;
         }
 
@@ -279,7 +294,6 @@ internal sealed class CaptivityEscortRuntime :
         state.restraintStackId = string.Empty;
         state.restraintItemId = string.Empty;
         state.restraintQuantity = 0;
-        state.health = EstimateHealth(subject);
         state.nextSecurityCheckAt = gameClock.Time + 5f;
         state.lastResult = "감방 수용 완료";
         actors.Recalculate(state);
@@ -295,14 +309,13 @@ internal sealed class CaptivityEscortRuntime :
             return;
         }
 
-        if (subject != null)
+        bool restoredRecordedCarry = RestoreParent(state.captiveId, subject);
+        if (restoredRecordedCarry
+            && subject != null
+            && carrier != null)
         {
-            RestoreParent(state.captiveId, subject);
-            if (carrier != null)
-            {
-                subject.transform.position = carrier.transform.position;
-                state.capturePosition = carrier.GetNowXY();
-            }
+            subject.transform.position = carrier.transform.position;
+            state.capturePosition = carrier.GetNowXY();
         }
 
         if (!string.IsNullOrWhiteSpace(state.restraintStackId))
@@ -312,7 +325,7 @@ internal sealed class CaptivityEscortRuntime :
                 state.reservedCarrierId);
         }
 
-        CaptivityDurableToolRuntime.TryReturnRestraint(
+        bool restraintReturned = durableTools.TryReturnRestraint(
             itemRuntime,
             state,
             state.capturePosition);
@@ -326,6 +339,8 @@ internal sealed class CaptivityEscortRuntime :
         state.lastResult = string.IsNullOrWhiteSpace(reason)
             ? "포획 중단"
             : reason;
+        if (!restraintReturned)
+            state.lastResult += ": 구속구 반납 대기";
     }
 
     private void ConfiscateEquipment(CharacterActor subject, Vector2Int position)
@@ -343,35 +358,34 @@ internal sealed class CaptivityEscortRuntime :
         }
     }
 
-    private void RestoreParent(string captiveId, CharacterActor actor)
+    private bool RestoreParent(string captiveId, CharacterActor actor)
     {
-        if (actor == null)
+        string normalizedId = captiveId ?? string.Empty;
+        if (!carriedParents.TryGetValue(normalizedId, out Transform parent))
         {
-            return;
+            return false;
         }
 
-        carriedParents.TryGetValue(captiveId ?? string.Empty, out Transform parent);
-        carriedParents.Remove(captiveId ?? string.Empty);
-        actor.transform.SetParent(parent, worldPositionStays: true);
-    }
-
-    private static float EstimateHealth(CharacterActor actor)
-    {
-        if (actor?.Stats == null)
+        carriedParents.Remove(normalizedId);
+        if (actor != null)
         {
-            return 0f;
+            actor.transform.SetParent(parent, worldPositionStays: true);
         }
-
-        return Mathf.Clamp(
-            actor.Stats.CurrentHealth / Mathf.Max(1f, actor.Stats.MaxHealth) * 100f,
-            0f,
-            100f);
+        return true;
     }
+
 }
 
-internal static class CaptivityDurableToolRuntime
+internal sealed class CaptivityDurableToolRuntime
 {
     private const float RestraintUseWear = 5f;
+    private int returnDepth;
+
+    public void ValidateBeforeCapture()
+    {
+        if (returnDepth != 0)
+            throw new InvalidOperationException("Captivity durable-tool return is still publishing physical ownership.");
+    }
 
     public static bool TryAssignRestraint(
         CaptiveState state,
@@ -445,7 +459,7 @@ internal static class CaptivityDurableToolRuntime
         return true;
     }
 
-    public static bool TryReturnRestraint(
+    public bool TryReturnRestraint(
         IWorldItemStackRuntime items,
         CaptiveState state,
         Vector2Int position) =>
@@ -463,7 +477,7 @@ internal static class CaptivityDurableToolRuntime
                 state.assignedRestraintMaximumDurability = 0f;
             });
 
-    public static bool TryReturnLaborTool(
+    public bool TryReturnLaborTool(
         IWorldItemStackRuntime items,
         CaptiveState state,
         Vector2Int position) =>
@@ -475,7 +489,7 @@ internal static class CaptivityDurableToolRuntime
             position,
             () => CaptivityLaborToolAssignmentOutbox.ClearAssignment(state));
 
-    private static bool TryReturn(
+    private bool TryReturn(
         IWorldItemStackRuntime items,
         string itemId,
         string instanceId,
@@ -483,28 +497,39 @@ internal static class CaptivityDurableToolRuntime
         Vector2Int position,
         Action clear)
     {
-        if (string.IsNullOrWhiteSpace(itemId))
+        returnDepth++;
+        try
         {
+            if (string.IsNullOrWhiteSpace(itemId))
+            {
+                return true;
+            }
+
+            if (items == null
+                || !((ItemInstanceId)instanceId).IsValid
+                || !DurableToolItemRules.TryGetMaximumDurability(itemId, out float maximum)
+                || float.IsNaN(durability)
+                || float.IsInfinity(durability)
+                || durability < 0f
+                || durability > maximum
+                || !items.SpawnExistingUniqueItemAt(
+                    itemId,
+                    (ItemInstanceId)instanceId,
+                    position,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    new[] { DurableToolItemRules.CreateDurability(itemId, durability) },
+                    out string stackId))
+            {
+                return false;
+            }
+
+            clear?.Invoke();
             return true;
         }
-
-        if (items == null
-            || !((ItemInstanceId)instanceId).IsValid
-            || !items.SpawnExistingUniqueItemAt(
-                itemId,
-                (ItemInstanceId)instanceId,
-                position,
-                WorldItemStackState.Loose,
-                string.Empty,
-                out string stackId))
+        finally
         {
-            return false;
+            returnDepth--;
         }
-
-        items.TrySetInstanceComponent(
-            stackId,
-            DurableToolItemRules.CreateDurability(itemId, durability));
-        clear?.Invoke();
-        return true;
     }
 }

@@ -4,6 +4,39 @@ using System.Collections.Generic;
 using DungeonStory.Foundation;
 using UnityEngine;
 
+public readonly struct BuildingPlacementCommitReceipt
+{
+    public BuildingPlacementCommitReceipt(
+        string finalFacilityId,
+        string finalFacilityDefinitionId,
+        string replacedFacilityId,
+        string replacedFacilityDefinitionId)
+    {
+        FinalFacilityId = finalFacilityId?.Trim() ?? string.Empty;
+        FinalFacilityDefinitionId =
+            finalFacilityDefinitionId?.Trim() ?? string.Empty;
+        ReplacedFacilityId = replacedFacilityId?.Trim() ?? string.Empty;
+        ReplacedFacilityDefinitionId =
+            replacedFacilityDefinitionId?.Trim() ?? string.Empty;
+    }
+
+    public string FinalFacilityId { get; }
+    public string FinalFacilityDefinitionId { get; }
+    public string ReplacedFacilityId { get; }
+    public string ReplacedFacilityDefinitionId { get; }
+    // The work order owns the operation. This receipt describes committed world
+    // effects only and cannot replace the order's placement identity.
+    public bool IsValid => GameplayOutcomeStableIdSyntax.IsValid(FinalFacilityId)
+        && GameplayOutcomeStableIdSyntax.IsValid(FinalFacilityDefinitionId)
+        && ((ReplacedFacilityId.Length == 0) == (ReplacedFacilityDefinitionId.Length == 0))
+        && !string.Equals(FinalFacilityId, ReplacedFacilityId, StringComparison.Ordinal)
+        && (ReplacedFacilityId.Length == 0
+            || GameplayOutcomeStableIdSyntax.IsValid(ReplacedFacilityId))
+        && (ReplacedFacilityDefinitionId.Length == 0
+            || GameplayOutcomeStableIdSyntax.IsValid(
+                ReplacedFacilityDefinitionId));
+}
+
 public sealed class ConstructionSite : BuildableObject,
     IWorkableFacility,
     IAllocatedWorkerOccupancyQuery,
@@ -12,9 +45,10 @@ public sealed class ConstructionSite : BuildableObject,
     private const float WorkerStandOffsetY = 0.15f;
     private const float WorkerStandSpacingX = 0.18f;
     private Func<bool> completeConstruction;
+    private Func<BuildingPlacementCommitReceipt> completeConstructionDetailed;
     private Action removeSite;
     private readonly List<IBuildingVisitorPort> workers = new(4);
-    private readonly Dictionary<IBuildingVisitorPort, Vector3> workerOffsets = new();
+    private readonly Dictionary<IBuildingVisitorPort, BuildingWorkerAllocation> workerAllocations = new();
     private readonly Dictionary<IBuildingVisitorPort, int> workerSlots = new();
     private readonly Dictionary<CharacterId, ParallelWorkerReservation> workerReservations = new();
     private readonly List<CharacterId> expiredWorkerReservations = new(4);
@@ -90,6 +124,18 @@ public sealed class ConstructionSite : BuildableObject,
     {
         workOrderId = orderId ?? string.Empty;
         completeConstruction = onCompleteConstruction;
+        completeConstructionDetailed = null;
+        removeSite = onRemoveSite;
+    }
+
+    public void ConfigureSite(
+        string orderId,
+        Func<BuildingPlacementCommitReceipt> onCompleteConstruction,
+        Action onRemoveSite)
+    {
+        workOrderId = orderId ?? string.Empty;
+        completeConstruction = null;
+        completeConstructionDetailed = onCompleteConstruction;
         removeSite = onRemoveSite;
     }
 
@@ -285,70 +331,84 @@ public sealed class ConstructionSite : BuildableObject,
 
     public IEnumerator AllocateWorker(IBuildingVisitorPort actor)
     {
-        if (!CanAssignWorker(actor, out _))
-        {
-            yield break;
-        }
+        if (TryAllocateWorker(actor, actor?.CurrentActionToken, null,
+                out IBuildingWorkerAllocation allocation, out _))
+            yield return allocation.Approach();
+    }
 
+    public bool TryAllocateWorker(IBuildingVisitorPort actor, object expectedAction,
+        Func<bool> isRequestCurrent, out IBuildingWorkerAllocation allocation,
+        out string failureReason)
+    {
+        allocation = null;
+        if (!CanAssignWorker(actor, out failureReason))
+            return false;
+        if (!actor.VisitorSnapshot.IsRuntimeActive)
+        {
+            failureReason = "worker-unavailable";
+            return false;
+        }
+        if (workerAllocations.ContainsKey(actor))
+        {
+            failureReason = "worker-already-allocated";
+            return false;
+        }
+        if (expectedAction != null && (!actor.IsCurrentAction(expectedAction)
+                || actor.IsCurrentActionEnded)
+            || isRequestCurrent != null && !isRequestCurrent())
+        {
+            failureReason = "worker-allocation-request-replaced";
+            return false;
+        }
         int slotIndex = TryGetReservedSlot(actor.BuildingCharacterId, out int reservedSlot)
-            ? reservedSlot
-            : FindAvailableWorkerSlot();
+            ? reservedSlot : FindAvailableWorkerSlot();
         if (slotIndex < 0)
         {
-            yield break;
+            failureReason = "construction-worker-slot-unavailable";
+            return false;
         }
-
-        workers.Add(actor);
-        workerSlots[actor] = slotIndex;
-        TrackAllocatedWorkerOwnership(actor);
-        ReleaseWorkerReservation(actor);
-        MarkFacilityDynamicStateDirty();
-        if (actor == null || !actor.VisitorSnapshot.CanMove)
-        {
-            yield break;
-        }
-
-        object currentAction = actor.CurrentActionToken;
-        Vector3 workPosition = GetMovementWorldPosition(centerPos);
         float centeredIndex = slotIndex - (MaximumWorkers - 1f) * 0.5f;
-        Vector3 standOffset = new Vector3(
-            centeredIndex * WorkerStandSpacingX,
-            WorkerStandOffsetY,
-            0f);
-        workerOffsets[actor] = standOffset;
-        actor.SetActionPhase("공사 현장 접근", this);
-        yield return actor.MoveTo(workPosition, 1f, currentAction);
-        actor.ChangeLayer("DungeonMiddleObject");
-        yield return actor.MoveTo(
-            workPosition + standOffset,
-            3f,
-            currentAction);
-        actor.SetActionPhase("공사 중", this);
-        actor.FaceRight();
+        var admitted = new BuildingWorkerAllocation(this, actor, expectedAction,
+            isRequestCurrent,
+            value => workerAllocations.TryGetValue(actor, out var current)
+                && ReferenceEquals(current, value),
+            ReleaseWorkerAllocation, GetMovementWorldPosition(centerPos),
+            new Vector3(centeredIndex * WorkerStandSpacingX, WorkerStandOffsetY, 0f),
+            null, "공사 현장 접근", "공사 중");
+        workerAllocations.Add(actor, admitted);
+        workers.Add(actor);
+        workerSlots.Add(actor, slotIndex);
+        allocation = admitted;
+        try
+        {
+            TrackAllocatedWorkerOwnership(actor);
+            ReleaseWorkerReservation(actor);
+            MarkFacilityDynamicStateDirty();
+            failureReason = string.Empty;
+            return true;
+        }
+        catch
+        {
+            admitted.Dispose();
+            throw;
+        }
     }
 
     public void DeallocateWorker(IBuildingVisitorPort actor)
     {
-        if (actor == null || !workers.Remove(actor))
-        {
-            return;
-        }
+        if (actor != null && workerAllocations.TryGetValue(actor, out var allocation))
+            allocation.Dispose();
+    }
 
-        Vector3 standOffset = workerOffsets.TryGetValue(actor, out Vector3 savedOffset)
-            ? savedOffset
-            : new Vector3(0f, WorkerStandOffsetY, 0f);
-        workerOffsets.Remove(actor);
-        workerSlots.Remove(actor);
-        UntrackAllocatedWorkerOwnership(actor);
-        // Deallocation is an instantaneous ownership cleanup, not a movement
-        // phase: SetWorldPosition below restores the visitor immediately. Do
-        // not overwrite the AI action phase here because the work executor has
-        // already published its terminal state and the stale "site exit"
-        // label can survive into the next decision as a false active action.
-        actor.SetWorldPosition(
-            actor.VisitorSnapshot.Position
-                - standOffset);
-        actor.ChangeLayer("Default");
+    private void ReleaseWorkerAllocation(BuildingWorkerAllocation allocation)
+    {
+        if (!workerAllocations.TryGetValue(allocation.Actor, out var current)
+            || !ReferenceEquals(current, allocation))
+            return;
+        workerAllocations.Remove(allocation.Actor);
+        workers.Remove(allocation.Actor);
+        workerSlots.Remove(allocation.Actor);
+        UntrackAllocatedWorkerOwnership(allocation.Actor);
         MarkFacilityDynamicStateDirty();
     }
 
@@ -534,17 +594,33 @@ public sealed class ConstructionSite : BuildableObject,
 
     public bool CompleteConstruction()
     {
+        bool completed = CompleteConstruction(out _);
+        if (completed)
+        {
+            RemoveSiteOnly();
+        }
+        return completed;
+    }
+
+    public bool CompleteConstruction(
+        out BuildingPlacementCommitReceipt placementReceipt)
+    {
+        placementReceipt = default;
         if (isDestroy)
         {
             return false;
+        }
+
+        if (completeConstructionDetailed != null)
+        {
+            placementReceipt = completeConstructionDetailed.Invoke();
+            return placementReceipt.IsValid;
         }
 
         if (completeConstruction != null && !completeConstruction.Invoke())
         {
             return false;
         }
-
-        RemoveSiteOnly();
         return true;
     }
 
@@ -567,10 +643,13 @@ public sealed class ConstructionSite : BuildableObject,
         }
 
         isDestroy = true;
+        var allocations = new List<BuildingWorkerAllocation>(workerAllocations.Values);
         workers.Clear();
-        workerOffsets.Clear();
+        workerAllocations.Clear();
         workerSlots.Clear();
         workerReservations.Clear();
+        foreach (BuildingWorkerAllocation allocation in allocations)
+            allocation.Dispose();
         removeSite?.Invoke();
     }
 

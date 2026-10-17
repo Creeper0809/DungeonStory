@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "감방 구속대에 포로를 수용하고 이동을 제한하도록 만든 설치 부품이며, 하르나크의 시설과도 체결 규격이 맞는다.",
+  "in_game_description": "감방 구속대에 포로를 수용하고 이동을 제한하도록 만든 설치 부품이다. 하르나크의 감방 구속대 도면에는 뿔, 날개, 꼬리와 골렘의 무게가 부딪히는 지점을 따로 표시한다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

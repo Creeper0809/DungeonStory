@@ -43,6 +43,8 @@ MonoBehaviour:
   laysEggs: 0
   bodySize: 1
   manureIntervalDays: 2
+  productComfortMinimumTemperatureC: -10
+  productComfortMaximumTemperatureC: 10
   husbandryProducts:
   - itemId: fiber:frost-wool
     amount: 3
@@ -56,6 +58,19 @@ MonoBehaviour:
   nestTag: nest:frost-alcove
   breedingSeason: 3
   migrationPatternId: migration:cold-front
+  migrationProfile:
+    capability: 4
+    detectionRadiusCells: 8
+    signalScore: 7
+    minimumWaterRemainingRatio: 0
+    minimumCarcassQuantity: 0
+    minimumTemperatureC: -10
+    maximumTemperatureC: 10
+  hasHaulRoleProfile: 1
+  haulRoleProfile:
+    maxCargoMassGrams: 24000
+    loadedMoveSpeedMultiplier: 0.75
+    decisionIntervalSeconds: 0.5
   diseaseVectorIds:
   - disease:cave-flu
   activeSeasons: 0300000000000000

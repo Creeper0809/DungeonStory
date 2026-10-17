@@ -51,8 +51,15 @@ public sealed class WildlifeHusbandryProfile
         bool laysEggs,
         float bodySize,
         float manureIntervalDays,
-        IEnumerable<WildlifeHusbandryProductDefinition> products = null)
+        IEnumerable<WildlifeHusbandryProductDefinition> products = null,
+        float productComfortMinimumTemperatureC =
+            WildlifeProductThermalRules.DefaultComfortMinimumTemperatureC,
+        float productComfortMaximumTemperatureC =
+            WildlifeProductThermalRules.DefaultComfortMaximumTemperatureC)
     {
+        WildlifeProductThermalRules.RequireValidComfortRange(
+            productComfortMinimumTemperatureC,
+            productComfortMaximumTemperatureC);
         Domesticable = domesticable;
         TamingDifficulty = Mathf.Clamp01(tamingDifficulty);
         AdultAgeDays = Mathf.Max(0.25f, adultAgeDays);
@@ -65,6 +72,8 @@ public sealed class WildlifeHusbandryProfile
             .Where(product => product != null
                 && !string.IsNullOrWhiteSpace(product.ItemId))
             .ToArray();
+        ProductComfortMinimumTemperatureC = productComfortMinimumTemperatureC;
+        ProductComfortMaximumTemperatureC = productComfortMaximumTemperatureC;
     }
 
     public bool Domesticable { get; }
@@ -76,5 +85,81 @@ public sealed class WildlifeHusbandryProfile
     public float BodySize { get; }
     public float ManureIntervalDays { get; }
     public IReadOnlyList<WildlifeHusbandryProductDefinition> Products { get; }
+    public float ProductComfortMinimumTemperatureC { get; }
+    public float ProductComfortMaximumTemperatureC { get; }
 
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public static class WildlifeProductThermalRules
+{
+    public const float DefaultComfortMinimumTemperatureC = 5f;
+    public const float DefaultComfortMaximumTemperatureC = 30f;
+    public const float MinimumProductProgressMultiplier = 0.25f;
+    public const float ProductProgressLossPerDegree = 0.05f;
+
+    public static float CalculateDegreesOutsideComfort(
+        float temperatureC,
+        float comfortMinimumTemperatureC,
+        float comfortMaximumTemperatureC)
+    {
+        RequireFinite(temperatureC, nameof(temperatureC));
+        RequireValidComfortRange(
+            comfortMinimumTemperatureC,
+            comfortMaximumTemperatureC);
+        if (temperatureC < comfortMinimumTemperatureC)
+        {
+            return comfortMinimumTemperatureC - temperatureC;
+        }
+        if (temperatureC > comfortMaximumTemperatureC)
+        {
+            return temperatureC - comfortMaximumTemperatureC;
+        }
+        return 0f;
+    }
+
+    public static float CalculateProductProgressMultiplier(
+        float temperatureC,
+        float comfortMinimumTemperatureC,
+        float comfortMaximumTemperatureC)
+    {
+        float outsideDistance = CalculateDegreesOutsideComfort(
+            temperatureC,
+            comfortMinimumTemperatureC,
+            comfortMaximumTemperatureC);
+        return Mathf.Max(
+            MinimumProductProgressMultiplier,
+            1f - ProductProgressLossPerDegree * outsideDistance);
+    }
+
+    public static void RequireValidComfortRange(
+        float comfortMinimumTemperatureC,
+        float comfortMaximumTemperatureC)
+    {
+        RequireFinite(
+            comfortMinimumTemperatureC,
+            nameof(comfortMinimumTemperatureC));
+        RequireFinite(
+            comfortMaximumTemperatureC,
+            nameof(comfortMaximumTemperatureC));
+        if (comfortMinimumTemperatureC > comfortMaximumTemperatureC)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(comfortMinimumTemperatureC),
+                "Wildlife product comfort range must be ordered: "
+                + $"{comfortMinimumTemperatureC:0.###}"
+                + $"..{comfortMaximumTemperatureC:0.###} C.");
+        }
+    }
+
+    private static void RequireFinite(float value, string parameterName)
+    {
+        if (float.IsNaN(value) || float.IsInfinity(value))
+        {
+            throw new ArgumentOutOfRangeException(
+                parameterName,
+                value,
+                "Wildlife product thermal values must be finite.");
+        }
+    }
 }

@@ -17,12 +17,30 @@ public static class FacilityShopDebugScenarios
         }
     }
 
+    public static bool RunRetirementSupplyFocused()
+    {
+        List<string> errors = new List<string>();
+        RunScenario("퇴역 시설 신규 공급 차단", VerifyRetiredDefinitionsAreNotOffered, errors);
+        RunScenario("시설 구매 시 정적 자산 보존", VerifyBuildingPurchasePreservesStaticAsset, errors);
+        if (errors.Count > 0)
+        {
+            Debug.LogError(
+                "Retirement facility supply focused scenarios failed: "
+                + string.Join(", ", errors));
+            return false;
+        }
+
+        Debug.Log("Retirement facility supply focused scenarios passed.");
+        return true;
+    }
+
     public static bool RunAll(bool logSuccess)
     {
         FacilityShopDomainDebugScenarios.Validate();
 
         List<string> errors = new List<string>();
         RunScenario("일일 상품 시설/설계도 포함", VerifyDailyOffersContainBuildingAndBlueprint, errors);
+        RunScenario("퇴역 시설 신규 공급 차단", VerifyRetiredDefinitionsAreNotOffered, errors);
         RunScenario("희귀 상품 랜덤 등장", VerifyRareOffersAppearRandomly, errors);
         RunScenario("기본 구매 해금", VerifyBasicPurchaseUnlocksLowStarsOnly, errors);
         RunScenario("시설 구매 시 정적 자산 보존", VerifyBuildingPurchasePreservesStaticAsset, errors);
@@ -80,6 +98,96 @@ public static class FacilityShopDebugScenarios
             && offers.OfType<FacilityBlueprintOffer>().Any((offer) => offer.Blueprint != null)
             && offers.All((offer) => offer.IsValid && offer.Cost > 0)
             && offers.All((offer) => offer is not FacilityBuildingOffer || offer.Star <= 2);
+    }
+
+    private static bool VerifyRetiredDefinitionsAreNotOffered()
+    {
+        BuildingSO retired = null;
+        BuildingSO activeLocked = null;
+        try
+        {
+            BuildingSO activeTemplate = LoadBuilding("P1_SpikeTrap");
+            retired = Object.Instantiate(activeTemplate);
+            retired.id = 9203;
+            retired.ConfigureCompatibilityStatus(true);
+            activeLocked = Object.Instantiate(activeTemplate);
+            activeLocked.id = 9204;
+            activeLocked.unlocked = false;
+            FacilityShopUnlockState state = new FacilityShopUnlockState();
+            state.UnlockBasicPurchaseById(retired.id);
+            state.UnlockBasicPurchaseById(activeLocked.id);
+
+            IReadOnlyList<FacilityShopOffer> dailyOffers = FacilityShopService.CreateDailyOffers(
+                1,
+                new[] { retired, activeLocked, null },
+                Array.Empty<FacilityBlueprintSO>(),
+                0,
+                DefaultBuildingCostMultiplier,
+                DefaultBlueprintCostMultiplier,
+                CharacterAiEditorTestDependencies.AuthoredGameplay);
+            IReadOnlyList<FacilityShopOffer> basicOffers = FacilityShopService.CreateBasicPurchaseOffers(
+                new[] { retired, activeLocked, null },
+                state,
+                Array.Empty<int>(),
+                DefaultBuildingCostMultiplier,
+                CharacterAiEditorTestDependencies.AuthoredGameplay);
+
+            GameSessionState gameData = CreateGameData(100);
+            FacilityShopOffer retiredOffer = new FacilityBuildingOffer(
+                retired,
+                25,
+                FacilityShopRarity.Common,
+                false,
+                true);
+            FacilityShopOffer nullOffer = new FacilityBuildingOffer(
+                null,
+                25,
+                FacilityShopRarity.Common,
+                false,
+                true);
+            bool retiredPurchaseRejected = !FacilityShopService.TryPurchaseOffer(
+                new EditorGameMoneyAccount(gameData),
+                retiredOffer,
+                state,
+                PurchaseContext("retired-building"),
+                DisabledDungeonDebugRuleQuery.Instance,
+                out FacilityShopPurchaseResult retiredResult);
+            bool nullPurchaseRejected = !FacilityShopService.TryPurchaseOffer(
+                new EditorGameMoneyAccount(gameData),
+                nullOffer,
+                state,
+                PurchaseContext("null-building"),
+                DisabledDungeonDebugRuleQuery.Instance,
+                out FacilityShopPurchaseResult nullResult);
+
+            return retired.IsDeprecatedCompatibilityAsset
+                && !activeLocked.IsDeprecatedCompatibilityAsset
+                && !activeLocked.unlocked
+                && FacilityShopService.CanEnterBasicPurchase(activeLocked)
+                && !FacilityShopService.CanEnterBasicPurchase(retired)
+                && !FacilityShopService.CanEnterBasicPurchase(null)
+                && dailyOffers.OfType<FacilityBuildingOffer>().Single().Building == activeLocked
+                && basicOffers.OfType<FacilityBuildingOffer>().Single().Building == activeLocked
+                && !retiredOffer.IsValid
+                && !nullOffer.IsValid
+                && retiredPurchaseRejected
+                && nullPurchaseRejected
+                && !retiredResult.success
+                && !nullResult.success
+                && gameData.holdingMoney.Value == 100;
+        }
+        finally
+        {
+            if (retired != null)
+            {
+                Object.DestroyImmediate(retired);
+            }
+
+            if (activeLocked != null)
+            {
+                Object.DestroyImmediate(activeLocked);
+            }
+        }
     }
 
     private static bool VerifyStartingBlueprintCandidateIsGuaranteed()
@@ -161,7 +269,7 @@ public static class FacilityShopDebugScenarios
 
     private static bool VerifyBuildingPurchasePreservesStaticAsset()
     {
-        BuildingSO source = LoadBuilding("P1_GuardRoom");
+        BuildingSO source = LoadBuilding("P1_SpikeTrap");
         BuildingSO building = Object.Instantiate(source);
         building.id = 9301;
         building.unlocked = false;
@@ -807,7 +915,8 @@ public static class FacilityShopDebugScenarios
         public override int DataId => 1;
         public override string DisplayName => "확장 상품";
 
-        protected override string ApplyPurchase(FacilityShopUnlockState unlockState)
+        protected internal override string ApplyPurchase(
+            FacilityShopUnlockState unlockState)
         {
             ApplyCount++;
             return "확장 상품 구매 완료";

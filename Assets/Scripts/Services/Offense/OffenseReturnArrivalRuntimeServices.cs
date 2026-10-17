@@ -51,8 +51,11 @@ public sealed class OffenseReturnArrivalDomainServices
         IWildlifeCaptureRuntime wildlifeCapture,
         IEnemyArchetypeCatalog enemyArchetypes,
         IEnemyIndividualFactory enemyIndividuals,
+        ICombatEquipmentRuntime equipment,
         IGameClock clock,
-        IGameEventBus eventBus)
+        IGameCalendar calendar,
+        IGameEventBus eventBus,
+        OffenseArrivalSettlementRuntime settlements)
     {
         BodyHealthQuery = bodyHealthQuery
             ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
@@ -70,9 +73,14 @@ public sealed class OffenseReturnArrivalDomainServices
             ?? throw new ArgumentNullException(nameof(enemyArchetypes));
         EnemyIndividuals = enemyIndividuals
             ?? throw new ArgumentNullException(nameof(enemyIndividuals));
+        Equipment = equipment
+            ?? throw new ArgumentNullException(nameof(equipment));
         Clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        Calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         EventBus = eventBus
             ?? throw new ArgumentNullException(nameof(eventBus));
+        Settlements = settlements
+            ?? throw new ArgumentNullException(nameof(settlements));
     }
 
     public ICharacterBodyHealthQuery BodyHealthQuery { get; }
@@ -83,6 +91,9 @@ public sealed class OffenseReturnArrivalDomainServices
     public IWildlifeCaptureRuntime WildlifeCapture { get; }
     public IEnemyArchetypeCatalog EnemyArchetypes { get; }
     public IEnemyIndividualFactory EnemyIndividuals { get; }
+    public ICombatEquipmentRuntime Equipment { get; }
     public IGameClock Clock { get; }
+    public IGameCalendar Calendar { get; }
     public IGameEventBus EventBus { get; }
+    public OffenseArrivalSettlementRuntime Settlements { get; }
 }

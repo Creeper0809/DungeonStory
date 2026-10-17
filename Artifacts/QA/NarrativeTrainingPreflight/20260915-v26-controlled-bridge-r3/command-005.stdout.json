@@ -1,0 +1,32 @@
+{
+  "success": true,
+  "command": "job wait",
+  "data": {
+    "jobId": "ccf02b7344174b6b8a22fce06467e55a",
+    "command": "eval",
+    "state": "completed",
+    "cancellationRequested": false,
+    "result": {
+      "output": null,
+      "diagnostics": [],
+      "success": true,
+      "command": "eval",
+      "result": {
+        "exporter": "NarrativeControlledInputExporter",
+        "skill": "NarrativeControlledSkillCapture",
+        "facility": "NarrativeControlledFacilityCapture",
+        "equipment": "NarrativeControlledEquipmentCapture"
+      },
+      "executionTimeMs": 30,
+      "message": null,
+      "error": null,
+      "errorDetails": null,
+      "executedAt": "2026-09-15T14:06:36.8091098Z"
+    },
+    "error": null,
+    "errorDetails": null,
+    "progress": null
+  },
+  "errors": [],
+  "warnings": []
+}

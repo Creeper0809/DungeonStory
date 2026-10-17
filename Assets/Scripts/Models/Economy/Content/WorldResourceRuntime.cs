@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -12,6 +13,7 @@ internal sealed class WorldResourceSourceState
     public float CompletedWork;
     public int RemainingCycles;
     public int CompletedCycleSequence;
+    public List<CraftContributionSaveData> WorkContributions = new();
     public WorldResourcePendingOutputSaveData PendingOutput = new();
     public WildlifeHabitatPatchId PatchId;
     public readonly List<string> VisualIds = new List<string>();
@@ -48,7 +50,9 @@ public sealed class WorldResourceEnvironmentDependencies
         IResourceEconomyContentCatalog catalog,
         IWorldResourceSourceBindingCatalog sourceBindings,
         IWorldResourceOutputMaximumEnvelopeAuthority maximumOutputs,
-        IWorldResourceOutputPublicationPort outputPublication)
+        IWorldResourceOutputPublicationPort outputPublication,
+        IDomainFactPublisher domainFacts,
+        IGameClock gameClock)
     {
         Environment = environment
             ?? throw new ArgumentNullException(nameof(environment));
@@ -59,6 +63,9 @@ public sealed class WorldResourceEnvironmentDependencies
             ?? throw new ArgumentNullException(nameof(maximumOutputs));
         OutputPublication = outputPublication
             ?? throw new ArgumentNullException(nameof(outputPublication));
+        DomainFacts = domainFacts
+            ?? throw new ArgumentNullException(nameof(domainFacts));
+        GameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
     }
 
     public IWorldResourceEnvironmentPort Environment { get; }
@@ -66,6 +73,8 @@ public sealed class WorldResourceEnvironmentDependencies
     public IWorldResourceSourceBindingCatalog SourceBindings { get; }
     public IWorldResourceOutputMaximumEnvelopeAuthority MaximumOutputs { get; }
     public IWorldResourceOutputPublicationPort OutputPublication { get; }
+    public IDomainFactPublisher DomainFacts { get; }
+    public IGameClock GameClock { get; }
 }
 
 public sealed class WorldResourceInfrastructureDependencies
@@ -117,6 +126,9 @@ public sealed class WorldResourceRuntime :
     private readonly IWorldResourceSourceBindingCatalog sourceBindings;
     private readonly IWorldResourceOutputMaximumEnvelopeAuthority maximumOutputs;
     private readonly IWorldResourceOutputPublicationPort outputPublication;
+    private readonly IDomainFactPublisher domainFacts;
+    public string LastFactFailure { get; private set; } = string.Empty;
+    private readonly IGameClock gameClock;
     private readonly IWorldResourceResearchPort research;
     private readonly IWorldResourceNodeHostPort nodeHosts;
     private readonly IGrandProjectBenefitQuery grandProjectBenefits;
@@ -168,6 +180,8 @@ public sealed class WorldResourceRuntime :
         sourceBindings = environment.SourceBindings;
         maximumOutputs = environment.MaximumOutputs;
         outputPublication = environment.OutputPublication;
+        domainFacts = environment.DomainFacts;
+        gameClock = environment.GameClock;
         nodeHosts = infrastructure.NodeHosts;
         randomStreamProvider = progression.RandomStreamProvider;
         outputResolver = new CanonicalProductionOutputResolver(
@@ -299,6 +313,18 @@ public sealed class WorldResourceRuntime :
         WorldResourceNode node,
         WorkTypeId workTypeId,
         float amount,
+        out bool cycleCompleted) => ApplyWork(
+            node,
+            workTypeId,
+            amount,
+            null,
+            out cycleCompleted);
+
+    public bool ApplyWork(
+        WorldResourceNode node,
+        WorkTypeId workTypeId,
+        float amount,
+        string contributorCharacterId,
         out bool cycleCompleted)
     {
         cycleCompleted = false;
@@ -312,9 +338,19 @@ public sealed class WorldResourceRuntime :
             return false;
         }
 
+        float beforeWork = source.CompletedWork;
         source.CompletedWork = Mathf.Min(
             recipe.RequiredWork,
             source.CompletedWork + Mathf.Max(0f, amount));
+        float acceptedWork = Mathf.Max(0f, source.CompletedWork - beforeWork);
+        if (acceptedWork > 0f)
+        {
+            string workerId = contributorCharacterId?.Trim() ?? string.Empty;
+            CraftContributionAccumulator contributions = new(
+                source.WorkContributions);
+            contributions.Add(workerId, acceptedWork, 0f);
+            source.WorkContributions = contributions.Capture();
+        }
         Version++;
         if (source.CompletedWork + 0.001f < recipe.RequiredWork)
         {
@@ -474,7 +510,11 @@ public sealed class WorldResourceRuntime :
             outputFactorDenominator = resolution.OutputFactorDenominator,
             outcomeFingerprint = digest.ComputeSha256(),
             physicalOutputMassGrams = totalMass,
-            lines = lines
+            lines = lines,
+            contributions = (source.WorkContributions
+                    ?? new List<CraftContributionSaveData>())
+                .Select(value => value?.Clone())
+                .ToList()
         };
     }
 
@@ -486,14 +526,24 @@ public sealed class WorldResourceRuntime :
         if (pending == null || pending.IsEmpty || pending.lines == null)
             throw new InvalidOperationException(
                 "World-resource commit requires a frozen output owner.");
+        if (pending.domainApplied)
+        {
+            if (!TryPublishCycleFact(node, source, pending))
+                return false;
+            FinalizeCommittedCycle(source, pending);
+            return true;
+        }
         bool hasPhysicalOutput = pending.lines.Any(value => value != null
             && ProductionOutputRoleRules.IsPhysical(value.role)
             && value.resolvedQuantity > 0);
         if (!hasPhysicalOutput)
         {
-            if (!TryDebitSource(source, out _))
+            if (!TryDebitSource(source, out WorldResourceSourceDebit noOutputDebit))
                 return false;
-            CompleteCommittedCycle(source, pending);
+            ApplyCommittedCycle(source, pending, noOutputDebit, default);
+            if (!TryPublishCycleFact(node, source, pending))
+                return false;
+            FinalizeCommittedCycle(source, pending);
             return true;
         }
 
@@ -508,11 +558,19 @@ public sealed class WorldResourceRuntime :
                     outputPublication.CommitReleased(
                         retained.Transaction,
                         node.Position,
+                        out WorldResourceOutputCommitReceipt retainedReceipt,
                         out string retainedFailure);
                 if (retainedStatus == WorldResourceOutputCommitStatus.Committed)
                 {
                     retainedOutputTransactions.Remove(pending.operationId);
-                    CompleteCommittedCycle(source, pending);
+                    ApplyCommittedCycle(
+                        source,
+                        pending,
+                        retained.SourceDebit,
+                        retainedReceipt);
+                    if (!TryPublishCycleFact(node, source, pending))
+                        return false;
+                    FinalizeCommittedCycle(source, pending);
                     return true;
                 }
                 if (retainedStatus
@@ -571,10 +629,14 @@ public sealed class WorldResourceRuntime :
                 outputPublication.CommitReleased(
                     transaction,
                     node.Position,
+                    out WorldResourceOutputCommitReceipt receipt,
                     out string commitFailure);
             if (status == WorldResourceOutputCommitStatus.Committed)
             {
-                CompleteCommittedCycle(source, pending);
+                ApplyCommittedCycle(source, pending, debit, receipt);
+                if (!TryPublishCycleFact(node, source, pending))
+                    return false;
+                FinalizeCommittedCycle(source, pending);
                 return true;
             }
             if (status == WorldResourceOutputCommitStatus.RejectedAndRolledBack)
@@ -652,13 +714,45 @@ public sealed class WorldResourceRuntime :
         return true;
     }
 
-    private void CompleteCommittedCycle(
+    private void ApplyCommittedCycle(
         WorldResourceSourceState source,
-        WorldResourcePendingOutputSaveData pending)
+        WorldResourcePendingOutputSaveData pending,
+        WorldResourceSourceDebit debit,
+        in WorldResourceOutputCommitReceipt outputReceipt)
     {
-        source.CompletedCycleSequence = pending.cycleSequence;
-        source.PendingOutput = new WorldResourcePendingOutputSaveData();
-        source.CompletedWork = 0f;
+        if (pending.domainApplied)
+            return;
+        if (!debit.IsValid)
+            throw new InvalidOperationException(
+                "World-resource terminal source debit is missing.");
+        pending.renewableSource = debit.IsRenewable;
+        if (debit.IsRenewable)
+        {
+            pending.sourceBefore = debit.RenewableReceipt.BeforeResource;
+            pending.sourceAfter = debit.RenewableReceipt.AfterResource;
+            pending.sourcePatchId = debit.RenewableReceipt.PatchId.Value;
+        }
+        else
+        {
+            pending.sourceBefore = debit.FiniteBefore;
+            pending.sourceAfter = debit.FiniteBefore - 1;
+            pending.sourcePatchId = string.Empty;
+        }
+        if (outputReceipt.IsValid)
+        {
+            if (outputReceipt.TotalMassGrams != pending.physicalOutputMassGrams)
+                throw new InvalidOperationException(
+                    "World-resource committed output mass drifted from the frozen owner.");
+            pending.outputBatchCommitId = outputReceipt.BatchCommitId;
+            pending.outputDestinationId = outputReceipt.DestinationId;
+            pending.publishedStacks = outputReceipt.Stacks
+                .Select(value => value?.Clone())
+                .ToList();
+        }
+        pending.completedAbsoluteDay = Mathf.Max(
+            1,
+            Mathf.FloorToInt(gameClock.Time / 24f) + 1);
+        pending.domainApplied = true;
         if (source.IsRenewablePatch)
         {
             environment.RefreshRenewablePatch(source.PatchId);
@@ -668,6 +762,75 @@ public sealed class WorldResourceRuntime :
             return;
         foreach (string visualId in source.VisualIds)
             environment.SetResourceVisualActive(visualId, false);
+    }
+
+    private bool TryPublishCycleFact(
+        WorldResourceNodeState node,
+        WorldResourceSourceState source,
+        WorldResourcePendingOutputSaveData pending)
+    {
+        LastFactFailure = string.Empty;
+        if (!string.IsNullOrEmpty(pending.parentResultKey))
+            return true;
+        var fact = new WorldResourceCycleCompletedFact(node.NodeId, source.WorkTypeId, pending);
+        DomainFactDelivery result;
+        try
+        {
+            if (string.IsNullOrEmpty(pending.parentPublicationKey))
+            {
+                if (!domainFacts.TryReserve(fact, out var lease, out string failure))
+                { LastFactFailure = failure; return false; }
+                string key = lease.PublicationKey;
+                if (string.IsNullOrWhiteSpace(key) || key != key.Trim() || key.Length > 512
+                    || key.Any(char.IsControl))
+                {
+                    domainFacts.Cancel(lease);
+                    LastFactFailure = "world-resource-fact-reservation-identity-missing";
+                    return false;
+                }
+                // The physical/domain transition already happened. Save the opaque
+                // identity before dispatch; any ambiguous result remains retryable.
+                pending.parentPublicationKey = key;
+                result = domainFacts.Publish(lease, fact);
+            }
+            else
+            {
+                if (domainFacts is not IDomainFactRecoveryPublisher recovery)
+                { LastFactFailure = "world-resource-fact-recovery-unavailable"; return false; }
+                var results = new DomainFactDelivery[1];
+                if (!recovery.ReplayBatch(new[] { DomainFactReplay.Create(pending.parentPublicationKey, fact) },
+                        results, out string failure))
+                { LastFactFailure = failure; return false; }
+                result = results[0];
+            }
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            LastFactFailure = "world-resource-fact-dispatch-unconfirmed:" + exception.Message;
+            return false;
+        }
+        if (result.Phase is not (DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery)
+            || result.OperationKey != pending.parentPublicationKey
+            || string.IsNullOrEmpty(result.PublicationId) || result.Fingerprint?.Length != 64)
+        {
+            LastFactFailure = "world-resource-fact-delivery-unconfirmed:" + result.Detail;
+            return false;
+        }
+        pending.parentResultKey = result.OperationKey;
+        return true;
+    }
+
+    private void FinalizeCommittedCycle(
+        WorldResourceSourceState source,
+        WorldResourcePendingOutputSaveData pending)
+    {
+        if (!pending.domainApplied || string.IsNullOrEmpty(pending.parentResultKey))
+            throw new InvalidOperationException(
+                "World-resource cycle cannot retire before its parent outcome.");
+        source.CompletedCycleSequence = pending.cycleSequence;
+        source.PendingOutput = new WorldResourcePendingOutputSaveData();
+        source.CompletedWork = 0f;
+        source.WorkContributions.Clear();
     }
 
     private void RollbackPreparedOrThrow(
@@ -702,7 +865,7 @@ public sealed class WorldResourceRuntime :
         }
     }
 
-    private static string FormatCycleOperationId(
+    internal static string FormatCycleOperationId(
         BuildingInstanceId nodeId,
         WorkTypeId workTypeId,
         int cycleSequence)
@@ -778,6 +941,10 @@ public sealed class WorldResourceRuntime :
                     completedWork = source.CompletedWork,
                     remainingCycles = source.RemainingCycles,
                     completedCycleSequence = source.CompletedCycleSequence,
+                    workContributions = (source.WorkContributions
+                            ?? new List<CraftContributionSaveData>())
+                        .Select(value => value?.Clone())
+                        .ToList(),
                     pendingOutput = source.PendingOutput.Clone()
                 });
             }
@@ -1065,6 +1232,9 @@ public sealed class WorldResourceRuntime :
                 source.CompletedWork = savedSource.completedWork;
                 source.CompletedCycleSequence =
                     savedSource.completedCycleSequence;
+                source.WorkContributions = savedSource.workContributions
+                    .Select(value => value.Clone())
+                    .ToList();
                 source.PendingOutput = savedSource.pendingOutput.Clone();
                 if (!source.IsRenewablePatch)
                 {
@@ -1132,6 +1302,10 @@ public sealed class WorldResourceRuntime :
                     recipe.RequiredWork);
                 source.CompletedCycleSequence =
                     savedSource.completedCycleSequence;
+                source.WorkContributions = (savedSource.workContributions
+                        ?? new List<CraftContributionSaveData>())
+                    .Select(value => value?.Clone())
+                    .ToList();
                 source.PendingOutput = savedSource.pendingOutput.Clone();
                 if (!source.IsRenewablePatch)
                 {
@@ -1247,7 +1421,14 @@ public sealed class WorldResourceRuntime :
                 $"World-resource progress {savedSource.completedWork} is outside [0, {recipe.RequiredWork}].");
         }
         if (savedSource.completedCycleSequence < 0
-            || savedSource.pendingOutput == null)
+            || savedSource.pendingOutput == null
+            || savedSource.pendingOutput.parentPublicationKey == null
+            || savedSource.pendingOutput.parentResultKey == null
+            || savedSource.workContributions == null
+            || savedSource.workContributions.Any(value => value == null
+                || string.IsNullOrWhiteSpace(value.characterId)
+                || value.contributedWork <= 0f
+                || !float.IsFinite(value.contributedWork)))
         {
             throw new InvalidOperationException(
                 "World-resource cycle sequence or pending output is invalid.");
@@ -1282,6 +1463,12 @@ public sealed class WorldResourceRuntime :
             throw new InvalidOperationException(
                 $"World-resource remaining cycle count {savedSource.remainingCycles} is invalid.");
         }
+        if (savedSource.pendingOutput.domainApplied
+            && savedSource.pendingOutput.renewableSource != renewable)
+        {
+            throw new InvalidOperationException(
+                "World-resource terminal source kind does not match its registered binding.");
+        }
 
         return new WorldResourceSourceState
         {
@@ -1289,7 +1476,16 @@ public sealed class WorldResourceRuntime :
             RecipeId = recipe.RecipeId,
             CompletedWork = savedSource.completedWork,
             RemainingCycles = savedSource.remainingCycles,
+            // Preserve the frozen debit identity during unbound preflight.
+            // Exact topology rebind derives the live PatchId independently and
+            // validates the same terminal evidence before publishing any nodes.
+            PatchId = renewable && savedSource.pendingOutput.domainApplied
+                ? new WildlifeHabitatPatchId(savedSource.pendingOutput.sourcePatchId)
+                : default,
             CompletedCycleSequence = savedSource.completedCycleSequence,
+            WorkContributions = savedSource.workContributions
+                .Select(value => value.Clone())
+                .ToList(),
             PendingOutput = savedSource.pendingOutput?.Clone()
                 ?? throw new InvalidOperationException(
                     "World-resource pending output owner is missing.")
@@ -1363,6 +1559,139 @@ public sealed class WorldResourceRuntime :
             throw new InvalidOperationException(
                 "World-resource frozen output authority drifted: "
                 + source.PendingOutput.operationId);
+        }
+        ValidatePendingTerminal(source);
+    }
+
+    private static void ValidatePendingTerminal(WorldResourceSourceState source)
+    {
+        WorldResourcePendingOutputSaveData pending = source.PendingOutput;
+        CraftContributionSaveData[] contributors = (pending.contributions
+                ?? new List<CraftContributionSaveData>())
+            .OrderBy(value => value?.characterId, StringComparer.Ordinal)
+            .ToArray();
+        CraftContributionSaveData[] sourceContributors = (source.WorkContributions
+                ?? new List<CraftContributionSaveData>())
+            .OrderBy(value => value?.characterId, StringComparer.Ordinal)
+            .ToArray();
+        if (contributors.Length != sourceContributors.Length
+            || contributors.Any(value => value == null
+                || string.IsNullOrWhiteSpace(value.characterId)
+                || value.contributedWork <= 0f
+                || !float.IsFinite(value.contributedWork))
+            || contributors.Where((value, index) =>
+                    !string.Equals(value.characterId,
+                        sourceContributors[index]?.characterId,
+                        StringComparison.Ordinal)
+                    || value.contributedWork
+                        != sourceContributors[index]?.contributedWork)
+                .Any())
+        {
+            throw new InvalidOperationException(
+                "World-resource pending contributor provenance is invalid.");
+        }
+        if (!pending.domainApplied)
+        {
+            if (pending.renewableSource
+                || pending.sourceBefore != 0f
+                || pending.sourceAfter != 0f
+                || !string.IsNullOrEmpty(pending.sourcePatchId)
+                || !string.IsNullOrEmpty(pending.outputBatchCommitId)
+                || !string.IsNullOrEmpty(pending.outputDestinationId)
+                || (pending.publishedStacks?.Count ?? 0) != 0
+                || pending.completedAbsoluteDay != 0
+                || !string.IsNullOrEmpty(pending.parentPublicationKey)
+                || !string.IsNullOrEmpty(pending.parentResultKey))
+            {
+                throw new InvalidOperationException(
+                    "World-resource non-terminal owner contains terminal evidence.");
+            }
+            return;
+        }
+        if (pending.parentPublicationKey == null
+            || pending.parentPublicationKey != pending.parentPublicationKey.Trim()
+            || pending.parentPublicationKey.Length > 512
+            || pending.parentPublicationKey.Any(char.IsControl)
+            || !string.IsNullOrEmpty(pending.parentResultKey)
+                && pending.parentResultKey != pending.parentPublicationKey)
+            throw new InvalidOperationException("World-resource pending fact identity is invalid.");
+        if (pending.completedAbsoluteDay < 1
+            || pending.sourceBefore <= pending.sourceAfter
+            || pending.sourceAfter < 0f
+            || pending.renewableSource != source.IsRenewablePatch
+            || pending.renewableSource
+                && !string.Equals(pending.sourcePatchId, source.PatchId.Value,
+                    StringComparison.Ordinal)
+            || !pending.renewableSource
+                && !string.IsNullOrEmpty(pending.sourcePatchId))
+        {
+            throw new InvalidOperationException(
+                "World-resource terminal source evidence is invalid.");
+        }
+        bool physical = pending.physicalOutputMassGrams > 0L;
+        long publishedMass = (pending.publishedStacks
+                ?? new List<WorldResourcePublishedStackSaveData>())
+            .Where(value => value != null)
+            .Sum(value => value.massGrams);
+        if (physical != !string.IsNullOrEmpty(pending.outputBatchCommitId)
+            || physical != !string.IsNullOrEmpty(pending.outputDestinationId)
+            || physical != (pending.publishedStacks?.Count > 0)
+            || publishedMass != pending.physicalOutputMassGrams)
+        {
+            throw new InvalidOperationException(
+                "World-resource terminal output receipt is invalid.");
+        }
+        if (!physical)
+            return;
+
+        WorldResourcePublishedStackSaveData[] stacks = pending.publishedStacks
+            .ToArray();
+        if (stacks.Any(value => value == null
+                || string.IsNullOrWhiteSpace(value.stackId)
+                || string.IsNullOrWhiteSpace(value.outputLineId)
+                || string.IsNullOrWhiteSpace(value.itemId)
+                || value.quantity <= 0
+                || value.massGrams <= 0L)
+            || stacks.Select(value => value.stackId)
+                .Distinct(StringComparer.Ordinal).Count() != stacks.Length)
+        {
+            throw new InvalidOperationException(
+                "World-resource published stack provenance is invalid.");
+        }
+
+        WorldResourceResolvedOutputLineSaveData[] physicalLines =
+            (pending.lines ?? new List<WorldResourceResolvedOutputLineSaveData>())
+            .Where(value => value != null
+                && ProductionOutputRoleRules.IsPhysical(value.role)
+                && value.resolvedQuantity > 0)
+            .OrderBy(value => value.outputLineId, StringComparer.Ordinal)
+            .ToArray();
+        IGrouping<string, WorldResourcePublishedStackSaveData>[] byLine = stacks
+            .GroupBy(value => value.outputLineId, StringComparer.Ordinal)
+            .OrderBy(value => value.Key, StringComparer.Ordinal)
+            .ToArray();
+        if (byLine.Length != physicalLines.Length)
+        {
+            throw new InvalidOperationException(
+                "World-resource published stacks drifted from resolved output lines.");
+        }
+        for (int index = 0; index < physicalLines.Length; index++)
+        {
+            WorldResourceResolvedOutputLineSaveData line = physicalLines[index];
+            IGrouping<string, WorldResourcePublishedStackSaveData> group =
+                byLine[index];
+            if (!string.Equals(group.Key, line.outputLineId, StringComparison.Ordinal)
+                || group.Any(value => !string.Equals(
+                    value.itemId,
+                    line.itemId,
+                    StringComparison.Ordinal))
+                || group.Sum(value => value.quantity) != line.resolvedQuantity
+                || group.Sum(value => value.massGrams) != line.resolvedMassGrams)
+            {
+                throw new InvalidOperationException(
+                    "World-resource published stack totals drifted from resolved line: "
+                    + line.outputLineId);
+            }
         }
     }
 

@@ -531,6 +531,8 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
     public int DoorAccessVersionForDiagnostics =>
         doorAccessQuery?.DoorAccessVersion ?? 0;
     public int CostPolicyVersionForDiagnostics => costPolicy.Version;
+    public int SearchBudgetForDiagnostics => searchBudget;
+    public double SearchTimeBudgetMillisecondsForDiagnostics => searchTimeBudgetMilliseconds;
 
     public void ConfigureDeterministicSearchForDiagnostics(bool enabled)
     {

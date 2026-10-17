@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using UnityEngine;
 
 public sealed class DoorAccessStateModule : IBuildingStateModule
@@ -15,49 +16,43 @@ public sealed class DoorAccessStateModule : IBuildingStateModule
     public string ModuleId => StateModuleId;
     public int CurrentVersion => 1;
     public DoorAccessPolicyState State => state;
+    public long Revision => state.Revision;
 
     public bool SetGroupAllowed(DoorAccessGroup group, bool allowed)
     {
-        if (!state.SetGroupAllowed(group, allowed))
+        DoorAccessPolicyState candidate = state.Clone();
+        if (!candidate.SetGroupAllowed(group, allowed))
         {
             return false;
         }
-
-        changed?.Invoke();
-        return true;
+        return TryCommitPolicy(candidate);
     }
 
     public bool SetIndividualRule(
         string persistentId,
         DoorAccessIndividualRule rule)
     {
-        if (!state.SetIndividualRule(persistentId, rule))
+        DoorAccessPolicyState candidate = state.Clone();
+        if (!candidate.SetIndividualRule(persistentId, rule))
         {
             return false;
         }
-
-        changed?.Invoke();
-        return true;
+        return TryCommitPolicy(candidate);
     }
 
-    public void ApplyPreset(DoorAccessPreset preset)
+    public bool ApplyPreset(DoorAccessPreset preset)
     {
-        DoorAccessPolicyState previous = state.Clone();
-        state.ApplyPreset(preset);
-        if (!Equivalent(previous, state))
-        {
-            changed?.Invoke();
-        }
+        DoorAccessPolicyState candidate = state.Clone();
+        candidate.ApplyPreset(preset);
+        return TryCommitPolicy(candidate);
     }
 
-    public void CopyFrom(DoorAccessPolicyState source)
+    public bool CopyFrom(DoorAccessPolicyState source)
     {
-        DoorAccessPolicyState previous = state.Clone();
-        state.CopyFrom(source);
-        if (!Equivalent(previous, state))
-        {
-            changed?.Invoke();
-        }
+        DoorAccessPolicyState candidate = source?.Clone()
+            ?? new DoorAccessPolicyState();
+        candidate.SetRevision(state.Revision);
+        return TryCommitPolicy(candidate);
     }
 
     public string CaptureState()
@@ -78,6 +73,12 @@ public sealed class DoorAccessStateModule : IBuildingStateModule
         {
             DoorAccessPolicyState restored =
                 JsonUtility.FromJson<DoorAccessPolicyState>(payload);
+            if (restored == null || restored.Revision < 0L)
+            {
+                error = "door access policy revision is invalid";
+                return false;
+            }
+            restored.Normalize();
             state.CopyFrom(restored);
             changed?.Invoke();
             error = string.Empty;
@@ -90,15 +91,35 @@ public sealed class DoorAccessStateModule : IBuildingStateModule
         }
     }
 
-    private static bool Equivalent(
+    private bool TryCommitPolicy(DoorAccessPolicyState candidate)
+    {
+        if (candidate == null || EquivalentPolicy(state, candidate))
+        {
+            return false;
+        }
+        if (state.Revision == long.MaxValue)
+        {
+            return false;
+        }
+
+        candidate.SetRevision(checked(state.Revision + 1L));
+        state.CopyFrom(candidate);
+        changed?.Invoke();
+        return true;
+    }
+
+    private static bool EquivalentPolicy(
         DoorAccessPolicyState left,
         DoorAccessPolicyState right)
     {
         return left != null
             && right != null
-            && string.Equals(
-                JsonUtility.ToJson(left),
-                JsonUtility.ToJson(right),
-                StringComparison.Ordinal);
+            && left.AllowedGroups == right.AllowedGroups
+            && left.IndividuallyAllowedIds.SequenceEqual(
+                right.IndividuallyAllowedIds,
+                StringComparer.Ordinal)
+            && left.IndividuallyDeniedIds.SequenceEqual(
+                right.IndividuallyDeniedIds,
+                StringComparer.Ordinal);
     }
 }

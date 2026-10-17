@@ -10,12 +10,12 @@
     },
     {
       "label": "기준 가격",
-      "value": "15"
+      "value": "17"
     }
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "질소가 부족한 밭에 나눠 뿌려 작물의 성장을 돕는 비료다. 므네실라의 질산 비료 자루에는 식용 균사와 어린 작물에 직접 닿지 않게 하라는 붉은 포자표가 붙는다.",
+  "in_game_description": "질소가 부족한 밭에 나눠 뿌려 작물의 성장을 돕는 비료다. 므네실라의 질산 비료 포장에는 빈 밭과 죽은 벌레 대신 다음 철에 돌아올 포자 무늬가 그려져 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

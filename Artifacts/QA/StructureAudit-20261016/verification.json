@@ -1,0 +1,46 @@
+{
+  "status": "PASS_STATIC_AUDIT_DOCUMENT_ONLY",
+  "report": "C:\\Users\\vulpo\\Documents\\DungeonStory\\docs\\code-audit\\god-class-and-required-fixes-2026-10-16.md",
+  "sourceFingerprint": "b38fb27629bf2932dcc66da4cf15158f3bd984f8f1b896bd99b1e5412055c917",
+  "matchesBatch29": true,
+  "scope": {
+    "assetsCs": 4533,
+    "scriptsCs": 3942,
+    "runtimeFiles": 2924,
+    "runtimeTypeDeclarations": 9692,
+    "runtimeClassDeclarations": 6810,
+    "reviewEntries": 124,
+    "extraBehaviorEntries": 52
+  },
+  "categories": {
+    "C": 20,
+    "K": 93,
+    "G": 10,
+    "F": 1
+  },
+  "partialClassLineTotals": {
+    "WildlifeEcosystemRuntime": 1905,
+    "WildlifeCaptureRuntime": 2617,
+    "WorkOrderRuntime": 3690,
+    "EquipmentEvolutionFormulaCatalogSO": 232,
+    "GameplayOutcomeLedger": 4576,
+    "OffenseWorldMapPanel": 2372
+  },
+  "classesOver2000IncludingPartial": 20,
+  "linksChecked": 561,
+  "missingLinks": [],
+  "invalidLineFragments": [],
+  "sourcePins": {
+    "runtime-source-pin.json": {
+      "files": 2924,
+      "changed": []
+    },
+    "all-scripts-pin.json": {
+      "files": 3942,
+      "changed": []
+    }
+  },
+  "unityExecuted": false,
+  "runtimeReproductionExecuted": false,
+  "gameCodeModified": false
+}

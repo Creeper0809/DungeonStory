@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "generatedAtUtc": "2026-09-17T18:20:00Z",
+  "sourceInventory": "Artifacts/QA/GameplayOutcomeLedgerPhase80Inventory-20260918-r1/producer-inventory.csv",
+  "plan": "Tools/Documentation/gameplay-outcome-narrative-ledger-plan.md",
+  "verdict": "BLOCKED",
+  "counts": {
+    "recordRows": 42,
+    "integrated": 0,
+    "exactHigherResultSubstitute": 0,
+    "blocked": 42
+  },
+  "partialNonQualifying": [
+    "production.completed",
+    "combat.damage-resolved"
+  ],
+  "unityExecuted": false,
+  "mcpUsed": false,
+  "humanApprovalClaimed": false
+}

@@ -102,28 +102,27 @@ public sealed class CombatEquipmentPhysicalStateWriter
 {
     private readonly IItemInstanceRepository itemInstances;
     private readonly IEquipmentPhysicalItemGateway physicalItems;
-    private readonly IProductionOutputCapabilityRegistry outputCapabilities;
+    private readonly Func<IProductionOutputCapabilityRegistry>
+        resolveOutputCapabilities;
 
     public CombatEquipmentPhysicalStateWriter(
         IItemInstanceRepository itemInstances,
         IEquipmentPhysicalItemGateway physicalItems,
-        IProductionOutputCapabilityRegistry outputCapabilities)
+        Func<IProductionOutputCapabilityRegistry> resolveOutputCapabilities)
     {
         this.itemInstances = itemInstances
             ?? throw new ArgumentNullException(nameof(itemInstances));
         this.physicalItems = physicalItems
             ?? throw new ArgumentNullException(nameof(physicalItems));
-        this.outputCapabilities = outputCapabilities
-            ?? throw new ArgumentNullException(nameof(outputCapabilities));
+        this.resolveOutputCapabilities = resolveOutputCapabilities
+            ?? throw new ArgumentNullException(nameof(resolveOutputCapabilities));
     }
 
     public ProductionOutputCapabilityDescriptor CaptureOutputCapability(
         string outputLineId,
         string itemId,
-        string capabilityId) => outputCapabilities.CaptureDeclaredDescriptor(
-        outputLineId,
-        itemId,
-        capabilityId);
+        string capabilityId) => RequireOutputCapabilities()
+        .CaptureDeclaredDescriptor(outputLineId, itemId, capabilityId);
 
     public bool TryValidateOutputCapability(
         ProductionOutputCapabilitySaveData frozen,
@@ -138,11 +137,17 @@ public sealed class CombatEquipmentPhysicalStateWriter
                 "combat-output-capability-missing");
             return false;
         }
-        return outputCapabilities.TryValidateExact(
+        return RequireOutputCapabilities().TryValidateExact(
             frozen.ToDescriptor(),
             out _,
             out failure);
     }
+
+    private IProductionOutputCapabilityRegistry RequireOutputCapabilities() =>
+        resolveOutputCapabilities()
+        ?? throw new InvalidOperationException(
+            $"{nameof(CombatEquipmentPhysicalStateWriter)} requires a live "
+            + $"{nameof(IProductionOutputCapabilityRegistry)}.");
 
     public void Persist(CombatEquipmentInstance equipment)
     {

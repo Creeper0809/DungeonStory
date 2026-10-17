@@ -20,9 +20,11 @@ public class EventAlertRuntime : MonoBehaviour
     private IEventAlertViewPresenter viewPresenter;
     private IGameEventBus gameEventBus;
     private IDisposable requestedSubscription;
+    private IDisposable resolvedSubscription;
     private DungeonRuntimeAggregateRootStore aggregateRootStore;
     private IEventAlertChoiceActionDispatcher choiceActionDispatcher =
         NullEventAlertChoiceActionDispatcher.Instance;
+    private IDomainFailureLocalizer failureLocalizer;
     private int projectedRestoreRevision;
 
     public IReadOnlyList<EventAlertRecord> EventLog =>
@@ -37,7 +39,8 @@ public class EventAlertRuntime : MonoBehaviour
         IEventAlertViewPresenterFactory viewPresenterFactory,
         IGameEventBus gameEventBus,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
-        IEventAlertChoiceActionDispatcher choiceActionDispatcher)
+        IEventAlertChoiceActionDispatcher choiceActionDispatcher,
+        IDomainFailureLocalizer failureLocalizer)
     {
         this.viewPresenterFactory = viewPresenterFactory
             ?? throw new System.ArgumentNullException(nameof(viewPresenterFactory));
@@ -47,10 +50,24 @@ public class EventAlertRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
         this.choiceActionDispatcher = choiceActionDispatcher
             ?? throw new ArgumentNullException(nameof(choiceActionDispatcher));
+        this.failureLocalizer = failureLocalizer
+            ?? throw new ArgumentNullException(nameof(failureLocalizer));
         projectedRestoreRevision = this.aggregateRootStore.PublishedRestoreRevision;
         SubscribeToScopedEvents();
         RebuildPresentationFromState();
     }
+
+    public void Construct(
+        IEventAlertViewPresenterFactory viewPresenterFactory,
+        IGameEventBus gameEventBus,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IEventAlertChoiceActionDispatcher choiceActionDispatcher) =>
+        Construct(
+            viewPresenterFactory,
+            gameEventBus,
+            aggregateRootStore,
+            choiceActionDispatcher,
+            new DomainFailureLocalizer());
 
     public void Construct(
         IEventAlertViewPresenterFactory viewPresenterFactory,
@@ -81,21 +98,61 @@ public class EventAlertRuntime : MonoBehaviour
         }
         else
         {
-            if (string.IsNullOrWhiteSpace(record.SourceId))
+            bool wasResolved = record.IsResolved;
+            bool refreshVisibleDetail =
+                !string.IsNullOrWhiteSpace(eventType.request.SourceId)
+                && IsDetailVisible
+                && selectionState.SelectedRecord?.Id == record.Id;
+            if (string.IsNullOrWhiteSpace(eventType.request.SourceId))
             {
-                record.Increment();
+                if (string.IsNullOrWhiteSpace(record.SourceId))
+                {
+                    record.Increment();
+                }
             }
-            if (state.DismissedRecordIds.Remove(record.Id))
+            else if (!record.TryRefreshSourceContent(eventType.request))
+            {
+                throw new InvalidOperationException(
+                    "Event-alert source refresh rejected an empty or mismatched source ID.");
+            }
+            bool wasDismissed = state.DismissedRecordIds.Contains(record.Id);
+            if ((!record.IsResolved || !wasResolved)
+                && state.DismissedRecordIds.Remove(record.Id))
             {
                 CreateButton(record);
             }
-            else
+            else if (!wasDismissed)
             {
                 UpdateButton(record);
+            }
+            if (refreshVisibleDetail
+                && FindRecordById(state, record.Id) is EventAlertRecord selected
+                && TryResolveViewPresenter(out IEventAlertViewPresenter presenter))
+            {
+                selectionState.Select(selected);
+                presenter.OpenDetail(selected);
             }
         }
 
         gameEventBus.Publish(new EventAlertLoggedEvent(record));
+    }
+
+    public void OnSourceResolved(EventAlertSourceResolvedEvent eventType)
+    {
+        if (string.IsNullOrWhiteSpace(eventType.SourceId))
+        {
+            return;
+        }
+        EventAlertRecord[] matches = CurrentState.Records
+            .Where(record => record != null && string.Equals(
+                record.SourceId,
+                eventType.SourceId,
+                StringComparison.Ordinal))
+            .ToArray();
+        foreach (EventAlertRecord record in matches)
+        {
+            Dismiss(record);
+        }
     }
 
     public void Open(EventAlertRecord record)
@@ -155,12 +212,41 @@ public class EventAlertRuntime : MonoBehaviour
         EventAlertRecord selected = selectionState.SelectedRecord;
         if (!string.IsNullOrWhiteSpace(choice.ActionId))
         {
-            if (!choiceActionDispatcher.TryDispatch(choice.ActionId, out _))
+            EventAlertChoiceActionDisposition disposition =
+                EventAlertChoiceActionDisposition.Terminal;
+            DomainFailure dispatchFailure;
+            bool dispatched = choiceActionDispatcher is
+                    IEventAlertChoiceActionDispositionDispatcher typed
+                ? typed.TryDispatch(
+                    choice.ActionId,
+                    out disposition,
+                    out dispatchFailure)
+                : choiceActionDispatcher.TryDispatch(
+                    choice.ActionId,
+                    out dispatchFailure);
+            if (!dispatched)
             {
+                if (!dispatchFailure.IsFailure)
+                {
+                    throw new InvalidOperationException(
+                        "Event-alert choice dispatch failed without a DomainFailure.");
+                }
+                ReplaceChoiceFailure(
+                    selected,
+                    failureLocalizer.Localize(dispatchFailure));
                 return false;
             }
 
-            return Dismiss(selected);
+            EventAlertRecord current = FindCurrentRecord(selected);
+            if (current?.IsResolved == true)
+            {
+                RefreshSelectedRecord(current);
+                return true;
+            }
+            ClearChoiceFailure(current);
+            return disposition ==
+                    EventAlertChoiceActionDisposition.AcceptedPending
+                || Dismiss(current);
         }
 
         choice.Callback?.Invoke();
@@ -202,6 +288,23 @@ public class EventAlertRuntime : MonoBehaviour
                 throw new InvalidOperationException(
                     $"Event-alert restore record {snapshot.Id} has invalid content.");
             }
+            if (snapshot.IsResolved
+                    && (string.IsNullOrWhiteSpace(snapshot.SourceId)
+                        || string.IsNullOrWhiteSpace(snapshot.ResultSummary)
+                        || snapshot.Choices.Count > 0
+                        || !string.IsNullOrEmpty(
+                            snapshot.ChoiceFailureDetail))
+                || !snapshot.IsResolved
+                    && !string.IsNullOrEmpty(snapshot.ResultSummary)
+                || !string.IsNullOrEmpty(snapshot.ChoiceFailureDetail)
+                    && !string.Equals(
+                        snapshot.ChoiceFailureDetail,
+                        snapshot.ChoiceFailureDetail.Trim(),
+                        StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Event-alert restore record {snapshot.Id} has an invalid result or choice failure.");
+            }
 
             EventAlertRecord record = new EventAlertRecord(
                 snapshot.Id,
@@ -214,7 +317,10 @@ public class EventAlertRuntime : MonoBehaviour
                     choice.Label,
                     choice.Description,
                     choice.ActionId)),
-                snapshot.SourceId);
+                snapshot.SourceId,
+                snapshot.IsResolved,
+                snapshot.ResultSummary,
+                snapshot.ChoiceFailureDetail);
             restored.Records.Add(record);
             restored.NextId = Math.Max(restored.NextId, record.Id + 1);
             if (snapshot.IsDismissed)
@@ -265,6 +371,8 @@ public class EventAlertRuntime : MonoBehaviour
     {
         requestedSubscription?.Dispose();
         requestedSubscription = null;
+        resolvedSubscription?.Dispose();
+        resolvedSubscription = null;
     }
 
     private void OnDestroy()
@@ -282,6 +390,9 @@ public class EventAlertRuntime : MonoBehaviour
 
         requestedSubscription ??=
             gameEventBus.Subscribe<EventAlertRequestedEvent>(OnTriggerEvent);
+        resolvedSubscription ??=
+            gameEventBus.Subscribe<EventAlertSourceResolvedEvent>(
+                OnSourceResolved);
     }
 
     private void CreateButton(EventAlertRecord record)
@@ -319,6 +430,45 @@ public class EventAlertRuntime : MonoBehaviour
     private EventAlertRecord FindCurrentRecord(EventAlertRecord record)
     {
         return FindRecordById(CurrentState, record?.Id ?? 0);
+    }
+
+    private void ReplaceChoiceFailure(
+        EventAlertRecord record,
+        string localizedFailure)
+    {
+        EventAlertAggregateState state = WritableState;
+        EventAlertRecord current = FindRecordById(state, record?.Id ?? 0)
+            ?? throw new InvalidOperationException(
+                "The selected event alert no longer exists.");
+        current.ReplaceChoiceFailure(localizedFailure);
+        RefreshSelectedRecord(current);
+    }
+
+    private void ClearChoiceFailure(EventAlertRecord record)
+    {
+        if (record == null || string.IsNullOrEmpty(record.ChoiceFailureDetail))
+        {
+            return;
+        }
+        EventAlertAggregateState state = WritableState;
+        EventAlertRecord current = FindRecordById(state, record.Id);
+        current?.ClearChoiceFailure();
+        RefreshSelectedRecord(current);
+    }
+
+    private void RefreshSelectedRecord(EventAlertRecord record)
+    {
+        if (record == null)
+        {
+            return;
+        }
+        selectionState.Select(record);
+        UpdateButton(record);
+        if (IsDetailVisible
+            && TryResolveViewPresenter(out IEventAlertViewPresenter presenter))
+        {
+            presenter.OpenDetail(record);
+        }
     }
 
     private static EventAlertRecord FindRecordById(

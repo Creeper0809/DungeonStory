@@ -1,0 +1,5 @@
+WIM009 temporary supply rules/authoring
+scope=real seasonal and modular-building authoring plus isolated generic campaign projections and a static water-availability signature guard; no grid, power, fluid, temperature, save, AI work, UI, or asset mutation claim
+allocation=not asserted; the current projection query is not documented here as a hot read
+result=PASS
+passed=3; seasonal=28; heatGrid=1; frozenPipes=1; neutralOther=26; power=0.8; pipedWater=0.8; thresholds=0/2; projection=neutral-active-expired; manualWaterSources=H03:4/.9,H04:6/1.2,L03:3/1.1; canDrawWater=BuildableObject-only

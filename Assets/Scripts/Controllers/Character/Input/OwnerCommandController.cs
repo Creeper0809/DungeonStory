@@ -8,7 +8,13 @@ using VContainer;
 public interface IPlayerStaffCommandSource
 {
     CharacterActor SelectedActor { get; }
+    IReadOnlyList<CharacterManualSkillCommandState> GetManualSkillCommands(
+        CharacterActor actor);
     bool TrySelectActor(CharacterActor actor, out string message);
+    bool TryIssueManualSkillCommand(
+        CharacterActor actor,
+        string skillId,
+        out string message);
     bool TryIssuePriorityWorkCommand(BuildableObject target, out string message);
     bool TryIssueSuppressCommand(CharacterActor target, out string message);
 }
@@ -17,6 +23,14 @@ public sealed class UnavailablePlayerStaffCommandSource :
     IPlayerStaffCommandSource
 {
     public CharacterActor SelectedActor => null;
+
+    public IReadOnlyList<CharacterManualSkillCommandState> GetManualSkillCommands(
+        CharacterActor actor) => Array.Empty<CharacterManualSkillCommandState>();
+
+    public bool TryIssueManualSkillCommand(
+        CharacterActor actor,
+        string skillId,
+        out string message) => Unavailable(out message);
 
     public bool TrySelectActor(CharacterActor actor, out string message)
     {
@@ -62,20 +76,38 @@ public class OwnerCommandController :
     private ICharacterAiWorldRegistry worldRegistry;
     private IDefenseEngagementRuntime defenseEngagementRuntime;
     private IGameEventBus gameEventBus;
+    private IGameCalendar gameCalendar;
+    private IRoomLayoutCache roomLayoutCache;
+    private ICharacterSkillActivationTransaction skillActivationTransactions;
+    private readonly OwnerCommandTargetingSession targeting = new();
     private readonly OwnerCommandSelectionState selection = new();
     private OwnerCommandDragSelector dragSelector;
     private OwnerCommandInfoFeedBridge infoFeedBridge;
-    private CombatCommandType combatInputMode;
 
     private CharacterActor selectedActor
     {
         get => selection.Primary;
-        set => selection.Primary = value;
     }
     private IReadOnlyList<CharacterActor> selectedActors => selection.Actors;
     public CharacterActor SelectedActor => selection.Primary;
     public IReadOnlyList<CharacterActor> SelectedActors => selection.Actors;
-    public CombatCommandType CombatInputMode => combatInputMode;
+    public CombatCommandType CombatInputMode
+    {
+        get
+        {
+            SynchronizeTargeting();
+            return targeting.CombatMode;
+        }
+    }
+
+    public bool HasPendingTargeting
+    {
+        get
+        {
+            SynchronizeTargeting();
+            return targeting.HasPending;
+        }
+    }
     public bool HasCombatStanceSelection => GetSelectedCommandActors()
         .Any(actor => combatCommandRuntime != null
             && combatCommandRuntime.IsInCombatStance(actor));
@@ -125,13 +157,34 @@ public class OwnerCommandController :
         infoFeedBridge.Enable(isActiveAndEnabled);
     }
 
+    [Inject]
+    public void ConstructManualSkillCommands(
+        IGameCalendar gameCalendar,
+        IRoomLayoutCache roomLayoutCache,
+        ICharacterSkillActivationTransaction skillActivationTransactions)
+    {
+        this.gameCalendar = gameCalendar
+            ?? throw new ArgumentNullException(nameof(gameCalendar));
+        this.roomLayoutCache = roomLayoutCache
+            ?? throw new ArgumentNullException(nameof(roomLayoutCache));
+        this.skillActivationTransactions = skillActivationTransactions
+            ?? throw new ArgumentNullException(
+                nameof(skillActivationTransactions));
+    }
+
     private void Update()
     {
-        PruneSelection();
+        SynchronizeTargeting();
         dragSelector?.Update(
             targetCamera,
             dragSelectionThresholdPixels,
             IsShiftHeld());
+        SynchronizeTargeting();
+        if (targeting.HasPending && RequireInputReader().GetKeyDown(KeyCode.Escape))
+        {
+            TryCancelTargeting(out _);
+            return;
+        }
 
         if (selectedActor == null)
         {
@@ -151,6 +204,7 @@ public class OwnerCommandController :
 
     private void TryIssuePriorityWorkCommand()
     {
+        SynchronizeTargeting();
         Camera camera = targetCamera != null ? targetCamera : RequireMainCameraProvider().Camera;
         if (camera == null) return;
 
@@ -158,6 +212,20 @@ public class OwnerCommandController :
             camera,
             commandTargetMask,
             out RaycastHit2D hit);
+        if (targeting.HasManual)
+        {
+            CharacterActor targetActor = hasHit
+                ? hit.collider.GetComponentInParent<CharacterActor>()
+                : null;
+            BuildableObject targetFacility = hasHit
+                ? hit.collider.GetComponentInParent<BuildableObject>()
+                : null;
+            TryCompleteManualSkillTargeting(
+                targetActor,
+                targetFacility,
+                out _);
+            return;
+        }
         if (HasCombatStanceSelection)
         {
             TryIssueCombatPointerCommand(camera, hasHit ? hit : default, hasHit);
@@ -206,7 +274,18 @@ public class OwnerCommandController :
 
     public void SetCombatInputMode(CombatCommandType mode)
     {
-        combatInputMode = mode;
+        SynchronizeTargeting();
+        targeting.BeginCombat(mode, selection.Revision);
+    }
+
+    public bool TryCancelTargeting(out string message)
+    {
+        SynchronizeTargeting();
+        bool cancelled = targeting.Cancel();
+        message = cancelled ? "대상 지정을 취소했습니다." : "대상 지정 중인 명령이 없습니다.";
+        if (cancelled)
+            gameEventBus.ShowNotice(message, NoticeFeedEvent.Grade.NONE);
+        return cancelled;
     }
 
     public bool ToggleSelectedCombatStance(out string message)
@@ -220,6 +299,7 @@ public class OwnerCommandController :
             return false;
         }
 
+        OwnerCommandTargetingSession.Intent intent = targeting.Current;
         bool enable = actors.Any(actor => !combatCommandRuntime.IsInCombatStance(actor));
         int changed = 0;
         string last = string.Empty;
@@ -233,7 +313,7 @@ public class OwnerCommandController :
             last = result;
         }
 
-        combatInputMode = CombatCommandType.None;
+        targeting.Consume(intent);
         message = changed > 0
             ? $"{changed}명 {(enable ? "전투 태세" : "생활 태세")}"
             : last;
@@ -285,7 +365,9 @@ public class OwnerCommandController :
         RaycastHit2D hit,
         bool hasHit)
     {
-        CombatCommandType mode = combatInputMode;
+        SynchronizeTargeting();
+        OwnerCommandTargetingSession.Intent intent = targeting.Current;
+        CombatCommandType mode = targeting.CombatMode;
         CharacterActor targetCharacter = hasHit
             ? hit.collider.GetComponentInParent<CharacterActor>()
             : null;
@@ -312,7 +394,7 @@ public class OwnerCommandController :
                 "구조",
                 out string rescueMessage);
             PublishCombatCommandResult(rescued, rescueMessage);
-            combatInputMode = CombatCommandType.None;
+            targeting.Consume(intent);
             return;
         }
 
@@ -333,7 +415,7 @@ public class OwnerCommandController :
                 forceFire ? "강제 사격" : "공격",
                 out string attackMessage);
             PublishCombatCommandResult(attacked, attackMessage);
-            combatInputMode = CombatCommandType.None;
+            targeting.Consume(intent);
             return;
         }
 
@@ -347,7 +429,7 @@ public class OwnerCommandController :
 
             bool movedToCover = TryIssueCoverMoveCommand(targetBuilding, out string coverMessage);
             PublishCombatCommandResult(movedToCover, coverMessage);
-            combatInputMode = CombatCommandType.None;
+            targeting.Consume(intent);
             return;
         }
 
@@ -379,7 +461,7 @@ public class OwnerCommandController :
             PublishCombatCommandResult(moved, moveMessage);
         }
 
-        combatInputMode = CombatCommandType.None;
+        targeting.Consume(intent);
     }
 
     private delegate bool CombatActorCommand(CharacterActor actor, out string message);
@@ -565,13 +647,8 @@ public class OwnerCommandController :
             return false;
         }
 
-        if (!additive)
-        {
-            ClearSelection();
-        }
-
-        AddSelection(actor);
-        selectedActor = actor;
+        selection.Select(actor, additive);
+        SynchronizeTargeting();
         message = selectedActors.Count > 1
             ? $"명령 대상 {selectedActors.Count}명 선택"
             : $"명령 대상 선택: {actor.name}";
@@ -660,14 +737,11 @@ public class OwnerCommandController :
 
         if (!WorkCommandResolver.TryResolveFacilityCommand(selectedActor, target, out WorkTypeId workTypeId, out string errorMessage))
         {
-            selectedActor.AddActivity(CharacterActivityEvent.Facility(
-                CharacterActivityKinds.Command,
-                CharacterActivityOutcomes.Failed,
-                $"우선 지정 실패: {errorMessage}",
+            gameEventBus.Publish(CreatePriorityWorkCommandFailure(
+                selectedActor,
                 target,
-                actionId: "command:priority-work",
-                reasonCode: "unsupported-facility-command",
-                bubbleEligible: true));
+                errorMessage,
+                "unsupported-facility-command"));
             gameEventBus.ShowNotice(errorMessage, NoticeFeedEvent.Grade.WARNING);
             message = errorMessage;
             return false;
@@ -679,14 +753,11 @@ public class OwnerCommandController :
 
         if (!work.TrySetPriorityWorkTarget(target, workTypeId, searchResult, out errorMessage))
         {
-            selectedActor.AddActivity(CharacterActivityEvent.Facility(
-                CharacterActivityKinds.Command,
-                CharacterActivityOutcomes.Failed,
-                $"우선 지정 실패: {errorMessage}",
+            gameEventBus.Publish(CreatePriorityWorkCommandFailure(
+                selectedActor,
                 target,
-                actionId: "command:priority-work",
-                reasonCode: "priority-target-rejected",
-                bubbleEligible: true));
+                errorMessage,
+                "priority-target-rejected"));
             gameEventBus.ShowNotice(errorMessage, NoticeFeedEvent.Grade.WARNING);
             message = errorMessage;
             return false;
@@ -696,6 +767,95 @@ public class OwnerCommandController :
         gameEventBus.ShowNotice(message, NoticeFeedEvent.Grade.NONE);
         selectedActor.Brain?.ClearPathSearchCache();
         return true;
+    }
+
+    public IReadOnlyList<CharacterManualSkillCommandState> GetManualSkillCommands(
+        CharacterActor actor)
+    {
+        return gameCalendar == null
+            ? Array.Empty<CharacterManualSkillCommandState>()
+            : CharacterManualSkillRuntime.GetCommands(
+                actor,
+                gameCalendar.AbsoluteHour);
+    }
+
+    public bool TryIssueManualSkillCommand(
+        CharacterActor actor,
+        string skillId,
+        out string message)
+    {
+        if (!TrySelectActor(actor, out message))
+            return false;
+        if (gameCalendar == null || roomLayoutCache == null
+            || skillActivationTransactions == null)
+        {
+            message = "작업 능력 대상 시스템이 준비되지 않았습니다.";
+            return false;
+        }
+        actor = selection.Primary;
+        if (CharacterManualSkillRuntime.RequiresPlayerTarget(actor, skillId))
+        {
+            targeting.BeginManual(actor, skillId, selection.Revision);
+            message = "능력 대상을 우클릭하세요. 캐릭터 또는 시설을 선택할 수 있습니다.";
+            gameEventBus.ShowNotice(message, NoticeFeedEvent.Grade.NONE);
+            return true;
+        }
+        targeting.Cancel();
+        bool success = CharacterManualSkillRuntime.TryActivate(
+            actor,
+            skillId,
+            null,
+            null,
+            worldRegistry,
+            roomLayoutCache,
+            gameCalendar.AbsoluteHour,
+            skillActivationTransactions,
+            out message);
+        gameEventBus.ShowNotice(
+            message,
+            success ? NoticeFeedEvent.Grade.NONE : NoticeFeedEvent.Grade.WARNING);
+        return success;
+    }
+
+    private bool TryCompleteManualSkillTargeting(
+        CharacterActor targetActor,
+        BuildableObject targetFacility,
+        out string message)
+    {
+        SynchronizeTargeting();
+        if (gameCalendar == null || roomLayoutCache == null
+            || skillActivationTransactions == null)
+        {
+            message = "작업 능력 대상 시스템이 준비되지 않았습니다.";
+            return false;
+        }
+        if (!targeting.TryBeginManualCompletion(out OwnerCommandTargetingSession.Intent intent))
+        {
+            message = "대상 지정 중인 능력이 없거나 이미 처리 중입니다.";
+            return false;
+        }
+        bool success = false;
+        try
+        {
+            success = CharacterManualSkillRuntime.TryActivate(
+                intent.ManualSource,
+                intent.ManualSkillId,
+                targetActor,
+                targetFacility,
+                worldRegistry,
+                roomLayoutCache,
+                gameCalendar.AbsoluteHour,
+                skillActivationTransactions,
+                out message);
+        }
+        finally
+        {
+            targeting.FinishManualCompletion(intent, success);
+        }
+        gameEventBus.ShowNotice(
+            message,
+            success ? NoticeFeedEvent.Grade.NONE : NoticeFeedEvent.Grade.WARNING);
+        return success;
     }
 
     public bool TryIssueSuppressCommand(CharacterActor target, out string message)
@@ -715,7 +875,8 @@ public class OwnerCommandController :
         if (!selectedActor.TryGetAbility(out AbilityWork work))
         {
             message = "선택한 캐릭터는 작업 능력이 없습니다.";
-            selectedActor.AddActivity(CreateSuppressCommandFailure(
+            gameEventBus.Publish(CreateSuppressCommandFailure(
+                selectedActor,
                 target,
                 message,
                 "missing-work-ability"));
@@ -729,7 +890,8 @@ public class OwnerCommandController :
 
         if (!work.TrySetPrioritySuppressTarget(target, searchResult, out string errorMessage))
         {
-            selectedActor.AddActivity(CreateSuppressCommandFailure(
+            gameEventBus.Publish(CreateSuppressCommandFailure(
+                selectedActor,
                 target,
                 errorMessage,
                 "priority-target-rejected"));
@@ -744,23 +906,40 @@ public class OwnerCommandController :
         return true;
     }
 
-    private static CharacterActivityEvent CreateSuppressCommandFailure(
-        CharacterActor target,
-        string message,
+    private static OwnerCommandRejectedEvent CreatePriorityWorkCommandFailure(
+        CharacterActor subject,
+        BuildableObject target,
+        string detail,
         string reasonCode)
     {
-        return CharacterActivityEvent.Create(
-            CharacterActivityKinds.Command,
-            CharacterActivityOutcomes.Failed,
-            $"우선 지정 실패: {message}",
-            actionId: "command:priority-suppress",
-            targetId: target != null
-                ? CharacterPersistentIdentity.Require(target).Value
-                : string.Empty,
-            targetName: target != null ? target.name : string.Empty,
-            reasonCode: reasonCode,
-            sentiment: -0.7f,
-            bubbleEligible: true);
+        string targetName = target.BuildingData != null
+            && !string.IsNullOrWhiteSpace(target.BuildingData.objectName)
+                ? target.BuildingData.objectName
+                : target.name;
+        return new OwnerCommandRejectedEvent(
+            OwnerCommandRejectedKind.PriorityWork,
+            CharacterPersistentIdentity.Require(subject),
+            target.RequirePersistentInstanceId().Value,
+            targetName,
+            target.id,
+            reasonCode,
+            detail);
+    }
+
+    private static OwnerCommandRejectedEvent CreateSuppressCommandFailure(
+        CharacterActor subject,
+        CharacterActor target,
+        string detail,
+        string reasonCode)
+    {
+        return new OwnerCommandRejectedEvent(
+            OwnerCommandRejectedKind.Suppress,
+            CharacterPersistentIdentity.Require(subject),
+            CharacterPersistentIdentity.Require(target).Value,
+            target.name,
+            -1,
+            reasonCode,
+            detail);
     }
 
     public void OnTriggerEvent(InfoFeedEvent eventType)
@@ -782,6 +961,7 @@ public class OwnerCommandController :
         infoFeedBridge?.Disable();
         ClearSelection();
         dragSelector?.Reset();
+        targeting.Cancel();
     }
 
     public int SelectActorsInScreenRect(Vector2 start, Vector2 end, bool additive)
@@ -791,6 +971,7 @@ public class OwnerCommandController :
             start,
             end,
             additive) ?? 0;
+        SynchronizeTargeting();
         if (added > 0)
         {
             gameEventBus.ShowNotice(
@@ -807,11 +988,13 @@ public class OwnerCommandController :
     private static bool IsCommandableActor(CharacterActor actor) =>
         OwnerCommandSelectionState.IsCommandable(actor);
 
-    private bool AddSelection(CharacterActor actor) => selection.Add(actor);
-
     private void ClearSelection() => selection.Clear();
 
-    private void PruneSelection() => selection.Prune();
+    private void SynchronizeTargeting()
+    {
+        selection.Prune();
+        targeting.SynchronizeSelection(selection.Revision);
+    }
 
     private bool IsShiftHeld()
     {

@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f75000297946ffe4481d69575fdbfd0a, type: 3}
+  m_Name: recipe_surgery_pseudopods
+  m_EditorClassIdentifier: DungeonStory.Economy::ProductionRecipeSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9804
+  recipeId: recipe:surgery:pseudopods
+  displayName: "\uC704\uC871 \uBCF4\uCCA0 \uC870\uB9BD"
+  description: "\uAC15\uCCA0 \uC5F0\uACB0\uBD80\uC640 \uC720\uC5F0 \uC9C0\uC9C0\uC7AC\uB97C
+    \uC870\uB9BD\uD574 \uC704\uC871 \uC2AC\uB86F\uC6A9 \uBCF4\uCCA0\uC744 \uB9CC\uB4E0\uB2E4."
+  facilityTag: m06
+  workstationTag: 
+  requiredSupportTags: []
+  batchSupportTag: 
+  processKind: 0
+  flowRole: 0
+  processClass: 6
+  processClassAuthored: 1
+  workTypeId: work:craft
+  proficiency:
+    primaryProficiencyId: proficiency:crafting
+    secondaryProficiencyId: 
+    primaryWeight: 1
+    combinationMode: 0
+    recommendedRank: 2
+    minimumRiskRank: 0
+  requiredResearchId: research:medical:prosthetics
+  requiredWork: 34
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  wastewaterComposition: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: 
+  massExplanation:
+    capabilityId: process-loss
+    contractVersion: 1
+    canonicalPayload: process-loss@1|mode=residual|lossKind=CuttingWaste|reason=prosthetic-machining-and-fitting-offcuts|physicalByproduct=false
+  outputCostAllocation:
+    capabilityId: 
+    contractVersion: 0
+    canonicalPayload: 
+  inputs:
+  - itemId: material:steel-ingot
+    amount: 2
+  - itemId: material:lumber
+    amount: 1
+  - itemId: material:cloth
+    amount: 1
+  outputs:
+  - outputLineId: output:recipe:surgery:pseudopods/000/main/surgery:prosthetic:pseudopods
+    role: 0
+    itemId: surgery:prosthetic:pseudopods
+    amount: 1
+    probability: 1

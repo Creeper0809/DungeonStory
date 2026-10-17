@@ -153,7 +153,9 @@ MonoBehaviour:
       type: {class: BuildingFuelConsumerAbility, ns: , asm: DungeonStory.Survival}
       data:
         abilityId: BuildingFuelConsumerAbility
+        fuelItemId: resource:log
         fuelPerRefuel: 1
+        fuelSecondsPerRefuel: 180
         workSeconds: 0.8
         warmth: 14
         lightSafety: 10

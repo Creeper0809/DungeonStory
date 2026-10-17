@@ -8,6 +8,10 @@ using static GridMovePathRules;
 public class AbilityMove : CharacterAbility
 {
     private const int DefaultPathSearchDeferralLimit = 64;
+    private readonly CharacterMovementOperationRuntime movementOwnership = new();
+    private readonly SocietyResponseMovementProvenanceRuntime movementProvenance = new();
+    private CharacterDungeonDepartureRuntime dungeonDeparture;
+    private CharacterDungeonDepartureRuntime Departure => dungeonDeparture ??= new(movementOwnership);
     private float moveSpeed;
     private CharacterSpawner spawner;
     private ICharacterSpawnerProvider spawnerProvider;
@@ -20,47 +24,48 @@ public class AbilityMove : CharacterAbility
     private CharacterId movementRandomCharacterId;
     private CharacterIdleWanderPlanner idleWanderPlanner;
     private AbilityMoveTraversalGuard traversalGuard;
-    private Coroutine enterDungeonRoutine;
     private Coroutine activeActionMovementRoutine;
-    private Vector2Int? activeManualMoveDestination;
-    private Vector2Int? activeSystemMoveDestination;
-    private DoorAccessOverrideKind activeSystemMoveOverride;
-    private int movementOperationVersion;
-    private bool protectedSystemMovementOperation;
-    private bool retainProtectedSystemMovementAfterCompletion;
-    private string activeMovementOperationOwner = string.Empty;
     private long runtimeActionPathReplanCount;
     private long runtimeActionPathFailureCount;
     private int pathSearchDeferralLimit = DefaultPathSearchDeferralLimit;
 
     public bool LastGridMoveWasBlocked { get; private set; }
     public GridMoveFailureReason LastGridMoveFailureReason { get; private set; }
-    public string LastMovementCancellationSourceForDiagnostics { get; private set; }
-        = string.Empty;
-    public string LastMovementOperationPreemptionForDiagnostics { get; private set; }
+    public string LastMovementCancellationSourceForDiagnostics => movementOwnership.LastMovementCancellationSourceForDiagnostics;
+    public string LastMovementOperationPreemptionForDiagnostics => movementOwnership.LastMovementOperationPreemptionForDiagnostics;
     public string LastActionMovementCancellationReasonForDiagnostics
     {
         get;
         private set;
     }
         = string.Empty;
-    public string LastRejectedMovementOperationOwnerForDiagnostics { get; private set; }
-        = string.Empty;
+    public string LastRejectedMovementOperationOwnerForDiagnostics => movementOwnership.LastRejectedMovementOperationOwnerForDiagnostics;
     public long RuntimeActionPathReplanCount => runtimeActionPathReplanCount;
     public long RuntimeActionPathFailureCount => runtimeActionPathFailureCount;
+    public bool OccupiesDoorPassage(Door door) => grid == door?.Grid
+        && traversalGuard?.OccupiesDoorPassage(door) == true;
     public bool IsSystemMoveInProgress => activeActionMovementRoutine != null
-        && activeSystemMoveDestination.HasValue;
+        && movementOwnership.SystemDestination.HasValue;
     public bool HasProtectedSystemMovementOwnership =>
-        retainProtectedSystemMovementAfterCompletion
-        && protectedSystemMovementOperation;
-    public bool HasActiveMovementRoutineForDiagnostics =>
-        activeActionMovementRoutine != null || enterDungeonRoutine != null;
+        movementOwnership.HasRetainedProtection;
+    internal bool HasActiveMovement => activeActionMovementRoutine != null;
+    public bool HasActiveMovementRoutineForDiagnostics => HasActiveMovement;
     public Vector2Int? ActiveSystemMoveDestinationForDiagnostics =>
-        activeSystemMoveDestination;
+        movementOwnership.SystemDestination;
     public string ActiveMovementOperationOwnerForDiagnostics =>
-        activeMovementOperationOwner;
+        movementOwnership.Owner;
     public int MovementOperationVersionForDiagnostics =>
-        movementOperationVersion;
+        movementOwnership.Version;
+    internal string SocietyResponseMovementOperationId =>
+        movementProvenance.SocietyResponseMovementOperationId;
+    internal string SocietyResponseMovementExternalOperationId =>
+        movementProvenance.SocietyResponseMovementExternalOperationId;
+    internal string SocietyResponseMovementFacilityId =>
+        movementProvenance.SocietyResponseMovementFacilityId;
+    internal Vector2Int? SocietyResponseMovementDestination =>
+        movementProvenance.SocietyResponseMovementDestination;
+    internal string SocietyResponseMovementReceiptId =>
+        movementProvenance.SocietyResponseMovementReceiptId;
     public int PathSearchDeferralLimitForDiagnostics =>
         pathSearchDeferralLimit;
     public float GameClockTimeForDiagnostics => gameClock?.Time ?? -1f;
@@ -96,17 +101,12 @@ public class AbilityMove : CharacterAbility
         }
 
         CancelActiveMovement();
-        if (enterDungeonRoutine != null)
-        {
-            StopCoroutine(enterDungeonRoutine);
-            enterDungeonRoutine = null;
-        }
     }
 
     public bool IsSystemMoveInProgressTo(Vector2Int destination)
     {
         return IsSystemMoveInProgress
-            && activeSystemMoveDestination.Value == destination;
+            && movementOwnership.SystemDestination.Value == destination;
     }
     public void MarkGridMoveFailure(GridMoveFailureReason reason)
     {
@@ -147,11 +147,24 @@ public class AbilityMove : CharacterAbility
         traversalGuard = new AbilityMoveTraversalGuard(
             doorAccessQuery,
             defenseEngagementRuntime,
-            () => activeManualMoveDestination.HasValue
+            () => movementOwnership.ManualDestination.HasValue
                 ? DoorAccessOverrideKind.DirectCommand
-                : activeSystemMoveDestination.HasValue
-                    ? activeSystemMoveOverride
+                : movementOwnership.SystemDestination.HasValue
+                    ? movementOwnership.SystemOverride
                     : DoorAccessOverrideKind.None);
+    }
+
+    [Inject]
+    public void ConstructExitDungeonAdmission(ICaptivityRuntime captivityRuntime)
+    {
+        Departure.ConstructExitDungeonAdmission(captivityRuntime);
+    }
+
+    [Inject]
+    public void ConstructVisitorExitOutcome(
+        ICharacterVisitorExitOutcomeRuntime visitorExitOutcomes)
+    {
+        Departure.ConstructVisitorExitOutcome(visitorExitOutcomes);
     }
 
     public override void Initializtion(CharacterSO data)
@@ -187,12 +200,17 @@ public class AbilityMove : CharacterAbility
         {
             yield break;
         }
-        yield return MoveByPathInternal(
+        IEnumerator movement = MoveByPathInternal(
             path,
             expectedAction,
             operationVersion,
             movementProgressCallback);
-        CompleteMovementOperation(operationVersion, operationOwner);
+        try { yield return movement; }
+        finally
+        {
+            try { (movement as IDisposable)?.Dispose(); }
+            finally { movementOwnership.CompleteMovementOperation(operationVersion, operationOwner); }
+        }
     }
 
     private IEnumerator MoveByPathInternal(
@@ -426,6 +444,9 @@ public class AbilityMove : CharacterAbility
                     yield break;
                 }
 
+                using (var passage = traversalGuard.BeginDoorPassage(actor, grid, destination))
+                {
+                if (!passage.Allowed) { SetGridMoveBlocked(GridMoveFailureReason.DoorDenied); yield break; }
                 int observedGridVersion = grid.TraversalVersion;
                 Vector3 endPosition = grid.GetWorldPos(destination);
                 float terrainSpeedMultiplier = Mathf.Max(
@@ -584,6 +605,7 @@ public class AbilityMove : CharacterAbility
                     endPosition.x - transform.position.x);
                 transform.position = endPosition;
                 completedPathDistance += distance;
+                }
             }
 
             if (LastGridMoveWasBlocked)
@@ -688,11 +710,16 @@ public class AbilityMove : CharacterAbility
         {
             yield break;
         }
-        yield return MoveByStepInternal(
+        IEnumerator movement = MoveByStepInternal(
             step,
             expectedAction,
             operationVersion);
-        CompleteMovementOperation(operationVersion, "raw-step");
+        try { yield return movement; }
+        finally
+        {
+            try { (movement as IDisposable)?.Dispose(); }
+            finally { movementOwnership.CompleteMovementOperation(operationVersion, "raw-step"); }
+        }
     }
 
     private IEnumerator MoveByStepInternal(
@@ -764,7 +791,7 @@ public class AbilityMove : CharacterAbility
         yield return Move2GridPositionInternal(
             gridPosition,
             expectedAction,
-            movementOperationVersion);
+            movementOwnership.Version);
     }
 
     private IEnumerator Move2GridPositionInternal(
@@ -795,6 +822,9 @@ public class AbilityMove : CharacterAbility
             yield break;
         }
 
+        using (var passage = traversalGuard.BeginDoorPassage(actor, grid, gridPosition))
+        {
+        if (!passage.Allowed) { SetGridMoveBlocked(GridMoveFailureReason.DoorDenied); yield break; }
         int observedGridVersion = grid.TraversalVersion;
         Vector3 endPos = grid.GetWorldPos(gridPosition);
         float terrainSpeedMultiplier = grid.GetGridCell(gridPosition)
@@ -807,6 +837,7 @@ public class AbilityMove : CharacterAbility
             observedGridVersion,
             startPos,
             operationVersion);
+        }
     }
 
     public void StartExitDungeon()
@@ -823,6 +854,11 @@ public class AbilityMove : CharacterAbility
             DoorAccessOverrideKind.DirectCommand);
     }
 
+    public bool CanStartExitDungeon(out AIActionFailure failure)
+    {
+        return Departure.CanStartExitDungeon(actor, out failure);
+    }
+
     private void StartExitDungeonInternal(
         bool allowWorker,
         DoorAccessOverrideKind overrideKind)
@@ -834,46 +870,29 @@ public class AbilityMove : CharacterAbility
             return;
         }
 
-        if (!allowWorker
-            && CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork work)
-            && !work.IsOffDuty)
-        {
-            actor.Brain?.ClearPathSearchCache();
-            return;
-        }
-
-        if (enterDungeonRoutine != null)
-        {
-            StopCoroutine(enterDungeonRoutine);
-            enterDungeonRoutine = null;
-        }
-
         AIAction expectedAction = overrideKind == DoorAccessOverrideKind.None
             ? GetCurrentAction()
             : null;
+        if (!Departure.TryBeginExit(actor, expectedAction, allowWorker)) return;
+
         if (overrideKind != DoorAccessOverrideKind.None)
         {
             actor.SetLifecycleState(CharacterLifecycleState.ExitingDungeon);
         }
         if (overrideKind == DoorAccessOverrideKind.None)
         {
-            StartTrackedActionMovement(ExitDungeon(overrideKind, expectedAction));
+            StartTrackedActionMovement(ExitDungeon(overrideKind, expectedAction), preserveExitTransit: true);
             return;
         }
 
         CancelActiveMovement();
-        activeSystemMoveOverride = overrideKind;
+        movementOwnership.BeginExitOverride(overrideKind);
         activeActionMovementRoutine = StartCoroutine(
             TrackActionMovement(ExitDungeon(overrideKind, expectedAction)));
     }
 
     public void StartEnterDungeon(Vector3 entryDoorWorldPosition, Vector2Int entryGridPosition)
     {
-        if (enterDungeonRoutine != null)
-        {
-            StopCoroutine(enterDungeonRoutine);
-        }
-
         StartTrackedActionMovement(EnterDungeon(entryDoorWorldPosition, entryGridPosition));
     }
 
@@ -944,17 +963,7 @@ public class AbilityMove : CharacterAbility
         [System.Runtime.CompilerServices.CallerMemberName]
         string cancellationSource = "")
     {
-        bool hadActiveMovement = activeActionMovementRoutine != null
-            || activeManualMoveDestination.HasValue
-            || activeSystemMoveDestination.HasValue
-            || !string.IsNullOrWhiteSpace(activeMovementOperationOwner);
-        if (hadActiveMovement)
-        {
-            LastMovementCancellationSourceForDiagnostics =
-                cancellationSource ?? string.Empty;
-            LastMovementOperationPreemptionForDiagnostics =
-                $"{activeMovementOperationOwner}->cancel:{cancellationSource}";
-        }
+        movementOwnership.NoteCancellation(activeActionMovementRoutine != null, cancellationSource);
         if (activeActionMovementRoutine != null)
         {
             LastGridMoveWasBlocked = false;
@@ -962,32 +971,31 @@ public class AbilityMove : CharacterAbility
             actor?.Brain?.NotifyMovementTerminal(
                 GridMoveFailureReason.Cancelled);
         }
-        InvalidateMovementOperation();
-        protectedSystemMovementOperation = false;
-        retainProtectedSystemMovementAfterCompletion = false;
-        activeMovementOperationOwner = string.Empty;
+        traversalGuard?.ClearDoorPassage();
+        movementOwnership.InvalidateMovementOperation();
+        movementOwnership.AbandonOperation();
         if (activeActionMovementRoutine != null)
         {
             StopCoroutine(activeActionMovementRoutine);
             activeActionMovementRoutine = null;
         }
 
-        if (activeManualMoveDestination.HasValue)
+        if (movementOwnership.ManualDestination.HasValue)
         {
-            Vector2Int destination = activeManualMoveDestination.Value;
-            activeManualMoveDestination = null;
+            Vector2Int destination = movementOwnership.ManualDestination.Value;
+            movementOwnership.CompleteManualMove();
             actor?.Brain?.CompleteManualMoveCommand(destination, succeeded: false);
         }
 
-        activeSystemMoveDestination = null;
-        activeSystemMoveOverride = DoorAccessOverrideKind.None;
+        movementOwnership.ClearSystemDestination();
+        movementProvenance.ClearSocietyResponseMovementProvenance();
     }
 
     public bool TryCancelForImmediateAiReplan(
         [System.Runtime.CompilerServices.CallerMemberName]
         string cancellationSource = "")
     {
-        if (HasProtectedSystemMovementOwnership)
+        if (HasProtectedSystemMovementOwnership || movementOwnership.ExitTransitOwnsMovement)
         {
             return false;
         }
@@ -1036,7 +1044,7 @@ public class AbilityMove : CharacterAbility
 
         CancelActiveMovement();
         actor.Brain?.BeginManualMoveCommand(destination);
-        activeManualMoveDestination = destination;
+        movementOwnership.BeginManualMove(destination);
         activeActionMovementRoutine = StartCoroutine(
             TrackActionMovement(ExecutePlayerMove(path, destination)));
         message = $"({destination.x}, {destination.y}) 칸으로 이동";
@@ -1084,13 +1092,61 @@ public class AbilityMove : CharacterAbility
         }
 
         CancelActiveMovement();
-        protectedSystemMovementOperation = true;
-        activeSystemMoveDestination = destination;
-        activeSystemMoveOverride = overrideKind;
+        movementOwnership.BeginSystemMove(destination, overrideKind, retainOwnership: false);
         activeActionMovementRoutine = StartCoroutine(
             TrackActionMovement(ExecuteSystemMove(path)));
         message = $"({destination.x}, {destination.y}) 칸으로 이동";
         return true;
+    }
+
+    internal bool TryStartSocietyResponseSystemMove(
+        string responseOperationId,
+        string externalOperationId,
+        BuildingInstanceId facilityId,
+        Vector2Int destination,
+        DoorAccessOverrideKind overrideKind,
+        out string message)
+    {
+        if (!movementProvenance.CanStart(responseOperationId, externalOperationId, facilityId, destination, out message)) return false;
+        if (!TryStartSystemMove(destination, overrideKind, out message)) return false;
+        movementProvenance.RecordStarted(responseOperationId, externalOperationId, facilityId, destination);
+        return true;
+    }
+
+    internal bool TryRecordSocietyResponseMovementReceipt(
+        string responseOperationId,
+        string externalOperationId,
+        string receiptId,
+        out string failure)
+    {
+        failure = string.Empty;
+        if (!movementProvenance.TryGetReceiptDestination(responseOperationId, externalOperationId, receiptId, out Vector2Int destination)
+            || actor == null || actor.GetNowXY() != destination)
+        {
+            failure = "society-response-movement-receipt-conflict";
+            return false;
+        }
+        return movementProvenance.TryRecordSocietyResponseMovementReceipt(responseOperationId, externalOperationId,
+            receiptId, destination, out failure);
+    }
+
+    internal bool TryReleaseSocietyResponseMovementProvenance(
+        string responseOperationId,
+        string externalOperationId)
+    {
+        return movementProvenance.TryReleaseSocietyResponseMovementProvenance(responseOperationId, externalOperationId);
+    }
+
+    internal void RestoreSocietyResponseMovementProvenance(
+        string responseOperationId,
+        string externalOperationId,
+        string facilityId,
+        int destinationX,
+        int destinationY,
+        string receiptId)
+    {
+        movementProvenance.RestoreSocietyResponseMovementProvenance(responseOperationId, externalOperationId,
+            facilityId, destinationX, destinationY, receiptId);
     }
 
     [GameplayInternalOnly(
@@ -1107,8 +1163,7 @@ public class AbilityMove : CharacterAbility
             out message);
         if (started && actor != null && actor.GetNowXY() != destination)
         {
-            retainProtectedSystemMovementAfterCompletion = true;
-            protectedSystemMovementOperation = true;
+            movementOwnership.RetainSystemOwnership();
         }
         return started;
     }
@@ -1163,26 +1218,28 @@ public class AbilityMove : CharacterAbility
         }
 
         CancelActiveMovement();
-        protectedSystemMovementOperation = true;
-        retainProtectedSystemMovementAfterCompletion = true;
-        activeSystemMoveDestination = destination;
-        activeSystemMoveOverride = overrideKind;
+        movementOwnership.BeginSystemMove(destination, overrideKind, retainOwnership: true);
         activeActionMovementRoutine = StartCoroutine(
             TrackActionMovement(ExecuteSystemMove(path)));
         message = $"({destination.x}, {destination.y}) resolved protected movement";
         return true;
     }
 
-    private void StartTrackedActionMovement(IEnumerator routine)
+    private void StartTrackedActionMovement(IEnumerator routine, bool preserveExitTransit = false)
     {
         CancelActiveMovement();
+        movementOwnership.BeginTrackedMovement(preserveExitTransit);
         activeActionMovementRoutine = StartCoroutine(TrackActionMovement(routine));
     }
 
     private IEnumerator TrackActionMovement(IEnumerator routine)
     {
-        yield return routine;
-        activeActionMovementRoutine = null;
+        try { yield return routine; }
+        finally
+        {
+            movementOwnership.CompleteTrackedMovement();
+            activeActionMovementRoutine = null;
+        }
     }
 
     private IEnumerator ExecutePlayerMove(
@@ -1194,7 +1251,7 @@ public class AbilityMove : CharacterAbility
         bool succeeded = !LastGridMoveWasBlocked
             && grid != null
             && grid.GetXY(transform.position) == destination;
-        activeManualMoveDestination = null;
+        movementOwnership.CompleteManualMove();
         actor?.Brain?.CompleteManualMoveCommand(destination, succeeded);
     }
 
@@ -1206,12 +1263,7 @@ public class AbilityMove : CharacterAbility
             expectedAction: null,
             movementProgressCallback: null,
             operationOwner: "protected-system-command");
-        if (!retainProtectedSystemMovementAfterCompletion)
-        {
-            protectedSystemMovementOperation = false;
-        }
-        activeSystemMoveDestination = null;
-        activeSystemMoveOverride = DoorAccessOverrideKind.None;
+        movementOwnership.CompleteSystemMove();
     }
 
     private AIAction GetCurrentAction()
@@ -1595,61 +1647,17 @@ public class AbilityMove : CharacterAbility
         string operationOwner,
         out int operationVersion)
     {
-        string normalizedOwner = string.IsNullOrWhiteSpace(operationOwner)
-            ? "unknown"
-            : operationOwner;
-        if (protectedSystemMovementOperation
-            && !string.Equals(
-                normalizedOwner,
-                "protected-system-command",
-                StringComparison.Ordinal))
-        {
-            LastRejectedMovementOperationOwnerForDiagnostics =
-                normalizedOwner;
-            operationVersion = movementOperationVersion;
-            return false;
-        }
-
-        if (!string.IsNullOrWhiteSpace(activeMovementOperationOwner))
-        {
-            LastMovementOperationPreemptionForDiagnostics =
-                $"{activeMovementOperationOwner}->{normalizedOwner}";
-        }
-        LastMovementCancellationSourceForDiagnostics = string.Empty;
-        LastRejectedMovementOperationOwnerForDiagnostics = string.Empty;
-        InvalidateMovementOperation();
-        activeMovementOperationOwner = normalizedOwner;
-        operationVersion = movementOperationVersion;
+        if (!movementOwnership.TryBeginMovementOperation(operationOwner, out operationVersion)) return false;
+        // ClearDoorPassage is callback-free; both commits finish before this call returns.
+        traversalGuard?.ClearDoorPassage();
         return true;
-    }
-
-    private void CompleteMovementOperation(
-        int operationVersion,
-        string operationOwner)
-    {
-        if (operationVersion == movementOperationVersion
-            && string.Equals(
-                activeMovementOperationOwner,
-                operationOwner,
-                StringComparison.Ordinal))
-        {
-            activeMovementOperationOwner = string.Empty;
-        }
-    }
-
-    private void InvalidateMovementOperation()
-    {
-        unchecked
-        {
-            movementOperationVersion++;
-        }
     }
 
     private bool IsMovementOperationCancelled(
         AIAction expectedAction,
         int operationVersion)
     {
-        return operationVersion != movementOperationVersion
+        return operationVersion != movementOwnership.Version
             || IsActionMovementCancelled(expectedAction);
     }
 
@@ -1671,20 +1679,8 @@ public class AbilityMove : CharacterAbility
         }
     }
 
-    private IEnumerator WaitForAiActionDelay(float duration, AIAction expectedAction)
-    {
-        float timer = 0f;
-        while (timer < duration)
-        {
-            if (IsActionMovementCancelled(expectedAction))
-            {
-                yield break;
-            }
-
-            timer += gameClock.DeltaTime;
-            yield return null;
-        }
-    }
+    private IEnumerator WaitForAiActionDelay(float duration, AIAction expectedAction) =>
+        CharacterWorldPositionMovement.WaitForDelay(gameClock, duration, () => IsActionMovementCancelled(expectedAction));
 
     private IEnumerator EnterDungeon(Vector3 entryDoorWorldPosition, Vector2Int entryGridPosition)
     {
@@ -1695,11 +1691,13 @@ public class AbilityMove : CharacterAbility
 
         CacheCommonReferences();
 
-        yield return Move2PosBySpeed(entryDoorWorldPosition);
+        yield return MoveThroughWorldDoorway(entryDoorWorldPosition);
+        if (LastGridMoveFailureReason != GridMoveFailureReason.None) yield break;
 
         if (grid != null && grid.IsValidGridPos(entryGridPosition))
         {
-            yield return Move2PosBySpeed(grid.GetWorldPos(entryGridPosition));
+            yield return MoveThroughWorldDoorway(grid.GetWorldPos(entryGridPosition));
+            if (LastGridMoveFailureReason != GridMoveFailureReason.None) yield break;
         }
 
         if (actor != null)
@@ -1708,7 +1706,6 @@ public class AbilityMove : CharacterAbility
             actor.SetLifecycleState(CharacterLifecycleState.Active);
         }
 
-        enterDungeonRoutine = null;
     }
 
     private IEnumerator ExitDungeon(
@@ -1722,15 +1719,8 @@ public class AbilityMove : CharacterAbility
 
         if (grid == null)
         {
-            if (actor != null
-                && actor.CurrentLifecycleState == CharacterLifecycleState.ExitingDungeon)
-            {
-                actor.SetLifecycleState(CharacterLifecycleState.Active);
-            }
-            activeSystemMoveDestination = null;
-            activeSystemMoveOverride = DoorAccessOverrideKind.None;
-            FailExitAction(expectedAction, AIActionFailureKind.NoGrid,
-                "exit-dungeon-grid-unavailable");
+            Departure.RecoverFailedExit(actor, expectedAction, AIActionFailureKind.NoGrid,
+                VisitorDepartureTerminalKind.GridUnavailable, "exit-dungeon-grid-unavailable");
             yield break;
         }
 
@@ -1738,16 +1728,8 @@ public class AbilityMove : CharacterAbility
         if (spawner == null
             || !spawner.TryGetEntryGridPosition(out Vector2Int exitGridPosition))
         {
-            if (actor != null
-                && actor.CurrentLifecycleState == CharacterLifecycleState.ExitingDungeon)
-            {
-                actor.SetLifecycleState(CharacterLifecycleState.Active);
-            }
-
-            activeSystemMoveDestination = null;
-            activeSystemMoveOverride = DoorAccessOverrideKind.None;
-            FailExitAction(expectedAction, AIActionFailureKind.NoDestination,
-                "exit-dungeon-spawner-unavailable");
+            Departure.RecoverFailedExit(actor, expectedAction, AIActionFailureKind.NoDestination,
+                VisitorDepartureTerminalKind.DestinationUnavailable, "exit-dungeon-spawner-unavailable");
             yield break;
         }
 
@@ -1778,12 +1760,7 @@ public class AbilityMove : CharacterAbility
                 pathSearchDeferrals++;
                 if (pathSearchDeferrals >= maximumPathSearchDeferrals)
                 {
-                    FailExitAction(
-                        expectedAction,
-                        AIActionFailureKind.PathSearchStarved,
-                        $"exit path search remained deferred for {pathSearchDeferrals} attempts");
-                    activeSystemMoveDestination = null;
-                    activeSystemMoveOverride = DoorAccessOverrideKind.None;
+                    Departure.FailPathStarvation(actor, expectedAction, pathSearchDeferrals);
                     yield break;
                 }
                 int backoffFrames = 1 << Mathf.Min(pathSearchDeferrals - 1, 4);
@@ -1825,23 +1802,23 @@ public class AbilityMove : CharacterAbility
 
         if (!reachedExit)
         {
-            if (actor != null
-                && actor.CurrentLifecycleState == CharacterLifecycleState.ExitingDungeon)
-            {
-                actor.SetLifecycleState(CharacterLifecycleState.Active);
-            }
-
-            activeSystemMoveDestination = null;
-            activeSystemMoveOverride = DoorAccessOverrideKind.None;
-            FailExitAction(expectedAction, AIActionFailureKind.NoPath,
-                "exit-dungeon-path-unreachable");
+            Departure.RecoverFailedExit(actor, expectedAction, AIActionFailureKind.NoPath,
+                VisitorDepartureTerminalKind.PathUnavailable, "exit-dungeon-path-unreachable");
             yield break;
         }
 
         if (spawner != null)
         {
             yield return Move2PosBySpeed(spawner.GetEntryDoorWorldPosition());
+            if (Departure.AbortFailedDoorExit(actor, expectedAction, LastGridMoveFailureReason)) yield break;
             yield return Move2PosBySpeed(spawner.GetOutsideSpawnWorldPosition());
+            if (Departure.AbortFailedDoorExit(actor, expectedAction, LastGridMoveFailureReason)) yield break;
+
+            if (!CanStartExitDungeon(out AIActionFailure admissionFailure))
+            {
+                Departure.RejectFinalAdmission(actor, expectedAction, admissionFailure);
+                yield break;
+            }
 
             // The authored exit action owns traversal through the outside spawn
             // point. Closing the action or entering a non-Active lifecycle any
@@ -1873,26 +1850,7 @@ public class AbilityMove : CharacterAbility
             actor.SetLifecycleState(CharacterLifecycleState.Active);
         }
 
-        activeSystemMoveDestination = null;
-        activeSystemMoveOverride = DoorAccessOverrideKind.None;
-    }
-
-    private void FailExitAction(
-        AIAction expectedAction,
-        AIActionFailureKind kind,
-        string detail)
-    {
-        if (expectedAction == null || actor?.Brain == null)
-        {
-            return;
-        }
-        actor.Brain.ReportRuntimeActionFailure(
-            AIActionFailure.Create(kind, detail, expectedAction.destination),
-            requestImmediateReplan: false);
-        actor.Brain.EndExpectedAction(
-            expectedAction,
-            CharacterAiActionTerminalKind.Failed,
-            clearFailures: false);
+        movementOwnership.ClearSystemDestination();
     }
 
     private bool TryResolveSpawner()
@@ -1911,129 +1869,49 @@ public class AbilityMove : CharacterAbility
             ?? throw new InvalidOperationException($"{nameof(AbilityMove)} requires {nameof(ICharacterAiSchedulingService)} injection.");
     }
 
-    public IEnumerator Move2PosByTime(Vector3 endPos, float duration)
+    [GameplayInternalOnly("Retained doorway transit", "AbilityMove.EnterDungeon;ExteriorActivityRuntime")]
+    public IEnumerator MoveThroughWorldDoorway(Vector3 destination, float speed = 1f)
     {
-        float timer = 0f;
-        Vector3 startPos = transform.position;
-        while (timer < duration)
-        {
-            transform.position = Vector3.Lerp(startPos, endPos, (timer / duration));
-            timer += gameClock.DeltaTime;
-            yield return null;
-        }
-        transform.position = endPos;
+        int version = movementOwnership.Version;
+        yield return CharacterWorldPositionMovement.WaitForDoor(this, actor, gameClock, destination, speed,
+            () => version != movementOwnership.Version || actor == null || actor.IsDead
+                || !isActiveAndEnabled || actor.CurrentLifecycleState == CharacterLifecycleState.Downed);
     }
+
     public IEnumerator Move2PosBySpeed(Vector3 endPos, float multifly = 1.0f, AIAction expectedAction = null)
     {
-        yield return Move2PosBySpeedInternal(
-            endPos,
-            multifly,
-            expectedAction,
-            null,
-            0,
-            transform.position,
-            movementOperationVersion);
+        CacheCommonReferences();
+        LastGridMoveWasBlocked = false;
+        LastGridMoveFailureReason = GridMoveFailureReason.None;
+        if (grid == null || actor == null)
+        {
+            LastGridMoveFailureReason = GridMoveFailureReason.GridUnavailable;
+            yield break;
+        }
+        yield return Move2PosBySpeedInternal(endPos, multifly, expectedAction, null, 0,
+            transform.position, movementOwnership.Version);
     }
 
-    private IEnumerator Move2PosBySpeedInternal(
-        Vector3 endPos,
-        float multifly,
-        AIAction expectedAction,
-        Vector2Int? blockedGridPosition,
-        int observedGridVersion,
-        Vector3 blockedFallbackPosition,
-        int operationVersion)
+    private IEnumerator Move2PosBySpeedInternal(Vector3 endPos, float multifly, AIAction expectedAction,
+        Vector2Int? blockedGridPosition, int observedGridVersion, Vector3 blockedFallbackPosition, int operationVersion)
     {
-        Vector3 startPos = transform.position;
-        float deltaX = endPos.x - startPos.x;
-        if (Mathf.Abs(deltaX) > 0.01f && deltaX > 0f)
-        {
-            actor?.Flip(CharacterFacing.RIGHT);
-        }
-        else if (Mathf.Abs(deltaX) > 0.01f)
-        {
-            actor?.Flip(CharacterFacing.LEFT);
-        }
-        float distance = Vector3.Distance(startPos, endPos);
-        float totalSpeed = CharacterMovementKinematics.GetMoveSpeed(
-            actor,
-            moveSpeed) * multifly;
-        if (totalSpeed <= 0f)
-        {
-            LastGridMoveFailureReason =
-                GridMoveFailureReason.InvalidSpeed;
-            yield break;
-        }
-
-        float duration = distance / totalSpeed;
-        float timer = 0f;
-
-        while (timer < duration)
-        {
-            if (TryRollbackForChangedGridBlock(
-                blockedGridPosition,
-                ref observedGridVersion,
-                blockedFallbackPosition))
+        yield return CharacterWorldPositionMovement.Execute(actor, gameClock, RequireAiSchedulingService(),
+            endPos, CharacterMovementKinematics.GetMoveSpeed(actor, moveSpeed) * multifly,
+            () => IsMovementOperationCancelled(expectedAction, operationVersion)
+                || actor == null || actor.IsDead || !isActiveAndEnabled,
+            () => TryRollbackForChangedGridBlock(blockedGridPosition, ref observedGridVersion, blockedFallbackPosition),
+            position =>
             {
-                yield break;
-            }
-
-            if (IsMovementOperationCancelled(
-                    expectedAction,
-                    operationVersion))
-            {
-                LastGridMoveFailureReason =
-                    GridMoveFailureReason.Cancelled;
-                yield break;
-            }
-
-            Vector3 nextPosition = Vector3.Lerp(startPos, endPos, (timer / duration));
-            CharacterMovementKinematics.UpdateFacing(
-                actor,
-                nextPosition.x - transform.position.x);
-            transform.position = nextPosition;
-            timer += gameClock.DeltaTime;
-            int frameStride = RequireAiSchedulingService().GetMovementFrameStride(actor);
-            for (int i = 1; i < frameStride && timer < duration; i++)
-            {
-                yield return null;
-                // Frame stride throttles presentation updates; it must not
-                // slow authoritative movement. Account for every skipped
-                // frame's game time so population size cannot stretch travel
-                // duration in proportion to the scheduler stride.
-                timer += gameClock.DeltaTime;
-                if (IsMovementOperationCancelled(
-                        expectedAction,
-                        operationVersion))
+                if (!blockedGridPosition.HasValue && !traversalGuard.TryOpenWorldSegment(actor, grid, transform.position, position))
                 {
-                    LastGridMoveFailureReason =
-                        GridMoveFailureReason.Cancelled;
-                    yield break;
+                    SetGridMoveBlocked(GridMoveFailureReason.DoorDenied, reportToBrain: false);
+                    return false;
                 }
-
-                if (TryRollbackForChangedGridBlock(
-                    blockedGridPosition,
-                    ref observedGridVersion,
-                    blockedFallbackPosition))
-                {
-                    yield break;
-                }
-            }
-            yield return null;
-        }
-
-        if (TryRollbackForChangedGridBlock(
-            blockedGridPosition,
-            ref observedGridVersion,
-            blockedFallbackPosition))
-        {
-            yield break;
-        }
-
-        CharacterMovementKinematics.UpdateFacing(
-            actor,
-            endPos.x - transform.position.x);
-        transform.position = endPos;
+                CharacterMovementKinematics.UpdateFacing(actor, position.x - transform.position.x);
+                transform.position = position;
+                return true;
+            },
+            reason => LastGridMoveFailureReason = reason);
     }
 
     private bool TryRollbackForChangedGridBlock(

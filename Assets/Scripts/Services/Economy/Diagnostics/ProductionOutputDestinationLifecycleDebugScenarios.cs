@@ -1194,7 +1194,8 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
         TrackingBuildingWorld world = new(building);
         ProductionFacilityDestructiveDrainWorldRemovalPort port = new(
             world,
-            new FixedGridTextureProvider(texture));
+            new FixedGridTextureProvider(texture),
+            new NonFuelFixtureRetirement());
         try
         {
             ProductionFacilityWorldRemovalResult applied =
@@ -1348,6 +1349,8 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
 
     private sealed class FixedApparelOrders : IApparelWorkOrderQuery
     {
+        public CraftQualityAttemptEstimate CaptureQualityEstimate(string orderId) =>
+            CraftQualityAttemptEstimate.Unavailable("Lifecycle fixture has no quality resolver.");
         internal FixedApparelOrders(params ApparelWorkOrderSaveData[] orders) =>
             Orders = orders ?? Array.Empty<ApparelWorkOrderSaveData>();
         public int Version => 3;
@@ -1613,91 +1616,6 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
             DeleteCount++;
     }
 
-    private sealed class RecordingMutationFence : IProductionFacilityMutationFence
-    {
-        internal List<string> Calls { get; } = new();
-        internal bool AllowPrepare { get; set; } = true;
-
-        public bool TryPrepareEmpty(
-            BuildableObject facility,
-            ProductionFacilityMutationKind kind,
-            string operationId,
-            out ProductionFacilityEmptyMutationCandidate candidate,
-            out string failureReason)
-        {
-            Calls.Add("prepare");
-            if (!AllowPrepare)
-            {
-                candidate = null;
-                failureReason = "recording-fence-blocked";
-                return false;
-            }
-            failureReason = string.Empty;
-            ProductionFacilityHandle handle = new(
-                facility,
-                facility.PersistentInstanceId,
-                facility.centerPos,
-                false,
-                string.Empty,
-                false,
-                default,
-                "building-definition:qa",
-                string.Empty,
-                4);
-            candidate = new ProductionFacilityEmptyMutationCandidate(
-                kind,
-                operationId,
-                1L,
-                handle,
-                Fingerprint("placement-fence"),
-                hadOutputAuthority: true,
-                priorCapacityMassGrams: 1_000L,
-                hadStockSensorAuthority: false,
-                priorStockSensorCapacityMassGrams: 0L);
-            return true;
-        }
-
-        public bool TryCommitAuthorityRevoke(
-            ProductionFacilityEmptyMutationCandidate candidate,
-            out string failureReason)
-        {
-            Calls.Add("commit");
-            candidate.AuthorityRevoked = true;
-            failureReason = string.Empty;
-            return true;
-        }
-
-        public bool TryAbort(
-            ProductionFacilityEmptyMutationCandidate candidate,
-            out string failureReason)
-        {
-            Calls.Add("abort");
-            candidate.AuthorityRevoked = false;
-            candidate.IsClosed = true;
-            failureReason = string.Empty;
-            return true;
-        }
-
-        public bool TryComplete(
-            ProductionFacilityEmptyMutationCandidate candidate,
-            out string failureReason)
-        {
-            Calls.Add("complete");
-            candidate.IsClosed = true;
-            failureReason = string.Empty;
-            return true;
-        }
-
-        public bool TryRequireNoAuthority(
-            BuildableObject facility,
-            ProductionFacilityMutationKind kind,
-            out string failureReason)
-        {
-            failureReason = string.Empty;
-            return true;
-        }
-    }
-
     private sealed class RecordingDestructiveLossRuntime :
         IBuildingDestructiveLossRuntime
     {
@@ -1886,6 +1804,19 @@ public static class ProductionOutputDestinationLifecycleDebugScenarios
         private static ProductionBillCommandResult Failed() =>
             ProductionBillCommandResult.Failed(
                 new DomainFailure(FailureCode.ProductionSupportUnavailable));
+    }
+
+    private sealed class NonFuelFixtureRetirement : ISurvivalFacilityFuelRetirement
+    {
+        public bool TryPrepareFacilityFuelRetirement(BuildableObject building, out string failureReason)
+        {
+            bool empty = building != null
+                && building.BuildingData.GetAbility<BuildingFuelConsumerAbility>() == null
+                && building.FacilityState.remainingFuelGameSeconds == 0f
+                && building.FacilityState.pendingFuel.phase == (int)FacilityFuelCommitPhase.None;
+            failureReason = empty ? string.Empty : "non-fuel fixture unexpectedly owns fuel";
+            return empty;
+        }
     }
 
     private sealed class AllowDamageRule : IBuildingDamageRulePort

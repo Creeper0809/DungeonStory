@@ -14,17 +14,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: DungeonStory.Content::LifeEventDefinitionSO
   stableId: life-event:last-lesson
   displayName: "\uB9C8\uC9C0\uB9C9 \uC218\uC5C5"
-  description: "\uC1E0\uC57D\uD574\uC9C4 \uC2A4\uC2B9\uC774 \uC704\uD5D8\uC744 \uAC10\uC218\uD558\uACE0
-    \uB9C8\uC9C0\uB9C9 \uC2E4\uC2B5\uC744 \uC5F4\uB824 \uD55C\uB2E4."
+  description: "\uC740\uD1F4\uB97C \uC55E\uB454 \uC2A4\uC2B9\uC774 PPE\uB97C \uCC29\uC6A9\uD558\uACE0
+    \uB9C8\uC9C0\uB9C9 \uC2E4\uC2B5\uC744 \uD588\uB2E4."
   authoringRevision: 1
   sourceNote: V20 content-density expansion; hand-authored Korean source revision
     1.
   category: 4
+  riskTier: 2
+  riskReason: "\uC791\uC131\uB41C \uC120\uD0DD\uC5D0 \uBE44\uCE58\uBA85 \uCCB4\uB825
+    \uD53C\uD574 -5\uAC00 \uC788\uB2E4."
   automatic: 0
   emergency: 0
   responseDeadlineDays: 3
   cooldownDays: 90
   frequencyRule: 1
+  occurrencePolicy: 0
   triggerRequirements:
     items: []
     facilities: []

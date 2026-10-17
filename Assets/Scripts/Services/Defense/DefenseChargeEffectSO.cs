@@ -21,7 +21,7 @@ public sealed class DefenseChargeEffectSO : DefenseEffectSO
         set => dischargeReason = value;
     }
 
-    public override void Apply(DefenseEffectContext context)
+    public override void Apply(IDefenseEffectCommands context)
     {
         int chargeStacks = context.ApplyStatus(DefenseStatusKind.Charge, Amount, Duration, Stacks);
         context.AddEffectTag($"{EffectiveLogTag} {chargeStacks}");

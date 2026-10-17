@@ -13,13 +13,15 @@ public sealed class PhysicalItemExactSourcePublicationPlan
         string ownerDomain,
         string ownerOperationId,
         Vector2Int dropPosition,
-        IReadOnlyList<FacilityBufferPlannedOutputSlice> outputs)
+        IReadOnlyList<FacilityBufferPlannedOutputSlice> outputs,
+        bool retainRecoveryReceipt = false)
     {
         OwnerDomain = RequireCanonical(ownerDomain, nameof(ownerDomain));
         OwnerOperationId = RequireCanonical(
             ownerOperationId,
             nameof(ownerOperationId));
         DropPosition = dropPosition;
+        RetainRecoveryReceipt = retainRecoveryReceipt;
         FacilityBufferPlannedOutputSlice[] copied = (outputs
                 ?? throw new ArgumentNullException(nameof(outputs)))
             .OrderBy(value => value.OutputLineId, StringComparer.Ordinal)
@@ -50,6 +52,7 @@ public sealed class PhysicalItemExactSourcePublicationPlan
     }
 
     public string OwnerDomain { get; }
+    public bool RetainRecoveryReceipt { get; }
     public string OwnerOperationId { get; }
     public Vector2Int DropPosition { get; }
     public string DestinationId { get; }
@@ -161,7 +164,8 @@ public readonly struct PhysicalItemExactSourcePublicationReceipt
     internal PhysicalItemExactSourcePublicationReceipt(
         FacilityBufferPlannedOutputPublicationReceipt publication,
         long totalMassGrams,
-        bool retained)
+        bool retained,
+        string recoveryCommitId = "")
     {
         BatchCommitId = publication.BatchCommitId;
         DestinationId = publication.DestinationId;
@@ -172,6 +176,21 @@ public readonly struct PhysicalItemExactSourcePublicationReceipt
             .ToArray();
         stacks = Array.AsReadOnly(copied);
         IsRetained = retained;
+        RecoveryCommitId = recoveryCommitId;
+    }
+
+    internal PhysicalItemExactSourcePublicationReceipt(PhysicalEffectReceiptSaveData receipt)
+    {
+        BatchCommitId = receipt.operationId;
+        DestinationId = receipt.destinationId;
+        TotalMassGrams = receipt.totalMassGrams;
+        IsRetained = false;
+        RecoveryCommitId = receipt.commitId;
+        stacks = Array.AsReadOnly(receipt.lines.OrderBy(value => value.outputLineId, StringComparer.Ordinal)
+            .ThenBy(value => value.stackId, StringComparer.Ordinal)
+            .Select(value => new FacilityBufferPublishedOutputStackReceipt(value.stackId, value.outputLineId,
+                (ItemDefinitionId)value.itemId, value.quantity, new PhysicalMassGrams(value.massGrams),
+                value.itemInstanceId)).ToArray());
     }
 
     public string BatchCommitId { get; }
@@ -180,6 +199,7 @@ public readonly struct PhysicalItemExactSourcePublicationReceipt
     public IReadOnlyList<FacilityBufferPublishedOutputStackReceipt> Stacks =>
         stacks ?? Array.Empty<FacilityBufferPublishedOutputStackReceipt>();
     public bool IsRetained { get; }
+    public string RecoveryCommitId { get; }
 }
 
 public interface IPhysicalItemExactSourcePublicationService
@@ -294,6 +314,7 @@ public sealed class PhysicalItemExactSourcePublicationService :
     }
 
     private readonly IPhysicalItemMassQuery mass;
+    private readonly WorldItemRepository repository;
     private readonly IFacilityBufferDestinationLifecycleCommand lifecycle;
     private readonly IFacilityBufferDestinationClaimAuthorityQuery claims;
     private readonly IFacilityBufferMassCapacityAuthorityQuery capacities;
@@ -306,6 +327,7 @@ public sealed class PhysicalItemExactSourcePublicationService :
         new(StringComparer.Ordinal);
 
     public PhysicalItemExactSourcePublicationService(
+        WorldItemRepository repository,
         IPhysicalItemMassQuery mass,
         IFacilityBufferDestinationLifecycleCommand lifecycle,
         IFacilityBufferDestinationClaimAuthorityQuery claims,
@@ -316,6 +338,7 @@ public sealed class PhysicalItemExactSourcePublicationService :
         IPhysicalItemBatchDispositionService dispositions,
         IFacilityBufferAcknowledgedOutputRestoreCandidateQuery acknowledged)
     {
+        this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
         this.mass = mass ?? throw new ArgumentNullException(nameof(mass));
         this.lifecycle = lifecycle ?? throw new ArgumentNullException(nameof(lifecycle));
         this.claims = claims ?? throw new ArgumentNullException(nameof(claims));
@@ -340,9 +363,39 @@ public sealed class PhysicalItemExactSourcePublicationService :
             failureReason = "physical-exact-source-plan-missing";
             return false;
         }
-        if (pending.ContainsKey(plan.BatchCommitId))
+        if (repository.TryGetPhysicalEffectReceipt(PhysicalEffectReceiptKind.ReleasedPublication,
+                plan.BatchCommitId, out var committed))
         {
-            failureReason = "physical-exact-source-batch-already-prepared";
+            if (!plan.RetainRecoveryReceipt || committed.requestFingerprint !=
+                PhysicalEffectReceiptRules.PublicationFingerprint(plan.DestinationId,
+                    plan.OutcomeFingerprint, plan.DropPosition.x, plan.DropPosition.y))
+            {
+                failureReason = "physical-exact-source-recovery-request-conflict";
+                return false;
+            }
+            var replay = new PhysicalItemExactSourcePublicationReceipt(committed);
+            transaction = new PhysicalItemExactSourcePublicationTransaction(
+                replay.BatchCommitId, replay.DestinationId, replay.Stacks);
+            return true;
+        }
+        if (plan.RetainRecoveryReceipt && !repository.CanRecordPhysicalEffectReceipt(
+                PhysicalEffectReceiptKind.ReleasedPublication, plan.BatchCommitId))
+        {
+            failureReason = "physical-effect-receipt-capacity-exhausted";
+            return false;
+        }
+        if (pending.TryGetValue(plan.BatchCommitId, out Pending prepared))
+        {
+            if (plan.RetainRecoveryReceipt && prepared.Plan.RetainRecoveryReceipt
+                && plan.DestinationId == prepared.Plan.DestinationId
+                && plan.OutcomeFingerprint == prepared.Plan.OutcomeFingerprint
+                && plan.DropPosition == prepared.Plan.DropPosition)
+            {
+                transaction = new PhysicalItemExactSourcePublicationTransaction(
+                    plan.BatchCommitId, plan.DestinationId, prepared.Publication.Stacks);
+                return true;
+            }
+            failureReason = "physical-exact-source-batch-already-prepared-or-conflicting";
             return false;
         }
 
@@ -452,6 +505,16 @@ public sealed class PhysicalItemExactSourcePublicationService :
         {
             receipt = default;
             failureReason = "physical-exact-source-release-reason-invalid";
+            return false;
+        }
+        if (repository.TryGetPhysicalEffectReceipt(PhysicalEffectReceiptKind.ReleasedPublication,
+                transaction.BatchCommitId, out var previous)
+                && releasePosition != new Vector2Int(previous.positionX, previous.positionY)
+            || pending.TryGetValue(transaction.BatchCommitId ?? string.Empty, out Pending prepared)
+                && prepared.Plan.RetainRecoveryReceipt && releasePosition != prepared.Plan.DropPosition)
+        {
+            receipt = default;
+            failureReason = "physical-exact-source-release-position-conflict";
             return false;
         }
         return TryCommit(
@@ -705,8 +768,55 @@ public sealed class PhysicalItemExactSourcePublicationService :
     {
         receipt = default;
         failureReason = string.Empty;
+        if (repository.TryGetPhysicalEffectReceipt(PhysicalEffectReceiptKind.ReleasedPublication,
+                transaction.BatchCommitId, out var previous))
+        {
+            var replay = new PhysicalItemExactSourcePublicationReceipt(previous);
+            if (!releaseOutput || releaseTarget.HasDestination
+                || !transaction.IsPrepared || transaction.DestinationId != replay.DestinationId
+                || !transaction.PreparedStacks.SequenceEqual(replay.Stacks))
+            {
+                failureReason = "physical-exact-source-recovery-commit-conflict";
+                return false;
+            }
+            receipt = replay;
+            return true;
+        }
         if (!TryResolve(transaction, out Pending state, out failureReason))
             return false;
+        PhysicalEffectReceiptSaveData durable = null;
+        if (state.Plan.RetainRecoveryReceipt)
+        {
+            if (!releaseOutput || releaseTarget.HasDestination)
+            {
+                failureReason = "physical-exact-source-recovery-requires-unassigned-release";
+                return false;
+            }
+            if (!repository.CanRecordPhysicalEffectReceipt(PhysicalEffectReceiptKind.ReleasedPublication,
+                    state.Plan.BatchCommitId))
+            {
+                failureReason = "physical-effect-receipt-capacity-exhausted";
+                return false;
+            }
+            durable = new PhysicalEffectReceiptSaveData
+            {
+                kind = (int)PhysicalEffectReceiptKind.ReleasedPublication,
+                operationId = state.Plan.BatchCommitId, destinationId = state.Plan.DestinationId,
+                outcomeFingerprint = state.Plan.OutcomeFingerprint,
+                positionX = state.Plan.DropPosition.x, positionY = state.Plan.DropPosition.y,
+                totalMassGrams = state.TotalMassGrams,
+                requestFingerprint = PhysicalEffectReceiptRules.PublicationFingerprint(state.Plan.DestinationId,
+                    state.Plan.OutcomeFingerprint, state.Plan.DropPosition.x, state.Plan.DropPosition.y),
+                lines = state.Publication.Stacks.Select(value => new PhysicalEffectReceiptLineSaveData
+                {
+                    stackId = value.StackId, itemId = value.ItemDefinitionId.Value, quantity = value.Quantity,
+                    quantityAfter = value.Quantity, outputLineId = value.OutputLineId,
+                    itemInstanceId = value.ItemInstanceId, massGrams = value.MassGrams
+                }).ToList()
+            };
+            durable.commitId = PhysicalEffectReceiptRules.CommitId(durable);
+            PhysicalEffectReceiptRules.Validate(durable);
+        }
         if (!state.AdmissionCommitted)
         {
             if (!admission.TryCommitPlannedOutput(
@@ -763,11 +873,13 @@ public sealed class PhysicalItemExactSourcePublicationService :
                 + retirementFailure;
             return false;
         }
+        if (durable != null) repository.RecordPhysicalEffectReceipt(durable);
         pending.Remove(state.Plan.BatchCommitId);
         receipt = new PhysicalItemExactSourcePublicationReceipt(
             state.Publication,
             state.TotalMassGrams,
-            retained: !releaseOutput);
+            retained: !releaseOutput,
+            recoveryCommitId: durable?.commitId ?? string.Empty);
         return true;
     }
 

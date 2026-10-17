@@ -1,0 +1,42 @@
+{
+  "target": "C20 CharacterPrimitiveSurvivalRunner",
+  "status": "completion_owner_and_exact_run_lifetime_fixed_source_verified_actual_pending",
+  "goalStatus": "active",
+  "completedTargets": 6,
+  "totalTargets": 32,
+  "sourceEdit": "CLOSED",
+  "authors": "READY/FROZEN",
+  "contract": "Completion11/resume and diagnostic retry lifetime delegated over same world/stateStore/clock/events/calendar/fact publisher; DTO/lease/balance unchanged. Runner owns transient exact run+actor/kind/lease, recursive current-run+CanCommit child lifetime. Event/scheduler exceptions clean exact run and own intent then propagate; retired finally/disposal cannot remove replacement or end same renewed intent. No second state authority or parent back-reference.",
+  "parity": {
+    "completionMethods": 11,
+    "retainedRunnerMethods": 24,
+    "facadeApi": 8,
+    "resume": "original order split",
+    "constructor": "original null guards plus same collaborators",
+    "preparedDtoLeaseBalance": "exact",
+    "sourceConsumers": 3,
+    "record": "c20-primitive-survival/static-parity-r1.txt"
+  },
+  "controlled": {
+    "baselineDefects": 2,
+    "runLifetimeChecks": 29,
+    "retiredRecoveryChecks": 11,
+    "current": "c20-primitive-survival/controlled-r1/result.json",
+    "baseline": "c20-primitive-survival/controlled-baseline-r1/result.json",
+    "scope": "Actual current runner/recursive iterator with null actors/current-registry/predicate; actual completion, state store, DTO validation and retired transaction restore after System.Text.Json with fact/clock/log-handler doubles. Native Brain/scheduler/effects and official whole-world restore NOT_RUN."
+  },
+  "currentManagedCompile": "c20-primitive-survival/managed-final.json",
+  "syntax": {
+    "files": 179,
+    "errors": 0
+  },
+  "independentReview": "One BuildCompletedContext visibility blocker found and fixed in r3; no other concrete defect. READY/FROZEN.",
+  "nativePending": [
+    "Current Unity import/ILPP",
+    "Real actor/Brain event/scheduler admission failure",
+    "4 primitive gameplay routes/physical effects/cancellation",
+    "Official whole-world save/restore/retry"
+  ],
+  "Unity": "NOT_RUN",
+  "reason": "User requested continued source cleanup after isolated Unity memory failures."
+}

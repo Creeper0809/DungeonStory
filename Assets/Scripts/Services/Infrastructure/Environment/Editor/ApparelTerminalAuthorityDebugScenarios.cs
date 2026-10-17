@@ -153,8 +153,11 @@ public static class ApparelTerminalAuthorityDebugScenarios
             exposures = Array.Empty<CharacterEnvironmentExposure>(),
             equippedWorkwear = Array.Empty<EnvironmentalWorkwearSaveData>(),
             equippedApparel = Array.Empty<EquippedApparelSaveData>(),
+            apparelPolicies = Array.Empty<CharacterApparelPolicySaveData>(),
             apparelWorkOrders = runtime.CaptureOrders(),
-            apparelWorkOrderTerminalStates = runtime.CaptureTerminalStates()
+            apparelWorkOrderTerminalStates = runtime.CaptureTerminalStates(),
+            nextExposureOutcomeSequence = 0,
+            exposureOutcomes = Array.Empty<EnvironmentalExposureOutcomeSaveData>()
         };
         DungeonGameRestoreReport captureReport = new();
         CharacterEnvironmentSaveValidation.Validate(captured, captureReport);
@@ -315,6 +318,7 @@ public static class ApparelTerminalAuthorityDebugScenarios
         Proxy<ILeasedItemReservationService>(),
         Proxy<IFacilityCapabilityQuery>(),
         Proxy<IGameClock>(),
+        new EditorFixedGameCalendar(137, 9),
         Proxy<IPhysicalItemBatchDispositionService>(),
         Proxy<IApparelPhysicalTransaction>(),
         Proxy<IProductionOutputMaximumMassRegistry>(),

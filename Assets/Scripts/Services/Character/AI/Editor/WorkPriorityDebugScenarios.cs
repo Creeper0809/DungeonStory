@@ -9,6 +9,211 @@ using Object = UnityEngine.Object;
 
 public static class WorkPriorityDebugScenarios
 {
+    public static void RunDirectOrderCostsBatch()
+    {
+        var failures = new List<Exception>();
+        foreach (string channel in new[] { "none", "activity", "mood", "both" })
+        {
+            try
+            {
+                VerifyDirectOrderCostThroughPriorityButton(channel);
+                Debug.Log($"DIRECT_ORDER_COST_CASE={channel}; result=PASS");
+            }
+            catch (Exception exception)
+            {
+                failures.Add(exception);
+                Debug.Log($"DIRECT_ORDER_COST_CASE={channel}; result=FAIL; reason={exception.Message}");
+            }
+        }
+        if (failures.Count != 0)
+            throw new AggregateException("Actual priority-button cost verification failed.", failures);
+        Debug.Log("DIRECT_ORDER_COST_BATCH=PASS; cases=4; producer=StaffWorkPriorityPanel.Button.onClick");
+    }
+
+    public static void RunDirectOrderCostRegressionBatch()
+    {
+        var failures = new List<Exception>();
+        try { RunDirectOrderCostsBatch(); }
+        catch (Exception exception) { failures.Add(exception); }
+        try
+        {
+            if (!RunAll(true)) throw new InvalidOperationException("Existing work priority scenarios failed.");
+            Debug.Log("DIRECT_ORDER_PRIORITY_REGRESSION=PASS");
+        }
+        catch (Exception exception) { failures.Add(exception); }
+        if (failures.Count != 0)
+            throw new AggregateException("Direct-order cost regression failed.", failures);
+        Debug.Log("DIRECT_ORDER_COST_REGRESSION_BATCH=PASS; groups=2");
+    }
+
+    private static void VerifyDirectOrderCostThroughPriorityButton(string faultChannel)
+    {
+        const string actionTag = "order:defer-cleaning";
+        const string factorId = "identity:post-action:order:defer-cleaning";
+        CharacterActor actor = null;
+        GameObject panelObject = null;
+        try
+        {
+            actor = CreateCharacter("Owner_Orc");
+            actor.Progression.ApplyPreparedIdentity("Direct Order Cost Probe", "audit",
+                new[] { 245 }, CharacterPotentialGrade.Ordinary, 245,
+                autoChooseDrafts: false, ensureInitialDrafts: false);
+            CharacterTraitSO trait = actor.Progression.ResolveSelectedTraits().Single(value => value.id == 245);
+            string originalTrait = JsonUtility.ToJson(trait);
+            var router = new CharacterIdentityRuleRouter();
+            var costs = new CharacterDirectOrderCostPreviewService(router,
+                new CharacterMoodPolicyService(router, new CharacterPersistentNeedRuntime(
+                    new CharacterIdentityStateStore(), CharacterAiEditorTestDependencies.GameCalendar)));
+            CharacterDirectOrderCostPreview preview = costs.Preview(actor, actionTag);
+            if (!Mathf.Approximately(preview.MoodDelta, -2f)
+                || !Mathf.Approximately(preview.StressDelta, 3f)
+                || !preview.RuleIds.SequenceEqual(new[] { "post:defer-cleaning" }))
+                throw new InvalidOperationException("The authored direct-order rule was not resolved exactly.");
+
+            AbilityWork work = actor.GetAbility<AbilityWork>();
+            work.SetWorkPriority(BuiltInWorkTypeIds.Clean, WorkPriorityLevel.Priority1);
+            panelObject = new GameObject("Direct Order Priority Probe", typeof(RectTransform));
+            panelObject.SetActive(false);
+            var panel = panelObject.AddComponent<StaffWorkPriorityPanel>();
+            var workforce = new StaffWorkforceSceneAdapter(CharacterAiEditorTestDependencies.WorldRegistry);
+            panel.ConstructStaffWorkPriorityPanel(new StaffWorkPriorityPanelModelBuilder(
+                new StaffWorkforceRuntimeQueryServiceAdapter(workforce,
+                    new DungeonStory.Work.StaffWorkforceRuntimeQueryService(workforce))),
+                new StaffWorkPriorityPanelUiFactory(TMPKoreanFontEditorResolver.CreateService()),
+                new DungeonStory.Foundation.UnityUiClock());
+            panel.ConstructStaffWorkPriorityArcane(
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy.Create<ICharacterManaQuery>(),
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy.Create<IArcaneOverchargeCommand>(),
+                OffenseEditorTestDependencies.CreateCombatEquipmentRuntime(),
+                CharacterAiEditorTestDependencies.NeutralPerformance);
+            panel.ConstructStaffWorkPriorityIdentityCosts(costs);
+            panel.Refresh();
+            string cellName = $"Cell_{actor.GetInstanceID()}_{FacilityWorkType.Clean}";
+            Button button = panelObject.GetComponentsInChildren<Button>(true)
+                .Single(value => value.gameObject.name == cellName);
+            int oldButtonId = button.GetInstanceID();
+            CharacterLog log = actor.GetComponent<CharacterLog>();
+            int ActivityCount() => log.ActivityEntries.Count(value =>
+                value.ActionId == BuiltInWorkTypeIds.Clean.Value
+                && value.OutcomeId == CharacterActivityOutcomes.Changed
+                && value.ReasonCode == $"priority:{(int)WorkPriorityLevel.Priority2}");
+            int activitiesBefore = ActivityCount();
+            float stressBefore = actor.Lifecycle.ExpeditionRecovery.stress;
+            int activityCalls = 0;
+            int moodCalls = 0;
+            int faultCalls = 0;
+            void Fault(string channel)
+            {
+                if (channel == faultChannel || faultChannel == "both")
+                {
+                    faultCalls++;
+                    throw new InvalidOperationException("direct-order-observer-fault:" + channel);
+                }
+            }
+            Action<CharacterLogEntry> activity = entry =>
+            {
+                if (entry.Activity?.ActionId != BuiltInWorkTypeIds.Clean.Value
+                    || entry.Activity.OutcomeId != CharacterActivityOutcomes.Changed
+                    || entry.Activity.ReasonCode != $"priority:{(int)WorkPriorityLevel.Priority2}") return;
+                activityCalls++;
+                Fault("activity");
+            };
+            Action<CharacterMoodSnapshot> mood = _ =>
+            {
+                if (!actor.Mood.Factors.Any(value => value.Id == factorId)) return;
+                moodCalls++;
+                Fault("mood");
+            };
+            Exception observed = null;
+            log.OnLogAdded += activity;
+            actor.Stats.OnMoodChange += mood;
+            try { button.onClick.Invoke(); }
+            catch (Exception exception) { observed = exception; }
+            finally
+            {
+                log.OnLogAdded -= activity;
+                actor.Stats.OnMoodChange -= mood;
+            }
+            Exception[] errors = observed is AggregateException aggregate
+                ? aggregate.Flatten().InnerExceptions.ToArray()
+                : observed == null ? Array.Empty<Exception>() : new[] { observed };
+            string[] expectedErrors = faultChannel == "none" ? Array.Empty<string>()
+                : faultChannel == "both" ? new[] { "activity", "mood" } : new[] { faultChannel };
+            bool exactError = faultCalls == expectedErrors.Length
+                && errors.Select(value => value.Message).OrderBy(value => value, StringComparer.Ordinal)
+                    .SequenceEqual(expectedErrors.Select(value => "direct-order-observer-fault:" + value)
+                        .OrderBy(value => value, StringComparer.Ordinal));
+            var facts = actor.Progression.NarrativeLedger.Facts.Where(value =>
+                value.domain == CharacterNarrativeDomain.Mood && value.factId == factorId).ToArray();
+            float stressDelta = actor.Lifecycle.ExpeditionRecovery.stress - stressBefore;
+            int factors = actor.Mood.Factors.Count(value => value.Id == factorId);
+            bool moodExact = factors == 1 && facts.Length == 1 && facts[0].count == 1
+                && Mathf.Approximately(actor.Mood.Factors.Single(value => value.Id == factorId).Value, -2f)
+                && Mathf.Approximately(facts[0].totalValue, -2f);
+            bool priorityExact = work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Clean)
+                == WorkPriorityLevel.Priority2;
+            Debug.Log("DIRECT_ORDER_COST_WITNESS=" + Newtonsoft.Json.JsonConvert.SerializeObject(new
+            {
+                faultChannel, priorityExact, stressBefore, stressDelta, factors, moodExact,
+                activityStored = ActivityCount() - activitiesBefore, activityCalls, moodCalls,
+                faultCalls, exactError, errors = errors.Select(value => value.Message).ToArray(),
+                authoredTraitUnchanged = JsonUtility.ToJson(trait) == originalTrait
+            }));
+            if (!priorityExact || !Mathf.Approximately(stressDelta, 3f) || !moodExact
+                || ActivityCount() - activitiesBefore != 1 || activityCalls != 1 || moodCalls != 1
+                || !exactError || JsonUtility.ToJson(trait) != originalTrait)
+                throw new InvalidOperationException($"Priority cost was incomplete or duplicated after {faultChannel} notification.");
+
+            // Each click is a new command, not a retry or a replay identity.
+            Button nextButton = panelObject.GetComponentsInChildren<Button>(true)
+                .Single(value => value.gameObject.name == cellName);
+            if (nextButton.GetInstanceID() == oldButtonId)
+                throw new InvalidOperationException("The priority UI did not refresh after the accepted command.");
+            int nextActivitiesBefore = log.ActivityEntries.Count(value =>
+                value.ActionId == BuiltInWorkTypeIds.Clean.Value
+                && value.OutcomeId == CharacterActivityOutcomes.Changed
+                && value.ReasonCode == $"priority:{(int)WorkPriorityLevel.Priority3}");
+            nextButton.onClick.Invoke();
+            var nextFact = actor.Progression.NarrativeLedger.Facts.Single(value =>
+                value.domain == CharacterNarrativeDomain.Mood && value.factId == factorId);
+            if (work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Clean) != WorkPriorityLevel.Priority3
+                || !Mathf.Approximately(actor.Lifecycle.ExpeditionRecovery.stress - stressBefore, 6f)
+                || nextFact.count != 2 || !Mathf.Approximately(nextFact.totalValue, -4f)
+                || log.ActivityEntries.Count(value => value.ActionId == BuiltInWorkTypeIds.Clean.Value
+                    && value.OutcomeId == CharacterActivityOutcomes.Changed
+                    && value.ReasonCode == $"priority:{(int)WorkPriorityLevel.Priority3}") - nextActivitiesBefore != 1)
+                throw new InvalidOperationException("The next real button command lost or duplicated its cost.");
+            Debug.Log($"DIRECT_ORDER_NEXT_COMMAND=PASS; faultChannel={faultChannel}; stressDelta=6; moodCount=2; moodTotal=-4");
+
+            if (faultChannel == "none")
+            {
+                work.SetWorkPriority(BuiltInWorkTypeIds.Clean, WorkPriorityLevel.Off);
+                panel.Refresh();
+                panelObject.GetComponentsInChildren<Button>(true)
+                    .Single(value => value.gameObject.name == cellName).onClick.Invoke();
+                WorkPriorityLevel previousOther = work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Operate);
+                string otherCell = $"Cell_{actor.GetInstanceID()}_{FacilityWorkType.Operate}";
+                panelObject.GetComponentsInChildren<Button>(true)
+                    .Single(value => value.gameObject.name == otherCell).onClick.Invoke();
+                var afterControls = actor.Progression.NarrativeLedger.Facts.Single(value =>
+                    value.domain == CharacterNarrativeDomain.Mood && value.factId == factorId);
+                if (work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Clean) != WorkPriorityLevel.Priority1
+                    || work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Operate) != previousOther.Next()
+                    || !Mathf.Approximately(actor.Lifecycle.ExpeditionRecovery.stress - stressBefore, 6f)
+                    || afterControls.count != 2 || !Mathf.Approximately(afterControls.totalValue, -4f))
+                    throw new InvalidOperationException("A non-deferred-cleaning priority change was charged.");
+                Debug.Log("DIRECT_ORDER_ZERO_COST_BOUNDARIES=PASS; cleanOffToPriority1=true; otherWork=true");
+            }
+            if (JsonUtility.ToJson(trait) != originalTrait)
+                throw new InvalidOperationException("A priority command mutated the authored trait.");
+        }
+        finally
+        {
+            if (panelObject != null) Object.DestroyImmediate(panelObject);
+            if (actor != null) Object.DestroyImmediate(actor.gameObject);
+        }
+    }
+
     [MenuItem("DungeonStory/Debug/Character/Run P1 Work Priority Scenarios")]
     public static void RunFromMenu()
     {
@@ -92,7 +297,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyDisabledWorkIsExcluded()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        BuildableObject lab = world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor character = CreateCharacter("Owner_Vampire");
         AbilityWork work = character.GetAbility<AbilityWork>();
 
@@ -125,12 +330,17 @@ public static class WorkPriorityDebugScenarios
             researchRuntime.EnqueueBlueprint(AssetDatabase.LoadAssetAtPath<FacilityBlueprintSO>(
                 "Assets/Resources/SO/Blueprint/P1/BP_SupportBasics.asset"));
             world = new WorkScenarioWorld(researchRuntime);
-            BuildableObject training = world.Place(
-                "P1_TrainingRoom",
+            // Training dummies expose Operate/Repair, not Guard. Compare two
+            // authored, admissible jobs rather than expecting an unsupported one.
+            BuildableObject guardPost = world.Place(
+                "G01_경비초소책상",
                 new Vector2Int(2, 0));
             BuildableObject lab = world.Place(
-                "P1_ResearchLab",
+                "Q01_연구책상",
                 new Vector2Int(6, 0));
+            if (!guardPost.SupportsWork(BuiltInWorkTypeIds.Guard)
+                || !lab.SupportsWork(BuiltInWorkTypeIds.Research))
+                throw new InvalidOperationException("Species priority fixture requires real Guard and Research work capabilities.");
             GridPathSearchResult search = world.Grid.SearchPath(Vector2Int.zero);
 
             orc = CreateCharacter("Owner_Orc", researchRuntime);
@@ -149,7 +359,7 @@ public static class WorkPriorityDebugScenarios
             BuildableObject vampireTarget = vampireWork.assignedShop;
             bool valid = orcAssigned
                 && vampireAssigned
-                && orcTarget == training
+                && orcTarget == guardPost
                 && vampireTarget == lab;
 
             if (!valid)
@@ -157,9 +367,9 @@ public static class WorkPriorityDebugScenarios
                 Debug.LogError(
                     $"Species work preference detail: " +
                     $"researchActive={researchRuntime.HasActiveResearch}, " +
-                    $"training={(training != null ? training.name : "null")}, " +
+                    $"guardPost={(guardPost != null ? guardPost.name : "null")}, " +
                     $"lab={(lab != null ? lab.name : "null")}, " +
-                    $"trainingGuard={training != null && training.SupportsWork(BuiltInWorkTypeIds.Guard)}, " +
+                    $"guardPostGuard={guardPost != null && guardPost.SupportsWork(BuiltInWorkTypeIds.Guard)}, " +
                     $"labResearch={lab != null && lab.SupportsWork(BuiltInWorkTypeIds.Research)}, " +
                     $"labHasResearchWork={lab != null && lab.SupportsWork(BuiltInWorkTypeIds.Research) && researchRuntime.HasActiveResearch}, " +
                     $"orcAssigned={orcAssigned}, " +
@@ -189,8 +399,8 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyDamagedFacilityUrgency()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject normal = world.Place("P1_RestRoom", new Vector2Int(2, 0));
-        BuildableObject damaged = world.Place("P1_RestRoom", new Vector2Int(6, 0));
+        BuildableObject normal = world.Place("R01_간이침대", new Vector2Int(2, 0));
+        BuildableObject damaged = world.Place("R01_간이침대", new Vector2Int(6, 0));
         damaged.SetDamaged(true);
 
         CharacterActor slime = CreateCharacter("Owner_Slime");
@@ -208,7 +418,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyUndamagedRepairIsExcluded()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject normal = world.Place("P1_RestRoom", new Vector2Int(2, 0));
+        BuildableObject normal = world.Place("R01_간이침대", new Vector2Int(2, 0));
 
         CharacterActor slime = CreateCharacter("Owner_Slime");
         AbilityWork work = slime.GetAbility<AbilityWork>();
@@ -240,7 +450,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyFatigueProtection()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor vampire = CreateCharacter("Owner_Vampire");
         vampire.stats[CharacterCondition.SLEEP] = 0f;
         AbilityWork work = vampire.GetAbility<AbilityWork>();
@@ -255,7 +465,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyRestProtectionHysteresis()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        world.Place("P1_ResearchLab", new Vector2Int(2, 0));
+        world.Place("Q01_연구책상", new Vector2Int(2, 0));
         CharacterActor vampire = CreateCharacter("Owner_Vampire");
         AbilityWork work = vampire.GetAbility<AbilityWork>();
 
@@ -274,8 +484,8 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyRestockWithoutWarehouseSupplyIsExcluded()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject shopBuilding = world.Place("P1_LowFoodShop", new Vector2Int(2, 0));
-        BuildableObject warehouseBuilding = world.Place("P1_Warehouse", new Vector2Int(8, 0));
+        BuildableObject shopBuilding = world.Place("S01_판매카운터", new Vector2Int(2, 0));
+        BuildableObject warehouseBuilding = world.Place("L01_대형보관선반", new Vector2Int(8, 0));
         Shop shop = shopBuilding as Shop;
         IWarehouseFacility warehouse = warehouseBuilding as IWarehouseFacility;
         CharacterActor slime = CreateCharacter("Owner_Slime");
@@ -318,7 +528,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyUrgentWorkOverridesRestProtection()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject damaged = world.Place("P1_RestRoom", new Vector2Int(2, 0));
+        BuildableObject damaged = world.Place("R01_간이침대", new Vector2Int(2, 0));
         damaged.SetDamaged(true);
 
         CharacterActor slime = CreateCharacter("Owner_Slime");
@@ -473,7 +683,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyWorkContinuationIgnoresTransientBestActionLoss()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject training = world.Place("P1_TrainingRoom", new Vector2Int(2, 0));
+        BuildableObject training = world.Place("T01_훈련허수아비", new Vector2Int(2, 0));
         CharacterActor worker = CreateCharacter("Owner_Slime");
         AbilityWork work = worker.GetAbility<AbilityWork>();
 
@@ -504,7 +714,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyDisablingCurrentWorkPriorityStopsWork()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject training = world.Place("P1_TrainingRoom", new Vector2Int(2, 0));
+        BuildableObject training = world.Place("T01_훈련허수아비", new Vector2Int(2, 0));
         CharacterActor worker = CreateCharacter("Owner_Slime");
         AbilityWork work = worker.GetAbility<AbilityWork>();
 
@@ -538,7 +748,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyUnrelatedPriorityChangeKeepsCurrentWork()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject training = world.Place("P1_TrainingRoom", new Vector2Int(2, 0));
+        BuildableObject training = world.Place("T01_훈련허수아비", new Vector2Int(2, 0));
         CharacterActor worker = CreateCharacter("Owner_Slime");
         AbilityWork work = worker.GetAbility<AbilityWork>();
 
@@ -568,7 +778,7 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyInterruptedOperationIsNotCompleted()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject training = world.Place("P1_TrainingRoom", new Vector2Int(2, 0));
+        BuildableObject training = world.Place("T01_훈련허수아비", new Vector2Int(2, 0));
         CharacterActor worker = CreateCharacter("Owner_Slime");
         AbilityWork work = worker.GetAbility<AbilityWork>();
 
@@ -609,8 +819,8 @@ public static class WorkPriorityDebugScenarios
     private static bool VerifyRaisedBestPriorityReplansCurrentWork()
     {
         using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject training = world.Place("P1_TrainingRoom", new Vector2Int(2, 0));
-        BuildableObject damaged = world.Place("P1_RestRoom", new Vector2Int(6, 0));
+        BuildableObject training = world.Place("T01_훈련허수아비", new Vector2Int(2, 0));
+        BuildableObject damaged = world.Place("R01_간이침대", new Vector2Int(6, 0));
         damaged.SetDamaged(true);
         CharacterActor worker = CreateCharacter("Owner_Slime");
         AbilityWork work = worker.GetAbility<AbilityWork>();
@@ -781,7 +991,7 @@ public static class WorkPriorityDebugScenarios
         public BuildableObject Place(string assetName, Vector2Int position)
         {
             BuildingSO buildingData = AssetDatabase.LoadAssetAtPath<BuildingSO>(
-                $"Assets/Resources/SO/Building/P1/{assetName}.asset");
+                $"Assets/Resources/SO/Building/Modular/{assetName}.asset");
             GridBuildingFactory factory = new GridBuildingFactory();
             BuildableObject building = factory.Create(Grid, buildingData, position);
             objects.Add(building.gameObject);

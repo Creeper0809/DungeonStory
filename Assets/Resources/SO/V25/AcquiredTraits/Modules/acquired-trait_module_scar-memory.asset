@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa10b2a63b654e309daf38d4e7e5ecdc, type: 3}
+  m_Name: acquired-trait_module_scar-memory
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterAcquiredTraitModuleSO
+  moduleId: acquired-trait:module:scar-memory
+  displayName: "\uC0C1\uD754\uC758 \uAE30\uC5B5"
+  description: "\uD798\uB4E0 \uAE30\uC5B5\uC744 \uACAC\uB518 \uACBD\uD5D8\uC774 \uBD80\uC815\uC801\uC778
+    \uAE30\uBD84\uC758 \uC9C0\uC18D \uC2DC\uAC04\uC744 \uC870\uAE08 \uC904\uC785\uB2C8\uB2E4."
+  cost: 2
+  conflictGroups: []
+  domainAffinities: 0500000003000000
+  effects:
+  - bindingId: acquired-trait:module:scar-memory:effect:0
+    definition: {fileID: 11400000, guid: a7ef984985d95a54899b99eaae3746c5, type: 2}
+    value: 0.96
+    condition: {fileID: 0}
+  drawbackBindingIds: []
+  specialReactions:
+  - reactionId: acquired-trait:reaction:accident-composure
+    trigger: 1
+    ownerRole: 0
+    condition: 2
+    action: 1
+    baseValue: 1.5
+    durationDays: 1
+    cooldownDays: 2
+    maximumTriggersPerDay: 1
+    maximumLifetimeTriggers: 0
+    displayLabel: "\uC0AC\uACE0 \uB4A4\uC758 \uCE68\uCC29"
+  capabilityId: acquired-trait:acquired-trait:module:scar-memory
+  formula:
+    appliedParameterIds:
+    - magnitude
+    baseCost: 2
+    triggerFrequencyCostPerUnit: 1
+    guaranteedProcCost: 1
+    areaCostPerExtraTarget: 1
+    multiEffectCostPerExtraEffect: 1
+    pairSynergyCosts: []
+    narrativeAffinity: 1
+    affinityKeys:
+    - Injury
+    - Mood
+    conflictGroups:
+    - capability:acquired-trait:acquired-trait:module:scar-memory
+    forbiddenSynergies: []
+    formatterId: acquired-trait:acquired-trait:module:scar-memory
+    applicatorId: acquired-trait:acquired-trait:module:scar-memory
+    parameterRanges:
+    - parameterId: magnitude
+      minimumUnits: 10000
+      maximumUnits: 14000
+      quantumUnits: 1000
+      decimalPlaces: 4
+      costPerQuantum: 1
+    - parameterId: duration
+      minimumUnits: 0
+      maximumUnits: 0
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: count
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1
+    - parameterId: targetCount
+      minimumUnits: 1
+      maximumUnits: 1
+      quantumUnits: 1
+      decimalPlaces: 0
+      costPerQuantum: 1

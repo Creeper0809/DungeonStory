@@ -10,7 +10,8 @@ public readonly struct CharacterDeathEvent
         CharacterDeathCauseCode cause,
         int absoluteDay,
         CoreGridCell location,
-        IEnumerable<CharacterId> witnessIds)
+        IEnumerable<CharacterId> witnessIds,
+        string parentPublicationKey = "")
     {
         if (!characterId.IsValid)
         {
@@ -25,16 +26,22 @@ public readonly struct CharacterDeathEvent
                 nameof(absoluteDay),
                 "A death event requires a positive absolute day.");
         }
+        if (!Enum.IsDefined(typeof(CharacterDeathCauseCode), cause))
+            throw new ArgumentOutOfRangeException(nameof(cause));
 
         CharacterId = characterId;
         Cause = cause;
         AbsoluteDay = absoluteDay;
         Location = location;
-        WitnessIds = (witnessIds ?? Array.Empty<CharacterId>())
+        WitnessIds = Array.AsReadOnly((witnessIds ?? Array.Empty<CharacterId>())
             .Where(value => value.IsValid && !value.Equals(characterId))
             .Distinct()
             .OrderBy(value => value.Value, StringComparer.Ordinal)
-            .ToArray();
+            .ToArray());
+        if (parentPublicationKey == null || parentPublicationKey.Length > 0
+            && string.IsNullOrWhiteSpace(parentPublicationKey))
+            throw new ArgumentException("A death publication reference cannot be null or whitespace.");
+        ParentPublicationKey = parentPublicationKey;
     }
 
     public CharacterId CharacterId { get; }
@@ -42,6 +49,8 @@ public readonly struct CharacterDeathEvent
     public int AbsoluteDay { get; }
     public CoreGridCell Location { get; }
     public IReadOnlyList<CharacterId> WitnessIds { get; }
+    // Opaque correlation only. The observer resolves its canonical record, not this event.
+    public string ParentPublicationKey { get; }
 
     public CharacterLifeDeathRecord ToLifeRecord() => new(
         CharacterId,
@@ -56,6 +65,10 @@ public interface ICharacterDeathEventFactory
     CharacterDeathEvent Create(
         CharacterActor actor,
         CharacterDeathCauseCode cause);
+    CharacterDeathEvent Create(
+        CharacterActor actor,
+        CharacterDeathCauseCode cause,
+        string parentPublicationKey);
 }
 
 public sealed class CharacterDeathEventFactory : ICharacterDeathEventFactory
@@ -75,7 +88,15 @@ public sealed class CharacterDeathEventFactory : ICharacterDeathEventFactory
 
     public CharacterDeathEvent Create(
         CharacterActor actor,
-        CharacterDeathCauseCode cause)
+        CharacterDeathCauseCode cause) => Create(
+        actor,
+        cause,
+        string.Empty);
+
+    public CharacterDeathEvent Create(
+        CharacterActor actor,
+        CharacterDeathCauseCode cause,
+        string parentPublicationKey)
     {
         CharacterId characterId = CharacterPersistentIdentity.Require(actor);
         Vector2Int position = actor.GetNowXY();
@@ -93,7 +114,8 @@ public sealed class CharacterDeathEventFactory : ICharacterDeathEventFactory
             cause,
             calendar.Day,
             new CoreGridCell(position.x, position.y),
-            witnesses);
+            witnesses,
+            parentPublicationKey);
     }
 
     private static int Manhattan(Vector2Int left, Vector2Int right) =>

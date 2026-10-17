@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Unity.Profiling;
 using UnityEngine;
@@ -200,6 +201,52 @@ internal sealed class CharacterSafeDrinkPlanner
         stockCandidates.Clear();
         pendingExactPathTraceByActor.Clear();
     }
+
+    public int ResetAfterWorldRestore()
+    {
+        // These leases belong to transient AI actions, not to a consumption
+        // receipt. A replacement actor replans; it must not inherit an orphan
+        // claim from the retired action's epoch.
+        int released = ReleaseRestoredActionReservations(itemStackRuntime.GetAllStacks(), quantityReservations);
+        Reset();
+        return released;
+    }
+
+    internal static int ReleaseRestoredActionReservations(
+        IReadOnlyList<WorldItemStackSnapshot> stacks, IItemQuantityReservationService reservations)
+    {
+        if (stacks == null) throw new ArgumentNullException(nameof(stacks));
+        if (reservations == null) throw new ArgumentNullException(nameof(reservations));
+        if (reservations is IItemReservationMutationGate gate && gate.BlocksNewReservations)
+            throw new InvalidOperationException("Safe-drink action retirement requires a completed world restore.");
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (WorldItemStackSnapshot stack in stacks)
+        {
+            if (stack == null) continue;
+            foreach (ItemQuantityLease lease in reservations.GetLeasesForStack(new ItemStackId(stack.StackId)))
+            {
+                if (lease == null || lease.purpose != ItemReservationPurpose.PersonalConsumption
+                    || string.IsNullOrWhiteSpace(lease.ownerCharacterId)) continue;
+                string cohort = "safe-drink:" + lease.ownerCharacterId;
+                string prefix = cohort + ":";
+                if (lease.aggregationCohortId != cohort
+                    || lease.ownerOperationId == null
+                    || !lease.ownerOperationId.StartsWith(prefix, StringComparison.Ordinal)
+                    || !long.TryParse(lease.ownerOperationId.Substring(prefix.Length),
+                        NumberStyles.None, CultureInfo.InvariantCulture, out long epoch)
+                    || lease.ownerOperationId != ItemReservationOwnerId(lease.ownerCharacterId, epoch)) continue;
+                ids.Add(lease.leaseId);
+            }
+        }
+        int released = 0;
+        foreach (string id in ids)
+            if (reservations.Release(id, ItemReservationReleaseReason.WorldRestore)) released++;
+        return released;
+    }
+
+    internal static string ItemReservationOwnerId(string actorId, long epoch) =>
+        "safe-drink:" + actorId + ":" + epoch.ToString("D16", CultureInfo.InvariantCulture);
+
     public bool TryCreatePlan(
         CharacterActor actor,
         string actorId,
@@ -246,8 +293,7 @@ internal sealed class CharacterSafeDrinkPlanner
                 }
             }
 
-            string operationId =
-                $"safe-drink:{actorId}:{(actor.Brain?.RuntimeActionEpoch ?? 0L):D16}";
+            string operationId = ItemReservationOwnerId(actorId, actor.Brain?.RuntimeActionEpoch ?? 0L);
             if (stackSnapshot == null
                 || !quantityReservations.TryReserve(
                     operationId,

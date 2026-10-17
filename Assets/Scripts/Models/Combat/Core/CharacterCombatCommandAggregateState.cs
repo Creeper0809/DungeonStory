@@ -12,6 +12,7 @@ public sealed class CharacterCombatCommandAggregateState
     public Dictionary<string, int> CommandRevisions { get; } =
         new(StringComparer.Ordinal);
     public int CommandSequence { get; set; }
+    public List<CombatCellShotPendingData> PendingCellShots { get; } = new();
 
     public CharacterCombatCommandAggregateState Clone()
     {
@@ -28,6 +29,7 @@ public sealed class CharacterCombatCommandAggregateState
         {
             clone.CommandRevisions.Add(pair.Key, pair.Value);
         }
+        foreach (var pending in PendingCellShots) clone.PendingCellShots.Add(pending.Clone());
 
         return clone;
     }

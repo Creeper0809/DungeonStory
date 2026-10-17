@@ -1,0 +1,18 @@
+{
+  "center": {
+    "kind": "item",
+    "slug": "surgery-prosthetic-torso",
+    "spoiler_tier": "none",
+    "title": "골격 보강 몸통"
+  },
+  "edges": [
+    {
+      "amount": "1",
+      "from": "recipe/recipe-surgery-reinforced-torso",
+      "label": "생산·해금",
+      "to": "item/surgery-prosthetic-torso",
+      "type": "produces-or-unlocks"
+    }
+  ],
+  "schema_version": 1
+}

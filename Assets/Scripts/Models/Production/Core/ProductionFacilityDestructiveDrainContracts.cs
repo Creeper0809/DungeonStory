@@ -107,6 +107,10 @@ public static class ProductionFacilityDestructiveDrainParticipantIds
         "physical-custody-carry-recovery";
     public const string StockSensorEmbeddedSalvage =
         "stock-sensor-embedded-salvage";
+    public const string EnvironmentalFireDamageOutcome =
+        "environmental-fire-damage-outcome";
+    public const string BuildingDemolitionOutcome =
+        "building-demolition-outcome";
 }
 
 public static class ProductionFacilityDestructiveDrainOwnerStableIds
@@ -131,6 +135,12 @@ public static class ProductionFacilityDestructiveDrainOwnerStableIds
 
     public static string StockSensor(string facilityId) =>
         Build("stock-sensor", facilityId);
+
+    public static string EnvironmentalFireDamage(string operationId) =>
+        Build("fire-damage", operationId);
+
+    public static string BuildingDemolition(string operationId) =>
+        Build("building-demolition", operationId);
 
     private static string Build(string kind, string sourceId)
     {
@@ -161,6 +171,95 @@ public enum ProductionFacilityDestructiveDrainRecoveryAction
     Conflict = 3
 }
 
+public readonly struct ProductionFacilityDestructiveDrainOutcomeSnapshot
+{
+    public const int CurrentVersion = 1;
+
+    public ProductionFacilityDestructiveDrainOutcomeSnapshot(
+        string buildingDefinitionId,
+        string buildingDisplayName,
+        int positionX,
+        int positionY,
+        int absoluteDay,
+        long ownerRevision)
+    {
+        if (!ProductionFacilityDestructiveDrainCanonical.IsCanonicalToken(
+                buildingDefinitionId)
+            || string.IsNullOrWhiteSpace(buildingDisplayName)
+            || !string.Equals(
+                buildingDisplayName,
+                buildingDisplayName.Trim(),
+                StringComparison.Ordinal)
+            || absoluteDay < 1
+            || ownerRevision <= 0L)
+        {
+            throw new ArgumentException(
+                "A destructive-drain outcome snapshot is invalid.");
+        }
+        Version = CurrentVersion;
+        BuildingDefinitionId = buildingDefinitionId;
+        BuildingDisplayName = buildingDisplayName;
+        PositionX = positionX;
+        PositionY = positionY;
+        AbsoluteDay = absoluteDay;
+        OwnerRevision = ownerRevision;
+    }
+
+    internal ProductionFacilityDestructiveDrainOutcomeSnapshot(
+        int version,
+        string buildingDefinitionId,
+        string buildingDisplayName,
+        int positionX,
+        int positionY,
+        int absoluteDay,
+        long ownerRevision)
+    {
+        Version = version;
+        BuildingDefinitionId = buildingDefinitionId ?? string.Empty;
+        BuildingDisplayName = buildingDisplayName ?? string.Empty;
+        PositionX = positionX;
+        PositionY = positionY;
+        AbsoluteDay = absoluteDay;
+        OwnerRevision = ownerRevision;
+    }
+
+    public int Version { get; }
+    public string BuildingDefinitionId { get; }
+    public string BuildingDisplayName { get; }
+    public int PositionX { get; }
+    public int PositionY { get; }
+    public int AbsoluteDay { get; }
+    public long OwnerRevision { get; }
+    public bool IsPresent => Version != 0;
+    public bool IsValid => Version == CurrentVersion
+        && ProductionFacilityDestructiveDrainCanonical.IsCanonicalToken(
+            BuildingDefinitionId)
+        && !string.IsNullOrWhiteSpace(BuildingDisplayName)
+        && string.Equals(
+            BuildingDisplayName,
+            BuildingDisplayName.Trim(),
+            StringComparison.Ordinal)
+        && AbsoluteDay >= 1
+        && OwnerRevision > 0L;
+
+    public string ComputeFingerprint(BuildingInstanceId facilityId)
+    {
+        if (!facilityId.IsValid || !IsValid)
+            throw new InvalidOperationException(
+                "A valid demolition snapshot is required for fingerprinting.");
+        CanonicalSemanticDigestBuilder digest = new();
+        digest.Append("building-demolition-outcome-snapshot@1");
+        digest.Append(facilityId.Value);
+        digest.Append(BuildingDefinitionId);
+        digest.Append(BuildingDisplayName);
+        digest.Append(PositionX);
+        digest.Append(PositionY);
+        digest.Append(AbsoluteDay);
+        digest.Append(OwnerRevision);
+        return digest.ComputeSha256();
+    }
+}
+
 public readonly struct ProductionFacilityDestructiveDrainPrepareContext
 {
     public ProductionFacilityDestructiveDrainPrepareContext(
@@ -168,7 +267,9 @@ public readonly struct ProductionFacilityDestructiveDrainPrepareContext
         ProductionFacilityDestructiveDrainCause cause,
         BuildingInstanceId facilityId,
         ProductionOutputDestinationId destinationId,
-        string durableLifecycleFingerprint)
+        string durableLifecycleFingerprint,
+        ProductionFacilityDestructiveDrainOutcomeSnapshot outcomeSnapshot =
+            default)
     {
         if (!operationId.IsValid
             || !facilityId.IsValid
@@ -188,6 +289,7 @@ public readonly struct ProductionFacilityDestructiveDrainPrepareContext
         FacilityId = facilityId;
         DestinationId = destinationId;
         DurableLifecycleFingerprint = durableLifecycleFingerprint;
+        OutcomeSnapshot = outcomeSnapshot;
     }
 
     public ProductionFacilityDestructiveDrainOperationId OperationId { get; }
@@ -195,6 +297,8 @@ public readonly struct ProductionFacilityDestructiveDrainPrepareContext
     public BuildingInstanceId FacilityId { get; }
     public ProductionOutputDestinationId DestinationId { get; }
     public string DurableLifecycleFingerprint { get; }
+    public ProductionFacilityDestructiveDrainOutcomeSnapshot OutcomeSnapshot
+    { get; }
 }
 
 public readonly struct ProductionFacilityDestructiveDrainOwnerPlan
@@ -289,7 +393,9 @@ public readonly struct ProductionFacilityDestructiveDrainStepContext
         BuildingInstanceId facilityId,
         string participantId,
         ProductionFacilityDestructiveDrainOwnerSaveData owner,
-        string expectedDurableContributionFingerprint)
+        string expectedDurableContributionFingerprint,
+        ProductionFacilityDestructiveDrainOutcomeSnapshot outcomeSnapshot =
+            default)
     {
         if (!operationId.IsValid
             || !facilityId.IsValid
@@ -308,6 +414,7 @@ public readonly struct ProductionFacilityDestructiveDrainStepContext
         Owner = owner.Clone();
         ExpectedDurableContributionFingerprint =
             expectedDurableContributionFingerprint;
+        OutcomeSnapshot = outcomeSnapshot;
     }
 
     public ProductionFacilityDestructiveDrainOperationId OperationId { get; }
@@ -315,6 +422,8 @@ public readonly struct ProductionFacilityDestructiveDrainStepContext
     public string ParticipantId { get; }
     public ProductionFacilityDestructiveDrainOwnerSaveData Owner { get; }
     public string ExpectedDurableContributionFingerprint { get; }
+    public ProductionFacilityDestructiveDrainOutcomeSnapshot OutcomeSnapshot
+    { get; }
 }
 
 public readonly struct ProductionFacilityDestructiveDrainStepResult
@@ -402,6 +511,14 @@ public interface IProductionFacilityDestructiveDrainDurablePrepareParticipant
         out string failureReason);
 }
 
+public interface IProductionFacilityDestructiveDrainPostWorldRemovalFinalizer
+{
+    string ParticipantId { get; }
+    bool TryFinalizeAfterWorldRemoval(
+        ProductionFacilityDestructiveDrainEntrySaveData entry,
+        out string failureReason);
+}
+
 public interface IProductionFacilityDestructiveDrainParticipantRegistry
 {
     string RegistryFingerprint { get; }
@@ -473,8 +590,25 @@ public sealed class ProductionFacilityDestructiveDrainEntrySaveData
     public string preparedLifecycleFingerprint = string.Empty;
     public string expectedCurrentLifecycleFingerprint = string.Empty;
     public long revision;
+    public int outcomeSnapshotVersion;
+    public string outcomeBuildingDefinitionId = string.Empty;
+    public string outcomeBuildingDisplayName = string.Empty;
+    public int outcomePositionX;
+    public int outcomePositionY;
+    public int outcomeAbsoluteDay;
+    public long outcomeOwnerRevision;
     public List<ProductionFacilityDestructiveDrainParticipantSaveData>
         participants = new();
+
+    public ProductionFacilityDestructiveDrainOutcomeSnapshot OutcomeSnapshot =>
+        new(
+            outcomeSnapshotVersion,
+            outcomeBuildingDefinitionId,
+            outcomeBuildingDisplayName,
+            outcomePositionX,
+            outcomePositionY,
+            outcomeAbsoluteDay,
+            outcomeOwnerRevision);
 
     public ProductionFacilityDestructiveDrainEntrySaveData Clone() => new()
     {
@@ -487,6 +621,13 @@ public sealed class ProductionFacilityDestructiveDrainEntrySaveData
         preparedLifecycleFingerprint = preparedLifecycleFingerprint,
         expectedCurrentLifecycleFingerprint = expectedCurrentLifecycleFingerprint,
         revision = revision,
+        outcomeSnapshotVersion = outcomeSnapshotVersion,
+        outcomeBuildingDefinitionId = outcomeBuildingDefinitionId,
+        outcomeBuildingDisplayName = outcomeBuildingDisplayName,
+        outcomePositionX = outcomePositionX,
+        outcomePositionY = outcomePositionY,
+        outcomeAbsoluteDay = outcomeAbsoluteDay,
+        outcomeOwnerRevision = outcomeOwnerRevision,
         participants = (participants
                 ?? new List<
                     ProductionFacilityDestructiveDrainParticipantSaveData>())
@@ -497,7 +638,7 @@ public sealed class ProductionFacilityDestructiveDrainEntrySaveData
 [Serializable]
 public sealed class DungeonProductionFacilityDestructiveDrainSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 5;
 
     public int version = CurrentVersion;
     public string registryFingerprint = string.Empty;
@@ -584,6 +725,7 @@ public interface IProductionFacilityDestructiveDrainJournalCommand
         BuildingInstanceId facilityId,
         string initiatingMutationOperationId,
         string preparedLifecycleFingerprint,
+        ProductionFacilityDestructiveDrainOutcomeSnapshot outcomeSnapshot,
         IReadOnlyList<ProductionFacilityDestructiveDrainParticipantSaveData>
             participants,
         out ProductionFacilityDestructiveDrainEntrySaveData entry,
@@ -664,7 +806,9 @@ public interface IProductionFacilityDestructiveDrainCoordinator
 {
     ProductionFacilityDestructiveDrainDriveResult DriveToAuthorityRevoke(
         ProductionFacilityDestructiveDrainCause cause,
-        BuildingInstanceId facilityId);
+        BuildingInstanceId facilityId,
+        ProductionFacilityDestructiveDrainOutcomeSnapshot outcomeSnapshot =
+            default);
 
     ProductionFacilityDestructiveDrainDriveResult RecordAuthorityRevoked(
         ProductionFacilityDestructiveDrainOperationId operationId);

@@ -330,10 +330,18 @@ public sealed class CharacterGriefAggregate
         memorialResolveAmount = MemorialResolveAmount,
         memorialResolveExpiresDay = MemorialResolveExpiresDay,
         lastLongNightMemorialYear = LastLongNightMemorialYear,
-        grief = grief.Values.OrderBy(value => value.deceasedCharacterId, StringComparer.Ordinal).ToList(),
-        recentTraumaEvents = traumaEvents.OrderBy(value => value.absoluteDay).ToList(),
+        grief = grief.Values
+            .OrderBy(value => value.deceasedCharacterId, StringComparer.Ordinal)
+            .Select(Clone)
+            .ToList(),
+        recentTraumaEvents = traumaEvents
+            .OrderBy(value => value.absoluteDay)
+            .Select(Clone)
+            .ToList(),
         compressedTraumaByType = compressedTrauma.Values
-            .OrderBy(value => value.eventType, StringComparer.Ordinal).ToList(),
+            .OrderBy(value => value.eventType, StringComparer.Ordinal)
+            .Select(Clone)
+            .ToList(),
         festivalAttendance = festivalAttendance
             .OrderBy(value => value.Key, StringComparer.Ordinal)
             .Select(value => new FestivalAttendanceSaveData
@@ -341,6 +349,25 @@ public sealed class CharacterGriefAggregate
                 festivalId = value.Key,
                 year = value.Value
             }).ToList()
+    };
+
+    private static GriefIncidentSaveData Clone(GriefIncidentSaveData source) => new()
+    {
+        deceasedCharacterId = source.deceasedCharacterId,
+        relationship = source.relationship,
+        deathAbsoluteDay = source.deathAbsoluteDay,
+        durationDays = source.durationDays,
+        initialPenalty = source.initialPenalty,
+        remainingMultiplier = source.remainingMultiplier,
+        funeralCompleted = source.funeralCompleted,
+        missedFuneralTraumaApplied = source.missedFuneralTraumaApplied
+    };
+
+    private static TraumaEventSaveData Clone(TraumaEventSaveData source) => new()
+    {
+        eventType = source.eventType,
+        absoluteDay = source.absoluteDay,
+        amount = source.amount
     };
 
     public static CharacterGriefAggregate Restore(CharacterPsychosocialRecordSaveData data)
@@ -356,17 +383,23 @@ public sealed class CharacterGriefAggregate
         foreach (GriefIncidentSaveData incident in data.grief ?? new List<GriefIncidentSaveData>())
         {
             CharacterId deceased = new(incident?.deceasedCharacterId);
-            if (incident == null || !deceased.IsValid || !result.grief.TryAdd(deceased, incident))
+            if (incident == null
+                || !deceased.IsValid
+                || !result.grief.TryAdd(deceased, Clone(incident)))
                 throw new InvalidOperationException("Invalid or duplicate grief incident.");
         }
-        result.traumaEvents.AddRange(data.recentTraumaEvents ?? new List<TraumaEventSaveData>());
+        result.traumaEvents.AddRange(
+            (data.recentTraumaEvents ?? new List<TraumaEventSaveData>())
+            .Select(Clone));
         if (result.traumaEvents.Count > MaximumRecentTraumaEvents)
             throw new InvalidOperationException("Too many uncompressed trauma events.");
         foreach (TraumaEventSaveData summary in data.compressedTraumaByType
                      ?? new List<TraumaEventSaveData>())
         {
             if (summary == null || string.IsNullOrWhiteSpace(summary.eventType)
-                || !result.compressedTrauma.TryAdd(summary.eventType, summary))
+                || !result.compressedTrauma.TryAdd(
+                    summary.eventType,
+                    Clone(summary)))
                 throw new InvalidOperationException("Invalid compressed trauma summary.");
         }
         foreach (FestivalAttendanceSaveData attendance in data.festivalAttendance

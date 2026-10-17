@@ -1,0 +1,2 @@
+game=0; participants=1; work=False; drink=False; partial=0.2204307
+finalGame=5.053066; participants=1; work=False; drink=False; partial=0.2204307; progress=6

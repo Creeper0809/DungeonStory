@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-18",
+  "ownedBridgeRoot": "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/ExternalFaction",
+  "producerEdits": [
+    "Assets/Scripts/Services/Offense/OffenseWorldMapRuntime.cs",
+    "Assets/Scripts/Services/Infrastructure/Registration/DungeonFactionWarRegistration.cs"
+  ],
+  "unityExecuted": false,
+  "unityMcpUsed": false,
+  "humanApprovalClaimed": false
+}

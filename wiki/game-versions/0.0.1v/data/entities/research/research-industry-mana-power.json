@@ -84,6 +84,15 @@
       "target_spoiler_tier": "none",
       "target_title": "마나 발전기",
       "type": "unlocks-building"
+    },
+    {
+      "amount": null,
+      "label": "시설 해금",
+      "target_kind": "facility",
+      "target_slug": "building-9829",
+      "target_spoiler_tier": "none",
+      "target_title": "인공태양",
+      "type": "unlocks-building"
     }
   ],
   "schema_version": 1,

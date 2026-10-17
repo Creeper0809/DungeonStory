@@ -1,0 +1,9 @@
+setup=disposable Play cleared Facility-only initial showcase rooms; cropRoom=(x:22, y:2, width:4, height:1); artificialSunRoom=(x:18, y:2, width:3, height:1); generator=(29, 1); ducts=13
+[PASS] pre-unlock I19/I20 production placement rejected without a construction owner
+[PASS] I19/I20 actual construction sites consumed exact physical authored BOM and full construction WU; completed buildings published
+[PASS] I19 current whole-save outage restores connection-off, exact crop progress and reduced indoor-ambient growth
+[PASS] I19 independent actual power->field light 80->crop100%/positive growth; disconnect returns to indoor light 20.341/growth 34 %; reconnect restores full growth
+[PASS] I20 independent actual power->field light 77.778->crop100%/positive growth; disconnect returns to indoor light 36.119/growth 69 %; reconnect restores full growth
+result=PASS
+scope=actual authored research unlock publication, construction site/order/exact physical BOM/full work, I03/U04 power, field light, indoor crop growth, power and crop presenters, current whole-save outage restore; research labor/AI material haul/natural priority/full crop cycle/six-adult balance are not claimed
+cleanup=operator stops persistence-protected disposable Play; no scene or user persistence writes

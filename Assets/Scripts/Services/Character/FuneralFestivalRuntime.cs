@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
+using UnityEngine;
 
 public readonly struct FestivalCelebratedEvent
 {
@@ -9,18 +11,33 @@ public readonly struct FestivalCelebratedEvent
         string festivalId,
         int absoluteDay,
         IReadOnlyList<CharacterId> participantIds,
-        FestivalResolutionGrade grade)
+        FestivalResolutionGrade grade,
+        int assignedParticipantCount = 0,
+        int venueCapacity = 0,
+        float plannedDurationSeconds = 0f,
+        float elapsedFestivalSeconds = 0f,
+        bool stoppedByVenueHazard = false)
     {
         FestivalId = festivalId ?? string.Empty;
         AbsoluteDay = absoluteDay;
         ParticipantIds = participantIds ?? Array.Empty<CharacterId>();
         Grade = grade;
+        AssignedParticipantCount = Math.Max(0, assignedParticipantCount);
+        VenueCapacity = Math.Max(0, venueCapacity);
+        PlannedDurationSeconds = Math.Max(0f, plannedDurationSeconds);
+        ElapsedFestivalSeconds = Math.Max(0f, elapsedFestivalSeconds);
+        StoppedByVenueHazard = stoppedByVenueHazard;
     }
 
     public string FestivalId { get; }
     public int AbsoluteDay { get; }
     public IReadOnlyList<CharacterId> ParticipantIds { get; }
     public FestivalResolutionGrade Grade { get; }
+    public int AssignedParticipantCount { get; }
+    public int VenueCapacity { get; }
+    public float PlannedDurationSeconds { get; }
+    public float ElapsedFestivalSeconds { get; }
+    public bool StoppedByVenueHazard { get; }
 }
 
 public interface IFuneralFestivalService
@@ -49,6 +66,8 @@ public sealed class FestivalScheduleRequest
 {
     public string ActionId { get; set; } = string.Empty;
     public string FestivalId { get; set; } = string.Empty;
+    public int OccurrenceYear { get; set; }
+    public bool Decline { get; set; }
     public IReadOnlyCollection<CharacterId> ParticipantIds { get; set; } =
         Array.Empty<CharacterId>();
 }
@@ -56,9 +75,15 @@ public sealed class FestivalScheduleRequest
 public sealed class FestivalPreparedOrder
 {
     public string ActionId { get; internal set; } = string.Empty;
+    public string OccurrenceId { get; internal set; } = string.Empty;
     public string FestivalId { get; internal set; } = string.Empty;
     public string FacilityInstanceId { get; internal set; } = string.Empty;
     public int AbsoluteDay { get; internal set; }
+    public int DeadlineAbsoluteDay { get; internal set; }
+    public int DeadlineHour { get; internal set; }
+    public float RequiredPreparationWork { get; internal set; }
+    public float PlannedDurationSeconds { get; internal set; }
+    public int VenueCapacity { get; internal set; }
     public FestivalResolutionGrade Grade { get; internal set; }
     public IReadOnlyList<CharacterId> ParticipantIds { get; internal set; } =
         Array.Empty<CharacterId>();
@@ -99,7 +124,6 @@ public interface ISocialCareCommand
 
 public sealed class FuneralFestivalRuntime :
     IFuneralFestivalService,
-    IFestivalCommand,
     ISocialCareCommand
 {
     private const string MemorialWorkstationTag = "workstation:v19:memorial";
@@ -115,9 +139,14 @@ public sealed class FuneralFestivalRuntime :
     private readonly IStockQuery stock;
     private readonly IItemReservationService reservations;
     private readonly IAtomicItemConsumptionService atomicItems;
+    private readonly IWorldItemStackRuntime itemRuntime;
     private readonly IFactionCampaignQuery factions;
+    private readonly V20ContentResolutionService contentResolution;
     private readonly V20CampaignRuntime campaign;
+    private readonly ICharacterNarrativePersistence narrativePersistence;
+    private readonly ISocialRitualFactPublisher factPublisher;
     private readonly ICharacterRitualFastingCommand ritualFasting;
+    private readonly IFestivalCommand festivalCommands;
 
     public FuneralFestivalRuntime(
         IKinshipQuery kinship,
@@ -132,8 +161,13 @@ public sealed class FuneralFestivalRuntime :
         IStockQuery stock,
         IItemReservationService reservations,
         IAtomicItemConsumptionService atomicItems,
+        IWorldItemStackRuntime itemRuntime,
         IFactionCampaignQuery factions,
+        V20ContentResolutionService contentResolution,
         V20CampaignRuntime campaign,
+        ICharacterNarrativePersistence narrativePersistence,
+        ISocialRitualFactPublisher factPublisher,
+        IFestivalCommand festivalCommands,
         ICharacterRitualFastingCommand ritualFasting = null)
     {
         this.kinship = kinship ?? throw new ArgumentNullException(nameof(kinship));
@@ -151,8 +185,17 @@ public sealed class FuneralFestivalRuntime :
             ?? throw new ArgumentNullException(nameof(reservations));
         this.atomicItems = atomicItems
             ?? throw new ArgumentNullException(nameof(atomicItems));
+        this.itemRuntime = itemRuntime
+            ?? throw new ArgumentNullException(nameof(itemRuntime));
         this.factions = factions ?? throw new ArgumentNullException(nameof(factions));
+        this.contentResolution = contentResolution
+            ?? throw new ArgumentNullException(nameof(contentResolution));
         this.campaign = campaign ?? throw new ArgumentNullException(nameof(campaign));
+        this.narrativePersistence = narrativePersistence
+            ?? throw new ArgumentNullException(nameof(narrativePersistence));
+        this.factPublisher = factPublisher ?? throw new ArgumentNullException(nameof(factPublisher));
+        this.festivalCommands = festivalCommands
+            ?? throw new ArgumentNullException(nameof(festivalCommands));
         this.ritualFasting = ritualFasting;
     }
 
@@ -196,8 +239,10 @@ public sealed class FuneralFestivalRuntime :
             FestivalId = festivalId,
             ParticipantIds = participantIds
         };
-        if (!Schedule(request, out FestivalPreparedOrder order, out DomainFailure failure)
-            || !Resolve(order, out failure))
+        if (!festivalCommands.Schedule(
+                request,
+                out _,
+                out DomainFailure failure))
         {
             throw new InvalidOperationException(
                 $"Festival '{festivalId}' could not be resolved: {failure.Code}.");
@@ -209,178 +254,14 @@ public sealed class FuneralFestivalRuntime :
         out FestivalPreparedOrder order,
         out DomainFailure failure)
     {
-        order = null;
-        failure = DomainFailure.None;
-        if (request == null || string.IsNullOrWhiteSpace(request.ActionId))
-        {
-            failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
-            return false;
-        }
-
-        FestivalDefinitionSO festival;
-        CharacterId[] participants;
-        try
-        {
-            festival = festivals.Require(request.FestivalId);
-            if (calendar.Season != festival.season
-                || calendar.DayOfSeason != festival.dayOfSeason)
-                throw new InvalidOperationException();
-            participants = RequireLivingParticipants(request.ParticipantIds);
-        }
-        catch (InvalidOperationException)
-        {
-            failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
-            return false;
-        }
-
-        BuildableObject facility = buildings.Buildings
-            .Where(value => value != null && !value.isDestroy)
-            .OrderBy(value => value.PersistentInstanceId.Value, StringComparer.Ordinal)
-            .FirstOrDefault(value => string.Equals(
-                DefinitionId(value.BuildingData),
-                festival.requiredBuildingDefinitionId,
-                StringComparison.Ordinal));
-        if (facility == null)
-        {
-            failure = new DomainFailure(FailureCode.ServiceFeatureMissing);
-            return false;
-        }
-
-        Dictionary<string, int> available = stock.GetAllStacks()
-            .Where(value => value != null
-                && value.Quantity > 0
-                && !value.Forbidden
-                && value.AvailableQuantity > 0)
-            .GroupBy(value => value.ItemId, StringComparer.Ordinal)
-            .ToDictionary(
-                group => group.Key,
-                group => group.Sum(value => value.Quantity),
-                StringComparer.Ordinal);
-        bool fullParticipants = participants.Length >= festival.minimumParticipants;
-        bool fullItems = festival.requiredItems.All(value =>
-            available.TryGetValue(value.itemDefinitionId, out int count)
-            && count >= value.amount);
-        int partialMinimum = Math.Max(1, (festival.minimumParticipants + 1) / 2);
-        bool partialParticipants = participants.Length >= partialMinimum;
-        bool partialItems = festival.requiredItems.All(value =>
-            available.TryGetValue(value.itemDefinitionId, out int count)
-            && count >= Math.Max(1, (value.amount + 1) / 2));
-        FestivalResolutionGrade grade = fullParticipants && fullItems
-            ? FestivalResolutionGrade.Success
-            : partialParticipants && partialItems
-                ? FestivalResolutionGrade.Partial
-                : FestivalResolutionGrade.Failure;
-        float costScale = grade == FestivalResolutionGrade.Success
-            ? 1f
-            : grade == FestivalResolutionGrade.Partial ? 0.5f : 0f;
-        order = new FestivalPreparedOrder
-        {
-            ActionId = request.ActionId.Trim(),
-            FestivalId = festival.StableId,
-            FacilityInstanceId = facility.PersistentInstanceId.Value,
-            AbsoluteDay = calendar.Day,
-            Grade = grade,
-            ParticipantIds = Array.AsReadOnly(participants),
-            ItemCosts = festival.requiredItems
-                .Where(value => value != null
-                    && !string.IsNullOrWhiteSpace(value.itemDefinitionId))
-                .GroupBy(value => value.itemDefinitionId.Trim(), StringComparer.Ordinal)
-                .ToDictionary(
-                    group => group.Key,
-                    group => costScale <= 0f
-                        ? 0
-                        : Math.Max(
-                            1,
-                            (int)Math.Ceiling(
-                                group.Sum(value => value.amount) * costScale)),
-                    StringComparer.Ordinal)
-        };
-        return true;
+        return festivalCommands.Schedule(request, out order, out failure);
     }
 
     public bool Resolve(
         FestivalPreparedOrder order,
         out DomainFailure failure)
     {
-        failure = DomainFailure.None;
-        if (order == null
-            || order.AbsoluteDay != calendar.Day
-            || string.IsNullOrWhiteSpace(order.ActionId))
-        {
-            failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
-            return false;
-        }
-
-        FestivalDefinitionSO festival = festivals.Require(order.FestivalId);
-        string owner = $"festival:{order.ActionId}";
-        if (!TryReserve(
-                order.ItemCosts,
-                owner,
-                out IReadOnlyList<ReservedItemConsumption> reserved,
-                out failure))
-            return false;
-
-        PsychosocialAggregateState candidate;
-        FestivalOutcomeDefinition outcome = order.Grade switch
-        {
-            FestivalResolutionGrade.Success => festival.successOutcome,
-            FestivalResolutionGrade.Partial => festival.partialOutcome,
-            _ => festival.failureOutcome
-        };
-        try
-        {
-            candidate = psychosocial.PrepareRestore(psychosocial.Capture());
-            foreach (CharacterId participant in order.ParticipantIds)
-            {
-                CharacterGriefAggregate state = candidate.Require(participant);
-                state.RecordFestivalAttendance(festival.StableId, calendar.Year);
-                if (outcome.griefConversionPercent > 0f)
-                    state.ApplyGriefConversion(outcome.griefConversionPercent);
-            }
-        }
-        catch (InvalidOperationException)
-        {
-            Release(reserved, owner);
-            failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
-            return false;
-        }
-
-        if (!atomicItems.TryConsumeReserved(reserved, owner, out failure))
-        {
-            Release(reserved, owner);
-            return false;
-        }
-        psychosocial.PublishRestore(candidate);
-        foreach (CharacterId participant in order.ParticipantIds)
-        {
-            CharacterActor actor = characters.Characters.First(value =>
-                value != null
-                && CharacterPersistentIdentity.TryGet(value, out CharacterId id)
-                && id.Equals(participant));
-            actor.ApplyMoodFactor(
-                $"festival:{festival.StableId}:{calendar.Year}",
-                festival.displayName,
-                outcome.moodDelta,
-                Math.Max(1, outcome.moodDurationDays)
-                    * GameCalendarRules.SecondsPerDay,
-                1);
-        }
-        if (outcome.factionRapportDelta != 0)
-        {
-            foreach (FactionCampaignStateSaveData faction in factions.Factions)
-                campaign.ApplyFactionChange(
-                    faction.factionId,
-                    outcome.factionRapportDelta,
-                    0,
-                    0);
-        }
-        events.Publish(new FestivalCelebratedEvent(
-            festival.StableId,
-            calendar.Day,
-            order.ParticipantIds,
-            order.Grade));
-        CompleteParticipantFasts(order.ParticipantIds);
-        return true;
+        return festivalCommands.Resolve(order, out failure);
     }
 
     public bool TryHoldFuneral(
@@ -390,6 +271,7 @@ public sealed class FuneralFestivalRuntime :
         string facilityInstanceId,
         out DomainFailure failure)
     {
+        factPublisher.AssertIdle();
         failure = DomainFailure.None;
         if (string.IsNullOrWhiteSpace(actionId) || !deceasedId.IsValid)
         {
@@ -425,25 +307,16 @@ public sealed class FuneralFestivalRuntime :
             return false;
         }
 
-        string owner = $"funeral:{actionId.Trim()}";
-        if (!TryReserve(
-                new Dictionary<string, int>(StringComparer.Ordinal)
-                {
-                    ["supply:funeral-preparation-kit"] = 1
-                },
-                owner,
-                out IReadOnlyList<ReservedItemConsumption> reserved,
-                out failure))
-            return false;
+        CharacterPsychosocialWorldSaveData psychosocialBefore =
+            psychosocial.Capture();
         PsychosocialAggregateState candidate = psychosocial.PrepareRestore(
-            psychosocial.Capture());
+            psychosocialBefore);
         CharacterId[] participants = living.Where(value =>
                 candidate.TryGet(value, out CharacterGriefAggregate state)
                 && state.NeedsFuneral(deceasedId))
             .ToArray();
         if (participants.Length == 0)
         {
-            Release(reserved, owner);
             failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
             return false;
         }
@@ -457,17 +330,129 @@ public sealed class FuneralFestivalRuntime :
         }
         catch (InvalidOperationException)
         {
-            Release(reserved, owner);
             failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
             return false;
         }
-        if (!atomicItems.TryConsumeReserved(reserved, owner, out failure))
+        ObservedFuneralLifeEventReceipt observedReceipt;
+        try
         {
-            Release(reserved, owner);
+            observedReceipt = new ObservedFuneralLifeEventReceipt(
+                actionId.Trim(),
+                deceasedId,
+                facility.PersistentInstanceId.Value,
+                calendar.Day,
+                Math.Max(0, tombstone.generation),
+                participants);
+            contentResolution.RequireCanCommitObservedFuneralLifeEvent(
+                observedReceipt);
+        }
+        catch
+        {
+            throw;
+        }
+
+        if (!factPublisher.TryReserve(
+                observedReceipt,
+                out DomainFactLease prepared,
+                out string outcomeFailure))
+        {
+            failure = new DomainFailure(
+                FailureCode.ExternalInfluenceUnavailable,
+                outcomeFailure);
             return false;
         }
-        psychosocial.PublishRestore(candidate);
-        CompleteParticipantFasts(participants);
+
+        string owner = $"funeral:{actionId.Trim()}";
+        IReadOnlyList<ReservedItemConsumption> reserved =
+            Array.Empty<ReservedItemConsumption>();
+        DungeonPhysicalItemSaveData physicalBefore;
+        CharacterNarrativeWorldSaveData narrativeBefore;
+        Dictionary<CharacterStats, CharacterMoodDeliveryTransactionSnapshot>
+            moodsBefore;
+        CampaignMutationSnapshot campaignBefore;
+        try
+        {
+            physicalBefore = itemRuntime.Capture();
+            narrativeBefore = narrativePersistence.Capture();
+            moodsBefore = CaptureParticipantMoods(participants);
+            campaignBefore = CaptureCampaign();
+        }
+        catch
+        {
+            factPublisher.Cancel(prepared);
+            throw;
+        }
+
+        IReadOnlyList<V20ResolvedEventResult> resolutions =
+            Array.Empty<V20ResolvedEventResult>();
+        bool mutationStarted = false;
+        bool rollbackAttempted = false;
+        bool outcomeDurable = false;
+        try
+        {
+            if (!TryReserve(
+                    new Dictionary<string, int>(StringComparer.Ordinal)
+                    {
+                        ["supply:funeral-preparation-kit"] = 1
+                    },
+                    owner,
+                    out reserved,
+                    out failure))
+            {
+                factPublisher.Cancel(prepared);
+                return false;
+            }
+
+            mutationStarted = true;
+            if (!atomicItems.TryConsumeReserved(reserved, owner, out failure))
+            {
+                rollbackAttempted = true;
+                factPublisher.Cancel(prepared);
+                RollbackFuneral(
+                    reserved,
+                    owner,
+                    physicalBefore,
+                    psychosocialBefore,
+                    narrativeBefore,
+                    moodsBefore,
+                    campaignBefore);
+                return false;
+            }
+            psychosocial.PublishRestore(candidate);
+            CompleteParticipantFasts(participants);
+            resolutions = contentResolution.CommitObservedFuneralLifeEvent(
+                observedReceipt, prepared);
+            outcomeDurable = true;
+        }
+        catch (Exception exception)
+        {
+            if (!outcomeDurable)
+            {
+                factPublisher.Cancel(prepared);
+                if (mutationStarted && !rollbackAttempted)
+                {
+                    RollbackFuneral(
+                        reserved,
+                        owner,
+                        physicalBefore,
+                        psychosocialBefore,
+                        narrativeBefore,
+                        moodsBefore,
+                        campaignBefore);
+                }
+            }
+            if (exception is ContentResolutionFactRejectedException)
+            {
+                failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable, exception.Message);
+                return false;
+            }
+            throw;
+        }
+
+        foreach (V20ResolvedEventResult resolved in resolutions)
+        {
+            PublishFuneralCompletion(resolved);
+        }
         return true;
     }
 
@@ -634,6 +619,101 @@ public sealed class FuneralFestivalRuntime :
         {
             ritualFasting.TryComplete(actor, out _);
         }
+    }
+
+    private Dictionary<CharacterStats, CharacterMoodDeliveryTransactionSnapshot>
+        CaptureParticipantMoods(IEnumerable<CharacterId> participantIds)
+    {
+        HashSet<CharacterId> participants = new(
+            participantIds ?? Array.Empty<CharacterId>());
+        return characters.Characters
+            .Where(value => value?.Stats != null
+                && CharacterPersistentIdentity.TryGet(value, out CharacterId id)
+                && participants.Contains(id))
+            .Select(value => value.Stats)
+            .Distinct()
+            .ToDictionary(
+                value => value,
+                value => value.CaptureMoodDeliveryTransactionState());
+    }
+
+    private void RollbackFuneral(
+        IEnumerable<ReservedItemConsumption> reserved,
+        string owner,
+        DungeonPhysicalItemSaveData physicalBefore,
+        CharacterPsychosocialWorldSaveData psychosocialBefore,
+        CharacterNarrativeWorldSaveData narrativeBefore,
+        IReadOnlyDictionary<CharacterStats,
+            CharacterMoodDeliveryTransactionSnapshot> moodsBefore,
+        CampaignMutationSnapshot campaignBefore)
+    {
+        Release(reserved, owner);
+        itemRuntime.Restore(physicalBefore);
+        psychosocial.PublishRestore(psychosocial.PrepareRestore(
+            psychosocialBefore));
+        narrativePersistence.PublishRestore(
+            narrativePersistence.PrepareRestore(narrativeBefore));
+        foreach (KeyValuePair<CharacterStats,
+                     CharacterMoodDeliveryTransactionSnapshot> pair in
+                 moodsBefore)
+        {
+            pair.Key.RestoreMoodDeliveryTransactionState(pair.Value);
+        }
+        RestoreCampaign(campaignBefore);
+    }
+
+    private CampaignMutationSnapshot CaptureCampaign() => new(
+        campaign.CaptureSeasonal(),
+        campaign.CaptureSociety(),
+        campaign.CaptureFactions(),
+        campaign.CaptureMilestones());
+
+    private void RestoreCampaign(CampaignMutationSnapshot snapshot)
+    {
+        SeasonalEventAggregateState seasonal = campaign.PrepareSeasonal(snapshot.Seasonal);
+        campaign.PublishContentResolution(
+            seasonal,
+            campaign.PrepareSociety(snapshot.Society),
+            campaign.PrepareFactions(snapshot.Factions, seasonal),
+            campaign.PrepareMilestones(snapshot.Milestones));
+    }
+
+    private void PublishFuneralCompletion(V20ResolvedEventResult resolution)
+    {
+        try
+        {
+            events.Publish(new V20ContentEffectsResolvedEvent(resolution,
+                physicalEffectsApplied: true));
+        }
+        catch (Exception exception) when (
+            exception is not OutOfMemoryException
+            && exception is not StackOverflowException
+            && exception is not AccessViolationException)
+        {
+            Debug.LogError(
+                "funeral-life-event-post-commit-observer:"
+                + exception.GetType().Name);
+        }
+    }
+
+    private sealed class CampaignMutationSnapshot
+    {
+        public CampaignMutationSnapshot(
+            SeasonalEventWorldSaveData seasonal,
+            SocietyEventWorldSaveData society,
+            FactionCampaignWorldSaveData factions,
+            RunMilestoneWorldSaveData milestones)
+        {
+            Seasonal = seasonal;
+            Society = society;
+            Factions = factions;
+            Milestones = milestones;
+        }
+
+        public SeasonalEventWorldSaveData Seasonal { get; }
+        public SocietyEventWorldSaveData Society { get; }
+        public FactionCampaignWorldSaveData Factions { get; }
+        public RunMilestoneWorldSaveData Milestones { get; }
     }
 
     private bool TryReserve(

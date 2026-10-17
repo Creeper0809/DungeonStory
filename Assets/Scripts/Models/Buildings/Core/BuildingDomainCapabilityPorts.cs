@@ -68,9 +68,83 @@ public interface IBuildingItemStackPort
 
 public interface IBuildingVisitEventPort
 {
-    void PublishVisit(
+    void CommitVisit(
         IBuildingCharacterPort visitor,
         IBuildingWorldEntryPort facility);
+
+    FacilityVisitCommitResult CommitVisit(
+        IBuildingCharacterPort visitor,
+        IBuildingWorldEntryPort facility,
+        CharacterFacilityUseOutcomeReceipt receipt)
+    {
+        CommitVisit(visitor, facility);
+        return FacilityVisitCommitResult.Committed(string.Empty);
+    }
+
+    FacilityVisitCommitResult ReconcilePendingVisit(
+        IBuildingWorldEntryPort facility) =>
+        FacilityVisitCommitResult.Committed(string.Empty);
+}
+
+public enum CharacterFacilityUseOutcomeStatus
+{
+    Completed = 0,
+    Cancelled = 1,
+    Failed = 2,
+    Partial = 3
+}
+
+public sealed class CharacterFacilityUseOutcomeReceipt
+{
+    public string OperationId { get; set; } = string.Empty;
+    public long OperationSequence { get; set; }
+    public string ActorId { get; set; } = string.Empty;
+    public string ActorDisplayName { get; set; } = string.Empty;
+    public string FacilityRole { get; set; } = string.Empty;
+    public string ServiceSessionId { get; set; } = string.Empty;
+    public CharacterFacilityUseOutcomeStatus Status { get; set; }
+    public bool EffectsCommitted { get; set; }
+    public string FailureCode { get; set; } = string.Empty;
+    public BuildingVisitorSnapshot Before { get; set; }
+    public BuildingVisitorSnapshot After { get; set; }
+    public IReadOnlyList<string> ChildResultKeys { get; set; } =
+        Array.Empty<string>();
+
+    public bool IsValid => OperationSequence > 0L
+        && !string.IsNullOrWhiteSpace(OperationId)
+        && !string.IsNullOrWhiteSpace(ActorId)
+        && Enum.IsDefined(typeof(CharacterFacilityUseOutcomeStatus), Status);
+}
+
+public readonly struct FacilityVisitCommitResult
+{
+    private FacilityVisitCommitResult(
+        bool durablyCommitted,
+        bool pending,
+        string resultKey,
+        string detailCode)
+    {
+        DurablyCommitted = durablyCommitted;
+        Pending = pending;
+        ResultKey = resultKey ?? string.Empty;
+        DetailCode = detailCode ?? string.Empty;
+    }
+
+    public bool DurablyCommitted { get; }
+    public bool Pending { get; }
+    public string ResultKey { get; }
+    public string DetailCode { get; }
+
+    public static FacilityVisitCommitResult Committed(string resultKey) =>
+        new(true, false, resultKey, string.Empty);
+
+    public static FacilityVisitCommitResult Deferred(
+        string resultKey,
+        string detailCode) =>
+        new(false, true, resultKey, detailCode);
+
+    public static FacilityVisitCommitResult Rejected(string detailCode) =>
+        new(false, false, string.Empty, detailCode);
 }
 
 public interface IBuildingRoomPolicyPort

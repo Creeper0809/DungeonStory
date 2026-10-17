@@ -7,27 +7,12 @@ using UnityEngine;
 
 internal sealed class ShopCustomerInteractionService
 {
-    private const float CheckoutWaitPollSeconds = 0.2f;
     private const float SelfServiceCheckoutSeconds = 0.8f;
     private const float StaffedCheckoutSeconds = 0.35f;
-
-    private static readonly WaitForSeconds PurchaseCompleteDelay =
-        new WaitForSeconds(0.5f);
-    private static readonly WaitForSeconds CheckoutPollDelay =
-        new WaitForSeconds(CheckoutWaitPollSeconds);
-    private static readonly WaitForSeconds SelfServiceCheckoutDelay =
-        new WaitForSeconds(SelfServiceCheckoutSeconds);
-    private static readonly WaitForSeconds StaffedCheckoutDelay =
-        new WaitForSeconds(StaffedCheckoutSeconds);
-    private static readonly Stack<ShoppingSelectionBuffer> ShoppingSelectionPool =
-        new Stack<ShoppingSelectionBuffer>();
 
     private readonly Shop owner;
     private readonly Func<Vector3> worldPositionProvider;
     private readonly string ownerDisplayName;
-    private int waitingCheckoutCount;
-    private bool checkoutServiceAlertRaised;
-    private float nextCheckoutAbandonAlertTime;
 
     internal ShopCustomerInteractionService(
         Shop owner,
@@ -39,14 +24,17 @@ internal sealed class ShopCustomerInteractionService
         ownerDisplayName = owner.CustomerDisplayName;
     }
 
-    internal int WaitingCheckoutCount => waitingCheckoutCount;
-    internal bool HasWaitingCheckout => waitingCheckoutCount > 0;
+    internal int WaitingCheckoutCount => owner.InteractionState.activeUses.Count(value =>
+        value.waitingForWorker || value.phase == ShopUseExecutionPhase.Checkout && value.selfServiceCheckout);
+    internal bool HasWaitingCheckout => WaitingCheckoutCount > 0;
 
     internal IEnumerator Interact(IBuildingVisitorPort actor)
     {
         owner.EnsureCustomerStockInitialized();
         object currentAction = actor?.CurrentActionToken;
-        if (actor != null && !owner.CanVisit(actor, out _))
+        ShopUseExecutionState restored = actor == null ? null
+            : owner.FindActiveShopUse(actor.BuildingCharacterId.Value);
+        if (restored == null && actor != null && !owner.CanVisit(actor, out _))
         {
             yield return owner.WaitForVisitAdmission(
                 actor,
@@ -58,21 +46,15 @@ internal sealed class ShopCustomerInteractionService
                 AbortInteraction(
                     actor,
                     serviceSession: null,
-                    selection: null,
                     BuildingInteractionFailureKind.ActionReplaced,
                     "action-replaced-while-waiting-for-shop");
                 yield break;
             }
         }
-        if (!owner.TryBeginUse(actor, out string failureReason))
+        if (restored == null && !owner.TryBeginUse(actor, out string failureReason))
         {
             actor?.Shopping?.SetVisitOutcome(owner, BuildingVisitOutcome.Failed);
-            actor?.RecordActivity(owner, new BuildingActivitySnapshot(
-                BuildingActivityKinds.Shopping,
-                BuildingActivityOutcomes.Failed,
-                $"{owner.CustomerDisplayName} 이용 실패: {failureReason}",
-                reasonCode: failureReason,
-                bubbleEligible: true));
+            PublishObservation(ShopInteractionTransition.AdmissionRejected, actor, reason: failureReason);
             yield break;
         }
 
@@ -85,8 +67,14 @@ internal sealed class ShopCustomerInteractionService
         }
 
         ServiceSessionSnapshot serviceSession = null;
+        if (restored != null && !string.IsNullOrEmpty(restored.serviceSessionId)
+            && (!owner.CustomerServiceSessionRuntime.TryGetSessionSnapshot(restored.serviceSessionId, out serviceSession)
+                || !serviceSession.IsActive && !restored.MatchesCancelledSession(serviceSession, owner.RequirePersistentInstanceId().Value)
+                || serviceSession.ActorId != restored.actorId
+                || serviceSession.HubId != owner.RequirePersistentInstanceId().Value))
+            throw new InvalidOperationException("Restored shop service session mismatch.");
         BuildingServiceHubAbility serviceHub = owner.GetServiceHubAbility();
-        if (serviceHub != null
+        if (restored == null && serviceHub != null
             && owner.CustomerServiceSessionRuntime != null
             && !owner.CustomerServiceSessionRuntime.TryBeginSession(
                 new ServiceSessionRequest
@@ -103,12 +91,7 @@ internal sealed class ShopCustomerInteractionService
         {
             string serviceFailureCode = serviceFailure.Code.ToString();
             shopable.SetVisitOutcome(owner, BuildingVisitOutcome.Failed);
-            actor?.RecordActivity(owner, new BuildingActivitySnapshot(
-                BuildingActivityKinds.Shopping,
-                BuildingActivityOutcomes.Failed,
-                $"{owner.CustomerDisplayName} 이용 실패",
-                reasonCode: serviceFailureCode,
-                bubbleEligible: true));
+            PublishObservation(ShopInteractionTransition.SessionRejected, actor, reason: serviceFailureCode);
             owner.EndUse(actor);
             yield break;
         }
@@ -136,7 +119,6 @@ internal sealed class ShopCustomerInteractionService
                 AbortInteraction(
                     actor,
                     serviceSession,
-                    selection: null,
                     mealFailure,
                     mealFailureDetail);
                 yield break;
@@ -150,330 +132,333 @@ internal sealed class ShopCustomerInteractionService
             yield break;
         }
 
-        int howmany = shopable.GetShoppingCount();
-        if (Shop.IsInternalStaffUse(actor)
-            && owner.Facility != null
-            && owner.Facility.SupportsRole(FacilityRole.Meal))
+        yield return RunRetailVisit(actor, currentAction, serviceSession,
+            restored ?? owner.BeginShopExecution(actor, serviceSession));
+    }
+
+    private IEnumerator RunRetailVisit(IBuildingVisitorPort actor, object action,
+        ServiceSessionSnapshot session, ShopUseExecutionState state)
+    {
+        IBuildingShoppingVisitorPort shopping = actor.Shopping;
+        while (true)
         {
-            howmany = 1;
-        }
-        ShoppingSelectionBuffer selection = AcquireShoppingSelectionBuffer();
-        Dictionary<int, int> selectedCounts = selection.SelectedCounts;
-        List<RemainStock> cart = selection.Cart;
-        bool createsRevenue = Shop.CreatesRevenueFor(actor);
-        for (int i = 0; i < howmany; i++)
-        {
-            int selectedItemId = shopable.SelectOffer(
-                CreateOfferSnapshots(owner.GetCustomerPurchasableStock(selectedCounts)));
-            actor.SetActionPhase("\uC0C1\uD488 \uB458\uB7EC\uBCF4\uAE30", owner, $"{i + 1}/{howmany}");
-            yield return actor.MoveTo(
-                owner.GetFacilityAnchorWorldPosition(
-                    FacilityAnchorPurposeIds.Use,
-                    actor.VisitorSnapshot.Position),
-                0.7f,
-                currentAction);
-            if (!TryContinueInteraction(
-                    actor,
-                    currentAction,
-                    out BuildingInteractionFailureKind interactionFailure,
-                    out string interactionFailureDetail))
+            if (!ContinueRetail(actor, action, state)) yield break;
+            switch (state.phase)
             {
-                AbortInteraction(
-                    actor,
-                    serviceSession,
-                    selection,
-                    interactionFailure,
-                    interactionFailureDetail);
-                yield break;
+                case ShopUseExecutionPhase.Selection:
+                    if (state.selectionIndex >= state.selectionCount)
+                    {
+                        if (state.cart.Count == 0)
+                            FailRetail(actor, state, "no-purchasable-item", "구매 가능한 상품이 없습니다.");
+                        else state.Go(ShopUseExecutionPhase.CheckoutApproach);
+                        break;
+                    }
+                    var selected = state.cart.GroupBy(value => value.saleItemId)
+                        .ToDictionary(group => group.Key, group => group.Count());
+                    state.selectedItemId = shopping.SelectOffer(
+                        CreateOfferSnapshots(owner.GetCustomerPurchasableStock(selected)));
+                    state.Go(ShopUseExecutionPhase.SelectionApproach);
+                    break;
+                case ShopUseExecutionPhase.SelectionApproach:
+                    actor.SetActionPhase("상품 둘러보기", owner, $"{state.selectionIndex + 1}/{state.selectionCount}");
+                    yield return actor.MoveTo(owner.GetFacilityAnchorWorldPosition(
+                        FacilityAnchorPurposeIds.Use, actor.VisitorSnapshot.Position), 0.7f, action);
+                    if (!ContinueRetail(actor, action, state)) yield break;
+                    state.Go(ShopUseExecutionPhase.SelectionSettle);
+                    break;
+                case ShopUseExecutionPhase.SelectionSettle:
+                    yield return WaitSaved(actor, action, state, 0.1f);
+                    if (!ContinueRetail(actor, action, state)) yield break;
+                    RemainStock candidate = owner.CustomerInventory.Stocks.FirstOrDefault(
+                        value => value.id == state.selectedItemId);
+                    int selectedCount = state.cart.Count(value => value.saleItemId == state.selectedItemId);
+                    if (candidate != null && candidate.stock > selectedCount)
+                        state.cart.Add(new ShopUseCartLine { saleItemId = candidate.id });
+                    state.selectionIndex++;
+                    state.selectedItemId = -2;
+                    state.Go(ShopUseExecutionPhase.Selection);
+                    break;
+                case ShopUseExecutionPhase.CheckoutApproach:
+                    actor.SetActionPhase("계산대 이동", owner);
+                    yield return actor.MoveTo(owner.GetFacilityAnchorWorldPosition(
+                        FacilityAnchorPurposeIds.Checkout, actor.VisitorSnapshot.Position), 1f, action);
+                    if (!ContinueRetail(actor, action, state)) yield break;
+                    state.Go(ShopUseExecutionPhase.Waiting);
+                    break;
+                case ShopUseExecutionPhase.Waiting:
+                    bool managed = session == null ? owner.RequiresCustomerServingWorker()
+                        : session.Contract.mode == ServiceOperationMode.Managed && owner.RequiresCustomerServingWorker();
+                    if (managed)
+                    {
+                        SetServiceStage(session, ServiceSessionStage.Waiting);
+                        yield return WaitForSavedAttendant(actor, action, state);
+                        if (!ContinueRetail(actor, action, state)) yield break;
+                    }
+                    if (state.checkoutAbandoned)
+                    {
+                        state.serviceFailureReason = "대기 시간이 길어 손님이 떠났습니다.";
+                        state.Go(ShopUseExecutionPhase.ServiceCompletion);
+                    }
+                    else if (managed && !owner.CanServeCustomer(actor, out string cannotServe))
+                        FailRetail(actor, state, cannotServe, cannotServe);
+                    else
+                    {
+                        SetServiceStage(session, ServiceSessionStage.Service);
+                        state.selfServiceCheckout = state.createsRevenue && !owner.HasServingWorker;
+                        state.Go(ShopUseExecutionPhase.Checkout);
+                    }
+                    break;
+                case ShopUseExecutionPhase.Checkout:
+                    if (state.createsRevenue)
+                    {
+                        if (!state.timerInitialized && state.selfServiceCheckout)
+                        {
+                            owner.RequireCustomerWorkforceReplanService().RequestIdleWorkersToReplan();
+                            PublishObservation(ShopInteractionTransition.SelfCheckoutStarted, actor);
+                        }
+                        yield return WaitSaved(actor, action, state,
+                            state.selfServiceCheckout ? SelfServiceCheckoutSeconds : StaffedCheckoutSeconds);
+                        if (!ContinueRetail(actor, action, state)) yield break;
+                    }
+                    state.Go(ShopUseExecutionPhase.Crime);
+                    break;
+                case ShopUseExecutionPhase.Crime:
+                    bool crimeResolved;
+                    try
+                    {
+                        var cart = state.cart.Select(line => owner.CustomerInventory.Stocks
+                            .FirstOrDefault(stock => stock.id == line.saleItemId)).Where(stock => stock != null).ToList();
+                        crimeResolved = owner.TryResolveCheckoutCrime(actor, cart);
+                    }
+                    catch (Exception failure)
+                    {
+                        state.serviceFailureReason = "shoplifting-checkout-failed: " + failure.Message;
+                        state.Go(ShopUseExecutionPhase.ServiceCompletion);
+                        shopping.SetVisitOutcome(owner, BuildingVisitOutcome.Failed);
+                        try
+                        {
+                            FinishRetail(actor, state);
+                        }
+                        catch (Exception cleanupFailure)
+                        {
+                            // Keep the original transaction failure visible as well
+                            // as the cleanup failure; the execution remains pending.
+                            throw new AggregateException(
+                                "Shop checkout failed and terminal cleanup remains pending.",
+                                failure, cleanupFailure);
+                        }
+                        throw;
+                    }
+                    if (crimeResolved)
+                    {
+                        state.serviceSucceeded = true;
+                        state.Go(ShopUseExecutionPhase.ServiceCompletion);
+                        shopping.SetVisitOutcome(owner, BuildingVisitOutcome.Completed);
+                    }
+                    else state.Go(ShopUseExecutionPhase.Purchase);
+                    break;
+                case ShopUseExecutionPhase.Purchase:
+                    if (state.purchaseIndex >= state.cart.Count)
+                    {
+                        state.Go(ShopUseExecutionPhase.Finish);
+                        break;
+                    }
+                    ShopUseCartLine line = state.cart[state.purchaseIndex];
+                    if (!line.Committed)
+                    {
+                        RemainStock stock = owner.CustomerInventory.Stocks.FirstOrDefault(value => value.id == line.saleItemId);
+                        if (!line.pricingCaptured)
+                        {
+                            if (stock == null || stock.stock <= 0) { state.purchaseIndex++; break; }
+                            RetailRevenueModifierSnapshot pricing = owner.CaptureRevenueModifierSnapshot();
+                            line.price = owner.CustomerInventory.CreatePricedStock(stock, pricing.PriceMultiplier).cost;
+                            line.workerId = pricing.WorkerId;
+                            line.priceMultiplier = pricing.PriceMultiplier;
+                            line.modifierProvenance = pricing.SkillModifierProvenance;
+                            line.pricingCaptured = true;
+                        }
+                        var result = new BuildingRetailPurchaseCommitResult();
+                        result.BindPricingContext(line.Pricing);
+                        result.BindShopUse(state.operationId, state.purchaseIndex);
+                        // The purchase port must recover an already-taken lot before
+                        // checking today's stock or wallet balance.
+                        yield return shopping.Purchase(stock, line.price, action, owner, result);
+                        if (!ContinueRetail(actor, action, state)) yield break;
+                        if (!result.IsResolved || !result.Committed)
+                        {
+                            state.lastPurchaseFailure = result.IsResolved
+                                ? result.FailureCode : "purchase-port-returned-without-result";
+                            state.purchaseIndex++;
+                            break;
+                        }
+                        if (!line.Committed)
+                            throw new InvalidOperationException("Purchase port committed without binding its shop execution.");
+                    }
+                    if (!line.postCommitApplied)
+                    {
+                        line.postCommitApplied = true;
+                        state.purchaseCount++;
+                        if (state.createsRevenue) state.usedMoney = checked(state.usedMoney + line.price);
+                        owner.PublishCustomerGameEvent(new FacilityStockConsumedEvent(actor, owner,
+                            owner.CustomerInventory.GetStockCategory(line.saleItemId), 1));
+                    }
+                    state.purchaseIndex++;
+                    owner.MarkCustomerFacilityStateDirty();
+                    break;
+                case ShopUseExecutionPhase.Finish:
+                    if (state.purchaseCount == 0)
+                    {
+                        FailRetail(actor, state, state.lastPurchaseFailure, "결제 가능한 상품이 없습니다.");
+                        break;
+                    }
+                    actor.ApplyMoodFactor($"shopping:{owner.RequirePersistentInstanceId().Value}",
+                        "마음에 드는 물건을 삼", 5f, 120f, 2);
+                    if (state.createsRevenue && state.usedMoney > 0)
+                    {
+                        Vector2 end = owner.GetFacilityAnchorWorldPosition(FacilityAnchorPurposeIds.Checkout,
+                            actor.VisitorSnapshot.Position);
+                        owner.RequireCustomerFloatingNumberFeedbackService().TryShow(
+                            NumberCondition.ONEARNMONEY, end + Vector2.up, state.usedMoney);
+                        owner.PublishCustomerGameEvent(new FacilityRevenueEvent(actor, owner, state.usedMoney));
+                    }
+                    if (!state.createsRevenue)
+                        PublishObservation(ShopInteractionTransition.StaffUseCompleted, actor);
+                    actor.ApplyRoomExperience(owner.CustomerRoomEnvironmentExperienceService, owner, "shopping");
+                    shopping.SetVisitOutcome(owner, BuildingVisitOutcome.Completed);
+                    state.serviceSucceeded = true;
+                    state.Go(ShopUseExecutionPhase.ServiceCompletion);
+                    break;
+                case ShopUseExecutionPhase.ServiceCompletion:
+                    FinishRetail(actor, state);
+                    if (state.serviceSucceeded) yield return new WaitForSeconds(0.5f);
+                    yield break;
+                default:
+                    throw new InvalidOperationException("Unexpected retail execution phase: " + state.phase);
             }
-            yield return Linger(actor, 0.1f, currentAction);
-            if (!TryContinueInteraction(
-                    actor,
-                    currentAction,
-                    out interactionFailure,
-                    out interactionFailureDetail))
+        }
+    }
+
+    private void SetServiceStage(ServiceSessionSnapshot session, ServiceSessionStage stage)
+    {
+        if (session == null) return;
+        if (!owner.CustomerServiceSessionRuntime.TryGetSessionSnapshot(session.SessionId, out var current))
+            throw new InvalidOperationException("Shop service session disappeared.");
+        if (current.Stage == stage) return;
+        if (!owner.CustomerServiceSessionRuntime.TrySetStage(session.SessionId, stage, out var failure))
+            throw new InvalidOperationException("Shop service stage refused: " + failure.Code);
+    }
+
+    private IEnumerator WaitSaved(IBuildingVisitorPort actor, object action,
+        ShopUseExecutionState state, float seconds)
+    {
+        if (!state.timerInitialized)
+        {
+            state.timerInitialized = true;
+            state.remainingSeconds = seconds;
+        }
+        while (state.remainingSeconds > 0f)
+        {
+            if (!TryContinueInteraction(actor, action, out _, out _)) yield break;
+            state.remainingSeconds = Mathf.Max(0f, state.remainingSeconds - owner.CustomerGameDeltaTime);
+            yield return null;
+        }
+    }
+
+    private IEnumerator WaitForSavedAttendant(IBuildingVisitorPort actor, object action, ShopUseExecutionState state)
+    {
+        if (state.patience == null && ShouldWaitForServingWorker(actor))
+        {
+            state.waitingForWorker = true;
+            BuildingVisitorSnapshot visitor = actor.VisitorSnapshot;
+            state.patience = ShopCheckoutPatienceState.Capture(BuildingCheckoutPatienceRules.Create(
+                visitor.PersonalityPatience, visitor.ModelPatience, WaitingCheckoutCount));
+            state.waitStage = BuildingCheckoutWaitStage.Waiting;
+            owner.RequireCustomerWorkforceReplanService().RequestIdleWorkersToReplan();
+            PublishObservation(ShopInteractionTransition.AttendantWaitingStarted, actor);
+        }
+        while (ShouldWaitForServingWorker(actor) && !state.checkoutAbandoned)
+        {
+            if (!TryContinueInteraction(actor, action, out _, out _)) yield break;
+            BuildingCheckoutPatienceProfile profile = state.patience.ToProfile();
+            BuildingCheckoutWaitStage next = BuildingCheckoutPatienceRules.GetStage(profile, state.patienceElapsedSeconds);
+            if (next != state.waitStage)
             {
-                AbortInteraction(
-                    actor,
-                    serviceSession,
-                    selection,
-                    interactionFailure,
-                    interactionFailureDetail);
-                yield break;
+                state.waitStage = next;
+                HandleCheckoutWaitStage(actor, profile, next, state.patienceElapsedSeconds);
+                if (next == BuildingCheckoutWaitStage.Abandoned)
+                {
+                    state.checkoutAbandoned = true;
+                    break;
+                }
             }
-            if (selectedItemId == -1) continue;
+            actor.SetActionPhase("계산 대기", owner,
+                BuildingCheckoutPatienceRules.GetQueueDetail(profile, state.patienceElapsedSeconds, state.waitStage));
+            state.patienceElapsedSeconds += owner.CustomerGameDeltaTime;
+            yield return null;
+        }
+        state.waitingForWorker = false;
+        PublishObservation(ShopInteractionTransition.CheckoutQueueSampled, actor,
+            waitingCount: WaitingCheckoutCount);
+        owner.MarkCustomerFacilityStateDirty();
+        if (!state.checkoutAbandoned && state.patience != null && owner.HasServingWorker)
+            PublishObservation(ShopInteractionTransition.StaffCheckoutStarted, actor);
+    }
 
-            RemainStock remainStock = owner.CustomerInventory.Stocks.FirstOrDefault(
-                stock => stock.id == selectedItemId);
-            if (remainStock == null
-                || ShopInventoryRuntime.GetRemainingStockAfterSelection(
-                    remainStock,
-                    selectedCounts) <= 0)
+    private bool ContinueRetail(IBuildingVisitorPort actor, object action, ShopUseExecutionState state)
+    {
+        if (TryContinueInteraction(actor, action, out var kind, out string detail)) return true;
+        state.waitingForWorker = false;
+        state.serviceSucceeded = false;
+        state.serviceFailureReason = detail;
+        state.Go(ShopUseExecutionPhase.ServiceCompletion);
+        actor.Shopping.SetVisitOutcome(owner, BuildingVisitOutcome.Abandoned);
+        FinishRetail(actor, state);
+        if (kind == BuildingInteractionFailureKind.ActionReplaced)
+            actor.ReportInteractionCancellation(kind, detail, owner);
+        else actor.ReportInteractionFailure(kind, detail, owner);
+        return false;
+    }
+
+    private void FailRetail(IBuildingVisitorPort actor, ShopUseExecutionState state, string code, string reason)
+    {
+        actor.Shopping.SetVisitOutcome(owner, BuildingVisitOutcome.Failed);
+        PublishObservation(ShopInteractionTransition.RetailFailed, actor, reason: code, detail: reason);
+        state.serviceSucceeded = false;
+        state.serviceFailureReason = reason;
+        state.Go(ShopUseExecutionPhase.ServiceCompletion);
+    }
+
+    internal void ResumeFailedServiceCleanup(IBuildingVisitorPort actor, ShopUseExecutionState state)
+    {
+        if (actor == null || state == null || state.actorId != actor.BuildingCharacterId.Value
+            || !ReferenceEquals(owner.FindActiveShopUse(state.actorId), state)
+            || !owner.CustomerServiceSessionRuntime.TryGetSessionSnapshot(state.serviceSessionId, out var session)
+            || !state.MatchesCancelledSession(session, owner.RequirePersistentInstanceId().Value))
+            throw new InvalidOperationException("Shop failed-cleanup owner/session mismatch.");
+        FinishRetail(actor, state);
+    }
+
+    private void FinishRetail(IBuildingVisitorPort actor, ShopUseExecutionState state)
+    {
+        if (!string.IsNullOrEmpty(state.serviceSessionId))
+        {
+            IServiceSessionRuntime runtime = owner.CustomerServiceSessionRuntime;
+            if (!runtime.TryGetSessionSnapshot(state.serviceSessionId, out var session))
+                throw new InvalidOperationException("Shop terminal lost its active service session.");
+            if (!session.IsActive)
             {
-                continue;
+                if (!state.MatchesCancelledSession(session, owner.RequirePersistentInstanceId().Value))
+                    throw new InvalidOperationException("Shop terminal does not match its cancelled cleanup session.");
             }
-
-            cart.Add(remainStock);
-            selectedCounts.TryGetValue(remainStock.id, out int selectedCount);
-            selectedCounts[remainStock.id] = selectedCount + 1;
-        }
-
-        if (cart.Count == 0)
-        {
-            ReleaseShoppingSelectionBuffer(selection);
-            shopable.SetVisitOutcome(owner, BuildingVisitOutcome.Failed);
-            actor.RecordActivity(owner, new BuildingActivitySnapshot(
-                BuildingActivityKinds.Shopping,
-                BuildingActivityOutcomes.Failed,
-                $"{owner.CustomerDisplayName} 이용 실패: 구매 가능한 상품 없음",
-                reasonCode: "no-purchasable-item",
-                bubbleEligible: true));
-            owner.CustomerServiceCompletion.Finish(
-                actor,
-                serviceSession?.SessionId,
-                false,
-                "구매 가능한 상품이 없습니다.",
-                owner.CustomerServiceSessionCompletion);
-            yield break;
-        }
-
-        Vector2 endPos = owner.GetFacilityAnchorWorldPosition(
-            FacilityAnchorPurposeIds.Checkout,
-            actor.VisitorSnapshot.Position);
-        actor.SetActionPhase("\uACC4\uC0B0\uB300 \uC774\uB3D9", owner);
-        yield return actor.MoveTo(endPos, 1f, currentAction);
-        if (!TryContinueInteraction(
-                actor,
-                currentAction,
-                out BuildingInteractionFailureKind checkoutFailure,
-                out string checkoutFailureDetail))
-        {
-            AbortInteraction(
-                actor,
-                serviceSession,
-                selection,
-                checkoutFailure,
-                checkoutFailureDetail);
-            yield break;
-        }
-        CheckoutWaitSession checkoutWaitSession = new CheckoutWaitSession();
-        bool requiresManagedAttendant = serviceSession == null
-            ? owner.RequiresCustomerServingWorker()
-            : serviceSession.Contract.mode == ServiceOperationMode.Managed
-                && owner.RequiresCustomerServingWorker();
-        if (requiresManagedAttendant)
-        {
-            owner.CustomerServiceSessionRuntime?.TrySetStage(
-                serviceSession?.SessionId,
-                ServiceSessionStage.Waiting,
-                out _);
-            yield return WaitForServingWorkerWithPatience(
-                actor,
-                checkoutWaitSession);
-            if (!TryContinueInteraction(
-                    actor,
-                    currentAction,
-                    out checkoutFailure,
-                    out checkoutFailureDetail))
+            else if (state.serviceSucceeded)
             {
-                AbortInteraction(
-                    actor,
-                    serviceSession,
-                    selection,
-                    checkoutFailure,
-                    checkoutFailureDetail);
-                yield break;
+                if (!runtime.TryCompleteSession(state.serviceSessionId, out _, out var failure))
+                    throw new InvalidOperationException("Shop completion remains pending: " + failure.Code);
             }
+            else if (!runtime.CancelSession(state.serviceSessionId, state.serviceFailureReason))
+                throw new InvalidOperationException("Shop cancellation remains pending.");
         }
-        if (checkoutWaitSession.Abandoned
-            || shopable.LastVisitOutcome == BuildingVisitOutcome.Abandoned)
-        {
-            ReleaseShoppingSelectionBuffer(selection);
-            owner.CustomerServiceCompletion.Finish(
-                actor,
-                serviceSession?.SessionId,
-                false,
-                "대기 시간이 길어 손님이 떠났습니다.",
-                owner.CustomerServiceSessionCompletion);
-            yield break;
-        }
-        if (requiresManagedAttendant
-            && !owner.CanServeCustomer(actor, out string serviceFailureReason))
-        {
-            ReleaseShoppingSelectionBuffer(selection);
-            shopable.SetVisitOutcome(owner, BuildingVisitOutcome.Failed);
-            actor.RecordActivity(owner, new BuildingActivitySnapshot(
-                BuildingActivityKinds.Shopping,
-                BuildingActivityOutcomes.Cancelled,
-                $"{owner.CustomerDisplayName} 계산 대기 중단: {serviceFailureReason}",
-                reasonCode: serviceFailureReason,
-                bubbleEligible: true));
-            owner.CustomerServiceCompletion.Finish(
-                actor,
-                serviceSession?.SessionId,
-                false,
-                serviceFailureReason,
-                owner.CustomerServiceSessionCompletion);
-            yield break;
-        }
-
-        owner.CustomerServiceSessionRuntime?.TrySetStage(
-            serviceSession?.SessionId,
-            ServiceSessionStage.Service,
-            out _);
-        yield return RunCheckoutService(actor);
-        if (!TryContinueInteraction(
-                actor,
-                currentAction,
-                out checkoutFailure,
-                out checkoutFailureDetail))
-        {
-            AbortInteraction(
-                actor,
-                serviceSession,
-                selection,
-                checkoutFailure,
-                checkoutFailureDetail);
-            yield break;
-        }
-        if (owner.TryResolveCheckoutCrime(actor, cart))
-        {
-            ReleaseShoppingSelectionBuffer(selection);
-            shopable.SetVisitOutcome(owner, BuildingVisitOutcome.Completed);
-            owner.CustomerServiceCompletion.Finish(
-                actor,
-                serviceSession?.SessionId,
-                true,
-                string.Empty,
-                owner.CustomerServiceSessionCompletion);
-            yield break;
-        }
-
-        int usedMoney = 0;
-        int purchaseCount = 0;
-        string lastPurchaseCommitFailure = "no-purchasable-item";
-        foreach (RemainStock remainStock in cart)
-        {
-            if (remainStock == null || remainStock.stock <= 0)
-            {
-                continue;
-            }
-
-            Stock pricedStock = owner.CustomerInventory.CreatePricedStock(
-                remainStock,
-                owner.CurrentPriceMultiplier);
-            if (!shopable.CanPay(pricedStock.cost))
-            {
-                continue;
-            }
-
-            BuildingRetailPurchaseCommitResult purchaseCommit =
-                new BuildingRetailPurchaseCommitResult();
-            yield return shopable.Purchase(
-                remainStock,
-                pricedStock.cost,
-                currentAction,
-                owner,
-                purchaseCommit);
-            if (!TryContinueInteraction(
-                    actor,
-                    currentAction,
-                    out checkoutFailure,
-                    out checkoutFailureDetail))
-            {
-                AbortInteraction(
-                    actor,
-                    serviceSession,
-                    selection,
-                    checkoutFailure,
-                    checkoutFailureDetail);
-                yield break;
-            }
-            if (!purchaseCommit.IsResolved || !purchaseCommit.Committed)
-            {
-                lastPurchaseCommitFailure = purchaseCommit.IsResolved
-                    ? purchaseCommit.FailureCode
-                    : "purchase-port-returned-without-result";
-                continue;
-            }
-
-            purchaseCount++;
-            owner.PublishCustomerGameEvent(new FacilityStockConsumedEvent(
-                actor,
-                owner,
-                owner.CustomerInventory.GetStockCategory(remainStock.id),
-                1));
-            if (createsRevenue)
-            {
-                usedMoney += pricedStock.cost;
-            }
-            owner.MarkCustomerFacilityStateDirty();
-        }
-
-        if (purchaseCount == 0)
-        {
-            ReleaseShoppingSelectionBuffer(selection);
-            shopable.SetVisitOutcome(owner, BuildingVisitOutcome.Failed);
-            actor.RecordActivity(owner, new BuildingActivitySnapshot(
-                BuildingActivityKinds.Shopping,
-                BuildingActivityOutcomes.Failed,
-                $"{owner.CustomerDisplayName} 이용 실패: 구매 가능한 상품 없음",
-                reasonCode: lastPurchaseCommitFailure,
-                bubbleEligible: true));
-            owner.CustomerServiceCompletion.Finish(
-                actor,
-                serviceSession?.SessionId,
-                false,
-                "결제 가능한 상품이 없습니다.",
-                owner.CustomerServiceSessionCompletion);
-            yield break;
-        }
-
-        actor?.ApplyMoodFactor(
-            $"shopping:{owner.RequirePersistentInstanceId().Value}",
-            "마음에 드는 물건을 삼",
-            5f,
-            120f,
-            2);
-
-        if (createsRevenue && usedMoney > 0)
-            owner.RequireCustomerFloatingNumberFeedbackService().TryShow(NumberCondition.ONEARNMONEY, endPos + Vector2.up, usedMoney);
-
-        if (createsRevenue && usedMoney > 0)
-        {
-            owner.CustomerMoneyAccount.Add(
-                usedMoney,
-                new EconomyTransactionContext(
-                    EconomyTransactionKind.GuestServiceIncome,
-                    owner.RequirePersistentInstanceId().Value,
-                    actor.VisitorSnapshot.PersistentId,
-                    "손님 물품 판매"));
-        }
-
-        if (createsRevenue && usedMoney > 0)
-        {
-            owner.PublishCustomerGameEvent(new FacilityRevenueEvent(actor, owner, usedMoney));
-        }
-
-        if (!createsRevenue)
-        {
-            actor.RecordActivity(owner, new BuildingActivitySnapshot(
-                BuildingActivityKinds.Shopping,
-                BuildingActivityOutcomes.Completed,
-                $"{owner.CustomerDisplayName} 직원 이용: 매출 제외",
-                reasonCode: "staff-no-revenue"));
-        }
-
-        actor.ApplyRoomExperience(owner.CustomerRoomEnvironmentExperienceService, owner, "shopping");
-        shopable.SetVisitOutcome(owner, BuildingVisitOutcome.Completed);
-        ReleaseShoppingSelectionBuffer(selection);
-        owner.CustomerServiceCompletion.Finish(
-            actor,
-            serviceSession?.SessionId,
-            true,
-            string.Empty,
-            owner.CustomerServiceSessionCompletion);
-        yield return PurchaseCompleteDelay;
+        owner.EndShopUse(actor, state.serviceSucceeded);
     }
 
     private IEnumerator RunPhysicalMealService(
@@ -594,25 +579,15 @@ internal sealed class ShopCustomerInteractionService
         {
             if (meal.IsRetryableUnavailable)
             {
-                const string cancellationReason = "meal-supply-retry";
                 shopping.SetVisitOutcome(owner, BuildingVisitOutcome.Abandoned);
-                actor?.RecordActivity(owner, new BuildingActivitySnapshot(
-                    BuildingActivityKinds.FacilityUse,
-                    BuildingActivityOutcomes.Cancelled,
-                    "Meal supply changed before commit; retrying selection.",
-                    reasonCode: cancellationReason));
+                PublishObservation(ShopInteractionTransition.MealSupplyChanged, actor);
                 yield break;
             }
 
             if (meal.IsNoLongerNeeded)
             {
-                const string cancellationReason = "meal-no-longer-needed";
                 shopping.SetVisitOutcome(owner, BuildingVisitOutcome.Abandoned);
-                actor?.RecordActivity(owner, new BuildingActivitySnapshot(
-                    BuildingActivityKinds.FacilityUse,
-                    BuildingActivityOutcomes.Cancelled,
-                    "Meal service retired because the need was already satisfied.",
-                    reasonCode: cancellationReason));
+                PublishObservation(ShopInteractionTransition.MealNoLongerNeeded, actor);
                 yield break;
             }
 
@@ -620,14 +595,8 @@ internal sealed class ShopCustomerInteractionService
                 ? CharacterConsumablesFailureCode.PhysicalConsumptionFailed.ToString()
                 : meal.FailureCode;
             shopping.SetVisitOutcome(owner, BuildingVisitOutcome.Failed);
-            actor?.RecordActivity(owner, new BuildingActivitySnapshot(
-                BuildingActivityKinds.FacilityUse,
-                BuildingActivityOutcomes.Failed,
-                string.IsNullOrWhiteSpace(meal.FailureDetail)
-                    ? failureCode
-                    : $"{failureCode}:{meal.FailureDetail}",
-                reasonCode: failureCode,
-                bubbleEligible: true));
+            PublishObservation(ShopInteractionTransition.MealFailed, actor,
+                reason: failureCode, detail: meal.FailureDetail);
             yield break;
         }
 
@@ -683,145 +652,13 @@ internal sealed class ShopCustomerInteractionService
                     -5f,
                     180f,
                     1);
-                actor?.RecordActivity(owner, new BuildingActivitySnapshot(
-                    BuildingActivityKinds.Social,
-                    BuildingActivityOutcomes.Damaged,
-                    $"{meal.DisplayName} 값을 치르지 못하고 쫓겨남",
-                    reasonCode: "meal-unaffordable",
-                    bubbleEligible: true));
-                owner.CustomerGameEventBus.RaiseAlert(
-                    "무전취식",
-                    $"{actor?.VisitorSnapshot.DisplayName ?? "손님"}이(가) "
-                    + $"{meal.DisplayName} 값을 치르지 못했습니다.",
-                    EventAlertImportance.Low,
-                    "범죄");
+                PublishObservation(ShopInteractionTransition.MealUnpaid, actor, itemName: meal.DisplayName);
             }
         }
 
         actor?.ApplyRoomExperience(owner.CustomerRoomEnvironmentExperienceService, owner, "shopping");
         shopping.SetVisitOutcome(owner, BuildingVisitOutcome.Completed);
-        actor?.RecordActivity(owner, new BuildingActivitySnapshot(
-            BuildingActivityKinds.FacilityUse,
-            BuildingActivityOutcomes.Completed,
-            $"{meal.DisplayName} 식사 완료",
-            value: revenue));
-    }
-
-    private IEnumerator RunCheckoutService(IBuildingVisitorPort actor)
-    {
-        if (!Shop.CreatesRevenueFor(actor))
-        {
-            yield break;
-        }
-
-        bool selfService = !owner.HasServingWorker;
-        if (selfService)
-        {
-            waitingCheckoutCount++;
-            owner.MarkCustomerFacilityStateDirty();
-            owner.RequireCustomerWorkforceReplanService().RequestIdleWorkersToReplan();
-            actor?.RecordActivity(owner, new BuildingActivitySnapshot(
-                BuildingActivityKinds.Shopping,
-                BuildingActivityOutcomes.Progress,
-                $"{owner.CustomerDisplayName} 셀프 계산 중",
-                actionId: "checkout:self-service"));
-        }
-
-        try
-        {
-            yield return selfService
-                ? SelfServiceCheckoutDelay
-                : StaffedCheckoutDelay;
-        }
-        finally
-        {
-            if (selfService)
-            {
-                waitingCheckoutCount = Mathf.Max(0, waitingCheckoutCount - 1);
-                owner.MarkCustomerFacilityStateDirty();
-            }
-        }
-    }
-
-    private IEnumerator WaitForServingWorkerWithPatience(
-        IBuildingVisitorPort actor,
-        CheckoutWaitSession session)
-    {
-        IBuildingShoppingVisitorPort shopping = actor?.Shopping;
-        if (!ShouldWaitForServingWorker(actor))
-        {
-            yield break;
-        }
-
-        waitingCheckoutCount++;
-        int queuePosition = waitingCheckoutCount;
-        BuildingVisitorSnapshot visitor = actor.VisitorSnapshot;
-        BuildingCheckoutPatienceProfile patience = BuildingCheckoutPatienceRules.Create(
-            visitor.PersonalityPatience,
-            visitor.ModelPatience,
-            queuePosition);
-        BuildingCheckoutWaitStage stage = BuildingCheckoutWaitStage.Waiting;
-        float elapsedSeconds = 0f;
-        owner.MarkCustomerFacilityStateDirty();
-        owner.RequireCustomerWorkforceReplanService().RequestIdleWorkersToReplan();
-        actor?.SetActionPhase(
-            "계산 대기",
-            owner,
-            BuildingCheckoutPatienceRules.GetQueueDetail(patience, elapsedSeconds, stage));
-        actor?.RecordActivity(owner, new BuildingActivitySnapshot(
-            BuildingActivityKinds.Shopping,
-            BuildingActivityOutcomes.Blocked,
-            $"{owner.CustomerDisplayName}에서 계산할 직원을 기다리기 시작했다.",
-            actionId: "checkout:staffed",
-            reasonCode: "no-serving-worker",
-            bubbleEligible: true));
-
-        try
-        {
-            while (ShouldWaitForServingWorker(actor))
-            {
-                BuildingCheckoutWaitStage nextStage = BuildingCheckoutPatienceRules.GetStage(
-                    patience,
-                    elapsedSeconds);
-                if (nextStage != stage)
-                {
-                    stage = nextStage;
-                    HandleCheckoutWaitStage(actor, patience, stage, elapsedSeconds);
-                    if (stage == BuildingCheckoutWaitStage.Abandoned)
-                    {
-                        session.Abandoned = true;
-                        break;
-                    }
-                }
-
-                actor?.SetActionPhase(
-                    "계산 대기",
-                    owner,
-                    BuildingCheckoutPatienceRules.GetQueueDetail(patience, elapsedSeconds, stage));
-                yield return CheckoutPollDelay;
-                elapsedSeconds += CheckoutWaitPollSeconds;
-            }
-        }
-        finally
-        {
-            waitingCheckoutCount = Mathf.Max(0, waitingCheckoutCount - 1);
-            if (waitingCheckoutCount == 0)
-            {
-                checkoutServiceAlertRaised = false;
-            }
-            owner.MarkCustomerFacilityStateDirty();
-        }
-
-        if (shopping?.LastVisitOutcome != BuildingVisitOutcome.Abandoned
-            && owner.HasServingWorker)
-        {
-            actor?.SetActionPhase("계산 중", owner, $"{Mathf.CeilToInt(elapsedSeconds)}초 기다림");
-            actor?.RecordActivity(owner, new BuildingActivitySnapshot(
-                BuildingActivityKinds.Shopping,
-                BuildingActivityOutcomes.Started,
-                $"{owner.CustomerDisplayName}에서 계산을 시작했다.",
-                actionId: "checkout:staffed"));
-        }
+        PublishObservation(ShopInteractionTransition.MealCompleted, actor, itemName: meal.DisplayName, revenue: revenue);
     }
 
     private void HandleCheckoutWaitStage(
@@ -835,7 +672,6 @@ internal sealed class ShopCustomerInteractionService
             return;
         }
 
-        string actorName = actor.VisitorSnapshot.DisplayName;
         switch (stage)
         {
             case BuildingCheckoutWaitStage.Restless:
@@ -845,37 +681,13 @@ internal sealed class ShopCustomerInteractionService
                     -1.5f,
                     90f,
                     1);
-                actor.RecordActivity(owner, new BuildingActivitySnapshot(
-                    BuildingActivityKinds.Shopping,
-                    BuildingActivityOutcomes.Progress,
-                    $"{actorName}은 계산 줄이 좀처럼 줄지 않아 초조해졌다.",
-                    actionId: "checkout:waiting",
-                    reasonCode: "queue-restless",
-                    value: elapsedSeconds,
-                    bubbleEligible: true));
+                PublishObservation(ShopInteractionTransition.CheckoutRestless, actor, elapsedSeconds: elapsedSeconds);
                 break;
 
             case BuildingCheckoutWaitStage.RequestingService:
                 owner.RequireCustomerWorkforceReplanService().RequestIdleWorkersToReplan();
-                actor.RecordActivity(owner, new BuildingActivitySnapshot(
-                    BuildingActivityKinds.Shopping,
-                    BuildingActivityOutcomes.Responded,
-                    patience.PatienceMultiplier >= 1.1f
-                        ? $"{actorName}은 계산을 도와줄 직원을 불렀다."
-                        : $"{actorName}은 더 기다리기 어렵다며 직원을 찾았다.",
-                    actionId: "checkout:service-request",
-                    reasonCode: "customer-called-worker",
-                    value: elapsedSeconds,
-                    bubbleEligible: true));
-                if (!checkoutServiceAlertRaised)
-                {
-                    checkoutServiceAlertRaised = true;
-                    owner.CustomerGameEventBus.RaiseAlert(
-                        "계산 지원 필요",
-                        $"{actorName}이(가) {owner.CustomerDisplayName}에서 계산 직원을 찾고 있습니다.",
-                        EventAlertImportance.Low,
-                        "손님");
-                }
+                PublishObservation(ShopInteractionTransition.CheckoutServiceRequested, actor,
+                    elapsedSeconds: elapsedSeconds, patienceMultiplier: patience.PatienceMultiplier);
                 break;
 
             case BuildingCheckoutWaitStage.Abandoned:
@@ -891,32 +703,14 @@ internal sealed class ShopCustomerInteractionService
                     0f,
                     GameCalendarRules.SecondsPerDay,
                     1);
-                actor.RememberFacilityExperience(
-                    owner,
-                    patience.AbandonSentiment,
-                    "계산이 너무 늦어 구매를 포기했다.");
                 actor.Shopping?.SetVisitOutcome(owner, BuildingVisitOutcome.Abandoned);
                 actor.SetActionPhase(
                     "구매 포기",
                     owner,
                     $"{Mathf.CeilToInt(elapsedSeconds)}초 기다린 뒤 다른 곳을 찾음");
-                actor.RecordActivity(owner, new BuildingActivitySnapshot(
-                    BuildingActivityKinds.Shopping,
-                    BuildingActivityOutcomes.Cancelled,
-                    $"{actorName}은 계산을 기다리다 구매를 포기했다.",
-                    actionId: "checkout:abandoned",
-                    reasonCode: "patience-exhausted",
-                    value: elapsedSeconds,
-                    bubbleEligible: true));
-                if (owner.CustomerGameTime >= nextCheckoutAbandonAlertTime)
-                {
-                    nextCheckoutAbandonAlertTime = owner.CustomerGameTime + 5f;
-                    owner.CustomerGameEventBus.RaiseAlert(
-                        "손님이 구매를 포기함",
-                        $"{actorName}이(가) {owner.CustomerDisplayName}의 긴 계산 대기 때문에 다른 곳을 찾습니다.",
-                        EventAlertImportance.Medium,
-                        "손님");
-                }
+                PublishObservation(ShopInteractionTransition.CheckoutAbandoned, actor,
+                    elapsedSeconds: elapsedSeconds, abandonSentiment: patience.AbandonSentiment,
+                    gameTime: owner.CustomerGameTime);
                 break;
         }
     }
@@ -928,27 +722,6 @@ internal sealed class ShopCustomerInteractionService
             && Shop.CreatesRevenueFor(actor)
             && owner.RequiresCustomerServingWorker()
             && !owner.HasServingWorker;
-    }
-
-    private static ShoppingSelectionBuffer AcquireShoppingSelectionBuffer()
-    {
-        ShoppingSelectionBuffer buffer = ShoppingSelectionPool.Count > 0
-            ? ShoppingSelectionPool.Pop()
-            : new ShoppingSelectionBuffer();
-        buffer.Clear();
-        return buffer;
-    }
-
-    private static void ReleaseShoppingSelectionBuffer(
-        ShoppingSelectionBuffer buffer)
-    {
-        if (buffer == null)
-        {
-            return;
-        }
-
-        buffer.Clear();
-        ShoppingSelectionPool.Push(buffer);
     }
 
     private static IReadOnlyList<BuildingRetailOfferSnapshot> CreateOfferSnapshots(
@@ -1044,15 +817,9 @@ internal sealed class ShopCustomerInteractionService
     private void AbortInteraction(
         IBuildingVisitorPort actor,
         ServiceSessionSnapshot serviceSession,
-        ShoppingSelectionBuffer selection,
         BuildingInteractionFailureKind failureKind,
         string failureDetail)
     {
-        if (selection != null)
-        {
-            ReleaseShoppingSelectionBuffer(selection);
-        }
-
         string detail = string.IsNullOrWhiteSpace(failureDetail)
             ? failureKind.ToString()
             : failureDetail;
@@ -1066,12 +833,8 @@ internal sealed class ShopCustomerInteractionService
                 false,
                 detail,
                 owner.CustomerServiceSessionCompletion);
-            actor?.RecordActivity(owner, new BuildingActivitySnapshot(
-                BuildingActivityKinds.Shopping,
-                BuildingActivityOutcomes.Cancelled,
-                $"{ownerDisplayName} interaction aborted: {detail}",
-                actionId: "shop:interaction",
-                reasonCode: detail));
+            PublishObservation(ShopInteractionTransition.InteractionAborted, actor,
+                detail: detail, facilityName: ownerDisplayName);
         }
         else
         {
@@ -1093,22 +856,20 @@ internal sealed class ShopCustomerInteractionService
                 ownerAlive ? owner : null);
         }
     }
-}
 
-internal sealed class CheckoutWaitSession
-{
-    public bool Abandoned { get; set; }
-}
-
-internal sealed class ShoppingSelectionBuffer
-{
-    public readonly Dictionary<int, int> SelectedCounts =
-        new Dictionary<int, int>();
-    public readonly List<RemainStock> Cart = new List<RemainStock>();
-
-    public void Clear()
+    private void PublishObservation(ShopInteractionTransition transition, IBuildingVisitorPort actor,
+        string reason = "", string detail = "", string itemName = "", float elapsedSeconds = 0f,
+        float patienceMultiplier = 1f, float abandonSentiment = 0f, int revenue = 0,
+        int waitingCount = 0, float gameTime = 0f, string facilityName = null)
     {
-        SelectedCounts.Clear();
-        Cart.Clear();
+        var observation = new ShopInteractionObservedEvent(transition, owner, actor,
+            reason, detail, itemName, elapsedSeconds, patienceMultiplier, abandonSentiment,
+            revenue, waitingCount, gameTime, facilityName);
+        try { owner.PublishCustomerGameEvent(observation); }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not StackOverflowException && exception is not AccessViolationException)
+        {
+            Debug.LogWarning("shop-interaction-observation:" + exception.GetType().Name + ":" + exception.Message);
+        }
     }
 }

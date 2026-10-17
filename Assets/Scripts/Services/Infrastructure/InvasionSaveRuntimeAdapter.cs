@@ -28,13 +28,25 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
 
         internal PreparedRestoreCandidate(
             InvasionSaveRuntimeAdapter owner,
-            InvasionAggregateState state)
+            InvasionAggregateState state,
+            string endlessCrisisCandidateEffectOwnerId,
+            string endlessCrisisDirectResponseOwnerId,
+            string endlessCrisisDirectResponseRuntimeId)
         {
             this.owner = owner ?? throw new ArgumentNullException(nameof(owner));
             State = state ?? throw new ArgumentNullException(nameof(state));
+            EndlessCrisisCandidateEffectOwnerId =
+                endlessCrisisCandidateEffectOwnerId ?? string.Empty;
+            EndlessCrisisDirectResponseOwnerId =
+                endlessCrisisDirectResponseOwnerId ?? string.Empty;
+            EndlessCrisisDirectResponseRuntimeId =
+                endlessCrisisDirectResponseRuntimeId ?? string.Empty;
         }
 
         internal InvasionAggregateState State { get; }
+        internal string EndlessCrisisCandidateEffectOwnerId { get; }
+        internal string EndlessCrisisDirectResponseOwnerId { get; }
+        internal string EndlessCrisisDirectResponseRuntimeId { get; }
         internal bool IsStaged { get; set; }
 
         public void Stage() => owner?.Stage(this);
@@ -55,6 +67,8 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
     private PreparedRestoreCandidate preparedCandidate;
     private int publishedProjectionCount;
     private bool restorePublicationPending;
+    private bool threatOwnershipPublished;
+    private InvasionThreatEndlessCrisisOwnershipState previousThreatOwnership;
 
     internal Action<string> RestorePublicationCheckpoint { get; set; }
     internal Action<string> RestoreRollbackCheckpoint { get; set; }
@@ -93,8 +107,19 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
 
     public DungeonInvasionSaveData Capture()
     {
+        threatRuntime.ValidateEndlessCrisisOwnershipJoin();
         InvasionThreatPersistenceState threat =
             threatRuntime.CapturePersistentState();
+        if (threat.EndlessCrisisDirectResponseOwnerId.Length > 0
+            && director.ActiveIntruders.Count(value => value != null
+                && string.Equals(
+                    value.RuntimeId,
+                    threat.EndlessCrisisDirectResponseRuntimeId,
+                    StringComparison.Ordinal)) != 1)
+        {
+            throw new InvalidOperationException(
+                "Endless crisis response does not join one active invasion intruder.");
+        }
         DungeonInvasionSaveData result = new DungeonInvasionSaveData
         {
             threat = new DungeonInvasionThreatSaveData
@@ -110,7 +135,13 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
                 dungeonValueFactor = threat.LastFactors.dungeonValue,
                 reputationFactor = threat.LastFactors.reputation,
                 timeFactor = threat.LastFactors.time,
-                riskFactor = threat.LastFactors.risk
+                riskFactor = threat.LastFactors.risk,
+                endlessCrisisCandidateEffectOwnerId =
+                    threat.EndlessCrisisCandidateEffectOwnerId,
+                endlessCrisisDirectResponseOwnerId =
+                    threat.EndlessCrisisDirectResponseOwnerId,
+                endlessCrisisDirectResponseRuntimeId =
+                    threat.EndlessCrisisDirectResponseRuntimeId
             },
             responsePolicies = responsePolicyRuntime.Capture(),
             engagements = engagementRuntime.Capture(),
@@ -170,7 +201,12 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
                 return null;
             }
 
-            preparedCandidate = new PreparedRestoreCandidate(this, restored);
+            preparedCandidate = new PreparedRestoreCandidate(
+                this,
+                restored,
+                source.threat.endlessCrisisCandidateEffectOwnerId,
+                source.threat.endlessCrisisDirectResponseOwnerId,
+                source.threat.endlessCrisisDirectResponseRuntimeId);
             return preparedCandidate;
         }
         catch
@@ -192,8 +228,18 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
         }
 
         publishedProjectionCount = 0;
+        threatOwnershipPublished = false;
         try
         {
+            previousThreatOwnership =
+                threatRuntime.CaptureEndlessCrisisOwnership();
+            threatRuntime.RestoreEndlessCrisisOwnership(
+                preparedCandidate.EndlessCrisisCandidateEffectOwnerId,
+                preparedCandidate.EndlessCrisisDirectResponseOwnerId,
+                preparedCandidate.EndlessCrisisDirectResponseRuntimeId);
+            threatOwnershipPublished = true;
+            threatRuntime.ValidateEndlessCrisisOwnershipJoin();
+
             campaignRuntime.PublishRestoreProjection();
             publishedProjectionCount = 1;
             InvokePublicationCheckpoint(CampaignPublicationCheckpoint);
@@ -303,6 +349,14 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
                         CampaignPublicationCheckpoint);
                 });
             }
+
+            if (threatOwnershipPublished)
+            {
+                Attempt(() => threatRuntime.RestoreEndlessCrisisOwnership(
+                    previousThreatOwnership.CandidateEffectOwnerId,
+                    previousThreatOwnership.DirectResponseOwnerId,
+                    previousThreatOwnership.DirectResponseRuntimeId));
+            }
         }
         finally
         {
@@ -318,6 +372,8 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
             preparedCandidate = null;
             publishedProjectionCount = 0;
             restorePublicationPending = false;
+            threatOwnershipPublished = false;
+            previousThreatOwnership = default;
         }
 
         if (failures.Count > 0)
@@ -359,6 +415,8 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
 
         publishedProjectionCount = 0;
         restorePublicationPending = false;
+        threatOwnershipPublished = false;
+        previousThreatOwnership = default;
     }
 
     public void DiscardRestoreCandidate()
@@ -515,7 +573,11 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
                 participatingBranchIds = operation.participatingBranchIds.ToList(),
                 objectiveId = operation.objectiveId,
                 scheduledDay = operation.scheduledDay,
-                intelligenceConfidence = operation.intelligenceConfidence
+                intelligenceConfidence = operation.intelligenceConfidence,
+                sourceOwnerId = operation.sourceOwnerId,
+                sourceAbsoluteDay = operation.sourceAbsoluteDay,
+                startedInvasionRuntimeId = operation.startedInvasionRuntimeId,
+                startedPublicationKey = operation.startedPublicationKey
             }));
         restored.Campaign = campaign;
         return restored;
@@ -559,12 +621,16 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
                     participatingBranchIds = operation.participatingBranchIds.ToList(),
                     objectiveId = operation.objectiveId,
                     scheduledDay = operation.scheduledDay,
-                    intelligenceConfidence = operation.intelligenceConfidence
+                    intelligenceConfidence = operation.intelligenceConfidence,
+                    sourceOwnerId = operation.sourceOwnerId,
+                    sourceAbsoluteDay = operation.sourceAbsoluteDay,
+                    startedInvasionRuntimeId = operation.startedInvasionRuntimeId,
+                    startedPublicationKey = operation.startedPublicationKey
                 }).ToList()
         };
     }
 
-    private static DungeonInvasionIntruderSaveData ToIntruderSaveData(
+    internal static DungeonInvasionIntruderSaveData ToIntruderSaveData(
         InvasionIntruderPersistenceState source)
     {
         InvasionIntruderSettings settings = source.Settings
@@ -600,6 +666,9 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
             currentHealth = source.CurrentHealth,
             injurySeverity = source.InjurySeverity,
             baseMood = source.BaseMood,
+            invasionStartPublicationKey = source.InvasionStartPublicationKey,
+            lastInvasionStagePublicationKey =
+                source.LastInvasionStagePublicationKey,
             settings = new DungeonInvasionIntruderSettingsSaveData
             {
                 patternId = settings.patternId,
@@ -667,7 +736,7 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
         };
     }
 
-    private static InvasionIntruderPersistenceState ToRuntimeState(
+    internal static InvasionIntruderPersistenceState ToRuntimeState(
         DungeonInvasionIntruderSaveData source)
     {
         DungeonInvasionIntruderSettingsSaveData settings = source.settings;
@@ -721,7 +790,9 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
             ToRuntimeData(source.raidAwareness),
             source.damagedFacilityBuildingInstanceIds.Select(
                 value => new BuildingInstanceId(value)),
-            source.enemyIndividual?.Clone());
+            source.enemyIndividual?.Clone(),
+            source.invasionStartPublicationKey,
+            source.lastInvasionStagePublicationKey);
     }
 
     private static DefenseRaidAwarenessSaveData ToRuntimeData(

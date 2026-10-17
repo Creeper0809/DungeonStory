@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "피와 독소를 안정화한 금기 의식 재료이다. 베르사디온의 혈액 의식재는 동의의 잔 앞에서 봉인한 작은 유리병에 나눠 담아 출처가 다른 피가 섞이지 않게 한다.",
+  "in_game_description": "피와 독소를 안정화한 금기 의식 재료이다. 베르사디온의 혈액 의식재 병목에는 동의의 잔에서 떼어 낸 검은 실이 감겨 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

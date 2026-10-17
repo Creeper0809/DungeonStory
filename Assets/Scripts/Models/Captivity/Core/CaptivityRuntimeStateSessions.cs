@@ -31,8 +31,15 @@ public sealed class CircusStateSession
     public void Add(CircusShowOrder order) =>
         store.State.Orders.Add(order ?? throw new ArgumentNullException(nameof(order)));
 
-    public CircusSaveData Capture(IEnumerable<CapturedWildlifeState> capturedWildlife) =>
-        CircusStateCodec.Capture(store.State, capturedWildlife);
+    public CircusSaveData Capture(
+        IEnumerable<CapturedWildlifeState> capturedWildlife,
+        int nextWildlifeGameplayOutcomeSequence,
+        IEnumerable<WildlifeGameplayOutcomeSaveData> wildlifeGameplayOutcomes) =>
+        CircusStateCodec.Capture(
+            store.State,
+            capturedWildlife,
+            nextWildlifeGameplayOutcomeSequence,
+            wildlifeGameplayOutcomes);
 
     public void Stage(CircusRestoreCandidate candidate)
     {
@@ -70,6 +77,10 @@ public sealed class CapturedWildlifeStateSession
 
     public int Count => State.Captured.Count;
     public IReadOnlyCollection<CapturedWildlifeState> Values => State.Captured.Values;
+    public IWildlifeGameplayOutcomeOwner OutcomeOwner => State;
+
+    public int NextGameplayOutcomeSequence =>
+        State.NextGameplayOutcomeSequence;
 
     public bool TryGet(string id, out CapturedWildlifeState state) =>
         State.Captured.TryGetValue(id?.Trim() ?? string.Empty, out state);
@@ -91,6 +102,11 @@ public sealed class CapturedWildlifeStateSession
 
     public IReadOnlyList<CapturedWildlifeState> Capture() =>
         State.Captured.Values.Select(item => item.Clone()).ToArray();
+
+    public IReadOnlyList<WildlifeGameplayOutcomeSaveData>
+        CaptureGameplayOutcomes() => State.GameplayOutcomes
+            .Select(value => value?.Clone())
+            .ToArray();
 
     public void Stage(CircusRestoreCandidate candidate)
     {

@@ -67,8 +67,7 @@ public static class DefenseFacilityDebugScenarios
         "P1_PoisonPool",
         "P1_FireVent",
         "P1_LightningPillar",
-        "P1_IceVent",
-        "P1_GuardRoom"
+        "P1_IceVent"
     };
 
     [MenuItem("DungeonStory/Debug/Defense/Run P1 Defense Facility Scenarios")]
@@ -95,8 +94,6 @@ public static class DefenseFacilityDebugScenarios
         RunScenario("화염 연소 지속 피해", VerifyFireBurn, errors);
         RunScenario("번개 축전 방전", VerifyLightningCharge, errors);
         RunScenario("냉기 감속 지연", VerifyIceSlow, errors);
-        RunScenario("경비실 경비 작업과 교전", VerifyGuardRoom, errors);
-
         RunScenario("strict save boundary", VerifyStrictSaveBoundary, errors);
         RunScenario(
             "physical supply and maintenance transaction",
@@ -156,15 +153,12 @@ public static class DefenseFacilityDebugScenarios
             && asset.GetUnlockPhase() == 1
             && Mathf.Approximately(asset.GetDemolitionRefundRate(), 0.5f)
             && asset.sprite != null)
-            && assets.Take(5).All((asset) => asset.layer == GridLayer.FloorOverlay)
-            && LoadDefense("P1_GuardRoom").layer == GridLayer.Building
+            && assets.All((asset) => asset.layer == GridLayer.FloorOverlay)
             && LoadDefense("P1_SpikeTrap").Defense.effectAssets.OfType<DefenseDamageEffectSO>().Any()
             && LoadDefense("P1_PoisonPool").Defense.effectAssets.OfType<DefenseCorrosionEffectSO>().Any()
             && LoadDefense("P1_FireVent").Defense.effectAssets.OfType<DefenseBurnEffectSO>().Any()
             && LoadDefense("P1_LightningPillar").Defense.effectAssets.OfType<DefenseChargeEffectSO>().Any()
-            && LoadDefense("P1_IceVent").Defense.effectAssets.OfType<DefenseSlowEffectSO>().Any()
-            && LoadDefense("P1_GuardRoom").Defense.effectAssets.OfType<DefenseGuardAttackEffectSO>().Any()
-            && LoadDefense("P1_GuardRoom").Facility.SupportsWork(BuiltInWorkTypeIds.Guard);
+            && LoadDefense("P1_IceVent").Defense.effectAssets.OfType<DefenseSlowEffectSO>().Any();
     }
 
     private static bool VerifyWalkableTrapRoute()
@@ -378,26 +372,6 @@ public static class DefenseFacilityDebugScenarios
             && reports[0].MovementDelaySeconds > 0f;
     }
 
-    private static bool VerifyGuardRoom()
-    {
-        using DefenseScenarioWorld world = new DefenseScenarioWorld();
-        DefenseFacility guardRoom = world.PlaceDefense("P1_GuardRoom", new Vector2Int(2, 0));
-        CharacterActor intruder = world.CreateIntruder(new Vector2Int(1, 0));
-
-        List<DefenseActivationReport> reports = DefenseFacilityResolver.TriggerAt(
-            world.Grid,
-            CharacterActor.From(intruder),
-            new Vector2Int(1, 0),
-            DefenseTriggerTiming.OnEnter,
-            StatusRuntimeService, treasuryDefenseRuntime: null);
-
-        return guardRoom.Facility.SupportsWork(BuiltInWorkTypeIds.Guard)
-            && guardRoom.Facility.requiredWorkers == 1
-            && reports.Count == 1
-            && reports[0].TotalDamage > 0f
-            && reports[0].EffectTags.Contains("경비 교전");
-    }
-
     private static BuildingSO LoadDefense(string assetName)
     {
         return AssetDatabase.LoadAssetAtPath<BuildingSO>(
@@ -425,7 +399,8 @@ public static class DefenseFacilityDebugScenarios
             automationCommands: NoAutomationInfrastructure.Instance,
             structuralIntegrity: null,
             defenseFacilities: null,
-            defenseNetwork: null);
+            defenseNetwork: null,
+            repairOutcomes: new AcceptingRepairWorkOutcomeRuntime());
         WorkExecutionResult result = new WorkExecutionResult();
         WorkExecutionContext context = new WorkExecutionContext(
             1,
@@ -469,6 +444,54 @@ public static class DefenseFacilityDebugScenarios
         }
     }
 
+    private sealed class AcceptingRepairWorkOutcomeRuntime :
+        IRepairWorkOutcomeRuntime
+    {
+        public RepairWorkOutcomeHandle BeginOrResume(
+            RepairWorkOutcomeKind kind,
+            string facilityId,
+            string targetEntityId,
+            string targetDefinitionId,
+            CharacterId initiator,
+            int absoluteDay,
+            bool boundsKnown,
+            RepairWorkPrimaryUnit primaryUnit,
+            float primaryBefore,
+            float secondaryBefore) =>
+            new RepairWorkOutcomeHandle("repair-work:00000001");
+
+        public void RecordProgress(
+            RepairWorkOutcomeHandle handle,
+            CharacterId contributor,
+            float contributedWork,
+            bool boundsKnown,
+            float primaryAfter,
+            float secondaryAfter)
+        {
+        }
+
+        public bool TryComplete(
+            RepairWorkOutcomeHandle handle,
+            CharacterId completionWorker,
+            CharacterCommandOrigin completionOrigin,
+            float contributionWork,
+            int absoluteDay,
+            bool boundsKnown,
+            RepairWorkPrimaryUnit primaryUnit,
+            float primaryBefore,
+            float primaryAfter,
+            float secondaryBefore,
+            float secondaryAfter,
+            in RepairWorkMaterialReceipt material,
+            out string resultKey,
+            out string failureReason)
+        {
+            resultKey = "repair-work-result:test";
+            failureReason = string.Empty;
+            return true;
+        }
+    }
+
     private sealed class NoopEquipmentMaintenanceRuntime :
         ICombatEquipmentMaintenanceRuntime
     {
@@ -476,6 +499,13 @@ public static class DefenseFacilityDebugScenarios
             Array.Empty<EquipmentMaintenancePolicyData>();
         public IReadOnlyList<CombatEquipmentRepairOrder> Orders =>
             Array.Empty<CombatEquipmentRepairOrder>();
+        public bool TryGetOrder(
+            string orderId,
+            out CombatEquipmentRepairOrder order)
+        {
+            order = null;
+            return false;
+        }
 
         public EquipmentMaintenancePolicyData GetPolicy(CharacterActor actor) => null;
         public string GetAssignedPolicyId(CharacterActor actor) => string.Empty;
@@ -664,7 +694,7 @@ public static class DefenseFacilityDebugScenarios
         }
     }
 
-    private sealed class DefenseScenarioWorld : IDisposable
+    internal sealed class DefenseScenarioWorld : IDisposable
     {
         private static readonly FieldInfo GridSystemInstanceField =
             typeof(GridSystemManager).GetField("instance", BindingFlags.Static | BindingFlags.NonPublic);
@@ -718,7 +748,7 @@ public static class DefenseFacilityDebugScenarios
                 new BuildingResearchWorkPortAdapter(BlueprintResearchWorkService),
                 FacilityCandidateCache,
                 RoomFacilityPolicy,
-                gameClock: CharacterAiEditorTestDependencies.GameClock, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
+                gameClock: CharacterAiEditorTestDependencies.GameClock, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
             defense.ConstructDefenseFacilityEventBus(
                 CharacterAiEditorTestDependencies.GameEvents, worldThreatModifiers: null, defenseRuntime: null);
             defense.ConstructDebugRules(DisabledDungeonDebugRuleQuery.Instance);
@@ -868,6 +898,21 @@ public static class DefenseFacilityDebugScenarios
         {
         }
 
+        public DefenseFacilityState CaptureActivationState(
+            DefenseFacility facility) =>
+            throw new NotSupportedException(
+                "The strict save fixture does not execute activations.");
+
+        public void RestoreActivationState(
+            DefenseFacility facility,
+            DefenseFacilityState snapshot) =>
+            throw new NotSupportedException(
+                "The strict save fixture does not execute activations.");
+
+        public void PublishCommittedState(DefenseFacility facility) =>
+            throw new NotSupportedException(
+                "The strict save fixture does not execute activations.");
+
         public bool SetArmingPolicy(
             DefenseFacility facility,
             DefenseArmingPolicy policy)
@@ -987,7 +1032,8 @@ public static class DefenseFacilityDebugScenarios
         public BlueprintResearchWorkResult ApplyApprovedResearchWork(
             CharacterActor researcher,
             BuildableObject researchFacility,
-            float approvedWorkUnits) =>
+            float approvedWorkUnits,
+            DurableFacilityEquipmentUseContext equipment = null) =>
             ApplyResearchWork(researcher, researchFacility, approvedWorkUnits);
     }
 
@@ -1165,7 +1211,7 @@ internal sealed class DebugProbeDefenseEffectSO : DefenseEffectSO
     public override string EffectId => "debug.custom-defense-effect";
     public override string DisplayName => "확장 효과";
 
-    public override void Apply(DefenseEffectContext context)
+    public override void Apply(IDefenseEffectCommands context)
     {
         context.ApplyDamage(Amount, DisplayName);
         context.AddEffectTag(LogTag);

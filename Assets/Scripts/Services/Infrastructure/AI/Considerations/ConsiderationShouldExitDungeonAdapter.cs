@@ -6,6 +6,10 @@ public class ConsiderationShouldExitDungeon : Consideration
     public override float ScoreConsideration(CharacterActor actor)
     {
         bool hasWork = CharacterWorkRoleUtility.TryGetWork(actor, out _);
+        AbilityMove move = null;
+        actor?.TryGetAbility(out move);
+        bool exitAdmitted = move != null
+            && move.CanStartExitDungeon(out _);
         AbilityShopping shopping = null;
         if (!hasWork) actor?.TryGetAbility(out shopping);
         DungeonStory.AI.AiCharacterDecisionSnapshot snapshot = new(
@@ -13,7 +17,8 @@ public class ConsiderationShouldExitDungeon : Consideration
             actor != null,
             hasShopping: shopping != null,
             hasWorkRole: hasWork,
-            shouldExitDungeon: shopping != null
+            shouldExitDungeon: exitAdmitted
+                && shopping != null
                 && shopping.ShouldExitDungeon());
         return DungeonStory.AI.ConsiderationShouldExitDungeon.Score(snapshot);
     }

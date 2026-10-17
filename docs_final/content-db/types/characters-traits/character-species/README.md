@@ -2,7 +2,7 @@
 
 인물·특성 영역의 작성 콘텐츠 유형이다.
 
-총 10개 항목이며, 비교군은 실제 대체 가능성을 검토하기 위한 후보군이다.
+총 11개 항목이며, 비교군은 실제 대체 가능성을 검토하기 위한 후보군이다.
 
 ## 데이터
 
@@ -15,6 +15,7 @@
 |---|---|---|---|---|---|---:|---|
 | `characterspecies:1` | 슬라임 | 인물·특성 영역의 CharacterSpeciesSO 규칙을 분리해 재사용한다. | stayDurationMultiplier=1; crimeRiskMultiplier=1.05 | catalog-registered-static-consumer | active-authored | 3 | [Species_Slime.asset](../../../../../Assets/Resources/SO/Character/Species/Species_Slime.asset) |
 | `characterspecies:10` | 원정자 | 인물·특성 영역의 CharacterSpeciesSO 규칙을 분리해 재사용한다. | stayDurationMultiplier=1; crimeRiskMultiplier=1 | catalog-registered-static-consumer | active-authored | 1 | [Species_Adventurer.asset](../../../../../Assets/Resources/SO/Character/Species/Species_Adventurer.asset) |
+| `characterspecies:11` | 인간 | 인물·특성 영역의 CharacterSpeciesSO 규칙을 분리해 재사용한다. | stayDurationMultiplier=1; crimeRiskMultiplier=1 | catalog-registered-static-consumer | active-authored | 1 | [Species_Human.asset](../../../../../Assets/Resources/SO/Character/Species/Species_Human.asset) |
 | `characterspecies:2` | 오크 | 인물·특성 영역의 CharacterSpeciesSO 규칙을 분리해 재사용한다. | stayDurationMultiplier=1; crimeRiskMultiplier=1.2 | catalog-registered-static-consumer | active-authored | 3 | [Species_Orc.asset](../../../../../Assets/Resources/SO/Character/Species/Species_Orc.asset) |
 | `characterspecies:3` | 뱀파이어 | 인물·특성 영역의 CharacterSpeciesSO 규칙을 분리해 재사용한다. | stayDurationMultiplier=1; crimeRiskMultiplier=1.1 | catalog-registered-static-consumer | active-authored | 2 | [Species_Vampire.asset](../../../../../Assets/Resources/SO/Character/Species/Species_Vampire.asset) |
 | `characterspecies:4` | 수인 | 인물·특성 영역의 CharacterSpeciesSO 규칙을 분리해 재사용한다. | stayDurationMultiplier=1; crimeRiskMultiplier=1 | catalog-registered-static-consumer | active-authored | 1 | [Species_Beastkin.asset](../../../../../Assets/Resources/SO/Character/Species/Species_Beastkin.asset) |

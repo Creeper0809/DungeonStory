@@ -18,6 +18,7 @@ public sealed class ProductionBillSceneFacade :
     private readonly IAutomationExecutionModeQuery automationModes;
     private readonly ExtremeTraitRuntime extremeTraits;
     private readonly IGameClock clock;
+    private readonly IGameCalendar calendar;
     private readonly CharacterIdentityEventPublisher identityEvents;
 
     public ProductionBillSceneFacade(
@@ -28,6 +29,7 @@ public sealed class ProductionBillSceneFacade :
         IAutomationExecutionModeQuery automationModes,
         ExtremeTraitRuntime extremeTraits,
         IGameClock clock,
+        IGameCalendar calendar,
         CharacterIdentityEventPublisher identityEvents)
     {
         this.query = query ?? throw new ArgumentNullException(nameof(query));
@@ -39,16 +41,34 @@ public sealed class ProductionBillSceneFacade :
         this.extremeTraits = extremeTraits
             ?? throw new ArgumentNullException(nameof(extremeTraits));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.identityEvents = identityEvents
             ?? throw new ArgumentNullException(nameof(identityEvents));
     }
 
     public int Version => query.Version;
+    [GameplayEntryPoint("ProductionBuildingPanelPresenter shared manual/automatic quality target")]
+    public ProductionBillCommandResult SetMinimumCraftQuality(ProductionBillId billId, int minimumTier) =>
+        orders.SetMinimumCraftQuality(billId, minimumTier);
     public IReadOnlyList<ProductionBillSnapshot> GetBills(
-        BuildableObject facility) =>
-        ProductionFacilityDefinitionIdentity.IsProductionWorkstation(facility)
-            ? query.GetBills(bridge.CaptureFacility(facility))
-            : Array.Empty<ProductionBillSnapshot>();
+        BuildableObject facility)
+    {
+        if (!ProductionFacilityDefinitionIdentity.IsProductionWorkstation(facility))
+            return Array.Empty<ProductionBillSnapshot>();
+        var handle = bridge.CaptureFacility(facility);
+        var snapshots = query.GetBills(handle);
+        if (automationModes.GetMode(handle.InstanceId) == AutomationMode.Automatic)
+            foreach (var bill in snapshots)
+                if (bill.MinimumCraftQuality >= 0 && !bill.QualityOutcomeFrozen
+                    && bill.Status != ProductionBillStatus.Suspended
+                    && bill.CurrentAutomaticCraftQuality < bill.MinimumCraftQuality)
+                {
+                    bill.Status = ProductionBillStatus.WaitingForQuality;
+                    bill.BlockedFailure = ProductionQualityTargetRules.Check(bill.MinimumCraftQuality,
+                        bill.CurrentAutomaticCraftQuality);
+                }
+        return snapshots;
+    }
     public bool HasStockSensor(BuildableObject facility) =>
         ProductionFacilityDefinitionIdentity.IsProductionWorkstation(facility)
         && query.HasStockSensor(bridge.CaptureFacility(facility));
@@ -312,6 +332,6 @@ public sealed class ProductionBillSceneFacade :
             $"production:{billId.Value}",
             outcomeId,
             CharacterCommandOrigin.Autonomous,
-            Math.Max(0, (int)(clock.Time / GameCalendarRules.SecondsPerDay))));
+            calendar.Day));
     }
 }

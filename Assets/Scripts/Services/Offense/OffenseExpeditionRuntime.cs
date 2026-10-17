@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 
@@ -23,8 +24,10 @@ public sealed class OffenseExpeditionRuntimeRestoreCandidate
 
 public class OffenseExpeditionRuntime :
     MonoBehaviour,
-    IOffenseStrategicExpeditionHost
+    IOffenseStrategicExpeditionHost,
+    IDungeonRestoreTransactionParticipant
 {
+    private readonly DungeonRestorePublication restorePublication = new();
     private const int MaxResultHistory = 20;
     private readonly OffenseExpeditionLaunchService launchService = new();
     private readonly OffenseExpeditionDecisionService decisionService = new();
@@ -40,6 +43,7 @@ public class OffenseExpeditionRuntime :
     private IOffenseExpeditionResultFinalizer resultFinalizer;
     private IOffensePanelService panelService;
     private IOffenseBattleRuntime battleRuntime;
+    private IGameCalendar calendar;
     private IOffensePreparationService preparationService;
     private ICombatEquipmentRuntime equipmentRuntime;
     private ICombatEquipmentPickupRuntime equipmentPickupRuntime;
@@ -60,6 +64,9 @@ public class OffenseExpeditionRuntime :
     private IOffenseFieldMobilityService fieldMobility;
     private ICharacterPerformanceQuery performance;
     private ICharacterSettlementStandingQuery settlementStandings;
+    private OffenseNodePublicationRuntime nodePublications;
+    private ICharacterSkillActivationTransaction skillActivationTransactions;
+    private IDisposable arrivalResolvedSubscription;
     private BlueprintResearchRuntime expeditionResearchRuntime;
     private BlueprintResearchState expeditionResearchState;
     private bool enforceExpeditionAccess;
@@ -69,6 +76,25 @@ public class OffenseExpeditionRuntime :
     public IReadOnlyList<OffenseExpeditionResult> ResultHistory =>
         resultHistoryView ??= resultHistory.AsReadOnly();
     public event Action StateChanged;
+    public string LastNodePublicationFailure => nodePublications?.LastFailure ?? string.Empty;
+
+    internal void ConstructNodePublications(
+        IGameCalendar calendar,
+        OffenseNodePublicationRuntime nodePublications)
+    {
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.nodePublications = nodePublications
+            ?? throw new ArgumentNullException(nameof(nodePublications));
+    }
+
+    [Inject]
+    public void ConstructSkillActivationTransactions(
+        ICharacterSkillActivationTransaction skillActivationTransactions)
+    {
+        this.skillActivationTransactions = skillActivationTransactions
+            ?? throw new ArgumentNullException(
+                nameof(skillActivationTransactions));
+    }
 
     public void Construct(
         IOffenseExpeditionMemberQuery memberQuery,
@@ -90,6 +116,9 @@ public class OffenseExpeditionRuntime :
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.resultFinalizer = resultFinalizer
             ?? throw new ArgumentNullException(nameof(resultFinalizer));
+        arrivalResolvedSubscription?.Dispose();
+        arrivalResolvedSubscription = this.gameEventBus.Subscribe<
+            OffenseExpeditionArrivalResolvedEvent>(OnExpeditionArrivalResolved);
     }
 
     public void Construct(
@@ -145,6 +174,8 @@ public class OffenseExpeditionRuntime :
         ICombatEquipmentPickupRuntime equipmentPickupRuntime,
         IOffenseFieldMedicalRuntime fieldMedical,
         IOffenseFieldMobilityService fieldMobility,
+        IGameCalendar calendar,
+        OffenseNodePublicationRuntime nodePublications = null,
         ICharacterPerformanceQuery performance = null,
         ICharacterSettlementStandingQuery settlementStandings = null)
     {
@@ -166,6 +197,9 @@ public class OffenseExpeditionRuntime :
             ?? throw new ArgumentNullException(nameof(fieldMedical));
         this.fieldMobility = fieldMobility
             ?? throw new ArgumentNullException(nameof(fieldMobility));
+        this.calendar = calendar
+            ?? throw new ArgumentNullException(nameof(calendar));
+        this.nodePublications = nodePublications;
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
         this.settlementStandings = settlementStandings
@@ -213,6 +247,22 @@ public class OffenseExpeditionRuntime :
             strategicTravel.DecisionRequired -= OnStrategicDecisionRequired;
             strategicTravel.SiteReached -= OnStrategicSiteReached;
         }
+        arrivalResolvedSubscription?.Dispose();
+        arrivalResolvedSubscription = null;
+    }
+
+    private void OnExpeditionArrivalResolved(
+        OffenseExpeditionArrivalResolvedEvent resolved)
+    {
+        int index = resultHistory.FindIndex(result => result != null
+            && string.Equals(
+                result.expeditionId,
+                resolved.expeditionId,
+                StringComparison.Ordinal));
+        if (index < 0) return;
+        resultHistory[index] = resultHistory[index].WithArrivalReceipts(
+            resolved.receipts);
+        StateChanged?.Invoke();
     }
 
     public IReadOnlyList<CharacterActor> GetAvailableMemberActors()
@@ -276,14 +326,26 @@ public class OffenseExpeditionRuntime :
         out CombatEquipmentDefinitionSO definition)
     {
         definition = null;
+        if (actor == null
+            || actor.IsDead
+            || actor.CurrentLifecycleState == CharacterLifecycleState.Despawned)
+        {
+            return false;
+        }
+
         string characterId = GetPersistentCharacterId(actor);
         if (string.IsNullOrWhiteSpace(characterId) || equipmentRuntime == null)
         {
             return false;
         }
 
-        CharacterCombatLoadoutProfile profile =
-            equipmentRuntime.GetActiveProfileSnapshot(characterId);
+        if (!equipmentRuntime.TryGetActiveProfileSnapshot(
+                characterId,
+                out CharacterCombatLoadoutProfile profile))
+        {
+            return false;
+        }
+
         string instanceId = slot == CombatEquipmentLoadoutSlot.Weapon
             ? profile?.activeWeaponInstanceId
             : profile?.armorInstanceIds?.FirstOrDefault();
@@ -470,14 +532,38 @@ public class OffenseExpeditionRuntime :
         }
 
         OffenseRouteNode resolvedNode = expedition.CurrentNode;
-        bool resolved = expedition.TryResolveCurrentNode(useSupply, out result, out message);
-        if (resolved)
+        if (expedition.Phase != OffenseExpeditionPhase.ResolvingNode || resolvedNode == null)
         {
-            ExperienceRules.AwardNodeExperience(expedition, resolvedNode);
+            result = null; message = "선택으로 해결할 원정 노드가 아닙니다."; return false;
+        }
+        if (nodePublications == null || calendar == null)
+            throw new InvalidOperationException("Offense node publication owner is unavailable.");
+        var proposal = OffenseNodeResolutionFact.Capture(expedition, resolvedNode, calendar.Day,
+            nodePublications.NextSequence(expedition.ExpeditionId), useSupply);
+        if (!nodePublications.TryBegin(proposal, out string reservationFailure))
+            throw new InvalidOperationException("Offense node publication reservation failed: " + reservationFailure);
+        OffenseExpeditionRun.NodeResolutionSnapshot nodeBefore = null;
+        bool applied = false;
+        try
+        {
+            nodeBefore = expedition.CaptureNodeResolutionSnapshot();
+            if (!expedition.TryResolveCurrentNode(useSupply, out result, out message)) return false;
+            DomainFactDelivery delivered = nodePublications.PublishApplied(proposal.Resolve(result));
+            if (!delivered.MayBeCommitted)
+                throw new InvalidOperationException("Offense node publication rejected: " + delivered.Detail);
+            applied = true;
+            ExperienceRules.AwardNodeExperience(expedition, resolvedNode, nodePublications.RecordExperience);
             StateChanged?.Invoke();
         }
-
-        return resolved;
+        catch (Exception exception)
+        {
+            if (!applied && nodeBefore != null) expedition.RestoreNodeResolutionSnapshot(nodeBefore);
+            else if (applied) nodePublications.RecordFollowupFailure(exception);
+            throw;
+        }
+        finally { nodePublications.End(); }
+        nodePublications.RecoverPending(out _);
+        return true;
     }
 
     public bool TryUseSupply(
@@ -516,6 +602,105 @@ public class OffenseExpeditionRuntime :
         return swapped;
     }
 
+    public IReadOnlyList<CharacterManualSkillCommandState> GetManualSkillCommands(
+        string expeditionId,
+        int memberIndex)
+    {
+        OffenseExpeditionRun expedition = FindActiveExpedition(expeditionId);
+        if (expedition == null
+            || calendar == null
+            || memberIndex < 0
+            || memberIndex >= expedition.MemberStates.Count)
+            return Array.Empty<CharacterManualSkillCommandState>();
+
+        OffenseExpeditionMemberState member = expedition.MemberStates[memberIndex];
+        return member != null && member.IsAlive && member.Actor != null
+            ? CharacterManualSkillRuntime.GetCommands(
+                member.Actor,
+                calendar.AbsoluteHour)
+            : Array.Empty<CharacterManualSkillCommandState>();
+    }
+
+    public bool TryActivateManualSkill(
+        string expeditionId,
+        int sourceMemberIndex,
+        string skillId,
+        int selectedTargetMemberIndex,
+        out string message)
+    {
+        OffenseExpeditionRun expedition = FindActiveExpedition(expeditionId);
+        if (expedition == null)
+        {
+            message = "진행 중인 원정을 찾을 수 없습니다.";
+            return false;
+        }
+        if (expedition.Phase == OffenseExpeditionPhase.InBattle)
+        {
+            message = "교전 중에는 원정대 작업 능력을 발동할 수 없습니다.";
+            return false;
+        }
+        if (calendar == null)
+        {
+            message = "게임 시간이 준비되지 않았습니다.";
+            return false;
+        }
+        if (skillActivationTransactions == null)
+        {
+            message = "능력 결과 기록 시스템이 준비되지 않았습니다.";
+            return false;
+        }
+        if (sourceMemberIndex < 0
+            || sourceMemberIndex >= expedition.MemberStates.Count)
+        {
+            message = "능력 사용자를 찾을 수 없습니다.";
+            return false;
+        }
+
+        OffenseExpeditionMemberState sourceState =
+            expedition.MemberStates[sourceMemberIndex];
+        if (sourceState == null || !sourceState.IsAlive || sourceState.Actor == null)
+        {
+            message = "행동할 수 없는 원정대원입니다.";
+            return false;
+        }
+
+        CharacterActor selectedTarget = null;
+        if (selectedTargetMemberIndex >= 0)
+        {
+            if (selectedTargetMemberIndex >= expedition.MemberStates.Count)
+            {
+                message = "선택한 원정대원을 찾을 수 없습니다.";
+                return false;
+            }
+            OffenseExpeditionMemberState targetState =
+                expedition.MemberStates[selectedTargetMemberIndex];
+            if (targetState == null || !targetState.IsAlive || targetState.Actor == null)
+            {
+                message = "선택한 원정대원은 대상이 될 수 없습니다.";
+                return false;
+            }
+            selectedTarget = targetState.Actor;
+        }
+
+        OffenseExpeditionMemberState[] living = expedition.MemberStates
+            .Where(value => value != null && value.IsAlive && value.Actor != null)
+            .ToArray();
+        Dictionary<CharacterActor, int> formationRanks = living
+            .ToDictionary(value => value.Actor, value => (int)value.Formation);
+        bool activated = CharacterManualSkillRuntime.TryActivateForExpedition(
+            sourceState.Actor,
+            skillId,
+            selectedTarget,
+            living.Select(value => value.Actor).ToArray(),
+            actor => formationRanks[actor],
+            calendar.AbsoluteHour,
+            skillActivationTransactions,
+            out message);
+        if (activated)
+            StateChanged?.Invoke();
+        return activated;
+    }
+
     public bool TryRetreat(string expeditionId, out string message)
     {
         OffenseExpeditionRun expedition = FindActiveExpedition(expeditionId);
@@ -544,15 +729,50 @@ public class OffenseExpeditionRuntime :
         List<OffenseExpeditionRun> activeCandidate,
         List<OffenseExpeditionResult> historyCandidate)
     {
-        activeExpeditions = activeCandidate
-            ?? throw new ArgumentNullException(nameof(activeCandidate));
-        resultHistory = historyCandidate
-            ?? throw new ArgumentNullException(nameof(historyCandidate));
+        if (activeCandidate == null) throw new ArgumentNullException(nameof(activeCandidate));
+        if (historyCandidate == null) throw new ArgumentNullException(nameof(historyCandidate));
+        if (restorePublication.TryStage(
+                () => ApplyPersistentState(activeCandidate, historyCandidate),
+                CaptureRestoreRollback)) return;
+        ApplyPersistentState(activeCandidate, historyCandidate);
+    }
+
+    private void ApplyPersistentState(
+        List<OffenseExpeditionRun> activeCandidate,
+        List<OffenseExpeditionResult> historyCandidate)
+    {
+        activeExpeditions = activeCandidate;
+        resultHistory = historyCandidate;
         activeExpeditionsView = null;
         resultHistoryView = null;
         resumeRestoredWorldStatePending = activeExpeditions.Any(run =>
             run != null && run.UsesWorldTravel);
     }
+
+
+    private Action CaptureRestoreRollback()
+    {
+        var previous0 = activeExpeditions;
+        var previous1 = resultHistory;
+        var previous2 = activeExpeditionsView;
+        var previous3 = resultHistoryView;
+        var previous4 = resumeRestoredWorldStatePending;
+        return () =>
+        {
+            activeExpeditions = previous0;
+            resultHistory = previous1;
+            activeExpeditionsView = previous2;
+            resultHistoryView = previous3;
+            resumeRestoredWorldStatePending = previous4;
+        };
+    }
+
+    public string ParticipantId => "offense.expedition";
+    public void BeginRestoreCandidate() => restorePublication.Begin();
+    public void PublishRestoreCandidate() => restorePublication.Publish();
+    public void RollbackPublishedRestoreCandidate() => restorePublication.Discard();
+    public void DiscardRestoreCandidate() => restorePublication.Discard();
+    public void CompleteRestoreCandidate() => restorePublication.Complete();
 
     public OffenseExpeditionRuntimeRestoreCandidate BuildRestoreCandidate(
         IEnumerable<OffenseExpeditionRun> restoredActiveExpeditions,
@@ -597,19 +817,19 @@ public class OffenseExpeditionRuntime :
 
     private void Update()
     {
-        if (!resumeRestoredWorldStatePending)
+        if (resumeRestoredWorldStatePending)
         {
-            return;
+            resumeRestoredWorldStatePending = false;
+            ResumeRestoredWorldState();
         }
-
-        resumeRestoredWorldStatePending = false;
-        ResumeRestoredWorldState();
+        foreach (var run in activeExpeditions.Where(run => run.ReturnPending).ToArray())
+            CompleteExpedition(run, run.ReturnSuccess, run.ReturnMessage);
     }
 
     public void ResumeRestoredWorldState()
     {
         foreach (OffenseExpeditionRun expedition in activeExpeditions
-                     .Where(run => run != null && run.UsesWorldTravel))
+                     .Where(run => run != null && run.UsesWorldTravel && !run.ReturnPending))
         {
             if (expedition.DepartureCompleted)
             {
@@ -624,11 +844,9 @@ public class OffenseExpeditionRuntime :
 
             if (departureService == null)
             {
-                gameEventBus?.RaiseAlert(
-                    "출정 복원 실패",
-                    "출정 집결 서비스를 찾을 수 없어 원정대가 대기합니다.",
-                    EventAlertImportance.High,
-                    "expedition");
+                gameEventBus?.Publish(new OffenseExpeditionActivityFact(
+                    OffenseExpeditionActivity.DepartureRestorationFailed,
+                    expedition.ExpeditionId));
                 continue;
             }
 
@@ -646,11 +864,10 @@ public class OffenseExpeditionRuntime :
                                 restoredExpedition.ExpeditionId,
                                 out string packingMessage))
                         {
-                            gameEventBus?.RaiseAlert(
-                                "출정 보급 오류",
-                                packingMessage,
-                                EventAlertImportance.High,
-                                "expedition");
+                            gameEventBus?.Publish(new OffenseExpeditionActivityFact(
+                                OffenseExpeditionActivity.PackingResumptionFailed,
+                                restoredExpedition.ExpeditionId,
+                                message: packingMessage));
                             return;
                         }
 
@@ -661,11 +878,10 @@ public class OffenseExpeditionRuntime :
                     },
                     out string departureMessage))
             {
-                gameEventBus?.RaiseAlert(
-                    "출정 복원 실패",
-                    departureMessage,
-                    EventAlertImportance.High,
-                    "expedition");
+                gameEventBus?.Publish(new OffenseExpeditionActivityFact(
+                    OffenseExpeditionActivity.DepartureResumptionFailed,
+                    restoredExpedition.ExpeditionId,
+                    message: departureMessage));
             }
         }
     }
@@ -721,9 +937,14 @@ public class OffenseExpeditionRuntime :
         strategicTravelEvents.HandleStepCompleted(this, expeditionId, step);
     }
 
-    private void OnStrategicDecisionRequired(string expeditionId)
+    private void OnStrategicDecisionRequired(
+        string expeditionId,
+        string completedSegmentWeatherFrontId)
     {
-        strategicTravelEvents.HandleDecisionRequired(this, expeditionId);
+        strategicTravelEvents.HandleDecisionRequired(
+            this,
+            expeditionId,
+            completedSegmentWeatherFrontId);
     }
 
     private void OnStrategicSiteReached(string expeditionId, string siteId)
@@ -769,14 +990,21 @@ public class OffenseExpeditionRuntime :
             return;
         }
 
-        strategicTravel?.TryRemove(expedition.ExpeditionId);
-        activeExpeditions.Remove(expedition);
+        if (!expedition.ReturnPending)
+        {
+            strategicTravel?.TryRemove(expedition.ExpeditionId);
+            expedition.BeginPhysicalReturn(success, message);
+        }
         returnCoordinator.Complete(
             expedition,
             success,
             message,
             resultHistory,
-            () => StateChanged?.Invoke());
+            () =>
+            {
+                if (expedition.ReturnFinalized) activeExpeditions.Remove(expedition);
+                StateChanged?.Invoke();
+            });
     }
 
     public OffenseExpeditionPanel ShowExpeditionPanel()

@@ -78,13 +78,44 @@ public sealed class RunResultPanelFactory : IRunResultPanelFactory
         Image image = panelObject.GetComponent<Image>();
         image.color = theme.Panel;
 
-        GameObject textObject = new GameObject("RunResultText", typeof(RectTransform), typeof(TextMeshProUGUI));
-        textObject.transform.SetParent(panelObject.transform, false);
+        GameObject scrollObject = new GameObject(
+            "RunResultScroll",
+            typeof(RectTransform),
+            typeof(ScrollRect));
+        scrollObject.transform.SetParent(panelObject.transform, false);
+        RectTransform scrollRectTransform =
+            scrollObject.GetComponent<RectTransform>();
+        scrollRectTransform.anchorMin = Vector2.zero;
+        scrollRectTransform.anchorMax = Vector2.one;
+        scrollRectTransform.offsetMin = new Vector2(32f, 88f);
+        scrollRectTransform.offsetMax = new Vector2(-32f, -24f);
+
+        GameObject viewportObject = new GameObject(
+            "Viewport",
+            typeof(RectTransform),
+            typeof(Image),
+            typeof(RectMask2D));
+        viewportObject.transform.SetParent(scrollObject.transform, false);
+        RectTransform viewportRect = viewportObject.GetComponent<RectTransform>();
+        viewportRect.anchorMin = Vector2.zero;
+        viewportRect.anchorMax = Vector2.one;
+        viewportRect.offsetMin = Vector2.zero;
+        viewportRect.offsetMax = Vector2.zero;
+        viewportObject.GetComponent<Image>().color =
+            new Color(1f, 1f, 1f, 0.01f);
+
+        GameObject textObject = new GameObject(
+            "RunResultText",
+            typeof(RectTransform),
+            typeof(TextMeshProUGUI),
+            typeof(ContentSizeFitter));
+        textObject.transform.SetParent(viewportObject.transform, false);
         RectTransform textRect = textObject.GetComponent<RectTransform>();
-        textRect.anchorMin = Vector2.zero;
-        textRect.anchorMax = new Vector2(1f, 1f);
-        textRect.offsetMin = new Vector2(32f, 88f);
-        textRect.offsetMax = new Vector2(-32f, -24f);
+        textRect.anchorMin = new Vector2(0f, 1f);
+        textRect.anchorMax = Vector2.one;
+        textRect.pivot = new Vector2(0.5f, 1f);
+        textRect.anchoredPosition = Vector2.zero;
+        textRect.sizeDelta = Vector2.zero;
 
         TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
         tmpKoreanFontService.Apply(text);
@@ -92,6 +123,19 @@ public sealed class RunResultPanelFactory : IRunResultPanelFactory
         text.color = theme.TextPrimary;
         text.alignment = TextAlignmentOptions.Top;
         text.textWrappingMode = TextWrappingModes.Normal;
+        text.raycastTarget = false;
+        ContentSizeFitter contentSize =
+            textObject.GetComponent<ContentSizeFitter>();
+        contentSize.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        contentSize.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        ScrollRect scroll = scrollObject.GetComponent<ScrollRect>();
+        scroll.viewport = viewportRect;
+        scroll.content = textRect;
+        scroll.horizontal = false;
+        scroll.vertical = true;
+        scroll.movementType = ScrollRect.MovementType.Clamped;
+        scroll.scrollSensitivity = 32f;
 
         GameObject buttonObject = new GameObject("NextRunButton", typeof(RectTransform), typeof(Image), typeof(Button));
         buttonObject.transform.SetParent(panelObject.transform, false);

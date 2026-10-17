@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cb4b1f490bee1344a1002cabb362d7a, type: 3}
+  m_Name: surgery_prosthetic_balance-tail_variant_kobold-tail-balance
+  m_EditorClassIdentifier: DungeonStory.Economy::GenericItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 0
+  itemId: surgery:prosthetic:balance-tail/variant/kobold-tail-balance
+  displayName: "\uCF54\uBCFC\uD2B8 \uD3C9\uD615 \uAF2C\uB9AC \uBCF4\uAC15\uAE30"
+  description: "\uCF54\uBCFC\uD2B8 \uAF2C\uB9AC \uC2AC\uB86F\uC758 \uD68C\uD53C \uADE0\uD615\uC744
+    \uBCF4\uC870\uD558\uB294 \uC815\uBC00 \uBCF4\uCCA0."
+  stockCategory: 1
+  unitWeight: 1.8
+  maxStack: 1
+  sprite: {fileID: 0}
+  unitPrice: 300
+  features:
+  - rid: 2763484210697601436
+  - rid: 2763484210697601460
+  references:
+    version: 2
+    RefIds:
+    - rid: 2763484210697601436
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 8
+        ingredientTags: 0
+        sharedIntermediate: 0
+    - rid: 2763484210697601460
+      type: {class: InstalledSurgicalPartEffectItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        effects:
+        - bindingId: part:kobold-tail-balance:evasion-chance
+          definition: {fileID: 11400000, guid: fb93b8072ad1340499a5bac22450b4dc, type: 2}
+          value: 0.03
+          condition: {fileID: 0}

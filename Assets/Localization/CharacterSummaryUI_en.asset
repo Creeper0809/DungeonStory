@@ -1239,6 +1239,107 @@ MonoBehaviour:
     m_Localized: Mythic
     m_Metadata:
       m_Items: []
+  - m_Id: 11639073331826688
+    m_Localized: 'Meal cap: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11639073369575424
+    m_Localized: Decent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11639073369575425
+    m_Localized: Fine
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11639073369575426
+    m_Localized: Default (fine)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11639073369575427
+    m_Localized: Lavish
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11639073369575428
+    m_Localized: Poor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11639073369575429
+    m_Localized: Simple
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11786158018482176
+    m_Localized: "Toxicity  {0:0.#} / 100 \xB7 work/combat -{1:0.#}% \xB7 {2}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11786158060425216
+    m_Localized: antidote treatment available
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11786158060425217
+    m_Localized: detox treatment not needed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11786158060425218
+    m_Localized: detox treatment pending
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11786158060425219
+    m_Localized: no valid antidote is authored
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11786158060425220
+    m_Localized: antidote stock unavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717342760960
+    m_Localized: detox treatment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869824
+    m_Localized: standard treatment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869825
+    m_Localized: "Treatment supplies \xB7 {0} \xB7 {1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869826
+    m_Localized: medicine delivery required
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869827
+    m_Localized: clinic buffer capacity unavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869828
+    m_Localized: delivery in transit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869829
+    m_Localized: last delivery attempt had no path
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869830
+    m_Localized: processing consumed medicine
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869831
+    m_Localized: medicine arrived
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869832
+    m_Localized: delivery requested
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869833
+    m_Localized: medicine stock unavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13255717409869834
+    m_Localized: "Light adaptation \xB7 current {0:0.#} / comfort {1:0.#}\u2013{2:0.#}
+      \xB7 discomfort {3:0}% \xB7 mood {4:+0.#;-0.#;0} \xB7 work {5:+0.#;-0.#;0}%"
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

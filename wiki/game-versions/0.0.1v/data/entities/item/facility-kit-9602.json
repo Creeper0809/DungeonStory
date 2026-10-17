@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "자루 방책 뒤에 몸을 숨겨 날아오는 공격을 피하도록 세우는 설치 부품이며, 크릭 제7굴에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "자루 방책 뒤에 몸을 숨겨 날아오는 공격을 피하도록 세우는 설치 부품이다. 크릭 제7굴산 자루 방책에는 방어 방향보다 퇴로를 가리키는 일곱 번째 톱니가 더 크게 새겨져 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

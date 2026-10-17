@@ -26,6 +26,7 @@ public sealed class SurgeryClinicalContext
         IAnatomyProfileCatalog profiles,
         ISurgicalProcedureCatalog procedures,
         ISurgicalPartRuntime parts,
+        IItemDefinitionCatalog itemDefinitions,
         ISurgicalAugmentationQuery augmentations,
         ISurgicalFacilityQuery facilities,
         ISurgeryRiskEvaluator risk,
@@ -38,6 +39,8 @@ public sealed class SurgeryClinicalContext
         Procedures = procedures
             ?? throw new ArgumentNullException(nameof(procedures));
         Parts = parts ?? throw new ArgumentNullException(nameof(parts));
+        ItemDefinitions = itemDefinitions
+            ?? throw new ArgumentNullException(nameof(itemDefinitions));
         Augmentations = augmentations
             ?? throw new ArgumentNullException(nameof(augmentations));
         Facilities = facilities
@@ -51,6 +54,7 @@ public sealed class SurgeryClinicalContext
     public IAnatomyProfileCatalog Profiles { get; }
     public ISurgicalProcedureCatalog Procedures { get; }
     public ISurgicalPartRuntime Parts { get; }
+    public IItemDefinitionCatalog ItemDefinitions { get; }
     public ISurgicalAugmentationQuery Augmentations { get; }
     public ISurgicalFacilityQuery Facilities { get; }
     public ISurgeryRiskEvaluator Risk { get; }
@@ -131,6 +135,7 @@ public sealed class CharacterSurgeryWindowService :
     private readonly IAnatomyProfileCatalog profiles;
     private readonly ISurgicalProcedureCatalog procedures;
     private readonly ISurgicalPartRuntime parts;
+    private readonly IItemDefinitionCatalog itemDefinitions;
     private readonly ISurgicalAugmentationQuery augmentations;
     private readonly ISurgicalFacilityQuery facilities;
     private readonly ISurgeryRiskEvaluator risk;
@@ -163,6 +168,7 @@ public sealed class CharacterSurgeryWindowService :
         profiles = clinical.Profiles;
         procedures = clinical.Procedures;
         parts = clinical.Parts;
+        itemDefinitions = clinical.ItemDefinitions;
         augmentations = clinical.Augmentations;
         facilities = clinical.Facilities;
         risk = clinical.Risk;
@@ -357,7 +363,7 @@ public sealed class CharacterSurgeryWindowService :
                     procedure.ProcedureId,
                     procedure.DisplayName))
                 .ToArray(),
-            Nodes = GetNodes(subject)
+            Nodes = GetNodes(subject, selectedProcedure)
                 .Select(node => new SurgeryWindowOption(
                     node.NodeId,
                     node.DisplayName))
@@ -433,6 +439,7 @@ public sealed class CharacterSurgeryWindowService :
             $"Work {procedure.RequiredWork:0.#} / "
             + CharacterSurgeryUiText.FormatFacilityTags(
                 procedure.RequiredFacilityTags));
+        AppendSelectedPartPreview(builder, subject, node, part);
         builder.AppendLine(
             $"Success {breakdown.successChance * 100f:0.#}%"
             + $" / Infection {breakdown.infectionChance * 100f:0.#}%"
@@ -445,7 +452,7 @@ public sealed class CharacterSurgeryWindowService :
         {
             builder.AppendLine(FailureCode.SurgeryFacilityUnavailable.ToString());
         }
-        else if (RequiresPart(procedure.Kind) && part == null)
+        else if (RequiresPart(procedure) && part == null)
         {
             builder.AppendLine(FailureCode.SurgeryPartUnavailable.ToString());
         }
@@ -489,7 +496,7 @@ public sealed class CharacterSurgeryWindowService :
             NodeLabel = node?.DisplayName ?? "-",
             PartLabel = part != null
                 ? GetPartLabel(part)
-                : RequiresPart(procedure.Kind)
+                : RequiresPart(procedure)
                     ? FailureCode.SurgeryPartUnavailable.ToString()
                     : "-",
             DoctorLabel = doctor?.Identity?.DisplayName ?? "-",
@@ -539,7 +546,7 @@ public sealed class CharacterSurgeryWindowService :
                 candidate.ProcedureId,
                 selection.ProcedureId,
                 StringComparison.Ordinal));
-        node = GetNodes(subject).FirstOrDefault(candidate =>
+        node = GetNodes(subject, procedure).FirstOrDefault(candidate =>
             string.Equals(
                 candidate.NodeId,
                 selection.NodeId,
@@ -579,24 +586,39 @@ public sealed class CharacterSurgeryWindowService :
     }
 
     internal IReadOnlyList<AnatomyNodeDefinition> GetNodes(
-        SurgeryPlanningSubject patient)
+        SurgeryPlanningSubject patient,
+        SurgicalProcedureSO procedure)
     {
+        if (procedure?.IsWholeCharacterTreatment == true)
+        {
+            return Array.Empty<AnatomyNodeDefinition>();
+        }
+
         return patient?.Nodes ?? Array.Empty<AnatomyNodeDefinition>();
     }
 
     internal IReadOnlyList<SurgicalPartInstance> GetParts(
         SurgicalProcedureSO procedure)
     {
-        if (procedure == null || !RequiresPart(procedure.Kind))
+        if (procedure == null
+            || !procedure.TryGetInstallationEffect(
+                out InstallSurgicalPartEffect installation))
         {
             return Array.Empty<SurgicalPartInstance>();
         }
 
+        string requiredItemId = installation.requiredItemDefinitionId?.Trim()
+            ?? string.Empty;
         return parts.Parts
             .Where(part => part != null
                 && !part.installed
                 && string.IsNullOrWhiteSpace(part.reservedOrderId)
-                && PartMatchesProcedure(part.kind, procedure.Kind))
+                && part.kind == installation.partKind
+                && (requiredItemId.Length == 0
+                    || string.Equals(
+                        part.itemDefinitionId,
+                        requiredItemId,
+                        StringComparison.Ordinal)))
             .OrderByDescending(part => part.quality)
             .ThenBy(part => part.displayName, StringComparer.Ordinal)
             .ToArray();
@@ -639,9 +661,94 @@ public sealed class CharacterSurgeryWindowService :
         }
 
         string effect = augmentations.GetSpecialEffectLabel(part);
-        return string.IsNullOrWhiteSpace(effect)
-            ? $"{part.displayName} · 품질 {part.quality:0.00}"
-            : $"{part.displayName} · 품질 {part.quality:0.00} · {effect}";
+        string authoredBaseline = GetAuthoredBaselineEffectLabel(part);
+        if (string.IsNullOrWhiteSpace(effect)
+            && string.IsNullOrWhiteSpace(authoredBaseline))
+        {
+            return $"{part.displayName} · 품질 {part.quality:0.00}";
+        }
+
+        return string.IsNullOrWhiteSpace(authoredBaseline)
+            ? $"{part.displayName} · 품질 {part.quality:0.00} · {effect}"
+            : string.IsNullOrWhiteSpace(effect)
+                ? $"{part.displayName} · 품질 {part.quality:0.00} · {authoredBaseline}"
+                : $"{part.displayName} · 품질 {part.quality:0.00} · {effect} · {authoredBaseline}";
+    }
+
+    private string GetAuthoredBaselineEffectLabel(SurgicalPartInstance part)
+    {
+        string itemId = part?.itemDefinitionId?.Trim() ?? string.Empty;
+        if (itemId.Length == 0)
+        {
+            throw new InvalidOperationException(
+                $"Surgical part '{part?.partInstanceId}' has no authored item definition.");
+        }
+        if (!itemDefinitions.TryGet(
+                new ItemDefinitionId(itemId),
+                out ItemDefinitionSO item))
+        {
+            throw new InvalidOperationException(
+                $"Surgical part '{part.partInstanceId}' references unknown item '{itemId}'.");
+        }
+        if (!item.TryGetFeature(
+                out InstalledSurgicalPartEffectItemFeature feature))
+        {
+            return string.Empty;
+        }
+
+        string[] effects = (feature.effects ?? new List<GameplayEffectBinding>())
+            .Where(binding => binding?.definition != null)
+            .OrderBy(binding => binding.definition.TargetId, StringComparer.Ordinal)
+            .ThenBy(binding => binding.bindingId, StringComparer.Ordinal)
+            .Select(binding =>
+                CharacterDetailedStatsTextFormatter.GameplayEffectTargetLabel(
+                    binding.definition.TargetId)
+                + " "
+                + StartPartyPreparationPresentation.FormatEffectValue(binding))
+            .ToArray();
+        return effects.Length == 0
+            ? string.Empty
+            : "기준 품질 완성 구성: " + string.Join(", ", effects);
+    }
+
+    private void AppendSelectedPartPreview(
+        StringBuilder builder,
+        SurgeryPlanningSubject subject,
+        AnatomyNodeDefinition node,
+        SurgicalPartInstance part)
+    {
+        if (builder == null || node == null || part == null)
+        {
+            return;
+        }
+
+        AnatomyProfileDefinition profile = profiles.GetForSpecies(
+            subject?.Subject?.speciesId);
+        int compatibleSlots = profile.Nodes.Count(candidate => candidate != null
+            && SurgicalPartAnatomyCompatibility.IsCompatible(
+                profile,
+                part.nodeId,
+                candidate.NodeId));
+        builder.AppendLine(
+            $"선택 대상 슬롯: {node.DisplayName}"
+            + $" / 작성 호환 슬롯: {compatibleSlots}개");
+        string authoredBaseline = GetAuthoredBaselineEffectLabel(part);
+        if (!string.IsNullOrWhiteSpace(authoredBaseline))
+        {
+            builder.AppendLine(authoredBaseline);
+            if (compatibleSlots > 1)
+            {
+                builder.AppendLine(
+                    $"기준 품질 완성 구성의 표기값은 작성 호환 슬롯 {compatibleSlots}개에 나누어진 총합이며, 선택 대상 하나에 전체 보너스가 적용되지 않습니다.");
+            }
+            builder.AppendLine(
+                $"기준 품질 완성 구성은 품질 1.00과 정상 상태 기준이며, 현재 부품 품질 {part.quality:0.00}과 설치 후 대상 노드의 상태·조건은 실제 효과를 낮출 수 있습니다.");
+        }
+        if (!string.IsNullOrWhiteSpace(node.PairedGroupId))
+        {
+            builder.AppendLine(
+                $"짝 구조: {node.PairedGroupId} (선택 대상만 표시)");
+        }
     }
 
     internal IReadOnlyList<SurgicalFacilitySnapshot> GetFacilities(
@@ -741,7 +848,11 @@ public sealed class CharacterSurgeryWindowService :
         CharacterActor doctor,
         SurgicalFacilitySnapshot facility)
     {
-        if (patient?.Subject?.IsValid != true || procedure == null || node == null)
+        bool wholeCharacterTreatment =
+            procedure?.IsWholeCharacterTreatment == true;
+        if (patient?.Subject?.IsValid != true
+            || procedure == null
+            || (!wholeCharacterTreatment && node == null))
         {
             return SurgeryUiCommandResult.Rejected(
                 FailureCode.SurgerySubjectInvalid);
@@ -750,8 +861,10 @@ public sealed class CharacterSurgeryWindowService :
         bool scheduled = commands.TrySchedule(
             patient.Subject,
             procedure.ProcedureId,
-            node.NodeId,
-            part?.partInstanceId ?? string.Empty,
+            wholeCharacterTreatment ? string.Empty : node.NodeId,
+            wholeCharacterTreatment
+                ? string.Empty
+                : part?.partInstanceId ?? string.Empty,
             doctor?.Identity?.PersistentId ?? string.Empty,
             facility.PrimaryFacility != null
                 ? facilities.GetFacilityId(facility.PrimaryFacility)
@@ -995,31 +1108,10 @@ public sealed class CharacterSurgeryWindowService :
                 "performance:medical:surgery-success").Value;
     }
 
-    private static bool RequiresPart(SurgicalProcedureKind kind)
+    private static bool RequiresPart(SurgicalProcedureSO procedure)
     {
-        return kind is SurgicalProcedureKind.TransplantOrgan
-            or SurgicalProcedureKind.InstallProsthetic
-            or SurgicalProcedureKind.InstallImplant
-            or SurgicalProcedureKind.ArcaneModification;
-    }
-
-    private static bool PartMatchesProcedure(
-        SurgicalPartKind part,
-        SurgicalProcedureKind procedure)
-    {
-        return procedure switch
-        {
-            SurgicalProcedureKind.TransplantOrgan =>
-                part == SurgicalPartKind.NaturalOrgan,
-            SurgicalProcedureKind.InstallProsthetic =>
-                part == SurgicalPartKind.Prosthetic,
-            SurgicalProcedureKind.InstallImplant =>
-                part == SurgicalPartKind.Implant,
-            SurgicalProcedureKind.ArcaneModification =>
-                part is SurgicalPartKind.ArcaneGraft
-                    or SurgicalPartKind.Implant,
-            _ => true
-        };
+        return procedure != null
+            && procedure.TryGetInstallationEffect(out _);
     }
 
 }

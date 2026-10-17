@@ -1,0 +1,38 @@
+WIM010_STARTING_OWNER_TRAIT_FOCUSED=FROZEN
+WIM-010 starting-owner-trait focused verification
+utc=2026-09-07T20:31:21.1598244Z
+[INFO] REAL_PERSISTENCE_BEFORE path=C:\Users\vulpo\AppData\LocalLow\DungeonStory\DungeonStory\Profile\meta-profile.json; exists=True; length=132; sha256=3B5FFFBCC153A0EE615BBF4CDAE4DF285ABC73A8FEB6231FE0B84E47A387C9D7
+[INFO] REAL_PERSISTENCE_BEFORE path=C:\Users\vulpo\AppData\LocalLow\DungeonStory\DungeonStory\Saves\autosave.json; exists=True; length=2176900; sha256=C0D468669EFCD205672C62DDE54019A1AC3447B82A1B844A6E70DADA84A0952C
+[INFO] REAL_PERSISTENCE_BEFORE path=C:\Users\vulpo\AppData\LocalLow\DungeonStory\DungeonStory\Saves\quicksave.json; exists=False; length=0; sha256=MISSING
+[INFO] REAL_PERSISTENCE_BEFORE path=C:\Users\vulpo\AppData\LocalLow\DungeonStory\DungeonStory\Saves\manual.json; exists=False; length=0; sha256=MISSING
+[PASS] ORIGINAL_PERSISTENCE_SUSPENDED autosave=True; metaProfile=True; beforeNavigation=True
+[INFO] TEMPORARY_BASELINE_BOOTSTRAP committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; tierZero=changed=True;columns=27->29;startX=17;entrance=(17, 0); liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Arin:-1807340:character:staff:1:02:active=True,Roma:-1807272:character:staff:1:01:active=True; diagnostics=prepared-1:name=Roma;go=-1807244;id=character:staff:1:01;active=False || prepared-2:name=Arin;go=-1807312;id=character:staff:1:02;active=False || scan:name=Roma;go=-1807244;id=character:staff:1:01;active=True;retained=True || scan:name=Arin;go=-1807312;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-1807244;id=character:staff:1:01;active=True || retained:name=Arin;go=-1807312;id=character:staff:1:02;active=True
+[PASS] BASELINE_OWNER id=owner; temporaryRun=True; exitIntent=PlayModeDiscard
+[PASS] ORIGINAL_WORLD_CAPTURE sections=75; temporaryRun=True; scaleBeforeFreeze=1
+[PASS] PROFILE_ADAPTER_MATRIX missing=0; purchased1=1; whitespace=false; duplicate=false; level2=false; realProfileWrites=0
+[PASS] VALID_OWNER_SELECTION id=1001; species=Slime; deterministicTraitTarget=5/4
+[PASS] ACTUAL_PREPARATION_COUNTS owner=5; rosterStaff=4,4,4,4,4,4; profileLoads=1
+[PASS] RUNTIME_PROFILE_ROLE_CEILING owner5=accepted; staff5=InvalidOperationException
+[PASS] OWNER_LOCK_AND_SINGLE_QUERY staffIdentityReroll=3->2; ownerUnchanged=True; profileLoads=1
+[PASS] OWNER_TRAIT_UI chips=5; names=5; tooltips=5; ownerRerollControls=0; rows=0.64,0.49,0.34,0.19,0.04
+[PASS] PREPARED_UI_READY ownerTraits=225,222,513,415,251; staff=202,253,221,410|408,511,250,221; startInteractable=True
+[PASS] COMMITTED ownerTraits=5; staffTraits=4,4; effects=5; registryIdentities=3; duplicateIds=0
+[PASS] PERSISTENCE_ISOLATION deletes=autosave,quicksave,manual; slotSaves=0; profileLoads=1; profileSaves=0
+[PASS] RESTORED_COMMITTED ownerTraits=5; staffTraits=4,4; effects=5; registryIdentities=3; duplicateIds=0
+[PASS] FIXTURE_PERSISTENCE_CLEANUP slotSaves=0; profileSaves=0; subscriptions=disposed
+[INFO] REAL_PERSISTENCE_AFTER path=C:\Users\vulpo\AppData\LocalLow\DungeonStory\DungeonStory\Profile\meta-profile.json; exists=True; length=132; sha256=3B5FFFBCC153A0EE615BBF4CDAE4DF285ABC73A8FEB6231FE0B84E47A387C9D7; unchanged=True
+[INFO] REAL_PERSISTENCE_AFTER path=C:\Users\vulpo\AppData\LocalLow\DungeonStory\DungeonStory\Saves\autosave.json; exists=True; length=2176900; sha256=C0D468669EFCD205672C62DDE54019A1AC3447B82A1B844A6E70DADA84A0952C; unchanged=True
+[INFO] REAL_PERSISTENCE_AFTER path=C:\Users\vulpo\AppData\LocalLow\DungeonStory\DungeonStory\Saves\quicksave.json; exists=False; length=0; sha256=MISSING; unchanged=True
+[INFO] REAL_PERSISTENCE_AFTER path=C:\Users\vulpo\AppData\LocalLow\DungeonStory\DungeonStory\Saves\manual.json; exists=False; length=0; sha256=MISSING; unchanged=True
+[PASS] REAL_PERSISTENCE_LEAK_GATE unchanged=4/4
+[PASS] TEMP_PROFILE_CLEANUP removed=True
+stage=terminal-cleanup-failed
+verificationFailure=System.InvalidOperationException: Committed whole-registry self-restore changed non-clock payload bytes.
+  at StartPartyOwnerTraitUpgradeFocusedRunner+<VerifyFocusedFlow>d__30.MoveNext () [0x0087f] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Character\AI\Editor\StartPartyPreparationPlayModeVerifier.cs:1399 
+  at StartPartyOwnerTraitUpgradeFocusedRunner+<ExecuteGuarded>d__54.MoveNext () [0x00058] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Character\AI\Editor\StartPartyPreparationPlayModeVerifier.cs:2440 
+cleanupFailure[0]=System.InvalidOperationException: Original whole-registry cleanup restore failed: Section 'environment.exposure' failed preflight: Character apparel policy 'character:staff:1:01' contains an invalid temporary override. | Character apparel policy 'character:staff:1:02' contains an invalid temporary override. | Character apparel policy 'owner' contains an invalid temporary override.
+  at StartPartyOwnerTraitUpgradeFocusedRunner+<Cleanup>d__47.MoveNext () [0x000e7] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Character\AI\Editor\StartPartyPreparationPlayModeVerifier.cs:2153 
+consoleErrors=0
+consoleWarnings=0
+cleanup=playmode-exit-discard
+failures=1

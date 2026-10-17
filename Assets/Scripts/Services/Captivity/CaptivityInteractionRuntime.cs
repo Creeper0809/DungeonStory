@@ -1,6 +1,8 @@
 using System;
+using DungeonStory.Foundation.Facts;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
 
 internal delegate bool TryGetCaptiveHousing(
@@ -12,7 +14,12 @@ internal sealed class CaptivityInteractionRuntime
     private readonly CaptivityActorAccess actors;
     private readonly CaptivityActorRuntimeLookup actorRuntime;
     private readonly CaptivityInteractionRegistry interactions;
-    private readonly IWorldItemStackRuntime itemRuntime;
+    private readonly CaptivityInterrogationInformationRuntime
+        interrogationInformation;
+    private readonly ICharacterBodyHealthQuery bodyHealthQuery;
+    private readonly ICharacterBodyHealthMutationTransaction bodyHealthMutations;
+    private readonly CaptivityInteractionOutcomeRuntime outcomes;
+    private readonly IGameCalendar gameCalendar;
     private readonly ICaptivityInteractionMaterialRuntime materials;
     private readonly TryGetCaptiveHousing tryGetHousing;
 
@@ -20,7 +27,11 @@ internal sealed class CaptivityInteractionRuntime
         CaptivityActorAccess actors,
         CaptivityActorRuntimeLookup actorRuntime,
         CaptivityInteractionRegistry interactions,
-        IWorldItemStackRuntime itemRuntime,
+        CaptivityInterrogationInformationRuntime interrogationInformation,
+        ICharacterBodyHealthQuery bodyHealthQuery,
+        ICharacterBodyHealthMutationTransaction bodyHealthMutations,
+        CaptivityInteractionOutcomeRuntime outcomes,
+        IGameCalendar gameCalendar,
         ICaptivityInteractionMaterialRuntime materials,
         TryGetCaptiveHousing tryGetHousing)
     {
@@ -28,7 +39,15 @@ internal sealed class CaptivityInteractionRuntime
         this.actorRuntime = actorRuntime
             ?? throw new ArgumentNullException(nameof(actorRuntime));
         this.interactions = interactions ?? throw new ArgumentNullException(nameof(interactions));
-        this.itemRuntime = itemRuntime ?? throw new ArgumentNullException(nameof(itemRuntime));
+        this.interrogationInformation = interrogationInformation
+            ?? throw new ArgumentNullException(nameof(interrogationInformation));
+        this.bodyHealthQuery = bodyHealthQuery
+            ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
+        this.bodyHealthMutations = bodyHealthMutations
+            ?? throw new ArgumentNullException(nameof(bodyHealthMutations));
+        this.outcomes = outcomes ?? throw new ArgumentNullException(nameof(outcomes));
+        this.gameCalendar = gameCalendar
+            ?? throw new ArgumentNullException(nameof(gameCalendar));
         this.materials = materials ?? throw new ArgumentNullException(nameof(materials));
         this.tryGetHousing = tryGetHousing ?? throw new ArgumentNullException(nameof(tryGetHousing));
     }
@@ -48,6 +67,34 @@ internal sealed class CaptivityInteractionRuntime
             || !interactions.TryGet(interactionId, out ICaptivityInteractionHandler handler))
         {
             failureReason = "포로 또는 상호작용을 찾을 수 없습니다.";
+            return false;
+        }
+
+        if (state.interrogationTerminal == null
+            || state.interactionTerminal == null)
+        {
+            throw new InvalidOperationException(
+                $"Captive '{state.captiveId}' is missing interaction terminal state.");
+        }
+        if (state.interactionTerminal.HasOutcome)
+        {
+            failureReason = "이전 포로 상호작용 결과를 마무리하는 중입니다.";
+            return false;
+        }
+        if (state.interrogationTerminal.HasPendingPublication)
+        {
+            failureReason = "이전 심문 결과를 전달하는 중입니다.";
+            return false;
+        }
+        if (handler.Kind == CaptiveInteractionKind.Interrogation
+            && state.interrogationAttemptSequence == int.MaxValue)
+        {
+            failureReason = "포로 심문 시도 번호가 한계에 도달했습니다.";
+            return false;
+        }
+        if (state.interactionAttemptSequence == int.MaxValue)
+        {
+            failureReason = "포로 상호작용 시도 번호가 한계에 도달했습니다.";
             return false;
         }
 
@@ -82,6 +129,16 @@ internal sealed class CaptivityInteractionRuntime
         state.reservedWardenId = CaptivityActorAccess.RequireCharacterId(
             warden?.Identity?.PersistentId);
         state.currentInteractionId = handler.InteractionId;
+        state.interactionAttemptSequence++;
+        state.currentInteractionAttemptId = state.interactionAttemptSequence;
+        state.interactionTerminal = new CaptivityInteractionTerminalState();
+        state.currentInterrogationAttemptId = 0;
+        if (handler.Kind == CaptiveInteractionKind.Interrogation)
+        {
+            state.interrogationAttemptSequence++;
+            state.currentInterrogationAttemptId =
+                state.interrogationAttemptSequence;
+        }
         state.interactionMaterialDestinationId = materialDestinationId;
         state.interactionMaterialsConsumed = handler.MaterialRequirements.Count == 0;
         state.completedInteractionWork = 0f;
@@ -129,6 +186,30 @@ internal sealed class CaptivityInteractionRuntime
             return false;
         }
 
+        if (state.currentInteractionAttemptId == 0)
+        {
+            if (state.interactionAttemptSequence == int.MaxValue)
+            {
+                status = "포로 상호작용 시도 번호가 한계에 도달했습니다.";
+                return false;
+            }
+            state.interactionAttemptSequence++;
+            state.currentInteractionAttemptId = state.interactionAttemptSequence;
+            state.interactionTerminal ??= new CaptivityInteractionTerminalState();
+        }
+
+        if (state.interactionTerminal?.HasOutcome == true)
+        {
+            TryCompleteFrozenOutcome(state, subject, out status);
+            return true;
+        }
+
+        if (IsFrozenCurrentInterrogation(state))
+        {
+            TryCompleteFrozenInterrogation(state, out status);
+            return true;
+        }
+
         if (!state.interactionMaterialsConsumed)
         {
             if (!materials.TryCommitSink(
@@ -171,10 +252,28 @@ internal sealed class CaptivityInteractionRuntime
             return false;
         }
 
-        ApplyResult(state, handler.Execute(context));
-        status = state.lastResult;
-        state.status = CaptivityStatus.Confined;
-        Clear(state);
+        CaptivityInterrogationTerminalState interrogationOutcome =
+            handler.Kind == CaptiveInteractionKind.Interrogation
+                ? interrogationInformation.FreezeOutcome(
+                    state,
+                    actors.States)
+                : null;
+        CaptivityInteractionResult result = handler.Execute(context);
+        if (interrogationOutcome != null && result.Success)
+        {
+            // Persist the decision before applying any one-shot captive effects.
+            // If a later publication callback throws, the next advance/tick can
+            // only retry this frozen outcome and cannot execute the handler again.
+            state.interrogationTerminal = interrogationOutcome;
+        }
+        state.interactionTerminal = FreezeResult(
+            state,
+            subject,
+            warden,
+            housing,
+            handler,
+            result);
+        TryCompleteFrozenOutcome(state, subject, out status);
         return true;
     }
 
@@ -219,51 +318,478 @@ internal sealed class CaptivityInteractionRuntime
         }
     }
 
-    private void ApplyResult(
-        CaptiveState state,
-        CaptivityInteractionResult result)
+    public void HandleSubjectDeath(CaptiveState state)
     {
-        if (!result.Success)
+        if (state == null)
         {
-            state.lastResult = result.Message;
             return;
         }
 
-        state.will = ClampStat(state.will + result.WillDelta);
-        state.fear = ClampStat(state.fear + result.FearDelta);
-        state.trust = ClampStat(state.trust + result.TrustDelta);
-        state.grudge = ClampStat(state.grudge + result.GrudgeDelta);
-        state.corruption = ClampStat(state.corruption + result.CorruptionDelta);
-        state.health = ClampStat(state.health + result.HealthDelta);
-        state.lastResult = result.Message;
-        if (!string.IsNullOrWhiteSpace(result.OutputItemId)
-            && result.OutputAmount > 0)
+        if (state.interactionTerminal?.HasOutcome == true)
         {
-            itemRuntime.SpawnItemAt(
-                result.OutputItemId,
-                result.OutputAmount,
-                state.housingPosition,
-                WorldItemStackState.Loose,
-                string.Empty,
-                out _);
+            CharacterActor subject = actorRuntime.Find(state.captiveId);
+            string completionStatus = string.Empty;
+            if (subject == null
+                || !TryCompleteFrozenOutcome(
+                    state,
+                    subject,
+                    out completionStatus))
+            {
+                state.lastResult = string.IsNullOrWhiteSpace(completionStatus)
+                    ? "사망 전 포로 상호작용 결과 전달을 재시도합니다."
+                    : completionStatus;
+                return;
+            }
         }
 
-        actors.Recalculate(state);
+        ReleaseMaterials(state);
+        ClearInteractionState(state);
     }
+
+    public void RetryPendingOutcomes(
+        IEnumerable<CaptiveState> states)
+    {
+        foreach (CaptiveState state in states ?? Array.Empty<CaptiveState>())
+        {
+            if (state?.interactionTerminal?.HasOutcome == true)
+            {
+                if (state.interactionTerminal.HasCommittedOutcome
+                    && !outcomes.TryEnsureDelivered(state, out string failure))
+                {
+                    state.lastResult = failure;
+                    continue;
+                }
+                CharacterActor subject = actorRuntime.Find(state.captiveId);
+                if (subject != null)
+                {
+                    if (state.status == CaptivityStatus.Dead)
+                        HandleSubjectDeath(state);
+                    else
+                        TryCompleteFrozenOutcome(state, subject, out _);
+                }
+                continue;
+            }
+
+            CaptivityInterrogationTerminalState terminal =
+                state?.interrogationTerminal;
+            if (terminal == null
+                || !terminal.HasOutcome
+                || (!terminal.HasPendingPublication
+                    && !IsFrozenCurrentInterrogation(state)))
+            {
+                continue;
+            }
+
+            TryCompleteFrozenInterrogation(state, out _);
+        }
+    }
+
+    private CaptivityInteractionTerminalState FreezeResult(
+        CaptiveState state,
+        CharacterActor subject,
+        CharacterActor warden,
+        BuildableObject housing,
+        ICaptivityInteractionHandler handler,
+        CaptivityInteractionResult result)
+    {
+        if (state == null
+            || subject == null
+            || warden == null
+            || housing == null
+            || handler == null
+            || state.currentInteractionAttemptId <= 0)
+        {
+            throw new InvalidOperationException(
+                "A complete captivity interaction owner context is required.");
+        }
+        string wardenId = CaptivityActorAccess.RequireCharacterId(
+            warden.Identity?.PersistentId);
+        if (!string.Equals(
+                wardenId,
+                state.reservedWardenId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "The completing warden does not own this interaction attempt.");
+        }
+        BuildingInstanceId facilityId = housing.RequirePersistentInstanceId();
+        float willAfter = result.Success
+            ? ClampStat(state.will + result.WillDelta)
+            : state.will;
+        float fearAfter = result.Success
+            ? ClampStat(state.fear + result.FearDelta)
+            : state.fear;
+        float trustAfter = result.Success
+            ? ClampStat(state.trust + result.TrustDelta)
+            : state.trust;
+        float grudgeAfter = result.Success
+            ? ClampStat(state.grudge + result.GrudgeDelta)
+            : state.grudge;
+        float corruptionAfter = result.Success
+            ? ClampStat(state.corruption + result.CorruptionDelta)
+            : state.corruption;
+        float bodyDamage = 0f;
+        float bodyBefore = 0f;
+        float bodyAfter = 0f;
+        float bodyMaximum = 0f;
+        if (result.Success && handler.BodyDamage.HasDamage)
+        {
+            CharacterVitalsSnapshot vitals = bodyHealthQuery.GetVitals(subject);
+            CaptivityBodyDamageProjection damage = handler.BodyDamage.Project(
+                vitals.CurrentHealth,
+                vitals.MaximumHealth);
+            bodyDamage = damage.DamageAmount;
+            bodyBefore = damage.CurrentHealth;
+            bodyAfter = damage.ExpectedHealth;
+            bodyMaximum = damage.MaximumHealth;
+        }
+        string outputItemId = result.Success
+            ? result.OutputItemId?.Trim() ?? string.Empty
+            : string.Empty;
+        int outputAmount = result.Success && outputItemId.Length > 0
+            ? result.OutputAmount
+            : 0;
+        string facilityDisplay = housing.BuildingData?.objectName?.Trim()
+            ?? string.Empty;
+        if (facilityDisplay.Length == 0)
+            facilityDisplay = housing.name;
+        string message = result.Message?.Trim() ?? string.Empty;
+        if (message.Length == 0)
+        {
+            message = handler.DisplayName
+                + (result.Success ? " 완료" : " 실패");
+        }
+        return new CaptivityInteractionTerminalState
+        {
+            attemptId = state.currentInteractionAttemptId,
+            captiveDisplayName = state.displayName?.Trim() ?? string.Empty,
+            absoluteDay = CurrentAbsoluteDay,
+            interactionId = handler.InteractionId,
+            interactionKind = handler.Kind,
+            interactionDisplayName = handler.DisplayName,
+            wardenId = wardenId,
+            wardenDisplayName = warden.Identity?.DisplayName?.Trim()
+                ?? warden.name,
+            facilityId = facilityId.Value,
+            facilityDisplayName = facilityDisplay,
+            resultGridX = state.housingPosition.x,
+            resultGridY = state.housingPosition.y,
+            success = result.Success,
+            message = message,
+            willBefore = state.will,
+            willAfter = willAfter,
+            fearBefore = state.fear,
+            fearAfter = fearAfter,
+            trustBefore = state.trust,
+            trustAfter = trustAfter,
+            grudgeBefore = state.grudge,
+            grudgeAfter = grudgeAfter,
+            corruptionBefore = state.corruption,
+            corruptionAfter = corruptionAfter,
+            outputItemId = outputItemId,
+            outputAmount = outputAmount,
+            outputOperationId = outputAmount > 0
+                ? CaptivityInteractionAttemptIdentity.FormatOutputOperationId(
+                    state.captiveId,
+                    state.currentInteractionAttemptId)
+                : string.Empty,
+            bodyDamageAmount = bodyDamage,
+            bodyHealthBefore = bodyBefore,
+            bodyHealthAfter = bodyAfter,
+            bodyMaximumHealth = bodyMaximum
+        };
+    }
+
+    private bool TryCompleteFrozenOutcome(
+        CaptiveState state,
+        CharacterActor subject,
+        out string status)
+    {
+        status = string.Empty;
+        CaptivityInteractionTerminalState terminal = state?.interactionTerminal;
+        if (state == null
+            || subject == null
+            || terminal?.HasOutcome != true
+            || state.currentInteractionAttemptId != terminal.attemptId
+            || !string.Equals(
+                state.currentInteractionId,
+                terminal.interactionId,
+                StringComparison.Ordinal))
+        {
+            status = "동결된 포로 상호작용 결과가 현재 작업과 일치하지 않습니다.";
+            return false;
+        }
+
+        if (!terminal.HasCommittedOutcome
+            && !TryCommitFrozenOutcome(state, subject, terminal, out status))
+        {
+            state.lastResult = status;
+            return false;
+        }
+        terminal = state.interactionTerminal;
+        if (terminal?.HasCommittedOutcome != true)
+        {
+            status = "포로 상호작용 결과의 적용 상태가 사라졌습니다.";
+            state.lastResult = status;
+            return false;
+        }
+
+        if (!outcomes.TryEnsureDelivered(state, out status))
+        {
+            state.lastResult = status;
+            return false;
+        }
+        if (!outcomes.TryEnsureOutput(state, out string outputFailure))
+        {
+            status = "포로 상호작용 결과는 확정되었지만 출력 전달을 재시도합니다: "
+                + outputFailure;
+            state.lastResult = status;
+            return false;
+        }
+
+        if (terminal.bodyObserversPending)
+        {
+            terminal.bodyObserversPending = false;
+            bodyHealthMutations.CompletePreparedAggregateDamage(
+                subject,
+                new CharacterPreparedAggregateDamageReceipt(
+                    new CharacterId(state.captiveId),
+                    terminal.bodyDamageAmount,
+                    terminal.bodyHealthBefore,
+                    terminal.bodyHealthAfter,
+                    terminal.bodyMaximumHealth,
+                    CharacterDeathCauseCode.Unknown,
+                    $"captivity-interaction:{terminal.interactionId}",
+                    allowDeath: true));
+        }
+
+        if (subject.IsDead || state.status == CaptivityStatus.Dead)
+        {
+            status = terminal.message;
+            return true;
+        }
+        if (terminal.interactionKind == CaptiveInteractionKind.Interrogation
+            && terminal.success)
+        {
+            TryCompleteFrozenInterrogation(state, out status);
+            return true;
+        }
+
+        try
+        {
+            string message = terminal.message;
+            Clear(state);
+            state.status = CaptivityStatus.Confined;
+            state.lastResult = message;
+            status = message;
+            return true;
+        }
+        catch (Exception exception)
+        {
+            status = terminal.message + " · 작업 종결 재시도 대기 ("
+                + exception.Message + ")";
+            state.lastResult = status;
+            return false;
+        }
+    }
+
+    private bool TryCommitFrozenOutcome(
+        CaptiveState state,
+        CharacterActor subject,
+        CaptivityInteractionTerminalState terminal,
+        out string status)
+    {
+        status = string.Empty;
+        if (terminal.bodyDamageAmount > 0f)
+        {
+            CharacterVitalsSnapshot current = bodyHealthQuery.GetVitals(subject);
+            if (!Approximately(current.CurrentHealth, terminal.bodyHealthBefore)
+                || !Approximately(current.MaximumHealth, terminal.bodyMaximumHealth))
+            {
+                status = "동결 후 포로의 신체 상태가 바뀌어 결과를 커밋할 수 없습니다.";
+                return false;
+            }
+        }
+        if (!outcomes.TryPrepare(
+                state,
+                out CaptivityInteractionPublication prepared,
+                out long ownerRevision,
+                out string prepareFailure))
+        {
+            status = "포로 상호작용 결과 전달 준비를 재시도합니다: "
+                + prepareFailure;
+            return false;
+        }
+
+        using var publication = prepared;
+        string stateSnapshot = CaptivityStateTransitionRules
+            .CaptureStateSnapshot(state);
+        CharacterBodyHealthMutationSnapshot bodySnapshot = default;
+        bool bodyStaged = false;
+        try
+        {
+            state.will = terminal.willAfter;
+            state.fear = terminal.fearAfter;
+            state.trust = terminal.trustAfter;
+            state.grudge = terminal.grudgeAfter;
+            state.corruption = terminal.corruptionAfter;
+            state.lastResult = terminal.message;
+            if (terminal.success)
+                actors.Recalculate(state);
+
+            if (terminal.bodyDamageAmount > 0f)
+            {
+                bodySnapshot = bodyHealthMutations.CaptureCombatMutation(subject);
+                CharacterPreparedAggregateDamageReceipt damage =
+                    bodyHealthMutations.ApplyPreparedAggregateDamage(
+                        subject,
+                        terminal.bodyDamageAmount,
+                        CharacterDeathCauseCode.Unknown,
+                        $"captivity-interaction:{terminal.interactionId}",
+                        allowDeath: true);
+                bodyStaged = true;
+                if (!damage.IsValid
+                    || !Approximately(
+                        damage.PreviousHealth,
+                        terminal.bodyHealthBefore)
+                    || !Approximately(
+                        damage.ResultingHealth,
+                        terminal.bodyHealthAfter)
+                    || !Approximately(
+                        damage.MaximumHealth,
+                        terminal.bodyMaximumHealth))
+                {
+                    throw new InvalidOperationException(
+                        "Prepared captivity body damage drifted from its frozen receipt.");
+                }
+            }
+
+            terminal.outcomeRevision = ownerRevision;
+            terminal.bodyObserversPending = terminal.bodyDamageAmount > 0f;
+            state.interactionOutcomeRevision = ownerRevision;
+        }
+        catch (Exception exception)
+        {
+            outcomes.Cancel(prepared);
+            if (bodyStaged)
+            {
+                bodyHealthMutations.RestoreCombatMutation(
+                    subject,
+                    bodySnapshot,
+                    "captivity-interaction-stage-rollback");
+            }
+            CaptivityStateTransitionRules.RestoreStateSnapshot(
+                stateSnapshot,
+                state);
+            status = "포로 상호작용 결과를 적용하지 못했습니다: "
+                + exception.Message;
+            return false;
+        }
+
+        DomainFactDelivery commit = outcomes.Commit(prepared);
+        if (commit.MayBeCommitted)
+            return true;
+
+        if (bodyStaged)
+        {
+            bodyHealthMutations.RestoreCombatMutation(
+                subject,
+                bodySnapshot,
+                "captivity-interaction-outcome-rejected");
+        }
+        CaptivityStateTransitionRules.RestoreStateSnapshot(stateSnapshot, state);
+        status = commit.Detail.Length == 0
+            ? "포로 상호작용 결과 전달이 거절되었습니다."
+            : commit.Detail;
+        return false;
+    }
+
+    public void ValidateBeforeCapture() => outcomes.ValidateBeforeCapture();
 
     private void Clear(CaptiveState state)
     {
         ReleaseMaterials(state);
+        ClearInteractionState(state);
+    }
+
+    private static void ClearInteractionState(CaptiveState state)
+    {
         state.reservedWardenId = string.Empty;
         state.currentInteractionId = string.Empty;
+        state.currentInteractionAttemptId = 0;
+        state.interactionTerminal = new CaptivityInteractionTerminalState();
+        state.currentInterrogationAttemptId = 0;
         state.interactionMaterialDestinationId = string.Empty;
         state.interactionMaterialsConsumed = false;
         state.completedInteractionWork = 0f;
         state.requiredInteractionWork = 0f;
     }
 
+    private bool TryCompleteFrozenInterrogation(
+        CaptiveState state,
+        out string status)
+    {
+        CaptivityInterrogationTerminalState terminal =
+            state?.interrogationTerminal;
+        string resultTitle = CaptivityInterrogationInformationRuntime
+            .GetResultTitle(terminal);
+        if (!interrogationInformation.TryPublish(
+                state?.captiveId,
+                terminal,
+                out string publicationFailure))
+        {
+            status = resultTitle + " · 결과 전달 재시도 대기";
+            state.lastResult = status;
+            if (!string.IsNullOrWhiteSpace(publicationFailure))
+            {
+                status += $" ({publicationFailure})";
+            }
+            return false;
+        }
+
+        state.lastResult = resultTitle;
+        if (!IsFrozenCurrentInterrogation(state))
+        {
+            status = state.lastResult;
+            return true;
+        }
+
+        try
+        {
+            Clear(state);
+            state.status = CaptivityStatus.Confined;
+            status = state.lastResult;
+            return true;
+        }
+        catch (Exception exception)
+        {
+            status = resultTitle + " · 작업 종결 재시도 대기"
+                + $" ({exception.Message})";
+            state.lastResult = status;
+            return false;
+        }
+    }
+
+    private static bool IsFrozenCurrentInterrogation(CaptiveState state)
+    {
+        return state != null
+            && state.status == CaptivityStatus.Interaction
+            && string.Equals(
+                state.currentInteractionId,
+                CaptivityInterrogationAttemptIdentity.InteractionId,
+                StringComparison.Ordinal)
+            && state.currentInterrogationAttemptId > 0
+            && state.interrogationTerminal?.attemptId
+                == state.currentInterrogationAttemptId;
+    }
+
     private static float ClampStat(float value)
     {
         return Mathf.Clamp(value, 0f, 100f);
     }
+
+    private int CurrentAbsoluteDay => gameCalendar.Day;
+
+    private static bool Approximately(float left, float right) =>
+        Mathf.Abs(left - right) <= 0.001f;
 }

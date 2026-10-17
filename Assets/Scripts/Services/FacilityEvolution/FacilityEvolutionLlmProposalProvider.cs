@@ -7,179 +7,212 @@ using UnityEngine;
 [Serializable]
 public sealed class FacilityEvolutionProposalReasonDto
 {
-    public string id;
+    public string proposalId;
     public string reason;
 }
 
 [Serializable]
 public sealed class FacilityEvolutionProposalJsonDto : ILlmJsonPayload
 {
-    public string facilityIdentitySummary;
     public string[] proposalIds;
     public FacilityEvolutionProposalReasonDto[] reasons;
-    public FacilityEvolutionProposalReasonDto[] rejectedHints;
-    public string rejectedHintText;
-    public string[] mutationTagSuggestions;
+    public string[] mutationTags;
     public string flavorText;
     public float confidence;
-    public string[] usedMotifIds = Array.Empty<string>();
-    public string[] usedCharacterFactIds = Array.Empty<string>();
 
     public bool Validate(out string error)
     {
         error = string.Empty;
-        if (string.IsNullOrWhiteSpace(facilityIdentitySummary))
+        if (proposalIds == null || proposalIds.Length == 0)
         {
-            error = "facilityIdentitySummary is required.";
+            error = "proposalIds must contain at least one proposal.";
             return false;
         }
 
-        if (facilityIdentitySummary.Length > 160)
+        if (proposalIds.Any(string.IsNullOrWhiteSpace))
         {
-            error = "facilityIdentitySummary must be 160 characters or shorter.";
+            error = "proposalIds cannot contain a blank ID.";
             return false;
         }
 
-        if (flavorText != null && flavorText.Length > 260)
+        if (proposalIds.Distinct(StringComparer.Ordinal).Count() != proposalIds.Length)
         {
-            error = "flavorText must be 260 characters or shorter.";
+            error = "proposalIds cannot contain duplicate IDs.";
             return false;
         }
 
-        if (rejectedHintText != null && rejectedHintText.Length > 220)
+        if (mutationTags == null)
         {
-            error = "rejectedHintText must be 220 characters or shorter.";
+            error = "mutationTags is required.";
             return false;
         }
 
-        if (confidence < 0f || confidence > 1f)
+        if (mutationTags.Any(string.IsNullOrWhiteSpace))
+        {
+            error = "mutationTags cannot contain blank tags.";
+            return false;
+        }
+
+        if (mutationTags.Distinct(StringComparer.Ordinal).Count() != mutationTags.Length)
+        {
+            error = "mutationTags cannot contain duplicate tags.";
+            return false;
+        }
+
+        if (reasons == null || reasons.Length != proposalIds.Length)
+        {
+            error = "reasons must match proposalIds count and order.";
+            return false;
+        }
+
+        for (int index = 0; index < reasons.Length; index++)
+        {
+            FacilityEvolutionProposalReasonDto entry = reasons[index];
+            if (entry == null
+                || !string.Equals(
+                    entry.proposalId,
+                    proposalIds[index],
+                    StringComparison.Ordinal))
+            {
+                error = "reasons must match proposalIds count and order.";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(entry.reason)
+                || entry.reason.Length > 220)
+            {
+                error = "reasons.reason must contain 1-220 characters.";
+                return false;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(flavorText) || flavorText.Length > 260)
+        {
+            error = "flavorText must contain 1-260 characters.";
+            return false;
+        }
+
+        if (float.IsNaN(confidence)
+            || float.IsInfinity(confidence)
+            || confidence < 0f
+            || confidence > 1f)
         {
             error = "confidence must be between 0 and 1.";
             return false;
         }
 
-        if (!ValidateReasonArray(reasons, "reasons", out error))
-        {
-            return false;
-        }
-
-        if (!ValidateReasonArray(rejectedHints, "rejectedHints", out error))
-        {
-            return false;
-        }
-
         return true;
     }
 
-    private static bool ValidateReasonArray(
-        FacilityEvolutionProposalReasonDto[] entries,
-        string label,
-        out string error)
-    {
-        error = string.Empty;
-        if (entries != null)
-        {
-            foreach (FacilityEvolutionProposalReasonDto reason in entries)
-            {
-                if (reason == null)
-                {
-                    continue;
-                }
-
-                if (string.IsNullOrWhiteSpace(reason.id))
-                {
-                    error = $"{label}.id is required.";
-                    return false;
-                }
-
-                if (!string.IsNullOrWhiteSpace(reason.reason) && reason.reason.Length > 220)
-                {
-                    error = $"{label}.reason must be 220 characters or shorter.";
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    public FacilityEvolutionProposal ToRuntimeProposal(
+    public bool TryCreateRuntimeProposal(
+        string facilityIdentitySummary,
         IReadOnlyCollection<string> validCandidateIds,
         IReadOnlyCollection<string> validMutationTags,
-        out string statusMessage)
+        IReadOnlyDictionary<string, string> legalTailReasons,
+        IReadOnlyDictionary<string, string> rejectedHintTexts,
+        NarrativeGenerationTrace narrativeTrace,
+        out FacilityEvolutionProposal proposal,
+        out FacilityEvolutionProposalRejectionKind rejectionKind,
+        out string error)
     {
+        proposal = default;
+        rejectionKind = FacilityEvolutionProposalRejectionKind.None;
+        error = string.Empty;
+        if (!Validate(out error))
+        {
+            rejectionKind = ResolvePayloadRejection(error);
+            return false;
+        }
+
         HashSet<string> validIds = new HashSet<string>(
             validCandidateIds ?? Array.Empty<string>(),
             StringComparer.Ordinal);
         HashSet<string> validMutations = new HashSet<string>(
             validMutationTags ?? Array.Empty<string>(),
             StringComparer.Ordinal);
-
-        List<string> filteredProposalIds = (proposalIds ?? Array.Empty<string>())
-            .Where((id) => !string.IsNullOrWhiteSpace(id) && validIds.Contains(id))
-            .Distinct()
-            .ToList();
-        Dictionary<string, string> filteredReasons = new Dictionary<string, string>();
-        foreach (FacilityEvolutionProposalReasonDto entry in reasons ?? Array.Empty<FacilityEvolutionProposalReasonDto>())
+        string illegalProposalId = proposalIds.FirstOrDefault(id => !validIds.Contains(id));
+        if (!string.IsNullOrWhiteSpace(illegalProposalId))
         {
-            if (entry == null || string.IsNullOrWhiteSpace(entry.id) || !validIds.Contains(entry.id))
-            {
-                continue;
-            }
-
-            filteredReasons[entry.id] = entry.reason ?? string.Empty;
+            rejectionKind = FacilityEvolutionProposalRejectionKind.IllegalProposalId;
+            error = $"proposalIds contains an ID outside the legal candidate packet: {illegalProposalId}.";
+            return false;
         }
 
-        Dictionary<string, string> filteredHints = new Dictionary<string, string>();
-        foreach (FacilityEvolutionProposalReasonDto entry in rejectedHints ?? Array.Empty<FacilityEvolutionProposalReasonDto>())
+        string illegalMutationTag = mutationTags.FirstOrDefault(tag => !validMutations.Contains(tag));
+        if (!string.IsNullOrWhiteSpace(illegalMutationTag))
         {
-            if (entry == null || string.IsNullOrWhiteSpace(entry.id) || !validIds.Contains(entry.id))
-            {
-                continue;
-            }
-
-            filteredHints[entry.id] = entry.reason ?? string.Empty;
+            rejectionKind = FacilityEvolutionProposalRejectionKind.IllegalMutationTag;
+            error = $"mutationTags contains a tag outside the legal candidate packet: {illegalMutationTag}.";
+            return false;
         }
 
-        if (!string.IsNullOrWhiteSpace(rejectedHintText))
+        Dictionary<string, string> proposalReasons = new Dictionary<string, string>(StringComparer.Ordinal);
+        HashSet<string> selectedIds = new HashSet<string>(proposalIds, StringComparer.Ordinal);
+        foreach (KeyValuePair<string, string> entry in legalTailReasons
+                     ?? new Dictionary<string, string>())
         {
-            foreach (string id in validIds)
+            if (validIds.Contains(entry.Key) && !selectedIds.Contains(entry.Key))
             {
-                if (!filteredHints.ContainsKey(id))
-                {
-                    filteredHints[id] = rejectedHintText;
-                }
+                proposalReasons.Add(entry.Key, entry.Value ?? string.Empty);
             }
         }
+        foreach (FacilityEvolutionProposalReasonDto entry in reasons)
+        {
+            proposalReasons.Add(entry.proposalId, entry.reason.Trim());
+        }
 
-        List<string> filteredMutationTags = (mutationTagSuggestions ?? Array.Empty<string>())
-            .Where((tag) => !string.IsNullOrWhiteSpace(tag)
-                && (validMutations.Count == 0 || validMutations.Contains(tag)))
-            .Distinct()
-            .ToList();
-
-        int droppedProposalCount = (proposalIds ?? Array.Empty<string>())
-            .Count((id) => !string.IsNullOrWhiteSpace(id) && !validIds.Contains(id));
-        int droppedMutationCount = (mutationTagSuggestions ?? Array.Empty<string>())
-            .Count((tag) => !string.IsNullOrWhiteSpace(tag)
-                && validMutations.Count > 0
-                && !validMutations.Contains(tag));
-
-        statusMessage = droppedProposalCount == 0 && droppedMutationCount == 0
-            ? "LLM proposal accepted."
-            : $"LLM proposal accepted with filtered ids={droppedProposalCount}, mutations={droppedMutationCount}.";
-
-        return new FacilityEvolutionProposal(
+        proposal = new FacilityEvolutionProposal(
             facilityIdentitySummary,
-            filteredProposalIds,
-            filteredReasons,
-            filteredMutationTags,
-            flavorText,
+            proposalIds,
+            proposalReasons,
+            mutationTags,
+            flavorText.Trim(),
             confidence,
             FacilityEvolutionProposalSources.LocalLlm,
-            statusMessage,
-            filteredHints);
+            "LLM proposal accepted without repair or filtering.",
+            rejectedHintTexts,
+            narrativeTrace);
+        return true;
     }
+
+    private static FacilityEvolutionProposalRejectionKind ResolvePayloadRejection(
+        string error)
+    {
+        if (error != null && error.StartsWith("proposalIds cannot contain duplicate", StringComparison.Ordinal))
+        {
+            return FacilityEvolutionProposalRejectionKind.DuplicateProposalId;
+        }
+
+        if (error != null && error.StartsWith("mutationTags cannot contain duplicate", StringComparison.Ordinal))
+        {
+            return FacilityEvolutionProposalRejectionKind.DuplicateMutationTag;
+        }
+
+        if (error != null && error.StartsWith("reasons must match", StringComparison.Ordinal))
+        {
+            return FacilityEvolutionProposalRejectionKind.ReasonCountOrOrderMismatch;
+        }
+
+        return FacilityEvolutionProposalRejectionKind.InvalidPayload;
+    }
+}
+
+public enum FacilityEvolutionProposalRejectionKind
+{
+    None,
+    RuntimeUnavailable,
+    RequestRejected,
+    Cancelled,
+    GenerationFailed,
+    ExactKeyContractViolation,
+    JsonParseFailed,
+    InvalidPayload,
+    DuplicateProposalId,
+    DuplicateMutationTag,
+    ReasonCountOrOrderMismatch,
+    IllegalProposalId,
+    IllegalMutationTag,
+    PublicContextUnavailable
 }
 
 public sealed class CachedLocalLlmFacilityEvolutionProposalProvider : IFacilityEvolutionProposalProvider
@@ -190,7 +223,10 @@ public sealed class CachedLocalLlmFacilityEvolutionProposalProvider : IFacilityE
     private readonly Dictionary<string, FacilityEvolutionProposal> cachedProposals =
         new Dictionary<string, FacilityEvolutionProposal>();
     private readonly HashSet<string> pendingSignatures = new HashSet<string>();
+    private readonly HashSet<string> failedSignatures = new HashSet<string>();
     private readonly Dictionary<string, string> statusBySignature = new Dictionary<string, string>();
+    private readonly Dictionary<string, NarrativeInferenceAuditRecord> auditByRequestKey =
+        new Dictionary<string, NarrativeInferenceAuditRecord>(StringComparer.Ordinal);
 
     public CachedLocalLlmFacilityEvolutionProposalProvider(
         IFacilityEvolutionProposalProvider fallbackProvider,
@@ -207,6 +243,17 @@ public sealed class CachedLocalLlmFacilityEvolutionProposalProvider : IFacilityE
     public string LastPrompt { get; private set; } = string.Empty;
     public string LastResponse { get; private set; } = string.Empty;
     public string LastStatusMessage { get; private set; } = string.Empty;
+    public FacilityEvolutionProposalRejectionKind LastRejectionKind { get; private set; }
+    public NarrativeInferenceAuditRecord LastAudit { get; private set; }
+
+    public bool TryGetAudit(
+        string requestKey,
+        out NarrativeInferenceAuditRecord audit)
+    {
+        return auditByRequestKey.TryGetValue(
+            requestKey?.Trim() ?? string.Empty,
+            out audit);
+    }
 
     public FacilityEvolutionProposal Propose(FacilityEvolutionContext context)
     {
@@ -216,7 +263,31 @@ public sealed class CachedLocalLlmFacilityEvolutionProposalProvider : IFacilityE
             return fallback;
         }
 
-        string signature = FacilityEvolutionPromptFormatter.BuildSignature(context);
+        NarrativePublicPromptEnvelope promptEnvelope;
+        try
+        {
+            promptEnvelope =
+                FacilityEvolutionPromptFormatter.BuildPromptEnvelope(context);
+        }
+        catch (Exception error) when (
+            error is InvalidOperationException || error is ArgumentException)
+        {
+            LastPrompt = string.Empty;
+            LastResponse = string.Empty;
+            LastAudit = default;
+            LastRejectionKind =
+                FacilityEvolutionProposalRejectionKind.PublicContextUnavailable;
+            string publicContextFailureStatus =
+                "LLM public context unavailable: " + error.Message;
+            LastStatusMessage = publicContextFailureStatus;
+            return Rewrap(
+                fallback,
+                FacilityEvolutionProposalSources.RuleBasedAfterLlmFailure,
+                publicContextFailureStatus);
+        }
+        string signature = FacilityEvolutionPromptFormatter.BuildSignature(
+            context,
+            promptEnvelope.PublicContextSemanticHash);
         if (cachedProposals.TryGetValue(signature, out FacilityEvolutionProposal cached))
         {
             return cached;
@@ -224,40 +295,57 @@ public sealed class CachedLocalLlmFacilityEvolutionProposalProvider : IFacilityE
 
         if (!pendingSignatures.Contains(signature))
         {
-            TryRequestProposal(signature, context, fallback);
+            TryRequestProposal(signature, context, fallback, promptEnvelope);
         }
 
         string status = statusBySignature.TryGetValue(signature, out string message)
             ? message
             : "LLM proposal pending.";
-        string source = status.StartsWith("LLM failed", StringComparison.Ordinal)
-            || status.StartsWith("LLM unavailable", StringComparison.Ordinal)
-            || status.StartsWith("LLM disabled", StringComparison.Ordinal)
-                ? FacilityEvolutionProposalSources.RuleBasedAfterLlmFailure
-                : FacilityEvolutionProposalSources.RuleBasedWhileLlmPending;
+        string source = failedSignatures.Contains(signature)
+            ? FacilityEvolutionProposalSources.RuleBasedAfterLlmFailure
+            : FacilityEvolutionProposalSources.RuleBasedWhileLlmPending;
         return Rewrap(fallback, source, status);
     }
 
     private void TryRequestProposal(
         string signature,
         FacilityEvolutionContext context,
-        FacilityEvolutionProposal ruleProposal)
+        FacilityEvolutionProposal ruleProposal,
+        NarrativePublicPromptEnvelope promptEnvelope)
     {
+        string candidatePacketHash = NarrativeInferenceHash.ComputeSha256Utf8(signature);
+        string requestKey = NarrativePublicContextIdentity.Bind(
+            "facility-evolution:" + candidatePacketHash,
+            promptEnvelope.PublicContextSemanticHash);
+        string targetPersistentId = promptEnvelope.Material.SubjectId;
         if (!allowRequestsOutsidePlayMode && !Application.isPlaying)
         {
-            SetStatus(signature, "LLM disabled outside play mode.");
+            RecordFailure(
+                signature,
+                requestKey,
+                candidatePacketHash,
+                targetPersistentId,
+                ruleProposal,
+                FacilityEvolutionProposalRejectionKind.RuntimeUnavailable,
+                "LLM disabled outside play mode.");
             return;
         }
 
         ILocalLlmRuntime runtime = llmRuntimeProvider?.Invoke();
         if (runtime == null)
         {
-            SetStatus(signature, "LLM unavailable: LocalLlmRequestQueue is missing.");
+            RecordFailure(
+                signature,
+                requestKey,
+                candidatePacketHash,
+                targetPersistentId,
+                ruleProposal,
+                FacilityEvolutionProposalRejectionKind.RuntimeUnavailable,
+                "LLM unavailable: LocalLlmRequestQueue is missing.");
             return;
         }
 
-        string prompt = FacilityEvolutionPromptFormatter.BuildPrompt(context);
-        LastPrompt = prompt;
+        LastPrompt = promptEnvelope.Prompt;
         string[] validCandidateIds = context.CandidateRecipes
             .Where((recipe) => recipe != null)
             .Select((recipe) => recipe.EffectiveId)
@@ -271,17 +359,29 @@ public sealed class CachedLocalLlmFacilityEvolutionProposalProvider : IFacilityE
 
         pendingSignatures.Add(signature);
         SetStatus(signature, "LLM proposal requested.");
-        bool accepted = runtime.GenerateFacilityEvolutionAsync(prompt, (result) =>
+        bool accepted = runtime.GenerateFacilityEvolutionAsync(
+            promptEnvelope.Prompt,
+            (result) =>
             OnLlmResult(
                 signature,
                 result,
                 validCandidateIds,
                 validMutationTags,
-                ruleProposal));
+                ruleProposal,
+                requestKey,
+                candidatePacketHash,
+                targetPersistentId));
         if (!accepted)
         {
             pendingSignatures.Remove(signature);
-            SetStatus(signature, "LLM failed: request was not accepted.");
+            RecordFailure(
+                signature,
+                requestKey,
+                candidatePacketHash,
+                targetPersistentId,
+                ruleProposal,
+                FacilityEvolutionProposalRejectionKind.RequestRejected,
+                "LLM failed: request was not accepted.");
         }
     }
 
@@ -290,44 +390,139 @@ public sealed class CachedLocalLlmFacilityEvolutionProposalProvider : IFacilityE
         LocalLlmResult result,
         IReadOnlyCollection<string> validCandidateIds,
         IReadOnlyCollection<string> validMutationTags,
-        FacilityEvolutionProposal ruleProposal)
+        FacilityEvolutionProposal ruleProposal,
+        string requestKey,
+        string candidatePacketHash,
+        string targetPersistentId)
     {
         pendingSignatures.Remove(signature);
         LastResponse = result.Content;
         if (result.IsCancelled)
         {
-            SetStatus(signature, "LLM request cancelled.");
+            RecordFailure(
+                signature,
+                requestKey,
+                candidatePacketHash,
+                targetPersistentId,
+                ruleProposal,
+                FacilityEvolutionProposalRejectionKind.Cancelled,
+                "LLM request cancelled.");
             return;
         }
 
         if (!result.IsSuccess)
         {
-            SetStatus(signature, $"LLM failed: {result.Status} {result.Error}");
+            RecordFailure(
+                signature,
+                requestKey,
+                candidatePacketHash,
+                targetPersistentId,
+                ruleProposal,
+                FacilityEvolutionProposalRejectionKind.GenerationFailed,
+                $"LLM failed: {result.Status} {result.Error}");
             return;
         }
 
-        if (!LlmJsonResponseParser.TryParse(result.Content, out FacilityEvolutionProposalJsonDto dto, out string parseError))
+        if (!NarrativeExactKeyContract.TryValidateProfileResponse(
+                LocalLlmRequestProfiles.FacilityEvolutionLegacyV2.Id,
+                result.Content,
+                out string exactJson,
+                out string exactError))
         {
-            SetStatus(signature, $"LLM failed: {parseError}");
+            RecordFailure(
+                signature,
+                requestKey,
+                candidatePacketHash,
+                targetPersistentId,
+                ruleProposal,
+                FacilityEvolutionProposalRejectionKind.ExactKeyContractViolation,
+                "LLM failed: " + exactError);
             return;
         }
 
-        FacilityEvolutionProposal proposal = dto.ToRuntimeProposal(
-            validCandidateIds,
-            validMutationTags,
-            out string statusMessage);
-        cachedProposals[signature] = new FacilityEvolutionProposal(
-            proposal.FacilityIdentitySummary,
-            ruleProposal.ProposalIds,
-            ruleProposal.ProposalReasons,
-            ruleProposal.MutationTagSuggestions,
-            proposal.FlavorText,
-            ruleProposal.Confidence,
-            ruleProposal.Source,
-            "Rule-authoritative proposal with local narrative interpretation.",
-            ruleProposal.RejectedHintTexts,
-            result.NarrativeTrace);
-        SetStatus(signature, statusMessage);
+        if (!LlmJsonResponseParser.TryParse(
+                exactJson,
+                out FacilityEvolutionProposalJsonDto dto,
+                out string parseError))
+        {
+            RecordFailure(
+                signature,
+                requestKey,
+                candidatePacketHash,
+                targetPersistentId,
+                ruleProposal,
+                FacilityEvolutionProposalRejectionKind.JsonParseFailed,
+                "LLM failed: " + parseError);
+            return;
+        }
+
+        if (!dto.TryCreateRuntimeProposal(
+                ruleProposal.FacilityIdentitySummary,
+                validCandidateIds,
+                validMutationTags,
+                ruleProposal.ProposalReasons,
+                ruleProposal.RejectedHintTexts,
+                result.NarrativeTrace,
+                out FacilityEvolutionProposal proposal,
+                out FacilityEvolutionProposalRejectionKind rejectionKind,
+                out string validationError))
+        {
+            RecordFailure(
+                signature,
+                requestKey,
+                candidatePacketHash,
+                targetPersistentId,
+                ruleProposal,
+                rejectionKind,
+                "LLM failed: " + validationError);
+            return;
+        }
+
+        cachedProposals[signature] = proposal;
+        failedSignatures.Remove(signature);
+        LastRejectionKind = FacilityEvolutionProposalRejectionKind.None;
+        LastAudit = new NarrativeInferenceAuditRecord(
+            LocalLlmRequestProfiles.FacilityEvolutionLegacyV2.Id,
+            requestKey,
+            candidatePacketHash,
+            true,
+            string.Empty,
+            false,
+            string.Empty,
+            string.Join("|", proposal.ProposalIds),
+            -1,
+            targetPersistentId,
+            NarrativeInferenceTimestamp.FromUtc(DateTime.UtcNow));
+        auditByRequestKey[requestKey] = LastAudit;
+        SetStatus(signature, proposal.StatusMessage);
+    }
+
+    private void RecordFailure(
+        string signature,
+        string requestKey,
+        string candidatePacketHash,
+        string targetPersistentId,
+        FacilityEvolutionProposal ruleProposal,
+        FacilityEvolutionProposalRejectionKind rejectionKind,
+        string message)
+    {
+        failedSignatures.Add(signature);
+        LastRejectionKind = rejectionKind;
+        string safeMessage = message ?? string.Empty;
+        LastAudit = new NarrativeInferenceAuditRecord(
+            LocalLlmRequestProfiles.FacilityEvolutionLegacyV2.Id,
+            requestKey,
+            candidatePacketHash,
+            false,
+            safeMessage,
+            true,
+            rejectionKind.ToString(),
+            string.Join("|", ruleProposal.ProposalIds ?? Array.Empty<string>()),
+            -1,
+            targetPersistentId,
+            NarrativeInferenceTimestamp.FromUtc(DateTime.UtcNow));
+        auditByRequestKey[requestKey] = LastAudit;
+        SetStatus(signature, safeMessage);
     }
 
     private void SetStatus(string signature, string message)
@@ -359,6 +554,15 @@ public static class FacilityEvolutionPromptFormatter
 {
     public static string BuildSignature(FacilityEvolutionContext context)
     {
+        if (context == null) return string.Empty;
+        NarrativePublicContextMaterial material = BuildPublicMaterial(context);
+        return BuildSignature(context, material.SemanticHash);
+    }
+
+    internal static string BuildSignature(
+        FacilityEvolutionContext context,
+        string publicContextSemanticHash)
+    {
         if (context == null)
         {
             return string.Empty;
@@ -368,27 +572,135 @@ public static class FacilityEvolutionPromptFormatter
         builder.Append(FacilityEvolutionUtility.GetFacilityId(context.Facility != null ? context.Facility.BuildingData : null));
         builder.Append('|').Append(context.State != null ? context.State.StarGrade : 1);
         AppendList(builder, context.State != null ? context.State.LineageTags : Array.Empty<string>());
-        AppendList(builder, context.CandidateRecipes?.Select((recipe) => recipe != null ? recipe.EffectiveId : string.Empty));
+        foreach (FacilityEvolutionRecipeSO recipe in context.CandidateRecipes
+                     ?? Array.Empty<FacilityEvolutionRecipeSO>())
+        {
+            if (recipe == null)
+            {
+                continue;
+            }
+
+            builder.Append("|recipe=").Append(recipe.EffectiveId)
+                .Append("|result=")
+                .Append(FacilityEvolutionUtility.GetFacilityId(recipe.resultBuilding));
+            AppendList(
+                builder,
+                (recipe.allowedMutationTags ?? Array.Empty<string>())
+                    .Where(tag => !string.IsNullOrWhiteSpace(tag))
+                    .OrderBy(tag => tag, StringComparer.Ordinal));
+        }
         AppendPairs(builder, context.Profile != null ? context.Profile.Scores : null);
         AppendPairs(builder, context.Profile != null ? context.Profile.Metrics : null);
         AppendPairs(builder, context.Profile != null ? context.Profile.IdentityPressures : null);
         AppendTokenPairs(builder, context.Profile != null ? context.Profile.RecordTokens : null);
+        builder.Append("|publicContext=")
+            .Append(publicContextSemanticHash?.Trim() ?? string.Empty);
         return builder.ToString();
     }
 
-    private static string StableNarrativeToken(string value)
+    public static NarrativePublicContextMaterial BuildPublicMaterial(
+        FacilityEvolutionContext context)
     {
-        string token = new string((value ?? string.Empty)
-            .ToLowerInvariant()
-            .Where(character => char.IsLetterOrDigit(character)
-                || character is ':' or '-' or '_')
-            .Take(40)
-            .ToArray());
-        return string.IsNullOrWhiteSpace(token) ? "event" : token;
+        if (context == null) throw new ArgumentNullException(nameof(context));
+        if (context.Facility == null)
+            throw new InvalidOperationException(
+                "Facility public context requires a live facility target.");
+
+        BuildingInstanceId persistentId = context.Facility.PersistentInstanceId;
+        if (!persistentId.IsValid)
+        {
+            throw new InvalidOperationException(
+                "Facility public context requires a persistent facility ID.");
+        }
+        string stateSubjectId = context.State?.FacilityPersistentId?.Trim()
+            ?? string.Empty;
+        if (stateSubjectId.Length > 0
+            && !string.Equals(
+                stateSubjectId,
+                persistentId.Value,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Facility public context target does not match its evolution state.");
+        }
+        string subjectId = persistentId.Value;
+
+        string subjectName = FacilityShopService.GetBuildingName(
+            context.Facility.BuildingData)?.Trim() ?? string.Empty;
+        if (subjectName.Length == 0)
+            throw new InvalidOperationException(
+                "Facility public context requires a public facility name.");
+
+        string[] recentEvents = (context.Profile?.RecentEvents
+                ?? Array.Empty<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .ToArray();
+        List<NarrativePublicFactInput> facts =
+            new List<NarrativePublicFactInput>(recentEvents.Length);
+        Dictionary<string, int> occurrenceByHash =
+            new Dictionary<string, int>(StringComparer.Ordinal);
+        for (int index = 0; index < recentEvents.Length; index++)
+        {
+            string eventText = recentEvents[index];
+            string eventHash = NarrativeInferenceHash.ComputeSha256Utf8(eventText);
+            occurrenceByHash.TryGetValue(eventHash, out int occurrence);
+            occurrence++;
+            occurrenceByHash[eventHash] = occurrence;
+            string sourceEventId = "facility-record-event:"
+                + eventHash
+                + ":occurrence:"
+                + occurrence.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture);
+            facts.Add(new NarrativePublicFactInput(
+                "facility-record-event",
+                sourceEventId,
+                subjectId,
+                "Facility history event [evidence="
+                    + sourceEventId
+                    + "]: "
+                    + eventText,
+                100 + index,
+                NarrativePublicFactCategory.PriorHistory,
+                subjectId,
+                string.Empty,
+                null,
+                1,
+                null,
+                null,
+                new NarrativePublicEventInput(
+                    sourceEventId,
+                    string.Empty,
+                    subjectId,
+                    "facility-record-event",
+                    string.Empty,
+                    null,
+                    1,
+                    null)));
+        }
+
+        return NarrativePublicContextFactory.Build(
+            LocalLlmRequestProfiles.FacilityEvolutionLegacyV2.Id,
+            subjectId,
+            NarrativePublicSubjectKind.Facility,
+            string.Empty,
+            false,
+            true,
+            new[]
+            {
+                new NarrativePublicEntityInput(
+                    subjectId,
+                    NarrativePublicEntityKind.Facility,
+                    subjectName)
+            },
+            facts,
+            "facility-recent-events-v1");
     }
 
-    public static string BuildPrompt(FacilityEvolutionContext context)
+    public static NarrativePublicPromptEnvelope BuildPromptEnvelope(
+        FacilityEvolutionContext context)
     {
+        NarrativePublicContextMaterial material = BuildPublicMaterial(context);
         RoomProfile profile = context.Profile;
         FacilityEvolutionStateComponent state = context.State;
         FacilityIdentitySnapshot snapshot = new FacilityIdentitySnapshot(context);
@@ -397,8 +709,8 @@ public static class FacilityEvolutionPromptFormatter
         builder.AppendLine("Game code already selected the candidate pool and will validate every hard condition.");
         builder.AppendLine("Do not invent candidate ids, facilities, costs, stats, or balance values.");
         builder.AppendLine("Use the identity pressures and dominant/conflicting signals as the main context summary.");
-        builder.AppendLine("Return exactly this JSON shape:");
-        builder.AppendLine("{\"facilityIdentitySummary\":\"...\",\"proposalIds\":[\"candidate_id\"],\"reasons\":[{\"id\":\"candidate_id\",\"reason\":\"...\"}],\"rejectedHints\":[{\"id\":\"candidate_id\",\"reason\":\"...\"}],\"mutationTagSuggestions\":[\"tag\"],\"flavorText\":\"...\",\"confidence\":0.0}");
+        builder.AppendLine("Return exactly this JSON shape with no extra keys:");
+        builder.AppendLine("{\"proposalIds\":[\"candidate_id\"],\"mutationTags\":[\"tag\"],\"reasons\":[{\"proposalId\":\"candidate_id\",\"reason\":\"...\"}],\"flavorText\":\"...\",\"confidence\":0.0}");
         builder.AppendLine();
         builder.AppendLine("Facility:");
         builder.AppendLine($"name={FacilityShopService.GetBuildingName(context.Facility != null ? context.Facility.BuildingData : null)}");
@@ -416,7 +728,7 @@ public static class FacilityEvolutionPromptFormatter
         builder.AppendLine($"identityPressures={JoinPairs(snapshot.IdentityPressures)}");
         builder.AppendLine($"dominantSignals={JoinValues(snapshot.DominantSignals)}");
         builder.AppendLine($"conflictingSignals={JoinValues(snapshot.ConflictingSignals)}");
-        builder.AppendLine($"recentEvents={JoinValues(profile != null ? profile.RecentEvents.Take(6) : Array.Empty<string>())}");
+        builder.AppendLine("recentEvents=see publicNarrativeContext");
         builder.AppendLine();
         builder.AppendLine("Candidate pool:");
         foreach (FacilityEvolutionRecipeSO recipe in context.CandidateRecipes ?? Array.Empty<FacilityEvolutionRecipeSO>())
@@ -438,26 +750,13 @@ public static class FacilityEvolutionPromptFormatter
         }
 
         builder.AppendLine();
-        builder.AppendLine("Choose proposalIds only from the candidate pool. Reasons should explain the current context, not restate raw numbers only.");
-        NarrativeRequestContext narrativeContext =
-            NarrativeCultureStyleCatalog.Create(
-                LocalLlmRequestProfiles.FacilityEvolution.Id,
-                string.Empty,
-                requireCharacterFact: false,
-                requireMotif: true);
-        if (profile != null)
-        {
-            foreach (string recentEvent in profile.RecentEvents
-                .Where(value => !string.IsNullOrWhiteSpace(value))
-                .Take(6))
-            {
-                narrativeContext.AddFact(
-                    "fact:facility-event:" + StableNarrativeToken(recentEvent),
-                    "Facility history event: " + recentEvent,
-                    60);
-            }
-        }
-        return narrativeContext.AppendToPrompt(builder.ToString());
+        builder.AppendLine("Choose one or more distinct proposalIds only from the candidate pool. reasons must have the same count and proposalId order as proposalIds. mutationTags must be distinct values from allowedMutationTags. Reasons should explain the current context, not restate raw numbers only.");
+        return NarrativePublicPromptEnvelope.Create(builder.ToString(), material);
+    }
+
+    public static string BuildPrompt(FacilityEvolutionContext context)
+    {
+        return BuildPromptEnvelope(context).Prompt;
     }
 
     private static void AppendPairs(StringBuilder builder, IReadOnlyDictionary<string, float> values)

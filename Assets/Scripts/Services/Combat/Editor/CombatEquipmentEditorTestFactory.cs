@@ -18,11 +18,14 @@ public static class CombatEquipmentEditorTestFactory
         ProgressionSceneRuntimeReferences researchProvider,
         IEquipmentModuleCatalog moduleCatalog,
         IEquipmentPhysicalItemGateway itemStackRuntime,
+        IGameCalendar calendar,
         ICombatRejectedRecoveryProjector rejectedRecoveryProjector = null,
         ICharacterWorldQuery characterWorld = null,
         ICraftQualityResolver qualityResolver = null,
         IProductionFacilityMutationEpochQuery facilityMutations = null,
-        ICombatEquipmentCraftInputDestinationRuntime inputDestinations = null)
+        ICombatEquipmentCraftInputDestinationRuntime inputDestinations = null,
+        Func<CombatEquipmentRuntimeStateStore,
+            CombatEquipmentCraftOutputTransaction> craftOutputTransactionFactory = null)
     {
         catalog = Require(catalog, nameof(catalog));
         itemInstances = Require(itemInstances, nameof(itemInstances));
@@ -32,6 +35,7 @@ public static class CombatEquipmentEditorTestFactory
         researchProvider = Require(researchProvider, nameof(researchProvider));
         moduleCatalog = Require(moduleCatalog, nameof(moduleCatalog));
         itemStackRuntime = Require(itemStackRuntime, nameof(itemStackRuntime));
+        calendar = Require(calendar, nameof(calendar));
 
         IProductionOutputCapabilityRegistry outputCapabilities =
             CreateOutputCapabilities(
@@ -41,7 +45,7 @@ public static class CombatEquipmentEditorTestFactory
             new CombatEquipmentPhysicalStateWriter(
                 itemInstances,
                 itemStackRuntime,
-                outputCapabilities);
+                () => outputCapabilities);
         CombatEquipmentRuntimeStateStore stateStore =
             new CombatEquipmentRuntimeStateStore(
                 new DungeonRuntimeAggregateRootStore());
@@ -52,7 +56,8 @@ public static class CombatEquipmentEditorTestFactory
                 new CombatEquipmentStatProjector(
                     itemInstances,
                     evolutionModules,
-                    moduleCatalog),
+                    moduleCatalog,
+                    new PhysicalItemMassQuery(EditorItemCatalogFactory.Create())),
                 physicalState,
                 loadouts,
                 new EquipmentModuleRuntime(
@@ -76,6 +81,8 @@ public static class CombatEquipmentEditorTestFactory
                 stateStore);
         inputDestinations ??= CreateCraftInputDestinationRuntime(
             itemStackRuntime);
+        CombatEquipmentCraftOutputTransaction craftOutputTransaction =
+            craftOutputTransactionFactory?.Invoke(stateStore);
         CombatEquipmentCraftingRuntime crafting =
             new CombatEquipmentCraftingRuntime(
                 catalog,
@@ -88,10 +95,12 @@ public static class CombatEquipmentEditorTestFactory
                 AllFacilityCapabilityQuery.Instance,
                 stateStore,
                 facilityMutations ?? new ProductionFacilityMutationEpochRuntime(),
+                calendar,
                 qualityResolver: qualityResolver,
                 rejectedRecoveryProjector: rejectedRecoveryProjector,
                 characterWorld: characterWorld,
-                inputDestinations: inputDestinations);
+                inputDestinations: inputDestinations,
+                outputTransaction: craftOutputTransaction);
         CombatEquipmentLoadoutRuntime loadoutRuntime =
             new CombatEquipmentLoadoutRuntime(
                 catalog,

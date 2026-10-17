@@ -57,6 +57,25 @@ public sealed class BuildingDoorCharacterWildlifeAdapter :
         }
     }
 
+    public bool IsDoorPassageOccupied(UnityEngine.Object target)
+    {
+        if (target is not Door door || door.Grid == null) return true;
+        if (!worldRegistry.TryGetGrid(out Grid liveGrid) || liveGrid != door.Grid) return true;
+        foreach (CharacterActor character in worldRegistry.Characters)
+        {
+            if (character == null || !character.isActiveAndEnabled || character.IsDetachedRestoreCandidate
+                || character.IsOnExpedition) continue;
+            if (door.ContainsCell(liveGrid.GetXY(character.transform.position))) return true;
+            if (character.TryGetAbility<AbilityMove>(out var move) && move.OccupiesDoorPassage(door)) return true;
+        }
+        foreach (WildlifeActor wildlife in worldRegistry.Wildlife)
+        {
+            if (wildlife == null || !wildlife.isActiveAndEnabled) continue;
+            if (door.ContainsCell(liveGrid.GetXY(wildlife.transform.position)) || wildlife.OccupiesDoorPassage(door)) return true;
+        }
+        return false;
+    }
+
     public bool TryResolveDoorAccessSubject(
         UnityEngine.Object subject,
         out BuildingDoorAccessSubjectSnapshot snapshot)

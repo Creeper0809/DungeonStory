@@ -358,6 +358,7 @@ public static class
         Proxy<ILeasedItemReservationService>(),
         Proxy<IFacilityCapabilityQuery>(),
         Proxy<IGameClock>(),
+        new EditorFixedGameCalendar(137, 9),
         Proxy<IPhysicalItemBatchDispositionService>(),
         Proxy<IApparelPhysicalTransaction>(),
         Proxy<IProductionOutputMaximumMassRegistry>(),
@@ -592,6 +593,8 @@ public static class
 
     private sealed class FakeOrders : IApparelWorkOrderQuery
     {
+        public CraftQualityAttemptEstimate CaptureQualityEstimate(string orderId) =>
+            CraftQualityAttemptEstimate.Unavailable("Terminal fixture has no quality resolver.");
         private readonly Dictionary<string, ApparelWorkOrderSaveData> values =
             new(StringComparer.Ordinal);
         public int Version { get; private set; }

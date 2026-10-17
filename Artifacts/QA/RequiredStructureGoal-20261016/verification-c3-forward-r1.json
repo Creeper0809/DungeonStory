@@ -1,0 +1,74 @@
+{
+  "status": "LOCAL_AND_FORWARD_TEARDOWN_FIXED_SOURCE_VERIFIED_UNITY_PENDING",
+  "goalStatus": "active",
+  "completedTargets": 6,
+  "totalTargets": 32,
+  "allGoalTargetsComplete": false,
+  "sourcePin": {
+    "drift": 0,
+    "files": 1332,
+    "path": "source-pin-c3-forward-r1.json"
+  },
+  "toolPin": {
+    "drift": 0,
+    "files": 9,
+    "path": "tool-pin-c3-forward-r1.json"
+  },
+  "allowedOldDrift": [
+    "Assets/Scripts/Services/Buildings/BuildableObject.cs",
+    "Assets/Scripts/Services/Buildings/ProductionFacilityDestructiveDrainRecoveryRuntime.cs",
+    "Assets/Scripts/Services/Character/AI/Editor/BuildingWorldRegistryReplacementDebugScenarios.cs",
+    "Assets/Scripts/Services/Economy/Editor/V27FacilityBufferOwnerManifestDebugScenarios.cs",
+    "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs"
+  ],
+  "window": "All authors READY/FROZEN; SOURCE_EDIT closed; UNITY_VERIFY not opened",
+  "verification": {
+    "originalCoreRegressions": 3,
+    "sourceConsumer": "Exact singleton owner registration statements capture1/restore1 each; runtime DestroySelf whitelist5/legacy0; full V27 NOT_RUN",
+    "limitedAbi": "RecoveryRuntime type + existing Editor fixture only, real cached references48 PASS",
+    "originalFailureLimit": "Additional baseline failures include absent new guard/hook API, not 14 distinct gameplay bugs",
+    "controlledSourceCases": 15,
+    "fullCurrentRemovalRecoverySource": "Executed with explicit Unity/grid/fuel/DTO/journal/coordinator doubles only",
+    "syntaxErrors": 0,
+    "parity": "Existing11 unrelated methods/public6 APIs/constructors/fields/DTO/interfaces/finalizer exact; initial fuel/grid/visual rollback exact; Buildable only read-only completion query",
+    "nativeFixture": "RunBuildings native object + real registry/grid + controlled fuel/paid/cache failure, NOT_RUN",
+    "originalFailures": 14,
+    "syntaxFiles": 137
+  },
+  "production": {
+    "unchanged": "DTO/schema/enums/constructors/TransitionBudget12/GUID/asset wiring/physical preparation rollback",
+    "capture": "Blocks synchronous grid/visual mutation and incomplete teardown",
+    "newTopLevelClasses": 0,
+    "restore": "Clears old-world transient owner; upper runtime invalidates old conflict/version",
+    "transientRecord": "Private exact-owner pending teardown in existing port; not serialized"
+  },
+  "Unity": "NOT_RUN",
+  "fullCurrentUnityCompilation": "NOT_RUN",
+  "physicalDrainOfficialRestoreRetry": "NOT_RUN",
+  "newMetas": 0,
+  "knowledgeBase": {
+    "action": "Original source confirmed; related index batch open, no rebuild",
+    "failures": 190,
+    "status": "stale",
+    "exitCode": 2,
+    "query": "ProductionFacilityDestructiveDrainRecoveryRuntime"
+  },
+  "nextPriority": "C4 worker allocation cancellation/grant/stale cleanup across IWorkableFacility",
+  "evidence": [
+    "c3-forward-removal/forward-r5.txt",
+    "c3-forward-removal/static-parity-r2.txt",
+    "c3-forward-removal/recovery-abi-r2.json",
+    "c3-forward-removal/syntax-r3.txt",
+    "c3-forward-removal/consumer-static-r1.json"
+  ],
+  "committedOrPushed": false,
+  "finalChecks": {
+    "sourceToolAbiDrift": 0,
+    "relatedProcesses": 0,
+    "reportLocalLinks": 620,
+    "missingLocalLinks": 0,
+    "scopedWhitespace": "PASS with repository CRLF accepted",
+    "allAuthors": "READY/FROZEN",
+    "nextC4": "Source/caller inventory complete; production unmodified"
+  }
+}

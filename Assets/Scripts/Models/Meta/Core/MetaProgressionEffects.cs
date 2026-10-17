@@ -99,10 +99,34 @@ public static class MetaProgressionEffects
             return 0;
         }
 
-        int total = 0;
-        foreach (MetaUpgradeDefinition definition in state.Catalog.All)
+        return GetIntegerBonus(
+            state.Catalog.All,
+            state.UpgradeLevels,
+            effectId);
+    }
+
+    public static int GetIntegerBonus(
+        System.Collections.Generic.IEnumerable<MetaUpgradeDefinition> definitions,
+        System.Collections.Generic.IReadOnlyDictionary<string, int> upgradeLevels,
+        string effectId)
+    {
+        if (definitions == null
+            || upgradeLevels == null
+            || string.IsNullOrWhiteSpace(effectId))
         {
-            int level = state.GetUpgradeLevel(definition.id);
+            return 0;
+        }
+
+        int total = 0;
+        foreach (MetaUpgradeDefinition definition in definitions)
+        {
+            if (definition == null
+                || !upgradeLevels.TryGetValue(definition.id, out int level))
+            {
+                continue;
+            }
+
+            level = Mathf.Clamp(level, 0, Mathf.Max(1, definition.maxLevel));
             if (level <= 0 || definition.effects == null)
             {
                 continue;

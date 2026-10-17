@@ -1,0 +1,92 @@
+WIM016 LIGHT / IRRIGATION SCOPED EVIDENCE — 2026-09-10
+FINAL BATCH RESULT: scoped light, main paused crop presenter, controlled irrigation service, and corrected generator no-op PASS. Whole016 remains PARTIAL.
+Generator correction supersedes the historical REGENERATION OPEN entry below: current code performs semantic target comparisons instead of recreating matching managed references. Two consecutive corrected generations each changed0/18 asset/meta/sprite bytes. No light/UI/service replay for this Editor-builder-only change. Existing I15 unchanged; no scene save.
+Corrected generator source: IndustrialInfrastructureAssetBuilder9EC8B5BC6B190A64DAC3300E343039524F4F36E294AF7FC1BC4CB7204608C450; GameContentCatalogAssetBuilder3129F7FFD7D97BB8848BC31443A7AC8D6536A3DB4FA47C82D55A3695414506F2. Editor DLL11:30:04Z AE87BEB5D780732E7FF4203F3ACAB63CF3549DAEC32A6630B8C10324B14FDB27. Final main idle282656.442; Console0/0. All production/test authors FROZEN.
+overall=PARTIAL; original34/47; research0/1; wiki13/13; additional062/063=1/2
+Main project F; main Unity only; all writers frozen during execution.
+Compiled runtime11:12:51Z; Editor current fixture correction recompiled before light pass.
+Initial compile CS1503 at ResearchProjectAssetBuilder184 fixed by authored UnlockCollection API. Dynamic MCP BuildingSO generic preflight could not reference Sirenix; replaced only that preflight with non-generic Unity Object dirty check. No gameplay changes for tool limitation.
+Initial light fixture FAIL: unmarked default Grid is interior20, not exterior; root marked only day/night witness ExteriorPath. Original assertions retained.
+
+FOCUSED CURRENT LIGHT PASS
+[Log] WIM016 authored light and actual environment adapter
+scope=controlled calendar/power, authored lamp/crop, real field diffusion
+not-tested=main construction UI, actual power network, crop Tick, irrigation, six-adult balance
+[PASS] all12 authored profiles; stop/half/full/excess boundaries; explicit fungus independence
+[PASS] actual field day=70/night=30/morning=70
+[PASS] I19 distance=5;lit=50;off=20.8776264;restored=50;field-roundtrip exact
+[PASS] I20 distance=9;lit=50;off=20.95756;restored=50;field-roundtrip exact
+result=PASS
+[Log] focusedLight=True
+
+FOCUSED IRRIGATION SERVICE PASS (initial combined run; light setup failure above is separate)
+UNEXPECTED_ERROR: Command was executed partially, but reported warnings or errors:
+[Log] WIM016 authored light and actual environment adapter
+scope=controlled calendar/power, authored lamp/crop, real field diffusion
+not-tested=main construction UI, actual power network, crop Tick, irrigation, six-adult balance
+[PASS] all12 authored profiles; stop/half/full/excess boundaries; explicit fungus independence
+result=FAIL
+System.InvalidOperationException: Calendar night did not reduce actual ambient field.
+  at EnvironmentalFieldDebugScenarios.RunWim016LightFieldFocused (System.String& report) [0x003b6] in F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Infrastructure\Environment\Editor\EnvironmentalFieldDebugScenarios.cs:67 
+[Log] WIM016 irrigation service ownership/rate contract
+scope=real irrigation service/grid paths; controlled eligibility/research/finite fluid
+not-tested=actual network topology/storage, main crop publication, actual research/placement/UI
+[PASS] finite shortage; readonly query; manual owner/capacity/no-demand/range rejection no debit
+[PASS] rejected commit atomic; same-plot replay limited; fresh second supplier serves second plot
+[PASS] one-second recovery; exhausted/disconnected supply no phantom water; total3 debits
+result=PASS; no actual network/crop publication claim
+[Error] System.InvalidOperationException: Focused result failed: light=False,irrigation=True
+  at Unity.AI.Assistant.Agent.Dynamic.Extension.Editor.CommandScript.Execute (Unity.AI.Assistant.Agent.Dynamic.Extension.Editor.ExecutionResult result) [0x0005d] in <be81e24150f249a99aefdc16fabf570b>:0 
+  at Unity.AI.Assistant.Editor.RunCommand.AgentRunCommand.Execute (Unity.AI.Assistant.Agent.Dynamic.Extension.Editor.ExecutionResult& executionResult, System.String title) [0x00019] in .\Library\PackageCache\com.unity.ai.assistant@6fee27370e6a\Editor\Assistant\RunCommand\AgentRunCommand.cs:56 
+Consider reverting changes that may have happened if you retry.
+
+MAIN PROTECTED PLAY
+[Log] WIM048 SETUP_A autosaveDisposed=true;metaDisposed=true;paused=[True];tierZero=[27]->[29];changed=[True];ownerClick=OwnerOption_1001
+[Log] WIM048 SETUP_B confirmClick=StartPartyConfirm;activeActors=[3];confirmRemaining=[False];paused=[True]
+[Log] WIM016 main field -> crop snapshot -> player presenter
+scope=protected paused Play; real sow/WIP; controlled field checkpoints
+not-tested=natural growth/depletion, staff AI, lamp construction, irrigation
+[PASS] actual field 0 -> Stopped/0; presenter contains light and water; readonly crop capture exact
+[PASS] actual field 20 -> Slowed/0.333333343; presenter contains light and water; readonly crop capture exact
+[PASS] actual field 50 -> Normal/1; presenter contains light and water; readonly crop capture exact
+[PASS] actual field 100 -> Normal/1; presenter contains light and water; readonly crop capture exact
+[PASS] actual field 0 -> Stopped/0; presenter contains light and water; readonly crop capture exact
+result=PASS; controlled main-service/presenter witness, not natural UI selection or growth
+[Log] mainLightObservation=True
+
+Stop282109.842; playing/compiling/updating=false; Console Warning/Error0/0; five protected files byte-identical. Existing dirty GameplayScene not saved.
+
+AUTHORING: scoped I19/I20 + kits + two existing research unlocks + item catalog. I15 existing asset SHA90E9FB355557E00E15E66660E80ABF5CA2672ACC8554871FEDC4D144295A6251 unchanged.
+REGENERATION OPEN: second invocation changed4/18 compared asset/meta/sprite files: I19/I20 Building assets and facility kits9828/9829. Remaining14 unchanged. Root requested scoped read-only diagnosis; do not claim byte determinism.
+NOT_PROVEN: natural staff watering/haul, actual finite network→crop debit/publication, crop water save-section/whole-world restore, actual lamp construction/powernetwork, natural growth cycle, six-adult balance, final EWU/pricing.
+Light profile/field/presenter and service rate/ownership scoped checks PASS; whole WIM016 and lamp integration remain OPEN.
+
+TESTED SOURCE HASHES
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Infrastructure\Environment\Editor\EnvironmentalFieldDebugScenarios.cs 34CB9D57AAD6C54EDE952EA65A59D7B08AE277DE7BEA71F3C82CCFC0D67FE545
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Economy\Editor\Wim016IrrigationContractDebugScenarios.cs 557ED3F8DD16D7B615075645E72E62996359BC8C8B1FC8E026E64944425D908B
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Economy\Editor\CropPlotDebugScenarios.cs 659FD984CE69098E92CC96C8F6A34BBCA3F8EBE87269010A480C4D2369ED2B78
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Infrastructure\Environment\EnvironmentalFieldRuntime.cs 3F05C2E92C50F0CF56CD7C735B8DEA1ADDC86799B76D53F5B1A4259AB2C8E33B
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Models\Environment\Core\EnvironmentalFieldSimulationRules.cs 138DBCB188C50E6BE8B201679FB4C38B4E117EF884BD413DF583252C7E3E4DA2
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Models\Economy\Content\CropDefinitionSO.cs B378EB26533673AA2C8F20EAED4E22E930A1E444433568E35F04B001E66EF32F
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Infrastructure\Industrial\CropIrrigationRuntime.cs EC2B1EA89BDEF013D58DBFEDF35F2F158A9D57223971F19197391AE69922DE35
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Economy\CropPlotRuntime.cs 8000CE67FAD15D98A48EE2F7D214A03C3F46F5650D5969F76BFB82A803197368
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Models\Economy\Core\CropPlotModels.cs 63CA37CF811C7DDBA466E4E4F25136BB8DFAE6D7F7CF0C22F8D91371C6A715B7
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Infrastructure\Industrial\IndustrialInfrastructureBuildingAbilities.cs A8B62DA1871B7172B3034889450BD6EC62C8A8DDFE2C52326EC09D59CF993306
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Infrastructure\Industrial\FluidNetworkRuntime.cs A8AFE2E5C5F0F809B4C7A35080E4E60281643E4E7D0451748FFE45846B2C8A18
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Infrastructure\Industrial\FluidNetworkProjectionAdapter.cs 0D50B18D0137BB5383C249977F94B5163AD3B14AA2723BC9EBFBC7FE51B00C58
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Infrastructure\Registration\DungeonWorldSimulationRegistration.cs 8B63B33CA7B2A7677F17112CCEE841A6BFAC2EA8343CC916BFD87DDF30C86A79
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Economy\CropHarvestSpecialThroughputContributor.cs D2CBA93236AA6BCDF2CFB97512832E05A93E2570ECA3AAF402AD8D47E4213F6D
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Views\Buildings\UI\CropPlotBuildingPanelPresenter.cs 51ED8AB84F52CB42B10B45243B1615E5F67823DF9FBBA2AEAD57218F60D46BAE
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Research\Editor\ResearchOverhaulContentAssetBuilder.cs 6F5D3CFB429E458C475521089251C1B1318208A1DBD83C6436EF476C8D86202B
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Infrastructure\Industrial\Editor\IndustrialInfrastructureAssetBuilder.cs F64429A59198C7816018D58FF8E2CAD81053A37B39B16F86647CF31D34293FD4
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Research\Editor\ResearchProjectAssetBuilder.cs 5DEDA8EA156D29E02038B3430D6A1837B347CFDB4A34E4C922C4368E02A6A45F
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scripts\Services\Items\Editor\GameContentCatalogAssetBuilder.cs 610BA0DE338CF43AE0213147050CB40BCF53E2E4A3749B3A48B3271598499778
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\ScriptAssemblies\Assembly-CSharp.dll 8D3587C679D0F5E9A48FBD542F592208CC099D0FE42CA196E718861458A60A3D
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Library\ScriptAssemblies\Assembly-CSharp-Editor.dll A4E466E5421702A4C537BE93204B3A7F32D4C05D96B502555C05820B9777D922
+
+PROTECTED FILES
+F:\01_Programming\01_Project\02_Unity\DungeonStory\Assets\Scenes\GameplayScene.unity 6C35A17693D3CEDCA2C85B89B22A8BFF9B5BAE6DE88C01B255481C058D2AEE40
+C:\Users\vulpo\AppData\LocalLow\DungeonStory\DungeonStory\Migration\legacy-default-company-v1.done 20A378C47930E1C27A49B616A3ECFE43DCE07A975F836333CD8594E0E39D54D1
+C:\Users\vulpo\AppData\LocalLow\DungeonStory\DungeonStory\Settings\user-settings.json E567B678BF78EFF0C46574063BD9B6CF1876A6F918F4DCFEF553C85991657BD3
+C:\Users\vulpo\AppData\LocalLow\DungeonStory\DungeonStory\Profile\meta-profile.json 3B5FFFBCC153A0EE615BBF4CDAE4DF285ABC73A8FEB6231FE0B84E47A387C9D7
+C:\Users\vulpo\AppData\LocalLow\DungeonStory\DungeonStory\Saves\autosave.json C0D468669EFCD205672C62DDE54019A1AC3447B82A1B844A6E70DADA84A0952C

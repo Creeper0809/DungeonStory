@@ -100,6 +100,19 @@ public sealed class ResourceCharacterSpeciesCatalog :
                 $"Unknown authored character species '{speciesId.Value}'.");
     }
 
+    public SpeciesLightAdaptationProfile GetRequiredLightAdaptationProfile(
+        CharacterSpeciesId speciesId)
+    {
+        if (!TryGet(speciesId, out CharacterSpeciesSO species)
+            || species.environment == null)
+        {
+            throw new KeyNotFoundException(
+                $"Unknown authored character species '{speciesId.Value}'.");
+        }
+
+        return species.environment.ToLightAdaptationProfile();
+    }
+
     public SpeciesLifeHistoryDefinition RequireLifeHistory(
         CharacterSpeciesId speciesId)
     {

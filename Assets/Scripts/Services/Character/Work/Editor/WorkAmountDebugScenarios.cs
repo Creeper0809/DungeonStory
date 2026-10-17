@@ -1,7 +1,10 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using DungeonStory.Foundation.Facts;
+using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 using VContainer;
@@ -9,6 +12,343 @@ using VContainer.Diagnostics;
 
 public static class WorkAmountDebugScenarios
 {
+    public static void RunBdc01PlacementIdentityBatch()
+    {
+        List<string> unexpected = new();
+        void OnLog(string condition, string trace, LogType type)
+        {
+            if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert)
+                unexpected.Add(condition);
+        }
+        JObject report = new()
+        {
+            ["passed"] = false,
+            ["fullAuditClosure"] = false,
+            ["trainingEligible"] = false,
+            ["humanApprovalClaimed"] = false,
+            ["scope"] = "Controlled editor fixture: real grid placement, construction runtime and ledger; bounded material delivery; fresh work-order runtime and reconstructed facility candidate, not AI or whole-world restore."
+        };
+        Application.logMessageReceived += OnLog;
+        try
+        {
+            ConstructionSupportRollbackB0DebugScenarios.RunOrThrow();
+            report["rollbackBranches"] = new JArray(
+                "existing-hallway-preserved", "partial-support-failure",
+                "site-rejection", "order-rejection", "success-keeps-support");
+            JArray branches = new();
+            JArray identityValidation = new();
+            report["identityBranches"] = branches;
+            report["identityValidation"] = identityValidation;
+            branches.Add(VerifyBdc01PlacementIdentity(false, false, identityValidation));
+            branches.Add(VerifyBdc01PlacementIdentity(true, false, identityValidation));
+            branches.Add(VerifyBdc01PlacementIdentity(false, true, identityValidation));
+            branches.Add(VerifyBdc01PlacementIdentity(false, false, identityValidation, retiredWorld: true));
+            BdcRequire(identityValidation.All(value => value["rejected"].Value<bool>()),
+                "Malformed BDC-B01 identity accepted: " + string.Join(", ",
+                    identityValidation.Where(value => !value["rejected"].Value<bool>())
+                        .Select(value => value["case"].Value<string>())));
+            BdcRequire(unexpected.Count == 0,
+                "Unexpected BDC-B01 errors: " + string.Join(" | ", unexpected));
+            report["passed"] = true;
+            Debug.Log("BDC_B01_REAL_PLACEMENT_IDENTITY_PASS");
+        }
+        catch (Exception error)
+        {
+            report["failure"] = error.ToString();
+            Debug.LogException(error);
+            throw;
+        }
+        finally
+        {
+            Application.logMessageReceived -= OnLog;
+            report["unexpectedErrors"] = new JArray(unexpected);
+            string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+            if (!string.IsNullOrWhiteSpace(output))
+            {
+                Directory.CreateDirectory(output);
+                using FileStream file = new(Path.Combine(output, "report.json"),
+                    FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+                using StreamWriter writer = new(file);
+                writer.Write(report.ToString());
+            }
+        }
+    }
+
+    private static JObject VerifyBdc01PlacementIdentity(
+        bool cancel, bool replaceWall, JArray identityValidation, bool retiredWorld = false)
+    {
+        string branch = retiredWorld ? "complete-retired-world"
+            : cancel ? "cancel" : replaceWall ? "replace-wall" : "complete";
+        BuildingSO hallway = AssetDatabase.LoadAssetAtPath<BuildingSO>(
+            "Assets/Resources/SO/Building/Hallway.asset");
+        BuildingSO target = AssetDatabase.LoadAssetAtPath<BuildingSO>(replaceWall
+            ? "Assets/Resources/SO/Building/InteriorDoor.asset"
+            : "Assets/Resources/SO/Building/Modular/R01_간이침대.asset");
+        BuildingSO wall = AssetDatabase.LoadAssetAtPath<BuildingSO>(
+            "Assets/Resources/SO/Building/Wall.asset");
+        BdcRequire(hallway != null && target != null && wall != null,
+            "BDC-B01 authored assets are unavailable.");
+        List<BuildableObject> objects = new();
+        Grid grid = BdcGrid();
+        Vector2Int position = new(3, 0);
+        IReadOnlyList<Vector2Int> footprint = target.GetGridPosList(position);
+        FakeWorldItemStackRuntime items = new();
+        ConstructionInputOwnerFixture inputs = new(items, objects);
+        MigratedProducerOutcomeEditorFixture outcomes = new("run:bdc-b01:" + branch);
+        MigratedProducerOutcomeProbeTransaction probe = new(outcomes.Transaction, outcomes.Recorder)
+        {
+            TargetKind = MigratedProducerOutcomeKind.WorkOrderTerminalResult,
+            FaultMode = MigratedProducerOutcomeFaultMode.RejectCommit
+        };
+        using DomainFactDispatcher constructionFacts =
+            outcomes.CreateConstructionWorkFacts(probe);
+        WorkOrderRuntime runtime = new(new FixedGridProvider(grid), items,
+            new SingleBuildingLookup(target),
+            new ScenarioObjectResolver(probe, constructionFacts),
+            CreateExecutionServices(new TrackingWorkforceReplanService()),
+            CreateStateStore(), new FakePhysicalItemSourcePublicationService(items), inputs.Runtime);
+        void InjectAndTrack(BuildableObject value)
+        {
+            CharacterAiEditorTestDependencies.Inject(value);
+            objects.Add(value);
+        }
+        GridBuildingFactory factory = new(InjectAndTrack);
+        GridBuildingPlacementService placement = new(grid, hallway, _ => target,
+            factory, BdcPlacementValidator(), runtime, InjectAndTrack);
+        GridBuildingPlacementService immediate = new(grid, hallway, _ => target,
+            factory, BdcPlacementValidator(), null);
+        try
+        {
+            // Keep one preexisting support in the multi-cell branches. The door
+            // branch must create its own support under the existing wall.
+            string existingSupport = string.Empty;
+            if (!replaceWall)
+            {
+                BdcRequire(immediate.TryPlaceBuildingImmediate(hallway, footprint[0], out _),
+                    "Preexisting support could not be placed.");
+                existingSupport = ((BuildableObject)grid.GetGridCell(footprint[0])
+                    .GetOccupant(GridLayer.Hallway)).PersistentInstanceId.Value;
+            }
+            string replacedId = string.Empty;
+            if (replaceWall)
+            {
+                BdcRequire(wall.IsStructuralWall && target.IsInteriorDoor
+                    && immediate.TryPlaceBuildingImmediate(wall, position, out _),
+                    "Door fixture requires a real structural wall.");
+                replacedId = ((BuildableObject)grid.GetGridCell(position)
+                    .GetOccupant(GridLayer.Building)).PersistentInstanceId.Value;
+            }
+            BdcRequire(placement.TryPlaceConstructionSite(target, position, out string failure),
+                "Actual construction placement failed: " + failure);
+            ConstructionSite site = grid.GetGridCell(position)
+                .GetOccupant(GridLayer.Construction) as ConstructionSite;
+            BdcRequire(site != null, "Actual site is missing.");
+            WorkOrderSaveData initial = runtime.Capture().orders.Single();
+            string[] supports = footprint.Select(cell => (BuildableObject)grid.GetGridCell(cell)
+                    .GetOccupant(GridLayer.Hallway))
+                .Select(value => value.PersistentInstanceId.Value)
+                .Where(id => id != existingSupport).OrderBy(id => id, StringComparer.Ordinal).ToArray();
+            BdcRequire(supports.Length > 0 && initial.supportBuildingIds.SequenceEqual(supports)
+                && initial.placementOperationId == "construction-placement:" + initial.workOrderId,
+                "Actual support IDs were not attached, or preexisting support was included.");
+            BdcRequire(runtime.TryAttachConstructionPlacement(initial.workOrderId,
+                    initial.placementOperationId, supports.Reverse().ToArray(), out _)
+                && !runtime.TryAttachConstructionPlacement(initial.workOrderId,
+                    initial.placementOperationId + ":conflict", supports, out _),
+                "Placement attachment replay/conflict contract failed.");
+            foreach (WorkOrderItemMaterialSaveData material in initial.itemMaterials)
+                items.AddFacilityItemBuffer(initial.materialDestinationId, material.itemId, material.required);
+            BdcRequire(runtime.RefreshMaterialsReady(site), "Controlled material delivery was not accepted.");
+            bool applied = false;
+            bool completed = false;
+            bool accepted = cancel
+                ? runtime.CancelOrder(initial.workOrderId, refundDeliveredMaterials: true)
+                : runtime.ApplyWork(null, site, BuiltInWorkTypeIds.Construct,
+                    initial.requiredWork, out completed, out applied, out failure);
+            BdcRequire(!accepted && !completed && (cancel || applied)
+                && probe.CommitAttemptCount(MigratedProducerOutcomeKind.WorkOrderTerminalResult) == 1
+                && outcomes.Ledger.GetGlobal(OutcomeCursor.FirstPage(8), OutcomeFilter.All).Items.Count == 0,
+                "Terminal rejection did not leave real applied effects pending: " + failure);
+            DungeonWorkOrderSaveData snapshot = JsonUtility.FromJson<DungeonWorkOrderSaveData>(
+                JsonUtility.ToJson(runtime.Capture()));
+            runtime.ValidateRestorePayload(snapshot);
+            WorkOrderSaveData pending = snapshot.orders.Single();
+            BuildableObject final = grid.GetGridCell(position).GetOccupant(GridLayer.Building) as BuildableObject;
+            BdcRequire(pending.placementOperationId == initial.placementOperationId
+                && pending.supportBuildingIds.SequenceEqual(supports)
+                && pending.terminalPhase == WorkOrderTerminalPhase.EffectsAppliedPendingOutcome
+                && pending.terminalKind == (cancel ? WorkOrderTerminalKind.Cancelled : WorkOrderTerminalKind.Completed)
+                && pending.terminalFactCaptured
+                && pending.terminalFact != null
+                && pending.terminalFact.Matches(pending)
+                && string.IsNullOrEmpty(pending.terminalPublicationKey)
+                && (cancel ? final == null && pending.finalFacilityId.Length == 0
+                    : final != null && pending.finalFacilityId == final.PersistentInstanceId.Value
+                        && pending.finalFacilityDefinitionId == BdcDefinition(target))
+                && pending.replacedFacilityId == replacedId
+                && pending.replacedFacilityDefinitionId == (replaceWall ? BdcDefinition(wall) : string.Empty),
+                "Real terminal receipt did not survive JSON with exact final/replaced/support identity.");
+            BdcProbeInvalidSavedIdentities(runtime, snapshot, initial, branch, identityValidation);
+
+            // Reconstruct only the facility candidate using real factories and
+            // persisted IDs, then publish through the actual work restore API.
+            Grid restoredGrid = BdcGrid();
+            List<BuildableObject> restoredBuildings = new();
+            foreach (BuildableObject original in retiredWorld ? Array.Empty<BuildableObject>() : objects.ToArray())
+            {
+                if (original == null || original is ConstructionSite
+                    || !ReferenceEquals(grid.GetGridCell(original.centerPos)
+                        .GetOccupant(original.BuildingData.Placement.Layer), original)) continue;
+                BuildableObject copy = factory.Create(restoredGrid, original.BuildingData, original.centerPos);
+                copy.RestorePersistentIdentity(original.PersistentInstanceId);
+                copy.SetGrid(restoredGrid);
+                copy.Initialization(original.BuildingData, original.centerPos);
+                BdcRequire(restoredGrid.RegisterOccupant(copy, copy.BuildingData.Placement.Layer,
+                    copy.buildPoses, copy.BuildingData.Placement.IsMovement), "Facility candidate registration failed.");
+                restoredBuildings.Add(copy);
+            }
+            MigratedProducerOutcomeEditorFixture restoredOutcomes = new("run:bdc-b01:" + branch);
+            using DomainFactDispatcher restoredConstructionFacts =
+                restoredOutcomes.CreateConstructionWorkFacts();
+            RestoreWorldCandidateIndex candidateIndex = new();
+            ConstructionInputOwnerFixture restoredInputs = new(items, restoredBuildings);
+            WorkOrderRuntime restored = new(new FixedGridProvider(restoredGrid), items,
+                new SingleBuildingLookup(target),
+                new ScenarioObjectResolver(
+                    restoredOutcomes.Transaction,
+                    restoredConstructionFacts),
+                CreateExecutionServices(new TrackingWorkforceReplanService()),
+                new WorkOrderAggregateStateStore(new DungeonRuntimeAggregateRootStore(), candidateIndex),
+                new FakePhysicalItemSourcePublicationService(items), restoredInputs.Runtime);
+            PublishWorkOrderSnapshot(restored, candidateIndex, restoredGrid, restoredBuildings, snapshot);
+            ConstructionSite restoredSite = restoredGrid.GetGridCell(position)
+                .GetOccupant(GridLayer.Construction) as ConstructionSite;
+            if (restoredSite != null) objects.Add(restoredSite);
+            BdcRequire(JsonUtility.ToJson(restored.Capture()) == JsonUtility.ToJson(snapshot),
+                "Fresh work-order runtime changed pending identity during publication.");
+            BuildableObject restoredFinal = restoredGrid.GetGridCell(position)
+                .GetOccupant(GridLayer.Building) as BuildableObject;
+            int materialCommits = items.PhysicalCommitCount;
+            int released = items.ReleasedQuantity;
+            restored.Tick();
+            var rows = restoredOutcomes.Ledger.GetGlobal(OutcomeCursor.FirstPage(8), OutcomeFilter.All).Items;
+            BdcRequire(rows.Count == 1 && restored.Capture().orders.Count == 0
+                && !restoredGrid.GetGridCell(position).HasOccupantInLayer(GridLayer.Construction)
+                && ReferenceEquals(restoredGrid.GetGridCell(position).GetOccupant(GridLayer.Building), restoredFinal)
+                && items.PhysicalCommitCount == materialCommits && items.ReleasedQuantity == released,
+                "Fresh restore did not publish exactly one parent without repeating placement/materials.");
+            var exact = rows.Single().Exact;
+            string Fact(string id) => exact.facts.Single(value => value.factId == id).value;
+            BdcRequire(Fact(MigratedProducerOutcomeIds.PlacementOperationFact.Value) == pending.placementOperationId
+                && Fact(MigratedProducerOutcomeIds.SupportFacilitiesFact.Value) == string.Join(",", supports)
+                && Fact(MigratedProducerOutcomeIds.FinalFacilityFact.Value) == (cancel ? "none" : pending.finalFacilityId)
+                && Fact(MigratedProducerOutcomeIds.ReplacedFacilityFact.Value) == (replaceWall ? replacedId : "none")
+                && Fact(MigratedProducerOutcomeIds.TerminalKindFact.Value) == (cancel ? "cancelled" : "completed"),
+                "Terminal ledger identity facts differ from the actual saved placement.");
+            BdcRequire(footprint.All(cell =>
+                    restoredGrid.GetGridCell(cell).HasOccupantInLayer(GridLayer.Hallway) != retiredWorld),
+                "Resume changed the incoming support presence/retirement state.");
+            restored.Tick();
+            BdcRequire(!restored.CancelOrder(initial.workOrderId, true)
+                && !restored.DebugCompleteOrder(initial.workOrderId, out _)
+                && restoredOutcomes.Ledger.GetGlobal(OutcomeCursor.FirstPage(8), OutcomeFilter.All).Items.Count == 1,
+                "Terminal replay duplicated a result.");
+            return new JObject
+            {
+                ["branch"] = branch, ["passed"] = true,
+                ["pending"] = JObject.Parse(JsonUtility.ToJson(pending)),
+                ["preexistingSupportExcluded"] = existingSupport,
+                ["freshRuntimeRestored"] = true, ["parentCount"] = rows.Count,
+                ["historicalFacilitiesAbsentInCandidate"] = retiredWorld,
+                ["materialsUnchangedOnResume"] = true, ["finalInstanceUnchangedOnResume"] = true,
+                ["ledger"] = JObject.FromObject(exact)
+            };
+        }
+        finally
+        {
+            foreach (BuildableObject value in objects.Distinct().Reverse())
+                if (value != null) UnityEngine.Object.DestroyImmediate(value.gameObject);
+        }
+    }
+
+    private static void BdcRequire(bool condition, string message)
+    {
+        if (!condition) throw new InvalidOperationException(message);
+    }
+
+    private static void BdcProbeInvalidSavedIdentities(
+        WorkOrderRuntime runtime, DungeonWorkOrderSaveData snapshot,
+        WorkOrderSaveData initial, string branch, JArray observations)
+    {
+        string liveBefore = JsonUtility.ToJson(runtime.Capture());
+        void Probe(string name, Action<WorkOrderSaveData> mutate, bool active = false)
+        {
+            DungeonWorkOrderSaveData malformed = JsonUtility.FromJson<DungeonWorkOrderSaveData>(
+                JsonUtility.ToJson(snapshot));
+            if (active)
+                malformed.orders[0] = JsonUtility.FromJson<WorkOrderSaveData>(JsonUtility.ToJson(initial));
+            mutate(malformed.orders[0]);
+            bool rejected = false;
+            string failure = string.Empty;
+            try { runtime.ValidateRestorePayload(malformed); }
+            catch (InvalidOperationException error) { rejected = true; failure = error.Message; }
+            BdcRequire(JsonUtility.ToJson(runtime.Capture()) == liveBefore,
+                "Identity preflight changed the live order.");
+            observations.Add(new JObject
+            {
+                ["case"] = branch + ":" + name, ["rejected"] = rejected,
+                ["liveUnchanged"] = true, ["failure"] = failure
+            });
+        }
+        Probe("foreign-order-operation", value =>
+            value.placementOperationId = "construction-placement:work:999999");
+        Probe("noncanonical-support", value =>
+            value.supportBuildingIds[0] = " " + value.supportBuildingIds[0]);
+        Probe("supports-without-operation", value => value.placementOperationId = string.Empty, active: true);
+        if (snapshot.orders[0].terminalKind == WorkOrderTerminalKind.Completed)
+        {
+            Probe("wrong-final-definition", value => value.finalFacilityDefinitionId = "building:999999");
+            Probe("final-is-site", value => value.finalFacilityId = value.constructionSitePersistentId);
+            Probe("final-is-support", value => value.finalFacilityId = value.supportBuildingIds[0]);
+            if (snapshot.orders[0].replacedFacilityId.Length > 0)
+                Probe("replaced-is-final", value => value.replacedFacilityId = value.finalFacilityId);
+        }
+        BuildingPlacementCommitReceipt partial = new(
+            "building:test:bdc-final", "building:1020",
+            "building:test:bdc-replaced", string.Empty);
+        observations.Add(new JObject
+        {
+            ["case"] = branch + ":half-replaced-receipt", ["rejected"] = !partial.IsValid,
+            ["liveUnchanged"] = true
+        });
+    }
+
+    private static string BdcDefinition(BuildingSO value) =>
+        string.IsNullOrWhiteSpace(value.ContentDefinitionId) ? "building:" + value.id : value.ContentDefinitionId;
+
+    private static Grid BdcGrid()
+    {
+        Grid grid = new(8, 1);
+        for (int x = 0; x < grid.width; x++)
+            grid.SetAreaType(new Vector2Int(x, 0), GridCellAreaType.DungeonInterior);
+        return grid;
+    }
+
+    private static BuildingPlacementValidator BdcPlacementValidator() => new(
+        new GridPlacementValidator(), () => new BuildingConditionContext(
+            null, null, null, new BdcPlacementRules()));
+
+    private sealed class BdcPlacementRules : IDungeonDebugRuleQuery
+    {
+        public bool IsExecutingCommand => false;
+        public bool IsEnabled(DungeonDebugCheat cheat) =>
+            cheat == DungeonDebugCheat.IgnorePlacementRules || cheat == DungeonDebugCheat.FreeConstruction;
+        public bool ShouldFreezeNeed(CharacterCondition condition, float delta) => false;
+        public bool ShouldBlockFriendlyDamage(CharacterActor actor) => false;
+        public bool ShouldBlockFacilityDamage(bool damaged) => false;
+        public bool ShouldSkipCosts() => true;
+    }
+
     [MenuItem("DungeonStory/Debug/Work/Run Work Amount Scenarios")]
     public static void RunFromMenu()
     {
@@ -32,6 +372,18 @@ public static class WorkAmountDebugScenarios
             VerifyAuthoredConstructionMaterialCatalog,
             errors);
         RunScenario("construction order lifecycle", VerifyConstructionOrderLifecycle, errors);
+        RunScenario(
+            "construction terminal outcome retry and save round trip",
+            VerifyConstructionTerminalOutcomeRetry,
+            errors);
+        RunScenario(
+            "repair outcome retry and save round trip",
+            VerifyRepairOutcomeRetryAndSaveRoundTrip,
+            errors);
+        RunScenario(
+            "repair outcome kind and material coverage",
+            VerifyRepairOutcomeKindAndMaterialCoverage,
+            errors);
         RunScenario(
             "construction site quantity-aware worker capacity",
             VerifyConstructionSiteParallelWorkerCapacity,
@@ -84,6 +436,110 @@ public static class WorkAmountDebugScenarios
 
         return true;
     }
+
+    public static void RunRepairObserversForBatchMode()
+    {
+        if (!VerifyRepairOutcomeRetryAndSaveRoundTrip())
+            throw new InvalidOperationException(
+                "Repair outcome retry and save round trip failed.");
+        if (!VerifyRepairOutcomeKindAndMaterialCoverage())
+            throw new InvalidOperationException(
+                "Repair outcome kind and material coverage failed.");
+        Debug.Log("REPAIR_WORK_OBSERVERS_FOCUSED_PASS");
+    }
+
+    public static void RunConstructionObserversForBatchMode()
+    {
+        if (!VerifyConstructionOrderLifecycle())
+            throw new InvalidOperationException(
+                "Construction kind/material observer scenario failed.");
+        if (!VerifyConstructionTerminalOutcomeRetry())
+            throw new InvalidOperationException(
+                "Construction terminal save/retry observer scenario failed.");
+
+        JArray identityValidation = new();
+        JObject[] branches =
+        {
+            VerifyBdc01PlacementIdentity(
+                cancel: false,
+                replaceWall: false,
+                identityValidation: identityValidation),
+            VerifyBdc01PlacementIdentity(
+                cancel: true,
+                replaceWall: false,
+                identityValidation: identityValidation),
+            VerifyBdc01PlacementIdentity(
+                cancel: false,
+                replaceWall: true,
+                identityValidation: identityValidation),
+            VerifyBdc01PlacementIdentity(
+                cancel: false,
+                replaceWall: false,
+                identityValidation: identityValidation,
+                retiredWorld: true)
+        };
+        BdcRequire(
+            branches.All(value => value?["passed"]?.Value<bool>() == true),
+            "A focused BDC construction branch failed.");
+        BdcRequire(
+            identityValidation.All(value => value["rejected"].Value<bool>()),
+            "A focused BDC construction identity corruption was accepted.");
+        Debug.Log("CONSTRUCTION_WORK_OBSERVERS_FOCUSED_PASS");
+    }
+
+    public static JObject RunW02Focused()
+    {
+        List<string> errors = new List<string>();
+        RunScenario(
+            "construction contributors, materials, and placement identity",
+            VerifyConstructionOrderLifecycle,
+            errors);
+        RunScenario(
+            "construction cancellation restitution survives parent rejection",
+            VerifyConstructionCancellationRefund,
+            errors);
+        RunScenario(
+            "construction placement authority rejection and retry",
+            VerifyConstructionTerminalOutcomeRetry,
+            errors);
+        RunScenario(
+            "deferred dismantle world removal survives save/cancel recovery",
+            VerifyDeferredDismantleCancellationRecovery,
+            errors);
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "W02 focused work-order scenarios failed: "
+                + string.Join(", ", errors));
+        }
+
+        return new JObject
+        {
+            ["passed"] = true,
+            ["branches"] = new JArray
+            {
+                W02Branch(
+                    "multiple-workers-split-contribution",
+                    "two persistent workers contribute 2 and 3 work units; the canonical terminal result preserves both exact identities"),
+                W02Branch(
+                    "material-restitution-parent-rejection",
+                    "material restitution publishes once before the terminal parent rejects; JSON round trip and retry do not duplicate it"),
+                W02Branch(
+                    "placement-authority-rejection",
+                    "construction placement applies once, terminal authority rejection remains pending, and retry commits once"),
+                W02Branch(
+                    "deferred-world-removal-save-recovery",
+                    "real dismantle order retains its destructive-drain owner across save/cancel recovery and removes the world object before exact salvage cleanup")
+            }
+        };
+    }
+
+    private static JObject W02Branch(string id, string assertion) => new()
+    {
+        ["id"] = id,
+        ["passed"] = true,
+        ["assertion"] = assertion
+    };
 
     private static void RunScenario(string name, Func<bool> scenario, List<string> errors)
     {
@@ -248,16 +704,39 @@ public static class WorkAmountDebugScenarios
         site.RestorePersistentIdentity(
             (BuildingInstanceId)"building:test:work-amount-construction");
         CharacterAiEditorTestDependencies.Inject(site);
+        GameObject firstWorkerObject = new GameObject(
+            "WorkAmountConstructionWorkerOne");
+        CharacterActor firstWorker =
+            firstWorkerObject.AddComponent<CharacterActor>();
+        CharacterAiEditorTestDependencies.Inject(firstWorkerObject);
+        firstWorker.EnsureRuntimeState();
+        firstWorker.Identity.SetPersistentId(
+            (CharacterId)"character:test:construction-worker-one");
+        GameObject secondWorkerObject = new GameObject(
+            "WorkAmountConstructionWorkerTwo");
+        CharacterActor secondWorker =
+            secondWorkerObject.AddComponent<CharacterActor>();
+        CharacterAiEditorTestDependencies.Inject(secondWorkerObject);
+        secondWorker.EnsureRuntimeState();
+        secondWorker.Identity.SetPersistentId(
+            (CharacterId)"character:test:construction-worker-two");
         FakeWorldItemStackRuntime itemRuntime = new FakeWorldItemStackRuntime();
         ConstructionInputOwnerFixture constructionInputs = new(
             itemRuntime,
             site);
+        MigratedProducerOutcomeEditorFixture outcomeFixture = new(
+            "run:work-order-terminal-lifecycle");
+        using DomainFactDispatcher constructionFacts =
+            outcomeFixture.CreateConstructionWorkFacts();
         TrackingWorkforceReplanService workforceReplan = new TrackingWorkforceReplanService();
         WorkOrderRuntime runtime = new WorkOrderRuntime(
             new NoGridProvider(),
             itemRuntime,
             new SingleBuildingLookup(building),
-            new ScenarioObjectResolver(),
+            new ScenarioObjectResolver(
+                outcomeFixture.Transaction,
+                CharacterAiEditorTestDependencies.NeutralPerformance,
+                constructionFacts),
             CreateExecutionServices(workforceReplan),
             CreateStateStore(),
             new FakePhysicalItemSourcePublicationService(itemRuntime),
@@ -279,12 +758,25 @@ public static class WorkAmountDebugScenarios
                 return false;
             }
 
+            if (!runtime.TryAttachConstructionPlacement(
+                    orderId,
+                    "construction-placement:" + orderId,
+                    new[] { "building:test:construction-support" },
+                    out _))
+            {
+                return false;
+            }
+
             site.ConfigureSite(
                 orderId,
                 () =>
                 {
                     placed = true;
-                    return true;
+                    return new BuildingPlacementCommitReceipt(
+                        "building:test:completed-work-amount-facility",
+                        "building:91003",
+                        string.Empty,
+                        string.Empty);
                 },
                 () => removed = true);
 
@@ -358,7 +850,7 @@ public static class WorkAmountDebugScenarios
             }
 
             bool firstWork = runtime.ApplyWork(
-                    null,
+                    firstWorker,
                     site,
                     BuiltInWorkTypeIds.Construct,
                     2f,
@@ -376,7 +868,7 @@ public static class WorkAmountDebugScenarios
             }
 
             bool finalWork = runtime.ApplyWork(
-                    null,
+                    secondWorker,
                     site,
                     BuiltInWorkTypeIds.Construct,
                     10f,
@@ -388,11 +880,43 @@ public static class WorkAmountDebugScenarios
                 && placed
                 && removed
                 && !runtime.TryGetOrderFor(site, BuiltInWorkTypeIds.Construct, out _)
-                && runtime.Capture().orders.Count == 0;
+                && runtime.Capture().orders.Count == 0
+                && outcomeFixture.Ledger.GetGlobal(
+                    OutcomeCursor.FirstPage(8),
+                    OutcomeFilter.All).Items.Count == 1
+                && outcomeFixture.Ledger.GetGlobal(
+                    OutcomeCursor.FirstPage(8),
+                    OutcomeFilter.All).Items[0].Exact.facts.Any(value =>
+                        value.factId ==
+                            MigratedProducerOutcomeIds.TerminalKindFact.Value
+                        && value.value == "completed")
+                && outcomeFixture.Ledger.GetGlobal(
+                    OutcomeCursor.FirstPage(8),
+                    OutcomeFilter.All).Items[0].Exact.facts.Any(value =>
+                        value.factId ==
+                            MigratedProducerOutcomeIds.SupportFacilitiesFact.Value
+                        && value.value ==
+                            "building:test:construction-support")
+                && outcomeFixture.Ledger.GetGlobal(
+                    OutcomeCursor.FirstPage(8),
+                    OutcomeFilter.All).Items[0].Exact.facts.Any(value =>
+                        value.factId ==
+                            MigratedProducerOutcomeIds.ContributorsFact.Value
+                        && value.value ==
+                            "character:test:construction-worker-one=2000,"
+                            + "character:test:construction-worker-two=3000");
+            if (!finalWork)
+            {
+                Debug.LogError(
+                    "construction lifecycle terminal detail: "
+                    + runtime.LastTerminalOutcomeFailureForDebug);
+            }
             return finalWork;
         }
         finally
         {
+            UnityEngine.Object.DestroyImmediate(secondWorkerObject);
+            UnityEngine.Object.DestroyImmediate(firstWorkerObject);
             UnityEngine.Object.DestroyImmediate(siteObject);
             UnityEngine.Object.DestroyImmediate(building);
         }
@@ -418,11 +942,22 @@ public static class WorkAmountDebugScenarios
         ConstructionInputOwnerFixture constructionInputs = new(
             itemRuntime,
             site);
+        MigratedProducerOutcomeEditorFixture outcomeFixture = new(
+            "run:work-order-terminal-cancellation");
+        MigratedProducerOutcomeProbeTransaction probe = new(
+            outcomeFixture.Transaction,
+            outcomeFixture.Recorder)
+        {
+            TargetKind = MigratedProducerOutcomeKind.WorkOrderTerminalResult,
+            FaultMode = MigratedProducerOutcomeFaultMode.RejectCommit
+        };
+        using DomainFactDispatcher constructionFacts =
+            outcomeFixture.CreateConstructionWorkFacts(probe);
         WorkOrderRuntime runtime = new WorkOrderRuntime(
             new NoGridProvider(),
             itemRuntime,
             new SingleBuildingLookup(building),
-            new ScenarioObjectResolver(),
+            new ScenarioObjectResolver(probe, constructionFacts),
             CreateExecutionServices(new TrackingWorkforceReplanService()),
             CreateStateStore(),
             materialSources,
@@ -435,6 +970,14 @@ public static class WorkAmountDebugScenarios
                     building,
                     site.centerPos,
                     out string orderId,
+                    out _))
+            {
+                return false;
+            }
+            if (!runtime.TryAttachConstructionPlacement(
+                    orderId,
+                    "construction-placement:" + orderId,
+                    Array.Empty<string>(),
                     out _))
             {
                 return false;
@@ -458,7 +1001,57 @@ public static class WorkAmountDebugScenarios
 
             string restitutionOperation =
                 WorkOrderMaterialDebugContract.RestitutionOperationId(orderId);
-            return runtime.CancelOrder(orderId, refundDeliveredMaterials: true)
+            bool rejectedAfterRestitution = !runtime.CancelOrder(
+                    orderId,
+                    refundDeliveredMaterials: true)
+                && itemRuntime.ReleasedQuantity == 2
+                && itemRuntime.PhysicalCommitCount == 1
+                && itemRuntime.PhysicalAcknowledgementCount == 1
+                && itemRuntime.GetAllStacks().Where(stack =>
+                        stack != null
+                        && string.Equals(
+                            stack.ItemId,
+                            "material:lumber",
+                            StringComparison.Ordinal)
+                        && ProductionOutputCommitComponentCodec.Matches(
+                            stack.Components,
+                            "physical-source:" + restitutionOperation
+                            + ":material:lumber:2:2000"))
+                    .Sum(stack => stack.Quantity) == 2
+                && runtime.TryGetOrderFor(
+                    site,
+                    BuiltInWorkTypeIds.Construct,
+                    out WorkOrderProgressState rejectedOrder)
+                && rejectedOrder.Status == WorkOrderStatus.Blocked
+                && probe.CommitAttemptCount(
+                    MigratedProducerOutcomeKind.WorkOrderTerminalResult) == 1
+                && probe.CommitCount(
+                    MigratedProducerOutcomeKind.WorkOrderTerminalResult) == 0
+                && outcomeFixture.Ledger.GetGlobal(
+                    OutcomeCursor.FirstPage(8),
+                    OutcomeFilter.All).Items.Count == 0;
+            DungeonWorkOrderSaveData pending = runtime.Capture();
+            DungeonWorkOrderSaveData roundTrip =
+                JsonUtility.FromJson<DungeonWorkOrderSaveData>(
+                    JsonUtility.ToJson(pending));
+            runtime.ValidateRestorePayload(roundTrip);
+            WorkOrderSaveData pendingOrder = roundTrip.orders.SingleOrDefault();
+            bool saved = pendingOrder != null
+                && pendingOrder.terminalPhase ==
+                    WorkOrderTerminalPhase.EffectsAppliedPendingOutcome
+                && pendingOrder.terminalKind ==
+                    WorkOrderTerminalKind.Cancelled
+                && pendingOrder.terminalFactCaptured
+                && pendingOrder.terminalFact != null
+                && pendingOrder.terminalFact.Matches(pendingOrder)
+                && string.IsNullOrEmpty(pendingOrder.terminalPublicationKey)
+                && pendingOrder.materialTransfer.phase ==
+                    WorkOrderMaterialTransferPhase.RestitutionPending;
+
+            probe.FaultMode = MigratedProducerOutcomeFaultMode.None;
+            bool retried = runtime.CancelOrder(
+                    orderId,
+                    refundDeliveredMaterials: true)
                 && itemRuntime.ReleasedQuantity == 2
                 && itemRuntime.PhysicalCommitCount == 1
                 && itemRuntime.PhysicalAcknowledgementCount == 1
@@ -476,11 +1069,616 @@ public static class WorkAmountDebugScenarios
                 && !runtime.TryGetOrderFor(
                     site,
                     BuiltInWorkTypeIds.Construct,
-                    out _);
+                    out _)
+                && probe.CommitAttemptCount(
+                    MigratedProducerOutcomeKind.WorkOrderTerminalResult) == 2
+                && probe.CommitCount(
+                    MigratedProducerOutcomeKind.WorkOrderTerminalResult) == 1
+                && outcomeFixture.Ledger.GetGlobal(
+                    OutcomeCursor.FirstPage(8),
+                    OutcomeFilter.All).Items.Single().Exact.facts.Any(value =>
+                        value.factId ==
+                            MigratedProducerOutcomeIds.TerminalKindFact.Value
+                        && value.value == "cancelled")
+                && outcomeFixture.Ledger.GetGlobal(
+                    OutcomeCursor.FirstPage(8),
+                    OutcomeFilter.All).Items.Single().Exact.facts.Any(value =>
+                        value.factId ==
+                            MigratedProducerOutcomeIds.RestitutionOperationFact.Value
+                        && value.value == restitutionOperation);
+            if (!rejectedAfterRestitution || !saved || !retried)
+            {
+                Debug.LogError(
+                    "construction cancellation terminal detail: "
+                    + runtime.LastTerminalOutcomeFailureForDebug
+                    + "; rejected=" + rejectedAfterRestitution
+                    + "; saved=" + saved
+                    + "; retried=" + retried);
+            }
+            return rejectedAfterRestitution && saved && retried;
         }
         finally
         {
             UnityEngine.Object.DestroyImmediate(siteObject);
+            UnityEngine.Object.DestroyImmediate(building);
+        }
+    }
+
+    private static bool VerifyConstructionTerminalOutcomeRetry()
+    {
+        BuildingSO building = CreateTestBuilding(
+            91013,
+            "Construction terminal retry",
+            1,
+            1,
+            3f,
+            1);
+        GameObject siteObject = new("WorkAmountTerminalRetrySite");
+        ConstructionSite site = siteObject.AddComponent<ConstructionSite>();
+        site.RestorePersistentIdentity(
+            (BuildingInstanceId)"building:test:work-terminal-retry-site");
+        CharacterAiEditorTestDependencies.Inject(site);
+        FakeWorldItemStackRuntime items = new();
+        ConstructionInputOwnerFixture constructionInputs = new(items, site);
+        MigratedProducerOutcomeEditorFixture outcomes = new(
+            "run:work-order-terminal-retry");
+        MigratedProducerOutcomeProbeTransaction probe = new(
+            outcomes.Transaction,
+            outcomes.Recorder)
+        {
+            TargetKind = MigratedProducerOutcomeKind.WorkOrderTerminalResult,
+            FaultMode = MigratedProducerOutcomeFaultMode.RejectCommit
+        };
+        using DomainFactDispatcher constructionFacts =
+            outcomes.CreateConstructionWorkFacts(probe);
+        WorkOrderRuntime runtime = new(
+            new NoGridProvider(),
+            items,
+            new SingleBuildingLookup(building),
+            new ScenarioObjectResolver(probe, constructionFacts),
+            CreateExecutionServices(new TrackingWorkforceReplanService()),
+            CreateStateStore(),
+            new FakePhysicalItemSourcePublicationService(items),
+            constructionInputs.Runtime);
+        bool removed = false;
+        int placementCount = 0;
+        try
+        {
+            site.Initialization(building, new Vector2Int(9, 0));
+            if (!runtime.TryCreateConstructionOrder(
+                    site,
+                    building,
+                    site.centerPos,
+                    out string orderId,
+                    out _)
+                || !runtime.TryAttachConstructionPlacement(
+                    orderId,
+                    "construction-placement:" + orderId,
+                    new[] { "building:test:work-terminal-retry-support" },
+                    out _))
+            {
+                return false;
+            }
+            site.ConfigureSite(
+                orderId,
+                () =>
+                {
+                    placementCount++;
+                    return new BuildingPlacementCommitReceipt(
+                        "building:test:work-terminal-retry-final",
+                        "building:91013",
+                        string.Empty,
+                        string.Empty);
+                },
+                () => removed = true);
+            if (!runtime.TryGetOrderFor(
+                    site,
+                    BuiltInWorkTypeIds.Construct,
+                    out WorkOrderProgressState order))
+            {
+                return false;
+            }
+            items.AddFacilityItemBuffer(
+                order.MaterialDestinationId,
+                "material:lumber",
+                1);
+            if (!runtime.RefreshMaterialsReady(site))
+            {
+                return false;
+            }
+
+            bool rejected = !runtime.ApplyWork(
+                    null,
+                    site,
+                    BuiltInWorkTypeIds.Construct,
+                    3f,
+                    out bool completed,
+                    out bool applied,
+                    out _)
+                && !completed
+                && applied
+                && placementCount == 1
+                && !removed
+                && probe.CommitAttemptCount(
+                    MigratedProducerOutcomeKind.WorkOrderTerminalResult) == 1
+                && probe.CommitCount(
+                    MigratedProducerOutcomeKind.WorkOrderTerminalResult) == 0;
+            if (!rejected)
+            {
+                Debug.LogError(
+                    "construction retry rejection detail: "
+                    + runtime.LastTerminalOutcomeFailureForDebug
+                    + "; placement=" + placementCount
+                    + "; removed=" + removed);
+            }
+            DungeonWorkOrderSaveData pending = runtime.Capture();
+            string json = JsonUtility.ToJson(pending);
+            DungeonWorkOrderSaveData roundTrip =
+                JsonUtility.FromJson<DungeonWorkOrderSaveData>(json);
+            runtime.ValidateRestorePayload(roundTrip);
+            bool saved = roundTrip.orders.Count == 1
+                && roundTrip.orders[0].terminalPhase ==
+                    WorkOrderTerminalPhase.EffectsAppliedPendingOutcome
+                && roundTrip.orders[0].terminalKind ==
+                    WorkOrderTerminalKind.Completed
+                && roundTrip.orders[0].terminalFactCaptured
+                && roundTrip.orders[0].terminalFact != null
+                && roundTrip.orders[0].terminalFact.Matches(roundTrip.orders[0])
+                && string.IsNullOrEmpty(
+                    roundTrip.orders[0].terminalPublicationKey)
+                && roundTrip.orders[0].finalFacilityId ==
+                    "building:test:work-terminal-retry-final"
+                && roundTrip.orders[0].supportBuildingIds.SequenceEqual(
+                    new[] { "building:test:work-terminal-retry-support" });
+
+            probe.FaultMode = MigratedProducerOutcomeFaultMode.None;
+            string beforeTransition = JsonUtility.ToJson(runtime.Capture());
+            bool completionAccepted = runtime.DebugCompleteOrder(orderId, out _);
+            string afterTransition = JsonUtility.ToJson(runtime.Capture());
+            bool retried = completionAccepted
+                && removed
+                && placementCount == 1
+                && runtime.Capture().orders.Count == 0
+                && probe.CommitAttemptCount(
+                    MigratedProducerOutcomeKind.WorkOrderTerminalResult) == 2
+                && probe.CommitCount(
+                    MigratedProducerOutcomeKind.WorkOrderTerminalResult) == 1
+                && outcomes.Ledger.GetGlobal(
+                    OutcomeCursor.FirstPage(8),
+                    OutcomeFilter.All).Items.Count == 1;
+            if (!saved || !retried)
+            {
+                Debug.LogError(
+                    "construction retry saved/retried detail: "
+                    + runtime.LastTerminalOutcomeFailureForDebug
+                    + "; saved=" + saved
+                    + "; retried=" + retried
+                    + "; placement=" + placementCount
+                    + "; removed=" + removed);
+            }
+            if (retried)
+            {
+                _ = MigratedProducerOutcomeE2EAssertions.RequireExact(
+                    outcomes,
+                    MigratedProducerOutcomeKind.WorkOrderTerminalResult,
+                    probe,
+                    beforeTransition,
+                    afterTransition);
+            }
+            return rejected && saved && retried;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(siteObject);
+            UnityEngine.Object.DestroyImmediate(building);
+        }
+    }
+
+    private static bool VerifyRepairOutcomeRetryAndSaveRoundTrip()
+    {
+        BuildingSO building = CreateTestBuilding(
+            91023,
+            "Repair outcome retry",
+            1,
+            1,
+            3f,
+            1);
+        MigratedProducerOutcomeEditorFixture outcomes = new(
+            "run:repair-work-outcome-retry");
+        MigratedProducerOutcomeProbeTransaction probe = new(
+            outcomes.Transaction,
+            outcomes.Recorder)
+        {
+            TargetKind = MigratedProducerOutcomeKind.RepairWorkResult,
+            FaultMode = MigratedProducerOutcomeFaultMode.RejectCommit
+        };
+        try
+        {
+            WorkOrderAggregateStateStore firstStore = CreateStateStore();
+            FakeRepairCompletionDeliveryCommand deliveries = new();
+            using DomainFactDispatcher repairFacts =
+                outcomes.CreateRepairWorkFacts(deliveries, probe);
+            WorkOrderRuntime first = new(
+                new NoGridProvider(),
+                new FakeWorldItemStackRuntime(),
+                new SingleBuildingLookup(building),
+                new ScenarioObjectResolver(probe, deliveries, repairFacts),
+                CreateExecutionServices(new TrackingWorkforceReplanService()),
+                firstStore,
+                new FakePhysicalItemSourcePublicationService(
+                    new FakeWorldItemStackRuntime()));
+            CharacterId firstWorker = new("character:repair-worker-a");
+            CharacterId secondWorker = new("character:repair-worker-b");
+            RepairWorkOutcomeHandle handle = first.BeginOrResume(
+                RepairWorkOutcomeKind.StructuralIntegrity,
+                "building:repair-facility",
+                "building:repair-facility",
+                "building-definition:91023",
+                firstWorker,
+                4,
+                boundsKnown: true,
+                RepairWorkPrimaryUnit.Point,
+                25f,
+                0f);
+            first.RecordProgress(
+                handle,
+                firstWorker,
+                2f,
+                boundsKnown: true,
+                29f,
+                0f);
+            first.RecordProgress(
+                handle,
+                secondWorker,
+                3f,
+                boundsKnown: true,
+                35f,
+                0f);
+            bool rejected = !first.TryComplete(
+                    handle,
+                    firstWorker,
+                    CharacterCommandOrigin.Autonomous,
+                    2f,
+                    4,
+                    boundsKnown: true,
+                    RepairWorkPrimaryUnit.Point,
+                    25f,
+                    35f,
+                    0f,
+                    0f,
+                    RepairWorkMaterialReceipt.None,
+                    out _,
+                    out _)
+                && probe.CommitAttemptCount(
+                    MigratedProducerOutcomeKind.RepairWorkResult) == 1
+                && probe.CommitCount(
+                    MigratedProducerOutcomeKind.RepairWorkResult) == 0;
+
+            DungeonWorkOrderSaveData captured = first.Capture();
+            DungeonWorkOrderSaveData roundTrip = JsonUtility.FromJson<
+                DungeonWorkOrderSaveData>(JsonUtility.ToJson(captured));
+            first.ValidateRestorePayload(roundTrip);
+            bool saved = roundTrip.version ==
+                    DungeonWorkOrderSaveData.CurrentVersion
+                && roundTrip.nextRepairOutcomeSequence == 2
+                && roundTrip.repairOutcomes.Count == 1
+                && roundTrip.repairOutcomes[0].terminal
+                && roundTrip.repairOutcomes[0].boundsKnown
+                && roundTrip.repairOutcomes[0].contributions.Count == 2
+                && roundTrip.repairOutcomes[0].completionWorkerId
+                    == firstWorker.Value
+                && roundTrip.repairOutcomes[0].completionOrigin
+                    == CharacterCommandOrigin.Autonomous
+                && Mathf.Approximately(
+                    roundTrip.repairOutcomes[0].completionContributionWork,
+                    2f)
+                && string.IsNullOrEmpty(roundTrip.repairOutcomes[0].publicationKey)
+                && !roundTrip.repairOutcomes[0].publicationConfirmed
+                && string.IsNullOrEmpty(
+                    roundTrip.repairOutcomes[0].completionPublicationKey)
+                && Mathf.Approximately(
+                    roundTrip.repairOutcomes[0].primaryBefore,
+                    25f)
+                && Mathf.Approximately(
+                    roundTrip.repairOutcomes[0].primaryAfter,
+                    35f);
+
+            WorkOrderAggregateState restoredState = new()
+            {
+                NextOrderSequence = roundTrip.nextOrderSequence,
+                NextRepairOutcomeSequence =
+                    roundTrip.nextRepairOutcomeSequence
+            };
+            foreach (RepairWorkOutcomeSaveData beforeChildOwner in
+                     roundTrip.repairOutcomes)
+            {
+                restoredState.RepairOutcomesById.Add(
+                    beforeChildOwner.operationId,
+                    beforeChildOwner.Clone());
+            }
+            WorkOrderAggregateStateStore freshStore = CreateStateStore();
+            freshStore.Replace(restoredState);
+            probe.FaultMode = MigratedProducerOutcomeFaultMode.None;
+            WorkOrderRuntime fresh = new(
+                new NoGridProvider(),
+                new FakeWorldItemStackRuntime(),
+                new SingleBuildingLookup(building),
+                new ScenarioObjectResolver(probe, deliveries, repairFacts),
+                CreateExecutionServices(new TrackingWorkforceReplanService()),
+                freshStore,
+                new FakePhysicalItemSourcePublicationService(
+                    new FakeWorldItemStackRuntime()));
+            string beforeTransition = JsonUtility.ToJson(fresh.Capture());
+            fresh.Tick();
+            DungeonWorkOrderSaveData deferred = fresh.Capture();
+            string afterTransition = JsonUtility.ToJson(deferred);
+            _ = MigratedProducerOutcomeE2EAssertions.RequireExact(
+                outcomes,
+                MigratedProducerOutcomeKind.RepairWorkResult,
+                probe,
+                beforeTransition,
+                afterTransition);
+            RepairWorkOutcomeSaveData pending = deferred.repairOutcomes
+                .SingleOrDefault();
+            string expectedChild = RepairWorkCompletionObservation.ResultKey(
+                roundTrip.repairOutcomes[0].operationId).ToString();
+            WorkCompletionIdentityDeliveryRequest initialRequest =
+                deliveries.Requests.SingleOrDefault();
+            bool deferredOwned = pending != null
+                && pending.publicationConfirmed
+                && pending.publicationKey == expectedChild
+                && pending.completionPublicationKey
+                    == WorkCompletionIdentityOutcomeIds.ResultKey(initialRequest).ToString()
+                && pending.completionWorkerId == firstWorker.Value
+                && pending.completionOrigin == CharacterCommandOrigin.Autonomous
+                && Mathf.Approximately(pending.completionContributionWork, 2f)
+                && initialRequest.WorkId == BuiltInWorkTypeIds.Repair.Value
+                && initialRequest.Character.Equals(firstWorker)
+                && initialRequest.Origin == CharacterCommandOrigin.Autonomous
+                && initialRequest.OperationId == pending.operationId
+                && initialRequest.TerminalOwnerId
+                    == RepairWorkCompletionObservation.TerminalOwnerId
+                && initialRequest.ChildResultKey == expectedChild
+                && Mathf.Approximately(
+                    initialRequest.ContributionWorkUnits,
+                    2f)
+                && probe.CommitAttemptCount(
+                    MigratedProducerOutcomeKind.RepairWorkResult) == 2
+                && probe.CommitCount(
+                    MigratedProducerOutcomeKind.RepairWorkResult) == 1
+                && outcomes.Ledger.GetGlobal(
+                    OutcomeCursor.FirstPage(8),
+                    OutcomeFilter.All).Items.Count == 1;
+
+            DungeonWorkOrderSaveData deferredRoundTrip = JsonUtility.FromJson<
+                DungeonWorkOrderSaveData>(JsonUtility.ToJson(deferred));
+            fresh.ValidateRestorePayload(deferredRoundTrip);
+            bool corruptFrozenRejected = RejectFrozen(value => value.completionWorkerId = string.Empty)
+                && RejectFrozen(value => value.completionOrigin = (CharacterCommandOrigin)int.MaxValue)
+                && RejectFrozen(value => value.completionContributionWork = 3f)
+                && RejectFrozen(value => value.publicationKey = "unrelated|child|1|0");
+            RepairWorkCompletionObservation.ValidateCompletionRestoreJoin(
+                deferredRoundTrip.repairOutcomes,
+                Array.Empty<WorkCompletionIdentityDeliveryCursorSaveData>(),
+                outcomes.Ledger.CaptureGameplayOutcomes(),
+                outcomes.Transaction.Capture());
+            bool childMatches = RepairWorkCompletionObservation.MatchesCompletionChild(initialRequest,
+                outcomes.Ledger.GetGlobal(OutcomeCursor.FirstPage(8), OutcomeFilter.All).Items.Single().Exact);
+            WorkOrderAggregateState resumedState = new()
+            {
+                NextOrderSequence = deferredRoundTrip.nextOrderSequence,
+                NextRepairOutcomeSequence =
+                    deferredRoundTrip.nextRepairOutcomeSequence
+            };
+            foreach (RepairWorkOutcomeSaveData savedPending in
+                     deferredRoundTrip.repairOutcomes)
+            {
+                resumedState.RepairOutcomesById.Add(
+                    savedPending.operationId,
+                    savedPending.Clone());
+            }
+            WorkOrderAggregateStateStore resumedStore = CreateStateStore();
+            resumedStore.Replace(resumedState);
+            deliveries.Status = WorkCompletionIdentityDeliveryStatus.Applied;
+            WorkOrderRuntime resumed = new(
+                new NoGridProvider(),
+                new FakeWorldItemStackRuntime(),
+                new SingleBuildingLookup(building),
+                new ScenarioObjectResolver(probe, deliveries, repairFacts),
+                CreateExecutionServices(new TrackingWorkforceReplanService()),
+                resumedStore,
+                new FakePhysicalItemSourcePublicationService(
+                    new FakeWorldItemStackRuntime()));
+            resumed.Tick();
+            WorkCompletionIdentityDeliveryRequest acknowledgedRequest =
+                deliveries.Requests.LastOrDefault();
+            bool acknowledged = resumed.Capture().repairOutcomes.Count == 0
+                && deliveries.Requests.Count == 2
+                && acknowledgedRequest.PayloadFingerprint
+                    == initialRequest.PayloadFingerprint
+                && probe.CommitAttemptCount(
+                    MigratedProducerOutcomeKind.RepairWorkResult) == 2
+                && probe.CommitCount(
+                    MigratedProducerOutcomeKind.RepairWorkResult) == 1
+                && outcomes.Ledger.GetGlobal(
+                    OutcomeCursor.FirstPage(8),
+                    OutcomeFilter.All).Items.Count == 1;
+            return rejected && saved && deferredOwned && acknowledged && corruptFrozenRejected && childMatches;
+
+            bool RejectFrozen(Action<RepairWorkOutcomeSaveData> change)
+            {
+                var invalid = JsonUtility.FromJson<DungeonWorkOrderSaveData>(JsonUtility.ToJson(deferredRoundTrip));
+                change(invalid.repairOutcomes.Single());
+                try
+                {
+                    fresh.ValidateRestorePayload(invalid);
+                    RepairWorkCompletionObservation.ValidateCompletionRestoreJoin(
+                        invalid.repairOutcomes,
+                        Array.Empty<WorkCompletionIdentityDeliveryCursorSaveData>(),
+                        outcomes.Ledger.CaptureGameplayOutcomes(),
+                        outcomes.Transaction.Capture());
+                    return false;
+                }
+                catch (InvalidOperationException) { return true; }
+            }
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(building);
+        }
+    }
+
+    private static bool VerifyRepairOutcomeKindAndMaterialCoverage()
+    {
+        BuildingSO building = CreateTestBuilding(
+            91024,
+            "Repair outcome kind coverage",
+            1,
+            1,
+            3f,
+            1);
+        MigratedProducerOutcomeEditorFixture outcomes = new(
+            "run:repair-work-kind-coverage");
+        try
+        {
+            FakeRepairCompletionDeliveryCommand deliveries = new()
+            {
+                Status = WorkCompletionIdentityDeliveryStatus.Applied
+            };
+            using DomainFactDispatcher repairFacts =
+                outcomes.CreateRepairWorkFacts(deliveries);
+            WorkOrderRuntime runtime = new(
+                new NoGridProvider(),
+                new FakeWorldItemStackRuntime(),
+                new SingleBuildingLookup(building),
+                new ScenarioObjectResolver(
+                    outcomes.Transaction,
+                    deliveries,
+                    repairFacts),
+                CreateExecutionServices(new TrackingWorkforceReplanService()),
+                CreateStateStore(),
+                new FakePhysicalItemSourcePublicationService(
+                    new FakeWorldItemStackRuntime()));
+            CharacterId worker = new("character:repair-kind-worker");
+            RepairWorkOutcomeKind[] kinds =
+            {
+                RepairWorkOutcomeKind.GeneralDamage,
+                RepairWorkOutcomeKind.StructuralIntegrity,
+                RepairWorkOutcomeKind.DefenseFacility,
+                RepairWorkOutcomeKind.EquipmentDurability,
+                RepairWorkOutcomeKind.AutomationMaintenance
+            };
+            RepairWorkPrimaryUnit[] units =
+            {
+                RepairWorkPrimaryUnit.Flag,
+                RepairWorkPrimaryUnit.Point,
+                RepairWorkPrimaryUnit.Percent,
+                RepairWorkPrimaryUnit.Ratio,
+                RepairWorkPrimaryUnit.Percent
+            };
+            float[] primaryBefore = { 1f, 25f, 40f, 0.25f, 30f };
+            float[] primaryAfter = { 0f, 35f, 100f, 0.9f, 85f };
+            float[] secondaryBefore = { 0f, 0f, 1f, 0f, 20f };
+            float[] secondaryAfter = { 0f, 0f, 0f, 0f, 0f };
+
+            for (int index = 0; index < kinds.Length; index++)
+            {
+                string facilityId = "building:repair-kind-" + index;
+                string targetId = kinds[index]
+                    == RepairWorkOutcomeKind.EquipmentDurability
+                        ? "equipment:repair-kind-target"
+                        : facilityId;
+                RepairWorkOutcomeHandle handle = runtime.BeginOrResume(
+                    kinds[index],
+                    facilityId,
+                    targetId,
+                    kinds[index] == RepairWorkOutcomeKind.EquipmentDurability
+                        ? string.Empty
+                        : "building-definition:91024",
+                    worker,
+                    9,
+                    boundsKnown: true,
+                    units[index],
+                    primaryBefore[index],
+                    secondaryBefore[index]);
+                runtime.RecordProgress(
+                    handle,
+                    worker,
+                    1f + index,
+                    boundsKnown: true,
+                    primaryAfter[index],
+                    secondaryAfter[index]);
+                RepairWorkMaterialReceipt material = kinds[index]
+                    == RepairWorkOutcomeKind.EquipmentDurability
+                        ? new RepairWorkMaterialReceipt(
+                            "transfer:repair-kind-material",
+                            "commit-repair-kind-material",
+                            2000L,
+                            new[]
+                            {
+                                new RepairWorkMaterialSourceSaveData
+                                {
+                                    stackId = "stack:repair-kind-ingot",
+                                    itemId = "item:iron-ingot",
+                                    quantity = 2
+                                }
+                            })
+                        : RepairWorkMaterialReceipt.None;
+                if (!runtime.TryComplete(
+                        handle,
+                        worker,
+                        CharacterCommandOrigin.Autonomous,
+                        1f + index,
+                        9,
+                        boundsKnown: true,
+                        units[index],
+                        primaryBefore[index],
+                        primaryAfter[index],
+                        secondaryBefore[index],
+                        secondaryAfter[index],
+                        material,
+                        out _,
+                        out _))
+                {
+                    return false;
+                }
+            }
+
+            GameplayOutcomeSnapshot[] exact = outcomes.Ledger.GetGlobal(
+                    OutcomeCursor.FirstPage(16),
+                    OutcomeFilter.All)
+                .Items
+                .Select(value => value.Exact)
+                .Where(value => value != null)
+                .ToArray();
+            string[] expectedKinds =
+            {
+                "general-damage",
+                "structural-integrity",
+                "defense-facility",
+                "equipment-durability",
+                "automation-maintenance"
+            };
+            GameplayOutcomeSnapshot equipment = exact.SingleOrDefault(value =>
+                value.facts.Any(fact => fact.factId == "repair-kind"
+                    && fact.value == "equipment-durability"));
+            return runtime.Capture().repairOutcomes.Count == 0
+                && exact.Length == 5
+                && deliveries.Requests.Count == 5
+                && expectedKinds.All(kind => exact.Any(value =>
+                    value.facts.Any(fact => fact.factId == "repair-kind"
+                        && fact.value == kind)))
+                && equipment != null
+                && equipment.facts.Any(fact =>
+                    fact.factId == "repair-material-sources"
+                    && fact.value
+                        == "stack:repair-kind-ingot=item:iron-ingot=2")
+                && equipment.metrics.Any(metric =>
+                    metric.metricId == MigratedProducerOutcomeIds.InputMassMetric.Value
+                    && Math.Abs(metric.value - 2000d) < 0.001d);
+        }
+        finally
+        {
             UnityEngine.Object.DestroyImmediate(building);
         }
     }
@@ -1644,6 +2842,13 @@ public static class WorkAmountDebugScenarios
         internal ConstructionInputOwnerFixture(
             FakeWorldItemStackRuntime items,
             params BuildableObject[] buildings)
+            : this(items, (IEnumerable<BuildableObject>)buildings)
+        {
+        }
+
+        internal ConstructionInputOwnerFixture(
+            FakeWorldItemStackRuntime items,
+            IEnumerable<BuildableObject> buildings)
         {
             if (items == null)
             {
@@ -1678,15 +2883,12 @@ public static class WorkAmountDebugScenarios
 
     private sealed class FixedBuildingWorldQuery : IBuildingWorldQuery
     {
-        private readonly IReadOnlyList<BuildableObject> buildings;
+        private readonly IEnumerable<BuildableObject> buildings;
 
         internal FixedBuildingWorldQuery(
             IEnumerable<BuildableObject> buildings)
         {
-            this.buildings = (buildings ?? Array.Empty<BuildableObject>())
-                .Where(value => value != null)
-                .Distinct()
-                .ToArray();
+            this.buildings = buildings ?? Array.Empty<BuildableObject>();
         }
 
         public int BuildingVersion => 1;
@@ -1775,15 +2977,47 @@ public static class WorkAmountDebugScenarios
         }
     }
 
+    private sealed class FakeRepairCompletionDeliveryCommand :
+        IWorkCompletionIdentityDeliveryCommand
+    {
+        private readonly List<WorkCompletionIdentityDeliveryRequest> requests =
+            new();
+
+        internal WorkCompletionIdentityDeliveryStatus Status { get; set; } =
+            WorkCompletionIdentityDeliveryStatus.Deferred;
+
+        internal IReadOnlyList<WorkCompletionIdentityDeliveryRequest> Requests =>
+            requests;
+
+        public WorkCompletionIdentityDeliveryResult EnsureApplied(
+            WorkCompletionIdentityDeliveryRequest request)
+        {
+            requests.Add(request);
+            // This is a controlled port acknowledgement only; it is not evidence
+            // that the real identity ledger applied the request.
+            return Status == WorkCompletionIdentityDeliveryStatus.Applied
+                ? new WorkCompletionIdentityDeliveryResult(Status)
+                : new WorkCompletionIdentityDeliveryResult(
+                    Status,
+                    "work-amount-fixture-identity-deferred");
+        }
+
+        public bool RetireProducerStream(string producerStreamId) => false;
+    }
+
     private sealed class ScenarioObjectResolver : IObjectResolver
     {
         private readonly IReadOnlyList<object> services;
+        private readonly IDomainFactPublisher domainFacts;
 
         public ScenarioObjectResolver(params object[] services)
         {
             this.services = (services ?? Array.Empty<object>())
                 .Where(value => value != null)
                 .ToArray();
+            domainFacts = this.services
+                .OfType<IDomainFactPublisher>()
+                .FirstOrDefault();
         }
 
         public object ApplicationOrigin => null;
@@ -1802,6 +3036,14 @@ public static class WorkAmountDebugScenarios
             out object resolved,
             object key = null)
         {
+            if (type == typeof(IDomainFactPublisher)
+                || type == typeof(IDomainFactRecoveryPublisher))
+            {
+                resolved = type.IsInstanceOfType(domainFacts)
+                    ? domainFacts
+                    : null;
+                return resolved != null;
+            }
             resolved = services.FirstOrDefault(value =>
                 type != null && type.IsInstanceOfType(value));
             return resolved != null;
@@ -2900,6 +4142,19 @@ public static class WorkAmountDebugScenarios
             return false;
         }
 
+        public bool SpawnExistingUniqueItemAt(
+            string itemId,
+            ItemInstanceId itemInstanceId,
+            Vector2Int position,
+            WorldItemStackState state,
+            string destinationId,
+            IReadOnlyList<ItemInstanceComponentSaveData> components,
+            out string stackId)
+        {
+            stackId = string.Empty;
+            return false;
+        }
+
         public bool TryAbsorbUniqueItemStack(
             string stackId,
             ItemInstanceId expectedInstanceId) => false;
@@ -3239,6 +4494,15 @@ public static class WorkAmountDebugScenarios
             out string failureReason)
         {
             failureReason = string.Empty;
+            return false;
+        }
+        public bool TryRestoreStackRoute(
+            WorldItemStackSnapshot original,
+            WorldItemStackState appliedState,
+            string appliedDestinationId,
+            out string failureReason)
+        {
+            failureReason = "unsupported-work-fixture-route-restore";
             return false;
         }
         public bool DeleteStack(string stackId) => false;

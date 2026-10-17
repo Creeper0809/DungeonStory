@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "방의 경계를 열고 닫아 출입을 조절하는 문의 설치 부품이며, 하르나크에서도 이 부품의 치수를 알아본다.",
+  "in_game_description": "방의 경계를 열고 닫아 출입을 조절하는 문의 설치 부품이다. 하르나크식 문은 오크와 골렘이 마주 지나고 하피가 날개를 접어 돌 수 있는 폭으로 만든다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

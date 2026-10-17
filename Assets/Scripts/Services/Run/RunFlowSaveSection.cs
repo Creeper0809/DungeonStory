@@ -33,6 +33,9 @@ public sealed class RunFlowSaveSection :
     public override int SectionVersion => DungeonRunFlowSaveData.CurrentVersion;
     public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.LateRuntimeState;
+    // A missing pending fact must stay null, not Unity's inline default object.
+    protected override string SerializePayload(DungeonRunFlowSaveData payload) =>
+        Newtonsoft.Json.JsonConvert.SerializeObject(payload);
     public override IReadOnlyList<string> DependsOn => new[]
     {
         OffenseAggregateSaveSection.Id,
@@ -48,8 +51,30 @@ public sealed class RunFlowSaveSection :
             currentDay = runtime.CurrentDay,
             bossArmed = runtime.IsBossArmed,
             bossActive = runtime.IsBossActive,
-            bossCycle = runtime.BossCycle
+            bossCycle = runtime.BossCycle,
+            pendingCompletion = restorePublisher.CapturePendingCompletion()
         };
+    }
+
+    protected override void ValidateRawPayload(string payloadJson) => ValidatePendingCompletionJson(payloadJson);
+
+    public static void ValidatePendingCompletionJson(string json)
+    {
+        var root = Newtonsoft.Json.Linq.JObject.Parse(json, new Newtonsoft.Json.Linq.JsonLoadSettings
+        { DuplicatePropertyNameHandling = Newtonsoft.Json.Linq.DuplicatePropertyNameHandling.Error });
+        var pending = root["pendingCompletion"];
+        if (pending == null) throw new InvalidOperationException("owner-run-pending-field-missing");
+        if (pending.Type == Newtonsoft.Json.Linq.JTokenType.Null) return;
+        if (pending is not Newtonsoft.Json.Linq.JObject
+            || pending["publicationKey"]?.Type != Newtonsoft.Json.Linq.JTokenType.String
+            || pending["fact"] is not Newtonsoft.Json.Linq.JObject fact)
+            throw new InvalidOperationException("owner-run-pending-shape-invalid");
+        foreach (string field in new[] { "runSeed", "outcome", "absoluteDay" })
+            if (fact[field]?.Type != Newtonsoft.Json.Linq.JTokenType.Integer)
+                throw new InvalidOperationException("owner-run-pending-field-invalid:" + field);
+        foreach (string field in new[] { "ownerId", "displayName", "reason" })
+            if (fact[field]?.Type != Newtonsoft.Json.Linq.JTokenType.String)
+                throw new InvalidOperationException("owner-run-pending-field-invalid:" + field);
     }
 
     protected override DungeonRunFlowAggregateState BuildRestoreCandidate(
@@ -71,7 +96,8 @@ public sealed class RunFlowSaveSection :
             CurrentDay = payload.currentDay,
             BossArmed = payload.bossArmed,
             BossActive = payload.bossActive,
-            BossCycle = payload.bossCycle
+            BossCycle = payload.bossCycle,
+            PendingCompletion = payload.pendingCompletion?.Clone()
         };
     }
 
@@ -110,6 +136,9 @@ public sealed class RunFlowSaveSection :
             report.AddError(
                 $"Run-flow phase {payload.phase} does not match day/outcome state.");
         }
+
+        try { payload.pendingCompletion?.Validate(payload.outcome, payload.currentDay); }
+        catch (InvalidOperationException error) { report.AddError(error.Message); }
 
         int maximumBossCycle =
             DungeonRunFlowRules.ResolveBossCycleForDay(

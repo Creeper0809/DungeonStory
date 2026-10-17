@@ -75,34 +75,54 @@ internal abstract class CaptivityAbilityUnityPort
         CaptivityAbilityAccessKind accessKind,
         out IEnumerator movement)
     {
+        return ResolveMovement(destination, accessKind, out movement)
+            == CaptivityMovementResolution.Ready;
+    }
+
+    protected CaptivityMovementResolution ResolveMovement(
+        Vector2Int destination,
+        CaptivityAbilityAccessKind accessKind,
+        out IEnumerator movement)
+    {
         movement = null;
         if (Actor.WorldRegistry == null
             || !Actor.WorldRegistry.TryGetGrid(out Grid grid))
         {
-            return false;
+            return CaptivityMovementResolution.Unreachable;
         }
 
         if (Actor.GetNowXY() == destination)
         {
             movement = EmptyMovement();
-            return true;
+            return CaptivityMovementResolution.Ready;
+        }
+        if (Actor.PathSearchBroker == null)
+        {
+            return CaptivityMovementResolution.Unreachable;
         }
 
-        Queue<GridMoveStep> path = Actor.PathSearchBroker?.GetMovePathTo(
+        GridPathRequestStatus status = Actor.PathSearchBroker.RequestMovePathTo(
             grid,
             Actor.GetNowXY(),
             destination,
+            out Queue<GridMoveStep> path,
             GridPathSearchPriority.Urgent,
             GridTraversalContext.ForCharacter(
                 CharacterPersistentIdentity.Require(Actor),
                 ToDoorAccessOverride(accessKind)));
-        if (path == null || path.Count == 0)
+        if (status == GridPathRequestStatus.Pending)
         {
-            return false;
+            return CaptivityMovementResolution.Pending;
+        }
+        if (status != GridPathRequestStatus.Reachable
+            || path == null
+            || path.Count == 0)
+        {
+            return CaptivityMovementResolution.Unreachable;
         }
 
         movement = Move.MoveByPath(path);
-        return true;
+        return CaptivityMovementResolution.Ready;
     }
 
     protected void SetActionPhase(string phase, string detail) =>
@@ -111,29 +131,38 @@ internal abstract class CaptivityAbilityUnityPort
     protected void RequestImmediateReplan(bool clearFailures) =>
         Actor.Brain?.RequestImmediateReplan(clearFailures);
 
-    protected bool TryCreateAdjacentMovement(
+    protected CaptivityMovementResolution ResolveAdjacentMovement(
         Vector2Int target,
         CaptivityAbilityAccessKind accessKind,
+        out Vector2Int stand,
         out IEnumerator movement)
     {
+        stand = default;
         movement = null;
         if (Actor.WorldRegistry == null
             || !Actor.WorldRegistry.TryGetGrid(out Grid grid))
         {
-            return false;
+            return CaptivityMovementResolution.Unreachable;
         }
 
         Vector2Int start = Actor.GetNowXY();
         if (Mathf.Abs(start.x - target.x) + Mathf.Abs(start.y - target.y) <= 1)
         {
+            stand = start;
             movement = EmptyMovement();
-            return true;
+            return CaptivityMovementResolution.Ready;
+        }
+
+        if (Actor.PathSearchBroker == null)
+        {
+            return CaptivityMovementResolution.Unreachable;
         }
 
         GridTraversalContext context = GridTraversalContext.ForCharacter(
             CharacterPersistentIdentity.Require(Actor),
             ToDoorAccessOverride(accessKind));
         Queue<GridMoveStep> bestPath = null;
+        bool pending = false;
         Vector2Int[] candidates =
         {
             target + Vector2Int.left,
@@ -148,26 +177,32 @@ internal abstract class CaptivityAbilityUnityPort
             {
                 continue;
             }
-            Queue<GridMoveStep> path = Actor.PathSearchBroker?.GetMovePathTo(
+            GridPathRequestStatus status = Actor.PathSearchBroker.RequestMovePathTo(
                 grid,
                 start,
                 candidate,
+                out Queue<GridMoveStep> path,
                 GridPathSearchPriority.Urgent,
                 context);
-            if (path != null
+            pending |= status == GridPathRequestStatus.Pending;
+            if (status == GridPathRequestStatus.Reachable
+                && path != null
                 && path.Count > 0
                 && (bestPath == null || path.Count < bestPath.Count))
             {
                 bestPath = path;
+                stand = candidate;
             }
         }
 
         if (bestPath == null)
         {
-            return false;
+            return pending
+                ? CaptivityMovementResolution.Pending
+                : CaptivityMovementResolution.Unreachable;
         }
         movement = Move.MoveByPath(bestPath);
-        return true;
+        return CaptivityMovementResolution.Ready;
     }
 
     private static DoorAccessOverrideKind ToDoorAccessOverride(
@@ -230,8 +265,12 @@ internal sealed class CaptiveEscapeAbilityUnityPort :
             out failureReason);
     }
 
-    public void CompleteEscape(string captiveId) =>
-        runtime.CompleteEscape(captiveId, Actor);
+    public bool CompleteEscape(string captiveId, out string failureReason) =>
+        runtime.CompleteEscape(
+            captiveId,
+            Actor,
+            string.Empty,
+            out failureReason);
 
     public void FailEscape(string captiveId, string reason) =>
         runtime.FailEscape(captiveId, Actor, reason);
@@ -317,11 +356,11 @@ internal sealed class CaptiveEscortAbilityUnityPort :
         return found;
     }
 
-    public new bool TryCreateMovement(
+    public new CaptivityMovementResolution ResolveMovement(
         Vector2Int destination,
         CaptivityAbilityAccessKind accessKind,
         out IEnumerator movement) =>
-        base.TryCreateMovement(destination, accessKind, out movement);
+        base.ResolveMovement(destination, accessKind, out movement);
 
     public bool TryPickupReservedRestraint(
         CaptiveState state,
@@ -361,6 +400,8 @@ internal sealed class WildlifeCaptureTransportAbilityUnityPort :
     private readonly IWildlifeCaptureTransportRuntime runtime;
     private CharacterActionIntentLease actionIntentLease;
     private Queue<GridMoveStep> resolvedDeliveryPath;
+
+    public Vector2Int Position => Actor.GetNowXY();
 
     public WildlifeCaptureTransportAbilityUnityPort(
         CharacterActor actor,
@@ -467,12 +508,14 @@ internal sealed class WildlifeCaptureTransportAbilityUnityPort :
         out IEnumerator movement) =>
         base.TryCreateMovement(destination, accessKind, out movement);
 
-    public bool TryCreatePickupMovement(
+    public CaptivityMovementResolution ResolvePickupMovement(
         Vector2Int wildlifePosition,
+        out Vector2Int pickupStand,
         out IEnumerator movement) =>
-        base.TryCreateAdjacentMovement(
+        base.ResolveAdjacentMovement(
             wildlifePosition,
             CaptivityAbilityAccessKind.None,
+            out pickupStand,
             out movement);
 
     public bool TryCreateDeliveryMovement(

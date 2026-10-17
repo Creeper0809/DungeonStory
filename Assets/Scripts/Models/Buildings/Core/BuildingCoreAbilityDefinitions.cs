@@ -11,7 +11,7 @@ public sealed class BuildingEconomyAbility : BuildingAbility
 {
     [Min(0), InspectorName("건설 가치")] public int constructionValue;
     [Min(0), HideInInspector] public int constructionCost;
-    [Min(0), InspectorName("일일 유지비")] public int maintenance;
+    [Min(0), InspectorName("일일 시설 계약비")] public int maintenance;
     [Range(1, 3), InspectorName("해금 단계")] public int unlockPhase = 1;
     [Range(0f, 1f), InspectorName("철거 환급률")] public float demolitionRefundRate = 0.5f;
 }

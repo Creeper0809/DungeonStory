@@ -1,0 +1,31 @@
+WIM016 manual water — focused current-source evidence, whole WIM OPEN
+
+Main Unity runtime compiled2026-09-10 10:12:07 UTC; Editor10:12:11 UTC. Idle277894.6728398/allflagsfalse; Console0/0.
+Root invoked only new scoped entries (not old whole crop suite):
+  Wim016CropWaterRulesDebugScenarios.Run => True, PASS cases12/12.
+  Wim016WaterRefillRestoreDebugScenarios.Run => True, PASS cases17; no mutation; exact bidirectional incoming-owner/receipt join.
+The17case fixture uses synthetic item candidates and current refill DTO round-trip, not an actual whole-world restore. Root designed/wrote it; independent review corrected mutation checks to cover all duplicate owners.
+
+Protected main Play, actual StartParty, autosave/meta persistence disposed, time paused:
+  CropPlotDebugScenarios.RunWim016WaterRefillFocused => True.
+  Actual authored P23 detached/injected facility and main item/WIP gateway; verification-only research unlock preparation.
+  Physical initial water1 -> actual sow -> growing/currentWater1.
+  Deliberately dry validated runtime checkpoint -> growth multiplier0 and refill owner.
+  Exact physical buffer delivery1 and partial5/10WU -> no consumption or moisture gain.
+  Active-cycle crop replacement rejected; partial runtime DTO candidate round-trip retains5WU, destination and physical quantity.
+  Remaining5WU -> consume1/publish1/ACK; duplicate work rejected; terminal runtime DTO round-trip preserves moisture/quantity.
+  No section staging or whole-world restore was performed. Main MCP explicitly logged this scope correction before the returned report. Original report's 'section restore' wording was corrected afterward without changing assertions; no unaffected case rerun.
+Executed service test source SHA256 C570C9340639C3A9A14E64C7EEB17249888171B1F766470314D068DAA482CF7E; wording-corrected current source8E940DE884E6AACC53277797DD5D2214679C6F6A104A2FD740985C2BC849B784 compiled10:16:10 UTC.
+
+Current source SHA256:
+  CropPhysicalRestoreGuard.cs FE8AC047E3F6594AEFE7649877DFAD13FD653FB22AB9D0896F12EE014EDCF79C
+  CropPlotRuntime.cs EFF45F92097817D17EA2B01F67866904EC5949676EB78636058CCAF19279A7B1
+  CropPlotModels.cs C7278D2327EDF6EB1B6F1ABF1F2765E2C5B3D3D2B18FC9693541AAE97371FC7C
+  ProductionItemGateway.cs 12CFE56BA3B7007D4D06C7CA3D1058A27BB924379C50471EA1F0FD2DA2B9D017
+  ProductionBillModels.cs 964BC5089C964FBEFF4BF15FFBF4417584F39A46147C894B44EE50D5AE5B327E
+  Wim016CropWaterRulesDebugScenarios.cs 6FFEAE506EA135E0553D352BECE36403AF662E97669DA1795792972E62A35F31
+  Wim016WaterRefillRestoreDebugScenarios.cs 1083CE9EEE0F3F2A61E96C11263959E065BCE18DE83F99935C42FCE230ED7415
+Final Runtime DLL E72AA7BD7BED2B9E467B190C59A30514897A202B8DB7470F3BD6475809BC350D; Editor DLL14FC2C2F10B33BE44EAB11F3C93379E306DE832943F2087680F63548A6C75D49.
+
+Not covered: natural timed depletion, actual staff refill AI/haul, crop UI observation, interrupted committed refill ACK replay at actual save-section/world boundary, irrigation/light/new lamps,6adult balance. Old unrelated crop-output PASS retained, not rerun.
+Final main medical follow-on ended and Stop confirmed278209.014029/allflagsfalse; Console0/0. GameplayScene/settings/profile/autosave/migration five hashes unchanged. No scene/save/asset write. Baseline assignment only; no balance-complete claim.

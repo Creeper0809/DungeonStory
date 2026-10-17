@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
+using VContainer;
 
 public sealed class ProductionBillLifecycleContributor : IProductionOutputDestinationLifecycleContributor
 {
@@ -966,13 +967,16 @@ public sealed class ProductionOutputDestinationLifecycleQuery :
     private readonly IProductionOutputDestinationLifecycleContributor[] contributors;
     private readonly bool requireCurrentFormatAggregateSchema;
 
+    [Inject]
     public ProductionOutputDestinationLifecycleQuery(
         ProductionBillLifecycleContributor bills,
         CombatEquipmentCraftLifecycleContributor equipment,
         ApparelWorkOrderLifecycleContributor apparel,
         ProductionOutputCapacityRoutingLifecycleContributor capacityRouting,
         ProductionOutputPhysicalLifecycleContributor physical,
-        ProductionStockSensorLifecycleContributor stockSensor)
+        ProductionStockSensorLifecycleContributor stockSensor,
+        EnvironmentalFireDamageLifecycleContributor fireDamage,
+        BuildingDemolitionOutcomeLifecycleContributor demolitionOutcome)
     {
         contributors = new IProductionOutputDestinationLifecycleContributor[]
         {
@@ -981,7 +985,10 @@ public sealed class ProductionOutputDestinationLifecycleQuery :
             apparel ?? throw new ArgumentNullException(nameof(apparel)),
             capacityRouting ?? throw new ArgumentNullException(nameof(capacityRouting)),
             physical ?? throw new ArgumentNullException(nameof(physical)),
-            stockSensor ?? throw new ArgumentNullException(nameof(stockSensor))
+            stockSensor ?? throw new ArgumentNullException(nameof(stockSensor)),
+            fireDamage ?? throw new ArgumentNullException(nameof(fireDamage)),
+            demolitionOutcome
+                ?? throw new ArgumentNullException(nameof(demolitionOutcome))
         };
         requireCurrentFormatAggregateSchema = true;
         Array.Sort(contributors, (left, right) =>
@@ -998,6 +1005,52 @@ public sealed class ProductionOutputDestinationLifecycleQuery :
             }
         }
     }
+
+#if UNITY_EDITOR
+    public ProductionOutputDestinationLifecycleQuery(
+        ProductionBillLifecycleContributor bills,
+        CombatEquipmentCraftLifecycleContributor equipment,
+        ApparelWorkOrderLifecycleContributor apparel,
+        ProductionOutputCapacityRoutingLifecycleContributor capacityRouting,
+        ProductionOutputPhysicalLifecycleContributor physical,
+        ProductionStockSensorLifecycleContributor stockSensor,
+        EnvironmentalFireDamageLifecycleContributor fireDamage)
+        : this(new IProductionOutputDestinationLifecycleContributor[]
+        {
+            bills ?? throw new ArgumentNullException(nameof(bills)),
+            equipment ?? throw new ArgumentNullException(nameof(equipment)),
+            apparel ?? throw new ArgumentNullException(nameof(apparel)),
+            capacityRouting ?? throw new ArgumentNullException(nameof(capacityRouting)),
+            physical ?? throw new ArgumentNullException(nameof(physical)),
+            stockSensor ?? throw new ArgumentNullException(nameof(stockSensor)),
+            fireDamage ?? throw new ArgumentNullException(nameof(fireDamage))
+        })
+    {
+    }
+
+    // Narrow compatibility constructor for focused fixtures that intentionally
+    // compose only the contributors under test. Runtime composition always uses
+    // the eight-contributor constructor above and therefore requires fire-damage
+    // authority in the current aggregate schema.
+    public ProductionOutputDestinationLifecycleQuery(
+        ProductionBillLifecycleContributor bills,
+        CombatEquipmentCraftLifecycleContributor equipment,
+        ApparelWorkOrderLifecycleContributor apparel,
+        ProductionOutputCapacityRoutingLifecycleContributor capacityRouting,
+        ProductionOutputPhysicalLifecycleContributor physical,
+        ProductionStockSensorLifecycleContributor stockSensor)
+        : this(new IProductionOutputDestinationLifecycleContributor[]
+        {
+            bills ?? throw new ArgumentNullException(nameof(bills)),
+            equipment ?? throw new ArgumentNullException(nameof(equipment)),
+            apparel ?? throw new ArgumentNullException(nameof(apparel)),
+            capacityRouting ?? throw new ArgumentNullException(nameof(capacityRouting)),
+            physical ?? throw new ArgumentNullException(nameof(physical)),
+            stockSensor ?? throw new ArgumentNullException(nameof(stockSensor))
+        })
+    {
+    }
+#endif
 
     internal ProductionOutputDestinationLifecycleQuery(
         IReadOnlyList<IProductionOutputDestinationLifecycleContributor> source)

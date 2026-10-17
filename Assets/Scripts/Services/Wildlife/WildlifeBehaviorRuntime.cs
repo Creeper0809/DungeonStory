@@ -18,6 +18,8 @@ internal sealed class WildlifeBehaviorRuntime
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly IWorldItemStackRuntime itemStackRuntime;
     private readonly WildlifeFoodRaidDispositionOutbox foodRaidOutbox;
+    private readonly IGameCalendar calendar;
+    private readonly IGameClock gameClock;
     private readonly IWildlifeCarcassService carcassService;
     private readonly IRandomStream randomStream;
     private readonly List<WildlifeActor> wildlife;
@@ -50,10 +52,15 @@ internal sealed class WildlifeBehaviorRuntime
         worldRegistry = requiredWorld.WorldRegistry;
         itemStackRuntime = requiredWorld.Items;
         foodRaidOutbox = new WildlifeFoodRaidDispositionOutbox(
-            requiredWorld.BatchDispositions);
+            requiredWorld.BatchDispositions,
+            requiredWorld.FactStaging,
+            requiredWorld.FactRecovery);
+        calendar = requiredWorld.Calendar;
         carcassService = (combat ?? throw new ArgumentNullException(nameof(combat))).Carcasses;
-        randomStream = (execution ?? throw new ArgumentNullException(nameof(execution)))
-            .RandomStreams.Get("wildlife.runtime");
+        WildlifeExecutionServices requiredExecution = execution
+            ?? throw new ArgumentNullException(nameof(execution));
+        gameClock = requiredExecution.Clock;
+        randomStream = requiredExecution.RandomStreams.Get("wildlife.runtime");
         this.wildlife = wildlife ?? throw new ArgumentNullException(nameof(wildlife));
         nextBehaviorTickByWildlifeId = nextBehaviorTicks
             ?? throw new ArgumentNullException(nameof(nextBehaviorTicks));
@@ -135,9 +142,20 @@ internal sealed class WildlifeBehaviorRuntime
                 : null;
             foodRaidOrders.Add(new WildlifeFoodRaidOrderSaveData
             {
+                outcomeSchemaVersion =
+                    WildlifeFoodRaidOrderSaveData.CurrentOutcomeSchemaVersion,
                 raidId = normalizedRaidId,
                 wildlifeId = wolf.WildlifeId,
+                wildlifeSpeciesId = wolf.SpeciesId,
+                wildlifeDisplayName = wolf.DisplayName,
                 targetStackId = target?.StackId ?? string.Empty,
+                targetItemId = target?.ItemId ?? string.Empty,
+                targetItemDisplayName = target?.DisplayName ?? string.Empty,
+                requestedQuantity = 1,
+                startX = wolf.GridPosition.x,
+                startY = wolf.GridPosition.y,
+                startedGameTime = Mathf.Max(0f, gameClock.Time),
+                startedAbsoluteDay = Mathf.Max(0, calendar.Day),
                 state = WildlifeFoodRaidOrderState.Approaching,
                 stolenQuantity = 0,
                 outcomeReason = string.Empty
@@ -176,7 +194,7 @@ internal sealed class WildlifeBehaviorRuntime
             return false;
         }
 
-        if (order.commitPhase != WildlifeFoodRaidCommitPhase.None)
+        if (WildlifeFoodRaidDispositionOutbox.IsPending(order))
         {
             if (!foodRaidOutbox.TryResume(order, out string resumeFailure))
             {
@@ -189,7 +207,7 @@ internal sealed class WildlifeBehaviorRuntime
 
         if (actor == null || !actor.IsAlive)
         {
-            if (order.commitPhase != WildlifeFoodRaidCommitPhase.None)
+            if (WildlifeFoodRaidDispositionOutbox.IsPending(order))
             {
                 if (!foodRaidOutbox.TryResume(order, out string pendingFailure))
                 {
@@ -232,6 +250,17 @@ internal sealed class WildlifeBehaviorRuntime
             $"노출 식량 {target.DisplayName}을 노리는 중");
         if (actor.GridPosition == target.Position)
         {
+            order.targetStackId = target.StackId;
+            order.targetItemId = target.ItemId;
+            order.targetItemDisplayName = target.DisplayName;
+            order.endX = actor.GridPosition.x;
+            order.endY = actor.GridPosition.y;
+            order.completedGameTime = Mathf.Max(
+                order.startedGameTime,
+                gameClock.Time);
+            order.completedAbsoluteDay = Mathf.Max(
+                order.startedAbsoluteDay,
+                calendar.Day);
             if (foodRaidOutbox.TryCommit(
                     order,
                     target,
@@ -273,6 +302,8 @@ internal sealed class WildlifeBehaviorRuntime
         }
 
         order.targetStackId = replacement.StackId;
+        order.targetItemId = replacement.ItemId;
+        order.targetItemDisplayName = replacement.DisplayName;
         return true;
     }
 
@@ -337,7 +368,7 @@ internal sealed class WildlifeBehaviorRuntime
                 continue;
             }
 
-            if (order.commitPhase != WildlifeFoodRaidCommitPhase.None)
+            if (WildlifeFoodRaidDispositionOutbox.IsPending(order))
             {
                 if (!foodRaidOutbox.TryResume(order, out string pendingFailure))
                 {
@@ -345,6 +376,12 @@ internal sealed class WildlifeBehaviorRuntime
                         $"Wildlife food raid '{order.raidId}/{order.wildlifeId}' "
                         + $"could not finalize before actor removal: {pendingFailure}");
                 }
+                order.state = WildlifeFoodRaidOrderState.Stolen;
+                continue;
+            }
+
+            if (WildlifeFoodRaidDispositionOutbox.IsDurablyStolen(order))
+            {
                 order.state = WildlifeFoodRaidOrderState.Stolen;
                 continue;
             }
@@ -366,6 +403,7 @@ internal sealed class WildlifeBehaviorRuntime
         if (order != null)
         {
             order.state = order.stolenQuantity > 0
+                    && WildlifeFoodRaidDispositionOutbox.IsDurablyStolen(order)
                 ? WildlifeFoodRaidOrderState.Stolen
                 : WildlifeFoodRaidOrderState.Failed;
         }
@@ -393,27 +431,34 @@ internal sealed class WildlifeBehaviorRuntime
 
     private Vector2Int ChooseEcologyOrPredatorPosition(WildlifeActor actor, Grid grid)
     {
-        if (ecosystemRuntime != null
-            && ecosystemRuntime.TryChooseEcologyTarget(
+        if (ecosystemRuntime != null)
+        {
+            bool selected = ecosystemRuntime.TryChooseEcologyTarget(
                 actor,
                 grid,
                 wildlife,
                 GetCachedItemStacks(),
                 out Vector2Int target,
                 out WildlifeIntent intent,
-                out string reason))
-        {
-            actor.SetIntent(intent, reason);
-            if (intent == WildlifeIntent.LeaveMap)
+                out string reason);
+            if (selected)
             {
-                actor.MarkLeaving();
-            }
-            else if (intent != WildlifeIntent.HuntPrey)
-            {
-                actor.SetGrazing();
+                actor.SetIntent(intent, reason);
+                if (intent == WildlifeIntent.LeaveMap)
+                {
+                    actor.MarkLeaving();
+                }
+                else if (intent != WildlifeIntent.HuntPrey)
+                {
+                    actor.SetGrazing();
+                }
+
+                return target;
             }
 
-            return target;
+            Vector2Int fallback = ChoosePredatorPosition(actor, grid);
+            AppendEcologyFallbackReason(actor, reason);
+            return fallback;
         }
 
         return ChoosePredatorPosition(actor, grid);
@@ -434,38 +479,70 @@ internal sealed class WildlifeBehaviorRuntime
 
     private Vector2Int ChooseEcologyOrWanderPosition(WildlifeActor actor, Grid grid)
     {
-        if (ecosystemRuntime != null
-            && ecosystemRuntime.TryChooseEcologyTarget(
+        if (ecosystemRuntime != null)
+        {
+            bool selected = ecosystemRuntime.TryChooseEcologyTarget(
                 actor,
                 grid,
                 wildlife,
                 GetCachedItemStacks(),
                 out Vector2Int target,
                 out WildlifeIntent intent,
-                out string reason))
-        {
-            actor.SetIntent(intent, reason);
-            switch (intent)
+                out string reason);
+            if (selected)
             {
-                case WildlifeIntent.Forage:
-                case WildlifeIntent.Drink:
-                    actor.SetGrazing();
-                    break;
-                case WildlifeIntent.HuntPrey:
-                    actor.SetPredatorStalking();
-                    break;
-                case WildlifeIntent.LeaveMap:
-                    actor.MarkLeaving();
-                    break;
-                default:
-                    actor.SetIdle();
-                    break;
+                actor.SetIntent(intent, reason);
+                switch (intent)
+                {
+                    case WildlifeIntent.Forage:
+                    case WildlifeIntent.Drink:
+                        actor.SetGrazing();
+                        break;
+                    case WildlifeIntent.HuntPrey:
+                        actor.SetPredatorStalking();
+                        break;
+                    case WildlifeIntent.LeaveMap:
+                        actor.MarkLeaving();
+                        break;
+                    default:
+                        actor.SetIdle();
+                        break;
+                }
+
+                return target;
             }
 
-            return target;
+            Vector2Int fallback = ChooseWanderPosition(actor, grid);
+            AppendEcologyFallbackReason(actor, reason);
+            return fallback;
         }
 
         return ChooseWanderPosition(actor, grid);
+    }
+
+    private static void AppendEcologyFallbackReason(
+        WildlifeActor actor,
+        string ecologyReason)
+    {
+        if (actor == null || string.IsNullOrWhiteSpace(ecologyReason))
+        {
+            return;
+        }
+
+        string fallbackReason = actor.IntentReason;
+        if (string.Equals(fallbackReason, ecologyReason, StringComparison.Ordinal)
+            || fallbackReason.EndsWith(
+                $" — {ecologyReason}",
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        actor.SetIntent(
+            actor.Intent,
+            string.IsNullOrWhiteSpace(fallbackReason)
+                ? ecologyReason
+                : $"{fallbackReason} — {ecologyReason}");
     }
 
     private Vector2Int ChooseWanderPosition(WildlifeActor actor, Grid grid)
@@ -783,9 +860,23 @@ internal sealed class WildlifeBehaviorRuntime
 
         return new WildlifeFoodRaidOrderSaveData
         {
+            outcomeSchemaVersion = source.outcomeSchemaVersion,
             raidId = source.raidId,
             wildlifeId = source.wildlifeId,
+            wildlifeSpeciesId = source.wildlifeSpeciesId,
+            wildlifeDisplayName = source.wildlifeDisplayName,
             targetStackId = source.targetStackId,
+            targetItemId = source.targetItemId,
+            targetItemDisplayName = source.targetItemDisplayName,
+            requestedQuantity = source.requestedQuantity,
+            startX = source.startX,
+            startY = source.startY,
+            startedGameTime = source.startedGameTime,
+            startedAbsoluteDay = source.startedAbsoluteDay,
+            endX = source.endX,
+            endY = source.endY,
+            completedGameTime = source.completedGameTime,
+            completedAbsoluteDay = source.completedAbsoluteDay,
             state = source.state,
             stolenQuantity = source.stolenQuantity,
             outcomeReason = source.outcomeReason,
@@ -798,7 +889,12 @@ internal sealed class WildlifeBehaviorRuntime
                 .ToList(),
             dispositionQuantity = source.dispositionQuantity,
             dispositionInputMassGrams = source.dispositionInputMassGrams,
-            dispositionItemId = source.dispositionItemId
+            dispositionOwnerRevision = source.dispositionOwnerRevision,
+            dispositionItemId = source.dispositionItemId,
+            fact = source.fact?.Clone(),
+            publicationKey = source.publicationKey,
+            publicationId = source.publicationId,
+            publicationFingerprint = source.publicationFingerprint
         };
     }
 
@@ -806,7 +902,7 @@ internal sealed class WildlifeBehaviorRuntime
     {
         foreach (WildlifeFoodRaidOrderSaveData order in foodRaidOrders
                      .Where(value => value != null
-                         && value.commitPhase != WildlifeFoodRaidCommitPhase.None)
+                         && WildlifeFoodRaidDispositionOutbox.IsPending(value))
                      .OrderBy(value => value.raidId, StringComparer.Ordinal)
                      .ThenBy(value => value.wildlifeId, StringComparer.Ordinal))
         {

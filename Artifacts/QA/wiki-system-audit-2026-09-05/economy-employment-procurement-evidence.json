@@ -1,0 +1,212 @@
+{
+  "scope": "ECON-001..004 / GAP-127..130",
+  "kind": "static-source-review-and-independent-arithmetic-not-Unity-execution",
+  "head": "c03d2e0a1c68067de48840f3851b388483966a6e",
+  "knowledgeBase": {
+    "status": "stale",
+    "returnedRows": 0,
+    "failures": 2429,
+    "query": "ContractRuntime ShopPrice market economy",
+    "areas": [
+      "code",
+      "content",
+      "authority"
+    ],
+    "contentDigest": "76cce09a76ded556dc74ac400c571e92136f17f86fc3697dfb9eb30dca669871",
+    "systemDigest": "74d85480f35dc5704306579326fa8f38e3bb5841f0dbaab8e697f4be25522a06"
+  },
+  "sources": [
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/GameRuntimeServices.cs",
+      "sha256": "30BF109C349F2BAA74B0D89627D3E59D078522991FE3A2FAB01390189EC55AD5"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/ModularFacilityWorldSaveService.cs",
+      "sha256": "EFF8B8A81429C33EBEB78C5C0BFF9CD114F0AB96F5CA023D769E2963433BDAF3"
+    },
+    {
+      "path": "Assets/Scripts/Views/UI/TreasuryResourceHudController.cs",
+      "sha256": "2365BD3DC23DDD20C0A7AF7E7EFCE71C6FB3028DEEF1FD9BC39D0F53541D3FA4"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/economy-and-trade.md",
+      "sha256": "3FE5812B2505FF397C56430A36418146B10648030051389EA38872DA92977FC6"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/Treasury/EmploymentContractRuntime.cs",
+      "sha256": "ACF10AC3F49357856CEFC2DBEA1BF52C1CF7730E489230FE2E830807B523983A"
+    },
+    {
+      "path": "Assets/Scripts/Services/Operation/OperatingDaySettlementApplicationAdapter.cs",
+      "sha256": "602E434554F900E6D67B1160968DB81FF67BED253E33C07FC3D5C139E36EDBA9"
+    },
+    {
+      "path": "Assets/Scripts/Services/Recruitment/RegularCustomerRuntime.cs",
+      "sha256": "74C3FAE42A295B90077B82AD89031458BBD6458D41C170E9840B644F703F4A43"
+    },
+    {
+      "path": "Assets/Scripts/Views/UI/OperationsFeatureCommandService.cs",
+      "sha256": "7E46AB694C87FD70FC417C70BC45679E92F24E11568F0EACD62244CD80AD9E54"
+    },
+    {
+      "path": "Assets/Resources/SO/Building/Modular/D12_술음료장.asset",
+      "sha256": "DDEE0E8CD9F7D8E1B2A8C95432A583CBCB2BCACF081D0B0CECA266A95D2320A1"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/guests-services-and-performance.md",
+      "sha256": "9409CB979B7F013FA2856A1A194D49E2135CA00D84C3A70AAE2A45F86EEFFA90"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/Treasury/AutoProcurementRuntime.cs",
+      "sha256": "97CBACE45932957402ACAE0CA6025B5ED73F5A43F49DAB97C9464A546BDB1B1C"
+    },
+    {
+      "path": "Assets/Scripts/Services/FacilityShop/DailyFacilityShopRuntime.cs",
+      "sha256": "96C57C4D3D34EEF026C5DF691053779F97CC917F38A50A0B2C56F0F6DE2D3CE3"
+    },
+    {
+      "path": "Assets/Scripts/Views/UI/ShopFeatureSurfacePresenter.cs",
+      "sha256": "8FE2EB5024678F0A8588B755439ED51EF8440343B428216664BD53E972B4510C"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/Treasury/TreasuryEconomyPersistence.cs",
+      "sha256": "2BB06743E3265B8ED0666C7CC9FB5E4448321C54128124984DBF40EB36C2C2A0"
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/WorldItemSpawner.cs",
+      "sha256": "91960F0A90C6CA85F0AA7F270C9B2251868855DB05727F1729CBE2BFA74B6C38"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/RegionalSupplyContractRuntime.cs",
+      "sha256": "D92C5BBB07C95F312A1F03B18B391EF8572A381E3A9A27CF4ABE978612869FEE"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/ResourceEconomyPlanningModels.cs",
+      "sha256": "9E817A93BD927465779D63EBEDCC3E67BDDE646B80275733A29E046FB0257B54"
+    },
+    {
+      "path": "Assets/Scripts/Models/Buildings/Core/StockCategoryCatalog.cs",
+      "sha256": "19816286487F40BDF5CA8626357E30AB2EF1003A5820C36A8FBC4DF1D67FE69B"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/RegionalSupplyContractDeliveryOutbox.cs",
+      "sha256": "5D5E17F2C6DEE750237D589AD43818DCB19D07C60868DFC72112C54AE3041CAE"
+    },
+    {
+      "path": "Assets/Scripts/Services/Economy/Planning/RegionalSupplyContractApplicationAdapter.cs",
+      "sha256": "CA2B3769E19358FEDDFAF449D5F0DA04605467F74B5614B46ACBEC6E2061A7CF"
+    },
+    {
+      "path": "Assets/Scripts/Views/UI/WarehouseFeatureSurfacePresenter.cs",
+      "sha256": "8D6D7627CA6778900342BB85C3493F99571FF392DC0EFDB8BAF93CE65897C730"
+    },
+    {
+      "path": "Assets/Scripts/Views/UI/WarehouseFeatureCommandService.cs",
+      "sha256": "F862AB4F74C1009525933C3118EE5BCB0533F0F75A239766FA0B8F264A02A8F7"
+    },
+    {
+      "path": "wiki/game-versions/0.0.1v/content/guides/factions-contracts-and-prisoners.md",
+      "sha256": "4FDA0736DB9540E03E3E3B60BC67E35609C7CE563EA841B01FCBD34C2453F72A"
+    },
+    {
+      "path": "Assets/Scripts/Models/Economy/Content/BuildingPaidFacilityServiceAbility.cs",
+      "sha256": "0C7DD4327C81DBA7A84552CD93863D6AB2E2DA10CE4DAEC15DA783AD2F999343"
+    },
+    {
+      "path": "Assets/Scripts/Services/Items/WorldItemStackRuntime.cs",
+      "sha256": "7DA29665B1BBE5396861CD3B00C8515CE0A170921326226DE8885A8A42E18A4F"
+    }
+  ],
+  "authoredCensus": {
+    "paidFacilityServiceAbilities": 0,
+    "mercenaryHiringFacilities": 1,
+    "mercenaryRolePremium": 0,
+    "minimumCandidateSatisfaction": 65
+  },
+  "arithmetic": [
+    {
+      "id": "employee-level1",
+      "actual": 32,
+      "expected": 32,
+      "pass": true
+    },
+    {
+      "id": "mercenary-level1",
+      "actual": 64,
+      "expected": 64,
+      "pass": true
+    },
+    {
+      "id": "employee-six-three-days",
+      "actual": 576,
+      "expected": 576,
+      "pass": true
+    },
+    {
+      "id": "protected-budget",
+      "actual": 424,
+      "expected": 424,
+      "pass": true
+    },
+    {
+      "id": "regional-raw",
+      "actual": [
+        36,
+        40,
+        44
+      ],
+      "expected": [
+        36,
+        40,
+        44
+      ],
+      "pass": true
+    },
+    {
+      "id": "regional-intermediate",
+      "actual": [
+        20,
+        22,
+        24
+      ],
+      "expected": [
+        20,
+        22,
+        24
+      ],
+      "pass": true
+    },
+    {
+      "id": "regional-other",
+      "actual": [
+        5,
+        6,
+        7
+      ],
+      "expected": [
+        5,
+        6,
+        7
+      ],
+      "pass": true
+    },
+    {
+      "id": "regional-reward-base",
+      "actual": 120,
+      "expected": 120,
+      "pass": true
+    },
+    {
+      "id": "regional-reward-max",
+      "actual": 150,
+      "expected": 150,
+      "pass": true
+    }
+  ],
+  "limitations": [
+    "Hash records pin sources; they do not mean whole-file reading or runtime execution.",
+    "Independent arithmetic is formula transcription, not C# or PlayMode verification.",
+    "No actual UI interaction, compilation, or save round-trip executed.",
+    "Other economy paths and whole-wiki deduplication remain pending."
+  ]
+}

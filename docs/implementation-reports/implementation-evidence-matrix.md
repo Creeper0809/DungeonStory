@@ -10,11 +10,11 @@
 - 시나리오 있음: 통합 러너에서 호출되는 디버그 시나리오가 존재한다.
 - Unity MCP 통합 검증 통과: Unity MCP에서 `ImplementedScenarioDebugRunner.RunAll(true)`가 성공했고 리포트에 `[PASS]`로 기록됐다.
 
-## P1 캐릭터 AI 계획
+## P1 캐릭터 AI 구조
 
 | 항목 | 구현 보고서 | 디버그 시나리오 | 현재 상태 |
 |---|---|---|---|
-| Behavior Designer + Utility AI + Local LLM 계획 | [plan.md](../game-design/plan.md) | `CharacterAiPlanDebugScenarios` | 문서화됨, 시나리오 있음, Unity MCP 통합 검증 통과 |
+| Behavior Designer + Utility AI 실행 구조 | [캐릭터 AI와 행동 실행](../architecture/systems/01-character-ai-and-behavior.md) | `CharacterAiPlanDebugScenarios` | 현행 구조 문서화됨, 기존 시나리오 증거 보존 |
 
 ## P1 경영 루프
 

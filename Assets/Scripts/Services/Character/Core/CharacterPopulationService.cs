@@ -4,6 +4,7 @@ using System.Linq;
 using DungeonStory.Characters;
 using DungeonStory.Factions;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer;
 
@@ -14,6 +15,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         public readonly WorldCharacterProfile profile;
         public readonly CharacterProgression progression;
         public readonly GameObject previewObject;
+        public Action changedHandler;
 
         public PendingProfilePreparation(
             WorldCharacterProfile profile,
@@ -36,22 +38,14 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         "에린", "카일", "리브", "모라", "유나", "다인", "벨", "레오"
     };
 
-    private static readonly string[] Origins =
-    {
-        "북쪽 항구촌",
-        "안개 낀 구릉",
-        "붉은 구릉",
-        "왕도 변두리",
-        "깊은 숲 마을",
-        "몰락한 공방",
-        "서부 용병 주둔지",
-        "지하 수로 정착지"
-    };
-
     private readonly ICharacterSkillSystemSettingsProvider settingsProvider;
     private readonly IGameContentCatalog content;
     private readonly ICharacterRuntimeProfileFactory runtimeProfileFactory;
     private readonly ICharacterLifePublicationService lifePublication;
+    private readonly IGameplayOutcomeEvidenceUseTransaction skillEvidenceUse;
+    private readonly IDomainFactPublisher facts;
+    private readonly CharacterSkillAcquisitionPublicationRuntime skillAcquisitions;
+    private readonly IGameSessionStateProvider sessionStateProvider;
     private readonly ICharacterSkillGenerationService skillGenerationService;
     private readonly IRunSeedProvider runSeedProvider;
     private readonly IFactionContractQuery factionContracts;
@@ -64,6 +58,10 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
     private readonly List<CharacterTraitSO> traitPool = new();
     private readonly List<CharacterSO> customerTemplates = new();
     private readonly HashSet<string> initializedCaches = new(StringComparer.Ordinal);
+    private CharacterStartingOriginSO[] startingOrigins;
+    private CharacterStartingHistorySO[] startingHistories;
+    private AgeConditionDefinitionSO[] startingAgeConditions;
+    private CharacterSpeciesSO[] startingSpecies;
     [ApplicationAdapterTransientState]
     private bool applyingPreparations;
 
@@ -84,6 +82,10 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         IRunCharacterCatalog characterCatalog,
         ICharacterRuntimeProfileFactory runtimeProfileFactory,
         ICharacterLifePublicationService lifePublication,
+        IGameplayOutcomeEvidenceUseTransaction skillEvidenceUse,
+        IDomainFactPublisher facts,
+        CharacterSkillAcquisitionPublicationRuntime skillAcquisitions,
+        IGameSessionStateProvider sessionStateProvider,
         CharacterMoodPolicyService identityMoods = null)
     {
         this.settingsProvider = settingsProvider
@@ -101,6 +103,13 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             ?? throw new ArgumentNullException(nameof(runtimeProfileFactory));
         this.lifePublication = lifePublication
             ?? throw new ArgumentNullException(nameof(lifePublication));
+        this.skillEvidenceUse = skillEvidenceUse
+            ?? throw new ArgumentNullException(nameof(skillEvidenceUse));
+        this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.skillAcquisitions = skillAcquisitions
+            ?? throw new ArgumentNullException(nameof(skillAcquisitions));
+        this.sessionStateProvider = sessionStateProvider
+            ?? throw new ArgumentNullException(nameof(sessionStateProvider));
         this.identityMoods = identityMoods;
     }
 
@@ -160,7 +169,13 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
 
         NormalizeStanding(profile);
         actor.EnsureRuntimeState();
-        actor.Identity?.SetPersistentId(profile.persistentId);
+        if (!string.Equals(
+                actor.Identity?.PersistentId,
+                profile.persistentId,
+                StringComparison.Ordinal))
+        {
+            actor.Identity?.SetPersistentId(profile.persistentId);
+        }
         actors[actor] = profile;
         profile.isVisiting =
             profile.settlementStanding == CharacterSettlementStanding.Visitor;
@@ -172,7 +187,8 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
                 profile.level,
                 profile.currentExperience,
                 profile.growth,
-                profile.narrative));
+                profile.narrative,
+                profile.acquiredTraits));
         }
         else
         {
@@ -490,6 +506,8 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             growth = growth,
             narrative = snapshot?.NarrativeLedger?.Clone()
                 ?? new CharacterNarrativeLedger(),
+            acquiredTraits = snapshot?.AcquiredTraitState?.Clone()
+                ?? new CharacterAcquiredTraitAggregateState(),
             socialMemory = actor.SocialMemory?.CaptureSnapshot()
                 ?? new CharacterSocialMemorySnapshot()
         };
@@ -685,25 +703,48 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         {
             hideFlags = HideFlags.HideAndDontSave
         };
-        CharacterProgression progression = preview.AddComponent<CharacterProgression>();
-        progression.ConfigurePreview(
-            skillGenerationService,
-            settingsProvider,
-            new CharacterProgressionProfileProjector(
-                content,
-                runtimeProfileFactory));
-        progression.SetPublicSkillNotificationsSuppressed(true);
-        PendingProfilePreparation pending = new(
-            profile,
-            progression,
-            preview);
-        pendingPreparations[profile.persistentId] = pending;
-        progression.Changed += () => HandlePreparationChanged(profile.persistentId);
-        progression.RestorePersistentState(new CharacterProgressionSnapshot(
-            Mathf.Max(1, profile.level),
-            Mathf.Max(0, profile.currentExperience),
-            profile.growth,
-            profile.narrative));
+        preview.SetActive(false);
+        CharacterProgression progression = null;
+        try
+        {
+            // A preview is an unpublished actor, not an ownerless progression.
+            // Use the population identity before restore/generation so request
+            // bindings and skill-use limits retain their strict owner checks.
+            CharacterActor previewActor = preview.AddComponent<CharacterActor>();
+            previewActor.PrepareForComposition();
+            previewActor.EnsureRuntimeState();
+            progression = previewActor.Progression
+                ?? throw new InvalidOperationException(
+                    "Population preview composition did not provide progression.");
+            progression.ConfigurePopulationPreparation(
+                skillGenerationService,
+                settingsProvider,
+                new CharacterProgressionProfileProjector(content, runtimeProfileFactory),
+                skillEvidenceUse, facts, skillAcquisitions, sessionStateProvider);
+            previewActor.Identity.SetData(characterData, runtimeProfileFactory.Create(
+                CharacterSpawnRequest.FromAuthoring(characterData)));
+            previewActor.Identity.SetPersistentId(profile.persistentId);
+            progression.SetPublicSkillNotificationsSuppressed(true);
+            progression.RestorePersistentState(new CharacterProgressionSnapshot(
+                Mathf.Max(1, profile.level), Mathf.Max(0, profile.currentExperience),
+                profile.growth, profile.narrative, profile.acquiredTraits));
+        }
+        catch
+        {
+            // Do not register a failed preview: CaptureProfiles must never copy
+            // its default/partial growth over the original valid profile.
+            try
+            {
+                if (progression != null)
+                    skillGenerationService.CancelRequests(progression);
+            }
+            finally { DestroyPreview(preview); }
+            throw;
+        }
+        PendingProfilePreparation pending = new(profile, progression, preview);
+        pending.changedHandler = () => HandlePreparationChanged(profile.persistentId);
+        pendingPreparations.Add(profile.persistentId, pending);
+        progression.Changed += pending.changedHandler;
         TryCompletePreparation(profile.persistentId);
     }
 
@@ -727,8 +768,9 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         }
 
         pendingPreparations.Remove(persistentId);
-        skillGenerationService.CancelRequests(pending.progression);
-        DestroyPreview(pending.previewObject);
+        pending.progression.Changed -= pending.changedHandler;
+        try { skillGenerationService.CancelRequests(pending.progression); }
+        finally { DestroyPreview(pending.previewObject); }
         EnsurePreparedPool();
     }
 
@@ -744,6 +786,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         pending.profile.currentExperience = snapshot.CurrentExperience;
         pending.profile.growth = snapshot.GrowthState.Clone();
         pending.profile.narrative = snapshot.NarrativeLedger.Clone();
+        pending.profile.acquiredTraits = snapshot.AcquiredTraitState.Clone();
         pending.profile.displayName = pending.profile.growth.displayName;
         pending.profile.origin = pending.profile.growth.origin;
     }
@@ -765,6 +808,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         {
             if (pending.progression != null)
             {
+                pending.progression.Changed -= pending.changedHandler;
                 skillGenerationService.CancelRequests(pending.progression);
             }
 
@@ -788,6 +832,7 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             {
                 if (pending.progression != null)
                 {
+                    pending.progression.Changed -= pending.changedHandler;
                     skillGenerationService.CancelRequests(pending.progression);
                 }
             }
@@ -857,29 +902,72 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
 
     private WorldCharacterProfile CreateProfile(CharacterSO data)
     {
+        if (data == null)
+            throw new ArgumentNullException(nameof(data));
+        EnsureStartingProfileCatalog();
         int runSeed = runSeedProvider.RunSeed;
         string persistentId = population.NextPersistentId(runSeed);
         int creationSerial = population.CreationSerial;
         int seed = CharacterGrowthRules.StableHash(persistentId);
         IRandomStream random = new DeterministicRandomSequence(seed);
         CharacterSkillSystemSettingsSO settings = settingsProvider.Settings;
+        CharacterStartingOriginSO startingOrigin = startingOrigins[
+            random.NextInt(0, startingOrigins.Length)];
+        CharacterStartingHistorySO startingHistory = startingHistories[
+            random.NextInt(0, startingHistories.Length)];
+        CharacterSpeciesSO species = startingSpecies.FirstOrDefault(value =>
+            string.Equals(
+                value.speciesTag,
+                data.SpeciesTag,
+                StringComparison.OrdinalIgnoreCase));
+        if (species?.lifeHistory == null)
+        {
+            throw new InvalidOperationException(
+                $"Population profile requires a life history for '{data.SpeciesTag}'.");
+        }
+        CharacterStartingProfileRoll startingRoll =
+            CharacterStartingProfileRules.Create(
+                CharacterGrowthRules.StableHash(
+                    "population-profile:" + persistentId),
+                new CharacterStartingLifeHistory(
+                    species.lifeHistory.adultAgeYears,
+                    species.lifeHistory.elderAgeYears,
+                    species.lifeHistory.untreatedExpectedLifeYears,
+                    species.lifeHistory.construct),
+                startingOrigin,
+                startingHistory,
+                startingAgeConditions.Select(value =>
+                    new CharacterStartingAgeCondition(
+                        value.conditionId,
+                        value.constructCondition)).ToArray());
+        List<int> traitIds = RollTraits(settings, random, data.SpeciesTag);
+        List<CharacterStartingProficiencyExperience> startingProficiencies =
+            startingRoll.Proficiencies
+                .Select(value => value.Clone())
+                .ToList();
+        CharacterTraitStartingProficiencyRules.Apply(
+            startingProficiencies,
+            traitIds.Select(traitId => traitPool.FirstOrDefault(value =>
+                    value != null && value.id == traitId)
+                ?? throw new InvalidOperationException(
+                    $"Population profile references missing trait {traitId}."))
+                .ToArray(),
+            startingRoll.Profile.proficiencyCap);
         CharacterGrowthState growth = new CharacterGrowthState
         {
             initialized = true,
             autoChooseDrafts = true,
             generationSeed = seed,
             displayName = $"{GivenNames[random.NextInt(0, GivenNames.Length)]} {creationSerial}",
-            origin = $"{data.SpeciesTag} · {Origins[random.NextInt(0, Origins.Length)]}",
+            origin = $"{data.SpeciesTag} · {startingOrigin.displayName} · {startingHistory.displayName}",
+            startingProfile = startingRoll.Profile.Clone(),
             potentialGrade = CharacterGrowthRules.RollPotential(settings, random),
-            startingProficiencies = CharacterStartingProficiencyRules
-                .Create(seed)
-                .Select(value => value.Clone())
-                .ToList(),
+            startingProficiencies = startingProficiencies,
             traitSelectionAuthorityVersion =
                 CharacterGrowthState.CurrentTraitSelectionAuthorityVersion,
             traitSelectionAuthorityOrigin =
                 CharacterTraitSelectionAuthorityOrigin.PopulationGeneration,
-            traitIds = RollTraits(settings, random, data.SpeciesTag)
+            traitIds = traitIds
         };
         growth.EnsureCollections();
         return new WorldCharacterProfile
@@ -890,8 +978,40 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             origin = growth.origin,
             settlementStanding = CharacterSettlementStanding.PreparedCandidate,
             growth = growth,
-            narrative = new CharacterNarrativeLedger()
+            narrative = CharacterProgression
+                .CreatePreparedIdentityNarrativeLedger(startingRoll.Profile),
+            acquiredTraits = new CharacterAcquiredTraitAggregateState()
         };
+    }
+
+    private void EnsureStartingProfileCatalog()
+    {
+        startingOrigins ??= content.GetAll<CharacterStartingOriginSO>()
+            .Where(value => value != null
+                && value.ValidateDefinition().Count == 0)
+            .OrderBy(value => value.originId, StringComparer.Ordinal)
+            .ToArray();
+        startingHistories ??= content.GetAll<CharacterStartingHistorySO>()
+            .Where(value => value != null
+                && value.ValidateDefinition().Count == 0)
+            .OrderBy(value => value.historyId, StringComparer.Ordinal)
+            .ToArray();
+        startingAgeConditions ??= content.GetAll<AgeConditionDefinitionSO>()
+            .Where(value => value != null
+                && value.ValidateDefinition().Count == 0)
+            .OrderBy(value => value.conditionId, StringComparer.Ordinal)
+            .ToArray();
+        startingSpecies ??= content.GetAll<CharacterSpeciesSO>()
+            .Where(value => value != null)
+            .OrderBy(value => value.speciesTag, StringComparer.Ordinal)
+            .ToArray();
+        if (startingOrigins.Length == 0
+            || startingHistories.Length == 0
+            || startingSpecies.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "Population profile requires authored origins, histories and species life histories.");
+        }
     }
 
     private void AddNewProfile(
@@ -941,11 +1061,18 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
             profile.currentExperience = snapshot.CurrentExperience;
             profile.growth = snapshot.GrowthState.Clone();
             profile.narrative = snapshot.NarrativeLedger.Clone();
+            profile.acquiredTraits = snapshot.AcquiredTraitState.Clone();
             profile.displayName = profile.growth.displayName;
             profile.origin = profile.growth.origin;
         }
 
         profile.isAlive = !actor.IsDead;
+        // Alive/visiting are both projections of this bound actor's lifetime.
+        // A dead visitor has no live save owner and must not remain an active
+        // admission. This is not a completed visit: preserve its visit count,
+        // identity and death history rather than releasing/recycling the actor.
+        if (!profile.isAlive && profile.isVisiting)
+            ApplyStanding(profile, CharacterSettlementStanding.PreparedCandidate);
         profile.socialMemory = actor.SocialMemory?.CaptureSnapshot()
             ?? new CharacterSocialMemorySnapshot();
         ApplyStaffRuntimeState(profile, actor);

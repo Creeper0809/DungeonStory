@@ -81,10 +81,15 @@ internal static class AIBrainCandidateCommitter
 
         evaluator.RemoveEvaluation(action);
 
+        // This is the single BT winner's execution preparation, not a candidate
+        // scan. Ordinary scans may have exhausted this frame's budget; use the
+        // broker's bounded, fair continuation allowance so preparation can finish.
+        // Selection and Blackboard.Commit still wait for a valid path/reservation.
         if (action.SetResolvedDestinationWithFailure(
             actor,
             evaluatedDestination,
-            out failure))
+            out failure,
+            GridPathSearchPriority.Urgent))
         {
             return true;
         }

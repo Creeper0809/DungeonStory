@@ -91,7 +91,7 @@ SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-jo
 SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,allowedSpeciesIds.0,beastkin,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
-SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,targetNodeId,,,,explicit-serialized
+SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,targetNodeId,leg:left,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,requiredResearchId,research:medical:prosthetics,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,requiredFacilityTags,12,SurgeryFacilityTag,General Surgery | Sterilization,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,requiredWork,34,,,explicit-serialized
@@ -109,24 +109,25 @@ SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-jo
 SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,effects.0.rid,7737212199327498902,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,references.version,2,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,references.RefIds.0.rid,7737212199327498902,,,explicit-serialized
-SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,references.RefIds.0.type.class,HealSurgicalNodeEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,references.RefIds.0.type.class,InstallSurgicalPartEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,references.RefIds.0.type.ns,,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,references.RefIds.0.type.asm,DungeonStory.Medical,,,explicit-serialized
-SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,references.RefIds.0.data.effectId,HealSurgicalNodeEffect,,,explicit-serialized
-SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,references.RefIds.0.data.health,26,,,explicit-serialized
-SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,references.RefIds.0.data.infectionReduction,10,,,explicit-serialized
+SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,references.RefIds.0.data.effectId,InstallSurgicalPartEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,references.RefIds.0.data.partKind,1,,,explicit-serialized
+SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,references.RefIds.0.data.requiredItemDefinitionId,surgery:prosthetic:leg:left/variant/beastkin-sprint-joint,,,explicit-serialized
+SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,references.RefIds.0.data.efficiency,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,m_Name,procedure_beastkin-tail-reconstruction,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,procedureId,procedure:beastkin-tail-reconstruction,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,displayName,균형 꼬리 재건,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,description,균형 꼬리 재건을(를) 종족 해부 구조에 맞춰 시행한다.,,,explicit-serialized
-SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,kind,13,SurgicalProcedureKind,Species Augmentation,explicit-serialized
+SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,kind,7,SurgicalProcedureKind,Install Prosthetic,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,family,0,MedicalProcedureFamily,Biological,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,allowedSpeciesIds.0,beastkin,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
-SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,targetNodeId,,,,explicit-serialized
+SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,targetNodeId,balance-tail,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,requiredResearchId,research:medical:prosthetics,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,requiredFacilityTags,12,SurgeryFacilityTag,General Surgery | Sterilization,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,requiredWork,34,,,explicit-serialized
@@ -144,12 +145,13 @@ SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-ta
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,effects.0.rid,7737212199327498841,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,references.version,2,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,references.RefIds.0.rid,7737212199327498841,,,explicit-serialized
-SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,references.RefIds.0.type.class,HealSurgicalNodeEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,references.RefIds.0.type.class,InstallSurgicalPartEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,references.RefIds.0.type.ns,,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,references.RefIds.0.type.asm,DungeonStory.Medical,,,explicit-serialized
-SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,references.RefIds.0.data.effectId,HealSurgicalNodeEffect,,,explicit-serialized
-SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,references.RefIds.0.data.health,28,,,explicit-serialized
-SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,references.RefIds.0.data.infectionReduction,10,,,explicit-serialized
+SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,references.RefIds.0.data.effectId,InstallSurgicalPartEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,references.RefIds.0.data.partKind,1,,,explicit-serialized
+SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,references.RefIds.0.data.requiredItemDefinitionId,surgery:prosthetic:balance-tail,,,explicit-serialized
+SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,references.RefIds.0.data.efficiency,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,m_Name,procedure_blood-rejuvenation,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,procedureId,procedure:blood-rejuvenation,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,displayName,혈액 회춘,,,explicit-serialized
@@ -164,6 +166,7 @@ SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,op
 SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,requiredResearchId,research:medical:blood-rejuvenation,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,requiredFacilityTags,8192,SurgeryFacilityTag,Age Treatment,explicit-serialized
+SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,primaryFacilityDefinitionId,8869,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,requiredWork,72,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,difficultyPenalty,0.16,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,baseInfectionRisk,0.02,,,explicit-serialized
@@ -206,19 +209,26 @@ SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,requ
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,requiresRestraintForUnwilling,0,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,allowsLivingSubject,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,allowsCorpseSubject,0,,,explicit-serialized
-SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,allowsWildlife,1,,,explicit-serialized
+SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,allowsWildlife,0,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,materials.0.itemId,medicine:blood-pack,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,materials.0.quantity,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,materials.0.optional,0,,,explicit-serialized
-SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,effects.0.rid,7737212199327498830,,,explicit-serialized
+SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,effects.0.rid,1000,,,explicit-serialized
+SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,effects.1.rid,1001,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,references.version,2,,,explicit-serialized
-SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,references.RefIds.0.rid,7737212199327498830,,,explicit-serialized
+SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,references.RefIds.0.rid,1000,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,references.RefIds.0.type.class,HealSurgicalNodeEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,references.RefIds.0.type.ns,,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,references.RefIds.0.type.asm,DungeonStory.Medical,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,references.RefIds.0.data.effectId,HealSurgicalNodeEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,references.RefIds.0.data.health,14,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,references.RefIds.0.data.infectionReduction,2,,,explicit-serialized
+SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,references.RefIds.1.rid,1001,,,explicit-serialized
+SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,references.RefIds.1.type.class,RecoverBloodLossEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,references.RefIds.1.type.ns,,,,explicit-serialized
+SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,references.RefIds.1.type.asm,DungeonStory.Medical,,,explicit-serialized
+SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,references.RefIds.1.data.effectId,RecoverBloodLossEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,references.RefIds.1.data.amount,25,,,explicit-serialized
 SurgicalProcedureSO|procedure:corpse-organ-extraction,procedure:corpse-organ-extraction,m_Name,procedure_corpse-organ-extraction,,,explicit-serialized
 SurgicalProcedureSO|procedure:corpse-organ-extraction,procedure:corpse-organ-extraction,procedureId,procedure:corpse-organ-extraction,,,explicit-serialized
 SurgicalProcedureSO|procedure:corpse-organ-extraction,procedure:corpse-organ-extraction,displayName,사체 장기 적출,,,explicit-serialized
@@ -264,7 +274,7 @@ SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,allowedAna
 SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,allowedSpeciesIds.0,demon,,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
-SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,targetNodeId,,,,explicit-serialized
+SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,targetNodeId,heat-sac,,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,requiredResearchId,research:medical:mana-core-engineering,,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,requiredFacilityTags,12,SurgeryFacilityTag,General Surgery | Sterilization,explicit-serialized
 SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,requiredWork,34,,,explicit-serialized
@@ -282,17 +292,18 @@ SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,materials.
 SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,effects.0.rid,7737212199327498955,,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,references.version,2,,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,references.RefIds.0.rid,7737212199327498955,,,explicit-serialized
-SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,references.RefIds.0.type.class,HealSurgicalNodeEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,references.RefIds.0.type.class,InstallSurgicalPartEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,references.RefIds.0.type.ns,,,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,references.RefIds.0.type.asm,DungeonStory.Medical,,,explicit-serialized
-SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,references.RefIds.0.data.effectId,HealSurgicalNodeEffect,,,explicit-serialized
-SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,references.RefIds.0.data.health,26,,,explicit-serialized
-SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,references.RefIds.0.data.infectionReduction,10,,,explicit-serialized
+SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,references.RefIds.0.data.effectId,InstallSurgicalPartEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,references.RefIds.0.data.partKind,1,,,explicit-serialized
+SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,references.RefIds.0.data.requiredItemDefinitionId,surgery:prosthetic:heat-sac/variant/demon-heat-sac,,,explicit-serialized
+SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,references.RefIds.0.data.efficiency,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-mana-core-suture,procedure:demon-mana-core-suture,m_Name,procedure_demon-mana-core-suture,,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-mana-core-suture,procedure:demon-mana-core-suture,procedureId,procedure:demon-mana-core-suture,,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-mana-core-suture,procedure:demon-mana-core-suture,displayName,마핵 봉합,,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-mana-core-suture,procedure:demon-mana-core-suture,description,마핵 봉합을(를) 종족 해부 구조에 맞춰 시행한다.,,,explicit-serialized
-SurgicalProcedureSO|procedure:demon-mana-core-suture,procedure:demon-mana-core-suture,kind,13,SurgicalProcedureKind,Species Augmentation,explicit-serialized
+SurgicalProcedureSO|procedure:demon-mana-core-suture,procedure:demon-mana-core-suture,kind,12,SurgicalProcedureKind,Species Stabilization,explicit-serialized
 SurgicalProcedureSO|procedure:demon-mana-core-suture,procedure:demon-mana-core-suture,family,6,MedicalProcedureFamily,Demonic,explicit-serialized
 SurgicalProcedureSO|procedure:demon-mana-core-suture,procedure:demon-mana-core-suture,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:demon-mana-core-suture,procedure:demon-mana-core-suture,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
@@ -349,15 +360,21 @@ SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,allows
 SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,materials.0.itemId,medicine:standard,,,explicit-serialized
 SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,materials.0.quantity,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,materials.0.optional,0,,,explicit-serialized
-SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,effects.0.rid,7737212199327498828,,,explicit-serialized
+SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,effects.0.rid,1000,,,explicit-serialized
+SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,effects.1.rid,1001,,,explicit-serialized
 SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,references.version,2,,,explicit-serialized
-SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,references.RefIds.0.rid,7737212199327498828,,,explicit-serialized
+SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,references.RefIds.0.rid,1000,,,explicit-serialized
 SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,references.RefIds.0.type.class,HealSurgicalNodeEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,references.RefIds.0.type.ns,,,,explicit-serialized
 SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,references.RefIds.0.type.asm,DungeonStory.Medical,,,explicit-serialized
 SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,references.RefIds.0.data.effectId,HealSurgicalNodeEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,references.RefIds.0.data.health,8,,,explicit-serialized
 SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,references.RefIds.0.data.infectionReduction,8,,,explicit-serialized
+SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,references.RefIds.1.rid,1001,,,explicit-serialized
+SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,references.RefIds.1.type.class,StopSurgicalNodeBleedingEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,references.RefIds.1.type.ns,,,,explicit-serialized
+SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,references.RefIds.1.type.asm,DungeonStory.Medical,,,explicit-serialized
+SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,references.RefIds.1.data.effectId,StopSurgicalNodeBleedingEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:foreign-body-removal,procedure:foreign-body-removal,m_Name,procedure_foreign-body-removal,,,explicit-serialized
 SurgicalProcedureSO|procedure:foreign-body-removal,procedure:foreign-body-removal,procedureId,procedure:foreign-body-removal,,,explicit-serialized
 SurgicalProcedureSO|procedure:foreign-body-removal,procedure:foreign-body-removal,displayName,이물 제거,,,explicit-serialized
@@ -607,14 +624,14 @@ SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-reg
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,procedureId,procedure:harpy-feather-regrowth,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,displayName,깃축 재생,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,description,깃축 재생을(를) 종족 해부 구조에 맞춰 시행한다.,,,explicit-serialized
-SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,kind,12,SurgicalProcedureKind,Species Stabilization,explicit-serialized
+SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,kind,7,SurgicalProcedureKind,Install Prosthetic,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,family,3,MedicalProcedureFamily,Avian,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,allowedAnatomyFamilies.0,avian,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,allowedSpeciesIds.0,harpy,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
-SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,targetNodeId,,,,explicit-serialized
+SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,targetNodeId,wing:left,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,requiredResearchId,research:medical:avian-prosthetics,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,requiredFacilityTags,12,SurgeryFacilityTag,General Surgery | Sterilization,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,requiredWork,34,,,explicit-serialized
@@ -632,24 +649,25 @@ SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-reg
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,effects.0.rid,7737212199327498824,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,references.version,2,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,references.RefIds.0.rid,7737212199327498824,,,explicit-serialized
-SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,references.RefIds.0.type.class,HealSurgicalNodeEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,references.RefIds.0.type.class,InstallSurgicalPartEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,references.RefIds.0.type.ns,,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,references.RefIds.0.type.asm,DungeonStory.Medical,,,explicit-serialized
-SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,references.RefIds.0.data.effectId,HealSurgicalNodeEffect,,,explicit-serialized
-SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,references.RefIds.0.data.health,20,,,explicit-serialized
-SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,references.RefIds.0.data.infectionReduction,10,,,explicit-serialized
+SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,references.RefIds.0.data.effectId,InstallSurgicalPartEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,references.RefIds.0.data.partKind,1,,,explicit-serialized
+SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,references.RefIds.0.data.requiredItemDefinitionId,surgery:prosthetic:wing:left,,,explicit-serialized
+SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,references.RefIds.0.data.efficiency,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,m_Name,procedure_harpy-tail-graft,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,procedureId,procedure:harpy-tail-graft,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,displayName,평형 꼬리깃 이식,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,description,평형 꼬리깃 이식을(를) 종족 해부 구조에 맞춰 시행한다.,,,explicit-serialized
-SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,kind,12,SurgicalProcedureKind,Species Stabilization,explicit-serialized
+SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,kind,6,SurgicalProcedureKind,Transplant Organ,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,family,3,MedicalProcedureFamily,Avian,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,allowedAnatomyFamilies.0,avian,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,allowedSpeciesIds.0,harpy,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
-SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,targetNodeId,,,,explicit-serialized
+SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,targetNodeId,balance-tail,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,requiredResearchId,research:medical:avian-prosthetics,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,requiredFacilityTags,12,SurgeryFacilityTag,General Surgery | Sterilization,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,requiredWork,34,,,explicit-serialized
@@ -667,12 +685,13 @@ SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,materi
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,effects.0.rid,7737212199327498860,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,references.version,2,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,references.RefIds.0.rid,7737212199327498860,,,explicit-serialized
-SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,references.RefIds.0.type.class,HealSurgicalNodeEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,references.RefIds.0.type.class,InstallSurgicalPartEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,references.RefIds.0.type.ns,,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,references.RefIds.0.type.asm,DungeonStory.Medical,,,explicit-serialized
-SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,references.RefIds.0.data.effectId,HealSurgicalNodeEffect,,,explicit-serialized
-SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,references.RefIds.0.data.health,28,,,explicit-serialized
-SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,references.RefIds.0.data.infectionReduction,8,,,explicit-serialized
+SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,references.RefIds.0.data.effectId,InstallSurgicalPartEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,references.RefIds.0.data.partKind,1,,,explicit-serialized
+SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,references.RefIds.0.data.requiredItemDefinitionId,surgery:prosthetic:balance-tail,,,explicit-serialized
+SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,references.RefIds.0.data.efficiency,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-wing-fixation,procedure:harpy-wing-fixation,m_Name,procedure_harpy-wing-fixation,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-wing-fixation,procedure:harpy-wing-fixation,procedureId,procedure:harpy-wing-fixation,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-wing-fixation,procedure:harpy-wing-fixation,displayName,날개 고정,,,explicit-serialized
@@ -719,7 +738,7 @@ SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,
 SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,allowedSpeciesIds.0,human,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
-SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,targetNodeId,,,,explicit-serialized
+SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,targetNodeId,brain,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,requiredResearchId,research:medical:prosthetics,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,requiredFacilityTags,12,SurgeryFacilityTag,General Surgery | Sterilization,explicit-serialized
 SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,requiredWork,34,,,explicit-serialized
@@ -737,24 +756,25 @@ SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,
 SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,effects.0.rid,7737212199327498861,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,references.version,2,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,references.RefIds.0.rid,7737212199327498861,,,explicit-serialized
-SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,references.RefIds.0.type.class,HealSurgicalNodeEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,references.RefIds.0.type.class,InstallSurgicalPartEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,references.RefIds.0.type.ns,,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,references.RefIds.0.type.asm,DungeonStory.Medical,,,explicit-serialized
-SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,references.RefIds.0.data.effectId,HealSurgicalNodeEffect,,,explicit-serialized
-SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,references.RefIds.0.data.health,26,,,explicit-serialized
-SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,references.RefIds.0.data.infectionReduction,10,,,explicit-serialized
+SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,references.RefIds.0.data.effectId,InstallSurgicalPartEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,references.RefIds.0.data.partKind,1,,,explicit-serialized
+SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,references.RefIds.0.data.requiredItemDefinitionId,surgery:prosthetic:brain/variant/human-neural-assist,,,explicit-serialized
+SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,references.RefIds.0.data.efficiency,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,m_Name,procedure_human-precision-prosthetic,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,procedureId,procedure:human-precision-prosthetic,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,displayName,정밀 보철 조율,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,description,정밀 보철 조율을(를) 종족 해부 구조에 맞춰 시행한다.,,,explicit-serialized
-SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,kind,13,SurgicalProcedureKind,Species Augmentation,explicit-serialized
+SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,kind,7,SurgicalProcedureKind,Install Prosthetic,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,family,0,MedicalProcedureFamily,Biological,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,allowedSpeciesIds.0,human,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
-SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,targetNodeId,,,,explicit-serialized
+SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,targetNodeId,arm:left,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,requiredResearchId,research:medical:prosthetics,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,requiredFacilityTags,12,SurgeryFacilityTag,General Surgery | Sterilization,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,requiredWork,34,,,explicit-serialized
@@ -772,12 +792,13 @@ SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precisi
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,effects.0.rid,7737212199327498826,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,references.version,2,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,references.RefIds.0.rid,7737212199327498826,,,explicit-serialized
-SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,references.RefIds.0.type.class,HealSurgicalNodeEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,references.RefIds.0.type.class,InstallSurgicalPartEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,references.RefIds.0.type.ns,,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,references.RefIds.0.type.asm,DungeonStory.Medical,,,explicit-serialized
-SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,references.RefIds.0.data.effectId,HealSurgicalNodeEffect,,,explicit-serialized
-SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,references.RefIds.0.data.health,28,,,explicit-serialized
-SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,references.RefIds.0.data.infectionReduction,10,,,explicit-serialized
+SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,references.RefIds.0.data.effectId,InstallSurgicalPartEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,references.RefIds.0.data.partKind,1,,,explicit-serialized
+SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,references.RefIds.0.data.requiredItemDefinitionId,surgery:prosthetic:arm:left,,,explicit-serialized
+SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,references.RefIds.0.data.efficiency,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:implant-installation,procedure:implant-installation,m_Name,procedure_implant-installation,,,explicit-serialized
 SurgicalProcedureSO|procedure:implant-installation,procedure:implant-installation,procedureId,procedure:implant-installation,,,explicit-serialized
 SurgicalProcedureSO|procedure:implant-installation,procedure:implant-installation,displayName,인공 안구 설치,,,explicit-serialized
@@ -820,14 +841,14 @@ SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-h
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,procedureId,procedure:kobold-precision-hand,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,displayName,정밀 손 보철,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,description,정밀 손 보철을(를) 종족 해부 구조에 맞춰 시행한다.,,,explicit-serialized
-SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,kind,13,SurgicalProcedureKind,Species Augmentation,explicit-serialized
+SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,kind,6,SurgicalProcedureKind,Transplant Organ,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,family,0,MedicalProcedureFamily,Biological,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,allowedSpeciesIds.0,kobold,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
-SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,targetNodeId,,,,explicit-serialized
+SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,targetNodeId,hand:left,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,requiredResearchId,research:medical:prosthetics,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,requiredFacilityTags,12,SurgeryFacilityTag,General Surgery | Sterilization,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,requiredWork,34,,,explicit-serialized
@@ -845,12 +866,13 @@ SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-h
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,effects.0.rid,7737212199327498903,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,references.version,2,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,references.RefIds.0.rid,7737212199327498903,,,explicit-serialized
-SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,references.RefIds.0.type.class,HealSurgicalNodeEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,references.RefIds.0.type.class,InstallSurgicalPartEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,references.RefIds.0.type.ns,,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,references.RefIds.0.type.asm,DungeonStory.Medical,,,explicit-serialized
-SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,references.RefIds.0.data.effectId,HealSurgicalNodeEffect,,,explicit-serialized
-SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,references.RefIds.0.data.health,24,,,explicit-serialized
-SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,references.RefIds.0.data.infectionReduction,10,,,explicit-serialized
+SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,references.RefIds.0.data.effectId,InstallSurgicalPartEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,references.RefIds.0.data.partKind,1,,,explicit-serialized
+SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,references.RefIds.0.data.requiredItemDefinitionId,surgery:prosthetic:hand:left,,,explicit-serialized
+SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,references.RefIds.0.data.efficiency,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,m_Name,procedure_kobold-tail-balance,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,procedureId,procedure:kobold-tail-balance,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,displayName,꼬리 평형 보강,,,explicit-serialized
@@ -862,7 +884,7 @@ SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,allowedSpeciesIds.0,kobold,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
-SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,targetNodeId,,,,explicit-serialized
+SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,targetNodeId,balance-tail,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,requiredResearchId,research:medical:prosthetics,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,requiredFacilityTags,12,SurgeryFacilityTag,General Surgery | Sterilization,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,requiredWork,34,,,explicit-serialized
@@ -880,12 +902,13 @@ SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,effects.0.rid,7737212199327498921,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,references.version,2,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,references.RefIds.0.rid,7737212199327498921,,,explicit-serialized
-SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,references.RefIds.0.type.class,HealSurgicalNodeEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,references.RefIds.0.type.class,InstallSurgicalPartEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,references.RefIds.0.type.ns,,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,references.RefIds.0.type.asm,DungeonStory.Medical,,,explicit-serialized
-SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,references.RefIds.0.data.effectId,HealSurgicalNodeEffect,,,explicit-serialized
-SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,references.RefIds.0.data.health,22,,,explicit-serialized
-SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,references.RefIds.0.data.infectionReduction,10,,,explicit-serialized
+SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,references.RefIds.0.data.effectId,InstallSurgicalPartEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,references.RefIds.0.data.partKind,1,,,explicit-serialized
+SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,references.RefIds.0.data.requiredItemDefinitionId,surgery:prosthetic:balance-tail/variant/kobold-tail-balance,,,explicit-serialized
+SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,references.RefIds.0.data.efficiency,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:live-organ-extraction,procedure:live-organ-extraction,m_Name,procedure_live-organ-extraction,,,explicit-serialized
 SurgicalProcedureSO|procedure:live-organ-extraction,procedure:live-organ-extraction,procedureId,procedure:live-organ-extraction,,,explicit-serialized
 SurgicalProcedureSO|procedure:live-organ-extraction,procedure:live-organ-extraction,displayName,생체 장기 적출,,,explicit-serialized
@@ -927,14 +950,14 @@ SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,m_
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,procedureId,procedure:myconid-core-graft,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,displayName,균핵 접목,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,description,균핵 접목을(를) 종족 해부 구조에 맞춰 시행한다.,,,explicit-serialized
-SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,kind,12,SurgicalProcedureKind,Species Stabilization,explicit-serialized
+SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,kind,6,SurgicalProcedureKind,Transplant Organ,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,family,2,MedicalProcedureFamily,Myconid,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,allowedAnatomyFamilies.0,fungal,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,allowedSpeciesIds.0,myconid,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
-SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,targetNodeId,,,,explicit-serialized
+SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,targetNodeId,hypha-core,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,requiredResearchId,research:medical:mycelial-grafting,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,requiredFacilityTags,12,SurgeryFacilityTag,General Surgery | Sterilization,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,requiredWork,34,,,explicit-serialized
@@ -952,12 +975,13 @@ SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,ma
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,effects.0.rid,7737212199327498985,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,references.version,2,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,references.RefIds.0.rid,7737212199327498985,,,explicit-serialized
-SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,references.RefIds.0.type.class,HealSurgicalNodeEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,references.RefIds.0.type.class,InstallSurgicalPartEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,references.RefIds.0.type.ns,,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,references.RefIds.0.type.asm,DungeonStory.Medical,,,explicit-serialized
-SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,references.RefIds.0.data.effectId,HealSurgicalNodeEffect,,,explicit-serialized
-SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,references.RefIds.0.data.health,32,,,explicit-serialized
-SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,references.RefIds.0.data.infectionReduction,12,,,explicit-serialized
+SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,references.RefIds.0.data.effectId,InstallSurgicalPartEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,references.RefIds.0.data.partKind,1,,,explicit-serialized
+SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,references.RefIds.0.data.requiredItemDefinitionId,surgery:prosthetic:hypha-core,,,explicit-serialized
+SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,references.RefIds.0.data.efficiency,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-hypha-binding,procedure:myconid-hypha-binding,m_Name,procedure_myconid-hypha-binding,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-hypha-binding,procedure:myconid-hypha-binding,procedureId,procedure:myconid-hypha-binding,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-hypha-binding,procedure:myconid-hypha-binding,displayName,균사 결속,,,explicit-serialized
@@ -997,14 +1021,14 @@ SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,m_Name
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,procedureId,procedure:myconid-regrowth,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,displayName,균사 재배양,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,description,균사 재배양을(를) 종족 해부 구조에 맞춰 시행한다.,,,explicit-serialized
-SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,kind,12,SurgicalProcedureKind,Species Stabilization,explicit-serialized
+SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,kind,7,SurgicalProcedureKind,Install Prosthetic,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,family,2,MedicalProcedureFamily,Myconid,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,allowedAnatomyFamilies.0,fungal,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,allowedSpeciesIds.0,myconid,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
-SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,targetNodeId,,,,explicit-serialized
+SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,targetNodeId,arm:left,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,requiredResearchId,research:medical:mycelial-grafting,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,requiredFacilityTags,12,SurgeryFacilityTag,General Surgery | Sterilization,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,requiredWork,34,,,explicit-serialized
@@ -1022,12 +1046,13 @@ SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,materi
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,effects.0.rid,7737212199327498843,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,references.version,2,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,references.RefIds.0.rid,7737212199327498843,,,explicit-serialized
-SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,references.RefIds.0.type.class,HealSurgicalNodeEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,references.RefIds.0.type.class,InstallSurgicalPartEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,references.RefIds.0.type.ns,,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,references.RefIds.0.type.asm,DungeonStory.Medical,,,explicit-serialized
-SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,references.RefIds.0.data.effectId,HealSurgicalNodeEffect,,,explicit-serialized
-SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,references.RefIds.0.data.health,36,,,explicit-serialized
-SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,references.RefIds.0.data.infectionReduction,14,,,explicit-serialized
+SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,references.RefIds.0.data.effectId,InstallSurgicalPartEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,references.RefIds.0.data.partKind,1,,,explicit-serialized
+SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,references.RefIds.0.data.requiredItemDefinitionId,surgery:prosthetic:arm:left,,,explicit-serialized
+SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,references.RefIds.0.data.efficiency,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-spore-cleaning,procedure:myconid-spore-cleaning,m_Name,procedure_myconid-spore-cleaning,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-spore-cleaning,procedure:myconid-spore-cleaning,procedureId,procedure:myconid-spore-cleaning,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-spore-cleaning,procedure:myconid-spore-cleaning,displayName,포자낭 세정,,,explicit-serialized
@@ -1121,7 +1146,7 @@ SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,allowe
 SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,allowedSpeciesIds.0,orc,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
-SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,targetNodeId,,,,explicit-serialized
+SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,targetNodeId,heart,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,requiredResearchId,research:medical:surgery,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,requiredFacilityTags,12,SurgeryFacilityTag,General Surgery | Sterilization,explicit-serialized
 SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,requiredWork,34,,,explicit-serialized
@@ -1139,12 +1164,13 @@ SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,materi
 SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,effects.0.rid,7737212199327498847,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,references.version,2,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,references.RefIds.0.rid,7737212199327498847,,,explicit-serialized
-SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,references.RefIds.0.type.class,HealSurgicalNodeEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,references.RefIds.0.type.class,InstallSurgicalPartEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,references.RefIds.0.type.ns,,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,references.RefIds.0.type.asm,DungeonStory.Medical,,,explicit-serialized
-SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,references.RefIds.0.data.effectId,HealSurgicalNodeEffect,,,explicit-serialized
-SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,references.RefIds.0.data.health,30,,,explicit-serialized
-SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,references.RefIds.0.data.infectionReduction,10,,,explicit-serialized
+SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,references.RefIds.0.data.effectId,InstallSurgicalPartEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,references.RefIds.0.data.partKind,1,,,explicit-serialized
+SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,references.RefIds.0.data.requiredItemDefinitionId,surgery:prosthetic:heart/variant/orc-combat-heart,,,explicit-serialized
+SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,references.RefIds.0.data.efficiency,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,m_Name,procedure_orc-skeletal-reinforcement,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,procedureId,procedure:orc-skeletal-reinforcement,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,displayName,골격 보강,,,explicit-serialized
@@ -1156,7 +1182,7 @@ SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,allowedSpeciesIds.0,orc,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
-SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,targetNodeId,,,,explicit-serialized
+SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,targetNodeId,torso,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,requiredResearchId,research:medical:surgery,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,requiredFacilityTags,12,SurgeryFacilityTag,General Surgery | Sterilization,explicit-serialized
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,requiredWork,34,,,explicit-serialized
@@ -1174,12 +1200,13 @@ SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,effects.0.rid,7737212199327498822,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,references.version,2,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,references.RefIds.0.rid,7737212199327498822,,,explicit-serialized
-SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,references.RefIds.0.type.class,HealSurgicalNodeEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,references.RefIds.0.type.class,InstallSurgicalPartEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,references.RefIds.0.type.ns,,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,references.RefIds.0.type.asm,DungeonStory.Medical,,,explicit-serialized
-SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,references.RefIds.0.data.effectId,HealSurgicalNodeEffect,,,explicit-serialized
-SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,references.RefIds.0.data.health,28,,,explicit-serialized
-SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,references.RefIds.0.data.infectionReduction,10,,,explicit-serialized
+SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,references.RefIds.0.data.effectId,InstallSurgicalPartEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,references.RefIds.0.data.partKind,1,,,explicit-serialized
+SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,references.RefIds.0.data.requiredItemDefinitionId,surgery:prosthetic:torso,,,explicit-serialized
+SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,references.RefIds.0.data.efficiency,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,m_Name,procedure_organ-regeneration,,,explicit-serialized
 SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,procedureId,procedure:organ-regeneration,,,explicit-serialized
 SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,displayName,장기 재생,,,explicit-serialized
@@ -1194,6 +1221,7 @@ SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,op
 SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,requiredResearchId,research:medical:organ-regeneration,,,explicit-serialized
 SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,requiredFacilityTags,8192,SurgeryFacilityTag,Age Treatment,explicit-serialized
+SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,primaryFacilityDefinitionId,8868,,,explicit-serialized
 SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,requiredWork,96,,,explicit-serialized
 SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,difficultyPenalty,0.16,,,explicit-serialized
 SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,baseInfectionRisk,0.1,,,explicit-serialized
@@ -1348,6 +1376,7 @@ SurgicalProcedureSO|procedure:rune-hibernation,procedure:rune-hibernation,operat
 SurgicalProcedureSO|procedure:rune-hibernation,procedure:rune-hibernation,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:rune-hibernation,procedure:rune-hibernation,requiredResearchId,research:medical:rune-hibernation,,,explicit-serialized
 SurgicalProcedureSO|procedure:rune-hibernation,procedure:rune-hibernation,requiredFacilityTags,8192,SurgeryFacilityTag,Age Treatment,explicit-serialized
+SurgicalProcedureSO|procedure:rune-hibernation,procedure:rune-hibernation,primaryFacilityDefinitionId,8870,,,explicit-serialized
 SurgicalProcedureSO|procedure:rune-hibernation,procedure:rune-hibernation,requiredWork,64,,,explicit-serialized
 SurgicalProcedureSO|procedure:rune-hibernation,procedure:rune-hibernation,difficultyPenalty,0.16,,,explicit-serialized
 SurgicalProcedureSO|procedure:rune-hibernation,procedure:rune-hibernation,baseInfectionRisk,0.02,,,explicit-serialized
@@ -1442,14 +1471,14 @@ SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,procedureId,procedure:slime-pseudopod-reshape,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,displayName,위족 재성형,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,description,위족 재성형을(를) 종족 해부 구조에 맞춰 시행한다.,,,explicit-serialized
-SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,kind,12,SurgicalProcedureKind,Species Stabilization,explicit-serialized
+SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,kind,7,SurgicalProcedureKind,Install Prosthetic,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,family,1,MedicalProcedureFamily,Slime,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,allowedAnatomyFamilies.0,slime,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,allowedSpeciesIds.0,slime,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
-SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,targetNodeId,,,,explicit-serialized
+SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,targetNodeId,pseudopods,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,requiredResearchId,research:medical:slime-bioengineering,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,requiredFacilityTags,12,SurgeryFacilityTag,General Surgery | Sterilization,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,requiredWork,34,,,explicit-serialized
@@ -1467,12 +1496,13 @@ SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,effects.0.rid,7737212199327498825,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,references.version,2,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,references.RefIds.0.rid,7737212199327498825,,,explicit-serialized
-SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,references.RefIds.0.type.class,HealSurgicalNodeEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,references.RefIds.0.type.class,InstallSurgicalPartEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,references.RefIds.0.type.ns,,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,references.RefIds.0.type.asm,DungeonStory.Medical,,,explicit-serialized
-SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,references.RefIds.0.data.effectId,HealSurgicalNodeEffect,,,explicit-serialized
-SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,references.RefIds.0.data.health,30,,,explicit-serialized
-SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,references.RefIds.0.data.infectionReduction,10,,,explicit-serialized
+SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,references.RefIds.0.data.effectId,InstallSurgicalPartEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,references.RefIds.0.data.partKind,1,,,explicit-serialized
+SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,references.RefIds.0.data.requiredItemDefinitionId,surgery:prosthetic:pseudopods,,,explicit-serialized
+SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,references.RefIds.0.data.efficiency,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-replenishment,procedure:slime-replenishment,m_Name,procedure_slime-replenishment,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-replenishment,procedure:slime-replenishment,procedureId,procedure:slime-replenishment,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-replenishment,procedure:slime-replenishment,displayName,점액 보충,,,explicit-serialized
@@ -1522,6 +1552,7 @@ SurgicalProcedureSO|procedure:temporal-stasis,procedure:temporal-stasis,operator
 SurgicalProcedureSO|procedure:temporal-stasis,procedure:temporal-stasis,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:temporal-stasis,procedure:temporal-stasis,requiredResearchId,research:medical:temporal-stasis,,,explicit-serialized
 SurgicalProcedureSO|procedure:temporal-stasis,procedure:temporal-stasis,requiredFacilityTags,8192,SurgeryFacilityTag,Age Treatment,explicit-serialized
+SurgicalProcedureSO|procedure:temporal-stasis,procedure:temporal-stasis,primaryFacilityDefinitionId,8872,,,explicit-serialized
 SurgicalProcedureSO|procedure:temporal-stasis,procedure:temporal-stasis,requiredWork,140,,,explicit-serialized
 SurgicalProcedureSO|procedure:temporal-stasis,procedure:temporal-stasis,difficultyPenalty,0.16,,,explicit-serialized
 SurgicalProcedureSO|procedure:temporal-stasis,procedure:temporal-stasis,baseInfectionRisk,0.02,,,explicit-serialized
@@ -1546,7 +1577,7 @@ SurgicalProcedureSO|procedure:vampire-blood-sac,procedure:vampire-blood-sac,m_Na
 SurgicalProcedureSO|procedure:vampire-blood-sac,procedure:vampire-blood-sac,procedureId,procedure:vampire-blood-sac,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-blood-sac,procedure:vampire-blood-sac,displayName,혈액낭 처치,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-blood-sac,procedure:vampire-blood-sac,description,혈액낭 처치을(를) 종족 해부 구조에 맞춰 시행한다.,,,explicit-serialized
-SurgicalProcedureSO|procedure:vampire-blood-sac,procedure:vampire-blood-sac,kind,13,SurgicalProcedureKind,Species Augmentation,explicit-serialized
+SurgicalProcedureSO|procedure:vampire-blood-sac,procedure:vampire-blood-sac,kind,12,SurgicalProcedureKind,Species Stabilization,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-blood-sac,procedure:vampire-blood-sac,family,5,MedicalProcedureFamily,Vampiric,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-blood-sac,procedure:vampire-blood-sac,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-blood-sac,procedure:vampire-blood-sac,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
@@ -1581,14 +1612,14 @@ SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,m_Na
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,procedureId,procedure:vampire-night-eye,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,displayName,야간안 이식,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,description,야간안 이식을(를) 종족 해부 구조에 맞춰 시행한다.,,,explicit-serialized
-SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,kind,13,SurgicalProcedureKind,Species Augmentation,explicit-serialized
+SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,kind,6,SurgicalProcedureKind,Transplant Organ,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,family,5,MedicalProcedureFamily,Vampiric,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,allowedSpeciesIds.0,vampire,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
-SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,targetNodeId,,,,explicit-serialized
+SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,targetNodeId,night-eye:left,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,requiredResearchId,research:medical:bloodcraft-augmentation,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,requiredFacilityTags,12,SurgeryFacilityTag,General Surgery | Sterilization,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,requiredWork,34,,,explicit-serialized
@@ -1606,12 +1637,13 @@ SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,mate
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,effects.0.rid,7737212199327498833,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,references.version,2,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,references.RefIds.0.rid,7737212199327498833,,,explicit-serialized
-SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,references.RefIds.0.type.class,HealSurgicalNodeEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,references.RefIds.0.type.class,InstallSurgicalPartEffect,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,references.RefIds.0.type.ns,,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,references.RefIds.0.type.asm,DungeonStory.Medical,,,explicit-serialized
-SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,references.RefIds.0.data.effectId,HealSurgicalNodeEffect,,,explicit-serialized
-SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,references.RefIds.0.data.health,24,,,explicit-serialized
-SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,references.RefIds.0.data.infectionReduction,10,,,explicit-serialized
+SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,references.RefIds.0.data.effectId,InstallSurgicalPartEffect,,,explicit-serialized
+SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,references.RefIds.0.data.partKind,1,,,explicit-serialized
+SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,references.RefIds.0.data.requiredItemDefinitionId,surgery:prosthetic:night-eye:left,,,explicit-serialized
+SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,references.RefIds.0.data.efficiency,1,,,explicit-serialized
 SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regeneration,m_Name,procedure_whole-body-regeneration,,,explicit-serialized
 SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regeneration,procedureId,procedure:whole-body-regeneration,,,explicit-serialized
 SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regeneration,displayName,전신 재생,,,explicit-serialized
@@ -1626,6 +1658,7 @@ SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regen
 SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regeneration,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regeneration,requiredResearchId,research:medical:whole-body-regeneration,,,explicit-serialized
 SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regeneration,requiredFacilityTags,8192,SurgeryFacilityTag,Age Treatment,explicit-serialized
+SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regeneration,primaryFacilityDefinitionId,8871,,,explicit-serialized
 SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regeneration,requiredWork,180,,,explicit-serialized
 SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regeneration,difficultyPenalty,0.16,,,explicit-serialized
 SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regeneration,baseInfectionRisk,0.1,,,explicit-serialized

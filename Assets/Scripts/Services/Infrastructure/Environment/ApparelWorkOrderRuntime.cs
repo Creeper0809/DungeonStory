@@ -3,290 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
 using UnityEngine;
-
-public enum ApparelWorkOrderKind
-{
-    Craft = 0,
-    Laundry = 1,
-    Drying = 2,
-    Repair = 3,
-    Alteration = 4
-}
-
-public enum ApparelWorkOrderState
-{
-    NeedsRevalidation = 0,
-    WaitingForMaterials = 1,
-    Ready = 2,
-    InProgress = 3,
-    Completed = 4,
-    Failed = 5,
-    WaitingForOutputSpace = 6,
-    WaitingForEligibleWorker = 7,
-    TargetCurrentlyUnreachable = 8,
-    WaitingForDispositionFinalization = 9
-}
-
-public enum ApparelRepairCommitPhase
-{
-    None = 0,
-    MaterialCommitted = 1,
-    RepairApplied = 2
-}
-
-[Serializable]
-public sealed class ApparelWorkOrderSaveData
-{
-    public string orderId = string.Empty;
-    public ApparelWorkOrderKind kind;
-    public ApparelWorkOrderState state;
-    public string apparelDefinitionId = string.Empty;
-    public string materialDefinitionId = string.Empty;
-    public ApparelMaterialSelectionPolicy materialPolicy;
-    public CraftsmanshipQualityTier minimumCraftsmanshipQuality;
-    public WorkerSelectionPolicySaveData workerPolicy =
-        WorkerSelectionPolicySaveData.Anyone(
-            WorkerCandidateSortMode.BestExpectedQuality);
-    public List<CraftContributionSaveData> contributions = new();
-    public string lastWorkerCharacterId = string.Empty;
-    public CraftQualityRollSaveData qualityRoll;
-    public int qualityAttemptIndex;
-    public RejectedOutputDisposition rejectedDisposition =
-        RejectedOutputDisposition.AutoDismantle;
-    public QualityRepeatLimitMode repeatLimitMode =
-        QualityRepeatLimitMode.SafeLimits;
-    public int maximumAttempts = 10;
-    public float workBudget;
-    public float consumedWork;
-    public int requiredAcceptedCount = 1;
-    public int acceptedCount;
-    public bool dismantlingRejectedOutput;
-    public bool rejectedOutputConsumed;
-    public string rejectedOutputStackId = string.Empty;
-    public string rejectedOutputInstanceId = string.Empty;
-    public float craftWorkPerAttempt;
-    public int rejectedMaterialAmount;
-    public int rejectedMaterialSpawned;
-    public string rejectedRecoveryItemId = string.Empty;
-    public string rejectedDismantleOperationId = string.Empty;
-    public string rejectedDismantleCommitId = string.Empty;
-    public string rejectedDismantleRequestFingerprint = string.Empty;
-    public long rejectedDismantleInputMassGrams;
-    public string rejectedRecoveryOperationId = string.Empty;
-    public string rejectedRecoveryCommitId = string.Empty;
-    public long rejectedRecoveryOutputMassGrams;
-    public int rejectedRecoveryPublicationAttempt;
-    public string rejectedRecoveryOutcomeFingerprint = string.Empty;
-    public string rejectedRecoveryAdmissionTokenId = string.Empty;
-    public ProductionOutputCapabilitySaveData rejectedRecoveryOutputCapability = new();
-    public string rejectedRecoveryMaximumMassProofDigest = string.Empty;
-    public long rejectedRecoveryMaximumBatchMassGrams;
-    public string rejectedRecoveryCapacitySourceDigest = string.Empty;
-    public long rejectedRecoveryRequiredMinimumCapacityGrams;
-    public string rejectedRecoveryPlannedOutputFingerprint = string.Empty;
-    public List<string> rejectedRecoveryStackIds = new();
-    public bool rejectedRecoveryPublished;
-    public bool rejectedRecoveryAdmissionCommitted;
-    public bool rejectedRecoveryOutputAcknowledged;
-    public bool rejectedDismantleAcknowledged;
-    public int craftPublicationAttempt;
-    public string craftPublicationOperationId = string.Empty;
-    public string craftOutputBatchCommitId = string.Empty;
-    public string craftOutcomeFingerprint = string.Empty;
-    public string craftOutputComponentFingerprint = string.Empty;
-    public ProductionOutputCapabilitySaveData craftOutputCapability = new();
-    public string craftAdmissionTokenId = string.Empty;
-    public string craftMaximumMassProofDigest = string.Empty;
-    public long craftMaximumBatchMassGrams;
-    public string craftCapacitySourceDigest = string.Empty;
-    public long craftRequiredMinimumCapacityGrams;
-    public string craftPlannedOutputFingerprint = string.Empty;
-    public string craftOutputStackId = string.Empty;
-    public string craftOutputInstanceId = string.Empty;
-    public string craftInputCommitId = string.Empty;
-    public string craftInputRequestFingerprint = string.Empty;
-    public long craftInputMassGrams;
-    public long craftOutputMassGrams;
-    public bool craftInputPending;
-    public bool craftOutputPublished;
-    public bool craftAdmissionCommitted;
-    public bool craftInputAcknowledged;
-    public bool craftOutputAcknowledged;
-    public bool craftMarketRouted;
-    public string rejectedOutputLeaseId = string.Empty;
-    public ApparelSizeClass targetSize;
-    public ApparelModificationKind targetModifications;
-    public string facilityInstanceId = string.Empty;
-    public string targetItemInstanceId = string.Empty;
-    public List<string> targetItemInstanceIds = new();
-    public List<string> materialStackIds = new();
-    public List<int> materialStackAmounts = new();
-    public float requiredWork;
-    public float completedWork;
-    public int retryCount;
-    public float nextRetryGameHour;
-    public bool powered;
-    public bool shortWardrobeOperation;
-    public ApparelRepairCommitPhase repairCommitPhase;
-    public string repairOperationId = string.Empty;
-    public string repairReasonCode = string.Empty;
-    public string repairCommitId = string.Empty;
-    public List<string> repairSourceStackIds = new();
-    public int repairInputQuantity;
-    public long repairInputMassGrams;
-    public string repairTargetStackId = string.Empty;
-    public string repairOriginalStatePayload = string.Empty;
-    public string repairResolvedStatePayload = string.Empty;
-}
-
-[Serializable]
-public sealed class ApparelWorkOrderTerminalStateSaveData
-{
-    public const int CurrentSchemaVersion = 3;
-
-    public int schemaVersion = CurrentSchemaVersion;
-    public ApparelWorkOrderSaveData sourceOrder;
-    public string sourceOrderFingerprint = string.Empty;
-    public ProductionApparelOrderPendingEffectIdentity pendingEffect;
-    public ProductionApparelOrderTerminalEffectReceipt terminalEffectReceipt;
-    public ProductionApparelOrderSourceTerminalReceipt sourceTerminalReceipt;
-
-    public ApparelWorkOrderTerminalStateSaveData Clone() => new()
-    {
-        schemaVersion = schemaVersion,
-        sourceOrder = ProductionApparelOrderTerminalDrainCanonical.CloneOrder(
-            sourceOrder),
-        sourceOrderFingerprint = sourceOrderFingerprint ?? string.Empty,
-        pendingEffect = ProductionApparelOrderTerminalDrainCanonical
-            .CloneOptionalPendingEffect(pendingEffect),
-        terminalEffectReceipt = ProductionApparelOrderTerminalDrainCanonical
-            .CloneOptionalTerminalEffectReceipt(terminalEffectReceipt),
-        sourceTerminalReceipt = ProductionApparelOrderTerminalDrainCanonical
-            .CloneOptionalSourceTerminalReceipt(sourceTerminalReceipt)
-    };
-}
-
-public sealed class ApparelWorkOrderRestoreCandidate
-{
-    internal ApparelWorkOrderRestoreCandidate(
-        IReadOnlyList<ApparelWorkOrderSaveData> orders,
-        IReadOnlyList<ApparelWorkOrderTerminalStateSaveData> terminalStates)
-    {
-        Orders = orders ?? throw new ArgumentNullException(nameof(orders));
-        TerminalStates = terminalStates
-            ?? throw new ArgumentNullException(nameof(terminalStates));
-    }
-
-    internal IReadOnlyList<ApparelWorkOrderSaveData> Orders { get; }
-    internal IReadOnlyList<ApparelWorkOrderTerminalStateSaveData>
-        TerminalStates { get; }
-}
-
-public readonly struct ApparelCraftOrderRequest
-{
-    public ApparelCraftOrderRequest(
-        string apparelDefinitionId,
-        ApparelSizeClass size,
-        ApparelModificationKind modifications,
-        ApparelMaterialSelectionPolicy materialPolicy,
-        string exactMaterialDefinitionId = "",
-        CraftsmanshipQualityTier minimumCraftsmanshipQuality =
-            CraftsmanshipQualityTier.Normal,
-        WorkerSelectionPolicySaveData workerPolicy = null,
-        RejectedOutputDisposition rejectedDisposition =
-            RejectedOutputDisposition.AutoDismantle,
-        QualityRepeatLimitMode repeatLimitMode =
-            QualityRepeatLimitMode.SafeLimits,
-        int maximumAttempts = 10,
-        float workBudget = 0f,
-        int requiredAcceptedCount = 1)
-    {
-        ApparelDefinitionId = apparelDefinitionId?.Trim() ?? string.Empty;
-        Size = size;
-        Modifications = modifications;
-        MaterialPolicy = materialPolicy;
-        ExactMaterialDefinitionId = exactMaterialDefinitionId?.Trim() ?? string.Empty;
-        MinimumCraftsmanshipQuality = minimumCraftsmanshipQuality;
-        WorkerPolicy = workerPolicy?.CloneNormalized()
-            ?? WorkerSelectionPolicySaveData.Anyone(
-                WorkerCandidateSortMode.BestExpectedQuality);
-        RejectedDisposition = rejectedDisposition;
-        RepeatLimitMode = repeatLimitMode;
-        MaximumAttempts = Mathf.Max(1, maximumAttempts);
-        WorkBudget = Mathf.Max(0f, workBudget);
-        RequiredAcceptedCount = Mathf.Max(1, requiredAcceptedCount);
-    }
-
-    public string ApparelDefinitionId { get; }
-    public ApparelSizeClass Size { get; }
-    public ApparelModificationKind Modifications { get; }
-    public ApparelMaterialSelectionPolicy MaterialPolicy { get; }
-    public string ExactMaterialDefinitionId { get; }
-    public CraftsmanshipQualityTier MinimumCraftsmanshipQuality { get; }
-    public WorkerSelectionPolicySaveData WorkerPolicy { get; }
-    public RejectedOutputDisposition RejectedDisposition { get; }
-    public QualityRepeatLimitMode RepeatLimitMode { get; }
-    public int MaximumAttempts { get; }
-    public float WorkBudget { get; }
-    public int RequiredAcceptedCount { get; }
-}
-
-public interface IApparelWorkOrderCommand
-{
-    bool CreateCraft(
-        ApparelCraftOrderRequest request,
-        out string orderId,
-        out DomainFailure failure);
-    bool CreateLaundry(
-        IReadOnlyList<ItemInstanceId> items,
-        bool powered,
-        out string orderId,
-        out DomainFailure failure);
-    bool CreateDrying(
-        IReadOnlyList<ItemInstanceId> items,
-        out string orderId,
-        out DomainFailure failure);
-    bool CreateRepair(
-        ItemInstanceId item,
-        out string orderId,
-        out DomainFailure failure);
-    bool CreateAlteration(
-        ItemInstanceId item,
-        ApparelSizeClass size,
-        ApparelModificationKind modifications,
-        bool shortWardrobeOperation,
-        out string orderId,
-        out DomainFailure failure);
-    bool ApplyWork(string orderId, float amount, out DomainFailure failure);
-    bool ApplyWork(
-        string orderId,
-        CharacterActor worker,
-        float amount,
-        out DomainFailure failure);
-    bool Cancel(string orderId);
-    bool Cancel(string orderId, out DomainFailure failure);
-}
-
-public interface IApparelWorkOrderQuery
-{
-    int Version { get; }
-    IReadOnlyList<ApparelWorkOrderSaveData> Orders { get; }
-}
-
-public interface IApparelWorkOrderPersistence
-{
-    ApparelWorkOrderSaveData[] CaptureOrders();
-    ApparelWorkOrderTerminalStateSaveData[] CaptureTerminalStates();
-    ApparelWorkOrderRestoreCandidate PrepareRestoreState(
-        IEnumerable<ApparelWorkOrderSaveData> orders,
-        IEnumerable<ApparelWorkOrderTerminalStateSaveData> terminalStates);
-    void PublishRestoreState(ApparelWorkOrderRestoreCandidate candidate);
-    IReadOnlyList<ApparelWorkOrderSaveData> PrepareRestoreOrders(
-        IEnumerable<ApparelWorkOrderSaveData> source);
-    void PublishRestoreOrders(IEnumerable<ApparelWorkOrderSaveData> source);
-    void ResetOrders();
-}
 
 public sealed class ApparelWorkOrderRuntime :
     IApparelWorkOrderCommand,
@@ -297,32 +15,6 @@ public sealed class ApparelWorkOrderRuntime :
     IProductionApparelTerminalStateCheckpointGcPort,
     IDungeonRestoreTransactionParticipant
 {
-    private sealed class AuthorityState
-    {
-        internal List<ApparelWorkOrderSaveData> Orders { get; } = new();
-        internal Dictionary<string, ApparelWorkOrderTerminalStateSaveData>
-            TerminalStates { get; } = new(StringComparer.Ordinal);
-        internal int NextSequence = 1;
-        internal int Version;
-
-        internal AuthorityState Clone()
-        {
-            AuthorityState clone = new()
-            {
-                NextSequence = NextSequence,
-                Version = Version
-            };
-            clone.Orders.AddRange(Orders.Select(ApparelWorkOrderRuntime.Clone));
-            foreach (KeyValuePair<string,
-                         ApparelWorkOrderTerminalStateSaveData> pair in
-                     TerminalStates)
-            {
-                clone.TerminalStates.Add(pair.Key, pair.Value?.Clone());
-            }
-            return clone;
-        }
-    }
-
     private const int MaximumBatch = 12;
     private const float GameSecondsPerHour = 7.5f;
     private const string RepairReasonCode =
@@ -341,6 +33,7 @@ public sealed class ApparelWorkOrderRuntime :
     private readonly ILeasedItemReservationService leases;
     private readonly IFacilityCapabilityQuery facilities;
     private readonly IGameClock clock;
+    private readonly IGameCalendar calendar;
     private readonly IBalanceWorkCalculator balanceWorkCalculator;
     private readonly ICraftQualityResolver qualityResolver;
     private readonly IRunSeedProvider runSeedProvider;
@@ -350,12 +43,19 @@ public sealed class ApparelWorkOrderRuntime :
     private readonly CharacterIdentityEventPublisher identityEvents;
     private readonly ICharacterPerformanceQuery performance;
     private readonly CharacterWorkPerformanceContextResolver performanceContext;
-    private AuthorityState authority = new();
+    private readonly IDomainFactPublisher facts;
+    private readonly IDomainFactRecoveryPublisher factRecovery;
+    private readonly ApparelWorkOrderAuthorityStore authorityStore = new();
+    private readonly ApparelWorkOrderTerminalJournal terminalJournal;
+    private ApparelWorkOrderAuthorityState authority
+    {
+        get => authorityStore.Current;
+        set => authorityStore.Replace(value);
+    }
     private ApparelWorkOrderRestoreCandidate stagedRestoreState;
-    private AuthorityState previousRestoreState;
+    private ApparelWorkOrderAuthorityState previousRestoreState;
     private bool restoreActive;
     private bool restorePublished;
-    private TerminalStateCheckpointGcCandidate activeTerminalStateGcCandidate;
 
     public ApparelWorkOrderRuntime(
         IApparelDefinitionCatalog apparel,
@@ -364,6 +64,7 @@ public sealed class ApparelWorkOrderRuntime :
         ILeasedItemReservationService leases,
         IFacilityCapabilityQuery facilities,
         IGameClock clock,
+        IGameCalendar calendar,
         IPhysicalItemBatchDispositionService batchDispositions,
         IApparelPhysicalTransaction physicalTransactions,
         IProductionOutputMaximumMassRegistry outputMaximumMass,
@@ -376,7 +77,8 @@ public sealed class ApparelWorkOrderRuntime :
         ExtremeCraftInspirationRuntime inspirationRuntime = null,
         CharacterIdentityEventPublisher identityEvents = null,
         ICharacterPerformanceQuery performance = null,
-        CharacterWorkPerformanceContextResolver performanceContext = null)
+        CharacterWorkPerformanceContextResolver performanceContext = null,
+        IDomainFactPublisher facts = null)
     {
         this.apparel = apparel ?? throw new ArgumentNullException(nameof(apparel));
         this.materials = materials ?? throw new ArgumentNullException(nameof(materials));
@@ -392,6 +94,7 @@ public sealed class ApparelWorkOrderRuntime :
         this.leases = leases ?? throw new ArgumentNullException(nameof(leases));
         this.facilities = facilities ?? throw new ArgumentNullException(nameof(facilities));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
         this.balanceWorkCalculator = balanceWorkCalculator;
         this.qualityResolver = qualityResolver
             ?? new DeterministicCraftQualityResolver();
@@ -403,16 +106,14 @@ public sealed class ApparelWorkOrderRuntime :
         this.performance = performance
             ?? throw new ArgumentNullException(nameof(performance));
         this.performanceContext = performanceContext;
+        this.facts = facts;
+        factRecovery = facts as IDomainFactRecoveryPublisher;
+        if (facts != null && factRecovery == null)
+            throw new ArgumentException("apparel-fact-recovery-unavailable", nameof(facts));
+        terminalJournal = new ApparelWorkOrderTerminalJournal(authorityStore);
     }
 
     private List<ApparelWorkOrderSaveData> orders => authority.Orders;
-    private Dictionary<string, ApparelWorkOrderTerminalStateSaveData>
-        terminalStates => authority.TerminalStates;
-    private int nextSequence
-    {
-        get => authority.NextSequence;
-        set => authority.NextSequence = value;
-    }
 
     public int Version
     {
@@ -420,6 +121,50 @@ public sealed class ApparelWorkOrderRuntime :
         private set => authority.Version = value;
     }
     public IReadOnlyList<ApparelWorkOrderSaveData> Orders => orders;
+
+    public CraftQualityAttemptEstimate CaptureQualityEstimate(string orderId)
+    {
+        ApparelWorkOrderSaveData order = orders.FirstOrDefault(value => value.orderId == orderId);
+        if (order == null || order.kind != ApparelWorkOrderKind.Craft)
+            return CraftQualityAttemptEstimate.Unavailable("제작 주문 없음");
+        if (qualityResolver is not ICraftQualityProbabilityQuery probabilityQuery)
+            return CraftQualityAttemptEstimate.Unavailable("현재 품질 계산기가 확률 미리보기를 제공하지 않음");
+        if (!apparel.TryGet(order.apparelDefinitionId, out ApparelDefinitionSO definition)
+            || !TryGetFacility(order, out BuildableObject facility)
+            || !materials.TryGet(order.materialDefinitionId, out TextileMaterialDefinitionSO material))
+            return CraftQualityAttemptEstimate.Unavailable("시설·재료 정의 확인 필요");
+        double bestProbability = -1d;
+        foreach (CharacterActor actor in characterWorld?.Characters ?? Array.Empty<CharacterActor>())
+        {
+            if (actor == null || !WorkerSelectionPolicyRules.IsEligible(
+                    order.workerPolicy, actor, narrativeQualifications, out _)) continue;
+            double probability = probabilityQuery.EstimateSuccessProbability(
+                order.minimumCraftsmanshipQuality, GetApparelQualitySkill(actor, order),
+                (facility.Craftsmanship.Score - 50f) * 0.08f, 0f,
+                Mathf.Max(0f, definition.TailoringCoefficient - 1f) * 4f);
+            // Conditional single-worker attempts satisfy that worker's contribution share.
+            if (definition.AllowMythicInspiration
+                && ExtremeCraftInspirationRuntime.TryResolveRule(actor, out ExtremeCraftInspirationRule rule))
+            {
+                double mythic = Math.Round(Mathf.Clamp01(rule.mythicChance)
+                    * MythicCraftInspirationRules.RollScale, MidpointRounding.AwayFromZero)
+                    / MythicCraftInspirationRules.RollScale;
+                probability += (1d - probability) * mythic;
+            }
+            bestProbability = Math.Max(bestProbability, probability);
+        }
+        if (bestProbability < 0d)
+            return CraftQualityAttemptEstimate.Unavailable("조건에 맞는 작업자 미정 — 확률 산정 보류");
+        if (bestProbability > 0d && order.state == ApparelWorkOrderState.TargetCurrentlyUnreachable)
+            return CraftQualityAttemptEstimate.Unavailable("주문은 현재 도달 불가 상태 — 특수 품질 조건 재검증 필요");
+        int? limit = order.repeatLimitMode == QualityRepeatLimitMode.SafeLimits
+            ? Mathf.Max(1, order.maximumAttempts) : null;
+        return CraftQualityAttemptEstimate.Create(bestProbability, limit,
+            order.craftWorkPerAttempt, material.PhysicalItemId,
+            Mathf.Max(1, Mathf.CeilToInt(2f * definition.TailoringCoefficient)),
+            "현재 적격 작업자 중 최고 성공률·단독 새 시도·조건 고정 추정"
+            + (order.workBudget > 0f ? " / WU 예산으로 조기 종료 가능" : string.Empty));
+    }
     public string ParticipantId => RestoreParticipantId;
 
     public bool CreateCraft(
@@ -657,13 +402,27 @@ public sealed class ApparelWorkOrderRuntime :
             failure = new DomainFailure(FailureCode.ApparelMaterialUnavailable, order.orderId);
             return false;
         }
+        if (order.terminalOutcomeReady)
+        {
+            if (!TryCommitTerminalOutcome(order, out failure))
+            {
+                order.state = ApparelWorkOrderState
+                    .WaitingForDispositionFinalization;
+                return false;
+            }
+            order.state = ApparelWorkOrderState.Completed;
+            leases.Release(order.orderId);
+            Version++;
+            return true;
+        }
         if (order.state == ApparelWorkOrderState.WaitingForDispositionFinalization)
         {
             if (!Resolve(order, out failure))
             {
                 return false;
             }
-            if (order.state == ApparelWorkOrderState.WaitingForDispositionFinalization)
+            if (order.state == ApparelWorkOrderState.WaitingForDispositionFinalization
+                || order.terminalOutcomeReady && order.terminalPublicationConfirmed)
             {
                 order.state = ApparelWorkOrderState.Completed;
                 leases.Release(order.orderId);
@@ -799,14 +558,19 @@ public sealed class ApparelWorkOrderRuntime :
         // receipt and its exact mass. Cancellation is legal only after the
         // physical obligation has reached its terminal acknowledgement.
         if (order.dismantlingRejectedOutput
-            || order.repairCommitPhase != ApparelRepairCommitPhase.None)
+            || order.repairCommitPhase != ApparelRepairCommitPhase.None
+            || order.terminalOutcomeReady)
         {
             string operationId = order.dismantlingRejectedOutput
                 ? order.rejectedDismantleOperationId
-                : order.repairOperationId;
+                : order.repairCommitPhase != ApparelRepairCommitPhase.None
+                    ? order.repairOperationId
+                    : order.terminalMaterialOperationId;
             string commitId = order.dismantlingRejectedOutput
                 ? order.rejectedDismantleCommitId
-                : order.repairCommitId;
+                : order.repairCommitPhase != ApparelRepairCommitPhase.None
+                    ? order.repairCommitId
+                    : order.terminalMaterialCommitId;
             failure = new DomainFailure(
                 FailureCode.ApparelRecoveryDeferred,
                 order.orderId ?? string.Empty,
@@ -830,11 +594,8 @@ public sealed class ApparelWorkOrderRuntime :
         .Select(Clone)
         .ToArray();
 
-    public ApparelWorkOrderTerminalStateSaveData[] CaptureTerminalStates() =>
-        terminalStates.Values
-            .OrderBy(value => value.sourceOrder.orderId, StringComparer.Ordinal)
-            .Select(value => value.Clone())
-            .ToArray();
+    public ApparelWorkOrderTerminalStateSaveData[] CaptureTerminalStates()
+        => terminalJournal.CaptureTerminalStates();
 
     public ApparelWorkOrderRestoreCandidate PrepareRestoreState(
         IEnumerable<ApparelWorkOrderSaveData> sourceOrders,
@@ -874,8 +635,10 @@ public sealed class ApparelWorkOrderRuntime :
     public IReadOnlyList<ApparelWorkOrderSaveData> PrepareRestoreOrders(
         IEnumerable<ApparelWorkOrderSaveData> source)
     {
-        List<ApparelWorkOrderSaveData> restored = (source
-                ?? Enumerable.Empty<ApparelWorkOrderSaveData>())
+        ApparelWorkOrderSaveData[] rawOrders = (source ?? Enumerable.Empty<ApparelWorkOrderSaveData>()).ToArray();
+        foreach (ApparelWorkOrderSaveData raw in rawOrders)
+            ApparelWorkCompletedData.ValidateOwner(raw);
+        List<ApparelWorkOrderSaveData> restored = rawOrders
             .Select(Clone)
             .OrderBy(value => value.orderId, StringComparer.Ordinal)
             .ToList();
@@ -915,7 +678,8 @@ public sealed class ApparelWorkOrderRuntime :
                     && (value.qualityRoll == null
                         || value.qualityRoll.attemptIndex
                             != value.qualityAttemptIndex))
-                || !ValidateRepairPendingShape(value))
+                || !ValidateRepairPendingShape(value)
+                || !ValidateTerminalOutcomeShape(value, out _))
             || restored.Select(value => value.orderId)
                 .Distinct(StringComparer.Ordinal).Count() != restored.Count)
         {
@@ -944,9 +708,10 @@ public sealed class ApparelWorkOrderRuntime :
                         + capabilityFailure.ToString());
                 }
             }
-            order.state = order.repairCommitPhase == ApparelRepairCommitPhase.None
-                ? ApparelWorkOrderState.NeedsRevalidation
-                : ApparelWorkOrderState.WaitingForDispositionFinalization;
+            order.state = order.terminalOutcomeReady
+                || order.repairCommitPhase != ApparelRepairCommitPhase.None
+                ? ApparelWorkOrderState.WaitingForDispositionFinalization
+                : ApparelWorkOrderState.NeedsRevalidation;
             order.nextRetryGameHour = 0f;
         }
         return restored;
@@ -954,7 +719,7 @@ public sealed class ApparelWorkOrderRuntime :
 
     public void PublishRestoreOrders(IEnumerable<ApparelWorkOrderSaveData> source)
     {
-        if (terminalStates.Count != 0)
+        if (terminalJournal.HasTerminalStates)
         {
             throw new InvalidOperationException(
                 "Order-only apparel restore cannot overwrite terminal authority.");
@@ -991,209 +756,47 @@ public sealed class ApparelWorkOrderRuntime :
     }
 
     public IReadOnlyList<ProductionApparelOrderTerminalEffectReceipt>
-        CaptureTerminalEffectReceipts() => terminalStates.Values
-        .Select(value => value.terminalEffectReceipt)
-        .Where(value => value != null)
-        .OrderBy(value => value.commitId, StringComparer.Ordinal)
-        .Select(value => value.Clone())
-        .ToArray();
+        CaptureTerminalEffectReceipts()
+        => terminalJournal.CaptureTerminalEffectReceipts();
 
     public bool TryCaptureTerminalEffectReceipt(
         string commitId,
         out ProductionApparelOrderTerminalEffectReceipt receipt)
-    {
-        receipt = null;
-        ProductionApparelOrderTerminalEffectReceipt[] matches = terminalStates
-            .Values.Select(value => value.terminalEffectReceipt)
-            .Where(value => value != null && string.Equals(
-                value.commitId,
-                commitId,
-                StringComparison.Ordinal))
-            .ToArray();
-        if (matches.Length != 1)
-            return false;
-        receipt = matches[0].Clone();
-        return true;
-    }
+        => terminalJournal.TryCaptureTerminalEffectReceipt(commitId, out receipt);
 
     public bool TryCaptureLiveOrder(
         string orderId,
         out ApparelWorkOrderSaveData sourceOrder,
         out string failureReason)
-    {
-        sourceOrder = null;
-        failureReason = string.Empty;
-        ApparelWorkOrderSaveData[] matches = orders.Where(value => value != null
-                && value.state != ApparelWorkOrderState.Completed
-                && string.Equals(value.orderId, orderId, StringComparison.Ordinal))
-            .ToArray();
-        if (matches.Length != 1)
-        {
-            failureReason = matches.Length == 0
-                ? "production-apparel-terminal-source-order-missing"
-                : "production-apparel-terminal-source-order-duplicate";
-            return false;
-        }
-        sourceOrder = Clone(matches[0]);
-        return true;
-    }
+        => terminalJournal.TryCaptureLiveOrder(orderId, out sourceOrder, out failureReason);
 
     public IReadOnlyList<ProductionApparelOrderSourceTerminalReceipt>
-        CaptureSourceTerminalReceipts() => terminalStates.Values
-        .Select(value => value.sourceTerminalReceipt)
-        .Where(value => value != null)
-        .OrderBy(value => value.commitId, StringComparer.Ordinal)
-        .Select(value => value.Clone())
-        .ToArray();
+        CaptureSourceTerminalReceipts()
+        => terminalJournal.CaptureSourceTerminalReceipts();
 
     public bool TryCaptureSourceTerminalReceipt(
         string commitId,
         out ProductionApparelOrderSourceTerminalReceipt receipt)
-    {
-        receipt = null;
-        ProductionApparelOrderSourceTerminalReceipt[] matches = terminalStates
-            .Values.Select(value => value.sourceTerminalReceipt)
-            .Where(value => value != null && string.Equals(
-                value.commitId,
-                commitId,
-                StringComparison.Ordinal))
-            .ToArray();
-        if (matches.Length != 1)
-            return false;
-        receipt = matches[0].Clone();
-        return true;
-    }
+        => terminalJournal.TryCaptureSourceTerminalReceipt(commitId, out receipt);
 
     public bool TryPrepareCheckpointGarbageCollection(
         IReadOnlyList<ProductionApparelOrderTerminalDrainSaveData> producers,
         out IProductionApparelTerminalStateCheckpointGcCandidate candidate,
         out string failureReason)
-    {
-        candidate = null;
-        failureReason = string.Empty;
-        if (activeTerminalStateGcCandidate != null)
-        {
-            failureReason =
-                "production-apparel-terminal-state-gc-already-active";
-            return false;
-        }
-
-        ProductionApparelOrderTerminalDrainSaveData[] ordered = (producers
-                ?? Array.Empty<ProductionApparelOrderTerminalDrainSaveData>())
-            .OrderBy(value => value?.orderId, StringComparer.Ordinal)
-            .ToArray();
-        if (ordered.Any(value => value == null)
-            || ordered.Select(value => value.orderId)
-                .Distinct(StringComparer.Ordinal).Count() != ordered.Length)
-        {
-            failureReason =
-                "production-apparel-terminal-state-gc-producer-invalid";
-            return false;
-        }
-
-        List<ApparelWorkOrderTerminalStateSaveData> rows = new(ordered.Length);
-        foreach (ProductionApparelOrderTerminalDrainSaveData producer in ordered)
-        {
-            if (producer.phase != ProductionApparelOrderTerminalDrainPhase
-                    .OwnerAcknowledgedAwaitingCheckpointGc
-                || producer.terminalEffectReceipt == null
-                || producer.sourceTerminalReceipt == null
-                || !terminalStates.TryGetValue(
-                    producer.orderId,
-                    out ApparelWorkOrderTerminalStateSaveData row)
-                || orders.Any(order => order != null
-                    && string.Equals(
-                        order.orderId,
-                        producer.orderId,
-                        StringComparison.Ordinal))
-                || !TerminalStateMatchesProducer(row, producer))
-            {
-                failureReason =
-                    "production-apparel-terminal-state-gc-row-missing-or-conflicting:"
-                    + (producer.orderId ?? string.Empty);
-                return false;
-            }
-            rows.Add(row.Clone());
-        }
-
-        activeTerminalStateGcCandidate = new TerminalStateCheckpointGcCandidate(
-            Version,
-            rows);
-        candidate = activeTerminalStateGcCandidate;
-        return true;
-    }
+        => terminalJournal.TryPrepareCheckpointGarbageCollection(producers, out candidate, out failureReason);
 
     public bool TryPublishCheckpointGarbageCollection(
         IProductionApparelTerminalStateCheckpointGcCandidate candidate,
         out string failureReason)
-    {
-        failureReason = string.Empty;
-        TerminalStateCheckpointGcCandidate exact = RequireTerminalStateGcCandidate(
-            candidate);
-        if (exact.Published)
-            return true;
-        if (Version != exact.ExpectedVersion
-            || exact.Rows.Any(row =>
-                !terminalStates.TryGetValue(
-                    row.sourceOrder.orderId,
-                    out ApparelWorkOrderTerminalStateSaveData current)
-                || !TerminalStateEquals(current, row)))
-        {
-            failureReason =
-                "production-apparel-terminal-state-gc-live-authority-changed";
-            return false;
-        }
-
-        if (exact.Rows.Count > 0)
-        {
-            AuthorityState next = authority.Clone();
-            foreach (ApparelWorkOrderTerminalStateSaveData row in exact.Rows)
-                next.TerminalStates.Remove(row.sourceOrder.orderId);
-            next.Version = checked(next.Version + 1);
-            authority = next;
-        }
-        exact.Published = true;
-        exact.PublishedVersion = Version;
-        return true;
-    }
+        => terminalJournal.TryPublishCheckpointGarbageCollection(candidate, out failureReason);
 
     public void RollbackCheckpointGarbageCollection(
         IProductionApparelTerminalStateCheckpointGcCandidate candidate)
-    {
-        TerminalStateCheckpointGcCandidate exact = RequireTerminalStateGcCandidate(
-            candidate);
-        if (!exact.Published)
-            return;
-        if (Version != exact.PublishedVersion
-            || exact.Rows.Any(row => terminalStates.ContainsKey(
-                row.sourceOrder.orderId)))
-        {
-            throw new InvalidOperationException(
-                "Production apparel terminal-state GC rollback observed authority drift.");
-        }
-
-        if (exact.Rows.Count > 0)
-        {
-            AuthorityState restored = authority.Clone();
-            foreach (ApparelWorkOrderTerminalStateSaveData row in exact.Rows)
-            {
-                restored.TerminalStates.Add(
-                    row.sourceOrder.orderId,
-                    row.Clone());
-            }
-            restored.Version = exact.ExpectedVersion;
-            authority = restored;
-        }
-        exact.Published = false;
-        exact.PublishedVersion = exact.ExpectedVersion;
-    }
+        => terminalJournal.RollbackCheckpointGarbageCollection(candidate);
 
     public void CompleteCheckpointGarbageCollection(
         IProductionApparelTerminalStateCheckpointGcCandidate candidate)
-    {
-        RequireTerminalStateGcCandidate(candidate);
-        activeTerminalStateGcCandidate = null;
-    }
+        => terminalJournal.CompleteCheckpointGarbageCollection(candidate);
 
     [GameplayInternalOnly(
         "Publishes one apparel terminal-effect receipt in the order aggregate before source removal.",
@@ -1201,165 +804,14 @@ public sealed class ApparelWorkOrderRuntime :
     public ProductionApparelOrderTerminalEffectApplyResult TryCommitTerminalEffect(
         ProductionApparelOrderTerminalEffectReceipt expectedReceipt,
         ProductionApparelOrderPendingEffectIdentity pendingEffect)
-    {
-        string sourceFailure = string.Empty;
-        if (expectedReceipt == null
-            || !TryCaptureLiveOrder(
-                expectedReceipt.orderId,
-                out ApparelWorkOrderSaveData source,
-                out sourceFailure))
-        {
-            return EffectConflict(
-                "production-apparel-terminal-effect-source-conflict:"
-                + sourceFailure);
-        }
-        string sourceFingerprint =
-            ProductionApparelOrderTerminalDrainCanonical
-                .CreateSourceOrderFingerprint(source);
-        string effectFailure = string.Empty;
-        if (!ProductionApparelOrderTerminalDrainCanonical
-                .TryCreatePendingEffectIdentity(
-                    source,
-                    out ProductionApparelOrderPendingEffectIdentity actualEffect,
-                    out effectFailure)
-            || !PendingEffectEquals(actualEffect, pendingEffect)
-            || !ProductionApparelOrderTerminalDrainCanonical.EffectReceiptEquals(
-                expectedReceipt,
-                ProductionApparelOrderTerminalDrainCanonical
-                    .CreateTerminalEffectReceipt(
-                        expectedReceipt.stepOperationId,
-                        source,
-                        sourceFingerprint,
-                        actualEffect)))
-        {
-            return EffectConflict(
-                "production-apparel-terminal-effect-request-conflict:"
-                + effectFailure);
-        }
-
-        if (terminalStates.TryGetValue(
-                source.orderId,
-                out ApparelWorkOrderTerminalStateSaveData existing))
-        {
-            return ProductionApparelOrderTerminalDrainCanonical
-                .EffectReceiptEquals(
-                    existing.terminalEffectReceipt,
-                    expectedReceipt)
-                && PendingEffectEquals(existing.pendingEffect, actualEffect)
-                ? new ProductionApparelOrderTerminalEffectApplyResult(
-                    ProductionApparelOrderTerminalDrainStatus.Replay,
-                    existing.terminalEffectReceipt,
-                    string.Empty)
-                : EffectConflict(
-                    "production-apparel-terminal-effect-row-conflict");
-        }
-        if (terminalStates.Values.Any(value => string.Equals(
-                value.terminalEffectReceipt?.commitId,
-                expectedReceipt.commitId,
-                StringComparison.Ordinal)))
-        {
-            return EffectConflict(
-                "production-apparel-terminal-effect-commit-duplicate");
-        }
-
-        AuthorityState next = authority.Clone();
-        next.TerminalStates.Add(source.orderId, new()
-        {
-            sourceOrder = Clone(source),
-            sourceOrderFingerprint = sourceFingerprint,
-            pendingEffect = actualEffect?.Clone(),
-            terminalEffectReceipt = expectedReceipt.Clone()
-        });
-        next.Version = checked(next.Version + 1);
-        authority = next;
-        return new ProductionApparelOrderTerminalEffectApplyResult(
-            ProductionApparelOrderTerminalDrainStatus.Applied,
-            expectedReceipt,
-            string.Empty);
-    }
+        => terminalJournal.TryCommitTerminalEffect(expectedReceipt, pendingEffect);
 
     [GameplayInternalOnly(
         "Removes one exact frozen apparel order and publishes its source-terminal receipt in one authority swap.",
         "Apparel destructive terminal drain producer only")]
     public ProductionApparelOrderSourceTerminalApplyResult TryCommitSourceTerminal(
         ProductionApparelOrderSourceTerminalReceipt expectedReceipt)
-    {
-        if (expectedReceipt == null
-            || !terminalStates.TryGetValue(
-                expectedReceipt.orderId,
-                out ApparelWorkOrderTerminalStateSaveData terminal)
-            || terminal.terminalEffectReceipt == null)
-        {
-            return SourceConflict(
-                "production-apparel-source-terminal-effect-missing");
-        }
-        ProductionApparelOrderSourceTerminalReceipt canonical =
-            ProductionApparelOrderTerminalDrainCanonical
-                .CreateSourceTerminalReceipt(
-                    expectedReceipt.stepOperationId,
-                    terminal.sourceOrder,
-                    terminal.sourceOrderFingerprint,
-                    terminal.terminalEffectReceipt.receiptFingerprint);
-        if (!ProductionApparelOrderTerminalDrainCanonical.SourceReceiptEquals(
-                expectedReceipt,
-                canonical))
-        {
-            return SourceConflict(
-                "production-apparel-source-terminal-request-conflict");
-        }
-        ApparelWorkOrderSaveData[] live = orders.Where(value => value != null
-                && string.Equals(
-                    value.orderId,
-                    expectedReceipt.orderId,
-                    StringComparison.Ordinal))
-            .ToArray();
-        if (terminal.sourceTerminalReceipt != null)
-        {
-            return live.Length == 0
-                && ProductionApparelOrderTerminalDrainCanonical
-                    .SourceReceiptEquals(
-                        terminal.sourceTerminalReceipt,
-                        expectedReceipt)
-                ? new ProductionApparelOrderSourceTerminalApplyResult(
-                    ProductionApparelOrderTerminalDrainStatus.Replay,
-                    terminal.sourceTerminalReceipt,
-                    string.Empty)
-                : SourceConflict(
-                    "production-apparel-source-terminal-replay-conflict");
-        }
-        if (live.Length != 1
-            || !string.Equals(
-                ProductionApparelOrderTerminalDrainCanonical
-                    .CreateSourceOrderFingerprint(live[0]),
-                terminal.sourceOrderFingerprint,
-                StringComparison.Ordinal)
-            || !string.Equals(
-                JsonUtility.ToJson(live[0]),
-                JsonUtility.ToJson(terminal.sourceOrder),
-                StringComparison.Ordinal)
-            || terminalStates.Values.Any(value => string.Equals(
-                value.sourceTerminalReceipt?.commitId,
-                expectedReceipt.commitId,
-                StringComparison.Ordinal)))
-        {
-            return SourceConflict(
-                "production-apparel-source-terminal-live-source-conflict");
-        }
-
-        AuthorityState next = authority.Clone();
-        next.Orders.RemoveAll(value => string.Equals(
-            value.orderId,
-            expectedReceipt.orderId,
-            StringComparison.Ordinal));
-        next.TerminalStates[expectedReceipt.orderId].sourceTerminalReceipt =
-            expectedReceipt.Clone();
-        next.Version = checked(next.Version + 1);
-        authority = next;
-        return new ProductionApparelOrderSourceTerminalApplyResult(
-            ProductionApparelOrderTerminalDrainStatus.Applied,
-            expectedReceipt,
-            string.Empty);
-    }
+        => terminalJournal.TryCommitSourceTerminal(expectedReceipt);
 
     public void ResetOrders()
     {
@@ -1367,7 +819,7 @@ public sealed class ApparelWorkOrderRuntime :
         {
             leases.Release(order.orderId);
         }
-        authority = new AuthorityState
+        authority = new ApparelWorkOrderAuthorityState
         {
             Version = checked(Version + 1)
         };
@@ -1583,7 +1035,7 @@ public sealed class ApparelWorkOrderRuntime :
                     sourceTraitId = MythicCraftInspirationRules.SourceTraitId,
                     originalQuality = quality.Tier,
                     fixedRollHash = fixedRollHash,
-                    createdDay = Mathf.FloorToInt(clock.Time / GameCalendarRules.SecondsPerDay),
+                    createdDay = calendar.Day,
                     createdFacilityId = facility.RequirePersistentInstanceId().Value
                 };
             }
@@ -1598,8 +1050,7 @@ public sealed class ApparelWorkOrderRuntime :
             size = order.targetSize,
             modifications = order.targetModifications,
             durability = 100f,
-            craftedAbsoluteDay = Mathf.FloorToInt(
-                clock.Time / GameCalendarRules.SecondsPerDay),
+            craftedAbsoluteDay = calendar.Day,
             deterministicBatchHash = Hash(order.orderId),
             mythicProvenance = mythicProvenance
         };
@@ -1614,7 +1065,13 @@ public sealed class ApparelWorkOrderRuntime :
                 facility,
                 definition.PhysicalItemId,
                 ApparelItemStateCodec.Create(state),
-                markForSale);
+                markForSale,
+                makerCharacterId,
+                order.craftQualityOutcomeSchemaVersion == 1
+                    ? order.craftMakerDisplayName
+                    : maker?.Identity?.DisplayName ?? string.Empty,
+                completedQuality,
+                rejectedBelowMinimum);
         if (!physical.IsCompleted)
         {
             order.state = physical.Status switch
@@ -1634,29 +1091,47 @@ public sealed class ApparelWorkOrderRuntime :
             return false;
         }
         string stackId = physical.OutputStackId;
-        if (hasInspiration)
+        try
         {
-            inspirationRuntime?.RecordEligibleCompletion(
-                maker,
-                definition.ApparelId,
-                completedQuality == CraftsmanshipQualityTier.Mythic,
-                clock.Time);
+            if (hasInspiration)
+            {
+                inspirationRuntime?.RecordEligibleCompletion(
+                    maker,
+                    definition.ApparelId,
+                    completedQuality == CraftsmanshipQualityTier.Mythic,
+                    clock.Time,
+                    order.craftOutputBatchCommitId);
+            }
         }
-        if (identityEvents != null
-            && CharacterPersistentIdentity.TryGet(
-                maker,
-                out CharacterId qualityMakerId))
+        catch (Exception exception)
         {
-            identityEvents.Publish(new ProductQualityResolvedEvent(
-                qualityMakerId,
-                definition.ApparelId,
-                completedQuality,
-                order.qualityRoll?.attemptIndex
-                    ?? order.qualityAttemptIndex,
-                Mathf.FloorToInt(
-                    clock.Time / GameCalendarRules.SecondsPerDay),
-                rejectedBelowMinimum: (int)completedQuality
-                    < (int)order.minimumCraftsmanshipQuality));
+            Debug.LogWarning(
+                "Post-commit apparel inspiration notification failed: "
+                + exception.Message);
+        }
+        try
+        {
+            if (identityEvents != null
+                && CharacterPersistentIdentity.TryGet(
+                    maker,
+                    out CharacterId qualityMakerId))
+            {
+                identityEvents.Publish(new ProductQualityResolvedEvent(
+                    qualityMakerId,
+                    definition.ApparelId,
+                    completedQuality,
+                    order.qualityRoll?.attemptIndex
+                        ?? order.qualityAttemptIndex,
+                    calendar.Day,
+                    rejectedBelowMinimum: (int)completedQuality
+                        < (int)order.minimumCraftsmanshipQuality));
+            }
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                "Post-commit apparel product-quality identity notification failed: "
+                + exception.Message);
         }
         order.consumedWork += Mathf.Max(0f, order.craftWorkPerAttempt);
         if ((int)completedQuality >= (int)order.minimumCraftsmanshipQuality)
@@ -1844,6 +1319,8 @@ public sealed class ApparelWorkOrderRuntime :
             }
             targets.Add((stack, state));
         }
+        List<ApparelWorkOrderOutcomeItemStateSaveData> outcomeStates =
+            new(targets.Count);
         foreach ((WorldItemStackSnapshot stack, ApparelInstanceState original) in targets)
         {
             ApparelInstanceState changed = CloneState(original);
@@ -1872,8 +1349,17 @@ public sealed class ApparelWorkOrderRuntime :
                 failure = new DomainFailure(FailureCode.ApparelTransferFailed, stack.StackId);
                 return false;
             }
+            outcomeStates.Add(OutcomeItemState(stack, original, changed));
         }
-        return true;
+        return StageAndCommitTerminalOutcome(
+            order,
+            outcomeStates,
+            string.Empty,
+            string.Empty,
+            Array.Empty<string>(),
+            0,
+            0L,
+            out failure);
     }
 
     private bool ResolveRepair(ApparelWorkOrderSaveData order, out DomainFailure failure)
@@ -1911,7 +1397,15 @@ public sealed class ApparelWorkOrderRuntime :
                     stack.StackId);
                 return false;
             }
-            return true;
+            return StageAndCommitTerminalOutcome(
+                order,
+                new[] { OutcomeItemState(stack, state, changed) },
+                string.Empty,
+                string.Empty,
+                Array.Empty<string>(),
+                0,
+                0L,
+                out failure);
         }
         string operationId = RepairOperationId(order.orderId);
         // The order lease protects selection while work is in progress. The
@@ -1988,6 +1482,8 @@ public sealed class ApparelWorkOrderRuntime :
                 "apparel-repair-resolved-state-mismatch");
             return false;
         }
+        ApparelWorkOrderOutcomeItemStateSaveData terminalState = OutcomeItemState(
+            stack, JsonUtility.FromJson<ApparelInstanceState>(order.repairOriginalStatePayload), resolved);
         if (!batchDispositions.Acknowledge(
                 order.repairCommitId,
                 out string acknowledgementFailure))
@@ -1997,9 +1493,21 @@ public sealed class ApparelWorkOrderRuntime :
                 acknowledgementFailure);
             return false;
         }
-
+        string operationId = order.repairOperationId;
+        string commitId = order.repairCommitId;
+        string[] sourceStackIds = order.repairSourceStackIds.ToArray();
+        int quantity = order.repairInputQuantity;
+        long massGrams = order.repairInputMassGrams;
         ClearRepairPending(order);
-        return true;
+        return StageAndCommitTerminalOutcome(
+            order,
+            new[] { terminalState },
+            operationId,
+            commitId,
+            sourceStackIds,
+            quantity,
+            massGrams,
+            out failure);
     }
 
     private bool ResolveAlteration(ApparelWorkOrderSaveData order, out DomainFailure failure)
@@ -2036,7 +1544,180 @@ public sealed class ApparelWorkOrderRuntime :
             failure = new DomainFailure(FailureCode.ApparelTransferFailed, stack.StackId);
             return false;
         }
+        return StageAndCommitTerminalOutcome(
+            order,
+            new[] { OutcomeItemState(stack, state, changed) },
+            string.Empty,
+            string.Empty,
+            Array.Empty<string>(),
+            0,
+            0L,
+            out failure);
+    }
+
+    private bool StageAndCommitTerminalOutcome(
+        ApparelWorkOrderSaveData order,
+        IReadOnlyList<ApparelWorkOrderOutcomeItemStateSaveData> itemStates,
+        string materialOperationId,
+        string materialCommitId,
+        IReadOnlyList<string> materialSourceStackIds,
+        int materialQuantity,
+        long materialMassGrams,
+        out DomainFailure failure)
+    {
+        if (order == null
+            || order.kind is ApparelWorkOrderKind.Craft
+            || order.terminalOutcomeReady
+            || itemStates == null
+            || itemStates.Count == 0
+            || itemStates.Count > MaximumBatch)
+        {
+            failure = new DomainFailure(
+                FailureCode.ApparelWorkOrderInvalid,
+                order?.orderId ?? string.Empty);
+            return false;
+        }
+        order.terminalOutcomeReady = true;
+        order.terminalAbsoluteDay = Math.Max(1, calendar.Day);
+        order.terminalPublicationKey = string.Empty;
+        order.terminalPublicationConfirmed = false;
+        order.terminalMaterialOperationId =
+            materialOperationId?.Trim() ?? string.Empty;
+        order.terminalMaterialCommitId =
+            materialCommitId?.Trim() ?? string.Empty;
+        order.terminalMaterialSourceStackIds =
+            (materialSourceStackIds ?? Array.Empty<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToList();
+        order.terminalMaterialQuantity = Math.Max(0, materialQuantity);
+        order.terminalMaterialMassGrams = Math.Max(0L, materialMassGrams);
+        order.terminalOutcomeItemStates = itemStates
+            .Select(CloneOutcomeItemState)
+            .OrderBy(value => value.itemInstanceId, StringComparer.Ordinal)
+            .ToList();
+        order.state = ApparelWorkOrderState.WaitingForDispositionFinalization;
+        Version++;
+        bool committed = TryCommitTerminalOutcome(order, out failure);
+        if (committed)
+            order.state = ApparelWorkOrderState.InProgress;
+        return committed;
+    }
+
+    private bool TryCommitTerminalOutcome(
+        ApparelWorkOrderSaveData order,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (!ValidateTerminalOutcomeShape(order, out string shapeFailure))
+        {
+            failure = new DomainFailure(FailureCode.ApparelTransferFailed,
+                order?.orderId ?? string.Empty, shapeFailure);
+            return false;
+        }
+        if (order.terminalPublicationConfirmed) return true;
+        if (facts == null || factRecovery == null)
+        {
+            failure = new DomainFailure(FailureCode.ApparelTransferFailed,
+                order.orderId, "apparel-terminal-fact-publisher-unavailable");
+            return false;
+        }
+        var fact = new ApparelWorkCompletedFact(ApparelWorkCompletedData.FromOwner(order));
+        DomainFactDelivery delivery;
+        if (order.terminalPublicationKey.Length == 0)
+        {
+            if (!facts.TryReserve(fact, out DomainFactLease lease, out string reserveFailure))
+            {
+                failure = new DomainFailure(FailureCode.ApparelTransferFailed,
+                    order.orderId, "apparel-terminal-reservation-failed:" + reserveFailure);
+                return false;
+            }
+            order.terminalPublicationKey = lease.PublicationKey;
+            Version++;
+            if (order.terminalPublicationKey.Length == 0)
+            {
+                facts.Cancel(lease);
+                failure = new DomainFailure(FailureCode.ApparelTransferFailed,
+                    order.orderId, "apparel-terminal-publication-key-missing");
+                return false;
+            }
+            try { delivery = facts.Publish(lease, fact); }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                facts.Cancel(lease);
+                order.terminalPublicationKey = string.Empty;
+                Version++;
+                failure = new DomainFailure(FailureCode.ApparelTransferFailed,
+                    order.orderId, "apparel-terminal-publication-failed:" + exception.Message);
+                return false;
+            }
+            // Effects already happened; only discard a definitively rejected reservation.
+            if (!delivery.MayBeCommitted)
+            {
+                order.terminalPublicationKey = string.Empty;
+                Version++;
+            }
+        }
+        else
+        {
+            var results = new DomainFactDelivery[1];
+            if (!factRecovery.ReplayBatch(new[] { DomainFactReplay.Create(order.terminalPublicationKey, fact) },
+                    results, out string replayFailure))
+            {
+                // This saved identity may already be committed; never replace it on replay rejection.
+                failure = new DomainFailure(FailureCode.ApparelTransferFailed,
+                    order.orderId, "apparel-terminal-replay-failed:" + replayFailure);
+                return false;
+            }
+            delivery = results[0];
+        }
+        if (!delivery.Completed || delivery.OperationKey != order.terminalPublicationKey
+            || string.IsNullOrWhiteSpace(delivery.PublicationId)
+            || delivery.Fingerprint.Length != 64)
+        {
+            failure = new DomainFailure(FailureCode.ApparelTransferFailed,
+                order.orderId, "apparel-terminal-delivery-pending:" + delivery.Detail);
+            return false;
+        }
+        order.terminalPublicationConfirmed = true;
+        Version++;
         return true;
+    }
+
+    private ApparelWorkOrderOutcomeItemStateSaveData OutcomeItemState(
+        WorldItemStackSnapshot stack,
+        ApparelInstanceState before,
+        ApparelInstanceState after) => new()
+    {
+        itemInstanceId = stack?.ItemInstanceId?.Trim() ?? string.Empty,
+        stackId = stack?.StackId?.Trim() ?? string.Empty,
+        apparelDisplayName = apparel.TryGet(before.apparelDefinitionId, out ApparelDefinitionSO definition)
+            ? definition.DisplayName : throw new InvalidOperationException("apparel-terminal-definition-missing"),
+        beforeStatePayload = CaptureApparelState(before),
+        afterStatePayload = CaptureApparelState(after)
+    };
+
+    private static ApparelWorkOrderOutcomeItemStateSaveData CloneOutcomeItemState(
+        ApparelWorkOrderOutcomeItemStateSaveData value)
+        => ApparelWorkOrderSnapshots.CloneOutcomeItemState(value);
+
+    private static bool ValidateTerminalOutcomeShape(
+        ApparelWorkOrderSaveData order,
+        out string failureReason)
+    {
+        try
+        {
+            ApparelWorkCompletedData.ValidateOwner(order);
+            failureReason = string.Empty;
+            return true;
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            failureReason = exception.Message;
+            return false;
+        }
     }
 
     private bool TrySelectMaterial(
@@ -2614,12 +2295,8 @@ public sealed class ApparelWorkOrderRuntime :
                 leases.Release(current.orderId);
             }
         }
-        AuthorityState next = new()
+        ApparelWorkOrderAuthorityState next = new()
         {
-            NextSequence = Math.Max(
-                1,
-                candidate.Orders.Select(ParseSequence).DefaultIfEmpty(0).Max()
-                    + 1),
             Version = checked(Version + 1)
         };
         next.Orders.AddRange(candidate.Orders.Select(Clone));
@@ -2661,6 +2338,7 @@ public sealed class ApparelWorkOrderRuntime :
                  terminalsToValidate)
         {
             ApparelWorkOrderSaveData frozen = terminal.sourceOrder;
+            ApparelWorkCompletedData.ValidateOwner(frozen);
             bool frozenCapabilityValid = frozen.kind != ApparelWorkOrderKind.Craft;
             if (!frozenCapabilityValid
                 && frozen.craftOutputCapability is { IsEmpty: false }
@@ -2767,30 +2445,7 @@ public sealed class ApparelWorkOrderRuntime :
     private static bool PendingEffectEquals(
         ProductionApparelOrderPendingEffectIdentity left,
         ProductionApparelOrderPendingEffectIdentity right)
-    {
-        if (left == null || right == null)
-            return left == null && right == null;
-        return string.Equals(
-                left.identityFingerprint,
-                right.identityFingerprint,
-                StringComparison.Ordinal)
-            && string.Equals(
-                JsonUtility.ToJson(left),
-                JsonUtility.ToJson(right),
-                StringComparison.Ordinal);
-    }
-
-    private static ProductionApparelOrderTerminalEffectApplyResult
-        EffectConflict(string failureReason) => new(
-            ProductionApparelOrderTerminalDrainStatus.Conflict,
-            null,
-            failureReason);
-
-    private static ProductionApparelOrderSourceTerminalApplyResult
-        SourceConflict(string failureReason) => new(
-            ProductionApparelOrderTerminalDrainStatus.Conflict,
-            null,
-            failureReason);
+        => ApparelWorkOrderSnapshots.PendingEffectEquals(left, right);
 
     private void ClearRestoreTransaction()
     {
@@ -2878,14 +2533,18 @@ public sealed class ApparelWorkOrderRuntime :
         state = null;
         return stack != null
             && apparel.TryGetByItemId(stack.ItemId, out _)
-            && ApparelItemStateCodec.TryRead(stack.Components, out state);
+            && ApparelItemStateCodec.TryRead(stack.Components, out state)
+            && apparel.TryGet(state.apparelDefinitionId, out ApparelDefinitionSO definition)
+            && DomainFactValueSyntax.IsText(definition.DisplayName, 256, false);
     }
 
     private ApparelWorkOrderSaveData NewOrder(ApparelWorkOrderKind kind)
     {
         ApparelWorkOrderSaveData order = new()
         {
-            orderId = $"apparel-order:{nextSequence++:D8}",
+            // Completed orders are omitted from saves; a reconstructed local counter
+            // must never reuse their identity after reload.
+            orderId = "apparel-order:" + Guid.NewGuid().ToString("N"),
             kind = kind,
             state = ApparelWorkOrderState.NeedsRevalidation,
             requiredWork = 1f
@@ -3175,277 +2834,8 @@ public sealed class ApparelWorkOrderRuntime :
         return hash;
     }
 
-    private static ApparelWorkOrderSaveData Clone(ApparelWorkOrderSaveData value) => new()
-    {
-        orderId = value?.orderId?.Trim() ?? string.Empty,
-        kind = value?.kind ?? ApparelWorkOrderKind.Craft,
-        state = value?.state ?? ApparelWorkOrderState.NeedsRevalidation,
-        apparelDefinitionId = value?.apparelDefinitionId?.Trim() ?? string.Empty,
-        materialDefinitionId = value?.materialDefinitionId?.Trim() ?? string.Empty,
-        materialPolicy = value?.materialPolicy ?? ApparelMaterialSelectionPolicy.ExactMaterial,
-        minimumCraftsmanshipQuality = value?.minimumCraftsmanshipQuality
-            ?? CraftsmanshipQualityTier.Normal,
-        workerPolicy = value?.workerPolicy?.CloneNormalized()
-            ?? WorkerSelectionPolicySaveData.Anyone(
-                WorkerCandidateSortMode.BestExpectedQuality),
-        contributions = value?.contributions?
-            .Where(contribution => contribution != null)
-            .Select(contribution => contribution.Clone())
-            .ToList() ?? new List<CraftContributionSaveData>(),
-        lastWorkerCharacterId = value?.lastWorkerCharacterId?.Trim() ?? string.Empty,
-        qualityRoll = value?.qualityRoll == null ? null : new CraftQualityRollSaveData
-        {
-            attemptIndex = value.qualityRoll.attemptIndex,
-            randomA = value.qualityRoll.randomA,
-            randomB = value.qualityRoll.randomB,
-            randomC = value.qualityRoll.randomC
-        },
-        qualityAttemptIndex = Mathf.Max(0, value?.qualityAttemptIndex ?? 0),
-        rejectedDisposition = value?.rejectedDisposition
-            ?? RejectedOutputDisposition.AutoDismantle,
-        repeatLimitMode = value?.repeatLimitMode
-            ?? QualityRepeatLimitMode.SafeLimits,
-        maximumAttempts = Mathf.Max(1, value?.maximumAttempts ?? 10),
-        workBudget = Mathf.Max(0f, value?.workBudget ?? 0f),
-        consumedWork = Mathf.Max(0f, value?.consumedWork ?? 0f),
-        requiredAcceptedCount = Mathf.Max(
-            1,
-            value?.requiredAcceptedCount ?? 1),
-        acceptedCount = Mathf.Max(0, value?.acceptedCount ?? 0),
-        dismantlingRejectedOutput =
-            value?.dismantlingRejectedOutput ?? false,
-        rejectedOutputConsumed =
-            value?.rejectedOutputConsumed ?? false,
-        rejectedOutputStackId =
-            value?.rejectedOutputStackId?.Trim() ?? string.Empty,
-        rejectedOutputInstanceId =
-            value?.rejectedOutputInstanceId?.Trim() ?? string.Empty,
-        craftWorkPerAttempt = Mathf.Max(
-            0f,
-            value?.craftWorkPerAttempt ?? 0f),
-        rejectedMaterialAmount = Mathf.Max(
-            0,
-            value?.rejectedMaterialAmount ?? 0),
-        rejectedMaterialSpawned = Mathf.Clamp(
-            value?.rejectedMaterialSpawned ?? 0,
-            0,
-            Mathf.Max(0, value?.rejectedMaterialAmount ?? 0)),
-        rejectedRecoveryItemId =
-            value?.rejectedRecoveryItemId?.Trim() ?? string.Empty,
-        rejectedDismantleOperationId =
-            value?.rejectedDismantleOperationId?.Trim() ?? string.Empty,
-        rejectedDismantleCommitId =
-            value?.rejectedDismantleCommitId?.Trim() ?? string.Empty,
-        rejectedDismantleRequestFingerprint =
-            value?.rejectedDismantleRequestFingerprint?.Trim()
-            ?? string.Empty,
-        rejectedDismantleInputMassGrams = Math.Max(
-            0L,
-            value?.rejectedDismantleInputMassGrams ?? 0L),
-        rejectedRecoveryOperationId =
-            value?.rejectedRecoveryOperationId?.Trim() ?? string.Empty,
-        rejectedRecoveryCommitId =
-            value?.rejectedRecoveryCommitId?.Trim() ?? string.Empty,
-        rejectedRecoveryOutputMassGrams = Math.Max(
-            0L,
-            value?.rejectedRecoveryOutputMassGrams ?? 0L),
-        rejectedRecoveryPublicationAttempt = Mathf.Max(
-            0,
-            value?.rejectedRecoveryPublicationAttempt ?? 0),
-        rejectedRecoveryOutcomeFingerprint =
-            value?.rejectedRecoveryOutcomeFingerprint?.Trim() ?? string.Empty,
-        rejectedRecoveryAdmissionTokenId =
-            value?.rejectedRecoveryAdmissionTokenId?.Trim() ?? string.Empty,
-        rejectedRecoveryOutputCapability =
-            value?.rejectedRecoveryOutputCapability?.Clone()
-            ?? new ProductionOutputCapabilitySaveData(),
-        rejectedRecoveryMaximumMassProofDigest =
-            value?.rejectedRecoveryMaximumMassProofDigest ?? string.Empty,
-        rejectedRecoveryMaximumBatchMassGrams =
-            value?.rejectedRecoveryMaximumBatchMassGrams ?? 0L,
-        rejectedRecoveryCapacitySourceDigest =
-            value?.rejectedRecoveryCapacitySourceDigest?.Trim() ?? string.Empty,
-        rejectedRecoveryRequiredMinimumCapacityGrams = Math.Max(
-            0L,
-            value?.rejectedRecoveryRequiredMinimumCapacityGrams ?? 0L),
-        rejectedRecoveryPlannedOutputFingerprint =
-            value?.rejectedRecoveryPlannedOutputFingerprint?.Trim()
-            ?? string.Empty,
-        rejectedRecoveryStackIds = value?.rejectedRecoveryStackIds?
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Select(id => id.Trim())
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(id => id, StringComparer.Ordinal)
-            .ToList()
-            ?? new List<string>(),
-        rejectedRecoveryPublished =
-            value?.rejectedRecoveryPublished ?? false,
-        rejectedRecoveryAdmissionCommitted =
-            value?.rejectedRecoveryAdmissionCommitted ?? false,
-        rejectedRecoveryOutputAcknowledged =
-            value?.rejectedRecoveryOutputAcknowledged ?? false,
-        rejectedDismantleAcknowledged =
-            value?.rejectedDismantleAcknowledged ?? false,
-        craftPublicationAttempt = Mathf.Max(
-            0,
-            value?.craftPublicationAttempt ?? 0),
-        craftPublicationOperationId =
-            value?.craftPublicationOperationId?.Trim() ?? string.Empty,
-        craftOutputBatchCommitId =
-            value?.craftOutputBatchCommitId?.Trim() ?? string.Empty,
-        craftOutcomeFingerprint =
-            value?.craftOutcomeFingerprint?.Trim() ?? string.Empty,
-        craftOutputComponentFingerprint =
-            value?.craftOutputComponentFingerprint?.Trim() ?? string.Empty,
-        craftOutputCapability = value?.craftOutputCapability?.Clone()
-            ?? new ProductionOutputCapabilitySaveData(),
-        craftAdmissionTokenId =
-            value?.craftAdmissionTokenId?.Trim() ?? string.Empty,
-        craftMaximumMassProofDigest =
-            value?.craftMaximumMassProofDigest ?? string.Empty,
-        craftMaximumBatchMassGrams =
-            value?.craftMaximumBatchMassGrams ?? 0L,
-        craftCapacitySourceDigest =
-            value?.craftCapacitySourceDigest?.Trim() ?? string.Empty,
-        craftRequiredMinimumCapacityGrams = Math.Max(
-            0L,
-            value?.craftRequiredMinimumCapacityGrams ?? 0L),
-        craftPlannedOutputFingerprint =
-            value?.craftPlannedOutputFingerprint?.Trim() ?? string.Empty,
-        craftOutputStackId =
-            value?.craftOutputStackId?.Trim() ?? string.Empty,
-        craftOutputInstanceId =
-            value?.craftOutputInstanceId?.Trim() ?? string.Empty,
-        craftInputCommitId =
-            value?.craftInputCommitId?.Trim() ?? string.Empty,
-        craftInputRequestFingerprint =
-            value?.craftInputRequestFingerprint?.Trim() ?? string.Empty,
-        craftInputMassGrams = Math.Max(
-            0L,
-            value?.craftInputMassGrams ?? 0L),
-        craftOutputMassGrams = Math.Max(
-            0L,
-            value?.craftOutputMassGrams ?? 0L),
-        craftInputPending = value?.craftInputPending ?? false,
-        craftOutputPublished = value?.craftOutputPublished ?? false,
-        craftAdmissionCommitted = value?.craftAdmissionCommitted ?? false,
-        craftInputAcknowledged = value?.craftInputAcknowledged ?? false,
-        craftOutputAcknowledged = value?.craftOutputAcknowledged ?? false,
-        craftMarketRouted = value?.craftMarketRouted ?? false,
-        rejectedOutputLeaseId =
-            value?.rejectedOutputLeaseId?.Trim() ?? string.Empty,
-        targetSize = value?.targetSize ?? ApparelSizeClass.Medium,
-        targetModifications = value?.targetModifications ?? ApparelModificationKind.None,
-        facilityInstanceId = value?.facilityInstanceId?.Trim() ?? string.Empty,
-        targetItemInstanceId = value?.targetItemInstanceId?.Trim() ?? string.Empty,
-        targetItemInstanceIds = value?.targetItemInstanceIds?
-            .Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id.Trim()).ToList()
-            ?? new List<string>(),
-        materialStackIds = value?.materialStackIds?
-            .Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id.Trim()).ToList()
-            ?? new List<string>(),
-        materialStackAmounts = value?.materialStackAmounts?.ToList() ?? new List<int>(),
-        requiredWork = value?.requiredWork ?? 0f,
-        completedWork = value?.completedWork ?? 0f,
-        retryCount = value?.retryCount ?? 0,
-        nextRetryGameHour = value?.nextRetryGameHour ?? 0f,
-        powered = value?.powered ?? false,
-        shortWardrobeOperation = value?.shortWardrobeOperation ?? false,
-        repairCommitPhase = value?.repairCommitPhase
-            ?? ApparelRepairCommitPhase.None,
-        repairOperationId = value?.repairOperationId?.Trim() ?? string.Empty,
-        repairReasonCode = value?.repairReasonCode?.Trim() ?? string.Empty,
-        repairCommitId = value?.repairCommitId?.Trim() ?? string.Empty,
-        repairSourceStackIds = value?.repairSourceStackIds?
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Select(id => id.Trim())
-            .ToList() ?? new List<string>(),
-        repairInputQuantity = value?.repairInputQuantity ?? 0,
-        repairInputMassGrams = value?.repairInputMassGrams ?? 0L,
-        repairTargetStackId = value?.repairTargetStackId?.Trim() ?? string.Empty,
-        repairOriginalStatePayload = value?.repairOriginalStatePayload
-            ?? string.Empty,
-        repairResolvedStatePayload = value?.repairResolvedStatePayload
-            ?? string.Empty
-    };
-
-    private static bool TerminalStateMatchesProducer(
-        ApparelWorkOrderTerminalStateSaveData row,
-        ProductionApparelOrderTerminalDrainSaveData producer) => row != null
-        && producer != null
-        && row.schemaVersion ==
-            ApparelWorkOrderTerminalStateSaveData.CurrentSchemaVersion
-        && row.sourceOrder != null
-        && string.Equals(
-            row.sourceOrderFingerprint,
-            producer.sourceOrderFingerprint,
-            StringComparison.Ordinal)
-        && string.Equals(
-            JsonUtility.ToJson(row.sourceOrder),
-            JsonUtility.ToJson(producer.sourceOrder),
-            StringComparison.Ordinal)
-        && PendingEffectEquals(row.pendingEffect, producer.pendingEffect)
-        && ProductionApparelOrderTerminalDrainCanonical.EffectReceiptEquals(
-            row.terminalEffectReceipt,
-            producer.terminalEffectReceipt)
-        && ProductionApparelOrderTerminalDrainCanonical.SourceReceiptEquals(
-            row.sourceTerminalReceipt,
-            producer.sourceTerminalReceipt);
-
-    private static bool TerminalStateEquals(
-        ApparelWorkOrderTerminalStateSaveData left,
-        ApparelWorkOrderTerminalStateSaveData right) => left != null
-        && right != null
-        && string.Equals(
-            JsonUtility.ToJson(left),
-            JsonUtility.ToJson(right),
-            StringComparison.Ordinal);
-
-    private TerminalStateCheckpointGcCandidate RequireTerminalStateGcCandidate(
-        IProductionApparelTerminalStateCheckpointGcCandidate candidate)
-    {
-        if (candidate is not TerminalStateCheckpointGcCandidate exact
-            || !ReferenceEquals(activeTerminalStateGcCandidate, exact))
-        {
-            throw new InvalidOperationException(
-                "Apparel terminal-state checkpoint GC candidate is stale or foreign.");
-        }
-        return exact;
-    }
-
-    private sealed class TerminalStateCheckpointGcCandidate :
-        IProductionApparelTerminalStateCheckpointGcCandidate
-    {
-        internal TerminalStateCheckpointGcCandidate(
-            int expectedVersion,
-            IReadOnlyList<ApparelWorkOrderTerminalStateSaveData> rows)
-        {
-            ExpectedVersion = expectedVersion;
-            Rows = (rows
-                    ?? Array.Empty<ApparelWorkOrderTerminalStateSaveData>())
-                .Select(value => value.Clone())
-                .OrderBy(
-                    value => value.sourceOrder.orderId,
-                    StringComparer.Ordinal)
-                .ToArray();
-            PublishedVersion = expectedVersion;
-        }
-
-        internal int ExpectedVersion { get; }
-        internal IReadOnlyList<ApparelWorkOrderTerminalStateSaveData> Rows
-            { get; }
-        internal bool Published { get; set; }
-        internal int PublishedVersion { get; set; }
-    }
-
-    private static int ParseSequence(ApparelWorkOrderSaveData order)
-    {
-        string id = order?.orderId ?? string.Empty;
-        int colon = id.LastIndexOf(':');
-        return colon >= 0 && int.TryParse(id.Substring(colon + 1), out int value)
-            ? value
-            : 0;
-    }
+    private static ApparelWorkOrderSaveData Clone(ApparelWorkOrderSaveData value)
+        => ApparelWorkOrderSnapshots.Clone(value);
 
     private float GameHour => Mathf.Max(0f, clock.Time / GameSecondsPerHour);
 }

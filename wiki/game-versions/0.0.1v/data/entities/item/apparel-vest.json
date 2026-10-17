@@ -15,7 +15,7 @@
   ],
   "game_version": "0.0.1v",
   "group": "items",
-  "in_game_description": "팔을 드러낸 채 몸통만 덮어 다른 옷 위에 겹쳐 입기 좋은 조끼다. 하르나크에서 만든 조끼는 날개와 넓은 어깨에 맞춰 등솔기를 고치기 쉽도록 여유 천을 남긴다.",
+  "in_game_description": "팔을 드러낸 채 몸통만 덮어 다른 옷 위에 겹쳐 입기 좋은 조끼다. 하르나크제 조끼의 솔기 안에는 뿔, 날개와 꼬리를 위한 여유 천이 접혀 있다.",
   "kind": "item",
   "relations": [],
   "schema_version": 1,

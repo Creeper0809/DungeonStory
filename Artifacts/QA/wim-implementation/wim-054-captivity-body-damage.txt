@@ -1,0 +1,40 @@
+INFO	START_PARTY_FIXTURE	requested-fast-debug-commit
+PASS	LIVE_ACTORS	eligible=3;warden=character:staff:1:01;captive=character:staff:1:02
+PASS	LIVE_OWNER	ownerCount=1
+PASS	AUTHORED_HOUSING_FIXTURE	building=building:9f351d71251a49dc9ff8192004b86ff6;position=(29, 1);asset=CP01_감방구속대
+PASS	CAPTIVE_FIXTURE_PUBLICATION	actor=character:staff:1:02;housing=building:9f351d71251a49dc9ff8192004b86ff6;sectionVersion=4
+PASS	IMMUTABLE_DAMAGE_POLICY_MATRIX	captivity:blood-extraction=18%,captivity:branding=8%,captivity:coercion=6%,captivity:corruption-ritual=10%,captivity:forced-modification=16%,captivity:indoctrination=0%,captivity:interrogation=0%,captivity:isolation=0%,captivity:memory-extraction=10%,captivity:persuasion=0%
+PASS	SHARED_DAMAGE_PROJECTION	percent=18;damage=18;expected=0;lethal=True
+PASS	CURRENT_FORMAT_BODY_AUTHORITY_ONLY	version=4;hasHealthField=False;oldAccepted=False;errors=Captivity payload version 3 is invalid.
+PASS	NONLETHAL_COERCION_PHYSICAL_INPUT	item=captivity:restraints;stack=stack:4a1067dbfc8c44e0b2360bee606c4856;position=(19, 0)
+PASS	NONLETHAL_COERCION_START	started=True;reason=
+PASS	NONLETHAL_COERCION_PHYSICAL_INPUT_DELIVERED	ready=True;reason=;decisions=1482;last=운반;action=;phase=;failure=
+PASS	NONLETHAL_COERCION_COMPLETE	completed=True;status=공포는 빠르게 번졌고, 그만큼 깊은 원한이 남았습니다.;work=12
+PASS	NONLETHAL_MAX_HP_PERCENT_DAMAGE	actual=94;expected=94
+PASS	NONLETHAL_RETURNS_CONFINED	dead=False;status=Confined
+PASS	NEXT_TICK_BODY_DAMAGE_PERSISTS	actual=94;expected=94
+PASS	WORLD_FILTH_POSITIVE_FIXTURE_GRID	provider=True;grid=True
+PASS	WORLD_FILTH_POSITIVE_FIXTURE_CELL	gridCells=180;existingFilth=0;warden=(29, 1)
+PASS	WORLD_FILTH_POSITIVE_FIXTURE	id=filth:00000001;position=(29, 1);amount=7;atCell=1;targets=1;targetIds=building:world-filth:29:1
+PASS	NONLETHAL_SAVE_RESTORE	restore=accepted
+PASS	WORLD_FILTH_SAME_FRAME_REPROJECTION_LIFETIME	filthExact=True;fixtureId=filth:00000001;fixturePosition=(29, 1);fixtureAmount=7->7;totalAmount=7->7;activeRegistryIdsUnique=True;duplicateRegistryIds=[];requiredTargets=1;activeTargets=1;targetIds=[building:world-filth:29:1@(29, 1)]
+PASS	RESTORE_DOES_NOT_REPEAT_DAMAGE	actual=94;expected=94
+PASS	COMMON_BODY_HEAL_COMMAND_VISIBLE	scope=body-command-not-medicine-workflow;health=94->98
+PASS	PREACTION_LETHAL_WARNING	필요 작업량 16 · 재료 Medicine 1 · 치명적 위험: 최대 체력의 18% 피해 · 예상 10→0/100 · 현재 체력으로 사망 · 담당자와 감방 시설이 필요합니다.
+PASS	UI_REOPEN_NO_MUTATION_OR_EXECUTE	health=10;output=0;cards=28/28
+PASS	LETHAL_BLOOD_EXTRACTION_PHYSICAL_INPUT	item=craft:resin-balm;stack=stack:47bc21231674455e8d35b1f66e827d72;position=(29, 1)
+PASS	LETHAL_BLOOD_EXTRACTION_OPERATIONS_TAB_MANAGER	manager=True
+PASS	LETHAL_BLOOD_EXTRACTION_RENDERED_DANGER_CARD	panel=True;button=True;active=True;interactable=True;text=혈액 추출 | 필요 작업량 16 · 재료 Medicine 1 · 치명적 위험: 최대 체력의 18% 피해 · 예상 10→0/100 · 현재 체력으로 사망 · 담당자와 감방 시설이 필요합니다. | 실행
+PASS	LETHAL_BLOOD_EXTRACTION_EVENTSYSTEM_START	clicked=True;pointer=point=3280,596;hits=4;target=Captivity_Interaction_captivity:blood-extraction;expected=Captivity_Interaction_captivity:blood-extraction;status=Interaction;interaction=captivity:blood-extraction;warden=owner
+PASS	LETHAL_BLOOD_EXTRACTION_PHYSICAL_INPUT_DELIVERED	ready=True;reason=;decisions=2;last=AI decision pipeline is unavailable.;action=;phase=Lifecycle transition;failure=
+PASS	LETHAL_BLOOD_EXTRACTION_COMPLETE	completed=True;status=수용 중 사망;work=16;warden=owner
+PASS	LETHAL_DAMAGE_REACHES_DEAD	actorDeadOrRetired=True;vitals=0/100;dead=True;status=Dead
+PASS	FATAL_EXTRACTION_OUTPUT_EXACTLY_ONCE	item=captivity:extracted-blood;count=0->1
+PASS	FATAL_INTERACTION_OWNERSHIP_CLEANUP	warden=;interaction=;destination=;consumed=False
+PASS	TERMINAL_RETRY_REJECTED_NO_REPLAY	start=False:대상이 더 이상 수용 중이 아닙니다.;advance=False:유효한 관리 작업이 아닙니다.;output=1
+PASS	FATAL_SAVE_RESTORE	restore=accepted
+PASS	FATAL_RESTORE_NO_DAMAGE_OR_OUTPUT_REPLAY	status=Dead;output=1
+PASS	BASELINE_RESTORE	restore=accepted
+PASS	CLEANUP_EXACT_AUTHORITIES	sectionsExact=True;filthExact=True;baselineFilth=[];actualFilth=[];fixtureRemoved=True;housing=building:9f351d71251a49dc9ff8192004b86ff6
+capturedErrors=0;
+RESULT=PASS;failures=0;

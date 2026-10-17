@@ -1,12 +1,51 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using DungeonStory.Foundation;
+using DungeonStory.Foundation.Facts;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
+using VContainer;
 
 public static class SurvivalDebugScenarios
 {
+    internal static SurvivalFoodRuntime CreateMealMissedOutcomeEntryFixture(
+        GameEventBus events,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IDomainFactPublisher facts)
+    {
+        if (events == null)
+            throw new ArgumentNullException(nameof(events));
+        if (aggregateRootStore == null)
+            throw new ArgumentNullException(nameof(aggregateRootStore));
+        if (facts == null)
+            throw new ArgumentNullException(nameof(facts));
+
+        IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        SurvivalFoodRuntime runtime = new(
+            new SurvivalFoodRuntimeDependencies(
+                new EmptyGridSystemProvider(),
+                new EditorWarehouseStockRuntime(),
+                itemCatalog,
+                new EmptyStockQuery(),
+                FixedClimateQuery.Instance),
+            new EmptyWildlifeSpeciesCatalog(),
+            events,
+            CharacterAiEditorTestDependencies.WorldRegistry,
+            new FixedGameClock(),
+            new EditorFixedGameCalendar(137, 9),
+            EmptyWorldThreatModifiers.Instance,
+            EmptySurvivalServiceSessions.Instance,
+            aggregateRootStore);
+        runtime.ConstructMealMissedFacts(facts);
+        return runtime;
+    }
+
     [MenuItem("DungeonStory/Debug/Survival/Run Survival Scenarios")]
     public static void RunFromMenu()
     {
@@ -17,6 +56,15 @@ public static class SurvivalDebugScenarios
         }
 
         Debug.Log("Survival scenarios passed.");
+    }
+
+    public static void RunMealRecoveryFromMenu()
+    {
+        CharacterConsumablesEffectPublicationDebugScenarios.RunAll();
+        if (!ServiceExecutionOwnerSaveValidationDebugScenarios.RunAll())
+            throw new InvalidOperationException("Meal/service owner validation regression failed.");
+        RunFromMenu();
+        Debug.Log("MEAL_FAILURE_RECOVERY_AND_OWNER_JOIN_PASS");
     }
 
     public static List<string> RunAll()
@@ -31,11 +79,15 @@ public static class SurvivalDebugScenarios
         Run("physical_meal_authority", VerifyPhysicalMealAuthority, errors);
         Run("physical_freshness_authority", VerifyPhysicalFreshnessAuthority, errors);
         Run("survival_resources_strict_restore", VerifySurvivalResourcesStrictRestore, errors);
+        Run("water_forecast_health_attribution", VerifyWaterForecastHealthAttribution, errors);
         Run("survival_typed_work_failures", VerifySurvivalTypedWorkFailures, errors);
         Run("meal_diet_content", VerifyMealDietContent, errors);
         Run("medicine_and_substance_content", VerifyMedicineAndSubstanceContent, errors);
         Run("consumables_save_payload", VerifyConsumablesSavePayload, errors);
         Run("consumables_typed_failures", VerifyConsumablesTypedFailures, errors);
+        Run("consumables_policy_outcome_atomicity",
+            VerifyConsumablesPolicyOutcomeAtomicity,
+            errors);
         Run("consumables_physical_exactly_once", VerifyConsumablesPhysicalExactlyOnce, errors);
         Run("packaged_consumable_missing_tare_recovery", VerifyPackagedConsumableMissingTareRecovery, errors);
         Run("stale_meal_need_is_benign_cancellation", VerifyStaleMealNeedClassification, errors);
@@ -51,6 +103,13 @@ public static class SurvivalDebugScenarios
     public static string RunMealV7PendingOutboxFocused() =>
         VerifyMealFourSecondCommitAndSpoilAbort();
 
+    public static string RunPhysicalMealAuthorityFocused() =>
+        VerifyPhysicalMealAuthority();
+
+    public static string RunWim035MealQualityFocused() =>
+        VerifyMealFourSecondCommitAndSpoilAbort("food:lavish-meat", true)
+        + "\n" + VerifyMealFourSecondCommitAndSpoilAbort("food:lavish-vegan", true);
+
     public static string RunSubstanceV8PendingOutboxFocused() =>
         VerifyConsumablesPhysicalExactlyOnce();
 
@@ -59,6 +118,756 @@ public static class SurvivalDebugScenarios
 
     public static string RunPersistentActorCaptureClosureFocused() =>
         VerifyConsumablesPersistentActorCaptureClosure();
+
+    public static string RunConsumablesPolicyOutcomeAtomicityFocused() =>
+        VerifyConsumablesPolicyOutcomeAtomicity();
+
+    public static string RunConsumablesPolicyFactReplayFocused() =>
+        VerifyConsumablesPolicyOutcomeAtomicity();
+
+    public static string VerifyPolicyDomainFactFocused() =>
+        VerifyConsumablesPolicyOutcomeAtomicity();
+
+    public static string VerifyDetoxDomainFactFocused() => VerifyWim028TreatBridgeRetry();
+
+    public static string RunSubstanceEffectsForArchitectureBatch() => VerifyWim036SubstanceEffects();
+
+    public static string RunOverdosePolicyForArchitectureBatch() => VerifyWim028OverdosePolicy();
+
+    public static void RunCON01FromBatch()
+    {
+        const string selector = "DUNGEONSTORY_U0_CON01_CONSUMABLES_POLICY_VERIFY";
+        if (!Application.isBatchMode
+            || !string.Equals(
+                Environment.GetEnvironmentVariable(selector),
+                "1",
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "CON01 requires its dedicated isolated batch selector.");
+        }
+
+        string output = Environment.GetEnvironmentVariable(
+            "DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            throw new InvalidOperationException(
+                "CON01 requires a create-only audit output directory.");
+        }
+
+        string reportPath = Path.Combine(
+            Path.GetFullPath(output),
+            "consumables-policy-con01-report.txt");
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath)
+            ?? throw new InvalidOperationException("CON01 report directory is missing."));
+        if (File.Exists(reportPath))
+        {
+            throw new InvalidOperationException(
+                "CON01 evidence is immutable: " + reportPath);
+        }
+
+        try
+        {
+            string result = VerifyConsumablesPolicyOutcomeAtomicity();
+            using (FileStream stream = new(
+                       reportPath,
+                       FileMode.CreateNew,
+                       FileAccess.Write,
+                       FileShare.Read))
+            using (StreamWriter writer = new(stream))
+            {
+                writer.WriteLine(result);
+                writer.WriteLine("oldSaveMigrationAdded=false");
+                writer.WriteLine("fullAuditExecuted=false");
+                writer.WriteLine("humanApprovalRecorded=false");
+                writer.WriteLine("trainingExecuted=false");
+            }
+            Debug.Log(result);
+            EditorApplication.Exit(0);
+        }
+        catch (Exception exception)
+        {
+            using (FileStream stream = new(
+                       reportPath,
+                       FileMode.CreateNew,
+                       FileAccess.Write,
+                       FileShare.Read))
+            using (StreamWriter writer = new(stream))
+            {
+                writer.WriteLine("CON01=FAIL");
+                writer.WriteLine(exception.ToString());
+            }
+            Debug.LogException(exception);
+            EditorApplication.Exit(1);
+        }
+    }
+
+    public static string RunFacilityFuelDeliveryFocused() =>
+        VerifyFacilityFuelDelivery();
+
+    private static string VerifyConsumablesPolicyOutcomeAtomicity()
+    {
+        GameObject actorObject = new("ConsumablesPolicyOutcomeActor");
+        WorldItemStackRuntime itemRuntime = null;
+        CharacterActor actor = null;
+        ICharacterAiWorldRegistry world = CharacterAiEditorTestDependencies.WorldRegistry;
+        try
+        {
+            actor = actorObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(actorObject);
+            actor.EnsureRuntimeState();
+            CharacterId characterId = new("character:policy-outcome-qa");
+            actor.Identity.SetPersistentId(characterId);
+            actor.SetLifecycleState(CharacterLifecycleState.Active);
+            world.RegisterCharacter(actor);
+            world.RegisterCharacterLifetime(actor);
+
+            itemRuntime = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture();
+            IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
+                new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+            CharacterConsumablesApplicationPorts ports = new(
+                itemCatalog,
+                itemRuntime,
+                world,
+                new GameEventBus(),
+                EmptyCombatCommands.Instance,
+                CharacterAiEditorTestDependencies.NeutralPerformance);
+
+            using CharacterConsumablesPolicyFactFixture policyFacts = new(
+                "consumables-policy-runtime-entry");
+            GameplayOutcomeLedger ledger = policyFacts.Ledger;
+            FaultingPolicyFactPublisher outcomes = policyFacts.Publisher;
+            EditorFixedGameCalendar calendar = new(7, 9);
+            DungeonRuntimeAggregateRootStore root = new();
+            CharacterConsumablesRuntime runtime = new(
+                ports,
+                ports,
+                ports,
+                new UnityGameClock(),
+                new RandomStreamProvider(7792),
+                root,
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: outcomes,
+                calendar: calendar);
+
+            CharacterConsumablesSubstanceDefinitionSnapshot substance =
+                ports.GetSubstances().FirstOrDefault();
+            Require(substance.Id.IsValid,
+                "The production catalog has no substance for policy verification.");
+            CharacterConsumablesPolicyChangeResult invalidDiet =
+                runtime.SetDietPolicy(
+                    characterId,
+                    (CharacterDietPolicyKind)int.MaxValue,
+                    "character-summary-ui");
+            CharacterConsumablesPolicyChangeResult invalidQuality =
+                runtime.SetMealQualityLimit(
+                    characterId,
+                    (CharacterMealQualityLimit)int.MaxValue,
+                    "character-summary-ui");
+            CharacterConsumablesPolicyChangeResult invalidSubstance =
+                runtime.SetSubstancePolicy(
+                    characterId,
+                    substance.Id.Value,
+                    (SubstancePolicyMode)int.MaxValue,
+                    -10f,
+                    99,
+                    "character-summary-ui");
+            Require(invalidDiet.Code
+                        == CharacterConsumablesPolicyChangeCode.InvalidRequest
+                    && invalidQuality.Code
+                        == CharacterConsumablesPolicyChangeCode.InvalidRequest
+                    && invalidSubstance.Code
+                        == CharacterConsumablesPolicyChangeCode.InvalidRequest
+                    && runtime.Capture().policyRevision == 0L,
+                "Undefined policy enums were not rejected before mutation.");
+
+            int exactBeforeMissingObserver = ledger.CaptureGameplayOutcomes()
+                .exactOutcomes.Count;
+            using (DomainFactDispatcher missingObserverFacts = new())
+            {
+                CharacterConsumablesRuntime missingObserverRuntime = new(
+                    ports,
+                    ports,
+                    ports,
+                    new UnityGameClock(),
+                    new RandomStreamProvider(7793),
+                    new DungeonRuntimeAggregateRootStore(),
+                    DefaultCharacterNeedBalanceRuntime.Instance,
+                    domainFacts: missingObserverFacts,
+                    calendar: calendar);
+                CharacterConsumablesPolicyChangeResult missingObserver =
+                    missingObserverRuntime.SetDietPolicy(
+                        characterId,
+                        CharacterDietPolicyKind.Vegan,
+                        "character-summary-ui");
+                Require(missingObserver.Code
+                            == CharacterConsumablesPolicyChangeCode.OutcomeRejected
+                        && missingObserverRuntime.GetDietPolicy(characterId)
+                            == CharacterConsumablesPolicyRules.DefaultDietPolicy
+                        && missingObserverRuntime.Capture().policyRevision == 0L
+                        && ledger.CaptureGameplayOutcomes().exactOutcomes.Count
+                            == exactBeforeMissingObserver,
+                    "A missing required policy fact observer silently accepted a policy mutation.");
+            }
+
+            outcomes.RejectNextPublish();
+            CharacterConsumablesPolicyChangeResult rejected = runtime.SetDietPolicy(
+                characterId,
+                CharacterDietPolicyKind.Vegan,
+                "character-summary-ui");
+            GameplayResultKey resultKey = PolicyValueChangeOutcomeIds.ResultKey(
+                "policy-value:character:policy-outcome-qa:1",
+                1L);
+            Require(rejected.Code == CharacterConsumablesPolicyChangeCode.OutcomeRejected
+                    && rejected.DetailCode ==
+                        "editor-injected-policy-outcome-commit-failure"
+                    && runtime.GetDietPolicy(characterId)
+                        == CharacterConsumablesPolicyRules.DefaultDietPolicy
+                    && runtime.Capture().policyRevision == 0L
+                    && !ledger.TryGetResultIdentity(resultKey, out _),
+                "Rejected policy outcome leaked policy state, revision, or replay identity.");
+
+            CharacterConsumablesPolicyChangeResult accepted = runtime.SetDietPolicy(
+                characterId,
+                CharacterDietPolicyKind.Vegan,
+                "character-summary-ui");
+            Require(accepted.Code == CharacterConsumablesPolicyChangeCode.Changed
+                    && accepted.Revision == 1L
+                    && runtime.GetDietPolicy(characterId)
+                        == CharacterDietPolicyKind.Vegan
+                    && ledger.TryGetResultIdentity(
+                        resultKey,
+                        out GameplayOutcomeReplayIdentity identity)
+                    && ledger.TryGetExact(
+                        identity.OutcomeId,
+                        out GameplayOutcomeSnapshot exact)
+                    && string.Equals(
+                        exact.outcomeTypeId,
+                        PolicyValueChangeOutcomeIds.Changed.Value,
+                        StringComparison.Ordinal),
+                "Accepted policy change did not atomically commit state and exact outcome.");
+
+            CharacterConsumablesMealDefinitionSnapshot veganMeal = new(
+                new ConsumableItemDefinitionId("qa:policy-vegan"),
+                "채식 검증식",
+                MealDietClass.Vegan,
+                MealQualityTier.Simple,
+                10f,
+                0f,
+                1,
+                false,
+                false,
+                false,
+                MealQualityBand.Simple);
+            CharacterConsumablesMealDefinitionSnapshot carnivoreMeal = new(
+                new ConsumableItemDefinitionId("qa:policy-carnivore"),
+                "육식 검증식",
+                MealDietClass.Carnivore,
+                MealQualityTier.Simple,
+                10f,
+                0f,
+                1,
+                false,
+                false,
+                false,
+                MealQualityBand.Simple);
+            Require(runtime.IsMealAllowed(characterId, veganMeal)
+                    && !runtime.IsMealAllowed(characterId, carnivoreMeal),
+                "The committed diet policy did not reach the runtime meal filter.");
+
+            CharacterConsumablesPolicyChangeResult qualityChanged =
+                runtime.SetMealQualityLimit(
+                    characterId,
+                    CharacterMealQualityLimit.Simple,
+                    "character-summary-ui");
+            Require(qualityChanged.Code
+                        == CharacterConsumablesPolicyChangeCode.Changed
+                    && qualityChanged.Revision == 2L
+                    && runtime.GetMealQualityLimit(characterId)
+                        == CharacterMealQualityLimit.Simple,
+                "Meal-quality policy did not commit revision 2.");
+
+            CharacterConsumablesPolicyChangeResult substanceChanged =
+                runtime.SetSubstancePolicy(
+                    characterId,
+                    substance.Id.Value,
+                    SubstancePolicyMode.Scheduled,
+                    -10f,
+                    99,
+                    "character-summary-ui");
+            CharacterSubstancePolicyState substanceState =
+                runtime.GetSubstancePolicy(characterId, substance.Id.Value);
+            Require(substanceChanged.Code
+                        == CharacterConsumablesPolicyChangeCode.Changed
+                    && substanceChanged.Revision == 3L
+                    && substanceState.mode == SubstancePolicyMode.Scheduled
+                    && Mathf.Approximately(substanceState.moodThreshold, 0f)
+                    && substanceState.scheduledHour == 23,
+                "Substance policy did not commit revision 3 with clamped values.");
+
+            for (long revision = 1L; revision <= 3L; revision++)
+            {
+                string operationId = "policy-value:character:policy-outcome-qa:"
+                    + revision.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                GameplayResultKey policyResultKey =
+                    PolicyValueChangeOutcomeIds.ResultKey(operationId, revision);
+                Require(ledger.TryGetResultIdentity(policyResultKey, out _),
+                    "Policy revision has no exact typed outcome: " + revision);
+            }
+
+            CharacterConsumablesPolicyChangeResult unchanged =
+                runtime.SetSubstancePolicy(
+                    characterId,
+                    substance.Id.Value,
+                    SubstancePolicyMode.Scheduled,
+                    -1f,
+                    99,
+                    "character-summary-ui");
+            Require(unchanged.Code == CharacterConsumablesPolicyChangeCode.NoChange
+                    && unchanged.Revision == 3L
+                    && runtime.Capture().policyRevision == 3L,
+                "No-op policy command advanced its durable revision.");
+
+            DungeonCharacterConsumablesSaveData save = runtime.Capture();
+            CharacterConsumablesRuntime restored = new(
+                ports,
+                ports,
+                ports,
+                new UnityGameClock(),
+                new RandomStreamProvider(7792),
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: outcomes,
+                calendar: calendar);
+            Require(restored.GetDietPolicy(characterId)
+                    == CharacterConsumablesPolicyRules.DefaultDietPolicy
+                    && restored.GetMealQualityLimit(characterId)
+                        == CharacterMealQualityLimit.Inherit,
+                "Fresh policy owner did not start from its own aggregate root.");
+            restored.PublishRestoreCandidate(restored.BuildRestoreCandidate(save));
+            Require(restored.GetDietPolicy(characterId)
+                    == CharacterDietPolicyKind.Vegan
+                    && restored.GetMealQualityLimit(characterId)
+                        == CharacterMealQualityLimit.Simple
+                    && restored.GetSubstancePolicy(characterId, substance.Id.Value).mode
+                        == SubstancePolicyMode.Scheduled
+                    && Mathf.Approximately(
+                        restored.GetSubstancePolicy(characterId, substance.Id.Value)
+                            .moodThreshold,
+                        0f)
+                    && restored.GetSubstancePolicy(characterId, substance.Id.Value)
+                        .scheduledHour == 23
+                    && restored.Capture().policyRevision == 3L,
+                "Policy values and revision did not survive a fresh runtime restore.");
+
+            outcomes.HideNextAcknowledgement();
+            CharacterConsumablesPolicyChangeResult uncertain =
+                runtime.SetDietPolicy(
+                    characterId,
+                    CharacterDietPolicyKind.CarnivorePreferred,
+                    "character-summary-ui");
+            GameplayResultKey pendingResultKey =
+                PolicyValueChangeOutcomeIds.ResultKey(
+                    "policy-value:character:policy-outcome-qa:4",
+                    4L);
+            DungeonCharacterConsumablesSaveData pendingSave = runtime.Capture();
+            PolicyValueChangeReceipt pendingReceipt =
+                CharacterConsumablesPolicyFactMapping.Capture(
+                    CharacterConsumablesPolicyChangedFact.Restore(
+                        pendingSave.pendingPolicyFacts.Single()));
+            Require(uncertain.Code == CharacterConsumablesPolicyChangeCode.Changed
+                    && uncertain.DetailCode
+                        == "policy-value-applied-publication-pending"
+                    && uncertain.Revision == 4L
+                    && runtime.GetDietPolicy(characterId)
+                        == CharacterDietPolicyKind.CarnivorePreferred
+                    && pendingSave.pendingPolicyFacts.Count == 1
+                    && pendingReceipt.ResultKey.Equals(pendingResultKey)
+                    && pendingReceipt.AfterRevision == 4L
+                    && pendingReceipt.AbsoluteDay == 7
+                    && ledger.TryGetResultIdentity(pendingResultKey, out _),
+                "Hidden durable acknowledgement did not retain the exact pending policy fact.");
+
+            string pendingJson = JsonUtility.ToJson(pendingSave);
+            DungeonCharacterConsumablesSaveData roundTrip =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
+                    pendingJson);
+            CharacterConsumablesRuntime replayed = new(
+                ports,
+                ports,
+                ports,
+                new UnityGameClock(),
+                new RandomStreamProvider(7792),
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: outcomes,
+                calendar: calendar);
+            DungeonCharacterConsumablesSaveData tamperedPending =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
+                    pendingJson);
+            tamperedPending.pendingPolicyFacts[0].afterValue = "vegetarian";
+            string beforeRejectedRestore = JsonUtility.ToJson(replayed.Capture());
+            RequireThrows<InvalidOperationException>(
+                () => replayed.BuildRestoreCandidate(tamperedPending),
+                "Consumables restore accepted a pending fact that disagreed with authoritative policy state.");
+            Require(JsonUtility.ToJson(replayed.Capture()) == beforeRejectedRestore,
+                "Rejected policy restore changed the current aggregate root.");
+            replayed.PublishRestoreCandidate(
+                replayed.BuildRestoreCandidate(roundTrip));
+            int exactBeforeReplay = ledger.CaptureGameplayOutcomes()
+                .exactOutcomes.Count;
+            Require(replayed.ResumePendingPolicyFact(out string replayFailure)
+                    && string.IsNullOrEmpty(replayFailure)
+                    && replayed.Capture().pendingPolicyFacts.Count == 0
+                    && replayed.Capture().policyRevision == 4L
+                    && replayed.GetDietPolicy(characterId)
+                        == CharacterDietPolicyKind.CarnivorePreferred
+                    && ledger.TryGetResultIdentity(pendingResultKey, out _)
+                    && ledger.CaptureGameplayOutcomes().exactOutcomes.Count
+                        == exactBeforeReplay,
+                "Pending policy fact did not replay idempotently after JSON restore.");
+
+            replayed.PublishRestoreCandidate(replayed.BuildRestoreCandidate(roundTrip));
+            string beforeRetirement = JsonUtility.ToJson(replayed.Capture());
+            outcomes.RejectNextReplay();
+            RequireThrows<InvalidOperationException>(
+                () => replayed.ReconcilePersistentActorReferences(Array.Empty<CharacterId>()),
+                "Actor retirement removed policy values before its pending fact could be acknowledged.");
+            Require(JsonUtility.ToJson(replayed.Capture()) == beforeRetirement,
+                "Rejected retirement changed policy values, revision, or the pending fact.");
+            replayed.ValidateRestorePayload(replayed.Capture(), requireWorldReferences: true);
+            replayed.ReconcilePersistentActorReferences(Array.Empty<CharacterId>());
+            DungeonCharacterConsumablesSaveData retired = replayed.Capture();
+            Require(retired.dietPolicies.Count == 0
+                    && retired.mealQualityPolicies.Count == 0
+                    && retired.substancePolicies.Count == 0
+                    && retired.policyRevision == 4L
+                    && retired.pendingPolicyFacts.Count == 0
+                    && ledger.CaptureGameplayOutcomes().exactOutcomes.Count == exactBeforeReplay,
+                "Actor retirement did not remove all three policy values while preserving publication history.");
+            replayed.ValidateRestorePayload(retired, requireWorldReferences: true);
+            replayed.PublishRestoreCandidate(replayed.BuildRestoreCandidate(roundTrip));
+            Require(replayed.GetDietPolicy(characterId) == CharacterDietPolicyKind.CarnivorePreferred
+                    && replayed.GetMealQualityLimit(characterId) == CharacterMealQualityLimit.Simple
+                    && replayed.GetSubstancePolicy(characterId, substance.Id.Value).mode == SubstancePolicyMode.Scheduled
+                    && replayed.ResumePendingPolicyFact(out replayFailure)
+                    && ledger.CaptureGameplayOutcomes().exactOutcomes.Count == exactBeforeReplay,
+                "Existing policy owner did not read a second restored root or duplicated its pending fact.");
+            CharacterConsumablesPolicyChangeResult afterReplacement = replayed.SetMealQualityLimit(
+                characterId, CharacterMealQualityLimit.Fine, "character-summary-ui");
+            Require(afterReplacement.Code == CharacterConsumablesPolicyChangeCode.Changed
+                    && afterReplacement.Revision == 5L
+                    && replayed.Capture().policyRevision == 5L
+                    && replayed.GetMealQualityLimit(characterId) == CharacterMealQualityLimit.Fine
+                    && runtime.Capture().policyRevision == 4L
+                    && runtime.GetMealQualityLimit(characterId) == CharacterMealQualityLimit.Simple,
+                "Policy command after root replacement wrote stale state or changed another runtime's root.");
+            return "CON01=PASS; undefined-enums=3; rejected=rollback; "
+                + "typed-commits=3; diet-filter=vegan-only; substance-clamp=0,23; "
+                + "same-value-revision=3; restore-revision=3; "
+                + "pending-json-replay=exactly-once; rejected-restore=unchanged; "
+                + "actor-retirement=rejected-unchanged/replay-retry/3-values/history-preserved; "
+                + "root-replacement=repeated; post-restore-command=revision5";
+        }
+        finally
+        {
+            if (actor != null)
+            {
+                world.UnregisterCharacter(actor);
+                world.UnregisterCharacterLifetime(actor);
+            }
+            itemRuntime?.Dispose();
+            UnityEngine.Object.DestroyImmediate(actorObject);
+        }
+    }
+
+    [MenuItem("DungeonStory/Debug/Survival/Run Water Forecast Health Attribution")]
+    public static void RunWaterForecastHealthAttributionFromMenu() =>
+        Debug.Log(RunWaterForecastHealthAttributionFocused());
+
+    public static string RunWaterForecastHealthAttributionFocused()
+    {
+        const string reportPath =
+            "Artifacts/QA/wim-implementation/wim-7.4.1-water-health-attribution.txt";
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath));
+        string result = VerifyWaterForecastHealthAttribution();
+        File.WriteAllText(reportPath, result + "\n");
+        return result;
+    }
+
+    private static string VerifyWaterForecastHealthAttribution()
+    {
+        DungeonSurvivalSaveData forecastOnly = new()
+        {
+            lastMissingWater = 99,
+            consecutiveWaterShortageDays = 30,
+            consecutiveFoodShortageDays = 0
+        };
+        Type evaluatorType = typeof(SurvivalFoodRuntime).Assembly.GetType(
+            "SurvivalEnvironmentRiskEvaluator",
+            throwOnError: true);
+        ConstructorInfo evaluatorConstructor = evaluatorType.GetConstructor(
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            new[]
+            {
+                typeof(IGridSystemProvider),
+                typeof(ICharacterAiWorldRegistry),
+                typeof(IWorldThreatModifierQuery)
+            },
+            modifiers: null)
+            ?? throw new MissingMethodException(
+                evaluatorType.FullName,
+                ".ctor");
+        object evaluator = evaluatorConstructor.Invoke(new object[]
+        {
+            new EmptyGridSystemProvider(),
+            CharacterAiEditorTestDependencies.WorldRegistry,
+            EmptyWorldThreatModifiers.Instance
+        });
+        MethodInfo evaluate = evaluatorType.GetMethod(
+            "Evaluate",
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(
+                evaluatorType.FullName,
+                "Evaluate");
+
+        object Evaluate(DungeonSurvivalSaveData state, int rotStacks) =>
+            evaluate.Invoke(evaluator, new object[]
+            {
+                state,
+                rotStacks,
+                SurvivalWeatherType.Clear
+            });
+        float Risk(object result, string propertyName) =>
+            (float)(result.GetType().GetProperty(
+                    propertyName,
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingMemberException(
+                    result.GetType().FullName,
+                    propertyName))
+                .GetValue(result);
+
+        object clean = Evaluate(forecastOnly, 0);
+        Require(Mathf.Approximately(Risk(clean, "SanitationRisk"), 0f)
+                && Mathf.Approximately(Risk(clean, "DiseaseRisk"), 0f),
+            "Stored/Loose water forecast created sanitation or disease risk without an actual character exposure.");
+        Require(forecastOnly.lastMissingWater == 99
+                && forecastOnly.consecutiveWaterShortageDays == 30,
+            "Health projection mutated the retained water planning forecast.");
+
+        object actualSanitation = Evaluate(forecastOnly, 5);
+        Require(Mathf.Approximately(
+                    Risk(actualSanitation, "SanitationRisk"), 60f)
+                && Mathf.Approximately(
+                    Risk(actualSanitation, "DiseaseRisk"), 33f),
+            "Removing forecast-based sickness also removed the existing physical sanitation exposure path.");
+
+        forecastOnly.consecutiveFoodShortageDays = 1;
+        object actualFoodShortage = Evaluate(forecastOnly, 0);
+        Require(Mathf.Approximately(
+                Risk(actualFoodShortage, "DiseaseRisk"), 7f),
+            "Removing forecast-based water sickness also removed the existing food-shortage health path.");
+
+        return "result=PASS\n"
+            + "forecast=lastMissingWater:99,consecutiveWaterShortageDays:30,healthRisk:0\n"
+            + "physical-sanitation=rotStacks:5,sanitationRisk:60,diseaseRisk:33\n"
+            + "food-shortage=days:1,diseaseRisk:7\n"
+            + "actual-thirst-owner=CharacterDeprivationRuntime\n"
+            + "actual-water-exposure-owner=CharacterWaterConsumedEvent->PopulationHealthRuntime";
+    }
+
+    [MenuItem("DungeonStory/Debug/Survival/Run WIM-036 Substance Effects Verification")]
+    public static void RunWim036SubstanceEffectsFromMenu() =>
+        RunWim036SubstanceEffectsFocused();
+
+    public static string RunWim036SubstanceEffectsFocused()
+    {
+        const string reportPath =
+            "Artifacts/QA/wim-implementation/wim-036-substance-effects.txt";
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath));
+        List<string> report = new()
+        {
+            "WIM-036 substance-specific effects focused verification",
+            $"utc={DateTime.UtcNow:O}"
+        };
+        try
+        {
+            report.Add("[PASS] PHYSICAL_EFFECTS "
+                + VerifyWim036SubstanceEffects());
+            report.Add("failures=0");
+            File.WriteAllLines(reportPath, report);
+            Debug.Log(string.Join("\n", report));
+            return string.Join("\n", report);
+        }
+        catch (Exception exception)
+        {
+            report.Add("[FAIL] " + exception.GetType().Name + ": "
+                + exception.Message);
+            report.Add("failures=1");
+            File.WriteAllLines(reportPath, report);
+            throw;
+        }
+    }
+
+    [MenuItem("DungeonStory/Debug/Survival/Run WIM-028 Toxicity Verification")]
+    public static void RunWim028ToxicityFromMenu() =>
+        RunWim028ToxicityFocused();
+
+    public static string RunWim028ToxicityFocused()
+    {
+        const string reportPath =
+            "Artifacts/QA/wim-implementation/wim-028-toxicity-antidote.txt";
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath));
+        List<string> report = new()
+        {
+            "WIM-028 toxicity / antidote focused verification",
+            $"utc={DateTime.UtcNow:O}"
+        };
+        try
+        {
+            report.Add("[PASS] OVERDOSE_POLICY " + VerifyWim028OverdosePolicy());
+            report.Add("[PASS] TREAT_BRIDGE_RETRY " + VerifyWim028TreatBridgeRetry());
+            report.Add("[PASS] LIVE_HEALTH_PANEL " + VerifyWim028LiveHealthPanel());
+            report.Add("failures=0");
+            File.WriteAllLines(reportPath, report);
+            Debug.Log(string.Join("\n", report));
+            return string.Join("\n", report);
+        }
+        catch (Exception exception)
+        {
+            report.Add("[FAIL] " + exception.GetType().Name + ": " + exception.Message);
+            report.Add("failures=1");
+            File.WriteAllLines(reportPath, report);
+            throw;
+        }
+    }
+
+    [MenuItem("DungeonStory/Debug/Survival/Run WIM-062 Treatment Delivery Verification")]
+    public static void RunWim062TreatmentDeliveryFromMenu() =>
+        RunWim062TreatmentDeliveryFocused();
+
+    public static string RunWim062TreatmentDeliveryFocused()
+    {
+        const string reportPath =
+            "Artifacts/QA/wim-implementation/wim-062-treatment-delivery-focused.txt";
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath));
+        List<string> report = new()
+        {
+            "WIM-062 treatment delivery / physical commit focused verification",
+            $"utc={DateTime.UtcNow:O}",
+            "route=controlled work-handler / physical-item fixture; natural-haul=NOT_RUN"
+        };
+        try
+        {
+            report.Add("[PASS] TREAT_DELIVERY_RETRY " + VerifyWim028TreatBridgeRetry());
+            report.Add("[PASS] SUPPLY_QUERY StockMissing/CapacityUnavailable/AwaitingRequest/Requested/InTransit/Ready/Processing; repeated reads preserve physical/treatment/consumables/session captures");
+            report.Add("supply-query-real-NoPath=NOT_RUN; health-ui=NOT_RUN");
+            report.Add("failures=0");
+            File.WriteAllLines(reportPath, report);
+            Debug.Log(string.Join("\n", report));
+            return string.Join("\n", report);
+        }
+        catch (Exception exception)
+        {
+            report.Add("[FAIL] " + exception.GetType().Name + ": " + exception.Message);
+            report.Add("failures=1");
+            File.WriteAllLines(reportPath, report);
+            throw;
+        }
+    }
+
+    private static string VerifyWim028LiveHealthPanel()
+    {
+        Require(Application.isPlaying,
+            "WIM028 live Character Summary observation requires Play Mode");
+        DungeonRuntimeLifetimeScope scope = UnityEngine.Object
+            .FindObjectsByType<DungeonRuntimeLifetimeScope>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None)
+            .FirstOrDefault(candidate => candidate?.Container != null);
+        CharacterSummaryInfo summary = UnityEngine.Object
+            .FindObjectsByType<CharacterSummaryInfo>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None)
+            .FirstOrDefault();
+        Require(scope?.Container != null && summary != null,
+            "live gameplay container or CharacterSummaryInfo is unavailable");
+
+        ICharacterAiWorldRegistry world =
+            scope.Container.Resolve<ICharacterAiWorldRegistry>();
+        ICharacterConsumablesPersistence persistence =
+            scope.Container.Resolve<ICharacterConsumablesPersistence>();
+        ICharacterConsumablesQuery query =
+            scope.Container.Resolve<ICharacterConsumablesQuery>();
+        CharacterActor actor = world.Characters
+            .Where(candidate => candidate != null
+                && candidate.CurrentLifecycleState == CharacterLifecycleState.Active
+                && CharacterPersistentIdentity.TryGet(candidate, out _))
+            .OrderBy(candidate => candidate.Identity.PersistentId,
+                StringComparer.Ordinal)
+            .FirstOrDefault();
+        Require(actor != null,
+            "live Character Summary toxicity observation has no active registered character");
+
+        DungeonCharacterConsumablesSaveData baseline = persistence.Capture();
+        try
+        {
+            DungeonCharacterConsumablesSaveData projected = persistence.Capture();
+            string actorId = CharacterPersistentIdentity.Require(actor).Value;
+            projected.toxicityStates.RemoveAll(state => state != null
+                && string.Equals(
+                    state.characterId,
+                    actorId,
+                    StringComparison.Ordinal));
+            projected.toxicityStates.Add(new CharacterToxicityState
+            {
+                characterId = actorId,
+                toxicity = CharacterToxicityPolicy.MaximumToxicity,
+                lastNaturalRecoveryDay = 1
+            });
+            persistence.PublishRestoreCandidate(
+                persistence.BuildRestoreCandidate(projected));
+
+            CharacterToxicityStatus status = query.GetToxicityStatus(actor);
+            Require(Mathf.Approximately(
+                        status.Toxicity,
+                        CharacterToxicityPolicy.MaximumToxicity)
+                    && Mathf.Approximately(
+                        status.PerformancePenalty,
+                        CharacterToxicityPolicy.MaximumPerformancePenalty),
+                "live consumables query did not expose toxicity 100 / penalty 20%");
+            summary.OnTriggerEvent(new InfoFeedEvent(actor));
+            summary.ShowHealthTab();
+            TMP_Text healthText = summary.UI?.transform.Find(
+                    "CharacterSummaryGeneratedView/Content/HealthContent/HealthContentViewport/HealthSummaryText")
+                ?.GetComponent<TMP_Text>();
+            string treatmentReason =
+                CharacterSummaryHealthStatusTextFormatter.ToxicityTreatment(status);
+            string expectedRow = CharacterSummaryHealthStatusTextFormatter.Get(
+                "CharacterSummary.Health.Consumables.ToxicityRow",
+                status.Toxicity,
+                status.PerformancePenalty * 100f,
+                treatmentReason);
+            Require(summary.UI != null
+                    && summary.UI.activeInHierarchy
+                    && healthText != null
+                    && healthText.gameObject.activeInHierarchy
+                    && healthText.text.Contains(expectedRow,
+                        StringComparison.Ordinal),
+                "live Character Summary health panel did not render the exact toxicity value, penalty contribution, and reason");
+            return $"actor={actorId}; toxicity={status.Toxicity:0.#}; "
+                + $"penalty={status.PerformancePenalty * 100f:0.#}%; "
+                + $"reason={status.TreatmentUnavailableReason}; "
+                + $"rendered={expectedRow}";
+        }
+        finally
+        {
+            summary.RequestClose();
+            persistence.PublishRestoreCandidate(
+                persistence.BuildRestoreCandidate(baseline));
+        }
+    }
 
     private static string VerifyConsumablesPersistentActorCaptureClosure()
     {
@@ -115,6 +924,41 @@ public static class SurvivalDebugScenarios
                 new RandomStreamProvider(711),
                 new DungeonRuntimeAggregateRootStore(),
                 DefaultCharacterNeedBalanceRuntime.Instance);
+
+            // Facility membership must use the same staged world as FacilityIds.
+            // An excluded live facility must not receive an invented capacity slot.
+            var candidates = new RestoreWorldCandidateIndex();
+            Grid candidateGrid = new(1, 1);
+            candidates.SetFacilityCandidate(candidateGrid, Array.Empty<BuildableObject>());
+            Require(candidates.TryGetGrid(out Grid stagedGrid)
+                    && ReferenceEquals(stagedGrid, candidateGrid),
+                "persistent consumables fixture did not stage its detached grid");
+            CharacterConsumablesApplicationPorts candidatePorts = new(
+                itemCatalog, itemRuntime, world, new GameEventBus(),
+                EmptyCombatCommands.Instance, CharacterAiEditorTestDependencies.NeutralPerformance,
+                restoreWorldCandidates: candidates);
+            BuildingInstanceId facilityId = facility.RequirePersistentInstanceId();
+            CharacterId characterId = CharacterPersistentIdentity.Require(actor);
+            var firstSlot = new ConsumableOperationId("consumable-operation:c19-first-slot");
+            var nextSlot = new ConsumableOperationId("consumable-operation:c19-next-slot");
+            try
+            {
+                Require(candidatePorts.FacilityIds.Count == 0
+                        && !candidatePorts.TryGetFacility(facilityId, out _)
+                        && !candidatePorts.TryReserveMealFacilitySlot(firstSlot, characterId, facilityId),
+                    "staged empty facilities resolved the old live facility or accepted a missing capacity slot");
+                candidates.ClearFacilityCandidate();
+                Require(candidatePorts.TryGetFacility(facilityId, out _)
+                        && candidatePorts.TryReserveMealFacilitySlot(firstSlot, characterId, facilityId)
+                        && candidatePorts.TryReserveMealFacilitySlot(firstSlot, characterId, facilityId)
+                        && !candidatePorts.TryReserveMealFacilitySlot(nextSlot, characterId, facilityId),
+                    "clearing the candidate did not restore live lookup/exact slot retry/capacity");
+                candidatePorts.ReleaseMealFacilitySlot(firstSlot, facilityId);
+                Require(candidatePorts.TryReserveMealFacilitySlot(nextSlot, characterId, facilityId),
+                    "released facility slot could not be retried by the next operation");
+                candidatePorts.ReleaseMealFacilitySlot(nextSlot, facilityId);
+            }
+            finally { candidates.ClearFacilityCandidate(); }
 
             DungeonCharacterConsumablesSaveData payload = runtime.Capture();
             payload.pendingMealDeliveries.Add(new CharacterMealDeliveryState
@@ -204,9 +1048,12 @@ public static class SurvivalDebugScenarios
         return "not-hungry/followup=benign; ritual/physical=typed-failure";
     }
 
-    private static string VerifyMealFourSecondCommitAndSpoilAbort()
+    private static string VerifyMealFourSecondCommitAndSpoilAbort() =>
+        VerifyMealFourSecondCommitAndSpoilAbort("food:preserved-ration", false);
+
+    private static string VerifyMealFourSecondCommitAndSpoilAbort(
+        string FoodId, bool verifyQualityPolicy)
     {
-        const string FoodId = "food:preserved-ration";
         GameObject actorObject = new("MealActionActor");
         GameObject facilityObject = new("MealActionFacility");
         BuildingSO buildingData = null;
@@ -277,14 +1124,27 @@ public static class SurvivalDebugScenarios
                 reservedBatchDispositions: reservedBatch,
                 batchDispositions: failFirstAcknowledge);
             MutableConsumablesClock clock = new();
+            DungeonRuntimeAggregateRootStore mealRoot = new();
+            MigratedProducerOutcomeEditorFixture mealOutcomes = new(
+                "run:survival-meal", mealRoot);
+            using CharacterConsumablesPolicyFactFixture policyFacts = new(
+                "run:survival-meal-policy-facts");
+            CharacterConsumptionFactFixture.Attach(
+                policyFacts.Dispatcher,
+                mealOutcomes.Transaction,
+                mealOutcomes.Recorder,
+                mealOutcomes.Ledger);
+            EditorFixedGameCalendar policyCalendar = new(1, 9);
             CharacterConsumablesRuntime runtime = new(
                 ports,
                 ports,
                 ports,
                 clock,
                 new RandomStreamProvider(4204),
-                new DungeonRuntimeAggregateRootStore(),
-                DefaultCharacterNeedBalanceRuntime.Instance);
+                mealRoot,
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: policyFacts.Dispatcher,
+                calendar: policyCalendar);
             string destination = CharacterConsumablesRuntime.GetMealDestinationId(
                 facility.RequirePersistentInstanceId(),
                 new ConsumableItemDefinitionId(FoodId));
@@ -301,6 +1161,23 @@ public static class SurvivalDebugScenarios
             WorldItemStackSnapshot firstStack = items.GetAllStacks().Single(stack =>
                 stack.ItemId == FoodId);
             actor.stats[CharacterCondition.HUNGER] = 50f;
+            if (verifyQualityPolicy)
+            {
+                CharacterConsumablesCompatibilityAdapter policy = new(runtime);
+                Require(policy.GetMealQualityLimit(actor) == CharacterMealQualityLimit.Inherit,
+                    "new actor meal cap did not preserve Inherit default");
+                Require(!policy.HasMealAvailable(actor, facility, out _),
+                    "default Fine cap accepted Lavish food");
+                policy.SetMealQualityLimit(actor, CharacterMealQualityLimit.Lavish);
+                Require(policy.GetMealQualityLimit(actor) == CharacterMealQualityLimit.Lavish
+                        && policy.HasMealAvailable(actor, facility, out _),
+                    "application adapter did not open existing Lavish candidate policy");
+                policy.SetMealQualityLimit(actor, CharacterMealQualityLimit.Fine);
+                Require(!policy.HasMealAvailable(actor, facility, out _)
+                        && items.GetAllStacks().Single(stack => stack.StackId == firstStack.StackId).Quantity == 1,
+                    "lowered meal cap did not block Lavish or consumed stock during policy change");
+                policy.SetMealQualityLimit(actor, CharacterMealQualityLimit.Lavish);
+            }
             actor.PathSearchBroker?.BeginFrame(
                 0,
                 enforceBudget: true,
@@ -347,11 +1224,17 @@ public static class SurvivalDebugScenarios
                 ports,
                 clock,
                 new RandomStreamProvider(4204),
-                new DungeonRuntimeAggregateRootStore(),
-                DefaultCharacterNeedBalanceRuntime.Instance);
+                mealRoot,
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: policyFacts.Dispatcher,
+                calendar: policyCalendar);
             restoredRuntime.PublishRestoreCandidate(
                 restoredRuntime.BuildRestoreCandidate(activeSave));
             runtime = restoredRuntime;
+            if (verifyQualityPolicy)
+                Require(new CharacterConsumablesCompatibilityAdapter(runtime)
+                        .GetMealQualityLimit(actor) == CharacterMealQualityLimit.Lavish,
+                    "Lavish policy did not survive active-meal save/restore");
             clock.Advance(3.9f);
             runtime.Tick();
             Require(items.GetAllStacks().Any(stack => stack.StackId == firstStack.StackId),
@@ -359,6 +1242,9 @@ public static class SurvivalDebugScenarios
             clock.Advance(0.2f);
             runtime.Tick();
             DungeonCharacterConsumablesSaveData pendingAckSave = runtime.Capture();
+            string mealLedgerAfterEffects = JsonUtility.ToJson(mealOutcomes.Ledger.CaptureGameplayOutcomes());
+            Require(mealOutcomes.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count == 1,
+                "meal did not record exactly one parent outcome");
             bool firstStackRemoved = !items.GetAllStacks().Any(
                 stack => stack.StackId == firstStack.StackId);
             bool pendingResultAvailable = runtime.TryGetMealOperationResult(
@@ -393,8 +1279,10 @@ public static class SurvivalDebugScenarios
                 ports,
                 clock,
                 new RandomStreamProvider(4204),
-                new DungeonRuntimeAggregateRootStore(),
-                DefaultCharacterNeedBalanceRuntime.Instance);
+                mealRoot,
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: policyFacts.Dispatcher,
+                calendar: policyCalendar);
             ackRestoredRuntime.PublishRestoreCandidate(
                 ackRestoredRuntime.BuildRestoreCandidate(pendingAckSave));
             runtime = ackRestoredRuntime;
@@ -412,6 +1300,8 @@ public static class SurvivalDebugScenarios
                         hungerAfterEffects)
                     && !batch.TryGetPending(firstCommand.OperationId.Value, out _),
                 "meal pending receipt did not acknowledge exactly once after restore, or effects replayed");
+            Require(JsonUtility.ToJson(mealOutcomes.Ledger.CaptureGameplayOutcomes()) == mealLedgerAfterEffects,
+                "meal ACK restore changed the published outcome ledger");
             DungeonCharacterConsumablesSaveData missingPending =
                 JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
                     JsonUtility.ToJson(pendingAckSave));
@@ -484,6 +1374,34 @@ public static class SurvivalDebugScenarios
                 + $"code={spoiledResult.FailureCode}; "
                 + $"parameters={string.Join(",", spoiledResult.Parameters)}");
 
+            if (verifyQualityPolicy)
+            {
+                Require(items.SpawnItemAt(FoodId, 1, Vector2Int.zero,
+                        WorldItemStackState.FacilityBuffer, destination, out int spawnedPolicy)
+                        && spawnedPolicy == 1, "could not create policy-change serving");
+                WorldItemStackSnapshot policyStack = items.GetAllStacks().Single(value =>
+                    value.ItemId == FoodId && value.State == WorldItemStackState.FacilityBuffer
+                    && value.StackId != secondStack.StackId);
+                ConsumeMealCommand policyCommand = new(
+                    new ConsumableOperationId("consumable-operation:meal-policy-change"),
+                    CharacterPersistentIdentity.Require(actor), facility.RequirePersistentInstanceId(),
+                    new ItemStackId(policyStack.StackId));
+                Require(!runtime.TryConsumeMeal(policyCommand, out CharacterConsumablesMealResult policyPending)
+                        && policyPending.FailureCode == CharacterConsumablesFailureCode.DeliveryPending,
+                    "policy-change serving did not start");
+                new CharacterConsumablesCompatibilityAdapter(runtime)
+                    .SetMealQualityLimit(actor, CharacterMealQualityLimit.Fine);
+                clock.Advance(4.1f);
+                runtime.Tick();
+                WorldItemStackSnapshot retained = items.GetAllStacks().Single(value => value.StackId == policyStack.StackId);
+                Require(retained.Quantity == 1 && retained.ReservedQuantity == 0
+                        && runtime.Capture().completedOperations.Count == 1
+                        && !runtime.TryGetMealOperationResult(policyCommand.OperationId, out CharacterConsumablesMealResult denied)
+                        && denied.FailureCode == CharacterConsumablesFailureCode.PolicyForbidden
+                        && denied.Parameters.Contains("meal-quality-limit-at-commit"),
+                    "policy change during meal consumed stock or leaked its lease");
+            }
+
             FailFirstAcknowledgeBatchDisposition fieldAck = new(batch);
             CharacterConsumablesApplicationPorts fieldPorts = new(
                 itemCatalog,
@@ -496,14 +1414,26 @@ public static class SurvivalDebugScenarios
                 reservedTransfers: reservedTransfers,
                 reservedBatchDispositions: reservedBatch,
                 batchDispositions: fieldAck);
+            DungeonRuntimeAggregateRootStore fieldRoot = new();
+            MigratedProducerOutcomeEditorFixture fieldOutcomes = new(
+                "run:survival-field-meal", fieldRoot);
+            using CharacterConsumablesPolicyFactFixture fieldPolicyFacts = new(
+                "run:survival-field-meal-policy-facts");
+            CharacterConsumptionFactFixture.Attach(
+                fieldPolicyFacts.Dispatcher,
+                fieldOutcomes.Transaction,
+                fieldOutcomes.Recorder,
+                fieldOutcomes.Ledger);
             CharacterConsumablesRuntime fieldRuntime = new(
                 fieldPorts,
                 fieldPorts,
                 fieldPorts,
                 clock,
                 new RandomStreamProvider(4205),
-                new DungeonRuntimeAggregateRootStore(),
-                DefaultCharacterNeedBalanceRuntime.Instance);
+                fieldRoot,
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: fieldPolicyFacts.Dispatcher,
+                calendar: policyCalendar);
             actor.stats[CharacterCondition.HUNGER] = 50f;
             Require(items.SpawnItemAt(
                     FoodId,
@@ -520,16 +1450,28 @@ public static class SurvivalDebugScenarios
             int fieldQuantityBefore = items.GetAllStacks()
                 .Where(value => value.ItemId == FoodId)
                 .Sum(value => value.Quantity);
+            if (verifyQualityPolicy)
+            {
+                CharacterConsumablesCompatibilityAdapter policy = new(fieldRuntime);
+                Require(!policy.TryConsumeFieldMeal(actor, new ItemStackId(fieldStack.StackId), out _)
+                        && items.GetAllStacks().Single(value => value.StackId == fieldStack.StackId).Quantity == 1,
+                    "default field meal cap consumed Lavish food");
+                policy.SetMealQualityLimit(actor, CharacterMealQualityLimit.Lavish);
+            }
             Require(fieldRuntime.TryConsumeFieldMeal(
                     CharacterPersistentIdentity.Require(actor),
                     new ItemStackId(fieldStack.StackId),
                     out CharacterConsumablesMealResult fieldResult)
                 && fieldResult.Success,
                 "field meal did not publish its result after the pending Sink commit");
-            DungeonCharacterConsumablesSaveData fieldPending = fieldRuntime.Capture();
+            DungeonCharacterConsumablesSaveData fieldPending =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(JsonUtility.ToJson(fieldRuntime.Capture()));
+            string fieldLedgerAfterEffects = JsonUtility.ToJson(fieldOutcomes.Ledger.CaptureGameplayOutcomes());
             Require(fieldPending.activeMealPlans.Count == 1
                     && fieldPending.activeMealPlans[0].phase
                         == CharacterMealPlanPhase.EffectsPublished
+                    && fieldPending.activeMealPlans[0].physicalContextFrozen
+                    && fieldPending.activeMealPlans[0].consumptionPosition == actor.GetNowXY()
                     && fieldPending.completedOperations.Count == 1
                     && batch.TryGetPending(
                         fieldPending.activeMealPlans[0].planId,
@@ -545,11 +1487,24 @@ public static class SurvivalDebugScenarios
                 fieldPorts,
                 clock,
                 new RandomStreamProvider(4205),
-                new DungeonRuntimeAggregateRootStore(),
-                DefaultCharacterNeedBalanceRuntime.Instance);
+                fieldRoot,
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: fieldPolicyFacts.Dispatcher,
+                calendar: policyCalendar);
+            DungeonCharacterConsumablesSaveData missingFieldContext =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(JsonUtility.ToJson(fieldPending));
+            missingFieldContext.activeMealPlans[0].physicalContextFrozen = false;
+            string beforeRejectedFieldRestore = JsonUtility.ToJson(restoredFieldRuntime.Capture());
+            RequireThrows<InvalidOperationException>(
+                () => restoredFieldRuntime.BuildRestoreCandidate(missingFieldContext),
+                "Field meal restore accepted a committed plan without its frozen physical context.");
+            Require(JsonUtility.ToJson(restoredFieldRuntime.Capture()) == beforeRejectedFieldRestore,
+                "Rejected field meal context changed the current aggregate.");
             restoredFieldRuntime.PublishRestoreCandidate(
                 restoredFieldRuntime.BuildRestoreCandidate(fieldPending));
             restoredFieldRuntime.Tick();
+            Require(JsonUtility.ToJson(fieldOutcomes.Ledger.CaptureGameplayOutcomes()) == fieldLedgerAfterEffects,
+                "field-meal ACK restore changed the published outcome ledger");
             DungeonCharacterConsumablesSaveData fieldCompleted =
                 restoredFieldRuntime.Capture();
             Require(fieldCompleted.activeMealPlans.Count == 0
@@ -561,7 +1516,7 @@ public static class SurvivalDebugScenarios
                         fieldPending.activeMealPlans[0].planId,
                         out _),
                 "field meal restore replayed effects or failed to acknowledge its receipt");
-            return "facility=pending/restore-exact; field=pending/restore-exact; spoiled=abort; leaseReleased=True";
+            return $"item={FoodId}; qualityPolicy={verifyQualityPolicy}; facility=pending/restore-exact; field=JSON-pending/restore-exact; fieldPhysicalContext=frozen/position-exact; missingContext=rejected/unchanged; spoiled=abort; leaseReleased=True";
         }
         finally
         {
@@ -588,7 +1543,7 @@ public static class SurvivalDebugScenarios
         }
         catch (Exception ex)
         {
-            errors.Add($"{name}: {ex.Message}");
+            errors.Add($"{name}: {ex}");
         }
     }
 
@@ -751,6 +1706,7 @@ public static class SurvivalDebugScenarios
             events,
             CharacterAiEditorTestDependencies.WorldRegistry,
             new FixedGameClock(),
+            new EditorFixedGameCalendar(137, 9),
             EmptyWorldThreatModifiers.Instance,
             EmptySurvivalServiceSessions.Instance,
             aggregateRootStore: new DungeonRuntimeAggregateRootStore());
@@ -831,7 +1787,38 @@ public static class SurvivalDebugScenarios
                 runtime.GetRecentMeals().Count == 1
                 && runtime.GetMealsConsumed(actor.Identity.PersistentId, 2) == 0,
                 "day transition duplicated or consumed another meal");
-            return $"ledger={meals.Count}; published={publishedMeals}; day2=0";
+            ResourceItemDefinitionSO ration = itemCatalog.GetRequired(
+                new ItemDefinitionId("food:preserved-ration")) as ResourceItemDefinitionSO
+                ?? throw new InvalidOperationException("The physical meal fixture requires its authored ration resource.");
+            ConsumableOperationId fieldOperation = new("consumable-operation:survival:field-meal:test");
+            MealConsumptionResult fieldResult = MealConsumptionResult.FromCore(
+                CharacterConsumablesMealResult.Consumed(fieldOperation,
+                    CharacterConsumablesApplicationPorts.ToMealSnapshot(ration),
+                    new ItemStackId("stack:survival:field-meal:test"), false, false));
+            BuildingInstanceId fieldFacility = new(CharacterConsumablesRuntime.FieldMealFacilityId);
+            events.Publish(new PhysicalMealConsumedEvent(fieldOperation, actor, null, fieldResult));
+            events.Publish(new PhysicalMealConsumedEvent(fieldOperation, actor, null, fieldResult,
+                new BuildingInstanceId("building:missing:meal:test")));
+            events.Publish(new PhysicalMealConsumedEvent(fieldOperation, actor, null,
+                MealConsumptionResult.Failed(CharacterConsumablesFailureCode.PhysicalConsumptionFailed), fieldFacility));
+            Require(runtime.GetRecentMeals().Count == 1 && publishedMeals == 1,
+                "missing/unknown facility or failed physical meal was counted as nutrition");
+            events.Publish(new PhysicalMealConsumedEvent(fieldOperation, actor, null, fieldResult, fieldFacility));
+            CharacterMealLedgerSaveData fieldMeal = runtime.GetRecentMeals().Single(value => value.day == 2);
+            Require(runtime.GetRecentMeals().Count == 2
+                    && runtime.GetMealsConsumed(actor.Identity.PersistentId, 2) == 1
+                    && fieldMeal.facilityId == CharacterConsumablesRuntime.FieldMealFacilityId
+                    && fieldMeal.itemId == "food:preserved-ration"
+                    && fieldMeal.amount == 1 && fieldMeal.nutrition == fieldResult.Nutrition
+                    && publishedMeals == 2 && publishedAmount == 2,
+                "successful explicit field meal was not recorded with its exact nutrition identity");
+            DungeonSurvivalSaveData fieldSave = runtime.Capture();
+            string fieldSavedJson = JsonUtility.ToJson(fieldSave);
+            runtime.PublishRestoreCandidate(runtime.BuildRestoreCandidate(fieldSave));
+            Require(JsonUtility.ToJson(runtime.Capture()) == fieldSavedJson
+                    && publishedMeals == 2 && runtime.GetMealsConsumed(actor.Identity.PersistentId, 2) == 1,
+                "field meal save/restore changed nutrition or replayed meal publication");
+            return "facilityStock=1;fieldMeal=1;invalidPhysicalMealRejected=true;fieldNutritionExact=true;restoreExact=true;restoreDuplicate=0";
         }
         finally
         {
@@ -886,6 +1873,7 @@ public static class SurvivalDebugScenarios
             new GameEventBus(),
             CharacterAiEditorTestDependencies.WorldRegistry,
             new FixedGameClock(),
+            new EditorFixedGameCalendar(137, 9),
             EmptyWorldThreatModifiers.Instance,
             EmptySurvivalServiceSessions.Instance,
             aggregateRootStore: new DungeonRuntimeAggregateRootStore());
@@ -918,6 +1906,7 @@ public static class SurvivalDebugScenarios
             new GameEventBus(),
             CharacterAiEditorTestDependencies.WorldRegistry,
             new FixedGameClock(),
+            new EditorFixedGameCalendar(137, 9),
             EmptyWorldThreatModifiers.Instance,
             EmptySurvivalServiceSessions.Instance,
             aggregateRootStore: root);
@@ -1001,6 +1990,7 @@ public static class SurvivalDebugScenarios
         ICharacterAiWorldRegistry world =
             CharacterAiEditorTestDependencies.WorldRegistry;
         IGameClock clock = new FixedGameClock();
+        IGameCalendar calendar = new EditorFixedGameCalendar(137, 9);
         IWorldThreatModifierQuery threats =
             EmptyWorldThreatModifiers.Instance;
         ISurvivalServiceSessionCapability sessions =
@@ -1012,6 +2002,7 @@ public static class SurvivalDebugScenarios
             new GameEventBus(),
             world,
             clock,
+            calendar,
             threats,
             sessions,
             new DungeonRuntimeAggregateRootStore());
@@ -1032,6 +2023,7 @@ public static class SurvivalDebugScenarios
                 new GameEventBus(),
                 worldRegistry: null,
                 clock,
+                calendar,
                 threats,
                 sessions,
                 new DungeonRuntimeAggregateRootStore()),
@@ -1042,6 +2034,7 @@ public static class SurvivalDebugScenarios
                 new GameEventBus(),
                 world,
                 gameClock: null,
+                calendar,
                 threats,
                 sessions,
                 new DungeonRuntimeAggregateRootStore()),
@@ -1052,6 +2045,7 @@ public static class SurvivalDebugScenarios
                 new GameEventBus(),
                 world,
                 clock,
+                calendar,
                 worldThreatModifiers: null,
                 sessions,
                 new DungeonRuntimeAggregateRootStore()),
@@ -1062,6 +2056,7 @@ public static class SurvivalDebugScenarios
                 new GameEventBus(),
                 world,
                 clock,
+                calendar,
                 threats,
                 serviceSessionRuntime: null,
                 new DungeonRuntimeAggregateRootStore()),
@@ -1205,6 +2200,7 @@ public static class SurvivalDebugScenarios
         DungeonCharacterConsumablesSaveData source =
             new DungeonCharacterConsumablesSaveData
             {
+                timelineTime = 12f,
                 dietPolicies = new List<CharacterDietPolicyState>
                 {
                     new CharacterDietPolicyState
@@ -1356,6 +2352,10 @@ public static class SurvivalDebugScenarios
                     .Cast<SurgeryRiskSummaryCode>()
                     .Where(code => code != SurgeryRiskSummaryCode.None)
                     .Select(code => code.ToString()))
+                .Concat(Enum.GetValues(typeof(SurgeryEmergencyCause))
+                    .Cast<SurgeryEmergencyCause>()
+                    .Where(code => code != SurgeryEmergencyCause.None)
+                    .Select(code => code.ToString()))
                 .Concat(Enum.GetValues(typeof(CharacterMedicalStatusCode))
                     .Cast<CharacterMedicalStatusCode>()
                     .Where(code => code != CharacterMedicalStatusCode.Unknown)
@@ -1390,6 +2390,17 @@ public static class SurvivalDebugScenarios
 
     private static string VerifyConsumablesPhysicalExactlyOnce()
     {
+        DungeonRuntimeAggregateRootStore substanceRoot = new();
+        MigratedProducerOutcomeEditorFixture substanceOutcomes = new(
+            "run:survival-substance", substanceRoot);
+        using CharacterConsumablesPolicyFactFixture policyFacts = new(
+            "run:survival-substance-policy-facts");
+        CharacterConsumptionFactFixture.Attach(
+            policyFacts.Dispatcher,
+            substanceOutcomes.Transaction,
+            substanceOutcomes.Recorder,
+            substanceOutcomes.Ledger);
+        EditorFixedGameCalendar policyCalendar = new(1, 9);
         GameObject actorObject = new GameObject("ConsumablesExactlyOnceActor");
         WorldItemStackRuntime itemRuntime = null;
         CharacterActor actor = null;
@@ -1444,8 +2455,10 @@ public static class SurvivalDebugScenarios
                 ports,
                 new UnityGameClock(),
                 new RandomStreamProvider(90210),
-                new DungeonRuntimeAggregateRootStore(),
-                DefaultCharacterNeedBalanceRuntime.Instance);
+                substanceRoot,
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: policyFacts.Dispatcher,
+                calendar: policyCalendar);
             CharacterConsumablesCompatibilityAdapter runtime =
                 new CharacterConsumablesCompatibilityAdapter(core);
             runtime.SetPolicy(
@@ -1484,8 +2497,12 @@ public static class SurvivalDebugScenarios
             int quantityAfterFirst = itemRuntime.GetAllStacks()
                 .Where(value => value.ItemId == "drug:vitality-tonic")
                 .Sum(value => value.Quantity);
+            string substanceLedgerAfterEffects = JsonUtility.ToJson(substanceOutcomes.Ledger.CaptureGameplayOutcomes());
+            Require(substanceOutcomes.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count == 1,
+                "substance did not record exactly one outcome");
             DungeonCharacterConsumablesSaveData pendingSave = core.Capture();
-            Require(pendingSave.version == 8
+            Require(pendingSave.version
+                    == DungeonCharacterConsumablesSaveData.CurrentVersion
                     && pendingSave.activeSubstanceUsePlans.Count == 1
                     && pendingSave.activeSubstanceUsePlans[0].phase
                         == CharacterSubstanceUsePlanPhase.EffectsPublished
@@ -1553,9 +2570,13 @@ public static class SurvivalDebugScenarios
                 ports,
                 new UnityGameClock(),
                 new RandomStreamProvider(777777),
-                new DungeonRuntimeAggregateRootStore(),
-                DefaultCharacterNeedBalanceRuntime.Instance);
+                substanceRoot,
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: policyFacts.Dispatcher,
+                calendar: policyCalendar);
             restored.PublishRestoreCandidate(restored.BuildRestoreCandidate(pendingSave));
+            Require(JsonUtility.ToJson(substanceOutcomes.Ledger.CaptureGameplayOutcomes()) == substanceLedgerAfterEffects,
+                "substance restore changed the published outcome ledger");
             restored.Tick();
             DungeonCharacterConsumablesSaveData captured = restored.Capture();
             CharacterSubstanceState restoredState = restored.GetSubstanceState(
@@ -1576,6 +2597,8 @@ public static class SurvivalDebugScenarios
                     && restoredState.addicted == stateAfterEffects.addicted
                     && restoredState.overdosed == stateAfterEffects.overdosed,
                 "physical quantity or operation ledger diverged after duplicate command");
+            Require(JsonUtility.ToJson(substanceOutcomes.Ledger.CaptureGameplayOutcomes()) == substanceLedgerAfterEffects,
+                "substance ACK replay changed the published outcome ledger");
             DungeonCharacterConsumablesSaveData missingSubstanceReceipt =
                 JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
                     JsonUtility.ToJson(pendingSave));
@@ -1624,14 +2647,26 @@ public static class SurvivalDebugScenarios
                 reservedTransfers: reservedTransfers,
                 reservedBatchDispositions: reservedBatch,
                 batchDispositions: carriedAck);
+            DungeonRuntimeAggregateRootStore carriedRoot = new();
+            MigratedProducerOutcomeEditorFixture carriedOutcomes = new(
+                "run:survival-carried-substance", carriedRoot);
+            using CharacterConsumablesPolicyFactFixture carriedPolicyFacts = new(
+                "run:survival-carried-substance-policy-facts");
+            CharacterConsumptionFactFixture.Attach(
+                carriedPolicyFacts.Dispatcher,
+                carriedOutcomes.Transaction,
+                carriedOutcomes.Recorder,
+                carriedOutcomes.Ledger);
             CharacterConsumablesRuntime carriedCore = new(
                 carriedPorts,
                 carriedPorts,
                 carriedPorts,
                 new UnityGameClock(),
                 new RandomStreamProvider(90211),
-                new DungeonRuntimeAggregateRootStore(),
-                DefaultCharacterNeedBalanceRuntime.Instance);
+                carriedRoot,
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: carriedPolicyFacts.Dispatcher,
+                calendar: policyCalendar);
             CharacterConsumablesCompatibilityAdapter carriedRuntime = new(carriedCore);
             carriedRuntime.SetPolicy(
                 actor,
@@ -1664,17 +2699,24 @@ public static class SurvivalDebugScenarios
                 + $"worldDetail={string.Join("|", itemRuntime.GetAllStacks().Where(value => string.Equals(value.StackId, carriedStackId, StringComparison.Ordinal)).Select(value => $"{value.State}/q{value.Quantity}/r{value.ReservedQuantity}/a{value.AvailableQuantity}/d{value.DestinationId}"))};"
                 + $"pending={batch.TryGetPending(carriedCommand.OperationId.Value, out _)}");
             DungeonCharacterConsumablesSaveData carriedPending = carriedCore.Capture();
+            string carriedLedgerAfterEffects = JsonUtility.ToJson(carriedOutcomes.Ledger.CaptureGameplayOutcomes());
+            Require(carriedOutcomes.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count == 1,
+                "carried substance did not record exactly one outcome");
             CharacterConsumablesRuntime carriedRestored = new(
                 carriedPorts,
                 carriedPorts,
                 carriedPorts,
                 new UnityGameClock(),
                 new RandomStreamProvider(123456),
-                new DungeonRuntimeAggregateRootStore(),
-                DefaultCharacterNeedBalanceRuntime.Instance);
+                carriedRoot,
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: carriedPolicyFacts.Dispatcher,
+                calendar: policyCalendar);
             carriedRestored.PublishRestoreCandidate(
                 carriedRestored.BuildRestoreCandidate(carriedPending));
             carriedRestored.Tick();
+            Require(JsonUtility.ToJson(carriedOutcomes.Ledger.CaptureGameplayOutcomes()) == carriedLedgerAfterEffects,
+                "carried substance ACK restore changed its outcome ledger");
             Require(carriedRestored.Capture().activeSubstanceUsePlans.Count == 0
                     && !batch.TryGetPending(carriedCommand.OperationId.Value, out _)
                     && carry.Items.Count == 0,
@@ -1767,14 +2809,27 @@ public static class SurvivalDebugScenarios
                 reservedBatchDispositions: reservedBatch,
                 batchDispositions: batch,
                 tareDispositions: null);
+            DungeonRuntimeAggregateRootStore packagedRoot = new();
+            MigratedProducerOutcomeEditorFixture packagedOutcomes = new(
+                "run:survival-packaged-substance", packagedRoot);
+            using CharacterConsumablesPolicyFactFixture policyFacts = new(
+                "run:survival-packaged-policy-facts");
+            CharacterConsumptionFactFixture.Attach(
+                policyFacts.Dispatcher,
+                packagedOutcomes.Transaction,
+                packagedOutcomes.Recorder,
+                packagedOutcomes.Ledger);
+            EditorFixedGameCalendar policyCalendar = new(1, 9);
             CharacterConsumablesRuntime core = new(
                 missingTarePorts,
                 missingTarePorts,
                 missingTarePorts,
                 new UnityGameClock(),
                 new RandomStreamProvider(90212),
-                new DungeonRuntimeAggregateRootStore(),
-                DefaultCharacterNeedBalanceRuntime.Instance);
+                packagedRoot,
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: policyFacts.Dispatcher,
+                calendar: policyCalendar);
             CharacterConsumablesCompatibilityAdapter runtime = new(core);
             runtime.SetPolicy(
                 actor,
@@ -1813,6 +2868,9 @@ public static class SurvivalDebugScenarios
                     && first.Success,
                 $"packaged consumable did not publish its first effect: {first.FailureCode}");
             DungeonCharacterConsumablesSaveData pending = core.Capture();
+            string packagedLedgerAfterEffects = JsonUtility.ToJson(packagedOutcomes.Ledger.CaptureGameplayOutcomes());
+            Require(packagedOutcomes.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count == 1,
+                "packaged substance did not record exactly one outcome");
             CharacterSubstanceState stateAfterEffects = core.GetSubstanceState(
                 characterId,
                 ItemId);
@@ -1881,8 +2939,10 @@ public static class SurvivalDebugScenarios
                 restoredPorts,
                 new UnityGameClock(),
                 new RandomStreamProvider(90213),
-                new DungeonRuntimeAggregateRootStore(),
-                DefaultCharacterNeedBalanceRuntime.Instance);
+                packagedRoot,
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: policyFacts.Dispatcher,
+                calendar: policyCalendar);
             restored.PublishRestoreCandidate(
                 restored.BuildRestoreCandidate(afterMissingRetries));
             restored.Tick();
@@ -1913,6 +2973,8 @@ public static class SurvivalDebugScenarios
                         .Sum(value => value.Quantity) == 1
                     && restored.Capture().completedOperations.Count == 1,
                 "completed packaged Sink replay duplicated its tare or gameplay result");
+            Require(JsonUtility.ToJson(packagedOutcomes.Ledger.CaptureGameplayOutcomes()) == packagedLedgerAfterEffects,
+                "packaged substance retry/restore changed its outcome ledger");
             return "missing-service=pending; effects=1; restored-tare=1; replay=0";
         }
         finally
@@ -1929,6 +2991,17 @@ public static class SurvivalDebugScenarios
 
     private static string VerifyTavernRecreationalSubstanceService()
     {
+        DungeonRuntimeAggregateRootStore tavernRoot = new();
+        MigratedProducerOutcomeEditorFixture tavernOutcomes = new(
+            "run:survival-tavern-substance", tavernRoot);
+        using CharacterConsumablesPolicyFactFixture policyFacts = new(
+            "run:survival-tavern-policy-facts");
+        CharacterConsumptionFactFixture.Attach(
+            policyFacts.Dispatcher,
+            tavernOutcomes.Transaction,
+            tavernOutcomes.Recorder,
+            tavernOutcomes.Ledger);
+        EditorFixedGameCalendar policyCalendar = new(1, 9);
         const string actorId = "character:tavern-recreation-fixture";
         const string beverageId = "food:twilight-beer";
         GameObject actorObject = new GameObject("TavernRecreationActor");
@@ -2000,8 +3073,10 @@ public static class SurvivalDebugScenarios
                 ports,
                 new UnityGameClock(),
                 new RandomStreamProvider(154),
-                new DungeonRuntimeAggregateRootStore(),
-                DefaultCharacterNeedBalanceRuntime.Instance);
+                tavernRoot,
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: policyFacts.Dispatcher,
+                calendar: policyCalendar);
             CharacterConsumablesCompatibilityAdapter runtime =
                 new CharacterConsumablesCompatibilityAdapter(core);
             BuildingInstanceId facilityId = facility.RequirePersistentInstanceId();
@@ -2055,6 +3130,8 @@ public static class SurvivalDebugScenarios
                         .Where(stack => stack.ItemId == beverageId)
                         .Sum(stack => stack.Quantity) == 1,
                 "forbidden tavern use consumed stock or returned the wrong typed failure");
+            Require(tavernOutcomes.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count == 1,
+                "tavern success/rejected retry did not retain exactly one outcome");
 
             return $"D12=entertainment; item=1->0; policy=preserved; fun={service.funRecovery:0.#}; substance=active";
         }
@@ -2100,6 +3177,9 @@ public static class SurvivalDebugScenarios
                 new GameEventBus(),
                 EmptyCombatCommands.Instance,
                 CharacterAiEditorTestDependencies.NeutralPerformance);
+            using CharacterConsumablesPolicyFactFixture policyFacts = new(
+                "run:survival-strict-restore-policy-facts");
+            EditorFixedGameCalendar policyCalendar = new(1, 9);
             CharacterConsumablesRuntime runtime = new CharacterConsumablesRuntime(
                 ports,
                 ports,
@@ -2107,7 +3187,9 @@ public static class SurvivalDebugScenarios
                 new UnityGameClock(),
                 new RandomStreamProvider(7),
                 root,
-                DefaultCharacterNeedBalanceRuntime.Instance);
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: policyFacts.Publisher,
+                calendar: policyCalendar);
             CharacterConsumablesCompatibilityAdapter compatibility =
                 new CharacterConsumablesCompatibilityAdapter(runtime);
             compatibility.SetPolicy(actor, CharacterDietPolicyKind.Vegan);
@@ -2128,7 +3210,9 @@ public static class SurvivalDebugScenarios
                 new UnityGameClock(),
                 new RandomStreamProvider(7),
                 new DungeonRuntimeAggregateRootStore(),
-                DefaultCharacterNeedBalanceRuntime.Instance);
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: policyFacts.Publisher,
+                calendar: policyCalendar);
             restoredRuntime.PublishRestoreCandidate(
                 restoredRuntime.BuildRestoreCandidate(valid));
             Require(JsonUtility.ToJson(restoredRuntime.Capture()) == validJson,
@@ -2214,8 +3298,9 @@ public static class SurvivalDebugScenarios
                     characterId = "character:consumables-restore",
                     itemDefinitionId = "food:preserved-ration",
                     itemStackId = "stack:sequence-fixture",
+                    facilityInstanceId = CharacterConsumablesRuntime.FieldMealFacilityId,
                     meal = true,
-                    completedAt = 1f
+                    completedAt = valid.timelineTime
                 };
             CharacterConsumableOperationState LegacyGeneratedOperation(long sequence) =>
                 new()
@@ -2224,8 +3309,9 @@ public static class SurvivalDebugScenarios
                     characterId = "character:consumables-restore",
                     itemDefinitionId = "food:preserved-ration",
                     itemStackId = "stack:sequence-fixture",
+                    facilityInstanceId = CharacterConsumablesRuntime.FieldMealFacilityId,
                     meal = true,
-                    completedAt = 1f
+                    completedAt = valid.timelineTime
                 };
             CharacterConsumableOperationState ExternalOperation(string operationId) =>
                 new()
@@ -2234,8 +3320,9 @@ public static class SurvivalDebugScenarios
                     characterId = "character:consumables-restore",
                     itemDefinitionId = "food:preserved-ration",
                     itemStackId = "stack:sequence-fixture",
+                    facilityInstanceId = CharacterConsumablesRuntime.FieldMealFacilityId,
                     meal = true,
-                    completedAt = 1f
+                    completedAt = valid.timelineTime
                 };
 
             DungeonCharacterConsumablesSaveData validWatermark =
@@ -2308,7 +3395,9 @@ public static class SurvivalDebugScenarios
                     new UnityGameClock(),
                     new RandomStreamProvider(8),
                     captureRoot,
-                    DefaultCharacterNeedBalanceRuntime.Instance);
+                    DefaultCharacterNeedBalanceRuntime.Instance,
+                    domainFacts: policyFacts.Publisher,
+                    calendar: policyCalendar);
             captureRuntime.PublishRestoreCandidate(
                 runtime.BuildRestoreCandidate(validWatermark));
             System.Reflection.PropertyInfo writeStateProperty =
@@ -2559,6 +3648,2806 @@ public static class SurvivalDebugScenarios
         return counts.TryGetValue(key, out int count) ? count : 0;
     }
 
+    private static string VerifyWim036SubstanceEffects()
+    {
+        const string actorValue = "character:wim036:substance-effects";
+        GameObject actorObject = new("WIM036_SubstanceEffectsActor");
+        WorldItemStackRuntime items = null;
+        CharacterActor actor = null;
+        ICharacterAiWorldRegistry world =
+            CharacterAiEditorTestDependencies.WorldRegistry;
+        try
+        {
+            actor = CreateWim028Actor(actorObject, actorValue);
+            CharacterGrowthState growth = actor.Progression.GrowthState;
+            growth.initialized = true;
+            growth.traitSelectionAuthorityVersion =
+                CharacterGrowthState.CurrentTraitSelectionAuthorityVersion;
+            growth.traitSelectionAuthorityOrigin =
+                CharacterTraitSelectionAuthorityOrigin.PreparedSelection;
+            growth.traitIds = new List<int> { 204 };
+            world.RegisterCharacter(actor);
+            world.RegisterCharacterLifetime(actor);
+
+            items = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
+                out _,
+                out _,
+                out ItemQuantityReservationService reservations,
+                out IReservedItemTransferService reservedTransfers,
+                out IReservedPhysicalItemBatchDispositionService reservedBatch,
+                out IPhysicalItemBatchDispositionService batch);
+            FailFirstAcknowledgeBatchDisposition failFirst = new(batch);
+            IItemDefinitionCatalog catalog = new ResourceItemDefinitionCatalog(
+                new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+            CharacterConsumablesApplicationPorts ports = new(
+                catalog,
+                items,
+                world,
+                new GameEventBus(),
+                EmptyCombatCommands.Instance,
+                CharacterAiEditorTestDependencies.NeutralPerformance,
+                quantityReservations: reservations,
+                reservedTransfers: reservedTransfers,
+                reservedBatchDispositions: reservedBatch,
+                batchDispositions: failFirst);
+            MutableConsumablesClock clock = new();
+            using CharacterConsumablesPolicyFactFixture policyFacts = new(
+                "run:survival-wim036-policy-facts");
+            DungeonRuntimeAggregateRootStore consumptionRoots = new();
+            MigratedProducerOutcomeEditorFixture consumptionOutcomes = new(
+                "run:survival-wim036-consumption", consumptionRoots);
+            CharacterConsumptionFactFixture.Attach(policyFacts.Dispatcher,
+                consumptionOutcomes.Transaction, consumptionOutcomes.Recorder, consumptionOutcomes.Ledger);
+            EditorFixedGameCalendar policyCalendar = new(137, 9);
+
+            int seed = Enumerable.Range(1, 100000).First(candidate =>
+            {
+                IRandomStream stream = new RandomStreamProvider(candidate)
+                    .Get("character-consumables");
+                return !stream.Chance(0.006f)
+                    && !stream.Chance(0.05f)
+                    && !stream.Chance(0.022f)
+                    && !stream.Chance(0.02f)
+                    && !stream.Chance(0.016f);
+            });
+            CharacterConsumablesRuntime core = new(
+                ports,
+                ports,
+                ports,
+                clock,
+                new RandomStreamProvider(seed),
+                consumptionRoots,
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: policyFacts.Publisher,
+                calendar: policyCalendar);
+            CharacterConsumablesCompatibilityAdapter runtime = new(core);
+            CharacterStatsProjectionService projection =
+                CreateWim036Projection(runtime, clock);
+            SetWim036Projection(actor.Stats, projection);
+            CharacterId actorId = CharacterPersistentIdentity.Require(actor);
+
+            Require(catalog.TryGet(
+                    (ItemDefinitionId)"drug:vitality-tonic",
+                    out ItemDefinitionSO vitalityItem)
+                && vitalityItem.TryGetFeature(out SubstanceItemFeature vitality)
+                && Mathf.Approximately(vitality.workSpeedEffect, 0f)
+                && Mathf.Approximately(
+                    vitality.fatigueAccumulationReduction,
+                    0.12f)
+                && Mathf.Approximately(vitality.durationSeconds, 150f)
+                && catalog.TryGet(
+                    (ItemDefinitionId)"drug:mana-awakener",
+                    out ItemDefinitionSO manaItem)
+                && manaItem.TryGetFeature(out SubstanceItemFeature mana)
+                && Mathf.Approximately(mana.workSpeedEffect, 0f)
+                && Mathf.Approximately(mana.researchSpeedEffect, 0.18f)
+                && Mathf.Approximately(mana.combatEffect, 0.08f)
+                && Mathf.Approximately(mana.durationSeconds, 180f)
+                && catalog.TryGet(
+                    (ItemDefinitionId)"drug:dreamleaf-analgesic",
+                    out ItemDefinitionSO dreamItem)
+                && dreamItem.TryGetFeature(out SubstanceItemFeature dream)
+                && Mathf.Approximately(dream.workSpeedEffect, 0f)
+                && dream.suppressesPerceivedPain
+                && Mathf.Approximately(dream.moodEffect, 4f)
+                && Mathf.Approximately(dream.combatEffect, -0.03f)
+                && Mathf.Approximately(dream.durationSeconds, 240f),
+                "WIM036 authored fields do not match the approved three-item contract");
+
+            string[] itemIds =
+            {
+                "drug:vitality-tonic",
+                "drug:mana-awakener",
+                "drug:dreamleaf-analgesic"
+            };
+            foreach (string itemId in itemIds)
+            {
+                Require(items.SpawnItemAt(
+                        itemId,
+                        1,
+                        Vector2Int.zero,
+                        WorldItemStackState.Loose,
+                        string.Empty,
+                        out int spawned)
+                    && spawned == 1,
+                    "WIM036 fixture could not spawn one physical " + itemId);
+            }
+
+            ConsumeSubstanceCommand Command(
+                string itemId,
+                string operationSuffix,
+                bool medicalContext)
+            {
+                WorldItemStackSnapshot stack = items.GetAllStacks()
+                    .Single(value => string.Equals(
+                        value.ItemId,
+                        itemId,
+                        StringComparison.Ordinal));
+                return new ConsumeSubstanceCommand(
+                    new ConsumableOperationId(
+                        "consumable-operation:wim036:" + operationSuffix),
+                    actorId,
+                    (ItemDefinitionId)itemId,
+                    new ItemStackId(stack.StackId),
+                    medicalContext,
+                    combatContext: false);
+            }
+
+            actor.stats[CharacterCondition.SLEEP] = 100f;
+            float projectionSleepBefore = actor.Stats.GetConditionValue(
+                CharacterCondition.SLEEP,
+                100f);
+            float projectionExcretionBefore = actor.Stats.GetConditionValue(
+                CharacterCondition.EXCRETION,
+                100f);
+            float projectionHygieneBefore = actor.Stats.GetConditionValue(
+                CharacterCondition.HYGIENE,
+                100f);
+            float runtimeWorkBefore = runtime.GetWorkSpeedMultiplier(actor);
+            float runtimeResearchBefore =
+                runtime.GetResearchSpeedMultiplier(actor);
+            float runtimeCombatBefore = runtime.GetCombatMultiplier(actor);
+            float fatigueAccumulationBefore =
+                runtime.GetFatigueAccumulationMultiplier(actor);
+            CharacterToxicityStatus toxicityBefore =
+                runtime.GetToxicityStatus(actor);
+            CharacterSubstanceState vitalityStateBefore = runtime.GetState(
+                actor,
+                "substance:vitality-tonic");
+            CharacterSubstanceState manaStateBefore = runtime.GetState(
+                actor,
+                "substance:mana-awakener");
+            CharacterSubstanceState dreamStateBefore = runtime.GetState(
+                actor,
+                "substance:dreamleaf-analgesic");
+            float withdrawalBefore = vitalityStateBefore.withdrawal
+                + manaStateBefore.withdrawal
+                + dreamStateBefore.withdrawal;
+            bool painSuppressedBefore =
+                runtime.SuppressesPerceivedPain(actor);
+            float researchBefore = actor.Stats.GetWorkContextMultiplier(
+                BuiltInWorkTypeIds.Research);
+            float ordinaryBefore = actor.Stats.GetWorkContextMultiplier(
+                BuiltInWorkTypeIds.Clean);
+            float combatBefore = actor.Stats.GetCombatPowerMultiplier();
+            float arcaneBefore = actor.Stats.EvaluatePerformance(
+                CharacterPerformanceFormulaIds.ArcanePower).Value;
+            actor.Stats.ApplyWorkNeedDepletion(10f);
+            float sleepAfterBaselineWork = actor.Stats.GetConditionValue(
+                CharacterCondition.SLEEP,
+                100f);
+            float baselineFatigueLoss = 100f
+                - sleepAfterBaselineWork;
+            Require(baselineFatigueLoss > 0f,
+                "WIM036 fatigue fixture did not produce baseline work depletion");
+
+            runtime.SetPolicy(
+                actor,
+                "substance:mana-awakener",
+                SubstancePolicyMode.Forbidden);
+            ConsumeSubstanceCommand rejectedMana = Command(
+                "drug:mana-awakener",
+                "admission-reject",
+                medicalContext: true);
+            Require(!runtime.TryConsume(rejectedMana, out SubstanceUseResult rejected)
+                    && rejected.FailureCode
+                        == CharacterConsumablesFailureCode.PolicyForbidden
+                    && items.GetAllStacks().Single(value =>
+                        value.ItemId == "drug:mana-awakener").Quantity == 1
+                    && Mathf.Approximately(
+                        runtime.GetState(actor, "substance:mana-awakener")
+                            .activeSeconds,
+                        0f),
+                "WIM036 admission rejection consumed stock or activated an effect");
+
+            runtime.SetPolicy(
+                actor,
+                "substance:vitality-tonic",
+                SubstancePolicyMode.MoodThreshold,
+                moodThreshold: 100f);
+            ConsumeSubstanceCommand vitalityCommand = Command(
+                "drug:vitality-tonic",
+                "vitality",
+                medicalContext: false);
+            float sleepBeforeVitalityConsume = actor.Stats.GetConditionValue(
+                CharacterCondition.SLEEP,
+                100f);
+            Require(runtime.TryConsume(vitalityCommand, out SubstanceUseResult vitalityUse)
+                    && vitalityUse.Success
+                    && Mathf.Approximately(
+                        runtime.GetState(actor, "substance:vitality-tonic")
+                            .activeSeconds,
+                        150f)
+                    && core.Capture().activeSubstanceUsePlans.Count == 1
+                    && batch.TryGetPending(vitalityCommand.OperationId.Value, out _),
+                "WIM036 vitality use did not publish once behind its pending receipt");
+            Require(Mathf.Approximately(
+                    actor.Stats.GetConditionValue(CharacterCondition.SLEEP, 100f),
+                    sleepBeforeVitalityConsume),
+                "WIM036 vitality use restored SLEEP immediately instead of only reducing later accumulation");
+            int vitalityMoodCount = actor.Stats.GetMoodSnapshot().Factors.Count(
+                factor => factor.Id == "substance:drug:vitality-tonic");
+            actor.stats[CharacterCondition.SLEEP] = 100f;
+            actor.Stats.ApplyWorkNeedDepletion(10f);
+            float sleepAfterTonicWork = actor.Stats.GetConditionValue(
+                CharacterCondition.SLEEP,
+                100f);
+            float tonicFatigueLoss = 100f
+                - sleepAfterTonicWork;
+            Require(Mathf.Abs(
+                    tonicFatigueLoss / baselineFatigueLoss - 0.88f) < 0.001f,
+                $"WIM036 vitality fatigue accumulation ratio is not 0.88; "
+                    + $"sleep={projectionSleepBefore:0.######}"
+                    + $"->{sleepAfterBaselineWork:0.######} baselineLoss="
+                    + $"{baselineFatigueLoss:0.######}; tonic=100"
+                    + $"->{sleepAfterTonicWork:0.######} tonicLoss="
+                    + $"{tonicFatigueLoss:0.######}; ratio="
+                    + $"{tonicFatigueLoss / baselineFatigueLoss:0.######}");
+            core.Tick();
+            Require(core.Capture().activeSubstanceUsePlans.Count == 0
+                    && !batch.TryGetPending(vitalityCommand.OperationId.Value, out _)
+                    && actor.Stats.GetMoodSnapshot().Factors.Count(factor =>
+                        factor.Id == "substance:drug:vitality-tonic")
+                        == vitalityMoodCount
+                    && vitalityMoodCount == 1,
+                "WIM036 receipt acknowledgement replayed vitality effects");
+
+            // The fatigue proof above intentionally mutates all three work-depleted
+            // needs. Restore the exact pre-work fixture state so the before/active
+            // projection comparison isolates substance effects rather than comparing
+            // rested values with a post-work actor.
+            actor.stats[CharacterCondition.SLEEP] = projectionSleepBefore;
+            actor.stats[CharacterCondition.EXCRETION] =
+                projectionExcretionBefore;
+            actor.stats[CharacterCondition.HYGIENE] = projectionHygieneBefore;
+
+            runtime.SetPolicy(
+                actor,
+                "substance:mana-awakener",
+                SubstancePolicyMode.MedicalOnly);
+            ConsumeSubstanceCommand manaCommand = Command(
+                "drug:mana-awakener",
+                "mana",
+                medicalContext: true);
+            Require(runtime.TryConsume(manaCommand, out SubstanceUseResult manaUse)
+                    && manaUse.Success,
+                "WIM036 mana use failed after its policy was authorized");
+            float projectionSleepActive = actor.Stats.GetConditionValue(
+                CharacterCondition.SLEEP,
+                100f);
+            float projectionExcretionActive = actor.Stats.GetConditionValue(
+                CharacterCondition.EXCRETION,
+                100f);
+            float projectionHygieneActive = actor.Stats.GetConditionValue(
+                CharacterCondition.HYGIENE,
+                100f);
+            float runtimeWorkActive = runtime.GetWorkSpeedMultiplier(actor);
+            float runtimeResearchActive =
+                runtime.GetResearchSpeedMultiplier(actor);
+            float runtimeCombatActive = runtime.GetCombatMultiplier(actor);
+            float fatigueAccumulationActive =
+                runtime.GetFatigueAccumulationMultiplier(actor);
+            CharacterToxicityStatus toxicityActive =
+                runtime.GetToxicityStatus(actor);
+            CharacterSubstanceState vitalityStateActive = runtime.GetState(
+                actor,
+                "substance:vitality-tonic");
+            CharacterSubstanceState manaStateActive = runtime.GetState(
+                actor,
+                "substance:mana-awakener");
+            CharacterSubstanceState dreamStateActive = runtime.GetState(
+                actor,
+                "substance:dreamleaf-analgesic");
+            float withdrawalActive = vitalityStateActive.withdrawal
+                + manaStateActive.withdrawal
+                + dreamStateActive.withdrawal;
+            bool painSuppressedActive =
+                runtime.SuppressesPerceivedPain(actor);
+            float researchActive = actor.Stats.GetWorkContextMultiplier(
+                BuiltInWorkTypeIds.Research);
+            float ordinaryActive = actor.Stats.GetWorkContextMultiplier(
+                BuiltInWorkTypeIds.Clean);
+            float combatActive = actor.Stats.GetCombatPowerMultiplier();
+            float arcaneActive = actor.Stats.EvaluatePerformance(
+                CharacterPerformanceFormulaIds.ArcanePower).Value;
+            float researchCommonBefore = researchBefore
+                / (runtimeWorkBefore * runtimeResearchBefore);
+            float researchCommonActive = researchActive
+                / (runtimeWorkActive * runtimeResearchActive);
+            float ordinaryCommonBefore = ordinaryBefore / runtimeWorkBefore;
+            float ordinaryCommonActive = ordinaryActive / runtimeWorkActive;
+            float combatCommonBefore = combatBefore / runtimeCombatBefore;
+            float combatCommonActive = combatActive / runtimeCombatActive;
+            string projectionDetail =
+                $"sleep={projectionSleepBefore:0.######}"
+                + $"->{sleepAfterBaselineWork:0.######}/tonic100"
+                + $"->{sleepAfterTonicWork:0.######}/projection"
+                + $"->{projectionSleepActive:0.######}; "
+                + $"otherNeeds=excretion{projectionExcretionBefore:0.######}"
+                + $"->{projectionExcretionActive:0.######},hygiene"
+                + $"{projectionHygieneBefore:0.######}"
+                + $"->{projectionHygieneActive:0.######}; "
+                + $"research={researchBefore:0.######}"
+                + $"->{researchActive:0.######} ratio="
+                + $"{researchActive / researchBefore:0.######} "
+                + $"specific={runtimeResearchBefore:0.######}"
+                + $"->{runtimeResearchActive:0.######} common="
+                + $"{researchCommonBefore:0.######}"
+                + $"->{researchCommonActive:0.######}; "
+                + $"ordinary={ordinaryBefore:0.######}"
+                + $"->{ordinaryActive:0.######} ratio="
+                + $"{ordinaryActive / ordinaryBefore:0.######} "
+                + $"genericWork={runtimeWorkBefore:0.######}"
+                + $"->{runtimeWorkActive:0.######} common="
+                + $"{ordinaryCommonBefore:0.######}"
+                + $"->{ordinaryCommonActive:0.######}; "
+                + $"combat={combatBefore:0.######}"
+                + $"->{combatActive:0.######} ratio="
+                + $"{combatActive / combatBefore:0.######} "
+                + $"genericCombat={runtimeCombatBefore:0.######}"
+                + $"->{runtimeCombatActive:0.######} common="
+                + $"{combatCommonBefore:0.######}"
+                + $"->{combatCommonActive:0.######}; "
+                + $"arcane={arcaneBefore:0.######}"
+                + $"->{arcaneActive:0.######} ratio="
+                + $"{arcaneActive / arcaneBefore:0.######}; "
+                + $"fatigueAccumulation={fatigueAccumulationBefore:0.######}"
+                + $"->{fatigueAccumulationActive:0.######}; "
+                + $"withdrawalTotal={withdrawalBefore:0.######}"
+                + $"->{withdrawalActive:0.######} activeByDrug="
+                + $"v{vitalityStateActive.withdrawal:0.######}/"
+                + $"m{manaStateActive.withdrawal:0.######}/"
+                + $"d{dreamStateActive.withdrawal:0.######}; "
+                + $"toleranceActive=v{vitalityStateActive.tolerance:0.######}/"
+                + $"m{manaStateActive.tolerance:0.######}/"
+                + $"d{dreamStateActive.tolerance:0.######}; "
+                + $"toxicity={toxicityBefore.Toxicity:0.######}"
+                + $"->{toxicityActive.Toxicity:0.######} penalty="
+                + $"{toxicityBefore.PerformancePenalty:0.######}"
+                + $"->{toxicityActive.PerformancePenalty:0.######}; "
+                + $"painSuppressed={painSuppressedBefore}"
+                + $"->{painSuppressedActive}";
+            Require(Mathf.Approximately(
+                        projectionSleepActive,
+                        projectionSleepBefore)
+                    && Mathf.Approximately(
+                        projectionExcretionActive,
+                        projectionExcretionBefore)
+                    && Mathf.Approximately(
+                        projectionHygieneActive,
+                        projectionHygieneBefore),
+                "WIM036 projection fixture did not restore pre-work needs; "
+                + projectionDetail);
+            Require(Mathf.Abs(
+                    researchActive / researchBefore - 1.18f) < 0.001f,
+                "WIM036 mana research projection ratio is not 1.18; "
+                + projectionDetail);
+            Require(Mathf.Abs(
+                    ordinaryActive / ordinaryBefore - 1f) < 0.001f,
+                "WIM036 mana changed ordinary work projection; "
+                + projectionDetail);
+            Require(Mathf.Abs(
+                    combatActive / combatBefore - 1.08f) < 0.001f,
+                "WIM036 mana combat projection ratio is not 1.08; "
+                + projectionDetail);
+            Require(Mathf.Abs(
+                    arcaneActive / arcaneBefore - 1f) < 0.001f,
+                "WIM036 mana changed ArcanePower instead of applying combat once; "
+                + projectionDetail);
+            Require(Mathf.Approximately(runtimeCombatActive, 1.08f)
+                    && Mathf.Abs(
+                        researchCommonActive / researchCommonBefore - 1f)
+                        < 0.001f
+                    && Mathf.Abs(
+                        ordinaryCommonActive / ordinaryCommonBefore - 1f)
+                        < 0.001f
+                    && Mathf.Abs(
+                        combatCommonActive / combatCommonBefore - 1f)
+                        < 0.001f,
+                "WIM036 non-substance common projection contributions changed; "
+                + projectionDetail);
+            VerifyWim036CombatDamageBoundaries(
+                actorId,
+                world,
+                combatBefore,
+                combatActive,
+                arcaneBefore,
+                arcaneActive);
+
+            actor.Stats.SetInjurySeverity(0.5f);
+            float healthBeforeDream = actor.CurrentHealth;
+            float injuryBeforeDream = actor.Stats.InjurySeverity;
+            CharacterStatsProjectionContext painContext = new(
+                actor,
+                actor.Identity,
+                actor.Stats.GetConditionValue(CharacterCondition.SLEEP, 100f),
+                actor.Stats.InjurySeverity);
+            GameplayEffectProjectionResult painBefore = projection.ProjectDetailedStat(
+                painContext,
+                GameplayEffectTargetIds.CombatPower,
+                1f);
+            GameplayEffectContribution painTraitBefore = painBefore.Contributions
+                .FirstOrDefault(contribution =>
+                    contribution.Source.SourceId == "character-trait:204");
+            Require(painTraitBefore != null && !painTraitBefore.Suppressed,
+                "WIM036 fixture did not activate authored pain-conditioned trait 204; "
+                + $"injury={injuryBeforeDream:0.######}; "
+                    + $"painSuppressed={runtime.SuppressesPerceivedPain(actor)}; "
+                    + $"projection={painBefore.Value:0.######}; "
+                    + $"traitFound={painTraitBefore != null}");
+
+            runtime.SetPolicy(
+                actor,
+                "substance:dreamleaf-analgesic",
+                SubstancePolicyMode.MedicalOnly);
+            ConsumeSubstanceCommand dreamCommand = Command(
+                "drug:dreamleaf-analgesic",
+                "dreamleaf",
+                medicalContext: true);
+            Require(runtime.TryConsume(dreamCommand, out SubstanceUseResult dreamUse)
+                    && dreamUse.Success,
+                "WIM036 dreamleaf use failed");
+            GameplayEffectProjectionResult painSuppressed =
+                projection.ProjectDetailedStat(
+                    painContext,
+                    GameplayEffectTargetIds.CombatPower,
+                    1f);
+            CharacterMoodFactorSnapshot dreamMood = actor.Stats.GetMoodSnapshot()
+                .Factors.Single(factor =>
+                    factor.Id == "substance:drug:dreamleaf-analgesic");
+            GameplayEffectContribution painTraitSuppressed =
+                painSuppressed.Contributions.FirstOrDefault(contribution =>
+                    contribution.Source.SourceId == "character-trait:204");
+            CharacterSubstanceState dreamStateAfterUse = runtime.GetState(
+                actor,
+                "substance:dreamleaf-analgesic");
+            CharacterToxicityStatus toxicityAfterDream =
+                runtime.GetToxicityStatus(actor);
+            string painDetail =
+                $"painProjection={painBefore.Value:0.######}"
+                + $"->{painSuppressed.Value:0.######}; traitApplied="
+                + $"{painTraitBefore.AppliedValue:0.######}->"
+                + $"{(painTraitSuppressed?.AppliedValue ?? float.NaN):0.######}; "
+                + $"traitSuppressed={painTraitBefore.Suppressed}->"
+                + $"{painTraitSuppressed?.Suppressed}; perceivedPainSuppressed="
+                + $"{painSuppressedActive}->"
+                + $"{runtime.SuppressesPerceivedPain(actor)}; "
+                + $"hp={healthBeforeDream:0.######}"
+                + $"->{actor.CurrentHealth:0.######}; injury="
+                + $"{injuryBeforeDream:0.######}"
+                + $"->{actor.Stats.InjurySeverity:0.######}; "
+                + $"withdrawalDream={dreamStateActive.withdrawal:0.######}"
+                + $"->{dreamStateAfterUse.withdrawal:0.######}; toxicity="
+                + $"{toxicityActive.Toxicity:0.######}"
+                + $"->{toxicityAfterDream.Toxicity:0.######} penalty="
+                + $"{toxicityActive.PerformancePenalty:0.######}"
+                + $"->{toxicityAfterDream.PerformancePenalty:0.######}";
+            Require(painTraitSuppressed != null
+                    && painTraitSuppressed.Suppressed
+                    && painTraitSuppressed.SuppressionReason
+                        == "condition is inactive"
+                    && Mathf.Approximately(actor.CurrentHealth, healthBeforeDream)
+                    && Mathf.Approximately(
+                        actor.Stats.InjurySeverity,
+                        injuryBeforeDream)
+                    && Mathf.Approximately(dreamMood.Value, 4f)
+                    && Mathf.Approximately(
+                        runtime.GetCombatMultiplier(actor),
+                        1.05f),
+                "WIM036 analgesia changed HP/injury state or failed pain/mood/combat semantics; "
+                + painDetail);
+
+            Require(itemIds.All(itemId => items.GetAllStacks()
+                        .Where(value => value.ItemId == itemId)
+                        .Sum(value => value.Quantity) == 0)
+                    && core.Capture().completedOperations.Count == 3,
+                "WIM036 did not consume exactly three physical doses exactly once");
+
+            DungeonCharacterConsumablesSaveData activeSave = core.Capture();
+            Require(activeSave.version
+                        == DungeonCharacterConsumablesSaveData.CurrentVersion
+                    && activeSave.activeSubstanceUsePlans.Count == 0
+                    && activeSave.substanceStates.Count(state =>
+                        state.activeSeconds > 0f) == 3,
+                "WIM036 active effects did not use the current state contract");
+            DungeonCharacterConsumablesSaveData roundTrippedActiveSave =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
+                    JsonUtility.ToJson(activeSave));
+            Require(roundTrippedActiveSave != null
+                    && roundTrippedActiveSave.version
+                        == DungeonCharacterConsumablesSaveData.CurrentVersion
+                    && roundTrippedActiveSave.substanceStates.Count(state =>
+                        state.activeSeconds > 0f) == 3,
+                "WIM036 active state did not survive an actual JsonUtility round trip");
+            CharacterConsumablesRuntime restored = new(
+                ports,
+                ports,
+                ports,
+                clock,
+                new RandomStreamProvider(seed),
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: policyFacts.Publisher,
+                calendar: policyCalendar);
+            restored.PublishRestoreCandidate(
+                restored.BuildRestoreCandidate(roundTrippedActiveSave));
+            CharacterConsumablesCompatibilityAdapter restoredRuntime = new(restored);
+            CharacterStatsProjectionService restoredProjection =
+                CreateWim036Projection(restoredRuntime, clock);
+            SetWim036Projection(actor.Stats, restoredProjection);
+            Require(Mathf.Approximately(
+                    restoredRuntime.GetFatigueAccumulationMultiplier(actor),
+                    0.88f)
+                    && Mathf.Approximately(
+                        restoredRuntime.GetResearchSpeedMultiplier(actor),
+                        1.18f)
+                    && restoredRuntime.SuppressesPerceivedPain(actor),
+                "WIM036 active effects did not restore from saved activeSeconds");
+
+            string beforeCompletedReplay = JsonUtility.ToJson(restored.Capture());
+            int stockBeforeCompletedReplay = itemIds.Sum(itemId =>
+                items.GetAllStacks()
+                    .Where(value => value.ItemId == itemId)
+                    .Sum(value => value.Quantity));
+            int moodBeforeCompletedReplay = actor.Stats.GetMoodSnapshot().Factors
+                .Count(factor =>
+                    factor.Id == "substance:drug:vitality-tonic");
+            Require(!restoredRuntime.TryConsume(
+                        vitalityCommand,
+                        out SubstanceUseResult completedReplay)
+                    && completedReplay.FailureCode
+                        == CharacterConsumablesFailureCode.AlreadyProcessed
+                    && string.Equals(
+                        JsonUtility.ToJson(restored.Capture()),
+                        beforeCompletedReplay,
+                        StringComparison.Ordinal)
+                    && itemIds.Sum(itemId => items.GetAllStacks()
+                        .Where(value => value.ItemId == itemId)
+                        .Sum(value => value.Quantity))
+                        == stockBeforeCompletedReplay
+                    && actor.Stats.GetMoodSnapshot().Factors.Count(factor =>
+                        factor.Id == "substance:drug:vitality-tonic")
+                        == moodBeforeCompletedReplay,
+                "WIM036 restored completed operation replay changed stock, effect state, or applied effects");
+
+            clock.Advance(151f);
+            restored.Tick();
+            Require(Mathf.Approximately(
+                    restoredRuntime.GetFatigueAccumulationMultiplier(actor),
+                    1f)
+                    && Mathf.Approximately(
+                        restoredRuntime.GetResearchSpeedMultiplier(actor),
+                        1.18f)
+                    && restoredRuntime.SuppressesPerceivedPain(actor),
+                "WIM036 vitality did not expire independently at 150 seconds");
+            clock.Advance(30f);
+            restored.Tick();
+            Require(Mathf.Approximately(
+                    restoredRuntime.GetResearchSpeedMultiplier(actor),
+                    1f)
+                    && restoredRuntime.SuppressesPerceivedPain(actor),
+                "WIM036 mana did not expire independently at 180 seconds");
+            clock.Advance(60f);
+            restored.Tick();
+            GameplayEffectProjectionResult painReturned = restoredProjection
+                .ProjectDetailedStat(
+                    painContext,
+                    GameplayEffectTargetIds.CombatPower,
+                    1f);
+            GameplayEffectContribution painTraitReturned =
+                painReturned.Contributions.FirstOrDefault(contribution =>
+                    contribution.Source.SourceId == "character-trait:204");
+            Require(!restoredRuntime.SuppressesPerceivedPain(actor)
+                    && painTraitReturned != null
+                    && !painTraitReturned.Suppressed,
+                "WIM036 pain condition did not return after dreamleaf expiry; "
+                + $"painSuppressed={restoredRuntime.SuppressesPerceivedPain(actor)}; "
+                    + $"projection={painReturned.Value:0.######}; "
+                    + $"traitFound={painTraitReturned != null}; "
+                    + $"traitSuppressed={painTraitReturned?.Suppressed}");
+
+            DungeonCharacterConsumablesSaveData toxicityOnly = JsonUtility
+                .FromJson<DungeonCharacterConsumablesSaveData>(
+                    JsonUtility.ToJson(activeSave));
+            foreach (CharacterSubstanceState state in toxicityOnly.substanceStates)
+            {
+                state.activeSeconds = 0f;
+                state.withdrawal = 0f;
+            }
+            toxicityOnly.toxicityStates.Clear();
+            toxicityOnly.toxicityStates.Add(new CharacterToxicityState
+            {
+                characterId = actorId.Value,
+                toxicity = 100f,
+                lastNaturalRecoveryDay = 0
+            });
+            CharacterConsumablesRuntime toxicityCore = new(
+                ports,
+                ports,
+                ports,
+                new FixedGameClock(),
+                new RandomStreamProvider(seed),
+                new DungeonRuntimeAggregateRootStore(),
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: policyFacts.Publisher,
+                calendar: policyCalendar);
+            toxicityCore.PublishRestoreCandidate(
+                toxicityCore.BuildRestoreCandidate(toxicityOnly));
+            Require(Mathf.Approximately(
+                    toxicityCore.GetWorkSpeedMultiplier(actorId),
+                    0.8f)
+                    && Mathf.Approximately(
+                        toxicityCore.GetCombatMultiplier(actorId),
+                        0.8f)
+                    && Mathf.Approximately(
+                        toxicityCore.GetFatigueAccumulationMultiplier(actorId),
+                        1f)
+                    && Mathf.Approximately(
+                        toxicityCore.GetResearchSpeedMultiplier(actorId),
+                        1f)
+                    && !toxicityCore.SuppressesPerceivedPain(actorId),
+                "WIM036 projection changed the existing toxicity-only 0.8/0.8 result");
+
+            return "physical=3; admission-reject=stock-preserved/effect0; "
+                + "ack=once; replay=already-processed/invariant; active=v9-json-roundtrip; "
+                + "fatigue=0.88; work=research1.18/ordinary1; "
+                + "combat=active-world+detached ordinary/arcane1.08 once, dreamleaf-0.03; "
+                + "pain=trait204-suppressed; body=hp/injury-unchanged; "
+                + "disease=not-injected; expiry=150/180/240; toxicity=0.8/0.8; "
+                + projectionDetail + "; " + painDetail;
+        }
+        finally
+        {
+            if (actor != null)
+            {
+                world.UnregisterCharacter(actor);
+                world.UnregisterCharacterLifetime(actor);
+            }
+            items?.Dispose();
+            UnityEngine.Object.DestroyImmediate(actorObject);
+        }
+    }
+
+    private static void VerifyWim036CombatDamageBoundaries(
+        CharacterId actorId,
+        ICharacterWorldQuery world,
+        float baselineCombatMultiplier,
+        float activeCombatMultiplier,
+        float baselineArcaneMultiplier,
+        float activeArcaneMultiplier)
+    {
+        Require(baselineCombatMultiplier > 0f
+                && activeCombatMultiplier > 0f
+                && baselineArcaneMultiplier > 0f
+                && activeArcaneMultiplier > 0f,
+            "WIM036 combat boundary requires positive projected multipliers");
+        float expectedRatio = activeCombatMultiplier / baselineCombatMultiplier;
+        CombatWeaponSnapshot ordinary = CreateWim036CombatWeapon(
+            "weapon:wim036-ordinary");
+        CombatWeaponSnapshot arcane = CreateWim036CombatWeapon(
+            "weapon:rune-blade");
+        CombatStatSnapshot attacker = new(
+            10f,
+            10f,
+            0f,
+            5f,
+            8f,
+            5f,
+            8f);
+        CombatStatSnapshot defender = new(
+            5f,
+            5f,
+            0f,
+            0f,
+            5f,
+            0f,
+            5f);
+        CombatResolutionService activeWorld = new(
+            Wim036CombatRandom.Instance,
+            evolution: null,
+            overclock: null,
+            environmentStatus: null,
+            environmentalField: NoEnvironmentalFieldQuery.Instance,
+            characters: world,
+            environmentExposure:
+                NoOpCharacterEnvironmentExposureCommand.Instance);
+
+        float ActiveWorldDamage(
+            CombatWeaponSnapshot weapon,
+            float combatMultiplier,
+            string suffix)
+        {
+            CombatAttackPreview preview = activeWorld.Preview(
+                new CombatAttackRequest(
+                    "wim036:active-world:" + suffix,
+                    actorId.Value,
+                    "character:wim036:combat-target",
+                    attacker,
+                    defender,
+                    weapon,
+                    1,
+                    CombatFireMode.Aimed,
+                    default,
+                    defenderMeleeLocked: true,
+                    attackPowerMultiplier: combatMultiplier));
+            Require(preview.Valid && preview.DamageOnHit > 0f,
+                "WIM036 active-world combat preview failed for " + suffix);
+            return preview.DamageOnHit;
+        }
+
+        float activeOrdinaryBaseline = ActiveWorldDamage(
+            ordinary,
+            baselineCombatMultiplier,
+            "ordinary-baseline");
+        float activeOrdinaryBoosted = ActiveWorldDamage(
+            ordinary,
+            activeCombatMultiplier,
+            "ordinary-active");
+        float activeArcaneBaseline = ActiveWorldDamage(
+            arcane,
+            baselineCombatMultiplier,
+            "arcane-baseline");
+        float activeArcaneBoosted = ActiveWorldDamage(
+            arcane,
+            activeCombatMultiplier,
+            "arcane-active");
+        Require(Mathf.Abs(
+                    activeOrdinaryBoosted / activeOrdinaryBaseline
+                    - expectedRatio) < 0.001f
+                && Mathf.Abs(
+                    activeArcaneBoosted / activeArcaneBaseline
+                    - expectedRatio) < 0.001f
+                && Mathf.Abs(
+                    activeArcaneBaseline / activeOrdinaryBaseline - 1f)
+                    < 0.001f
+                && Mathf.Abs(
+                    activeArcaneBoosted / activeOrdinaryBoosted - 1f)
+                    < 0.001f,
+            "WIM036 active-world ordinary/arcane damage did not apply the generic combat multiplier exactly once");
+
+        ICombatResolutionService detachedResolution =
+            new CombatResolutionService(
+                Wim036CombatRandom.Instance,
+                evolution: null,
+                overclock: null,
+                environmentStatus: null,
+                environmentalField: NoEnvironmentalFieldQuery.Instance,
+                characters: null,
+                environmentExposure:
+                    NoOpCharacterEnvironmentExposureCommand.Instance);
+        ICombatEquipmentRuntime detachedEquipment =
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime();
+
+        (float Damage, int AttackModifierCount, float AttackModifierTotal)
+            DetachedDamage(
+            CombatWeaponSnapshot weapon,
+            float combatMultiplier,
+            float arcaneMultiplier,
+            string suffix)
+        {
+            OffenseBattleCombatant source = new(
+                "ally:wim036:" + suffix,
+                "WIM036 Attacker",
+                "human",
+                OffenseBattleTeam.Allies,
+                new OffenseBattleStats(100f, 10f, 8f, 5f, 8f, 5f),
+                100f,
+                formation: OffenseFormationSlot.Front);
+            source.SetCombatEquipment(
+                weapon,
+                Array.Empty<CombatArmorSnapshot>());
+            source.SetArcanePowerMultiplier(arcaneMultiplier);
+            OffenseBattleCombatant target = new(
+                "enemy:wim036:" + suffix,
+                "WIM036 Target",
+                "human",
+                OffenseBattleTeam.Enemies,
+                new OffenseBattleStats(100f, 5f, 5f, 0f, 5f, 5f),
+                100f,
+                formation: OffenseFormationSlot.Front);
+            OffenseBattleSession session = new(
+                "battle:wim036:" + suffix,
+                "expedition:wim036",
+                "target:wim036",
+                "WIM036 Combat Boundary",
+                DungeonDifficulty.Normal,
+                new[] { source, target },
+                detachedResolution,
+                detachedEquipment);
+            // Session construction prepares the first actor and consumes one turn
+            // from existing statuses. Add the projected combat contribution after
+            // that lifecycle boundary so this preview observes the intended turn.
+            source.AddStatus(new OffenseBattleStatus(
+                "wim036:projected-combat:" + suffix,
+                OffenseBattleStatusType.AttackModifier,
+                combatMultiplier - 1f,
+                1,
+                actorId.Value));
+            OffenseBattleStatus[] attackModifiers = source.Statuses
+                .Where(status =>
+                    status.Type == OffenseBattleStatusType.AttackModifier)
+                .ToArray();
+            CombatAttackPreview preview = session.PreviewBasicAttack(
+                source,
+                target);
+            Require(preview.Valid && preview.DamageOnHit > 0f,
+                "WIM036 detached combat preview failed for " + suffix);
+            return (
+                preview.DamageOnHit,
+                attackModifiers.Length,
+                attackModifiers.Sum(status => status.Value));
+        }
+
+        (float Damage, int AttackModifierCount, float AttackModifierTotal)
+            detachedOrdinaryBaseline = DetachedDamage(
+            ordinary,
+            baselineCombatMultiplier,
+            baselineArcaneMultiplier,
+            "ordinary-baseline");
+        (float Damage, int AttackModifierCount, float AttackModifierTotal)
+            detachedOrdinaryBoosted = DetachedDamage(
+            ordinary,
+            activeCombatMultiplier,
+            activeArcaneMultiplier,
+            "ordinary-active");
+        (float Damage, int AttackModifierCount, float AttackModifierTotal)
+            detachedArcaneBaseline = DetachedDamage(
+            arcane,
+            baselineCombatMultiplier,
+            baselineArcaneMultiplier,
+            "arcane-baseline");
+        (float Damage, int AttackModifierCount, float AttackModifierTotal)
+            detachedArcaneBoosted = DetachedDamage(
+            arcane,
+            activeCombatMultiplier,
+            activeArcaneMultiplier,
+            "arcane-active");
+        float detachedOrdinaryRatio = detachedOrdinaryBoosted.Damage
+            / detachedOrdinaryBaseline.Damage;
+        float detachedArcaneRatio = detachedArcaneBoosted.Damage
+            / detachedArcaneBaseline.Damage;
+        float detachedArcaneInputRatio = activeArcaneMultiplier
+            / baselineArcaneMultiplier;
+        float detachedArcaneOrdinaryBaseline = detachedArcaneBaseline.Damage
+            / detachedOrdinaryBaseline.Damage;
+        float detachedArcaneOrdinaryActive = detachedArcaneBoosted.Damage
+            / detachedOrdinaryBoosted.Damage;
+        string detachedDetail =
+            $"combatInput={baselineCombatMultiplier:0.######}"
+            + $"->{activeCombatMultiplier:0.######} ratio="
+            + $"{expectedRatio:0.######}; arcaneInput="
+            + $"{baselineArcaneMultiplier:0.######}"
+            + $"->{activeArcaneMultiplier:0.######} ratio="
+            + $"{detachedArcaneInputRatio:0.######}; "
+            + $"ordinaryDamage={detachedOrdinaryBaseline.Damage:0.######}"
+            + $"->{detachedOrdinaryBoosted.Damage:0.######} ratio="
+            + $"{detachedOrdinaryRatio:0.######}; arcaneDamage="
+            + $"{detachedArcaneBaseline.Damage:0.######}"
+            + $"->{detachedArcaneBoosted.Damage:0.######} ratio="
+            + $"{detachedArcaneRatio:0.######}; arcaneOverOrdinary="
+            + $"{detachedArcaneOrdinaryBaseline:0.######}"
+            + $"->{detachedArcaneOrdinaryActive:0.######}; "
+            + $"attackModifier=ordinary["
+            + $"{detachedOrdinaryBaseline.AttackModifierCount}/"
+            + $"{detachedOrdinaryBaseline.AttackModifierTotal:0.######}"
+            + $"->{detachedOrdinaryBoosted.AttackModifierCount}/"
+            + $"{detachedOrdinaryBoosted.AttackModifierTotal:0.######}],"
+            + $"arcane[{detachedArcaneBaseline.AttackModifierCount}/"
+            + $"{detachedArcaneBaseline.AttackModifierTotal:0.######}"
+            + $"->{detachedArcaneBoosted.AttackModifierCount}/"
+            + $"{detachedArcaneBoosted.AttackModifierTotal:0.######}]";
+        Require(detachedOrdinaryBaseline.AttackModifierCount == 1
+                && detachedOrdinaryBoosted.AttackModifierCount == 1
+                && detachedArcaneBaseline.AttackModifierCount == 1
+                && detachedArcaneBoosted.AttackModifierCount == 1
+                && Mathf.Abs(
+                    1f + detachedOrdinaryBaseline.AttackModifierTotal
+                    - baselineCombatMultiplier) < 0.001f
+                && Mathf.Abs(
+                    1f + detachedOrdinaryBoosted.AttackModifierTotal
+                    - activeCombatMultiplier) < 0.001f
+                && Mathf.Abs(
+                    1f + detachedArcaneBaseline.AttackModifierTotal
+                    - baselineCombatMultiplier) < 0.001f
+                && Mathf.Abs(
+                    1f + detachedArcaneBoosted.AttackModifierTotal
+                    - activeCombatMultiplier) < 0.001f,
+            "WIM036 detached preview lost or changed its projected combat contribution; "
+            + detachedDetail);
+        Require(Mathf.Abs(
+                    detachedOrdinaryRatio - expectedRatio) < 0.001f,
+            "WIM036 detached ordinary damage did not apply generic combat exactly once; "
+            + detachedDetail);
+        Require(Mathf.Abs(
+                    detachedArcaneRatio - expectedRatio) < 0.001f,
+            "WIM036 detached arcane damage did not apply generic combat exactly once; "
+            + detachedDetail);
+        Require(Mathf.Abs(detachedArcaneInputRatio - 1f) < 0.001f,
+            "WIM036 mana changed the detached ArcanePower input; "
+            + detachedDetail);
+        Require(Mathf.Abs(
+                    detachedArcaneOrdinaryActive
+                    / detachedArcaneOrdinaryBaseline - 1f) < 0.001f,
+            "WIM036 detached arcane damage gained an additional combat contribution; "
+            + detachedDetail);
+    }
+
+    private static CombatWeaponSnapshot CreateWim036CombatWeapon(
+        string definitionId) => new(
+        definitionId,
+        string.Empty,
+        CombatEquipmentKind.MeleeWeapon,
+        new MeleeStrikeVerb
+        {
+            attackTime = 1f,
+            baseDamage = 10f,
+            penetration = 0f,
+            damageType = CombatDamageType.Slash,
+            tracking = 0.05f
+        },
+        new[]
+        {
+            new CombatRangeProfile
+            {
+                band = CombatRangeBand.Contact,
+                accuracyMultiplier = 1f,
+                damageMultiplier = 1f
+            }
+        },
+        1,
+        CombatEquipmentQuality.Normal,
+        string.Empty,
+        0,
+        0,
+        0f,
+        true,
+        false,
+        false);
+
+    private static CharacterStatsProjectionService CreateWim036Projection(
+        ICharacterSubstanceRuntime substances,
+        IGameClock clock) => new(
+        Wim036StaffDiscontent.Instance,
+        Wim036MetaProgression.Instance,
+        NoCharacterDeprivationBoundary.Instance,
+        substances,
+        NeutralCharacterEnvironmentStatusQuery.Instance,
+        NeutralExternalCombatInfluenceQuery.Instance,
+        NeutralContentWorkDelayQuery.Instance,
+        NeutralDiseaseSymptomEffectQuery.Instance,
+        NeutralCharacterCombatSpecialStatusQuery.Instance,
+        NeutralCombatEquipmentBurdenQuery.Instance,
+        CharacterAiEditorTestDependencies.GameCalendar,
+        new CharacterDerivedStatsSnapshotProjector(
+            CharacterAiEditorTestDependencies.ContentDefinitions,
+            Wim036EmptyEquipmentEffects.Instance,
+            Wim036EmptyTransientEffects.Instance,
+            new ExtremeTraitRuntime(new CharacterIdentityStateStore()),
+            clock),
+        performance: CharacterAiEditorTestDependencies.NeutralPerformance);
+
+    private static void SetWim036Projection(
+        CharacterStats stats,
+        CharacterStatsProjectionService projection)
+    {
+        System.Reflection.FieldInfo field = typeof(CharacterStats).GetField(
+            "projectionService",
+            System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.NonPublic);
+        Require(field != null && stats != null && projection != null,
+            "WIM036 could not bind the focused stats projection");
+        field.SetValue(stats, projection);
+    }
+
+    private static string VerifyWim028OverdosePolicy()
+    {
+        GameObject actorObject = new("WIM028_OverdoseActor");
+        WorldItemStackRuntime items = null;
+        CharacterActor actor = null;
+        ICharacterAiWorldRegistry world =
+            CharacterAiEditorTestDependencies.WorldRegistry;
+        try
+        {
+            actor = CreateWim028Actor(
+                actorObject,
+                "character:wim028:overdose");
+            world.RegisterCharacter(actor);
+            world.RegisterCharacterLifetime(actor);
+            items = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
+                out _,
+                out _,
+                out ItemQuantityReservationService reservations,
+                out IReservedItemTransferService reservedTransfers,
+                out IReservedPhysicalItemBatchDispositionService reservedBatch,
+                out IPhysicalItemBatchDispositionService batch);
+            IItemDefinitionCatalog catalog = new ResourceItemDefinitionCatalog(
+                new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+            CharacterConsumablesApplicationPorts ports = new(
+                catalog,
+                items,
+                world,
+                new GameEventBus(),
+                EmptyCombatCommands.Instance,
+                CharacterAiEditorTestDependencies.NeutralPerformance,
+                quantityReservations: reservations,
+                reservedTransfers: reservedTransfers,
+                reservedBatchDispositions: reservedBatch,
+                batchDispositions: batch);
+            using CharacterConsumablesPolicyFactFixture policyFacts = new(
+                "run:survival-wim028-overdose-policy-facts");
+            DungeonRuntimeAggregateRootStore consumptionRoots = new();
+            MigratedProducerOutcomeEditorFixture consumptionOutcomes = new(
+                "run:survival-wim028-overdose-consumption", consumptionRoots);
+            CharacterConsumptionFactFixture.Attach(policyFacts.Dispatcher,
+                consumptionOutcomes.Transaction, consumptionOutcomes.Recorder, consumptionOutcomes.Ledger);
+            EditorFixedGameCalendar policyCalendar = new(137, 9);
+            const float firstOverdoseChance = 0.06f;
+            const float addictionRollChance = 0.028f;
+            const float secondOverdoseChance = 0.0602f;
+            int seed = Enumerable.Range(1, 100000).First(candidate =>
+            {
+                DungeonStory.Foundation.IRandomStream stream =
+                    new RandomStreamProvider(candidate)
+                        .Get("character-consumables");
+                bool first = stream.Chance(firstOverdoseChance);
+                _ = stream.Chance(addictionRollChance);
+                bool second = stream.Chance(secondOverdoseChance);
+                return first && !second;
+            });
+            CharacterConsumablesRuntime core = new(
+                ports,
+                ports,
+                ports,
+                new FixedGameClock(),
+                new RandomStreamProvider(seed),
+                consumptionRoots,
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: policyFacts.Publisher,
+                calendar: policyCalendar);
+            CharacterId actorId = CharacterPersistentIdentity.Require(actor);
+            core.SetSubstancePolicy(
+                actorId,
+                "substance:blood-stimulant",
+                SubstancePolicyMode.MedicalOnly,
+                0f,
+                0);
+            Require(items.SpawnItemAt(
+                    "drug:blood-stimulant",
+                    2,
+                    Vector2Int.zero,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out int spawned)
+                && spawned == 2,
+                "WIM028 overdose fixture did not spawn two physical doses");
+            WorldItemStackSnapshot stack = items.GetAllStacks().Single(value =>
+                value.ItemId == "drug:blood-stimulant");
+            ConsumableOperationId overdoseOperation = new(
+                "consumable-operation:wim028:overdose");
+            ConsumeSubstanceByIdCommand overdose = new(
+                overdoseOperation,
+                actorId,
+                new ConsumableItemDefinitionId("drug:blood-stimulant"),
+                new ItemStackId(stack.StackId),
+                medicalContext: true,
+                combatContext: false);
+            float healthBefore = actor.CurrentHealth;
+            Require(core.TryConsumeSubstance(overdose, out CharacterConsumablesSubstanceResult first)
+                    && first.Success
+                    && first.Overdosed
+                    && Mathf.Approximately(
+                        core.GetToxicityStatus(actorId).Toxicity,
+                        CharacterToxicityPolicy.OverdoseGain)
+                    && actor.CurrentHealth < healthBefore,
+                "confirmed overdose did not preserve immediate damage and add exactly 30 toxicity");
+            int afterFirst = items.GetAllStacks()
+                .Where(value => value.ItemId == "drug:blood-stimulant")
+                .Sum(value => value.Quantity);
+            Require(!core.TryConsumeSubstance(overdose, out CharacterConsumablesSubstanceResult duplicate)
+                    && duplicate.FailureCode
+                        == CharacterConsumablesFailureCode.AlreadyProcessed
+                    && afterFirst == 1
+                    && Mathf.Approximately(
+                        core.GetToxicityStatus(actorId).Toxicity,
+                        30f),
+                "duplicate overdose operation changed toxicity or physical stock");
+            ConsumeSubstanceByIdCommand normal = new(
+                new ConsumableOperationId(
+                    "consumable-operation:wim028:normal-dose"),
+                actorId,
+                new ConsumableItemDefinitionId("drug:blood-stimulant"),
+                new ItemStackId(stack.StackId),
+                medicalContext: true,
+                combatContext: false);
+            Require(core.TryConsumeSubstance(normal, out CharacterConsumablesSubstanceResult second)
+                    && second.Success
+                    && !second.Overdosed
+                    && Mathf.Approximately(
+                        core.GetToxicityStatus(actorId).Toxicity,
+                        30f),
+                "normal substance use changed toxicity burden");
+
+            DungeonCharacterConsumablesSaveData capped = core.Capture();
+            CharacterToxicityState toxicity = capped.toxicityStates.Single();
+            toxicity.toxicity = 100f;
+            toxicity.lastNaturalRecoveryDay = 0;
+            foreach (CharacterSubstanceState substance in capped.substanceStates)
+            {
+                substance.activeSeconds = 0f;
+                substance.withdrawal = 0f;
+            }
+            core.PublishRestoreCandidate(core.BuildRestoreCandidate(capped));
+            CharacterToxicityStatus cappedStatus = core.GetToxicityStatus(actorId);
+            float cappedWork = core.GetWorkSpeedMultiplier(actorId);
+            float cappedCombat = core.GetCombatMultiplier(actorId);
+            Require(Mathf.Approximately(cappedStatus.Toxicity, 100f)
+                    && Mathf.Approximately(cappedStatus.PerformancePenalty, 0.2f)
+                    && Mathf.Approximately(cappedWork, 0.8f)
+                    && Mathf.Approximately(cappedCombat, 0.8f),
+                "toxicity-only tuple differs: toxicity="
+                + cappedStatus.Toxicity.ToString("0.###")
+                + "; penalty="
+                + cappedStatus.PerformancePenalty.ToString("0.###")
+                + "; work=" + cappedWork.ToString("0.###")
+                + "; combat=" + cappedCombat.ToString("0.###"));
+            string treatment =
+                CharacterSummaryHealthStatusTextFormatter.ToxicityTreatment(cappedStatus);
+            string row = CharacterSummaryHealthStatusTextFormatter.Get(
+                "CharacterSummary.Health.Consumables.ToxicityRow",
+                cappedStatus.Toxicity,
+                cappedStatus.PerformancePenalty * 100f,
+                treatment);
+            Require(!string.IsNullOrWhiteSpace(row)
+                    && row.Contains("100")
+                    && row.Contains("20"),
+                "health UI did not project toxicity and its actual post-clamp contribution");
+            core.ProcessOperatingDay(1);
+            Require(Mathf.Approximately(core.GetToxicityStatus(actorId).Toxicity, 70f),
+                "first operating day did not recover 30 toxicity");
+            core.ProcessOperatingDay(1);
+            Require(Mathf.Approximately(core.GetToxicityStatus(actorId).Toxicity, 70f),
+                "duplicate operating day recovered toxicity twice");
+            core.ProcessOperatingDay(3);
+            Require(Mathf.Approximately(core.GetToxicityStatus(actorId).Toxicity, 10f),
+                "elapsed operating days did not recover 30 toxicity per day");
+            core.ProcessOperatingDay(4);
+            Require(Mathf.Approximately(core.GetToxicityStatus(actorId).Toxicity, 0f),
+                "natural toxicity recovery did not clamp at zero");
+
+            DungeonCharacterConsumablesSaveData invalid = core.Capture();
+            invalid.toxicityStates.Single().toxicity = float.NaN;
+            string beforeInvalid = JsonUtility.ToJson(core.Capture());
+            RequireThrows<InvalidOperationException>(
+                () => core.BuildRestoreCandidate(invalid),
+                "toxicity restore accepted NaN");
+            Require(string.Equals(
+                    beforeInvalid,
+                    JsonUtility.ToJson(core.Capture()),
+                    StringComparison.Ordinal),
+                "invalid toxicity restore mutated live state");
+            return $"seed={seed}; overdose=+30 once; normal=+0; cap=100; day=30; multipliers=0.8/0.8; ui=actual-contribution; invalid=no-mutation";
+        }
+        finally
+        {
+            if (actor != null)
+            {
+                world.UnregisterCharacter(actor);
+                world.UnregisterCharacterLifetime(actor);
+            }
+            items?.Dispose();
+            UnityEngine.Object.DestroyImmediate(actorObject);
+        }
+    }
+
+    // Create-only audit batch owns its evidence directory; do not overwrite
+    // the historical menu report while reusing this controlled fixture.
+    public static string RunTreatmentBridgeForServiceOwnerVerification() =>
+        VerifyWim028TreatBridgeRetry() + "\n" + VerifyWim028TreatBridgeRetry(paidPatient: true);
+
+    private static string VerifyWim028TreatBridgeRetry(bool paidPatient = false)
+    {
+        var sharedRoots = new DungeonRuntimeAggregateRootStore();
+        var treatmentWorld = new RestoreWorldCandidateIndex();
+        var treatmentOutcomes = new MigratedProducerOutcomeEditorFixture("run:wim062-treatment-service-owner", sharedRoots);
+        using DomainFactDispatcher consumableFacts =
+            CharacterConsumptionFactFixture.Create(
+                treatmentOutcomes.Transaction,
+                treatmentOutcomes.Recorder,
+                treatmentOutcomes.Ledger);
+        EditorFixedGameCalendar consumableCalendar = new(137, 9);
+        GameObject actorObject = new("WIM028_TreatActor");
+        GameObject facilityObject = new("WIM028_TreatFacility");
+        GameObject otherFacilityObject = new("WIM028_OtherFacility");
+        GameObject warehouseObject = new("WIM062_TreatmentWarehouse");
+        BuildingSO warehouseDefinition = null;
+        Wim062Warehouse warehouse = null;
+        WorldItemStackRuntime items = null;
+        CharacterActor actor = null;
+        CharacterActor worker = null;
+        GameObject workerObject = null;
+        BuildableObject facility = null;
+        BuildableObject otherFacility = null;
+        SurvivalFoodRuntime food = null;
+        SurvivalFoodRuntime restoredFood = null;
+        ServiceSessionOutcomeDebugScenarios.MedicalFixture sessions = null;
+        ServiceSessionOutcomeDebugScenarios.MedicalFixture restoredSessions = null;
+        ICharacterAiWorldRegistry world =
+            CharacterAiEditorTestDependencies.WorldRegistry;
+        world.TryGetGrid(out Grid previousGrid);
+        Grid fixtureGrid = new(20, 4);
+        for (int y = 0; y < fixtureGrid.height; y++)
+            for (int x = 0; x < fixtureGrid.width; x++)
+                fixtureGrid.SetAreaType(new Vector2Int(x, y), GridCellAreaType.ExteriorPath);
+        Wim062GridProvider gridProvider = new(fixtureGrid);
+        try
+        {
+            world.SetGrid(fixtureGrid);
+            actor = CreateWim028ActorWithWorkRole(
+                actorObject,
+                paidPatient ? CharacterId.Owner.Value : "character:wim028:treat",
+                !paidPatient, ownerRole: paidPatient);
+            world.RegisterCharacter(actor);
+            world.RegisterCharacterLifetime(actor);
+            actor.GetComponent<CharacterLifecycle>().ConstructCharacterLifecycle(gridProvider);
+            actor.transform.position = fixtureGrid.GetWorldPos(new Vector2Int(0, 1));
+            worker = actor;
+            if (paidPatient)
+            {
+                workerObject = new GameObject("WIM062_MedicalWorker");
+                worker = CreateWim028Actor(workerObject, "character:wim062:medical-worker");
+                world.RegisterCharacter(worker);
+                world.RegisterCharacterLifetime(worker);
+                worker.GetComponent<CharacterLifecycle>().ConstructCharacterLifecycle(gridProvider);
+                worker.transform.position = fixtureGrid.GetWorldPos(new Vector2Int(1, 1));
+            }
+            Require(Shop.IsInternalStaffUse(actor.BuildingVisitor) == !paidPatient,
+                "Medical patient role does not match the paid/internal scenario.");
+            BuildingSO medical = AssetDatabase.LoadAssetAtPath<BuildingSO>(
+                "Assets/Resources/SO/Building/Medical/M01_응급처치대.asset");
+            Require(medical != null
+                    && medical.GetAbility<BuildingMedicalAbility>() != null
+                    && medical.GetAbility<BuildingServiceHubAbility>() != null,
+                "authored M01 medical/service abilities are missing");
+            facility = facilityObject.AddComponent<BuildableObject>();
+            facility.RestorePersistentIdentity(new BuildingInstanceId("building:wim062:a-medical"));
+            CharacterAiEditorTestDependencies.Inject(facility);
+            facility.SetGrid(fixtureGrid);
+            facility.Initialization(medical, new Vector2Int(7, 1));
+            world.RegisterBuilding(facility);
+            otherFacility = otherFacilityObject.AddComponent<BuildableObject>();
+            otherFacility.RestorePersistentIdentity(new BuildingInstanceId("building:wim062:b-medical"));
+            CharacterAiEditorTestDependencies.Inject(otherFacility);
+            otherFacility.SetGrid(fixtureGrid);
+            otherFacility.Initialization(medical, new Vector2Int(16, 1));
+            world.RegisterBuilding(otherFacility);
+
+            warehouseDefinition = ScriptableObject.CreateInstance<BuildingSO>();
+            warehouseDefinition.id = 99062;
+            warehouseDefinition.objectName = "WIM062 treatment stock fixture";
+            warehouseDefinition.width = 1;
+            warehouseDefinition.height = 1;
+            warehouseDefinition.category = BuildingCategory.Shop;
+            warehouse = warehouseObject.AddComponent<Wim062Warehouse>();
+            CharacterAiEditorTestDependencies.Inject(warehouse);
+            warehouse.SetGrid(fixtureGrid);
+            warehouse.Initialization(warehouseDefinition, new Vector2Int(2, 1));
+            world.RegisterBuilding(warehouse);
+            Require(fixtureGrid.RegisterOccupant(warehouse,
+                    GridLayer.Building, warehouse.buildPoses, false),
+                "medical warehouse was not registered on the physical grid");
+            treatmentWorld.SetFacilityCandidate(fixtureGrid, new[] { facility, otherFacility, warehouse });
+            treatmentWorld.SetCharacterCandidate(paidPatient ? new[] { actor, worker } : new[] { actor });
+
+            items = PhysicalItemDebugScenarios.CreateDeliveryRuntimeForCrossDomainFixture(
+                gridProvider,
+                out WorldItemRepository repository,
+                out ItemQuantityReservationService reservations,
+                out IReservedItemTransferService reservedTransfers,
+                out IReservedPhysicalItemBatchDispositionService reservedBatch,
+                out IPhysicalItemBatchDispositionService batch,
+                out FacilityBufferDestinationClaimRegistry destinationClaims,
+                out IDungeonRestoreTransactionParticipant exactRouteRestoreParticipant);
+            IStockQuery physicalStock = new PhysicalStockQuery(
+                repository, items.CatalogProvider, items.MassQuery);
+            warehouse.Inventory.BindPhysicalStock(physicalStock,
+                warehouse.RequirePersistentInstanceId(),
+                CharacterAiEditorTestDependencies.AuthoredGameplay);
+            CharacterCarryInventory carry = CharacterCarryInventory.Ensure(actor)
+                ?? actorObject.AddComponent<CharacterCarryInventory>();
+            carry.Configure(items.CatalogProvider, items.MassQuery,
+                items.HaulingSettingsProvider, new CharacterCarryInventoryRegistry());
+            FacilityBufferPhysicalOccupancyQuery treatmentOccupancy =
+                new(repository, items.MassQuery, reservations);
+            FacilityBufferMassAdmissionService capacities = new(
+                destinationClaims, treatmentOccupancy, items.MassQuery);
+            FacilityBufferDestinationLifecycleService lifecycle = new(
+                destinationClaims, destinationClaims, capacities, capacities);
+            CharacterConsumablesInputOwnerProjection owners =
+                CharacterConsumablesInputOwnerAuthority.BuildProjection(
+                    new[] { facility, otherFacility }.Select(value =>
+                        new CharacterConsumablesInputOwnerDescriptor(
+                            CharacterConsumablesInputKind.MedicalTreatment,
+                            value.RequirePersistentInstanceId().Value,
+                            value.centerPos,
+                            "medicine:antidote")), items.MassQuery);
+            Require(lifecycle.TryReplaceOwnedAuthorities(
+                    CharacterConsumablesInputOwnerAuthority.OwnerDomain,
+                    owners.Claims, owners.Profiles, out string ownerFailure),
+                "medical input-owner publication failed: " + ownerFailure);
+            items.Start();
+            FailFirstAcknowledgeBatchDisposition failFirst = new(batch);
+            IPhysicalFacilityItemSinkGateway treatmentSinks =
+                new PhysicalFacilityItemSinkGateway(physicalStock, failFirst);
+            Require(items.MassQuery is IPackagedLotDefinitionQuery,
+                "treatment fixture has no authored packaging query");
+            IPackagedLotTareDispositionService treatmentTare =
+                new PackagedLotTareDispositionService(
+                    (IPackagedLotDefinitionQuery)items.MassQuery,
+                    new PackagedLotTareOutputGateway(items));
+            IItemDefinitionCatalog catalog = new ResourceItemDefinitionCatalog(
+                new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+            GameEventBus events = new();
+            CharacterConsumablesApplicationPorts ports = new(
+                catalog,
+                items,
+                world,
+                events,
+                EmptyCombatCommands.Instance,
+                CharacterAiEditorTestDependencies.NeutralPerformance,
+                quantityReservations: reservations,
+                reservedTransfers: reservedTransfers,
+                reservedBatchDispositions: reservedBatch,
+                batchDispositions: failFirst,
+                tareDispositions: treatmentTare);
+            CharacterConsumablesRuntime core = new(
+                ports,
+                ports,
+                ports,
+                new FixedGameClock(),
+                new RandomStreamProvider(28028),
+                sharedRoots,
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: consumableFacts,
+                calendar: consumableCalendar);
+            CharacterId actorId = CharacterPersistentIdentity.Require(actor);
+            DungeonCharacterConsumablesSaveData toxic = core.Capture();
+            toxic.toxicityStates.Add(new CharacterToxicityState
+            {
+                characterId = actorId.Value,
+                toxicity = 60f,
+                lastNaturalRecoveryDay = 1
+            });
+            core.PublishRestoreCandidate(core.BuildRestoreCandidate(toxic));
+            sessions = new ServiceSessionOutcomeDebugScenarios.MedicalFixture(
+                "run:wim062-medical-live-service", actor, facility, fixtureGrid, sharedRoots, treatmentWorld);
+            food = CreateWim028Food(items, catalog, events, world, sessions.Runtime, core,
+                gridProvider, physicalStock, treatmentSinks, treatmentTare,
+                capacities, treatmentOccupancy, destinationClaims, sharedRoots);
+            VerifyWim062SupplyObservation(food, items, core, sessions, actorId, facility,
+                "medicine:antidote", SurvivalTreatmentKind.Detox,
+                SurvivalTreatmentSupplyState.StockMissing);
+            Require(items.SpawnItemAt(
+                    "medicine:antidote",
+                    1,
+                    warehouse.centerPos,
+                    WorldItemStackState.Stored,
+                    WarehouseStorageIdentity.RequireDestinationId(warehouse),
+                    out int spawned)
+                && spawned == 1,
+                "WIM028 Treat fixture did not spawn one authored antidote");
+            SurvivalWorkExecutionHandler handler = CreateWim028WorkHandler(food);
+            float healthBefore = actor.CurrentHealth;
+            Require(catalog.TryGet(
+                    (ItemDefinitionId)"medicine:antidote",
+                    out ItemDefinitionSO antidote)
+                    && antidote.TryGetFeature(out MedicineItemFeature medicine)
+                    && Mathf.Approximately(
+                        medicine.detoxReduction,
+                        CharacterToxicityPolicy.NaturalRecoveryPerDay)
+                    && !medicine.supportsInjuryTreatment
+                    && core.GetToxicityStatus(actorId).TreatmentAvailable,
+                "authored antidote is not the exact available DetoxReduction 30 treatment");
+
+            VerifyWim062SupplyObservation(food, items, core, sessions, actorId, facility,
+                "medicine:antidote", SurvivalTreatmentKind.Detox,
+                SurvivalTreatmentSupplyState.AwaitingRequest);
+
+            // Use real fixture-owned admission authority, not a fabricated UI failure.
+            FacilityBufferCapacityProfile[] originalProfiles = capacities.CaptureProfiles().ToArray();
+            FacilityBufferCapacityProfile[] constrainedProfiles = originalProfiles.Select(profile =>
+                new FacilityBufferCapacityProfile(profile.DestinationId, profile.DropPosition,
+                    profile.OwnerDomain, profile.OwnerOperationId, profile.OwnerFacilityId,
+                    new PhysicalMassGrams(1L), profile.CapacityRevision + 1,
+                    profile.AuthorityDigest)).ToArray();
+            Require(capacities.TryReplaceOwnedProfiles(
+                    CharacterConsumablesInputOwnerAuthority.OwnerDomain, constrainedProfiles,
+                    out _, out string capacityFailure),
+                "failed to apply controlled one-gram capacity: " + capacityFailure);
+            try
+            {
+                VerifyWim062SupplyObservation(food, items, core, sessions, actorId, facility,
+                    "medicine:antidote", SurvivalTreatmentKind.Detox,
+                    SurvivalTreatmentSupplyState.CapacityUnavailable);
+            }
+            finally
+            {
+                Require(capacities.TryReplaceOwnedProfiles(
+                        CharacterConsumablesInputOwnerAuthority.OwnerDomain, originalProfiles,
+                        out _, out string capacityRestoreFailure),
+                    "fixture capacity restoration failed: " + capacityRestoreFailure);
+            }
+
+            WorkExecutionResult cancelled = ExecuteWim028Treat(
+                handler,
+                worker,
+                facility,
+                runId: 2800,
+                canContinue: false);
+            Require(!cancelled.CompletedSuccessfully
+                    && CountItem(items, "medicine:antidote") == 1
+                    && Mathf.Approximately(
+                        core.GetToxicityStatus(actorId).Toxicity,
+                        60f)
+                    && sessions.ActiveSessions.Count == 0,
+                "pre-completion Treat cancellation consumed medicine, changed toxicity, or opened a session");
+
+            WorkExecutionResult warehouseOnly = ExecuteWim028Treat(
+                handler,
+                worker,
+                facility,
+                runId: 2799,
+                canContinue: true);
+            Require(!warehouseOnly.CompletedSuccessfully
+                    && CountItem(items, "medicine:antidote") == 1
+                    && items.GetAllStacks().Any(stack =>
+                        stack.ItemId == "medicine:antidote"
+                        && stack.State == WorldItemStackState.Stored
+                        && stack.Quantity == 1)
+                    && Mathf.Approximately(
+                        core.GetToxicityStatus(actorId).Toxicity,
+                        60f)
+                    && Mathf.Approximately(actor.CurrentHealth, healthBefore)
+                    && sessions.CompletedSessionCount == 0
+                    && sessions.ActiveSessions.Count == 0
+                    && core.Capture().activeDetoxTreatmentPlans.Count == 0,
+                "warehouse-only Treat consumed remote medicine, applied an effect, or completed billing before physical arrival");
+
+            VerifyWim062SupplyObservation(food, items, core, sessions, actorId, facility,
+                "medicine:antidote", SurvivalTreatmentKind.Detox,
+                SurvivalTreatmentSupplyState.Requested);
+            DeliverWim062TreatmentStock(items, reservations, actor, carry, facility,
+                afterPickup: () => VerifyWim062SupplyObservation(food, items, core, sessions,
+                    actorId, facility, "medicine:antidote", SurvivalTreatmentKind.Detox,
+                    SurvivalTreatmentSupplyState.InTransit));
+            VerifyWim062SupplyObservation(food, items, core, sessions, actorId, facility,
+                "medicine:antidote", SurvivalTreatmentKind.Detox,
+                SurvivalTreatmentSupplyState.Ready);
+
+            WorkExecutionResult pending = ExecuteWim028Treat(
+                handler,
+                worker,
+                facility,
+                runId: 2801,
+                canContinue: true);
+            DungeonCharacterConsumablesSaveData pendingSave = core.Capture();
+            ServiceRoomsSaveData sessionSave = sessions.Capture();
+            int expectedDetoxPayments = sessionSave.sessions.Count(value =>
+                value.contract.paymentRequired && value.contract.price > 0);
+            Require(expectedDetoxPayments == (paidPatient ? 1 : 0),
+                "Medical authored contract did not preserve non-staff-paid/internal-free policy.");
+            DungeonSurvivalSaveData detoxFoodSave = food.Capture();
+            RequireMedicalOwners(sessionSave, detoxFoodSave, pendingSave);
+            Require(DetoxOutcomeCount() == 1, "Consumed antidote did not create exactly one real detox outcome.");
+            Require(!pending.CompletedSuccessfully
+                    && CountItem(items, "medicine:antidote") == 0
+                    && Mathf.Approximately(
+                        core.GetToxicityStatus(actorId).Toxicity,
+                        30f)
+                    && pendingSave.activeDetoxTreatmentPlans.Count == 1
+                    && pendingSave.activeDetoxTreatmentPlans[0].phase
+                        == CharacterDetoxTreatmentPlanPhase.EffectsPublished
+                    && sessionSave.sessions.Count == 1
+                    && string.Equals(
+                        pendingSave.activeDetoxTreatmentPlans[0].operationId,
+                        "consumable-operation:detox:"
+                        + sessionSave.sessions[0].sessionId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        pendingSave.activeDetoxTreatmentPlans[0].characterId,
+                        sessionSave.sessions[0].actorId,
+                        StringComparison.Ordinal),
+                "committed Treat did not retain the exact patient/service operation through its pending receipt");
+            VerifyWim062SupplyObservation(food, items, core, sessions, actorId, facility,
+                "medicine:antidote", SurvivalTreatmentKind.Detox,
+                SurvivalTreatmentSupplyState.Processing);
+            DungeonPhysicalItemSaveData physicalPending = items.Capture();
+            PhysicalItemBatchDispositionSaveData physicalReceipt =
+                physicalPending.pendingBatchDispositions.Single(value =>
+                    value.operationId == pendingSave.activeDetoxTreatmentPlans[0].operationId);
+            Require(physicalReceipt.quantity == 1
+                    && physicalReceipt.commitId == pendingSave.activeDetoxTreatmentPlans[0].physicalCommitId
+                    && physicalReceipt.inputMassGrams > 0,
+                "pending detox receipt was not captured by the physical-item save authority");
+            RestorePhysicalSection(physicalPending);
+            bool otherFacilityAccepted = core.TryApplyDetoxTreatment(
+                new ConsumableOperationId(
+                    "consumable-operation:wim028:other-facility"),
+                actorId,
+                otherFacility.RequirePersistentInstanceId(),
+                out CharacterDetoxTreatmentResult otherFacilityResult);
+            Require(!otherFacilityAccepted
+                    && otherFacilityResult.FailureCode
+                        == CharacterConsumablesFailureCode.DeliveryPending
+                    && core.Capture().activeDetoxTreatmentPlans.Count == 1,
+                "a second facility created a competing detox plan for the same patient");
+
+            food.Dispose();
+            food = null;
+            sessions.Dispose();
+            sessions = null;
+            CharacterConsumablesRuntime restoredCore = new(
+                ports,
+                ports,
+                ports,
+                new FixedGameClock(),
+                new RandomStreamProvider(28029),
+                sharedRoots,
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                domainFacts: consumableFacts,
+                calendar: consumableCalendar);
+            restoredSessions = new ServiceSessionOutcomeDebugScenarios.MedicalFixture(
+                "run:wim062-medical-restored-service", actor, facility, fixtureGrid, sharedRoots, treatmentWorld);
+            restoredSessions.Restore(sessionSave);
+            restoredFood = CreateWim028Food(
+                items,
+                catalog,
+                events,
+                world,
+                restoredSessions.Runtime,
+                restoredCore,
+                gridProvider,
+                physicalStock,
+                treatmentSinks,
+                treatmentTare,
+                capacities, treatmentOccupancy, destinationClaims, sharedRoots);
+            var detoxFoodReport = new DungeonGameRestoreReport();
+            new SurvivalResourcesSaveSection(restoredFood, catalog, treatmentWorld,
+                new Wim062PhysicalCandidates(physicalPending.pendingBatchDispositions), restoredSessions.Runtime)
+                .Restore(JsonUtility.ToJson(detoxFoodSave), DungeonSurvivalSaveData.CurrentVersion, detoxFoodReport);
+            Require(detoxFoodReport.Success, "Official detox survival section restore failed.");
+            RestoreConsumablesSection(restoredCore, pendingSave);
+            Require(JsonUtility.ToJson(sessionSave) == JsonUtility.ToJson(restoredSessions.Capture()),
+                "Official detox service restore changed the exact session/clock.");
+            RequireMedicalOwners(restoredSessions.Capture(), restoredFood.Capture(), restoredCore.Capture());
+            SurvivalWorkExecutionHandler restoredHandler =
+                CreateWim028WorkHandler(restoredFood);
+            WorkExecutionResult resumed = ExecuteWim028Treat(
+                restoredHandler,
+                worker,
+                facility,
+                runId: 3801,
+                canContinue: true);
+            Require(resumed.CompletedSuccessfully
+                    && resumed.CompletionEffectsAlreadyApplied
+                    && CountItem(items, "medicine:antidote") == 0
+                    && Mathf.Approximately(
+                        restoredCore.GetToxicityStatus(actorId).Toxicity,
+                        30f)
+                    && restoredCore.Capture().activeDetoxTreatmentPlans.Count == 0
+                    && restoredSessions.ActiveSessions.Count == 0
+                    && restoredSessions.CompletedSessionCount == 1
+                    && restoredSessions.PaymentCount == expectedDetoxPayments
+                    && DetoxOutcomeCount() == 1
+                    && Mathf.Approximately(actor.CurrentHealth, healthBefore),
+                "saved Treat retry changed toxicity twice, consumed again, left ownership active, or applied free HP");
+
+            Require(items.SpawnItemAt(
+                    "medicine:antidote",
+                    1,
+                    warehouse.centerPos,
+                    WorldItemStackState.Stored,
+                    WarehouseStorageIdentity.RequireDestinationId(warehouse),
+                    out spawned)
+                && spawned == 1,
+                "WIM028 live replay fixture could not stage a sentinel antidote");
+            WorkExecutionResult sameWorkReplay = ExecuteWim028Treat(
+                restoredHandler,
+                worker,
+                facility,
+                runId: 3801,
+                canContinue: true);
+            Require(sameWorkReplay.CompletedSuccessfully
+                    && sameWorkReplay.CompletionEffectsAlreadyApplied
+                    && CountItem(items, "medicine:antidote") == 1
+                    && Mathf.Approximately(
+                        restoredCore.GetToxicityStatus(actorId).Toxicity,
+                        30f)
+                    && restoredSessions.ActiveSessions.Count == 0,
+                "same live Treat work replay created a new service operation or consumed a second medicine");
+            DungeonSurvivalSaveData foodSave = restoredFood.Capture();
+            restoredFood.PublishRestoreCandidate(
+                restoredFood.BuildRestoreCandidate(foodSave));
+            WorkExecutionResult secondDeliveryWait = ExecuteWim028Treat(
+                restoredHandler, worker, facility, runId: 4801, canContinue: true);
+            Require(!secondDeliveryWait.CompletedSuccessfully
+                    && CountItem(items, "medicine:antidote") == 1
+                    && Mathf.Approximately(restoredCore.GetToxicityStatus(actorId).Toxicity, 30f),
+                "new post-restore treatment bypassed its second physical delivery");
+            DeliverWim062TreatmentStock(items, reservations, actor, carry, facility);
+            WorkExecutionResult postRestoreNewWork = ExecuteWim028Treat(
+                restoredHandler,
+                worker,
+                facility,
+                runId: 3801,
+                canContinue: true);
+            Require(postRestoreNewWork.CompletedSuccessfully
+                    && CountItem(items, "medicine:antidote") == 0
+                    && Mathf.Approximately(
+                        restoredCore.GetToxicityStatus(actorId).Toxicity,
+                        0f)
+                    && restoredSessions.ActiveSessions.Count == 0,
+                "successful restore retained ephemeral RunId correlation or blocked a new persisted service operation");
+            ItemDefinitionSO ordinaryMedicine = catalog.All
+                .Where(value => value != null
+                    && value.StockCategory == StockCategory.Medicine
+                    && value.TryGetFeature(out MedicineItemFeature feature)
+                    && feature.supportsInjuryTreatment)
+                .OrderBy(value => value.ItemId, StringComparer.Ordinal)
+                .First();
+            CharacterConsumablesInputOwnerProjection normalOwners =
+                CharacterConsumablesInputOwnerAuthority.BuildProjection(new[]
+                {
+                    new CharacterConsumablesInputOwnerDescriptor(
+                        CharacterConsumablesInputKind.MedicalTreatment,
+                        facility.RequirePersistentInstanceId().Value,
+                        facility.centerPos, "medicine:antidote"),
+                    new CharacterConsumablesInputOwnerDescriptor(
+                        CharacterConsumablesInputKind.MedicalTreatment,
+                        otherFacility.RequirePersistentInstanceId().Value,
+                        otherFacility.centerPos, "medicine:antidote"),
+                    new CharacterConsumablesInputOwnerDescriptor(
+                        CharacterConsumablesInputKind.MedicalTreatment,
+                        facility.RequirePersistentInstanceId().Value,
+                        facility.centerPos, ordinaryMedicine.ItemId)
+                }, items.MassQuery);
+            Require(lifecycle.TryReplaceOwnedAuthorities(
+                    CharacterConsumablesInputOwnerAuthority.OwnerDomain,
+                    normalOwners.Claims, normalOwners.Profiles, out string normalOwnerFailure),
+                "normal-treatment owner publication failed: " + normalOwnerFailure);
+            Require(items.SpawnItemAt(ordinaryMedicine.ItemId, 1,
+                    warehouse.centerPos, WorldItemStackState.Stored,
+                    WarehouseStorageIdentity.RequireDestinationId(warehouse),
+                    out int ordinarySpawned) && ordinarySpawned == 1
+                    && restoredFood.GetStoredStockCount(StockCategory.Medicine) == 1,
+                "normal-treatment fixture is not backed by a real visible warehouse medicine");
+            DungeonSurvivalSaveData ordinaryState = restoredFood.Capture();
+            ordinaryState.health.Add(new SurvivalHealthSaveData
+            {
+                persistentId = actorId.Value,
+                state = SurvivalHealthState.Sick,
+                severity = 0.8f,
+                remainingSeconds = 360f,
+                source = "wim062-controlled-treatment-issue"
+            });
+            restoredFood.PublishRestoreCandidate(restoredFood.BuildRestoreCandidate(ordinaryState));
+            int completionsBeforeOrdinary = restoredSessions.CompletedSessionCount;
+            WorkExecutionResult ordinaryWait = ExecuteWim028Treat(
+                restoredHandler, worker, facility, runId: 6201, canContinue: true);
+            Require(!ordinaryWait.CompletedSuccessfully
+                    && CountItem(items, ordinaryMedicine.ItemId) == 1
+                    && Mathf.Approximately(restoredFood.Capture().health.Single(
+                        value => value.persistentId == actorId.Value).severity, 0.8f)
+                    && restoredSessions.CompletedSessionCount == completionsBeforeOrdinary,
+                "ordinary treatment bypassed physical delivery or applied early health/billing effects");
+            VerifyWim062SupplyObservation(restoredFood, items, restoredCore, restoredSessions,
+                actorId, facility, ordinaryMedicine.ItemId, SurvivalTreatmentKind.Standard,
+                SurvivalTreatmentSupplyState.Requested);
+            DeliverWim062TreatmentStock(items, reservations, actor, carry, facility,
+                ordinaryMedicine.ItemId,
+                afterPickup: () => VerifyWim062SupplyObservation(restoredFood, items,
+                    restoredCore, restoredSessions, actorId, facility, ordinaryMedicine.ItemId,
+                    SurvivalTreatmentKind.Standard, SurvivalTreatmentSupplyState.InTransit));
+            VerifyWim062SupplyObservation(restoredFood, items, restoredCore, restoredSessions,
+                actorId, facility, ordinaryMedicine.ItemId, SurvivalTreatmentKind.Standard,
+                SurvivalTreatmentSupplyState.Ready);
+            failFirst.FailNextAcknowledge();
+            restoredSessions.RejectReservations(true);
+            WorkExecutionResult effectsPending = ExecuteWim028Treat(
+                restoredHandler, worker, facility, runId: 6201, canContinue: true);
+            DungeonSurvivalSaveData effectsSave = restoredFood.Capture();
+            ServiceRoomsSaveData effectsServiceSave = restoredSessions.Capture();
+            DungeonCharacterConsumablesSaveData effectsConsumablesSave = restoredCore.Capture();
+            Require(!effectsPending.CompletedSuccessfully && CountItem(items, ordinaryMedicine.ItemId) == 0
+                    && effectsSave.activeTreatmentPlans.Count == 1
+                    && effectsSave.activeTreatmentPlans[0].phase == SurvivalTreatmentPlanPhase.EffectsPublished
+                    && effectsServiceSave.sessions.Count(value => value.stage < ServiceSessionStage.Completed) == 1
+                    && restoredSessions.CompletedSessionCount == completionsBeforeOrdinary,
+                "Service reservation failure did not retain the treated patient's exact active owner.");
+            RequireMedicalOwners(effectsServiceSave, effectsSave, effectsConsumablesSave);
+            DungeonPhysicalItemSaveData effectsPhysicalSave = items.Capture();
+            RestorePhysicalSection(effectsPhysicalSave);
+            restoredSessions.Restore(effectsServiceSave);
+            var effectsReport = new DungeonGameRestoreReport();
+            new SurvivalResourcesSaveSection(restoredFood, catalog, treatmentWorld,
+                new Wim062PhysicalCandidates(effectsPhysicalSave.pendingBatchDispositions), restoredSessions.Runtime)
+                .Restore(JsonUtility.ToJson(effectsSave), DungeonSurvivalSaveData.CurrentVersion, effectsReport);
+            Require(effectsReport.Success, "Official effects-published treatment restore failed.");
+            RestoreConsumablesSection(restoredCore, effectsConsumablesSave);
+            Require(JsonUtility.ToJson(effectsSave) == JsonUtility.ToJson(restoredFood.Capture())
+                    && JsonUtility.ToJson(effectsServiceSave) == JsonUtility.ToJson(restoredSessions.Capture()),
+                "Official treatment restore changed effects, progress, service identity or time.");
+            RequireMedicalOwners(restoredSessions.Capture(), restoredFood.Capture(), restoredCore.Capture());
+            restoredSessions.RejectReservations(false);
+            WorkExecutionResult ordinaryPending = ExecuteWim028Treat(
+                restoredHandler, worker, facility, runId: 6201, canContinue: true);
+            float expectedSeverity = Mathf.Max(0f,
+                0.8f - medical.GetAbility<BuildingMedicalAbility>().severityReduction);
+            DungeonSurvivalSaveData normalPending = JsonUtility.FromJson<DungeonSurvivalSaveData>(
+                JsonUtility.ToJson(restoredFood.Capture()));
+            Require(!ordinaryPending.CompletedSuccessfully
+                    && CountItem(items, ordinaryMedicine.ItemId) == 0
+                    && Mathf.Approximately(normalPending.health.Single(
+                        value => value.persistentId == actorId.Value).severity, expectedSeverity)
+                    && normalPending.activeTreatmentPlans.Count == 1
+                    && normalPending.activeTreatmentPlans[0].phase
+                        == SurvivalTreatmentPlanPhase.ServiceCompleted
+                    && restoredSessions.CompletedSessionCount == completionsBeforeOrdinary + 1,
+                "ordinary medicine acknowledgment failure lost its committed treatment owner or repeated effects");
+            VerifyWim062SupplyObservation(restoredFood, items, restoredCore, restoredSessions,
+                actorId, facility, ordinaryMedicine.ItemId, SurvivalTreatmentKind.Standard,
+                SurvivalTreatmentSupplyState.Processing);
+            SurvivalTreatmentPlanSaveData normalPlan = normalPending.activeTreatmentPlans[0];
+            DungeonPhysicalItemSaveData normalPhysical = items.Capture();
+            PhysicalItemBatchDispositionSaveData normalReceipt = normalPhysical.pendingBatchDispositions.Single(
+                value => value.operationId == normalPlan.physicalCommitOperationId);
+            Require(normalReceipt.commitId == normalPlan.physicalCommitId
+                    && normalReceipt.quantity == 1
+                    && normalReceipt.inputMassGrams == normalPlan.physicalCommitInputMassGrams
+                    && normalReceipt.inputMassGrams > 0,
+                "ordinary treatment save did not reference its exact pending physical receipt");
+
+            string beforeRejectedRestore = JsonUtility.ToJson(restoredFood.Capture());
+            DungeonSurvivalSaveData wrongDestination = JsonUtility.FromJson<DungeonSurvivalSaveData>(
+                JsonUtility.ToJson(normalPending));
+            wrongDestination.activeTreatmentPlans[0].destinationId =
+                CharacterConsumablesInputDestinationIdentity.Build(
+                    CharacterConsumablesInputKind.MedicalTreatment,
+                    otherFacility.RequirePersistentInstanceId(),
+                    new ConsumableItemDefinitionId(ordinaryMedicine.ItemId));
+            bool invalidOwnerRejected = false;
+            try
+            {
+                restoredFood.BuildRestoreCandidate(wrongDestination);
+            }
+            catch (InvalidOperationException)
+            {
+                invalidOwnerRejected = true;
+            }
+            Require(invalidOwnerRejected
+                    && JsonUtility.ToJson(restoredFood.Capture()) == beforeRejectedRestore
+                    && batch.TryGetPending(normalPlan.physicalCommitOperationId, out _),
+                "invalid treatment destination restore was accepted or changed live state/receipt");
+            SurvivalResourcesSaveSection missingReceiptSection = new(
+                restoredFood, catalog, treatmentWorld,
+                new Wim062PhysicalCandidates(Array.Empty<PhysicalItemBatchDispositionSaveData>()),
+                restoredSessions.Runtime);
+            DungeonGameRestoreReport missingReceiptReport = new();
+            bool missingReceiptRejected = false;
+            try
+            {
+                missingReceiptSection.Restore(JsonUtility.ToJson(normalPending),
+                    DungeonSurvivalSaveData.CurrentVersion, missingReceiptReport);
+                missingReceiptRejected = !missingReceiptReport.Success;
+            }
+            catch (InvalidOperationException)
+            {
+                missingReceiptRejected = true;
+            }
+            Require(missingReceiptRejected
+                    && JsonUtility.ToJson(restoredFood.Capture()) == beforeRejectedRestore
+                    && batch.TryGetPending(normalPlan.physicalCommitOperationId, out _),
+                "treatment save section accepted a missing physical candidate receipt or partially published state");
+            SurvivalResourcesSaveSection treatmentSection = new(
+                restoredFood, catalog, treatmentWorld,
+                new Wim062PhysicalCandidates(normalPhysical.pendingBatchDispositions), restoredSessions.Runtime);
+            DungeonSurvivalSaveData orphanReceipt = JsonUtility.FromJson<DungeonSurvivalSaveData>(
+                JsonUtility.ToJson(normalPending));
+            orphanReceipt.activeTreatmentPlans.Clear();
+            DungeonGameRestoreReport orphanReceiptReport = new();
+            bool orphanReceiptRejected = false;
+            try
+            {
+                treatmentSection.Restore(JsonUtility.ToJson(orphanReceipt),
+                    DungeonSurvivalSaveData.CurrentVersion, orphanReceiptReport);
+                orphanReceiptRejected = !orphanReceiptReport.Success;
+            }
+            catch (InvalidOperationException)
+            {
+                orphanReceiptRejected = true;
+            }
+            Require(orphanReceiptRejected
+                    && JsonUtility.ToJson(restoredFood.Capture()) == beforeRejectedRestore
+                    && batch.TryGetPending(normalPlan.physicalCommitOperationId, out _),
+                "treatment section accepted an orphan pending receipt after removing its last plan");
+            RestorePhysicalSection(normalPhysical);
+            DungeonGameRestoreReport normalRestoreReport = new();
+            treatmentSection.Restore(JsonUtility.ToJson(normalPending),
+                DungeonSurvivalSaveData.CurrentVersion, normalRestoreReport);
+            Require(normalRestoreReport.Success,
+                "valid treatment plan/physical receipt/world/session candidate joins did not restore");
+            WorkExecutionResult ordinaryCompleted = ExecuteWim028Treat(
+                restoredHandler, worker, facility, runId: 6201, canContinue: true);
+            Require(ordinaryCompleted.CompletedSuccessfully
+                    && CountItem(items, ordinaryMedicine.ItemId) == 0
+                    && Mathf.Approximately(restoredFood.Capture().health.Single(
+                        value => value.persistentId == actorId.Value).severity, expectedSeverity)
+                    && restoredFood.Capture().activeTreatmentPlans.Count == 0
+                    && !batch.TryGetPending(normalPlan.physicalCommitOperationId, out _)
+                    && restoredSessions.CompletedSessionCount == completionsBeforeOrdinary + 1,
+                "ordinary pending treatment restore duplicated medicine, effects, or service completion");
+            WorkExecutionResult ordinaryReplay = ExecuteWim028Treat(
+                restoredHandler, worker, facility, runId: 6201, canContinue: true);
+            Require(ordinaryReplay.CompletedSuccessfully
+                    && CountItem(items, ordinaryMedicine.ItemId) == 0
+                    && Mathf.Approximately(restoredFood.Capture().health.Single(
+                        value => value.persistentId == actorId.Value).severity, expectedSeverity)
+                    && restoredSessions.CompletedSessionCount == completionsBeforeOrdinary + 1,
+                "same ordinary-treatment work replay repeated effects or billing");
+
+            Require(items.SpawnItemAt(ordinaryMedicine.ItemId, 1,
+                    warehouse.centerPos, WorldItemStackState.Stored,
+                    WarehouseStorageIdentity.RequireDestinationId(warehouse),
+                    out int terminalSpawned) && terminalSpawned == 1,
+                "terminal treatment fixture could not stock its second real medicine");
+            WorkExecutionResult terminalWait = ExecuteWim028Treat(
+                restoredHandler, worker, facility, runId: 6202, canContinue: true);
+            Require(!terminalWait.CompletedSuccessfully && CountItem(items, ordinaryMedicine.ItemId) == 1,
+                "second treatment did not wait for its own physical delivery");
+            DeliverWim062TreatmentStock(items, reservations, actor, carry, facility, ordinaryMedicine.ItemId);
+            failFirst.FailNextAcknowledge();
+            WorkExecutionResult terminalPending = ExecuteWim028Treat(
+                restoredHandler, worker, facility, runId: 6202, canContinue: true);
+            DungeonSurvivalSaveData beforeOwnerLoss = restoredFood.Capture();
+            Require(!terminalPending.CompletedSuccessfully
+                    && beforeOwnerLoss.activeTreatmentPlans.Count == 1
+                    && beforeOwnerLoss.activeTreatmentPlans[0].phase == SurvivalTreatmentPlanPhase.ServiceCompleted
+                    && CountItem(items, ordinaryMedicine.ItemId) == 0
+                    && restoredSessions.CompletedSessionCount == completionsBeforeOrdinary + 2,
+                "owner-loss setup did not reach exactly one committed treatment awaiting acknowledgment: "
+                + $"completed={terminalPending.CompletedSuccessfully}, failure={terminalPending.Failure.Code}, "
+                + $"plans={beforeOwnerLoss.activeTreatmentPlans.Count}, "
+                + $"phases={string.Join(",", beforeOwnerLoss.activeTreatmentPlans.Select(value => value.phase.ToString()))}, "
+                + $"medicine={CountItem(items, ordinaryMedicine.ItemId)}, "
+                + $"sessions={restoredSessions.CompletedSessionCount}/{completionsBeforeOrdinary + 2}, "
+                + $"health={string.Join("|", beforeOwnerLoss.health.Select(JsonUtility.ToJson))}");
+            string terminalOperation = beforeOwnerLoss.activeTreatmentPlans[0].physicalCommitOperationId;
+            string healthAtOwnerLoss = string.Join("|", beforeOwnerLoss.health.Select(JsonUtility.ToJson));
+            world.UnregisterBuilding(facility);
+            Require(restoredFood is ISurvivalTreatmentTerminalMaintenance,
+                "normal treatment has no typed lost-owner maintenance capability");
+            ISurvivalTreatmentTerminalMaintenance maintenance = restoredFood;
+            failFirst.FailNextAcknowledge();
+            bool firstTerminal = maintenance.TryReconcileLostTreatmentOwners(out _);
+            Require(!firstTerminal
+                    && restoredFood.Capture().activeTreatmentPlans.Count == 1
+                    && batch.TryGetPending(terminalOperation, out _)
+                    && CountItem(items, ordinaryMedicine.ItemId) == 0,
+                "failed owner-loss acknowledgment released the plan/receipt or refunded consumed medicine");
+            Require(maintenance.TryReconcileLostTreatmentOwners(out _)
+                    && maintenance.TryReconcileLostTreatmentOwners(out _)
+                    && restoredFood.Capture().activeTreatmentPlans.Count == 0
+                    && !batch.TryGetPending(terminalOperation, out _)
+                    && CountItem(items, ordinaryMedicine.ItemId) == 0
+                    && string.Join("|", restoredFood.Capture().health.Select(JsonUtility.ToJson)) == healthAtOwnerLoss
+                    && restoredSessions.CompletedSessionCount == completionsBeforeOrdinary + 2,
+                "lost-facility terminal retry stranded ownership or repeated consumption, treatment, or billing");
+            Require(restoredSessions.PaymentCount == restoredSessions.CompletedSessionCount * expectedDetoxPayments,
+                "Real medical service payment count disagrees with the authored payment policy/completed outcomes.");
+            Require(DetoxOutcomeCount() == 2 && restoredSessions.CompletedSessionCount == 4,
+                "Two antidotes and two standard treatments did not produce exactly their real terminal outcomes.");
+            return "patient=" + (paidPatient ? "non-staff-owner-paid" : "internal-free")
+                + "; service=real-runtime+exact-terminal-ledger; completions=" + restoredSessions.CompletedSessionCount
+                + "; payments=" + restoredSessions.PaymentCount + "; detox-outcomes=" + DetoxOutcomeCount()
+                + "; warehouse-only=wait/no-effect/no-billing; controlled-haul=reserved/picked/committed/deposited; detox=ack-failure+physical/service/survival/consumables-sections-restore-once; ordinary=effects-published/service-reserve-failure+official-sections-restore+service-completed/physical-ack-failure+replay-once; owner-loss=ack-retry/no-refund/no-duplicate; whole-world/natural-movement/AI=NOT_RUN";
+
+            int DetoxOutcomeCount() => treatmentOutcomes.Ledger.CaptureGameplayOutcomes().exactOutcomes
+                .Count(value => value.outcomeTypeId == "survival.detox-treated");
+
+            void RequireMedicalOwners(ServiceRoomsSaveData serviceData, DungeonSurvivalSaveData survivalData,
+                DungeonCharacterConsumablesSaveData consumablesData)
+            {
+                var ownerReport = new DungeonGameRestoreReport();
+                ServiceExecutionOwnerSaveValidation.ValidateCore(serviceData, new ModularFacilityWorldSaveData
+                {
+                    buildings = new[] { facility, otherFacility, warehouse }
+                        .Select(ModularFacilityBuildingSaveData.From).ToList()
+                }, survivalData, consumablesData, ownerReport);
+                Require(ownerReport.Success, "Actual medical owner join failed: " + string.Join(" | ", ownerReport.Errors));
+            }
+
+            void RestoreConsumablesSection(CharacterConsumablesRuntime target, DungeonCharacterConsumablesSaveData saved)
+            {
+                var source = new CharacterConsumablesInputOwnerDescriptorSource(catalog, world, treatmentWorld);
+                var inputOwners = new CharacterConsumablesInputOwnerRuntime(items.MassQuery, destinationClaims,
+                    capacities, lifecycle, new FacilityBufferDestinationReleaseService(items,
+                        (IItemTransferService)reservedTransfers, world));
+                var section = new CharacterConsumablesSaveSection(target, source, inputOwners,
+                    new TreatmentPersistentActorQuery(actorId));
+                var restored = new DungeonGameRestoreReport();
+                section.Restore(JsonUtility.ToJson(saved), DungeonCharacterConsumablesSaveData.CurrentVersion, restored);
+                Require(restored.Success, "Official treatment consumables section failed: " + string.Join(" | ", restored.Errors));
+                Require(section.Capture() == JsonUtility.ToJson(saved),
+                    "Official consumables restore/capture changed the saved medical effects or operation.");
+            }
+
+            void RestorePhysicalSection(DungeonPhysicalItemSaveData saved)
+            {
+                var candidates = new RestoreWorldCandidateIndex();
+                candidates.SetFacilityCandidate(fixtureGrid, new[] { facility, otherFacility, warehouse });
+                candidates.SetCharacterCandidate(new[] { actor });
+                var section = new PhysicalItemsSaveSection(items, items, candidates,
+                    ProductionOutputLifecycleRestoreCandidatePublisher.IsolatedSectionFixtureOnly);
+                var report = new DungeonGameRestoreReport();
+                IDungeonSaveRestoreStage stage = section.StageRestore(JsonUtility.ToJson(saved),
+                    DungeonPhysicalItemSaveData.CurrentVersion, report);
+                Require(report.Success, "Treatment physical section staging failed: " + string.Join(" | ", report.Errors));
+                exactRouteRestoreParticipant.BeginRestoreCandidate();
+                items.BeginRestoreCandidate();
+                try
+                {
+                    stage.Commit(report);
+                    Require(report.Success, "Treatment physical section commit failed: " + string.Join(" | ", report.Errors));
+                    exactRouteRestoreParticipant.PublishRestoreCandidate();
+                    items.PublishRestoreCandidate();
+                    items.CompleteRestoreCandidate();
+                    exactRouteRestoreParticipant.CompleteRestoreCandidate();
+                }
+                catch
+                {
+                    items.DiscardRestoreCandidate();
+                    exactRouteRestoreParticipant.RollbackPublishedRestoreCandidate();
+                    exactRouteRestoreParticipant.DiscardRestoreCandidate();
+                    throw;
+                }
+            }
+        }
+        finally
+        {
+            food?.Dispose();
+            restoredFood?.Dispose();
+            sessions?.Dispose();
+            restoredSessions?.Dispose();
+            if (otherFacility != null)
+                world.UnregisterBuilding(otherFacility);
+            if (facility != null)
+                world.UnregisterBuilding(facility);
+            if (warehouse != null)
+                world.UnregisterBuilding(warehouse);
+            if (actor != null)
+            {
+                world.UnregisterCharacter(actor);
+                world.UnregisterCharacterLifetime(actor);
+            }
+            if (workerObject != null)
+            {
+                world.UnregisterCharacter(worker);
+                world.UnregisterCharacterLifetime(worker);
+                UnityEngine.Object.DestroyImmediate(workerObject);
+            }
+            items?.Dispose();
+            world.SetGrid(previousGrid);
+            UnityEngine.Object.DestroyImmediate(warehouseObject);
+            UnityEngine.Object.DestroyImmediate(warehouseDefinition);
+            UnityEngine.Object.DestroyImmediate(otherFacilityObject);
+            UnityEngine.Object.DestroyImmediate(facilityObject);
+            UnityEngine.Object.DestroyImmediate(actorObject);
+        }
+    }
+
+    private static string VerifyFacilityFuelDelivery()
+    {
+        Require(!Application.isPlaying,
+            "facility fuel controlled fixture requires stopped main Editor");
+        ICharacterAiWorldRegistry world = CharacterAiEditorTestDependencies.WorldRegistry;
+        world.TryGetGrid(out Grid previousGrid);
+        Grid grid = new(20, 4);
+        for (int y = 0; y < grid.height; y++)
+            for (int x = 0; x < grid.width; x++)
+                grid.SetAreaType(new Vector2Int(x, y), GridCellAreaType.ExteriorPath);
+        Wim062GridProvider gridProvider = new(grid);
+        GameObject actorObject = new("WIM_Fuel_Carrier");
+        GameObject firstObject = new("WIM_Fuel_A");
+        GameObject secondObject = new("WIM_Fuel_B");
+        GameObject warehouseObject = new("WIM_Fuel_Warehouse");
+        BuildingSO warehouseDefinition = null;
+        CharacterActor actor = null;
+        BuildableObject first = null;
+        BuildableObject second = null;
+        Wim062Warehouse warehouse = null;
+        WorldItemStackRuntime items = null;
+        SurvivalFoodRuntime food = null;
+        DomainFactDispatcher dispositionFacts = null;
+        DomainFactDispatcher mealMissedFacts = null;
+        try
+        {
+            DungeonRuntimeAggregateRootStore aggregateRootStore = new();
+            MigratedProducerOutcomeEditorFixture outcomes = new(
+                "run:survival-facility-fuel",
+                aggregateRootStore,
+                includeTradeInventory: true);
+            EditorFixedGameCalendar calendar = new(day: 1, hour: 0);
+            dispositionFacts = new DomainFactDispatcher();
+            dispositionFacts.Subscribe(
+                "physical-disposition",
+                new GameplayDomainFactObserver<
+                    PhysicalItemDisposedFact,
+                    TradeInventoryOutcomeReceipt>(
+                    PhysicalItemDispositionFactObservation.Capture,
+                    outcomes.Registry,
+                    outcomes.Ledger,
+                    outcomes.Recorder,
+                    new GameplayDomainFactCommitGroup(
+                        outcomes.Recorder,
+                        outcomes.Ledger)));
+            world.SetGrid(grid);
+            actorObject.AddComponent<AbilityWork>();
+            actor = CreateWim028Actor(actorObject, "character:wim:fuel-carrier");
+            world.RegisterCharacter(actor);
+            world.RegisterCharacterLifetime(actor);
+            actor.GetComponent<CharacterLifecycle>().ConstructCharacterLifecycle(gridProvider);
+            actor.transform.position = grid.GetWorldPos(new Vector2Int(0, 1));
+
+            BuildingSO torch = AssetDatabase.LoadAssetAtPath<BuildingSO>(
+                "Assets/Resources/SO/Building/Modular/E01_벽횃불.asset");
+            BuildingFuelConsumerAbility authored = torch?.GetAbility<BuildingFuelConsumerAbility>();
+            Require(authored != null && authored.fuelPerRefuel == 1
+                    && Mathf.Approximately(authored.fuelSecondsPerRefuel, 180f)
+                    && !string.IsNullOrEmpty(authored.fuelItemId),
+                "E01 must author one exact fuel item for 180 running game-seconds");
+            BuildableObject Place(GameObject target, string id, Vector2Int position)
+            {
+                BuildableObject value = target.AddComponent<BuildableObject>();
+                value.RestorePersistentIdentity(new BuildingInstanceId(id));
+                CharacterAiEditorTestDependencies.Inject(value);
+                value.SetGrid(grid);
+                value.Initialization(torch, position);
+                Require(grid.RegisterOccupant(value, torch.Placement.Layer,
+                        value.buildPoses, torch.Placement.IsMovement),
+                    "fuel facility is not registered on the actual physical grid");
+                world.RegisterBuilding(value);
+                return value;
+            }
+            first = Place(firstObject, "building:wim:fuel-a", new Vector2Int(7, 1));
+            second = Place(secondObject, "building:wim:fuel-b", new Vector2Int(16, 1));
+            string firstFuelOperationId =
+                SurvivalFoodStockRuntime.FormatFacilityFuelOperationId(first, 1);
+            string repeatedFirstFuelOperationId =
+                SurvivalFoodStockRuntime.FormatFacilityFuelOperationId(first, 1);
+            string secondFuelOperationId =
+                SurvivalFoodStockRuntime.FormatFacilityFuelOperationId(second, 1);
+            string laterFirstFuelOperationId =
+                SurvivalFoodStockRuntime.FormatFacilityFuelOperationId(first, 2);
+            Require(firstFuelOperationId
+                    == "survival.environment-fuel:building:wim:fuel-a:00000001"
+                    && new GameplayOperationId(firstFuelOperationId).IsValid
+                    && firstFuelOperationId == repeatedFirstFuelOperationId
+                    && firstFuelOperationId != secondFuelOperationId
+                    && firstFuelOperationId != laterFirstFuelOperationId,
+                "facility fuel operation identity is not canonical, valid, deterministic, or distinct");
+            RequireThrows<ArgumentOutOfRangeException>(
+                () => SurvivalFoodStockRuntime.FormatFacilityFuelOperationId(first, 0),
+                "facility fuel operation identity accepted sequence zero");
+            RequireThrows<ArgumentOutOfRangeException>(
+                () => SurvivalFoodStockRuntime.FormatFacilityFuelOperationId(first, -1),
+                "facility fuel operation identity accepted a negative sequence");
+            warehouseDefinition = ScriptableObject.CreateInstance<BuildingSO>();
+            warehouseDefinition.id = 99174;
+            warehouseDefinition.objectName = "WIM facility fuel stock fixture";
+            warehouseDefinition.width = 1;
+            warehouseDefinition.height = 1;
+            warehouseDefinition.category = BuildingCategory.Shop;
+            warehouse = warehouseObject.AddComponent<Wim062Warehouse>();
+            CharacterAiEditorTestDependencies.Inject(warehouse);
+            warehouse.SetGrid(grid);
+            warehouse.Initialization(warehouseDefinition, new Vector2Int(2, 1));
+            world.RegisterBuilding(warehouse);
+            Require(grid.RegisterOccupant(warehouse, GridLayer.Building, warehouse.buildPoses, false),
+                "fuel warehouse is not registered on the actual physical grid");
+
+            items = PhysicalItemDebugScenarios.CreateDeliveryRuntimeForCrossDomainFixture(
+                gridProvider, out WorldItemRepository repository,
+                out ItemQuantityReservationService reservations,
+                out IReservedItemTransferService reservedTransfers, out _,
+                out IPhysicalItemBatchDispositionService batch,
+                out FacilityBufferDestinationClaimRegistry claims);
+            batch = new PhysicalItemBatchDispositionService(
+                repository,
+                items.MassQuery,
+                EditorNullItemMarkerPresenter.Instance,
+                reservations,
+                items.CatalogProvider,
+                dispositionFacts,
+                dispositionFacts,
+                new GameplayDomainFactDeliveryQuery(
+                    outcomes.Recorder,
+                    outcomes.Ledger),
+                calendar);
+            IStockQuery stock = new PhysicalStockQuery(repository, items.CatalogProvider, items.MassQuery);
+            warehouse.Inventory.BindPhysicalStock(stock, warehouse.RequirePersistentInstanceId(),
+                CharacterAiEditorTestDependencies.AuthoredGameplay);
+            CharacterCarryInventory carry = CharacterCarryInventory.Ensure(actor)
+                ?? actorObject.AddComponent<CharacterCarryInventory>();
+            carry.Configure(items.CatalogProvider, items.MassQuery,
+                items.HaulingSettingsProvider, new CharacterCarryInventoryRegistry());
+            FacilityBufferPhysicalOccupancyQuery occupancy = new(repository, items.MassQuery, reservations);
+            FacilityBufferMassAdmissionService capacities = new(claims, occupancy, items.MassQuery);
+            FacilityBufferDestinationLifecycleService lifecycle = new(claims, claims, capacities, capacities);
+            Require(reservedTransfers is IItemTransferService,
+                "fixture reserved transfer does not expose its physical transfer service");
+            FacilityBufferDestinationReleaseService release = new(
+                items, (IItemTransferService)reservedTransfers, world);
+            FailFirstAcknowledgeBatchDisposition failFirst = new(batch);
+            IPhysicalFacilityItemSinkGateway sinks = new PhysicalFacilityItemSinkGateway(stock, failFirst);
+            IItemDefinitionCatalog catalog = new ResourceItemDefinitionCatalog(
+                new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+            GameEventBus events = new();
+            items.Start();
+            food = new SurvivalFoodRuntime(
+                new SurvivalFoodRuntimeDependencies(gridProvider, items, catalog, stock,
+                    FixedClimateQuery.Instance, sinks,
+                    treatmentBufferCapacities: capacities,
+                    treatmentBufferOccupancy: occupancy,
+                    treatmentBufferClaims: claims,
+                    fuelBufferLifecycle: lifecycle, fuelBufferRelease: release),
+                new EmptyWildlifeSpeciesCatalog(), events, world, new FixedGameClock(),
+                calendar,
+                EmptyWorldThreatModifiers.Instance, EmptySurvivalServiceSessions.Instance,
+                aggregateRootStore);
+            mealMissedFacts = outcomes.CreateMealMissedFacts();
+            food.ConstructMealMissedFacts(mealMissedFacts);
+            food.Initialize();
+            Require(food.TryGetRefuelSupplyPlan(first, out SurvivalFacilityFuelSupplyPlan plan)
+                    && plan.ItemId == authored.fuelItemId && plan.RequiredQuantity == 1,
+                "actual facility fuel supply plan does not match the authored item/quantity");
+            Require(items.SpawnItemAt(plan.ItemId, 2, warehouse.centerPos,
+                    WorldItemStackState.Stored, WarehouseStorageIdentity.RequireDestinationId(warehouse),
+                    out int spawned) && spawned == 2,
+                "fixture failed to stock two exact fuel units");
+            events.Publish(new OperatingDayStartedEvent(1));
+            calendar.SetDateTime(2, 0);
+            events.Publish(new OperatingDayStartedEvent(2));
+            Require(CountItem(items, plan.ItemId) == 2
+                    && !food.HasFuelSupply(first) && !food.HasFuelSupply(second),
+                "operating day consumed global fuel or remote stock powered a facility");
+            Require(!food.TryEnsureRefuelSupply(null, first, out bool initiallyComplete, out _)
+                    && !initiallyComplete
+                    && !food.TryApplyRefuelWork(null, first, out int remoteConsumed, out _)
+                    && remoteConsumed == 0 && CountItem(items, plan.ItemId) == 2
+                    && first.FacilityState.remainingFuelGameSeconds == 0f,
+                "warehouse-only refuel applied charge or consumed remote stock");
+
+            int PendingFuelQuantity() => items.GetAllStacks()
+                .Where(stack => stack.ItemId == plan.ItemId
+                    && stack.DestinationId == plan.DestinationId
+                    && stack.State is WorldItemStackState.Stored or WorldItemStackState.Loose)
+                .Sum(stack => stack.Quantity);
+            Require(PendingFuelQuantity() == 1,
+                "initial refuel request must own one physical pre-pickup unit");
+            string beforeRepeatedSupply = JsonUtility.ToJson(items.Capture());
+            for (int attempt = 0; attempt < 3; attempt++)
+                Require(!food.TryEnsureRefuelSupply(null, first, out bool completedEarly, out _)
+                        && !completedEarly && PendingFuelQuantity() == 1
+                        && JsonUtility.ToJson(items.Capture()) == beforeRepeatedSupply,
+                    "pre-pickup refuel retry requested duplicate fuel or consumed unarrived stock");
+
+            SurvivalWorkExecutionHandler handler = CreateWim028WorkHandler(food);
+            WorkExecutionResult cancelled = new();
+            WorkExecutionContext cancelledContext = new(7410, actor.GetComponent<AbilityWork>(),
+                actor, first, BuiltInWorkTypeIds.Refuel, (_, _, _) => EmptyWorkRoutine(), () => false);
+            DrainRoutine(handler.Execute(cancelledContext, cancelled));
+            Require(!cancelled.CompletedSuccessfully && CountItem(items, plan.ItemId) == 2
+                    && !food.HasFuelSupply(first) && PendingFuelQuantity() == 1
+                    && JsonUtility.ToJson(items.Capture()) == beforeRepeatedSupply,
+                "cancelled refuel changed the pending shipment, consumed or charged before completion");
+
+            // Exact physical pickup/deposit, with controlled movement; this does
+            // not claim a naturally scheduled or timed haul.
+            DeliverWim062TreatmentStock(items, reservations, actor, carry, first,
+                plan.ItemId, afterPickup: () =>
+                {
+                    string inTransitSnapshot = JsonUtility.ToJson(items.Capture());
+                    Require(!food.TryEnsureRefuelSupply(null, first, out bool chargedInTransit, out _)
+                            && !chargedInTransit && !food.HasFuelSupply(first)
+                            && CountItem(items, plan.ItemId) == 2
+                            && JsonUtility.ToJson(items.Capture()) == inTransitSnapshot,
+                        "carried fuel retry duplicated a request, consumed or charged before arrival");
+                }, exactDestination: plan.DestinationId, expectedTotalQuantity: 2);
+            Require(food.TryEnsureRefuelSupply(null, first, out bool completionOnly, out _)
+                    && !completionOnly,
+                "arrived fuel was not available for actual refuel work");
+            Require(!food.TryApplyRefuelWork(null, first, out _, out _),
+                "injected first acknowledgment failure was not surfaced");
+            FacilityFuelCommitState pending = first.FacilityState.pendingFuel.Clone();
+            Require(pending.phase == (int)FacilityFuelCommitPhase.OutcomePublished
+                    && batch.TryGetPending(pending.operationId, out _)
+                    && Mathf.Approximately(first.FacilityState.remainingFuelGameSeconds, 180f)
+                    && second.FacilityState.remainingFuelGameSeconds == 0f
+                    && CountItem(items, plan.ItemId) == 1,
+                "failed acknowledgment lost receipt, duplicated stock, or powered another facility");
+            FacilityRuntimeStateModule module = new(first);
+            string fuelSnapshot = module.CaptureState();
+            failFirst.FailNextAcknowledge();
+            var forbiddenTextureAccess = new WimFuelNoTextureAccess();
+            var removal = new ProductionFacilityDestructiveDrainWorldRemovalPort(
+                world, forbiddenTextureAccess, food);
+            ProductionFacilityWorldRemovalResult deferred = removal.TryEnsureRemoved(
+                first.RequirePersistentInstanceId());
+            Require(deferred.Disposition == ProductionFacilityWorldRemovalDisposition.Deferred
+                    && forbiddenTextureAccess.ReadCount == 0 && !first.isDestroy
+                    && first.buildPoses.All(position => ReferenceEquals(
+                        grid.GetGridCell(position).GetOccupant(torch.Placement.Layer), first))
+                    && world.Buildings.Contains(first) && module.CaptureState() == fuelSnapshot
+                    && batch.TryGetPending(pending.operationId, out _)
+                    && CountItem(items, plan.ItemId) == 1,
+                "ACK failure during removal lost facility/grid/receipt ownership or reached visual removal");
+            DungeonPhysicalItemSaveData physicalSnapshot = JsonUtility.FromJson<DungeonPhysicalItemSaveData>(
+                JsonUtility.ToJson(items.Capture()));
+            items.Restore(physicalSnapshot);
+            Require(module.TryRestoreState(module.CurrentVersion, fuelSnapshot, out string restoreFailure),
+                "current fuel module restore failed: " + restoreFailure);
+            Require(food.TryEnsureRefuelSupply(null, first, out bool restoredCompletionOnly, out _)
+                    && restoredCompletionOnly
+                    && !batch.TryGetPending(pending.operationId, out _)
+                    && first.FacilityState.pendingFuel.phase == (int)FacilityFuelCommitPhase.None
+                    && first.FacilityState.nextFuelOperationSequence == pending.operationSequence + 1
+                    && Mathf.Approximately(first.FacilityState.remainingFuelGameSeconds, 180f)
+                    && CountItem(items, plan.ItemId) == 1,
+                "restored pending refuel failed to acknowledge without replaying charge or consumption");
+            Require(food.TryApplyRefuelWork(null, first, out int replayConsumed, out _)
+                    && replayConsumed == 0 && CountItem(items, plan.ItemId) == 1,
+                "already-charged refuel replay consumed a second unit");
+            calendar.SetDateTime(3, 0);
+            events.Publish(new OperatingDayStartedEvent(3));
+            Require(CountItem(items, plan.ItemId) == 1
+                    && Mathf.Approximately(first.FacilityState.remainingFuelGameSeconds, 180f)
+                    && second.FacilityState.remainingFuelGameSeconds == 0f,
+                "day transition expired local charge or resumed global debit");
+            return "operating-day-global-debit=0; remote-stock-charge=0; cancel=0; "
+                + "controlled-reserved-pickup/deposit=PASS; input2-consumed1-remaining1; "
+                + "only-A=180s; pending-ack-removal=Deferred/world-preserved; "
+                + "pending-ack+physical/building-current-json+retry=once; "
+                + "natural-haul/full-world-section-restore/6adult=NOT_RUN";
+        }
+        finally
+        {
+            food?.Dispose();
+            mealMissedFacts?.Dispose();
+            dispositionFacts?.Dispose();
+            if (first != null) world.UnregisterBuilding(first);
+            if (second != null) world.UnregisterBuilding(second);
+            if (warehouse != null) world.UnregisterBuilding(warehouse);
+            if (actor != null)
+            {
+                world.UnregisterCharacter(actor);
+                world.UnregisterCharacterLifetime(actor);
+            }
+            items?.Dispose();
+            world.SetGrid(previousGrid);
+            UnityEngine.Object.DestroyImmediate(actorObject);
+            UnityEngine.Object.DestroyImmediate(firstObject);
+            UnityEngine.Object.DestroyImmediate(secondObject);
+            UnityEngine.Object.DestroyImmediate(warehouseObject);
+            if (warehouseDefinition != null) UnityEngine.Object.DestroyImmediate(warehouseDefinition);
+        }
+    }
+
+    private sealed class WimFuelNoTextureAccess : IGridTextureProvider
+    {
+        internal int ReadCount { get; private set; }
+        public GridTexture Texture
+        {
+            get
+            {
+                ReadCount++;
+                throw new InvalidOperationException("Deferred fuel retirement must not remove visuals.");
+            }
+        }
+    }
+
+    private static void DeliverWim062TreatmentStock(
+        WorldItemStackRuntime items,
+        ItemQuantityReservationService reservations,
+        CharacterActor carrier,
+        CharacterCarryInventory carry,
+        BuildableObject facility,
+        string itemId = "medicine:antidote",
+        Action afterPickup = null,
+        string exactDestination = null,
+        int expectedTotalQuantity = 1)
+    {
+        string destination = exactDestination ?? CharacterConsumablesInputDestinationIdentity.Build(
+            CharacterConsumablesInputKind.MedicalTreatment,
+            facility.RequirePersistentInstanceId(),
+            new ConsumableItemDefinitionId(itemId));
+        Require(items.TryReserveBestHaulPlan(carrier,
+                out WorldItemHaulPlan plan, out string planFailure),
+            "medical delivery haul plan unavailable: " + planFailure);
+        Require(plan.PrimaryDestinationId == destination
+                && plan.ReservedStackQuantities.Count == 1
+                && plan.ReservedStackQuantities[0].Quantity == 1,
+            "physical haul plan did not own exactly one requested unit: expected=" + destination
+                + "; actual=" + plan.PrimaryDestinationId
+                + "; quantities=" + string.Join(",", plan.ReservedStackQuantities.Select(leg => leg.Quantity)));
+        WorldItemReservedStackQuantity leg = plan.ReservedStackQuantities[0];
+        Require(items.TryPickupReservedStackQuantity(carrier, carry, leg,
+                out int picked, out string pickupFailure) && picked == 1,
+            "medical pickup failed: " + pickupFailure);
+        Require(items.TryCommitHaulPickup(leg.OwnerOperationId, carry,
+                out string commitFailure),
+            "medical pickup commit failed: " + commitFailure);
+        Require(CountItem(items, itemId) == expectedTotalQuantity
+                && items.GetAllStacks().Any(stack =>
+                    stack.ItemId == itemId
+                    && stack.State == WorldItemStackState.Carried
+                    && stack.Quantity == 1),
+            "medical pickup did not preserve one physical carried unit");
+        afterPickup?.Invoke();
+        Require(items.TryDepositCarriedItemsToFacility(carrier, carry,
+                facility.centerPos, destination, new[] { leg.OwnerOperationId },
+                out string depositFailure),
+            "medical facility deposit failed: " + depositFailure);
+        Require(reservations.ReleaseByOwner(leg.OwnerOperationId,
+                    ItemReservationReleaseReason.Completed) > 0
+                && items.ReleaseHaulDeliveryIntent(leg.OwnerOperationId),
+            "completed medical delivery retained lease or intent ownership");
+        Require(carry.Items.Count == 0
+                && CountItem(items, itemId) == expectedTotalQuantity
+                && items.GetAllStacks().Any(stack =>
+                    stack.ItemId == itemId
+                    && stack.State == WorldItemStackState.FacilityBuffer
+                    && stack.DestinationId == destination
+                    && stack.Position == facility.centerPos
+                    && stack.Quantity == 1),
+            "medical delivery did not publish exactly one unit at the owned facility");
+    }
+
+    private static void VerifyWim062SupplyObservation(
+        SurvivalFoodRuntime food,
+        WorldItemStackRuntime items,
+        CharacterConsumablesRuntime consumables,
+        ServiceSessionOutcomeDebugScenarios.MedicalFixture sessions,
+        CharacterId patientId,
+        BuildableObject facility,
+        string itemId,
+        SurvivalTreatmentKind kind,
+        SurvivalTreatmentSupplyState expected)
+    {
+        string beforePhysical = JsonUtility.ToJson(items.Capture());
+        string beforeFood = JsonUtility.ToJson(food.Capture());
+        string beforeConsumables = JsonUtility.ToJson(consumables.Capture());
+        string beforeSessions = JsonUtility.ToJson(sessions.Capture());
+        string expectedDestination = CharacterConsumablesInputDestinationIdentity.Build(
+            CharacterConsumablesInputKind.MedicalTreatment,
+            facility.RequirePersistentInstanceId(), new ConsumableItemDefinitionId(itemId));
+        ISurvivalTreatmentSupplyQuery query = food;
+        for (int read = 0; read < 3; read++)
+        {
+            Require(query.TryGetTreatmentSupply(patientId, out SurvivalTreatmentSupplySnapshot value)
+                    && value.PatientId.Equals(patientId)
+                    && value.FacilityId.Equals(facility.RequirePersistentInstanceId())
+                    && value.ItemId.Value == itemId
+                    && value.DestinationId == expectedDestination
+                    && value.Kind == kind
+                    && value.State == expected,
+                $"medical supply observation mismatch: expected={expected}; actual={value.State}; "
+                + $"patient={value.PatientId}; facility={value.FacilityId}; item={value.ItemId}; kind={value.Kind}");
+        }
+        Require(beforePhysical == JsonUtility.ToJson(items.Capture())
+                && beforeFood == JsonUtility.ToJson(food.Capture())
+                && beforeConsumables == JsonUtility.ToJson(consumables.Capture())
+                && beforeSessions == JsonUtility.ToJson(sessions.Capture()),
+            "medical supply query mutated physical stock, treatment/consumables, or sessions");
+    }
+
+    private sealed class TreatmentPersistentActorQuery : ICharacterConsumablesPersistentActorQuery
+    {
+        private readonly CharacterId[] actors;
+        internal TreatmentPersistentActorQuery(CharacterId actor) => actors = new[] { actor };
+        public IReadOnlyCollection<CharacterId> GetPersistentActorIds() => actors;
+    }
+
+    private sealed class Wim062Warehouse : BuildableObject, IWarehouseFacility
+    {
+        public WarehouseInventory Inventory { get; } = new(
+            200_000L, StockCategory.Medicine, restrictCategory: false);
+        public bool HasWarehouseInventory => true;
+    }
+
+    private sealed class Wim062GridProvider : IGridSystemProvider
+    {
+        internal Wim062GridProvider(Grid grid) => Grid = grid;
+        public GridSystemManager Manager => null;
+        public Grid Grid { get; }
+        public bool TryGetManager(out GridSystemManager manager)
+        {
+            manager = null;
+            return false;
+        }
+        public bool TryGetGrid(out Grid grid)
+        {
+            grid = Grid;
+            return grid != null;
+        }
+    }
+
+    private static CharacterActor CreateWim028Actor(
+        GameObject actorObject,
+        string persistentId) => CreateWim028ActorWithWorkRole(actorObject, persistentId, true);
+
+    private static CharacterActor CreateWim028ActorWithWorkRole(
+        GameObject actorObject, string persistentId, bool workRole, bool ownerRole = false)
+    {
+        if (workRole && actorObject.GetComponent<AbilityWork>() == null)
+            actorObject.AddComponent<AbilityWork>();
+        CharacterActor actor = actorObject.AddComponent<CharacterActor>();
+        CharacterAiEditorTestDependencies.Inject(actorObject);
+        CharacterSO data = CharacterAiEditorTestDependencies.ContentDefinitions
+            .GetAll<CharacterSO>()
+            .Where(value => value != null
+                && value.characterType == CharacterType.NPC
+                && (value.role == CharacterRole.Owner) == ownerRole
+                && value.DefinitionId.IsValid)
+            .OrderBy(value => value.DefinitionId.Value, StringComparer.Ordinal)
+            .First();
+        actor.data = data;
+        actor.characterType = CharacterType.NPC;
+        actor.RefreshAbilityCache();
+        actor.EnsureRuntimeState();
+        actor.Identity.SetPersistentId(new CharacterId(persistentId));
+        Require(actor.Identity.PersistentId == persistentId,
+            "Medical fixture authoring role changed the requested persistent identity.");
+        actor.SetLifecycleState(CharacterLifecycleState.Active);
+        if (actor.IsUnpublishedComposition)
+            actor.PublishComposition();
+        foreach (CharacterCondition condition in
+                 Enum.GetValues(typeof(CharacterCondition)))
+        {
+            actor.stats[condition] = 100f;
+        }
+        return actor;
+    }
+
+    private static SurvivalFoodRuntime CreateWim028Food(
+        IWorldItemStackRuntime items,
+        IItemDefinitionCatalog catalog,
+        IGameEventBus events,
+        ICharacterAiWorldRegistry world,
+        ISurvivalServiceSessionCapability sessions,
+        ICharacterConsumablesApplication consumables,
+        IGridSystemProvider gridProvider = null,
+        IStockQuery stock = null,
+        IPhysicalFacilityItemSinkGateway physicalSinks = null,
+        IPackagedLotTareDispositionService packagedTare = null,
+        IFacilityBufferMassCapacityQuery treatmentBufferCapacities = null,
+        IFacilityBufferPhysicalOccupancyQuery treatmentBufferOccupancy = null,
+        IFacilityBufferDestinationClaimQuery treatmentBufferClaims = null,
+        DungeonRuntimeAggregateRootStore sharedRoots = null)
+    {
+        SurvivalFoodRuntime runtime = new(
+            new SurvivalFoodRuntimeDependencies(
+                gridProvider ?? new EmptyGridSystemProvider(),
+                items,
+                catalog,
+                stock ?? new EmptyStockQuery(),
+                FixedClimateQuery.Instance,
+                physicalSinks,
+                packagedTare,
+                treatmentBufferCapacities: treatmentBufferCapacities,
+                treatmentBufferOccupancy: treatmentBufferOccupancy,
+                treatmentBufferClaims: treatmentBufferClaims),
+            new EmptyWildlifeSpeciesCatalog(),
+            events,
+            world,
+            new FixedGameClock(),
+            new EditorFixedGameCalendar(137, 9),
+            EmptyWorldThreatModifiers.Instance,
+            sessions,
+            sharedRoots ?? new DungeonRuntimeAggregateRootStore(),
+            consumables: consumables);
+        runtime.Initialize();
+        return runtime;
+    }
+
+    private static SurvivalWorkExecutionHandler CreateWim028WorkHandler(
+        ISurvivalFoodQuery food) => new(
+        food,
+        EmptyProductionBillWorkExecution.Instance,
+        EmptyProcessFluidUseRuntime.Instance,
+        EmptyCharacterSpeciesRechargeService.Instance,
+        EmptyCropPlotRuntime.Instance);
+
+    private static WorkExecutionResult ExecuteWim028Treat(
+        SurvivalWorkExecutionHandler handler,
+        CharacterActor actor,
+        BuildableObject facility,
+        int runId,
+        bool canContinue)
+    {
+        WorkExecutionResult result = new();
+        WorkExecutionContext context = new(
+            runId,
+            actor.GetComponent<AbilityWork>(),
+            actor,
+            facility,
+            BuiltInWorkTypeIds.Treat,
+            (_, _, _) => EmptyWorkRoutine(),
+            () => canContinue);
+        DrainRoutine(handler.Execute(context, result));
+        return result;
+    }
+
+    private static IEnumerator EmptyWorkRoutine()
+    {
+        yield break;
+    }
+
+    private static void DrainRoutine(IEnumerator routine)
+    {
+        while (routine != null && routine.MoveNext())
+        {
+            if (routine.Current is IEnumerator nested)
+                DrainRoutine(nested);
+        }
+    }
+
+    private static int CountItem(
+        IWorldItemStackRuntime items,
+        string itemId) => items.GetAllStacks()
+        .Where(stack => stack != null
+            && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal))
+        .Sum(stack => stack.Quantity);
+
+    private sealed class EmptyProductionBillWorkExecution :
+        IProductionBillWorkExecution
+    {
+        internal static readonly EmptyProductionBillWorkExecution Instance = new();
+
+        public ProductionWorkAvailabilityResult CheckWorkAvailability(
+            BuildableObject facility,
+            WorkTypeId workTypeId) => new(
+            false,
+            new DomainFailure(FailureCode.ProductionBillMissing));
+
+        public ProductionWorkBeginResult BeginWork(
+            CharacterActor worker,
+            BuildableObject facility,
+            WorkTypeId workTypeId) => new(
+            null,
+            new DomainFailure(FailureCode.ProductionBillMissing));
+
+        public ProductionWorkExecutionResult ExecuteWork(
+            CharacterActor worker,
+            BuildableObject facility,
+            ProductionBillId billId,
+            float amount) => default;
+
+        public bool TrySetEmergencyProduction(
+            CharacterActor worker,
+            ProductionBillId billId,
+            bool enabled,
+            out string failureReason)
+        {
+            failureReason = "not-applicable";
+            return false;
+        }
+    }
+
+    private sealed class EmptyProcessFluidUseRuntime : IProcessFluidUseRuntime
+    {
+        internal static readonly EmptyProcessFluidUseRuntime Instance = new();
+
+        public bool EnsureCycleSupply(
+            BuildableObject facility,
+            WorkTypeId workTypeId,
+            out DomainFailure failure)
+        {
+            failure = DomainFailure.None;
+            return true;
+        }
+
+        public bool TryConsumeCycle(
+            BuildableObject facility,
+            WorkTypeId workTypeId,
+            out DomainFailure failure)
+        {
+            failure = DomainFailure.None;
+            return true;
+        }
+
+        public bool TryConsumeCycle(
+            BuildableObject facility,
+            WorkTypeId workTypeId,
+            float cleanWater,
+            float wastewater,
+            bool allowsManualWaterFallback,
+            out DomainFailure failure)
+        {
+            failure = DomainFailure.None;
+            return true;
+        }
+
+        public bool TryConsumeBatch(
+            IReadOnlyList<ProcessFluidCycleDemand> demands,
+            out DomainFailure failure)
+        {
+            failure = DomainFailure.None;
+            return true;
+        }
+
+        public bool TryConsumeBatch(
+            IReadOnlyList<ProcessFluidCycleDemand> demands,
+            string operationId,
+            out IReadOnlyList<ManualWaterTransferReceipt> manualTransfers,
+            out IReadOnlyList<ProcessWastewaterComponent> wastewaterComponents,
+            out DomainFailure failure)
+        {
+            manualTransfers = Array.Empty<ManualWaterTransferReceipt>();
+            wastewaterComponents = Array.Empty<ProcessWastewaterComponent>();
+            failure = DomainFailure.None;
+            return true;
+        }
+
+        public bool AcknowledgeManualTransfers(
+            IReadOnlyList<string> operationIds,
+            out DomainFailure failure)
+        {
+            failure = DomainFailure.None;
+            return true;
+        }
+    }
+
+    private sealed class EmptyCharacterSpeciesRechargeService :
+        ICharacterSpeciesRechargeService
+    {
+        internal static readonly EmptyCharacterSpeciesRechargeService Instance = new();
+
+        public bool IsRechargeAvailable(
+            CharacterActor actor,
+            BuildableObject facility,
+            out string reason)
+        {
+            reason = "not-applicable";
+            return false;
+        }
+
+        public float GetRechargeUrgency(
+            CharacterActor actor,
+            BuildableObject facility) => 0f;
+
+        public bool TryBeginRecharge(
+            CharacterActor actor,
+            BuildableObject facility,
+            out float completedWork,
+            out DomainFailure failure)
+        {
+            completedWork = 0f;
+            failure = new DomainFailure(FailureCode.SurvivalWorkUnsupported);
+            return false;
+        }
+
+        public bool TryApplyRechargeWork(
+            CharacterActor actor,
+            BuildableObject facility,
+            float work,
+            out bool completed,
+            out DomainFailure failure)
+        {
+            completed = false;
+            failure = new DomainFailure(FailureCode.SurvivalWorkUnsupported);
+            return false;
+        }
+
+        public void CancelRecharge(CharacterId characterId)
+        {
+        }
+    }
+
+    private sealed class EmptyCropPlotRuntime : ICropPlotRuntime
+    {
+        internal static readonly EmptyCropPlotRuntime Instance = new();
+
+        public int Version => 0;
+        public IReadOnlyList<CropPlotSnapshot> Plots =>
+            Array.Empty<CropPlotSnapshot>();
+        public void CopyVisualStates(List<CropPlotVisualState> destination)
+        {
+        }
+        public bool TrySetCrop(
+            BuildableObject plot,
+            string cropId,
+            out string message) => Unavailable(out message);
+        public bool CanScheduleTreatment(
+            BuildableObject plot,
+            string treatmentItemId,
+            out string reason) => Unavailable(out reason);
+        public bool TryScheduleTreatment(
+            BuildableObject plot,
+            string treatmentItemId,
+            out string message) => Unavailable(out message);
+        public bool TryCancelTreatment(
+            BuildableObject plot,
+            out string message) => Unavailable(out message);
+        public bool TryGetWork(
+            BuildableObject plot,
+            WorkTypeId workTypeId,
+            out CropPlotWorkSnapshot snapshot)
+        {
+            snapshot = default;
+            return false;
+        }
+        public bool ApplyWork(
+            BuildableObject plot,
+            WorkTypeId workTypeId,
+            float amount,
+            out bool cycleCompleted)
+        {
+            cycleCompleted = false;
+            return false;
+        }
+        public bool ApplyWork(
+            BuildableObject plot,
+            WorkTypeId workTypeId,
+            float amount,
+            CharacterActor worker,
+            out bool cycleCompleted)
+        {
+            cycleCompleted = false;
+            return false;
+        }
+        public bool TryScheduleGoldenHarvest(
+            BuildableObject plot,
+            CharacterActor harvester,
+            out string failureReason) => Unavailable(out failureReason);
+        public bool IsGoldenHarvestWorkerEligible(
+            BuildableObject plot,
+            CharacterActor harvester,
+            out string failureReason) => Unavailable(out failureReason);
+        public bool TryGetGoldenHarvestDelay(
+            BuildableObject plot,
+            CharacterActor harvester,
+            out float remainingSeconds)
+        {
+            remainingSeconds = 0f;
+            return false;
+        }
+        private static bool Unavailable(out string detail)
+        {
+            detail = "not-applicable";
+            return false;
+        }
+    }
+
+
     private sealed class EmptyGridSystemProvider : IGridSystemProvider
     {
         public GridSystemManager Manager =>
@@ -2624,6 +6513,62 @@ public static class SurvivalDebugScenarios
         public bool IsPaused => false;
     }
 
+    private sealed class Wim036CombatRandom : ICombatRandomSource
+    {
+        internal static readonly Wim036CombatRandom Instance = new();
+        public float Next01() => 0.5f;
+    }
+
+    private sealed class Wim036StaffDiscontent :
+        IStaffDiscontentRuntimeService
+    {
+        internal static readonly Wim036StaffDiscontent Instance = new();
+        public float GetWorkEfficiencyMultiplier(CharacterActor staff) => 1f;
+        public bool ShouldBlockWork(CharacterActor staff, out string reason)
+        {
+            reason = string.Empty;
+            return false;
+        }
+        public bool IsRebellionTarget(CharacterActor target) => false;
+        public bool ResolveSuppressedRebel(
+            CharacterActor rebel,
+            CharacterActor defender) => false;
+    }
+
+    private sealed class Wim036MetaProgression :
+        IMetaProgressionRuntimeReader
+    {
+        internal static readonly Wim036MetaProgression Instance = new();
+        public int GetStartingFacilityCandidateBonus() => 0;
+        public int GetStartingOwnerTraitCandidateBonus() => 0;
+        public float GetOwnerMaxHealthMultiplier() => 1f;
+        public float GetInvasionWarningThresholdMultiplier() => 1f;
+        public float GetCommerceStockCostMultiplier(StockCategory category) => 1f;
+        public float GetFortressFacilityCostMultiplier(BuildingSO building) => 1f;
+        public float GetArcaneResearchWorkMultiplier() => 1f;
+        public bool IsRecipePreserved(string recipeId) => false;
+        public IReadOnlyCollection<int> GetExpandedBasicPurchaseBuildingIds(
+            IEnumerable<BuildingSO> buildings) => Array.Empty<int>();
+    }
+
+    private sealed class Wim036EmptyEquipmentEffects :
+        ICharacterEquipmentGameplayEffectSourceQuery
+    {
+        internal static readonly Wim036EmptyEquipmentEffects Instance = new();
+        public IReadOnlyList<IGameplayEffectSource> GetEquipmentSources(
+            CharacterActor actor) => Array.Empty<IGameplayEffectSource>();
+    }
+
+    private sealed class Wim036EmptyTransientEffects :
+        ICharacterTransientGameplayEffectSourceQuery
+    {
+        internal static readonly Wim036EmptyTransientEffects Instance = new();
+        public IReadOnlyList<IGameplayEffectSource> GetStatusSources(
+            CharacterActor actor) => Array.Empty<IGameplayEffectSource>();
+        public IReadOnlyList<IGameplayEffectSource> GetCompletedResearchSources(
+            CharacterActor actor) => Array.Empty<IGameplayEffectSource>();
+    }
+
     private sealed class MutableConsumablesClock : IGameClock
     {
         public float DeltaTime { get; private set; }
@@ -2639,6 +6584,26 @@ public static class SurvivalDebugScenarios
         }
     }
 
+    private sealed class Wim062PhysicalCandidates : IPhysicalItemRestoreCandidateQuery
+    {
+        internal Wim062PhysicalCandidates(IEnumerable<PhysicalItemBatchDispositionSaveData> values)
+        {
+            PendingBatchDispositions = values.Select(value =>
+                new PhysicalItemRestoreCandidateDispositionSnapshot(value)).ToArray();
+        }
+
+        public bool IsCandidateAvailable => true;
+        public IReadOnlyList<PhysicalItemRestoreCandidateDispositionSnapshot> PendingBatchDispositions { get; }
+
+        public bool TryGetPendingBatchDisposition(string operationId,
+            out PhysicalItemRestoreCandidateDispositionSnapshot disposition)
+        {
+            disposition = PendingBatchDispositions.FirstOrDefault(value =>
+                string.Equals(value.OperationId, operationId, StringComparison.Ordinal));
+            return disposition != null;
+        }
+    }
+
     private sealed class FailFirstAcknowledgeBatchDisposition :
         IPhysicalItemBatchDispositionService,
         ICarriedPhysicalItemBatchDispositionService
@@ -2651,6 +6616,8 @@ public static class SurvivalDebugScenarios
         {
             this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
         }
+
+        internal void FailNextAcknowledge() => failed = false;
 
         public bool TryCommit(
             IReadOnlyList<PhysicalItemTransformInput> inputs,

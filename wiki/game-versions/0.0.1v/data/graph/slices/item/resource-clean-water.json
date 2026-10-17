@@ -154,13 +154,6 @@
       "type": "requires"
     },
     {
-      "amount": "6",
-      "from": "event/seasonal-summer-dry-well",
-      "label": "연결",
-      "to": "item/resource-clean-water",
-      "type": "consumes-item"
-    },
-    {
       "amount": "8",
       "from": "recipe/recipe-medical-whole-body-regeneration-medium",
       "label": "필요 조건",

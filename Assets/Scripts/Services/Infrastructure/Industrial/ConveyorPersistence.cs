@@ -15,6 +15,7 @@ public sealed class ConveyorRestoreState
 
 internal interface IConveyorRestoreProjection
 {
+    void AssertIdle();
     void EnsureTopology();
     void ResetAfterRestore();
 }
@@ -26,12 +27,16 @@ internal sealed class ConveyorPersistenceAdapter :
     private readonly ConveyorItemGateway items;
     private readonly IGameClock clock;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly IDungeonItemCatalogProvider itemCatalog;
+    private readonly IResourceEconomyContentCatalog materialCatalog;
 
     public ConveyorPersistenceAdapter(
         IConveyorRestoreProjection projection,
         ConveyorItemGateway items,
         IGameClock clock,
-        DungeonRuntimeAggregateRootStore aggregateRootStore)
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IDungeonItemCatalogProvider itemCatalog,
+        IResourceEconomyContentCatalog materialCatalog)
     {
         this.projection = projection
             ?? throw new ArgumentNullException(nameof(projection));
@@ -39,10 +44,13 @@ internal sealed class ConveyorPersistenceAdapter :
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.aggregateRootStore = aggregateRootStore
             ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.itemCatalog = itemCatalog ?? throw new ArgumentNullException(nameof(itemCatalog));
+        this.materialCatalog = materialCatalog ?? throw new ArgumentNullException(nameof(materialCatalog));
     }
 
     public DungeonConveyorInfrastructureSaveData Capture()
     {
+        projection.AssertIdle();
         projection.EnsureTopology();
         ConveyorAggregateState state = aggregateRootStore.GetOrCreateWritable(
             () => new ConveyorAggregateState(),
@@ -57,12 +65,32 @@ internal sealed class ConveyorPersistenceAdapter :
     public ConveyorRestoreState PrepareRestore(
         DungeonConveyorInfrastructureSaveData snapshot)
     {
+        projection.AssertIdle();
         IndustrialInfrastructureSaveValidation.RequireValid(snapshot);
+        foreach (var node in snapshot.nodes)
+        {
+            var filter = node.filter;
+            if (filter.itemIds == null || filter.materialIds == null || filter.stockCategories == null)
+                throw new InvalidOperationException("CONVEYOR_FILTER_RESTORE_INVALID: " + node.buildingInstanceId);
+            var criteria = new ConveyorFilterCriteria
+            {
+                itemIds = filter.itemIds,
+                stockCategories = filter.stockCategories.Select(value => (StockCategory)value).ToList(),
+                materialIds = filter.materialIds,
+                minimumQuality = (CombatEquipmentQuality)filter.minimumQuality,
+                maximumQuality = (CombatEquipmentQuality)filter.maximumQuality,
+                minimumFreshness01 = filter.minimumFreshness01,
+                maximumFreshness01 = filter.maximumFreshness01
+            };
+            if (!ConveyorPayloadAdmissionPolicy.IsValidCriteria(criteria, itemCatalog, materialCatalog))
+                throw new InvalidOperationException("CONVEYOR_FILTER_RESTORE_INVALID: " + node.buildingInstanceId);
+        }
         return ConveyorPersistence.Restore(snapshot, clock.Time);
     }
 
     public void Restore(ConveyorRestoreState restored)
     {
+        projection.AssertIdle();
         if (restored == null)
         {
             throw new ArgumentNullException(nameof(restored));
@@ -165,7 +193,8 @@ internal static class ConveyorPersistence
                         ? Mathf.Max(0f, currentTime - payload.StalledSince)
                         : 0f,
                     routeVersion = payload.RouteVersion,
-                    stallReason = payload.StallReason
+                    stallReason = payload.StallReason,
+                    overflowApproved = payload.OverflowApproved
                 })
                 .ToList()
         };
@@ -249,7 +278,8 @@ internal static class ConveyorPersistence
                     ? currentTime - saved.stalledSince
                     : 0f,
                 RouteVersion = 0,
-                StallReason = saved.stallReason
+                StallReason = saved.stallReason,
+                OverflowApproved = saved.overflowApproved
             };
         }
 

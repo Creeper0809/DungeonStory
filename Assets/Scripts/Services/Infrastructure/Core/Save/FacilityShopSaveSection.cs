@@ -34,6 +34,7 @@ public sealed class FacilityShopSaveSection :
         return new DungeonFacilityShopSaveData
         {
             currentOfferDay = source.CurrentOfferDay,
+            purchaseSequence = source.PurchaseSequence,
             basicPurchaseBuildingIds = source.BasicPurchaseBuildingIds.ToList(),
             acquiredBlueprintIds = source.AcquiredBlueprintIds.ToList()
         };
@@ -66,6 +67,11 @@ public sealed class FacilityShopSaveSection :
             report.AddError("Facility-shop payload has an invalid offer day.");
             return;
         }
+        if (payload.purchaseSequence < 0)
+        {
+            report.AddError("Facility-shop payload has an invalid purchase sequence.");
+            return;
+        }
 
         ValidateIds(
             payload.basicPurchaseBuildingIds,
@@ -94,7 +100,8 @@ public sealed class FacilityShopSaveSection :
         return persistence.BuildRestoreCandidate(new FacilityShopStateSnapshot(
             source.currentOfferDay,
             source.basicPurchaseBuildingIds,
-            source.acquiredBlueprintIds));
+            source.acquiredBlueprintIds,
+            source.purchaseSequence));
     }
 
     protected override void PublishRestoreCandidate(

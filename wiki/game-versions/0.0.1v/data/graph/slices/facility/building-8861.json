@@ -8,6 +8,13 @@
   "edges": [
     {
       "amount": null,
+      "from": "character/festival-tool-clan-fair",
+      "label": "필요 조건",
+      "to": "facility/building-8861",
+      "type": "requires"
+    },
+    {
+      "amount": null,
       "from": "research/research-society-child-education",
       "label": "시설 해금",
       "to": "facility/building-8861",

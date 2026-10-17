@@ -24,6 +24,11 @@ FuneralCultureSO|funeral-culture:harpy,funeral-culture:harpy,cultureId,funeral-c
 FuneralCultureSO|funeral-culture:harpy,funeral-culture:harpy,speciesTag,Harpy,,,explicit-serialized
 FuneralCultureSO|funeral-culture:harpy,funeral-culture:harpy,ritualName,하늘장,,,explicit-serialized
 FuneralCultureSO|funeral-culture:harpy,funeral-culture:harpy,requiredFacilityTag,facility:funeral:sky-burial,,,explicit-serialized
+FuneralCultureSO|funeral-culture:human,funeral-culture:human,m_Name,Funeral_Human,,,explicit-serialized
+FuneralCultureSO|funeral-culture:human,funeral-culture:human,cultureId,funeral-culture:human,,,explicit-serialized
+FuneralCultureSO|funeral-culture:human,funeral-culture:human,speciesTag,Human,,,explicit-serialized
+FuneralCultureSO|funeral-culture:human,funeral-culture:human,ritualName,인간 매장,,,explicit-serialized
+FuneralCultureSO|funeral-culture:human,funeral-culture:human,requiredFacilityTag,facility:funeral:adventurer-burial,,,explicit-serialized
 FuneralCultureSO|funeral-culture:kobold,funeral-culture:kobold,m_Name,Funeral_Kobold,,,explicit-serialized
 FuneralCultureSO|funeral-culture:kobold,funeral-culture:kobold,cultureId,funeral-culture:kobold,,,explicit-serialized
 FuneralCultureSO|funeral-culture:kobold,funeral-culture:kobold,speciesTag,Kobold,,,explicit-serialized

@@ -1,0 +1,23 @@
+{
+  "target": "G7 FluidNetworkRuntime",
+  "status": "implemented_and_targeted_actual_verified",
+  "currentCompile": "verification-native-current-source-r2.json",
+  "sourcePin": "source-pin-native-core-r3.json",
+  "productionChangesSincePreviousClose": 0,
+  "evidence": [
+    "native-manual-water-current-r1/unity.log",
+    "native-manual-water-current-r1/launcher-exit.txt",
+    "native-fluid-autonomous-current-r1/unity.log"
+  ],
+  "scope": {
+    "manual": "Actual FluidNetworkRuntime/manual owner and real physical repository/batch disposition. Exact clean-water lot (500g) leaves category decoy; ACK failure retains outcome/phase; same request retries without another debit; staged replay/conflict/credit-once; current DTO restore and exact pending ACK; process batch and typed wastewater conservation/rejection. Incoming physical-candidate query is an explicit receipt-snapshot fixture.",
+    "autonomous": "Actual fluid runtime/topology/root/observation owner with controlled clock/environment/items/filth ports. Wastewater/sludge conservation, leak/backflow/freeze/hysteresis recovery/quiet tick, rejected prepare remains pending, native JsonUtility roundtrip/root restore and same outcome delivery exactly once.",
+    "manualExecutionEvidence": "Existing focused entry returns a string without logging it. Reviewed unconditional production fixture invocation and propagated assertions, exact configured Unity executeMethod and normal exit 0 with no test exception; not exit code alone."
+  },
+  "limits": [
+    "Controlled native commands/proxies; no natural AI/UI or official whole-world restoration claim.",
+    "Optional broad IndustrialInfrastructureDebugScenarios.RunAll failed before fluid checks: hardcoded expected building count36 vs current38. That original assertion was preserved; broad industrial suite is not PASS. Targeted native fluid/manual entries passed separately."
+  ],
+  "broadFailureEvidence": "native-fluid-network-current-r1/unity.log",
+  "goalStatus": "active"
+}

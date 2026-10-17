@@ -73,9 +73,18 @@ public sealed class DungeonPreparationLifetimeScope : LifetimeScope
             sceneQuery.First<CameraManager>(includeInactive: true),
             sceneQuery.All<DungeonUiThemeRuntime>(includeInactive: true)));
         builder.RegisterDungeonFoundation();
+        builder.Register<PreparedCharacterSkillNarrativeContext>(Lifetime.Singleton)
+            .AsSelf().As<ICharacterSkillNarrativeContext>();
         builder.Register<UnityGameContentRootLoader>(Lifetime.Singleton)
             .As<IGameContentRootLoader>();
         builder.RegisterDungeonGameContentCatalog();
+        builder.Register<AuthoredGameplayCatalog>(Lifetime.Singleton)
+            .As<IMetaUpgradeDefinitionCatalog>()
+            .As<ICharacterNeedDefinitionCatalog>();
+        builder.Register<MetaProfileStore>(Lifetime.Singleton)
+            .As<IMetaProfileStore>();
+        builder.Register<ProfileStoreStartingOwnerTraitCountBonusQuery>(Lifetime.Singleton)
+            .As<IStartingOwnerTraitCountBonusQuery>();
         builder.Register<ResourceTmpKoreanFontProvider>(Lifetime.Singleton)
             .As<ITmpKoreanFontProvider>();
         builder.Register<TmpKoreanFontService>(Lifetime.Singleton)

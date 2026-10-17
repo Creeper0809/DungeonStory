@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
 
 public static class FacilityBufferPlannedOutputPublicationDebugScenarios
@@ -16,6 +17,59 @@ public static class FacilityBufferPlannedOutputPublicationDebugScenarios
         VerifyRestoreCandidateRollbackAndAcknowledgement();
         VerifyUniqueEquipmentAtomicPublicationAndRestore();
         VerifyGenericMaxStackOneAllocatesAndCommitsIdentity();
+        VerifyDiagnosticFailureDoesNotChangePublication();
+    }
+
+    private static void VerifyDiagnosticFailureDoesNotChangePublication()
+    {
+        foreach (bool captureActive in new[] { false, true })
+        foreach (bool preparedPath in new[] { false, true })
+        {
+            Fixture fixture = new();
+            FacilityOutputClearanceTelemetryRuntime telemetry = new();
+            if (captureActive) telemetry.BeginCapture("qa:publication-observation-fault");
+            InvalidObservationClock clock = new();
+            FacilityBufferPlannedOutputPublicationService publication = new(
+                fixture.Repository, new FakeCatalog(), fixture.Mass, fixture.Admission,
+                null, null, Array.Empty<IFacilityBufferPlannedUniqueOutputBinder>(), telemetry, clock);
+            FacilityBufferPlannedOutputToken token = fixture.Reserve("batch:telemetry-fault:" + captureActive);
+            FacilityBufferPlannedOutputPublicationReceipt receipt;
+            IReversibleFacilityBufferOutputPublication transaction = null;
+            string reason;
+            bool published;
+            if (preparedPath)
+            {
+                Require(publication.TryPrepareFullBatch(token, out var prepared, out _, out reason),
+                    "Diagnostic fixture could not prepare publication: " + reason);
+                published = prepared.TryApply(out transaction, out _, out reason);
+                receipt = prepared.Preview.Receipt;
+            }
+            else published = publication.TryPublishFullBatch(token, out receipt, out _, out reason);
+            Require(published && receipt.Stacks.Count == 4 && fixture.Repository.Records.Count == 4,
+                "Diagnostics changed a successful physical publication: " + reason);
+            FacilityOutputClearanceTelemetrySnapshot diagnostic = telemetry.Capture();
+            Require(captureActive
+                    ? clock.Reads == 1 && diagnostic.ConflictingPublicationCount == 1
+                        && !diagnostic.IsClean && diagnostic.LastObservationFailure.Length > 0
+                    : clock.Reads == 0 && diagnostic.IsClean,
+                "Inactive diagnostics read the clock or active diagnostic failure was hidden.");
+            bool rolledBack = preparedPath
+                ? transaction.TryRollback(out _, out reason)
+                : publication.TryRollbackPublishedBatch(receipt, out _, out reason);
+            Require(rolledBack
+                    && fixture.Repository.Records.Count == 0,
+                "Diagnostic failure prevented physical rollback: " + reason);
+            if (captureActive) telemetry.EndCapture();
+        }
+    }
+
+    private sealed class InvalidObservationClock : IGameClock
+    {
+        internal int Reads;
+        public float Time { get { Reads++; return float.NaN; } }
+        public float DeltaTime => 0;
+        public int FrameCount => 0;
+        public bool IsPaused => false;
     }
 
     private static void VerifyAtomicPublicationAndReplay()

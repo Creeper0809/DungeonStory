@@ -24,18 +24,24 @@ namespace DungeonStory.Environment
             int width,
             int height,
             IReadOnlyList<EnvironmentalCellSnapshot> cells,
-            IReadOnlyList<EnvironmentalThermostatRecord> thermostats)
+            IReadOnlyList<EnvironmentalThermostatRecord> thermostats,
+            int nextControlOutcomeSequence,
+            IReadOnlyList<EnvironmentalControlOutcomeSaveData> controlOutcomes)
         {
             Width = width;
             Height = height;
             Cells = cells;
             Thermostats = thermostats;
+            NextControlOutcomeSequence = nextControlOutcomeSequence;
+            ControlOutcomes = controlOutcomes;
         }
 
         public int Width { get; }
         public int Height { get; }
         public IReadOnlyList<EnvironmentalCellSnapshot> Cells { get; }
         public IReadOnlyList<EnvironmentalThermostatRecord> Thermostats { get; }
+        public int NextControlOutcomeSequence { get; }
+        public IReadOnlyList<EnvironmentalControlOutcomeSaveData> ControlOutcomes { get; }
     }
 
     public sealed class EnvironmentalFieldState
@@ -87,12 +93,15 @@ namespace DungeonStory.Environment
             int width,
             int height,
             IReadOnlyList<EnvironmentalCellSnapshot> cells,
-            IReadOnlyList<EnvironmentalThermostatRecord> thermostats)
+            IReadOnlyList<EnvironmentalThermostatRecord> thermostats,
+            int nextControlOutcomeSequence = 0,
+            IReadOnlyList<EnvironmentalControlOutcomeSaveData> controlOutcomes = null)
         {
             if (width <= 0 || height <= 0)
                 throw new InvalidOperationException("Environmental field dimensions must be positive.");
-            if (cells == null || thermostats == null)
+            if (cells == null || thermostats == null || nextControlOutcomeSequence < 0)
                 throw new InvalidOperationException("Environmental field collections are required.");
+            controlOutcomes ??= Array.Empty<EnvironmentalControlOutcomeSaveData>();
 
             HashSet<EnvironmentalCellAddress> addresses = new();
             foreach (EnvironmentalCellSnapshot cell in cells)
@@ -123,7 +132,9 @@ namespace DungeonStory.Environment
                 width,
                 height,
                 cells.ToArray(),
-                thermostats.OrderBy(entry => entry.BuildingId.Value, StringComparer.Ordinal).ToArray());
+                thermostats.OrderBy(entry => entry.BuildingId.Value, StringComparer.Ordinal).ToArray(),
+                nextControlOutcomeSequence,
+                controlOutcomes.ToArray());
         }
 
         private static bool IsFinite(float value) =>

@@ -645,6 +645,8 @@ public sealed class ExitDungeonJobGiver : CharacterAiJobGiver
         bool shouldExit = actor != null
             && actor.CanRunAi
             && !CharacterWorkRoleUtility.TryGetWork(actor, out _)
+            && actor.TryGetAbility(out AbilityMove move)
+            && move.CanStartExitDungeon(out _)
             && actor.TryGetAbility(out AbilityShopping shopping)
             && shopping.ShouldExitDungeon();
         reason = shouldExit ? "exit intent" : "no exit intent";
@@ -656,8 +658,13 @@ public sealed class ExitDungeonJobGiver : CharacterAiJobGiver
         in CharacterAiDecisionContext context,
         out string reason)
     {
-        bool shouldExit = context.ShouldExitDungeon;
+        AIActionFailure admissionFailure = AIActionFailure.None;
+        bool exitAdmitted = actor != null
+            && actor.TryGetAbility(out AbilityMove move)
+            && move.CanStartExitDungeon(out admissionFailure);
+        bool shouldExit = context.ShouldExitDungeon && exitAdmitted;
         if (!shouldExit
+            && exitAdmitted
             && !context.IsWorker
             && actor != null
             && actor.TryGetAbility(out AbilityShopping shopping)
@@ -670,7 +677,11 @@ public sealed class ExitDungeonJobGiver : CharacterAiJobGiver
             shouldExit = shopping.ShouldExitDungeon();
         }
 
-        reason = shouldExit ? "exit intent" : "no exit intent";
+        reason = shouldExit
+            ? "exit intent"
+            : !exitAdmitted && admissionFailure.HasFailure
+                ? admissionFailure.Reason
+                : "no exit intent";
         return shouldExit ? 1f : 0f;
     }
 }

@@ -109,6 +109,38 @@ public static class CharacterSpeciesExpansionAssetBuilder
             SetPrivate(asset, "respawnSpeedType", 13);
             EditorUtility.SetDirty(asset);
         }
+
+        BuildHumanCustomerTemplate(species["Human"]);
+    }
+
+    private static void BuildHumanCustomerTemplate(CharacterSpeciesSO human)
+    {
+        const string path = CharacterRoot + "/Customer_Human.asset";
+        CharacterSO asset = AssetDatabase.LoadAssetAtPath<CharacterSO>(path);
+        if (asset == null)
+        {
+            asset = ScriptableObject.CreateInstance<CharacterSO>();
+            AssetDatabase.CreateAsset(asset, path);
+        }
+
+        asset.ConfigureStableIdentity(
+            "character-archetype:9010",
+            "visual-variant:9010");
+        asset.characterType = CharacterType.Customer;
+        asset.role = CharacterRole.Regular;
+        asset.id = 9010;
+        asset.characterName = "아린";
+        asset.speciesTag = "Human";
+        asset.species = human;
+        asset.traits = Array.Empty<CharacterTraitSO>();
+        asset.defaultWorkPriorities = WorkPriorityProfile.CreateDefault();
+        asset.aiPersonality = new CharacterAiPersonality();
+        asset.characterSprite = LoadCharacter(
+            "Assets/Resources/SO/Character/Staff/Staff_Generic.asset")
+            ?.characterSprite;
+        asset.favoriteStore = Array.Empty<BuildingSO>();
+        asset.ConfigureGeneratedVisitProfile(1, 3, 100, 300, 4, 13);
+        EditorUtility.SetDirty(asset);
     }
 
     private static void Apply(CharacterSpeciesSO asset, SpeciesSpec spec)
@@ -130,6 +162,10 @@ public static class CharacterSpeciesExpansionAssetBuilder
             asset.preferredFacilityLabels = spec.PreferredFacilities;
             asset.dislikedEnvironmentLabels = spec.DislikedEnvironments;
             asset.shortDescription = spec.ShortDescription;
+            asset.description = spec.Description;
+        }
+        else if (!string.IsNullOrWhiteSpace(spec.Description))
+        {
             asset.description = spec.Description;
         }
         asset.stayDurationMultiplier = spec.StayDurationMultiplier;
@@ -191,9 +227,24 @@ public static class CharacterSpeciesExpansionAssetBuilder
                 "흡혈 공포", FacilityRole.Rest | FacilityRole.Entertainment,
                 new[] { "고급", "마력", "암흑" },
                 new[] { "독", "냉기", "공포" },
-                Env(8, 22, 0, 34, -10, 42, 70),
+                Env(8, 22, 0, 34, -10, 42, 70,
+                    lightAdaptationEnabled: true,
+                    comfortableLightMinimum: 0f,
+                    comfortableLightMaximum: 35f),
                 Passive("species-passive:vampire", "야행성 위압",
-                    "독·냉기·공포 방어시설의 통제력이 높다.", "공포", "야간")),
+                    "독·냉기·공포 방어시설의 통제력이 높다.", "공포", "야간"),
+                description: "식사 부담은 낮고 연구와 마력 시설을 오래 이용하지만, 강한 조명에서는 밝기 적응으로 기분과 직접 작업 효율이 소폭 낮아지며 적정 밝기에서는 회복된다. 불만이 쌓이면 공포 사고를 만든다."),
+            Existing(
+                11, "Human", "인간", "anatomy:human",
+                "species-incident:human-adjustment",
+                "환경 적응 피로", FacilityRole.Rest | FacilityRole.Administration,
+                new[] { "인간", "외부인" },
+                new[] { "균형" },
+                Env(15, 27, 0, 40, -10, 48, 70),
+                Passive("species-passive:human-adaptability", "범용 적응",
+                    "특정 역할 보너스 없이 일반 환경과 작업에 적응한다.", "적응", "균형"),
+                description: "기존 방문객과 모집 경로를 통해 정착할 수 있는 인간이다. 특정 종족 보너스나 전용 세력을 추가하지 않는다.",
+                incidentDescription: "낯선 던전 환경에 오래 머물면 적응 피로로 불만이 커질 수 있다."),
             NewSpecies(
                 4, "Beastkin", "수인", "붉은발 역참",
                 "anatomy:beastkin",
@@ -249,7 +300,7 @@ public static class CharacterSpeciesExpansionAssetBuilder
                 new[] { "대형 연회장", "무질서한 창고", "야외 노숙지" },
                 CharacterSpeciesIncidentIds.KoboldPartsHoarding,
                 "부품 사재기",
-                "불만이 커지면 실제 금속 부품과 탄약을 은닉 스택으로 옮긴다.",
+                "불만이 커지면 부품을 모으려는 성향이 두드러진다.",
                 FacilityRole.Logistics | FacilityRole.Security,
                 "급조 함정", "적의 행동을 지연시키고 방어를 약화한다.",
                 new OffenseDelayEffect(0.35f),
@@ -260,7 +311,10 @@ public static class CharacterSpeciesExpansionAssetBuilder
                 7, "Myconid", "균사인", "균사 심림",
                 "anatomy:fungal",
                 Needs(0.75f, 1.2f, MealDietClass.Vegan, 0.7f),
-                Env(8, 22, 0, 32, -8, 40, 35),
+                Env(8, 22, 0, 32, -8, 40, 35,
+                    lightAdaptationEnabled: true,
+                    comfortableLightMinimum: 0f,
+                    comfortableLightMaximum: 55f),
                 FacilityWorkType.Sow | FacilityWorkType.Harvest
                     | FacilityWorkType.Treat | FacilityWorkType.Clean,
                 FacilityWorkType.Guard | FacilityWorkType.Perform,
@@ -270,13 +324,14 @@ public static class CharacterSpeciesExpansionAssetBuilder
                 new[] { "건조 열원", "강한 조명", "화염 통로" },
                 CharacterSpeciesIncidentIds.MyconidSporeBloom,
                 "포자 개화",
-                "건조 노출과 불만이 겹치면 실제 포자 오염을 주변 셀에 생성한다.",
+                "불만이 커지면 실제 포자 오염을 주변 셀에 생성한다. 습도와 건조 적응은 설정 설명이며 별도 수치 효과가 없다.",
                 FacilityRole.Hygiene | FacilityRole.Medical,
                 "회복 포자", "아군을 치료하고 해로운 상태를 정화한다.",
                 new OffenseHealEffect(12f),
                 Passive("species-passive:myconid", "균사 순환",
                     "재배·약품·오염 처리와 독 시설 운용에 강하다.", "재배", "제독"),
-                "모르", 4, 5, 7, 5, 6, 80, 250, 3),
+                "모르", 4, 5, 7, 5, 6, 80, 250, 3,
+                description: "균사인은 균사 심림을 대표하는 종족이다. 강한 조명에서는 밝기 적응으로 불편을 겪지만, 습도와 건조 적응은 생태 설정일 뿐 별도 수치 효과가 없다. 손님·모집 직원·상인·포로·동맹 지원군으로 등장한다."),
             NewSpecies(
                 8, "Harpy", "하피", "폭풍 둥지",
                 "anatomy:avian",
@@ -333,7 +388,9 @@ public static class CharacterSpeciesExpansionAssetBuilder
         string[] relationTags,
         string[] defenseTags,
         SpeciesEnvironmentProfile environment,
-        SpeciesPassiveDefinition passive)
+        SpeciesPassiveDefinition passive,
+        string description = null,
+        string incidentDescription = null)
     {
         return new SpeciesSpec
         {
@@ -367,9 +424,10 @@ public static class CharacterSpeciesExpansionAssetBuilder
             },
             PreferredFacilities = Array.Empty<string>(),
             DislikedEnvironments = Array.Empty<string>(),
+            Description = description ?? string.Empty,
             IncidentId = incidentId,
             IncidentName = incidentName,
-            IncidentDescription = string.Empty,
+            IncidentDescription = incidentDescription ?? string.Empty,
             IncidentMitigatingRoles = mitigation,
             IncidentTriggerTags = new[] { "discontent" },
             CrimeRiskMultiplier = tag switch
@@ -421,7 +479,8 @@ public static class CharacterSpeciesExpansionAssetBuilder
         int toughness,
         int minimumMoney,
         int maximumMoney,
-        int speed)
+        int speed,
+        string description = null)
     {
         CharacterModelModifiers modifiers = new CharacterModelModifiers();
         modifiers.SetWorkPreferences(strongWork, weakWork);
@@ -442,9 +501,10 @@ public static class CharacterSpeciesExpansionAssetBuilder
             PreferredFacilities = facilities,
             DislikedEnvironments = disliked,
             ShortDescription = $"{factionName} 출신 · {string.Join("·", facilities)} 선호",
-            Description =
-                $"{name}은(는) {factionName}을 대표하는 종족이다. " +
-                "손님·모집 직원·상인·포로·동맹 지원군으로 등장한다.",
+            Description = string.IsNullOrWhiteSpace(description)
+                ? $"{name}은(는) {factionName}을 대표하는 종족이다. " +
+                    "손님·모집 직원·상인·포로·동맹 지원군으로 등장한다."
+                : description,
             StayDurationMultiplier = 1f,
             CrimeRiskMultiplier = tag == "Kobold" ? 1.15f : 1f,
             IncidentId = incidentId,
@@ -511,7 +571,11 @@ public static class CharacterSpeciesExpansionAssetBuilder
         float safeMax,
         float lethalMin,
         float lethalMax,
-        float air)
+        float air,
+        bool lightAdaptationEnabled = false,
+        float comfortableLightMinimum = 40f,
+        float comfortableLightMaximum = 100f,
+        float visualStrainMultiplier = 1f)
     {
         return new SpeciesEnvironmentProfile
         {
@@ -521,7 +585,11 @@ public static class CharacterSpeciesExpansionAssetBuilder
             safeMaximum = safeMax,
             lethalMinimum = lethalMin,
             lethalMaximum = lethalMax,
-            comfortableAirMinimum = air
+            comfortableAirMinimum = air,
+            lightAdaptationEnabled = lightAdaptationEnabled,
+            comfortableLightMinimum = comfortableLightMinimum,
+            comfortableLightMaximum = comfortableLightMaximum,
+            visualStrainMultiplier = visualStrainMultiplier
         };
     }
 

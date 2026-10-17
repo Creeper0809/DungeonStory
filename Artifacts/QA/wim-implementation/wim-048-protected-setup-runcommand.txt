@@ -1,0 +1,189 @@
+# WIM-048 protected setup RunCommand
+
+status=READY_NOT_EXECUTED
+purpose=Reusable protected Play prelude for the accepted WIM-048 v2 Command A/B input.
+productionChange=false
+executionOrder=Run Stage A once, wait until the actual StartPartyConfirm button is visible and interactable, then run Stage B once. Stop on any failure; do not vary or retry either stage.
+
+## Verified public authority
+
+- `DungeonSaveRegistration` registers `DungeonAutosaveService` only as `IDungeonSaveCommandService`; resolve that interface and dispose the resolved object through `IDisposable`.
+- `DungeonProgressionOffenseRegistration` registers `MetaProfilePersistenceService` as itself; resolve it and call its public `IDisposable.Dispose`.
+- `IDungeonSpaceExpansionCommand.TryReconcileNewRunTierZero(out DungeonSpaceExpansionResult, out string)` is the normal 27-to-29 new-run boundary.
+- Actual UI targets are `OwnerOption_1001` and `StartPartyConfirm`. This prelude does not call `IStartPartyPreparationService`, `IPreparedStartPartyGameplayApplier`, a new-party helper, or any private member.
+
+## Stage A: persistence protection, pause, TierZero, actual owner option
+
+```csharp
+using System;
+using System.Linq;
+using UnityEngine;
+using UnityEditor;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+internal class CommandScript : IRunCommand
+{
+    static Type T(string name)
+    {
+        Type type = Type.GetType(name + ", Assembly-CSharp");
+        return type ?? throw new InvalidOperationException("Missing public type: " + name);
+    }
+
+    static object Resolve(string typeName)
+    {
+        Type scopeType = T("DungeonRuntimeLifetimeScope");
+        Component scope = Resources.FindObjectsOfTypeAll(scopeType)
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Single(value => value.gameObject.scene.isLoaded);
+        object container = scopeType.GetProperty("Container").GetValue(scope);
+        var resolve = container.GetType().GetMethod(
+            "Resolve",
+            new[] { typeof(Type), typeof(object) });
+        if (resolve == null)
+            throw new InvalidOperationException("Public Resolve(Type, object) is unavailable.");
+        return resolve.Invoke(container, new object[] { T(typeName), null });
+    }
+
+    static Button FindActiveButton(string name)
+    {
+        return Resources.FindObjectsOfTypeAll<Button>()
+            .SingleOrDefault(value => value != null
+                && value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy
+                && value.name == name);
+    }
+
+    static void ClickActual(Button button)
+    {
+        if (button == null || !button.IsInteractable() || EventSystem.current == null)
+            throw new InvalidOperationException("Actual UI target is unavailable or not interactable.");
+        PointerEventData pointer = new PointerEventData(EventSystem.current);
+        ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerEnterHandler);
+        ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerDownHandler);
+        ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerUpHandler);
+        ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerClickHandler);
+    }
+
+    static object PublicProperty(object value, string name)
+    {
+        var property = value.GetType().GetProperty(name);
+        if (property == null)
+            throw new InvalidOperationException("Missing public property: " + name);
+        return property.GetValue(value);
+    }
+
+    public void Execute(ExecutionResult result)
+    {
+        if (!EditorApplication.isPlaying)
+            throw new InvalidOperationException("Stage A requires the protected Play session.");
+
+        object saveCommands = Resolve("IDungeonSaveCommandService");
+        object metaPersistence = Resolve("MetaProfilePersistenceService");
+        if (!(saveCommands is IDisposable saveDisposable)
+            || !(metaPersistence is IDisposable metaDisposable))
+            throw new InvalidOperationException("Public persistence services are not disposable.");
+        saveDisposable.Dispose();
+        metaDisposable.Dispose();
+        Time.timeScale = 0f;
+
+        object expansion = Resolve("IDungeonSpaceExpansionCommand");
+        var reconcile = expansion.GetType().GetMethod("TryReconcileNewRunTierZero");
+        if (reconcile == null || !reconcile.IsPublic)
+            throw new InvalidOperationException("Public TierZero reconciliation is unavailable.");
+        object[] reconcileArgs = { null, null };
+        bool reconciled = (bool)reconcile.Invoke(expansion, reconcileArgs);
+        string failure = Convert.ToString(reconcileArgs[1]);
+        if (!reconciled)
+            throw new InvalidOperationException("TierZero reconciliation failed: " + failure);
+        object expansionResult = reconcileArgs[0]
+            ?? throw new InvalidOperationException("TierZero result is missing.");
+        int before = Convert.ToInt32(PublicProperty(expansionResult, "PreviousInteriorColumns"));
+        int after = Convert.ToInt32(PublicProperty(expansionResult, "CurrentInteriorColumns"));
+        bool changed = Convert.ToBoolean(PublicProperty(expansionResult, "Changed"));
+        if (after != 29 || (before != 27 && before != 29))
+            throw new InvalidOperationException(
+                string.Format("Unexpected TierZero authority: {0}->{1}.", before, after));
+
+        Button owner = FindActiveButton("OwnerOption_1001");
+        ClickActual(owner);
+        Time.timeScale = 0f;
+        result.Log(
+            "WIM048 SETUP_A autosaveDisposed=true;metaDisposed=true;paused={0};tierZero={1}->{2};changed={3};ownerClick=OwnerOption_1001",
+            Time.timeScale == 0f, before, after, changed);
+    }
+}
+```
+
+## Stage B: actual party confirmation and immediate re-pause
+
+```csharp
+using System;
+using System.Linq;
+using UnityEngine;
+using UnityEditor;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+internal class CommandScript : IRunCommand
+{
+    static Type T(string name)
+    {
+        Type type = Type.GetType(name + ", Assembly-CSharp");
+        return type ?? throw new InvalidOperationException("Missing public type: " + name);
+    }
+
+    static Button FindActiveButton(string name)
+    {
+        return Resources.FindObjectsOfTypeAll<Button>()
+            .SingleOrDefault(value => value != null
+                && value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy
+                && value.name == name);
+    }
+
+    static void ClickActual(Button button)
+    {
+        if (button == null || !button.IsInteractable() || EventSystem.current == null)
+            throw new InvalidOperationException(
+                "StartPartyConfirm is not yet visible and interactable; stop without retrying this input.");
+        PointerEventData pointer = new PointerEventData(EventSystem.current);
+        ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerEnterHandler);
+        ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerDownHandler);
+        ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerUpHandler);
+        ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerClickHandler);
+    }
+
+    public void Execute(ExecutionResult result)
+    {
+        if (!EditorApplication.isPlaying || Time.timeScale != 0f)
+            throw new InvalidOperationException("Stage B requires the same paused protected Play session.");
+
+        ClickActual(FindActiveButton("StartPartyConfirm"));
+        Time.timeScale = 0f;
+
+        int activeActors = Resources.FindObjectsOfTypeAll(T("CharacterActor"))
+            .Cast<UnityEngine.Object>()
+            .OfType<Component>()
+            .Count(value => value.gameObject.scene.isLoaded
+                && value.gameObject.activeInHierarchy);
+        bool confirmRemaining = FindActiveButton("StartPartyConfirm") != null;
+        if (activeActors != 3 || confirmRemaining)
+            throw new InvalidOperationException(
+                string.Format("Party UI commit mismatch: actors={0};confirmRemaining={1}.",
+                    activeActors, confirmRemaining));
+
+        result.Log(
+            "WIM048 SETUP_B confirmClick=StartPartyConfirm;activeActors={0};confirmRemaining={1};paused={2}",
+            activeActors, confirmRemaining, Time.timeScale == 0f);
+    }
+}
+```
+
+## Handoff gate
+
+- Run accepted `wim-048-protected-moving-fullsave-runcommand-v2.txt` Command A only after Stage A and Stage B both report their exact success fields and bootstrap Console Error remains zero.
+- This input performs no slot IO, scene navigation, scene save/discard, source/asset mutation, private reflection, helper-based party creation, R03/BOM/recruit chain, or Unity retry. Stop the Play batch on any compile, UI, authority, or runtime mismatch.
+
+execution=NOT_RUN_PENDING_ROOT_REVIEW

@@ -2,9 +2,12 @@ using System;
 using System.Linq;
 using UnityEngine;
 
-public sealed class WaterFixtureUseRuntime : IWaterFixtureUseRuntime
+public sealed class WaterFixtureUseRuntime :
+    IWaterFixtureUseRuntime,
+    IWaterFixtureUseQuery
 {
     private readonly IFluidInfrastructureTransaction water;
+    private readonly IManualWaterAvailabilityQuery manualWater;
     private readonly IFluidWastewaterTransaction wastewater;
     private readonly IWorldItemStackRuntime items;
     private readonly IWorldFilthQuery filth;
@@ -13,6 +16,7 @@ public sealed class WaterFixtureUseRuntime : IWaterFixtureUseRuntime
 
     public WaterFixtureUseRuntime(
         IFluidInfrastructureTransaction water,
+        IManualWaterAvailabilityQuery manualWater,
         IFluidWastewaterTransaction wastewater,
         IWorldItemStackRuntime items,
         IWorldFilthQuery filth,
@@ -20,6 +24,8 @@ public sealed class WaterFixtureUseRuntime : IWaterFixtureUseRuntime
         IWorkforceReplanService workforce)
     {
         this.water = water ?? throw new ArgumentNullException(nameof(water));
+        this.manualWater = manualWater
+            ?? throw new ArgumentNullException(nameof(manualWater));
         this.wastewater = wastewater
             ?? throw new ArgumentNullException(nameof(wastewater));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
@@ -28,6 +34,49 @@ public sealed class WaterFixtureUseRuntime : IWaterFixtureUseRuntime
             ?? throw new ArgumentNullException(nameof(needBalance));
         this.workforce = workforce
             ?? throw new ArgumentNullException(nameof(workforce));
+    }
+
+    public bool CanBeginWetUse(
+        BuildableObject fixture,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        BuildingWaterFixtureAbility ability =
+            fixture?.BuildingData?.GetAbility<BuildingWaterFixtureAbility>();
+        if (fixture == null
+            || fixture.IsBuildingDestroyed
+            || fixture.IsGridDestroyed
+            || !fixture.PersistentInstanceId.IsValid
+            || ability == null)
+        {
+            failure = new DomainFailure(
+                FailureCode.IndustrialBuildingUnavailable);
+            return false;
+        }
+
+        float personalWater = GetPersonalWaterDemand(ability);
+        if (water.CanConsume(
+                fixture,
+                ability.minimumQuality,
+                personalWater,
+                out DomainFailure pipeFailure))
+        {
+            return true;
+        }
+
+        if (ability.allowsManualWaterFallback)
+        {
+            BuildingInstanceId fixtureId = new BuildingInstanceId(
+                IndustrialInfrastructureIdentity.GetNodeId(fixture));
+            return manualWater.CanConsumeManualContainer(
+                fixture,
+                CreateManualDestinationId(fixtureId.Value),
+                personalWater,
+                out failure);
+        }
+
+        failure = pipeFailure;
+        return false;
     }
 
     public bool TryBeginUse(
@@ -47,9 +96,7 @@ public sealed class WaterFixtureUseRuntime : IWaterFixtureUseRuntime
 
         BuildingInstanceId fixtureId = new BuildingInstanceId(
             IndustrialInfrastructureIdentity.GetNodeId(fixture));
-        float personalWater =
-            needBalance.ApplyPersonalContinuousWaterMultiplier(
-                ability.cleanWaterPerUse);
+        float personalWater = GetPersonalWaterDemand(ability);
         float wastewaterAmount = ability.cleanWaterPerUse > 0f
             ? ability.wastewaterPerUse
                 * personalWater
@@ -182,6 +229,10 @@ public sealed class WaterFixtureUseRuntime : IWaterFixtureUseRuntime
 
     private static string CreateManualDestinationId(string fixtureId) =>
         $"plumbing:manual-water:{fixtureId}";
+
+    private float GetPersonalWaterDemand(BuildingWaterFixtureAbility ability) =>
+        needBalance.ApplyPersonalContinuousWaterMultiplier(
+            ability.cleanWaterPerUse);
 
     private bool HasRoutedManualWater(string destinationId)
     {

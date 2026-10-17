@@ -57,6 +57,7 @@ public static class CharacterWorldPersistenceRules
         }
 
         bool hasPersistentRole = actor.IsOwner
+            || identity.CharacterType == CharacterType.Customer
             || identity.CharacterType == CharacterType.NPC
                 && actor.TryGetAbility(out AbilityWork _);
         return hasPersistentRole && !actor.IsDead;
@@ -87,12 +88,18 @@ public sealed class CharacterWorldRestoreCandidate :
     private IReadOnlyDictionary<string, string> LegacyCharacterIds { get; }
 
     internal CharacterWorldSaveService.DetachedCharacterWorldCandidate Take(
-        CharacterWorldSaveService expectedOwner)
+        CharacterWorldSaveService expectedOwner,
+        CharacterWorldSaveService.DetachedCharacterWorldCandidate expectedWorld)
     {
         if (!ReferenceEquals(owner, expectedOwner) || world == null)
         {
             throw new InvalidOperationException(
                 "Character-world restore candidate has the wrong owner or was already consumed.");
+        }
+        if (!ReferenceEquals(world, expectedWorld))
+        {
+            throw new InvalidOperationException(
+                "Character restore candidate does not match the prepared world.");
         }
         CharacterWorldSaveService.DetachedCharacterWorldCandidate result = world;
         world = null;
@@ -121,12 +128,6 @@ public sealed class CharacterWorldRestoreCandidate :
                 + $"'{mapping.Key}' -> '{mapping.Value}'.");
         }
     }
-}
-
-public interface ICharacterIdRegistry
-{
-    bool TryGetPersistentId(CharacterActor actor, out string persistentId);
-    string GetOrAssignPersistentId(CharacterActor actor);
 }
 
 /// <summary>
@@ -163,20 +164,26 @@ public sealed class CharacterWorldSaveService :
     ICharacterWorldPersistenceIdentityQuery,
     ICharacterConsumablesPersistentActorQuery,
     ICharacterHaulDeliveryRestoreQuery,
-    IDungeonRestoreTransactionParticipant
+    IDungeonRestoreTransactionParticipant,
+    IDungeonSaveRestoreCompletedHook
 {
     private const int MaxSavedLogEntries = 30;
 
-    private readonly ICharacterWorldQuery characterWorldQuery;
+    private readonly IGameContentDefinitionSource content;
     private readonly ICharacterLifetimeQuery characterLifetimeQuery;
     private readonly IRunCharacterCatalog characterCatalog;
     private readonly IOwnerRunManagerProvider ownerRunManagerProvider;
     private readonly ICharacterSpawnerProvider characterSpawnerProvider;
     private readonly ICharacterSpawnObjectFactory characterObjectFactory;
     private readonly ICharacterPopulationService characterPopulationService;
+    private readonly ICaptivityOwnedCharacterIdQuery captivityOwnedCharacters;
+    private readonly ISocietyIncidentOwnedCharacterIdQuery societyIncidentOwners;
     private readonly SocialReputationRuntime socialReputation;
     private readonly ICharacterIdRegistry characterIds;
     private readonly IRestoreWorldCandidatePublisher restoreWorldCandidates;
+    private readonly Func<IExteriorIncidentRuntime> exteriorIncidentRuntime;
+    private readonly InvasionDirectorRuntime invasionDirector;
+    private readonly OffenseExpeditionRuntime offenseExpeditionRuntime;
     private IReadOnlyDictionary<string, CharacterActor> restoredActorsById =
         new Dictionary<string, CharacterActor>(StringComparer.Ordinal);
     private IReadOnlyDictionary<string, string> restoredLegacyActorIds =
@@ -189,16 +196,20 @@ public sealed class CharacterWorldSaveService :
     public string ParticipantId => "200.world.characters";
 
     public CharacterWorldSaveService(
-        ICharacterWorldQuery characterWorldQuery,
+        IGameContentDefinitionSource content,
         ICharacterLifetimeQuery characterLifetimeQuery,
         CharacterWorldSpawnDependencies spawning,
         ICharacterPopulationService characterPopulationService,
+        ICaptivityOwnedCharacterIdQuery captivityOwnedCharacters,
+        ISocietyIncidentOwnedCharacterIdQuery societyIncidentOwners,
         CharacterSceneRuntimeReferences characterRuntimes,
         ICharacterIdRegistry characterIds,
-        IRestoreWorldCandidatePublisher restoreWorldCandidates)
+        IRestoreWorldCandidatePublisher restoreWorldCandidates,
+        Func<IExteriorIncidentRuntime> exteriorIncidentRuntime,
+        InvasionSceneRuntimeReferences invasionRuntimes,
+        OffenseSceneRuntimeReferences offenseRuntimes)
     {
-        this.characterWorldQuery = characterWorldQuery
-            ?? throw new ArgumentNullException(nameof(characterWorldQuery));
+        this.content = content ?? throw new ArgumentNullException(nameof(content));
         this.characterLifetimeQuery = characterLifetimeQuery
             ?? throw new ArgumentNullException(nameof(characterLifetimeQuery));
         spawning = spawning ?? throw new ArgumentNullException(nameof(spawning));
@@ -208,6 +219,10 @@ public sealed class CharacterWorldSaveService :
         characterObjectFactory = spawning.CharacterObjectFactory;
         this.characterPopulationService = characterPopulationService
             ?? throw new ArgumentNullException(nameof(characterPopulationService));
+        this.captivityOwnedCharacters = captivityOwnedCharacters
+            ?? throw new ArgumentNullException(nameof(captivityOwnedCharacters));
+        this.societyIncidentOwners = societyIncidentOwners
+            ?? throw new ArgumentNullException(nameof(societyIncidentOwners));
         socialReputation = (characterRuntimes
                 ?? throw new ArgumentNullException(nameof(characterRuntimes)))
             .SocialReputation
@@ -217,6 +232,18 @@ public sealed class CharacterWorldSaveService :
             ?? throw new ArgumentNullException(nameof(characterIds));
         this.restoreWorldCandidates = restoreWorldCandidates
             ?? throw new ArgumentNullException(nameof(restoreWorldCandidates));
+        this.exteriorIncidentRuntime = exteriorIncidentRuntime
+            ?? throw new ArgumentNullException(nameof(exteriorIncidentRuntime));
+        invasionDirector = (invasionRuntimes
+                ?? throw new ArgumentNullException(nameof(invasionRuntimes)))
+            .Director
+            ?? throw new InvalidOperationException(
+                $"{nameof(CharacterWorldSaveService)} requires a loaded {nameof(InvasionDirectorRuntime)}.");
+        offenseExpeditionRuntime = (offenseRuntimes
+                ?? throw new ArgumentNullException(nameof(offenseRuntimes)))
+            .Expedition
+            ?? throw new InvalidOperationException(
+                $"{nameof(CharacterWorldSaveService)} requires a loaded {nameof(OffenseExpeditionRuntime)}.");
     }
 
     public DungeonCharacterWorldSaveData Capture(Grid grid)
@@ -243,9 +270,7 @@ public sealed class CharacterWorldSaveService :
                 "Character reputation capture returned a null snapshot.");
         }
 
-        List<CharacterActor> persistentActors = CharacterActorCollection
-            .DistinctByGameObject(characterLifetimeQuery.AllCharacters)
-            .Where(CharacterWorldPersistenceRules.IsPersistentActor)
+        List<CharacterActor> persistentActors = FindPersistentActors()
             .OrderBy(actor => actor.IsOwner ? 0 : 1)
             .ThenBy(actor => actor.Identity.Data.id)
             .ThenBy(actor => grid.GetXY(actor.transform.position).y)
@@ -298,22 +323,455 @@ public sealed class CharacterWorldSaveService :
                 ?? new List<WorldCharacterProfile>())
             .Select(profile => new CharacterId(profile?.persistentId))
             .Where(id => id.IsValid);
+        IReadOnlyCollection<CharacterId> activeInvasionIds =
+            GetActiveInvasionCharacterIds();
         return actorIds
             .Concat(profileIds)
+            .Concat(activeInvasionIds)
             .Distinct()
             .OrderBy(id => id.Value, StringComparer.Ordinal)
             .ToArray();
     }
 
+    private IReadOnlyCollection<CharacterId> GetActiveInvasionCharacterIds()
+    {
+        IReadOnlyList<InvasionIntruderRuntime> activeIntruders =
+            invasionDirector.ActiveIntruders
+            ?? throw new InvalidOperationException(
+                "Invasion director returned a null active-intruder collection.");
+        HashSet<CharacterId> ids = new();
+        foreach (InvasionIntruderRuntime runtime in activeIntruders)
+        {
+            CharacterActor actor = runtime?.IntruderActor;
+            if (runtime == null
+                || runtime.State == InvasionIntruderState.Finished
+                || actor == null
+                || actor.IsDead)
+            {
+                continue;
+            }
+
+            EnemyIndividualSaveData individual = runtime.EnemyIndividual;
+            string rawId = individual?.characterId;
+            CharacterId individualId = new(rawId);
+            CharacterId actorId = CharacterPersistentIdentity.Require(actor);
+            if (!individualId.IsValid
+                || !string.Equals(rawId, individualId.Value, StringComparison.Ordinal)
+                || !string.Equals(actorId.Value, individualId.Value, StringComparison.Ordinal)
+                || !ids.Add(individualId))
+            {
+                throw new InvalidOperationException(
+                    $"Active invasion intruder character identity mismatch '{rawId ?? string.Empty}'/'{actorId.Value}'.");
+            }
+        }
+
+        return ids;
+    }
+
     public IReadOnlyCollection<CharacterId> GetPersistentActorIds()
     {
-        return CharacterActorCollection
-            .DistinctByGameObject(characterLifetimeQuery.AllCharacters)
-            .Where(CharacterWorldPersistenceRules.IsPersistentActor)
+        return FindPersistentActors()
             .Select(actor => new CharacterId(GetOrAssignPersistentId(actor)))
             .Distinct()
             .OrderBy(id => id.Value, StringComparer.Ordinal)
             .ToArray();
+    }
+
+    private IReadOnlyList<CharacterActor> FindPersistentActors()
+    {
+        // A finished defeat still owns its exact deceased owner. Persist the
+        // inert actor so the terminal world can be restored without reviving
+        // the owner or accepting an ownerless world. Aggregate preflight also
+        // requires the matching run result, run.flow and death tombstone.
+        CharacterActor terminalOwner = ownerRunManagerProvider.TryGetManager(
+                out OwnerRunManager ownerManager)
+            && ownerManager != null && ownerManager.IsRunEnded
+                ? ownerManager.CurrentOwnerActor : null;
+        HashSet<CharacterId> captivityOwnedIds =
+            GetCaptivityOwnedCharacterIds();
+        HashSet<CharacterId> activeInvasionIds = new(
+            GetActiveInvasionCharacterIds());
+        CharacterId overlappingOwner = captivityOwnedIds
+            .Intersect(activeInvasionIds)
+            .OrderBy(id => id.Value, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (overlappingOwner.IsValid)
+        {
+            throw new InvalidOperationException(
+                $"Character '{overlappingOwner.Value}' is jointly owned by active invasion and captivity.");
+        }
+
+        IReadOnlyList<CharacterActor> captivityOwnedActors =
+            ResolveCaptivityOwnedActors(captivityOwnedIds);
+        HashSet<CharacterId> societyOwnedIds =
+            GetSocietyIncidentOwnedCharacterIds();
+        CharacterId overlappingSocietyOwner = societyOwnedIds
+            .Intersect(captivityOwnedIds.Concat(activeInvasionIds))
+            .OrderBy(id => id.Value, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (overlappingSocietyOwner.IsValid)
+        {
+            throw new InvalidOperationException(
+                $"Character '{overlappingSocietyOwner.Value}' is jointly owned by a society incident and captivity or active invasion.");
+        }
+        IReadOnlyList<CharacterActor> societyOwnedActors =
+            ResolveSocietyIncidentOwnedActors(societyOwnedIds);
+        HashSet<string> activeIncidentActorIds =
+            GetActiveIncidentActorIds();
+        IReadOnlyList<CharacterActor> activeExpeditionActors =
+            GetActiveExpeditionOwnedActors();
+        HashSet<CharacterId> exteriorOwnedIds = activeIncidentActorIds
+            .Select(value => new CharacterId(value))
+            .ToHashSet();
+        HashSet<CharacterId> expeditionOwnedIds = activeExpeditionActors
+            .Select(CharacterPersistentIdentity.Require)
+            .ToHashSet();
+        CharacterId overlappingExistingOwner = societyOwnedIds
+            .Intersect(exteriorOwnedIds.Concat(expeditionOwnedIds))
+            .OrderBy(id => id.Value, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (overlappingExistingOwner.IsValid)
+        {
+            throw new InvalidOperationException(
+                $"Character '{overlappingExistingOwner.Value}' is jointly owned by a society incident and another active incident or expedition.");
+        }
+        List<CharacterActor> actors = CharacterActorCollection
+            .DistinctByGameObject(
+                CharacterActorCollection
+                    .DistinctByGameObject(characterLifetimeQuery.AllCharacters)
+                    .Where(actor => CharacterWorldPersistenceRules
+                        .IsPersistentActor(actor)
+                        || (terminalOwner != null && actor == terminalOwner
+                            && actor.IsOwner && actor.IsDead
+                            && actor.gameObject.activeInHierarchy
+                            && actor.CurrentLifecycleState
+                                == CharacterLifecycleState.Despawned)
+                        || IsActiveIncidentActor(
+                            actor,
+                            activeIncidentActorIds))
+                    .Concat(activeExpeditionActors)
+                    .Concat(captivityOwnedActors)
+                    .Concat(societyOwnedActors))
+            .ToList();
+        HashSet<string> foundIncidentActorIds = actors
+            .Where(actor => IsActiveIncidentActor(actor, activeIncidentActorIds))
+            .Select(actor => actor.Identity.PersistentId)
+            .ToHashSet(StringComparer.Ordinal);
+        string missingActorId = activeIncidentActorIds
+            .Except(foundIncidentActorIds, StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (missingActorId != null)
+        {
+            throw new InvalidOperationException(
+                $"Active exterior incident actor '{missingActorId}' is not present in the live character world.");
+        }
+
+        return actors;
+    }
+
+    private HashSet<CharacterId> GetCaptivityOwnedCharacterIds()
+    {
+        IReadOnlyCollection<CharacterId> ids =
+            captivityOwnedCharacters.GetOwnedCharacterIds()
+            ?? throw new InvalidOperationException(
+                "Captivity ownership query returned a null CharacterId collection.");
+        return new HashSet<CharacterId>(ids);
+    }
+
+    private HashSet<CharacterId> GetSocietyIncidentOwnedCharacterIds()
+    {
+        IReadOnlyCollection<CharacterId> ids =
+            societyIncidentOwners.GetOwnedCustomerIds()
+            ?? throw new InvalidOperationException(
+                "Society incident ownership query returned a null CharacterId collection.");
+        HashSet<CharacterId> result = new();
+        foreach (CharacterId id in ids)
+        {
+            if (!id.IsValid || !result.Add(id))
+            {
+                throw new InvalidOperationException(
+                    $"Society incident ownership contains an invalid or duplicate CharacterId '{id.Value ?? string.Empty}'.");
+            }
+        }
+        return result;
+    }
+
+    private IReadOnlyList<CharacterActor> ResolveSocietyIncidentOwnedActors(
+        IReadOnlyCollection<CharacterId> societyOwnedIds)
+    {
+        Dictionary<CharacterId, CharacterActor> actorsById = new();
+        foreach (CharacterActor actor in CharacterActorCollection
+                     .DistinctByGameObject(characterLifetimeQuery.AllCharacters))
+        {
+            if (!CharacterPersistentIdentity.TryGet(actor, out CharacterId id)
+                || !societyOwnedIds.Contains(id))
+            {
+                continue;
+            }
+
+            CharacterLifecycleState lifecycleState =
+                actor.CurrentLifecycleState;
+            if (lifecycleState == CharacterLifecycleState.Despawned
+                || (actor.IsDead
+                    && lifecycleState != CharacterLifecycleState.Downed))
+            {
+                continue;
+            }
+
+            string rawId = actor.Identity?.PersistentId;
+            if (actor.Identity?.Data == null
+                || !string.Equals(rawId, id.Value, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Society incident-owned character has invalid identity '{rawId ?? string.Empty}'.");
+            }
+            if (!actorsById.TryAdd(id, actor))
+            {
+                throw new InvalidOperationException(
+                    $"Society incident-owned CharacterId '{id.Value}' resolves to multiple live actors.");
+            }
+        }
+
+        CharacterId missingId = societyOwnedIds
+            .Except(actorsById.Keys)
+            .OrderBy(id => id.Value, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (missingId.IsValid)
+        {
+            throw new InvalidOperationException(
+                $"Active society incident owner '{missingId.Value}' references a missing or dead character.");
+        }
+
+        return actorsById
+            .OrderBy(pair => pair.Key.Value, StringComparer.Ordinal)
+            .Select(pair => pair.Value)
+            .ToArray();
+    }
+
+    private IReadOnlyList<CharacterActor> ResolveCaptivityOwnedActors(
+        IReadOnlyCollection<CharacterId> captivityOwnedIds)
+    {
+        Dictionary<CharacterId, CharacterActor> actorsById = new();
+        foreach (CharacterActor actor in CharacterActorCollection
+                     .DistinctByGameObject(characterLifetimeQuery.AllCharacters))
+        {
+            if (!CharacterPersistentIdentity.TryGet(actor, out CharacterId id)
+                || !captivityOwnedIds.Contains(id))
+            {
+                continue;
+            }
+
+            string rawId = actor.Identity?.PersistentId;
+            if (actor.Identity?.Data == null
+                || !string.Equals(rawId, id.Value, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Captivity-owned character has invalid identity '{rawId ?? string.Empty}'.");
+            }
+            if (actor.IsDead)
+            {
+                throw new InvalidOperationException(
+                    $"Active captive '{id.Value}' references a missing or dead character.");
+            }
+            if (!actorsById.TryAdd(id, actor))
+            {
+                throw new InvalidOperationException(
+                    $"Captivity-owned CharacterId '{id.Value}' resolves to multiple live actors.");
+            }
+        }
+
+        CharacterId missingId = captivityOwnedIds
+            .Except(actorsById.Keys)
+            .OrderBy(id => id.Value, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (missingId.IsValid)
+        {
+            throw new InvalidOperationException(
+                $"Active captive '{missingId.Value}' references a missing or dead character.");
+        }
+
+        return actorsById
+            .OrderBy(pair => pair.Key.Value, StringComparer.Ordinal)
+            .Select(pair => pair.Value)
+            .ToArray();
+    }
+
+    private IReadOnlyList<CharacterActor> GetActiveExpeditionOwnedActors()
+    {
+        IReadOnlyList<OffenseExpeditionRun> activeExpeditions =
+            offenseExpeditionRuntime.ActiveExpeditions
+            ?? throw new InvalidOperationException(
+                "Offense expedition runtime returned a null active-expedition collection.");
+        Dictionary<int, (CharacterActor Actor, OffenseExpeditionRun Owner, string Id)>
+            ownershipByInstance = new();
+        Dictionary<string, CharacterActor> actorsById =
+            new(StringComparer.Ordinal);
+
+        foreach (OffenseExpeditionRun expedition in activeExpeditions)
+        {
+            if (expedition == null)
+            {
+                throw new InvalidOperationException(
+                    "Offense expedition runtime contains a null active expedition.");
+            }
+
+            string expeditionId = expedition.ExpeditionId?.Trim()
+                ?? string.Empty;
+            if (expeditionId.Length == 0
+                || !string.Equals(
+                    expedition.ExpeditionId,
+                    expeditionId,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Active expedition has an invalid ID '{expedition.ExpeditionId ?? string.Empty}'.");
+            }
+
+            IReadOnlyList<CharacterActor>[] ownedActorSets =
+            {
+                expedition.MemberActors,
+                expedition.ProtectedRescueActors
+            };
+            foreach (IReadOnlyList<CharacterActor> ownedActors in ownedActorSets)
+            {
+                if (ownedActors == null)
+                {
+                    throw new InvalidOperationException(
+                        $"Active expedition '{expeditionId}' has a null actor collection.");
+                }
+
+                foreach (CharacterActor ownedActor in ownedActors)
+                {
+                    if (ownedActor == null)
+                    {
+                        throw new InvalidOperationException(
+                            $"Active expedition '{expeditionId}' owns a missing or destroyed actor.");
+                    }
+
+                    CharacterActor actor = CharacterActorCollection
+                        .GetCanonical(ownedActor);
+                    if (actor == null)
+                    {
+                        throw new InvalidOperationException(
+                            $"Active expedition '{expeditionId}' owns a missing canonical actor.");
+                    }
+
+                    CharacterId characterId =
+                        CharacterPersistentIdentity.Require(actor);
+                    string rawId = actor.Identity?.PersistentId;
+                    if (actor.Identity?.Data == null
+                        || !string.Equals(
+                            rawId,
+                            characterId.Value,
+                            StringComparison.Ordinal))
+                    {
+                        throw new InvalidOperationException(
+                            $"Active expedition '{expeditionId}' actor has invalid identity '{rawId ?? string.Empty}'.");
+                    }
+
+                    int instanceId = actor.gameObject.GetInstanceID();
+                    if (ownershipByInstance.TryGetValue(
+                            instanceId,
+                            out var existingOwnership))
+                    {
+                        if (!ReferenceEquals(existingOwnership.Owner, expedition))
+                        {
+                            throw new InvalidOperationException(
+                                $"Character '{characterId.Value}' is jointly owned by active expeditions "
+                                + $"'{existingOwnership.Owner.ExpeditionId}' and '{expeditionId}'.");
+                        }
+                        if (!string.Equals(
+                                existingOwnership.Id,
+                                characterId.Value,
+                                StringComparison.Ordinal))
+                        {
+                            throw new InvalidOperationException(
+                                $"Active expedition actor instance changed identity from "
+                                + $"'{existingOwnership.Id}' to '{characterId.Value}'.");
+                        }
+                        continue;
+                    }
+
+                    if (actorsById.TryGetValue(
+                            characterId.Value,
+                            out CharacterActor existingActor)
+                        && !ReferenceEquals(existingActor, actor))
+                    {
+                        throw new InvalidOperationException(
+                            $"Active expeditions contain different actors with duplicate "
+                            + $"CharacterId '{characterId.Value}'.");
+                    }
+
+                    ownershipByInstance.Add(
+                        instanceId,
+                        (actor, expedition, characterId.Value));
+                    actorsById.Add(characterId.Value, actor);
+                }
+            }
+        }
+
+        return ownershipByInstance.Values
+            .Select(value => value.Actor)
+            .OrderBy(actor => actor.Identity.PersistentId, StringComparer.Ordinal)
+            .ThenBy(actor => actor.GetInstanceID())
+            .ToArray();
+    }
+
+    private HashSet<string> GetActiveIncidentActorIds()
+    {
+        IExteriorIncidentRuntime incidents = exteriorIncidentRuntime()
+            ?? throw new InvalidOperationException(
+                "Character world persistence requires the exterior incident runtime.");
+        IReadOnlyList<ExteriorIncidentRuntimeState> states =
+            incidents.IncidentStates
+            ?? throw new InvalidOperationException(
+                "Exterior incident runtime returned a null state collection.");
+        HashSet<string> actorIds = new(StringComparer.Ordinal);
+        foreach (ExteriorIncidentRuntimeState state in states)
+        {
+            if (state == null)
+            {
+                throw new InvalidOperationException(
+                    "Exterior incident runtime contains a null state.");
+            }
+            if (state.IsTerminal)
+            {
+                continue;
+            }
+            if (state.actorIds == null)
+            {
+                throw new InvalidOperationException(
+                    $"Active exterior incident '{state.incidentId}' has no actor ID collection.");
+            }
+
+            foreach (string rawActorId in state.actorIds)
+            {
+                string actorId = rawActorId?.Trim() ?? string.Empty;
+                CharacterId typedActorId = new(actorId);
+                if (!string.Equals(rawActorId, actorId, StringComparison.Ordinal)
+                    || !typedActorId.IsValid
+                    || !actorIds.Add(actorId))
+                {
+                    throw new InvalidOperationException(
+                        $"Active exterior incident '{state.incidentId}' contains an invalid or duplicate actor ID '{actorId}'.");
+                }
+            }
+        }
+
+        return actorIds;
+    }
+
+    private static bool IsActiveIncidentActor(
+        CharacterActor actor,
+        ISet<string> activeIncidentActorIds)
+    {
+        return actor != null
+            && actor.gameObject.activeInHierarchy
+            && actor.CurrentLifecycleState != CharacterLifecycleState.Despawned
+            && actor.Identity != null
+            && activeIncidentActorIds.Contains(
+                actor.Identity.PersistentId ?? string.Empty);
     }
 
     public bool TryGetPersistentId(CharacterActor actor, out string persistentId)
@@ -458,6 +916,9 @@ public sealed class CharacterWorldSaveService :
             CharacterActor actor = character?.Actor;
             if (actor != null && actor.gameObject.activeInHierarchy)
             {
+                // Rebind only the restored population index. BindActor would
+                // reapply profile growth over the authoritative actor snapshot.
+                characterPopulationService.TryGetProfile(actor, out _);
                 actor.ReconcilePublishedRuntimeRegistration();
                 actor.Brain?.RequestImmediateReplan(clearFailures: true);
             }
@@ -489,7 +950,14 @@ public sealed class CharacterWorldSaveService :
             return;
         }
 
-        restoreWorldCandidates.ClearCharacterCandidate();
+        if (preparedCandidate != null)
+        {
+            DiscardPreparedCandidate(preparedCandidate);
+        }
+        else
+        {
+            restoreWorldCandidates.ClearCharacterCandidate();
+        }
         if (stagedCandidate != null)
         {
             DestroyCharacterCandidates(stagedCandidate.Characters);
@@ -512,6 +980,7 @@ public sealed class CharacterWorldSaveService :
 
             if (actor.TryGetAbility(out AbilityWork work))
             {
+                work.RelinquishRestockForWorldRestore();
                 work.ReleaseAssignedWorkTarget();
             }
             string persistentId = actor.Identity?.PersistentId?.Trim()
@@ -567,6 +1036,7 @@ public sealed class CharacterWorldSaveService :
                     actor.GetAbility<AbilityMove>()?.CancelActiveMovement();
                 }
             }
+            actor.PrepareForWorldRestoreRetirement();
             actor.Brain?.RequestImmediateReplan(clearFailures: true);
         }
     }
@@ -583,6 +1053,59 @@ public sealed class CharacterWorldSaveService :
             report,
             allowLegacyCharacterIds,
             characterCatalog.Characters);
+        ValidateAcquiredTraitRestoreAuthorities(source, report);
+    }
+
+    private void ValidateAcquiredTraitRestoreAuthorities(
+        DungeonCharacterWorldSaveData source,
+        DungeonGameRestoreReport report)
+    {
+        DungeonCharacterSaveData[] actorsWithState = (source?.actors
+                ?? new List<DungeonCharacterSaveData>())
+            .Where(actor => actor?.acquiredTraits?.HasPersistentData == true)
+            .ToArray();
+        if (actorsWithState.Length == 0)
+            return;
+
+        CharacterAcquiredTraitSettingsSO[] settings =
+            (content.GetAll<CharacterAcquiredTraitSettingsSO>()
+                ?? Array.Empty<CharacterAcquiredTraitSettingsSO>())
+            .Where(value => value != null)
+            .ToArray();
+        if (settings.Length != 1)
+        {
+            report.AddError(
+                "Non-empty acquired-trait save state requires exactly one authored "
+                + $"settings authority, but found {settings.Length}.");
+            return;
+        }
+
+        IReadOnlyList<CharacterAcquiredTraitModuleSO> modules =
+            content.GetAll<CharacterAcquiredTraitModuleSO>()
+            ?? Array.Empty<CharacterAcquiredTraitModuleSO>();
+        foreach (DungeonCharacterSaveData actor in actorsWithState)
+        {
+            foreach (CharacterAcquiredTraitValidationIssue issue in
+                     CharacterAcquiredTraitStateValidator.ValidateWithDefinitions(
+                         actor.acquiredTraits,
+                         actor.narrative,
+                         settings[0],
+                         modules))
+            {
+                report.AddError(
+                    $"Character '{actor.persistentId}' {issue}");
+            }
+        }
+    }
+
+    public void OnRestoreCompleted()
+    {
+        foreach (CharacterActor actor in restoredActorsById.Values
+                     .Where(actor => actor != null)
+                     .Distinct())
+        {
+            actor.Progression?.ResumePendingGenerationAfterWorldRestore();
+        }
     }
 
     public void ValidateRestorePayload(
@@ -611,6 +1134,11 @@ public sealed class CharacterWorldSaveService :
         {
             throw new InvalidOperationException(
                 "A character-world restore candidate is already prepared.");
+        }
+        if (stagedCandidate != null || activePublication != null)
+        {
+            throw new InvalidOperationException(
+                "Cannot prepare a character-world restore candidate while another world is staged or published.");
         }
 
         DungeonGameRestoreReport report = new DungeonGameRestoreReport();
@@ -700,7 +1228,8 @@ public sealed class CharacterWorldSaveService :
                     spawner.characterPrefab,
                     candidate => PrepareRestoredStaffComposition(
                         candidate,
-                        canonicalStaffId));
+                        canonicalStaffId,
+                        staffSave.characterType));
                 CharacterActor staff = CharacterActorCollection.GetCanonical(
                     staffObject.GetComponent<CharacterActor>());
                 if (staff == null)
@@ -760,7 +1289,10 @@ public sealed class CharacterWorldSaveService :
                     .Select(value => HaulDeliveryIntentRuntime.CloneForProjection(
                         value.SaveData.haulDeliveryIntent))
                     .OrderBy(value => value.operationId, StringComparer.Ordinal)
-                    .ToArray());
+                    .ToArray(),
+                canonicalProfiles.Where(value => value.isVisiting)
+                    .Select(value => new CharacterId(value.persistentId))
+                    .OrderBy(value => value.Value, StringComparer.Ordinal).ToArray());
             preparedCandidate = worldCandidate;
             return new CharacterWorldRestoreCandidate(
                 this,
@@ -792,12 +1324,7 @@ public sealed class CharacterWorldSaveService :
                 "Character restore candidate staging is not active or already has a value.");
         }
 
-        DetachedCharacterWorldCandidate taken = candidate.Take(this);
-        if (!ReferenceEquals(taken, preparedCandidate))
-        {
-            throw new InvalidOperationException(
-                "Character restore candidate does not match the prepared world.");
-        }
+        DetachedCharacterWorldCandidate taken = candidate.Take(this, preparedCandidate);
         preparedCandidate = null;
         stagedCandidate = taken;
     }
@@ -805,15 +1332,15 @@ public sealed class CharacterWorldSaveService :
     internal void DiscardPreparedCandidate(
         DetachedCharacterWorldCandidate candidate)
     {
+        // A discarded token can outlive its participant transaction. It may
+        // retire only the world still prepared by this owner, never a newer one.
+        if (candidate == null || !ReferenceEquals(preparedCandidate, candidate))
+        {
+            return;
+        }
         restoreWorldCandidates.ClearCharacterCandidate();
-        if (candidate != null)
-        {
-            DestroyCharacterCandidates(candidate.Characters);
-        }
-        if (ReferenceEquals(preparedCandidate, candidate))
-        {
-            preparedCandidate = null;
-        }
+        DestroyCharacterCandidates(candidate.Characters);
+        preparedCandidate = null;
     }
 
     private IReadOnlyList<CharacterActor> BuildCandidateCharacterView(
@@ -979,7 +1506,7 @@ public sealed class CharacterWorldSaveService :
 
             foreach (CharacterActor visitor in candidate.ExistingVisitors)
             {
-                PrepareTransientVisitorForWorldRetirement(visitor);
+                PrepareForWorldRetirement(new[] { visitor }, candidate.ActorsById);
                 if (!spawner.RetireVisitorForWorldRestore(
                         visitor,
                         out string retirementFailure))
@@ -1017,32 +1544,10 @@ public sealed class CharacterWorldSaveService :
 
     }
 
-    private static void PrepareTransientVisitorForWorldRetirement(
-        CharacterActor visitor)
-    {
-        if (visitor == null)
-        {
-            return;
-        }
-
-        AbilityHaul haul = visitor.GetComponent<AbilityHaul>();
-        if (haul != null)
-        {
-            // The restored physical-item aggregate is already authoritative.
-            // Forget the replaced world's carried slice and leases before the
-            // lifecycle callback can run ordinary interruption/drop behavior.
-            haul.PrepareForRestoreRetirementWithoutReplacement();
-            return;
-        }
-
-        visitor.CarryInventory?
-            .DiscardAllItemsForRestoredWorldReplacement();
-        visitor.GetComponent<AbilityMove>()?.CancelActiveMovement();
-    }
-
     private static void PrepareRestoredStaffComposition(
         GameObject staffObject,
-        CharacterId canonicalId)
+        CharacterId canonicalId,
+        CharacterType characterType)
     {
         if (staffObject == null)
         {
@@ -1066,7 +1571,8 @@ public sealed class CharacterWorldSaveService :
         // component is added or ComposeDetached performs injection so provisional
         // generated IDs can never become aggregate keys.
         identity.SetPersistentId(canonicalId);
-        if (staffObject.GetComponent<AbilityWork>() == null)
+        if (characterType == CharacterType.NPC
+            && staffObject.GetComponent<AbilityWork>() == null)
         {
             staffObject.AddComponent<AbilityWork>();
         }
@@ -1096,8 +1602,11 @@ public sealed class CharacterWorldSaveService :
         CharacterMoodSnapshot mood = actor.Stats.GetMoodSnapshot();
         actor.TryGetAbility(out AbilityWork work);
         actor.TryGetAbility(out AbilityShopping shopping);
+        AbilityMove move = actor.GetAbility<AbilityMove>();
         AbilityHaul haul = actor.GetComponent<AbilityHaul>();
         CharacterProgressionSnapshot progression = actor.Progression?.CapturePersistentState();
+        Vector2Int? societyMovementDestination =
+            move?.SocietyResponseMovementDestination;
 
         return new DungeonCharacterSaveData
         {
@@ -1109,10 +1618,27 @@ public sealed class CharacterWorldSaveService :
             role = identity.Role,
             gridX = gridPosition.x,
             gridY = gridPosition.y,
+            societyResponseMovementOperationId =
+                move?.SocietyResponseMovementOperationId ?? string.Empty,
+            societyResponseMovementExternalOperationId =
+                move?.SocietyResponseMovementExternalOperationId
+                ?? string.Empty,
+            societyResponseMovementFacilityId =
+                move?.SocietyResponseMovementFacilityId ?? string.Empty,
+            societyResponseMovementDestinationX =
+                societyMovementDestination?.x ?? 0,
+            societyResponseMovementDestinationY =
+                societyMovementDestination?.y ?? 0,
+            societyResponseMovementReceiptId =
+                move?.SocietyResponseMovementReceiptId ?? string.Empty,
             lifecycleState = actor.CurrentLifecycleState,
+            lifecycleRevision = actor.Lifecycle != null
+                ? actor.Lifecycle.LifecycleRevision
+                : throw new InvalidOperationException("Character save requires lifecycle authority."),
             currentHealth = actor.CurrentHealth,
             injurySeverity = actor.InjurySeverity,
             baseMood = mood.BaseValue,
+            restObservation = actor.Stats.CaptureRestObservation(),
             conditions = actor.Stats.StatSnapshot
                 .OrderBy(pair => pair.Key)
                 .Select(pair => new DungeonCharacterConditionSaveData
@@ -1148,6 +1674,8 @@ public sealed class CharacterWorldSaveService :
             visitCount = shopping?.visitCount ?? 0,
             lookAroundCount = shopping?.lookAroundCount ?? 0,
             holdingMoney = shopping?.HoldingMoney ?? 0,
+            pendingRetailPurchases = shopping?.CapturePendingRetailPurchases()
+                .ToList() ?? new List<RetailPurchaseRecoverySaveData>(),
             recentLogEntries = actor.LogComponent?.Entries
                 .TakeLast(MaxSavedLogEntries)
                 .ToList() ?? new List<string>(),
@@ -1157,6 +1685,8 @@ public sealed class CharacterWorldSaveService :
             equippedSkillIds = progression?.EquippedSkillIds.ToList() ?? new List<string>(),
             growth = progression?.GrowthState?.Clone() ?? new CharacterGrowthState(),
             narrative = progression?.NarrativeLedger?.Clone() ?? new CharacterNarrativeLedger(),
+            acquiredTraits = actor.Progression?.CaptureAcquiredTraitState()
+                ?? new CharacterAcquiredTraitAggregateState(),
             socialMemory = actor.SocialMemory?.CaptureSnapshot() ?? new CharacterSocialMemorySnapshot(),
             expeditionRecovery = actor.Lifecycle?.ExpeditionRecovery?.Clone()
                 ?? new CharacterExpeditionRecoveryState(),
@@ -1168,15 +1698,21 @@ public sealed class CharacterWorldSaveService :
 
     private List<CharacterActor> FindExistingStaff()
     {
+        HashSet<CharacterId> captivityOwnedIds =
+            GetCaptivityOwnedCharacterIds();
         return CharacterActorCollection
-            .DistinctByGameObject(characterWorldQuery.Characters)
+            .DistinctByGameObject(characterLifetimeQuery.AllCharacters)
             .Where(actor => actor != null
-                && actor.gameObject.activeInHierarchy
                 && !actor.IsOwner
                 && actor.Identity != null
                 && actor.Identity.Data != null
-                && actor.Identity.CharacterType == CharacterType.NPC
-                && actor.GetAbility<AbilityWork>() != null)
+                && ((CharacterPersistentIdentity.TryGet(
+                            actor,
+                            out CharacterId characterId)
+                        && captivityOwnedIds.Contains(characterId))
+                    || (actor.gameObject.activeInHierarchy
+                        && actor.Identity.CharacterType == CharacterType.NPC
+                        && actor.GetAbility<AbilityWork>() != null)))
             .OrderBy(actor => actor.Identity.Data.id)
             .ThenBy(actor => actor.GetInstanceID())
             .ToList();
@@ -1193,8 +1729,7 @@ public sealed class CharacterWorldSaveService :
                     != CharacterLifecycleState.Despawned
                 && actor.Identity != null
                 && actor.Identity.Data != null
-                && actor.Identity.CharacterType == CharacterType.Customer
-                && !actor.IsDead)
+                && actor.Identity.CharacterType == CharacterType.Customer)
             .OrderBy(actor => actor.Identity.PersistentId, StringComparer.Ordinal)
             .ThenBy(actor => actor.GetInstanceID())
             .ToList();
@@ -1228,14 +1763,48 @@ public sealed class CharacterWorldSaveService :
                 factor.remainingSeconds))
             .ToList();
         actor.Lifecycle?.RestoreExpeditionRecovery(source.expeditionRecovery);
-        actor.SetLifecycleState(source.lifecycleState);
+        if (actor.Lifecycle == null)
+            throw new InvalidOperationException("Character restore requires lifecycle authority.");
+        actor.Lifecycle.RestorePersistentState(source.lifecycleState, source.lifecycleRevision);
 
         actor.RefreshAbilityCache();
+        AbilityMove move = actor.GetAbility<AbilityMove>();
+        bool hasSocietyResponseMovement = !string.IsNullOrEmpty(
+                source.societyResponseMovementOperationId)
+            || !string.IsNullOrEmpty(
+                source.societyResponseMovementExternalOperationId)
+            || !string.IsNullOrEmpty(
+                source.societyResponseMovementFacilityId)
+            || source.societyResponseMovementDestinationX != 0
+            || source.societyResponseMovementDestinationY != 0
+            || !string.IsNullOrEmpty(
+                source.societyResponseMovementReceiptId);
+        if (move == null && hasSocietyResponseMovement)
+        {
+            throw new InvalidOperationException(
+                $"Character {source.persistentId} has Society response movement provenance but no AbilityMove.");
+        }
+        move?.RestoreSocietyResponseMovementProvenance(
+            source.societyResponseMovementOperationId,
+            source.societyResponseMovementExternalOperationId,
+            source.societyResponseMovementFacilityId,
+            source.societyResponseMovementDestinationX,
+            source.societyResponseMovementDestinationY,
+            source.societyResponseMovementReceiptId);
         AbilityWork work = actor.GetAbility<AbilityWork>();
-        if (!source.isOwner && work == null)
+        bool requiresStaffWork = !source.isOwner
+            && source.characterType == CharacterType.NPC;
+        if (requiresStaffWork && work == null)
         {
             throw new InvalidOperationException(
                 $"Restored staff character {source.persistentId} has no AbilityWork after composition.");
+        }
+        if (work == null
+            && (source.workPriorities.Count > 0
+                || source.dutyState != AbilityWork.DutyState.OnDuty))
+        {
+            throw new InvalidOperationException(
+                $"Character {source.persistentId} has saved work authority but no authored AbilityWork.");
         }
 
         if (work != null)
@@ -1251,7 +1820,7 @@ public sealed class CharacterWorldSaveService :
                         $"Character {source.persistentId} references unknown work type '{priority.workTypeId}'.");
                 }
 
-                work.SetWorkPriority(definition.WorkTypeId, priority.priority);
+                work.RestoreWorkPriority(definition.WorkTypeId, priority.priority);
             }
 
             work.SetDutyState(source.dutyState);
@@ -1275,12 +1844,14 @@ public sealed class CharacterWorldSaveService :
         actor.GetAbility<AbilityShopping>()?.RestorePersistentState(
             source.visitCount,
             source.lookAroundCount,
-            source.holdingMoney);
+            source.holdingMoney,
+            source.pendingRetailPurchases);
         actor.Progression?.RestorePersistentState(new CharacterProgressionSnapshot(
             source.level,
             source.currentExperience,
             source.growth,
-            source.narrative));
+            source.narrative,
+            source.acquiredTraits));
         CharacterCarryInventory.Ensure(actor).Restore(source.carryInventory);
         actor.SocialMemory?.RestoreSnapshot(source.socialMemory);
         actor.LogComponent?.RestoreVisibleEntries(source.recentLogEntries);
@@ -1294,7 +1865,8 @@ public sealed class CharacterWorldSaveService :
             source.currentHealth,
             source.injurySeverity,
             source.baseMood,
-            moodFactors);
+            moodFactors,
+            source.restObservation);
         actor.state = CharacterDecisionState.DECIDE;
         // The action catalog is runtime composition, not save authority. A full
         // world restore can reuse an actor whose transient catalogue belonged
@@ -1306,7 +1878,7 @@ public sealed class CharacterWorldSaveService :
         {
             actor.Brain?.UseOwnerWorkActions();
         }
-        else if (work != null)
+        else if (source.characterType == CharacterType.NPC && work != null)
         {
             actor.Brain?.UseStaffWorkActions();
         }

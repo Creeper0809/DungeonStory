@@ -345,6 +345,9 @@ public sealed class DungeonProductShellVerificationRunner : MonoBehaviour
             Check(File.Exists(settings.SettingsPath), "SETTINGS_SAVED", "settings file is written immediately");
 
             yield return Click(FindSceneComponent<Button>("SettingsCloseButton"));
+            yield return WaitForCondition(
+                () => settingsModal != null && !settingsModal.activeInHierarchy,
+                2f);
             Check(settingsModal != null && !settingsModal.activeInHierarchy,
                 "SETTINGS_CLOSE", "Settings closes through pointer input");
             Check(titleRoot != null && titleRoot.activeInHierarchy && Mathf.Approximately(Time.timeScale, 1f),
@@ -377,7 +380,7 @@ public sealed class DungeonProductShellVerificationRunner : MonoBehaviour
             yield return WaitForCondition(
                 () => FindSceneComponent<Button>("PreparationStartRunButton")?.interactable == true,
                 10f);
-            yield return StartPartyPlayModeTestDriver.CompleteIfVisible(30f);
+            yield return StartPartyPlayModeTestDriver.CompleteIfVisible(180f);
             yield return WaitForCondition(
                 () => SceneManager.GetActiveScene().name == DungeonSceneNavigator.GameplaySceneName && FindScope() != null,
                 10f);

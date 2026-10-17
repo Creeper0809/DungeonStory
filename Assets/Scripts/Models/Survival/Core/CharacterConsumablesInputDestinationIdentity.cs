@@ -6,7 +6,8 @@ using UnityEngine;
 public enum CharacterConsumablesInputKind
 {
     Meal = 0,
-    RecreationalSubstance = 1
+    RecreationalSubstance = 1,
+    MedicalTreatment = 2
 }
 
 public static class CharacterConsumablesInputDestinationIdentity
@@ -46,6 +47,8 @@ public static class CharacterConsumablesInputDestinationIdentity
             CharacterConsumablesInputKind.Meal => "meal",
             CharacterConsumablesInputKind.RecreationalSubstance =>
                 "recreation-substance",
+            CharacterConsumablesInputKind.MedicalTreatment =>
+                "medical-treatment",
             _ => throw new ArgumentOutOfRangeException(nameof(kind))
         };
 

@@ -1,0 +1,13 @@
+origin=37,0
+placedBuildings=37
+powerRawRoute=REJECTED:facility_buffer_managed_route_required
+powerFuelCarriedRestore=350g
+power=32/11.5
+powerFuelRoute=exact-stack-admission-ai-haul
+authored-I15-main-switch-field-Light2D=100->85.873->100
+authored-E01-physical-refuel=1;stored-after=0;field=67.03->75
+physical-refuel-current-save-empty-retry-next-day-exhaustion=PASS
+scope=authored-main-I15-E01-real-power-and-physical-fuel;stock-drain-is-explicit-fault-checkpoint
+mode=power-fuel-only
+cleanup=exact-except-meta-elapsed-float-rounding-under-0.00001s
+result=PASS

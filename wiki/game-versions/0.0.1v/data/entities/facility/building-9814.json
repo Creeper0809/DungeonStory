@@ -16,6 +16,6 @@
   "schema_version": 1,
   "slug": "building-9814",
   "spoiler_tier": "none",
-  "summary": "시설 동작은 BuildingCircuitBreakerAbility, BuildingEconomyAbility, BuildingFacilityAbility, BuildingFacilityPartAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 90, 재료 석재 블록×6, 강철×5, 기계 부품×3, 정밀 부품×1이 필요하다.",
+  "summary": "시설 동작은 BuildingCircuitBreakerAbility, BuildingEconomyAbility, BuildingFacilityAbility, BuildingFacilityPartAbility, BuildingWorkAmountAbility 모듈로 구성된다. 건설에는 작업량 90 WU, 재료 석재 블록×6, 강철×5, 기계 부품×3, 정밀 부품×1이 필요하다.",
   "title": "회로 차단기"
 }

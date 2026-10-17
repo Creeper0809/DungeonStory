@@ -57,7 +57,7 @@ internal sealed class SurvivalMealLedger
         DungeonSurvivalSaveData state,
         ref long sequence,
         CharacterActor consumer,
-        BuildableObject facility,
+        BuildingInstanceId facilityId,
         string itemId,
         string displayName,
         MealDietClass dietClass,
@@ -66,9 +66,10 @@ internal sealed class SurvivalMealLedger
         bool policyViolation,
         bool contaminated)
     {
+        if (!facilityId.IsValid)
+            throw new ArgumentException("Meal consumption requires its actual facility identity.", nameof(facilityId));
         SurvivalFoodStatePersistence.EnsureLists(state);
         string characterId = CharacterPersistentIdentity.Require(consumer).Value;
-        string facilityId = facility.RequirePersistentInstanceId().Value;
         int day = Mathf.Max(1, state.lastProcessedDay);
         state.lastProcessedDay = day;
         const int amount = 1;
@@ -77,7 +78,7 @@ internal sealed class SurvivalMealLedger
         {
             mealId = mealId,
             characterId = characterId,
-            facilityId = facilityId,
+            facilityId = facilityId.Value,
             itemId = itemId ?? string.Empty,
             displayName = displayName ?? string.Empty,
             dietClass = dietClass,
@@ -98,7 +99,7 @@ internal sealed class SurvivalMealLedger
         gameEventBus.Publish(new CharacterMealConsumedEvent(
             mealId,
             characterId,
-            facilityId,
+            facilityId.Value,
             itemId,
             displayName,
             dietClass,

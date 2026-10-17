@@ -403,7 +403,8 @@ namespace DungeonStory.Tests.Architecture
         [Test]
         public void AllProductionAndRestoreCallersUseThePublicationBoundary()
         {
-            string faction = ReadScript("Services/Factions/FactionRuntime.cs");
+            string faction = ReadScript(
+                "Services/Factions/FactionReinforcementMaterializer.cs");
             string offense = ReadScript(
                 "Services/Offense/OffenseReturnArrivalRuntime.cs");
             string exterior = ReadScript(
@@ -413,7 +414,7 @@ namespace DungeonStory.Tests.Architecture
 
             string materializeReinforcements = ExtractMethod(
                 faction,
-                "private void MaterializeReinforcements",
+                "internal void MaterializeReinforcements",
                 "private FactionDefinitionSnapshot FindDefinition");
             string offenseTrySpawnPrisoner = ExtractMethod(
                 offense,

@@ -1,0 +1,154 @@
+{
+  "status": "SIX_CAPABILITY_OWNERS_IMPLEMENTED_MANAGED_PREPARATION_AND_STATIC_VERIFIED_UNITY_DEFERRED",
+  "goalStatus": "active",
+  "allGoalTargetsComplete": false,
+  "window": "All authors READY/FROZEN; SOURCE_EDIT closed; UNITY_VERIFY not opened",
+  "sourcePin": {
+    "path": "source-pin-c9-capabilities-r1.json",
+    "files": 841,
+    "drift": 0
+  },
+  "toolPin": {
+    "path": "tool-pin-c9-capabilities-r1.json",
+    "files": 8,
+    "drift": 0
+  },
+  "c9": {
+    "capabilityOwners": [
+      "LastStandTraitRuntime",
+      "ForbiddenResearchLeapTraitRuntime",
+      "MiracleSurgeryTraitRuntime",
+      "GoldenHarvestTraitRuntime",
+      "ProductionLimitBreakTraitRuntime",
+      "ArcaneOverchargeTraitRuntime"
+    ],
+    "movedMethods": 54,
+    "sharedStatelessMethods": 12,
+    "publicFacadeMethods": 28,
+    "existingContractTypes": 13,
+    "stableConstants": 6,
+    "singleStateAuthority": "Same CharacterIdentityStateStore passed to all owners; no cached actor/DTO root or new store",
+    "parity": "DTO/public attributes/constructor/condition order/fixed calculations/Golden prepared receipt+death retention+strict census/Arcane partial apply-resume/rollback exact",
+    "identityStore": "All source bodies equal HEAD; only Set/RemoveRule actual-writer intent metadata changed",
+    "consumerFilesUpdated": 2,
+    "legacyAPIsRetained": "Two have Editor/reflection consumers; no non-Editor/asset method references found",
+    "independentReadReview": "No additional confirmed defect; static only"
+  },
+  "limitedABICompilation": {
+    "status": "PASS",
+    "currentSourceFiles": 10,
+    "references": 46,
+    "scope": "Current C9 facade/capability6/shared access/contracts/preparation source only, pinned cached production types and existing friend access. CharacterIdentityRuntime writer attributes statically compared; full current Unity compilation/runtime NOT RUN.",
+    "fullUnityCompilation": "NOT_RUN"
+  },
+  "managedPreparation": {
+    "status": "PASS",
+    "rows": 5,
+    "scope": "Pure detached research trait preparation and shared fixed hash only. Current C9 source compiled; actual pinned cached CharacterIdentityStateStore/DTOs. Opaque payloads, no JsonUtility/actor selection/research outbox/Unity execution.",
+    "realProductionSourceExecuted": [
+      "ForbiddenResearchLeapPreparation",
+      "ExtremeTraitRuleAccess"
+    ],
+    "cachedActualProductionTypes": "CharacterIdentityStateStore and DTOs",
+    "opaquePayloads": true,
+    "JsonUtilityActorResearchOutboxOrUnityClaimed": false
+  },
+  "syntax": {
+    "files": 123,
+    "errors": 0,
+    "fullUnitySemanticCompilation": "NOT_RUN",
+    "UnityExecution": "NOT_RUN"
+  },
+  "sameDefaultAssembly": [
+    "Assets/Scripts/Services/Character/Identity/Runtime/LastStandTraitRuntime.cs",
+    "Assets/Scripts/Services/Character/Identity/Runtime/ForbiddenResearchLeapTraitRuntime.cs",
+    "Assets/Scripts/Services/Character/Identity/Runtime/MiracleSurgeryTraitRuntime.cs",
+    "Assets/Scripts/Services/Character/Identity/Runtime/GoldenHarvestTraitRuntime.cs",
+    "Assets/Scripts/Services/Character/Identity/Runtime/ProductionLimitBreakTraitRuntime.cs",
+    "Assets/Scripts/Services/Character/Identity/Runtime/ArcaneOverchargeTraitRuntime.cs",
+    "Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuleAccess.cs",
+    "Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntimeContracts.cs",
+    "Assets/Scripts/Services/Character/Identity/Runtime/ForbiddenResearchLeapPreparation.cs",
+    "Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntime.cs",
+    "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs"
+  ],
+  "newMeta": {
+    "Assets/Scripts/Services/Character/Identity/Runtime/LastStandTraitRuntime.cs.meta": {
+      "guid": "82d6f16f4e8f4db8b25deff10c4953da",
+      "occurrences": 1,
+      "sha256": "b01f555ce01203f5419c0ffd11145778b4a450af10bdfd3a6cf2058fe52e1100"
+    },
+    "Assets/Scripts/Services/Character/Identity/Runtime/ForbiddenResearchLeapTraitRuntime.cs.meta": {
+      "guid": "19418abe61c2441c8d80ff9ee5c2497a",
+      "occurrences": 1,
+      "sha256": "595b890041b522e85df2027a6835f8c9bdcc14115f562262f450a52fcc7b4b07"
+    },
+    "Assets/Scripts/Services/Character/Identity/Runtime/MiracleSurgeryTraitRuntime.cs.meta": {
+      "guid": "b49b462692064fbc902d26fa511e37ee",
+      "occurrences": 1,
+      "sha256": "673c8cdcf40ff1a3f0807590415e286e0961157741693f16a40e701bbc2f47ed"
+    },
+    "Assets/Scripts/Services/Character/Identity/Runtime/GoldenHarvestTraitRuntime.cs.meta": {
+      "guid": "c8ec29b142d04379b081de9eac4d97b2",
+      "occurrences": 1,
+      "sha256": "5c289fe90ecaeea891eca6bad22b8cb13593c116d3469c794cbaf855a4b7906b"
+    },
+    "Assets/Scripts/Services/Character/Identity/Runtime/ProductionLimitBreakTraitRuntime.cs.meta": {
+      "guid": "c358a4a5b7bc4d46bfaf4fb6b1814669",
+      "occurrences": 1,
+      "sha256": "52ec5bbd6c3b69e886896cedc718caebacc8684a45142f13ad72488860b6450e"
+    },
+    "Assets/Scripts/Services/Character/Identity/Runtime/ArcaneOverchargeTraitRuntime.cs.meta": {
+      "guid": "ce64635710df4c90b2c100bb0de196d7",
+      "occurrences": 1,
+      "sha256": "178bbc9e63b9ba4c75ee4ffdd87062b470a9c1178e0926ed28281762f190c4bc"
+    },
+    "Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuleAccess.cs.meta": {
+      "guid": "82d2400215e34fc3a17074dd15178ab3",
+      "occurrences": 1,
+      "sha256": "a934d75e18e2c2b32101b89fa6c9887371742948f7ff4afff40b44434a62d22e"
+    },
+    "Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntimeContracts.cs.meta": {
+      "guid": "5727417abfad4081ba423aae71b5c615",
+      "occurrences": 1,
+      "sha256": "758440da6747cbe88a276eeec04481a0dff76a334891696145a2c008f4049942"
+    },
+    "Assets/Scripts/Services/Character/Identity/Runtime/ForbiddenResearchLeapPreparation.cs.meta": {
+      "guid": "0d8b6483dad246e7a969393ebcf55ec1",
+      "occurrences": 1,
+      "sha256": "0cca73890af26176bfa1f03116af97cabfee1b8073796df51d47b475d212c6fa"
+    }
+  },
+  "originalMeta": {
+    "Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntime.cs.meta": {
+      "guid": "67dbcd18f388f454f927baba43841fa5",
+      "occurrences": 1,
+      "sha256": "ea21332022c933c51831adc6f7b0edeae78acb138e4f981eecac4684b46c8f4e"
+    },
+    "Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityRuntime.cs.meta": {
+      "guid": "16197f157046d79498b687ab51f01a42",
+      "occurrences": 1,
+      "sha256": "981101d9c753ae71ae7dfe13d303df522f72380e38183f5d6bd019b8e57be79a"
+    }
+  },
+  "knowledgeBase": {
+    "query": "ExtremeTraitRuntime",
+    "observedAt": "pre-edit source818 snapshot",
+    "status": "STALE",
+    "failureCount": 133,
+    "exitCode": 1,
+    "action": "Original source fallback; related index batch open; no rebuild"
+  },
+  "executionLimit": "User asked to continue code cleanup. No Unity launch, same-RAM-condition retry, other-app or desktop-input action. Current full compile and six-capability/Golden physical JSON restore/death ACK/A07 partial restore/retry actual verification remain required.",
+  "remainingGoalWork": true,
+  "completedTargets": 6,
+  "totalTargets": 32,
+  "committedOrPushed": false,
+  "finalChecks": {
+    "reportLocalLinks": 603,
+    "missingLocalLinks": 0,
+    "sourceAndProbeHashesMatch": true,
+    "scopedWhitespaceAndDiff": "PASS",
+    "ownedUnityLauncherCompiler": 0
+  }
+}
