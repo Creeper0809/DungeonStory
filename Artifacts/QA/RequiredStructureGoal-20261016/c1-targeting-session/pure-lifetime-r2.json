@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "sourceHashes": {
+    "C:\\Users\\vulpo\\Documents\\DungeonStory\\Artifacts\\QA\\RequiredStructureGoal-20261016\\c1-targeting-session\\TargetingLifetimeTests.cs": "74a0fe6d09608070c8d9506fa43885696842cf02666d82dafb1ac31990ce01f4",
+    "C:\\Users\\vulpo\\Documents\\DungeonStory\\Artifacts\\QA\\RequiredStructureGoal-20261016\\c1-targeting-session\\SelectionUnderTest.cs": "e71e14c9273d777ee858c3aebecab8f4f2cb336b3dfce2496ea05ea1cda95058",
+    "Assets/Scripts/Controllers/Character/Input/OwnerCommandTargetingSession.cs": "9105c71e8a55e149aeda17192d93debdb49e32c6bd4349898b0c0c3bff02d028"
+  },
+  "selectionExtraction": "Exact source prefix: complete OwnerCommandSelectionState class, remaining drag/info excluded",
+  "scope": "Actual targeting+selection logic with explicit actor/enum/nameplate/Application collaborators. No Unity destroyed-object equality, gameplay, actual input/UI, activation or persistence."
+}

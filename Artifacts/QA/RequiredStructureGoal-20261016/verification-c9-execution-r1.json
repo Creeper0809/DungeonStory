@@ -1,0 +1,92 @@
+{
+  "status": "PASS",
+  "target": "C9",
+  "nativeRuns": [
+    "native-c9-capabilities-current-r1",
+    "native-c9-arcane-current-r1"
+  ],
+  "reports": {
+    "native-c9-capabilities-current-r1/unity-evidence/extreme-trait-boundary.txt": "573944a819462f745d038ca0b1d126e61c4ca55d1d9e90ebe52c326c7915d1e5",
+    "native-c9-arcane-current-r1/unity-evidence/report.json": "7aa441c69d9ce93e8116b433cd208935311f182e60880cb75f6f1d97cc94d6ad"
+  },
+  "terminalUnityExits": [
+    0,
+    0
+  ],
+  "compileSeconds": 25.952035,
+  "compileErrors": 0,
+  "currentCompiledAssembly": "Assembly-CSharp-Editor",
+  "pins": {
+    "source-pin-c9-native-r1.json": {
+      "files": 1428,
+      "drift": []
+    },
+    "native-input-pin-r40.json": {
+      "files": 3880,
+      "drift": []
+    },
+    "tool-pin-c9-native-r1.json": {
+      "files": 9,
+      "drift": []
+    },
+    "g4-faction-assembly-input-pin-r2.json": {
+      "files": 18,
+      "drift": []
+    }
+  },
+  "assemblies": {
+    "Library\\ScriptAssemblies\\Assembly-CSharp-Editor.dll": "61a6a0ac5224d56b26e1559963c1ec59e7363424bfdf8d3a1c537176a455a9e1",
+    "Library\\ScriptAssemblies\\Assembly-CSharp.dll": "01e14410b9ee51b3fffe836248e0c803d2c82bc963b622eeeb10b14040c24301",
+    "Library\\ScriptAssemblies\\DungeonStory.Buildings.dll": "e939738b02c6aebe5319a12ac7b476004597efdd6547c301e8e167cd77833b14",
+    "Library\\ScriptAssemblies\\DungeonStory.Economy.dll": "c6dffaa8e88a006e4f91612eb29108a2035cc6ce4d1462908d7615195cb43454",
+    "Library/ScriptAssemblies/DungeonStory.Factions.dll": "c384de7f49e87ab603f7750636594e035adfc7d8ed6cb079b0fe29caf43a04e2",
+    "Library/ScriptAssemblies/DungeonStory.Survival.dll": "e97861eefc80a99d13aa19daa78719bdccc95deb19ff168a656a8b303f9273ff"
+  },
+  "unchangedDiskInputs": {
+    "Assets/Resources/SO/Building/Modular/D04_배식카운터.asset": "2bcdee76a67785c5d2db3d80068f43009667bf0a48a3a51c5abc9d789cff3e1a",
+    "Assets/Resources/SO/Building/Modular/D04_배식카운터.asset.meta": "efbe8ab42cd71b10a593721838c5d8b34adf2456ac1b18d2403ceda604ee92ea",
+    "Assets/Scenes/GameplayScene.unity": "a698948004fd2a1db71ef1bebf5ab4d4c5d62caf85fed1ea5af2bb3972c30341",
+    "Assets/Scenes/GameplayScene.unity.meta": "0c7f1e7dac6804c5e9bad630433c81b9bb944b7532a9e63d5d938f9f3b56849e",
+    "ProjectSettings/EditorBuildSettings.asset": "8ee44400b9ae37cbd1092f671fe364f277601cc02357b02e3908d1d4e9a95ad4"
+  },
+  "protectedInputs": {
+    "Artifacts/QA/v26-founder-trait-mythic-audit.txt": "01afbd052736fcd594370e621453894f7a88118d51d170fc41657e5f574de4a3",
+    "Assets/Resources/SO/Content/GameDomainContentCatalog.asset": "07f8cc929fccb5e0d10adc2d3042e60a733b799b0b62058a2136acd83c05e546",
+    "Temp/captivity-circus-contracts.tsv": null
+  },
+  "verified": [
+    "Original six-capability native actor/shared identity store contracts: thresholds/once/aftermath, preparation/commit, capture/restore/Golden death retention; derived revision cache",
+    "Original Golden jackpot/loss actual crop/physical repository: active/terminal JSON fresh restore, exact actor/roll/ecology/ledger, completed retry no duplicate",
+    "Original A07 actual command/body-health/equipment/identity: effect rejection leases, partial fresh JSON restore, only missing effect resume, terminal replay no mutation"
+  ],
+  "a07Coverage": {
+    "healthRejectionLeavesLeaseOnly": true,
+    "identityStateRoundTrip": true,
+    "durabilityRejectionPreservesHealthOnce": true,
+    "resumeCompletesMissingEffectOnly": true,
+    "terminalReplayNoDuplicate": true,
+    "exactBeforeAfterRecorded": true,
+    "productionBodyHealthMutation": true,
+    "partialBodyEquipmentIdentityFreshRestore": true
+  },
+  "a07Operation": {
+    "activationId": "arcane-overcharge:character:a07:arcane-overcharge:70000",
+    "equipmentInstanceId": "item-instance:3145ae08dc0c4dcdb69767176d275048",
+    "healthBefore": 100.0,
+    "healthAfter": 85.0,
+    "durabilityBefore": 1.0,
+    "durabilityAfter": 0.75,
+    "selfDamageAttempts": 2,
+    "selfDamageCompletions": 1,
+    "durabilityAttempts": 2,
+    "productionBodyHealthAfter": 85.0,
+    "actorHealthAfter": 85.0,
+    "selfDamageAttemptsAfterRestore": 0,
+    "freshBodyEquipmentIdentityRestore": true,
+    "rejectionCount": 2,
+    "terminalReplayMutationCount": 0,
+    "identitySaveRestore": "PASS"
+  },
+  "a07ReportedRuntimeExceptionLines": [],
+  "limits": "Controlled native components and explicit input/clock/mana ports. No natural UI/AI or official pending capability whole-world restore claim. A07 report/log has no scoped LogType collector; combined six/Golden suite has consoleErrors0."
+}

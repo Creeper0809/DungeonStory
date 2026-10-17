@@ -42,7 +42,7 @@ public static class CharacterProgressionDebugScenarios
         draft.requestContextHash = string.Empty;
         draft.requestContextVersion = 0;
         NarrativePublicContextMaterial material = CharacterSkillPromptBuilder.BuildModuleSelectionPublicMaterial(
-            progression, draft);
+            NarrativeRequestContextTestFixture.CreateEmpty(), progression, draft);
         string[] required = draft.moduleSelectionOffers.SelectMany(offer => offer.evidenceFactIds)
             .Where(id => id.StartsWith("skill-evidence:", StringComparison.Ordinal)).Distinct().ToArray();
         Require(required.Length == 7 && draft.outcomeEvidenceBindings.Count == 14,
@@ -90,7 +90,7 @@ public static class CharacterProgressionDebugScenarios
                     .Select(CharacterSkillFormulaGeneration.BuildEvidenceId).ToList() }
             }
         };
-        Reject(() => CharacterSkillPromptBuilder.BuildModuleSelectionPublicMaterial(progression, overCap),
+        Reject(() => CharacterSkillPromptBuilder.BuildModuleSelectionPublicMaterial(NarrativeRequestContextTestFixture.CreateEmpty(), progression, overCap),
             "Public evidence cap silently dropped exact target tuples.");
         Debug.Log("B139_SKILL_PUBLIC_SELECTION=PASS; narrative=7; exact=14; frozen-json=1; old-incomplete-rejected=1; cap-rejected=1; model-calls=0");
         return prompt;
@@ -300,7 +300,7 @@ public static class CharacterProgressionDebugScenarios
             var runtime = new OriginalNativeReplayRuntime(actualResponse, captureCanonicalRetry);
             var uiClock = new MutableUiClock();
             service = new CharacterSkillGenerationService(
-                provider, new TestLlmRuntimeProvider(runtime), uiClock);
+                NarrativeRequestContextTestFixture.CreateEmpty(), provider, new TestLlmRuntimeProvider(runtime), uiClock);
             progression.ConstructCharacterProgression(
                 service, provider, gameEventBus: new GameEventBus(),
                 profileProjector: new CharacterProgressionProfileProjector(
@@ -617,7 +617,7 @@ public static class CharacterProgressionDebugScenarios
         {
             TestSettingsProvider settingsProvider = new TestSettingsProvider(settings);
             CharacterSkillGenerationService service = new CharacterSkillGenerationService(
-                settingsProvider,
+                NarrativeRequestContextTestFixture.CreateEmpty(), settingsProvider,
                 new MissingLlmRuntimeProvider(),
                 new MutableUiClock());
             CharacterProgression progression = actor.Actor.Progression;
@@ -652,7 +652,7 @@ public static class CharacterProgressionDebugScenarios
                 CharacterSkillKind.Passive,
                 1);
             NarrativePublicContextMaterial publicMaterial =
-                CharacterSkillPromptBuilder.BuildPublicMaterial(progression);
+                CharacterSkillPromptBuilder.BuildPublicMaterial(NarrativeRequestContextTestFixture.CreateEmpty(), progression);
             string activePrompt = CharacterSkillPromptBuilder.BuildEnvelope(
                 progression,
                 active,
@@ -1965,7 +1965,7 @@ public static class CharacterProgressionDebugScenarios
             : $"{milestone}:{suffix}";
         NarrativePublicContextMaterial publicMaterial =
             CharacterAcquiredTraitPromptBuilder.BuildPublicMaterialForLedgerEvidence(
-                progression,
+                NarrativeRequestContextTestFixture.CreateEmpty(), progression,
                 evidence);
         IReadOnlyList<string> projectedEvidence =
             CharacterAcquiredTraitPromptBuilder.BuildProjectedEvidenceFactIds(
@@ -2616,7 +2616,7 @@ public static class CharacterProgressionDebugScenarios
 
             DeferredAcquiredTraitLlmRuntime transport = new();
             using CharacterAcquiredTraitManifestationRuntime runtime = new(
-                new AcquiredTraitDefinitionSource(settings, modules),
+                NarrativeRequestContextTestFixture.CreateEmpty(), new AcquiredTraitDefinitionSource(settings, modules),
                 new FixedCharacterWorld(source.Actor),
                 new TestLlmRuntimeProvider(transport),
                 new FixedGameCalendar(day: 17, hour: 4),
@@ -2710,7 +2710,7 @@ public static class CharacterProgressionDebugScenarios
         restored.Actor.Progression.RestorePersistentState(pendingSnapshot);
         DeferredAcquiredTraitLlmRuntime resumedTransport = new();
         using CharacterAcquiredTraitManifestationRuntime resumedRuntime = new(
-            new AcquiredTraitDefinitionSource(settings, modules),
+            NarrativeRequestContextTestFixture.CreateEmpty(), new AcquiredTraitDefinitionSource(settings, modules),
             new FixedCharacterWorld(restored.Actor),
             new TestLlmRuntimeProvider(resumedTransport),
             new FixedGameCalendar(day: 17, hour: 5),
@@ -2769,7 +2769,7 @@ public static class CharacterProgressionDebugScenarios
                 "run:qa-trait-stale-" + changeGeneration);
             var transport = new DeferredAcquiredTraitLlmRuntime();
             using var runtime = new CharacterAcquiredTraitManifestationRuntime(
-                new AcquiredTraitDefinitionSource(settings, modules), new FixedCharacterWorld(source.Actor),
+                NarrativeRequestContextTestFixture.CreateEmpty(), new AcquiredTraitDefinitionSource(settings, modules), new FixedCharacterWorld(source.Actor),
                 new TestLlmRuntimeProvider(transport), new FixedGameCalendar(day: 17, hour: 4),
                 new MutableUiClock(), new GameEventBus(),
                 EmptyGameplayOutcomeNarrativeEvidenceQuery.Instance,
@@ -4861,7 +4861,7 @@ public static class CharacterProgressionDebugScenarios
         {
             TestSettingsProvider settingsProvider = new TestSettingsProvider(settings);
             CharacterSkillGenerationService service = new CharacterSkillGenerationService(
-                settingsProvider,
+                NarrativeRequestContextTestFixture.CreateEmpty(), settingsProvider,
                 new MissingLlmRuntimeProvider(),
                 CharacterAiEditorTestDependencies.UiClock);
             CharacterProgression progression = actor.Actor.Progression;
@@ -5113,7 +5113,7 @@ public static class CharacterProgressionDebugScenarios
                     && passive.candidates.Count == 0,
                 "A new passive draft did not expose exactly one unresolved selection offer.");
             string passivePrompt = CharacterSkillPromptBuilder.Build(
-                progression,
+                NarrativeRequestContextTestFixture.CreateEmpty(), progression,
                 passive,
                 settings);
             Require(passivePrompt.Contains("selectionId=", StringComparison.Ordinal)
@@ -5205,7 +5205,7 @@ public static class CharacterProgressionDebugScenarios
                 new(outcomes, outcomes);
             TestSettingsProvider settingsProvider = new(settings);
             CharacterSkillGenerationService service = new(
-                settingsProvider,
+                NarrativeRequestContextTestFixture.CreateEmpty(), settingsProvider,
                 new MissingLlmRuntimeProvider(),
                 CharacterAiEditorTestDependencies.UiClock);
             CharacterProgression progression = actor.Actor.Progression;
@@ -5780,7 +5780,7 @@ public static class CharacterProgressionDebugScenarios
             MutableUiClock clock = new MutableUiClock();
             BatchSkillLlmRuntime runtime = new BatchSkillLlmRuntime();
             CharacterSkillGenerationService service = new CharacterSkillGenerationService(
-                settingsProvider,
+                NarrativeRequestContextTestFixture.CreateEmpty(), settingsProvider,
                 new TestLlmRuntimeProvider(runtime),
                 clock);
             CharacterProgression progression = actor.Actor.Progression;
@@ -5826,7 +5826,7 @@ public static class CharacterProgressionDebugScenarios
                 progression,
                 successDraft,
                 settings,
-                CharacterSkillPromptBuilder.BuildPublicMaterial(progression),
+                CharacterSkillPromptBuilder.BuildPublicMaterial(NarrativeRequestContextTestFixture.CreateEmpty(), progression),
                 batchModuleSelection: true).Prompt;
             LlmStaticSchemaDefinition moduleSelectionSchema =
                 LlmStaticSchemaCatalog.Require(
@@ -6099,7 +6099,7 @@ public static class CharacterProgressionDebugScenarios
 
             TestSettingsProvider settingsProvider = new TestSettingsProvider(settings);
             CharacterSkillGenerationService service = new CharacterSkillGenerationService(
-                settingsProvider,
+                NarrativeRequestContextTestFixture.CreateEmpty(), settingsProvider,
                 new MissingLlmRuntimeProvider(),
                 CharacterAiEditorTestDependencies.UiClock);
             CharacterProgression progression = actor.Actor.Progression;
@@ -6156,7 +6156,7 @@ public static class CharacterProgressionDebugScenarios
                     !CharacterSkillValidation.WouldSelfTrigger(moduleId, rule.trigger))),
                 "A self-triggering module was offered in a passive draft.");
             string passivePrompt = CharacterSkillPromptBuilder.Build(
-                progression,
+                NarrativeRequestContextTestFixture.CreateEmpty(), progression,
                 passiveDraft,
                 settings);
             Require(passivePrompt.Contains("candidateCount=1")
@@ -6312,7 +6312,7 @@ public static class CharacterProgressionDebugScenarios
             TestSettingsProvider settingsProvider = new TestSettingsProvider(settings);
             SequencedLlmRuntime runtime = new SequencedLlmRuntime();
             CharacterSkillGenerationService service = new CharacterSkillGenerationService(
-                settingsProvider,
+                NarrativeRequestContextTestFixture.CreateEmpty(), settingsProvider,
                 new TestLlmRuntimeProvider(runtime),
                 CharacterAiEditorTestDependencies.UiClock);
             CharacterProgression source = sourceActor.Actor.Progression;
@@ -6424,7 +6424,7 @@ public static class CharacterProgressionDebugScenarios
                 CharacterProgression restored = restoredFixture.Actor.Progression;
                 var provider = new TestSettingsProvider(settings);
                 var transport = new DelayedSkillLlmRuntime();
-                var service = new CharacterSkillGenerationService(provider, new TestLlmRuntimeProvider(transport), new MutableUiClock());
+                var service = new CharacterSkillGenerationService(NarrativeRequestContextTestFixture.CreateEmpty(), provider, new TestLlmRuntimeProvider(transport), new MutableUiClock());
                 source.ConstructCharacterProgression(service, provider, gameEventBus: new GameEventBus(),
                     profileProjector: new CharacterProgressionProfileProjector(new ResourceGameContentCatalog(new UnityGameContentRootLoader()),
                         new CharacterRuntimeProfileFactory(new ResourceGameContentCatalog(new UnityGameContentRootLoader()))));
@@ -6449,7 +6449,7 @@ public static class CharacterProgressionDebugScenarios
                 CharacterProgressionSnapshot saved = source.CapturePersistentState();
                 service.CancelRequests(source);
                 var resumedTransport = new DelayedSkillLlmRuntime();
-                var resumedService = new CharacterSkillGenerationService(provider, new TestLlmRuntimeProvider(resumedTransport), new MutableUiClock());
+                var resumedService = new CharacterSkillGenerationService(NarrativeRequestContextTestFixture.CreateEmpty(), provider, new TestLlmRuntimeProvider(resumedTransport), new MutableUiClock());
                 restored.ConstructCharacterProgression(resumedService, provider, gameEventBus: new GameEventBus(),
                     profileProjector: new CharacterProgressionProfileProjector(new ResourceGameContentCatalog(new UnityGameContentRootLoader()),
                         new CharacterRuntimeProfileFactory(new ResourceGameContentCatalog(new UnityGameContentRootLoader()))));
@@ -6518,7 +6518,7 @@ public static class CharacterProgressionDebugScenarios
             ReadinessControlledLlmRuntime runtime =
                 new ReadinessControlledLlmRuntime();
             CharacterSkillGenerationService service = new CharacterSkillGenerationService(
-                settingsProvider,
+                NarrativeRequestContextTestFixture.CreateEmpty(), settingsProvider,
                 new TestLlmRuntimeProvider(runtime),
                 clock);
             CharacterProgression progression = actor.Actor.Progression;
@@ -6600,7 +6600,7 @@ public static class CharacterProgressionDebugScenarios
             MutableUiClock clock = new MutableUiClock();
             NeverCompletingLlmRuntime runtime = new NeverCompletingLlmRuntime();
             CharacterSkillGenerationService service = new CharacterSkillGenerationService(
-                settingsProvider,
+                NarrativeRequestContextTestFixture.CreateEmpty(), settingsProvider,
                 new TestLlmRuntimeProvider(runtime),
                 clock);
             CharacterProgression progression = actor.Actor.Progression;
@@ -6677,7 +6677,7 @@ public static class CharacterProgressionDebugScenarios
             DelayedSkillLlmRuntime runtime = new DelayedSkillLlmRuntime();
             CharacterSkillGenerationService service =
                 new CharacterSkillGenerationService(
-                    settingsProvider,
+                    NarrativeRequestContextTestFixture.CreateEmpty(), settingsProvider,
                     new TestLlmRuntimeProvider(runtime),
                     clock);
             List<CharacterProgression> progressions =
@@ -6878,7 +6878,7 @@ public static class CharacterProgressionDebugScenarios
             MutableUiClock clock = new MutableUiClock();
             CompletionOwningLlmRuntime runtime = new CompletionOwningLlmRuntime();
             CharacterSkillGenerationService service = new CharacterSkillGenerationService(
-                settingsProvider,
+                NarrativeRequestContextTestFixture.CreateEmpty(), settingsProvider,
                 new TestLlmRuntimeProvider(runtime),
                 clock);
             CharacterProgression progression = actor.Actor.Progression;
@@ -7760,7 +7760,7 @@ public static class CharacterProgressionDebugScenarios
                 }
             };
             CharacterSkillGenerationService service = new CharacterSkillGenerationService(
-                new TestSettingsProvider(settings),
+                NarrativeRequestContextTestFixture.CreateEmpty(), new TestSettingsProvider(settings),
                 new MissingLlmRuntimeProvider(),
                 CharacterAiEditorTestDependencies.UiClock);
             Require(!service.TryValidateResponse(
@@ -7796,7 +7796,7 @@ public static class CharacterProgressionDebugScenarios
             SequencedLlmRuntime starvationRuntime = new SequencedLlmRuntime();
             CharacterSkillGenerationService starvationService =
                 new CharacterSkillGenerationService(
-                    new TestSettingsProvider(settings),
+                    NarrativeRequestContextTestFixture.CreateEmpty(), new TestSettingsProvider(settings),
                     new TestLlmRuntimeProvider(starvationRuntime),
                     CharacterAiEditorTestDependencies.UiClock);
             using (ActorFixture starvationActor = new ActorFixture(
@@ -7889,7 +7889,7 @@ public static class CharacterProgressionDebugScenarios
             progression.NarrativeLedger.facts.Clear();
             TestSettingsProvider provider = new TestSettingsProvider(settings);
             service = new CharacterSkillGenerationService(
-                provider, new MissingLlmRuntimeProvider(),
+                NarrativeRequestContextTestFixture.CreateEmpty(), provider, new MissingLlmRuntimeProvider(),
                 CharacterAiEditorTestDependencies.UiClock);
             progression.ConstructCharacterProgression(
                 service, provider, gameEventBus: new GameEventBus(),
@@ -7974,7 +7974,7 @@ public static class CharacterProgressionDebugScenarios
             progression.NarrativeLedger.facts.Clear();
             TestSettingsProvider settingsProvider = new TestSettingsProvider(settings);
             CharacterSkillGenerationService service = new CharacterSkillGenerationService(
-                settingsProvider,
+                NarrativeRequestContextTestFixture.CreateEmpty(), settingsProvider,
                 new MissingLlmRuntimeProvider(),
                 CharacterAiEditorTestDependencies.UiClock);
             progression.ConstructCharacterProgression(
@@ -8025,7 +8025,7 @@ public static class CharacterProgressionDebugScenarios
             TestSettingsProvider settingsProvider = new TestSettingsProvider(settings);
             SequencedLlmRuntime runtime = new SequencedLlmRuntime();
             CharacterSkillGenerationService service = new CharacterSkillGenerationService(
-                settingsProvider,
+                NarrativeRequestContextTestFixture.CreateEmpty(), settingsProvider,
                 new TestLlmRuntimeProvider(runtime),
                 CharacterAiEditorTestDependencies.UiClock);
             CharacterProgression progression = actor.Actor.Progression;

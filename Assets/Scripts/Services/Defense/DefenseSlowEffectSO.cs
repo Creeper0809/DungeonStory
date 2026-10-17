@@ -6,7 +6,7 @@ public sealed class DefenseSlowEffectSO : DefenseEffectSO
     public override string EffectId => DefenseEffectIds.Slow;
     public override string DisplayName => "감속";
 
-    public override void Apply(DefenseEffectContext context)
+    public override void Apply(IDefenseEffectCommands context)
     {
         context.ApplyStatus(DefenseStatusKind.Slow, Amount, Duration, Stacks);
         context.AddMovementDelay(Amount);

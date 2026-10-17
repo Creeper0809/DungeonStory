@@ -452,7 +452,14 @@ public class CharacterActor : SerializedMonoBehaviour,
     // a same-ID meal that now belongs to the restored actor/aggregate.
     private bool retiringForWorldRestore;
 
-    internal void PrepareForWorldRestoreRetirement() => retiringForWorldRestore = true;
+    internal void PrepareForWorldRestoreRetirement()
+    {
+        retiringForWorldRestore = true;
+        // Unity destruction is deferred. Once replacement authorities are
+        // committed, all queries must stop seeing this outgoing scene actor.
+        // This bridge callback only releases registrations, not life/body data.
+        runtimeBridge?.OnActorDestroyed();
+    }
 
     public void ReleaseTransientAiOwnership(string reason)
     {
@@ -1058,6 +1065,7 @@ public class CharacterActor : SerializedMonoBehaviour,
         RuntimeLifecycle != null && RuntimeLifecycle.BeginExpedition();
     public void EndExpedition(bool alive = true) => RuntimeLifecycle?.EndExpedition(alive);
     public void ChangeLayer(string layer) => RuntimeVisual?.ChangeLayer(layer);
+    internal int VisualLayerRevision => RuntimeVisual != null ? RuntimeVisual.LayerRevision : -1;
     public void ApplyVisualFootAnchor() => RuntimeVisual?.ApplyVisualFootAnchor();
     public float GetVisualTopLocalY() =>
         RuntimeVisual != null ? RuntimeVisual.GetVisualTopLocalY() : 1f;

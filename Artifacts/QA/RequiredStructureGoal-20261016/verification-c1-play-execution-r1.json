@@ -1,0 +1,53 @@
+{
+  "status": "PASS",
+  "target": "C1",
+  "nativeRun": "native-c1-play-current-r1",
+  "report": "native-c1-play-current-r1/skill-targeting-actual.txt",
+  "reportSha256": "51e6cde20ce367d7973c5577c5a2aee721447867501f7801e1fb88a0f65cec76",
+  "terminalUnityExit": 0,
+  "compileSeconds": 28.32713,
+  "compileErrors": 0,
+  "currentCompiledAssembly": "Assembly-CSharp-Editor",
+  "pins": {
+    "source-pin-c1-play-r1.json": {
+      "files": 1423,
+      "drift": []
+    },
+    "native-input-pin-r38.json": {
+      "files": 3880,
+      "drift": []
+    },
+    "tool-pin-c1-play-r1.json": {
+      "files": 9,
+      "drift": []
+    },
+    "g4-faction-assembly-input-pin-r2.json": {
+      "files": 18,
+      "drift": []
+    }
+  },
+  "assemblies": {
+    "Library\\ScriptAssemblies\\Assembly-CSharp-Editor.dll": "01f02cbb81be65195cdf254a65aa1bd4aabc801acfd6e19bf30793c6c0145b04",
+    "Library\\ScriptAssemblies\\Assembly-CSharp.dll": "01e14410b9ee51b3fffe836248e0c803d2c82bc963b622eeeb10b14040c24301",
+    "Library\\ScriptAssemblies\\DungeonStory.Buildings.dll": "e939738b02c6aebe5319a12ac7b476004597efdd6547c301e8e167cd77833b14",
+    "Library\\ScriptAssemblies\\DungeonStory.Economy.dll": "c6dffaa8e88a006e4f91612eb29108a2035cc6ce4d1462908d7615195cb43454",
+    "Library/ScriptAssemblies/DungeonStory.Factions.dll": "c384de7f49e87ab603f7750636594e035adfc7d8ed6cb079b0fe29caf43a04e2",
+    "Library/ScriptAssemblies/DungeonStory.Survival.dll": "e97861eefc80a99d13aa19daa78719bdccc95deb19ff168a656a8b303f9273ff"
+  },
+  "unchangedDiskInputs": {
+    "Assets/Resources/SO/Building/Modular/D04_배식카운터.asset": "2bcdee76a67785c5d2db3d80068f43009667bf0a48a3a51c5abc9d789cff3e1a",
+    "Assets/Resources/SO/Building/Modular/D04_배식카운터.asset.meta": "efbe8ab42cd71b10a593721838c5d8b34adf2456ac1b18d2403ceda604ee92ea",
+    "Assets/Scenes/GameplayScene.unity": "a698948004fd2a1db71ef1bebf5ab4d4c5d62caf85fed1ea5af2bb3972c30341",
+    "Assets/Scenes/GameplayScene.unity.meta": "0c7f1e7dac6804c5e9bad630433c81b9bb944b7532a9e63d5d938f9f3b56849e",
+    "ProjectSettings/EditorBuildSettings.asset": "8ee44400b9ae37cbd1092f671fe364f277601cc02357b02e3908d1d4e9a95ad4"
+  },
+  "pureGuardCases": 188,
+  "verified": [
+    "Actual production StaffWorkPriorityPanel Button pointer event arms actual prepared source command",
+    "Automatic Unity Play OnDisable/OnEnable and Update Escape, selection cancellation; no explicit callback invocation",
+    "Production GraphicRaycaster and EventSystemUiPointerBlocker prevent world command",
+    "Actual camera/collider/PhysicsWorldPointerRaycaster and controller Update: invalid target retains retry; one cooldown/buff/outcome; repeated pointer/cancel inert for skill",
+    "Official whole-world baseline restored; consoleErrors0; terminal0"
+  ],
+  "limits": "Controlled input and local real transaction/observer on actual official prepared workers; no physical user input, natural AI initiation, or official pending skill whole-world restore claim. Full A05 valid pending recovery is separately covered by verification-c1-execution-r4.json."
+}

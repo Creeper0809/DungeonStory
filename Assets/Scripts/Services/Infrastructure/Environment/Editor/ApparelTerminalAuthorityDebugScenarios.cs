@@ -155,7 +155,9 @@ public static class ApparelTerminalAuthorityDebugScenarios
             equippedApparel = Array.Empty<EquippedApparelSaveData>(),
             apparelPolicies = Array.Empty<CharacterApparelPolicySaveData>(),
             apparelWorkOrders = runtime.CaptureOrders(),
-            apparelWorkOrderTerminalStates = runtime.CaptureTerminalStates()
+            apparelWorkOrderTerminalStates = runtime.CaptureTerminalStates(),
+            nextExposureOutcomeSequence = 0,
+            exposureOutcomes = Array.Empty<EnvironmentalExposureOutcomeSaveData>()
         };
         DungeonGameRestoreReport captureReport = new();
         CharacterEnvironmentSaveValidation.Validate(captured, captureReport);

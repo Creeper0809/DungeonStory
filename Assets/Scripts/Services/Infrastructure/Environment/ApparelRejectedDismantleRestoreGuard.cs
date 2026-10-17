@@ -207,7 +207,7 @@ public sealed class ApparelRejectedDismantleRestoreGuard
                     FacilityBufferPlannedOutputRestoreStackSnapshot>())
             .Where(value => value != null)
             .ToArray();
-        string destinationId = ProductionBillRuntime.OutputDestinationPrefix
+        string destinationId = ProductionBillIdentity.OutputDestinationPrefix
             + order.facilityInstanceId;
         return committed != null
             && rows.Length > 0

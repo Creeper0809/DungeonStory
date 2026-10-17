@@ -425,21 +425,6 @@ public static class BuildingDemolitionOutcomeRegistration
     }
 }
 
-public static class BuildingDemolitionOutcomeLifecycle
-{
-    public static string ProjectContribution(BuildingInstanceId facilityId)
-    {
-        if (!facilityId.IsValid)
-            throw new ArgumentException(
-                "A valid facility ID is required.",
-                nameof(facilityId));
-        CanonicalSemanticDigestBuilder digest = new();
-        digest.Append("building-demolition-outcome-lifecycle@1");
-        digest.Append(facilityId.Value);
-        return digest.ComputeSha256();
-    }
-}
-
 public sealed class BuildingDemolitionOutcomeLifecycleContributor :
     IProductionOutputDestinationLifecycleContributor
 {
@@ -677,7 +662,7 @@ public sealed class BuildingDemolitionDestructiveDrainParticipant :
         {
             return Conflict(contribution);
         }
-        return Applied(context, contribution,
+        return BuildingDemolitionOutcomeLifecycle.CreateStepResult(context, contribution,
             ProductionFacilityDestructiveDrainStepStatus.Applied);
     }
 
@@ -690,11 +675,11 @@ public sealed class BuildingDemolitionDestructiveDrainParticipant :
             || context.Owner.phase !=
                 ProductionFacilityDestructiveDrainStepPhase
                     .EffectCommittedAwaitingOwnerAck
-            || !MatchesJournalReceipt(context))
+            || !BuildingDemolitionOutcomeLifecycle.MatchesJournalReceipt(context))
         {
             return Conflict(contribution);
         }
-        return Applied(context, contribution,
+        return BuildingDemolitionOutcomeLifecycle.CreateStepResult(context, contribution,
             ProductionFacilityDestructiveDrainStepStatus.Applied);
     }
 
@@ -706,7 +691,7 @@ public sealed class BuildingDemolitionDestructiveDrainParticipant :
         if (!TryCreateReceipt(context, out _, out _)
             || context.Owner.phase !=
                     ProductionFacilityDestructiveDrainStepPhase.Planned
-                && !MatchesJournalReceipt(context))
+                && !BuildingDemolitionOutcomeLifecycle.MatchesJournalReceipt(context))
         {
             return new ProductionFacilityDestructiveDrainRecoveryResult(
                 ProductionFacilityDestructiveDrainRecoveryAction.Conflict,
@@ -731,7 +716,7 @@ public sealed class BuildingDemolitionDestructiveDrainParticipant :
             action,
             action == ProductionFacilityDestructiveDrainRecoveryAction
                     .AlreadyAcknowledged
-                ? Applied(context, contribution,
+                ? BuildingDemolitionOutcomeLifecycle.CreateStepResult(context, contribution,
                     ProductionFacilityDestructiveDrainStepStatus.Replay)
                 : Deferred(contribution));
     }
@@ -792,7 +777,7 @@ public sealed class BuildingDemolitionDestructiveDrainParticipant :
             owners[0],
             row.expectedCurrentContributionFingerprint,
             entry.OutcomeSnapshot);
-        if (!MatchesJournalReceipt(context)
+        if (!BuildingDemolitionOutcomeLifecycle.MatchesJournalReceipt(context)
             || !TryCreateReceipt(
                 context,
                 out BuildingDemolitionOutcomeReceipt receipt,
@@ -842,33 +827,7 @@ public sealed class BuildingDemolitionDestructiveDrainParticipant :
         receipt = default;
         ProductionFacilityDestructiveDrainOutcomeSnapshot snapshot =
             context.OutcomeSnapshot;
-        string expectedOwner = snapshot.IsValid
-            ? ProductionFacilityDestructiveDrainOwnerStableIds
-                .BuildingDemolition(context.OperationId.Value)
-            : string.Empty;
-        string expectedStep = expectedOwner.Length > 0
-            ? ProductionFacilityDestructiveDrainCanonical.BuildStepOperationId(
-                context.OperationId,
-                ParticipantId,
-                expectedOwner)
-            : string.Empty;
-        string expectedContribution = BuildingDemolitionOutcomeLifecycle
-            .ProjectContribution(context.FacilityId);
-        if (!string.Equals(context.ParticipantId, ParticipantId,
-                StringComparison.Ordinal)
-            || !snapshot.IsValid
-            || !string.Equals(context.Owner.ownerStableId, expectedOwner,
-                StringComparison.Ordinal)
-            || !string.Equals(context.Owner.stepOperationId, expectedStep,
-                StringComparison.Ordinal)
-            || !string.Equals(
-                context.Owner.requestFingerprint,
-                snapshot.ComputeFingerprint(context.FacilityId),
-                StringComparison.Ordinal)
-            || !string.Equals(
-                context.ExpectedDurableContributionFingerprint,
-                expectedContribution,
-                StringComparison.Ordinal))
+        if (!BuildingDemolitionOutcomeLifecycle.IsCanonicalOwner(context))
         {
             failureReason = "building-demolition-destructive-owner-conflict";
             return false;
@@ -896,40 +855,6 @@ public sealed class BuildingDemolitionDestructiveDrainParticipant :
                 + exception.Message;
             return false;
         }
-    }
-
-    private static ProductionFacilityDestructiveDrainStepResult Applied(
-        ProductionFacilityDestructiveDrainStepContext context,
-        string contribution,
-        ProductionFacilityDestructiveDrainStepStatus status)
-    {
-        CanonicalSemanticDigestBuilder digest = new();
-        digest.Append("building-demolition-destructive-receipt@1");
-        digest.Append(context.Owner.requestFingerprint);
-        digest.Append(context.Owner.stepOperationId);
-        string fingerprint = digest.ComputeSha256();
-        return new ProductionFacilityDestructiveDrainStepResult(
-            status,
-            "building-demolition-outcome:" + fingerprint.Substring(0, 24),
-            fingerprint,
-            contribution);
-    }
-
-    private static bool MatchesJournalReceipt(
-        ProductionFacilityDestructiveDrainStepContext context)
-    {
-        ProductionFacilityDestructiveDrainStepResult expected = Applied(
-            context,
-            context.ExpectedDurableContributionFingerprint,
-            ProductionFacilityDestructiveDrainStepStatus.Applied);
-        return string.Equals(
-                context.Owner.commitId,
-                expected.CommitId,
-                StringComparison.Ordinal)
-            && string.Equals(
-                context.Owner.receiptFingerprint,
-                expected.ReceiptFingerprint,
-                StringComparison.Ordinal);
     }
 
     private static ProductionFacilityDestructiveDrainStepResult Deferred(

@@ -9,6 +9,9 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
 {
     private readonly CharacterActor actor;
     private IBuildingShoppingVisitorPort buildingShoppingVisitorPort;
+    private object workerPoseOwner;
+    private int workerPoseLayerRevision;
+    private int workerPoseMovementVersion;
 
     public CharacterBuildingVisitorAdapter(CharacterActor actor)
     {
@@ -240,8 +243,65 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
             : EmptyBuildingPortRoutine();
     }
 
-    void IBuildingVisitorPort.SetWorldPosition(Vector3 position) =>
+    IEnumerator IBuildingVisitorPort.MoveToWithResult(
+        Vector3 position, float speed, object expectedAction, Action<string> completed)
+    {
+        if (completed == null)
+            throw new ArgumentNullException(nameof(completed));
+        AbilityMove movement = GetAbility<AbilityMove>();
+        if (movement == null)
+        {
+            completed("worker-movement-unavailable");
+            yield break;
+        }
+        int version = movement.MovementOperationVersionForDiagnostics;
+        yield return movement.Move2PosBySpeed(position, speed, expectedAction as AIAction);
+        string failure = actor == null || !actor.IsBuildingInteractionAvailable
+            ? "worker-actor-unavailable"
+            : version != movement.MovementOperationVersionForDiagnostics
+                ? "worker-movement-replaced"
+                : expectedAction != null && (!ReferenceEquals(Brain?.bestAction, expectedAction)
+                    || Brain.isBestActionEnd)
+                    ? "worker-action-replaced"
+                    : movement.LastGridMoveFailureReason != GridMoveFailureReason.None
+                        ? "worker-movement-" + movement.LastGridMoveFailureReason
+                        : transform.position != position
+                            ? "worker-movement-endpoint-not-reached"
+                            : string.Empty;
+        completed(failure);
+    }
+
+    void IBuildingVisitorPort.BeginWorkerPose(object allocation)
+    {
+        if (allocation == null)
+            throw new ArgumentNullException(nameof(allocation));
+        if (actor.VisualLayerRevision < 0)
+            throw new InvalidOperationException("worker-pose-visual-unavailable");
+        ChangeLayer("DungeonMiddleObject");
+        workerPoseLayerRevision = actor.VisualLayerRevision;
+        workerPoseMovementVersion = GetAbility<AbilityMove>()?.MovementOperationVersionForDiagnostics ?? -1;
+        workerPoseOwner = allocation;
+    }
+
+    void IBuildingVisitorPort.EndWorkerPose(object allocation, Vector3? restoredPosition)
+    {
+        if (!ReferenceEquals(workerPoseOwner, allocation))
+            return;
+        workerPoseOwner = null;
+        if (actor == null || actor.VisualLayerRevision != workerPoseLayerRevision)
+            return;
+        if (restoredPosition.HasValue
+            && (GetAbility<AbilityMove>()?.MovementOperationVersionForDiagnostics ?? -1)
+                == workerPoseMovementVersion)
+            transform.position = restoredPosition.Value;
+        ChangeLayer("Default");
+    }
+
+    void IBuildingVisitorPort.SetWorldPosition(Vector3 position)
+    {
+        workerPoseOwner = null;
         transform.position = position;
+    }
 
     void IBuildingVisitorPort.HideForTraversal(float failSafeDelay) =>
         HideForTraversal(failSafeDelay);
@@ -249,8 +309,11 @@ internal sealed class CharacterBuildingVisitorAdapter : IBuildingVisitorPort
     void IBuildingVisitorPort.RestoreTraversalVisibility() =>
         RestoreTraversalVisibility();
 
-    void IBuildingVisitorPort.ChangeLayer(string layerName) =>
+    void IBuildingVisitorPort.ChangeLayer(string layerName)
+    {
+        workerPoseOwner = null;
         ChangeLayer(layerName);
+    }
 
     void IBuildingVisitorPort.FaceRight() => Flip(CharacterFacing.RIGHT);
 

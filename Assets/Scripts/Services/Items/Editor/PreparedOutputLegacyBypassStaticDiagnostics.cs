@@ -13,6 +13,8 @@ public static class PreparedOutputLegacyBypassStaticDiagnostics
         "Assets/Scripts/Models/Economy/Content/ProductionDistributionRuntime.cs";
     private const string TransferPath =
         "Assets/Scripts/Services/Items/ItemTransferService.cs";
+    private const string TransitPath =
+        "Assets/Scripts/Services/Items/WorldItemTransitService.cs";
     private const string WarehousePath =
         "Assets/Scripts/Services/Items/WorldItemWarehouseService.cs";
     private const string RuntimePath =
@@ -21,8 +23,8 @@ public static class PreparedOutputLegacyBypassStaticDiagnostics
         "Assets/Scripts/Services/Economy/StandardDefinitionProductionOutputHandler.cs";
     private const string AssemblyBridgePath =
         "Assets/Scripts/Services/Economy/ProductionAssemblyBridgeAdapter.cs";
-    private const string BillRuntimePath =
-        "Assets/Scripts/Models/Economy/Content/ProductionBillRuntime.cs";
+    private const string BillExecutionRuntimePath =
+        "Assets/Scripts/Models/Economy/Content/ProductionBillExecutionRuntime.cs";
     private const string CapabilitySelectionPath =
         "Assets/Scripts/Models/Economy/Content/ProductionPreparedOutputExecutionPort.cs";
     private const string LegacyOutputExecutionPath =
@@ -31,10 +33,14 @@ public static class PreparedOutputLegacyBypassStaticDiagnostics
         "Assets/Scripts/Services/Economy/ProductionOutputBufferCapacityProjector.cs";
     private const string PreparedExecutionAdapterPath =
         "Assets/Scripts/Services/Economy/ProductionPreparedOutputExecutionAdapter.cs";
+    private const string PreparedResolutionPlannerPath =
+        "Assets/Scripts/Services/Economy/ProductionPreparedOutputResolutionPlanner.cs";
     private const string DetachedCapacityProjectorPath =
         "Assets/Scripts/Services/Economy/ProductionOutputDestinationDurableSaveProjector.cs";
     private const string DestructiveDrainCapacityValidationPath =
         "Assets/Scripts/Services/Economy/ProductionFacilityDestructiveDrainCrossAggregateSaveValidation.cs";
+    private const string DestructiveDrainParticipantValidationPath =
+        "Assets/Scripts/Services/Economy/ProductionFacilityDestructiveDrainParticipantSaveValidation.cs";
     private const string WorldSimulationRegistrationPath =
         "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs";
 
@@ -80,20 +86,20 @@ public static class PreparedOutputLegacyBypassStaticDiagnostics
             AssemblyBridgePath + ":TryValidateOutputCapability",
             "TryResolveExact(");
 
-        string billRuntime = Read(BillRuntimePath);
+        string billRuntime = Read(BillExecutionRuntimePath);
         string ruinedBatch = Slice(
             billRuntime,
-            BillRuntimePath,
+            BillExecutionRuntimePath,
             "private bool TryConvertRuinedBatch(",
             "private static bool IsCompletedRuinedBatchDispositionValid(");
         RequireContains(
             ruinedBatch,
-            BillRuntimePath + ":TryConvertRuinedBatch",
+            BillExecutionRuntimePath + ":TryConvertRuinedBatch",
             "UsesPreparedOutput(recipe)",
             "ruined-output-capability-unsupported");
         RequireNotContains(
             ruinedBatch,
-            BillRuntimePath + ":TryConvertRuinedBatch",
+            BillExecutionRuntimePath + ":TryConvertRuinedBatch",
             ".SpawnOutput(",
             "recipe:silage");
 
@@ -114,12 +120,20 @@ public static class PreparedOutputLegacyBypassStaticDiagnostics
             preparedAdapter,
             PreparedExecutionAdapterPath,
             "IProductionPreparedOutputMaterializerRegistry",
+            "materializers.ValidateAndDecode(",
+            "resolutionPlanner.TryResolveBatch(",
+            "resolutionPlanner.TryResolveRuinedBatch(");
+        string resolutionPlanner = Read(PreparedResolutionPlannerPath);
+        RequireContains(
+            resolutionPlanner,
+            PreparedResolutionPlannerPath,
+            "IProductionPreparedOutputMaterializerRegistry",
             "materializers.Create(",
             "materializers.ValidateAndDecode(",
             "materializers.ValidateDescriptor(");
         RequireNotContains(
-            preparedAdapter,
-            PreparedExecutionAdapterPath,
+            preparedAdapter + resolutionPlanner,
+            PreparedExecutionAdapterPath + ";" + PreparedResolutionPlannerPath,
             "ProductionOutputCapabilityIds.StandardDefinition",
             "ProductionOutputCapabilityIds.DefinitionOnlyCodec");
 
@@ -127,6 +141,7 @@ public static class PreparedOutputLegacyBypassStaticDiagnostics
         RequireRawCapacityProjectorRestrictedToPreparedOwners();
 
         string transfers = Read(TransferPath);
+        string transit = Read(TransitPath);
         RequireMethodGuard(
             transfers,
             TransferPath,
@@ -149,15 +164,15 @@ public static class PreparedOutputLegacyBypassStaticDiagnostics
             "FacilityOutputExactRouteCustodyCodec.HasAnyCustody(",
             "repository.Remove(target)");
         RequireMethodGuard(
-            transfers,
-            TransferPath,
+            transit,
+            TransitPath,
             "public bool TryBeginTransit(",
             "public bool TryInspectStackForTransit(",
             "FacilityOutputExactRouteCustodyCodec.HasAnyCustody(",
             "record.state = WorldItemStackState.InTransit");
         RequireMethodContains(
-            transfers,
-            TransferPath,
+            transit,
+            TransitPath,
             "public void CopyLoadableTransitStackIds(",
             "public bool TryGetTransitStack(",
             "!FacilityOutputExactRouteCustodyCodec.HasAnyCustody(");
@@ -237,7 +252,7 @@ public static class PreparedOutputLegacyBypassStaticDiagnostics
             + "pickup-precommit=atomic-preflight; standard=descriptor-only; "
             + "mixed-output=preflight-rejected; orphan-write-callers=0; "
             + "raw-capacity-interface=removed; raw-capacity-public-overloads=0; "
-            + "raw-capacity-callers=0; concrete-capacity-owners=2.");
+            + "raw-capacity-callers=0; concrete-capacity-access=restricted-to-declared-owners.");
     }
 
     private static void RequireRawCapacityProjectorRestrictedToPreparedOwners()
@@ -285,8 +300,10 @@ public static class PreparedOutputLegacyBypassStaticDiagnostics
         {
             CapacityProjectorPath,
             PreparedExecutionAdapterPath,
+            PreparedResolutionPlannerPath,
             DetachedCapacityProjectorPath,
             DestructiveDrainCapacityValidationPath,
+            DestructiveDrainParticipantValidationPath,
             WorldSimulationRegistrationPath
         };
         string[] unexpected = Directory

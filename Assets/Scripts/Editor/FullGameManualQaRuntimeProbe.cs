@@ -1052,11 +1052,14 @@ public static class FullGameManualQaRuntimeProbe
             {
                 controller.OnTriggerEvent(new InfoFeedEvent(CharacterActor.From(guard)));
                 selectedByController = controller.SelectedActor == guard;
-                MethodInfo suppressMethod = typeof(OwnerCommandController).GetMethod(
-                    "TryIssueSuppressCommand",
-                    BindingFlags.Instance | BindingFlags.NonPublic);
-                suppressMethod?.Invoke(controller, new object[] { rebel });
-                commandInvoked = suppressMethod != null;
+                bool commandAccepted = controller.TryIssueSuppressCommand(
+                    rebel,
+                    out string suppressMessage);
+                commandInvoked = true;
+                if (!commandAccepted)
+                {
+                    message = suppressMessage;
+                }
             }
 
             if (guard.TryGetAbility(out AbilityWork work))
@@ -3726,8 +3729,8 @@ public static class FullGameManualQaRuntimeProbe
             return false;
         }
 
-        FieldInfo dutyControllerField = typeof(AbilityWork).GetField(
-            "dutyController",
+        PropertyInfo dutyControllerField = typeof(AbilityWork).GetProperty(
+            "DutyController",
             BindingFlags.Instance | BindingFlags.NonPublic);
         object dutyController = dutyControllerField?.GetValue(work);
         if (dutyController == null)

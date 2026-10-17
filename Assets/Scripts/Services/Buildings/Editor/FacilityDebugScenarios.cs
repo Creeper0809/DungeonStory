@@ -522,7 +522,7 @@ public static class FacilityDebugScenarios
             building.ConstructBuildableObject(
                 new BuildingResearchWorkPortAdapter(BlueprintResearchWorkService),
                 FacilityCandidateCacheService,
-                RoomFacilityPolicyService, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
+                RoomFacilityPolicyService, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
             building.ConstructBuildableObjectEventBus(
                 CharacterAiEditorTestDependencies.GameEvents,
                 new BuildingVisitEventPublisher(

@@ -163,6 +163,14 @@ public sealed class PhysicalItemsSaveSection :
             }
             else
             {
+                var raw = Newtonsoft.Json.Linq.JObject.Parse(payloadJson);
+                if (raw["physicalEffectReceiptSchemaVersion"] == null)
+                {
+                    // Explicit additive compatibility: old saves contain no historical
+                    // receipts. Cross-section validation must not invent missing ones.
+                    payload.physicalEffectReceiptSchemaVersion = 0;
+                    payload.physicalEffectReceipts = new();
+                }
                 V18WorldEconomyCharacterReferenceRestoreNormalizer.Normalize(
                     payload,
                     (value, path) =>
@@ -215,6 +223,26 @@ public sealed class PhysicalItemsSaveSection :
         ValidateRelocationShape(payloadJson);
         ValidateBatchDispositionShape(payloadJson);
         ValidateTransformationShape(payloadJson);
+        ValidatePhysicalEffectReceiptShape(payloadJson);
+    }
+
+    private static void ValidatePhysicalEffectReceiptShape(string json)
+    {
+        var root = Newtonsoft.Json.Linq.JObject.Parse(json);
+        var version = root["physicalEffectReceiptSchemaVersion"];
+        var receipts = root["physicalEffectReceipts"];
+        if (version == null && receipts == null) return; // legacy physical22
+        if (version?.Type != Newtonsoft.Json.Linq.JTokenType.Integer
+            || (int)version != PhysicalEffectReceiptRules.SchemaVersion
+            || receipts is not Newtonsoft.Json.Linq.JArray rows)
+            throw new InvalidOperationException("Physical effect receipt schema fields are missing or unsupported.");
+        foreach (var row in rows)
+        {
+            RequireFields(row, typeof(PhysicalEffectReceiptSaveData));
+            if (row["lines"] is not Newtonsoft.Json.Linq.JArray lines)
+                throw new InvalidOperationException("Physical effect receipt lines are required.");
+            foreach (var line in lines) RequireFields(line, typeof(PhysicalEffectReceiptLineSaveData));
+        }
     }
 
     private static void ValidateTransformationShape(string json)
@@ -232,21 +260,22 @@ public sealed class PhysicalItemsSaveSection :
             foreach (var output in (Newtonsoft.Json.Linq.JArray)fact["outputs"])
                 RequireFields(output, typeof(PhysicalItemTransformationOutputData));
         }
-        static void RequireFields(Newtonsoft.Json.Linq.JToken token, Type type)
+    }
+
+    private static void RequireFields(Newtonsoft.Json.Linq.JToken token, Type type)
+    {
+        if (token is not Newtonsoft.Json.Linq.JObject data)
+            throw new InvalidOperationException("Physical receipt/transform requires an object.");
+        foreach (var field in type.GetFields())
         {
-            if (token is not Newtonsoft.Json.Linq.JObject data)
-                throw new InvalidOperationException("Physical transformation requires an object.");
-            foreach (var field in type.GetFields())
-            {
-                var expected = field.FieldType == typeof(string) ? Newtonsoft.Json.Linq.JTokenType.String
-                    : field.FieldType == typeof(bool) ? Newtonsoft.Json.Linq.JTokenType.Boolean
-                    : field.FieldType == typeof(int) || field.FieldType == typeof(long)
-                        ? Newtonsoft.Json.Linq.JTokenType.Integer
-                    : field.FieldType == typeof(PhysicalItemTransformationData) ? Newtonsoft.Json.Linq.JTokenType.Object
-                    : Newtonsoft.Json.Linq.JTokenType.Array;
-                if (data[field.Name]?.Type != expected)
-                    throw new InvalidOperationException("Physical transformation field missing or invalid: " + field.Name);
-            }
+            var expected = field.FieldType == typeof(string) ? Newtonsoft.Json.Linq.JTokenType.String
+                : field.FieldType == typeof(bool) ? Newtonsoft.Json.Linq.JTokenType.Boolean
+                : field.FieldType == typeof(int) || field.FieldType == typeof(long)
+                    ? Newtonsoft.Json.Linq.JTokenType.Integer
+                : field.FieldType == typeof(PhysicalItemTransformationData) ? Newtonsoft.Json.Linq.JTokenType.Object
+                : Newtonsoft.Json.Linq.JTokenType.Array;
+            if (data[field.Name]?.Type != expected)
+                throw new InvalidOperationException("Physical receipt/transform field missing or invalid: " + field.Name);
         }
     }
 

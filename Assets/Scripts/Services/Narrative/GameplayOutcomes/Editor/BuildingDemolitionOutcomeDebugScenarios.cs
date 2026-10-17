@@ -162,6 +162,7 @@ public static class BuildingDemolitionOutcomeDebugScenarios
                 }
             }
         };
+        VerifyDemolitionSaveOwnerJoin(terminalEntry);
         var gcContext = new ProductionFacilityDestructiveDrainCheckpointGcContext(
             1, new string('a', 64), "qa-demolition");
         var gcEntry = JsonUtility.FromJson<ProductionFacilityDestructiveDrainEntrySaveData>(
@@ -289,6 +290,65 @@ public static class BuildingDemolitionOutcomeDebugScenarios
         if (logSuccess)
             Debug.Log("[Building Demolition Outcome] PASS");
         return true;
+    }
+
+    private static void VerifyDemolitionSaveOwnerJoin(
+        ProductionFacilityDestructiveDrainEntrySaveData source)
+    {
+        string original = JsonUtility.ToJson(source);
+        ProductionFacilityDestructiveDrainEntrySaveData Copy() =>
+            JsonUtility.FromJson<ProductionFacilityDestructiveDrainEntrySaveData>(original);
+        void Validate(ProductionFacilityDestructiveDrainEntrySaveData entry)
+        {
+            ProductionFacilityDestructiveDrainOwnerJoinValidation.ValidateBuildingDemolitionOutcomeJoin(entry);
+            if (entry.phase == ProductionFacilityDestructiveDrainPhase.Prepared)
+                ProductionFacilityDestructiveDrainParticipantSaveValidation.ValidatePreparedOwnerBijection(
+                    entry, new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal));
+        }
+        Validate(Copy()); // The actual participant's acknowledged receipt.
+        var awaiting = Copy();
+        awaiting.participants[0].owners[0].phase =
+            ProductionFacilityDestructiveDrainStepPhase.EffectCommittedAwaitingOwnerAck;
+        Validate(awaiting);
+        var planned = Copy();
+        planned.phase = ProductionFacilityDestructiveDrainPhase.Prepared;
+        planned.participants[0].owners[0].phase = ProductionFacilityDestructiveDrainStepPhase.Planned;
+        planned.participants[0].owners[0].commitId = string.Empty;
+        planned.participants[0].owners[0].receiptFingerprint = string.Empty;
+        Validate(planned);
+        var legacy = Copy();
+        legacy.phase = ProductionFacilityDestructiveDrainPhase.Prepared;
+        legacy.outcomeSnapshotVersion = 0;
+        legacy.outcomeBuildingDefinitionId = legacy.outcomeBuildingDisplayName = string.Empty;
+        legacy.outcomePositionX = legacy.outcomePositionY = legacy.outcomeAbsoluteDay = 0;
+        legacy.outcomeOwnerRevision = 0;
+        legacy.participants[0].owners.Clear();
+        Validate(legacy); // Existing V4 snapshot-free explicit-demolition compatibility.
+        Action<ProductionFacilityDestructiveDrainEntrySaveData>[] corruptions =
+        {
+            entry => entry.participants[0].owners.Clear(),
+            entry => entry.participants[0].owners.Add(entry.participants[0].owners[0].Clone()),
+            entry => entry.participants[0].owners[0].requestFingerprint = new string('a', 64),
+            entry => entry.participants[0].owners[0].stepOperationId += ":drift",
+            entry => entry.participants[0].owners[0].receiptFingerprint = new string('b', 64),
+            entry => entry.participants[0].owners[0].commitId += ":drift",
+            entry => entry.participants[0].owners[0].targetDestinationId = "target:unexpected",
+            entry => entry.participants[0].expectedCurrentContributionFingerprint = new string('c', 64),
+            entry => entry.outcomeBuildingDisplayName += "-changed",
+            entry => entry.cause = ProductionFacilityDestructiveDrainCause.StructuralIntegrity
+        };
+        foreach (var corrupt in corruptions)
+        {
+            var candidate = Copy();
+            corrupt(candidate);
+            bool rejected = false;
+            try { Validate(candidate); }
+            catch (InvalidOperationException) { rejected = true; }
+            Require(rejected, "demolition save self-join accepted a corrupted owner/snapshot/receipt");
+        }
+        Require(original == JsonUtility.ToJson(source), "demolition save validation mutated its source");
+        Validate(Copy());
+        Debug.Log("ARCHITECTURE_DEMOLITION_SAVE_JOIN=PASS; actual receipt; planned/committed/ack; legacy; corruptions=10; valid retry");
     }
 
     private static void VerifyPostRemovalCommitFailureRetry()

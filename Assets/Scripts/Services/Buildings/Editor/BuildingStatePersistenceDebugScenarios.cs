@@ -39,6 +39,23 @@ public static class BuildingStatePersistenceDebugScenarios
         }
     }
 
+    public static string RunForArchitectureBatch()
+    {
+        if (!Application.isBatchMode) throw new InvalidOperationException("Building state verification requires isolated batch mode.");
+        List<string> lines = new();
+        List<string> errors = new();
+        Run("generic_stock_categories", VerifyGenericStockCategories, lines, errors);
+        Run("component_module_round_trip", VerifyComponentModuleRoundTrip, lines, errors);
+        Run("unlisted_ability_dispatch", VerifyUnlistedAbilityDispatch, lines, errors);
+        Run("approved_apparel_work", VerifyApprovedApparelWork, lines, errors);
+        Run("module_restore_diagnostics", VerifyModuleRestoreDiagnostics, lines, errors);
+        Run("world_v1_rejected", VerifyWorldV1Rejection, lines, errors);
+        Run("legacy_module_version_rejected", VerifyLegacyModuleVersionRejected, lines, errors);
+        Run("v2_writer_schema", VerifyV2WriterSchema, lines, errors);
+        if (errors.Count > 0) throw new InvalidOperationException(string.Join(" | ", errors));
+        return "ARCHITECTURE_BUILDING_STATE=PASS; cases=8; custom registered runtime; module IDs; JSON roundtrip; reject; approved work";
+    }
+
     private static string VerifyGenericStockCategories()
     {
         WarehouseInventory source = new WarehouseInventory(
@@ -165,7 +182,9 @@ public static class BuildingStatePersistenceDebugScenarios
                     {
                         new UnlistedWorkAbilityHandler()
                     },
-                    Array.Empty<IBuildingWorkCompletionFallbackHandler>()));
+                    Array.Empty<IBuildingWorkCompletionFallbackHandler>(),
+                    BuildingAbilityRuntimeCatalog.CreateBuiltIns(
+                        new BuildingAbilityRuntimeFactory<UnlistedWorkAbility, UnlistedWorkAbilityRuntime>(d => new(d)))));
             building.Initialization(data, Vector2Int.zero);
             int output = ModularFacilityRuntimeEffects.ApplyWorkCompleted(
                 null,
@@ -286,7 +305,8 @@ public static class BuildingStatePersistenceDebugScenarios
         }
         catch (InvalidOperationException exception)
         {
-            Require(exception.Message.Contains("V5", StringComparison.Ordinal),
+            Require(exception.Message.StartsWith("Unsupported modular facility save version 1; ", StringComparison.Ordinal)
+                    && exception.Message.Contains($"V{ModularFacilityWorldSaveService.CurrentVersion} is required", StringComparison.Ordinal),
                 "rejection did not identify the required facility save version");
             return "V1 rejected; no migration or partial state projection";
         }
@@ -572,7 +592,7 @@ public static class BuildingStatePersistenceDebugScenarios
 [Serializable]
 internal sealed class UnlistedWorkAbility : BuildingAbility,
     IBuildingWorkCompletionAbility,
-    IBuildingRuntimeStateAbility
+    IBuildingRuntimeAbilityDefinition
 {
     private UnlistedWorkAbility()
     {
@@ -583,9 +603,19 @@ internal sealed class UnlistedWorkAbility : BuildingAbility,
         return new UnlistedWorkAbility();
     }
 
+}
+
+internal sealed class UnlistedWorkAbilityRuntime : IBuildingRuntimeStateAbility
+{
+    private readonly UnlistedWorkAbility definition;
+    public UnlistedWorkAbilityRuntime(UnlistedWorkAbility definition)
+    {
+        this.definition = definition ?? throw new ArgumentNullException(nameof(definition));
+    }
+
     public IBuildingStateModule CreateStateModule(BuildableObject building)
     {
-        return new UnlistedWorkStateModule(AbilityId);
+        return new UnlistedWorkStateModule(definition.AbilityId);
     }
 }
 

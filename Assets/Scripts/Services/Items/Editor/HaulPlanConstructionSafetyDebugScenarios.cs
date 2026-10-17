@@ -1591,7 +1591,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 combatEquipmentRuntime: null,
                 worldRegistry: null,
                 worldItemStackRuntime: null,
-                abilityRuntimeDispatcher: null,
+                abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
                 gameClock: null,
                 paidFacilityContracts: null,
                 evolutionState: new FacilityEvolutionStateComponentFactory());
@@ -1716,7 +1716,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 combatEquipmentRuntime: null,
                 worldRegistry: null,
                 worldItemStackRuntime: null,
-                abilityRuntimeDispatcher: null,
+                abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
                 gameClock: null,
                 paidFacilityContracts: null,
                 evolutionState: new FacilityEvolutionStateComponentFactory());
@@ -1835,7 +1835,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 combatEquipmentRuntime: null,
                 worldRegistry: null,
                 worldItemStackRuntime: null,
-                abilityRuntimeDispatcher: null,
+                abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
                 gameClock: null,
                 paidFacilityContracts: null,
                 evolutionState: new FacilityEvolutionStateComponentFactory());
@@ -1949,7 +1949,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     combatEquipmentRuntime: null,
                     worldRegistry: null,
                     worldItemStackRuntime: null,
-                    abilityRuntimeDispatcher: null,
+                    abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
                     gameClock: null,
                     paidFacilityContracts: null,
                     evolutionState: new FacilityEvolutionStateComponentFactory());

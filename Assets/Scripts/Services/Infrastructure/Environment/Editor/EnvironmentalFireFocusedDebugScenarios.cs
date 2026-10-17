@@ -79,6 +79,71 @@ public static class EnvironmentalFireFocusedDebugScenarios
         return "fire-actions/actual-runtime-and-observer/ignition-suppression/unknown-before-after/saved-new-dispatcher/exact-request/dedup=PASS;water-port-controlled;Unity-scene-and-whole-save=NOT-RUN";
     }
 
+    public static string RunTemporalJoinForBatch()
+    {
+        using var outcomes = new OutcomeFixture(includeDamage: true,
+            deliveryCalendar: new EditorFixedGameCalendar(23, 3));
+        var fixture = new Fixture(false, 0.4f, outcomes: outcomes);
+        Require(fixture.Ignite("cause:clocked-save-join").Created,
+            "Clocked join fixture did not execute real ignition.");
+        var damage = new EnvironmentalFireDamageAuthority(outcomes.Facts, outcomes.Facts);
+        var command = DamageCommand("fire-damage:clocked-save-join");
+        Require(damage.TryBegin(command, "시각 검사 시설", 23, out _, out _)
+            && damage.TryCommitApplied(command.OperationId, 7, true, out var result, out _)
+            && result.Committed, "Clocked join fixture did not commit its real damage receipt.");
+        var owner = fixture.Runtime.Capture();
+        var ledger = JsonUtility.FromJson<GameplayOutcomeLedgerSaveData>(
+            JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes()));
+        Require(ledger.exactOutcomes.Count == 2
+            && ledger.exactOutcomes.All(value => value.deliveryMetadataVersion
+                == GameplayOutcomeDeliveryTime.CurrentVersion && value.publishedRevision > 0L),
+            "Clocked join fixture did not observe actual publication time.");
+        string unchanged = JsonUtility.ToJson(fixture.Runtime.Capture());
+        Verify(ledger, true);
+        Action<GameplayOutcomeSnapshot>[] corruptions =
+        {
+            value => value.recordedAbsoluteHour = -1L,
+            value => value.publishedRevision = checked(ledger.revision + 1L),
+            value => value.deliveryDelayReason = "fabricated-delay",
+            value => value.deliveryMetadataVersion = 0,
+            value => { value.parentRunId = ledger.runId; value.parentSequence = ledger.nextSequence; }
+        };
+        foreach (var corrupt in corruptions)
+        {
+            var changed = JsonUtility.FromJson<GameplayOutcomeLedgerSaveData>(JsonUtility.ToJson(ledger));
+            foreach (var row in changed.exactOutcomes) corrupt(row);
+            Verify(changed, false);
+            Verify(ledger, true);
+            Require(JsonUtility.ToJson(fixture.Runtime.Capture()) == unchanged,
+                "Rejected temporal join changed the live fire owner.");
+        }
+        using var restored = new OutcomeFixture(includeDamage: true,
+            deliveryCalendar: new EditorFixedGameCalendar(23, 3));
+        RestoreActionLedger(restored, ledger);
+        var resumed = new Fixture(false, 0.4f, outcomes: restored);
+        resumed.Runtime.Restore(resumed.Runtime.PrepareRestore(owner));
+        Require(resumed.Ignite("cause:clocked-save-join").Disposition
+                == EnvironmentalFireIgnitionDisposition.PreviouslyProcessed
+            && restored.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count == 2,
+            "Clocked restore/retry duplicated the original ignition outcome.");
+        RunActionObserverFocused();
+        RunDamageObserverFocused();
+        EnvironmentalFireResourceObserverDebugScenarios.Run();
+        return "ARCHITECTURE_FIRE_TEMPORAL_JOIN=PASS; clocked ignition/damage; temporal/parent corruption rejection unchanged; restored same-operation retry; action/damage/resource observer recovery";
+
+        void Verify(GameplayOutcomeLedgerSaveData candidate, bool expected)
+        {
+            var actionReport = new DungeonGameRestoreReport();
+            EnvironmentalFireActionFactPreflight.Validate(owner, candidate, actionReport);
+            var damageReport = new DungeonGameRestoreReport();
+            EnvironmentalFireDamageFactPreflight.Validate(damage.Capture(), candidate, damageReport);
+            Require(actionReport.Success == expected && damageReport.Success == expected,
+                "Fire temporal join expected=" + expected
+                + ";action=" + string.Join(" | ", actionReport.Errors)
+                + ";damage=" + string.Join(" | ", damageReport.Errors));
+        }
+    }
+
     private static void VerifyActionReplyLoss()
     {
         foreach (var mode in new[] { ControlledCommitMode.Throw, ControlledCommitMode.HideAfterCommit })
@@ -955,7 +1020,7 @@ public static class EnvironmentalFireFocusedDebugScenarios
             combatEquipmentRuntime: null,
             worldRegistry: null,
             worldItemStackRuntime: null,
-            abilityRuntimeDispatcher: null,
+            abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
             gameClock: null,
             paidFacilityContracts: null,
             evolutionState: new FacilityEvolutionStateComponentFactory());
@@ -1274,7 +1339,7 @@ public static class EnvironmentalFireFocusedDebugScenarios
 
     internal sealed class OutcomeFixture : IDisposable
     {
-        internal OutcomeFixture(bool includeDamage = false)
+        internal OutcomeFixture(bool includeDamage = false, IGameCalendar deliveryCalendar = null)
         {
             var josa = new KoreanJosaFormatter();
             List<IGameplayOutcomeDescriptor> descriptors = new()
@@ -1299,7 +1364,8 @@ public static class EnvironmentalFireFocusedDebugScenarios
                 registry,
                 new GameplayOutcomeBufferLimits(),
                 new GameplayOutcomeRunId("run:fire-01-focused"),
-                1L);
+                1L,
+                deliveryCalendar);
             GameplayOutcomeRecorder recorder = new(
                 Ledger,
                 registry,

@@ -106,8 +106,35 @@ internal sealed class CharacterBreakdownActionRunner
     private readonly IGameCalendar calendar;
     private readonly CharacterWaterPublicationOutbox waterPublications;
     private readonly ICharacterVandalismCommand vandalismCommands;
-    private readonly HashSet<CharacterId> runningActorIds =
-        new HashSet<CharacterId>();
+    private readonly CharacterCorpseConsumptionTransaction corpseConsumption;
+    private readonly Dictionary<CharacterId, RunningBreakdownAction> runningActions = new();
+
+    private sealed class RunningBreakdownAction
+    {
+        internal RunningBreakdownAction(CharacterActor actor, CharacterBreakdownKind kind,
+            int generation, CharacterActionIntentLease intentLease)
+        {
+            Actor = actor;
+            Kind = kind;
+            Generation = generation;
+            IntentLease = intentLease;
+        }
+
+        internal CharacterActor Actor { get; }
+        internal CharacterBreakdownKind Kind { get; }
+        internal int Generation { get; }
+        internal CharacterActionIntentLease IntentLease { get; }
+
+        internal bool Matches(CharacterActor actor, CharacterBreakdownKind kind,
+            int generation, CharacterActionIntentLease lease) =>
+            ReferenceEquals(Actor, actor) && Kind == kind && Generation == generation
+            && SharesIntent(actor, lease);
+
+        internal bool SharesIntent(CharacterActor actor, CharacterActionIntentLease lease) =>
+            ReferenceEquals(Actor, actor) && IntentLease.Epoch == lease.Epoch
+            && IntentLease.Kind == lease.Kind
+            && string.Equals(IntentLease.OwnerId, lease.OwnerId, StringComparison.Ordinal);
+    }
     private readonly Dictionary<CharacterBreakdownKind, Func<CharacterActor, CharacterActionIntentLease, IEnumerator>>
         actionRoutines =
             new Dictionary<CharacterBreakdownKind, Func<CharacterActor, CharacterActionIntentLease, IEnumerator>>();
@@ -134,6 +161,8 @@ internal sealed class CharacterBreakdownActionRunner
         calendar = execution.Calendar;
         waterPublications = execution.WaterPublications;
         vandalismCommands = execution.VandalismCommands;
+        corpseConsumption = new CharacterCorpseConsumptionTransaction(
+            world, stateStore, consequences, calendar);
         CreateActionRoutines();
     }
 
@@ -147,7 +176,9 @@ internal sealed class CharacterBreakdownActionRunner
             return false;
         }
 
-        if (runningActorIds.Contains((CharacterId)state.characterId))
+        if (runningActions.TryGetValue((CharacterId)state.characterId, out RunningBreakdownAction running)
+            && running.Matches(actor, state.breakdown.kind, state.breakdownGeneration, running.IntentLease)
+            && actor.Brain?.IsExternalIntentCurrent(running.IntentLease) == true)
         {
             status = GetBreakdownLabel(state.breakdown.kind) + " 진행 중";
             return true;
@@ -174,32 +205,63 @@ internal sealed class CharacterBreakdownActionRunner
             return true;
         }
 
-        Begin(actor, state.breakdown.kind, intentLease);
+        if (!TryStart(actor, state.breakdown.kind, intentLease))
+            status = "붕괴 행동을 시작하지 못함";
         return true;
     }
 
     public void Begin(
         CharacterActor actor,
         CharacterBreakdownKind kind,
+        CharacterActionIntentLease intentLease) => TryStart(actor, kind, intentLease);
+
+    private bool TryStart(CharacterActor actor, CharacterBreakdownKind kind,
         CharacterActionIntentLease intentLease)
     {
-        if (!stateStore.TryGet(actor, out CharacterDeprivationState state)
-            || state.breakdown == null
-            || !state.breakdown.active
-            || state.breakdown.kind != kind)
+        bool admitted = false;
+        CharacterId actorId = default;
+        RunningBreakdownAction run = null;
+        try
         {
-            return;
-        }
+            if (!string.Equals(intentLease.OwnerId, IntentOwnerId, StringComparison.Ordinal)
+                || intentLease.Kind != CharacterActionIntentKind.Breakdown
+                || actor?.Brain?.IsExternalIntentCurrent(intentLease) != true
+                || !stateStore.TryGet(actor, out CharacterDeprivationState state)
+                || state.breakdown == null || !state.breakdown.active || state.breakdown.kind != kind)
+                return false;
 
-        CharacterId actorId = CharacterPersistentIdentity.Require(actor);
-        if (runningActorIds.Add(actorId))
+            actorId = CharacterPersistentIdentity.Require(actor);
+            if (runningActions.TryGetValue(actorId, out RunningBreakdownAction current)
+                && current.Matches(actor, kind, state.breakdownGeneration, intentLease))
+            {
+                admitted = true;
+                return true;
+            }
+
+            run = new RunningBreakdownAction(actor, kind, state.breakdownGeneration, intentLease);
+            runningActions[actorId] = run;
+            try
+            {
+                Coroutine coroutine = actor.StartCoroutine(RunBreakdownAction(actor, actorId, kind,
+                    state.breakdownGeneration, intentLease, run));
+                if (coroutine == null && IsCurrentRun(actorId, run))
+                    throw new InvalidOperationException("Breakdown coroutine was not scheduled.");
+                admitted = true;
+                return true;
+            }
+            catch
+            {
+                CompleteRunningAction(actorId, run);
+                throw;
+            }
+        }
+        finally
         {
-            actor.StartCoroutine(RunBreakdownAction(
-                actor,
-                actorId,
-                kind,
-                state.breakdownGeneration,
-                intentLease));
+            if (!admitted && string.Equals(intentLease.OwnerId, IntentOwnerId, StringComparison.Ordinal)
+                && intentLease.Kind == CharacterActionIntentKind.Breakdown
+                && !ReplacementSharesIntent(actorId, run, actor, intentLease)
+                && actor?.Brain?.IsExternalIntentCurrent(intentLease) == true)
+                actor.Brain.EndExternallyDrivenAction(intentLease, clearFailures: true);
         }
     }
 
@@ -219,21 +281,20 @@ internal sealed class CharacterBreakdownActionRunner
             return false;
         }
 
-        Begin(actor, kind, intentLease);
-        return true;
+        return TryStart(actor, kind, intentLease);
     }
 
     public void ReleaseActor(CharacterId actorId)
     {
         if (actorId.IsValid)
         {
-            runningActorIds.Remove(actorId);
+            runningActions.Remove(actorId);
         }
     }
 
     public void Reset()
     {
-        runningActorIds.Clear();
+        runningActions.Clear();
     }
 
     private IEnumerator RunBreakdownAction(
@@ -241,15 +302,21 @@ internal sealed class CharacterBreakdownActionRunner
         CharacterId actorId,
         CharacterBreakdownKind kind,
         int generation,
-        CharacterActionIntentLease intentLease)
+        CharacterActionIntentLease intentLease,
+        RunningBreakdownAction run)
     {
         try
         {
+            if (!IsCurrentRun(actorId, run))
+                yield break;
             if (actionRoutines.TryGetValue(
                     kind,
                     out Func<CharacterActor, CharacterActionIntentLease, IEnumerator> routine))
             {
-                yield return routine(actor, intentLease);
+                IEnumerator action = RunWhileCurrent(routine(actor, intentLease),
+                    () => IsCurrentRun(actorId, run) && CanCommit(actor, intentLease));
+                try { yield return action; }
+                finally { (action as IDisposable)?.Dispose(); }
             }
 
             // A violent impulse is one bounded episode, not a permanent owner of
@@ -257,7 +324,9 @@ internal sealed class CharacterBreakdownActionRunner
             // the impulse by wandering, then it must release the actor so normal
             // needs can recover.  Deprivation can build toward a later episode,
             // but it cannot reissue the same breakdown every decision tick.
-            if (kind == CharacterBreakdownKind.ViolentImpulse
+            if (IsCurrentRun(actorId, run)
+                && CanCommit(actor, intentLease)
+                && kind == CharacterBreakdownKind.ViolentImpulse
                 && actor != null
                 && !actor.IsDead
                 && stateStore.TryGetWritable(actor, out CharacterDeprivationState completed)
@@ -274,14 +343,16 @@ internal sealed class CharacterBreakdownActionRunner
         }
         finally
         {
-            runningActorIds.Remove(actorId);
-            if (actor?.Brain?.IsExternalIntentCurrent(intentLease) == true)
+            bool wasCurrent = CompleteRunningAction(actorId, run);
+            bool replacementSharesIntent = ReplacementSharesIntent(actorId, run, actor, intentLease);
+            if (!replacementSharesIntent && actor?.Brain?.IsExternalIntentCurrent(intentLease) == true)
             {
                 actor.Brain.EndExternallyDrivenAction(
                     intentLease,
                     clearFailures: true);
             }
-            if (actor != null
+            if (wasCurrent
+                && actor != null
                 && !actor.IsDead
                 && stateStore.TryGet(actor, out CharacterDeprivationState current)
                 && current.breakdown != null
@@ -293,6 +364,50 @@ internal sealed class CharacterBreakdownActionRunner
         }
     }
 
+
+    private bool IsCurrentRun(CharacterId actorId, RunningBreakdownAction run) =>
+        runningActions.TryGetValue(actorId, out RunningBreakdownAction current) && ReferenceEquals(current, run);
+
+    private static IEnumerator RunWhileCurrent(IEnumerator action, Func<bool> isCurrent)
+    {
+        try
+        {
+            while (isCurrent() && action.MoveNext())
+            {
+                object current = action.Current;
+                if (current is IEnumerator nested)
+                {
+                    IEnumerator guardedNested = RunWhileCurrent(nested, isCurrent);
+                    try { yield return guardedNested; }
+                    finally { (guardedNested as IDisposable)?.Dispose(); }
+                }
+                else
+                    yield return current;
+            }
+        }
+        finally
+        {
+            (action as IDisposable)?.Dispose();
+        }
+    }
+
+    private bool ReplacementSharesIntent(CharacterId actorId, RunningBreakdownAction run,
+        CharacterActor actor, CharacterActionIntentLease lease) =>
+        runningActions.TryGetValue(actorId, out RunningBreakdownAction replacement)
+        && !ReferenceEquals(replacement, run) && replacement.SharesIntent(actor, lease);
+
+    private bool CompleteRunningAction(CharacterId actorId, RunningBreakdownAction run)
+    {
+        if (!IsCurrentRun(actorId, run)) return false;
+        runningActions.Remove(actorId);
+        return true;
+    }
+
+    internal void RecoverCorpsePublications() => corpseConsumption.RecoverCorpsePublications();
+
+    internal bool TryConsumeHumanoidCorpse(CharacterActor actor, WorldItemStackSnapshot selected,
+        float recovery, int standDistance, string operationId, string reasonCode) =>
+        corpseConsumption.TryConsumeHumanoidCorpse(actor, selected, recovery, standDistance, operationId, reasonCode);
 
     private IEnumerator RunDesperateRelief(
         CharacterActor actor,
@@ -667,7 +782,7 @@ internal sealed class CharacterBreakdownActionRunner
                 consequences.EndActiveBreakdownIfRelieved(actor);
                 if (humanoid)
                 {
-                    ApplyCannibalismConsequences(actor, consumed);
+                    corpseConsumption.ApplyCannibalismConsequences(actor, consumed);
                 }
                 else if (IsUnsafeFood(consumed))
                 {
@@ -1148,155 +1263,6 @@ internal sealed class CharacterBreakdownActionRunner
         }
 
         return null;
-    }
-
-
-    private void ApplyCannibalismConsequences(CharacterActor actor, WorldItemStackSnapshot consumed)
-    {
-        ResolveCannibalismReaction(actor, consumed,
-            out bool sameSpecies, out float mood, out string reaction);
-        actor.ApplyMoodFactor(
-            sameSpecies ? "survival:same-species-cannibalism" : "survival:cannibalism",
-            reaction, mood, 900f, 1);
-        actor.ChangesStat(CharacterCondition.HYGIENE, -20f);
-        consequences.AddInfection(actor, sameSpecies ? 20f : 12f);
-        string victim = string.IsNullOrWhiteSpace(consumed.SourceDisplayName) ? "이름 모를 사체" : consumed.SourceDisplayName;
-        consequences.RecordTaboo(actor, $"극한의 굶주림 속에서 {victim}을 먹었다");
-        consequences.ApplyWitnessMood(actor, actor.GetNowXY(), "금기의 포식을 목격함",
-            sameSpecies ? -12f : -8f, permanentMemory: true);
-    }
-
-    internal void RecoverCorpsePublications() => world.RecoverCorpsePublications(stateStore);
-
-    internal bool TryConsumeHumanoidCorpse(
-        CharacterActor actor, WorldItemStackSnapshot selected, float recovery, int standDistance,
-        string operationId, string reasonCode)
-    {
-        if (!world.TryGetStack(selected.StackId, out WorldItemStackSnapshot source))
-            return false; // The exact consumed corpse cannot be replayed as another food/victim.
-        if (actor?.Stats == null
-            || source.ItemId != DarkSurvivalItemDefinitions.HumanoidCorpseItemId
-            || source.SourceCharacterId != selected.SourceCharacterId
-            || source.SourceDisplayName != selected.SourceDisplayName
-            || source.SourceSpeciesTag != selected.SourceSpeciesTag
-            || source.SourceDeathReason != selected.SourceDeathReason
-            || source.Position != selected.Position
-            || Manhattan(actor.GetNowXY(), source.Position) > standDistance
-            || source.TotalQuantity != 1 || source.AvailableQuantity != 1
-            || !DomainFactValueSyntax.IsIdentity(source.SourceCharacterId)
-            || string.IsNullOrWhiteSpace(source.SourceDisplayName))
-            throw new InvalidOperationException("corpse-consumption-exact-source-invalid");
-
-        CharacterId actorId = CharacterPersistentIdentity.Require(actor);
-        ResolveCannibalismReaction(actor, source,
-            out bool sameSpecies, out float mood, out string reaction);
-        string moodId = sameSpecies ? "survival:same-species-cannibalism" : "survival:cannibalism";
-        string memory = $"극한의 굶주림 속에서 {source.SourceDisplayName}을 먹었다";
-        int day = Math.Max(1, calendar.Day);
-        CharacterMoodDeliveryTransactionSnapshot statsBefore =
-            actor.Stats.CaptureMoodDeliveryTransactionState();
-        CharacterDeprivationAggregateState deprivationBefore = stateStore.CaptureTransactionState();
-        float hungerBefore = GetNeed(actor, CharacterCondition.HUNGER);
-        float hygieneBefore = GetNeed(actor, CharacterCondition.HYGIENE);
-        float moodBefore = actor.Stats.Mood;
-        CharacterDeprivationState before = stateStore.Ensure(actor);
-        float infectionBefore = before.infectionBurden;
-        int memoriesBefore = before.tabooMemories?.Count ?? 0;
-        bool committed = false;
-        bool moodApplied = false;
-        float resolvedMood = 0f;
-        PhysicalItemBatchDispositionReceipt physicalReceipt = default;
-        string failure = string.Empty;
-        try
-        {
-            actor.Stats.RecoverEmergencyNeedBeforeOutcomeCommit(CharacterCondition.HUNGER, recovery);
-            resolvedMood = actor.ApplyMoodFactorBeforeOutcomeCommit(
-                moodId, reaction, mood, 900f, 1, out moodApplied);
-            actor.Stats.ChangeConditionBeforeOutcomeCommit(CharacterCondition.HYGIENE, -20f);
-            consequences.AddInfection(actor, sameSpecies ? 20f : 12f);
-            consequences.RecordTabooBeforeOutcomeCommit(actor, memory);
-            CharacterDeprivationState after = stateStore.Ensure(actor);
-            float hungerAfter = GetNeed(actor, CharacterCondition.HUNGER);
-            float hygieneAfter = GetNeed(actor, CharacterCondition.HYGIENE);
-            float moodAfter = actor.Stats.Mood;
-            float infectionAfter = after.infectionBurden;
-            int memoriesAfter = after.tabooMemories?.Count ?? 0;
-            var experience = new CharacterCorpseConsumptionExperienceData
-            {
-                characterId = actorId.Value, characterName = actor.Identity.DisplayName,
-                victimId = source.SourceCharacterId, victimName = source.SourceDisplayName,
-                victimSpecies = source.SourceSpeciesTag, deathReason = source.SourceDeathReason,
-                memory = memory, sameSpecies = sameSpecies, absoluteDay = day,
-                hungerBefore = hungerBefore, hungerAfter = hungerAfter,
-                hygieneBefore = hygieneBefore, hygieneAfter = hygieneAfter,
-                infectionBefore = infectionBefore, infectionAfter = infectionAfter,
-                moodBefore = moodBefore, moodAfter = moodAfter,
-                memoriesBefore = memoriesBefore, memoriesAfter = memoriesAfter
-            };
-            committed = world.TryConsumeCorpse(source, operationId, reasonCode,
-                experience, stateStore, out physicalReceipt, out failure);
-            if (!committed)
-                throw new InvalidOperationException("corpse-consumption-commit-rejected:" + failure);
-        }
-        finally
-        {
-            if (!committed)
-            {
-                // The item authority rolls back only before its canonical commit.
-                // Never restore all items after a durable physical outcome exists.
-                stateStore.RestoreTransactionState(deprivationBefore);
-                actor.Stats.RestoreMoodDeliveryTransactionState(statsBefore, publish: false);
-            }
-        }
-
-        var failures = new List<Exception>();
-        void Publish(Action callback)
-        {
-            try { callback(); }
-            catch (Exception exception) when (exception is not OutOfMemoryException
-                && exception is not StackOverflowException && exception is not AccessViolationException)
-            { failures.Add(exception); }
-        }
-        Publish(() => consequences.EndActiveBreakdownIfRelieved(actor));
-        if (!world.AcknowledgeCorpseConsumption(physicalReceipt, stateStore, out string ackFailure))
-            failures.Add(new InvalidOperationException("corpse-consumption-ack-pending:" + ackFailure));
-        if (failure.Length > 0)
-            failures.Add(new InvalidOperationException(failure));
-        if (moodApplied)
-            Publish(() => actor.Stats.PublishCommittedMoodFactor(moodId, resolvedMood, day));
-        Publish(() => actor.Stats.PublishCommittedConditionChange(CharacterCondition.HUNGER,
-            hungerBefore, GetNeed(actor, CharacterCondition.HUNGER), day));
-        Publish(() => actor.Stats.PublishCommittedConditionChange(CharacterCondition.HYGIENE,
-            hygieneBefore, GetNeed(actor, CharacterCondition.HYGIENE), day));
-        Publish(() => consequences.PublishCommittedTaboo(actor, memory, source.SourceCharacterId));
-        Publish(() => consequences.ApplyWitnessMood(actor, actor.GetNowXY(),
-            "금기의 포식을 목격함", sameSpecies ? -12f : -8f, permanentMemory: true));
-        if (failures.Count > 0)
-            throw new AggregateException("Corpse consumption committed; publication or acknowledgement failed.", failures);
-        return true;
-    }
-
-    private static void ResolveCannibalismReaction(CharacterActor actor,
-        WorldItemStackSnapshot consumed, out bool sameSpecies, out float mood, out string reaction)
-    {
-        sameSpecies = !string.IsNullOrWhiteSpace(consumed.SourceSpeciesTag)
-            && string.Equals(actor.Identity?.SpeciesTag, consumed.SourceSpeciesTag, StringComparison.OrdinalIgnoreCase);
-        CharacterAiPersonality personality = GetPersonality(actor);
-        float conscience01 = personality != null
-            ? (Mathf.InverseLerp(0.25f, 2f, personality.selfCare)
-                + Mathf.InverseLerp(0.25f, 2f, personality.orderliness)
-                + Mathf.InverseLerp(0.25f, 2f, personality.routineAdherence)) / 3f
-            : 0.5f;
-        float appetite01 = personality != null
-            ? (Mathf.InverseLerp(0.25f, 2f, personality.riskTaking)
-                + Mathf.InverseLerp(0.25f, 2f, personality.noveltySeeking)) * 0.5f
-            : 0.5f;
-        mood = (sameSpecies ? -18f : -11f) * Mathf.Lerp(0.45f, 1.25f, conscience01);
-        reaction = appetite01 > 0.72f && conscience01 < 0.45f
-            ? "금기의 맛을 다시 떠올림"
-            : conscience01 < 0.35f
-                ? "금기에 무감각해짐"
-                : sameSpecies ? "동족을 먹었다" : "인간형 사체를 먹었다";
     }
 
 

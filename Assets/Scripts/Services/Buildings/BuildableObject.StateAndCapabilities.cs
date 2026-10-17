@@ -9,6 +9,37 @@ internal sealed class BuildableObjectStateAndCapabilityController
     private readonly Action markDynamicStateDirty;
     private readonly List<IBuildingStateModule> runtimeStateModules =
         new List<IBuildingStateModule>();
+    private IReadOnlyList<object> abilityRuntimes = Array.Empty<object>();
+    private BuildingAbilityCollection boundDefinitions;
+    private int boundDefinitionRevision;
+    private IBuildingAbilityRuntimeDispatcher boundDispatcher;
+
+    internal void SetAbilityRuntimes(BuildingAbilityCollection definitions, IReadOnlyList<object> runtimes,
+        IBuildingAbilityRuntimeDispatcher dispatcher)
+    {
+        abilityRuntimes = runtimes ?? throw new ArgumentNullException(nameof(runtimes));
+        boundDefinitions = definitions ?? throw new ArgumentNullException(nameof(definitions));
+        boundDefinitionRevision = definitions.Revision;
+        boundDispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
+    }
+
+    internal IEnumerable<TCapability> GetAbilityRuntimes<TCapability>(
+        BuildingAbilityCollection definitions,
+        IBuildingAbilityRuntimeDispatcher dispatcher) where TCapability : class
+    {
+        if (definitions == null) yield break;
+        if (!ReferenceEquals(definitions, boundDefinitions) || definitions.Revision != boundDefinitionRevision
+            || !ReferenceEquals(dispatcher, boundDispatcher))
+        {
+            IReadOnlyList<object> candidate = (dispatcher
+                ?? throw new InvalidOperationException("Building runtime binding requires its registered dispatcher."))
+                .BindRuntimeAbilities(definitions.Items)
+                ?? throw new InvalidOperationException("Building dispatcher returned null runtime bindings.");
+            SetAbilityRuntimes(definitions, candidate, dispatcher);
+        }
+        foreach (object runtime in abilityRuntimes)
+            if (runtime is TCapability capability) yield return capability;
+    }
 
     internal BuildableObjectStateAndCapabilityController(
         MonoBehaviour host,

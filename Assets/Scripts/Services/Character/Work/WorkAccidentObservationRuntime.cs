@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Globalization;
 using DungeonStory.Environment;
 using DungeonStory.Foundation;
 using DungeonStory.Foundation.Facts;
@@ -121,8 +120,7 @@ public sealed class WorkAccidentObservationRuntime : ITickable, IDungeonSaveRest
                 "environmental-fire-process-accident:" + fact.operationId,
                 EnvironmentalFireIgnitionKind.ProcessAccident, fact.operationId,
                 new EnvironmentalFireTargetRef(EnvironmentalFireTargetKind.Building, fact.facilityId),
-                fact.fireIntensity, "work-accident-receipt:" + fact.workerId + ":" + fact.workTypeId
-                    + ":node=" + fact.anatomyNodeId + ":damage=" + fact.appliedDamage.ToString("R", CultureInfo.InvariantCulture),
+                fact.fireIntensity, "work-accident-receipt:" + fact.operationId,
                 targetDisplayName: fact.fireTargetDisplayName));
             if (result.Disposition is EnvironmentalFireIgnitionDisposition.CauseConflict
                 or EnvironmentalFireIgnitionDisposition.InvalidRequest)

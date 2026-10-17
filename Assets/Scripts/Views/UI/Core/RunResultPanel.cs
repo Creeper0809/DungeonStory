@@ -13,6 +13,7 @@ public class RunResultPanel : MonoBehaviour
     private Button nextRunButton;
     private IDungeonRunTransitionService transitionService;
     private IGameTimeScaleController timeScaleController;
+    private IDungeonRestoreSafetyQuery restoreSafety;
     private IRunResultTextQuery textQuery;
     private IRunResultThemeQuery theme;
     private bool pauseCaptured;
@@ -23,7 +24,8 @@ public class RunResultPanel : MonoBehaviour
         IDungeonRunTransitionService transitionService,
         IGameTimeScaleController timeScaleController,
         IRunResultTextQuery textQuery,
-        IRunResultThemeQuery theme)
+        IRunResultThemeQuery theme,
+        IDungeonRestoreSafetyQuery restoreSafety)
     {
         this.transitionService = transitionService
             ?? throw new System.ArgumentNullException(nameof(transitionService));
@@ -33,6 +35,8 @@ public class RunResultPanel : MonoBehaviour
             ?? throw new System.ArgumentNullException(nameof(textQuery));
         this.theme = theme
             ?? throw new System.ArgumentNullException(nameof(theme));
+        this.restoreSafety = restoreSafety
+            ?? throw new System.ArgumentNullException(nameof(restoreSafety));
     }
 
     public void Render(RunResultSnapshot result)
@@ -61,7 +65,8 @@ public class RunResultPanel : MonoBehaviour
 
         if (nextRunButton != null)
         {
-            nextRunButton.interactable = transitionService != null && !transitionService.IsTransitioning;
+            nextRunButton.interactable = !restoreSafety.RequiresRecovery
+                && transitionService != null && !transitionService.IsTransitioning;
         }
     }
 
@@ -70,7 +75,8 @@ public class RunResultPanel : MonoBehaviour
         gameObject.SetActive(false);
         if (pauseCaptured)
         {
-            timeScaleController.Scale = previousTimeScale;
+            if (!restoreSafety.RequiresRecovery)
+                timeScaleController.Scale = previousTimeScale;
             pauseCaptured = false;
         }
     }
@@ -96,6 +102,11 @@ public class RunResultPanel : MonoBehaviour
 
     private void HandleNextRun()
     {
+        if (restoreSafety.RequiresRecovery)
+        {
+            if (nextRunButton != null) nextRunButton.interactable = false;
+            return;
+        }
         if (transitionService == null || transitionService.IsTransitioning)
         {
             return;

@@ -985,7 +985,7 @@ public static class OrganPreservationRestoreJoinFixture
             combatEquipmentRuntime: null,
             worldRegistry: null,
             worldItemStackRuntime: null,
-            abilityRuntimeDispatcher: null,
+            abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
             gameClock: null,
             paidFacilityContracts: null,
             evolutionState: CreateProxy<IBuildingEvolutionStatePort>(

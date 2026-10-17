@@ -598,7 +598,7 @@ public static class WorldResourceTransactionFaultDebugScenarios
             FacilityBufferDestinationLifecycleService lifecycle = new(Claims, Claims, Admission, Admission);
             FacilityBufferPlannedOutputPublicationService publication = new(repository, itemCatalog,
                 Items.MassQuery, Admission, OutputFault);
-            PhysicalItemExactSourcePublicationService exact = new(Items.MassQuery, lifecycle,
+            PhysicalItemExactSourcePublicationService exact = new(repository, Items.MassQuery, lifecycle,
                 Claims, Admission, Admission, publication, new UnexpectedRetainedRelease(), dispositions,
                 new PhysicalItemExactSourcePublicationDebugScenarios.MutableAcknowledgedCandidates());
             Output = new ObservedOutputPublication(

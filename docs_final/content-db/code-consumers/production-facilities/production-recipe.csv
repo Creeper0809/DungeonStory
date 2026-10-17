@@ -1,9 +1,14 @@
 ﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
 ProductionRecipeSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/EmptyResourceEconomyContentCatalog.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionAssemblyBridge.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionBillCommandRuntime.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionBillExecutionRuntime.cs
+ProductionRecipeSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionBillInputRuntime.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionBillRuntime.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionBillRuntimeQuery.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,persistence,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionBillSnapshotProjector.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,persistence,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionBillStateCodec.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionBillTerminalRuntime.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionDistributionRuntime.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionMassExplanationAuthoring.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ProductionOutputCostAllocationAuthoring.cs
@@ -35,10 +40,11 @@ ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionOutputClearanceMeasurementScopeAuthority.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionPassiveBatchOutputPortfolioAuthority.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionPreparedOutputExecutionAdapter.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionPreparedOutputResolutionPlanner.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionRecipeThroughputBranchAuthority.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionRecipeWorkRateMaximumAuthority.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionSpecialThroughputContributorRegistry.cs
-ProductionRecipeSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionWorkshopAbilities.cs
+ProductionRecipeSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/ProductionWorkshopAbilityAccessors.cs
 ProductionRecipeSO,content-type,,type-reference,services:economy,content-loading,structural-type-consumer,Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs
 ProductionRecipeSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V23BalanceWorkCalculator.cs
 ProductionRecipeSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V23EmbeddedWorkValueCalculator.cs

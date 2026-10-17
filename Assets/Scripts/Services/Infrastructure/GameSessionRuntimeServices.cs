@@ -117,11 +117,13 @@ public sealed class GameSpeedController : IGameSpeedController
     private readonly IGameSessionStateProvider sessionStateProvider;
     private readonly IGameSessionPauseAuthority pauseAuthority;
     private readonly IGameTimeScaleController timeScaleController;
+    private readonly IDungeonRestoreSafetyQuery restoreSafety;
 
     public GameSpeedController(
         IGameSessionStateProvider sessionStateProvider,
         IGameSessionPauseAuthority pauseAuthority,
-        IGameTimeScaleController timeScaleController)
+        IGameTimeScaleController timeScaleController,
+        IDungeonRestoreSafetyQuery restoreSafety)
     {
         this.sessionStateProvider = sessionStateProvider
             ?? throw new ArgumentNullException(nameof(sessionStateProvider));
@@ -129,6 +131,8 @@ public sealed class GameSpeedController : IGameSpeedController
             ?? throw new ArgumentNullException(nameof(pauseAuthority));
         this.timeScaleController = timeScaleController
             ?? throw new ArgumentNullException(nameof(timeScaleController));
+        this.restoreSafety = restoreSafety
+            ?? throw new ArgumentNullException(nameof(restoreSafety));
     }
 
     public int Speed => RequireState().gameSpeed.Value;
@@ -141,6 +145,7 @@ public sealed class GameSpeedController : IGameSpeedController
 
     public void SetSpeed(int speed)
     {
+        RequireSafeProgression();
         GameSessionState state = RequireState();
         state.gameSpeed.Value = Mathf.Clamp(speed, 1, 5);
         if (!state.IsPaused)
@@ -156,9 +161,16 @@ public sealed class GameSpeedController : IGameSpeedController
 
     public void SetPaused(bool paused)
     {
+        if (!paused) RequireSafeProgression();
         GameSessionState state = RequireState();
         pauseAuthority.SetPaused(paused);
         timeScaleController.Scale = paused ? 0f : state.gameSpeed.Value;
+    }
+
+    private void RequireSafeProgression()
+    {
+        if (restoreSafety.RequiresRecovery)
+            throw new InvalidOperationException(restoreSafety.RecoveryMessage);
     }
 
     private GameSessionState RequireState()

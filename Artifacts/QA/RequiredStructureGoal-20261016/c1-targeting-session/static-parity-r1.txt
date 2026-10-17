@@ -1,0 +1,1 @@
+C1_SOURCE_PARITY=PASS; existingPublicMethods=18; unchangedDomainMethods=30; serialized/base/interfaces=unchanged; combatDispatch=unchanged; drag/info=unchanged; finally/replacement/fixtureWiring=PASS; Unity=NOT_RUN

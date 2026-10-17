@@ -625,11 +625,11 @@ public static class OffenseAggregateSaveV18DebugScenarios
     private static bool CapturePreflightRejectsArrivalJoin(
         DungeonOffenseAggregateSaveData payload)
     {
-        MethodInfo method = typeof(DungeonAggregateReferencePreflight).GetMethod(
+        MethodInfo method = typeof(DungeonExpeditionSaveReferenceValidation).GetMethod(
             "ValidateOffenseArrivalResultJoins",
             BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new MissingMethodException(
-                typeof(DungeonAggregateReferencePreflight).FullName,
+                typeof(DungeonExpeditionSaveReferenceValidation).FullName,
                 "ValidateOffenseArrivalResultJoins");
         DungeonGameRestoreReport report = new();
         method.Invoke(null, new object[] { payload, report });

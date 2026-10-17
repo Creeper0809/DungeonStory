@@ -5,11 +5,6 @@ using UnityEngine;
 using VContainer;
 using VContainer.Unity;
 
-public interface IIdleSocialInteractionCommand
-{
-    bool TryExecute(CharacterActor actor, CharacterActor target, string behaviorId, out string failureReason);
-}
-
 public sealed class IdleSocialInteractionCommandRuntime :
     IIdleSocialInteractionCommand, IStartable, ITickable, IDungeonSaveRestoreCompletedHook
 {

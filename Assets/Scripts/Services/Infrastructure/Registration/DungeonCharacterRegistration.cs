@@ -24,6 +24,7 @@ public static class DungeonCharacterRegistration
         builder.RegisterEntryPoint<CharacterLevelActivityObserver>(Lifetime.Singleton);
         builder.RegisterEntryPoint<CharacterAiDiagnosticActivityObserver>(Lifetime.Singleton);
         builder.RegisterEntryPoint<CharacterActionActivityObserver>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<CharacterStateNarrativeObserver>(Lifetime.Singleton);
 
         builder.RegisterInstance(runtimeReferences
             ?? throw new ArgumentNullException(nameof(runtimeReferences)));
@@ -121,7 +122,8 @@ public static class DungeonCharacterRegistration
         builder.RegisterEntryPoint<V20CampaignApplicationAdapter>(
                 Lifetime.Singleton)
             .As<IV20DailyEvaluationDiagnostic>()
-            .As<IV20ObservedMealIncidentDiagnostic>();
+            .As<IV20ObservedMealIncidentDiagnostic>()
+            .As<IDungeonSaveRestoreCompletedHook>();
         builder.RegisterEntryPoint<SeasonalWildlifeVisitorApplicationAdapter>(
             Lifetime.Singleton);
         builder.RegisterEntryPoint<SeasonalSocialPresentationObserver>(
@@ -151,8 +153,9 @@ public static class DungeonCharacterRegistration
             .As<ICharacterLifeCommand>()
             .As<ICharacterLifePersistence>()
             .As<IAgeConditionAnatomyProjectionStore>();
-        builder.RegisterEntryPoint<NarrativeAuthorityContextBootstrap>(
-            Lifetime.Singleton);
+        builder.Register<NarrativeRequestContextBuilder>(Lifetime.Singleton);
+        builder.Register<GameplayCharacterSkillNarrativeContext>(Lifetime.Singleton)
+            .As<ICharacterSkillNarrativeContext>();
         builder.Register<PhysicalAgeTreatmentRuntime>(Lifetime.Singleton)
             .As<ITemporalStasisMaintenanceService>()
             .As<ITemporalStasisMaintenanceRecovery>();

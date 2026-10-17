@@ -108,7 +108,7 @@ public static class ProductionOutputDestinationDurableSaveProjector
                 "Production bill save payload has no current-format bill collection.");
 
         StringBuilder canonical = new StringBuilder(128)
-            .Append(ProductionBillRuntime.GenericBillLifecycleSchema)
+            .Append(ProductionBillIdentity.GenericBillLifecycleSchema)
             .Append('|')
             .Append(facilityId.Value).Append('|');
         AppendOrdered(

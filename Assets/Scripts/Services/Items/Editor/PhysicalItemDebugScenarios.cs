@@ -10,6 +10,27 @@ using UnityEngine;
 
 public static class PhysicalItemDebugScenarios
 {
+    public static void RunQuantityTransfersForBatch()
+    {
+        Require(Application.isBatchMode, "Quantity transfer validation requires isolated batch execution.");
+        Debug.Log(VerifyQuantityPartialExtraction());
+        Debug.Log(VerifyFacilityBufferRespectsForeignLeases());
+        Debug.Log(VerifyDirectConsumeRespectsForeignLease());
+        Debug.Log(VerifyCarriedReservationGrandfatherRestore());
+        Debug.Log("ARCHITECTURE_QUANTITY_TRANSFERS=PASS; failed extraction unchanged; same lease retry; protected consumption; carried restore");
+    }
+
+    public static void RunSaveValidationForBatch()
+    {
+        Require(Application.isBatchMode, "Physical save validation requires isolated batch execution.");
+        _ = VerifyTransientReservationPersistence();
+        _ = VerifyEquipmentInstancePhysicalAuthority();
+        _ = VerifyReservationCaptureRestoreGate();
+        _ = VerifyTypedPhysicalDisposition();
+        Debug.Log(VerifyPhysicalRestoreCandidateLifetime());
+        Debug.Log("ARCHITECTURE_PHYSICAL_STATE_SAVE=PASS; reservations; unique ownership; capture/restore gate; typed disposition");
+    }
+
     public static string VerifyQualityRejectedSaleForEditor() =>
         VerifyQualityRejectedUniqueDeliveryIdentity();
 
@@ -306,6 +327,7 @@ public static class PhysicalItemDebugScenarios
             lines,
             errors);
         Run("reservation_capture_restore_gate", VerifyReservationCaptureRestoreGate, lines, errors);
+        Run("physical_restore_candidate_lifetime", VerifyPhysicalRestoreCandidateLifetime, lines, errors);
         Run("cancelled_destination_releases_materials", VerifyCancelledDestinationReleasesMaterials, lines, errors);
         Run("typed_persistent_item_ids", VerifyTypedPersistentItemIds, lines, errors);
         Run("equipment_instance_physical_authority",
@@ -363,6 +385,22 @@ public static class PhysicalItemDebugScenarios
             throw new InvalidOperationException(
                 $"Physical item contracts failed ({errors.Count}). See {ReportPath}.");
         }
+    }
+
+    public static void RunExactAtomicConsumptionForBatch()
+    {
+        Require(Application.isBatchMode,
+            "Exact atomic consumption verification requires Unity batch mode.");
+
+        string baseline = VerifyQuantityExactAtomicConsume();
+        string retargeted = VerifyRetargetedExactAtomicConsumption();
+        string rollback = VerifyLateExactAtomicConsumptionRollback();
+        string invalid = VerifyInvalidExactAtomicConsumptionRejected();
+
+        Debug.Log(
+            "Exact atomic consumption PASS. "
+            + $"baseline=[{baseline}]; retargeted=[{retargeted}]; "
+            + $"rollback=[{rollback}]; invalid=[{invalid}]");
     }
 
     [MenuItem("DungeonStory/Debug/Items/Run Safe-Drink Restore Reservation")]
@@ -2146,6 +2184,20 @@ public static class PhysicalItemDebugScenarios
                     out ItemQuantityLease lease,
                     out DomainFailure reserveFailure),
                 $"partial reserve failed: {reserveFailure}");
+            string beforeRejectedExtraction = JsonUtility.ToJson(runtime.Capture());
+            Require(!transfer.TryExtractReservedQuantity(
+                    lease.leaseId,
+                    2,
+                    new ItemTransitDestination(
+                        WorldItemStackState.InTransit,
+                        Vector2Int.zero,
+                        "character:carrier"),
+                    out ItemExtractionReceipt rejectedReceipt,
+                    out DomainFailure rejectedFailure)
+                && rejectedFailure.IsFailure
+                && rejectedReceipt.ExtractedQuantity == 0
+                && JsonUtility.ToJson(runtime.Capture()) == beforeRejectedExtraction,
+                "Rejected extraction changed physical authority or its reservation.");
             Require(transfer.TryExtractReservedQuantity(
                     lease.leaseId,
                     1,
@@ -2269,7 +2321,6 @@ public static class PhysicalItemDebugScenarios
             AtomicItemConsumptionService atomic = new(
                 repository,
                 EditorNullItemMarkerPresenter.Instance,
-                quantityReservations,
                 quantityReservations);
             Require(atomic.TryConsumeReserved(
                     new[] { new ReservedItemConsumption(stackId, 1) },
@@ -2294,6 +2345,334 @@ public static class PhysicalItemDebugScenarios
                 "same operation ID could not reserve again after completion");
             compatibility.Release(stackId, owner);
             return "reserved=1; consumed=1; remaining=9; owner-reuse=pass";
+        }
+        finally
+        {
+            runtime.Dispose();
+        }
+    }
+
+    private static string VerifyRetargetedExactAtomicConsumption()
+    {
+        WorldItemStackRuntime runtime = CreateRuntime(
+            out WorldItemRepository repository,
+            out _,
+            out ItemQuantityReservationService reservations,
+            out _);
+        try
+        {
+            const string itemId = "item:buffer";
+            const string owner = "medical:test:exact-retargeted";
+            string stackA = repository.AddEditorTestStack(
+                itemId, 10, WorldItemStackState.Loose);
+            string stackB = repository.AddEditorTestStack(
+                itemId, 10, WorldItemStackState.Loose);
+            string signature = ItemReservationSignature.Create(
+                itemId,
+                Array.Empty<ItemInstanceComponentSaveData>());
+            Require(reservations.TryReserve(
+                    owner,
+                    "character:test:exact-retargeted",
+                    ItemReservationPurpose.Medical,
+                    "medical:test:exact-retargeted",
+                    new ItemQuantityReservationRequest(
+                        new ItemStackId(stackA),
+                        2,
+                        signature),
+                    out ItemQuantityLease lease,
+                    out DomainFailure reserveFailure),
+                $"retargeted exact-consumption lease failed: {reserveFailure}");
+            Require(reservations.TryRetargetSlices(
+                    new Dictionary<string, IReadOnlyList<ItemLeaseSlice>>(
+                        StringComparer.Ordinal)
+                    {
+                        [lease.leaseId] = new[]
+                        {
+                            new ItemLeaseSlice
+                            {
+                                stackId = stackA,
+                                originStackId = stackA,
+                                expectedStackSignature = signature,
+                                quantity = 1
+                            },
+                            new ItemLeaseSlice
+                            {
+                                stackId = stackB,
+                                originStackId = stackB,
+                                expectedStackSignature = signature,
+                                quantity = 1
+                            }
+                        }
+                    },
+                    out DomainFailure retargetFailure),
+                $"exact-consumption slice retarget failed: {retargetFailure}");
+
+            AtomicItemConsumptionService atomic = new(
+                repository,
+                EditorNullItemMarkerPresenter.Instance,
+                reservations);
+            Require(atomic.TryConsumeReserved(
+                    new[] { new ReservedItemConsumption(stackB, 1) },
+                    owner,
+                    out DomainFailure consumeBFailure),
+                $"retargeted B slice consumption failed: {consumeBFailure}");
+
+            WorldItemStackSnapshot afterA = runtime.GetAllStacks()
+                .Single(stack => string.Equals(
+                    stack.StackId,
+                    stackA,
+                    StringComparison.Ordinal));
+            WorldItemStackSnapshot afterB = runtime.GetAllStacks()
+                .Single(stack => string.Equals(
+                    stack.StackId,
+                    stackB,
+                    StringComparison.Ordinal));
+            Require(afterA.Quantity == 10 && afterA.ReservedQuantity == 1,
+                "B slice consumption changed the lease's leading A slice");
+            Require(afterB.Quantity == 9 && afterB.ReservedQuantity == 0,
+                "B slice consumption did not consume the requested B reservation");
+
+            Require(atomic.TryConsumeReserved(
+                    new[] { new ReservedItemConsumption(stackA, 1) },
+                    owner,
+                    out DomainFailure consumeAFailure),
+                $"remaining A slice consumption failed: {consumeAFailure}");
+            WorldItemStackSnapshot finalA = runtime.GetAllStacks()
+                .Single(stack => string.Equals(
+                    stack.StackId,
+                    stackA,
+                    StringComparison.Ordinal));
+            Require(finalA.Quantity == 9 && finalA.ReservedQuantity == 0,
+                "remaining A slice was not consumed exactly once");
+            Require(!reservations.TryGetLeasesByOwner(owner, out _),
+                "completed retargeted exact consumption left a live lease");
+            return "B=10/1->9/0; A=10/1->9/0; leading-slice-theft=0";
+        }
+        finally
+        {
+            runtime.Dispose();
+        }
+    }
+
+    private static string VerifyLateExactAtomicConsumptionRollback()
+    {
+        WorldItemStackRuntime runtime = CreateRuntime(
+            out WorldItemRepository repository,
+            out _,
+            out ItemQuantityReservationService reservations,
+            out _);
+        try
+        {
+            const string itemId = "item:buffer";
+            const string owner = "medical:test:exact-rollback";
+            List<ItemInstanceComponentSaveData> originalComponents = new()
+            {
+                CreateQualityComponent("decent")
+            };
+            string createdA = repository.AddEditorTestStack(
+                itemId,
+                10,
+                WorldItemStackState.Loose,
+                components: originalComponents);
+            string createdB = repository.AddEditorTestStack(
+                itemId,
+                10,
+                WorldItemStackState.Loose,
+                components: originalComponents);
+            string firstStack = string.CompareOrdinal(createdA, createdB) < 0
+                ? createdA
+                : createdB;
+            string lateStack = string.Equals(
+                    firstStack,
+                    createdA,
+                    StringComparison.Ordinal)
+                ? createdB
+                : createdA;
+            string signature = ItemReservationSignature.Create(
+                itemId,
+                originalComponents);
+            Require(reservations.TryReserveBatch(
+                    owner,
+                    "character:test:exact-rollback",
+                    ItemReservationPurpose.Medical,
+                    "medical:test:exact-rollback",
+                    new[]
+                    {
+                        new ItemQuantityReservationRequest(
+                            new ItemStackId(firstStack),
+                            1,
+                            signature),
+                        new ItemQuantityReservationRequest(
+                            new ItemStackId(lateStack),
+                            1,
+                            signature)
+                    },
+                    out IReadOnlyList<ItemQuantityLease> leases,
+                    out DomainFailure reserveFailure),
+                $"rollback exact-consumption leases failed: {reserveFailure}");
+            ItemQuantityLease firstLeaseBefore = leases.Single(candidate =>
+                candidate.slices.Count == 1
+                && string.Equals(
+                    candidate.slices[0].stackId,
+                    firstStack,
+                    StringComparison.Ordinal));
+            Require(repository.SetEditorTestComponent(
+                    lateStack,
+                    CreateQualityComponent("poor")),
+                "failed to invalidate the late exact-consumption slice");
+
+            AtomicItemConsumptionService atomic = new(
+                repository,
+                EditorNullItemMarkerPresenter.Instance,
+                reservations);
+            Require(!atomic.TryConsumeReserved(
+                    new[]
+                    {
+                        new ReservedItemConsumption(firstStack, 1),
+                        new ReservedItemConsumption(lateStack, 1)
+                    },
+                    owner,
+                    out DomainFailure failure)
+                && failure.Code == FailureCode.ItemReservationSliceInvalid,
+                "late exact-consumption preflight failure was not reported");
+
+            WorldItemStackSnapshot firstAfterFailure = runtime.GetAllStacks()
+                .Single(stack => string.Equals(
+                    stack.StackId,
+                    firstStack,
+                    StringComparison.Ordinal));
+            WorldItemStackSnapshot lateAfterFailure = runtime.GetAllStacks()
+                .Single(stack => string.Equals(
+                    stack.StackId,
+                    lateStack,
+                    StringComparison.Ordinal));
+            Require(firstAfterFailure.Quantity == 10
+                    && lateAfterFailure.Quantity == 10,
+                "failed exact-consumption preflight changed physical quantities");
+            Require(reservations.GetReservedQuantity(
+                        new ItemStackId(firstStack)) == 1
+                    && reservations.GetReservedQuantity(
+                        new ItemStackId(lateStack)) == 1,
+                "failed exact-consumption preflight changed reserved quantities");
+            Require(reservations.TryGetLeasesByOwner(
+                    owner,
+                    out IReadOnlyList<ItemQuantityLease> leasesAfterFailure),
+                "failed exact-consumption preflight removed owner leases");
+            ItemQuantityLease firstLeaseAfter = leasesAfterFailure.Single(candidate =>
+                string.Equals(
+                    candidate.leaseId,
+                    firstLeaseBefore.leaseId,
+                    StringComparison.Ordinal));
+            Require(firstLeaseAfter.remainingQuantity
+                    == firstLeaseBefore.remainingQuantity
+                    && firstLeaseAfter.slices.Count == 1
+                    && firstLeaseAfter.slices[0].quantity
+                    == firstLeaseBefore.slices[0].quantity
+                    && string.Equals(
+                        firstLeaseAfter.slices[0].stackId,
+                        firstLeaseBefore.slices[0].stackId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        firstLeaseAfter.slices[0].originStackId,
+                        firstLeaseBefore.slices[0].originStackId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        firstLeaseAfter.slices[0].expectedStackSignature,
+                        firstLeaseBefore.slices[0].expectedStackSignature,
+                        StringComparison.Ordinal),
+                "failed exact-consumption preflight changed the first lease");
+
+            Require(repository.SetEditorTestComponent(
+                    lateStack,
+                    CreateQualityComponent("decent")),
+                "failed to restore the late exact-consumption slice signature");
+            Require(atomic.TryConsumeReserved(
+                    new[]
+                    {
+                        new ReservedItemConsumption(firstStack, 1),
+                        new ReservedItemConsumption(lateStack, 1)
+                    },
+                    owner,
+                    out DomainFailure retryFailure),
+                $"exact-consumption retry failed after repair: {retryFailure}");
+            Require(runtime.GetAllStacks().Where(stack =>
+                        string.Equals(stack.StackId, firstStack, StringComparison.Ordinal)
+                        || string.Equals(stack.StackId, lateStack, StringComparison.Ordinal))
+                    .All(stack => stack.Quantity == 9
+                        && stack.ReservedQuantity == 0),
+                "exact-consumption retry did not consume both repaired slices once");
+            return $"failure={failure.Code}; physical-rollback=2; lease-rollback=2; retry=pass";
+        }
+        finally
+        {
+            runtime.Dispose();
+        }
+    }
+
+    private static string VerifyInvalidExactAtomicConsumptionRejected()
+    {
+        WorldItemStackRuntime runtime = CreateRuntime(
+            out WorldItemRepository repository,
+            out _,
+            out ItemQuantityReservationService reservations,
+            out _);
+        try
+        {
+            const string itemId = "item:buffer";
+            const string owner = "medical:test:exact-invalid";
+            string stackId = repository.AddEditorTestStack(
+                itemId, 10, WorldItemStackState.Loose);
+            string signature = ItemReservationSignature.Create(
+                itemId,
+                Array.Empty<ItemInstanceComponentSaveData>());
+            Require(reservations.TryReserve(
+                    owner,
+                    "character:test:exact-invalid",
+                    ItemReservationPurpose.Medical,
+                    "medical:test:exact-invalid",
+                    new ItemQuantityReservationRequest(
+                        new ItemStackId(stackId),
+                        1,
+                        signature),
+                    out ItemQuantityLease leaseBefore,
+                    out DomainFailure reserveFailure),
+                $"invalid-input exact-consumption lease failed: {reserveFailure}");
+
+            AtomicItemConsumptionService atomic = new(
+                repository,
+                EditorNullItemMarkerPresenter.Instance,
+                reservations);
+            Require(!atomic.TryConsumeReserved(
+                    new ReservedItemConsumption[]
+                    {
+                        new(stackId, 1),
+                        default
+                    },
+                    owner,
+                    out DomainFailure failure)
+                && failure.IsFailure,
+                "invalid exact-consumption entry was silently discarded");
+
+            WorldItemStackSnapshot after = runtime.GetAllStacks()
+                .Single(stack => string.Equals(
+                    stack.StackId,
+                    stackId,
+                    StringComparison.Ordinal));
+            Require(after.Quantity == 10 && after.ReservedQuantity == 1,
+                "invalid exact-consumption input changed inventory or reservations");
+            Require(reservations.TryGetLeasesByOwner(
+                    owner,
+                    out IReadOnlyList<ItemQuantityLease> leasesAfter)
+                && leasesAfter.Count == 1
+                && leasesAfter[0].remainingQuantity == leaseBefore.remainingQuantity
+                && leasesAfter[0].slices.Count == 1
+                && leasesAfter[0].slices[0].quantity == 1
+                && string.Equals(
+                    leasesAfter[0].slices[0].stackId,
+                    stackId,
+                    StringComparison.Ordinal),
+                "invalid exact-consumption input changed the reserved lease");
+            return $"failure={failure.Code}; quantity=10; reserved=1; lease=unchanged";
         }
         finally
         {
@@ -5277,8 +5656,7 @@ public static class PhysicalItemDebugScenarios
                 .Create<IBuildingWorldRegistryPort>(),
             BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                 .Create<IBuildingItemStackPort>(),
-            BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
-                .Create<IBuildingAbilityRuntimeDispatcher>(),
+            CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
             new UnityGameClock(),
             BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                 .Create<IBuildingPaidFacilityContractPort>(),
@@ -6113,6 +6491,66 @@ public static class PhysicalItemDebugScenarios
 
     private static T CreateNullProxy<T>() where T : class =>
         DispatchProxy.Create<T, PhysicalFixtureNullDispatchProxy>();
+
+    public static string VerifyPhysicalRestoreCandidateLifetime()
+    {
+        WorldItemStackRuntime source = CreateRuntime(out WorldItemRepository repository, out _);
+        IDungeonRestoreTransactionParticipant exactRoutes = null;
+        WorldItemStackRuntime restored = CreateRuntime(out _, out _, out _, out _, out _,
+            exactRouteRestoreParticipantObserver: participant => exactRoutes = participant);
+        try
+        {
+            string firstId = repository.AddEditorTestStack("item:buffer", 2, WorldItemStackState.Loose);
+            DungeonPhysicalItemSaveData saveA = JsonUtility.FromJson<DungeonPhysicalItemSaveData>(
+                JsonUtility.ToJson(source.Capture()));
+            string secondId = repository.AddEditorTestStack("item:buffer", 3, WorldItemStackState.Loose);
+            DungeonPhysicalItemSaveData saveB = JsonUtility.FromJson<DungeonPhysicalItemSaveData>(
+                JsonUtility.ToJson(source.Capture()));
+            var world = new FixedRestoreWorldCandidates(Array.Empty<BuildableObject>());
+            string liveBefore = JsonUtility.ToJson(restored.Capture());
+            IDungeonSaveRestoreStage stale = restored.StageTransactionalRestore(saveA, world);
+            restored.DiscardRestoreCandidate();
+            IDungeonSaveRestoreStage current = restored.StageTransactionalRestore(saveB, world);
+            bool staleRejected = false;
+            try { stale.Commit(new DungeonGameRestoreReport()); }
+            catch (InvalidOperationException) { staleRejected = true; }
+            Require(staleRejected && restored.IsCandidateAvailable
+                    && restored.TryGetStackById(secondId, out _)
+                    && liveBefore == JsonUtility.ToJson(restored.Capture()),
+                "stale physical restore stage changed live state or a newer candidate");
+            ((IDungeonDiscardableSaveRestoreStage)stale).Discard();
+            Require(restored.IsCandidateAvailable && restored.TryGetStackById(secondId, out _),
+                "stale physical restore discard cleared the newer candidate");
+            exactRoutes.BeginRestoreCandidate();
+            restored.BeginRestoreCandidate();
+            current.Commit(new DungeonGameRestoreReport());
+            exactRoutes.PublishRestoreCandidate();
+            restored.PublishRestoreCandidate();
+            exactRoutes.CompleteRestoreCandidate();
+            restored.CompleteRestoreCandidate();
+            Require(!restored.IsCandidateAvailable
+                    && restored.GetAllStacks().Count() == 2
+                    && restored.GetAllStacks().Single(value => value.StackId == firstId).Quantity == 2
+                    && restored.GetAllStacks().Single(value => value.StackId == secondId).Quantity == 3,
+                "current physical restore failed after stale commit/discard rejection");
+            IDungeonSaveRestoreStage rolledBack = restored.StageTransactionalRestore(saveA, world);
+            restored.BeginRestoreCandidate();
+            restored.RollbackPublishedRestoreCandidate();
+            IDungeonSaveRestoreStage replacement = restored.StageTransactionalRestore(saveB, world);
+            ((IDungeonDiscardableSaveRestoreStage)rolledBack).Discard();
+            Require(restored.IsCandidateAvailable && restored.TryGetStackById(secondId, out _),
+                "rolled-back physical stage cleared its replacement");
+            ((IDungeonDiscardableSaveRestoreStage)replacement).Discard();
+            Require(!restored.IsCandidateAvailable, "current physical stage did not discard its own view");
+            return "PHYSICAL_RESTORE_CANDIDATE_LIFETIME=PASS;jsonRoundtrip=true;staleCommitRejected=true;"
+                + "staleDiscardPreservesReplacement=true;currentCommitAndRollbackRetry=true";
+        }
+        finally
+        {
+            restored.Dispose();
+            source.Dispose();
+        }
+    }
 
     private static string VerifyTypedPhysicalDisposition()
     {

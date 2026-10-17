@@ -42,6 +42,225 @@ public static class V20CampaignDebugScenarios
         }
     }
 
+    public static void RunCandidateJoinForBatch()
+    {
+        if (!Application.isBatchMode)
+            throw new InvalidOperationException(
+                "V20 candidate-join verification requires batch mode.");
+
+        V20StoryContentCatalog catalog = new(
+            new ResourceGameContentCatalog(
+                new UnityGameContentRootLoader()));
+        V20CampaignRuntime campaign = PrepareWinterOccurrence(
+            catalog,
+            day: 91,
+            seed: 157181);
+        SeasonalWorldEventDefinitionSO winter = ((IWorldEventCatalog)catalog)
+            .Require("seasonal:winter-fuel-demand");
+        V20ActiveEventSaveData occurrence = campaign.ActiveSeasonalEvents
+            .Single(value => string.Equals(
+                value.definitionId,
+                winter.StableId,
+                StringComparison.Ordinal));
+        FactionContractDefinitionSO contract = catalog.Contracts.Single(value =>
+            string.Equals(
+                value.seasonalEventId,
+                winter.StableId,
+                StringComparison.Ordinal)
+            && string.Equals(
+                value.factionId,
+                occurrence.contextFactionId,
+                StringComparison.Ordinal));
+        FactionContractDeliveryTarget target = new(
+            FactionContractDeliveryOutbox.FormatDestinationId(
+                contract.StableId,
+                occurrence.instanceId),
+            new Vector2Int(17, 19));
+        Require(campaign.TryAcceptSeasonalContract(
+                occurrence.instanceId,
+                contract.StableId,
+                target,
+                out string failure),
+            failure);
+        Require(campaign.TrySetInputOwnerProjection(
+                contract.factionId,
+                5_000L,
+                1L,
+                "qa:candidate-join-projection",
+                out failure),
+            failure);
+
+        SeasonalEventWorldSaveData savedSeason =
+            JsonUtility.FromJson<SeasonalEventWorldSaveData>(
+                JsonUtility.ToJson(campaign.CaptureSeasonal()));
+        SocietyEventWorldSaveData savedSociety =
+            JsonUtility.FromJson<SocietyEventWorldSaveData>(
+                JsonUtility.ToJson(campaign.CaptureSociety()));
+        FactionCampaignWorldSaveData savedFactions =
+            JsonUtility.FromJson<FactionCampaignWorldSaveData>(
+                JsonUtility.ToJson(campaign.CaptureFactions()));
+        RunMilestoneWorldSaveData savedMilestones =
+            JsonUtility.FromJson<RunMilestoneWorldSaveData>(
+                JsonUtility.ToJson(campaign.CaptureMilestones()));
+        string acceptedFourState = CaptureCandidateJoinFourState(campaign);
+
+        SeasonalEventWorldSaveData missingOccurrence =
+            JsonUtility.FromJson<SeasonalEventWorldSaveData>(
+                JsonUtility.ToJson(savedSeason));
+        int removed = missingOccurrence.activeEvents.RemoveAll(value =>
+            value != null
+            && string.Equals(
+                value.instanceId,
+                occurrence.instanceId,
+                StringComparison.Ordinal));
+        Require(removed == 1,
+            "Candidate-join fixture did not remove exactly one winter occurrence.");
+        if (!missingOccurrence.completedEventIds.Contains(
+                winter.StableId,
+                StringComparer.Ordinal))
+            missingOccurrence.completedEventIds.Add(winter.StableId);
+        SeasonalEventAggregateState invalidSeasonal =
+            campaign.PrepareSeasonal(missingOccurrence);
+
+        RequireCandidateJoinFailure<InvalidOperationException>(
+            () => campaign.PrepareFactions(savedFactions, invalidSeasonal),
+            "Faction preparation accepted a seasonal candidate missing its active occurrence.");
+        RequireCandidateJoinFailure<ArgumentNullException>(
+            () => campaign.PrepareFactions(savedFactions, null),
+            "Faction preparation accepted a null seasonal candidate.");
+        Require(string.Equals(
+                acceptedFourState,
+                CaptureCandidateJoinFourState(campaign),
+                StringComparison.Ordinal),
+            "Rejected faction preparation changed live campaign state.");
+
+        FactionCampaignAggregateState liveBasedFactions =
+            campaign.PrepareFactions(savedFactions);
+        SocietyEventAggregateState societyCandidate =
+            campaign.PrepareSociety(savedSociety);
+        RunMilestoneAggregateState milestoneCandidate =
+            campaign.PrepareMilestones(savedMilestones);
+        RequireCandidateJoinFailure<InvalidOperationException>(
+            () => campaign.PublishContentResolution(
+                invalidSeasonal,
+                societyCandidate,
+                liveBasedFactions,
+                milestoneCandidate),
+            "Content resolution published a faction candidate against a mismatched season.");
+        RequireCandidateJoinFailure<InvalidOperationException>(
+            () => campaign.PublishContentResolution(
+                invalidSeasonal,
+                societyCandidate,
+                liveBasedFactions,
+                milestoneCandidate,
+                new CharacterCareerAggregate()),
+            "Career content resolution published a faction candidate against a mismatched season.");
+        Require(string.Equals(
+                acceptedFourState,
+                CaptureCandidateJoinFourState(campaign),
+                StringComparison.Ordinal),
+            "Rejected content-resolution publication changed live campaign state.");
+
+        V20CampaignRuntime explicitRestore = new(
+            new DungeonRuntimeAggregateRootStore(),
+            catalog);
+        Require(explicitRestore.CaptureSeasonal().activeEvents.Count == 0,
+            "Fresh explicit-restore runtime did not start with an empty live season.");
+        SeasonalEventAggregateState explicitSeason =
+            explicitRestore.PrepareSeasonal(savedSeason);
+        FactionCampaignAggregateState explicitFactions =
+            explicitRestore.PrepareFactions(savedFactions, explicitSeason);
+        explicitRestore.PublishContentResolution(
+            explicitSeason,
+            explicitRestore.PrepareSociety(savedSociety),
+            explicitFactions,
+            explicitRestore.PrepareMilestones(savedMilestones));
+        Require(string.Equals(
+                acceptedFourState,
+                CaptureCandidateJoinFourState(explicitRestore),
+                StringComparison.Ordinal),
+            "Explicit saved-season/faction candidates did not round-trip exactly.");
+
+        V20CampaignRuntime stagedRestore = new(
+            new DungeonRuntimeAggregateRootStore(),
+            catalog);
+        string emptyFourState = CaptureCandidateJoinFourState(stagedRestore);
+        SeasonalEventAggregateState stagedSeason =
+            stagedRestore.PrepareSeasonalRestore(savedSeason);
+        FactionCampaignWorldSaveData mismatchedFactions =
+            JsonUtility.FromJson<FactionCampaignWorldSaveData>(
+                JsonUtility.ToJson(savedFactions));
+        FactionCampaignStateSaveData mismatchedFaction =
+            mismatchedFactions.factions.Single(value => string.Equals(
+                value.activeContractId,
+                contract.StableId,
+                StringComparison.Ordinal));
+        mismatchedFaction.activeContractDeadlineAbsoluteDay++;
+        RequireCandidateJoinFailure<InvalidOperationException>(
+            () => stagedRestore.PrepareFactionsRestore(mismatchedFactions),
+            "Staged restore accepted a faction deadline that mismatched its season.");
+        RequireCandidateJoinFailure<InvalidOperationException>(
+            () => stagedRestore.PrepareSeasonalRestore(savedSeason),
+            "Failed faction preparation silently released the staged season.");
+        Require(string.Equals(
+                emptyFourState,
+                CaptureCandidateJoinFourState(stagedRestore),
+                StringComparison.Ordinal),
+            "Failed staged restore changed live campaign state.");
+        stagedSeason.Discard();
+
+        SeasonalEventAggregateState retrySeason =
+            stagedRestore.PrepareSeasonalRestore(savedSeason);
+        try
+        {
+            FactionCampaignAggregateState retryFactions =
+                stagedRestore.PrepareFactionsRestore(savedFactions);
+            stagedRestore.PublishSeasonalRestore(retrySeason);
+            stagedRestore.PublishFactions(retryFactions);
+        }
+        finally
+        {
+            retrySeason.Discard();
+        }
+        Require(string.Equals(
+                JsonUtility.ToJson(savedSeason),
+                JsonUtility.ToJson(stagedRestore.CaptureSeasonal()),
+                StringComparison.Ordinal)
+            && string.Equals(
+                JsonUtility.ToJson(savedFactions),
+                JsonUtility.ToJson(stagedRestore.CaptureFactions()),
+                StringComparison.Ordinal),
+            "Discarded staged restore did not permit an exact retry.");
+
+        Debug.Log(
+            "V20_CANDIDATE_JOIN_BATCH:PASS "
+            + "prepare_reject=1 null_reject=1 publish_reject=2 "
+            + "explicit_restore=1 discard_retry=1");
+    }
+
+    private static string CaptureCandidateJoinFourState(
+        V20CampaignRuntime campaign) =>
+        "seasonal=" + JsonUtility.ToJson(campaign.CaptureSeasonal())
+        + "\nsociety=" + JsonUtility.ToJson(campaign.CaptureSociety())
+        + "\nfactions=" + JsonUtility.ToJson(campaign.CaptureFactions())
+        + "\nmilestones=" + JsonUtility.ToJson(campaign.CaptureMilestones());
+
+    private static void RequireCandidateJoinFailure<TException>(
+        Action action,
+        string message)
+        where TException : Exception
+    {
+        try
+        {
+            action();
+        }
+        catch (TException)
+        {
+            return;
+        }
+        throw new InvalidOperationException(message);
+    }
+
     private static void VerifyWinterContractFocused()
     {
         Require(Application.isPlaying, "Run inside the protected, paused main Play session.");
@@ -905,6 +1124,36 @@ public static class V20CampaignDebugScenarios
             + "rejectStateMutation=0";
     }
 
+    public static void RunStateOwnershipForBatch()
+    {
+        Require(Application.isBatchMode, "Campaign state ownership verification requires isolated batch execution.");
+        AccordSignalRestoreJoinFixture.Run();
+        RunCandidateJoinForBatch();
+        var content = new ResourceGameContentCatalog(new UnityGameContentRootLoader());
+        var catalog = new V20StoryContentCatalog(content);
+        var campaign = new V20CampaignRuntime(new DungeonRuntimeAggregateRootStore(), catalog);
+        var completed = new List<string>();
+        for (int day = 1; day <= 120; day++)
+        {
+            var requirements = Satisfy(catalog.All.Select(value => value.completionRequirements));
+            requirements.AbsoluteDay = day;
+            requirements.WorldFlags.Add("ecology:self-sufficient-today");
+            completed.AddRange(campaign.Evaluate(requirements));
+        }
+        Require(completed.Count == 9 && campaign.Phase == RunProgressionPhase.EndlessAge,
+            "Separated milestone commands did not complete all nine authored conditions.");
+        VerifyMilestoneGameplayModifiers(campaign);
+        Require(campaign.ComposeNextEndlessCrisis(1000, 94721).Count is 1 or 2,
+            "Separated crisis lifecycle did not select authored axes.");
+        VerifyFactionBranches(catalog);
+        VerifyPersistedWorkDelay(catalog);
+        VerifyDailyEffectScopeAndRootReplacement(catalog);
+        VerifySelfSufficiencyStreak(catalog);
+        VerifyTenYearBounds(catalog);
+        VerifyRoundTrip(campaign);
+        Debug.Log("ARCHITECTURE_V20_STATE_OWNERSHIP=PASS; milestones=9; modifiers; crisis; factions; save/restore; candidate-failure-retry");
+    }
+
     [MenuItem("DungeonStory/QA/V20 Campaign And Endless Rules")]
     public static void Run()
     {
@@ -1373,29 +1622,15 @@ public static class V20CampaignDebugScenarios
             value.effects.Any(effect =>
                 effect.kind == V20ContentEffectKind.WorkDelayDays
                 && effect.amount > 0));
-        V20CampaignRuntime campaign = new(
-            new DungeonRuntimeAggregateRootStore(),
-            catalog);
+        V20CampaignRuntime campaign = new(new DungeonRuntimeAggregateRootStore(), catalog);
         SocietyEventWorldSaveData state = new()
         {
             lastEvaluationAbsoluteDay = 10
         };
         campaign.PublishSociety(campaign.PrepareSociety(state));
-        ObservedMealIncidentCaptureResult observed = campaign.CaptureObservedMealIncident(
-            new ObservedMealIncidentSnapshot(
-                new ConsumableOperationId("consumable-operation:qa:work-delay"),
-                new CharacterId("character:qa:work-delay"), new ItemDefinitionId("food:lavish-meat"),
-                new ItemStackId("stack:qa:work-delay"), default, true,
-                new CoreGridCell(0, 0), 10, false, true, false),
-            new V20DailyEventContext { AbsoluteDay = 10, RunSeed = 157181, Season = Season.Spring });
-        Require(observed.Created, "Controlled observed work-delay incident was not created.");
-        Require(campaign.TryResolveSocietyEvent(
-                observed.OccurrenceInstanceId,
-                response.choiceId,
-                new RunMilestoneEvaluationSnapshot(),
-                out _,
-                out string failure),
-            $"A work-delay response could not resolve: {failure}");
+        // Validate the authored effect command and persistence boundary. Accepting
+        // a medical response is pending work; WIM040 covers its actual completion.
+        campaign.ApplyResolvedEffects(response.effects);
         Require(campaign.GetRemainingDays() > 0
                 && campaign.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Research) < 1f,
             "The authored work-delay effect did not affect real work speed.");
@@ -1443,6 +1678,71 @@ public static class V20CampaignDebugScenarios
                     flood.GetWorkSpeedMultiplier(workType) - 1f)
                 < 0.0001f),
             "Flood work delay did not expire on its authored day boundary.");
+    }
+
+    private static void VerifyDailyEffectScopeAndRootReplacement(V20StoryContentCatalog catalog)
+    {
+        SeasonalWorldEventDefinitionSO flood = catalog.SeasonalEvents.Single(value =>
+            value.StableId == "seasonal:spring-thaw-flood");
+        V20ContentEffect delay = flood.startEffects.Single(value =>
+            value.kind == V20ContentEffectKind.WorkDelayDays);
+        int delayDays = (int)Math.Round(delay.amount);
+        Require(delayDays > 0, "Daily effect scope fixture requires an authored positive delay.");
+        V20CampaignRuntime campaign = new(new DungeonRuntimeAggregateRootStore(), catalog);
+        SeasonalEventWorldSaveData seasonal = campaign.CaptureSeasonal();
+        seasonal.cycle = 0;
+        seasonal.completedEventIds = catalog.SeasonalEvents
+            .Where(value => value.StableId != flood.StableId)
+            .Select(value => value.StableId).ToList();
+        campaign.PublishSeasonal(campaign.PrepareSeasonal(seasonal));
+        V20DailyEventContext day = new() { AbsoluteDay = 20, Season = flood.season, RunSeed = 43043 };
+        campaign.EvaluateDaily(day);
+        SocietyEventWorldSaveData afterDaily = campaign.CaptureSociety();
+        Require(afterDaily.lastEvaluationAbsoluteDay == day.AbsoluteDay
+                && afterDaily.workDelays.Single(value => value.scopeId == delay.targetId)
+                    .untilAbsoluteDayExclusive == day.AbsoluteDay + delayDays,
+            "Seasonal effects used the previous Society day instead of the active evaluation day.");
+        string once = JsonUtility.ToJson(afterDaily);
+        campaign.EvaluateDaily(day);
+        Require(JsonUtility.ToJson(campaign.CaptureSociety()) == once,
+            "Repeating a completed daily evaluation changed Society state.");
+
+        SocietyEventWorldSaveData replacement = new() { lastEvaluationAbsoluteDay = 70 };
+        campaign.PublishSociety(campaign.PrepareSociety(replacement));
+        Require(campaign.GetRemainingDays() == 0, "Effect queries retained an obsolete Society root.");
+        campaign.ApplyResolvedEffects(new[] { delay });
+        Require(campaign.GetRemainingDays(delay.targetId) == delayDays
+                && campaign.CaptureSociety().workDelays.Single()
+                    .untilAbsoluteDayExclusive == 70 + delayDays,
+            "Effect commands retained an obsolete root or a completed daily scope.");
+
+        SeasonalWorldEventDefinitionSO targetRequired = catalog.SeasonalEvents.First(value =>
+            value.feedSelfHeatingFireProfile?.IsConfigured == true);
+        V20CampaignRuntime failing = new(new DungeonRuntimeAggregateRootStore(), catalog);
+        failing.PublishSociety(failing.PrepareSociety(new SocietyEventWorldSaveData
+            { lastEvaluationAbsoluteDay = 10 }));
+        SeasonalEventWorldSaveData targetSeasonal = failing.CaptureSeasonal();
+        targetSeasonal.cycle = 0;
+        targetSeasonal.completedEventIds = catalog.SeasonalEvents
+            .Where(value => value.StableId != targetRequired.StableId)
+            .Select(value => value.StableId).ToList();
+        failing.PublishSeasonal(failing.PrepareSeasonal(targetSeasonal));
+        bool rejected = false;
+        try
+        {
+            failing.EvaluateDaily(new V20DailyEventContext
+                { AbsoluteDay = 50, Season = targetRequired.season,
+                    WeatherFrontId = targetRequired.requiredWeatherFrontId, RunSeed = 43043 });
+        }
+        catch (InvalidOperationException error)
+        {
+            rejected = error.Message == "Seasonal feed self-heating evaluation requires its typed physical-target query.";
+        }
+        Require(rejected, "Daily scope failure fixture did not reach the required target-query boundary.");
+        failing.ApplyResolvedEffects(new[] { delay });
+        Require(failing.CaptureSociety().workDelays.Single().untilAbsoluteDayExclusive == 10 + delayDays,
+            "A failed daily evaluation leaked its day into later commands.");
+        Debug.Log("ARCHITECTURE_V20_DAILY_SCOPE=PASS; seasonal-before-society; daily replay; root replacement; failure scope release");
     }
 
     private static void VerifyFactionBranches(V20StoryContentCatalog catalog)

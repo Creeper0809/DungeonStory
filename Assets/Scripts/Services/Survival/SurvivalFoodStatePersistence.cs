@@ -487,12 +487,12 @@ internal static class SurvivalFoodStatePersistence
                     StringComparison.Ordinal)
                 && string.Equals(
                     plan.physicalCommitOperationId,
-                    SurvivalFoodRuntime.CreateTreatmentPhysicalOperationId(
+                    SurvivalTreatmentIdentity.CreateTreatmentPhysicalOperationId(
                         operationId),
                     StringComparison.Ordinal)
                 && string.Equals(
                     plan.physicalCommitReasonCode,
-                    SurvivalFoodRuntime.TreatmentPhysicalSinkReason,
+                    SurvivalTreatmentIdentity.TreatmentPhysicalSinkReason,
                     StringComparison.Ordinal);
             if (!primaryValid)
             {

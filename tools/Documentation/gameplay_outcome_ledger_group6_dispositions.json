@@ -198,13 +198,13 @@
     },
     {
       "type": "ExtremeRiskResolution",
-      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntime.cs",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntimeContracts.cs",
       "coverage_disposition": "NonResult",
       "integration_status": "excluded",
       "reason": "Deterministic rule resolution consumed by an owning domain operation.",
       "integration_reason": "The concrete caller applies the effect and owns the terminal result.",
       "replacement_authority": "Concrete caller-domain terminal transaction that applies ExtremeRiskResolution",
-      "evidence": ["Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntime.cs#ExtremeRiskResolution"]
+      "evidence": ["Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntimeContracts.cs#ExtremeRiskResolution"]
     },
     {
       "type": "FacilityEvolutionCompletedEvent",
@@ -271,7 +271,7 @@
     },
     {
       "type": "GoldenHarvestPreparedResolution",
-      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntime.cs",
+      "definition_path": "Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntimeContracts.cs",
       "coverage_disposition": "NonResult",
       "integration_status": "excluded",
       "reason": "Prepared rollback/replay intermediate, not a separate terminal outcome.",
@@ -281,23 +281,23 @@
     },
     {
       "type": "LocalLlmChoiceResult",
-      "definition_path": "Assets/Scripts/Models/AI/Core/LocalLlmRequestQueue.cs",
+      "definition_path": "Assets/Scripts/Models/AI/Core/LocalLlmRequestContracts.cs",
       "coverage_disposition": "NonResult",
       "integration_status": "excluded",
       "reason": "Model response/validation result, not gameplay truth.",
       "integration_reason": "Only the requesting owner can validate and commit a legal result.",
       "replacement_authority": "Accepted owner-domain commit after C# validation",
-      "evidence": ["Assets/Scripts/Models/AI/Core/LocalLlmRequestQueue.cs#LocalLlmChoiceResult"]
+      "evidence": ["Assets/Scripts/Models/AI/Core/LocalLlmRequestContracts.cs#LocalLlmChoiceResult"]
     },
     {
       "type": "LocalLlmResult",
-      "definition_path": "Assets/Scripts/Models/AI/Core/LocalLlmRequestQueue.cs",
+      "definition_path": "Assets/Scripts/Models/AI/Core/LocalLlmRequestContracts.cs",
       "coverage_disposition": "NonResult",
       "integration_status": "excluded",
       "reason": "Transport result only.",
       "integration_reason": "Only the requesting owner can validate and commit gameplay truth.",
       "replacement_authority": "Accepted owner-domain commit after C# validation",
-      "evidence": ["Assets/Scripts/Models/AI/Core/LocalLlmRequestQueue.cs#LocalLlmResult"]
+      "evidence": ["Assets/Scripts/Models/AI/Core/LocalLlmRequestContracts.cs#LocalLlmResult"]
     },
     {
       "type": "MemoryErasureSealBossAwardResult",

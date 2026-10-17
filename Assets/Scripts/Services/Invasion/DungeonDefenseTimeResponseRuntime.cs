@@ -11,6 +11,7 @@ public sealed class DungeonDefenseTimeResponseRuntime :
     private readonly IGameEventBus events;
     private readonly IGameTimeScaleController timeScale;
     private readonly IDungeonUserSettingsService settings;
+    private readonly IDungeonRestoreSafetyQuery restoreSafety;
     private IDisposable breachedSubscription;
     private IDisposable frontCollapsedSubscription;
     private IDisposable finalDefenseSubscription;
@@ -26,13 +27,16 @@ public sealed class DungeonDefenseTimeResponseRuntime :
     public DungeonDefenseTimeResponseRuntime(
         IGameEventBus events,
         IGameTimeScaleController timeScale,
-        IDungeonUserSettingsService settings)
+        IDungeonUserSettingsService settings,
+        IDungeonRestoreSafetyQuery restoreSafety)
     {
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.timeScale = timeScale
             ?? throw new ArgumentNullException(nameof(timeScale));
         this.settings = settings
             ?? throw new ArgumentNullException(nameof(settings));
+        this.restoreSafety = restoreSafety
+            ?? throw new ArgumentNullException(nameof(restoreSafety));
     }
 
     public void Initialize()
@@ -111,13 +115,14 @@ public sealed class DungeonDefenseTimeResponseRuntime :
         }
 
         automaticallyAppliedScale = Mathf.Max(0f, targetScale);
-        timeScale.Scale = automaticallyAppliedScale;
+        if (!restoreSafety.RequiresRecovery)
+            timeScale.Scale = automaticallyAppliedScale;
         playerOverrode = false;
     }
 
     private void OnInvasionResolved()
     {
-        if (changedAutomatically
+        if (!restoreSafety.RequiresRecovery && changedAutomatically
             && !playerOverrode
             && Mathf.Approximately(
                 timeScale.Scale,

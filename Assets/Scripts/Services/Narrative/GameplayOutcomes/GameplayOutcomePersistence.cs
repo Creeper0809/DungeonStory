@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using DungeonStory.Infrastructure;
 using DungeonStory.Narrative.Korean;
 
@@ -46,16 +47,26 @@ public sealed class GameplayOutcomeLedgerSaveData
 
 public sealed class GameplayOutcomeLedgerRestoreCandidate : IDungeonDiscardableRestoreCandidate
 {
-    internal GameplayOutcomeLedgerRestoreCandidate(GameplayOutcomeLedgerRuntimeState state) =>
-        State = state ?? throw new ArgumentNullException(nameof(state));
-    internal GameplayOutcomeLedgerRuntimeState State { get; private set; }
-    public void Discard() => State = null;
-    internal GameplayOutcomeLedgerRuntimeState Take()
+    private readonly object ownerIdentity;
+    private GameplayOutcomeLedgerRuntimeState state;
+
+    internal GameplayOutcomeLedgerRestoreCandidate(
+        object ownerIdentity,
+        GameplayOutcomeLedgerRuntimeState state)
     {
-        GameplayOutcomeLedgerRuntimeState value = State
+        this.ownerIdentity = ownerIdentity ?? throw new ArgumentNullException(nameof(ownerIdentity));
+        this.state = state ?? throw new ArgumentNullException(nameof(state));
+    }
+
+    internal GameplayOutcomeLedgerRuntimeState State => Volatile.Read(ref state);
+    public void Discard() => Interlocked.Exchange(ref state, null);
+
+    internal GameplayOutcomeLedgerRuntimeState Take(object expectedOwnerIdentity)
+    {
+        if (!ReferenceEquals(ownerIdentity, expectedOwnerIdentity))
+            throw new InvalidOperationException("Gameplay outcome restore candidate belongs to a different ledger.");
+        return Interlocked.Exchange(ref state, null)
             ?? throw new InvalidOperationException("Gameplay outcome restore candidate was already consumed or discarded.");
-        State = null;
-        return value;
     }
 }
 
@@ -68,6 +79,9 @@ public interface IGameplayOutcomePersistence
 
 public sealed partial class GameplayOutcomeLedger
 {
+    // Candidate identity must not retain this ledger or its session context.
+    private readonly object restoreCandidateOwnerIdentity = new object();
+
     public GameplayOutcomeLedgerSaveData CaptureGameplayOutcomes()
     {
         // Save capture is a cold checkpoint path. It owns detached DTO graphs so
@@ -222,7 +236,7 @@ public sealed partial class GameplayOutcomeLedger
             candidate.QueryTimeUpperBoundHour = Math.Max(candidate.QueryTimeUpperBoundHour,
                 GameplayOutcomeDeliveryTime.OccurrenceStartHour(memory.lastDay));
         EnsureLongRunCapacity(candidate);
-        return new GameplayOutcomeLedgerRestoreCandidate(candidate);
+        return new GameplayOutcomeLedgerRestoreCandidate(restoreCandidateOwnerIdentity, candidate);
     }
 
     [GameplayInternalOnly(
@@ -232,14 +246,13 @@ public sealed partial class GameplayOutcomeLedger
     {
         if (candidate == null)
             throw new ArgumentNullException(nameof(candidate));
-        GameplayOutcomeLedgerRuntimeState restored = candidate.Take();
         lock (gate)
         {
             if (!restoreTransactionBegun)
                 throw new InvalidOperationException("Gameplay outcome restore transaction was not begun.");
             if (stagedRestoreState != null || restoreCandidatePublished)
                 throw new InvalidOperationException("Gameplay outcome restore candidate was already staged.");
-            stagedRestoreState = restored;
+            stagedRestoreState = candidate.Take(restoreCandidateOwnerIdentity);
         }
     }
 

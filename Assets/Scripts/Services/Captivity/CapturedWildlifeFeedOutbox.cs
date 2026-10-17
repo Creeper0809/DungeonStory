@@ -274,14 +274,7 @@ public static class CapturedWildlifeFeedOutbox
             StringComparison.Ordinal)
         && Mathf.Approximately(
             state.lastFeedDiseaseChance,
-            state.pendingFeedDiseaseChance)
-        && Mathf.Approximately(
-            state.feedSicknessSeverity,
-            state.pendingFeedSicknessTarget)
-        && string.Equals(
-            state.lastCareStatus,
-            WasteFeedOutcomeCode.FeedConsumed.ToString(),
-            StringComparison.Ordinal);
+            state.pendingFeedDiseaseChance);
 
     private static bool ReceiptMatches(
         CapturedWildlifeState state,

@@ -1,0 +1,8 @@
+scope=official whole-world pending/completed faction route JSON; fresh current domain root and actual GameplayScene actors; partial and post-publication response-loss prefixes; production Tick retry/normal entry; controlled route/fault, not natural strategic route creation
+PASS partial-prefix official whole-world pending JSON -> fresh root/actors -> production Tick; exact prefix retained, actual root completed, retired route unchanged, no duplicate actors
+PASS partial-prefix actual entry Active; official completed JSON/fresh actor restore and production Tick keep one actor per ID and current root/guard/marker/life/narrative joins
+PASS response-loss-full-prefix official whole-world pending JSON -> fresh root/actors -> production Tick; exact prefix retained, actual root completed, retired route unchanged, no duplicate actors
+PASS response-loss-full-prefix actual entry Active; official completed JSON/fresh actor restore and production Tick keep one actor per ID and current root/guard/marker/life/narrative joins
+PASS official whole-world baseline restored after pending/current-root integration
+consoleErrors=0
+result=PASS

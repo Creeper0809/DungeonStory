@@ -406,9 +406,24 @@ public static partial class PrimitiveSurvivalCausalProductionEntryDebugScenarios
         Run("publication", RunCompletionPublicationBatch);
         Run("notification", RunCompletionNotificationBatch);
         Run("pending", RunB0RollbackBatch);
+        Run("start-lifetime", RunStartLifetimeBatch);
         if (failures.Count > 0)
             throw new AggregateException("Primitive mood immunity and regression cases failed.", failures);
         Debug.Log("PRIMITIVE_IMMUNITY_REGRESSION=PASS");
+    }
+
+    public static void RunStartLifetimeBatch()
+    {
+        foreach (string channel in new[] { "started-event", "changed-event", "scheduler", "replacement" })
+        {
+            var scheduler = new HoldingCoroutineScheduler();
+            using var context = new Context("run:primitive-start:" + channel,
+                "primitive-start-owner:" + channel, null, coroutineScheduler: scheduler);
+            if (channel == "replacement") context.VerifyReplacementLifetime(scheduler);
+            else context.VerifyStartFailureLifetime(channel, scheduler);
+            Debug.Log("PRIMITIVE_START_LIFETIME_CASE=" + channel + "; PASS");
+        }
+        Debug.Log("PRIMITIVE_START_LIFETIME=PASS; actual actor/Brain; held scheduler; no physical effects");
     }
 
     private static IProductionCausalActionFixture Fixture(
@@ -483,7 +498,8 @@ public static partial class PrimitiveSurvivalCausalProductionEntryDebugScenarios
         private string authoredImmunityTraitJson;
         private bool disposed;
 
-        internal Context(string causalRunId, string ownerId, JObject checkpoint, bool moodImmune = false)
+        internal Context(string causalRunId, string ownerId, JObject checkpoint, bool moodImmune = false,
+            ICharacterPrimitiveSurvivalCoroutineScheduler coroutineScheduler = null)
         {
             this.moodImmune = moodImmune;
             this.ownerId = string.IsNullOrWhiteSpace(ownerId)
@@ -563,7 +579,7 @@ public static partial class PrimitiveSurvivalCausalProductionEntryDebugScenarios
                     reservedTransfers,
                     calendar,
                     primitiveFacts,
-                    new DrainingCoroutineScheduler(clock)));
+                    coroutineScheduler ?? new DrainingCoroutineScheduler(clock)));
 
             GameObject actorObject = new("Causal Primitive Survival Owner");
             actorObject.SetActive(false);
@@ -1001,8 +1017,17 @@ public static partial class PrimitiveSurvivalCausalProductionEntryDebugScenarios
                 "Post-commit publication lost exact experience, independent delivery or the original error. "
                 + evidence.ToString(Formatting.None));
             JObject checkpoint = CaptureOwnerCheckpoint();
+            // The event observers resolve a persistent ID through the live registry.
+            // A cold owner replacement must retire the old actor before restoring it.
+            Dispose();
             using var restored = new Context("run:primitive-observer:restored:" + faultChannel,
                 ownerId, checkpoint);
+            CharacterActor[] restoredActors = CharacterAiEditorTestDependencies.WorldRegistry.AllCharacters
+                .Where(candidate => candidate != null
+                    && CharacterPersistentIdentity.TryGet(candidate, out CharacterId id)
+                    && id.Value == characterId).ToArray();
+            Require(restoredActors.Length == 1 && ReferenceEquals(restoredActors[0], restored.actor),
+                "Cold primitive restore retained another live actor with the same persistent ID.");
             JObject restoredBeforeReplay = restored.CaptureOwnerCheckpoint();
             ProductionCausalOwnerCheckpoint.RequireRestoredEquivalent(checkpoint, restoredBeforeReplay);
             Require(!restored.CompleteFirstRest()
@@ -1015,6 +1040,68 @@ public static partial class PrimitiveSurvivalCausalProductionEntryDebugScenarios
                 "Restored rest publication lost stable experience or introduced occurrence-specific groups.");
             Debug.Log("PRIMITIVE_OBSERVER_RESTORE=" + faultChannel
                 + "; PASS; exactResults=3; experienceScore=3; replayUnchanged=true");
+        }
+
+        internal void VerifyStartFailureLifetime(string channel, HoldingCoroutineScheduler scheduler)
+        {
+            var fault = new InvalidOperationException("primitive-start-fault:" + channel);
+            CharacterId id = (CharacterId)characterId;
+            string before = JsonConvert.SerializeObject(CaptureStats(actor));
+            IDisposable subscription = null;
+            if (channel == "started-event")
+                subscription = events.Subscribe<CharacterPrimitiveSurvivalStartedEvent>(_ => throw fault);
+            else if (channel == "changed-event")
+                subscription = events.Subscribe<PrimitiveSurvivalChangedEvent>(value =>
+                { if (value.Transition == PrimitiveSurvivalTransition.Started) throw fault; });
+            else if (channel == "scheduler") scheduler.Failure = fault;
+            else throw new ArgumentOutOfRangeException(nameof(channel));
+            Exception observed = null;
+            try { runner.TryStart(actor, CharacterPrimitiveSurvivalActionKind.FloorRest, out _); }
+            catch (Exception failure) { observed = failure; }
+            finally { subscription?.Dispose(); scheduler.Failure = null; }
+            Exception[] errors = observed is AggregateException aggregate
+                ? aggregate.Flatten().InnerExceptions.ToArray()
+                : observed == null ? Array.Empty<Exception>() : new[] { observed };
+            Require(errors.Length == 1 && ReferenceEquals(errors[0], fault)
+                    && !runner.IsRunning(id) && !actor.Brain.IsExternallyDrivenActionActive
+                    && !stateStore.TryGetPrimitiveSurvivalPending(id, out _)
+                    && JsonConvert.SerializeObject(CaptureStats(actor)) == before && OutcomeCount() == 0,
+                "Failed primitive start lost its error, retained an owner or applied effects: " + channel);
+            Require(runner.TryStart(actor, CharacterPrimitiveSurvivalActionKind.FloorRest, out _)
+                    && runner.IsRunning(id) && actor.Brain.IsExternallyDrivenActionActive
+                    && scheduler.Pending != null && scheduler.Pending.MoveNext(),
+                "Same primitive start could not retry after releasing its failed admission: " + channel);
+            (scheduler.Pending as IDisposable)?.Dispose();
+            Require(!runner.IsRunning(id) && !actor.Brain.IsExternallyDrivenActionActive
+                    && !stateStore.TryGetPrimitiveSurvivalPending(id, out _)
+                    && JsonConvert.SerializeObject(CaptureStats(actor)) == before && OutcomeCount() == 0,
+                "Cancelling a retried primitive start left ownership or effects: " + channel);
+        }
+
+        internal void VerifyReplacementLifetime(HoldingCoroutineScheduler scheduler)
+        {
+            CharacterId id = (CharacterId)characterId;
+            string before = JsonConvert.SerializeObject(CaptureStats(actor));
+            Require(runner.TryStart(actor, CharacterPrimitiveSurvivalActionKind.FloorRest, out _)
+                    && scheduler.Pending != null && scheduler.Pending.MoveNext(),
+                "Original primitive run did not suspend before replacement.");
+            IEnumerator original = scheduler.Pending;
+            long epoch = actor.Brain.ExternalIntentEpoch;
+            runner.Reset();
+            Require(runner.TryStart(actor, CharacterPrimitiveSurvivalActionKind.FloorRest, out _)
+                    && runner.IsRunning(id) && actor.Brain.ExternalIntentEpoch == epoch
+                    && !ReferenceEquals(original, scheduler.Pending),
+                "The replacement did not renew the original actor's exact intent epoch.");
+            (original as IDisposable)?.Dispose();
+            Require(runner.IsRunning(id) && actor.Brain.IsExternallyDrivenActionActive
+                    && actor.Brain.ExternalIntentEpoch == epoch,
+                "Retired primitive disposal ended its replacement's actual Brain lease.");
+            Require(scheduler.Pending.MoveNext(), "The surviving replacement could not resume.");
+            (scheduler.Pending as IDisposable)?.Dispose();
+            Require(!runner.IsRunning(id) && !actor.Brain.IsExternallyDrivenActionActive
+                    && !stateStore.TryGetPrimitiveSurvivalPending(id, out _)
+                    && JsonConvert.SerializeObject(CaptureStats(actor)) == before && OutcomeCount() == 0,
+                "The replacement did not release its own lease without physical effects.");
         }
 
         internal void VerifyFloorRestChildFailureIsAtomic(
@@ -2103,6 +2190,20 @@ public static partial class PrimitiveSurvivalCausalProductionEntryDebugScenarios
         {
             Time += DeltaTime;
             FrameCount++;
+        }
+    }
+
+    internal sealed class HoldingCoroutineScheduler : ICharacterPrimitiveSurvivalCoroutineScheduler
+    {
+        internal Exception Failure;
+        internal IEnumerator Pending;
+
+        public void Start(CharacterActor owner, IEnumerator routine)
+        {
+            if (owner == null) throw new ArgumentNullException(nameof(owner));
+            if (routine == null) throw new ArgumentNullException(nameof(routine));
+            if (Failure != null) throw Failure;
+            Pending = routine;
         }
     }
 

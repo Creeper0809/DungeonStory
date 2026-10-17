@@ -204,8 +204,12 @@ public static class GameplayFlowDiagnosticsDebugScenarios
             brain.bestAction = new AIAction(
                 actionSet,
                 AIActionPlan.AtDestination(target));
-            SetPrivateField(brain, "currentActionEpoch", 7L);
-            SetPrivateField(brain, "actionEpochLive", true);
+            for (int epoch = 1; epoch <= 7; epoch++)
+            {
+                brain.NotifyActionStarted();
+                if (epoch < 7) brain.NotifyActionTerminal(CharacterAiActionTerminalKind.Completed);
+            }
+            Require(brain.RuntimeActionEpoch == 7L, "real action notifications did not establish the fixture epoch");
             InvokePrivate(
                 brain,
                 "RecordCurrentOperationBlock",

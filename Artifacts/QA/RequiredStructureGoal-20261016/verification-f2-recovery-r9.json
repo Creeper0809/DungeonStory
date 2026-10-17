@@ -1,0 +1,23 @@
+{
+  "sourcePin": "source-pin-f2-shutdown-r1.json",
+  "sourceFiles": 712,
+  "unchanged": true,
+  "toolPin": "tool-pin-f2-g1-r1.json",
+  "toolFiles": 6,
+  "currentRuntimeCompile": "f2-recovery-r6/unity.log Csc50.869591s, CS0",
+  "currentEditorCompile": "f2-recovery-r8/unity.log Tundra28.06s, CS0",
+  "actualRun": "f2-recovery-r9",
+  "cachedTundraSeconds": 1.76,
+  "cases": 15,
+  "allRowsPass": true,
+  "marker": true,
+  "normalPlayStopped": true,
+  "unityExit": 0,
+  "nativeIsolationProbe": true,
+  "consoleExceptions": 0,
+  "limits": [
+    "general-world third cleanup separately pending",
+    "G1 actual restock and remaining owners pending",
+    "remaining report targets remain active"
+  ]
+}

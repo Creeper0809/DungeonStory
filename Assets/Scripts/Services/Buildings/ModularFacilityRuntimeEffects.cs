@@ -21,8 +21,7 @@ public static class ModularFacilityRuntimeEffects
             return;
         }
 
-        foreach (IBuildingVisualRuntimeAbility ability in building.BuildingData.Abilities
-                     .OfType<IBuildingVisualRuntimeAbility>())
+        foreach (IBuildingVisualRuntimeAbility ability in building.GetRuntimeAbilities<IBuildingVisualRuntimeAbility>())
         {
             ability.ConfigureVisual(building);
         }
@@ -155,8 +154,7 @@ public static class ModularFacilityRuntimeEffects
             return;
         }
 
-        foreach (IBuildingUseCompletedRuntimeAbility ability in building.BuildingData.Abilities
-                     .OfType<IBuildingUseCompletedRuntimeAbility>())
+        foreach (IBuildingUseCompletedRuntimeAbility ability in building.GetRuntimeAbilities<IBuildingUseCompletedRuntimeAbility>())
         {
             ability.ApplyUseCompleted(actor, building);
         }

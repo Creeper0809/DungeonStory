@@ -200,7 +200,7 @@ public static class V27ExhaustiveClosureDenominatorDebugScenarios
                     "HAUL_DEAD_CURRENT_FORMAT_RESTORE_EXACT=PASS")),
             ["destination-revision-drift"] = Structure(
                 Probe(
-                    "Assets/Scripts/Services/Items/WorldItemWarehouseService.cs",
+                    "Assets/Scripts/Services/Items/WorldItemDestinationAdmissionService.cs",
                     "CapacityRevision",
                     "WarehouseCapacityRevision"),
                 Probe(
@@ -285,7 +285,7 @@ public static class V27ExhaustiveClosureDenominatorDebugScenarios
                     "exact 1g clearance")),
             ["output-full"] = Structure(
                 Probe(
-                    "Assets/Scripts/Services/Economy/ProductionPreparedOutputExecutionAdapter.cs",
+                    "Assets/Scripts/Services/Economy/ProductionPreparedOutputResolutionPlanner.cs",
                     "ResolvedWaitingForOutputSpace",
                     "outcomeFingerprint"),
                 Probe(

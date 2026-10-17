@@ -518,7 +518,7 @@ public static class Wim040ObservedIncidentDebugScenarios
         return string.Join("\n", lines);
     }
 
-    private sealed class ObservedIncidentFactFixture : IDisposable
+    internal sealed class ObservedIncidentFactFixture : IDisposable
     {
         private readonly SocialRitualFactEditorFixture facts;
 

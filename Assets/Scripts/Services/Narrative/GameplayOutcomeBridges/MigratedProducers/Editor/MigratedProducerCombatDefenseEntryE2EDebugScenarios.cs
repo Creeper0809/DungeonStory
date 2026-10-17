@@ -2625,7 +2625,7 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
                 combatEquipmentRuntime: null,
                 worldRegistry: null,
                 worldItemStackRuntime: null,
-                abilityRuntimeDispatcher: null,
+                abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
                 gameClock: new UnityGameClock(),
                 paidFacilityContracts: null,
                 evolutionState: new FacilityEvolutionStateComponentFactory());

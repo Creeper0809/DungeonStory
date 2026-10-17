@@ -23,12 +23,22 @@ public static class GameplayOutcomeLedgerDebugScenarios
     private static readonly GameplayOutcomeFactId DetailFact =
         new GameplayOutcomeFactId("detail");
 
-    public static string RunAll()
+    public static string RunAll() => RunAll(includeUsageFormulaBudgets: true);
+
+    // The storage refactor also runs typed evidence replay and tamper rejection.
+    // The legacy usage-formula fixture needs real registered experience receipts;
+    // keep that separate full-suite check intact instead of granting test.outcome
+    // invented importance through the global production policy.
+    public static string RunLedgerStorageContractsForBatch() =>
+        RunAll(includeUsageFormulaBudgets: false);
+
+    private static string RunAll(bool includeUsageFormulaBudgets)
     {
         RegistryFailsClosed();
         LifecycleReplayFaultAndRestore();
         RunReservationFinalStatusContracts();
         StagedRestoreIdentityQueryIsolation();
+        _ = RunRestoreCandidateLifetimeContracts();
         FloatingPointReceiptRoundTrip();
         VerifyDelayedPublicationTime();
         OptionalWitnessFiltering();
@@ -43,7 +53,8 @@ public static class GameplayOutcomeLedgerDebugScenarios
         PublicEvidenceOriginAndCausalBoundary();
         CompactedPublicEvidencePreservesCountsAndOrigins();
         MixedLegacyAggregateBudgetPreservesDistinctSources();
-        UsageFormulaBudgetsPreserveDistinctSources();
+        if (includeUsageFormulaBudgets)
+            UsageFormulaBudgetsPreserveDistinctSources();
         SliceAndQueuedDayDeterminism();
         MidConsolidationSaveRestartsFromExactInput();
         RetainedHistoryExceedsHotPool();
@@ -51,7 +62,107 @@ public static class GameplayOutcomeLedgerDebugScenarios
         KnownResultCapacityBackpressuresBeforeMutation();
         RetentionPromotionFailureIsExplicit();
         ExpeditionPresentationUsesOperationAndSameOutcomeId();
-        return "PASS GameplayOutcomeLedgerDebugScenarios";
+        return includeUsageFormulaBudgets
+            ? "PASS GameplayOutcomeLedgerDebugScenarios"
+            : "PASS GameplayOutcomeLedger storage/query/retention/restore contracts";
+    }
+
+    public static string RunRestoreCandidateLifetimeContracts()
+    {
+        Fixture source = CreateFixture(NarrativeMemoryTier.Episodic, witnessLimit: 0);
+        TestReceipt receipt = Receipt(9751, 9751, 17d);
+        GameplayOutcomeId expectedId = Publish(source, receipt);
+        GameplayOutcomeLedgerSaveData saved = source.Ledger.CaptureGameplayOutcomes();
+        GameplayOutcomeLedger target = NewLedger(source.Registry, source.Limits, "run:candidate-target");
+        GameplayOutcomeLedgerRestoreCandidate candidate = target.PrepareGameplayOutcomeRestore(saved);
+        RequireThrows<InvalidOperationException>(() => target.PublishGameplayOutcomeRestore(candidate),
+            "A ledger accepted a candidate before transaction admission.");
+        Require(candidate.State != null && target.CurrentWorldEpoch == 1L,
+            "Rejected pre-admission publication consumed the candidate or changed the live root.");
+        target.BeginRestoreCandidate();
+        target.PublishGameplayOutcomeRestore(candidate);
+        target.PublishRestoreCandidate();
+        Require(candidate.State == null && target.TryGetResultIdentity(receipt.ResultKey, out var identity)
+                && identity.OutcomeId == expectedId,
+            "Same candidate could not retry after rejected pre-admission publication.");
+        target.RollbackPublishedRestoreCandidate();
+
+        GameplayOutcomeLedgerRestoreCandidate first = target.PrepareGameplayOutcomeRestore(saved);
+        GameplayOutcomeLedgerRestoreCandidate next = target.PrepareGameplayOutcomeRestore(saved);
+        target.BeginRestoreCandidate();
+        target.PublishGameplayOutcomeRestore(first);
+        RequireThrows<InvalidOperationException>(() => target.PublishGameplayOutcomeRestore(next),
+            "A staged ledger candidate was overwritten.");
+        Require(first.State == null && next.State != null,
+            "Rejected duplicate staging consumed a later candidate.");
+        target.DiscardRestoreCandidate();
+        target.BeginRestoreCandidate();
+        target.PublishGameplayOutcomeRestore(next);
+        target.PublishRestoreCandidate();
+        GameplayOutcomeLedgerRestoreCandidate afterPublication = target.PrepareGameplayOutcomeRestore(saved);
+        RequireThrows<InvalidOperationException>(() => target.PublishGameplayOutcomeRestore(afterPublication),
+            "A published ledger candidate was overwritten.");
+        Require(afterPublication.State != null,
+            "Rejected post-publication staging consumed a retryable candidate.");
+        target.RollbackPublishedRestoreCandidate();
+        target.BeginRestoreCandidate();
+        target.PublishGameplayOutcomeRestore(afterPublication);
+        target.PublishRestoreCandidate();
+        target.CompleteRestoreCandidate();
+        Require(target.TryGetResultIdentity(receipt.ResultKey, out identity) && identity.OutcomeId == expectedId,
+            "Rollback and candidate retry lost the exact result identity.");
+
+        GameplayOutcomeLedger foreign = NewLedger(source.Registry, source.Limits, "run:candidate-foreign");
+        GameplayOutcomeLedgerRestoreCandidate owned = target.PrepareGameplayOutcomeRestore(saved);
+        foreign.BeginRestoreCandidate();
+        RequireThrows<InvalidOperationException>(() => foreign.PublishGameplayOutcomeRestore(owned),
+            "A different ledger accepted a foreign prevalidated runtime root.");
+        Require(owned.State != null && !foreign.HasStagedGameplayOutcomeRestore
+                && foreign.CaptureGameplayOutcomes().runId == "run:candidate-foreign",
+            "Foreign publication consumed the candidate or changed the wrong ledger.");
+        foreign.DiscardRestoreCandidate();
+        target.BeginRestoreCandidate();
+        target.PublishGameplayOutcomeRestore(owned);
+        target.PublishRestoreCandidate();
+        target.CompleteRestoreCandidate();
+
+        GameplayOutcomeLedgerRestoreCandidate discarded = target.PrepareGameplayOutcomeRestore(saved);
+        discarded.Discard();
+        discarded.Discard();
+        target.BeginRestoreCandidate();
+        RequireThrows<InvalidOperationException>(() => target.PublishGameplayOutcomeRestore(discarded),
+            "A discarded candidate was staged.");
+        Require(!target.HasStagedGameplayOutcomeRestore, "A discarded token left a partial staged root.");
+        target.DiscardRestoreCandidate();
+        target.BeginRestoreCandidate();
+        RequireThrows<InvalidOperationException>(() => target.PublishGameplayOutcomeRestore(owned),
+            "A consumed candidate was staged twice.");
+        Require(!target.HasStagedGameplayOutcomeRestore, "A consumed token left a partial staged root.");
+        target.DiscardRestoreCandidate();
+
+        Fixture reserved = CreateFixture(NarrativeMemoryTier.Episodic, witnessLimit: 0);
+        GameplayOutcomeLedgerRestoreCandidate waiting = reserved.Ledger.PrepareGameplayOutcomeRestore(saved);
+        TestReceipt pendingReceipt = Receipt(9752, 9752, 18d);
+        Require(new TestAdapter().TryGetRequirements(pendingReceipt,
+                reserved.Ledger.CurrentWorldEpoch, out OutcomeWriteRequirements preview).Success,
+            "Candidate admission fixture could not measure the pending receipt.");
+        Require(reserved.Recorder.TryReserve(preview, out PreparedOutcomeReservation reservation).Success,
+            "Candidate admission fixture could not reserve an active outcome.");
+        RequireThrows<InvalidOperationException>(() => reserved.Ledger.BeginRestoreCandidate(),
+            "Restore began while an outcome reservation was active.");
+        RequireThrows<InvalidOperationException>(() => reserved.Ledger.PublishGameplayOutcomeRestore(waiting),
+            "An active reservation bypassed restore admission.");
+        Require(waiting.State != null && reserved.Ledger.GetDiagnostics().ReservedCount == 1,
+            "Failed restore admission consumed the candidate or changed the reservation.");
+        reserved.Recorder.CancelReservation(reservation);
+        reserved.Ledger.BeginRestoreCandidate();
+        reserved.Ledger.PublishGameplayOutcomeRestore(waiting);
+        reserved.Ledger.PublishRestoreCandidate();
+        reserved.Ledger.CompleteRestoreCandidate();
+        Require(reserved.Ledger.TryGetResultIdentity(receipt.ResultKey, out identity) && identity.OutcomeId == expectedId,
+            "Cancelled outcome reservation did not permit same-candidate restore retry.");
+        return "PASS ledger candidate lifetime: pre-admission/staged/published reject preserves retry; "
+            + "foreign owner rejected; discard/consume once; rollback and outcome-cancel retry preserve exact identity";
     }
 
     public static void RunReservationFinalStatusContracts()
@@ -312,7 +423,8 @@ public static class GameplayOutcomeLedgerDebugScenarios
         GameplayOutcomeEvidenceBindingSnapshot binding =
             GameplayOutcomeEvidenceFormulaProjection.Capture(new[] { source }).Single();
         Require(
-            binding.schemaVersion == 2
+            binding.schemaVersion == 4
+            && binding.schemaVersion == GameplayOutcomeEvidenceFormulaProjection.CurrentBindingSchemaVersion
             && binding.sourceKind == "exact"
             && binding.participants.Count == 2
             && binding.metrics.Count == 1

@@ -22,8 +22,8 @@ public class Shop : BuildableObject,
     private ShopCustomerInteractionService customerInteraction;
     private ShopInteractionState interactionState = new();
     internal ShopInteractionState InteractionState => interactionState;
-    private IBuildingVisitorPort worker;
-    private CharacterId workerCharacterId;
+    private BuildingWorkerAllocation workerAllocation;
+    private IBuildingVisitorPort worker => workerAllocation?.Actor;
     private IGameMoneyAccount moneyAccount;
     private IFloatingNumberFeedbackService floatingNumberFeedbackService;
     private IBuildingWorkforceReplanPort workforceReplanService;
@@ -815,88 +815,95 @@ public class Shop : BuildableObject,
 
     public IEnumerator AllocateWorker(IBuildingVisitorPort actor)
     {
-        PruneInvalidWorker();
-        if (worker != null && worker != actor)
-        {
-            yield break;
-        }
-        worker = actor;
-        workerCharacterId = actor?.BuildingCharacterId ?? default;
-        TrackAllocatedWorkerOwnership(actor);
-        MarkFacilityDynamicStateDirty();
-        ReleaseWorkerReservation(actor);
-        if (actor == null || !actor.VisitorSnapshot.CanMove) yield break;
+        if (TryAllocateWorker(actor, actor?.CurrentActionToken, null,
+                out IBuildingWorkerAllocation allocation, out _))
+            yield return allocation.Approach();
+    }
 
-        Vector2 endPos = GetFacilityAnchorWorldPosition(
-            FacilityAnchorPurposeIds.Work,
-            actor.VisitorSnapshot.Position);
-        object currentAction = actor.CurrentActionToken;
-        actor.SetActionPhase("\uC791\uC5C5\uB300 \uC811\uADFC", this);
-        yield return actor.MoveTo(endPos, 1f, currentAction);
-        actor.ChangeLayer("DungeonMiddleObject");
-        yield return actor.MoveTo(
-            endPos + new Vector2(0, 0.15f),
-            3f,
-            currentAction);
-        actor.SetActionPhase("\uC791\uC5C5 \uC790\uC138", this);
-        actor.FaceRight();
+    public bool TryAllocateWorker(IBuildingVisitorPort actor, object expectedAction,
+        Func<bool> isRequestCurrent, out IBuildingWorkerAllocation allocation,
+        out string failureReason)
+    {
+        allocation = null;
+        PruneInvalidWorker();
+        if (actor == null || !actor.VisitorSnapshot.IsRuntimeActive)
+        {
+            failureReason = "worker-unavailable";
+            return false;
+        }
+        if (workerAllocation != null)
+        {
+            failureReason = "worker-already-allocated";
+            return false;
+        }
+        if (!CanAssignWorker(actor, out failureReason))
+            return false;
+        if (expectedAction != null && (!actor.IsCurrentAction(expectedAction)
+                || actor.IsCurrentActionEnded)
+            || isRequestCurrent != null && !isRequestCurrent())
+        {
+            failureReason = "worker-allocation-request-replaced";
+            return false;
+        }
+        var admitted = new BuildingWorkerAllocation(this, actor, expectedAction,
+            isRequestCurrent, value => ReferenceEquals(workerAllocation, value),
+            ReleaseWorkerAllocation,
+            GetFacilityAnchorWorldPosition(FacilityAnchorPurposeIds.Work,
+                actor.VisitorSnapshot.Position), new Vector3(0f, 0.15f),
+            ResolveWorkerExitPosition, "작업대 접근", "작업 자세");
+        workerAllocation = admitted;
+        allocation = admitted;
+        try
+        {
+            TrackAllocatedWorkerOwnership(actor);
+            ReleaseWorkerReservation(actor);
+            MarkFacilityDynamicStateDirty();
+            failureReason = string.Empty;
+            return true;
+        }
+        catch
+        {
+            admitted.Dispose();
+            throw;
+        }
     }
 
     public void DeallocateWorker(IBuildingVisitorPort actor)
     {
-        if (actor == null)
-        {
+        if (actor != null && ReferenceEquals(worker, actor))
+            workerAllocation.Dispose();
+    }
+
+    private void ReleaseWorkerAllocation(BuildingWorkerAllocation allocation)
+    {
+        if (!ReferenceEquals(workerAllocation, allocation))
             return;
-        }
-
-        PruneInvalidWorker();
-        if (worker != actor) return;
-
-        worker = null;
-        workerCharacterId = default;
-        UntrackAllocatedWorkerOwnership(actor);
+        workerAllocation = null;
+        UntrackTransientOwnership(allocation.CharacterId,
+            BuildingTransientOwnershipKind.AllocatedWorker);
         MarkFacilityDynamicStateDirty();
-        actor.SetActionPhase("\uC2DC\uC124 \uD1F4\uC7A5", this);
-        Vector3 actorPosition = actor.VisitorSnapshot.Position - new Vector3(0, 0.15f);
-        actor.SetWorldPosition(actorPosition);
-        Vector2Int actorGridPosition = grid != null
-            ? grid.GetXY(actorPosition)
-            : centerPos;
-        if (!ContainsGridPosition(actorGridPosition)
-            && TryGetFacilityOccupiedWorldPosition(actorPosition, out Vector3 exitPosition))
-        {
-            actor.SetWorldPosition(exitPosition);
-        }
-        actor.ChangeLayer("Default");
+    }
+
+    private Vector3 ResolveWorkerExitPosition(Vector3 position)
+    {
+        Vector2Int actorGridPosition = grid != null ? grid.GetXY(position) : centerPos;
+        return !ContainsGridPosition(actorGridPosition)
+            && TryGetFacilityOccupiedWorldPosition(position, out Vector3 exit)
+                ? exit : position;
     }
 
     private void PruneInvalidWorker()
     {
         if (worker == null)
-        {
             return;
-        }
-
         try
         {
             if (!worker.VisitorSnapshot.IsRuntimeActive)
-            {
-                UntrackTransientOwnership(
-                    workerCharacterId,
-                    BuildingTransientOwnershipKind.AllocatedWorker);
-                worker = null;
-                workerCharacterId = default;
-                MarkFacilityDynamicStateDirty();
-            }
+                workerAllocation.Dispose();
         }
         catch (MissingReferenceException)
         {
-            UntrackTransientOwnership(
-                workerCharacterId,
-                BuildingTransientOwnershipKind.AllocatedWorker);
-            worker = null;
-            workerCharacterId = default;
-            MarkFacilityDynamicStateDirty();
+            workerAllocation.Dispose();
         }
     }
 

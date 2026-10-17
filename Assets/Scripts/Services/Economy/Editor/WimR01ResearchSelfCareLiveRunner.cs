@@ -332,7 +332,7 @@ public sealed class WimR01ResearchSelfCareLiveRunner
             "Actual explicit-path research candidate unavailable.");
         const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance
             | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
-        object selector = typeof(AbilityWork).GetField("targetSelector", flags)?.GetValue(work);
+        object selector = typeof(AbilityWork).GetProperty("TargetSelector", flags)?.GetValue(work);
         Require(selector != null, "Candidate selector fixture contract changed.");
         var scans = typeof(WorkTargetSelector).GetField("incrementalScans", flags)?.GetValue(selector) as IDictionary;
         var memo = typeof(WorkTargetSelector).GetField("candidateCache", flags)?.GetValue(selector) as IDictionary;
@@ -424,7 +424,7 @@ public sealed class WimR01ResearchSelfCareLiveRunner
     {
         const System.Reflection.BindingFlags fields = System.Reflection.BindingFlags.Instance
             | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic;
-        var selectorField = typeof(AbilityWork).GetField("targetSelector", fields);
+        var selectorField = typeof(AbilityWork).GetProperty("TargetSelector", fields);
         Require(selectorField != null, "Candidate probe selector contract changed.");
         object selector = selectorField.GetValue(work);
         var cache = scope.Container.Resolve<IFacilityCandidateCache>();
@@ -435,7 +435,7 @@ public sealed class WimR01ResearchSelfCareLiveRunner
             Require(field != null, "Candidate probe cache field missing: " + name);
             return field.GetValue(cache);
         }
-        var orderField = typeof(AbilityWork).GetField("workOrderRuntime", fields);
+        var orderField = typeof(AbilityWork).GetProperty("WorkOrderRuntime", fields);
         Require(orderField != null, "Candidate probe work-order authority changed.");
         var orders = orderField.GetValue(work) as IWorkOrderRuntime;
         var world = scope.Container.Resolve<ICharacterAiWorldRegistry>();

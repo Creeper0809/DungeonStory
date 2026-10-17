@@ -2,12 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum ConveyorPortMode
-{
-    Input = 0,
-    Output = 1,
-    Both = 2
-}
+
 
 public enum ConveyorStallReason
 {

@@ -7,7 +7,7 @@ public static class CertifiedSeedFactObserverMapping
     {
         if (fact == null)
             throw new ArgumentNullException(nameof(fact));
-        return EnvironmentOutcomeReceiptFactory.CreateCertifiedSeedCompletion(
+        return CropProductionOutcomeReceiptFactory.CreateCertifiedSeedCompletion(
             fact.SourceReceipt,
             fact.FacilityDisplayName,
             fact.CropDisplayName,

@@ -163,17 +163,26 @@ public static class CharacterConsumablesInputOwnerDebugScenarios
         string adapters = File.ReadAllText(Path.Combine(
             root,
             "Assets/Scripts/Services/Survival/CharacterConsumablesApplicationAdapters.cs"));
+        string physical = File.ReadAllText(Path.Combine(
+            root,
+            "Assets/Scripts/Services/Survival/CharacterConsumablesPhysicalInventory.cs"));
         string runtime = File.ReadAllText(Path.Combine(
             root,
             "Assets/Scripts/Models/Survival/Core/CharacterConsumablesRuntime.cs"));
-        Require(adapters.Contains(
+        Require(physical.Contains(
                 "TryCommitReservedSinkPending(",
                 StringComparison.Ordinal)
-            && adapters.Contains(
+            && physical.Contains(
                 "TryCommitCarriedSinkPending(",
                 StringComparison.Ordinal)
-            && adapters.Contains(
+            && physical.Contains(
                 "TryPublishTareAndAcknowledge(",
+                StringComparison.Ordinal)
+            && adapters.Contains(
+                "physicalInventory.TryCommitReservedMealQuantityPending(",
+                StringComparison.Ordinal)
+            && adapters.Contains(
+                "physicalInventory.TryCommitSubstanceConsumptionPending(",
                 StringComparison.Ordinal)
             && runtime.Contains(
                 "TryCommitReservedMealQuantityPending(",

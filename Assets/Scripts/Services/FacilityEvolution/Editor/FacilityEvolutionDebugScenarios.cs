@@ -3535,7 +3535,7 @@ public static partial class FacilityEvolutionDebugScenarios
                 roomFacilityPolicy, combatEquipmentRuntime: null,
                 worldRegistry: (IBuildingWorldRegistryPort)
                     CharacterAiEditorTestDependencies.WorldRegistry,
-                worldItemStackRuntime: null, abilityRuntimeDispatcher: null,
+                worldItemStackRuntime: null, abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
                 gameClock: null, paidFacilityContracts: null,
                 evolutionState: new FacilityEvolutionStateComponentFactory());
         }

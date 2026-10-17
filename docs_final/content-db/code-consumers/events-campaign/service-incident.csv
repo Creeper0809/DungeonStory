@@ -1,6 +1,11 @@
 ﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
 ServiceIncidentDefinitionSO,content-type,,type-reference,services:narrative,runtime,structural-type-consumer,Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/SocialLife/CampaignPresentationObserver.cs
-ServiceIncidentDefinitionSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20CampaignRuntime.cs
-ServiceIncidentDefinitionSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20ContentResolutionService.cs
+ServiceIncidentDefinitionSO,content-type,,type-reference,services:run,persistence,structural-type-consumer,Assets/Scripts/Services/Run/V20CampaignSaveCodec.cs
+ServiceIncidentDefinitionSO,content-type,,type-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20ContentDefinitionRules.cs
+ServiceIncidentDefinitionSO,content-type,,type-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20ContentResolutionRequestPlanner.cs
+ServiceIncidentDefinitionSO,content-type,,type-reference,services:run,persistence,structural-type-consumer,Assets/Scripts/Services/Run/V20EventSaveValidation.cs
+ServiceIncidentDefinitionSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20ObservedIncidentRuntime.cs
+ServiceIncidentDefinitionSO,content-type,,type-reference,services:run,content-loading,structural-type-consumer,Assets/Scripts/Services/Run/V20StoryCatalogContracts.cs
+ServiceIncidentDefinitionSO,content-type,,type-reference,services:run,content-loading,structural-type-consumer,Assets/Scripts/Services/Run/V20StoryContentCatalog.cs
 ServiceIncidentDefinitionSO,stable-id,service-incident:culturalinsult,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs
 ServiceIncidentDefinitionSO,stable-id,service-incident:forbiddenmeal,stable-id-literal,services:run,runtime,exact-literal-consumer,Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs

@@ -258,6 +258,12 @@ public static class CharacterWorldSaveValidation
 
         bool theftValid = DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(operation.theftPublicationKey, 1024, true);
         bool terminalValid = DungeonStory.Foundation.Facts.DomainFactValueSyntax.IsText(operation.departurePublicationKey, 1024, true);
+        // The last completed departure remains receipt history when AcquireVisitor
+        // starts the next visit. Current actor membership is checked separately
+        // by ValidateVisitorBindings; it must not rewrite that historical result.
+        bool returningVisitor = profile.isVisiting && profile.isAlive
+            && !profile.isOwner && !profile.isStaff
+            && profile.settlementStanding == CharacterSettlementStanding.Visitor;
         bool phaseValid = operation.phase switch
         {
             CharacterVisitorExitPhase.ExitPending =>
@@ -277,7 +283,7 @@ public static class CharacterWorldSaveValidation
                     VisitorDepartureTerminalKind.Departed.ToString(),
                     StringComparison.Ordinal)
                 && operation.failureReason.Length == 0
-                && !profile.isVisiting
+                && (!profile.isVisiting || returningVisitor)
                 && (long)profile.visitCount == (long)operation.visitCountBefore + 1,
             CharacterVisitorExitPhase.ExitFailed =>
                 operation.departurePublicationKey.Length > 0

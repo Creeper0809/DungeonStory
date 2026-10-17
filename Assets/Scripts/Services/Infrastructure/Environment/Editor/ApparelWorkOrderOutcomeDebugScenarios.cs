@@ -361,8 +361,7 @@ public static class ApparelWorkOrderOutcomeDebugScenarios
                 .Create<IBuildingWorldRegistryPort>(),
             BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                 .Create<IBuildingItemStackPort>(),
-            BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
-                .Create<IBuildingAbilityRuntimeDispatcher>(),
+            CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
             new UnityGameClock(),
             BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                 .Create<IBuildingPaidFacilityContractPort>(),

@@ -36,7 +36,8 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
             ["Assets/Scripts/Models/Economy/Content/WasteProcessingRuntime.cs"] = "economy.waste-processing",
             ["Assets/Scripts/Services/Captivity/CaptivityInteractionMaterialRuntime.cs"] = "captivity.interaction",
             ["Assets/Scripts/Services/Captivity/CaptivityRuntime.cs"] = "captivity.care-labor",
-            ["Assets/Scripts/Services/Captivity/WildlifeCaptureRuntime.cs"] = "captivity.wildlife-care",
+            ["Assets/Scripts/Services/Captivity/CaptivityLaborRuntime.cs"] = "captivity.care-labor",
+            ["Assets/Scripts/Services/Captivity/CapturedWildlifeFeedingRuntime.cs"] = "captivity.wildlife-care",
             ["Assets/Scripts/Services/Character/Work/WorkConstructionInputOwnerRuntime.cs"] = "work.construction",
             ["Assets/Scripts/Services/Combat/CharacterMedicalSupplyCoordinator.cs"] = "medical.character-supply",
             ["Assets/Scripts/Services/Combat/CombatEquipmentCraftInputDestinationRuntime.cs"] = "combat.equipment-crafting",
@@ -55,6 +56,7 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
             ["Assets/Scripts/Services/Infrastructure/BlueprintResearchRuntime.cs"] = "research.blueprint-archive",
             ["Assets/Scripts/Services/Infrastructure/Industrial/ElectricalNetworkRuntime.cs"] = "infrastructure.electrical",
             ["Assets/Scripts/Services/Infrastructure/Industrial/FluidNetworkRuntime.cs"] = "infrastructure.fluid",
+            ["Assets/Scripts/Services/Infrastructure/Industrial/ManualWaterTransferRuntime.cs"] = "infrastructure.fluid",
             ["Assets/Scripts/Services/Infrastructure/Industrial/ProcessFluidUseRuntime.cs"] = "infrastructure.process-fluid",
             ["Assets/Scripts/Services/Infrastructure/KnowledgeResidueProcessingRuntime.cs"] = "research.knowledge-residue",
             ["Assets/Scripts/Services/Items/ItemTransferService.cs"] = "adapter.item-transfer",
@@ -74,10 +76,10 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
         Input("run.faction-contract", "facility-input:exact:run.faction-contract:{escapedContractId}", "V20CampaignRuntime|V20ContentResolutionService|EconomyProjectInputOwnerRuntime", "owner-neutral exact ReservedTarget claim; ExactGramRequired policy", "exact positive authored consume=true requirement vector in current grams", "Faction Campaign V2 descriptor/outbox + typed Transfer + Physical Items child authority", "carried-aware expiry/completion release before paired revoke", "migrated", "Assets/Scripts/Services/Economy/EconomyProjectInputOwnerRuntime.cs"),
         Input("survival.character-consumables", "facility-input:exact:survival.character-consumables:v1:{meal|recreation-substance}:{escapedFacilityId}:{escapedItemId}", "CharacterConsumablesRuntime|CharacterConsumablesInputOwnerDescriptorSource|CharacterConsumablesInputOwnerRuntime|CharacterConsumablesInputOwnerLifecycleRuntime", "exact LiveFacility claim; ExactGramRequired policy", "one exact current item unit in positive grams per item-specific destination", "Consumables V8 + derived claim/profile restore join + Physical Items child authority", "lost-facility/capability carried-aware release before paired revoke", "migrated", "Assets/Scripts/Services/Survival/CharacterConsumablesInputOwnerRuntime.cs"),
         Input("captivity.interaction", "facility-input:exact:captivity.interaction:v1:{captiveId}:{interactionId}:{facilityId}:{position}:{massRevision}:{capacity}:{fingerprint}", "CaptivityInteractionRuntime|CaptivityInteractionMaterialRuntime|CaptivityInteractionMaterialLifecycleRuntime", "exact LiveFacility claim; ExactGramRequired policy", "category requirement count x maximum current catalog unit grams, with actual delivered exact lots selected at Sink", "Captivity state committed Sink token + claim/profile replacement + Physical Items pending receipt join", "owner-position carried-aware close; restore publish rollback restores prior authority", "migrated", "Assets/Scripts/Services/Captivity/CaptivityInteractionRuntime.cs"),
-        Input("captivity.care-labor", "captive-care:{id}|captive-labor-tool:{id}", "CaptivityRuntime|CaptivityCareLaborInputOwnerRuntime", "exact LiveFacility captive-housing claim; ExactGramRequired policy", "maximum current positive Food unit grams | exact current prisoner-work-kit unit grams", "Captivity V3 derived pair + Physical Items child authority; restore participant 218 before shared 220", "owner-position carried-aware release before paired revoke", "migrated", "Assets/Scripts/Services/Captivity/CaptivityCareLaborInputOwnerRuntime.cs"),
+        Input("captivity.care-labor", "captive-care:{id}|captive-labor-tool:{id}", "CaptivityRuntime|CaptivityLaborRuntime|CaptivityCareLaborInputOwnerRuntime", "exact LiveFacility captive-housing claim; ExactGramRequired policy", "maximum current positive Food unit grams | exact current prisoner-work-kit unit grams", "Captivity V3 derived pair + Physical Items child authority; restore participant 218 before shared 220", "owner-position carried-aware release before paired revoke", "migrated", "Assets/Scripts/Services/Captivity/CaptivityCareLaborInputOwnerRuntime.cs"),
         Input("captivity.performer", "delegated:captivity.care-labor", "CaptivityPerformerRuntime", "no independent physical owner", "delegated to captivity.care-labor", "Captivity state-only carePriorityUnlocked", "duplicate delivery chain removed", "removed-duplicate-owner", "Assets/Scripts/Models/Captivity/Core/CaptivityPerformerRuntime.cs"),
         Input("captivity.circus", "facility-input:exact:durable-equipment:captivity.circus:{stagePersistentId}:{assignmentSequence}", "CircusRuntime|CircusPerformanceSupplyRuntime|CircusPerformanceSupplyLifecycleRuntime|DurableFacilityEquipmentSlotRuntime", "exact LiveFacility claim; durable exact-stack slot policy", "one 1,950g performance prop box plus one 3,150g banquet cart = 5,100g", "Circus V4 pending Sink + durable slot + Physical Items child authority", "lost-stage/capability close and carried-aware terminal drain", "migrated", "Assets/Scripts/Services/Captivity/CircusRuntime.cs"),
-        Input("captivity.wildlife-care", "facility-input:exact:captivity.wildlife-care:{penPersistentId}", "WildlifeCaptureRuntime|WildlifeCareInputOwnerSource|WildlifeCareInputOwnerRuntime|WildlifeCareInputOwnerLifecycleRuntime", "exact LiveFacility pen claim; ExactGramRequired policy", "active animals x authored daily food/water units x current catalog maximum eligible unit grams", "Wildlife/Circus current format + derived owner pair + Physical Items child authority", "carried-aware shrink/terminal release before paired authority revoke", "migrated", "Assets/Scripts/Services/Captivity/WildlifeCareInputOwnerRuntime.cs"),
+        Input("captivity.wildlife-care", "facility-input:exact:captivity.wildlife-care:{penPersistentId}", "WildlifeCaptureRuntime|CapturedWildlifeFeedingRuntime|WildlifeCareInputOwnerSource|WildlifeCareInputOwnerRuntime|WildlifeCareInputOwnerLifecycleRuntime", "exact LiveFacility pen claim; ExactGramRequired policy", "active animals x authored daily food/water units x current catalog maximum eligible unit grams", "Wildlife/Circus current format + derived owner pair + Physical Items child authority", "carried-aware shrink/terminal release before paired authority revoke", "migrated", "Assets/Scripts/Services/Captivity/WildlifeCareInputOwnerRuntime.cs"),
         Input("character.career", "durable-equipment:character.career:{academyPersistentId}:1", "CareerApplicationAdapter|DurableFacilityEquipmentSlotRuntime", "exact LiveFacility claim; durable exact-stack slot policy", "policy-derived positive gram profile for one career-ledger lot", "durable slot lifecycle + career aggregate effect + Physical Items child authority", "owner-neutral slot reconcile and terminal lifecycle drain", "migrated", "Assets/Scripts/Services/Character/CareerApplicationAdapter.cs"),
         Input("character.reproduction", "durable-equipment:character.reproduction:{facilityPersistentId}:1", "ReproductionCommandRuntime|DurableFacilityEquipmentSlotRuntime", "exact LiveFacility claim; durable exact-stack slot policy", "policy-derived positive gram profile for one breeding-ledger lot", "durable slot lifecycle + reproduction aggregate effect + Physical Items child authority", "owner-neutral slot reconcile and terminal lifecycle drain", "migrated", "Assets/Scripts/Services/Character/ReproductionCommandRuntime.cs"),
         Input("work.construction", "facility-input:exact:work.construction:{orderId}", "WorkAmountSystem|WorkConstructionInputOwnerRuntime", "exact LiveBuilding ConstructionSite claim; ExactGramRequired policy", "exact positive remaining construction material vector in current grams", "Work Order V8 projection fingerprint/revision + typed material Transfer + Physical Items child authority", "carried-aware cancellation/terminal release before paired revoke", "migrated", "Assets/Scripts/Services/Character/Work/WorkConstructionInputOwnerRuntime.cs"),
@@ -94,7 +96,7 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
         Input("research.blueprint-archive", "research-archive:{facilityPersistentId}", "BlueprintResearchRuntime|ResearchBlueprintArchiveQuery", "exact LiveBuilding claim; ExactGramRequired policy", "authored archive count x maximum exact catalog blueprint unit grams; current 8 x 150g = 1,200g", "Research V6 derived claim/profile restore + Physical Items dependency", "carried-aware owner-position release before paired authority retirement", "migrated", "Assets/Scripts/Services/Infrastructure/ResearchBlueprintArchiveAdapter.cs"),
         Input("infrastructure.climate", "facility-input:exact:durable-equipment:infrastructure.climate:{towerPersistentId}:{assignmentSequence}", "ClimateRuntime|ClimateDurableEquipmentRuntime|ClimateDurableEquipmentLifecycleRuntime|DurableFacilityEquipmentSlotRuntime", "exact LiveFacility claim; durable exact-stack slot policy", "policy-derived positive gram profile for one seasonal almanac and one weather observation kit", "durable slot lifecycle + climate projection + Physical Items child authority", "owner-neutral lost-tower/capability close and carried-aware terminal drain", "migrated", "Assets/Scripts/Services/Infrastructure/Environment/ClimateRuntime.cs"),
         Input("infrastructure.electrical", "power:{nodeId}", "ElectricalNetworkRuntime", "exact LiveBuilding claim; exact-stack managed admission", "common positive-gram profile", "AIHaul; carried 350g save/restore; consumption", "terminal close", "migrated", "Assets/Scripts/Services/Infrastructure/Industrial/ElectricalNetworkRuntime.cs"),
-        Input("infrastructure.fluid", "plumbing:manual-water:{fixtureId}|plumbing:water-transfer:{nodeId}", "FluidNetworkRuntime|FluidFacilityInputOwnerAuthority", "manual-water exact LiveBuilding; transfer exact LiveFacility; ExactGramRequired", "exact clean-water unit grams x authored requested units", "Fluid V7 typed Transfer + projection fingerprint/revision + Physical Items child authority", "carried-aware replacement/cancellation release before paired revoke", "migrated", "Assets/Scripts/Services/Infrastructure/Industrial/FluidFacilityInputOwnerAuthority.cs"),
+        Input("infrastructure.fluid", "plumbing:manual-water:{fixtureId}|plumbing:water-transfer:{nodeId}", "FluidNetworkRuntime|ManualWaterTransferRuntime|FluidFacilityInputOwnerAuthority", "manual-water exact LiveBuilding; transfer exact LiveFacility; ExactGramRequired", "exact clean-water unit grams x authored requested units", "Fluid V7 typed Transfer + projection fingerprint/revision + Physical Items child authority", "carried-aware replacement/cancellation release before paired revoke", "migrated", "Assets/Scripts/Services/Infrastructure/Industrial/FluidFacilityInputOwnerAuthority.cs"),
         Input("infrastructure.process-fluid", "plumbing:process-water:{nodeId}:{workTypeId}", "ProcessFluidUseRuntime|FluidFacilityInputOwnerAuthority", "exact LiveFacility claim; ExactGramRequired policy", "exact clean-water item grams x authored process requirement", "production/surgery WIP + Fluid V7 typed Transfer + derived pair", "carried-aware work cancellation release before paired revoke", "migrated", "Assets/Scripts/Services/Infrastructure/Industrial/FluidFacilityInputOwnerAuthority.cs"),
         Input("research.knowledge-residue", "facility-input:exact:research.knowledge-residue:{taskId}:{assignmentSequence:D8}", "KnowledgeResidueDestinationRuntime|KnowledgeResidueProcessingRuntime", "exact LiveFacility claim; ExactGramRequired policy", "one exact captivity:memory-residue item in current positive grams", "Research V6 task projection + claim/profile + Physical Items pending Sink restore join", "invalid/lost owner-position physical release before revoke; exact Sink publication before revoke/ack", "migrated", "Assets/Scripts/Services/Infrastructure/KnowledgeResidueDestinationRuntime.cs"),
         Input("research.arcane-index", "{researchFacilityId}", "ResearchWorkExecutionAdapter|DurableFacilityEquipmentSlotRuntime", "exact LiveFacility claim; durable exact-stack slot policy", "policy-derived positive gram profile for the exact arcane-index equipment lot", "durable slot lifecycle + research projection + Physical Items child authority", "owner-neutral slot reconcile and terminal lifecycle drain", "migrated", "Assets/Scripts/Services/Infrastructure/ResearchWorkExecutionAdapter.cs"),
@@ -106,7 +108,7 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
         Input("offense.urgent-mitigation", "facility-input:exact:offense.urgent-mitigation:{escapedOrderId}", "OffenseUrgentMitigationRuntime|OffenseUrgentMitigationInputOwnerRuntime", "exact LiveFacility claim; ExactGramRequired policy", "one exact mitigation material line in current positive grams", "Offense current schema V8 + exact owner pair + Physical Items child authority", "carried-aware cancel/facility-loss/completion release before paired authority revoke", "migrated", "Assets/Scripts/Services/Offense/Strategic/OffenseUrgentMitigationInputOwnerRuntime.cs"),
         Input("run.v20-administrative-seal", "facility-input:exact:durable-equipment:run.v20-administrative-seal:{officePersistentId}:{assignmentSequence}", "V20ContentResolutionService|RunAdministrativeSealDurableEquipmentRuntime|RunInvasionDurableEquipmentLifecycleRuntime|DurableFacilityEquipmentSlotRuntime", "exact LiveFacility claim; durable exact-stack slot policy", "policy-derived positive gram profile for one 2,350g max-stack-1 administrative seal", "durable slot lifecycle + campaign effect + Physical Items child authority", "owner-neutral lost-office/capability close and carried-aware terminal drain", "migrated", "Assets/Scripts/Services/Run/V20ContentResolutionService.cs"),
         Input("economy.waste-direct-feed", "facility-input:exact:captivity.wildlife-care:{penPersistentId}", "WasteProcessingRuntime delegated consumer of WildlifeCareInputOwnerRuntime", "validated exact LiveFacility wildlife-care claim/profile", "delegates positive gram capacity to captivity.wildlife-care owner", "waste typed Sink outbox + wildlife-care current-format owner", "no independent authority; arbitrary destination rejected", "delegated-consumer", "Assets/Scripts/Services/Economy/Waste/WasteProcessingPortAdapters.cs"),
-        Input("infrastructure.manual-water-fallback", "plumbing:manual-water:{fixtureId}", "FluidNetworkRuntime", "same exact LiveBuilding authority as infrastructure.fluid", "same clean-water projection; not counted twice", "Fluid V7 pending Transfer and save authority", "delegated transfer cancellation", "duplicate-authority", "Assets/Scripts/Services/Infrastructure/Industrial/FluidFacilityInputOwnerAuthority.cs"),
+        Input("infrastructure.manual-water-fallback", "plumbing:manual-water:{fixtureId}", "FluidNetworkRuntime|ManualWaterTransferRuntime", "same exact LiveBuilding authority as infrastructure.fluid", "same clean-water projection; not counted twice", "Fluid V7 pending Transfer and save authority", "delegated transfer cancellation", "duplicate-authority", "Assets/Scripts/Services/Infrastructure/Industrial/FluidFacilityInputOwnerAuthority.cs"),
 
         DirectOutput("combat.module-source", "physical-source-buffer:combat.module-create:{moduleInstanceId}|physical-source-buffer:combat.module-return:{equipmentInstanceId}:{slotIndex}:{moduleInstanceId}", "EquipmentModuleRuntime|EquipmentModulePreparedOutputBinder|PhysicalItemExactSourcePublicationService", "exact unique module component and gram reservation, stack-identity binding, atomic Source publication, targeted facility release, rollback, and save capture guard", "migrated", "Assets/Scripts/Services/Combat/EquipmentModuleRuntime.cs"),
         DirectOutput("run.v20-grant", "physical-source-buffer:run.v20-grant:{actionId}", "V20ContentResolutionService|PhysicalItemExactSourcePublicationService", "exact multi-line gram plan, atomic prepared publication, cost rollback, acknowledged Loose release, and save capture guard", "migrated", "Assets/Scripts/Services/Run/V20ContentResolutionService.cs"),
@@ -288,16 +290,42 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
             .Append("Assets/Scripts/Services/Debugging/DungeonDebugCommandProviders.cs")
             .Append("Assets/Scripts/Services/Grid/Building/GridBuildingRuntime.cs")
             .Append("Assets/Scripts/Models/Economy/Content/ProductionBillRuntime.cs")
+            .Append("Assets/Scripts/Models/Economy/Content/ProductionBillExecutionRuntime.cs")
             .Append("Assets/Scripts/Services/Economy/ProductionFacilityMutationEpochRuntime.cs")
             .Append("Assets/Scripts/Services/Economy/ProductionFacilityMutationAuthorityGate.cs")
             .Append("Assets/Scripts/Services/FacilityEvolution/FacilityRelocationWorldService.cs")
             .Append("Assets/Scripts/Services/FacilityEvolution/Editor/FacilityRelocationCompletionFenceFixture.cs")
             .Append("Assets/Scripts/Services/Items/ItemTransferService.cs")
+            .Append("Assets/Scripts/Services/Items/WorldItemQuantityTransferService.cs")
+            .Append("Assets/Scripts/Services/Items/StoredCargoReturnService.cs")
+            .Append("Assets/Scripts/Services/Items/ExactOwnedItemReleaseService.cs")
+            .Append("Assets/Scripts/Services/Items/WorldItemTransferLocationRules.cs")
+            .Append("Assets/Scripts/Services/Items/WorldItemTransferMetadataRules.cs")
+            .Append("Assets/Scripts/Services/Items/ReservedItemTransferContracts.cs")
+            .Append("Assets/Scripts/Services/Items/AtomicItemConsumptionContracts.cs")
+            .Append("Assets/Scripts/Services/Items/ItemTransitContracts.cs")
+            .Append("Assets/Scripts/Services/Items/ExactOwnedItemReleaseRequest.cs")
+            .Append("Assets/Scripts/Services/Items/ItemTransferContracts.cs")
+            .Append("Assets/Scripts/Services/Items/AtomicItemConsumptionService.cs")
+            .Append("Assets/Scripts/Services/Items/ReservedRetailStockTransferReceipt.cs")
+            .Append("Assets/Scripts/Services/Items/ProductionCapacityRoutingActorQuiescenceService.cs")
+            .Append("Assets/Scripts/Services/Items/ReservedRetailStockTransferService.cs")
+            .Append("Assets/Scripts/Services/Items/WorldItemTransitService.cs")
+            .Append("Assets/Scripts/Services/Items/WorldItemTransferPhysicalProjection.cs")
+            .Append("Assets/Scripts/Services/Items/WorldItemStackRecord.cs")
             .Append("Assets/Scripts/Services/Items/FacilityBufferDestinationClaimRegistry.cs")
             .Append("Assets/Scripts/Services/Items/FacilityBufferDestinationAdmissionFenceQuery.cs")
             .Append("Assets/Scripts/Services/Items/FacilityBufferMassAdmissionService.cs")
+            .Append("Assets/Scripts/Services/Items/FacilityBufferMassAdmissionRules.cs")
+            .Append("Assets/Scripts/Services/Items/FacilityBufferMassAdmissionContracts.cs")
             .Append("Assets/Scripts/Services/Items/WorldItemStackRuntime.cs")
+            .Append("Assets/Scripts/Services/Items/PhysicalItemRestoreCandidateSession.cs")
+            .Append("Assets/Scripts/Services/Medical/SurgicalPartInstallationRuntime.cs")
+            .Append("Assets/Scripts/Services/Medical/SurgicalPartReplacementTransaction.cs")
             .Append("Assets/Scripts/Services/Items/WorldItemWarehouseService.cs")
+            .Append("Assets/Scripts/Services/Items/WorldItemDestinationAdmissionService.cs")
+            .Append("Assets/Scripts/Services/Items/PreparedOutputPickupBoundaryContracts.cs")
+            .Append("Assets/Scripts/Models/Items/Core/WarehouseStorageIdentity.cs")
             .Append("Assets/Scripts/Models/Medical/Core/SurgeryModels.cs")
             .Append("Assets/Scripts/Models/Medical/Core/SurgerySaveValidation.cs")
             .Append("Assets/Scripts/Services/Medical/SurgeryRuntimeServices.cs")
@@ -1380,7 +1408,10 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
         string stockSensorRuntime = Read(root,
             "Assets/Scripts/Models/Economy/Content/ProductionStockSensorRuntime.cs");
         string productionBillRuntime = Read(root,
-            "Assets/Scripts/Models/Economy/Content/ProductionBillRuntime.cs");
+                "Assets/Scripts/Models/Economy/Content/ProductionBillRuntime.cs")
+            + "\n"
+            + Read(root,
+                "Assets/Scripts/Models/Economy/Content/ProductionBillExecutionRuntime.cs");
         string productionMutationFence = Read(root,
             "Assets/Scripts/Services/Economy/ProductionFacilityMutationFence.cs");
         string worldItemRuntime = Read(root,
@@ -1391,6 +1422,14 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
             "Assets/Scripts/Services/Economy/Diagnostics/ProductionOutputDestinationLifecycleDebugScenarios.cs");
         string worldSimulationRegistration = Read(root,
             "Assets/Scripts/Services/Infrastructure/Registration/DungeonWorldSimulationRegistration.cs");
+        string destructiveWorldRegistration = RequireRegistrationStatement(
+            worldSimulationRegistration,
+            @"builder\.Register<ProductionFacilityDestructiveDrainWorldRemovalPort>[^;]*;");
+        string destructiveRecoveryRegistration = RequireRegistrationStatement(
+            worldSimulationRegistration,
+            @"builder\.RegisterEntryPoint<\s*ProductionFacilityDestructiveDrainRecoveryRuntime>[^;]*;");
+        string destructiveResourceAdapter = Read(root,
+            "Assets/Scripts/Services/Economy/WorldResourcePortAdapters.cs");
         string saveRegistration = Read(root,
             "Assets/Scripts/Services/Infrastructure/Registration/DungeonSaveRegistration.cs");
         string relocationWorld = Read(root,
@@ -1550,10 +1589,14 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
                 "ProductionFacilityDestructiveDrainRecoveryRuntime>(") == 2
             && Count(worldSimulationRegistration,
                 ".As<IProductionFacilityDestructiveDrainRecoveryRuntime>()") == 1
-            && Count(worldSimulationRegistration,
-                ".As<IDungeonSaveRestoreCompletedHook>()") == 3
-            && Count(worldSimulationRegistration,
-                ".As<IDungeonSaveCaptureGuard>()") == 10
+            && Count(destructiveWorldRegistration,
+                ".As<IDungeonSaveRestoreCompletedHook>()") == 1
+            && Count(destructiveWorldRegistration,
+                ".As<IDungeonSaveCaptureGuard>()") == 1
+            && Count(destructiveRecoveryRegistration,
+                ".As<IDungeonSaveRestoreCompletedHook>()") == 1
+            && Count(destructiveRecoveryRegistration,
+                ".As<IDungeonSaveCaptureGuard>()") == 1
             && Count(combatRegistration,
                 "Register<BuildingDestructiveLossRuntime>(") == 1
             && Count(saveRegistration,
@@ -1561,7 +1604,9 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
             && CountAllRuntimeSources(root, ".TryPrepareEmpty(") == 0
             && CountAllRuntimeSources(root, ".TryCommitAuthorityRevoke(") == 0
             && CountAllRuntimeSources(root, ".TryAbort(") == 0
-            && CountAllRuntimeSources(root, ".DestroySelf();") == 4,
+            && Count(gridBuilding, ".DestroySelf();") == 3
+            && Count(destructiveResourceAdapter, ".DestroySelf();") == 1
+            && CountAllRuntimeSources(root, ".DestroySelf();") == 5,
             "Live destructive-drain facade/recovery/save/legacy-bypass topology drifted: "
             + $"captureGuards={Count(worldSimulationRegistration, ".As<IDungeonSaveCaptureGuard>()")}; "
             + $"restoreHooks={Count(worldSimulationRegistration, ".As<IDungeonSaveRestoreCompletedHook>()")}; "
@@ -1578,9 +1623,9 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
         string conveyorGateway = Read(
             root,
             "Assets/Scripts/Services/Infrastructure/Industrial/ConveyorItemGateway.cs");
-        string itemTransfer = Read(
+        string itemTransit = Read(
             root,
-            "Assets/Scripts/Services/Items/ItemTransferService.cs");
+            "Assets/Scripts/Services/Items/WorldItemTransitService.cs");
         string physicalStockScenarios = Read(
             root,
             "Assets/Scripts/Services/Items/Editor/PhysicalStockQueryV18DebugScenarios.cs");
@@ -1658,7 +1703,7 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
             && !conveyorGateway.Contains(
                 "WorldItemStackState.FacilityBuffer",
                 StringComparison.Ordinal)
-            && itemTransfer.Contains(
+            && itemTransit.Contains(
                 "if (destinationState != WorldItemStackState.Loose)",
                 StringComparison.Ordinal)
             && Count(
@@ -1819,6 +1864,13 @@ public static class V27FacilityBufferOwnerManifestDebugScenarios
             count += Count(File.ReadAllText(path), token);
         }
         return count;
+    }
+
+    private static string RequireRegistrationStatement(string source, string pattern)
+    {
+        var matches = System.Text.RegularExpressions.Regex.Matches(source, pattern);
+        Require(matches.Count == 1, "Destructive lifecycle registration must have exactly one owner: " + pattern);
+        return matches[0].Value;
     }
 
     private static int Count(string source, string token)

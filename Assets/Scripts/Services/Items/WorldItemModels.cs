@@ -8,96 +8,6 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer.Unity;
 
-public sealed class WorldItemStackSnapshot
-{
-    public string StackId { get; set; }
-    public long ContentRevision { get; set; }
-    public long ReservationRevision { get; set; }
-    public string ItemInstanceId { get; set; }
-    public string ItemId { get; set; }
-    public string DisplayName { get; set; }
-    public string Description { get; set; }
-    public StockCategory StockCategory { get; set; }
-    public int Quantity { get; set; }
-    public int TotalQuantity => Mathf.Max(0, Quantity);
-    public int ReservedQuantity { get; set; }
-    public int AvailableQuantity => Mathf.Max(0, TotalQuantity - ReservedQuantity);
-    public int UnitPrice { get; set; }
-    public float UnitWeight { get; set; }
-    public Sprite Sprite { get; set; }
-    public WorldItemStackState State { get; set; }
-    public Vector2Int Position { get; set; }
-    public string ReservedByPersistentId { get; set; }
-    public string DestinationId { get; set; }
-    public string AggregationCohortId { get; set; }
-    public string SourceStorageDestinationId { get; set; }
-    public bool HasDestinationPosition { get; set; }
-    public Vector2Int DestinationPosition { get; set; }
-    public bool Forbidden { get; set; }
-    public string SourceCharacterId { get; set; }
-    public string SourceDisplayName { get; set; }
-    public string SourceSpeciesTag { get; set; }
-    public string SourceDeathReason { get; set; }
-    public bool EmergencyButcheryAllowed { get; set; }
-    public WasteOriginKind WasteOrigin { get; set; }
-    public float Contamination { get; set; }
-    public IReadOnlyList<ItemInstanceComponentSaveData> Components { get; set; } =
-        Array.Empty<ItemInstanceComponentSaveData>();
-    public WorldItemDropDisposition DropDisposition { get; set; }
-    public string RecoveryOwnerOperationId { get; set; }
-    public string RecoverySourceStackId { get; set; }
-    public string RecoveryCarrierPersistentId { get; set; }
-    public WorldItemCarryInterruptionKind RecoveryInterruptionKind { get; set; }
-    public double DroppedAtGameTime { get; set; }
-    public double RecoveryDeadlineGameTime { get; set; }
-    public bool IsTransientCarryRecoveryDrop =>
-        DropDisposition == WorldItemDropDisposition.TransientCarryRecoveryDrop;
-    public string StackSignature => ItemStackSignature.Create(ItemId, Components);
-    public string ReservationSignature =>
-        ItemReservationSignature.Create(ItemId, Components);
-    public bool IsWaste => WasteOrigin != WasteOriginKind.Unknown;
-    public bool HasUniqueMetadata => !string.IsNullOrWhiteSpace(SourceCharacterId);
-    public float TotalWeight => UnitWeight * Quantity;
-    public int TotalValue => UnitPrice * Quantity;
-    public bool HasReservations => ReservedQuantity > 0;
-    public bool IsFullyReserved => TotalQuantity > 0 && AvailableQuantity == 0;
-    [Obsolete("Use ReservedQuantity or AvailableQuantity.")]
-    public bool IsReserved => HasReservations;
-}
-
-public sealed class WorldItemPileSnapshot
-{
-    public Vector2Int Position { get; set; }
-    public IReadOnlyList<WorldItemStackSnapshot> Stacks { get; set; } =
-        Array.Empty<WorldItemStackSnapshot>();
-    public WorldItemStackSnapshot Representative { get; set; }
-    public int TotalQuantity => Stacks.Sum(stack => stack.Quantity);
-    public int KindCount => Stacks.Select(stack => stack.ItemId).Distinct(StringComparer.Ordinal).Count();
-    public float TotalWeight => Stacks.Sum(stack => stack.TotalWeight);
-    public bool HasReservedItems => Stacks.Any(stack => stack.HasReservations);
-}
-
-public readonly struct WorldItemStockCandidate
-{
-    public WorldItemStockCandidate(
-        string stackId,
-        Vector2Int position,
-        WorldItemStackState state,
-        int quantity)
-    {
-        StackId = stackId ?? string.Empty;
-        Position = position;
-        State = state;
-        Quantity = Mathf.Max(0, quantity);
-    }
-
-    public string StackId { get; }
-    public Vector2Int Position { get; }
-    public WorldItemStackState State { get; }
-    public int Quantity { get; }
-    public bool IsValid => !string.IsNullOrWhiteSpace(StackId) && Quantity > 0;
-}
-
 public sealed class ItemPileInfoTarget : IInfoable
 {
     public ItemPileInfoTarget(Vector2Int position)
@@ -106,42 +16,6 @@ public sealed class ItemPileInfoTarget : IInfoable
     }
 
     public Vector2Int Position { get; }
-}
-
-public readonly struct WorldItemReservedStackQuantity
-{
-    public WorldItemReservedStackQuantity(
-        string stackId,
-        string itemId,
-        int quantity,
-        Vector2Int position,
-        WorldItemHaulDestinationKind destinationKind,
-        string destinationId,
-        string leaseId = "",
-        string ownerOperationId = "")
-    {
-        StackId = stackId ?? string.Empty;
-        ItemId = itemId ?? string.Empty;
-        Quantity = Mathf.Max(0, quantity);
-        Position = position;
-        DestinationKind = destinationKind;
-        DestinationId = destinationId ?? string.Empty;
-        LeaseId = leaseId?.Trim() ?? string.Empty;
-        OwnerOperationId = ownerOperationId?.Trim() ?? string.Empty;
-    }
-
-    public string StackId { get; }
-    public string ItemId { get; }
-    public int Quantity { get; }
-    public Vector2Int Position { get; }
-    public WorldItemHaulDestinationKind DestinationKind { get; }
-    public string DestinationId { get; }
-    public string LeaseId { get; }
-    public string OwnerOperationId { get; }
-    public bool IsValid => !string.IsNullOrWhiteSpace(StackId)
-        && Quantity > 0
-        && (!string.IsNullOrWhiteSpace(LeaseId)
-            || string.IsNullOrWhiteSpace(OwnerOperationId));
 }
 
 public readonly struct WorldItemHaulPlanLeg
@@ -211,39 +85,6 @@ public sealed class WorldItemHaulPlan
     public string Summary => $"{ReservedStackQuantities.Count}스택 · {TotalWeight:0.#}kg";
 }
 
-public readonly struct HaulDeliveryPathFailureSnapshot
-{
-    public HaulDeliveryPathFailureSnapshot(
-        string ownerOperationId,
-        string sourceStackId,
-        string destinationId,
-        string itemId,
-        AIActionFailureKind failureKind)
-    {
-        OwnerOperationId = ownerOperationId?.Trim() ?? string.Empty;
-        SourceStackId = sourceStackId?.Trim() ?? string.Empty;
-        DestinationId = destinationId?.Trim() ?? string.Empty;
-        ItemId = itemId?.Trim() ?? string.Empty;
-        FailureKind = failureKind;
-    }
-
-    public string OwnerOperationId { get; }
-    public string SourceStackId { get; }
-    public string DestinationId { get; }
-    public string ItemId { get; }
-    public AIActionFailureKind FailureKind { get; }
-    public bool IsValid => !string.IsNullOrWhiteSpace(SourceStackId)
-        && !string.IsNullOrWhiteSpace(DestinationId)
-        && !string.IsNullOrWhiteSpace(ItemId)
-        && FailureKind == AIActionFailureKind.NoPath;
-}
-
-public interface IHaulDeliveryPathFailureQuery
-{
-    bool TryGetLastDeliveryPathFailure(
-        out HaulDeliveryPathFailureSnapshot snapshot);
-}
-
 public interface IHaulPlanBuilder
 {
     bool TryReserveBestHaulPlan(CharacterActor actor, out WorldItemHaulPlan plan, out string failureReason);
@@ -298,81 +139,6 @@ public readonly struct WorldItemHaulJob
     public string OwnerOperationId { get; }
     public bool IsValid => !string.IsNullOrWhiteSpace(StackId)
         && (DestinationKind == WorldItemHaulDestinationKind.FacilityBuffer || Warehouse != null);
-}
-
-public interface IEquipmentPhysicalItemGateway
-{
-    bool SpawnItemAt(
-        string itemId,
-        int amount,
-        Vector2Int position,
-        WorldItemStackState state,
-        string destinationId,
-        out int spawned);
-    bool SpawnItemAtWithComponents(
-        string itemId,
-        int amount,
-        Vector2Int position,
-        WorldItemStackState state,
-        string destinationId,
-        IReadOnlyList<ItemInstanceComponentSaveData> components,
-        out int spawned);
-    bool SpawnExistingUniqueItemAt(
-        string itemId,
-        ItemInstanceId itemInstanceId,
-        Vector2Int position,
-        WorldItemStackState state,
-        string destinationId,
-        out string stackId);
-    bool TryAbsorbUniqueItemStack(
-        string stackId,
-        ItemInstanceId expectedInstanceId);
-    bool TryRequestItemDelivery(
-        string itemId,
-        int amount,
-        Vector2Int destinationPosition,
-        string destinationId,
-        out int requested,
-        out string failureReason);
-    IReadOnlyList<WorldItemStackSnapshot> GetAllStacks();
-    bool TryConsumeFacilityItemBuffer(
-        string destinationId,
-        IReadOnlyDictionary<string, int> costs,
-        out string failureReason);
-    bool DeleteStack(string stackId);
-    bool TryConsumeStackQuantity(
-        string stackId,
-        int quantity,
-        out WorldItemStackSnapshot consumed);
-    bool TryCommitBatchPhysicalDisposition(
-        IReadOnlyList<PhysicalItemTransformInput> inputs,
-        PhysicalItemDispositionKind kind,
-        string operationId,
-        string reasonCode,
-        out PhysicalItemBatchDispositionReceipt receipt,
-        out string failureReason);
-    bool TryCommitPendingBatchPhysicalDisposition(
-        IReadOnlyList<PhysicalItemTransformInput> inputs,
-        PhysicalItemDispositionKind kind,
-        string operationId,
-        string reasonCode,
-        out PhysicalItemBatchDispositionReceipt receipt,
-        out string failureReason);
-    bool TryGetPendingBatchPhysicalDisposition(
-        string operationId,
-        out PhysicalItemBatchDispositionReceipt receipt);
-    bool AcknowledgeBatchPhysicalDisposition(
-        string commitId,
-        out string failureReason);
-    bool TrySetInstanceComponent(
-        string stackId,
-        ItemInstanceComponentSaveData component);
-    bool TryRemoveInstanceComponent(
-        string stackId,
-        string componentTypeId);
-    int ReleaseStacksByDestination(
-        string destinationId,
-        Vector2Int releasePosition);
 }
 
 public sealed class UnavailableEquipmentPhysicalItemGateway :
@@ -587,6 +353,14 @@ public interface IWorldItemStackRuntime : IEquipmentPhysicalItemGateway
         WorldItemStackState state,
         string destinationId,
         out string stackId);
+    bool SpawnExistingUniqueItemAt(
+        string itemId,
+        ItemInstanceId itemInstanceId,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        IReadOnlyList<ItemInstanceComponentSaveData> components,
+        out string stackId);
     bool SpawnHumanoidCorpse(
         CharacterActor source,
         Vector2Int position,
@@ -766,74 +540,4 @@ public interface IWorldItemCarryRecoveryRuntime
         IReadOnlyCollection<string> ownerOperationIds,
         HaulCarryDropContext context,
         out string failureReason);
-}
-
-public enum HaulInterruptionDisposition
-{
-    ReleaseUnpickedAndRetainCarriedForReplan = 0,
-    ReleaseUnpickedAndDropCarriedAtActor = 1
-}
-
-public readonly struct HaulCarryDropContext
-{
-    public HaulCarryDropContext(
-        string carrierPersistentId,
-        WorldItemCarryInterruptionKind interruptionKind,
-        double droppedAtGameTime,
-        double recoveryDeadlineGameTime)
-    {
-        CarrierPersistentId = carrierPersistentId?.Trim() ?? string.Empty;
-        InterruptionKind = interruptionKind;
-        DroppedAtGameTime = droppedAtGameTime;
-        RecoveryDeadlineGameTime = recoveryDeadlineGameTime;
-    }
-
-    public string CarrierPersistentId { get; }
-    public WorldItemCarryInterruptionKind InterruptionKind { get; }
-    public double DroppedAtGameTime { get; }
-    public double RecoveryDeadlineGameTime { get; }
-    public bool IsValid => !string.IsNullOrEmpty(CarrierPersistentId)
-        && InterruptionKind is WorldItemCarryInterruptionKind.Downed
-            or WorldItemCarryInterruptionKind.Dead
-            or WorldItemCarryInterruptionKind.Disabled
-        && !double.IsNaN(DroppedAtGameTime)
-        && !double.IsInfinity(DroppedAtGameTime)
-        && DroppedAtGameTime >= 0d
-        && !double.IsNaN(RecoveryDeadlineGameTime)
-        && !double.IsInfinity(RecoveryDeadlineGameTime)
-        && RecoveryDeadlineGameTime > DroppedAtGameTime;
-}
-
-internal sealed class WorldItemStackRecord
-{
-    public string stackId = string.Empty;
-    public string itemInstanceId = string.Empty;
-    public string itemId = string.Empty;
-    public int quantity;
-    public WorldItemStackState state;
-    public Vector2Int position;
-    public string reservedByPersistentId = string.Empty;
-    public int reservedQuantity;
-    public long reservationRevision;
-    public string destinationId = string.Empty;
-    public string aggregationCohortId = string.Empty;
-    public string sourceStorageDestinationId = string.Empty;
-    public bool hasDestinationPosition;
-    public Vector2Int destinationPosition;
-    public bool forbidden;
-    public string sourceCharacterId = string.Empty;
-    public string sourceDisplayName = string.Empty;
-    public string sourceSpeciesTag = string.Empty;
-    public string sourceDeathReason = string.Empty;
-    public bool emergencyButcheryAllowed;
-    public WasteOriginKind wasteOrigin;
-    public float contamination;
-    public List<ItemInstanceComponentSaveData> components = new();
-    public WorldItemDropDisposition dropDisposition;
-    public string recoveryOwnerOperationId = string.Empty;
-    public string recoverySourceStackId = string.Empty;
-    public string recoveryCarrierPersistentId = string.Empty;
-    public WorldItemCarryInterruptionKind recoveryInterruptionKind;
-    public double droppedAtGameTime;
-    public double recoveryDeadlineGameTime;
 }

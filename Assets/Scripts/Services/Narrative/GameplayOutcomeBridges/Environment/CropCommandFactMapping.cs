@@ -8,7 +8,7 @@ public static class CropCommandFactMapping
         if (fact == null)
             throw new ArgumentNullException(nameof(fact));
         CropSelectionCommandSaveData source = fact.Snapshot();
-        return EnvironmentOutcomeReceiptFactory.CreateCropSelection(
+        return CropProductionOutcomeReceiptFactory.CreateCropSelection(
             source,
             fact.PlotId,
             source.plotDisplayName,
@@ -22,7 +22,7 @@ public static class CropCommandFactMapping
         if (fact == null)
             throw new ArgumentNullException(nameof(fact));
         CropGoldenHarvestScheduleSaveData source = fact.Snapshot();
-        return EnvironmentOutcomeReceiptFactory.CreateGoldenHarvestSchedule(
+        return CropProductionOutcomeReceiptFactory.CreateGoldenHarvestSchedule(
             source,
             fact.PlotId,
             source.plotDisplayName,

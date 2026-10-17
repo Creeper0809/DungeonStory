@@ -13,7 +13,7 @@ public static class WildlifeFactMapping
         WildlifeGameplayOutcomeSaveData source = fact.Snapshot();
         source.Validate();
         return WithContext(
-            EnvironmentOutcomeReceiptFactory.CreateWildlifeCommand(source),
+            WildlifeOutcomeReceiptFactory.CreateWildlifeCommand(source),
             source);
     }
 
@@ -23,7 +23,7 @@ public static class WildlifeFactMapping
         WildlifeGameplayOutcomeSaveData source = fact.Snapshot();
         source.Validate();
         return WithContext(
-            EnvironmentOutcomeReceiptFactory.CreateWildlifeAction(source),
+            WildlifeOutcomeReceiptFactory.CreateWildlifeAction(source),
             source);
     }
 

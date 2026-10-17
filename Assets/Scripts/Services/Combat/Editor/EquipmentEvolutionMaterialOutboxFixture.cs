@@ -211,6 +211,11 @@ public static class EquipmentEvolutionMaterialOutboxFixture
             orderId = orderId,
             equipmentInstanceId = "equipment:" + suffix,
             facilityPersistentId = "facility:smithy:qa",
+            // This lower material fixture supplies a frozen projection; the actual
+            // mass/claim calculation is covered by EquipmentEvolutionInputOwnerDebugScenarios.
+            inputBufferCapacityGrams = 100_000L,
+            inputMassAuthorityRevision = 17L,
+            inputCapacityFingerprint = "qa:equipment-material-input:" + orderId,
             targetGeneration = 1,
             direction = EquipmentEvolutionDirection.Balanced,
             catalystItemId = CatalystItemId,
@@ -238,6 +243,11 @@ public static class EquipmentEvolutionMaterialOutboxFixture
             orderId = orderId,
             equipmentInstanceId = "equipment:reattune:" + suffix,
             facilityPersistentId = "facility:smithy:qa",
+            // This lower material fixture supplies a frozen projection; the actual
+            // mass/claim calculation is covered by EquipmentEvolutionInputOwnerDebugScenarios.
+            inputBufferCapacityGrams = 100_000L,
+            inputMassAuthorityRevision = 17L,
+            inputCapacityFingerprint = "qa:equipment-material-input:" + orderId,
             targetNodeId = "node:" + suffix,
             targetActive = true,
             resultingActiveNodeIds = new List<string> { "node:" + suffix },

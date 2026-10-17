@@ -214,12 +214,9 @@ public sealed class FacilityCrimeRiskEvaluator : IFacilityCrimeRiskEvaluator
         }
 
         float result = pressure;
-        foreach (BuildingAbility ability in abilities)
+        foreach (IBuildingCrimeRiskModifier modifier in context.building.GetRuntimeAbilities<IBuildingCrimeRiskModifier>())
         {
-            if (ability is IBuildingCrimeRiskModifier modifier)
-            {
-                result = modifier.ModifyCrimePressure(result, context);
-            }
+            result = modifier.ModifyCrimePressure(result, context);
         }
 
         return Mathf.Max(0f, result);

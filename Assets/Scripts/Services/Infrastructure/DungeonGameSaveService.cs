@@ -167,6 +167,7 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
     private readonly IReadOnlyList<IDungeonCapturedSavePreflightValidator>
         capturedSaveValidators;
     private readonly IReadOnlyList<IDungeonSaveRestoreCompletedHook> restoreCompletedHooks;
+    private readonly DungeonRestoreSafetyRuntime restoreSafety;
 
     public DungeonGameSaveService(
         IDungeonSaveSectionRegistry saveSectionRegistry,
@@ -174,10 +175,13 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
         IEnumerable<IDungeonSaveCaptureGuard> captureGuards,
         IEnumerable<IDungeonCapturedSavePreflightValidator>
             capturedSaveValidators,
-        IEnumerable<IDungeonSaveRestoreCompletedHook> restoreCompletedHooks)
+        IEnumerable<IDungeonSaveRestoreCompletedHook> restoreCompletedHooks,
+        DungeonRestoreSafetyRuntime restoreSafety)
     {
         this.saveSectionRegistry = saveSectionRegistry
             ?? throw new ArgumentNullException(nameof(saveSectionRegistry));
+        this.restoreSafety = restoreSafety
+            ?? throw new ArgumentNullException(nameof(restoreSafety));
         this.preflightValidators = (preflightValidators
                 ?? throw new ArgumentNullException(nameof(preflightValidators)))
             .Where(validator => validator != null)
@@ -201,6 +205,7 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
 
     public DungeonGameSaveData Capture()
     {
+        restoreSafety.RequireSafeState("Save capture is blocked");
         DungeonSaveEditorTrace.Record("capture.begin");
         for (int index = 0; index < captureGuards.Count; index++)
         {
@@ -266,8 +271,24 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
 
     public bool TryRestore(DungeonGameSaveData saveData, out DungeonGameRestoreReport report)
     {
-        DungeonSaveEditorTrace.Record("restore.begin");
         report = new DungeonGameRestoreReport();
+        if (restoreSafety.RequiresRecovery)
+        {
+            report.AddError(restoreSafety.RecoveryMessage);
+            return false;
+        }
+        try { return TryRestoreCore(saveData, report); }
+        catch (Exception exception)
+        {
+            report.AddError(exception.Message);
+            return false;
+        }
+        finally { restoreSafety.ObserveRestoreResult(report); }
+    }
+
+    private bool TryRestoreCore(DungeonGameSaveData saveData, DungeonGameRestoreReport report)
+    {
+        DungeonSaveEditorTrace.Record("restore.begin");
         if (saveData == null)
         {
             report.AddError("Save data is null.");
@@ -339,9 +360,18 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
             }
             for (int index = 0; index < restoreCompletedHooks.Count; index++)
             {
-                DungeonSaveEditorTrace.Record("restore-hook.before:" + restoreCompletedHooks[index].GetType().Name);
-                restoreCompletedHooks[index].OnRestoreCompleted();
-                DungeonSaveEditorTrace.Record("restore-hook.after:" + restoreCompletedHooks[index].GetType().Name);
+                IDungeonSaveRestoreCompletedHook hook = restoreCompletedHooks[index];
+                try
+                {
+                    DungeonSaveEditorTrace.Record("restore-hook.before:" + hook.GetType().Name);
+                    hook.OnRestoreCompleted();
+                    DungeonSaveEditorTrace.Record("restore-hook.after:" + hook.GetType().Name);
+                }
+                catch (Exception exception)
+                {
+                    report.AddError("Published restore hook '" + hook.GetType().Name
+                        + "' failed: " + exception.Message);
+                }
             }
         }
         catch (Exception exception)

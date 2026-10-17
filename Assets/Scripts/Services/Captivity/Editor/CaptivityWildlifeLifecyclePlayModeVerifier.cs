@@ -3387,7 +3387,7 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         float expectedCareRemaining = Math.Min(CapturedWildlifeState.CareIntervalSeconds,
             Math.Max(0f, liveFeedTimer.nextCareAt - scope.Container.Resolve<IGameClock>().Time));
         Check(completedFeedCircusSection.sectionVersion == CircusSaveData.CurrentVersion
-              && completedFeedCircus.version == 7 && completedFeedTimer.nextCareAt == 0f
+              && completedFeedCircus.version == 8 && completedFeedTimer.nextCareAt == 0f
               && !completedFeedCircusSection.payloadJson.Contains("\"nextCareAt\"")
               && completedFeedTimer.remainingCareSeconds == expectedCareRemaining
               && completedFeedTimer.remainingCareSeconds <= CapturedWildlifeState.CareIntervalSeconds,
@@ -4107,6 +4107,35 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
             .Single(value => value.AnimalId.Value == animalId).Clone();
         worker.SetAiPaused(true);
         worker.Brain.StopCurrentActionForReplan("qa-tame-pending-identity-restored");
+        // The real effect/child is committed, but its canonical identity delivery
+        // is still held. Validate the wrong animal before the first valid ACK,
+        // then verify changed same-sequence replay separately after completion.
+        WorkCompletedIdentityEvent pendingTerminal = AnimalHusbandryCompletionObservation
+            .CreateCompletionEvent(restoredCompletion);
+        WorkCompletedIdentityEvent pendingWrongAnimal = new(pendingTerminal.Character,
+            pendingTerminal.WorkId, "tame|wild:qa-other-animal", pendingTerminal.Origin,
+            pendingTerminal.AbsoluteDay, pendingTerminal.OperationId,
+            pendingTerminal.TerminalOwnerId, pendingTerminal.ChildResultKey,
+            pendingTerminal.TargetEntityId, pendingTerminal.ContributionWorkUnits,
+            pendingTerminal.SkillModifierProvenance);
+        WorkCompletionIdentityDeliveryRequest wrongChildRequest =
+            WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(pendingWrongAnimal);
+        Check(!deliveries.Capture().Any(value =>
+                value.producerStreamId == wrongChildRequest.ProducerStreamId),
+            "TAME_WRONG_ANIMAL_CHILD_FRESH_CANONICAL_DELIVERY", wrongChildRequest.ProducerStreamId);
+        string wrongChildOwnerBefore = JsonUtility.ToJson(husbandryPersistence.Capture());
+        string wrongChildLedgerBefore = JsonUtility.ToJson(outcomeLedger.CaptureGameplayOutcomes());
+        string wrongChildCursorsBefore = JsonUtility.ToJson(new TameDeliveryCursorEvidence
+            { cursors = deliveries.Capture().ToList() });
+        WorkCompletionIdentityDeliveryResult wrongChildResult = actualCompletion.EnsureApplied(wrongChildRequest);
+        Check(wrongChildResult.Status == WorkCompletionIdentityDeliveryStatus.Conflict
+              && wrongChildResult.FailureReason.StartsWith(
+                  "work-identity-husbandry-child-payload-conflict:", StringComparison.Ordinal)
+              && wrongChildOwnerBefore == JsonUtility.ToJson(husbandryPersistence.Capture())
+              && wrongChildLedgerBefore == JsonUtility.ToJson(outcomeLedger.CaptureGameplayOutcomes())
+              && wrongChildCursorsBefore == JsonUtility.ToJson(new TameDeliveryCursorEvidence
+                  { cursors = deliveries.Capture().ToList() }),
+            "TAME_WRONG_ANIMAL_CHILD_REJECTED_WITHOUT_MUTATION", wrongChildResult.FailureReason);
         heldCompletion.Hold = false;
         float identityDeadline = Time.realtimeSinceStartup + 5f;
         while (husbandryPersistence.Capture().pendingOutcomes.Any(value => value.animalId == animalId)
@@ -4220,12 +4249,14 @@ public sealed class CaptivityWildlifeLifecyclePlayModeRunner : MonoBehaviour
         WorkCompletionIdentityDeliveryResult wrongAnimalResult = actualCompletion.EnsureApplied(
             WorkCompletionIdentityDeliveryLedger.CreateReferencedRequest(wrongAnimal));
         Check(wrongAnimalResult.Status == WorkCompletionIdentityDeliveryStatus.Conflict
-              && wrongAnimalResult.FailureReason.StartsWith(
-                  "work-identity-husbandry-child-payload-conflict:", StringComparison.Ordinal)
+              && wrongAnimalResult.FailureReason
+                  == "The completion delivery sequence has conflicting provenance."
+              && animalBeforeRetry == JsonUtility.ToJson(husbandryPersistence.Capture())
               && replayLedger == JsonUtility.ToJson(outcomeLedger.CaptureGameplayOutcomes())
               && replayCursors == JsonUtility.ToJson(new TameDeliveryCursorEvidence
                   { cursors = deliveries.Capture().ToList() }),
-            "TAME_WRONG_ANIMAL_CHILD_REJECTED_WITHOUT_MUTATION", wrongAnimalResult.FailureReason);
+            "TAME_CHANGED_EVENT_SEQUENCE_REJECTED_WITHOUT_MUTATION", wrongAnimalResult.FailureReason);
+
         }
         finally
         {

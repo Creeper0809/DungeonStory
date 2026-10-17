@@ -1,0 +1,22 @@
+{
+  "entry": [
+    "ApparelWorkOrderOutcomeDebugScenarios.RunBatch",
+    "ProductionApparelOrderTerminalDestructiveDrainParticipantDebugScenarios.RunFromMenu",
+    "ApparelTerminalAuthorityDebugScenarios.RunFocused"
+  ],
+  "evidence": [
+    "native-apparel-terminal-current-r1/unity.log",
+    "native-apparel-gc-current-r1/unity.log",
+    "native-apparel-authority-current-r3/unity.log"
+  ],
+  "scope": "Native four production terminal paths/cancel and repair pending recovery; real terminal authority/outbox exact GC publication, unrelated-row preservation, byte-exact rollback and gate retry; seven terminal-authority checks for effect-row-first, exact source removal/replay, drift rejection, current-version JSON round trip, tamper rejection, order-only overwrite fence and cancellation/terminal retry. Explicit proxy ports remain for unused physical/catalog collaborators in authority/GC fixtures.",
+  "fixtureRepair": "r1 correctly rejected a missing mandatory exposureOutcomes collection in an outdated fixture payload. Add explicit empty array and sequence 0; strict current-version DTO/validator and all expectations unchanged. r2 current Editor compile passed then memory guard stopped before tests; source-frozen cached r3 marker PASS/exit 0.",
+  "target": "G6",
+  "status": "implemented_and_targeted_actual_verified",
+  "currentCompile": "verification-native-current-source-r2.json",
+  "limitations": [
+    "Controlled native fixture scope; no natural UI/AI claim.",
+    "Cold official whole-world integration remains a separate final goal gate."
+  ],
+  "goalStatus": "active"
+}

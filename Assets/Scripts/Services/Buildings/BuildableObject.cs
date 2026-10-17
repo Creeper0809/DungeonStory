@@ -58,6 +58,7 @@ public class BuildableObject : MonoBehaviour,
     private bool detachedRestoreCandidate;
     private bool synchronizedWithPaidContracts;
     private bool runtimeTeardownCompleted;
+    private bool destructionInProgress;
     private bool destructionEventPublished;
     private bool facilityUseObservationActive;
 
@@ -92,6 +93,7 @@ public class BuildableObject : MonoBehaviour,
     public bool IsDamaged => isDamaged;
     public int FacilityLevel => facilityLevel;
     public bool IsDetachedRestoreCandidate => detachedRestoreCandidate;
+    internal bool IsRuntimeTeardownCompleted => runtimeTeardownCompleted;
     public BuildingInstanceId PersistentInstanceId =>
         (BuildingInstanceId)persistentInstanceId;
     public BuildingInstanceId BuildingInstanceId => PersistentInstanceId;
@@ -127,6 +129,8 @@ public class BuildableObject : MonoBehaviour,
     internal IBuildingItemStackPort WorldItemStackRuntime => worldItemStackRuntime;
     internal IBuildingAbilityRuntimeDispatcher AbilityRuntimeDispatcher =>
         abilityRuntimeDispatcher;
+    public IEnumerable<TCapability> GetRuntimeAbilities<TCapability>() where TCapability : class =>
+        StateAndCapabilities.GetAbilityRuntimes<TCapability>(BuildingData?.AbilityModules, abilityRuntimeDispatcher);
     public int EffectiveCapacity => ResolveRoomFacilityPolicy().GetEffectiveCapacity(this);
 
     public int ActiveVisitReservationCount =>
@@ -382,7 +386,12 @@ public class BuildableObject : MonoBehaviour,
         }
 
         buildingSO.ValidateAbilitiesOrThrow();
+        IReadOnlyList<object> abilityRuntimes = (abilityRuntimeDispatcher
+            ?? throw new InvalidOperationException($"{nameof(BuildableObject)} requires {nameof(IBuildingAbilityRuntimeDispatcher)} injection."))
+            .BindRuntimeAbilities(buildingSO.Abilities)
+            ?? throw new InvalidOperationException("Building ability dispatcher returned null runtime bindings.");
         BuildingData = buildingSO;
+        StateAndCapabilities.SetAbilityRuntimes(buildingSO.AbilityModules, abilityRuntimes, abilityRuntimeDispatcher);
         GridBuildingPlacement placement = buildingSO.Placement;
         id = buildingSO.id;
         isDestroy = false;
@@ -400,12 +409,9 @@ public class BuildableObject : MonoBehaviour,
         (evolutionState ?? throw new InvalidOperationException(
                 $"{nameof(BuildableObject)} requires {nameof(IBuildingEvolutionStatePort)} injection."))
             .EnsureInitialized(this);
-        foreach (BuildingAbility ability in buildingSO.Abilities)
+        foreach (IBuildingRuntimeStateAbility stateAbility in GetRuntimeAbilities<IBuildingRuntimeStateAbility>())
         {
-            if (ability is IBuildingRuntimeStateAbility stateAbility)
-            {
-                RegisterStateModule(stateAbility.CreateStateModule(this));
-            }
+            RegisterStateModule(stateAbility.CreateStateModule(this));
         }
         if (buildingSO.GetAbility<BuildingStructuralIntegrityAbility>() == null
             && BuildingStructuralIntegrityDefaults.TryCreate(
@@ -654,35 +660,53 @@ public class BuildableObject : MonoBehaviour,
 
     public void DestroySelf()
     {
-        if (runtimeTeardownCompleted)
+        if (runtimeTeardownCompleted || destructionInProgress)
         {
             return;
         }
 
+        string buildingLabel = name;
         isDestroy = true;
-        List<Exception> subscriberFailures = null;
+        destructionInProgress = true;
         try
         {
-            subscriberFailures = PublishDestroyedEventSafely();
+            List<Exception> failures = PublishDestroyedEventSafely();
+            try
+            {
+                TeardownRuntimeState(markDynamicStateDirty: true);
+            }
+            catch (Exception exception)
+            {
+                failures ??= new List<Exception>();
+                failures.Add(exception);
+            }
+
+            // Keep a failed teardown alive for an explicit retry. A subscriber
+            // can also have destroyed the Unity object synchronously already.
+            if (runtimeTeardownCompleted && this != null)
+            {
+                if (Application.isPlaying)
+                {
+                    Destroy(gameObject);
+                }
+                else
+                {
+                    DestroyImmediate(gameObject);
+                }
+            }
+
+            if (failures != null)
+            {
+                throw new AggregateException(
+                    runtimeTeardownCompleted
+                        ? $"{buildingLabel} destruction completed, but one or more destruction subscribers failed."
+                        : $"{buildingLabel} runtime teardown failed; destruction remains incomplete.",
+                    failures);
+            }
         }
         finally
         {
-            TeardownRuntimeState(markDynamicStateDirty: true);
-            if (Application.isPlaying)
-            {
-                Destroy(gameObject);
-            }
-            else
-            {
-                DestroyImmediate(gameObject);
-            }
-        }
-
-        if (subscriberFailures != null)
-        {
-            throw new AggregateException(
-                $"{name} destruction completed, but one or more destruction subscribers failed.",
-                subscriberFailures);
+            destructionInProgress = false;
         }
     }
 
@@ -731,7 +755,6 @@ public class BuildableObject : MonoBehaviour,
             return;
         }
 
-        runtimeTeardownCompleted = true;
         RemovePaidFacilityContractIfNeeded();
         ClearRuntimeOccupancyAndAssignments();
         UnregisterFromWorldRegistry();
@@ -740,6 +763,7 @@ public class BuildableObject : MonoBehaviour,
         {
             facilityCandidateCache.MarkDynamicStateDirty();
         }
+        runtimeTeardownCompleted = true;
     }
 
     private void ClearRuntimeOccupancyAndAssignments()

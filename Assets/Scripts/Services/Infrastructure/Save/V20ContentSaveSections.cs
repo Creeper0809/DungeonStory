@@ -168,7 +168,7 @@ public sealed class SeasonalWorldEventsSaveSection :
                     out IReadOnlyList<WildlifeActor> wildlife))
                 throw new InvalidOperationException(
                     "Seasonal wildlife restore requires the incoming wildlife candidate.");
-            SeasonalWildlifeArrivalRules.ValidateRestoreJoin(
+            SeasonalWildlifeActorRestoreJoin.ValidateRestoreJoin(
                 payload,
                 wildlife);
         }
@@ -1085,8 +1085,7 @@ public sealed class SocietyObservedIncidentResponseCrossAggregateSaveValidation 
             }
             return;
         }
-        if (!V20CampaignRuntime
-                .TryClassifyObservedIncidentTransferExternalOperationId(
+        if (!V20ObservedEventEvidenceRules.TryClassifyObservedIncidentTransferExternalOperationId(
                     occurrence,
                     response.externalOperationId,
                     out bool medicalOrder))
@@ -1130,8 +1129,7 @@ public sealed class SocietyObservedIncidentResponseCrossAggregateSaveValidation 
                         StringComparison.Ordinal)
                     || !string.Equals(
                         response.receiptId,
-                        V20CampaignRuntime
-                            .FormatObservedIncidentTransferReceiptId(
+                        V20ObservedEventEvidenceRules.FormatObservedIncidentTransferReceiptId(
                                 response.externalOperationId,
                                 new CharacterId(target.persistentId)),
                         StringComparison.Ordinal)))
@@ -1143,7 +1141,7 @@ public sealed class SocietyObservedIncidentResponseCrossAggregateSaveValidation 
         }
 
         if (target.lifecycleState != CharacterLifecycleState.Active
-            || !V20CampaignRuntime.TryParseObservedIncidentTransferOperationId(
+            || !V20ObservedEventEvidenceRules.TryParseObservedIncidentTransferOperationId(
                 response.operationId,
                 response.externalOperationId,
                 out BuildingInstanceId facilityId,
@@ -1197,7 +1195,7 @@ public sealed class SocietyObservedIncidentResponseCrossAggregateSaveValidation 
                 || target.gridY != destination.Y
                 || !string.Equals(
                     response.receiptId,
-                    V20CampaignRuntime.FormatObservedIncidentTransferReceiptId(
+                    V20ObservedEventEvidenceRules.FormatObservedIncidentTransferReceiptId(
                         response.externalOperationId,
                         new CharacterId(target.persistentId)),
                     StringComparison.Ordinal)))
@@ -1698,6 +1696,7 @@ public sealed class RunMilestonesSaveSection :
     protected override RunMilestoneAggregateState BuildRestoreCandidate(RunMilestoneWorldSaveData payload)
     {
         ValidateAccordSignalPhysicalJoin(payload, physicalCandidates);
+        V20ContentRecoveryEvidence.ValidateIncoming(payload.pendingContentResolutions, physicalCandidates as IPhysicalEffectReceiptRestoreQuery);
         return persistence.PrepareMilestones(payload);
     }
 

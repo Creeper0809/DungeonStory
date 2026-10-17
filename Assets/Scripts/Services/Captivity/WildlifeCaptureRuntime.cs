@@ -115,8 +115,6 @@ public sealed partial class WildlifeCaptureRuntime :
     IWildlifeHaulRoleStateCommand,
     ITickable
 {
-    private static readonly IReadOnlyDictionary<StockCategory, int> WaterCost =
-        new Dictionary<StockCategory, int> { [StockCategory.Water] = 1 };
 
     private readonly ICharacterAiWorldRegistry world;
     private readonly IRoomLayoutCache rooms;
@@ -124,18 +122,15 @@ public sealed partial class WildlifeCaptureRuntime :
     private readonly IGridPathSearchBroker pathSearchBroker;
     private readonly IDoorAccessCommandService doorAccessCommands;
     private readonly IDoorAccessSubjectRegistry doorSubjects;
-    private readonly IWorldItemStackRuntime itemRuntime;
     private readonly IWorldFilthQuery filth;
     private readonly IResourceEconomyContentCatalog contentCatalog;
     private readonly IWildlifeSpeciesCatalogProvider speciesCatalog;
-    private readonly IWasteFeedCommand wasteProcessing;
-    private readonly IWasteFeedCandidateQuery wasteFeedCandidates;
-    private readonly IPhysicalItemBatchDispositionService batchDispositions;
     private readonly IWildlifeHaulItemRuntime wildlifeHaulItems;
     private readonly IGameClock clock;
     private readonly IRandomStream random;
     private readonly DungeonRuntimeAggregateRootStore sessionAggregateRootStore;
     private readonly CapturedWildlifeStateSession stateSession;
+    private readonly CapturedWildlifeFeedingRuntime feeding;
     private readonly IDomainFactPublisher facts;
     private readonly IDomainFactRecoveryPublisher factRecovery;
     private readonly IGameCalendar calendar;
@@ -163,13 +158,9 @@ public sealed partial class WildlifeCaptureRuntime :
         pathSearchBroker = worldContext.PathSearchBroker;
         doorAccessCommands = worldContext.DoorAccessCommands;
         doorSubjects = worldContext.DoorSubjects;
-        itemRuntime = care.ItemRuntime;
         filth = care.Filth;
         contentCatalog = care.ContentCatalog;
         speciesCatalog = care.SpeciesCatalog;
-        wasteProcessing = care.WasteProcessing;
-        wasteFeedCandidates = care.WasteFeedCandidates;
-        batchDispositions = care.BatchDispositions;
         wildlifeHaulItems = care.WildlifeHaulItems;
         clock = session.Clock;
         calendar = session.Calendar;
@@ -180,6 +171,7 @@ public sealed partial class WildlifeCaptureRuntime :
         RebindGameplayOutcomeRuntime();
         random = session.RandomStreamProvider
             .Get("captivity.wildlife-care");
+        feeding = new CapturedWildlifeFeedingRuntime(stateSession, world, care, random);
     }
 
     public IReadOnlyList<CapturedWildlifeState> CapturedAnimals =>
@@ -1119,6 +1111,7 @@ public sealed partial class WildlifeCaptureRuntime :
 
     public IReadOnlyList<CapturedWildlifeState> Capture()
     {
+        feeding.ValidateBeforeCapture();
         float capturedAt = clock.Time;
         if (float.IsNaN(capturedAt) || float.IsInfinity(capturedAt)
             || capturedAt < 0f)
@@ -1171,6 +1164,7 @@ public sealed partial class WildlifeCaptureRuntime :
 
     public void StageRestore(CircusRestoreCandidate candidate)
     {
+        feeding.ValidateBeforeCapture();
         if (candidate == null)
         {
             throw new ArgumentNullException(nameof(candidate));
@@ -1218,6 +1212,7 @@ public sealed partial class WildlifeCaptureRuntime :
     public WildlifeCaptureProjectionPublication
         BeginRestoreProjectionPublication()
     {
+        feeding.ValidateBeforeCapture();
         CapturedWildlifeProjectionPublication projection =
             stateSession.BeginProjectionPublication();
         WildlifeGameplayOutcomeRuntime candidateOutcomes =
@@ -1225,7 +1220,7 @@ public sealed partial class WildlifeCaptureRuntime :
         try
         {
             candidateOutcomes.AdvancePending();
-            ReconcilePendingFeedsOrThrow();
+            feeding.ReconcilePendingFeedsOrThrow();
         }
         catch
         {
@@ -1251,6 +1246,7 @@ public sealed partial class WildlifeCaptureRuntime :
     public void RollbackRestoreProjection(
         WildlifeCaptureProjectionPublication publication)
     {
+        feeding.ValidateBeforeCapture();
         (publication ?? throw new ArgumentNullException(nameof(publication)))
             .Rollback(this);
     }
@@ -1258,6 +1254,7 @@ public sealed partial class WildlifeCaptureRuntime :
     public void CompleteRestoreProjection(
         WildlifeCaptureProjectionPublication publication)
     {
+        feeding.ValidateBeforeCapture();
         (publication ?? throw new ArgumentNullException(nameof(publication)))
             .Complete(this);
     }
@@ -1407,30 +1404,9 @@ public sealed partial class WildlifeCaptureRuntime :
             && (actor.Hunger >= 0.45f || actor.Thirst >= 0.45f)
             && actor.GridPosition != carePosition;
         bool awayFromCarePosition = actor.GridPosition != carePosition;
-        RefreshDeliveryPending(state, careDestinationId);
-        state.feedSicknessSeverity = Mathf.Max(
-            0f,
-            state.feedSicknessSeverity - 1.5f);
-        bool fed = !awayFromCarePosition
-            && TrySatisfyFoodNeed(
-                state,
-                actor,
-                ability.dailyFood,
-                actor.Hunger,
-                carePosition,
-                careDestinationId,
-                ref state.foodDeliveryPending);
-        bool watered = !awayFromCarePosition
-            && TrySatisfyNeed(
-                state,
-                actor,
-                StockCategory.Water,
-                ability.dailyWater,
-                actor.Thirst,
-                WaterCost,
-                carePosition,
-                careDestinationId,
-                ref state.waterDeliveryPending);
+        feeding.SatisfyNeeds(state, actor, ability.dailyFood, ability.dailyWater,
+            carePosition, careDestinationId, !awayFromCarePosition,
+            out bool fed, out bool watered);
         bool insecure = !rooms.TryGetRoom(pen, out RoomInstance room)
             || !room.IsUsable
             || room.Doors.OfType<Door>().Any(CaptiveWildlifeCanUse);
@@ -1474,350 +1450,6 @@ public sealed partial class WildlifeCaptureRuntime :
                 TryBeginEscape(state, actor);
             }
         }
-    }
-
-    private bool TrySatisfyNeed(
-        CapturedWildlifeState state,
-        WildlifeActor actor,
-        StockCategory category,
-        float dailyNeed,
-        float currentNeed,
-        IReadOnlyDictionary<StockCategory, int> cost,
-        Vector2Int carePosition,
-        string careDestinationId,
-        ref bool deliveryPending)
-    {
-        if (dailyNeed <= 0f || currentNeed < 0.45f)
-        {
-            return currentNeed < 0.45f;
-        }
-
-        if (itemRuntime.TryConsumeFacilityBuffer(
-                careDestinationId,
-                cost,
-                out _))
-        {
-            if (category == StockCategory.Food)
-            {
-                actor.SatisfyCaptiveNeeds(0.72f, 0f);
-            }
-            else
-            {
-                actor.SatisfyCaptiveNeeds(0f, 0.8f);
-            }
-
-            deliveryPending = false;
-            return true;
-        }
-
-        if (!deliveryPending)
-        {
-            int amount = Mathf.Max(1, Mathf.CeilToInt(dailyNeed));
-            deliveryPending = itemRuntime.TryRequestFacilityDelivery(
-                category,
-                amount,
-                carePosition,
-                careDestinationId,
-                out int requested,
-                out _)
-                && requested > 0;
-        }
-
-        return false;
-    }
-
-    private bool TrySatisfyFoodNeed(
-        CapturedWildlifeState state,
-        WildlifeActor actor,
-        float dailyNeed,
-        float currentNeed,
-        Vector2Int carePosition,
-        string careDestinationId,
-        ref bool deliveryPending)
-    {
-        if (CapturedWildlifeFeedOutbox.HasPending(state))
-        {
-            if (!CapturedWildlifeFeedOutbox.TryFinalizePending(
-                    state,
-                    actor,
-                    batchDispositions,
-                    out _,
-                    out _))
-            {
-                return false;
-            }
-            deliveryPending = false;
-            return true;
-        }
-        if (dailyNeed <= 0f || currentNeed < 0.45f)
-        {
-            return currentNeed < 0.45f;
-        }
-
-        WildlifeDietType diet = speciesCatalog.TryGetSpecies(
-                state.speciesId,
-                out WildlifeSpeciesDefinition species)
-            ? species.Diet
-            : WildlifeDietType.Omnivore;
-        ResourceItemDefinitionSO[] candidates = contentCatalog.Items
-            .Where(item => item != null
-                && WildlifeFeedSelectionRules.IsAllowed(diet, item))
-            .OrderBy(item => WildlifeFeedSelectionRules.GetPreference(
-                diet,
-                item))
-            .ThenBy(item => item.UnitPrice)
-            .ThenBy(item => item.ItemId, StringComparer.Ordinal)
-            .ToArray();
-
-        foreach (ResourceItemDefinitionSO candidate in candidates)
-        {
-            WorldItemStackSnapshot source = itemRuntime.GetAllStacks()
-                .Where(stack => stack != null
-                    && stack.State == WorldItemStackState.FacilityBuffer
-                    && string.Equals(
-                        stack.DestinationId,
-                        careDestinationId,
-                        StringComparison.Ordinal)
-                    && string.Equals(
-                        stack.ItemId,
-                        candidate.ItemId,
-                        StringComparison.Ordinal)
-                    && stack.AvailableQuantity > 0
-                    && stack.ReservedQuantity == 0
-                    && string.IsNullOrEmpty(stack.ReservedByPersistentId)
-                    && !stack.Forbidden)
-                .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
-                .FirstOrDefault();
-            if (source == null)
-            {
-                continue;
-            }
-            if (TryBeginCapturedFeed(
-                    state,
-                    actor,
-                    source.StackId,
-                    candidate.ItemId,
-                    0.72f,
-                    diseaseChance: 0f,
-                    diseaseTriggered: false,
-                    ref deliveryPending))
-            {
-                return true;
-            }
-            if (CapturedWildlifeFeedOutbox.HasPending(state))
-            {
-                return false;
-            }
-        }
-
-        if (wasteFeedCandidates.TryGetDirectFeedCandidate(
-                diet,
-                careDestinationId,
-                out WasteDirectFeedCandidate wasteFeed,
-                out _))
-        {
-            bool diseaseTriggered = wasteFeed.DiseaseChance > 0f
-                && random.Chance(wasteFeed.DiseaseChance);
-            if (TryBeginCapturedFeed(
-                    state,
-                    actor,
-                    wasteFeed.StackId.Value,
-                    wasteFeed.ItemId,
-                    Mathf.Clamp(wasteFeed.Nutrition * 0.9f, 0.35f, 0.8f),
-                    wasteFeed.DiseaseChance,
-                    diseaseTriggered,
-                    ref deliveryPending))
-            {
-                return true;
-            }
-            if (CapturedWildlifeFeedOutbox.HasPending(state))
-            {
-                return false;
-            }
-        }
-
-        if (!deliveryPending)
-        {
-            int amount = Mathf.Max(1, Mathf.CeilToInt(dailyNeed));
-            foreach (ResourceItemDefinitionSO candidate in candidates
-                         .Where(candidate => WildlifeFeedSelectionRules
-                             .GetPreference(diet, candidate) <= 1))
-            {
-                if (!itemRuntime.TryRequestItemDelivery(
-                        candidate.ItemId,
-                        amount,
-                        carePosition,
-                        careDestinationId,
-                        out int requested,
-                        out _)
-                    || requested <= 0)
-                {
-                    continue;
-                }
-
-                state.lastFeedItemId = candidate.ItemId;
-                deliveryPending = true;
-                break;
-            }
-
-            if (!deliveryPending)
-            {
-                WasteFeedRequestResult wasteRequest =
-                    wasteProcessing.RequestDirectFeed(
-                        diet,
-                        carePosition,
-                        careDestinationId);
-                if (wasteRequest.Succeeded)
-                {
-                    state.lastFeedItemId = wasteRequest.ItemId;
-                    deliveryPending = true;
-                }
-            }
-
-            if (!deliveryPending)
-            {
-                foreach (ResourceItemDefinitionSO candidate in candidates
-                             .Where(candidate => WildlifeFeedSelectionRules
-                                 .GetPreference(diet, candidate) > 1))
-                {
-                    if (!itemRuntime.TryRequestItemDelivery(
-                            candidate.ItemId,
-                            amount,
-                            carePosition,
-                            careDestinationId,
-                            out int requested,
-                            out _)
-                        || requested <= 0)
-                    {
-                        continue;
-                    }
-
-                    state.lastFeedItemId = candidate.ItemId;
-                    deliveryPending = true;
-                    break;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private bool TryBeginCapturedFeed(
-        CapturedWildlifeState state,
-        WildlifeActor actor,
-        string sourceStackId,
-        string itemId,
-        float nutrition,
-        float diseaseChance,
-        bool diseaseTriggered,
-        ref bool deliveryPending)
-    {
-        if (state == null
-            || actor == null
-            || string.IsNullOrWhiteSpace(sourceStackId)
-            || state.nextFeedOperationSequence == int.MaxValue)
-        {
-            return false;
-        }
-
-        int sequence = checked(state.nextFeedOperationSequence + 1);
-        state.nextFeedOperationSequence = sequence;
-        string operationId = CapturedWildlifeFeedOutbox.FormatOperationId(
-            state.wildlifeId,
-            sequence);
-        if (!batchDispositions.TryCommitPending(
-                new[]
-                {
-                    new PhysicalItemTransformInput(sourceStackId, 1)
-                },
-                PhysicalItemDispositionKind.Sink,
-                operationId,
-                CapturedWildlifeFeedOutbox.ReasonCode,
-                out PhysicalItemBatchDispositionReceipt receipt,
-                out _))
-        {
-            return false;
-        }
-
-        CapturedWildlifeFeedOutbox.RecordPending(
-            state,
-            sequence,
-            receipt,
-            itemId,
-            nutrition,
-            diseaseChance,
-            diseaseTriggered,
-            actor);
-        if (!CapturedWildlifeFeedOutbox.TryFinalizePending(
-                state,
-                actor,
-                batchDispositions,
-                out _,
-                out _))
-        {
-            return false;
-        }
-        deliveryPending = false;
-        return true;
-    }
-
-    private void ReconcilePendingFeedsOrThrow()
-    {
-        foreach (CapturedWildlifeState state in stateSession.Values
-                     .OrderBy(value => value.wildlifeId, StringComparer.Ordinal))
-        {
-            if (!CapturedWildlifeFeedOutbox.HasPending(state))
-            {
-                continue;
-            }
-            WildlifeActor actor = FindActor(state.wildlifeId);
-            if (actor == null)
-            {
-                throw new InvalidOperationException(
-                    $"Captured wildlife feed restore reconciliation failed for '{state.wildlifeId}': actor-missing");
-            }
-            if (!CapturedWildlifeFeedOutbox.TryFinalizePending(
-                    state,
-                    actor,
-                    batchDispositions,
-                    out _,
-                    out string failureReason))
-            {
-                throw new InvalidOperationException(
-                    $"Captured wildlife feed restore reconciliation failed for '{state.wildlifeId}': {failureReason}");
-            }
-        }
-    }
-
-    private void RefreshDeliveryPending(
-        CapturedWildlifeState state,
-        string careDestinationId)
-    {
-        bool hasFood = false;
-        bool hasWater = false;
-        foreach (WorldItemStackSnapshot stack in itemRuntime.GetAllStacks())
-        {
-            if (!string.Equals(
-                    stack.DestinationId,
-                    careDestinationId,
-                    StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            DungeonItemDefinition definition =
-                itemRuntime.CatalogProvider.GetDefinition(stack.ItemId);
-            hasFood |= string.IsNullOrWhiteSpace(state.lastFeedItemId)
-                ? definition?.StockCategory == StockCategory.Food
-                : string.Equals(
-                    stack.ItemId,
-                    state.lastFeedItemId,
-                    StringComparison.Ordinal);
-            hasWater |= definition?.StockCategory == StockCategory.Water;
-        }
-
-        state.foodDeliveryPending &= hasFood;
-        state.waterDeliveryPending &= hasWater;
     }
 
     private void TryBeginEscape(

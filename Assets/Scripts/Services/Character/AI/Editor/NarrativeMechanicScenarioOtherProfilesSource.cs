@@ -708,7 +708,7 @@ public sealed class NarrativeMechanicScenarioEvolutionHistorySource : INarrative
         LedgerRow[] activeRows=useUnseenNamingEvaluation?NarrativeMechanicScenarioOtherProfiles.UnseenEvaluationLedgerRows:Rows;
         List<NarrativeMechanicScenario> positives=activeRows.Select(BuildPositive).ToList();
         NarrativeMechanicScenario[] negatives=useUnseenNamingEvaluation?Array.Empty<NarrativeMechanicScenario>():new[]{BuildBudgetNegative(Rows[0])};
-        return new NarrativeMechanicScenarioSourceCapture(ProfileId,positives,negatives,new[]{"Assets/Scripts/Services/Evolution/EvolutionHistoryNarrativeRuntime.cs","Assets/Scripts/Models/Evolution/Core/EvolutionHistoryModels.cs","Assets/Scripts/Services/Combat/EquipmentEvolutionRules.cs","Assets/Scripts/Models/Evolution/Core/EvolutionModuleRegistry.cs","Assets/Scripts/Services/Character/AI/LlmJsonResponseParser.cs","Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicScenarioOtherProfilesSource.cs"},allowEmptyNegativeScenarios:useUnseenNamingEvaluation);
+        return new NarrativeMechanicScenarioSourceCapture(ProfileId,positives,negatives,new[]{"Assets/Scripts/Services/Evolution/EvolutionHistoryNarrativeRuntime.cs","Assets/Scripts/Models/Evolution/Core/EvolutionHistoryModels.cs","Assets/Scripts/Models/Evolution/Core/GameplayNarrativeEventContext.cs","Assets/Scripts/Services/Combat/EquipmentEvolutionRules.cs","Assets/Scripts/Models/Evolution/Core/EvolutionModuleRegistry.cs","Assets/Scripts/Services/Character/AI/LlmJsonResponseParser.cs","Assets/Scripts/Services/Character/AI/Editor/NarrativeMechanicScenarioOtherProfilesSource.cs"},allowEmptyNegativeScenarios:useUnseenNamingEvaluation);
     }
     private static NarrativeMechanicScenario BuildPositive(LedgerRow row,int index) { using HistoryFixture fixture=HistoryFixture.Create(row,index); string response=NarrativeMechanicScenarioOtherProfiles.EvolutionHistoryResponse(fixture.Request,fixture.Request.effectBudget,"History "+row.Id); RequireValidation(response,fixture.Request,true,row.Id); return BuildScenario("evolution-history-"+row.Id,fixture,response,true,string.Empty); }
     private static NarrativeMechanicScenario BuildBudgetNegative(LedgerRow row) { using HistoryFixture fixture=HistoryFixture.Create(row,99); string response=NarrativeMechanicScenarioOtherProfiles.EvolutionHistoryResponse(fixture.Request,fixture.Request.effectBudget+1,"Changed budget"); string error=RequireValidation(response,fixture.Request,false,"changed-effect-budget"); return BuildScenario("evolution-history-reject-changed-effect-budget",fixture,response,false,error); }
@@ -763,7 +763,7 @@ public sealed class NarrativeMechanicScenarioPersonaSource : INarrativeMechanicS
             try
             {
                 data=CharacterAiPlanDebugFixtures.CreateCharacterData(CharacterType.Customer,row.Name,row.Species);
-                CharacterActor actor=root.GetComponent<CharacterActor>(); actor.EnsureRuntimeState(); actor.PersonaRuntime.ConstructCustomerPersonaRuntime(ControlledUnavailablePersonaRuntimeProvider.Instance); actor.Initialize(data);
+                CharacterActor actor=root.GetComponent<CharacterActor>(); actor.EnsureRuntimeState(); actor.PersonaRuntime.ConstructCustomerPersonaRuntime(NarrativeRequestContextTestFixture.CreateEmpty(), ControlledUnavailablePersonaRuntimeProvider.Instance); actor.Initialize(data);
                 string speciesBackground=string.Empty;
                 if(row.IsUnseenEvaluation)
                 {
@@ -857,7 +857,7 @@ public sealed class NarrativeMechanicScenarioPersonaSource : INarrativeMechanicS
     {
         PersonaRow row=fixture.Row;
         NarrativePublicContextMaterial publicMaterial =
-            CustomerPersonaPromptBuilder.BuildPublicMaterial(fixture.Actor);
+            CustomerPersonaPromptBuilder.BuildPublicMaterial(NarrativeRequestContextTestFixture.CreateEmpty(), fixture.Actor);
         NarrativePublicPromptEnvelope envelope =
             CustomerPersonaPromptBuilder.BuildEnvelope(fixture.Actor, publicMaterial);
         NarrativeMechanicScenarioPublicContext publicContext =

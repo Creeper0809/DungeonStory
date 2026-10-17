@@ -76,7 +76,7 @@ public sealed class NarrativeMechanicScenarioCharacterSkillSource
         RequireEvaluationMetadata(plans);
 
         CharacterSkillGenerationService authority = new CharacterSkillGenerationService(
-            new FixedSettingsProvider(settings),
+            NarrativeRequestContextTestFixture.CreateEmpty(), new FixedSettingsProvider(settings),
             new UnavailableRuntimeProvider(),
             new FixedUiClock());
         ScenarioMaterial[] materials = plans
@@ -198,9 +198,9 @@ public sealed class NarrativeMechanicScenarioCharacterSkillSource
                 validatedSkills);
 
             NarrativePublicContextMaterial publicMaterial = plan.EvaluationMetadata == null
-                ? CharacterSkillPromptBuilder.BuildPublicMaterial(progression)
+                ? CharacterSkillPromptBuilder.BuildPublicMaterial(NarrativeRequestContextTestFixture.CreateEmpty(), progression)
                 : CharacterSkillPromptBuilder.BuildPublicMaterial(
-                    progression,
+                    NarrativeRequestContextTestFixture.CreateEmpty(), progression,
                     BuildEvaluationLedgerPublications(plan, scenarioId, actor));
             NarrativePublicPromptEnvelope envelope = CharacterSkillPromptBuilder.BuildEnvelope(
                 progression,
@@ -734,7 +734,7 @@ public sealed class NarrativeMechanicScenarioCharacterSkillSource
         draft,
         settings,
         ruleOptions,
-        CharacterSkillPromptBuilder.Build(progression, draft, settings));
+        CharacterSkillPromptBuilder.Build(NarrativeRequestContextTestFixture.CreateEmpty(), progression, draft, settings));
 
     private static NarrativeMechanicCatalogCanonicalJsonObject ToRequestJson(
         CharacterSkillDraft draft,
@@ -1145,11 +1145,18 @@ public sealed class NarrativeMechanicScenarioCharacterSkillSource
             "Assets/Scripts/Services/Character/AI/NarrativeRequestContext.cs",
             "Assets/Scripts/Services/Character/Core/CharacterGrowthRules.cs",
             "Assets/Scripts/Services/Character/Core/CharacterProgression.cs",
+            "Assets/Scripts/Services/Character/Core/CharacterTraitInferenceTransaction.cs",
+            "Assets/Scripts/Services/Character/Core/CharacterTraitInferenceAuthority.cs",
             "Assets/Scripts/Services/Character/Core/CharacterSkillCombinationSemantics.cs",
             "Assets/Scripts/Services/Character/Core/CharacterSkillGenerationService.cs",
             "Assets/Scripts/Services/Character/Core/CharacterSkillModels.cs",
+            "Assets/Scripts/Services/Character/Core/CharacterSkillDefinitionData.cs",
+            "Assets/Scripts/Services/Character/Core/CharacterSkillPrimitives.cs",
+            "Assets/Scripts/Services/Character/Core/CharacterNarrativeLedger.cs",
             "Assets/Scripts/Services/Character/Core/CharacterSkillRuntimeEffects.cs",
             "Assets/Scripts/Services/Character/SO/CharacterSkillSystemSettingsSO.cs",
+            "Assets/Scripts/Services/Character/Core/CharacterSkillSystemSettingsProviderContracts.cs",
+            "Assets/Scripts/Services/Character/Core/ResourceCharacterSkillSystemSettingsProvider.cs",
             settingsPath,
             settingsPath + ".meta"
         }.Distinct(StringComparer.Ordinal).OrderBy((path) => path, StringComparer.Ordinal);

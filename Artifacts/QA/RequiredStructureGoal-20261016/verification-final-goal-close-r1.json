@@ -1,0 +1,50 @@
+{
+  "status": "PASS",
+  "goalStatus": "complete",
+  "sourceProcessed": 32,
+  "targetedActualCompleted": 32,
+  "remainingRequiredWork": [],
+  "completionAudit": "completion-audit-final-r1.json",
+  "nativeBinding": "verification-native-current-source-r11.json",
+  "requiredIntegration": "verification-final-integration-r4.json",
+  "relatedRegression": "verification-final-restock-regression-r1.json",
+  "staticDocuments": "verification-final-static-documents-r2.json",
+  "knowledgeBaseClose": "knowledge-base-final-goal-close-r2.json",
+  "pins": {
+    "source-pin-final-integration-r3.json": {
+      "files": 1430,
+      "drift": []
+    },
+    "native-input-pin-r43.json": {
+      "files": 3880,
+      "drift": []
+    },
+    "tool-pin-final-integration-r2.json": {
+      "files": 9,
+      "drift": []
+    },
+    "g4-faction-assembly-input-pin-r2.json": {
+      "files": 18,
+      "drift": []
+    }
+  },
+  "assemblyBindingCount": 6,
+  "assemblyDrift": [],
+  "authoredInputs": 5,
+  "protectedExtraInputs": 5,
+  "documentDrift": [],
+  "localLinks": 676,
+  "generatedGitDiff": {
+    "exit": 0,
+    "log": "final-generated-diff-check-r1.log"
+  },
+  "nativeSessions": "all terminal",
+  "allRequiredWorkComplete": true,
+  "limits": [
+    "Controlled clock, delivery and failure ports are named in each receipt; targeted execution does not certify all natural AI combinations or model inference.",
+    "Optional unrelated IndustrialInfrastructure RunAll expected building count36 versus authored38 remains preserved; targeted fluid tests passed.",
+    "Historical failed runs and memory-guard termination retained; only explicitly passing receipts count."
+  ],
+  "goalToolStatus": "complete",
+  "goalToolReceipt": "goal-tool-completion-r1.json"
+}

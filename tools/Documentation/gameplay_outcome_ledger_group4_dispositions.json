@@ -117,7 +117,7 @@
       "replacement_authority": "Selected authoritative command result",
       "evidence": [
         "Assets/Scripts/Services/Character/AI/CharacterAiRuntimeTrace.cs:90-154",
-        "Assets/Scripts/Services/Character/AI/AIBrain.cs:3744"
+        "Assets/Scripts/Services/Character/AI/CharacterAiExecutionLedger.cs:288"
       ]
     },
     {

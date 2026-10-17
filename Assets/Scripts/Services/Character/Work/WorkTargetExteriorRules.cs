@@ -11,10 +11,9 @@ internal static class WorkTargetExteriorRules
             return false;
         }
 
-        for (int index = 0; index < abilities.Count; index++)
+        foreach (IBuildingExteriorWorkRuntimeAbility ability in building.GetRuntimeAbilities<IBuildingExteriorWorkRuntimeAbility>())
         {
-            if (abilities[index] is IBuildingExteriorWorkRuntimeAbility ability
-                && ability.SupportsExteriorWork(workTypeId))
+            if (ability.SupportsExteriorWork(workTypeId))
             {
                 return true;
             }
@@ -35,10 +34,9 @@ internal static class WorkTargetExteriorRules
         }
 
         IBuildingVisitorPort visitor = actor?.BuildingVisitor;
-        for (int index = 0; index < abilities.Count; index++)
+        foreach (IBuildingExteriorWorkRuntimeAbility ability in building.GetRuntimeAbilities<IBuildingExteriorWorkRuntimeAbility>())
         {
-            if (abilities[index] is IBuildingExteriorWorkRuntimeAbility ability
-                && ability.SupportsExteriorWork(workTypeId)
+            if (ability.SupportsExteriorWork(workTypeId)
                 && ability.IsExteriorWorkAvailable(visitor, building, workTypeId))
             {
                 return true;
@@ -61,10 +59,9 @@ internal static class WorkTargetExteriorRules
 
         IBuildingVisitorPort visitor = actor?.BuildingVisitor;
         float urgency = 0f;
-        for (int index = 0; index < abilities.Count; index++)
+        foreach (IBuildingExteriorWorkRuntimeAbility ability in building.GetRuntimeAbilities<IBuildingExteriorWorkRuntimeAbility>())
         {
-            if (abilities[index] is IBuildingExteriorWorkRuntimeAbility ability
-                && ability.SupportsExteriorWork(workTypeId)
+            if (ability.SupportsExteriorWork(workTypeId)
                 && ability.IsExteriorWorkAvailable(visitor, building, workTypeId))
             {
                 urgency += Mathf.Max(

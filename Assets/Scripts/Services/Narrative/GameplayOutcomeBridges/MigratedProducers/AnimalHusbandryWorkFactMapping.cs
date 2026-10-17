@@ -93,7 +93,7 @@ public static class AnimalHusbandryWorkFactMapping
         string contributors = string.Join(",", pending.Contributions
             .OrderBy(value => value.characterId, StringComparer.Ordinal)
             .Select(value => value.characterId + ":"
-                + ToMilliWork(value.contributedWork)));
+                + AnimalHusbandryOutcomeEvidenceBuilder.ToMilliWork(value.contributedWork)));
 
         GameplayEntityId workerSubject = new(
             MigratedProducerOutcomeIds.CharacterKind,
@@ -193,17 +193,6 @@ public static class AnimalHusbandryWorkFactMapping
         return "product=" + (product?.ItemId.Value ?? "none")
             + ";ready=" + Math.Max(0, (product?.ReadyCycles ?? 0) - 1)
             + ";status=" + (int)AnimalHusbandryStatusCode.ProductCollected;
-    }
-
-    private static int ToMilliWork(float work)
-    {
-        double value = Math.Round(Math.Max(0f, work) * 1000d);
-        if (value <= 0d || value > int.MaxValue)
-        {
-            throw new InvalidOperationException(
-                "Husbandry completed work is out of range.");
-        }
-        return (int)value;
     }
 
     private static string Bool(bool value) => value ? "1" : "0";

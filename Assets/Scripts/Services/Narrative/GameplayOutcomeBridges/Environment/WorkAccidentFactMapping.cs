@@ -10,7 +10,7 @@ public static class WorkAccidentFactMapping
             ?? throw new ArgumentNullException(nameof(fact))).Snapshot();
         source.Validate();
         ProcessAccidentOutcomeReceipt receipt =
-            EnvironmentOutcomeReceiptFactory.CreateProcessAccident(
+            EnvironmentConditionOutcomeReceiptFactory.CreateProcessAccident(
                 source.operationId,
                 new CharacterId(source.workerId),
                 source.workerDisplayName,

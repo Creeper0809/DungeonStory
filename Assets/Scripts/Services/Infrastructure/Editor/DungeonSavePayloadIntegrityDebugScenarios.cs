@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
 
 /// <summary>
@@ -223,7 +224,8 @@ public static class DungeonSavePayloadIntegrityDebugScenarios
             {
                 new MutatingCapturedSaveValidator()
             },
-            Array.Empty<IDungeonSaveRestoreCompletedHook>());
+            Array.Empty<IDungeonSaveRestoreCompletedHook>(),
+            CreateRestoreSafety());
 
         RequireThrows(
             () => service.Capture(),
@@ -250,7 +252,8 @@ public static class DungeonSavePayloadIntegrityDebugScenarios
                 {
                     new MutatingCapturedSaveValidator(mutation)
                 },
-                Array.Empty<IDungeonSaveRestoreCompletedHook>());
+                Array.Empty<IDungeonSaveRestoreCompletedHook>(),
+                CreateRestoreSafety());
 
             RequireThrows(
                 () => service.Capture(),
@@ -289,6 +292,9 @@ public static class DungeonSavePayloadIntegrityDebugScenarios
             "Empty legacy snapshot boundary threw or rejected: " + legacyReason);
     }
 
+    private static DungeonRestoreSafetyRuntime CreateRestoreSafety() =>
+        new DungeonRestoreSafetyRuntime(new FixturePauseAuthority(), new FixtureTimeScale());
+
     private static Fixture CreateFixture(
         params IDungeonSavePreflightValidator[] preflightValidators)
     {
@@ -300,7 +306,8 @@ public static class DungeonSavePayloadIntegrityDebugScenarios
                 preflightValidators ?? Array.Empty<IDungeonSavePreflightValidator>(),
                 Array.Empty<IDungeonSaveCaptureGuard>(),
                 Array.Empty<IDungeonCapturedSavePreflightValidator>(),
-                Array.Empty<IDungeonSaveRestoreCompletedHook>()));
+                Array.Empty<IDungeonSaveRestoreCompletedHook>(),
+                CreateRestoreSafety()));
     }
 
     private static DungeonGameSaveData CaptureJsonClone(Fixture fixture) =>
@@ -410,6 +417,18 @@ public static class DungeonSavePayloadIntegrityDebugScenarios
     {
         if (!condition)
             throw new InvalidOperationException(message);
+    }
+
+    private sealed class FixturePauseAuthority : IGameSessionPauseAuthority
+    {
+        public bool Paused { get; private set; }
+
+        public void SetPaused(bool value) => Paused = value;
+    }
+
+    private sealed class FixtureTimeScale : IGameTimeScaleController
+    {
+        public float Scale { get; set; } = 1f;
     }
 
     private sealed class Fixture

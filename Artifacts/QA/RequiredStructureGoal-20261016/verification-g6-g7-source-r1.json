@@ -1,0 +1,104 @@
+{
+  "status": "SOURCE_IMPLEMENTED_STATIC_VERIFIED_UNITY_DEFERRED",
+  "goalStatus": "active",
+  "allGoalTargetsComplete": false,
+  "window": "All authors READY/FROZEN; SOURCE_EDIT closed; no UNITY_VERIFY launched",
+  "sourcePin": {
+    "path": "source-pin-g6-g7-cleanup-r1.json",
+    "files": 806
+  },
+  "toolPin": {
+    "path": "tool-pin-g1-g3-c10-cleanup-r1.json",
+    "files": 8,
+    "drift": 0
+  },
+  "g6": {
+    "terminalMethods": 17,
+    "sharedSnapshotMethods": 3,
+    "contracts": 11,
+    "retainedMethods": 72,
+    "publicMethods": 33,
+    "terminalFacades": 12,
+    "constructors": 1,
+    "sameState": "One current pointer for live orders/terminal rows/version, shared by execution/journal/restore",
+    "preserved": "Canonical clone/receipt replay/GC token/expected-published version/deep row snapshot/rollback drift and restore lifetime",
+    "consumerChanges": 0,
+    "readReview": "No additional confirmed defect; static only"
+  },
+  "g7": {
+    "custodyMethods": 11,
+    "sharedTopologyAndResetMethods": 2,
+    "retainedMethods": 59,
+    "publicMethods": 24,
+    "manualFacades": 5,
+    "constructors": 4,
+    "sameState": "Shared current network stateStore, projectionAdapter, inputOwners, physicalDispositions, commandOutcomes",
+    "preserved": "Readonly CanConsume, amount/identity early returns, physical -> fluid -> ACK sequence/retry/restore transient reset, automatic flow and same water/wastewater rules",
+    "consumerChanges": 2,
+    "readReview": "No additional confirmed defect; static only"
+  },
+  "syntax": {
+    "files": 98,
+    "errors": 0,
+    "semanticCompilation": "NOT_RUN",
+    "UnityExecution": "NOT_RUN"
+  },
+  "sameDefaultAssembly": {
+    "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderContracts.cs": [
+      "Assembly-CSharp(default)"
+    ],
+    "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderAuthorityStore.cs": [
+      "Assembly-CSharp(default)"
+    ],
+    "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderTerminalJournal.cs": [
+      "Assembly-CSharp(default)"
+    ],
+    "Assets/Scripts/Services/Infrastructure/Industrial/ManualWaterTransferRuntime.cs": [
+      "Assembly-CSharp(default)"
+    ],
+    "Assets/Scripts/Services/Infrastructure/Industrial/FluidNetworkProjectionAdapter.cs": [
+      "Assembly-CSharp(default)"
+    ]
+  },
+  "newMetaGuids": {
+    "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderContracts.cs.meta": {
+      "guid": "03a2c28aa0f04177adfbb5896122a0cc",
+      "occurrences": 1
+    },
+    "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderAuthorityStore.cs.meta": {
+      "guid": "898e44ebfa874a0ab1d96189820da209",
+      "occurrences": 1
+    },
+    "Assets/Scripts/Services/Infrastructure/Environment/ApparelWorkOrderTerminalJournal.cs.meta": {
+      "guid": "05be7091912d43a2bca4971f3c6672d2",
+      "occurrences": 1
+    },
+    "Assets/Scripts/Services/Infrastructure/Industrial/ManualWaterTransferRuntime.cs.meta": {
+      "guid": "e1cf43f467ec466d9833dd2727462bb2",
+      "occurrences": 1
+    }
+  },
+  "knowledgeBase": {
+    "lastQuery": "FactionRuntimeApplicationAdapter",
+    "result": "STALE",
+    "failures": 56,
+    "action": "Original source fallback; related source batch open; no index rebuild"
+  },
+  "executionLimit": "User asked to continue source cleanup. No same-RAM-condition Unity retry, no other apps or desktop input touched. New G6/G7 actual restore/failure/idempotent retry remain required.",
+  "remainingGoalWork": true,
+  "completedTargets": 6,
+  "totalTargets": 32,
+  "committedOrPushed": false,
+  "finalChecks": {
+    "sourcePinDrift": 0,
+    "toolPinDrift": 0,
+    "reportLocalLinks": 587,
+    "missingLocalLinks": 0,
+    "scopedDiffCheck": "PASS",
+    "newSourceWhitespace": "PASS",
+    "ownedUnityOrLauncher": 0,
+    "compiler": 0,
+    "targetCount": 32,
+    "metadataCorrection": "G10 old disposition text aligned with its existing completed status and actual evidence; no new execution claim"
+  }
+}

@@ -1403,7 +1403,7 @@ public sealed class NarrativeMechanicCatalogUnityAssetSource
     {
         CharacterSkillParityFixture fixture = FindCharacterSkillParityFixture(settings);
         CharacterSkillGenerationService authority = new CharacterSkillGenerationService(
-            new FixedCharacterSkillSettingsProvider(settings),
+            NarrativeRequestContextTestFixture.CreateEmpty(), new FixedCharacterSkillSettingsProvider(settings),
             new UnavailableLocalLlmRuntimeProvider(),
             new FixedUiClock());
         CharacterSkillModuleOfferState offer = fixture.Draft.moduleSelectionOffers[0];

@@ -1,0 +1,36 @@
+{
+  "status": "TARGETED_ACTUAL_MEDICAL_AND_RETURNING_VISITOR_RESTORE_PASS",
+  "run": "native-medical-transfer-current-r8",
+  "terminalUnityExit": 0,
+  "report": "native-medical-transfer-current-r8\\society-medical-transfer-actual.txt",
+  "reportSha256": "cdc26b96437c927e3356380e6f7dba77d01ad2a765fa162782e6ac905c256779",
+  "isolationProbeSha256": "c1c28860902592398d590208db6b17f40472b08777af57940d8aebfd8b6d6f8a",
+  "nativeCompileReceipt": "verification-c16-returning-visitor-contract-r1.json",
+  "pins": {
+    "source-pin-c16-returning-visitor-r1.json": {
+      "files": 1403,
+      "drift": []
+    },
+    "native-input-pin-r21.json": {
+      "files": 3872,
+      "drift": []
+    },
+    "tool-pin-c16-visitor-preparation-r3.json": {
+      "files": 9,
+      "drift": []
+    }
+  },
+  "assembliesUnchangedSinceCompile": true,
+  "verified": [
+    "Production ordinary and Society-owned Customer exact world restore and malformed incoming actor rejection",
+    "Physical meal quantity -1, exact replay and mismatched producer rejection; compensation once; contamination choice and prior departures",
+    "Actual returning visitor with historical departure captured; forged visit count official restore rejected atomically",
+    "Foreign Society/medical parent official restore rejected atomically; valid transfer official whole-world JSON restore",
+    "Actual MedicalCollapse and staff AIRescue stabilization/carry to frozen M11; arrival receipt publishes effects once"
+  ],
+  "limitations": [
+    "Controlled visitor preparation and explicit spawning",
+    "In-memory official whole-world JSON restore; no disk slot/cold load claim",
+    "No completed treatment claim"
+  ]
+}

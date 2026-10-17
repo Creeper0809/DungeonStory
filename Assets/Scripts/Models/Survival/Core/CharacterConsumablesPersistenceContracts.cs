@@ -53,6 +53,10 @@ internal enum ConsumableGeneratedIdKind
 
 internal static class CharacterConsumableIdContract
 {
+    internal const string FieldMealFacilityId = "building:primitive-field-meal";
+    internal const string MealPhysicalSinkReason = "character-meal-consumed";
+    internal const string SubstancePhysicalSinkReason = "character-substance-consumed";
+    internal const string DetoxPhysicalSinkReason = "character-detox-medicine-consumed";
     internal const string OperationPrefix = "consumable-operation:";
     internal const string DeliveryPrefix = "consumable-delivery:";
     internal const string AutomaticNamespace = "auto:";

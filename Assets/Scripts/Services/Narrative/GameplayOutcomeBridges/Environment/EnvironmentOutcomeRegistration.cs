@@ -81,10 +81,10 @@ public static class EnvironmentOutcomeRegistration
             .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
         builder.RegisterGameplayDomainFact<CharacterEnvironmentExposureFact, EnvironmentalExposureThresholdReceipt>(
             "log:environment.exposure-threshold", fact =>
-                EnvironmentOutcomeReceiptFactory.CreateEnvironmentalExposureThreshold(fact.Snapshot()));
+                EnvironmentConditionOutcomeReceiptFactory.CreateEnvironmentalExposureThreshold(fact.Snapshot()));
         builder.RegisterGameplayDomainFact<EnvironmentalControlFact, EnvironmentalControlCommandReceipt>(
             "log:environment.control-command", fact =>
-                EnvironmentOutcomeReceiptFactory.CreateEnvironmentalControl(fact.Snapshot()));
+                EnvironmentConditionOutcomeReceiptFactory.CreateEnvironmentalControl(fact.Snapshot()));
         builder.RegisterGameplayDomainFact<RoomEnvironmentExperienceFact, RoomEnvironmentExperienceOutcomeReceipt>(
             "log:environment.room-experience", RoomEnvironmentFactObserverMapping.CaptureExperience);
         builder.RegisterGameplayDomainFact<RoomEnvironmentConditionFact, RoomConditionOutcomeReceipt>(

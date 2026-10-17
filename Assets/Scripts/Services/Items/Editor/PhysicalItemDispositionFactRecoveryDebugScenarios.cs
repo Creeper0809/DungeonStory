@@ -18,10 +18,29 @@ public static class PhysicalItemDispositionFactRecoveryDebugScenarios
             && missing.Persistence.Capture().pendingBatchDispositions.Count == 0, "missing observer consumed items");
         using var rejected = new Fixture(fault: 3);
         before = rejected.ItemState();
-        long rejectedSequence = rejected.Ledger.CaptureGameplayOutcomes().nextSequence;
-        Require(!rejected.Consume(out _, out _) && rejected.ItemState() == before
-            && rejected.Persistence.Capture().pendingBatchDispositions.Count == 0
-            && rejected.Ledger.CaptureGameplayOutcomes().nextSequence == rejectedSequence, "rejection did not roll back exact debit");
+        long rejectedRevision = rejected.Ledger.CaptureGameplayOutcomes().revision;
+        bool accepted = rejected.Consume(out _, out string rejectionFailure);
+        string after = rejected.ItemState();
+        int pendingCount = rejected.Persistence.Capture().pendingBatchDispositions.Count;
+        GameplayOutcomeLedgerSaveData rejectedLedger = rejected.Ledger.CaptureGameplayOutcomes();
+        // Preparation allocates a never-reused outcome ID. Cancellation releases
+        // the prepared page/key; it must not rewind that monotonic allocator.
+        Require(!accepted && after == before && pendingCount == 0
+            && rejectedLedger.revision == rejectedRevision
+            && rejectedLedger.outbox.Count == 0 && rejectedLedger.exactOutcomes.Count == 0
+            && rejectedLedger.tombstones.Count == 0 && rejectedLedger.compactedMemories.Count == 0
+            && rejected.Ledger.GetDiagnostics().ReservedCount == 0,
+            $"rejection did not roll back exact debit: accepted={accepted}; itemsEqual={after == before}; pending={pendingCount}; failure={rejectionFailure}");
+        rejected.ResumePublication();
+        Require(rejected.Consume(out var retried, out _) && retried.IsCommitted
+            && rejected.Repository.Records.Sum(value => value.quantity) == 2,
+            "same command could not retry after explicit rejection");
+        string retriedItems = rejected.ItemState();
+        long retriedSequence = rejected.Ledger.CaptureGameplayOutcomes().nextSequence;
+        Require(rejected.Consume(out var replay, out _) && replay.CommitId == retried.CommitId
+            && rejected.ItemState() == retriedItems
+            && rejected.Ledger.CaptureGameplayOutcomes().nextSequence == retriedSequence,
+            "rejection retry repeated debit or publication");
         return "physical-disposition/observer-required/rejection-rollback/lost-before-and-after-commit/json-fresh-owner/automatic-replay/dedup/frozen-day-name/canonical-tamper=PASS";
     }
 
@@ -80,6 +99,7 @@ public static class PhysicalItemDispositionFactRecoveryDebugScenarios
     {
         private readonly DomainFactDispatcher dispatcher = new();
         private readonly string stackId;
+        private readonly Fault publicationFault;
         public Fixture(DungeonPhysicalItemSaveData physical = null, GameplayOutcomeLedgerSaveData savedLedger = null,
             int fault = 0, bool subscribe = true)
         {
@@ -104,10 +124,12 @@ public static class PhysicalItemDispositionFactRecoveryDebugScenarios
             if (subscribe) dispatcher.Subscribe("physical-disposition-recovery", new GameplayDomainFactObserver<
                 PhysicalItemDisposedFact, TradeInventoryOutcomeReceipt>(PhysicalItemDispositionFactObservation.Capture,
                 registry, Ledger, recorder, new GameplayDomainFactCommitGroup(recorder, Ledger)));
+            publicationFault = fault == 0 ? null : new Fault(dispatcher, fault);
             Service = new PhysicalItemBatchDispositionService(Repository, new Mass(), EditorNullItemMarkerPresenter.Instance,
-                null, Catalog, fault == 0 ? dispatcher : new Fault(dispatcher, fault), dispatcher,
+                null, Catalog, (IDomainFactStagingPublisher)publicationFault ?? dispatcher, dispatcher,
                 new GameplayDomainFactDeliveryQuery(recorder, Ledger), Calendar);
         }
+        public void ResumePublication() => publicationFault.Mode = 0;
         public WorldItemRepository Repository { get; }
         public WorldItemPersistenceService Persistence { get; }
         public GameplayOutcomeLedger Ledger { get; }
@@ -125,12 +147,12 @@ public static class PhysicalItemDispositionFactRecoveryDebugScenarios
     private sealed class Fault : IDomainFactStagingPublisher
     {
         private readonly IDomainFactStagingPublisher inner;
-        private readonly int mode;
-        public Fault(IDomainFactStagingPublisher inner, int mode) { this.inner = inner; this.mode = mode; }
+        public int Mode { get; set; }
+        public Fault(IDomainFactStagingPublisher inner, int mode) { this.inner = inner; Mode = mode; }
         public bool TryStage<T>(in T fact, out IDomainFactStage stage, out string failure)
         {
             if (!inner.TryStage(fact, out var prepared, out failure)) { stage = null; return false; }
-            stage = new Stage(prepared, mode); return true;
+            stage = new Stage(prepared, Mode); return true;
         }
         private sealed class Stage : IDomainFactStage
         {
@@ -144,6 +166,7 @@ public static class PhysicalItemDispositionFactRecoveryDebugScenarios
             public void Cancel() => inner.Cancel();
             public DomainFactDelivery Commit()
             {
+                if (mode == 0) return inner.Commit();
                 if (mode == 2) Require(inner.Commit().MayBeCommitted, "fault requires committed publication");
                 else inner.Cancel();
                 if (mode == 3) return DomainFactDelivery.Reject("qa-explicit-reject");

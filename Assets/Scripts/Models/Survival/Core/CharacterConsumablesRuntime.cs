@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
 using DungeonStory.Foundation.Facts;
@@ -10,19 +9,20 @@ public sealed class CharacterConsumablesRuntime :
     ICharacterConsumablesApplication,
     ICharacterConsumablesPersistence
 {
-    public const string FieldMealFacilityId = "building:primitive-field-meal";
-    public const string MealPhysicalSinkReason = "character-meal-consumed";
+    public const string FieldMealFacilityId = CharacterConsumableIdContract.FieldMealFacilityId;
+    public const string MealPhysicalSinkReason = CharacterConsumableIdContract.MealPhysicalSinkReason;
     public const string SubstancePhysicalSinkReason =
-        "character-substance-consumed";
+        CharacterConsumableIdContract.SubstancePhysicalSinkReason;
     public const string DetoxPhysicalSinkReason =
-        "character-detox-medicine-consumed";
+        CharacterConsumableIdContract.DetoxPhysicalSinkReason;
     private const float MealFollowupCooldownSeconds = 15f;
     private const float MealActionSeconds = 4f;
     private const float DeliveryRetrySeconds = 45f;
     private const float MealDeliveryProbeSeconds = 1f;
-    private const float GameHourSeconds = 60f;
-    private const float MedicalUseHealthRatio = 0.82f;
 
+    private readonly CharacterConsumablesPolicyRuntime policies;
+    private readonly CharacterConsumablesOperationRuntime operations;
+    private readonly CharacterConsumablesSubstanceRuntime substances;
     private readonly ICharacterConsumablesWorldPort world;
     private readonly ICharacterConsumablesInventoryPort inventory;
     private readonly ICharacterConsumablesEventPort events;
@@ -31,8 +31,6 @@ public sealed class CharacterConsumablesRuntime :
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly ICharacterNeedBalanceRuntime needBalance;
     private readonly ICharacterConsumablesWorkforcePort workforce;
-    private readonly IDomainFactPublisher domainFacts;
-    private readonly IGameCalendar calendar;
     private float nextMealDeliveryProbeAt;
     private readonly HashSet<ConsumableOperationId> mealEffectsInFlight = new();
 #if UNITY_EDITOR
@@ -95,120 +93,31 @@ public sealed class CharacterConsumablesRuntime :
         this.needBalance = needBalance
             ?? throw new ArgumentNullException(nameof(needBalance));
         this.workforce = workforce;
-        this.domainFacts = domainFacts;
-        this.calendar = calendar;
         random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
             .Get("character-consumables");
+        policies = new CharacterConsumablesPolicyRuntime(
+            this.world, this.inventory, this.aggregateRootStore, domainFacts, calendar);
+        operations = new CharacterConsumablesOperationRuntime(this.aggregateRootStore, this.clock, domainFacts, calendar);
+        substances = new CharacterConsumablesSubstanceRuntime(this.world, this.inventory, this.events,
+            this.clock, random, this.aggregateRootStore, this.workforce, policies, operations);
     }
 
     public CharacterDietPolicyKind GetDietPolicy(CharacterId characterId) =>
-        characterId.IsValid
-        && ReadState.DietPolicies.TryGetValue(characterId, out CharacterDietPolicyState state)
-            ? state.policy
-            : CharacterConsumablesPolicyRules.DefaultDietPolicy;
+        policies.GetDietPolicy(characterId);
 
     public CharacterConsumablesPolicyChangeResult SetDietPolicy(
-        CharacterId characterId,
-        CharacterDietPolicyKind policy,
-        string source = "runtime-command")
-    {
-        const string PolicyId = "character-diet";
-        if (!characterId.IsValid
-            || !Enum.IsDefined(typeof(CharacterDietPolicyKind), policy))
-            return InvalidPolicyChange(PolicyId, characterId.Value, "diet-policy-invalid");
-        CharacterDietPolicyKind before = GetDietPolicy(characterId);
-        string beforeValue = CanonicalPolicyValue(before);
-        string afterValue = CanonicalPolicyValue(policy);
-        bool existed = ReadState.DietPolicies.TryGetValue(
-            characterId,
-            out CharacterDietPolicyState previous);
-        return ApplyPolicyChange(
-            characterId,
-            PolicyId,
-            "self",
-            beforeValue,
-            afterValue,
-            source,
-            () => WriteState.DietPolicies[characterId] = new CharacterDietPolicyState
-            {
-                characterId = characterId.Value,
-                policy = policy
-            },
-            () =>
-            {
-                if (existed)
-                    WriteState.DietPolicies[characterId] =
-                        CharacterConsumablesStateRules.Clone(previous);
-                else
-                    WriteState.DietPolicies.Remove(characterId);
-            });
-    }
+        CharacterId characterId, CharacterDietPolicyKind policy, string source = "runtime-command") =>
+        policies.SetDietPolicy(characterId, policy, source);
 
     public CharacterMealQualityLimit GetMealQualityLimit(CharacterId characterId) =>
-        characterId.IsValid
-        && ReadState.MealQualityPolicies.TryGetValue(
-            characterId,
-            out CharacterMealQualityPolicyState state)
-            ? state.maximumQuality
-            : CharacterMealQualityLimit.Inherit;
+        policies.GetMealQualityLimit(characterId);
 
     public CharacterConsumablesPolicyChangeResult SetMealQualityLimit(
-        CharacterId characterId,
-        CharacterMealQualityLimit qualityLimit,
-        string source = "runtime-command")
-    {
-        const string PolicyId = "character-meal-quality";
-        if (!characterId.IsValid
-            || !Enum.IsDefined(typeof(CharacterMealQualityLimit), qualityLimit))
-            return InvalidPolicyChange(
-                PolicyId,
-                characterId.Value,
-                "meal-quality-policy-invalid");
-        CharacterMealQualityLimit before = GetMealQualityLimit(characterId);
-        bool existed = ReadState.MealQualityPolicies.TryGetValue(
-            characterId,
-            out CharacterMealQualityPolicyState previous);
-        return ApplyPolicyChange(
-            characterId,
-            PolicyId,
-            "self",
-            CanonicalPolicyValue(before),
-            CanonicalPolicyValue(qualityLimit),
-            source,
-            () => WriteState.MealQualityPolicies[characterId] =
-                new CharacterMealQualityPolicyState
-                {
-                    characterId = characterId.Value,
-                    maximumQuality = qualityLimit
-                },
-            () =>
-            {
-                if (existed)
-                    WriteState.MealQualityPolicies[characterId] =
-                        CharacterConsumablesStateRules.Clone(previous);
-                else
-                    WriteState.MealQualityPolicies.Remove(characterId);
-            });
-    }
+        CharacterId characterId, CharacterMealQualityLimit qualityLimit, string source = "runtime-command") =>
+        policies.SetMealQualityLimit(characterId, qualityLimit, source);
 
-    private bool IsWithinMealQualityLimit(CharacterId characterId, MealQualityBand quality)
-    {
-        CharacterMealQualityLimit limit = GetMealQualityLimit(characterId);
-        return quality <= (limit == CharacterMealQualityLimit.Inherit
-            ? MealQualityBand.Fine
-            : (MealQualityBand)(int)limit);
-    }
-
-    public bool IsMealAllowed(
-        CharacterId characterId,
-        CharacterConsumablesMealDefinitionSnapshot meal) =>
-        meal.Id.IsValid
-        && world.GetCultureMealPreference(characterId, meal.Id)
-            != CharacterCultureMealPreference.Forbidden
-        && CharacterConsumablesPolicyRules.AllowsMeal(
-            GetDietPolicy(characterId),
-            meal.DietClass,
-            meal.ForbiddenIngredient);
+    public bool IsMealAllowed(CharacterId characterId, CharacterConsumablesMealDefinitionSnapshot meal) =>
+        policies.IsMealAllowed(characterId, meal);
 
     public bool HasMealAvailable(
         CharacterId characterId,
@@ -325,7 +234,7 @@ public sealed class CharacterConsumablesRuntime :
             .Where(stack =>
             {
                 inventory.TryGetMeal(stack.ItemId, out CharacterConsumablesMealDefinitionSnapshot meal);
-                return IsWithinMealQualityLimit(actor.Id, meal.QualityBand)
+                return policies.IsWithinMealQualityLimit(actor.Id, meal.QualityBand)
                     && (emergency || IsMealAllowed(actor.Id, meal)
                         && stack.Contamination <= 0.01f);
             })
@@ -381,7 +290,7 @@ public sealed class CharacterConsumablesRuntime :
         bool primitiveSurvivalOutcomeRequired,
         out CharacterConsumablesMealResult result)
     {
-        ConsumableOperationId operationId = NewOperationId();
+        ConsumableOperationId operationId = operations.NewOperationId();
         BuildingInstanceId fieldFacility = new(FieldMealFacilityId);
         if (!TryGetActor(characterId, out CharacterConsumablesActorSnapshot actor)
             || !actor.Active)
@@ -428,7 +337,7 @@ public sealed class CharacterConsumablesRuntime :
                 "field-meal-invalid");
             return false;
         }
-        if (!IsWithinMealQualityLimit(actor.Id, meal.QualityBand))
+        if (!policies.IsWithinMealQualityLimit(actor.Id, meal.QualityBand))
         {
             result = CharacterConsumablesMealResult.Failed(
                 CharacterConsumablesFailureCode.PolicyForbidden,
@@ -489,6 +398,14 @@ public sealed class CharacterConsumablesRuntime :
             leaseExpiresAt = TimelineNow,
             expectedCompletionEta = MealActionSeconds,
             physicalConsumptionCommitted = true,
+            physicalContextFrozen = true,
+            consumptionPosition = actor.Position,
+            hungerBefore = actor.Hunger,
+            hungerAfter = actor.Hunger,
+            healthBefore = actor.Health,
+            healthAfter = actor.Health,
+            moodBefore = actor.Mood,
+            moodAfter = actor.Mood,
             automaticOperation = true,
             beginContamination = stack.Contamination,
             facilitySlotReserved = false,
@@ -604,7 +521,7 @@ public sealed class CharacterConsumablesRuntime :
         }
         return TryConsumeMeal(
             new ConsumeMealCommand(
-                NewOperationId(),
+                operations.NewOperationId(),
                 characterId,
                 facilityId,
                 candidates[0].Stack.StackId),
@@ -624,7 +541,7 @@ public sealed class CharacterConsumablesRuntime :
         out CharacterConsumablesMealResult result)
     {
         if (!operationId.IsValid
-            || !IsAllowedOperationId(operationId, automaticOperation: false)
+            || !CharacterConsumablesOperationRuntime.IsAllowedOperationId(operationId, automaticOperation: false)
             || !characterId.IsValid
             || !facilityId.IsValid)
         {
@@ -756,7 +673,7 @@ public sealed class CharacterConsumablesRuntime :
         out CharacterConsumablesMealResult result)
     {
         if (!command.IsValid
-            || !IsAllowedOperationId(command.OperationId, automaticOperation))
+            || !CharacterConsumablesOperationRuntime.IsAllowedOperationId(command.OperationId, automaticOperation))
         {
             result = CharacterConsumablesMealResult.Failed(
                 CharacterConsumablesFailureCode.InvalidCommand,
@@ -833,7 +750,7 @@ public sealed class CharacterConsumablesRuntime :
                 "meal-followup-cooldown");
             return false;
         }
-        if (!IsWithinMealQualityLimit(actor.Id, meal.QualityBand))
+        if (!policies.IsWithinMealQualityLimit(actor.Id, meal.QualityBand))
         {
             result = CharacterConsumablesMealResult.Failed(
                 CharacterConsumablesFailureCode.PolicyForbidden,
@@ -1093,7 +1010,7 @@ public sealed class CharacterConsumablesRuntime :
             return false;
         }
 
-        if (!IsWithinMealQualityLimit(actor.Id, meal.QualityBand))
+        if (!policies.IsWithinMealQualityLimit(actor.Id, meal.QualityBand))
         {
             AbortMealPlan(command, plan,
                 CharacterConsumablesFailureCode.PolicyForbidden,
@@ -1284,12 +1201,12 @@ public sealed class CharacterConsumablesRuntime :
         if (plan.phase == CharacterMealPlanPhase.EffectsApplied)
         {
             if (!inventory.TryGetMeal(new ConsumableItemDefinitionId(plan.itemDefinitionId), out var meal)
-                || !TryGetConsumptionFactDay(out int day))
+                || !operations.TryGetConsumptionFactDay(out int day))
                 return false;
             bool recipientActive = world.CanReceiveMealPostCommitObservers(command.CharacterId);
             var fact = new CharacterMealConsumedFact(command.OperationId, command.CharacterId, day,
                 CreateMealConsumptionEvidence(command, plan), recipientActive);
-            if (!TryReserveConsumptionFact(fact, out var lease)) return false;
+            if (!operations.TryReserveConsumptionFact(fact, out var lease)) return false;
             bool publishPrimitive = plan.primitiveSurvivalOutcomeRequired
                 && string.IsNullOrEmpty(plan.effectsSkippedReason);
             DomainFactLease primitiveLease = default;
@@ -1298,8 +1215,8 @@ public sealed class CharacterConsumablesRuntime :
             {
                 primitiveFact = new CharacterPrimitiveMealCompletedFact(
                     command.OperationId, command.CharacterId, day, meal.Nutrition);
-                if (!TryReserveConsumptionFact(primitiveFact, out primitiveLease))
-                { domainFacts.Cancel(lease); return false; }
+                if (!operations.TryReserveConsumptionFact(primitiveFact, out primitiveLease))
+                { operations.CancelFact(lease); return false; }
             }
             CharacterConsumablesAggregateState rollback = ReadState.Clone();
             bool publicationStarted = false;
@@ -1313,11 +1230,10 @@ public sealed class CharacterConsumablesRuntime :
                 writable.recipientActiveAtCompletion = recipientActive;
                 writable.publicationPending = true;
                 var stack = new ItemStackId(plan.physicalCommitSourceStackIds.First());
-                RecordCompletedOperation(command.OperationId, command.CharacterId, meal.Id, stack,
+                operations.RecordCompletedOperation(command.OperationId, command.CharacterId, meal.Id, stack,
                     true, plan.committedPolicyViolation, plan.committedContaminated,
                     facilityId: command.FacilityId);
-                WriteState.CompletedOperations[command.OperationId].mealEffectsSkippedReason =
-                    plan.effectsSkippedReason;
+                operations.SetMealEffectsSkippedReason(command.OperationId, plan.effectsSkippedReason);
                 writable.phase = CharacterMealPlanPhase.EffectsPublished;
                 var emissions = publishPrimitive
                     ? new[] { DomainFactEmission.Create(lease, fact), DomainFactEmission.Create(primitiveLease, primitiveFact) }
@@ -1325,16 +1241,16 @@ public sealed class CharacterConsumablesRuntime :
 #if UNITY_EDITOR
                 if (DebugRejectMealFactPublication?.Invoke(command.CharacterId) == true)
                 {
-                    domainFacts.Cancel(lease);
-                    domainFacts.Cancel(primitiveLease);
+                    operations.CancelFact(lease);
+                    operations.CancelFact(primitiveLease);
                     aggregateRootStore.Replace(rollback);
                     Debug.LogError("character-consumables-fact-publication-rejected:debug-meal-publication-rejection");
                     return false;
                 }
 #endif
                 publicationStarted = true;
-                if (!PublishConsumptionFacts(emissions, rollback)) return false;
-                WriteState.CompletedOperations[command.OperationId].outcomeResultKey = writable.publicationKey;
+                if (!operations.PublishConsumptionFacts(emissions, rollback)) return false;
+                operations.SetOutcomeResultKey(command.OperationId, writable.publicationKey);
                 writable.publicationPending = false;
             }
             catch
@@ -1343,8 +1259,8 @@ public sealed class CharacterConsumablesRuntime :
                 // committed. Afterwards retain the saved fact for exact recovery.
                 if (!publicationStarted)
                 {
-                    domainFacts.Cancel(lease);
-                    domainFacts.Cancel(primitiveLease);
+                    operations.CancelFact(lease);
+                    operations.CancelFact(primitiveLease);
                     aggregateRootStore.Replace(rollback);
                 }
                 throw;
@@ -1369,8 +1285,8 @@ public sealed class CharacterConsumablesRuntime :
                 replays.Add(DomainFactReplay.Create(activePlan.primitivePublicationKey,
                     new CharacterPrimitiveMealCompletedFact(command.OperationId, command.CharacterId,
                         activePlan.factAbsoluteDay, activePlan.primitiveNutrition)));
-            if (!ReplayConsumptionFacts(replays.ToArray())) return false;
-            state.CompletedOperations[command.OperationId].outcomeResultKey = activePlan.publicationKey;
+            if (!operations.ReplayConsumptionFacts(replays.ToArray())) return false;
+            operations.SetOutcomeResultKey(command.OperationId, activePlan.publicationKey);
             activePlan.publicationPending = false;
         }
         if (!activePlan.postCommitEventDelivered)
@@ -1388,7 +1304,7 @@ public sealed class CharacterConsumablesRuntime :
                     new ItemStackId(activePlan.physicalCommitSourceStackIds.First()),
                     activePlan.committedPolicyViolation, activePlan.committedContaminated,
                     state.CompletedOperations[command.OperationId].outcomeResultKey);
-                PublishPostCommitObserver(() => events.Publish(new CharacterConsumablesMealConsumedEvent(
+                CharacterConsumablesOperationRuntime.PublishPostCommitObserver(() => events.Publish(new CharacterConsumablesMealConsumedEvent(
                     command.OperationId, command.CharacterId, command.FacilityId, result)),
                     "character-consumables-meal-post-commit-observer");
             }
@@ -1563,1110 +1479,96 @@ public sealed class CharacterConsumablesRuntime :
         return cancelled;
     }
 
-    public CharacterSubstancePolicyState GetSubstancePolicy(
-        CharacterId characterId,
-        string substanceId)
-    {
-        if (!inventory.TryResolveSubstance(
-                substanceId,
-                out CharacterConsumablesSubstanceDefinitionSnapshot substance))
-        {
-            return new CharacterSubstancePolicyState
-            {
-                characterId = characterId.Value,
-                mode = SubstancePolicyMode.Forbidden
-            };
-        }
-        CharacterSubstanceKey key = new(characterId, substance.Id);
-        return ReadState.SubstancePolicies.TryGetValue(key, out CharacterSubstancePolicyState state)
-            ? CharacterConsumablesStateRules.Clone(state)
-            : new CharacterSubstancePolicyState
-            {
-                characterId = characterId.Value,
-                itemDefinitionId = substance.Id.Value,
-                mode = CharacterConsumablesPolicyRules.GetDefaultSubstancePolicy(
-                    substance.Definition.UseClass),
-                moodThreshold = 30f,
-                scheduledHour = 20
-            };
-    }
+    public CharacterSubstancePolicyState GetSubstancePolicy(CharacterId characterId, string substanceId) =>
+        policies.GetSubstancePolicy(characterId, substanceId);
 
     public CharacterConsumablesPolicyChangeResult SetSubstancePolicy(
-        CharacterId characterId,
-        string substanceId,
-        SubstancePolicyMode mode,
-        float moodThreshold,
-        int scheduledHour,
-        string source = "runtime-command")
-    {
-        if (!characterId.IsValid
-            || !Enum.IsDefined(typeof(SubstancePolicyMode), mode)
-            || float.IsNaN(moodThreshold) || float.IsInfinity(moodThreshold)
-            || !inventory.TryResolveSubstance(
-                substanceId,
-                out CharacterConsumablesSubstanceDefinitionSnapshot substance))
-            return InvalidPolicyChange(
-                "character-substance",
-                substanceId,
-                "substance-policy-invalid");
-        CharacterSubstancePolicyState before = GetSubstancePolicy(
-            characterId,
-            substance.Id.Value);
-        CharacterSubstancePolicyState state = new()
-        {
-            characterId = characterId.Value,
-            itemDefinitionId = substance.Id.Value,
-            mode = mode,
-            moodThreshold = Mathf.Clamp(moodThreshold, 0f, 100f),
-            scheduledHour = Mathf.Clamp(scheduledHour, 0, 23)
-        };
-        CharacterSubstanceKey key = new(characterId, substance.Id);
-        bool existed = ReadState.SubstancePolicies.TryGetValue(
-            key,
-            out CharacterSubstancePolicyState previous);
-        return ApplyPolicyChange(
-            characterId,
-            "character-substance",
-            substance.Id.Value,
-            CanonicalSubstancePolicy(before),
-            CanonicalSubstancePolicy(state),
-            source,
-            () => WriteState.SubstancePolicies[key] = state,
-            () =>
-            {
-                if (existed)
-                    WriteState.SubstancePolicies[key] =
-                        CharacterConsumablesStateRules.Clone(previous);
-                else
-                    WriteState.SubstancePolicies.Remove(key);
-            });
-    }
+        CharacterId characterId, string substanceId, SubstancePolicyMode mode,
+        float moodThreshold, int scheduledHour, string source = "runtime-command") =>
+        policies.SetSubstancePolicy(characterId, substanceId, mode, moodThreshold, scheduledHour, source);
 
     public CharacterSubstanceState GetSubstanceState(
         CharacterId characterId,
-        string substanceId)
-    {
-        if (!inventory.TryResolveSubstance(
-                substanceId,
-                out CharacterConsumablesSubstanceDefinitionSnapshot substance))
-        {
-            return new CharacterSubstanceState { characterId = characterId.Value };
-        }
-        CharacterSubstanceKey key = new(characterId, substance.Id);
-        return ReadState.SubstanceStates.TryGetValue(key, out CharacterSubstanceState state)
-            ? CharacterConsumablesStateRules.Clone(state)
-            : new CharacterSubstanceState
-            {
-                characterId = characterId.Value,
-                itemDefinitionId = substance.Id.Value
-            };
-    }
+        string substanceId) =>
+        substances.GetSubstanceState(characterId, substanceId);
 
-    public CharacterToxicityStatus GetToxicityStatus(CharacterId characterId)
-    {
-        float toxicity = GetToxicity(characterId);
-        bool pending = ReadState.ActiveDetoxTreatmentPlans.Values.Any(plan =>
-            plan != null
-            && string.Equals(
-                plan.characterId,
-                characterId.Value,
-                StringComparison.Ordinal));
-        bool available = toxicity > 0f
-            && !pending
-            && HasPotentialDetoxMedicineSupply();
-        string reason = toxicity <= 0f
-            ? "toxicity-zero"
-            : pending
-                ? "detox-treatment-pending"
-            : available
-                ? string.Empty
-                : inventory.GetDetoxMedicines().Count == 0
-                    ? "detox-medicine-undefined"
-                    : "detox-medicine-unavailable";
-        return new CharacterToxicityStatus(
-            toxicity,
-            available,
-            pending,
-            reason);
-    }
+    public CharacterToxicityStatus GetToxicityStatus(CharacterId characterId) =>
+        substances.GetToxicityStatus(characterId);
 
     public bool TryApplyDetoxTreatment(
         ConsumableOperationId operationId,
         CharacterId characterId,
         BuildingInstanceId facilityId,
-        out CharacterDetoxTreatmentResult result)
-    {
-        result = default;
-        if (ReadState.MealFailures.ContainsKey(operationId))
-        {
-            result = FailedDetox(CharacterConsumablesFailureCode.AlreadyProcessed,
-                characterId, operationId.Value);
-            return false;
-        }
-        if (!operationId.IsValid
-            || !IsAllowedOperationId(operationId, automaticOperation: false)
-            || !characterId.IsValid
-            || !facilityId.IsValid)
-        {
-            result = FailedDetox(
-                CharacterConsumablesFailureCode.InvalidCommand,
-                characterId,
-                facilityId.Value);
-            return false;
-        }
-        if (!TryGetActor(characterId, out CharacterConsumablesActorSnapshot actor)
-            || !actor.Active)
-        {
-            result = FailedDetox(
-                CharacterConsumablesFailureCode.CharacterMissing,
-                characterId,
-                characterId.Value);
-            return false;
-        }
-        if (!world.FacilityIds.Contains(facilityId))
-        {
-            result = FailedDetox(
-                CharacterConsumablesFailureCode.FacilityMissing,
-                characterId,
-                facilityId.Value);
-            return false;
-        }
-
-        if (ReadState.CompletedOperations.TryGetValue(
-                operationId,
-                out CharacterConsumableOperationState completed)
-            && !ReadState.ActiveDetoxTreatmentPlans.ContainsKey(operationId))
-        {
-            if (!completed.detox
-                || !completed.CharacterId.Equals(characterId)
-                || !completed.FacilityId.Equals(facilityId))
-            {
-                result = FailedDetox(
-                    CharacterConsumablesFailureCode.AlreadyProcessed,
-                    characterId,
-                    operationId.Value);
-                return false;
-            }
-            result = SuccessfulDetox(completed);
-            return true;
-        }
-
-        KeyValuePair<ConsumableOperationId, CharacterDetoxTreatmentPlan> existing =
-            ReadState.ActiveDetoxTreatmentPlans
-                .Where(pair => pair.Value != null
-                    && string.Equals(
-                        pair.Value.characterId,
-                        characterId.Value,
-                        StringComparison.Ordinal))
-                .OrderBy(pair => pair.Key.Value, StringComparer.Ordinal)
-                .FirstOrDefault();
-        if (existing.Key.IsValid)
-        {
-            if (!existing.Key.Equals(operationId)
-                || !string.Equals(
-                    existing.Value.facilityInstanceId,
-                    facilityId.Value,
-                    StringComparison.Ordinal))
-            {
-                result = FailedDetox(
-                    CharacterConsumablesFailureCode.DeliveryPending,
-                    characterId,
-                    existing.Key.Value);
-                return false;
-            }
-            TryFinalizeDetoxTreatmentPlan(existing.Key, existing.Value);
-            if (ReadState.CompletedOperations.ContainsKey(existing.Key)
-                && existing.Value.phase ==
-                    CharacterDetoxTreatmentPlanPhase.PhysicalAcknowledged)
-            {
-                result = SuccessfulDetox(existing.Key, existing.Value);
-                return true;
-            }
-            result = FailedDetox(
-                CharacterConsumablesFailureCode.DeliveryPending,
-                characterId,
-                existing.Key.Value);
-            return false;
-        }
-
-        if (GetToxicity(characterId) <= 0f)
-        {
-            result = FailedDetox(
-                CharacterConsumablesFailureCode.PolicyForbidden,
-                characterId,
-                "toxicity-zero");
-            return false;
-        }
-
-        DetoxMedicineCandidate candidate = FindAvailableDetoxMedicine(facilityId);
-        if (!candidate.Stack.StackId.IsValid)
-        {
-            TryEnsureDetoxMedicineDelivery(
-                characterId,
-                facilityId,
-                out string deliveryDetail);
-            result = FailedDetox(
-                inventory.GetDetoxMedicines().Count == 0
-                    ? CharacterConsumablesFailureCode.ItemDefinitionMissing
-                    : CharacterConsumablesFailureCode.DeliveryPending,
-                characterId,
-                deliveryDetail);
-            return false;
-        }
-
-        if (!inventory.TryCommitDetoxConsumptionPending(
-                operationId,
-                candidate.Stack.StackId,
-                out CharacterDetoxPhysicalCommitSnapshot physicalCommit,
-                out string physicalFailure))
-        {
-            result = FailedDetox(
-                CharacterConsumablesFailureCode.PhysicalConsumptionFailed,
-                characterId,
-                physicalFailure);
-            return false;
-        }
-        CharacterDetoxTreatmentPlan plan = new()
-        {
-            operationId = operationId.Value,
-            characterId = characterId.Value,
-            facilityInstanceId = facilityId.Value,
-            itemDefinitionId = candidate.Medicine.Id.Value,
-            sourceStackId = candidate.Stack.StackId.Value,
-            phase = CharacterDetoxTreatmentPlanPhase.ItemCommitted,
-            detoxReduction = candidate.Medicine.DetoxReduction,
-            physicalCommitOperationId = physicalCommit.OperationId,
-            physicalCommitReasonCode = physicalCommit.ReasonCode,
-            physicalCommitId = physicalCommit.CommitId,
-            physicalCommitSourceStackIds = physicalCommit.SourceStackIds.ToList(),
-            physicalCommitQuantity = physicalCommit.Quantity,
-            physicalCommitInputMassGrams = physicalCommit.InputMassGrams
-        };
-        WriteState.ActiveDetoxTreatmentPlans.Add(operationId, plan);
-        TryFinalizeDetoxTreatmentPlan(operationId, plan);
-        if (!ReadState.CompletedOperations.ContainsKey(operationId)
-            || plan.phase !=
-                CharacterDetoxTreatmentPlanPhase.PhysicalAcknowledged)
-        {
-            result = FailedDetox(
-                CharacterConsumablesFailureCode.DeliveryPending,
-                characterId,
-                operationId.Value);
-            return false;
-        }
-        result = SuccessfulDetox(operationId, plan);
-        return true;
-    }
+        out CharacterDetoxTreatmentResult result) =>
+        substances.TryApplyDetoxTreatment(operationId, characterId, facilityId, out result);
 
     public bool TryGetPendingDetoxTreatment(
         CharacterId characterId,
         out BuildingInstanceId facilityId,
-        out ConsumableOperationId operationId)
-    {
-        return TryGetPendingDetoxTreatment(
-            characterId,
-            out facilityId,
-            out operationId,
-            out _);
-    }
+        out ConsumableOperationId operationId) =>
+        substances.TryGetPendingDetoxTreatment(characterId, out facilityId, out operationId);
 
     public bool TryGetPendingDetoxTreatment(
         CharacterId characterId,
         out BuildingInstanceId facilityId,
         out ConsumableOperationId operationId,
-        out ConsumableItemDefinitionId itemId)
-    {
-        KeyValuePair<ConsumableOperationId, CharacterDetoxTreatmentPlan> pending =
-            ReadState.ActiveDetoxTreatmentPlans
-                .Where(pair => pair.Value != null
-                    && string.Equals(
-                        pair.Value.characterId,
-                        characterId.Value,
-                        StringComparison.Ordinal))
-                .OrderBy(pair => pair.Key.Value, StringComparer.Ordinal)
-                .FirstOrDefault();
-        facilityId = pending.Value == null
-            ? default
-            : new BuildingInstanceId(pending.Value.facilityInstanceId);
-        itemId = pending.Value == null
-            ? default
-            : new ConsumableItemDefinitionId(pending.Value.itemDefinitionId);
-        operationId = pending.Key;
-        return operationId.IsValid && facilityId.IsValid && itemId.IsValid;
-    }
+        out ConsumableItemDefinitionId itemId) =>
+        substances.TryGetPendingDetoxTreatment(characterId, out facilityId, out operationId, out itemId);
 
     public bool TryGetDetoxTreatmentOwner(
         ConsumableOperationId operationId,
         out CharacterId characterId,
         out BuildingInstanceId facilityId,
-        out bool completed)
-    {
-        characterId = default;
-        facilityId = default;
-        completed = false;
-        if (!operationId.IsValid)
-            return false;
-        if (ReadState.ActiveDetoxTreatmentPlans.TryGetValue(
-                operationId,
-                out CharacterDetoxTreatmentPlan plan)
-            && plan != null)
-        {
-            characterId = new CharacterId(plan.characterId);
-            facilityId = new BuildingInstanceId(plan.facilityInstanceId);
-            return characterId.IsValid && facilityId.IsValid;
-        }
-        if (!ReadState.CompletedOperations.TryGetValue(
-                operationId,
-                out CharacterConsumableOperationState operation)
-            || operation == null
-            || !operation.detox)
-        {
-            return false;
-        }
-        characterId = operation.CharacterId;
-        facilityId = operation.FacilityId;
-        completed = true;
-        return characterId.IsValid && facilityId.IsValid;
-    }
+        out bool completed) =>
+        substances.TryGetDetoxTreatmentOwner(operationId, out characterId, out facilityId, out completed);
 
     public bool TryAcknowledgeDetoxTreatment(
-        ConsumableOperationId operationId)
-    {
-        if (!operationId.IsValid
-            || !WriteState.ActiveDetoxTreatmentPlans.TryGetValue(
-                operationId,
-                out CharacterDetoxTreatmentPlan plan)
-            || plan == null
-            || plan.phase !=
-                CharacterDetoxTreatmentPlanPhase.PhysicalAcknowledged
-            || !WriteState.CompletedOperations.ContainsKey(operationId))
-        {
-            return false;
-        }
-        return WriteState.ActiveDetoxTreatmentPlans.Remove(operationId);
-    }
+        ConsumableOperationId operationId) =>
+        substances.TryAcknowledgeDetoxTreatment(operationId);
 
-    public void ProcessOperatingDay(int day)
-    {
-        if (day <= 0)
-            throw new ArgumentOutOfRangeException(nameof(day));
-        foreach (KeyValuePair<CharacterId, CharacterToxicityState> pair in
-                 WriteState.ToxicityStates
-                     .OrderBy(value => value.Key.Value, StringComparer.Ordinal)
-                     .ToArray())
-        {
-            CharacterToxicityState toxicity = pair.Value;
-            if (toxicity == null || day <= toxicity.lastNaturalRecoveryDay)
-                continue;
-            int elapsedDays = toxicity.lastNaturalRecoveryDay <= 0
-                ? 1
-                : day - toxicity.lastNaturalRecoveryDay;
-            toxicity.toxicity = CharacterToxicityPolicy.Clamp(
-                toxicity.toxicity
-                - CharacterToxicityPolicy.NaturalRecoveryPerDay * elapsedDays);
-            toxicity.lastNaturalRecoveryDay = day;
-        }
-    }
+    public void ProcessOperatingDay(int day) =>
+        substances.ProcessOperatingDay(day);
 
     public bool TryConsumeSubstance(
         CharacterId characterId,
         string substanceId,
         bool medicalContext,
         bool combatContext,
-        out CharacterConsumablesSubstanceResult result)
-    {
-        if (!TryGetActor(characterId, out _))
-        {
-            result = CharacterConsumablesSubstanceResult.Failed(
-                CharacterConsumablesFailureCode.CharacterMissing,
-                characterId.Value);
-            return false;
-        }
-        if (!inventory.TryResolveSubstance(
-                substanceId,
-                out CharacterConsumablesSubstanceDefinitionSnapshot substance))
-        {
-            result = CharacterConsumablesSubstanceResult.Failed(
-                CharacterConsumablesFailureCode.ItemDefinitionMissing,
-                substanceId);
-            return false;
-        }
-        CharacterConsumablesStackSnapshot stack = FindAvailableSubstanceStack(
-            characterId,
-            substance.Id);
-        if (!stack.StackId.IsValid)
-        {
-            result = CharacterConsumablesSubstanceResult.Failed(
-                CharacterConsumablesFailureCode.ItemStackMissing,
-                substance.Id.Value);
-            return false;
-        }
-        return TryConsumeSubstance(
-            new ConsumeSubstanceByIdCommand(
-                NewOperationId(),
-                characterId,
-                substance.Id,
-                stack.StackId,
-                medicalContext,
-                combatContext),
-            automaticOperation: true,
-            out result);
-    }
+        out CharacterConsumablesSubstanceResult result) =>
+        substances.TryConsumeSubstance(characterId, substanceId, medicalContext, combatContext, out result);
 
     public bool TryConsumeRecreationalSubstance(
         CharacterId characterId,
         BuildingInstanceId facilityId,
-        out CharacterConsumablesSubstanceResult result)
-    {
-        if (!TryGetActor(characterId, out CharacterConsumablesActorSnapshot actor)
-            || !TryGetRecreationalSubstanceFacility(
-                facilityId,
-                out CharacterConsumablesFacilitySnapshot facility))
-        {
-            result = CharacterConsumablesSubstanceResult.Failed(
-                !actor.Id.IsValid
-                    ? CharacterConsumablesFailureCode.CharacterMissing
-                    : CharacterConsumablesFailureCode.FacilityMissing,
-                !actor.Id.IsValid ? characterId.Value : facilityId.Value);
-            return false;
-        }
-
-        List<RecreationalSubstanceCandidate> buffered =
-            GetRecreationalSubstanceCandidates(actor, facilityId, bufferOnly: true);
-        if (buffered.Count > 0)
-        {
-            RecreationalSubstanceCandidate selected = buffered[0];
-            return TryConsumeSubstance(
-                new ConsumeSubstanceByIdCommand(
-                    NewOperationId(),
-                    characterId,
-                    selected.Substance.Id,
-                    selected.Stack.StackId,
-                    medicalContext: false,
-                    combatContext: false),
-                automaticOperation: true,
-                out result,
-                allowedFacilityDestinationId:
-                    GetRecreationalSubstanceDestinationId(
-                        facilityId,
-                        selected.Substance.Id));
-        }
-
-        List<RecreationalSubstanceCandidate> deliverable =
-            GetRecreationalSubstanceCandidates(actor, facilityId, bufferOnly: false);
-        if (deliverable.Count > 0)
-        {
-            RecreationalSubstanceCandidate selected = deliverable[0];
-            string destinationId = GetRecreationalSubstanceDestinationId(
-                facilityId,
-                selected.Substance.Id);
-            if (HasRoutedItem(destinationId, selected.Substance.Id))
-            {
-                result = CharacterConsumablesSubstanceResult.Failed(
-                    CharacterConsumablesFailureCode.DeliveryPending,
-                    characterId.Value,
-                    facilityId.Value,
-                    selected.Substance.Id.Value);
-                return false;
-            }
-            if (inventory.TryRequestDelivery(
-                    selected.Substance.Id,
-                    1,
-                    facility.Position,
-                    destinationId,
-                    out int requested,
-                    out _) && requested > 0)
-            {
-                workforce?.RequestOneHaulerToReplan(characterId);
-                result = CharacterConsumablesSubstanceResult.Failed(
-                    CharacterConsumablesFailureCode.DeliveryPending,
-                    characterId.Value,
-                    facilityId.Value,
-                    selected.Substance.Id.Value);
-                return false;
-            }
-        }
-
-        bool hasRecreationalStock = false;
-        bool hasPolicyAllowedRecreationalStock = false;
-        foreach (CharacterConsumablesStackSnapshot stack in inventory.GetAllStacks())
-        {
-            if (stack.AvailableQuantity <= 0 || stack.Forbidden
-                || !inventory.TryResolveSubstance(
-                    stack.ItemId,
-                    out CharacterConsumablesSubstanceDefinitionSnapshot substance)
-                || substance.Definition.UseClass != SubstanceUseClass.Recreational)
-            {
-                continue;
-            }
-            hasRecreationalStock = true;
-            CharacterSubstancePolicyState policy = GetSubstancePolicy(
-                actor.Id,
-                substance.Definition.SubstanceId);
-            if (CharacterConsumablesPolicyRules.AllowsSubstance(
-                    policy,
-                    medicalContext: false,
-                    combatContext: false,
-                    actor.Mood))
-            {
-                hasPolicyAllowedRecreationalStock = true;
-                break;
-            }
-        }
-        result = CharacterConsumablesSubstanceResult.Failed(
-            hasRecreationalStock && !hasPolicyAllowedRecreationalStock
-                ? CharacterConsumablesFailureCode.PolicyForbidden
-                : CharacterConsumablesFailureCode.ItemStackMissing,
-            characterId.Value,
-            facilityId.Value);
-        return false;
-    }
+        out CharacterConsumablesSubstanceResult result) =>
+        substances.TryConsumeRecreationalSubstance(characterId, facilityId, out result);
 
     public bool TryConsumeSubstance(
         ConsumeSubstanceByIdCommand command,
         out CharacterConsumablesSubstanceResult result) =>
-        TryConsumeSubstance(command, automaticOperation: false, out result);
-
-    private bool TryConsumeSubstance(
-        ConsumeSubstanceByIdCommand command,
-        bool automaticOperation,
-        out CharacterConsumablesSubstanceResult result,
-        string allowedFacilityDestinationId = null)
-    {
-        if (!command.IsValid
-            || !IsAllowedOperationId(command.OperationId, automaticOperation))
-        {
-            result = CharacterConsumablesSubstanceResult.Failed(
-                CharacterConsumablesFailureCode.InvalidCommand,
-                command.OperationId.Value);
-            return false;
-        }
-        if (ReadState.CompletedOperations.ContainsKey(command.OperationId)
-            || ReadState.MealFailures.ContainsKey(command.OperationId))
-        {
-            result = CharacterConsumablesSubstanceResult.Failed(
-                CharacterConsumablesFailureCode.AlreadyProcessed,
-                command.OperationId.Value);
-            return false;
-        }
-        if (ReadState.ActiveSubstanceUsePlans.TryGetValue(
-                command.OperationId,
-                out CharacterSubstanceUsePlan pendingPlan))
-        {
-            TryFinalizeSubstanceUsePlan(command.OperationId, pendingPlan);
-            result = CharacterConsumablesSubstanceResult.Failed(
-                ReadState.CompletedOperations.ContainsKey(command.OperationId)
-                    ? CharacterConsumablesFailureCode.AlreadyProcessed
-                    : CharacterConsumablesFailureCode.DeliveryPending,
-                command.OperationId.Value);
-            return false;
-        }
-        if (!TryGetActor(command.CharacterId, out CharacterConsumablesActorSnapshot actor))
-        {
-            result = CharacterConsumablesSubstanceResult.Failed(
-                CharacterConsumablesFailureCode.CharacterMissing,
-                command.CharacterId.Value);
-            return false;
-        }
-        if (!inventory.TryResolveSubstance(
-                command.ItemDefinitionId,
-                out CharacterConsumablesSubstanceDefinitionSnapshot substance))
-        {
-            result = CharacterConsumablesSubstanceResult.Failed(
-                CharacterConsumablesFailureCode.ItemDefinitionMissing,
-                command.ItemDefinitionId.Value);
-            return false;
-        }
-
-        CharacterSubstancePolicyState policy = GetSubstancePolicy(
-            actor.Id,
-            substance.Definition.SubstanceId);
-        if (!CharacterConsumablesPolicyRules.AllowsSubstance(
-                policy,
-                command.MedicalContext,
-                command.CombatContext,
-                actor.Mood))
-        {
-            result = FailedSubstance(
-                CharacterConsumablesFailureCode.PolicyForbidden,
-                substance,
-                command.ItemStackId,
-                substance.Id.Value,
-                policy.mode.ToString());
-            return false;
-        }
-        CharacterConsumablesStackSnapshot stack = FindStack(command.ItemStackId);
-        bool availableToCharacter = IsSubstanceStackAvailableToCharacter(
-            stack,
-            command.CharacterId);
-        bool availableAtAuthorizedFacility =
-            !string.IsNullOrWhiteSpace(allowedFacilityDestinationId)
-            && stack.StackId.IsValid
-            && stack.AvailableQuantity > 0
-            && !stack.Forbidden
-            && stack.State == CharacterConsumablesStackState.FacilityBuffer
-            && string.Equals(
-                stack.DestinationId,
-                allowedFacilityDestinationId,
-                StringComparison.Ordinal);
-        if ((!availableToCharacter && !availableAtAuthorizedFacility)
-            || !stack.ItemId.Equals(substance.Id))
-        {
-            result = FailedSubstance(
-                CharacterConsumablesFailureCode.ItemStackMissing,
-                substance,
-                command.ItemStackId,
-                command.ItemStackId.Value);
-            return false;
-        }
-        CharacterSubstanceState currentState = GetSubstanceState(
-            command.CharacterId,
-            substance.Id.Value);
-        SubstanceDefinitionView definition = substance.Definition;
-        float toleranceRatio = currentState.tolerance / 100f;
-        bool wasAddicted = currentState.addicted;
-        bool overdosed = random.Chance(
-            Mathf.Clamp01(definition.OverdoseChance * (1f + toleranceRatio)));
-        float resolvedTolerance = Mathf.Clamp(
-            currentState.tolerance + definition.ToleranceGain,
-            0f,
-            100f);
-        float resolvedAddiction = Mathf.Clamp(
-            currentState.addiction
-                + definition.AddictionChance * 100f * (0.65f + toleranceRatio),
-            0f,
-            100f);
-        bool resolvedAddicted = currentState.addicted || resolvedAddiction >= 60f
-            || random.Chance(definition.AddictionChance * 0.2f);
-        float resolvedScheduledCooldown = policy.mode == SubstancePolicyMode.Scheduled
-            ? GameHourSeconds * 24f
-            : currentState.scheduledCooldownSeconds;
-        if (!inventory.TryCommitSubstanceConsumptionPending(
-                command.OperationId,
-                command.CharacterId,
-                stack.StackId,
-                out CharacterSubstancePhysicalCommitSnapshot physicalCommit,
-                out string physicalFailure))
-        {
-            result = FailedSubstance(
-                CharacterConsumablesFailureCode.PhysicalConsumptionFailed,
-                substance,
-                command.ItemStackId,
-                command.ItemStackId.Value,
-                physicalFailure);
-            return false;
-        }
-
-        CharacterSubstanceUsePlan plan = new()
-        {
-            operationId = command.OperationId.Value,
-            characterId = command.CharacterId.Value,
-            itemDefinitionId = substance.Id.Value,
-            sourceStackId = stack.StackId.Value,
-            phase = CharacterSubstanceUsePlanPhase.ItemCommitted,
-            automaticOperation = automaticOperation,
-            physicalCommitOperationId = physicalCommit.OperationId,
-            physicalCommitReasonCode = physicalCommit.ReasonCode,
-            physicalCommitId = physicalCommit.CommitId,
-            physicalCommitSourceStackIds = physicalCommit.SourceStackIds
-                .OrderBy(value => value, StringComparer.Ordinal)
-                .ToList(),
-            physicalCommitQuantity = physicalCommit.Quantity,
-            physicalCommitInputMassGrams = physicalCommit.InputMassGrams,
-            resolvedTolerance = resolvedTolerance,
-            resolvedAddiction = resolvedAddiction,
-            resolvedWithdrawal = 0f,
-            resolvedActiveSeconds = Mathf.Max(1f, definition.DurationSeconds),
-            resolvedSecondsSinceLastDose = 0f,
-            resolvedScheduledCooldownSeconds = resolvedScheduledCooldown,
-            effectToleranceRatio = toleranceRatio,
-            resolvedAddicted = resolvedAddicted,
-            resolvedOverdosed = overdosed,
-            becameAddicted = !wasAddicted && resolvedAddicted,
-            resolvedEffectMood = definition.MoodEffect
-                * (1f - toleranceRatio * 0.55f),
-            resolvedOverdoseDamage = overdosed
-                ? Mathf.Max(4f, actor.MaxHealth * 0.12f)
-                : 0f
-        };
-        WriteState.ActiveSubstanceUsePlans.Add(command.OperationId, plan);
-        TryFinalizeSubstanceUsePlan(command.OperationId, plan);
-        if (!WriteState.CompletedOperations.TryGetValue(command.OperationId, out var completedSubstance)
-            || string.IsNullOrWhiteSpace(completedSubstance.outcomeResultKey))
-        {
-            result = CharacterConsumablesSubstanceResult.Failed(
-                CharacterConsumablesFailureCode.DeliveryPending,
-                command.OperationId.Value,
-                "substance-effects-publication-pending");
-            return false;
-        }
-        result = new CharacterConsumablesSubstanceResult(
-            true,
-            CharacterConsumablesFailureCode.None,
-            substance,
-            command.ItemStackId,
-            resolvedTolerance,
-            resolvedAddiction,
-            !wasAddicted && resolvedAddicted,
-            overdosed,
-            WriteState.CompletedOperations[command.OperationId]
-                .outcomeResultKey);
-        return true;
-    }
-
-    private void AdvanceSubstanceUsePlans()
-    {
-        KeyValuePair<ConsumableOperationId, CharacterSubstanceUsePlan>[] active =
-            WriteState.ActiveSubstanceUsePlans
-                .OrderBy(pair => pair.Key.Value, StringComparer.Ordinal)
-                .ToArray();
-        foreach (KeyValuePair<ConsumableOperationId, CharacterSubstanceUsePlan> pair
-                 in active)
-        {
-            TryFinalizeSubstanceUsePlan(pair.Key, pair.Value);
-        }
-    }
-
-    private bool TryFinalizeSubstanceUsePlan(
-        ConsumableOperationId operationId,
-        CharacterSubstanceUsePlan plan)
-    {
-        if (!operationId.IsValid
-            || plan == null
-            || !string.Equals(
-                plan.operationId,
-                operationId.Value,
-                StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        CharacterId characterId = new(plan.characterId);
-        ConsumableItemDefinitionId itemId = new(plan.itemDefinitionId);
-        if (plan.phase == CharacterSubstanceUsePlanPhase.ItemCommitted)
-        {
-            if (!TryGetActor(characterId, out CharacterConsumablesActorSnapshot actor)
-                || !actor.Active
-                || !inventory.TryResolveSubstance(
-                    itemId,
-                    out CharacterConsumablesSubstanceDefinitionSnapshot substance))
-            {
-                return false;
-            }
-
-            CharacterConsumablesAggregateState readState = ReadState;
-            if (readState.CompletedOperations.ContainsKey(operationId))
-            {
-                WriteState.ActiveSubstanceUsePlans[operationId].phase =
-                    CharacterSubstanceUsePlanPhase.EffectsPublished;
-            }
-            else
-            {
-                CharacterConsumablesAggregateState rollback = readState.Clone();
-                CharacterConsumablesAggregateState writableState = WriteState;
-                if (!writableState.ActiveSubstanceUsePlans.TryGetValue(
-                        operationId,
-                        out CharacterSubstanceUsePlan writablePlan)
-                    || writablePlan == null)
-                {
-                    return false;
-                }
-                CharacterSubstanceState stateForItem = GetWritableSubstanceState(
-                    characterId,
-                    itemId);
-                stateForItem.tolerance = writablePlan.resolvedTolerance;
-                stateForItem.addiction = writablePlan.resolvedAddiction;
-                stateForItem.withdrawal = writablePlan.resolvedWithdrawal;
-                stateForItem.activeSeconds = writablePlan.resolvedActiveSeconds;
-                stateForItem.secondsSinceLastDose =
-                    writablePlan.resolvedSecondsSinceLastDose;
-                stateForItem.scheduledCooldownSeconds =
-                    writablePlan.resolvedScheduledCooldownSeconds;
-                stateForItem.addicted = writablePlan.resolvedAddicted;
-                stateForItem.overdosed = writablePlan.resolvedOverdosed;
-                if (writablePlan.resolvedOverdosed)
-                {
-                    AddToxicity(
-                        characterId,
-                        CharacterToxicityPolicy.OverdoseGain);
-                }
-                if (!TryApplySubstanceEffects(
-                        operationId,
-                        characterId,
-                        substance,
-                        writablePlan,
-                        out string effectFailure))
-                {
-                    aggregateRootStore.Replace(rollback);
-                    Debug.LogError(
-                        "character-consumables-substance-effects-failed:"
-                        + effectFailure);
-                    return false;
-                }
-                writablePlan.phase =
-                    CharacterSubstanceUsePlanPhase.EffectsApplied;
-            }
-        }
-
-        if (plan.phase == CharacterSubstanceUsePlanPhase.EffectsApplied)
-        {
-            if (!TryGetConsumptionFactDay(out int day)) return false;
-            var fact = new CharacterSubstanceConsumedFact(operationId, characterId, day, itemId,
-                plan.resolvedTolerance, plan.resolvedAddiction, plan.resolvedOverdosed);
-            if (!TryReserveConsumptionFact(fact, out var lease)) return false;
-            CharacterConsumablesAggregateState rollback = ReadState.Clone();
-            bool publicationStarted = false;
-            try
-            {
-                var writable = WriteState.ActiveSubstanceUsePlans[operationId];
-                writable.factAbsoluteDay = day;
-                writable.publicationKey = lease.PublicationKey;
-                writable.publicationPending = true;
-                RecordCompletedOperation(operationId, characterId, itemId,
-                    new ItemStackId(plan.sourceStackId), false);
-                writable.phase = CharacterSubstanceUsePlanPhase.EffectsPublished;
-                publicationStarted = true;
-                if (!PublishConsumptionFacts(new[] { DomainFactEmission.Create(lease, fact) }, rollback))
-                    return false;
-                WriteState.CompletedOperations[operationId].outcomeResultKey = writable.publicationKey;
-                writable.publicationPending = false;
-            }
-            catch
-            {
-                if (!publicationStarted)
-                { domainFacts.Cancel(lease); aggregateRootStore.Replace(rollback); }
-                throw;
-            }
-        }
-
-        CharacterConsumablesAggregateState state = WriteState;
-        if (!state.ActiveSubstanceUsePlans.TryGetValue(
-                operationId,
-                out CharacterSubstanceUsePlan activePlan)
-            || activePlan == null)
-        {
-            return false;
-        }
-        if (activePlan.phase != CharacterSubstanceUsePlanPhase.EffectsPublished)
-        {
-            return false;
-        }
-        if (activePlan.publicationPending)
-        {
-            var fact = new CharacterSubstanceConsumedFact(operationId, characterId,
-                activePlan.factAbsoluteDay, itemId, activePlan.resolvedTolerance,
-                activePlan.resolvedAddiction, activePlan.resolvedOverdosed);
-            if (!ReplayConsumptionFacts(new[] { DomainFactReplay.Create(activePlan.publicationKey, fact) }))
-                return false;
-            state.CompletedOperations[operationId].outcomeResultKey = activePlan.publicationKey;
-            activePlan.publicationPending = false;
-        }
-        if (!inventory.TryAcknowledgeSubstanceConsumption(
-                characterId,
-                itemId,
-                activePlan.physicalCommitQuantity,
-                activePlan.physicalCommitId,
-                out _))
-        {
-            return false;
-        }
-        state.ActiveSubstanceUsePlans.Remove(operationId);
-        return true;
-    }
-
-    private void AdvanceDetoxTreatmentPlans()
-    {
-        KeyValuePair<ConsumableOperationId, CharacterDetoxTreatmentPlan>[] active =
-            WriteState.ActiveDetoxTreatmentPlans
-                .OrderBy(pair => pair.Key.Value, StringComparer.Ordinal)
-                .ToArray();
-        foreach (KeyValuePair<ConsumableOperationId, CharacterDetoxTreatmentPlan> pair
-                 in active)
-        {
-            TryFinalizeDetoxTreatmentPlan(pair.Key, pair.Value);
-        }
-    }
-
-    private bool TryFinalizeDetoxTreatmentPlan(
-        ConsumableOperationId operationId,
-        CharacterDetoxTreatmentPlan plan)
-    {
-        if (!operationId.IsValid
-            || plan == null
-            || !string.Equals(
-                plan.operationId,
-                operationId.Value,
-                StringComparison.Ordinal))
-        {
-            return false;
-        }
-        CharacterId characterId = new(plan.characterId);
-        ConsumableItemDefinitionId medicineId = new(plan.itemDefinitionId);
-        if (plan.phase == CharacterDetoxTreatmentPlanPhase.ItemCommitted)
-        {
-            if (!TryGetActor(characterId, out CharacterConsumablesActorSnapshot actor)
-                || !actor.Active
-                || !inventory.TryResolveDetoxMedicine(
-                    medicineId,
-                    out CharacterDetoxMedicineDefinitionSnapshot medicine)
-                || !medicine.DetoxReduction.Equals(plan.detoxReduction))
-            {
-                return false;
-            }
-            CharacterConsumablesAggregateState readState = ReadState;
-            if (!readState.CompletedOperations.ContainsKey(operationId))
-            {
-                if (!TryGetConsumptionFactDay(out int day)) return false;
-                float reduction = Mathf.Min(GetToxicity(characterId), plan.detoxReduction);
-                var fact = new CharacterDetoxAppliedFact(operationId, characterId, day, medicineId, reduction);
-                if (!TryReserveConsumptionFact(fact, out var lease)) return false;
-                CharacterConsumablesAggregateState rollback = readState.Clone();
-                bool publicationStarted = false;
-                try
-                {
-                    var writable = WriteState.ActiveDetoxTreatmentPlans[operationId];
-                    writable.factAbsoluteDay = day;
-                    writable.publicationKey = lease.PublicationKey;
-                    writable.publicationPending = true;
-                    float before = GetToxicity(characterId);
-                    AddToxicity(characterId, -writable.detoxReduction);
-                    writable.appliedReduction = before - GetToxicity(characterId);
-                    if (!writable.appliedReduction.Equals(reduction))
-                        throw new InvalidOperationException("Detox effect changed after reservation.");
-                    RecordCompletedOperation(operationId, characterId, medicineId,
-                        new ItemStackId(writable.sourceStackId), meal: false, detox: true,
-                        facilityId: new BuildingInstanceId(writable.facilityInstanceId),
-                        appliedEffect: writable.appliedReduction);
-                    writable.phase = CharacterDetoxTreatmentPlanPhase.EffectsPublished;
-                    publicationStarted = true;
-                    if (!PublishConsumptionFacts(new[] { DomainFactEmission.Create(lease, fact) }, rollback))
-                        return false;
-                    WriteState.CompletedOperations[operationId].outcomeResultKey = writable.publicationKey;
-                    writable.publicationPending = false;
-                }
-                catch
-                {
-                    if (!publicationStarted)
-                    { domainFacts.Cancel(lease); aggregateRootStore.Replace(rollback); }
-                    throw;
-                }
-            }
-        }
-        CharacterConsumablesAggregateState activeState = WriteState;
-        if (!activeState.ActiveDetoxTreatmentPlans.TryGetValue(
-                operationId,
-                out CharacterDetoxTreatmentPlan activePlan)
-            || activePlan == null)
-        {
-            return false;
-        }
-        if (activePlan.phase == CharacterDetoxTreatmentPlanPhase.EffectsPublished)
-        {
-            if (activePlan.publicationPending)
-            {
-                var fact = new CharacterDetoxAppliedFact(operationId, characterId,
-                    activePlan.factAbsoluteDay, medicineId, activePlan.appliedReduction);
-                if (!ReplayConsumptionFacts(new[] { DomainFactReplay.Create(activePlan.publicationKey, fact) }))
-                    return false;
-                activeState.CompletedOperations[operationId].outcomeResultKey = activePlan.publicationKey;
-                activePlan.publicationPending = false;
-            }
-            if (!inventory.TryAcknowledgeDetoxConsumption(
-                    characterId,
-                    medicineId,
-                    activePlan.physicalCommitQuantity,
-                    activePlan.physicalCommitId,
-                    out _))
-            {
-                return false;
-            }
-            activePlan.phase =
-                CharacterDetoxTreatmentPlanPhase.PhysicalAcknowledged;
-        }
-        return activePlan.phase
-            == CharacterDetoxTreatmentPlanPhase.PhysicalAcknowledged;
-    }
+        substances.TryConsumeSubstance(command, out result);
 
     public bool TryGetAutomaticUseRequest(
         CharacterId characterId,
-        out CharacterConsumablesUseRequest request)
-    {
-        request = default;
-        if (!TryGetActor(characterId, out CharacterConsumablesActorSnapshot actor)
-            || !actor.Active)
-        {
-            return false;
-        }
-        bool medical = actor.Health < actor.MaxHealth * MedicalUseHealthRatio;
-        int scheduleHour = GetCurrentScheduleHour();
-        CharacterConsumablesUseRequest best = default;
-        foreach (CharacterConsumablesSubstanceDefinitionSnapshot substance in inventory.GetSubstances())
-        {
-            if (!FindAvailableSubstanceStack(
-                    characterId,
-                    substance.Id).StackId.IsValid)
-            {
-                continue;
-            }
-            CharacterSubstancePolicyState policy = GetSubstancePolicy(
-                actor.Id,
-                substance.Definition.SubstanceId);
-            CharacterSubstanceState state = GetSubstanceState(
-                actor.Id,
-                substance.Definition.SubstanceId);
-            if (state.activeSeconds > 0.01f)
-            {
-                continue;
-            }
-            (float urgency, string reason) = GetUseUrgency(
-                actor,
-                substance,
-                policy,
-                state,
-                medical,
-                scheduleHour);
-            if (urgency > best.Urgency)
-            {
-                best = new CharacterConsumablesUseRequest(
-                    substance,
-                    urgency,
-                    medical,
-                    actor.CombatStance,
-                    reason);
-            }
-        }
-        request = best;
-        return request.IsValid;
-    }
+        out CharacterConsumablesUseRequest request) =>
+        substances.TryGetAutomaticUseRequest(characterId, out request);
 
     public float GetWorkSpeedMultiplier(CharacterId characterId) =>
-        GetEffectMultiplier(characterId, true);
+        substances.GetWorkSpeedMultiplier(characterId);
     public float GetCombatMultiplier(CharacterId characterId) =>
-        GetEffectMultiplier(characterId, false);
+        substances.GetCombatMultiplier(characterId);
     public float GetFatigueAccumulationMultiplier(CharacterId characterId) =>
-        (float)Math.Clamp(
-            1d - GetActiveSpecificEffectTotal(
-                characterId,
-                definition => definition.FatigueAccumulationReduction),
-            0d,
-            1d);
+        substances.GetFatigueAccumulationMultiplier(characterId);
     public float GetResearchSpeedMultiplier(CharacterId characterId) =>
-        CharacterSubstanceEffectMultiplierAuthority.Resolve(
-            GetActiveSpecificEffectTotal(
-                characterId,
-                definition => definition.ResearchSpeedEffect),
-            0d);
+        substances.GetResearchSpeedMultiplier(characterId);
     public bool SuppressesPerceivedPain(CharacterId characterId) =>
-        HasActiveSpecificEffect(
-            characterId,
-            definition => definition.SuppressesPerceivedPain);
+        substances.SuppressesPerceivedPain(characterId);
 
     public void Tick()
     {
         if (!ResumePendingPolicyFact(out string policyFailure))
             throw new InvalidOperationException("Consumables policy publication pending: " + policyFailure);
-        AdvanceSubstanceUsePlans();
-        AdvanceDetoxTreatmentPlans();
+        substances.AdvancePendingPlans();
         AdvanceMealPlans();
         PruneExpiredDeliveries(forceExpirySweep: true);
         float deltaTime = Mathf.Max(0f, clock.DeltaTime);
@@ -2680,39 +1582,7 @@ public sealed class CharacterConsumablesRuntime :
         {
             PrimeHungryActorMealDelivery();
         }
-        foreach (CharacterSubstanceState state in WriteState.SubstanceStates.Values)
-        {
-            state.activeSeconds = Mathf.Max(0f, state.activeSeconds - deltaTime);
-            state.secondsSinceLastDose += deltaTime;
-            state.scheduledCooldownSeconds = Mathf.Max(
-                0f,
-                state.scheduledCooldownSeconds - deltaTime);
-            if (state.activeSeconds <= 0f)
-            {
-                state.tolerance = Mathf.Max(0f, state.tolerance - deltaTime * 0.004f);
-            }
-            if (!state.addicted || state.secondsSinceLastDose < GameHourSeconds
-                || !inventory.TryResolveSubstance(
-                    state.ItemDefinitionId,
-                    out CharacterConsumablesSubstanceDefinitionSnapshot substance))
-            {
-                continue;
-            }
-            state.withdrawal = Mathf.Clamp(
-                state.withdrawal
-                + substance.Definition.WithdrawalPerHour * (deltaTime / GameHourSeconds),
-                0f,
-                100f);
-            if (state.withdrawal >= 20f && world.TryGetActor(state.CharacterId, out _))
-            {
-                world.ApplyMood(
-                    state.CharacterId,
-                    $"substance:withdrawal:{substance.Id.Value}",
-                    $"{substance.Definition.DisplayName} withdrawal",
-                    -Mathf.Lerp(3f, 14f, state.withdrawal / 100f),
-                    2f);
-            }
-        }
+        substances.AdvanceTimedEffects(deltaTime);
     }
 
     private void PrimeHungryActorMealDelivery()
@@ -2846,29 +1716,9 @@ public sealed class CharacterConsumablesRuntime :
                 || !persistent.Contains(pair.Value.CharacterId))
             .Select(pair => pair.Key)
             .ToArray();
-        CharacterId[] orphanedDietPolicies = snapshot.DietPolicies.Keys
-            .Where(id => !persistent.Contains(id))
-            .ToArray();
-        CharacterId[] orphanedQualityPolicies = snapshot.MealQualityPolicies.Keys
-            .Where(id => !persistent.Contains(id))
-            .ToArray();
-        CharacterSubstanceKey[] orphanedSubstancePolicies =
-            snapshot.SubstancePolicies.Keys
-                .Where(key => !persistent.Contains(key.CharacterId))
-                .ToArray();
-        CharacterSubstanceKey[] orphanedSubstanceStates = snapshot.SubstanceStates.Keys
-            .Where(key => !persistent.Contains(key.CharacterId))
-            .ToArray();
-        CharacterId[] orphanedToxicityStates = snapshot.ToxicityStates.Keys
-            .Where(id => !persistent.Contains(id))
-            .ToArray();
-        ConsumableOperationId[] orphanedCompletedOperations =
-            snapshot.CompletedOperations
-                .Where(pair => pair.Value == null
-                    || !persistent.Contains(pair.Value.CharacterId)
-                        && !snapshot.ActiveMealPlans.ContainsKey(pair.Key))
-                .Select(pair => pair.Key)
-                .ToArray();
+        policies.ReconcilePersistentActors(persistent);
+        substances.ReconcilePersistentActors(persistent);
+        operations.ReconcilePersistentActors(persistent, snapshot.ActiveMealPlans.Keys.ToArray());
         CharacterId[] orphanedCooldowns = snapshot.MealFollowupCooldownUntil.Keys
             .Where(id => !persistent.Contains(id))
             .ToArray();
@@ -2878,12 +1728,6 @@ public sealed class CharacterConsumablesRuntime :
             .Select(pair => pair.Key).ToArray();
 
         if (orphanedDeliveries.Length == 0
-            && orphanedDietPolicies.Length == 0
-            && orphanedQualityPolicies.Length == 0
-            && orphanedSubstancePolicies.Length == 0
-            && orphanedSubstanceStates.Length == 0
-            && orphanedToxicityStates.Length == 0
-            && orphanedCompletedOperations.Length == 0
             && orphanedMealFailures.Length == 0
             && orphanedCooldowns.Length == 0)
         {
@@ -2902,18 +1746,6 @@ public sealed class CharacterConsumablesRuntime :
                     CharacterConsumablesStateRules.Route(delivery));
             }
         }
-        foreach (CharacterId id in orphanedDietPolicies)
-            state.DietPolicies.Remove(id);
-        foreach (CharacterId id in orphanedQualityPolicies)
-            state.MealQualityPolicies.Remove(id);
-        foreach (CharacterSubstanceKey key in orphanedSubstancePolicies)
-            state.SubstancePolicies.Remove(key);
-        foreach (CharacterSubstanceKey key in orphanedSubstanceStates)
-            state.SubstanceStates.Remove(key);
-        foreach (CharacterId id in orphanedToxicityStates)
-            state.ToxicityStates.Remove(id);
-        foreach (ConsumableOperationId id in orphanedCompletedOperations)
-            state.CompletedOperations.Remove(id);
         foreach (ConsumableOperationId id in orphanedMealFailures)
             state.MealFailures.Remove(id);
         foreach (CharacterId id in orphanedCooldowns)
@@ -3094,74 +1926,6 @@ public sealed class CharacterConsumablesRuntime :
             plan.effectsSkippedReason);
     }
 
-    private bool TryApplySubstanceEffects(
-        ConsumableOperationId operationId,
-        CharacterId characterId,
-        CharacterConsumablesSubstanceDefinitionSnapshot substance,
-        CharacterSubstanceUsePlan plan,
-        out string failureReason)
-    {
-        SubstanceDefinitionView definition = substance.Definition;
-        CharacterSubstanceEffectCommand effect = new(
-            operationId,
-            characterId,
-            substance.Id.Value,
-            definition.DisplayName,
-            plan.resolvedEffectMood,
-            definition.DurationSeconds,
-            plan.resolvedTolerance,
-            plan.resolvedOverdosed,
-            plan.resolvedOverdoseDamage);
-        if (world is ICharacterConsumablesEffectTransactionPort transaction)
-        {
-            return transaction.TryApplySubstanceEffects(
-                effect,
-                out failureReason);
-        }
-        try
-        {
-            if (!Mathf.Approximately(plan.resolvedEffectMood, 0f))
-            {
-                world.ApplyMood(
-                    characterId,
-                    $"substance:{substance.Id.Value}",
-                    definition.DisplayName,
-                    plan.resolvedEffectMood,
-                    definition.DurationSeconds);
-            }
-            world.RecordNeedNarrative(
-                characterId,
-                $"substance:{substance.Id.Value}",
-                substance.Id.Value,
-                plan.resolvedOverdosed ? "overdose" : "consumed",
-                plan.resolvedTolerance);
-            if (plan.resolvedOverdosed)
-            {
-                world.ApplyMood(
-                    characterId,
-                    $"substance:overdose:{substance.Id.Value}",
-                    $"{definition.DisplayName} overdose",
-                    -12f,
-                    300f);
-                world.ApplyDamage(
-                    characterId,
-                    plan.resolvedOverdoseDamage,
-                    $"{definition.DisplayName} overdose");
-            }
-            failureReason = string.Empty;
-            return true;
-        }
-        catch (Exception exception) when (
-            exception is not OutOfMemoryException
-            && exception is not StackOverflowException
-            && exception is not AccessViolationException)
-        {
-            failureReason = "substance-effect-transaction-unavailable:"
-                + exception.GetType().Name;
-            return false;
-        }
-    }
-
     private bool TryRequestMealDelivery(
         CharacterConsumablesActorSnapshot actor,
         BuildingInstanceId facilityId,
@@ -3291,7 +2055,7 @@ public sealed class CharacterConsumablesRuntime :
             }
             if (meal.ServingRole == MealServingRole.EmergencyOnly && !emergency)
                 continue;
-            if (!IsWithinMealQualityLimit(actor.Id, meal.QualityBand))
+            if (!policies.IsWithinMealQualityLimit(actor.Id, meal.QualityBand))
                 continue;
             float actorToFacility = ManhattanSeconds(
                 actor.Position,
@@ -3431,332 +2195,6 @@ public sealed class CharacterConsumablesRuntime :
     private static float ManhattanSeconds(Vector2Int from, Vector2Int to) =>
         Mathf.Abs(from.x - to.x) + Mathf.Abs(from.y - to.y);
 
-    private readonly struct DetoxMedicineCandidate
-    {
-        internal DetoxMedicineCandidate(
-            CharacterDetoxMedicineDefinitionSnapshot medicine,
-            CharacterConsumablesStackSnapshot stack)
-        {
-            Medicine = medicine;
-            Stack = stack;
-        }
-
-        internal CharacterDetoxMedicineDefinitionSnapshot Medicine { get; }
-        internal CharacterConsumablesStackSnapshot Stack { get; }
-    }
-
-    private DetoxMedicineCandidate FindAvailableDetoxMedicine(
-        BuildingInstanceId facilityId)
-    {
-        IReadOnlyDictionary<ConsumableItemDefinitionId,
-            CharacterDetoxMedicineDefinitionSnapshot> medicines =
-            inventory.GetDetoxMedicines()
-                .ToDictionary(value => value.Id);
-        foreach (CharacterConsumablesStackSnapshot stack in inventory.GetAllStacks()
-                     .Where(value => value.StackId.IsValid
-                         && value.AvailableQuantity > 0
-                         && !value.Forbidden
-                         && value.State ==
-                            CharacterConsumablesStackState.FacilityBuffer)
-                     .OrderBy(value => value.ItemId.Value, StringComparer.Ordinal)
-                     .ThenBy(value => value.StackId.Value, StringComparer.Ordinal))
-        {
-            if (medicines.TryGetValue(
-                    stack.ItemId,
-                    out CharacterDetoxMedicineDefinitionSnapshot medicine)
-                && string.Equals(
-                    stack.DestinationId,
-                    CharacterConsumablesInputDestinationIdentity.Build(
-                        CharacterConsumablesInputKind.MedicalTreatment,
-                        facilityId,
-                        medicine.Id),
-                    StringComparison.Ordinal))
-            {
-                return new DetoxMedicineCandidate(medicine, stack);
-            }
-        }
-        return default;
-    }
-
-    private bool HasPotentialDetoxMedicineSupply()
-    {
-        HashSet<ConsumableItemDefinitionId> medicines = inventory
-            .GetDetoxMedicines()
-            .Select(value => value.Id)
-            .ToHashSet();
-        return medicines.Count > 0
-            && inventory.GetAllStacks().Any(stack =>
-                stack.StackId.IsValid
-                && stack.Quantity > 0
-                && !stack.Forbidden
-                && medicines.Contains(stack.ItemId)
-                && (((stack.State == CharacterConsumablesStackState.Stored
-                            || stack.State ==
-                                CharacterConsumablesStackState.Loose)
-                        && stack.AvailableQuantity > 0)
-                    || CharacterConsumablesInputDestinationIdentity
-                        .IsDestinationForKind(
-                            stack.DestinationId,
-                            CharacterConsumablesInputKind.MedicalTreatment)));
-    }
-
-    private bool TryEnsureDetoxMedicineDelivery(
-        CharacterId characterId,
-        BuildingInstanceId facilityId,
-        out string detail)
-    {
-        detail = string.Empty;
-        if (!world.TryGetFacility(
-                facilityId,
-                out CharacterConsumablesFacilitySnapshot facility))
-        {
-            detail = "detox-treatment-facility-missing:" + facilityId.Value;
-            return false;
-        }
-        CharacterDetoxMedicineDefinitionSnapshot[] medicines = inventory
-            .GetDetoxMedicines()
-            .OrderBy(value => value.Id.Value, StringComparer.Ordinal)
-            .ToArray();
-        if (medicines.Length == 0)
-        {
-            detail = "detox-medicine-undefined";
-            return false;
-        }
-        IReadOnlyList<CharacterConsumablesStackSnapshot> stacks =
-            inventory.GetAllStacks();
-        foreach (CharacterDetoxMedicineDefinitionSnapshot medicine in medicines)
-        {
-            string destinationId =
-                CharacterConsumablesInputDestinationIdentity.Build(
-                    CharacterConsumablesInputKind.MedicalTreatment,
-                    facilityId,
-                    medicine.Id);
-            if (stacks.Any(stack => stack.StackId.IsValid
-                && stack.Quantity > 0
-                && !stack.Forbidden
-                && stack.ItemId.Equals(medicine.Id)
-                && string.Equals(
-                    stack.DestinationId,
-                    destinationId,
-                    StringComparison.Ordinal)))
-            {
-                detail = "detox-medicine-delivery-in-transit:"
-                    + destinationId;
-                return false;
-            }
-        }
-        string lastFailure = string.Empty;
-        foreach (CharacterDetoxMedicineDefinitionSnapshot medicine in medicines)
-        {
-            string destinationId =
-                CharacterConsumablesInputDestinationIdentity.Build(
-                    CharacterConsumablesInputKind.MedicalTreatment,
-                    facilityId,
-                    medicine.Id);
-            if (!inventory.TryRequestDelivery(
-                    medicine.Id,
-                    1,
-                    facility.Position,
-                    destinationId,
-                    out int requested,
-                    out string failureReason)
-                || requested != 1)
-            {
-                if (!string.IsNullOrWhiteSpace(failureReason))
-                {
-                    lastFailure = failureReason.Trim();
-                }
-                continue;
-            }
-            workforce?.RequestOneHaulerToReplan(characterId);
-            detail = "detox-medicine-delivery-requested:" + destinationId;
-            return false;
-        }
-        detail = "detox-medicine-stock-missing"
-            + (lastFailure.Length > 0 ? ":" + lastFailure : string.Empty);
-        return false;
-    }
-
-    private float GetToxicity(CharacterId characterId) =>
-        characterId.IsValid
-        && ReadState.ToxicityStates.TryGetValue(
-            characterId,
-            out CharacterToxicityState state)
-            ? CharacterToxicityPolicy.Clamp(state.toxicity)
-            : 0f;
-
-    private void AddToxicity(CharacterId characterId, float delta)
-    {
-        if (!characterId.IsValid
-            || float.IsNaN(delta)
-            || float.IsInfinity(delta))
-        {
-            throw new ArgumentOutOfRangeException(nameof(delta));
-        }
-        if (!WriteState.ToxicityStates.TryGetValue(
-                characterId,
-                out CharacterToxicityState state))
-        {
-            state = new CharacterToxicityState
-            {
-                characterId = characterId.Value
-            };
-            WriteState.ToxicityStates.Add(characterId, state);
-        }
-        state.toxicity = CharacterToxicityPolicy.Clamp(state.toxicity + delta);
-    }
-
-    private CharacterDetoxTreatmentResult SuccessfulDetox(
-        ConsumableOperationId operationId,
-        CharacterDetoxTreatmentPlan plan) => new(
-        true,
-        CharacterConsumablesFailureCode.None,
-        operationId,
-        new ConsumableItemDefinitionId(plan.itemDefinitionId),
-        new ItemStackId(plan.sourceStackId),
-        plan.appliedReduction,
-        GetToxicity(new CharacterId(plan.characterId)),
-        string.Empty);
-
-    private CharacterDetoxTreatmentResult SuccessfulDetox(
-        CharacterConsumableOperationState completed) => new(
-        true,
-        CharacterConsumablesFailureCode.None,
-        completed.OperationId,
-        completed.ItemDefinitionId,
-        completed.ItemStackId,
-        completed.appliedEffect,
-        GetToxicity(completed.CharacterId),
-        string.Empty);
-
-    private CharacterDetoxTreatmentResult FailedDetox(
-        CharacterConsumablesFailureCode code,
-        CharacterId characterId,
-        string detail) => new(
-        false,
-        code,
-        default,
-        default,
-        default,
-        0f,
-        GetToxicity(characterId),
-        detail);
-
-    private float GetEffectMultiplier(CharacterId characterId, bool workEffect)
-    {
-        if (!characterId.IsValid)
-        {
-            return 1f;
-        }
-        double additive = 0d;
-        double withdrawalPenalty = 0d;
-        foreach (KeyValuePair<CharacterSubstanceKey, CharacterSubstanceState> pair
-                 in ReadState.SubstanceStates
-                     .Where(value => value.Key.CharacterId.Equals(characterId))
-                     .OrderBy(
-                         value => value.Key.ItemId.Value,
-                         StringComparer.Ordinal))
-        {
-            if (!inventory.TryResolveSubstance(
-                    pair.Key.ItemId,
-                    out CharacterConsumablesSubstanceDefinitionSnapshot substance))
-            {
-                continue;
-            }
-            if (pair.Value.activeSeconds > 0f)
-            {
-                double effect = workEffect
-                    ? substance.Definition.WorkSpeedEffect
-                    : substance.Definition.CombatEffect;
-                if (double.IsNaN(effect) || double.IsInfinity(effect))
-                    throw new InvalidOperationException(
-                        "Character substance effect must be finite: "
-                        + pair.Key.ItemId.Value);
-                additive += effect;
-            }
-            if (float.IsNaN(pair.Value.withdrawal)
-                || float.IsInfinity(pair.Value.withdrawal)
-                || pair.Value.withdrawal < 0f)
-            {
-                throw new InvalidOperationException(
-                    "Character substance withdrawal must be finite and "
-                    + "nonnegative: " + pair.Key.ItemId.Value);
-            }
-            withdrawalPenalty += pair.Value.withdrawal
-                * CharacterSubstanceEffectMultiplierAuthority
-                    .WithdrawalPenaltyPerPoint;
-        }
-        withdrawalPenalty += CharacterToxicityPolicy.GetPerformancePenalty(
-            GetToxicity(characterId));
-        return CharacterSubstanceEffectMultiplierAuthority.Resolve(
-            additive,
-            withdrawalPenalty);
-    }
-
-    private double GetActiveSpecificEffectTotal(
-        CharacterId characterId,
-        Func<SubstanceDefinitionView, float> selector)
-    {
-        if (!characterId.IsValid)
-            return 0d;
-        if (selector == null)
-            throw new ArgumentNullException(nameof(selector));
-
-        double total = 0d;
-        foreach (KeyValuePair<CharacterSubstanceKey, CharacterSubstanceState> pair
-                 in ReadState.SubstanceStates
-                     .Where(value => value.Key.CharacterId.Equals(characterId))
-                     .OrderBy(
-                         value => value.Key.ItemId.Value,
-                         StringComparer.Ordinal))
-        {
-            if (pair.Value.activeSeconds <= 0f
-                || !inventory.TryResolveSubstance(
-                    pair.Key.ItemId,
-                    out CharacterConsumablesSubstanceDefinitionSnapshot substance))
-            {
-                continue;
-            }
-            float effect = selector(substance.Definition);
-            if (float.IsNaN(effect) || float.IsInfinity(effect) || effect < 0f)
-            {
-                throw new InvalidOperationException(
-                    "Character substance-specific effect must be finite and "
-                    + "nonnegative: " + pair.Key.ItemId.Value);
-            }
-            total += effect;
-        }
-        return total;
-    }
-
-    private bool HasActiveSpecificEffect(
-        CharacterId characterId,
-        Func<SubstanceDefinitionView, bool> selector)
-    {
-        if (!characterId.IsValid)
-            return false;
-        if (selector == null)
-            throw new ArgumentNullException(nameof(selector));
-
-        foreach (KeyValuePair<CharacterSubstanceKey, CharacterSubstanceState> pair
-                 in ReadState.SubstanceStates
-                     .Where(value => value.Key.CharacterId.Equals(characterId))
-                     .OrderBy(
-                         value => value.Key.ItemId.Value,
-                         StringComparer.Ordinal))
-        {
-            if (pair.Value.activeSeconds > 0f
-                && inventory.TryResolveSubstance(
-                    pair.Key.ItemId,
-                    out CharacterConsumablesSubstanceDefinitionSnapshot substance)
-                && selector(substance.Definition))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private bool IsMealFollowupCooldownActive(
         CharacterConsumablesActorSnapshot actor) =>
         actor.Id.IsValid
@@ -3765,147 +2203,6 @@ public sealed class CharacterConsumablesRuntime :
             actor.Id,
             out float until)
         && TimelineNow < until;
-
-    private CharacterSubstanceState GetWritableSubstanceState(
-        CharacterId characterId,
-        ConsumableItemDefinitionId itemId)
-    {
-        CharacterSubstanceKey key = new(characterId, itemId);
-        if (!WriteState.SubstanceStates.TryGetValue(key, out CharacterSubstanceState state))
-        {
-            state = new CharacterSubstanceState
-            {
-                characterId = characterId.Value,
-                itemDefinitionId = itemId.Value
-            };
-            WriteState.SubstanceStates.Add(key, state);
-        }
-        return state;
-    }
-
-    private bool TryGetConsumptionFactDay(out int day)
-    {
-        day = 0;
-        if (domainFacts == null || calendar == null || calendar.Day < 0)
-        {
-            Debug.LogError("character-consumables-fact-context-unavailable");
-            return false;
-        }
-        day = Math.Max(1, calendar.Day);
-        return true;
-    }
-
-    private bool TryReserveConsumptionFact<TFact>(in TFact fact, out DomainFactLease lease)
-    {
-        lease = default;
-        string failure = "publisher-unavailable";
-        if (domainFacts != null && domainFacts.TryReserve(fact, out lease, out failure))
-        {
-            if (!string.IsNullOrWhiteSpace(lease.PublicationKey)) return true;
-            domainFacts.Cancel(lease);
-            failure = "reserved-publication-key-missing";
-        }
-        Debug.LogError("character-consumables-fact-reservation-failed:" + failure);
-        return false;
-    }
-
-    private bool PublishConsumptionFacts(DomainFactEmission[] emissions,
-        CharacterConsumablesAggregateState rollback)
-    {
-        string[] keys = emissions.Select(value => value.Lease.PublicationKey).ToArray();
-        var deliveries = new DomainFactDelivery[emissions.Length];
-        bool accepted = domainFacts.PublishBatch(emissions, deliveries, out string failure);
-        if (!accepted && deliveries.All(value => !value.MayBeCommitted))
-        {
-            // Physical consumption/effects before this local snapshot remain;
-            // only the staged completion (and detox effect) can be rolled back.
-            aggregateRootStore.Replace(rollback);
-            Debug.LogError("character-consumables-fact-publication-rejected:" + failure);
-            return false;
-        }
-        return ConsumptionFactsDurable(keys, deliveries, failure);
-    }
-
-    private bool ReplayConsumptionFacts(DomainFactReplay[] facts)
-    {
-        if (domainFacts is not IDomainFactRecoveryPublisher recovery)
-        {
-            Debug.LogError("character-consumables-fact-recovery-unavailable");
-            return false;
-        }
-        var deliveries = new DomainFactDelivery[facts.Length];
-        recovery.ReplayBatch(facts, deliveries, out string failure);
-        // An earlier attempt may have committed. A rejected recovery never
-        // authorizes rolling back physical/effect state from that attempt.
-        return ConsumptionFactsDurable(facts.Select(value => value.PublicationKey).ToArray(),
-            deliveries, failure);
-    }
-
-    private static bool ConsumptionFactsDurable(string[] keys, DomainFactDelivery[] deliveries,
-        string failure)
-    {
-        for (int i = 0; i < deliveries.Length; i++)
-        {
-            var delivery = deliveries[i];
-            if (delivery.Phase is not (DomainFactDeliveryPhase.Delivered
-                    or DomainFactDeliveryPhase.AcceptedPendingDelivery)
-                || string.IsNullOrWhiteSpace(keys[i]) || delivery.OperationKey != keys[i])
-            {
-                Debug.LogError("character-consumables-fact-publication-pending:"
-                    + delivery.Phase + ":" + delivery.Detail + ":" + failure);
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private static void PublishPostCommitObserver(
-        Action observer,
-        string context)
-    {
-        try
-        {
-            observer?.Invoke();
-        }
-        catch (Exception exception) when (
-            exception is not OutOfMemoryException
-            && exception is not StackOverflowException
-            && exception is not AccessViolationException)
-        {
-            Debug.LogError(
-                (context ?? "character-consumables-post-commit-observer")
-                + ":"
-                + exception.GetType().Name);
-        }
-    }
-
-    private void RecordCompletedOperation(
-        ConsumableOperationId operationId,
-        CharacterId characterId,
-        ConsumableItemDefinitionId itemId,
-        ItemStackId stackId,
-        bool meal,
-        bool policyViolation = false,
-        bool contaminated = false,
-        bool detox = false,
-        BuildingInstanceId facilityId = default,
-        float appliedEffect = 0f)
-    {
-        WriteState.CompletedOperations.Add(operationId, new CharacterConsumableOperationState
-        {
-            operationId = operationId.Value,
-            characterId = characterId.Value,
-            itemDefinitionId = itemId.Value,
-            itemStackId = stackId.Value,
-            facilityInstanceId = facilityId.Value,
-            meal = meal,
-            detox = detox,
-            policyViolation = policyViolation,
-            contaminated = contaminated,
-            appliedEffect = appliedEffect,
-            completedAt = TimelineNow
-        });
-    }
 
     private void CompleteDelivery(
         CharacterId characterId,
@@ -3996,177 +2293,8 @@ public sealed class CharacterConsumablesRuntime :
         }
     }
 
-    private CharacterConsumablesSubstanceResult FailedSubstance(
-        CharacterConsumablesFailureCode code,
-        CharacterConsumablesSubstanceDefinitionSnapshot substance,
-        ItemStackId stackId,
-        params string[] parameters) =>
-        new(false, code, substance, stackId, 0f, 0f, false, false,
-            string.Empty, parameters);
-
-    private static bool IsAllowedOperationId(
-        ConsumableOperationId operationId,
-        bool automaticOperation) =>
-        automaticOperation
-            ? CharacterConsumableIdContract.IsCurrentAutomaticOperation(
-                operationId.Value)
-            : CharacterConsumableIdContract.IsExternalOperation(operationId.Value);
-
-    private CharacterConsumablesPolicyChangeResult ApplyPolicyChange(
-        CharacterId characterId,
-        string policyId,
-        string scopeId,
-        string beforeValue,
-        string afterValue,
-        string source,
-        Action apply,
-        Action rollback)
-    {
-        if (!ResumePendingPolicyFact(out string pendingFailure))
-            return new CharacterConsumablesPolicyChangeResult(
-                CharacterConsumablesPolicyChangeCode.OutcomeRejected,
-                policyId, scopeId, beforeValue, afterValue,
-                ReadState.PolicyRevision, pendingFailure);
-        long beforeRevision = ReadState.PolicyRevision;
-        if (string.Equals(beforeValue, afterValue, StringComparison.Ordinal))
-        {
-            return new CharacterConsumablesPolicyChangeResult(
-                CharacterConsumablesPolicyChangeCode.NoChange,
-                policyId,
-                scopeId,
-                beforeValue,
-                afterValue,
-                beforeRevision,
-                "policy-value-unchanged");
-        }
-        if (beforeRevision == long.MaxValue
-            || !IsStablePolicyToken(source)
-            || apply == null
-            || rollback == null)
-        {
-            return InvalidPolicyChange(
-                policyId,
-                scopeId,
-                "policy-change-context-invalid");
-        }
-
-        if (domainFacts == null || calendar == null || calendar.Day < 0)
-            return InvalidPolicyChange(policyId, scopeId, "policy-publication-context-missing");
-        if (!TryGetActor(characterId, out CharacterConsumablesActorSnapshot actor))
-            return InvalidPolicyChange(policyId, scopeId, "policy-character-missing");
-
-        long afterRevision = beforeRevision + 1L;
-        CharacterConsumablesPolicyChangedFact fact = new(
-            characterId, actor.DisplayName, actor.Position, policyId, scopeId,
-            beforeValue, afterValue, source, beforeRevision, afterRevision, calendar.Day);
-        if (!domainFacts.TryReserve(fact, out DomainFactLease lease, out string prepareFailure))
-            return new CharacterConsumablesPolicyChangeResult(
-                CharacterConsumablesPolicyChangeCode.OutcomeRejected,
-                policyId, scopeId, beforeValue, afterValue, beforeRevision, prepareFailure);
-
-        bool publicationStarted = false;
-        try
-        {
-            apply();
-            WriteState.PolicyRevision = afterRevision;
-            WriteState.PendingPolicyFact = fact;
-            publicationStarted = true;
-            DomainFactDelivery delivery = domainFacts.Publish(lease, fact);
-            if (!delivery.MayBeCommitted)
-            {
-                publicationStarted = false;
-                rollback();
-                WriteState.PolicyRevision = beforeRevision;
-                WriteState.PendingPolicyFact = null;
-                domainFacts.Cancel(lease);
-                return new CharacterConsumablesPolicyChangeResult(
-                    CharacterConsumablesPolicyChangeCode.OutcomeRejected,
-                    policyId, scopeId, beforeValue, afterValue, beforeRevision, delivery.Detail);
-            }
-            if (delivery.Phase != DomainFactDeliveryPhase.InDoubt)
-                WriteState.PendingPolicyFact = null;
-            return new CharacterConsumablesPolicyChangeResult(
-                CharacterConsumablesPolicyChangeCode.Changed,
-                policyId,
-                scopeId,
-                beforeValue,
-                afterValue,
-                afterRevision,
-                delivery.Phase == DomainFactDeliveryPhase.InDoubt
-                    ? "policy-value-applied-publication-pending" : "policy-value-committed");
-        }
-        catch
-        {
-            // A subscriber exception after publication starts is ambiguous.
-            // Keep the exact saved fact; never undo a possibly durable action.
-            if (!publicationStarted)
-            {
-                rollback();
-                WriteState.PolicyRevision = beforeRevision;
-                WriteState.PendingPolicyFact = null;
-                domainFacts.Cancel(lease);
-            }
-            throw;
-        }
-    }
-
-    public bool ResumePendingPolicyFact(out string failure)
-    {
-        failure = string.Empty;
-        CharacterConsumablesPolicyChangedFact pending = ReadState.PendingPolicyFact;
-        if (pending == null) return true;
-        if (domainFacts == null)
-        { failure = "policy-fact-publisher-missing"; return false; }
-        DomainFactDelivery delivery = domainFacts.Replay(pending);
-        if (!delivery.MayBeCommitted || delivery.Phase == DomainFactDeliveryPhase.InDoubt)
-        { failure = delivery.Detail; return false; }
-        WriteState.PendingPolicyFact = null;
-        return true;
-    }
-
-    private static CharacterConsumablesPolicyChangeResult InvalidPolicyChange(
-        string policyId,
-        string scopeId,
-        string detailCode) => new(
-        CharacterConsumablesPolicyChangeCode.InvalidRequest,
-        policyId,
-        scopeId,
-        string.Empty,
-        string.Empty,
-        0L,
-        detailCode);
-
-    private static string CanonicalPolicyValue<T>(T value)
-        where T : struct, Enum => value.ToString().ToLowerInvariant();
-
-    private static string CanonicalSubstancePolicy(
-        CharacterSubstancePolicyState state) =>
-        CanonicalPolicyValue(state.mode) + ":"
-        + state.moodThreshold.ToString("R", CultureInfo.InvariantCulture) + ":"
-        + state.scheduledHour.ToString(CultureInfo.InvariantCulture);
-
-    private static bool IsStablePolicyToken(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value) || value.Length > 192)
-            return false;
-        return value.All(character => character >= 'a' && character <= 'z'
-            || character >= 'A' && character <= 'Z'
-            || character >= '0' && character <= '9'
-            || character is '.' or ':' or '_' or '-' or '/');
-    }
-
-    private ConsumableOperationId NewOperationId()
-    {
-        CharacterConsumablesAggregateState state = WriteState;
-        long sequence = state.NextOperationSequence;
-        if (sequence < 1L || sequence == long.MaxValue)
-        {
-            throw new InvalidOperationException(
-                "Character consumables operation sequence is exhausted.");
-        }
-        state.NextOperationSequence = sequence + 1L;
-        return CharacterConsumableIdContract.CreateAutomaticOperation(sequence);
-    }
+    public bool ResumePendingPolicyFact(out string failure) =>
+        policies.ResumePendingPolicyFact(out failure);
 
     private ConsumableDeliveryId NewDeliveryId()
     {
@@ -4185,87 +2313,6 @@ public sealed class CharacterConsumablesRuntime :
         stackId.IsValid
             ? inventory.GetAllStacks().FirstOrDefault(stack => stack.StackId.Equals(stackId))
             : default;
-
-    private CharacterConsumablesStackSnapshot FindAvailableSubstanceStack(
-        CharacterId characterId,
-        ConsumableItemDefinitionId itemId) =>
-        inventory.GetAllStacks()
-            .Where(stack => stack.AvailableQuantity > 0 && !stack.Forbidden
-                && stack.ItemId.Equals(itemId)
-                && IsSubstanceStackAvailableToCharacter(stack, characterId))
-            .OrderBy(stack => stack.State == CharacterConsumablesStackState.Carried ? 0 : 1)
-            .ThenBy(stack => stack.State)
-            .ThenBy(stack => stack.StackId.Value, StringComparer.Ordinal)
-            .FirstOrDefault();
-
-    private static bool IsSubstanceStackAvailableToCharacter(
-        CharacterConsumablesStackSnapshot stack,
-        CharacterId characterId) =>
-        stack.StackId.IsValid
-        && stack.AvailableQuantity > 0
-        && !stack.Forbidden
-        && (stack.State is CharacterConsumablesStackState.Loose
-                or CharacterConsumablesStackState.Stored
-            || stack.State == CharacterConsumablesStackState.Carried
-            && string.Equals(
-                stack.DestinationId,
-                characterId.Value,
-                StringComparison.Ordinal));
-
-    private List<RecreationalSubstanceCandidate> GetRecreationalSubstanceCandidates(
-        CharacterConsumablesActorSnapshot actor,
-        BuildingInstanceId facilityId,
-        bool bufferOnly)
-    {
-        List<RecreationalSubstanceCandidate> result = new();
-        foreach (CharacterConsumablesStackSnapshot stack in inventory.GetAllStacks())
-        {
-            if (stack.AvailableQuantity <= 0 || stack.Forbidden
-                || !inventory.TryResolveSubstance(
-                    stack.ItemId,
-                    out CharacterConsumablesSubstanceDefinitionSnapshot substance)
-                || substance.Definition.UseClass != SubstanceUseClass.Recreational)
-            {
-                continue;
-            }
-
-            string destinationId = GetRecreationalSubstanceDestinationId(
-                facilityId,
-                stack.ItemId);
-
-            bool isFacilityBuffer = stack.State == CharacterConsumablesStackState.FacilityBuffer
-                && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal);
-            if (bufferOnly != isFacilityBuffer
-                || !bufferOnly && stack.State is not CharacterConsumablesStackState.Stored
-                    and not CharacterConsumablesStackState.Loose)
-            {
-                continue;
-            }
-
-            CharacterSubstancePolicyState policy = GetSubstancePolicy(
-                actor.Id,
-                substance.Definition.SubstanceId);
-            if (!CharacterConsumablesPolicyRules.AllowsSubstance(
-                    policy,
-                    medicalContext: false,
-                    combatContext: false,
-                    actor.Mood))
-            {
-                continue;
-            }
-
-            float score = substance.Definition.MoodEffect
-                - substance.Definition.AddictionChance * 20f
-                - substance.Definition.OverdoseChance * 30f;
-            result.Add(new RecreationalSubstanceCandidate(substance, stack, score));
-        }
-
-        return result
-            .OrderByDescending(candidate => candidate.Score)
-            .ThenBy(candidate => candidate.Substance.Id.Value, StringComparer.Ordinal)
-            .ThenBy(candidate => candidate.Stack.StackId.Value, StringComparer.Ordinal)
-            .ToList();
-    }
 
     private bool TryGetActor(
         CharacterId id,
@@ -4291,71 +2338,11 @@ public sealed class CharacterConsumablesRuntime :
         return false;
     }
 
-    private bool TryGetRecreationalSubstanceFacility(
-        BuildingInstanceId id,
-        out CharacterConsumablesFacilitySnapshot facility)
-    {
-        if (id.IsValid
-            && world.TryGetFacility(id, out facility)
-            && facility.RecreationalSubstanceFacility)
-        {
-            return true;
-        }
-        facility = default;
-        return false;
-    }
-
     private bool HasRoutedItem(string destinationId, ConsumableItemDefinitionId itemId) =>
         inventory.GetAllStacks().Any(stack => stack.Quantity > 0
             && stack.ItemId.Equals(itemId)
             && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal));
 
-    private (float Urgency, string Reason) GetUseUrgency(
-        CharacterConsumablesActorSnapshot actor,
-        CharacterConsumablesSubstanceDefinitionSnapshot substance,
-        CharacterSubstancePolicyState policy,
-        CharacterSubstanceState state,
-        bool medicalContext,
-        int scheduleHour)
-    {
-        float urgency = 0f;
-        string reason = string.Empty;
-        if (policy.mode == SubstancePolicyMode.MedicalOnly && medicalContext)
-        {
-            urgency = Mathf.Lerp(0.62f, 1f, 1f - actor.Health / actor.MaxHealth);
-            reason = "medical-support";
-        }
-        else if (policy.mode == SubstancePolicyMode.CombatOnly && actor.CombatStance)
-        {
-            urgency = 0.96f;
-            reason = "combat-preparation";
-        }
-        else if (policy.mode == SubstancePolicyMode.MoodThreshold
-                 && actor.Mood <= policy.moodThreshold)
-        {
-            urgency = Mathf.Lerp(
-                0.55f,
-                0.9f,
-                1f - actor.Mood / Mathf.Max(1f, policy.moodThreshold));
-            reason = "mood-threshold";
-        }
-        else if (policy.mode == SubstancePolicyMode.Scheduled
-                 && scheduleHour >= policy.scheduledHour
-                 && state.scheduledCooldownSeconds <= 0f)
-        {
-            urgency = 0.48f;
-            reason = "scheduled-dose";
-        }
-        if (state.addicted && state.withdrawal >= 20f)
-        {
-            urgency = Mathf.Max(urgency, Mathf.Lerp(0.7f, 1f, state.withdrawal / 100f));
-            reason = $"{substance.Definition.DisplayName}-withdrawal";
-        }
-        return (urgency, reason);
-    }
-
-    private int GetCurrentScheduleHour() =>
-        Mathf.FloorToInt(TimelineNow / GameHourSeconds) % 24;
     public static string GetMealDestinationId(
         BuildingInstanceId facilityId,
         ConsumableItemDefinitionId itemId) =>
@@ -4366,10 +2353,7 @@ public sealed class CharacterConsumablesRuntime :
     public static string GetRecreationalSubstanceDestinationId(
         BuildingInstanceId facilityId,
         ConsumableItemDefinitionId itemId) =>
-        CharacterConsumablesInputDestinationIdentity.Build(
-            CharacterConsumablesInputKind.RecreationalSubstance,
-            facilityId,
-            itemId);
+        CharacterConsumablesSubstanceRuntime.GetRecreationalSubstanceDestinationId(facilityId, itemId);
     private static bool IsAvailableMealBufferStack(
         CharacterConsumablesStackSnapshot stack,
         BuildingInstanceId facilityId) =>
@@ -4400,21 +2384,4 @@ public sealed class CharacterConsumablesRuntime :
         internal float CompletionEta { get; }
     }
 
-
-    private readonly struct RecreationalSubstanceCandidate
-    {
-        internal RecreationalSubstanceCandidate(
-            CharacterConsumablesSubstanceDefinitionSnapshot substance,
-            CharacterConsumablesStackSnapshot stack,
-            float score)
-        {
-            Substance = substance;
-            Stack = stack;
-            Score = score;
-        }
-
-        internal CharacterConsumablesSubstanceDefinitionSnapshot Substance { get; }
-        internal CharacterConsumablesStackSnapshot Stack { get; }
-        internal float Score { get; }
-    }
 }

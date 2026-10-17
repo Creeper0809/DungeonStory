@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Linq;
 using DungeonStory.Operation;
+using DungeonStory.Foundation.Facts;
 using UnityEditor;
 using UnityEngine;
 
@@ -14,9 +15,24 @@ public static class Wim040IncidentCompletionDebugScenarios
         "Artifacts/QA/wim-implementation/wim-040-incident-completion-focused.txt";
 
     [MenuItem("DungeonStory/QA/Run WIM-040 Incident Completion Focused")]
-    public static string RunAll()
+    public static string RunAll() => Run(ReportPath, createOnly: false);
+
+    public static string RunForArchitectureBatch()
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(ReportPath));
+        if (!Application.isBatchMode)
+            throw new InvalidOperationException("Incident completion verification requires isolated batch execution.");
+        string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        if (string.IsNullOrWhiteSpace(output))
+            throw new InvalidOperationException("Incident completion verification requires its isolated evidence directory.");
+        string report = Path.Combine(output, "wim-040-incident-completion-focused.txt");
+        if (File.Exists(report))
+            throw new IOException("Incident completion evidence already exists: " + report);
+        return Run(report, createOnly: true);
+    }
+
+    private static string Run(string reportPath, bool createOnly)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(reportPath));
         try
         {
             V20StoryContentCatalog catalog = new(
@@ -27,37 +43,159 @@ public static class Wim040IncidentCompletionDebugScenarios
             VerifyResponseReceiptLifecycle(catalog);
             VerifyResponseFailureLifecycle(catalog);
             VerifyTransferReceiptLifecycle(catalog);
+            RunIncidentTransferOwnershipContracts();
             VerifyLifeEventOccurrencePolicy(catalog);
             VerifyObservedLifeEventReceiptLifecycle(catalog);
             VerifyProductionLossProducerPublication();
             VerifyLineageCompressionProducer(catalog);
-            File.WriteAllText(
-                ReportPath,
+            WriteReport(
+                reportPath,
                 "result=PASS\n"
                 + "PASS consumed contaminated meal creates only Contamination with exact meal operation evidence and survives current JSON\n"
                 + "PASS committed cross-culture visitor-facility receipt creates CulturalInsult with exact replay and current JSON\n"
                 + "PASS replace/emergency-care accept pending, preserve owner/receipt through current JSON, and publish authored effects only after receipt\n"
                 + "PASS failed/cancelled responses release active owners, preserve an effect-free terminal history, and replay only the exact terminal payload\n"
                 + "PASS transfer accepts pending, freezes its exact isolation destination, survives current JSON and publishes only after arrival receipt\n"
+                + "PASS transient transfer attempts require exact mover identity, retain preemption evidence, release abandoned attempts, and reset through the adapter restore hook without weakening the tick fence; movement provenance requires operation/external/facility/destination\n"
                 + "PASS only the authored retirement request participates in generic daily life-event cadence; the other 31 definitions remain externally observed\n"
                 + "PASS funeral and lineage-compression receipts create their typed life-event payload, replay exactly after current Society restore, reject conflict/tamper/orphan state and remain durable beyond the ordinary resolved-history cap\n"
                 + "PASS actual production completion publishes an exact actor-bound declared-loss source, while non-actor compatibility publication does not invent one\n"
                 + "PASS apprentice-mistake and last-lesson pending occurrences retain exact source/participant joins and replay no state after current Society restore\n"
                 + "PASS KinshipHouseholdRuntime archives an actual cold tombstone once, commits the story-compressed receipt and WorldFlag, and publishes one resolved alert/effect event\n"
-                + "scope=isolated production catalog/campaign receipt owner, actual production-loss source publication and actual lineage archive producer; last-lesson CareerApplicationAdapter tick and funeral transaction require separate live witnesses\n");
-            return "PASS " + ReportPath;
+                + "scope=isolated production catalog/campaign receipt owner, actual production-loss source publication and actual lineage archive producer; last-lesson CareerApplicationAdapter tick and funeral transaction require separate live witnesses\n",
+                createOnly);
+            return "PASS " + reportPath;
         }
         catch (Exception error)
         {
-            File.WriteAllText(ReportPath, "result=FAIL\n" + error);
+            WriteReport(reportPath, "result=FAIL\n" + error, createOnly);
             throw;
         }
+    }
+
+    internal static void RunIncidentTransferOwnershipContracts()
+    {
+        GameObject first = new("C16-transfer-first");
+        GameObject restored = new("C16-transfer-restored");
+        try
+        {
+            VerifyIncidentTransferOwnershipContracts(
+                first.AddComponent<AbilityMove>(), restored.AddComponent<AbilityMove>());
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(first);
+            UnityEngine.Object.DestroyImmediate(restored);
+        }
+    }
+
+    // The managed host supplies constructor-free component shells and invokes only
+    // the managed ownership fields. The Unity runner supplies actual components.
+    internal static void VerifyIncidentTransferOwnershipContracts(AbilityMove first, AbilityMove restored)
+    {
+        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance
+            | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
+        Type ownerType = typeof(V20ObservedIncidentResponseRuntime);
+        var owner = (V20ObservedIncidentResponseRuntime)System.Runtime.Serialization.FormatterServices
+            .GetUninitializedObject(ownerType);
+        var cacheField = ownerType.GetField("startedIncidentTransferOperations", flags);
+        var cache = (System.Collections.IDictionary)Activator.CreateInstance(cacheField.FieldType);
+        cacheField.SetValue(owner, cache);
+        Type attemptType = cacheField.FieldType.GetGenericArguments()[1];
+        var take = ownerType.GetMethod("TryTakeStartedTransfer", flags);
+        void Remember(string id) => cache[id] = Activator.CreateInstance(attemptType,
+            flags, null, new object[] { first, first.MovementOperationVersionForDiagnostics }, null);
+        bool Take(string id, AbilityMove movement, out int version)
+        {
+            object[] args = { id, movement, 0 };
+            bool found = (bool)take.Invoke(owner, args);
+            version = (int)args[2];
+            return found;
+        }
+        void Require(bool valid, string message)
+        {
+            if (!valid) throw new InvalidOperationException("C16: " + message);
+        }
+
+        int initialVersion = first.MovementOperationVersionForDiagnostics;
+        Require(initialVersion == restored.MovementOperationVersionForDiagnostics,
+            "fixture must reproduce equal versions on different movers");
+        Remember("transfer:same");
+        Require(Take("transfer:same", first, out int version) && version == initialVersion
+            && !Take("transfer:same", first, out _), "exact attempt must be consumed once");
+        Remember("transfer:restored");
+        Require(!Take("transfer:restored", restored, out _) && cache.Count == 0,
+            "restored mover must not inherit the previous actor's started-here decision");
+
+        Remember("transfer:preempted");
+        var ownership = (CharacterMovementOperationRuntime)typeof(AbilityMove)
+            .GetField("movementOwnership", flags).GetValue(first);
+        ownership.InvalidateMovementOperation();
+        Require(Take("transfer:preempted", first, out version) && version == initialVersion
+            && first.MovementOperationVersionForDiagnostics != version,
+            "same mover must preserve its old version so the caller detects preemption");
+
+        Remember("transfer:kept");
+        Remember("transfer:abandoned");
+        ownerType.GetMethod("ForgetAbandonedTransferAttempts", flags).Invoke(owner,
+            new object[] { new[] { new V20ActiveEventSaveData { observedIncidentResponse =
+                new ObservedIncidentResponseSaveData { externalOperationId = "transfer:kept" } } } });
+        Require(cache.Count == 1 && cache.Contains("transfer:kept"),
+            "disappeared responses must release their mover references");
+
+        var adapter = (V20CampaignApplicationAdapter)System.Runtime.Serialization.FormatterServices
+            .GetUninitializedObject(typeof(V20CampaignApplicationAdapter));
+        typeof(V20CampaignApplicationAdapter).GetField("incidentResponseRuntime", flags).SetValue(adapter, owner);
+        ownerType.GetField("advancingIncidentResponses", flags).SetValue(owner, true);
+        ((IDungeonSaveRestoreCompletedHook)adapter).OnRestoreCompleted();
+        Require(cache.Count == 0 && (bool)ownerType.GetField("advancingIncidentResponses", flags).GetValue(owner),
+            "restore must clear attempts without reopening the active tick fence");
+        adapter.Tick(); // Reentry must return before querying uninitialized collaborators.
+        Remember("transfer:dispose");
+        adapter.Dispose();
+        Require(cache.Count == 0, "adapter disposal must release attempts");
+
+        var destination = new Vector2Int(3, 4);
+        var facilityId = new BuildingInstanceId("building:c16");
+        var response = new ObservedIncidentResponseSaveData
+            { operationId = "response:c16", externalOperationId = "transfer:c16" };
+        first.RestoreSocietyResponseMovementProvenance(response.operationId,
+            response.externalOperationId, facilityId.Value, 3, 4, string.Empty);
+        var owns = ownerType.GetMethod("OwnsTransferMovement",
+            System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+        bool Owns(AbilityMove movement, ObservedIncidentResponseSaveData candidate,
+            BuildingInstanceId facility, Vector2Int position) =>
+            (bool)owns.Invoke(null, new object[] { movement, candidate, facility, position });
+        Require(Owns(first, response, facilityId, destination), "exact provenance must match");
+        Require(!Owns(restored, response, facilityId, destination), "same destination on another mover is insufficient");
+        Require(!Owns(first, new ObservedIncidentResponseSaveData
+            { operationId = "other", externalOperationId = response.externalOperationId }, facilityId, destination),
+            "different response must not own movement");
+        Require(!Owns(first, new ObservedIncidentResponseSaveData
+            { operationId = response.operationId, externalOperationId = "other" }, facilityId, destination),
+            "different external operation must not own movement");
+        Require(!Owns(first, response, new BuildingInstanceId("building:other"), destination),
+            "different facility must not own movement");
+        Require(!Owns(first, response, facilityId, new Vector2Int(4, 4)), "different destination must not own movement");
+        Require(!Owns(null, response, facilityId, destination) && !Owns(first, null, facilityId, destination),
+            "missing owner or response must not match");
+        first.TryReleaseSocietyResponseMovementProvenance(response.operationId, response.externalOperationId);
+        Require(!Owns(first, response, facilityId, destination), "released provenance must not own later movement");
+    }
+
+    private static void WriteReport(string path, string content, bool createOnly)
+    {
+        using var stream = new FileStream(path,
+            createOnly ? FileMode.CreateNew : FileMode.Create, FileAccess.Write);
+        using var writer = new StreamWriter(stream);
+        writer.Write(content);
     }
 
     private static void VerifyConsumedContamination(
         V20StoryContentCatalog catalog)
     {
-        V20CampaignRuntime campaign = NewCampaign(catalog);
+        using var facts = NewCampaign(catalog);
+        V20CampaignRuntime campaign = facts.Campaign;
         ObservedMealIncidentSnapshot source = Evidence(
             "contamination",
             violation: false,
@@ -99,7 +237,8 @@ public static class Wim040IncidentCompletionDebugScenarios
     private static void VerifyCulturalConflictReceipt(
         V20StoryContentCatalog catalog)
     {
-        V20CampaignRuntime campaign = NewCampaign(catalog);
+        using var facts = NewCampaign(catalog);
+        V20CampaignRuntime campaign = facts.Campaign;
         ObservedCulturalConflictIncidentSnapshot source = new(
             "social-conflict-operation:wim040:cultural",
             new CharacterId("character:wim040:cultural:worker"),
@@ -176,7 +315,8 @@ public static class Wim040IncidentCompletionDebugScenarios
         string externalOperationId,
         bool replacement)
     {
-        V20CampaignRuntime campaign = NewCampaign(catalog);
+        using var facts = NewCampaign(catalog);
+        V20CampaignRuntime campaign = facts.Campaign;
         ObservedMealIncidentCaptureResult captured =
             ((ISocietyObservedMealIncidentCommand)campaign)
                 .CaptureObservedMealIncident(source, Context());
@@ -290,7 +430,8 @@ public static class Wim040IncidentCompletionDebugScenarios
         bool cancelled,
         string reason)
     {
-        V20CampaignRuntime campaign = NewCampaign(catalog);
+        using var facts = NewCampaign(catalog);
+        V20CampaignRuntime campaign = facts.Campaign;
         ObservedMealIncidentCaptureResult captured =
             ((ISocietyObservedMealIncidentCommand)campaign)
                 .CaptureObservedMealIncident(source, Context());
@@ -354,7 +495,8 @@ public static class Wim040IncidentCompletionDebugScenarios
     private static void VerifyTransferReceiptLifecycle(
         V20StoryContentCatalog catalog)
     {
-        V20CampaignRuntime campaign = NewCampaign(catalog);
+        using var facts = NewCampaign(catalog);
+        V20CampaignRuntime campaign = facts.Campaign;
         ObservedMealIncidentCaptureResult captured =
             ((ISocietyObservedMealIncidentCommand)campaign)
             .CaptureObservedMealIncident(
@@ -489,6 +631,37 @@ public static class Wim040IncidentCompletionDebugScenarios
             "The non-actor compatibility publication invented a production-loss actor.");
 
         const string StudentId = "character:wim040:career:student";
+        Require(!authority.TryPublishCompleted(
+                billId, 1, "recipe:wim040:career-loss", facilityId, StudentId,
+                "production-input:wim040:career-loss", 1, 1_050L, completed,
+                out string missingParentFailure)
+                && missingParentFailure == "production-declared-loss-parent-fact-missing"
+                && observed.ProductionLossCalls == 0,
+            "Actor-bound declared loss bypassed its mandatory production parent fact.");
+
+        var root = new DungeonRuntimeAggregateRootStore();
+        var registry = new GameplayOutcomeRegistry(
+            new IGameplayOutcomeDescriptor[] { new ProductionCompletedOutcomeDescriptor() },
+            new IGameplayOutcomeAdapterRegistration[] { new ProductionCompletedOutcomeAdapter() });
+        var ledger = new GameplayOutcomeLedger(registry, new GameplayOutcomeBufferLimits(),
+            new GameplayOutcomeRunId("run:wim040:completion-parent"), 1);
+        var recorder = new GameplayOutcomeRecorder(ledger, registry, new DungeonStory.Foundation.GameEventBus());
+        using var completionFacts = new DomainFactDispatcher();
+        completionFacts.Subscribe("production.completion-observer",
+            new GameplayDomainFactObserver<ProductionCycleCompletedFact, ProductionCompletedOutcomeReceipt>(
+                ProductionCompletionFactObservation.Capture, registry, ledger, recorder,
+                new GameplayDomainFactCommitGroup(recorder, ledger)));
+        var owner = ProductionBillRecord.Create(billId, "recipe:wim040:career-loss", facilityId,
+            ProductionOrderMode.RepeatCount, 1, 0, ProductionBatchStage.None,
+            "production-material:" + billId.Value);
+        new ProductionAggregateStateSession(root).AddBill(owner);
+        var observations = new ProductionCompletionObservationRuntime(completionFacts, completionFacts);
+        var parentFact = Wim040ObservedLifeEventReceiptDebugFixture.CreateCompletedLossFact(StudentId);
+        Require(observations.TryPrepare(owner, () => parentFact, out var stage, out string parentFailure), parentFailure);
+        try { Require(observations.Commit(owner, stage).Completed, "Production parent fact was not committed."); }
+        finally { stage.Cancel(); }
+        authority = new ProductionRecipeExecutionReceiptAuthority(observed, completionFacts, completionFacts,
+            new ProductionAggregateStateStore(root));
         Require(authority.TryPublishCompleted(
                 billId,
                 1,
@@ -543,6 +716,8 @@ public static class Wim040IncidentCompletionDebugScenarios
                 effectEventCount++;
                 effectEvent = value;
             });
+        using var presentation = new SeasonalSocialPresentationObserver(events);
+        presentation.Initialize();
         KinshipHouseholdRuntime social = new(
             root,
             campaign,
@@ -635,9 +810,9 @@ public static class Wim040IncidentCompletionDebugScenarios
             "Re-running the actual lineage archive producer duplicated its event, effect, or alert.");
     }
 
-    private static V20CampaignRuntime NewCampaign(
+    private static Wim040ObservedIncidentDebugScenarios.ObservedIncidentFactFixture NewCampaign(
         V20StoryContentCatalog catalog) =>
-        new(new DungeonRuntimeAggregateRootStore(), catalog);
+        new(catalog, "wim040-completion");
 
     private static V20DailyEventContext Context() => new()
     {

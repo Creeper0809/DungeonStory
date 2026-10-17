@@ -2,6 +2,6 @@
 SaleItem,content-type,,type-reference; save-restore-reference,services:buildings,runtime,structural-type-consumer,Assets/Scripts/Services/Buildings/SO/StockInfo.cs
 SaleItem,content-type,,type-reference; save-restore-reference,services:buildings,runtime,structural-type-consumer,Assets/Scripts/Services/Buildings/Shop.cs
 SaleItem,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Ability/AbilityShopping.cs
-SaleItem,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs
+SaleItem,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Work/RestockWorkExecution.cs
 SaleItem,content-type,,type-reference; save-restore-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ShopInventoryRuntimeAdapter.cs
 SaleItem,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ShopStockCatalogService.cs

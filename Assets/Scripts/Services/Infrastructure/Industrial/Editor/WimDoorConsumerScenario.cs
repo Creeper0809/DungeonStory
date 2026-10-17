@@ -27,13 +27,25 @@ internal static class WimDoorConsumerScenario
         Func<BuildingSO, Vector2Int, BuildableObject> place,
         List<string> report) => RunInternal(scope, actor, grid, place, report, includeInvasion: false);
 
+    internal static IEnumerator RunRestockForArchitectureBatch(
+        DungeonRuntimeLifetimeScope scope,
+        CharacterActor actor,
+        Grid grid,
+        Func<BuildingSO, Vector2Int, BuildableObject> place,
+        List<string> report,
+        Action<string, Shop, WorldItemStackSnapshot> observeCheckpoint = null) => RunInternal(
+            scope, actor, grid, place, report,
+            includeInvasion: false, restockOnly: true, observeCheckpoint: observeCheckpoint);
+
     private static IEnumerator RunInternal(
         DungeonRuntimeLifetimeScope scope,
         CharacterActor actor,
         Grid grid,
         Func<BuildingSO, Vector2Int, BuildableObject> place,
         List<string> report,
-        bool includeInvasion)
+        bool includeInvasion,
+        bool restockOnly = false,
+        Action<string, Shop, WorldItemStackSnapshot> observeCheckpoint = null)
     {
         Require(scope?.Container != null, "Door consumer verification requires the production scope.");
         Require(actor != null && !actor.IsDead, "Door consumer verification requires a live worker.");
@@ -54,12 +66,16 @@ internal static class WimDoorConsumerScenario
                 liveActor.GetAbility<AbilityMove>()?.CancelActiveMovement("qa:wim045:consumer-isolation");
             }
 
-            VerifyOptionalFeedbackCameraTeardown(actor, report);
+            if (!restockOnly)
+                VerifyOptionalFeedbackCameraTeardown(actor, report);
             if (includeInvasion)
                 yield return VerifyInvasionArrival(scope, actor, grid, place, report);
-            yield return VerifyRestockPickupFailure(scope, actor, grid, place, report);
-            yield return VerifyFullLaunchAndMissingPath(scope, actor, grid, place, report);
-            report.Add(includeInvasion
+            yield return VerifyRestockPickupFailure(scope, actor, grid, place, report, observeCheckpoint);
+            if (!restockOnly)
+                yield return VerifyFullLaunchAndMissingPath(scope, actor, grid, place, report);
+            report.Add(restockOnly
+                ? "restock-consumer-scope=production-work-priority-restock; pending/no-path; door-cancel; natural physical pickup/shop transfer; whole-world restore is owned by the batch coordinator"
+                : includeInvasion
                 ? "scope=production-invasion-director+work-priority-restock+full-offense-launch+physical-supply+exterior-departure"
                 : "scope=production-work-priority-restock+full-offense-launch+physical-supply+exterior-departure;invasion=preserved-in-prior-focused-report");
         }
@@ -286,7 +302,8 @@ internal static class WimDoorConsumerScenario
         CharacterActor actor,
         Grid grid,
         Func<BuildingSO, Vector2Int, BuildableObject> place,
-        List<string> report)
+        List<string> report,
+        Action<string, Shop, WorldItemStackSnapshot> observeCheckpoint = null)
     {
         IShopStockCatalog stockCatalog = scope.Container.Resolve<IShopStockCatalog>();
         IWorldItemStackRuntime items = scope.Container.Resolve<IWorldItemStackRuntime>();
@@ -432,7 +449,10 @@ internal static class WimDoorConsumerScenario
 
             Queue<GridMoveStep> stagingPath = null;
             GridPathRequestStatus stagingStatus = GridPathRequestStatus.Pending;
-            Vector2Int stagingOrigin = actor.GetNowXY();
+            // Bind the controlled staging route to the same physical cell
+            // used by the production movement command.
+            Vector2Int stagingLogicalOrigin = actor.GetNowXY();
+            Vector2Int stagingOrigin = grid.GetXY(move.transform.position);
             yield return WaitUntil(() =>
             {
                 if (stagingStatus != GridPathRequestStatus.Pending)
@@ -467,10 +487,23 @@ internal static class WimDoorConsumerScenario
                     stagingOrigin,
                     outside,
                     stagingTraversal));
-            Require(move.TryStartSystemMove(outside, DoorAccessOverrideKind.DirectCommand, out string moveFailure),
-                "Could not stage restock worker: " + moveFailure);
+            Require(grid.GetXY(move.transform.position) == stagingOrigin,
+                "Restock worker moved between physical-origin preflight and command admission.");
+            report.Add("restock-staging-physical-origin=logical=" + stagingLogicalOrigin
+                + ";physical=" + stagingOrigin + ";destination=" + outside
+                + ";status=" + stagingStatus + ";steps=" + (stagingPath?.Count ?? -1));
+            Require(move.TryStartProtectedSystemMoveWithResolvedPath(outside,
+                    DoorAccessOverrideKind.DirectCommand, stagingPath, out string moveFailure),
+                "Could not stage restock worker with its resolved route: " + moveFailure
+                + ";logical=" + stagingLogicalOrigin + ";physical=" + stagingOrigin
+                + ";currentPhysical=" + grid.GetXY(move.transform.position)
+                + ";broker=" + DescribeActorPathRequest(actor.PathSearchBroker,
+                    grid, stagingOrigin, outside, stagingTraversal));
             yield return WaitUntil(() => actor.GetNowXY() == outside && !move.IsSystemMoveInProgress,
                 "Restock worker did not reach its staging cell.");
+            move.CancelActiveMovement("qa:wim045:restock-stage-complete");
+            Require(!move.HasProtectedSystemMovementOwnership,
+                "Controlled restock staging retained protection after terminal cleanup.");
             Require(actor.CurrentLifecycleState == CharacterLifecycleState.Active
                     && !actor.IsOnExpedition,
                 "Outside restock staging changed the resident's active lifecycle authority: "
@@ -621,6 +654,46 @@ internal static class WimDoorConsumerScenario
                 "Pending restock path did not retain its physical quantity lease/operation.");
             Require(carry.CountItem(saleItem.ItemDefinitionId.Value) == 0,
                 "Pending restock path created carried cargo before pickup.");
+
+            // Selection can be reinjected while the production run holds its
+            // pickup lease. Rebind the real modules without replacing that run.
+            object[] modulesBefore = MovementOwnershipDebugScenarios.CaptureActualWorkModuleGraph(work);
+            const System.Reflection.BindingFlags moduleFields = System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.NonPublic;
+            object ModuleField(object owner, string name) => owner.GetType().GetField(name, moduleFields)?.GetValue(owner)
+                ?? throw new InvalidOperationException("Actual work module field is missing: " + name);
+            object restockOwner = ModuleField(modulesBefore[2], "restock");
+            object runOwner = ModuleField(modulesBefore[2], "run");
+            object cargoOwner = ModuleField(restockOwner, "restockCargo");
+            int workRunBefore = work.ActiveWorkRunIdForDiagnostics;
+            long cancellationsBefore = work.ActiveWorkCancellationCountForDiagnostics;
+            AIAction actionBefore = actor.Brain.bestAction;
+            string[] leasesBefore = reservations.GetLeasesForStack(new ItemStackId(sourceBefore.StackId))
+                .Select(lease => JsonUtility.ToJson(lease)).OrderBy(value => value, StringComparer.Ordinal).ToArray();
+            Require(workRunBefore != 0 && work.HasActiveWorkRoutineForDiagnostics && actionBefore != null,
+                "Selector reinjection requires the actual pending work run.");
+            work.ConstructIdentityWorkQueries(scope.Container.Resolve<IResourceStockPolicyQuery>());
+            object[] modulesAfter = MovementOwnershipDebugScenarios.CaptureActualWorkModuleGraph(work);
+            Require(!ReferenceEquals(modulesBefore[1], modulesAfter[1])
+                    && new[] { 0, 2, 3, 4 }.All(index => ReferenceEquals(modulesBefore[index], modulesAfter[index]))
+                    && ReferenceEquals(runOwner, ModuleField(modulesAfter[2], "run"))
+                    && ReferenceEquals(restockOwner, ModuleField(modulesAfter[2], "restock"))
+                    && ReferenceEquals(cargoOwner, ModuleField(restockOwner, "restockCargo"))
+                    && work.ActiveWorkRunIdForDiagnostics == workRunBefore
+                    && work.ActiveWorkCancellationCountForDiagnostics == cancellationsBefore
+                    && work.HasActiveWorkRoutineForDiagnostics
+                    && ReferenceEquals(actor.Brain.bestAction, actionBefore)
+                    && leasesBefore.SequenceEqual(reservations.GetLeasesForStack(new ItemStackId(sourceBefore.StackId))
+                        .Select(lease => JsonUtility.ToJson(lease)).OrderBy(value => value, StringComparer.Ordinal))
+                    && shop.ActiveRestockOperationCount == 1
+                    && carry.CountItem(saleItem.ItemDefinitionId.Value) == 0
+                    && items.GetAllStacks().Single(value => value.StackId == sourceBefore.StackId).Quantity == sourceBefore.Quantity,
+                "Actual selector reinjection replaced an active owner or mutated its physical lease/cargo.");
+            report.Add("restock-selector-reinjection=PASS;actualModules=true;run-command-cargo=retained;leasePayload=unchanged;physicalQuantity=unchanged");
+
+            // The isolated coordinator captures the official world while this
+            // real run still owns its unpicked quantity lease and shop admission.
+            observeCheckpoint?.Invoke("pending", shop, sourceBefore);
 
             Require(doors.SetIndividualRule(door, actorId, DoorAccessIndividualRule.Deny),
                 "Could not deny the restock worker during its Pending path request.");
@@ -799,6 +872,8 @@ internal static class WimDoorConsumerScenario
                     warehouseDestination,
                     saleItem.ItemDefinitionId.Value);
                 sawPickupArrival |= actor.GetNowXY() == pickupStand;
+                if (currentCarry > 0 && !sawPhysicalCarry)
+                    observeCheckpoint?.Invoke("carried", shop, sourceBefore);
                 sawPhysicalCarry |= currentCarry > 0;
                 sawSourceWithdrawal |= currentSource < sourceQuantityBeforeSuccess;
                 sawDeliveryArrival |= shop.IsWorkAccessGridPosition(

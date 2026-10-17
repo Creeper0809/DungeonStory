@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "sourcePin": "source-pin-g10-state-r3.json",
+  "sourceFiles": 732,
+  "toolPin": "tool-pin-g10-state-r1.json",
+  "toolFiles": 7,
+  "currentRuntimeCompile": "g10-queue-scene-r2/unity.log",
+  "runtimeAndEditorCompileSeconds": 55.775454,
+  "currentEditorCompile": "g10-queue-scene-r3/unity.log",
+  "editorCompileSeconds": 27.608101,
+  "compilerErrors": 0,
+  "pureStateAndSchedulerCases": 9,
+  "actualComponentLifecycleContracts": 7,
+  "actualPreparationUiContracts": 5,
+  "normalPlayStop": true,
+  "actualUnityExit": 0,
+  "ownedUnityAndCompilerProcessesAfterExit": 0,
+  "osIsolationProbe": "g10-queue-scene-r3/isolation-probe.txt",
+  "networkAndModelInference": false,
+  "binaryScope": "controlled synchronous public admission/canonical prompt path only; no binary transport execution",
+  "lateCompletionScope": "controlled late terminal delivery to production exactly-once completion gate",
+  "publicContractsAndSerialized23Parity": true,
+  "knownFailedAttempts": [
+    "verification-g10-queue-r1.json",
+    "verification-g10-queue-r2.json"
+  ]
+}

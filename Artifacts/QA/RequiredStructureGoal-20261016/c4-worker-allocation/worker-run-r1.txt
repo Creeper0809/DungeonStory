@@ -1,0 +1,15 @@
+Before cancel-reentry|FAIL|old cancellation stopped new routine
+Before assign-reentry|FAIL|old stop cleared new working flag
+After cancel-detaches-before-callback|PASS
+After new-run-admission-not-overwritten|PASS
+After cancel-without-main-releases-owned-work|PASS
+After stale-stop-cancel-callback|PASS
+After stale-stop-assignment-callback|PASS
+After stale-stop-reservation-callback|PASS
+After stale-stop-brain-callback|PASS
+After check-coroutine-stop-reentry|PASS
+After suppress-coroutine-stop-reentry|PASS
+After grant-wrong-run-rejected|PASS
+After grant-double-admission-rejected|PASS
+After grant-release-detaches-before-callback|PASS
+C4_WORK_RUN_SOURCE=PASS; cases=12; extractedActualAbilityAndGrantMembers=true; coroutine/actor/workModules=DOUBLES; fullWorkRun/Unity=NOT_RUN

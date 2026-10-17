@@ -1,0 +1,1 @@
+C3_FORWARD_PARITY=PASS; unchangedMethods=11; existingPublicMethods=6; constructors/fields/DTO/interfaces/finalizer=unchanged; initialFuelGridVisualRollback=unchanged; building=readonly-query-only; currentExecutedSource=matched; Unity=NOT_RUN

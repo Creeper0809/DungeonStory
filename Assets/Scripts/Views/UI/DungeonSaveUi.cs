@@ -62,7 +62,8 @@ public sealed class DungeonSaveUiActionContext
         IDungeonGameSaveSlotService slotService,
         IDungeonSaveCommandService saveCommandService,
         IDungeonSettingsUi settingsUi,
-        IDungeonSceneNavigator sceneNavigator)
+        IDungeonSceneNavigator sceneNavigator,
+        IDungeonRestoreSafetyQuery restoreSafety)
     {
         SlotService = slotService
             ?? throw new ArgumentNullException(nameof(slotService));
@@ -72,12 +73,15 @@ public sealed class DungeonSaveUiActionContext
             ?? throw new ArgumentNullException(nameof(settingsUi));
         SceneNavigator = sceneNavigator
             ?? throw new ArgumentNullException(nameof(sceneNavigator));
+        RestoreSafety = restoreSafety
+            ?? throw new ArgumentNullException(nameof(restoreSafety));
     }
 
     public IDungeonGameSaveSlotService SlotService { get; }
     public IDungeonSaveCommandService SaveCommandService { get; }
     public IDungeonSettingsUi SettingsUi { get; }
     public IDungeonSceneNavigator SceneNavigator { get; }
+    public IDungeonRestoreSafetyQuery RestoreSafety { get; }
 }
 
 public sealed class DungeonSaveUiController : IStartable, IDisposable
@@ -97,6 +101,7 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
     private readonly IDungeonSettingsUi settingsUi;
     private readonly IDungeonSceneNavigator sceneNavigator;
     private readonly IDungeonUserSettingsService userSettings;
+    private readonly IDungeonRestoreSafetyQuery restoreSafety;
 
     private readonly Dictionary<string, SlotRow> slotRows = new Dictionary<string, SlotRow>();
     private Canvas canvas;
@@ -133,6 +138,7 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
         saveCommandService = actions.SaveCommandService;
         settingsUi = actions.SettingsUi;
         sceneNavigator = actions.SceneNavigator;
+        restoreSafety = actions.RestoreSafety;
     }
 
     public void Start()
@@ -281,7 +287,8 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
         titleText.text = "저장 및 불러오기";
         inGameActions.SetActive(true);
         closeButton.gameObject.SetActive(true);
-        SetStatus("진행 상황을 저장하거나 이전 상태를 불러올 수 있습니다.", false);
+        SetStatus(restoreSafety.RequiresRecovery ? restoreSafety.RecoveryMessage
+            : "진행 상황을 저장하거나 이전 상태를 불러올 수 있습니다.", restoreSafety.RequiresRecovery);
         RefreshSlots();
         ShowModal();
     }
@@ -296,6 +303,11 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
 
     private void CloseModal()
     {
+        if (restoreSafety.RequiresRecovery)
+        {
+            SetStatus(restoreSafety.RecoveryMessage, true);
+            return;
+        }
         modalRoot.SetActive(false);
         ClearConfirmation();
         RestorePauseState();
@@ -308,12 +320,15 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
 
     private void ReturnToTitle()
     {
-        if (!Confirm("return-title", "현재 진행을 저장하고 타이틀로 돌아가려면 한 번 더 누르세요."))
+        bool recoveryRequired = restoreSafety.RequiresRecovery;
+        if (!Confirm("return-title", recoveryRequired
+                ? "복원 오류가 발생한 월드를 저장하지 않고 타이틀로 돌아가려면 한 번 더 누르세요."
+                : "현재 진행을 저장하고 타이틀로 돌아가려면 한 번 더 누르세요."))
         {
             return;
         }
 
-        if (ownerRunManagerProvider.TryGetManager(out OwnerRunManager ownerManager)
+        if (!recoveryRequired && ownerRunManagerProvider.TryGetManager(out OwnerRunManager ownerManager)
             && ownerManager.CurrentOwnerActor != null
             && !saveCommandService.TryAutoSave(out string message))
         {
@@ -331,12 +346,15 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
 
     private void QuitGame()
     {
-        if (!Confirm("quit", "현재 진행을 저장하고 종료하려면 한 번 더 누르세요."))
+        bool recoveryRequired = restoreSafety.RequiresRecovery;
+        if (!Confirm("quit", recoveryRequired
+                ? "복원 오류가 발생한 월드를 저장하지 않고 종료하려면 한 번 더 누르세요."
+                : "현재 진행을 저장하고 종료하려면 한 번 더 누르세요."))
         {
             return;
         }
 
-        if (ownerRunManagerProvider.TryGetManager(out OwnerRunManager ownerManager)
+        if (!recoveryRequired && ownerRunManagerProvider.TryGetManager(out OwnerRunManager ownerManager)
             && ownerManager.CurrentOwnerActor != null
             && !saveCommandService.TryAutoSave(out string message))
         {
@@ -344,8 +362,11 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
             return;
         }
 
-        gameSpeedController.SetSpeed(1);
-        gameSpeedController.SetPaused(false);
+        if (!recoveryRequired)
+        {
+            gameSpeedController.SetSpeed(1);
+            gameSpeedController.SetPaused(false);
+        }
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #else
@@ -377,8 +398,10 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
     {
         if (!slotService.TryLoad(slotId, out DungeonGameRestoreReport report))
         {
-            string message = report.Errors.Count > 0 ? string.Join(" / ", report.Errors) : "알 수 없는 오류";
-            SetStatus("불러오지 못했습니다: " + message, true);
+            string message = restoreSafety.RequiresRecovery
+                ? restoreSafety.RecoveryMessage : report.FailureDescription;
+            SetStatus(restoreSafety.RequiresRecovery || report.RequiresRecovery
+                ? message : "불러오지 못했습니다: " + message, true);
             RefreshSlots();
             return;
         }
@@ -391,6 +414,11 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
 
     private void DeleteSlot(string slotId)
     {
+        if (restoreSafety.RequiresRecovery)
+        {
+            SetStatus(restoreSafety.RecoveryMessage, true);
+            return;
+        }
         if (!slotService.HasSave(slotId))
         {
             SetStatus("삭제할 저장이 없습니다.", true);
@@ -445,13 +473,14 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
                         ? "호환되지 않는 저장"
                         : info.IncompatibilityReason)
                     : "비어 있음";
-            pair.Value.Load.interactable = valid;
-            pair.Value.Delete.interactable = exists;
+            pair.Value.Load.interactable = valid && !restoreSafety.RequiresRecovery;
+            pair.Value.Delete.interactable = exists && !restoreSafety.RequiresRecovery;
             if (pair.Value.Save != null)
             {
-                pair.Value.Save.interactable = canSaveCurrentRun;
+                pair.Value.Save.interactable = canSaveCurrentRun && !restoreSafety.RequiresRecovery;
             }
         }
+        if (closeButton != null) closeButton.interactable = !restoreSafety.RequiresRecovery;
     }
 
     private static string FormatSlot(DungeonSaveSlotInfo info)
@@ -486,6 +515,11 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
 
     private void RestorePauseState()
     {
+        if (restoreSafety.RequiresRecovery)
+        {
+            pauseWasCaptured = false;
+            return;
+        }
         if (!pauseWasCaptured)
         {
             return;

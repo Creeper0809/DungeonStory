@@ -9,6 +9,14 @@ using UnityEngine;
 
 public static class CombatEquipmentCustodyA06DebugScenarios
 {
+    public static void RunSupplyForBatch()
+    {
+        Require(Application.isBatchMode, "Equipment supply validation requires isolated batch execution.");
+        Debug.Log(VerifyReloadAndRestore());
+        VerifyPowerAndRepositoryReplacement();
+        Debug.Log("ARCHITECTURE_EQUIPMENT_SUPPLY=PASS; exact ammunition type and quantity; rejected mixing unchanged; JSON restore and resume; power failure unchanged; current repository after replacement");
+    }
+
     public static void RunBatch()
     {
         string output = Environment.GetEnvironmentVariable(
@@ -467,6 +475,55 @@ public static class CombatEquipmentCustodyA06DebugScenarios
             UnityEngine.Object.DestroyImmediate(inventoryObject);
             UnityEngine.Object.DestroyImmediate(restoredInventoryObject);
         }
+    }
+
+    private static void VerifyPowerAndRepositoryReplacement()
+    {
+        CombatEquipmentRuntime runtime = CreateRuntime(
+            new ExactEquipmentGateway(), out WorldItemRepository repository);
+        CombatEquipmentInstance powered = runtime.CreateInstance(
+            "weapon:powered-striking-gauntlet", CombatEquipmentQuality.Normal);
+        CombatEquipmentInstance ordinary = runtime.CreateInstance(
+            "weapon:dagger", CombatEquipmentQuality.Normal);
+        Require(runtime.TryRestorePower(powered.instanceId, 100f)
+            && runtime.TryConsumePower(powered.instanceId, 30f)
+            && runtime.TryGetInstance(powered.instanceId, out CombatEquipmentInstance charged)
+            && Mathf.Approximately(charged.powerCharge, 70f),
+            "Powered equipment did not charge and consume through its command owner.");
+        JToken beforeRejected = JToken.FromObject(CaptureRepository(repository));
+        Require(!runtime.TryConsumePower(powered.instanceId, 0f)
+            && !runtime.TryRestorePower(powered.instanceId, 0f)
+            && !runtime.TryConsumePower("equipment:qa:missing", 10f)
+            && !runtime.TryConsumePower(ordinary.instanceId, 10f)
+            && !runtime.TryRestorePower(ordinary.instanceId, 10f)
+            && JToken.DeepEquals(beforeRejected, JToken.FromObject(CaptureRepository(repository))),
+            "Rejected power command changed equipment repository state.");
+
+        DungeonCombatEquipmentSaveData equipmentSave = RoundTrip(runtime.Capture());
+        CombatEquipmentRuntime restored = CreateRuntime(
+            new ExactEquipmentGateway(), RoundTrip(CaptureRepository(repository)),
+            out WorldItemRepository restoredRepository);
+        restored.PublishRestoreCandidate(restored.BuildRestoreCandidate(equipmentSave));
+        Require(restored.TryGetInstance(powered.instanceId, out CombatEquipmentInstance restoredPower)
+            && Mathf.Approximately(restoredPower.powerCharge, 70f),
+            "Power charge did not survive the physical/equipment JSON restore.");
+
+        CombatEquipmentInstance retired = repository.EquipmentInstances[powered.instanceId];
+        WorldItemRepositoryState candidate = repository.CreateDetachedState(
+            Array.Empty<WorldItemStackRecord>(),
+            restoredRepository.EquipmentInstances.ToDictionary(value => value.Key, value => value.Value),
+            restoredRepository.EquipmentModules.ToDictionary(value => value.Key, value => value.Value),
+            nextHaulOperationSequence: 1L);
+        repository.ReplaceState(candidate);
+        Require(!ReferenceEquals(retired, repository.EquipmentInstances[powered.instanceId])
+            && runtime.TryConsumePower(powered.instanceId, 10f)
+            && runtime.TryGetInstance(powered.instanceId, out CombatEquipmentInstance current)
+            && Mathf.Approximately(current.powerCharge, 60f)
+            && Mathf.Approximately(retired.powerCharge, 70f)
+            && runtime.TryRestorePower(powered.instanceId, 10f)
+            && runtime.TryGetInstance(powered.instanceId, out current)
+            && Mathf.Approximately(current.powerCharge, 70f),
+            "Supply commands retained the retired repository after state publication.");
     }
 
     private static CharacterCarryInventorySaveData Carry(

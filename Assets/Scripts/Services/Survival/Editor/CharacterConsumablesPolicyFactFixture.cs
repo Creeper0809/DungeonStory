@@ -61,12 +61,14 @@ internal sealed class FaultingPolicyFactPublisher : IDomainFactPublisher
     private readonly IDomainFactPublisher inner;
     private bool rejectNextPublish;
     private bool hideNextAcknowledgement;
+    private bool rejectNextReplay;
 
     internal FaultingPolicyFactPublisher(IDomainFactPublisher inner) =>
         this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
 
     internal void RejectNextPublish() => rejectNextPublish = true;
     internal void HideNextAcknowledgement() => hideNextAcknowledgement = true;
+    internal void RejectNextReplay() => rejectNextReplay = true;
 
     public bool TryReserve<TFact>(in TFact proposed, out DomainFactLease lease,
         out string failure) => inner.TryReserve(proposed, out lease, out failure);
@@ -101,7 +103,15 @@ internal sealed class FaultingPolicyFactPublisher : IDomainFactPublisher
         DomainFactDelivery[] results,
         out string failure) => inner.PublishBatch(facts, results, out failure);
 
-    public DomainFactDelivery Replay<TFact>(in TFact fact) => inner.Replay(fact);
+    public DomainFactDelivery Replay<TFact>(in TFact fact)
+    {
+        if (rejectNextReplay)
+        {
+            rejectNextReplay = false;
+            return DomainFactDelivery.Reject("editor-injected-policy-replay-rejected");
+        }
+        return inner.Replay(fact);
+    }
 
     public void Cancel(in DomainFactLease lease) => inner.Cancel(lease);
 }

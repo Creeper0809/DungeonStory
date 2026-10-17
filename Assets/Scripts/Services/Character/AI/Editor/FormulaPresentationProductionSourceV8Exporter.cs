@@ -212,8 +212,9 @@ public static partial class FormulaPresentationPilotExporter
                 index,
                 "character-skill",
                 "contract:character-skill-module-selection:1",
-                SourceFileHash(
-                    "Assets/Scripts/Services/Character/Core/CharacterSkillFormulaGeneration.cs"));
+                SourceFilesHash(
+                    "Assets/Scripts/Services/Character/Core/CharacterSkillFormulaGeneration.cs",
+                    "Assets/Scripts/Services/Character/Core/CharacterSkillFormulaVersions.cs"));
         }
     }
 
@@ -879,6 +880,11 @@ public static partial class FormulaPresentationPilotExporter
             projectRoot,
             relativePath.Replace('/', Path.DirectorySeparatorChar)));
     }
+
+    private static string SourceFilesHash(params string[] relativePaths) =>
+        Sha256Text(string.Join("\n", relativePaths
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .Select(value => value + "=" + SourceFileHash(value))));
 
     private static string StableRowId(string prefix, int index) =>
         prefix + ":" + index.ToString("D5", CultureInfo.InvariantCulture);

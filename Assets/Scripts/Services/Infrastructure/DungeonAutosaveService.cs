@@ -82,7 +82,7 @@ public sealed class DungeonAutosaveService :
                 out DungeonGameRestoreReport report);
             message = loaded
                 ? $"Loaded {report.RestoredBuildingCount} buildings."
-                : string.Join("\n", report.Errors);
+                : report.FailureDescription;
             return loaded;
         }
         catch (Exception exception)

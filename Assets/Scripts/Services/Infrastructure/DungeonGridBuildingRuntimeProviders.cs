@@ -6,17 +6,6 @@ public interface IDungeonGridBuildingControllerProvider
     DungeonStoryGridBuildingController Controller { get; }
 }
 
-public interface IWorldPointerPositionProvider
-{
-    Vector3 MouseWorldPosition { get; }
-}
-
-public interface IMainCameraProvider
-{
-    Camera Camera { get; }
-    bool TryGetCamera(out Camera camera);
-}
-
 public interface IGridTextureProvider
 {
     GridTexture Texture { get; }

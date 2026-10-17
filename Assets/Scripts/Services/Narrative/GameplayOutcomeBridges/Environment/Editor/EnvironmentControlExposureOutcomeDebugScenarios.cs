@@ -325,7 +325,7 @@ public static class EnvironmentControlExposureOutcomeDebugScenarios
             1L,
             "physiological-band-transition");
         Commit(outcomes.Bridge,
-            EnvironmentOutcomeReceiptFactory.CreateEnvironmentalExposureThreshold(band),
+            EnvironmentConditionOutcomeReceiptFactory.CreateEnvironmentalExposureThreshold(band),
             band.ownerRevision);
         EnvironmentalExposureOutcomeSaveData damage = Exposure(
             "environment-exposure:character:e09:000001:damage-tick",
@@ -340,7 +340,7 @@ public static class EnvironmentControlExposureOutcomeDebugScenarios
             2L,
             "critical-environment");
         Commit(outcomes.Bridge,
-            EnvironmentOutcomeReceiptFactory.CreateEnvironmentalExposureThreshold(damage),
+            EnvironmentConditionOutcomeReceiptFactory.CreateEnvironmentalExposureThreshold(damage),
             damage.ownerRevision);
 
         GameplayOutcomeSnapshot[] rows = outcomes.Ledger.CaptureGameplayOutcomes()
@@ -508,7 +508,7 @@ public static class EnvironmentControlExposureOutcomeDebugScenarios
                 new GameplayDomainFactObserver<
                     EnvironmentalControlFact,
                     EnvironmentalControlCommandReceipt>(
-                        fact => EnvironmentOutcomeReceiptFactory
+                        fact => EnvironmentConditionOutcomeReceiptFactory
                             .CreateEnvironmentalControl(fact.Snapshot()),
                         registry,
                         Ledger,

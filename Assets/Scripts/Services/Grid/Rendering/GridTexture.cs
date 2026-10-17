@@ -6,16 +6,9 @@ using UnityEngine.Tilemaps;
 [DrawWithUnity]
 public class GridTexture : SerializedMonoBehaviour, IGridBuildingVisual
 {
-    public enum TilemapLayer
-    {
-        HALLWAY,
-        FRONT,
-        MIDDLE,
-        BACK
-    }
     public Tilemap wallTilemap;
-    public Dictionary<TilemapLayer, Tilemap> buildingTilemapEven;
-    public Dictionary<TilemapLayer, Tilemap> buildingTilemapOdd;
+    public Dictionary<BuildingTilemapLayer, Tilemap> buildingTilemapEven;
+    public Dictionary<BuildingTilemapLayer, Tilemap> buildingTilemapOdd;
     public Tile wall;
     public Tile floor;
     [SerializeField] private bool hideHallwayUnderBuildings = false;
@@ -51,7 +44,7 @@ public class GridTexture : SerializedMonoBehaviour, IGridBuildingVisual
         spriteBuildings.Clear();
     }
 
-    public void DrawBuilding(Dictionary<TilemapLayer, Tile> tiles,Vector2Int selectPos,bool isEven)
+    public void DrawBuilding(Dictionary<BuildingTilemapLayer, Tile> tiles,Vector2Int selectPos,bool isEven)
     {
         if (tiles == null || tiles.Count == 0) return;
 
@@ -89,7 +82,7 @@ public class GridTexture : SerializedMonoBehaviour, IGridBuildingVisual
         ClearHallwayUnderDungeonDoor(buildingData, selectPos);
     }
 
-    public void DeleteBuilding(Dictionary<TilemapLayer, Tile> tiles,Vector2Int selectPos,bool isEven)
+    public void DeleteBuilding(Dictionary<BuildingTilemapLayer, Tile> tiles,Vector2Int selectPos,bool isEven)
     {
         if (tiles == null || tiles.Count == 0) return;
 
@@ -188,10 +181,10 @@ public class GridTexture : SerializedMonoBehaviour, IGridBuildingVisual
         Destroy(renderer.gameObject);
     }
 
-    private bool TryGetTilemap(TilemapLayer layer, bool isEven, out Tilemap targetTilemap)
+    private bool TryGetTilemap(BuildingTilemapLayer layer, bool isEven, out Tilemap targetTilemap)
     {
         targetTilemap = null;
-        Dictionary<TilemapLayer, Tilemap> tilemaps = isEven ? buildingTilemapEven : buildingTilemapOdd;
+        Dictionary<BuildingTilemapLayer, Tilemap> tilemaps = isEven ? buildingTilemapEven : buildingTilemapOdd;
         return tilemaps != null
             && tilemaps.TryGetValue(layer, out targetTilemap)
             && targetTilemap != null;
@@ -202,12 +195,12 @@ public class GridTexture : SerializedMonoBehaviour, IGridBuildingVisual
         return buildingData.tiles != null && buildingData.tiles.Count > 0;
     }
 
-    private static TilemapLayer GetSpriteTilemapLayer(BuildingSO buildingData)
+    private static BuildingTilemapLayer GetSpriteTilemapLayer(BuildingSO buildingData)
     {
         GridBuildingPlacement placement = buildingData.Placement;
         return placement.Layer == GridLayer.Hallway || placement.IsMovement
-            ? TilemapLayer.HALLWAY
-            : TilemapLayer.BACK;
+            ? BuildingTilemapLayer.HALLWAY
+            : BuildingTilemapLayer.BACK;
     }
 
     private static Vector3Int GetTilePosition(Vector2Int selectPos)
@@ -405,8 +398,8 @@ public class GridTexture : SerializedMonoBehaviour, IGridBuildingVisual
     private void ClearHallwayTile(Vector2Int gridPos)
     {
         Vector3Int tilePos = GetTilePosition(gridPos);
-        ClearTile(TilemapLayer.HALLWAY, false, tilePos);
-        ClearTile(TilemapLayer.HALLWAY, true, tilePos);
+        ClearTile(BuildingTilemapLayer.HALLWAY, false, tilePos);
+        ClearTile(BuildingTilemapLayer.HALLWAY, true, tilePos);
     }
 
     private void ClearHallwayUnderDungeonDoor(BuildingSO buildingData, Vector2Int centerPos)
@@ -454,7 +447,7 @@ public class GridTexture : SerializedMonoBehaviour, IGridBuildingVisual
         return isDoor && !isInteriorDoor;
     }
 
-    private void ClearTile(TilemapLayer layer, bool isEven, Vector3Int tilePos)
+    private void ClearTile(BuildingTilemapLayer layer, bool isEven, Vector3Int tilePos)
     {
         if (TryGetTilemap(layer, isEven, out Tilemap targetTilemap))
         {
@@ -476,10 +469,10 @@ public class GridTexture : SerializedMonoBehaviour, IGridBuildingVisual
         ConfigureCeilingOverlayTilemap();
     }
 
-    private void ConfigureHallwayTilemap(Dictionary<TilemapLayer, Tilemap> tilemaps, HashSet<Tilemap> configured)
+    private void ConfigureHallwayTilemap(Dictionary<BuildingTilemapLayer, Tilemap> tilemaps, HashSet<Tilemap> configured)
     {
         if (tilemaps == null
-            || !tilemaps.TryGetValue(TilemapLayer.HALLWAY, out Tilemap hallwayTilemap)
+            || !tilemaps.TryGetValue(BuildingTilemapLayer.HALLWAY, out Tilemap hallwayTilemap)
             || hallwayTilemap == null
             || configured == null
             || !configured.Add(hallwayTilemap))

@@ -20,15 +20,32 @@ public static class GameWorldLineageDebugScenarios
     private const string StartedKey = "DungeonStory.WorldLineage.Started";
     private const string PreparedKey = "DungeonStory.WorldLineage.Prepared";
     private const string WarmupKey = "DungeonStory.WorldLineage.Warmup";
+    private const string CharacterLifetimeKey = "DungeonStory.WorldLineage.CharacterLifetime";
+    private const string RestoreOutcomeKey = "DungeonStory.WorldLineage.RestoreOutcome";
+    private const string ExitPendingKey = "DungeonStory.WorldLineage.ExitPending";
+    private const string ExitCodeKey = "DungeonStory.WorldLineage.ExitCode";
     private static IEnumerator verification;
 
     public static void RequestActualContainerForBatch()
+        => RequestForBatch(characterLifetimeOnly: false);
+
+    public static void RequestCharacterRestoreLifetimeForBatch()
+        => RequestForBatch(characterLifetimeOnly: true);
+
+    public static void RequestRestoreOutcomeForBatch()
+        => RequestForBatch(characterLifetimeOnly: false, restoreOutcomeOnly: true);
+
+    private static void RequestForBatch(bool characterLifetimeOnly, bool restoreOutcomeOnly = false)
     {
         Require(Application.isBatchMode && DungeonPersistencePaths.IsIsolatedVerification,
             "World lineage test requires isolated batch execution.");
         Require(!EditorApplication.isPlayingOrWillChangePlaymode, "PlayMode already active.");
-        Require(!File.Exists(EvidencePath("world-lineage-report.json")), "Create-only output exists.");
+        Require(!File.Exists(EvidencePath(restoreOutcomeOnly ? "restore-outcome.tsv"
+            : characterLifetimeOnly ? "character-restore-lifetime.tsv" : "world-lineage-report.json")),
+            "Create-only output exists.");
         SessionState.SetBool(PendingKey, true);
+        SessionState.SetBool(CharacterLifetimeKey, characterLifetimeOnly);
+        SessionState.SetBool(RestoreOutcomeKey, restoreOutcomeOnly);
         verification = null;
         SessionState.SetBool(PreparedKey, false);
         SessionState.SetInt(WarmupKey, 0);
@@ -42,6 +59,14 @@ public static class GameWorldLineageDebugScenarios
     [InitializeOnLoadMethod]
     private static void Resume()
     {
+        if (SessionState.GetBool(ExitPendingKey, false))
+        {
+            EditorApplication.playModeStateChanged -= ExitAfterPlayStopped;
+            EditorApplication.playModeStateChanged += ExitAfterPlayStopped;
+            if (!EditorApplication.isPlayingOrWillChangePlaymode)
+                EditorApplication.delayCall += CompleteExit;
+            return;
+        }
         if (!SessionState.GetBool(PendingKey, false)) return;
         EditorApplication.update -= Pump;
         EditorApplication.update += Pump;
@@ -56,6 +81,11 @@ public static class GameWorldLineageDebugScenarios
             if (EditorApplication.timeSinceStartup - started > 60)
                 throw new InvalidOperationException("Actual lineage container was not ready within 60 seconds.");
             if (!EditorApplication.isPlaying) return;
+            if (SessionState.GetBool(RestoreOutcomeKey, false) && verification != null)
+            {
+                if (!verification.MoveNext()) Finish(0);
+                return;
+            }
             var scope = UnityEngine.Object.FindObjectsByType<DungeonRuntimeLifetimeScope>(
                 FindObjectsInactive.Include, FindObjectsSortMode.None).FirstOrDefault(s => s?.Container != null);
             if (scope == null) return;
@@ -81,6 +111,21 @@ public static class GameWorldLineageDebugScenarios
             int warmup = SessionState.GetInt(WarmupKey, 0);
             if (warmup > 0) { SessionState.SetInt(WarmupKey, warmup - 1); return; }
             Require(manager.CurrentOwnerActor != null, "Prepared owner disappeared.");
+            if (SessionState.GetBool(RestoreOutcomeKey, false))
+            {
+                verification = DungeonRestoreOutcomeDebugScenarios.Verify(scope.Container);
+                if (!verification.MoveNext()) Finish(0);
+                return;
+            }
+            if (SessionState.GetBool(CharacterLifetimeKey, false))
+            {
+                Require(scope.Container.Resolve<IGridSystemProvider>().TryGetGrid(out Grid grid),
+                    "Actual character restore grid is unavailable.");
+                CharacterWorldRestoreLifetimeDebugScenarios.VerifyActualContainer(scope.Container,
+                    scope.Container.Resolve<ICharacterWorldSaveService>().Capture(grid));
+                Finish(0);
+                return;
+            }
             verification ??= Verify(scope.Container);
             if (!verification.MoveNext()) Finish(0);
         }
@@ -116,6 +161,8 @@ public static class GameWorldLineageDebugScenarios
         detached.worldInstanceId = "mutated";
         Require(JsonUtility.ToJson(query.Snapshot.Capture()) == initial, "DTO mutation reached live owner.");
 
+        string contractViews = ContentResolutionWorldQueryDebugScenarios.VerifyActualQuery(container);
+        ContentResolutionWorldQueryDebugScenarios.VerifyRootReplacement(container);
         DungeonGameSaveData baseline = service.Capture();
         string baselineJson = service.ToJson(baseline, true);
         WriteNew("official-world-before.json", baselineJson);
@@ -139,6 +186,8 @@ public static class GameWorldLineageDebugScenarios
         trace.Record("case.restore-baseline.begin");
         Require(service.TryRestore(service.FromJson(baselineJson), out var restore),
             "Official baseline restore failed: " + string.Join(" | ", restore.Errors));
+        Require(restore.Outcome == DungeonWorldRestoreOutcome.Applied,
+            "Official baseline restore did not report an applied world.");
         Require(LineageJson(service.Capture()) == initial, "Official restore regenerated or lost lineage.");
         // Real gameplay retires destroyed world objects at the end of the frame.
         // Do not stack multiple full-world replacements in a single editor update.
@@ -148,6 +197,8 @@ public static class GameWorldLineageDebugScenarios
         trace.Record("case.restore-fork.begin");
         Require(service.TryRestore(forkSave, out var forkRestore),
             "Official fork restore failed: " + string.Join(" | ", forkRestore.Errors));
+        Require(forkRestore.Outcome == DungeonWorldRestoreOutcome.Applied,
+            "Official fork restore did not report an applied world.");
         Require(LineageJson(service.Capture()) == forkJson, "Fork ancestry did not survive official JSON restore.");
         for (int retireAfter = Time.frameCount + 2; Time.frameCount < retireAfter;) yield return null;
         GC.Collect();
@@ -177,13 +228,21 @@ public static class GameWorldLineageDebugScenarios
             container.Resolve<ICharacterAiWorldRegistry>(), container.Resolve<ICharacterSettlementStandingQuery>()),
             "Existing populated staff save boundary failed.");
         Debug.Log("B140_STAFF_POPULATED_SAVE_REGRESSION=PASS");
+        // Negative restore candidates also retire Unity objects at frame end.
+        // Release their validation snapshots before the third whole-world restore.
+        for (int retireAfter = Time.frameCount + 2; Time.frameCount < retireAfter;) yield return null;
+        GC.Collect();
         trace.Record("case.restore-cleanup.begin");
         Require(service.TryRestore(service.FromJson(baselineJson), out var cleanup),
             "Baseline cleanup failed: " + string.Join(" | ", cleanup.Errors));
-        Require(LineageJson(service.Capture()) == initial, "Final baseline identity differs.");
+        Require(cleanup.Outcome == DungeonWorldRestoreOutcome.Applied,
+            "Official cleanup restore did not report an applied world.");
         for (int retireAfter = Time.frameCount + 2; Time.frameCount < retireAfter;) yield return null;
         GC.Collect();
         trace.Record("case.restore-cleanup.retired");
+        Require(LineageJson(service.Capture()) == initial, "Final baseline identity differs.");
+        Require(ContentResolutionWorldQueryDebugScenarios.VerifyActualQuery(container) == contractViews,
+            "Official world restore changed contract presentation or left an obsolete query root.");
         WriteNew("world-lineage-report.json", new JObject
         {
             ["status"] = "PASS", ["scope"] = "actual-gameplay-container-official-save-and-controlled-faults",
@@ -361,12 +420,34 @@ public static class GameWorldLineageDebugScenarios
     }
     private static void Require(bool condition, string message)
     { if (!condition) throw new InvalidOperationException(message); }
-    private static void Finish(int code)
+    internal static void Finish(int code)
     {
         (verification as IDisposable)?.Dispose();
         verification = null;
         SessionState.SetBool(PendingKey, false);
         EditorApplication.update -= Pump;
+        SessionState.SetInt(ExitCodeKey, code);
+        SessionState.SetBool(ExitPendingKey, true);
+        EditorApplication.playModeStateChanged -= ExitAfterPlayStopped;
+        EditorApplication.playModeStateChanged += ExitAfterPlayStopped;
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+            EditorApplication.isPlaying = false;
+        else
+            EditorApplication.delayCall += CompleteExit;
+    }
+    private static void ExitAfterPlayStopped(PlayModeStateChange state)
+    {
+        if (state == PlayModeStateChange.EnteredEditMode)
+            EditorApplication.delayCall += CompleteExit;
+    }
+    private static void CompleteExit()
+    {
+        if (!SessionState.GetBool(ExitPendingKey, false)) return;
+        if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+        EditorApplication.playModeStateChanged -= ExitAfterPlayStopped;
+        SessionState.SetBool(ExitPendingKey, false);
+        int code = SessionState.GetInt(ExitCodeKey, 1);
+        Debug.Log("WORLD_LINEAGE_PLAY_STOPPED; exit=" + code);
         EditorApplication.Exit(code);
     }
     private static string EvidencePath(string name)

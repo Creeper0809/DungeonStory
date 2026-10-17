@@ -103,7 +103,7 @@ public static class BuildingCharacterFacilityAbilityAdapter
         BuildableObject building,
         WorkTypeId workTypeId) =>
         InvokeIsExteriorWorkAvailable(
-            ability,
+            new BuildingReceptionAbilityRuntime(Require(ability)),
             actor,
             building,
             workTypeId);
@@ -113,14 +113,14 @@ public static class BuildingCharacterFacilityAbilityAdapter
         CharacterActor actor,
         BuildableObject building,
         WorkTypeId workTypeId) =>
-        InvokeGetExteriorWorkSeconds(ability, actor, building, workTypeId);
+        InvokeGetExteriorWorkSeconds(new BuildingReceptionAbilityRuntime(Require(ability)), actor, building, workTypeId);
 
     public static float GetExteriorWorkUrgency(
         this BuildingReceptionAbility ability,
         CharacterActor actor,
         BuildableObject building,
         WorkTypeId workTypeId) =>
-        InvokeGetExteriorWorkUrgency(ability, actor, building, workTypeId);
+        InvokeGetExteriorWorkUrgency(new BuildingReceptionAbilityRuntime(Require(ability)), actor, building, workTypeId);
 
     public static bool IsExteriorWorkAvailable(
         this BuildingPatrolPostAbility ability,
@@ -128,7 +128,7 @@ public static class BuildingCharacterFacilityAbilityAdapter
         BuildableObject building,
         WorkTypeId workTypeId) =>
         InvokeIsExteriorWorkAvailable(
-            ability,
+            new BuildingPatrolPostAbilityRuntime(Require(ability)),
             actor,
             building,
             workTypeId);
@@ -138,14 +138,14 @@ public static class BuildingCharacterFacilityAbilityAdapter
         CharacterActor actor,
         BuildableObject building,
         WorkTypeId workTypeId) =>
-        InvokeGetExteriorWorkSeconds(ability, actor, building, workTypeId);
+        InvokeGetExteriorWorkSeconds(new BuildingPatrolPostAbilityRuntime(Require(ability)), actor, building, workTypeId);
 
     public static float GetExteriorWorkUrgency(
         this BuildingPatrolPostAbility ability,
         CharacterActor actor,
         BuildableObject building,
         WorkTypeId workTypeId) =>
-        InvokeGetExteriorWorkUrgency(ability, actor, building, workTypeId);
+        InvokeGetExteriorWorkUrgency(new BuildingPatrolPostAbilityRuntime(Require(ability)), actor, building, workTypeId);
 
     public static bool IsExteriorWorkAvailable(
         this BuildingOutdoorRestAbility ability,
@@ -153,7 +153,7 @@ public static class BuildingCharacterFacilityAbilityAdapter
         BuildableObject building,
         WorkTypeId workTypeId) =>
         InvokeIsExteriorWorkAvailable(
-            ability,
+            new BuildingOutdoorRestAbilityRuntime(Require(ability)),
             actor,
             building,
             workTypeId);
@@ -163,14 +163,14 @@ public static class BuildingCharacterFacilityAbilityAdapter
         CharacterActor actor,
         BuildableObject building,
         WorkTypeId workTypeId) =>
-        InvokeGetExteriorWorkSeconds(ability, actor, building, workTypeId);
+        InvokeGetExteriorWorkSeconds(new BuildingOutdoorRestAbilityRuntime(Require(ability)), actor, building, workTypeId);
 
     public static float GetExteriorWorkUrgency(
         this BuildingOutdoorRestAbility ability,
         CharacterActor actor,
         BuildableObject building,
         WorkTypeId workTypeId) =>
-        InvokeGetExteriorWorkUrgency(ability, actor, building, workTypeId);
+        InvokeGetExteriorWorkUrgency(new BuildingOutdoorRestAbilityRuntime(Require(ability)), actor, building, workTypeId);
 
     public static bool IsExteriorWorkAvailable(
         this BuildingExteriorMaintenanceAbility ability,
@@ -178,7 +178,7 @@ public static class BuildingCharacterFacilityAbilityAdapter
         BuildableObject building,
         WorkTypeId workTypeId) =>
         InvokeIsExteriorWorkAvailable(
-            ability,
+            new BuildingExteriorMaintenanceAbilityRuntime(Require(ability)),
             actor,
             building,
             workTypeId);
@@ -188,14 +188,14 @@ public static class BuildingCharacterFacilityAbilityAdapter
         CharacterActor actor,
         BuildableObject building,
         WorkTypeId workTypeId) =>
-        InvokeGetExteriorWorkSeconds(ability, actor, building, workTypeId);
+        InvokeGetExteriorWorkSeconds(new BuildingExteriorMaintenanceAbilityRuntime(Require(ability)), actor, building, workTypeId);
 
     public static float GetExteriorWorkUrgency(
         this BuildingExteriorMaintenanceAbility ability,
         CharacterActor actor,
         BuildableObject building,
         WorkTypeId workTypeId) =>
-        InvokeGetExteriorWorkUrgency(ability, actor, building, workTypeId);
+        InvokeGetExteriorWorkUrgency(new BuildingExteriorMaintenanceAbilityRuntime(Require(ability)), actor, building, workTypeId);
 
     private static bool InvokeIsExteriorWorkAvailable(
         IBuildingExteriorWorkRuntimeAbility ability,

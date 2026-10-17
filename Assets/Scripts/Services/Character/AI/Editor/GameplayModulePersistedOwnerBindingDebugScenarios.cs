@@ -23,7 +23,7 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
         int eligibleLevel = settings.Settings.activeUnlockLevels.Where(value => value <= progression.Level).Min();
         Require(!progression.GrowthState.drafts.Any(value => value.kind == CharacterSkillKind.Active
             && value.unlockLevel == eligibleLevel && value.permanentlyChosen), "Fixture already chose the live unlock slot.");
-        var creator = new CharacterSkillGenerationService(settings, new DeferredRuntime(), new FixedUiClock());
+        var creator = new CharacterSkillGenerationService(NarrativeRequestContextTestFixture.CreateEmpty(), settings, new DeferredRuntime(), new FixedUiClock());
         draft = creator.CreateDraft(progression, CharacterSkillKind.Active, eligibleLevel,
             progression.GrowthState.skillGenerationRevision);
         progression.GrowthState.drafts.RemoveAll(value => value.kind == draft.kind && value.unlockLevel == eligibleLevel);
@@ -49,7 +49,7 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
             progression.GrowthState.drafts.RemoveAll(value => value.requestKey == restored.requestKey);
             progression.GrowthState.drafts.Add(restored);
             var transport = new DeferredRuntime();
-            var service = new CharacterSkillGenerationService(settings, transport, new FixedUiClock());
+            var service = new CharacterSkillGenerationService(NarrativeRequestContextTestFixture.CreateEmpty(), settings, transport, new FixedUiClock());
             JObject before = owner.CaptureOwnerCheckpoint();
             service.RequestDraft(progression, restored);
             Require(restored.presentationState == CharacterSkillPresentationState.InvalidatedOwner

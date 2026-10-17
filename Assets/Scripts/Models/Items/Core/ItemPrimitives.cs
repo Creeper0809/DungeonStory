@@ -155,6 +155,8 @@ public sealed class DungeonPhysicalItemSaveData
     public List<PhysicalItemBatchDispositionSaveData> pendingBatchDispositions = new();
     public List<PhysicalItemRelocationSaveData> physicalItemRelocations = new();
     public List<PhysicalItemTransformationSaveData> physicalItemTransformations = new();
+    public int physicalEffectReceiptSchemaVersion = PhysicalEffectReceiptRules.SchemaVersion;
+    public List<PhysicalEffectReceiptSaveData> physicalEffectReceipts = new();
     public List<FacilityOutputExactRouteOutboxSaveData> pendingExactOutputRoutes =
         new();
     public List<ProductionPhysicalCustodyDrainSaveData>

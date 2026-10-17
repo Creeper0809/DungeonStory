@@ -1,0 +1,28 @@
+{
+  "target": "C19 CharacterConsumablesApplicationPorts",
+  "status": "PHYSICAL_INVENTORY_OWNER_AND_CURRENT_RESTORE_QUERY_FIXED_SOURCE_VERIFIED_ACTUAL_PENDING",
+  "goalStatus": "active",
+  "completedTargets": 6,
+  "totalTargets": 32,
+  "sourceEdit": "CLOSED",
+  "authors": "READY/FROZEN",
+  "contract": "Physical inventory24 owns quantity leases, exact typed consumption/pending receipts and tare-before-ACK with same services. Shared current world references5 feeds both facade and physical owner; facility query honors staged candidate, absent facility rejected before slot map mutation. Facade slot/effect authority, ctor19/public callable81/DTO/DI identity remain. No parent back-reference or second saved state.",
+  "controlled": {
+    "baselineDefectsReproduced": 2,
+    "currentChecks": 40,
+    "baseline": "c19-consumable-physical/controlled-baseline-r1/result.json",
+    "current": "c19-consumable-physical/controlled-r4/result.json",
+    "scope": "Actual current public facade/new physical owner/shared query/receipt DTO, real PackagedLotTareDispositionService and output component codec; strict item/reservation/batch/output-gateway doubles. Component JSON only; no native actor/carry/physical store or official whole-world restore. Baseline prior full runtime ports with explicit empty candidate/live registries."
+  },
+  "parity": "c19-consumable-physical/ConsumableParity.result.txt",
+  "currentManagedCompile": "c19-consumable-physical/managed-final.json",
+  "independentReview": "READY/FROZEN; physical24/API81/shared query/source consumer verified",
+  "nativePending": [
+    "Current Unity import/ILPP",
+    "Real actor/carry rollback and physical store debit/receipt",
+    "Actual staged world/facility slot fixture",
+    "Official whole-world restore/retry"
+  ],
+  "Unity": "NOT_RUN",
+  "reason": "User explicitly requested continued source cleanup after isolated Unity memory failures."
+}

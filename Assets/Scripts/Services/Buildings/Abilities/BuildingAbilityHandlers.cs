@@ -54,6 +54,8 @@ public interface IBuildingWorkCompletionFallbackHandler
 
 public interface IBuildingAbilityRuntimeDispatcher
 {
+    IReadOnlyList<object> BindRuntimeAbilities(IReadOnlyList<BuildingAbility> definitions);
+
     int ApplyWorkCompleted(
         IBuildingVisitorPort actor,
         BuildableObject building,
@@ -66,14 +68,27 @@ public sealed class BuildingAbilityRuntimeDispatcher :
 {
     private readonly Dictionary<Type, IBuildingAbilityWorkCompletedHandler> workHandlers;
     private readonly Dictionary<WorkTypeId, IBuildingWorkCompletionFallbackHandler> fallbackHandlers;
+    private readonly BuildingAbilityRuntimeCatalog runtimeCatalog;
 
+    [VContainer.Inject]
     public BuildingAbilityRuntimeDispatcher(
         IReadOnlyList<IBuildingAbilityWorkCompletedHandler> registeredWorkHandlers,
         IReadOnlyList<IBuildingWorkCompletionFallbackHandler> registeredFallbackHandlers)
+        : this(registeredWorkHandlers, registeredFallbackHandlers, BuildingAbilityRuntimeCatalog.CreateBuiltIns())
     {
+    }
+
+    public BuildingAbilityRuntimeDispatcher(
+        IReadOnlyList<IBuildingAbilityWorkCompletedHandler> registeredWorkHandlers,
+        IReadOnlyList<IBuildingWorkCompletionFallbackHandler> registeredFallbackHandlers,
+        BuildingAbilityRuntimeCatalog runtimeCatalog)
+    {
+        this.runtimeCatalog = runtimeCatalog ?? throw new ArgumentNullException(nameof(runtimeCatalog));
         workHandlers = BuildTypeIndex(registeredWorkHandlers);
         fallbackHandlers = BuildFallbackIndex(registeredFallbackHandlers);
     }
+
+    public IReadOnlyList<object> BindRuntimeAbilities(IReadOnlyList<BuildingAbility> definitions) => runtimeCatalog.Bind(definitions);
 
     public int ApplyWorkCompleted(
         IBuildingVisitorPort actor,

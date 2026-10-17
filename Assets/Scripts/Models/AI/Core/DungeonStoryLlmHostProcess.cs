@@ -52,7 +52,8 @@ public sealed class DungeonStoryLlmHostProcess : IDisposable
     private readonly Queue<byte> logRing = new Queue<byte>(LogCapacityBytes);
     private readonly CancellationTokenSource lifetimeCancellation =
         new CancellationTokenSource();
-    private readonly Mutex userMutex;
+    private readonly IDisposable ownership;
+    private int disposed;
     private Process process;
     private IDisposable platformContainment;
     private AnonymousPipeServerStream lifetimePipe;
@@ -61,9 +62,9 @@ public sealed class DungeonStoryLlmHostProcess : IDisposable
     private Task stdoutTask;
     private Task stderrTask;
 
-    private DungeonStoryLlmHostProcess(Mutex userMutex)
+    private DungeonStoryLlmHostProcess(IDisposable ownership)
     {
-        this.userMutex = userMutex;
+        this.ownership = ownership ?? throw new ArgumentNullException(nameof(ownership));
     }
 
     public string Endpoint { get; private set; } = string.Empty;
@@ -73,7 +74,7 @@ public sealed class DungeonStoryLlmHostProcess : IDisposable
     public string TrainingState { get; private set; } = string.Empty;
     public bool ReleaseCertified { get; private set; }
     public string LastError { get; private set; } = string.Empty;
-    public bool IsRunning => process != null && !process.HasExited;
+    public bool IsRunning => Volatile.Read(ref disposed) == 0 && process != null && !process.HasExited;
 
     public static bool TryStart(out DungeonStoryLlmHostProcess host, out string error)
     {
@@ -87,35 +88,24 @@ public sealed class DungeonStoryLlmHostProcess : IDisposable
     {
         host = null;
         error = string.Empty;
-        string mutexName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? @"Local\DungeonStory.LlmHost." + Environment.UserName
-            : "DungeonStory.LlmHost." + Environment.UserName;
-        Mutex mutex = new Mutex(false, mutexName);
-        bool ownsMutex;
+        if (!DungeonStoryLlmHostOwnership.TryAcquire(out var ownership, out error))
+            return false;
+        DungeonStoryLlmHostProcess candidate = null;
         try
         {
-            ownsMutex = mutex.WaitOne(0, false);
+            candidate = new DungeonStoryLlmHostProcess(ownership);
+            if (!candidate.TryStartInternal(streamingAssetsPath, out error)) return false;
+            host = candidate;
+            return true;
         }
-        catch (AbandonedMutexException)
+        finally
         {
-            ownsMutex = true;
+            if (host == null)
+            {
+                if (candidate != null) candidate.Dispose();
+                else ownership.Dispose();
+            }
         }
-
-        if (!ownsMutex)
-        {
-            mutex.Dispose();
-            error = "Another DungeonStory process already owns the local narrative host.";
-            return false;
-        }
-
-        DungeonStoryLlmHostProcess candidate = new DungeonStoryLlmHostProcess(mutex);
-        if (!candidate.TryStartInternal(streamingAssetsPath, out error))
-        {
-            candidate.Dispose();
-            return false;
-        }
-        host = candidate;
-        return true;
     }
 
     private bool TryStartInternal(string streamingAssetsPath, out string error)
@@ -415,21 +405,27 @@ public sealed class DungeonStoryLlmHostProcess : IDisposable
 
     public void Dispose()
     {
-        lifetimeCancellation.Cancel();
-        lifetimePipe?.Dispose();
-        heartbeatStream?.Dispose();
-        StopHost();
-        platformContainment?.Dispose();
-        process?.Dispose();
+        if (Interlocked.Exchange(ref disposed, 1) != 0) return;
         try
         {
-            userMutex?.ReleaseMutex();
+            lifetimeCancellation.Cancel();
+            lifetimePipe?.Dispose();
+            heartbeatStream?.Dispose();
         }
-        catch (ApplicationException)
+        finally
         {
+            try
+            {
+                StopHost();
+                platformContainment?.Dispose();
+                process?.Dispose();
+            }
+            finally
+            {
+                try { ownership.Dispose(); }
+                finally { lifetimeCancellation.Dispose(); }
+            }
         }
-        userMutex?.Dispose();
-        lifetimeCancellation.Dispose();
     }
 
     private void StopHost()

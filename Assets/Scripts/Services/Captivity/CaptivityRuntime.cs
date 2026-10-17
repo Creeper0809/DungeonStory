@@ -54,6 +54,8 @@ public sealed class CaptivityRuntime :
     private readonly ISurvivalFoodCommand survivalFood;
     private readonly ICharacterSettlementStandingQuery settlementStandings;
     private readonly CaptivityActorAccess actorAccess;
+    private readonly CaptivityLaborRuntime laborRuntime;
+    private readonly CaptivityDurableToolRuntime durableTools;
     private readonly CaptivityPolicyRuntime policyRuntime;
     private readonly CaptivityPerformerRuntime performerRuntime;
     private readonly CaptivePerformerMilestoneOutcomeRuntime
@@ -139,6 +141,11 @@ public sealed class CaptivityRuntime :
             RecalculateCaptiveState);
         CaptivityActorRuntimeLookup actorRuntime =
             new CaptivityActorRuntimeLookup(FindActor);
+        durableTools = new CaptivityDurableToolRuntime();
+        laborRuntime = new CaptivityLaborRuntime(
+            actorAccess, actorRuntime, worldRegistry, bodyHealthQuery,
+            itemRuntime, batchDispositions, this.careLaborInputOwner, gameClock,
+            durableTools);
         CaptivityInterrogationInformationRuntime interrogationInformation =
             new CaptivityInterrogationInformationRuntime(
                 narratives,
@@ -184,6 +191,7 @@ public sealed class CaptivityRuntime :
         escortRuntime = new CaptivityEscortRuntime(
             actorAccess,
             actorRuntime,
+            durableTools,
             characters,
             world,
             session);
@@ -251,6 +259,7 @@ public sealed class CaptivityRuntime :
 
     public CaptivitySaveData Capture()
     {
+        durableTools.ValidateBeforeCapture();
         ValidateCaptivityTransitionCapture();
         performerMilestoneOutcomeRuntime.ValidateBeforeCapture();
         escapeOutcomeRuntime.ValidateBeforeCapture();
@@ -263,6 +272,7 @@ public sealed class CaptivityRuntime :
 
     public CaptivityRestoreCandidate BuildRestore(CaptivitySaveData saveData)
     {
+        durableTools.ValidateBeforeCapture();
         ValidateCaptivityTransitionCapture();
         performerMilestoneOutcomeRuntime.ValidateBeforeCapture();
         escapeOutcomeRuntime.ValidateBeforeCapture();
@@ -321,9 +331,9 @@ public sealed class CaptivityRuntime :
             gameEvent =>
             {
                 CaptiveState state = FindState(gameEvent.CharacterId.Value);
-                if (state != null)
+                if (state != null && !laborRuntime.ReturnAssignedCaptivityTools(state))
                 {
-                    ReturnAssignedCaptivityTools(state);
+                    Debug.LogWarning($"Captive '{state.captiveId}' died while tool return is pending; the assigned instances are retained for retry.");
                 }
                 stateRuntime.OnCharacterDeath(gameEvent);
             });
@@ -364,6 +374,8 @@ public sealed class CaptivityRuntime :
     {
         TickCaptivityTransitionOutcomeRecovery();
         TickRansomOutcomeRecovery();
+        if (!aggregateRootStore.IsRestoreStaging)
+            laborRuntime.RetryDeadCaptiveTools();
         RequireCareLaborInputOwner("tick");
         interactionRuntime.RetryPendingOutcomes(captives);
         if (gameClock.IsPaused || gameClock.DeltaTime <= 0f)
@@ -394,8 +406,7 @@ public sealed class CaptivityRuntime :
                 continue;
             }
 
-            TickLaborToolPreparation(state, actor);
-            TickLaborToolWear(state, actor);
+            laborRuntime.Tick(state, actor);
             TickCarePriority(state, actor);
             RecalculateCaptiveState(state);
             if (gameClock.Time + 0.001f < state.nextSecurityCheckAt)
@@ -578,247 +589,6 @@ public sealed class CaptivityRuntime :
         state.nextCareSupplyAt = gameClock.Time + (deliveryRequested ? 15f : 5f);
     }
 
-    private void TickLaborToolPreparation(
-        CaptiveState state,
-        CharacterActor actor)
-    {
-        if (state == null
-            || actor == null
-            || state.pendingLaborPermissions == CaptiveLaborPermission.None
-            || string.IsNullOrWhiteSpace(state.laborToolDestinationId))
-        {
-            return;
-        }
-
-        if (!TryGetHousing(state.captiveId, out BuildableObject housing)
-            || housing.BuildingData?.GetCaptiveHousingAbility()
-                is not { IsValid: true })
-        {
-            if (!CancelLaborToolPreparation(state))
-            {
-                state.lastResult =
-                    "소실된 감방의 포로 작업 도구 소유권을 정리할 수 없습니다.";
-            }
-            return;
-        }
-
-        if (CaptivityLaborToolAssignmentOutbox.RequiresFinalization(state))
-        {
-            if (CaptivityLaborToolAssignmentOutbox.TryFinalizePending(
-                    state,
-                    batchDispositions,
-                    out _))
-            {
-                TryCompleteLaborToolAssignment(state, out _);
-            }
-            return;
-        }
-
-        WorldItemStackSnapshot delivered = itemRuntime.GetAllStacks()
-            .Where(stack => stack != null
-                && stack.Quantity > 0
-                && stack.State == WorldItemStackState.FacilityBuffer
-                && string.Equals(
-                    stack.ItemId,
-                    CaptivityItemDefinitions.PrisonerWorkKitItemId,
-                    StringComparison.Ordinal)
-                && string.Equals(
-                    stack.DestinationId,
-                    state.laborToolDestinationId,
-                    StringComparison.Ordinal))
-            .OrderBy(stack => stack.StackId, StringComparer.Ordinal)
-            .FirstOrDefault();
-        CaptiveState assignmentProbe = state.Clone();
-        if (delivered == null
-            || !((ItemInstanceId)delivered.ItemInstanceId).IsValid
-            || DurableToolItemRules.ReadCurrentDurability(
-                delivered.ItemId,
-                delivered.Components) <= 0f
-            || !CaptivityDurableToolRuntime.TryAssignLaborTool(
-                assignmentProbe,
-                delivered))
-        {
-            return;
-        }
-
-        string operationId = CaptivityLaborToolAssignmentOutbox.FormatOperationId(
-            state.captiveId,
-            delivered.ItemInstanceId);
-        state.assignedLaborToolItemId = assignmentProbe.assignedLaborToolItemId;
-        state.assignedLaborToolInstanceId = assignmentProbe.assignedLaborToolInstanceId;
-        state.assignedLaborToolDurability = assignmentProbe.assignedLaborToolDurability;
-        state.assignedLaborToolMaximumDurability =
-            assignmentProbe.assignedLaborToolMaximumDurability;
-        state.laborToolAssignmentOperationId = operationId;
-        state.laborToolAssignmentSourceStackId = delivered.StackId;
-        state.laborToolAssignmentCommitId = string.Empty;
-        state.laborToolAssignmentCompleted = false;
-        if (!batchDispositions.TryCommitPending(
-                new[]
-                {
-                    new PhysicalItemTransformInput(delivered.StackId, 1)
-                },
-                PhysicalItemDispositionKind.Transfer,
-                operationId,
-                CaptivityLaborToolAssignmentOutbox.TransferReason,
-                out PhysicalItemBatchDispositionReceipt disposition,
-                out _))
-        {
-            CaptivityLaborToolAssignmentOutbox.ClearAssignment(state);
-            return;
-        }
-
-        state.laborToolAssignmentCommitId = disposition.CommitId;
-        if (!CaptivityLaborToolAssignmentOutbox.TryFinalizePending(
-                state,
-                batchDispositions,
-                out string finalizeFailure))
-        {
-            throw new InvalidOperationException(
-                $"Validated captive labor tool '{delivered.ItemInstanceId}' could not be finalized after physical transfer: {finalizeFailure}");
-        }
-
-        if (!TryCompleteLaborToolAssignment(
-                state,
-                out string closeFailure))
-        {
-            state.lastResult =
-                "포로 작업 도구 배송 종결 대기: " + closeFailure;
-        }
-    }
-
-    private bool TryCompleteLaborToolAssignment(
-        CaptiveState state,
-        out string failureReason)
-    {
-        CaptiveLaborPermission permissions = state.pendingLaborPermissions;
-        string destinationId = state.laborToolDestinationId;
-        state.pendingLaborPermissions = CaptiveLaborPermission.None;
-        state.laborToolDestinationId = string.Empty;
-        if (!careLaborInputOwner.TryReconcileLive(
-                captives,
-                out failureReason))
-        {
-            state.pendingLaborPermissions = permissions;
-            state.laborToolDestinationId = destinationId;
-            return false;
-        }
-        state.nextLaborToolWearAt = gameClock.Time + 60f;
-        ApplyLaborPermissions(state, permissions);
-        return true;
-    }
-
-    private void TickLaborToolWear(
-        CaptiveState state,
-        CharacterActor actor)
-    {
-        if (state?.status != CaptivityStatus.Labor
-            || string.IsNullOrWhiteSpace(state.assignedLaborToolItemId)
-            || !state.laborToolAssignmentCompleted
-            || gameClock.Time + 0.001f < state.nextLaborToolWearAt
-            || actor?.GetAbility<AbilityWork>()?.isWorking != true)
-        {
-            return;
-        }
-
-        state.nextLaborToolWearAt = gameClock.Time + 60f;
-        state.assignedLaborToolDurability = Mathf.Max(
-            0f,
-            state.assignedLaborToolDurability - 1f);
-        if (state.assignedLaborToolDurability > 0f)
-        {
-            return;
-        }
-
-        ApplyLaborPermissions(state, CaptiveLaborPermission.None);
-        CaptivityDurableToolRuntime.TryReturnLaborTool(
-            itemRuntime,
-            state,
-            state.housingPosition);
-        state.lastResult = "포로 작업 도구 파손으로 노역 중단";
-    }
-
-    private void ApplyLaborPermissions(
-        CaptiveState state,
-        CaptiveLaborPermission permissions)
-    {
-        CaptiveLaborPermission normalized =
-            permissions & CaptiveLaborPermission.All;
-        state.laborPermissions = normalized;
-        state.status = normalized == CaptiveLaborPermission.None
-            ? CaptivityStatus.Confined
-            : CaptivityStatus.Labor;
-        CharacterActor laborer = FindActor(state.captiveId);
-        if (laborer != null)
-        {
-            laborer.characterType = normalized == CaptiveLaborPermission.None
-                ? CharacterType.Intruder
-                : CharacterType.NPC;
-        }
-        laborer?.SetAiPaused(normalized == CaptiveLaborPermission.None);
-        laborer?.SetLifecycleState(
-            normalized == CaptiveLaborPermission.None
-                ? CharacterLifecycleState.Downed
-                : CharacterLifecycleState.Active);
-        state.lastResult = normalized == CaptiveLaborPermission.None
-            ? "노역 해제"
-            : "노역 허용";
-    }
-
-    private bool CancelLaborToolPreparation(CaptiveState state)
-    {
-        if (state == null)
-        {
-            return true;
-        }
-
-        if (CaptivityLaborToolAssignmentOutbox.RequiresFinalization(state)
-            && !CaptivityLaborToolAssignmentOutbox.TryFinalizePending(
-                state,
-                batchDispositions,
-                out _))
-        {
-            return false;
-        }
-
-        CaptiveLaborPermission previousPermissions =
-            state.pendingLaborPermissions;
-        string previousDestination = state.laborToolDestinationId;
-        state.pendingLaborPermissions = CaptiveLaborPermission.None;
-        state.laborToolDestinationId = string.Empty;
-        if (!careLaborInputOwner.TryReconcileLive(
-                captives,
-                out _))
-        {
-            state.pendingLaborPermissions = previousPermissions;
-            state.laborToolDestinationId = previousDestination;
-            return false;
-        }
-        return true;
-    }
-
-    private bool ReturnAssignedCaptivityTools(CaptiveState state)
-    {
-        if (state == null)
-        {
-            return true;
-        }
-
-        if (!CancelLaborToolPreparation(state))
-        {
-            return false;
-        }
-        CaptivityDurableToolRuntime.TryReturnLaborTool(
-            itemRuntime,
-            state,
-            state.housingPosition);
-        CaptivityDurableToolRuntime.TryReturnRestraint(
-            itemRuntime,
-            state,
-            state.housingPosition);
-        return true;
-    }
-
     public bool TryGetCaptive(string captiveId, out CaptiveState captive)
     {
         CaptiveState state = FindState(captiveId);
@@ -872,37 +642,9 @@ public sealed class CaptivityRuntime :
         return state != null && state.IsInCustody;
     }
 
-public bool IsWorkAllowed(
-        CharacterActor actor,
-        WorkTypeId workTypeId,
-        out string reason)
-    {
-        reason = string.Empty;
-        CaptiveState state = FindState(GetCharacterId(actor));
-        if (state == null || !state.IsInCustody)
-        {
-            return true;
-        }
-
-        if (state.status != CaptivityStatus.Labor
-            || !CanLabor(state, actor)
-            || string.IsNullOrWhiteSpace(state.assignedLaborToolItemId)
-            || state.assignedLaborToolDurability <= 0f)
-        {
-            reason = "이 포로는 현재 노역에 투입할 수 없습니다.";
-            return false;
-        }
-
-        CaptiveLaborPermission required = GetLaborPermission(workTypeId);
-        if (required != CaptiveLaborPermission.None
-            && (state.laborPermissions & required) != 0)
-        {
-            return true;
-        }
-
-        reason = $"{WorkTaskCatalog.GetDisplayName(workTypeId)} 노역은 허용되지 않았습니다.";
-        return false;
-    }
+    public bool IsWorkAllowed(
+        CharacterActor actor, WorkTypeId workTypeId, out string reason) =>
+        laborRuntime.IsWorkAllowed(actor, workTypeId, out reason);
 
     public bool HasSecureHousing(
         CharacterActor captive,
@@ -1130,99 +872,8 @@ public bool IsWorkAllowed(
     }
 
     public bool TrySetLaborPermissions(
-        string captiveId,
-        CaptiveLaborPermission permissions,
-        out string failureReason)
-    {
-        failureReason = string.Empty;
-        CaptiveState state = FindState(captiveId);
-        if (state == null || !state.IsInCustody)
-        {
-            failureReason = "포로를 찾을 수 없습니다.";
-            return false;
-        }
-
-        CaptiveLaborPermission requestedPermissions =
-            permissions & CaptiveLaborPermission.All;
-        if (requestedPermissions != CaptiveLaborPermission.None
-            && !CanLabor(state, FindActor(state.captiveId)))
-        {
-            failureReason = "순응도 50 이상, 건강 40% 이상부터 노역을 허용할 수 있습니다.";
-            return false;
-        }
-
-        CaptiveLaborPermission requested = requestedPermissions;
-        if (requested == CaptiveLaborPermission.None)
-        {
-            if (!CancelLaborToolPreparation(state))
-            {
-                failureReason = "포로 작업 도구 소유권을 정리할 수 없습니다.";
-                return false;
-            }
-            CaptivityDurableToolRuntime.TryReturnLaborTool(
-                itemRuntime,
-                state,
-                state.housingPosition);
-            ApplyLaborPermissions(state, CaptiveLaborPermission.None);
-            return true;
-        }
-
-        if (!string.IsNullOrWhiteSpace(state.assignedLaborToolItemId)
-            && state.assignedLaborToolDurability > 0f
-            && state.laborToolAssignmentCompleted)
-        {
-            ApplyLaborPermissions(state, requested);
-            return true;
-        }
-
-        string destinationId = CaptivityCareLaborInputOwnerAuthority
-            .FormatLaborToolDestinationId(state.captiveId);
-        CaptivityStatus previousStatus = state.status;
-        string previousResult = state.lastResult;
-        state.pendingLaborPermissions = requested;
-        state.laborToolDestinationId = destinationId;
-        state.status = CaptivityStatus.Confined;
-        state.lastResult = "포로 작업 도구 운반 대기";
-        if (!careLaborInputOwner.TryReconcileLive(
-                captives,
-                out failureReason))
-        {
-            state.pendingLaborPermissions = CaptiveLaborPermission.None;
-            state.laborToolDestinationId = string.Empty;
-            state.status = previousStatus;
-            state.lastResult = previousResult;
-            failureReason = "포로 작업 도구의 물리 소유권을 열 수 없습니다: "
-                + failureReason;
-            return false;
-        }
-        if (!itemRuntime.TryRequestItemDelivery(
-                CaptivityItemDefinitions.PrisonerWorkKitItemId,
-                1,
-                state.housingPosition,
-                destinationId,
-                out int requestedAmount,
-                out failureReason)
-            || requestedAmount < 1)
-        {
-            state.pendingLaborPermissions = CaptiveLaborPermission.None;
-            state.laborToolDestinationId = string.Empty;
-            state.status = previousStatus;
-            state.lastResult = previousResult;
-            if (!careLaborInputOwner.TryReconcileLive(
-                    captives,
-                    out string rollbackFailure))
-            {
-                throw new InvalidOperationException(
-                    "Captive labor-tool delivery failed and exact owner rollback failed: "
-                    + rollbackFailure);
-            }
-            failureReason = string.IsNullOrWhiteSpace(failureReason)
-                ? "포로 작업 도구를 감방으로 운반할 수 없습니다."
-                : failureReason;
-            return false;
-        }
-        return true;
-    }
+        string captiveId, CaptiveLaborPermission permissions, out string failureReason) =>
+        laborRuntime.TrySetLaborPermissions(captiveId, permissions, out failureReason);
 
     public bool TryStartInteraction(
         string captiveId,
@@ -2346,7 +1997,7 @@ public bool IsWorkAllowed(
         out string failureReason)
     {
         failureReason = string.Empty;
-        if (!ReturnAssignedCaptivityTools(state))
+        if (!laborRuntime.ReturnAssignedCaptivityTools(state))
         {
             failureReason = "포로 작업 도구 소유권을 정리할 수 없습니다.";
             return false;
@@ -2507,25 +2158,6 @@ public bool IsWorkAllowed(
             : building.RequirePersistentInstanceId().Value;
     }
 
-    private bool CanLabor(CaptiveState state, CharacterActor actor)
-    {
-        if (state == null || actor == null)
-        {
-            return false;
-        }
-
-        CharacterVitalsSnapshot vitals = bodyHealthQuery.GetVitals(actor);
-        CharacterBodyHealthSnapshot body = bodyHealthQuery.GetSnapshot(actor);
-        return state.CanLaborWithBody(
-            CaptivityBodyHealthRules.GetHealthPercent(
-                vitals.CurrentHealth,
-                vitals.MaximumHealth),
-            CaptivityBodyHealthRules.IsBodyAvailable(
-                actor.IsDead,
-                vitals.IsDead,
-                body.Downed));
-    }
-
     private float GetHealthPercent(CharacterActor actor)
     {
         if (actor == null)
@@ -2560,52 +2192,6 @@ public bool IsWorkAllowed(
         throw new InvalidOperationException(
             "Captivity care/labor input ownership failed at "
             + boundary + ": " + failureReason);
-    }
-
-    private static CaptiveLaborPermission GetLaborPermission(WorkTypeId workTypeId)
-    {
-        if (workTypeId == BuiltInWorkTypeIds.Clean)
-        {
-            return CaptiveLaborPermission.Clean;
-        }
-
-        if (workTypeId == BuiltInWorkTypeIds.Haul
-            || workTypeId == BuiltInWorkTypeIds.Restock)
-        {
-            return CaptiveLaborPermission.Haul;
-        }
-
-        if (workTypeId == BuiltInWorkTypeIds.DrawWater)
-        {
-            return CaptiveLaborPermission.DrawWater;
-        }
-
-        if (workTypeId == BuiltInWorkTypeIds.Refuel)
-        {
-            return CaptiveLaborPermission.Refuel;
-        }
-
-        if (workTypeId == BuiltInWorkTypeIds.Construct)
-        {
-            return CaptiveLaborPermission.Construct;
-        }
-
-        if (workTypeId == BuiltInWorkTypeIds.Repair)
-        {
-            return CaptiveLaborPermission.Repair;
-        }
-
-        if (workTypeId == BuiltInWorkTypeIds.Butcher)
-        {
-            return CaptiveLaborPermission.Butcher;
-        }
-
-        if (workTypeId == BuiltInWorkTypeIds.Craft)
-        {
-            return CaptiveLaborPermission.CraftAssist;
-        }
-
-        return CaptiveLaborPermission.None;
     }
 
     private static readonly Vector2Int[] CardinalDirections =

@@ -399,7 +399,7 @@ public static partial class ProductionPreparedOutputFullPersistenceDebugScenario
                 sourceLiveDurable,
                 sourceDetachedDurable,
                 StringComparison.Ordinal),
-            "Source live and save-only five-contributor lifecycle aggregates diverged.");
+            "Source live and save-only current-format lifecycle aggregates diverged.");
         VerifyDestructiveDrainCrossAggregatePreflight(
             source,
             sourceEnvelopes,
@@ -419,8 +419,8 @@ public static partial class ProductionPreparedOutputFullPersistenceDebugScenario
         Require(
             JsonUtility.FromJson<DungeonProductionBillSaveData>(sourceBills)
                 ?.version == DungeonProductionBillSaveData.CurrentVersion
-            && DungeonProductionBillSaveData.CurrentVersion == 25,
-            "Source production owner is not a current-format V24 payload.");
+            && DungeonProductionBillSaveData.CurrentVersion == 27,
+            "Source production owner is not a current-format V27 payload.");
 
         using RuntimeGraph destination = new(
             "Destination",
@@ -476,7 +476,7 @@ public static partial class ProductionPreparedOutputFullPersistenceDebugScenario
                 sourceLiveDurable,
                 destinationDetachedDurable,
                 StringComparison.Ordinal),
-            "Source/save/restored live five-contributor lifecycle aggregates diverged.");
+            "Source/save/restored live current-format lifecycle aggregates diverged.");
         RequireExactSectionIdentity(
             sourceWorld,
             RequireEnvelope(
@@ -619,8 +619,8 @@ public static partial class ProductionPreparedOutputFullPersistenceDebugScenario
         Require(
             JsonUtility.FromJson<DungeonProductionBillSaveData>(sourceBills)
                 ?.version == DungeonProductionBillSaveData.CurrentVersion
-            && DungeonProductionBillSaveData.CurrentVersion == 25,
-            "Perishable production owner is not a current-format V24 payload.");
+            && DungeonProductionBillSaveData.CurrentVersion == 27,
+            "Perishable production owner is not a current-format V27 payload.");
 
         using RuntimeGraph destination = new(
             "Perishable Destination",
@@ -2903,6 +2903,13 @@ public static partial class ProductionPreparedOutputFullPersistenceDebugScenario
                     facilityId,
                     environment),
             [ProductionOutputDestinationDurableSaveProjector
+                .DemolitionOutcomeContributorId] =
+                BuildingDemolitionOutcomeLifecycle.ProjectContribution(facilityId),
+            [ProductionOutputDestinationDurableSaveProjector
+                .FireDamageContributorId] =
+                EnvironmentalFireDamageAuthority.ProjectFacilityContribution(
+                    facilityId, Array.Empty<EnvironmentalFireDamageRecord>()),
+            [ProductionOutputDestinationDurableSaveProjector
                 .CapacityRoutingContributorId] = capacity,
             [ProductionOutputDestinationDurableSaveProjector
                 .EquipmentContributorId] =
@@ -2956,8 +2963,12 @@ public static partial class ProductionPreparedOutputFullPersistenceDebugScenario
         foreach (ProductionFacilityDestructiveDrainParticipantSaveData participant
                  in participants)
         {
-            participant.owners = ownerSources[participant.participantId]
-                .Select(ownerId => CreatePlannedOwner(
+            IReadOnlyList<string> owners = string.Equals(participant.participantId,
+                    ProductionFacilityDestructiveDrainParticipantIds.BuildingDemolitionOutcome,
+                    StringComparison.Ordinal)
+                ? Array.Empty<string>() // This fixture has no observed demolition snapshot.
+                : ownerSources[participant.participantId];
+            participant.owners = owners.Select(ownerId => CreatePlannedOwner(
                     operationId,
                     participant.participantId,
                     ownerId))
@@ -3260,6 +3271,18 @@ public static partial class ProductionPreparedOutputFullPersistenceDebugScenario
             failureReason = string.Empty;
             return true;
         }
+    }
+
+    // This focused production graph contains no fire operations. Use the
+    // production projection and all current lifecycle contributors nonetheless.
+    private sealed class FixtureNoFireDamageQuery : IEnvironmentalFireDamageQuery
+    {
+        public IReadOnlyList<EnvironmentalFireDamageRecord> Records =>
+            Array.Empty<EnvironmentalFireDamageRecord>();
+        public bool TryGet(string operationId, out EnvironmentalFireDamageRecord record)
+        { record = null; return false; }
+        public string ProjectFacilityContribution(BuildingInstanceId facilityId) =>
+            EnvironmentalFireDamageAuthority.ProjectFacilityContribution(facilityId, Records);
     }
 
     internal sealed class RuntimeGraph : IDisposable
@@ -3760,7 +3783,10 @@ public static partial class ProductionPreparedOutputFullPersistenceDebugScenario
                     stockSensors,
                     Repository,
                     worldRegistry,
-                    Mass));
+                    Mass),
+                new EnvironmentalFireDamageLifecycleContributor(
+                    new FixtureNoFireDamageQuery()),
+                new BuildingDemolitionOutcomeLifecycleContributor());
 
             PhysicalSection = new PhysicalItemsSaveSection(
                 WorldItems,

@@ -4,12 +4,6 @@ using System.Linq;
 using DungeonStory.Foundation.Facts;
 using Newtonsoft.Json;
 
-// The source-facing contract contains only domain publication and its save fence.
-public interface ISocialRitualFactPublisher : IDomainFactPublisher
-{
-    void AssertIdle();
-}
-
 [Serializable]
 public sealed class FestivalResolutionFactData
 {

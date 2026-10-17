@@ -56,7 +56,7 @@ public sealed class WildlifeFoodRaidFactMapping
 
         GameplayResultKey childKey = PhysicalChildKey(source);
         WildlifeFoodRaidOutcomeReceipt receipt =
-            EnvironmentOutcomeReceiptFactory.CreateWildlifeFoodRaid(
+            WildlifeOutcomeReceiptFactory.CreateWildlifeFoodRaid(
                 source,
                 childKey.ToString(),
                 physicalChildOutcomeId);

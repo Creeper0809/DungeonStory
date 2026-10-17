@@ -20,7 +20,6 @@ public sealed class CharacterWeightedRarity
         this.weight = Mathf.Max(0.001f, weight);
     }
 }
-
 [Serializable]
 public sealed class CharacterPotentialRarityProfile
 {
@@ -565,7 +564,7 @@ public sealed class CharacterSkillSystemSettingsSO : ScriptableObject
         formulaPolicy.RequireCompleteGenerationContexts();
         formulaPolicy.RequireCatalogSha256();
         if (formulaPolicy.formulaVersion >=
-            CharacterSkillFormulaGeneration.DrawbackModuleSelectionFormulaVersion)
+            CharacterSkillFormulaVersions.DrawbackModuleSelectionFormulaVersion)
             RequireDrawbackCatalog();
         return formulaPolicy.ToRuntime();
     }
@@ -583,7 +582,7 @@ public sealed class CharacterSkillSystemSettingsSO : ScriptableObject
             .OrderBy(value => value.DrawbackId, StringComparer.Ordinal)
             .ToArray();
         int minimumCount = formulaPolicy?.formulaVersion >=
-            CharacterSkillFormulaGeneration.RuntimeStatDrawbackFormulaVersion ? 8 : 2;
+            CharacterSkillFormulaVersions.RuntimeStatDrawbackFormulaVersion ? 8 : 2;
         if (authored.Length < minimumCount
             || authored.Select(value => value.DrawbackId)
                 .Distinct(StringComparer.Ordinal).Count() != authored.Length)
@@ -857,25 +856,4 @@ public sealed class CharacterSkillSystemSettingsSO : ScriptableObject
     {
         return new CharacterSkillNumericVariant(id, id, primary, secondary, duration, count, cost);
     }
-}
-
-public interface ICharacterSkillSystemSettingsProvider
-{
-    CharacterSkillSystemSettingsSO Settings { get; }
-}
-
-public sealed class ResourceCharacterSkillSystemSettingsProvider : ICharacterSkillSystemSettingsProvider
-{
-    private readonly IGameContentCatalog contentCatalog;
-
-    public ResourceCharacterSkillSystemSettingsProvider(IGameContentCatalog contentCatalog)
-    {
-        this.contentCatalog = contentCatalog
-            ?? throw new ArgumentNullException(nameof(contentCatalog));
-    }
-
-    public CharacterSkillSystemSettingsSO Settings =>
-        contentCatalog.CharacterSkillSettings
-        ?? throw new InvalidOperationException(
-            "Game content catalog has no character-skill settings.");
 }

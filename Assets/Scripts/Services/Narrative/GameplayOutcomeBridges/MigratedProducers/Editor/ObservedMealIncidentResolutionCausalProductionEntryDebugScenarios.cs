@@ -821,7 +821,8 @@ public static class ObservedMealIncidentResolutionCausalProductionEntryDebugScen
     }
 
     private sealed class EmptyAtomicItemConsumption :
-        IAtomicItemConsumptionService
+        IAtomicItemConsumptionService,
+        IIdempotentAtomicItemConsumptionService
     {
         internal static readonly EmptyAtomicItemConsumption Instance = new();
         public bool TryConsumeReserved(
@@ -831,6 +832,25 @@ public static class ObservedMealIncidentResolutionCausalProductionEntryDebugScen
         {
             failure = DomainFailure.None;
             return consumptions == null || consumptions.Count == 0;
+        }
+
+        public bool TryConsumeReservedOnce(
+            IReadOnlyList<ReservedItemConsumption> consumptions,
+            string reservationOwnerId,
+            out PhysicalEffectReceiptSaveData receipt,
+            out DomainFailure failure)
+        {
+            receipt = null;
+            if (consumptions == null || consumptions.Count == 0)
+            {
+                failure = DomainFailure.None;
+                return true;
+            }
+
+            failure = new DomainFailure(
+                FailureCode.ItemTransferConsumptionFailed,
+                reservationOwnerId ?? string.Empty);
+            return false;
         }
     }
 

@@ -147,6 +147,7 @@ public static class RunResultPanelFactoryDebugScenarios
         builder.RegisterInstance<ITmpKoreanFontService>(new NoopFontService());
         builder.RegisterInstance<IDungeonRunTransitionService>(new NoopTransitionService());
         builder.RegisterInstance<IGameTimeScaleController>(new MemoryTimeScaleController());
+        builder.RegisterInstance<IDungeonRestoreSafetyQuery>(new SafeRestoreQuery());
         builder.RegisterInstance<IRunResultTextQuery>(new FixedRunResultTextQuery());
         builder.RegisterInstance<IRunResultThemeQuery>(new FixedRunResultThemeQuery());
         builder.RegisterInstance<IRunResultPanelRegistry>(new RunResultPanelRegistry());
@@ -173,6 +174,12 @@ public static class RunResultPanelFactoryDebugScenarios
     private sealed class MemoryTimeScaleController : IGameTimeScaleController
     {
         public float Scale { get; set; } = 1f;
+    }
+
+    private sealed class SafeRestoreQuery : IDungeonRestoreSafetyQuery
+    {
+        public bool RequiresRecovery => false;
+        public string RecoveryMessage => string.Empty;
     }
 
     private sealed class FixedRunResultTextQuery : IRunResultTextQuery

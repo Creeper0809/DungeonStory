@@ -158,6 +158,185 @@ public static class BuildingWorldRegistryReplacementDebugScenarios
             "Building replacement fixture did not restore world registry membership.");
         VerifyWarehouseProjection();
         VerifyRetailProjection();
+        VerifyDestructionLifetime();
+    }
+
+    public static void VerifyDestructionLifetime()
+    {
+        Require(!Application.isPlaying, "Destruction lifetime fixture requires EditMode for immediate native destruction.");
+        // Actual Unity object lifetime with controlled observers. This does not
+        // bypass or claim the physical destructive-drain workflow.
+        GameObject root = new("C3 Destruction Observer Lifetime");
+        BuildableObject building = root.AddComponent<BuildableObject>();
+        var observerFailure = new InvalidOperationException("c3-destruction-observer-failure");
+        int reentryCalls = 0, laterCalls = 0;
+        building.OnBuildingDestroyed += () => { reentryCalls++; building.DestroySelf(); };
+        building.OnBuildingDestroyed += () => throw observerFailure;
+        building.OnBuildingDestroyed += () => laterCalls++;
+        try
+        {
+            AggregateException reported = null;
+            try { building.DestroySelf(); }
+            catch (AggregateException exception) { reported = exception; }
+            Require(building == null && root == null && reentryCalls == 1 && laterCalls == 1
+                    && reported?.InnerExceptions.Count == 1
+                    && ReferenceEquals(reported.InnerExceptions[0], observerFailure)
+                    && reported.Message.Contains("C3 Destruction Observer Lifetime", StringComparison.Ordinal),
+                "Destruction reentry repeated teardown or destroyed-object access hid the observer failure.");
+            building.DestroySelf();
+            Require(reentryCalls == 1 && laterCalls == 1, "Completed destruction republished observers.");
+        }
+        finally
+        {
+            if (root != null) Object.DestroyImmediate(root);
+        }
+
+        BuildingSO definition = AssetDatabase.LoadAssetAtPath<BuildingSO>(
+            "Assets/Resources/SO/Building/Wall.asset");
+        Require(definition != null, "C3 destruction retry definition is missing.");
+        ICharacterAiWorldRegistry world = CharacterAiEditorTestDependencies.WorldRegistry;
+        int initialCount = world.Buildings.Count;
+        root = new GameObject("C3 Destruction Retry Lifetime");
+        building = root.AddComponent<BuildableObject>();
+        var contracts = new FailOncePaidContracts();
+        int destroyedEvents = 0;
+        try
+        {
+            CharacterAiEditorTestDependencies.Inject(building);
+            building.ConstructBuildableObject(
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy.Create<IBuildingResearchWorkPort>(),
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy.Create<IBuildingFacilityStateChangePort>(),
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy.Create<IBuildingRoomPolicyPort>(),
+                null, (IBuildingWorldRegistryPort)world, null,
+                CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
+                CharacterAiEditorTestDependencies.GameClock, contracts,
+                new FacilityEvolutionStateComponentFactory());
+            building.Initialization(definition, Vector2Int.zero);
+            building.OnBuildingDestroyed += () => destroyedEvents++;
+            Require(world.Buildings.Contains(building) && contracts.Synchronized == 1,
+                "C3 retry fixture did not acquire actual registry/contract ownership.");
+            AggregateException failure = null;
+            try { building.DestroySelf(); }
+            catch (AggregateException exception) { failure = exception; }
+            Require(failure?.InnerExceptions.Single().Message == FailOncePaidContracts.Failure
+                    && building != null && root != null && building.isDestroy
+                    && world.Buildings.Contains(building) && destroyedEvents == 1,
+                "Failed teardown retired the object or hid its incomplete release.");
+            building.DestroySelf();
+            Require(building == null && root == null && contracts.RemoveAttempts == 2
+                    && destroyedEvents == 1 && world.Buildings.Count == initialCount,
+                "Retry skipped incomplete cleanup, repeated the destruction event or leaked registry membership.");
+        }
+        finally
+        {
+            contracts.FailNext = false;
+            if (root != null) Object.DestroyImmediate(root);
+        }
+        VerifyForwardTeardownAfterUnregister(definition, world);
+    }
+
+    private static void VerifyForwardTeardownAfterUnregister(
+        BuildingSO definition,
+        ICharacterAiWorldRegistry world)
+    {
+        int before = world.Buildings.Count;
+        GameObject root = new("C3 Forward Teardown Native Owner");
+        GameObject textureRoot = new("C3 Forward Teardown Texture");
+        BuildableObject building = root.AddComponent<BuildableObject>();
+        var cache = new FailSecondDirtyNotification();
+        var fuel = new CountingFuelRetirement();
+        var contracts = new FailOncePaidContracts { FailNext = false };
+        var grid = new Grid(4, 1);
+        int events = 0;
+        try
+        {
+            CharacterAiEditorTestDependencies.Inject(building);
+            building.ConstructBuildableObject(
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy.Create<IBuildingResearchWorkPort>(),
+                cache,
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy.Create<IBuildingRoomPolicyPort>(),
+                null, (IBuildingWorldRegistryPort)world, null,
+                CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
+                CharacterAiEditorTestDependencies.GameClock, contracts,
+                new FacilityEvolutionStateComponentFactory());
+            building.SetGrid(grid);
+            building.Initialization(definition, Vector2Int.right);
+            BuildingInstanceId id = building.RequirePersistentInstanceId();
+            Require(grid.RegisterOccupant(building, definition.Placement.Layer,
+                building.buildPoses, definition.Placement.IsMovement), "Forward fixture grid admission failed.");
+            var port = new ProductionFacilityDestructiveDrainWorldRemovalPort(world,
+                new FixedDestructionTexture(textureRoot.AddComponent<GridTexture>()), fuel);
+            building.OnBuildingDestroyed += () => events++;
+            cache.Armed = true;
+            ProductionFacilityWorldRemovalResult first = port.TryEnsureRemoved(id);
+            Require(first.Disposition == ProductionFacilityWorldRemovalDisposition.Deferred
+                    && building != null && !building.IsRuntimeTeardownCompleted
+                    && world.Buildings.Count == before
+                    && !world.Buildings.Contains(building)
+                    && building.buildPoses.All(position => !ReferenceEquals(
+                        grid.GetGridCell(position).GetOccupant(definition.Placement.Layer), building)),
+                "Unregistered incomplete native owner was reported as removed or lost physical preparation.");
+            bool captureBlocked = false;
+            try { port.ValidateBeforeCapture(); }
+            catch (InvalidOperationException) { captureBlocked = true; }
+            Require(captureBlocked, "Native incomplete teardown allowed capture.");
+            ProductionFacilityWorldRemovalResult second = port.TryEnsureRemoved(id);
+            Require(second.Applied && building == null && root == null
+                    && fuel.Calls == 1 && contracts.RemoveAttempts == 1 && events == 1
+                    && world.Buildings.Count == before,
+                "Forward retry lost its unregistered owner or repeated physical/observer work.");
+            Require(port.TryEnsureRemoved(id).Disposition == ProductionFacilityWorldRemovalDisposition.AlreadyApplied
+                    && fuel.Calls == 1 && events == 1,
+                "Terminal forward replay repeated physical work.");
+            port.ValidateBeforeCapture();
+        }
+        finally
+        {
+            cache.Armed = false;
+            if (root != null) Object.DestroyImmediate(root);
+            Object.DestroyImmediate(textureRoot);
+        }
+    }
+
+    private sealed class FailSecondDirtyNotification : IBuildingFacilityStateChangePort
+    {
+        internal bool Armed;
+        private int calls;
+        public void MarkDynamicStateDirty()
+        {
+            if (Armed && ++calls == 2)
+                throw new InvalidOperationException("c3-post-unregister-cache-failure");
+        }
+    }
+
+    private sealed class CountingFuelRetirement : ISurvivalFacilityFuelRetirement
+    {
+        internal int Calls;
+        public bool TryPrepareFacilityFuelRetirement(BuildableObject building, out string failureReason)
+        { Calls++; failureReason = string.Empty; return true; }
+    }
+
+    private sealed class FixedDestructionTexture : IGridTextureProvider
+    {
+        internal FixedDestructionTexture(GridTexture texture) => Texture = texture;
+        public GridTexture Texture { get; }
+    }
+
+    private sealed class FailOncePaidContracts : IBuildingPaidFacilityContractPort
+    {
+        internal const string Failure = "c3-paid-contract-release-failed-once";
+        internal bool FailNext = true;
+        internal int Synchronized, RemoveAttempts;
+        public bool CanBeginUse(IBuildingWorldEntryPort facility, out string failureReason)
+        { failureReason = string.Empty; return true; }
+        public bool TryChargeUse(IBuildingWorldEntryPort facility, out string failureReason)
+        { failureReason = string.Empty; return true; }
+        public void SynchronizeFacility(IBuildingWorldEntryPort facility) => Synchronized++;
+        public void RemoveFacility(IBuildingWorldEntryPort facility)
+        {
+            RemoveAttempts++;
+            if (FailNext) { FailNext = false; throw new InvalidOperationException(Failure); }
+        }
     }
 
     private static void VerifyWarehouseProjection()

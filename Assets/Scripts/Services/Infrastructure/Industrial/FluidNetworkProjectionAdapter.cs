@@ -14,6 +14,13 @@ internal sealed class FluidNetworkProjectionAdapter
     private int snapshotVersion = int.MinValue;
     private int publishedRestoreRevision;
 
+    // Derived network projections share the topology/restore invalidation boundary.
+    internal Dictionary<string, float> NextBackflowAt { get; } =
+        new Dictionary<string, float>(StringComparer.Ordinal);
+    internal IReadOnlyList<WaterTransferFacilitySnapshot> WaterTransfers { get; set; } =
+        Array.Empty<WaterTransferFacilitySnapshot>();
+    internal float Accumulated { get; set; }
+
     public FluidNetworkProjectionAdapter(
         IIndustrialInfrastructureTopologyRuntime topologyRuntime,
         FluidNetworkStateStore stateStore)
@@ -146,6 +153,58 @@ internal sealed class FluidNetworkProjectionAdapter
         topologyVersion = int.MinValue;
         snapshotVersion = int.MinValue;
         snapshots = Array.Empty<FluidNetworkSnapshot>();
+    }
+
+    internal void EnsureTopology(IFluidFacilityInputOwnerAuthority inputOwners)
+    {
+        if (EnsurePublishedRestoreRevision())
+        {
+            ResetTransientProjection();
+        }
+
+        IndustrialTopologySnapshot topology = topologyRuntime.Current;
+        if (!inputOwners.TryReconcile(topology, out string ownerFailure))
+        {
+            throw new InvalidOperationException(
+                "Fluid input destination authority reconciliation failed: "
+                + ownerFailure);
+        }
+        if (!TryUpdateTopologyVersion(
+                topology.SourceVersion))
+        {
+            return;
+        }
+
+        foreach (IndustrialNodeDescriptor node in topology.Nodes.Values.Where(
+                     node => (node.Channels
+                             & (UtilityChannel.CleanWater
+                                | UtilityChannel.Wastewater))
+                         != 0))
+        {
+            FluidNodeState state = stateStore.EnsureState(node.NodeId);
+            BuildingWaterStorageAbility storage =
+                node.Building.BuildingData
+                    .GetAbility<BuildingWaterStorageAbility>();
+            if (storage != null)
+            {
+                float waterCapacity = Mathf.Max(
+                    0f,
+                    storage.cleanWaterCapacity);
+                FluidNodeWaterRules.ClampToCapacity(state, waterCapacity);
+                state.Wastewater = Mathf.Min(
+                    state.Wastewater,
+                    Mathf.Max(0f, storage.wastewaterCapacity));
+            }
+        }
+
+        stateStore.Touch();
+    }
+
+    internal void ResetTransientProjection()
+    {
+        Accumulated = 0f;
+        NextBackflowAt.Clear();
+        WaterTransfers = Array.Empty<WaterTransferFacilitySnapshot>();
     }
 
     private static FluidTopologyProjection Capture(

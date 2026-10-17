@@ -174,7 +174,7 @@ public sealed class SurgicalPartProductionOutputRestoreCapabilityValidator :
                 componentFingerprint,
                 context.MaximumMassProof,
                 capacity);
-        string destinationId = ProductionBillRuntime.OutputDestinationPrefix
+        string destinationId = ProductionBillIdentity.OutputDestinationPrefix
             + context.FacilityCapacity.FacilityInstanceId;
         if (!string.Equals(
                 context.Physical.OutcomeFingerprint,

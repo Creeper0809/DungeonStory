@@ -53,6 +53,22 @@ public static class ModularFacilityDebugScenarios
         Debug.Log("ModularFacilityDebugScenarios passed: operational contracts, assets, runtime instances, migration, slots, support, and room composition.");
     }
 
+    public static void RunDefinitionRuntimeForBatch()
+    {
+        if (!Application.isBatchMode) throw new InvalidOperationException("Building definition verification requires isolated batch mode.");
+        string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        if (string.IsNullOrWhiteSpace(output)) throw new InvalidOperationException("Building verification requires its evidence directory.");
+        Directory.CreateDirectory(output);
+        string report = Path.Combine(output, "building-definition-contracts.tsv");
+        if (File.Exists(report)) throw new InvalidOperationException("Building definition report already exists.");
+        VerifyCatalogAssets();
+        ModularFacilityAssetBuilder.ValidateCriticalWorkTypeWiringAssets();
+        VerifyAbilityAuthoringContract();
+        VerifyOperationalContracts(report);
+        VerifyEveryPartCanInstantiateAndRegister();
+        Debug.Log("ARCHITECTURE_BUILDING_DEFINITIONS=PASS; authored managed references; inspector; registered capabilities; every part instantiate/register");
+    }
+
     private static void VerifyAbilityAuthoringContract()
     {
         FieldInfo abilityField = typeof(BuildingSO).GetField(
@@ -216,7 +232,7 @@ public static class ModularFacilityDebugScenarios
         }
     }
 
-    private static void VerifyOperationalContracts()
+    private static void VerifyOperationalContracts(string reportPath = ContractReportPath)
     {
         Directory.CreateDirectory("Temp");
         BuildingSO[] assets = LoadAll();
@@ -261,23 +277,22 @@ public static class ModularFacilityDebugScenarios
             CheckContract(productionAbility == null || productionAbility.IsValid, "invalid production ability", failures);
             CheckContract(productionAbility == null
                     || (productionAbility is IBuildingWorkCompletionAbility
-                        && productionAbility is IBuildingRuntimeStateAbility
+                        && productionAbility is IBuildingRuntimeAbilityDefinition
                         && productionAbility is IBuildingStockCategorySignal),
                 "production capability is missing its registered-dispatch contract", failures);
-            CheckContract(lightingAbility == null || lightingAbility is IBuildingVisualRuntimeAbility,
+            CheckContract(lightingAbility == null || lightingAbility is IBuildingRuntimeAbilityDefinition,
                 "lighting capability has no visual handler", failures);
             CheckContract(!asset.GetNeedRecovery().HasEffect
                     || (recoveryAbility != null && recoveryAbility.HasEffect),
                 "recovery accessor must resolve BuildingNeedRecoveryAbility", failures);
 
             string[] runtimeHandlers = asset.Abilities
-                .Where(ability => ability is IBuildingVisualRuntimeAbility
-                    || ability is IBuildingUseCompletedRuntimeAbility
+                .Where(ability => ability is IBuildingRuntimeAbilityDefinition
                     || ability is IBuildingWorkCompletionAbility)
                 .Select(ability => ability.GetType().Name)
                 .ToArray();
             string[] stateModules = asset.Abilities
-                .OfType<IBuildingRuntimeStateAbility>()
+                .Where(ability => BuildingAbilityRuntimeCatalog.CreateBuiltIns().Bind(new[] { ability }).OfType<IBuildingRuntimeStateAbility>().Any())
                 .Select(ability => ability.GetType().Name)
                 .ToArray();
             StockCategory[] stockSignals = asset.GetStockCategorySignals().Distinct().ToArray();
@@ -318,7 +333,7 @@ public static class ModularFacilityDebugScenarios
             Require(failures.Count == 0, $"{code} capability contract failed: {result}.");
         }
 
-        File.WriteAllLines(ContractReportPath, rows);
+        File.WriteAllLines(reportPath, rows);
         Require(rows.Count == assets.Length + 1,
             $"Expected report header plus {assets.Length} contracts, found {rows.Count} rows.");
     }
@@ -523,7 +538,7 @@ public static class ModularFacilityDebugScenarios
                         new BuildingResearchWorkPortAdapter(
                             BlueprintResearchWorkService),
                         FacilityCandidateCache,
-                        RoomFacilityPolicy, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
+                        RoomFacilityPolicy, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
                     placed.ConstructBuildableObjectEventBus(
                         CharacterAiEditorTestDependencies.GameEvents,
                         new BuildingVisitEventPublisher(

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using VContainer;
 using VContainer.Unity;
@@ -79,11 +80,47 @@ public interface IProductionFacilityDestructiveDrainWorldRemovalPort
 /// effects remain outside this boundary and are never rolled back here.
 /// </summary>
 public sealed class ProductionFacilityDestructiveDrainWorldRemovalPort :
-    IProductionFacilityDestructiveDrainWorldRemovalPort
+    IProductionFacilityDestructiveDrainWorldRemovalPort,
+    IDungeonSaveCaptureGuard,
+    IDungeonSaveRestoreCompletedHook
 {
     private readonly IBuildingWorldQuery world;
     private readonly IGridTextureProvider textures;
     private readonly ISurvivalFacilityFuelRetirement facilityFuelRetirement;
+    private readonly Dictionary<BuildingInstanceId, PendingTeardown> pendingTeardowns = new();
+    private int worldMutationDepth;
+
+    private sealed class PendingTeardown
+    {
+        internal readonly BuildableObject Facility;
+        internal readonly Grid Grid;
+        internal readonly BuildingSO Definition;
+        internal readonly UnityEngine.Vector2Int[] Positions;
+        internal readonly UnityEngine.Vector2Int Center;
+        internal readonly GridLayer Layer;
+        internal string FirstFailure = string.Empty;
+
+        internal PendingTeardown(BuildableObject facility, GridLayer layer)
+        {
+            Facility = facility;
+            Grid = facility.Grid;
+            Definition = facility.BuildingData;
+            Positions = facility.buildPoses.ToArray();
+            Center = facility.centerPos;
+            Layer = layer;
+        }
+    }
+
+    public void ValidateBeforeCapture()
+    {
+        if (pendingTeardowns.Count != 0 || worldMutationDepth != 0)
+            throw new InvalidOperationException(
+                "A destructive world removal is incomplete: depth=" + worldMutationDepth + ":"
+                + string.Join(",", pendingTeardowns.Keys.OrderBy(value => value.Value)
+                    .Select(value => value.Value)));
+    }
+
+    public void OnRestoreCompleted() => pendingTeardowns.Clear();
 
     public ProductionFacilityDestructiveDrainWorldRemovalPort(
         IBuildingWorldQuery world,
@@ -110,6 +147,13 @@ public sealed class ProductionFacilityDestructiveDrainWorldRemovalPort :
             .Where(value => value != null
                 && value.PersistentInstanceId.Equals(facilityId))
             .ToArray();
+        if (pendingTeardowns.TryGetValue(facilityId, out PendingTeardown pending))
+        {
+            if (matches.Length > 1
+                || matches.Length == 1 && !ReferenceEquals(matches[0], pending.Facility))
+                return Conflict("production-destructive-world-removal-owner-replaced:" + facilityId.Value);
+            return FinishPendingTeardown(facilityId, pending);
+        }
         if (matches.Length == 0)
         {
             return new ProductionFacilityWorldRemovalResult(
@@ -170,61 +214,99 @@ public sealed class ProductionFacilityDestructiveDrainWorldRemovalPort :
 
         bool movement = layer == facility.BuildingData.Placement.Layer
             && facility.BuildingData.Placement.IsMovement;
-        if (!facility.Grid.RemoveOccupant(
-                facility,
-                layer,
-                facility.buildPoses,
-                movement))
-        {
-            return Deferred(
-                "production-destructive-world-removal-grid-remove-deferred:"
-                + facilityId.Value);
-        }
-
+        worldMutationDepth = checked(worldMutationDepth + 1);
         try
         {
-            textures.Texture.DeleteBuilding(
-                facility.BuildingData,
-                facility.centerPos);
-        }
-        catch (Exception exception)
-        {
-            if (!TryRestoreWorld(
+            if (!facility.Grid.RemoveOccupant(
                     facility,
                     layer,
-                    movement,
-                    redrawVisual: true,
-                    out string restoreFailure))
+                    facility.buildPoses,
+                    movement))
             {
-                return Conflict(
-                    "production-destructive-world-removal-visual-failed-and-restore-failed:"
-                    + exception.GetType().Name + ":" + restoreFailure);
+                return Deferred(
+                    "production-destructive-world-removal-grid-remove-deferred:"
+                    + facilityId.Value);
             }
-            return Deferred(
-                "production-destructive-world-removal-visual-deferred:"
-                + exception.GetType().Name);
-        }
 
-        string notificationFailure = string.Empty;
-        try
-        {
-            facility.DestroySelf();
+            try
+            {
+                textures.Texture.DeleteBuilding(
+                    facility.BuildingData,
+                    facility.centerPos);
+            }
+            catch (Exception exception)
+            {
+                if (!TryRestoreWorld(
+                        facility,
+                        layer,
+                        movement,
+                        redrawVisual: true,
+                        out string restoreFailure))
+                {
+                    return Conflict(
+                        "production-destructive-world-removal-visual-failed-and-restore-failed:"
+                        + exception.GetType().Name + ":" + restoreFailure);
+                }
+                return Deferred(
+                    "production-destructive-world-removal-visual-deferred:"
+                    + exception.GetType().Name);
+            }
+
+            // Only the successful physical preparation creates this transient
+            // receipt. It keeps the exact owner alive even after unregistering.
+            pending = new PendingTeardown(facility, layer);
+            pendingTeardowns.Add(facilityId, pending);
+            return FinishPendingTeardown(facilityId, pending);
         }
-        catch (Exception exception)
+        finally
         {
-            notificationFailure =
-                "production-destructive-world-removal-notification-failed:"
-                + exception.GetType().Name + ":" + exception.Message;
+            worldMutationDepth--;
+        }
+    }
+
+    private ProductionFacilityWorldRemovalResult FinishPendingTeardown(
+        BuildingInstanceId facilityId,
+        PendingTeardown pending)
+    {
+        BuildableObject facility = pending.Facility;
+        if (!facility.PersistentInstanceId.Equals(facilityId)
+            || !ReferenceEquals(facility.Grid, pending.Grid)
+            || !ReferenceEquals(facility.BuildingData, pending.Definition)
+            || facility.centerPos != pending.Center
+            || !facility.buildPoses.SequenceEqual(pending.Positions))
+            return Conflict("production-destructive-world-removal-binding-changed:" + facilityId.Value);
+        if (facility == null && !facility.IsRuntimeTeardownCompleted)
+            return Conflict("production-destructive-world-removal-runtime-owner-lost:" + facilityId.Value);
+
+        string currentFailure = string.Empty;
+        if (!facility.IsRuntimeTeardownCompleted)
+        {
+            try
+            {
+                facility.DestroySelf();
+            }
+            catch (Exception exception)
+            {
+                currentFailure = "production-destructive-world-removal-notification-failed:"
+                    + exception.GetType().Name + ":" + exception.Message;
+                if (pending.FirstFailure.Length == 0)
+                    pending.FirstFailure = currentFailure;
+            }
+        }
+        if (!facility.IsRuntimeTeardownCompleted)
+        {
+            return Deferred("production-destructive-world-removal-teardown-deferred:"
+                + facilityId.Value + ":" + currentFailure);
         }
 
         bool registered = (world.Buildings ?? Array.Empty<BuildableObject>())
             .Any(value => value != null
                 && value.PersistentInstanceId.Equals(facilityId));
-        bool occupied = facility.buildPoses.Any(position =>
+        bool occupied = pending.Positions.Any(position =>
         {
-            GridCell cell = facility.Grid?.GetGridCell(position);
-            return ReferenceEquals(cell?.GetOccupant(layer), facility)
-                || (cell?.GetOccupant(layer) is BuildableObject other
+            GridCell cell = pending.Grid.GetGridCell(position);
+            return ReferenceEquals(cell?.GetOccupant(pending.Layer), facility)
+                || (cell?.GetOccupant(pending.Layer) is BuildableObject other
                     && other.PersistentInstanceId.Equals(facilityId));
         });
         if (!facility.isDestroy || registered || occupied)
@@ -234,12 +316,16 @@ public sealed class ProductionFacilityDestructiveDrainWorldRemovalPort :
                 + facilityId.Value);
         }
 
+        if (!pendingTeardowns.TryGetValue(facilityId, out PendingTeardown current)
+            || !ReferenceEquals(current, pending))
+            return Conflict("production-destructive-world-removal-attempt-replaced:" + facilityId.Value);
+        pendingTeardowns.Remove(facilityId);
         return new ProductionFacilityWorldRemovalResult(
-            notificationFailure.Length == 0
+            pending.FirstFailure.Length == 0
                 ? ProductionFacilityWorldRemovalDisposition.Applied
                 : ProductionFacilityWorldRemovalDisposition
                     .AppliedWithNotificationFailure,
-            notificationFailure);
+            pending.FirstFailure);
     }
 
     private bool TryRestoreWorld(
@@ -369,7 +455,12 @@ public sealed class ProductionFacilityDestructiveDrainRecoveryRuntime :
 
     public void Start() => resumeRequested = true;
 
-    public void OnRestoreCompleted() => resumeRequested = true;
+    public void OnRestoreCompleted()
+    {
+        worldBoundaryConflict = string.Empty;
+        observedJournalVersion = -1;
+        resumeRequested = true;
+    }
 
     public void Tick()
     {
@@ -399,12 +490,21 @@ public sealed class ProductionFacilityDestructiveDrainRecoveryRuntime :
         ProductionFacilityDestructiveDrainCause cause)
     {
         if (facility == null
-            || facility.isDestroy
             || !facility.PersistentInstanceId.IsValid
             || cause == ProductionFacilityDestructiveDrainCause.None
             || !Enum.IsDefined(typeof(ProductionFacilityDestructiveDrainCause), cause))
         {
             return Conflict("production-destructive-drain-request-invalid");
+        }
+        if (facility.isDestroy)
+        {
+            var operationId = ProductionFacilityDestructiveDrainOperationId
+                .FromFacility(facility.PersistentInstanceId);
+            if (!journal.TryGet(operationId, out var existing)
+                || existing.cause != cause
+                || existing.phase is not (ProductionFacilityDestructiveDrainPhase.AwaitingWorldRemoval
+                    or ProductionFacilityDestructiveDrainPhase.WorldRemovedAwaitingCheckpointGc))
+                return Conflict("production-destructive-drain-request-invalid");
         }
         ProductionFacilityDestructiveDrainOutcomeSnapshot outcomeSnapshot =
             default;
@@ -464,14 +564,15 @@ public sealed class ProductionFacilityDestructiveDrainRecoveryRuntime :
                 continue;
             }
             BuildingInstanceId facilityId = (BuildingInstanceId)entry.facilityId;
-            int count = (buildings.Buildings ?? Array.Empty<BuildableObject>())
-                .Count(value => value != null
-                    && value.PersistentInstanceId.Equals(facilityId));
-            if (count != 1)
+            BuildableObject[] matches = (buildings.Buildings ?? Array.Empty<BuildableObject>())
+                .Where(value => value != null
+                    && value.PersistentInstanceId.Equals(facilityId)).ToArray();
+            if (matches.Length != 1 || matches[0].isDestroy)
             {
                 throw new InvalidOperationException(
                     "A destructive drain has an unacknowledged world-removal boundary: "
-                    + entry.operationId + ":world-count=" + count);
+                    + entry.operationId + ":world-count=" + matches.Length
+                    + ":teardown-incomplete=" + (matches.Length == 1 && matches[0].isDestroy));
             }
         }
     }

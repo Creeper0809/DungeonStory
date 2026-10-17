@@ -1,0 +1,82 @@
+{
+  "status": "CYCLE_EXECUTION_OWNER_IMPLEMENTED_ECONOMY_MANAGED_COMPILE_AND_STATIC_VERIFIED_UNITY_DEFERRED",
+  "goalStatus": "active",
+  "allGoalTargetsComplete": false,
+  "window": "All authors READY/FROZEN; SOURCE_EDIT closed; UNITY_VERIFY not opened",
+  "sourcePin": {
+    "path": "source-pin-c2-execution-r1.json",
+    "files": 932,
+    "drift": 0
+  },
+  "toolPin": {
+    "path": "tool-pin-c2-execution-r1.json",
+    "files": 9,
+    "drift": 0
+  },
+  "c2": {
+    "owner": "ProductionBillExecutionRuntime",
+    "movedMethods": 22,
+    "retainedMethods": 25,
+    "publicMethods": 29,
+    "originalOwnerFields": 24,
+    "sharedExistingCollaborators": 4,
+    "sameAuthority": "Current ProductionAggregateStateStore.Bills, no cached root/bill state or parent callback",
+    "parity": "DTO/API/MovedFrom/constructor/quality/WIP/utility/output/ACK/receipt/ruin/replan exact; restore cache notify at original pre-root-swap position",
+    "independentReadReview": "No additional confirmed defect; source/call-path only"
+  },
+  "managedAssemblyCompilation": {
+    "status": "PASS",
+    "sourceFiles": 95,
+    "externalReferences": 47,
+    "scope": "Current complete Economy assembly source using player preprocessor configuration and pinned cached external production dependencies. Existing internal contracts compiled within their owning assembly; no visibility/asmdef changes. Unity Editor defines/import/ILPP/full project compilation and runtime NOT RUN.",
+    "warningCount": 44,
+    "warningCodes": [
+      "CS0649"
+    ],
+    "fullUnityCompilation": "NOT_RUN",
+    "execution": "NOT_RUN"
+  },
+  "c1": {
+    "productionIssue": "Combat/manual targeting states coexist; pending manual handler consumes clicks until successful/disabled, no explicit cancel",
+    "sourceConfirmed": true,
+    "UnityReproduced": false,
+    "productionFix": "PENDING",
+    "QAProducerFix": "Direct public two-parameter suppress command, rejection message/commandSet/destination observations preserved",
+    "nextRequired": "Single targeting-session owner; transition/cancel/retry/success/selection+source invalidation/disable and PlayerSelected regression"
+  },
+  "sourceConsumerFilesUpdated": 5,
+  "QAProducerFilesUpdated": 1,
+  "syntax": {
+    "files": 127,
+    "errors": 0,
+    "fullUnitySemanticCompilation": "NOT_RUN",
+    "UnityExecution": "NOT_RUN"
+  },
+  "assembly": "DungeonStory.Economy",
+  "newMeta": {
+    "path": "Assets/Scripts/Models/Economy/Content/ProductionBillExecutionRuntime.cs.meta",
+    "guid": "fcbf16903e36412f86ace0d658bb90d6",
+    "occurrences": 1
+  },
+  "originalParentMeta": "7d92ed74195844fb8f07bc9cd839c9f56dac9596a51ccd1669ba28d022860818",
+  "knowledgeBase": {
+    "query": "ProductionBillRuntime",
+    "observedAt": "pre-edit source841 snapshot",
+    "status": "STALE",
+    "failureCount": 166,
+    "exitCode": 1,
+    "action": "Original source fallback; related index batch open; no rebuild"
+  },
+  "executionLimit": "User asked to continue code cleanup; no Unity launch, same-RAM-condition retry, other-app or desktop-input action. C2 actual production/ACK/cancel/official restore/retry and C1 targeting fix/actual regression remain required.",
+  "remainingGoalWork": true,
+  "completedTargets": 6,
+  "totalTargets": 32,
+  "committedOrPushed": false,
+  "finalChecks": {
+    "reportLocalLinks": 609,
+    "missingLocalLinks": 0,
+    "sourceAndProbeHashesMatch": true,
+    "scopedDiffCheck": "PASS",
+    "ownedUnityLauncherCompiler": 0
+  }
+}

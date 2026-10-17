@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -9,6 +10,9 @@ using System.Text;
 using DungeonStory.Foundation;
 using DungeonStory.Foundation.Facts;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+using VContainer;
 
 public static class CharacterSkillActivationOutcomeDebugScenarios
 {
@@ -41,6 +45,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
     {
         var evidence = new List<string>();
         VerifyOwnerCommandProductionEntry(evidence);
+        VerifyOwnerCommandTargetingLifetime(evidence);
         VerifyExpeditionProductionEntry(evidence);
         VerifyAutomaticPassiveProductionEntry(evidence, ownerFixed: true);
         VerifyAutomaticUltimateProductionEntry(evidence);
@@ -56,6 +61,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
         try
         {
             VerifyOwnerCommandProductionEntry(evidence);
+            VerifyOwnerCommandTargetingLifetime(evidence);
             VerifyExpeditionProductionEntry(evidence);
             VerifyAutomaticPassiveProductionEntry(evidence);
             VerifyAutomaticPassiveProductionEntry(evidence, ownerFixed: true);
@@ -65,7 +71,9 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
             VerifyManualCombatUltimateSharedContract(evidence);
             VerifyAutomaticFailureRollsBack(evidence);
             VerifyCalculationOnlyPassiveDoesNotClaimEffect(evidence);
-            VerifyExactMultiTargetOutcomeSaveAndReplay(evidence);
+            VerifyAutomaticOwnerRewindRejection(evidence);
+            VerifyExactMultiTargetSaveAndOwnerRewindRejection(evidence);
+            VerifyRetainedUncertaintyRestoresAndReplays(evidence);
             VerifyMiddleRecipientFailureRollsBack(evidence);
             VerifyOutcomeRejectionRollsBack(evidence);
             VerifyInvalidRecipientsDoNotPrepare(evidence);
@@ -204,11 +212,16 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
             persistentId = source.Identity.PersistentId, dataId = definition.id,
             isOwner = source.IsOwner, lifecycleRevision = source.Lifecycle.LifecycleRevision,
             level = source.Progression.Level, currentExperience = source.Progression.CurrentExperience,
+            restObservation = source.Stats.CaptureRestObservation(),
             growth = source.Progression.GrowthState.Clone(),
             narrative = source.Progression.NarrativeLedger.Clone(),
             acquiredTraits = source.Progression.CaptureAcquiredTraitState()
         };
-        saved = JsonUtility.FromJson<DungeonCharacterSaveData>(JsonUtility.ToJson(saved));
+        bool hadRestObservation = saved.restObservation != null;
+        saved = DungeonSaveJson.Deserialize<DungeonCharacterSaveData>(
+            DungeonCharacterWorldSaveCodec.SerializeFields(saved));
+        Require((saved.restObservation != null) == hadRestObservation,
+            "Actor fields JSON changed the presence of an optional rest receipt.");
         var valid = new DungeonGameRestoreReport();
         CharacterWorldSaveValidation.ValidateActor(saved, saved.persistentId, valid, definition);
         Require(valid.Success, "Authored fixed-skill activation failed actor save validation: "
@@ -921,6 +934,327 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
             + "terminalWorkProvenance=skill+module+mechanicsHash");
     }
 
+    public static void VerifyOwnerTargetingFocused() =>
+        VerifyOwnerCommandTargetingLifetime(new List<string>());
+
+    internal static IEnumerator VerifyOwnerTargetingPlay(
+        DungeonRuntimeLifetimeScope scope, ICollection<string> evidence)
+    {
+        Require(Application.isPlaying, "C1 pointer/UI verification requires actual Play mode.");
+        var container = scope.Container;
+        var workers = container.Resolve<IStaffWorkPriorityPanelModelBuilder>().BuildRows();
+        Require(workers.Count >= 2, "C1 requires two actual prepared workers.");
+        CharacterActor source = workers[0].Character;
+        CharacterActor recipient = workers[1].Character;
+        Require(source.CurrentLifecycleState == CharacterLifecycleState.Active
+            && recipient.CurrentLifecycleState == CharacterLifecycleState.Active,
+            "C1 prepared workers have not finished entry.");
+        Collider2D collider = recipient.GetComponentInChildren<Collider2D>();
+        Require(collider != null && collider.enabled && collider.gameObject.activeInHierarchy,
+            "C1 actual recipient collider missing.");
+        EventSystem events = EventSystem.current;
+        Require(events != null && events.isActiveAndEnabled, "C1 actual EventSystem missing.");
+        int oldLayer = collider.gameObject.layer;
+        const int targetLayer = 30;
+        Require(!UnityEngine.Object.FindObjectsByType<Collider2D>(FindObjectsSortMode.None)
+            .Any(value => value.gameObject.layer == targetLayer), "C1 controlled raycast layer is occupied.");
+        var root = new GameObject("C1 Actual Pointer UI Verification");
+        root.SetActive(false);
+        using var outcomes = new CharacterSkillActivationEditorFixture(
+            "run:c1-actual-pointer-ui", calendar: EditorFixedGameCalendar.Instance);
+        try
+        {
+            CharacterSkillInstance skill = CreateSkill("skill:c1:actual-pointer-ui");
+            skill.targetingMode = CharacterSkillTargetingMode.PlayerSelected;
+            skill.effectArea = CharacterSkillEffectArea.Single;
+            source.Progression.GrowthState.activeSkills.Add(skill.Clone());
+            var input = new TargetingInput();
+            var cameraObject = new GameObject("C1 Pointer Camera", typeof(Camera));
+            cameraObject.transform.SetParent(root.transform, false);
+            Camera camera = cameraObject.GetComponent<Camera>();
+            camera.orthographic = true;
+            camera.orthographicSize = 5;
+            camera.transform.position = new Vector3(collider.bounds.center.x, collider.bounds.center.y, -10);
+            var raycaster = new PhysicsWorldPointerRaycaster(input);
+            var blocker = new EventSystemUiPointerBlocker(input);
+            var controllerObject = new GameObject("C1 Owner Command Controller");
+            controllerObject.transform.SetParent(root.transform, false);
+            OwnerCommandController controller = controllerObject.AddComponent<OwnerCommandController>();
+            controller.ConstructOwnerCommandController(
+                container.Resolve<IStaffDiscontentRuntimeService>(), new TargetingCamera(camera), input,
+                raycaster, blocker, container.Resolve<ICharacterCombatCommandRuntime>(),
+                container.Resolve<ICharacterAiWorldRegistry>(), container.Resolve<IDefenseEngagementRuntime>(),
+                container.Resolve<IGameEventBus>());
+            controller.ConstructManualSkillCommands(EditorFixedGameCalendar.Instance,
+                new RoomLayoutCache(), outcomes.Transaction);
+            typeof(OwnerCommandController).GetField("commandTargetMask", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(controller, (LayerMask)(1 << targetLayer));
+            collider.gameObject.layer = targetLayer;
+            var canvasObject = new GameObject("C1 Staff Canvas", typeof(RectTransform), typeof(Canvas), typeof(GraphicRaycaster));
+            canvasObject.transform.SetParent(root.transform, false);
+            Canvas canvas = canvasObject.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 30000;
+            var panelObject = new GameObject("C1 Staff Management", typeof(RectTransform));
+            panelObject.transform.SetParent(canvasObject.transform, false);
+            RectTransform panelRect = panelObject.GetComponent<RectTransform>();
+            panelRect.anchorMin = Vector2.zero;
+            panelRect.anchorMax = Vector2.one;
+            panelRect.offsetMin = panelRect.offsetMax = Vector2.zero;
+            StaffWorkPriorityPanel panel = panelObject.AddComponent<StaffWorkPriorityPanel>();
+            container.Inject(panel);
+            panel.ConstructStaffManagementDependencies(container.Resolve<CharacterSceneRuntimeReferences>(),
+                container.Resolve<ICharacterWorldQuery>(), container.Resolve<IBuildingWorldQuery>(),
+                controller, container.Resolve<ICharacterMoodImpulseQuery>());
+            root.SetActive(true);
+            panel.Refresh();
+            int frame = Time.frameCount;
+            while (Time.frameCount <= frame + 1) yield return null;
+            Require(controller.didAwake && controller.isActiveAndEnabled,
+                "C1 controller did not enter Unity's Play lifecycle.");
+            Button FindButton(string name) => panel.GetComponentsInChildren<Button>()
+                .Single(value => value.name == name);
+            void Click(Button button)
+            {
+                Require(button.isActiveAndEnabled && button.interactable, "C1 production button is unavailable: " + button.name);
+                ExecuteEvents.Execute(button.gameObject, new PointerEventData(events)
+                    { button = PointerEventData.InputButton.Left }, ExecuteEvents.pointerClickHandler);
+            }
+            Click(FindButton("P1Action_StaffModeManagement"));
+            int commandIndex = controller.GetManualSkillCommands(source).ToList()
+                .FindIndex(value => value.SkillId == skill.id);
+            Require(commandIndex >= 0, "C1 actual UI command was not projected.");
+            void Begin()
+            {
+                Click(FindButton("P1Action_ManualSkill_" + commandIndex));
+                Require(controller.SelectedActor == source && controller.HasPendingTargeting,
+                    "C1 production staff button did not arm the selected-source command.");
+            }
+            string sourceBefore = ActorFingerprint(source);
+            string recipientBefore = ActorFingerprint(recipient);
+            Begin();
+            controllerObject.SetActive(false);
+            Require(!controller.HasPendingTargeting && controller.SelectedActor == null
+                && controller.CombatInputMode == CombatCommandType.None,
+                "C1 automatic Play OnDisable retained selection or targeting.");
+            controllerObject.SetActive(true);
+            Begin();
+            input.Escape = true;
+            frame = Time.frameCount;
+            while (Time.frameCount <= frame + 1) yield return null;
+            input.Escape = false;
+            Require(!controller.HasPendingTargeting, "C1 automatic Update did not cancel on Escape.");
+            Begin();
+            Require(controller.TrySelectActor(recipient, out _) && !controller.HasPendingTargeting,
+                "C1 actual selection replacement retained the old command.");
+            Begin();
+            Canvas.ForceUpdateCanvases();
+            input.Position = RectTransformUtility.WorldToScreenPoint(null,
+                FindButton("P1Action_StaffModeManagement").transform.position);
+            Require(blocker.IsPointerOverUi(), "C1 production GraphicRaycaster did not block the staff UI.");
+            input.RightDown = true;
+            frame = Time.frameCount;
+            while (Time.frameCount <= frame + 1) yield return null;
+            Require(!input.RightDown && controller.HasPendingTargeting
+                && Count(outcomes.Ledger) == 0
+                && sourceBefore == ActorFingerprint(source) && recipientBefore == ActorFingerprint(recipient),
+                "C1 UI-blocked/cancelled commands mutated skill state.");
+            evidence.Add("PASS actual StaffWorkPriorityPanel/Button pointer event -> controller; automatic Play disable/enable, Escape and selection cancel; GraphicRaycaster blocks world command; effects/outcomes unchanged");
+            canvasObject.SetActive(false);
+            Vector2? freePointer = null;
+            foreach (float x in new[] { .2f, .5f, .8f })
+            foreach (float y in new[] { .2f, .5f, .8f })
+            {
+                input.Position = new Vector3(Screen.width * x, Screen.height * y);
+                if (!blocker.IsPointerOverUi()) freePointer ??= input.Position;
+            }
+            Require(freePointer.HasValue, "C1 found no unobstructed screen point for the controlled camera.");
+            camera.pixelRect = new Rect(freePointer.Value.x - 32, freePointer.Value.y - 32, 64, 64);
+            input.Position = new Vector3(-100000, -100000);
+            Physics2D.SyncTransforms();
+            Require(!blocker.IsPointerOverUi() && !raycaster.TryRaycast(camera, 1 << targetLayer, out _),
+                "C1 invalid pointer unexpectedly hit UI or a target.");
+            input.RightDown = true;
+            frame = Time.frameCount;
+            while (Time.frameCount <= frame + 1) yield return null;
+            Require(!input.RightDown && controller.HasPendingTargeting
+                && sourceBefore == ActorFingerprint(source) && recipientBefore == ActorFingerprint(recipient),
+                "C1 invalid physics target consumed the command or changed authoritative state.");
+            input.Position = camera.WorldToScreenPoint(collider.bounds.center);
+            Require(!blocker.IsPointerOverUi()
+                && raycaster.TryRaycast(camera, 1 << targetLayer, out RaycastHit2D hit)
+                && hit.collider.GetComponentInParent<CharacterActor>() == recipient,
+                "C1 production camera/physics raycaster did not resolve the actual recipient.");
+            input.RightDown = true;
+            frame = Time.frameCount;
+            while (Time.frameCount <= frame + 1) yield return null;
+            Require(!input.RightDown && !controller.HasPendingTargeting,
+                "C1 actual controller Update did not complete the valid physics target.");
+            GameplayOutcomeSnapshot snapshot = Single(outcomes.Ledger);
+            Require(Fact(snapshot, CharacterSkillActivationOutcomeIds.RecipientCount) == "1"
+                && Limits(source).manualSkillCooldowns.Single(value => value.skillId == skill.id).useCount == 1
+                && Limits(recipient).manualSkillBuffs.Count(value => value.skillId == skill.id) == 1,
+                "C1 actual pointer command did not commit one cooldown, buff and outcome.");
+            string committedSource = ActorFingerprint(source);
+            string committedRecipient = ActorFingerprint(recipient);
+            string committedLedger = JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes());
+            // With no pending intent, a repeated click may route a normal work command.
+            // It must not reuse the completed skill intent or produce another skill fact.
+            input.RightDown = true;
+            frame = Time.frameCount;
+            while (Time.frameCount <= frame + 1) yield return null;
+            Require(!controller.TryCancelTargeting(out _)
+                && committedSource == ActorFingerprint(source) && committedRecipient == ActorFingerprint(recipient)
+                && committedLedger == JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes()),
+                "C1 repeated pointer/cancel replayed the completed skill.");
+            evidence.Add("PASS production camera + actual recipient collider + PhysicsWorldPointerRaycaster + automatic controller Update; invalid target retains retry; valid retry commits one cooldown/buff/outcome; repeated pointer/cancel inert for skill state");
+        }
+        finally
+        {
+            collider.gameObject.layer = oldLayer;
+            root.SetActive(false);
+            UnityEngine.Object.Destroy(root);
+        }
+    }
+
+    private static void VerifyOwnerCommandTargetingLifetime(ICollection<string> evidence)
+    {
+        using var source = new ActorFixture("targeting-source", "character:c1-targeting-source");
+        using var recipient = new ActorFixture("targeting-recipient", "character:c1-targeting-recipient");
+        using var outcomes = new CharacterSkillActivationEditorFixture(
+            "run:c1-owner-targeting", calendar: EditorFixedGameCalendar.Instance);
+        CharacterSkillInstance skill = CreateSkill("skill:c1:targeting");
+        skill.targetingMode = CharacterSkillTargetingMode.PlayerSelected;
+        skill.effectArea = CharacterSkillEffectArea.Single;
+        source.Actor.Progression.GrowthState.activeSkills.Add(skill.Clone());
+        var world = new TestWorldRegistry();
+        world.RegisterCharacter(source.Actor);
+        world.RegisterCharacter(recipient.Actor);
+        GameObject root = new("C1 Owner Targeting Lifetime");
+        try
+        {
+            var input = new TargetingInput();
+            OwnerCommandController controller = root.AddComponent<OwnerCommandController>();
+            controller.ConstructOwnerCommandController(
+                NullProxy<IStaffDiscontentRuntimeService>.Create(),
+                NullProxy<IMainCameraProvider>.Create(), input,
+                NullProxy<IWorldPointerRaycaster>.Create(),
+                NullProxy<IUiPointerBlocker>.Create(),
+                NullProxy<ICharacterCombatCommandRuntime>.Create(), world,
+                NullProxy<IDefenseEngagementRuntime>.Create(), new GameEventBus());
+            controller.ConstructManualSkillCommands(EditorFixedGameCalendar.Instance,
+                new RoomLayoutCache(), outcomes.Transaction);
+            MethodInfo complete = typeof(OwnerCommandController).GetMethod(
+                "TryCompleteManualSkillTargeting", BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo update = typeof(OwnerCommandController).GetMethod(
+                "Update", BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo disable = typeof(OwnerCommandController).GetMethod(
+                "OnDisable", BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo enable = typeof(OwnerCommandController).GetMethod(
+                "OnEnable", BindingFlags.Instance | BindingFlags.NonPublic);
+            Require(complete != null && update != null && disable != null && enable != null,
+                "Targeting producer boundary missing.");
+            // Controlled target completion uses the production controller path and
+            // real transaction. It does not claim a camera/raycast or live UI test.
+            bool Complete(CharacterActor target) => (bool)complete.Invoke(controller,
+                new object[] { target, null, null });
+            void Begin()
+            {
+                Require(controller.TryIssueManualSkillCommand(source.Actor, skill.id, out string message),
+                    "PlayerSelected entry rejected: " + message);
+                Require(controller.HasPendingTargeting && controller.CombatInputMode == CombatCommandType.None,
+                    "Manual entry did not replace the combat intent.");
+            }
+
+            Require(controller.TrySelectActor(source.Actor, out _), "Targeting source selection failed.");
+            controller.SetCombatInputMode(CombatCommandType.Attack);
+            Begin();
+            Require(controller.TrySelectActor(source.Actor, out _) && controller.HasPendingTargeting,
+                "Reselecting the same actor cancelled an unchanged intent.");
+            string sourceBefore = ActorFingerprint(source.Actor);
+            string recipientBefore = ActorFingerprint(recipient.Actor);
+            string ledgerBefore = JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes());
+            Require(!Complete(null) && controller.HasPendingTargeting,
+                "An invalid target consumed the retryable intent.");
+            Require(sourceBefore == ActorFingerprint(source.Actor)
+                    && recipientBefore == ActorFingerprint(recipient.Actor)
+                    && ledgerBefore == JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes()),
+                "Rejected target partially changed cooldown, effects or outcomes.");
+
+            controller.SetCombatInputMode(CombatCommandType.Move);
+            Require(controller.CombatInputMode == CombatCommandType.Move && !Complete(recipient.Actor)
+                    && controller.CombatInputMode == CombatCommandType.Move,
+                "Manual targeting survived combat replacement or stale completion erased the combat intent.");
+            controller.SetCombatInputMode(CombatCommandType.None);
+            Require(!controller.HasPendingTargeting, "None mode failed to cancel targeting.");
+            Begin();
+            Require(controller.TryCancelTargeting(out _) && !controller.TryCancelTargeting(out _)
+                    && !Complete(recipient.Actor), "Explicit cancellation failed or applied a stale skill.");
+            Begin();
+            Require(!controller.TryIssueManualSkillCommand(source.Actor, "skill:c1:unavailable", out _)
+                    && !controller.HasPendingTargeting && !Complete(recipient.Actor),
+                "A rejected immediate skill left the previous manual intent armed.");
+            Begin();
+            input.Escape = true;
+            update.Invoke(controller, null);
+            input.Escape = false;
+            Require(!controller.HasPendingTargeting && !Complete(recipient.Actor),
+                "Escape did not stop the pending controller command.");
+            Begin();
+            Require(controller.TrySelectActor(recipient.Actor, out _) && !controller.HasPendingTargeting,
+                "Selection change retained the previous source's target intent.");
+            Require(sourceBefore == ActorFingerprint(source.Actor)
+                    && recipientBefore == ActorFingerprint(recipient.Actor)
+                    && ledgerBefore == JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes()),
+                "Replacement/cancel/selection changed authoritative skill state.");
+
+            Begin();
+            Require(!Complete(null) && Complete(recipient.Actor) && !controller.HasPendingTargeting,
+                "Valid retry failed or successful targeting was not consumed.");
+            GameplayOutcomeSnapshot snapshot = Single(outcomes.Ledger);
+            Require(Fact(snapshot, CharacterSkillActivationOutcomeIds.RecipientCount) == "1"
+                    && Limits(source.Actor).manualSkillCooldowns.Single().useCount == 1
+                    && Limits(recipient.Actor).manualSkillBuffs.Count == 1,
+                "Targeted command did not commit exactly one cooldown, buff and canonical outcome.");
+            string committed = JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes());
+            Require(!Complete(recipient.Actor)
+                    && committed == JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes())
+                    && Limits(source.Actor).manualSkillCooldowns.Single().useCount == 1,
+                "Completed intent could be applied twice.");
+
+            Begin();
+            evidence.Add("C1-lifecycle: playing=" + Application.isPlaying
+                + ";didAwake=" + typeof(MonoBehaviour).GetProperty("didAwake")?.GetValue(controller));
+            root.SetActive(false);
+            // A plain MonoBehaviour in Edit fixtures has not entered its Play
+            // lifecycle. Exercise the message body explicitly in that mode;
+            // Play verification must retain the automatic callback assertion.
+            if (!Application.isPlaying)
+            {
+                disable.Invoke(controller, null);
+                evidence.Add("C1-disable=explicit-Edit-message;Unity-Play-callback=not-covered");
+            }
+            Require(!controller.HasPendingTargeting && controller.SelectedActor == null
+                    && controller.CombatInputMode == CombatCommandType.None,
+                "Disable retained selection or targeting state.");
+            root.SetActive(true);
+            if (!Application.isPlaying) enable.Invoke(controller, null);
+            Begin();
+            UnityEngine.Object.DestroyImmediate(source.Actor.GetComponent<AbilityWork>());
+            source.Actor.GetComponent<CharacterAbilityCache>()?.RefreshAbilityCache();
+            Require(!controller.HasPendingTargeting && !Complete(recipient.Actor)
+                    && committed == JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes()),
+                "A source without command capability retained a stale activation intent.");
+            evidence.Add("C1=PlayerSelected-controller+real-transaction;invalid-target=unchanged+retry;"
+                + "manual/combat=exclusive;cancel=explicit+Escape+selection+disable+source;"
+                + "same-selection=retained;success=one-cooldown+buff+outcome;raycast/liveUI=not-covered");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(root);
+        }
+    }
+
     private static void VerifyOwnerCommandProductionEntry(
         ICollection<string> evidence)
     {
@@ -1103,7 +1437,7 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
         }
     }
 
-    private static void VerifyExactMultiTargetOutcomeSaveAndReplay(
+    private static void VerifyExactMultiTargetSaveAndOwnerRewindRejection(
         ICollection<string> evidence)
     {
         using var source = new ActorFixture(
@@ -1200,17 +1534,66 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
         second.Actor.Stats.RestoreMoodDeliveryTransactionState(
             secondStatsBefore,
             publish: false);
-        Require(outcomes.Transaction.TryCommit(
-                request,
-                out string replayKey,
-                out string replayFailure)
-                && replayKey == publicationKey
+        string ownerBeforeReplay = ActorFingerprint(source.Actor);
+        string firstBeforeReplay = ActorFingerprint(first.Actor);
+        string secondBeforeReplay = ActorFingerprint(second.Actor);
+        string ledgerBeforeReplay = JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes());
+        string publicationsBeforeReplay = JsonUtility.ToJson(outcomes.Publications.Capture());
+        Require(!outcomes.Transaction.TryCommit(
+                request, out string replayKey, out string replayFailure)
+                && string.IsNullOrEmpty(replayKey)
+                && replayFailure == "skill-activation-owner-publication-history-mismatch"
                 && Count(outcomes.Ledger) == 1
-                && Limits(source.Actor).activationSequence == 1L,
-            "Durable result replay was not idempotent: " + replayFailure);
+                && ownerBeforeReplay == ActorFingerprint(source.Actor)
+                && firstBeforeReplay == ActorFingerprint(first.Actor)
+                && secondBeforeReplay == ActorFingerprint(second.Actor)
+                && ledgerBeforeReplay == JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes())
+                && publicationsBeforeReplay == JsonUtility.ToJson(outcomes.Publications.Capture()),
+            "An incoherent owner-only rewind was accepted or changed state: " + replayFailure);
         evidence.Add(
             "exact=source+2recipients+beforeAfterState+cooldown;"
-            + "saveRoundTrip=pass;tamper=rejected;replayDuplicate=0");
+            + "saveRoundTrip=pass;tamper=rejected;owner-only-rewind=rejected-before-mutation;"
+            + "owner+recipients+ledger+journal=unchanged");
+    }
+
+    private static void VerifyAutomaticOwnerRewindRejection(ICollection<string> evidence)
+    {
+        using var source = new ActorFixture("automatic-owner-rewind", "character:c1-automatic-owner-rewind");
+        using var outcomes = new CharacterSkillActivationEditorFixture(
+            "run:c1-automatic-owner-rewind", calendar: EditorFixedGameCalendar.Instance);
+        CharacterSkillInstance skill = CreateAutomaticSkill("skill:c1:automatic-owner-rewind",
+            CharacterSkillKind.Passive, CharacterSkillTrigger.WorkCompleted,
+            CharacterUltimateDomain.None, "mood", "small");
+        source.Actor.Progression.GrowthState.passiveSkills.Add(skill.Clone());
+        var context = new CharacterSkillExecutionContext(source.Actor,
+            CharacterSkillTrigger.WorkCompleted, "work-completed:c1:automatic-owner-rewind:1",
+            workTypeId: BuiltInWorkTypeIds.Clean);
+        var request = new CharacterSkillAutomaticActivationRequest(context, skill,
+            CharacterSkillActivationKind.AutomaticPassive, context.EventId);
+        CharacterSkillUseLimitState beforeLimits = Limits(source.Actor).Clone();
+        CharacterMoodDeliveryTransactionSnapshot beforeStats = source.Actor.Stats.CaptureMoodDeliveryTransactionState();
+        Require(outcomes.Transaction.TryCommitAutomatic(request, out string key, out string failure)
+                && Count(outcomes.Ledger) == 1,
+            "Automatic owner rewind setup failed: " + failure);
+        string committedOwner = ActorFingerprint(source.Actor);
+        Require(outcomes.Transaction.TryCommitAutomatic(request, out string sameKey, out failure)
+                && key == sameKey && committedOwner == ActorFingerprint(source.Actor)
+                && Count(outcomes.Ledger) == 1,
+            "A valid completed automatic event did not replay without mutation: " + failure);
+        source.Actor.Progression.GrowthState.useLimits = beforeLimits.Clone();
+        source.Actor.Stats.RestoreMoodDeliveryTransactionState(beforeStats, publish: false);
+        string rewoundOwner = ActorFingerprint(source.Actor);
+        string ledgerBefore = JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes());
+        string journalBefore = JsonUtility.ToJson(outcomes.Publications.Capture());
+        Require(!outcomes.Transaction.TryCommitAutomatic(request, out string rejectedKey, out failure)
+                && string.IsNullOrEmpty(rejectedKey)
+                && failure == "skill-activation-owner-publication-history-mismatch"
+                && rewoundOwner == ActorFingerprint(source.Actor)
+                && ledgerBefore == JsonUtility.ToJson(outcomes.Ledger.CaptureGameplayOutcomes())
+                && journalBefore == JsonUtility.ToJson(outcomes.Publications.Capture()),
+            "An automatic owner-only rewind was accepted or changed effects/limits/journal: " + failure);
+        evidence.Add("automaticOwnerRewind=known-owner-revision-rejected-before-effects;"
+            + "owner+ledger+journal=unchanged;valid-completed-event=replay-without-effects");
     }
 
     private static void VerifyMiddleRecipientFailureRollsBack(
@@ -1671,6 +2054,33 @@ public static class CharacterSkillActivationOutcomeDebugScenarios
         }
 
         public void Cancel(in DomainFactLease lease) => inner.Cancel(lease);
+    }
+
+    private sealed class TargetingInput : IPlayerInputReader
+    {
+        internal bool Escape;
+        internal bool RightDown;
+        internal Vector3 Position;
+        public Vector3 MousePosition => Position;
+        public float ScreenWidth => 1920f;
+        public float ScreenHeight => 1080f;
+        public float ScrollDeltaY => 0f;
+        public bool GetKey(KeyCode keyCode) => false;
+        public bool GetKeyDown(KeyCode keyCode) => Escape && keyCode == KeyCode.Escape;
+        public bool GetMouseButton(int button) => false;
+        public bool GetMouseButtonDown(int button)
+        {
+            if (button != 1 || !RightDown) return false;
+            RightDown = false;
+            return true;
+        }
+    }
+
+    private sealed class TargetingCamera : IMainCameraProvider
+    {
+        internal TargetingCamera(Camera camera) => Camera = camera;
+        public Camera Camera { get; }
+        public bool TryGetCamera(out Camera camera) { camera = Camera; return camera != null; }
     }
 
     private sealed class ActorFixture : IDisposable

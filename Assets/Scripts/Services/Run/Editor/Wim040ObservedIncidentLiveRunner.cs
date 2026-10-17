@@ -45,31 +45,177 @@ public sealed class Wim040ObservedIncidentLiveRunner
         return "RUNNING " + ReportPath;
     }
 
-    private IEnumerator Observe()
+    internal static IEnumerator RunForArchitectureBatch(
+        DungeonRuntimeLifetimeScope scope, List<string> report)
     {
-        var pending = new Stack<IEnumerator>();
-        pending.Push(Run());
-        Exception failure = null;
-        while (pending.Count > 0)
+        Require(Application.isBatchMode && DungeonPersistencePaths.IsIsolatedVerification
+                && Application.isPlaying && !running && scope?.Container != null && report != null,
+            "Medical transfer requires a fresh isolated live verification context.");
+        var runner = new Wim040ObservedIncidentLiveRunner
+        { scale = scope.Container.Resolve<IGameTimeScaleController>() };
+        running = true;
+        try
         {
-            object value = null;
-            bool moved;
-            try { moved = pending.Peek().MoveNext(); if (moved) value = pending.Peek().Current; }
-            catch (Exception error) { failure = error; break; }
-            if (!moved) { (pending.Pop() as IDisposable)?.Dispose(); continue; }
-            if (value is IEnumerator nested) pending.Push(nested); else yield return value;
+            var persistence = scope.Container.Resolve<IDungeonSaveCommandService>() as IDisposable;
+            Require(persistence != null, "Cannot isolate automatic persistence for medical verification.");
+            persistence.Dispose();
+            scope.Container.Resolve<MetaProfilePersistenceService>().Dispose();
+            runner.Pause();
+            yield return runner.Run(prepareVisitor: true);
         }
-        try { while (pending.Count > 0) (pending.Pop() as IDisposable)?.Dispose(); subscription?.Dispose(); }
-        finally { Pause(); }
-        lines.Add(failure == null ? "result=PASS" : "result=FAIL\n" + failure);
-        lines.Add("scope=real Orc Customer spawn/entry, physical emergency field-meal commands, controlled above-threshold torso precondition, actual contaminated-meal body collapse and staff AIRescue transfer to a controlled authored M11 placement. Contaminated stock is a controlled existing physical seed, not a natural spoilage claim. The M11 placement is test preparation, not construction-balance or completed-treatment evidence. Not natural restaurant scheduling, tribal taboo ingredient or other incident causes. Invalid replay bus inputs are controlled negative probes.");
-        lines.Add("cleanup=paused disposable main Play; operator stops; disk persistence disabled before party selection");
-        File.WriteAllLines(ReportPath, lines);
-        Debug.Log(failure == null ? "WIM040 live PASS" : "WIM040 live FAIL: " + failure.Message);
-        running = false;
+        finally
+        {
+            try { runner.CleanupAfterRun(); }
+            finally
+            {
+                report.AddRange(runner.lines);
+                report.Add("scope=existing WIM040 production meal/body/Society/AIRescue route and official in-memory game-save capture/JSON/restore; not disk slot load or completed treatment");
+                running = false;
+            }
+        }
     }
 
-    private IEnumerator Run()
+    private void CleanupAfterRun()
+    {
+        Exception failure = null;
+        try { subscription?.Dispose(); subscription = null; }
+        catch (Exception exception) { failure = exception; }
+        try { Pause(); }
+        catch (Exception exception)
+        { failure = failure == null ? exception : new AggregateException(failure, exception); }
+        if (failure != null) throw failure;
+    }
+
+    private IEnumerator Observe()
+    {
+        Exception failure = null;
+        IEnumerator observed = PlayModeVerificationCoroutine.Observe(
+            () => Run(prepareVisitor: false), exception => failure = exception);
+        try
+        {
+            while (observed.MoveNext()) yield return observed.Current;
+        }
+        finally
+        {
+            try { (observed as IDisposable)?.Dispose(); }
+            catch (Exception exception)
+            { failure = failure == null ? exception : new AggregateException(failure, exception); }
+            try { CleanupAfterRun(); }
+            catch (Exception exception)
+            { failure = failure == null ? exception : new AggregateException(failure, exception); }
+            lines.Add(failure == null ? "result=PASS" : "result=FAIL\n" + failure);
+            lines.Add("scope=real Orc Customer spawn/entry, physical emergency field-meal commands, controlled above-threshold torso precondition, actual contaminated-meal body collapse and staff AIRescue transfer to a controlled authored M11 placement. Contaminated stock is a controlled existing physical seed, not a natural spoilage claim. The M11 placement is test preparation, not construction-balance or completed-treatment evidence. Not natural restaurant scheduling, tribal taboo ingredient or other incident causes. Invalid replay bus inputs are controlled negative probes.");
+            lines.Add("cleanup=paused disposable main Play; operator stops; disk persistence disabled before party selection");
+            try { File.WriteAllLines(ReportPath, lines); }
+            catch (Exception exception)
+            { throw failure == null ? exception : new AggregateException(failure, exception); }
+            finally { running = false; }
+            Debug.Log(failure == null ? "WIM040 live PASS" : "WIM040 live FAIL: " + failure.Message);
+        }
+    }
+
+    private void PrepareControlledVisitorPopulation(
+        DungeonRuntimeLifetimeScope scope, int characterDataId)
+    {
+        ICharacterPopulationService population = scope.Container
+            .Resolve<ICharacterPopulationService>();
+        WorldCharacterProfile pending = population.Profiles.FirstOrDefault(profile =>
+            profile != null && profile.characterDataId == characterDataId
+            && profile.isAlive && !profile.isStaff && !profile.isVisiting
+            && !profile.IsReady);
+        Require(pending != null,
+            "Controlled medical visitor preparation requires the rejected pending profile.");
+        string targetProfileId = pending.persistentId;
+        int maximumPasses = population.Profiles.Count;
+        List<string> preparedOwners = new();
+        for (int pass = 0; pass <= maximumPasses; pass++)
+        {
+            WorldCharacterProfile ready = population.Profiles.FirstOrDefault(profile =>
+                profile != null && profile.persistentId == targetProfileId
+                && profile.isAlive && !profile.isStaff && !profile.isVisiting
+                && profile.IsReady);
+            if (ready != null)
+            {
+                lines.Add("CONTROLLED_VISITOR_PROFILE_PREPARATION: characterDataId="
+                    + characterDataId + "; profile=" + ready.persistentId
+                    + "; previewOwners=" + string.Join(",", preparedOwners)
+                    + "; modelInference=false; ownerCommands=OnDraftReady/TryChooseActiveSkill");
+                return;
+            }
+            Require(pass < maximumPasses,
+                "Controlled medical visitor preparation exhausted the existing population.");
+            CharacterActor[] previews = Resources.FindObjectsOfTypeAll<CharacterActor>()
+                .Where(actor => actor != null && actor.gameObject.name.StartsWith(
+                    "WorldProfilePreparation_", StringComparison.Ordinal)
+                    && population.Profiles.Any(profile => profile != null
+                        && !profile.IsReady && string.Equals(profile.persistentId,
+                            actor.Identity?.PersistentId, StringComparison.Ordinal)))
+                .ToArray();
+            Require(previews.Length > 0,
+                "Controlled medical visitor requires an existing population preparation owner.");
+            Require(previews.GroupBy(preview => preview.Identity.PersistentId,
+                    StringComparer.Ordinal).All(group => group.Count() == 1),
+                "Controlled medical visitor found duplicate population preparation owners.");
+            foreach (CharacterActor preview in previews)
+            {
+                CharacterProgression progression = preview.Progression;
+                string profileId = preview.Identity.PersistentId;
+                Require(progression != null,
+                    "Population preparation owner has no progression: " + profileId);
+                foreach (CharacterSkillKind kind in new[]
+                    { CharacterSkillKind.Active, CharacterSkillKind.Passive })
+                {
+                    bool alreadyPrepared = kind == CharacterSkillKind.Active
+                        ? progression.ActiveSkills.Count > 0
+                        : progression.PassiveSkills.Count > 0;
+                    if (alreadyPrepared) continue;
+                    CharacterSkillDraft draft = progression.Drafts.SingleOrDefault(value =>
+                        value != null && value.unlockLevel == 1 && value.kind == kind);
+                    Require(draft != null && !draft.IsInvalidated() && !draft.permanentlyChosen,
+                        "Population preparation requires its valid level1 draft: " + profileId + "/" + kind);
+                    bool active = kind == CharacterSkillKind.Active;
+                    draft.candidates = new List<CharacterSkillInstance>
+                    {
+                        new()
+                        {
+                            id = "medical-verification-" + kind + ":" + profileId,
+                            displayName = "의료 이송 검증 준비",
+                            description = "격리 검증의 시작 조건",
+                            narrativeReason = "통제한 방문객 준비; 모델 추론 검증 아님",
+                            kind = kind,
+                            rarity = CharacterSkillRarity.Advanced,
+                            trigger = active ? CharacterSkillTrigger.ManualCombat
+                                : CharacterSkillTrigger.WorkCompleted,
+                            target = active ? CharacterSkillTarget.Enemy : CharacterSkillTarget.Self,
+                            modules = new List<CharacterSkillModuleSelection>
+                            {
+                                new() { moduleId = active ? "damage" : "work_speed",
+                                    variantId = active ? "light" : "small" }
+                            }
+                        }
+                    };
+                    draft.isReady = true;
+                    draft.requestSubmitted = false;
+                    progression.OnDraftReady(draft);
+                    if (active && !draft.permanentlyChosen)
+                        Require(progression.TryChooseActiveSkill(1, 0, confirmed: true,
+                            out string failure), "Controlled visitor choice failed: " + failure);
+                    Require(draft.permanentlyChosen,
+                        "Population preparation did not commit its draft: " + profileId + "/" + kind);
+                }
+                preparedOwners.Add(profileId);
+            }
+        }
+    }
+
+    private static IEnumerator WaitForDeferredUnityDestruction()
+    {
+        int lastRetirementFrame = Time.frameCount + 1;
+        while (Time.frameCount <= lastRetirementFrame)
+            yield return null;
+    }
+
+    private IEnumerator Run(bool prepareVisitor)
     {
         var scope = FindFirstObjectByType<DungeonRuntimeLifetimeScope>();
         var owner = FindFirstObjectByType<OwnerRunManager>();
@@ -85,12 +231,27 @@ public sealed class Wim040ObservedIncidentLiveRunner
         }
         var spawner = FindFirstObjectByType<CharacterSpawner>();
         Require(spawner != null, "Existing visitor spawner missing.");
+        if (prepareVisitor)
+        {
+            yield return WaitForDeferredUnityDestruction();
+            Require(!Actors().Any(actor => actor.characterType == CharacterType.Customer),
+                "Medical batch requires a fresh visitor-free world before owning spawn requests.");
+            spawner.StopAllCoroutines();
+            lines.Add("CONTROLLED_VISITOR_SPAWN_DRIVER: ambient loop stopped before any visit; "
+                + "explicit TrySpawnCharacter/entry and respawn clock remain production paths");
+        }
         foreach (var actor in Actors()) actor.SetAiPaused(true);
         var beforeIds = Actors().Select(x => x.Identity.PersistentId).ToHashSet(StringComparer.Ordinal);
-        Resume();
         bool requested = false;
         CharacterActor visitor = null;
         CharacterSpawnRejection rejection = CharacterSpawnRejection.None;
+        if (prepareVisitor)
+        {
+            requested = spawner.TrySpawnCharacter(2, out rejection);
+            if (!requested && rejection == CharacterSpawnRejection.PopulationProfilePreparing)
+                PrepareControlledVisitorPopulation(scope, 2);
+        }
+        Resume();
         float deadline = Time.realtimeSinceStartup + 40f;
         while (Time.realtimeSinceStartup < deadline)
         {
@@ -116,8 +277,13 @@ public sealed class Wim040ObservedIncidentLiveRunner
         var bus = scope.Container.Resolve<IGameEventBus>();
         var beforeSave = saves.Capture();
         var beforeWorld = DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterWorldSaveData>(beforeSave, CharacterWorldSaveSection.Id);
-        Require(!beforeWorld.actors.Any(x => x.persistentId == target) && !owned.GetOwnedCustomerIds().Any(x => x.Value == target),
-            "Fixture visitor already had another persistent owner; cannot isolate incident ownership.");
+        int beforeVisitorCount = beforeWorld.actors.Count(x => x.persistentId == target);
+        bool beforeIncidentOwned = owned.GetOwnedCustomerIds().Any(x => x.Value == target);
+        Require(CharacterWorldPersistenceRules.IsPersistentActor(visitor)
+            && beforeVisitorCount == 1 && !beforeIncidentOwned,
+            "Fixture requires one ordinary persistent Customer without an incident owner: "
+                + $"target={target}; actors={beforeVisitorCount}; incidentOwned={beforeIncidentOwned}");
+        lines.Add("PASS ordinary active Customer persists exactly once before acquiring a Society incident owner");
 
         // Only unaccepted emergency startup choices are removed from this
         // disposable scenario; no committed guest/physical ownership is erased.
@@ -191,29 +357,36 @@ public sealed class Wim040ObservedIncidentLiveRunner
             && Actors().Count(x => x.Identity.PersistentId == target) == 1,
             "Missing incoming owned visitor accepted or failed whole restore changed live state.");
         lines.Add("PASS missing incoming visitor rejected atomically; validators=" + string.Join(" | ", invalidResult.Errors));
-        // Conversely, keep the incoming Customer but remove its incident owner.
-        // Live Society still owns it: restore must use incoming, not live, joins.
-        var orphan = saves.FromJson(saves.ToJson(saved));
-        var orphanSociety = DungeonSaveSectionPayload.ReadOrNew<SocietyEventWorldSaveData>(orphan, SocietyEventsSaveSection.Id);
-        Require(orphanSociety.activeEvents.RemoveAll(x => x.instanceId == instance) == 1,
-            "Orphan preparation did not remove exactly one incoming incident owner.");
-        DungeonSaveSectionPayload.Write(orphan, SocietyEventsSaveSection.Id, SocietyEventWorldSaveData.CurrentVersion,
-            DungeonSaveRestorePhase.LateRuntimeState, orphanSociety);
-        orphan.manifest = DungeonSaveManifest.Capture(orphan.sections);
-        Require(!saves.TryRestore(orphan, out var orphanResult) && !orphanResult.Success
-            && orphanResult.Errors.Any(x =>
-                (x.Contains("exterior.activities") && x.Contains(target))
-                || x.Contains("survival.character-consumables"))
-            && JsonUtility.ToJson(campaign.CaptureSociety()) == beforeReplay
-            && JsonUtility.ToJson(items.Capture()) == physicalBefore && money.Balance == moneyBefore
-            && JsonUtility.ToJson(DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterWorldSaveData>(saves.Capture(), CharacterWorldSaveSection.Id)) == characterWorldBefore,
-            "Incoming orphan Customer borrowed the live incident owner or failed restore partially changed state: "
-            + string.Join(" | ", orphanResult.Errors));
-        lines.Add("PASS incoming orphan Customer rejected despite live incident ownership; CharacterWorld/Society/items/money unchanged");
+        // Ordinary live Customers are persistent independently of Society.
+        // Removing an incoming incident must not borrow the outgoing live owner.
+        var ordinaryVisitorSave = saves.FromJson(saves.ToJson(saved));
+        var ordinarySociety = DungeonSaveSectionPayload.ReadOrNew<SocietyEventWorldSaveData>(
+            ordinaryVisitorSave, SocietyEventsSaveSection.Id);
+        Require(ordinarySociety.activeEvents.RemoveAll(x => x.instanceId == instance) == 1,
+            "Ordinary visitor preparation did not remove exactly one incoming incident owner.");
+        DungeonSaveSectionPayload.Write(ordinaryVisitorSave, SocietyEventsSaveSection.Id,
+            SocietyEventWorldSaveData.CurrentVersion,
+            DungeonSaveRestorePhase.LateRuntimeState, ordinarySociety);
+        ordinaryVisitorSave.manifest = DungeonSaveManifest.Capture(ordinaryVisitorSave.sections);
+        bool ordinaryRestored;
+        DungeonGameRestoreReport ordinaryResult;
+        try { ordinaryRestored = saves.TryRestore(ordinaryVisitorSave, out ordinaryResult); }
+        finally { Pause(); }
+        yield return WaitForDeferredUnityDestruction();
+        Require(ordinaryRestored && ordinaryResult.Success
+            && !owned.GetOwnedCustomerIds().Any(x => x.Value == target)
+            && Actors().Count(x => x.Identity.PersistentId == target) == 1
+            && JsonUtility.ToJson(campaign.CaptureSociety()) == JsonUtility.ToJson(ordinarySociety)
+            && JsonUtility.ToJson(items.Capture()) == physicalBefore
+            && money.Balance == moneyBefore,
+            "Incoming ordinary Customer failed restore or borrowed the outgoing incident owner: "
+                + string.Join(" | ", ordinaryResult.Errors));
+        lines.Add("PASS incoming ordinary Customer restored exactly once without borrowing live Society ownership; physical items/money unchanged");
         bool restoredOk;
         DungeonGameRestoreReport restoreResult;
         try { restoredOk = saves.TryRestore(saved, out restoreResult); }
         finally { Pause(); }
+        yield return WaitForDeferredUnityDestruction();
         Require(restoredOk && restoreResult.Success, "Current whole incident visitor restore failed: " + string.Join(" | ", restoreResult.Errors));
         visitor = Actors().Single(x => x.Identity.PersistentId == target);
         visitor.SetAiPaused(true);
@@ -233,15 +406,23 @@ public sealed class Wim040ObservedIncidentLiveRunner
         Require(money.Balance == funded - 60 && Quantity() == beforeFood, "Resolved replay repeated money or meal effects.");
         lines.Add("PASS real compensation dispatcher -60 once; exact visitor ownership released; no physical/financial replay");
 
-        // The resolved incident releases this visitor's persistence owner. Let
-        // the normal exit handoff retire that visit, then exercise contamination
+        // The resolved incident releases this visitor's Society exit hold. Let
+        // the normal exit handoff retire the persistent visit, then exercise contamination
         // with a separate real entry instead of reusing a stale pooled actor.
+        Require(scope.Container.Resolve<ICharacterVisitorExitOutcomeRuntime>().BeginExit(
+                visitor, "qa-medical-compensation-handoff", out string compensationDepartureFailure),
+            "Resolved compensation visitor could not begin its exit: " + compensationDepartureFailure);
         (spawner.Interact(visitor) as IDisposable)?.Dispose();
+        Require(!Actors().Any(value => value.Identity.PersistentId == target),
+            "Resolved compensation visitor handoff failed: "
+                + spawner.LastVisitorExitHandoffStage + ":" + spawner.LastVisitorExitHandoffFailure);
+        lines.Add("PASS compensation visitor BeginExit/public handoff retires the exact Customer once");
         HashSet<string> contaminationBeforeIds = Actors()
             .Select(value => value.Identity.PersistentId)
             .ToHashSet(StringComparer.Ordinal);
         Resume();
         bool contaminationSpawnRequested = false;
+        bool contaminationProfilePrepared = false;
         CharacterActor contaminationVisitor = null;
         CharacterSpawnRejection contaminationRejection =
             CharacterSpawnRejection.None;
@@ -253,6 +434,15 @@ public sealed class Wim040ObservedIncidentLiveRunner
                 contaminationSpawnRequested = spawner.TrySpawnCharacter(
                     2,
                     out contaminationRejection);
+                if (!contaminationSpawnRequested && prepareVisitor
+                    && !contaminationProfilePrepared
+                    && contaminationRejection == CharacterSpawnRejection.PopulationProfilePreparing)
+                {
+                    Pause();
+                    PrepareControlledVisitorPopulation(scope, 2);
+                    contaminationProfilePrepared = true;
+                    Resume();
+                }
             }
             contaminationVisitor = Actors().FirstOrDefault(value =>
                 !contaminationBeforeIds.Contains(value.Identity.PersistentId)
@@ -378,6 +568,7 @@ public sealed class Wim040ObservedIncidentLiveRunner
             "Current whole restore lost or replayed the consumed-contamination occurrence: "
             + string.Join(" | ", contaminatedRestore.Errors));
         lines.Add("PASS actual contaminated physical meal -> Contamination owner/notice; consumed stock remains -1 and current whole restore does not replay it");
+        yield return WaitForDeferredUnityDestruction();
 
         string contaminationInstance = contaminationOccurrence.instanceId;
         Require(scope.Container.Resolve<IEventAlertChoiceActionDispatcher>()
@@ -397,6 +588,9 @@ public sealed class Wim040ObservedIncidentLiveRunner
             value.Identity.PersistentId,
             target,
             StringComparison.Ordinal));
+        Require(scope.Container.Resolve<ICharacterVisitorExitOutcomeRuntime>().BeginExit(
+                visitor, "qa-medical-contamination-handoff", out string contaminationDepartureFailure),
+            "Resolved contamination visitor could not begin its exit: " + contaminationDepartureFailure);
         (spawner.Interact(visitor) as IDisposable)?.Dispose();
         Resume();
         float contaminationExitDeadline = Time.realtimeSinceStartup + 40f;
@@ -413,13 +607,16 @@ public sealed class Wim040ObservedIncidentLiveRunner
                 value.Identity.PersistentId,
                 target,
                 StringComparison.Ordinal)),
-            "Resolved contamination Customer did not complete the public exit handoff.");
+            "Resolved contamination Customer did not complete the public exit handoff: "
+                + spawner.LastVisitorExitHandoffStage + ":" + spawner.LastVisitorExitHandoffFailure);
+        lines.Add("PASS contamination visitor BeginExit/public handoff retires the exact Customer once");
 
         HashSet<string> collapseBeforeIds = Actors()
             .Select(value => value.Identity.PersistentId)
             .ToHashSet(StringComparer.Ordinal);
         Resume();
         bool collapseSpawnRequested = false;
+        bool collapseProfilePrepared = false;
         CharacterActor collapseVisitor = null;
         CharacterSpawnRejection collapseRejection =
             CharacterSpawnRejection.None;
@@ -431,6 +628,15 @@ public sealed class Wim040ObservedIncidentLiveRunner
                 collapseSpawnRequested = spawner.TrySpawnCharacter(
                     2,
                     out collapseRejection);
+                if (!collapseSpawnRequested && prepareVisitor
+                    && !collapseProfilePrepared
+                    && collapseRejection == CharacterSpawnRejection.PopulationProfilePreparing)
+                {
+                    Pause();
+                    PrepareControlledVisitorPopulation(scope, 2);
+                    collapseProfilePrepared = true;
+                    Resume();
+                }
             }
             collapseVisitor = Actors().FirstOrDefault(value =>
                 !collapseBeforeIds.Contains(value.Identity.PersistentId)
@@ -669,10 +875,48 @@ public sealed class Wim040ObservedIncidentLiveRunner
                             value.bodyPart == CombatBodyPart.Torso);
                     lines.Add(FormattableString.Invariant(
                         $"DIAG transfer-start patient lifecycle={visitor.CurrentLifecycleState};isDead={visitor.IsDead};stats={visitor.Stats.CurrentHealth:0.###}/{visitor.Stats.MaxHealth:0.###};bodyDowned={joinBody.Downed};torso={joinTorso.currentHealth:0.###}/{joinTorso.maxHealth:0.###};bloodLoss={joinBody.BloodLoss:0.###};orderState={currentOrder.state};stabilized={currentOrder.stabilized};carried={currentOrder.carried}"));
+                    ICharacterPopulationService returningPopulation = scope.Container
+                        .Resolve<ICharacterPopulationService>();
+                    Require(returningPopulation.TryGetProfile(visitor, out WorldCharacterProfile returningProfile)
+                        && returningProfile.isVisiting && returningProfile.isAlive
+                        && returningProfile.visitorExitOperation.phase == CharacterVisitorExitPhase.Departed
+                        && (long)returningProfile.visitCount
+                            == (long)returningProfile.visitorExitOperation.visitCountBefore + 1,
+                        "Medical save regression requires its real returning Customer and prior departure receipt.");
+                    int returningVisitCount = returningProfile.visitCount;
+                    string priorDepartureKey = returningProfile.visitorExitOperation.departurePublicationKey;
+                    lines.Add("PASS actual returning medical Customer retains prior departure receipt; profile="
+                        + target + "; visits=" + returningVisitCount + "; departure=" + priorDepartureKey);
                     string societyBeforeInvalidJoin = JsonUtility.ToJson(
                         campaign.CaptureSociety());
-                    DungeonGameSaveData invalidJoin = saves.FromJson(
+                    DungeonGameSaveData validTransferCheckpoint = saves.FromJson(
                         saves.ToJson(saves.Capture()));
+                    DungeonGameSaveData invalidVisit = saves.FromJson(saves.ToJson(validTransferCheckpoint));
+                    DungeonCharacterWorldSaveData invalidVisitWorld =
+                        DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterWorldSaveData>(
+                            invalidVisit, CharacterWorldSaveSection.Id);
+                    invalidVisitWorld.populationProfiles.Single(profile => profile.persistentId == target)
+                        .visitCount = checked(returningVisitCount + 1);
+                    DungeonSaveSectionPayload.Write(invalidVisit, CharacterWorldSaveSection.Id,
+                        CharacterWorldSaveSection.CurrentVersion,
+                        DungeonSaveRestorePhase.Characters, invalidVisitWorld);
+                    invalidVisit.manifest = DungeonSaveManifest.Capture(invalidVisit.sections);
+                    string medicalBeforeInvalidVisit = JsonUtility.ToJson(currentOrder);
+                    Require(!saves.TryRestore(invalidVisit, out DungeonGameRestoreReport invalidVisitResult)
+                        && !invalidVisitResult.Success
+                        && invalidVisitResult.Errors.Any(error => error.Contains(target)
+                            && error.Contains("visitor-exit"))
+                        && JsonUtility.ToJson(campaign.CaptureSociety()) == societyBeforeInvalidJoin
+                        && returningPopulation.TryGetProfile(visitor, out WorldCharacterProfile retainedProfile)
+                        && retainedProfile.visitCount == returningVisitCount
+                        && retainedProfile.visitorExitOperation.departurePublicationKey == priorDepartureKey
+                        && Actors().Count(actor => actor.Identity.PersistentId == target) == 1
+                        && medicalQuery.TryGetOrder(medicalOrderId, out CharacterMedicalOrder retainedOrder)
+                        && JsonUtility.ToJson(retainedOrder) == medicalBeforeInvalidVisit,
+                        "Forged returning-visitor count was accepted or changed the live patient/order: "
+                            + string.Join(" | ", invalidVisitResult.Errors));
+                    lines.Add("PASS forged returning-visitor count rejected atomically; patient/receipt/Society/order unchanged");
+                    DungeonGameSaveData invalidJoin = saves.FromJson(saves.ToJson(validTransferCheckpoint));
                     DungeonCharacterMedicalSaveData invalidMedical =
                         DungeonSaveSectionPayload.ReadOrNew<
                             DungeonCharacterMedicalSaveData>(

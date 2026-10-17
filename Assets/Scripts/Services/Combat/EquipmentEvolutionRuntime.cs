@@ -1143,7 +1143,8 @@ public sealed class EquipmentEvolutionRuntime :
                 orderId?.Trim(),
                 StringComparison.Ordinal));
         if (order == null
-            || order.state == EvolutionReforgeOrderState.Completed)
+            || order.state is EvolutionReforgeOrderState.Completed
+                or EvolutionReforgeOrderState.Cancelled)
         {
             failureReason = "취소할 재단조 주문을 찾을 수 없습니다.";
             return false;
@@ -1489,7 +1490,8 @@ public sealed class EquipmentEvolutionRuntime :
                     orderId?.Trim(),
                     StringComparison.Ordinal));
         if (order == null
-            || order.state == EvolutionReforgeOrderState.Completed)
+            || order.state is EvolutionReforgeOrderState.Completed
+                or EvolutionReforgeOrderState.Cancelled)
         {
             failureReason = "취소할 재귀속 주문을 찾을 수 없습니다.";
             return false;

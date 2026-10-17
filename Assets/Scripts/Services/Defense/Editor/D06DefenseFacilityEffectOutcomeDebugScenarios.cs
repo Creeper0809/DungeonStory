@@ -508,7 +508,7 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
         public override string EffectId => "defense.test-throw";
         public override string DisplayName => "실패 상태";
 
-        public override void Apply(DefenseEffectContext context)
+        public override void Apply(IDefenseEffectCommands context)
         {
             context.ApplyStatus(
                 DefenseStatusKind.Corrosion,

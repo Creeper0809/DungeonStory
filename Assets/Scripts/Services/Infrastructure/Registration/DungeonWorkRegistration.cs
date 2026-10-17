@@ -18,6 +18,9 @@ public static class DungeonWorkRegistration
         builder.RegisterWorkCompletionDomainFact<RepairWorkCompletionFact>(
             "reaction:work.repair-completion", RepairWorkCompletionObservation.CreateCompletionRequest,
             WorkCompletionNotificationMode.ApplyOnly);
+        builder.RegisterWorkCompletionDomainFact<AnimalHusbandryCompletionFact>(
+            "log:economy.husbandry-completion", AnimalHusbandryCompletionObservation.CreateRequest,
+            WorkCompletionNotificationMode.ReferencedEvent);
         builder.RegisterEntryPoint<WorkAccidentObservationRuntime>(Lifetime.Singleton)
             .AsSelf().As<IDungeonSaveRestoreCompletedHook>();
 

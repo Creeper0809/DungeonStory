@@ -1,0 +1,20 @@
+{
+  "status": "complete",
+  "goalToolLastObserved": "complete; goal-tool-completion-r1.json",
+  "previousGoalTurnClassification": "progress: final required official world integration and related restock PASS; all32 source/evidence audit and final docs/index closed",
+  "currentProgress": "All32 processed and targeted actual verified; required faction7/related restock6 native integration, current pins/DLL/assets, final32 review, static links/diff and related index PASS. No required implementation or verification remains.",
+  "goalComplete": true,
+  "sourceProcessed": 32,
+  "actualCompleted": 32,
+  "remainingTargets": [],
+  "finalIntegration": "PASS",
+  "newBlockedFinding": false,
+  "targetedActualCompleted": 32,
+  "latestEvidence": "verification-final-goal-close-r1.json",
+  "nextEntryDiscovery": {
+    "target": "none",
+    "reason": "Goal completed; no required work remains."
+  },
+  "currentNativeSource": "final-integration/source-close-r3.json",
+  "completionAudit": "completion-audit-final-r1.json PASS"
+}

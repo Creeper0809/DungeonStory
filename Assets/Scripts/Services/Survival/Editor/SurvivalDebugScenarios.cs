@@ -130,6 +130,10 @@ public static class SurvivalDebugScenarios
 
     public static string VerifyDetoxDomainFactFocused() => VerifyWim028TreatBridgeRetry();
 
+    public static string RunSubstanceEffectsForArchitectureBatch() => VerifyWim036SubstanceEffects();
+
+    public static string RunOverdosePolicyForArchitectureBatch() => VerifyWim028OverdosePolicy();
+
     public static void RunCON01FromBatch()
     {
         const string selector = "DUNGEONSTORY_U0_CON01_CONSUMABLES_POLICY_VERIFY";
@@ -435,6 +439,11 @@ public static class SurvivalDebugScenarios
                 DefaultCharacterNeedBalanceRuntime.Instance,
                 domainFacts: outcomes,
                 calendar: calendar);
+            Require(restored.GetDietPolicy(characterId)
+                    == CharacterConsumablesPolicyRules.DefaultDietPolicy
+                    && restored.GetMealQualityLimit(characterId)
+                        == CharacterMealQualityLimit.Inherit,
+                "Fresh policy owner did not start from its own aggregate root.");
             restored.PublishRestoreCandidate(restored.BuildRestoreCandidate(save));
             Require(restored.GetDietPolicy(characterId)
                     == CharacterDietPolicyKind.Vegan
@@ -497,9 +506,12 @@ public static class SurvivalDebugScenarios
                 JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
                     pendingJson);
             tamperedPending.pendingPolicyFacts[0].afterValue = "vegetarian";
+            string beforeRejectedRestore = JsonUtility.ToJson(replayed.Capture());
             RequireThrows<InvalidOperationException>(
                 () => replayed.BuildRestoreCandidate(tamperedPending),
                 "Consumables restore accepted a pending fact that disagreed with authoritative policy state.");
+            Require(JsonUtility.ToJson(replayed.Capture()) == beforeRejectedRestore,
+                "Rejected policy restore changed the current aggregate root.");
             replayed.PublishRestoreCandidate(
                 replayed.BuildRestoreCandidate(roundTrip));
             int exactBeforeReplay = ledger.CaptureGameplayOutcomes()
@@ -514,10 +526,48 @@ public static class SurvivalDebugScenarios
                     && ledger.CaptureGameplayOutcomes().exactOutcomes.Count
                         == exactBeforeReplay,
                 "Pending policy fact did not replay idempotently after JSON restore.");
+
+            replayed.PublishRestoreCandidate(replayed.BuildRestoreCandidate(roundTrip));
+            string beforeRetirement = JsonUtility.ToJson(replayed.Capture());
+            outcomes.RejectNextReplay();
+            RequireThrows<InvalidOperationException>(
+                () => replayed.ReconcilePersistentActorReferences(Array.Empty<CharacterId>()),
+                "Actor retirement removed policy values before its pending fact could be acknowledged.");
+            Require(JsonUtility.ToJson(replayed.Capture()) == beforeRetirement,
+                "Rejected retirement changed policy values, revision, or the pending fact.");
+            replayed.ValidateRestorePayload(replayed.Capture(), requireWorldReferences: true);
+            replayed.ReconcilePersistentActorReferences(Array.Empty<CharacterId>());
+            DungeonCharacterConsumablesSaveData retired = replayed.Capture();
+            Require(retired.dietPolicies.Count == 0
+                    && retired.mealQualityPolicies.Count == 0
+                    && retired.substancePolicies.Count == 0
+                    && retired.policyRevision == 4L
+                    && retired.pendingPolicyFacts.Count == 0
+                    && ledger.CaptureGameplayOutcomes().exactOutcomes.Count == exactBeforeReplay,
+                "Actor retirement did not remove all three policy values while preserving publication history.");
+            replayed.ValidateRestorePayload(retired, requireWorldReferences: true);
+            replayed.PublishRestoreCandidate(replayed.BuildRestoreCandidate(roundTrip));
+            Require(replayed.GetDietPolicy(characterId) == CharacterDietPolicyKind.CarnivorePreferred
+                    && replayed.GetMealQualityLimit(characterId) == CharacterMealQualityLimit.Simple
+                    && replayed.GetSubstancePolicy(characterId, substance.Id.Value).mode == SubstancePolicyMode.Scheduled
+                    && replayed.ResumePendingPolicyFact(out replayFailure)
+                    && ledger.CaptureGameplayOutcomes().exactOutcomes.Count == exactBeforeReplay,
+                "Existing policy owner did not read a second restored root or duplicated its pending fact.");
+            CharacterConsumablesPolicyChangeResult afterReplacement = replayed.SetMealQualityLimit(
+                characterId, CharacterMealQualityLimit.Fine, "character-summary-ui");
+            Require(afterReplacement.Code == CharacterConsumablesPolicyChangeCode.Changed
+                    && afterReplacement.Revision == 5L
+                    && replayed.Capture().policyRevision == 5L
+                    && replayed.GetMealQualityLimit(characterId) == CharacterMealQualityLimit.Fine
+                    && runtime.Capture().policyRevision == 4L
+                    && runtime.GetMealQualityLimit(characterId) == CharacterMealQualityLimit.Simple,
+                "Policy command after root replacement wrote stale state or changed another runtime's root.");
             return "CON01=PASS; undefined-enums=3; rejected=rollback; "
                 + "typed-commits=3; diet-filter=vegan-only; substance-clamp=0,23; "
                 + "same-value-revision=3; restore-revision=3; "
-                + "pending-json-replay=exactly-once";
+                + "pending-json-replay=exactly-once; rejected-restore=unchanged; "
+                + "actor-retirement=rejected-unchanged/replay-retry/3-values/history-preserved; "
+                + "root-replacement=repeated; post-restore-command=revision5";
         }
         finally
         {
@@ -874,6 +924,41 @@ public static class SurvivalDebugScenarios
                 new RandomStreamProvider(711),
                 new DungeonRuntimeAggregateRootStore(),
                 DefaultCharacterNeedBalanceRuntime.Instance);
+
+            // Facility membership must use the same staged world as FacilityIds.
+            // An excluded live facility must not receive an invented capacity slot.
+            var candidates = new RestoreWorldCandidateIndex();
+            Grid candidateGrid = new(1, 1);
+            candidates.SetFacilityCandidate(candidateGrid, Array.Empty<BuildableObject>());
+            Require(candidates.TryGetGrid(out Grid stagedGrid)
+                    && ReferenceEquals(stagedGrid, candidateGrid),
+                "persistent consumables fixture did not stage its detached grid");
+            CharacterConsumablesApplicationPorts candidatePorts = new(
+                itemCatalog, itemRuntime, world, new GameEventBus(),
+                EmptyCombatCommands.Instance, CharacterAiEditorTestDependencies.NeutralPerformance,
+                restoreWorldCandidates: candidates);
+            BuildingInstanceId facilityId = facility.RequirePersistentInstanceId();
+            CharacterId characterId = CharacterPersistentIdentity.Require(actor);
+            var firstSlot = new ConsumableOperationId("consumable-operation:c19-first-slot");
+            var nextSlot = new ConsumableOperationId("consumable-operation:c19-next-slot");
+            try
+            {
+                Require(candidatePorts.FacilityIds.Count == 0
+                        && !candidatePorts.TryGetFacility(facilityId, out _)
+                        && !candidatePorts.TryReserveMealFacilitySlot(firstSlot, characterId, facilityId),
+                    "staged empty facilities resolved the old live facility or accepted a missing capacity slot");
+                candidates.ClearFacilityCandidate();
+                Require(candidatePorts.TryGetFacility(facilityId, out _)
+                        && candidatePorts.TryReserveMealFacilitySlot(firstSlot, characterId, facilityId)
+                        && candidatePorts.TryReserveMealFacilitySlot(firstSlot, characterId, facilityId)
+                        && !candidatePorts.TryReserveMealFacilitySlot(nextSlot, characterId, facilityId),
+                    "clearing the candidate did not restore live lookup/exact slot retry/capacity");
+                candidatePorts.ReleaseMealFacilitySlot(firstSlot, facilityId);
+                Require(candidatePorts.TryReserveMealFacilitySlot(nextSlot, characterId, facilityId),
+                    "released facility slot could not be retried by the next operation");
+                candidatePorts.ReleaseMealFacilitySlot(nextSlot, facilityId);
+            }
+            finally { candidates.ClearFacilityCandidate(); }
 
             DungeonCharacterConsumablesSaveData payload = runtime.Capture();
             payload.pendingMealDeliveries.Add(new CharacterMealDeliveryState
@@ -1379,11 +1464,14 @@ public static class SurvivalDebugScenarios
                     out CharacterConsumablesMealResult fieldResult)
                 && fieldResult.Success,
                 "field meal did not publish its result after the pending Sink commit");
-            DungeonCharacterConsumablesSaveData fieldPending = fieldRuntime.Capture();
+            DungeonCharacterConsumablesSaveData fieldPending =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(JsonUtility.ToJson(fieldRuntime.Capture()));
             string fieldLedgerAfterEffects = JsonUtility.ToJson(fieldOutcomes.Ledger.CaptureGameplayOutcomes());
             Require(fieldPending.activeMealPlans.Count == 1
                     && fieldPending.activeMealPlans[0].phase
                         == CharacterMealPlanPhase.EffectsPublished
+                    && fieldPending.activeMealPlans[0].physicalContextFrozen
+                    && fieldPending.activeMealPlans[0].consumptionPosition == actor.GetNowXY()
                     && fieldPending.completedOperations.Count == 1
                     && batch.TryGetPending(
                         fieldPending.activeMealPlans[0].planId,
@@ -1403,6 +1491,15 @@ public static class SurvivalDebugScenarios
                 DefaultCharacterNeedBalanceRuntime.Instance,
                 domainFacts: fieldPolicyFacts.Dispatcher,
                 calendar: policyCalendar);
+            DungeonCharacterConsumablesSaveData missingFieldContext =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(JsonUtility.ToJson(fieldPending));
+            missingFieldContext.activeMealPlans[0].physicalContextFrozen = false;
+            string beforeRejectedFieldRestore = JsonUtility.ToJson(restoredFieldRuntime.Capture());
+            RequireThrows<InvalidOperationException>(
+                () => restoredFieldRuntime.BuildRestoreCandidate(missingFieldContext),
+                "Field meal restore accepted a committed plan without its frozen physical context.");
+            Require(JsonUtility.ToJson(restoredFieldRuntime.Capture()) == beforeRejectedFieldRestore,
+                "Rejected field meal context changed the current aggregate.");
             restoredFieldRuntime.PublishRestoreCandidate(
                 restoredFieldRuntime.BuildRestoreCandidate(fieldPending));
             restoredFieldRuntime.Tick();
@@ -1419,7 +1516,7 @@ public static class SurvivalDebugScenarios
                         fieldPending.activeMealPlans[0].planId,
                         out _),
                 "field meal restore replayed effects or failed to acknowledge its receipt");
-            return $"item={FoodId}; qualityPolicy={verifyQualityPolicy}; facility=pending/restore-exact; field=pending/restore-exact; spoiled=abort; leaseReleased=True";
+            return $"item={FoodId}; qualityPolicy={verifyQualityPolicy}; facility=pending/restore-exact; field=JSON-pending/restore-exact; fieldPhysicalContext=frozen/position-exact; missingContext=rejected/unchanged; spoiled=abort; leaseReleased=True";
         }
         finally
         {
@@ -3596,6 +3693,11 @@ public static class SurvivalDebugScenarios
             MutableConsumablesClock clock = new();
             using CharacterConsumablesPolicyFactFixture policyFacts = new(
                 "run:survival-wim036-policy-facts");
+            DungeonRuntimeAggregateRootStore consumptionRoots = new();
+            MigratedProducerOutcomeEditorFixture consumptionOutcomes = new(
+                "run:survival-wim036-consumption", consumptionRoots);
+            CharacterConsumptionFactFixture.Attach(policyFacts.Dispatcher,
+                consumptionOutcomes.Transaction, consumptionOutcomes.Recorder, consumptionOutcomes.Ledger);
             EditorFixedGameCalendar policyCalendar = new(137, 9);
 
             int seed = Enumerable.Range(1, 100000).First(candidate =>
@@ -3614,7 +3716,7 @@ public static class SurvivalDebugScenarios
                 ports,
                 clock,
                 new RandomStreamProvider(seed),
-                new DungeonRuntimeAggregateRootStore(),
+                consumptionRoots,
                 DefaultCharacterNeedBalanceRuntime.Instance,
                 domainFacts: policyFacts.Publisher,
                 calendar: policyCalendar);
@@ -4593,6 +4695,11 @@ public static class SurvivalDebugScenarios
                 batchDispositions: batch);
             using CharacterConsumablesPolicyFactFixture policyFacts = new(
                 "run:survival-wim028-overdose-policy-facts");
+            DungeonRuntimeAggregateRootStore consumptionRoots = new();
+            MigratedProducerOutcomeEditorFixture consumptionOutcomes = new(
+                "run:survival-wim028-overdose-consumption", consumptionRoots);
+            CharacterConsumptionFactFixture.Attach(policyFacts.Dispatcher,
+                consumptionOutcomes.Transaction, consumptionOutcomes.Recorder, consumptionOutcomes.Ledger);
             EditorFixedGameCalendar policyCalendar = new(137, 9);
             const float firstOverdoseChance = 0.06f;
             const float addictionRollChance = 0.028f;
@@ -4613,7 +4720,7 @@ public static class SurvivalDebugScenarios
                 ports,
                 new FixedGameClock(),
                 new RandomStreamProvider(seed),
-                new DungeonRuntimeAggregateRootStore(),
+                consumptionRoots,
                 DefaultCharacterNeedBalanceRuntime.Instance,
                 domainFacts: policyFacts.Publisher,
                 calendar: policyCalendar);

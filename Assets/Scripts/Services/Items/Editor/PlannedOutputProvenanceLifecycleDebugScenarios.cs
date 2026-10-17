@@ -244,6 +244,7 @@ public static class PlannedOutputProvenanceLifecycleDebugScenarios
             admission,
             admission);
         PhysicalItemExactSourcePublicationService exactSource = new(
+            fixture.Repository,
             fixture.Mass,
             lifecycle,
             claims,

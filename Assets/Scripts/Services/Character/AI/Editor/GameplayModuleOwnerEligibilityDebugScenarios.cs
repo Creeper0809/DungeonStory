@@ -55,7 +55,7 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
         CharacterProgression progression = owner.Progression;
         var query = new GameplayOutcomeNarrativeEvidenceQuery(owner.Ledger);
         var runtime = new DeferredRuntime();
-        var service = new CharacterSkillGenerationService(settings, runtime, new FixedUiClock(), query);
+        var service = new CharacterSkillGenerationService(NarrativeRequestContextTestFixture.CreateEmpty(), settings, runtime, new FixedUiClock(), query);
         SetProgressionDependency(progression, "generationService", service);
         SetProgressionDependency(progression, "settingsProvider", settings);
         SetProgressionDependency(progression, "evidenceUseTransaction",
@@ -259,7 +259,7 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
             var query = new GameplayOutcomeNarrativeEvidenceQuery(source.Ledger);
             var runtime = new DeferredRuntime();
             var service = new CharacterSkillGenerationService(
-                settings,
+                NarrativeRequestContextTestFixture.CreateEmpty(), settings,
                 runtime,
                 new FixedUiClock(),
                 query);
@@ -385,7 +385,7 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
             var query = new GameplayOutcomeNarrativeEvidenceQuery(restored.Ledger);
             var runtime = new DeferredRuntime();
             var service = new CharacterSkillGenerationService(
-                settings,
+                NarrativeRequestContextTestFixture.CreateEmpty(), settings,
                 runtime,
                 new FixedUiClock(),
                 query);
@@ -483,7 +483,7 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
             var query = new GameplayOutcomeNarrativeEvidenceQuery(committed.Ledger);
             var runtime = new DeferredRuntime();
             var service = new CharacterSkillGenerationService(
-                settings,
+                NarrativeRequestContextTestFixture.CreateEmpty(), settings,
                 runtime,
                 new FixedUiClock(),
                 query);
@@ -608,7 +608,7 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
         using var owner = new CharacterCombatModuleSelectionSourceCapture.SelectionActor(
             capture.CharacterId, capture.DisplayName, capture.Checkpoint);
         var runtime = new DeferredRuntime();
-        var service = new CharacterSkillGenerationService(settings, runtime, new FixedUiClock());
+        var service = new CharacterSkillGenerationService(NarrativeRequestContextTestFixture.CreateEmpty(), settings, runtime, new FixedUiClock());
         CharacterSkillDraft draft = owner.Actor.Progression.GrowthState.drafts.Single(
             value => value.requestKey == capture.Draft.requestKey);
         service.RequestDraft(owner.Actor.Progression, draft);
@@ -657,7 +657,7 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
             CharacterActor actor = owner.Actor;
             Require(!actor.IsDead && actor.Stats.CurrentHealth > 20f, "Restored living owner is not the recovered combatant.");
             var runtime = new DeferredRuntime();
-            var service = new CharacterSkillGenerationService(settings, runtime, new FixedUiClock());
+            var service = new CharacterSkillGenerationService(NarrativeRequestContextTestFixture.CreateEmpty(), settings, runtime, new FixedUiClock());
             CharacterSkillDraft draft = actor.Progression.GrowthState.drafts.Single(value => value.requestKey == capture.Draft.requestKey);
             service.RequestDraft(actor.Progression, draft);
             service.Tick();
@@ -704,7 +704,7 @@ public static partial class GameplayModuleOwnerEligibilityDebugScenarios
         ICharacterSkillSystemSettingsProvider settings, DeferredRuntime runtime)
     {
         CharacterActor actor = owner.Actor;
-        var service = new CharacterSkillGenerationService(settings, runtime, new FixedUiClock());
+        var service = new CharacterSkillGenerationService(NarrativeRequestContextTestFixture.CreateEmpty(), settings, runtime, new FixedUiClock());
         foreach (CharacterSkillKind kind in new[] { CharacterSkillKind.Active, CharacterSkillKind.Passive, CharacterSkillKind.Ultimate })
         {
             bool rejected = false;

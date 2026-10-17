@@ -21,7 +21,7 @@ public static class CropIrrigationFactMapping
             true,
             source.quantity,
             WorldWaterQuality.Clean);
-        return EnvironmentOutcomeReceiptFactory.CreateCropIrrigationSupply(
+        return CropProductionOutcomeReceiptFactory.CreateCropIrrigationSupply(
             result,
             source.operationId,
             checked((long)source.operationSequence + 1L),

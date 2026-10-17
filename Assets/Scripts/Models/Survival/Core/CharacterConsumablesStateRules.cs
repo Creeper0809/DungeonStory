@@ -1008,7 +1008,7 @@ internal static class CharacterConsumablesStateRules
                 || requireWorldReferences
                     && !string.Equals(
                         plan.facilityInstanceId,
-                        CharacterConsumablesRuntime.FieldMealFacilityId,
+                        CharacterConsumableIdContract.FieldMealFacilityId,
                         StringComparison.Ordinal)
                     && !facilities.Contains(plan.FacilityId)
                     && !CanRecoverWithoutActor(plan)
@@ -1397,7 +1397,7 @@ internal static class CharacterConsumablesStateRules
                 StringComparison.Ordinal)
             && string.Equals(
                 plan.physicalCommitReasonCode,
-                CharacterConsumablesRuntime.DetoxPhysicalSinkReason,
+                CharacterConsumableIdContract.DetoxPhysicalSinkReason,
                 StringComparison.Ordinal)
             && !string.IsNullOrWhiteSpace(plan.physicalCommitId)
             && plan.physicalCommitId.StartsWith(
@@ -1459,7 +1459,7 @@ internal static class CharacterConsumablesStateRules
                 StringComparison.Ordinal)
             && string.Equals(
                 plan.physicalCommitReasonCode,
-                CharacterConsumablesRuntime.SubstancePhysicalSinkReason,
+                CharacterConsumableIdContract.SubstancePhysicalSinkReason,
                 StringComparison.Ordinal)
             && !string.IsNullOrWhiteSpace(plan.physicalCommitId)
             && plan.physicalCommitId.StartsWith(
@@ -1584,7 +1584,7 @@ internal static class CharacterConsumablesStateRules
                 StringComparison.Ordinal)
             && string.Equals(
                 plan.physicalCommitReasonCode,
-                CharacterConsumablesRuntime.MealPhysicalSinkReason,
+                CharacterConsumableIdContract.MealPhysicalSinkReason,
                 StringComparison.Ordinal)
             && !string.IsNullOrWhiteSpace(plan.physicalCommitId)
             && plan.physicalCommitId.StartsWith(

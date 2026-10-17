@@ -823,7 +823,7 @@ public sealed class ProductionGenericBillTerminalDrainOutbox :
                 StringComparison.Ordinal)
             || !string.Equals(
                 request.SourceBill.materialDestinationId,
-                ProductionBillRuntime.DestinationPrefix
+                ProductionBillIdentity.DestinationPrefix
                     + request.SourceBill.billId,
                 StringComparison.Ordinal))
         {

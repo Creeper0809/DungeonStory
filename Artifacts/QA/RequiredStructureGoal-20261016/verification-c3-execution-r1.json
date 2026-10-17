@@ -1,0 +1,54 @@
+{
+  "status": "C3_TARGETED_ACTUAL_PASS",
+  "nativeRun": "native-destructive-drain-current-r8",
+  "report": "native-destructive-drain-current-r8/unity-evidence/prepared-output-destructive-drain-live.txt",
+  "reportSha256": "76f3f2a8737b8fcdfbe862cd96bf84586af90700f0b31e5c0bced4b9c6bd3741",
+  "checksPassed": 53,
+  "capturedErrors": 0,
+  "capturedWarnings": 0,
+  "terminalUnityExit": 0,
+  "isolationProbe": "PASS_NONINTERACTIVE_PROBE",
+  "pins": {
+    "source-pin-c3-controlled-boot-r3.json": {
+      "files": 1403,
+      "drift": []
+    },
+    "native-input-pin-r14.json": {
+      "files": 3872,
+      "drift": []
+    },
+    "tool-pin-c3-controlled-boot-r3.json": {
+      "files": 9,
+      "drift": []
+    }
+  },
+  "assemblies": {
+    "Library\\ScriptAssemblies\\Assembly-CSharp-Editor.dll": "a45516e27af17984ee5d78425eea3338fff68d62d33bc92414d38eb42b2463f3",
+    "Library\\ScriptAssemblies\\Assembly-CSharp.dll": "fdad4c09342ff17e68a351dfa4e6aa90fd69dd2cb26c5cee9c97945cf915b53f",
+    "Library\\ScriptAssemblies\\DungeonStory.Buildings.dll": "e939738b02c6aebe5319a12ac7b476004597efdd6547c301e8e167cd77833b14",
+    "Library\\ScriptAssemblies\\DungeonStory.Economy.dll": "c6dffaa8e88a006e4f91612eb29108a2035cc6ce4d1462908d7615195cb43454"
+  },
+  "compileBinding": "verification-c3-native-r6.json; current Editor native Tundra success20.89 seconds/errors0, followed by unchanged cached execution",
+  "verified": [
+    "Exact sanitized authored Gameplay/controlled official starting party",
+    "Authored research canonical completion and parent receipt admitted by strict whole-world save preflight",
+    "P03 physical inputs/output/exact warehouse route; pre-pickup cancellation, destination revision rejection/fresh replan, active carry retained",
+    "Canonical eight participants and registry@5 fingerprint exact",
+    "Deferred DrainingParticipants intermediate disk checkpoint committed",
+    "Same demolition operation progressed across six attempts; completed world/grid authority removal despite intentional observer notification failure",
+    "Physical item quantity18 and mass21600g conserved; carry/lease/intent/admission authority released",
+    "Terminal disk checkpoint GC, official slot restore without duplication, second checkpoint no-op",
+    "Pre-test104-section baseline officially restored; normal Play stop, owned start/sanitized scene lease cleanup and Unity exit0"
+  ],
+  "limits": [
+    "Controlled start-party/AI isolation; not preparation UI/model inference or unprompted natural gameplay",
+    "Intermediate deferred state was captured/committed, not cold-loaded in this entry; terminal slot was officially loaded",
+    "Not final cross-target integration or completion of all32 targets"
+  ],
+  "priorAttempts": {
+    "r3": "Old preparation UI expectation failed before P03",
+    "r4": "Stale six-participant assertion and original scene path; repaired exact canonical registry and sanitized scene identity",
+    "r5": "Log reached intermediate capture then strict research parent preflight failed; later memory guard925978624 bytes/no final report",
+    "r6-r7": "Current source compiled; strict staging orphan guard rejected prior own copy before Play. Copy/metas archived without changing original scene/build settings."
+  }
+}

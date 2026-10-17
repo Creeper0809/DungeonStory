@@ -278,18 +278,6 @@
       ]
     },
     {
-      "type": "FacilityOutputExactRouteDestructiveRetireResult",
-      "definition_path": "Assets/Scripts/Services/Items/FacilityOutputExactRouteDestructiveRetireContracts.cs",
-      "coverage_disposition": "NonResult",
-      "integration_status": "excluded",
-      "reason": "Internal destructive-drain, routing or recovery state-machine result.",
-      "integration_reason": "It proves forward recovery/acknowledgement for the upper cause-specific operation and must not create a second narrative result.",
-      "replacement_authority": "GridBuildingDestroyRequestResult, EnvironmentalFireDamageResult, or other cause-specific terminal result",
-      "evidence": [
-        "Assets/Scripts/Services/Items/FacilityOutputExactRouteDestructiveRetireContracts.cs#FacilityOutputExactRouteDestructiveRetireResult"
-      ]
-    },
-    {
       "type": "FacilityOutputExactRouteReceipt",
       "definition_path": "Assets/Scripts/Models/Items/Core/FacilityOutputExactRoutePort.cs",
       "coverage_disposition": "NonResult",
@@ -455,7 +443,7 @@
       "replacement_authority": "ProductionCommandOutcomeReceipt",
       "evidence": [
         "Assets/Scripts/Models/Production/Core/ProductionBillModels.cs#ProductionBillCommandResult",
-        "Assets/Scripts/Models/Economy/Content/ProductionBillRuntime.cs#QueueCommittedCommandOutcome",
+        "Assets/Scripts/Models/Economy/Content/ProductionBillCommandRuntime.cs#QueueCommittedCommandObservation",
         "Assets/Scripts/Models/Production/Core/ProductionAggregateState.cs#ProductionCommandOutcomeOutboxSaveData",
         "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/ProductionCombat/ProductionCommandOutcomeDefinition.cs",
         "Assets/Scripts/Services/Economy/Editor/ProductionPreparedOutputFullPersistenceDebugScenarios.cs#VerifyProductionCommandOutcomeTransactions",
@@ -790,7 +778,7 @@
       "replacement_authority": "",
       "evidence": [
         "Assets/Scripts/Models/Production/Core/ProductionRecipeExecutionReceiptContracts.cs#ProductionRecipeExecutionReceipt",
-        "Assets/Scripts/Models/Economy/Content/ProductionBillRuntime.cs:1475-1553",
+        "Assets/Scripts/Models/Economy/Content/ProductionBillExecutionRuntime.cs#ExecuteWork",
         "Assets/Scripts/Services/Economy/ProductionRecipeExecutionReceiptAuthority.cs:487-546",
         "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/ProductionCombat/ProductionCombatOutcomeBridges.cs:175-284"
       ]

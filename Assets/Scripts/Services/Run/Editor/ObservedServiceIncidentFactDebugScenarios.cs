@@ -11,6 +11,8 @@ public static class ObservedServiceIncidentFactDebugScenarios
     {
         Require(Application.isBatchMode, "B114 requires isolated batch execution.");
         VerifyRejection();
+        VerifyPublicationFenceReadTiming(reject: false);
+        VerifyPublicationFenceReadTiming(reject: true);
         VerifyRecovery(afterCommit: false);
         VerifyRecovery(afterCommit: true);
         Wim040ObservedIncidentDebugScenarios.RunObserverChecks();
@@ -98,6 +100,43 @@ public static class ObservedServiceIncidentFactDebugScenarios
         Debug.Log(afterCommit ? "B114_INCIDENT_ACK_AFTER=PASS" : "B114_INCIDENT_ACK_BEFORE=PASS");
     }
 
+    private static void VerifyPublicationFenceReadTiming(bool reject)
+    {
+        using var fixture = new Fixture();
+        SocietyEventAggregateState before = fixture.Campaign.PrepareSociety(fixture.Campaign.CaptureSociety());
+        int boundaries = 0;
+        void Check(int activeCount)
+        {
+            boundaries++;
+            Require(fixture.Campaign.ActiveSocietyEvents.Count == activeCount
+                    && fixture.Campaign.GetOwnedCustomerIds().Count == activeCount
+                    && fixture.Campaign.GetRemainingDays() == 0,
+                "Publication queries did not see the currently published Society root.");
+            RejectPublication(() => fixture.Campaign.CaptureSociety());
+            RejectPublication(() => fixture.Campaign.PublishSociety(before));
+            RejectPublication(() => fixture.Capture());
+            RejectPublication(() => fixture.Campaign.CaptureObservedMealIncident(Evidence(), Context()));
+            RejectPublication(() => fixture.Campaign.ApplyWorkDelay("publication-probe", 1, 42));
+            fixture.Campaign.ApplyWorkDelay("publication-probe", 0, 42);
+        }
+        fixture.Publisher.BeforeReserve = () => Check(0);
+        fixture.Publisher.BeforePublish = () => Check(1);
+        // The journal cancels its dispatcher lease before returning delivery.
+        // The campaign candidate is still published at that boundary, even on rejection.
+        fixture.Transport.BeforeCancel = () => Check(1);
+        fixture.Transport.Reject = reject;
+        var result = fixture.Campaign.CaptureObservedMealIncident(Evidence(), Context());
+        Require(result.Created == !reject && boundaries == 3
+                && fixture.Campaign.CaptureSociety().workDelays.Count == 0,
+            "Publication fence did not span reservation, candidate publication and lease cancellation.");
+        fixture.Publisher.BeforeReserve = fixture.Publisher.BeforePublish = fixture.Transport.BeforeCancel = null;
+        fixture.Campaign.ApplyWorkDelay("publication-probe", 1, 42);
+        Require(fixture.Campaign.CaptureSociety().workDelays.Count == 1,
+            "Publication fence remained held after the transaction completed.");
+        Debug.Log("ARCHITECTURE_V20_INCIDENT_FENCE=PASS; rejected=" + reject
+            + "; reservation; candidate; cancellation; current-root queries; idle release");
+    }
+
     private const string Character = "character:b114:customer";
     private static ObservedMealIncidentSnapshot Evidence() => new(
         new ConsumableOperationId("consumable-operation:b114:incident"), new CharacterId(Character),
@@ -127,6 +166,7 @@ public static class ObservedServiceIncidentFactDebugScenarios
         internal readonly SocialRitualFactEditorFixture Facts;
         internal readonly Transport Transport;
         internal readonly SocialRitualFactJournal Journal;
+        internal readonly PublisherProbe Publisher;
         internal readonly V20CampaignRuntime Campaign;
         internal int NativeCount => Outcomes.Ledger.CaptureGameplayOutcomes().outbox.Count
             + Outcomes.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count;
@@ -135,8 +175,9 @@ public static class ObservedServiceIncidentFactDebugScenarios
             Facts = new SocialRitualFactEditorFixture(Outcomes);
             Transport = new Transport(Facts.Dispatcher);
             Journal = new SocialRitualFactJournal(Transport, Transport);
+            Publisher = new PublisherProbe(Journal);
             Campaign = new V20CampaignRuntime(Outcomes.AggregateRootStore,
-                new V20StoryContentCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader())), null, null, Journal);
+                new V20StoryContentCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader())), null, null, Publisher);
             if (saved == null) return;
             Validate(saved);
             var candidate = Campaign.PrepareSociety(saved.society);
@@ -155,15 +196,44 @@ public static class ObservedServiceIncidentFactDebugScenarios
         public void Dispose() { Journal.AssertIdle(); Facts.Dispose(); }
     }
 
+    private sealed class PublisherProbe : ISocialRitualFactPublisher
+    {
+        private readonly ISocialRitualFactPublisher publisher;
+        internal Action BeforeReserve, BeforePublish;
+        internal PublisherProbe(ISocialRitualFactPublisher publisher) => this.publisher = publisher;
+        public void AssertIdle() => publisher.AssertIdle();
+        public bool TryReserve<T>(in T fact, out DomainFactLease lease, out string failure)
+        {
+            BeforeReserve?.Invoke();
+            return publisher.TryReserve(fact, out lease, out failure);
+        }
+        public DomainFactDelivery Publish<T>(in DomainFactLease lease, in T fact)
+        {
+            BeforePublish?.Invoke();
+            return publisher.Publish(lease, fact);
+        }
+        public void Cancel(in DomainFactLease lease)
+        {
+            publisher.Cancel(lease);
+        }
+        public bool PublishBatch(IReadOnlyList<DomainFactEmission> facts, DomainFactDelivery[] results, out string failure) =>
+            publisher.PublishBatch(facts, results, out failure);
+        public DomainFactDelivery Replay<T>(in T fact) => publisher.Replay(fact);
+    }
+
     private sealed class Transport : IDomainFactPublisher, IDomainFactRecoveryPublisher
     {
         private readonly DomainFactDispatcher dispatcher;
         internal bool Reject, ThrowBeforeCommit, HideAcknowledgement;
-        internal Action BeforePublish;
+        internal Action BeforePublish, BeforeCancel;
         internal Transport(DomainFactDispatcher dispatcher) => this.dispatcher = dispatcher;
         public bool TryReserve<T>(in T fact, out DomainFactLease lease, out string failure) => dispatcher.TryReserve(fact, out lease, out failure);
         public DomainFactDelivery Publish<T>(in DomainFactLease lease, in T fact) => dispatcher.Publish(lease, fact);
-        public void Cancel(in DomainFactLease lease) => dispatcher.Cancel(lease);
+        public void Cancel(in DomainFactLease lease)
+        {
+            BeforeCancel?.Invoke();
+            dispatcher.Cancel(lease);
+        }
         public DomainFactDelivery Replay<T>(in T fact) => dispatcher.Replay(fact);
         public bool PublishBatch(IReadOnlyList<DomainFactEmission> facts, DomainFactDelivery[] results, out string failure)
         {
@@ -190,6 +260,13 @@ public static class ObservedServiceIncidentFactDebugScenarios
         try { action(); }
         catch (InvalidOperationException) { return; }
         throw new InvalidOperationException("B114 expected an explicit boundary rejection.");
+    }
+    private static void RejectPublication(Action action)
+    {
+        try { action(); }
+        catch (InvalidOperationException error) when (
+            error.Message == "observed-service-incident-publication-active") { return; }
+        throw new InvalidOperationException("Expected the Society publication fence to reject reentry.");
     }
     private static void Require(bool value, string failure)
     { if (!value) throw new InvalidOperationException(failure); }

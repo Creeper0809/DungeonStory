@@ -146,7 +146,7 @@ public static partial class PrimitiveSurvivalCausalProductionEntryDebugScenarios
             progression.SetPublicSkillNotificationsSuppressed(true);
             var runtime = new ReplaySkillRuntime(canonicalResponse);
             CharacterSkillGenerationService service = new(
-                new SourceSkillSettingsProvider(settings),
+                NarrativeRequestContextTestFixture.CreateEmpty(), new SourceSkillSettingsProvider(settings),
                 new ReplaySkillRuntimeProvider(runtime),
                 SourceUiClock.Instance);
             service.RequestDraft(progression, draft);
@@ -346,7 +346,7 @@ public static partial class PrimitiveSurvivalCausalProductionEntryDebugScenarios
                 CaptureExact(source, maximumCount: 1);
             CharacterSkillGenerationService service =
                 new(
-                    new SourceSkillSettingsProvider(settings),
+                    NarrativeRequestContextTestFixture.CreateEmpty(), new SourceSkillSettingsProvider(settings),
                     SourceMissingLlmRuntimeProvider.Instance,
                     SourceUiClock.Instance);
             CharacterSkillDraft draft = service.CreateDraft(
@@ -393,7 +393,7 @@ public static partial class PrimitiveSurvivalCausalProductionEntryDebugScenarios
         }
         NarrativePublicContextMaterial publicMaterial =
             CharacterSkillPromptBuilder.BuildPublicMaterial(
-                restored.SourceActor.Progression);
+                NarrativeRequestContextTestFixture.CreateEmpty(), restored.SourceActor.Progression);
         publicMaterial = GameplayOutcomeEvidencePublicMaterialComposer
             .AddExactEvidence(publicMaterial, restoredEvidence);
         string prompt = CharacterSkillPromptBuilder.BuildEnvelope(
@@ -473,7 +473,7 @@ public static partial class PrimitiveSurvivalCausalProductionEntryDebugScenarios
                 .ToArray();
             NarrativePublicContextMaterial publicMaterial =
                 CharacterAcquiredTraitPromptBuilder
-                    .BuildPublicMaterialForLedgerEvidence(progression, local);
+                    .BuildPublicMaterialForLedgerEvidence(NarrativeRequestContextTestFixture.CreateEmpty(), progression, local);
             publicMaterial = GameplayOutcomeEvidencePublicMaterialComposer
                 .AddExactEvidence(publicMaterial, exact);
             IReadOnlyList<string> projectedLocal = local.Length == 0
@@ -545,7 +545,7 @@ public static partial class PrimitiveSurvivalCausalProductionEntryDebugScenarios
             .ToArray();
         NarrativePublicContextMaterial restoredMaterial =
             CharacterAcquiredTraitPromptBuilder.BuildPublicMaterial(
-                restoredProgression,
+                NarrativeRequestContextTestFixture.CreateEmpty(), restoredProgression,
                 localEvidence);
         restoredMaterial = GameplayOutcomeEvidencePublicMaterialComposer
             .AddExactEvidence(restoredMaterial, pending.evidenceBindings);

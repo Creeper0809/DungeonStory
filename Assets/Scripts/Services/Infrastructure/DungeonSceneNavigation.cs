@@ -190,7 +190,7 @@ public sealed class DungeonSceneNavigator : IDungeonSceneNavigator
 
     public bool LoadTitle(string message = "")
     {
-        if (!BeginTransition(TitleSceneName, HandleTitleTransitionFailure))
+        if (!BeginTransition(TitleSceneName, HandleTitleTransitionFailure, resumeTime: false))
         {
             return false;
         }
@@ -265,7 +265,7 @@ public sealed class DungeonSceneNavigator : IDungeonSceneNavigator
         }
     }
 
-    private bool BeginTransition(string targetScene, Action<string> onFailure)
+    private bool BeginTransition(string targetScene, Action<string> onFailure, bool resumeTime = true)
     {
         DungeonSceneTransitionMailbox mailbox = GetMailbox();
         if (mailbox.IsTransitioning || string.IsNullOrWhiteSpace(targetScene))
@@ -279,7 +279,9 @@ public sealed class DungeonSceneNavigator : IDungeonSceneNavigator
             return false;
         }
 
-        timeScaleController.Scale = 1f;
+        // Title UI initializes its own clock. Keep an outgoing paused/recovery
+        // world stopped throughout the unscaled transition fade.
+        if (resumeTime) timeScaleController.Scale = 1f;
         mailbox.IsTransitioning = true;
         GameObject hostObject = new GameObject("DungeonSceneTransitionHost");
         UnityEngine.Object.DontDestroyOnLoad(hostObject);
@@ -474,7 +476,7 @@ public sealed class DungeonGameplayLaunchController : IStartable, ITickable
         }
 
         string reason = report?.Errors != null && report.Errors.Count > 0
-            ? string.Join(" ", report.Errors)
+            ? report.FailureDescription
             : "저장 데이터를 복원하지 못했습니다.";
         pendingTitleFailure = reason;
     }

@@ -11,7 +11,7 @@ public sealed class CombatEquipmentRuntime :
 {
     private readonly ICombatEquipmentCatalog catalog;
     private readonly IItemInstanceRepository itemInstances;
-    private readonly ICharacterCarryInventoryRegistry carryInventories;
+    private readonly CombatEquipmentSupplyService supplies;
     private readonly CombatEquipmentStatProjector statProjector;
     private readonly IEquipmentModuleCatalog moduleCatalog;
     private readonly CombatEquipmentCraftingRuntime crafting;
@@ -39,7 +39,7 @@ public sealed class CombatEquipmentRuntime :
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.itemInstances = itemInstances
             ?? throw new ArgumentNullException(nameof(itemInstances));
-        this.carryInventories = carryInventories
+        _ = carryInventories
             ?? throw new ArgumentNullException(nameof(carryInventories));
         this.moduleCatalog = moduleCatalog
             ?? throw new ArgumentNullException(nameof(moduleCatalog));
@@ -56,6 +56,8 @@ public sealed class CombatEquipmentRuntime :
             ?? throw new ArgumentNullException(nameof(crafting));
         this.loadoutRuntime = loadoutRuntime
             ?? throw new ArgumentNullException(nameof(loadoutRuntime));
+        supplies = new CombatEquipmentSupplyService(
+            catalog, itemInstances, carryInventories, physicalState);
     }
 
     public IReadOnlyList<CombatEquipmentDefinitionSO> Definitions => catalog.All;
@@ -1190,46 +1192,18 @@ public sealed class CombatEquipmentRuntime :
         string characterId,
         string instanceId)
     {
-        CharacterCarryInventory inventory = carryInventories.Find((CharacterId)characterId);
-        if (inventory == null)
-        {
-            return false;
-        }
-
-        if (!instances.TryGetValue(
-                instanceId?.Trim() ?? string.Empty,
-                out CombatEquipmentInstance instance))
-        {
-            return false;
-        }
-
-        if (!catalog.TryGet(
-                instance.definitionId,
-                out CombatEquipmentDefinitionSO definition)
-            || definition is not CombatWeaponSO weapon)
-        {
-            return false;
-        }
-
-        return CombatAmmunitionPolicy.CountAvailable(weapon, inventory) > 0;
+        return supplies.HasCompatibleAmmunition(
+            characterId,
+            instanceId);
     }
 
     public bool TryGetPreferredAmmunitionItemId(
         string definitionId,
         out ItemDefinitionId itemId)
     {
-        itemId = default;
-        if (!catalog.TryGet(
-                definitionId?.Trim() ?? string.Empty,
-                out CombatEquipmentDefinitionSO definition)
-            || definition is not CombatWeaponSO weapon)
-        {
-            return false;
-        }
-
-        itemId = CombatAmmunitionPolicy.GetPreferred(
-            weapon.CompatibleAmmunitionItemIds);
-        return itemId.IsValid;
+        return supplies.TryGetPreferredAmmunitionItemId(
+            definitionId,
+            out itemId);
     }
 
     public bool TryReloadFromInventory(
@@ -1237,10 +1211,9 @@ public sealed class CombatEquipmentRuntime :
         CharacterCarryInventory inventory,
         out int consumedAmmo)
     {
-        return TryReloadFromInventory(
+        return supplies.TryReloadFromInventory(
             instanceId,
             inventory,
-            out _,
             out consumedAmmo);
     }
 
@@ -1250,61 +1223,11 @@ public sealed class CombatEquipmentRuntime :
         out ItemDefinitionId consumedAmmoItemId,
         out int consumedAmmo)
     {
-        consumedAmmoItemId = default;
-        consumedAmmo = 0;
-        if (inventory == null
-            || !instances.TryGetValue(instanceId?.Trim() ?? string.Empty, out CombatEquipmentInstance instance)
-            || CombatEquipmentWorldStateRules.IsExternalCustody(
-                instance.worldState)
-            || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
-            || definition is not CombatWeaponSO weapon
-            || weapon.MagazineCapacity <= 0)
-        {
-            return false;
-        }
-
-        instance.loadedAmmunition ??= new LoadedAmmunitionBatch();
-        ItemDefinitionId selectedItemId;
-        if (instance.loadedAmmunition.remaining > 0)
-        {
-            selectedItemId = (ItemDefinitionId)
-                instance.loadedAmmunition.ammunitionItemId;
-            if (!selectedItemId.IsValid
-                || !weapon.CompatibleAmmunitionItemIds.Contains(
-                    selectedItemId)
-                || inventory.CountItem(selectedItemId.Value) <= 0)
-            {
-                return false;
-            }
-        }
-        else if (!CombatAmmunitionPolicy.TrySelectAvailable(
-                     weapon,
-                     inventory,
-                     out selectedItemId))
-        {
-            return false;
-        }
-
-        int needed = Mathf.Max(
-            0,
-            weapon.MagazineCapacity - instance.loadedAmmunition.remaining);
-        int available = inventory.CountItem(selectedItemId.Value);
-        consumedAmmo = Mathf.Min(needed, available);
-        if (consumedAmmo <= 0
-            || !CombatAmmunitionPolicy.TryConsumeSelected(
-                inventory,
-                selectedItemId,
-                consumedAmmo))
-        {
-            consumedAmmo = 0;
-            return false;
-        }
-
-        consumedAmmoItemId = selectedItemId;
-        instance.loadedAmmunition.ammunitionItemId = selectedItemId.Value;
-        instance.loadedAmmunition.remaining += consumedAmmo;
-        PersistPhysicalState(instance);
-        return true;
+        return supplies.TryReloadFromInventory(
+            instanceId,
+            inventory,
+            out consumedAmmoItemId,
+            out consumedAmmo);
     }
 
     public bool TryReloadFromCharacterInventory(
@@ -1312,10 +1235,9 @@ public sealed class CombatEquipmentRuntime :
         string instanceId,
         out int consumedAmmo)
     {
-        return TryReloadFromCharacterInventory(
+        return supplies.TryReloadFromCharacterInventory(
             characterId,
             instanceId,
-            out _,
             out consumedAmmo);
     }
 
@@ -1325,86 +1247,38 @@ public sealed class CombatEquipmentRuntime :
         out ItemDefinitionId consumedAmmoItemId,
         out int consumedAmmo)
     {
-        return TryReloadFromInventory(
+        return supplies.TryReloadFromCharacterInventory(
+            characterId,
             instanceId,
-            carryInventories.Find((CharacterId)characterId),
             out consumedAmmoItemId,
             out consumedAmmo);
     }
 
     public bool TryConsumeLoadedAmmo(string instanceId)
     {
-        return TryConsumeLoadedAmmo(instanceId, 1);
+        return supplies.TryConsumeLoadedAmmo(
+            instanceId);
     }
 
     public bool TryConsumeLoadedAmmo(string instanceId, int amount)
     {
-        int requested = Mathf.Max(1, amount);
-        if (!instances.TryGetValue(instanceId?.Trim() ?? string.Empty, out CombatEquipmentInstance instance)
-            || CombatEquipmentWorldStateRules.IsExternalCustody(
-                instance.worldState)
-            || instance.loadedAmmunition == null
-            || instance.loadedAmmunition.remaining < requested
-            || string.IsNullOrWhiteSpace(
-                instance.loadedAmmunition.ammunitionItemId))
-        {
-            return false;
-        }
-
-        instance.loadedAmmunition.remaining -= requested;
-        if (instance.loadedAmmunition.remaining == 0)
-        {
-            instance.loadedAmmunition.Clear();
-        }
-        PersistPhysicalState(instance);
-        return true;
+        return supplies.TryConsumeLoadedAmmo(
+            instanceId,
+            amount);
     }
 
     public bool TryConsumePower(string instanceId, float amount)
     {
-        float requested = Mathf.Max(0f, amount);
-        if (requested <= 0f
-            || !instances.TryGetValue(
-                instanceId?.Trim() ?? string.Empty,
-                out CombatEquipmentInstance instance)
-            || CombatEquipmentWorldStateRules.IsExternalCustody(
-                instance.worldState)
-            || (CombatEquipmentRoleRules.For(instance.definitionId)
-                & CombatEquipmentRoleFlags.Powered) == 0
-            || instance.powerCharge <= 0f)
-        {
-            return false;
-        }
-
-        instance.powerCharge = Mathf.Clamp(
-            instance.powerCharge - requested,
-            0f,
-            100f);
-        PersistPhysicalState(instance);
-        return true;
+        return supplies.TryConsumePower(
+            instanceId,
+            amount);
     }
 
     public bool TryRestorePower(string instanceId, float amount)
     {
-        float restored = Mathf.Max(0f, amount);
-        if (restored <= 0f
-            || !instances.TryGetValue(
-                instanceId?.Trim() ?? string.Empty,
-                out CombatEquipmentInstance instance)
-            || CombatEquipmentWorldStateRules.IsExternalCustody(
-                instance.worldState)
-            || (CombatEquipmentRoleRules.For(instance.definitionId)
-                & CombatEquipmentRoleFlags.Powered) == 0)
-        {
-            return false;
-        }
-
-        instance.powerCharge = Mathf.Clamp(
-            instance.powerCharge + restored,
-            0f,
-            100f);
-        PersistPhysicalState(instance);
-        return true;
+        return supplies.TryRestorePower(
+            instanceId,
+            amount);
     }
 
     public bool TryLoadExternalAmmunition(
@@ -1412,31 +1286,10 @@ public sealed class CombatEquipmentRuntime :
         string ammunitionItemId,
         int amount)
     {
-        string normalizedAmmo = ammunitionItemId?.Trim() ?? string.Empty;
-        if (amount <= 0
-            || !instances.TryGetValue(
-                instanceId?.Trim() ?? string.Empty,
-                out CombatEquipmentInstance instance)
-            || CombatEquipmentWorldStateRules.IsExternalCustody(
-                instance.worldState)
-            || !catalog.TryGet(
-                instance.definitionId,
-                out CombatEquipmentDefinitionSO definition)
-            || definition is not CombatWeaponSO weapon
-            || weapon.MagazineCapacity <= 0
-            || !weapon.CompatibleAmmunitionItemIds.Contains(
-                (ItemDefinitionId)normalizedAmmo))
-        {
-            return false;
-        }
-
-        instance.loadedAmmunition = new LoadedAmmunitionBatch
-        {
-            ammunitionItemId = normalizedAmmo,
-            remaining = Mathf.Min(amount, weapon.MagazineCapacity)
-        };
-        PersistPhysicalState(instance);
-        return true;
+        return supplies.TryLoadExternalAmmunition(
+            instanceId,
+            ammunitionItemId,
+            amount);
     }
 
     public bool TryApplyDurabilityDamage(string instanceId, float damage)

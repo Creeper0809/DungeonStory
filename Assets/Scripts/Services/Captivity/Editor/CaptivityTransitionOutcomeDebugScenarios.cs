@@ -17,12 +17,118 @@ public static class CaptivityTransitionOutcomeDebugScenarios
     private const string HousingAssetPath =
         "Assets/Resources/SO/Building/Captivity/CP01_감방구속대.asset";
 
+    internal static string RunLaborForArchitectureBatch()
+    {
+        var errors = new List<string>();
+        void Observe(string condition, string stack, LogType type)
+        {
+            if (type is LogType.Error or LogType.Exception or LogType.Assert) errors.Add(condition);
+        }
+        Application.logMessageReceived += Observe;
+        try
+        {
+            Require(RunFocused(), "D09 transition contracts failed.");
+            VerifyLaborAssignmentWearAndRetry();
+            CaptivityCareLaborInputOwnerDebugScenarios.RunAll();
+            Require(errors.Count == 0, "Captivity labor emitted engine errors: " + string.Join(" | ", errors));
+            return "labor=threshold,request-owner-failure,delivery-failure,no-premature-work,physical-assignment,permission,employment,wear,broken-return-failure; restore=assignment-close-pending,worn-tool; retry=one-unique,no-duplicate; D09=6; care-input-owner=5; consoleErrors=0";
+        }
+        finally { Application.logMessageReceived -= Observe; }
+    }
+
+    private static void VerifyLaborAssignmentWearAndRetry()
+    {
+        using Fixture fixture = new("labor-production", careFailures: 1, captiveStatus: CaptivityStatus.Confined);
+        CharacterActor actor = fixture.Captive;
+        actor.gameObject.SetActive(false);
+        AbilityWork work = actor.gameObject.AddComponent<AbilityWork>();
+        CharacterAiEditorTestDependencies.Inject(actor.gameObject);
+        actor.RefreshAbilityCache();
+        actor.gameObject.SetActive(true);
+        CaptiveState state = fixture.State;
+        state.compliance = 49f;
+        string before = JsonUtility.ToJson(state);
+        Require(!fixture.Runtime.TrySetLaborPermissions(state.captiveId, CaptiveLaborPermission.Clean, out _)
+            && JsonUtility.ToJson(state) == before && fixture.ItemFaults.DeliveryRequests == 0,
+            "Labor below compliance threshold changed state or requested a tool.");
+        state.compliance = 50f;
+        before = JsonUtility.ToJson(state);
+        Require(!fixture.Runtime.TrySetLaborPermissions(state.captiveId, CaptiveLaborPermission.Clean, out _)
+            && JsonUtility.ToJson(state) == before && fixture.ItemFaults.DeliveryRequests == 0,
+            "Failed labor destination ownership left a partial command.");
+        fixture.ItemFaults.FailNextDeliveryRequest = true;
+        Require(!fixture.Runtime.TrySetLaborPermissions(state.captiveId, CaptiveLaborPermission.Clean, out _)
+            && JsonUtility.ToJson(state) == before && fixture.ItemFaults.DeliveryRequests == 1,
+            "Failed physical delivery request left a partial labor command.");
+        Require(fixture.Runtime.TrySetLaborPermissions(state.captiveId, CaptiveLaborPermission.Clean, out string failure)
+            && state.pendingLaborPermissions == CaptiveLaborPermission.Clean
+            && state.status == CaptivityStatus.Confined && state.laborPermissions == CaptiveLaborPermission.None,
+            "Labor tool request failed or enabled work before assignment: " + failure);
+        fixture.Labor.Tick(state, actor);
+        Require(!fixture.Runtime.IsWorkAllowed(actor, BuiltInWorkTypeIds.Clean, out _)
+            && state.assignedLaborToolItemId.Length == 0,
+            "A captive without the delivered tool could work.");
+        const string instanceId = "item-instance:d09-labor-production";
+        fixture.PhysicalItems.AddEditorTestStack(CaptivityItemDefinitions.PrisonerWorkKitItemId, 1,
+            WorldItemStackState.FacilityBuffer, destinationId: state.laborToolDestinationId,
+            components: new[] { DurableToolItemRules.CreateDurability(CaptivityItemDefinitions.PrisonerWorkKitItemId, 80f) },
+            itemInstanceId: instanceId);
+        fixture.Care.FailNext();
+        fixture.Labor.Tick(state, actor);
+        Require(state.laborToolAssignmentCompleted && state.pendingLaborPermissions == CaptiveLaborPermission.Clean
+            && state.status == CaptivityStatus.Confined && fixture.PhysicalItems.Records.Count == 0
+            && fixture.PhysicalItems.GetEditorPendingBatchDispositionCount() == 0,
+            "Assignment close failure lost the committed tool or enabled labor early.");
+        CaptiveState retired = state;
+        state = RoundTrip(state);
+        fixture.ReplaceState(state);
+        fixture.Labor.Tick(state, actor);
+        Require(state.status == CaptivityStatus.Labor && state.pendingLaborPermissions == CaptiveLaborPermission.None
+            && state.laborPermissions == CaptiveLaborPermission.Clean && state.assignedLaborToolInstanceId == instanceId
+            && Mathf.Approximately(state.assignedLaborToolDurability, 80f)
+            && actor.characterType == CharacterType.NPC && actor.CurrentLifecycleState == CharacterLifecycleState.Active
+            && fixture.Runtime.IsWorkAllowed(actor, BuiltInWorkTypeIds.Clean, out _)
+            && !fixture.Runtime.IsWorkAllowed(actor, BuiltInWorkTypeIds.Haul, out _)
+            && retired.status == CaptivityStatus.Confined,
+            "JSON-restored labor assignment did not complete on the current state/actor.");
+        fixture.Clock.Elapsed = 60;
+        fixture.Labor.Tick(state, actor);
+        Require(Mathf.Approximately(state.assignedLaborToolDurability, 80f), "An idle labor tool wore down.");
+        work.isWorking = true;
+        fixture.Labor.Tick(state, actor);
+        fixture.Labor.Tick(state, actor);
+        Require(Mathf.Approximately(state.assignedLaborToolDurability, 79f), "A working tool did not wear once per interval.");
+        retired = state;
+        state = RoundTrip(state);
+        fixture.ReplaceState(state);
+        Require(Mathf.Approximately(state.assignedLaborToolDurability, 79f), "Worn-tool JSON lost durability.");
+        state.assignedLaborToolDurability = 1f;
+        fixture.Clock.Elapsed = 120;
+        fixture.ItemFaults.FailNextUniqueSpawn = true;
+        fixture.Labor.Tick(state, actor);
+        Require(state.status == CaptivityStatus.Confined && state.laborPermissions == CaptiveLaborPermission.None
+            && state.assignedLaborToolInstanceId == instanceId && state.assignedLaborToolDurability == 0
+            && actor.characterType == CharacterType.Intruder && actor.CurrentLifecycleState == CharacterLifecycleState.Downed
+            && fixture.PhysicalItems.Records.Count == 0,
+            "Failed broken-tool return lost custody or kept labor enabled.");
+        fixture.Labor.Tick(state, actor);
+        fixture.Labor.Tick(state, actor);
+        Require(fixture.Runtime.TrySetLaborPermissions(state.captiveId, CaptiveLaborPermission.None, out _)
+            && fixture.PhysicalItems.Records.Count == 1 && state.assignedLaborToolItemId.Length == 0
+            && fixture.PhysicalItems.Records.Single().itemInstanceId == instanceId
+            && DurableToolItemRules.ReadCurrentDurability(fixture.PhysicalItems.Records.Single().itemId,
+                fixture.PhysicalItems.Records.Single().components) == 0
+            && retired.assignedLaborToolInstanceId == instanceId && retired.assignedLaborToolDurability == 79f,
+            "Broken tool retry duplicated the unique item, lost durability or changed the retired state.");
+    }
+
     public static bool RunFocused()
     {
         VerifyDescriptorMetricWhitelists();
         VerifyRehabilitationPartialAndCompletion();
         VerifyRehabilitationSavedForwardRetry();
         VerifyReleasePhysicalFailureAndSuccess();
+        VerifyDurableToolReturnFailureAndRetry();
         VerifyReleaseSavedForwardRetry();
         Debug.Log("[D09 Captivity Transition Outcome] PASS");
         return true;
@@ -251,6 +357,77 @@ public static class CaptivityTransitionOutcomeDebugScenarios
                 == 1d,
             "Release canonical before/after metrics drifted.");
         RequireReleaseParticipants(outcome, success);
+    }
+
+    private static void VerifyDurableToolReturnFailureAndRetry()
+    {
+        using Fixture fixture = new("tool-return-retry", captiveStatus: CaptivityStatus.Confined);
+        CaptiveState original = fixture.State;
+        original.assignedRestraintItemId = CaptivityItemDefinitions.ReinforcedRestraintItemId;
+        original.assignedRestraintInstanceId = "item-instance:d09-return-restraint";
+        original.assignedRestraintMaximumDurability = 140f;
+        original.assignedRestraintDurability = 81.75f;
+        string before = JsonUtility.ToJson(original);
+        fixture.ItemFaults.FailNextUniqueSpawn = true;
+        Require(!fixture.Runtime.TryRelease(original.captiveId, out string failure)
+            && !string.IsNullOrWhiteSpace(failure)
+            && JsonUtility.ToJson(original) == before
+            && fixture.PhysicalItems.Records.Count == 0
+            && fixture.OutcomeCount == 0 && fixture.ReleaseDecisionCount == 0,
+            "Failed durable-tool return changed custody, ownership, or release outcome.");
+        CaptiveState restored = RoundTrip(original);
+        fixture.ReplaceState(restored);
+        bool captureRejectedDuringReturn = false;
+        fixture.ToolMarkers.OnRefresh = () =>
+        {
+            try { fixture.Runtime.Capture(); }
+            catch (InvalidOperationException exception)
+                when (exception.Message.Contains("durable-tool return", StringComparison.Ordinal))
+            { captureRejectedDuringReturn = true; }
+        };
+        Require(fixture.Runtime.TryRelease(restored.captiveId, out failure),
+            "JSON-restored tool return retry failed: " + failure);
+        Require(captureRejectedDuringReturn,
+            "Reentrant save observed both captive and physical ownership during tool return.");
+        fixture.DurableTools.ValidateBeforeCapture();
+        WorldItemStackRecord returned = fixture.PhysicalItems.Records.Single();
+        Require(returned.itemInstanceId == "item-instance:d09-return-restraint"
+            && returned.quantity == 1
+            && Mathf.Approximately(DurableToolItemRules.ReadCurrentDurability(returned.itemId,
+                returned.components), 81.75f)
+            && restored.assignedRestraintItemId.Length == 0
+            && original.assignedRestraintItemId.Length > 0
+            && fixture.OutcomeCount == 1 && fixture.ReleaseDecisionCount == 1,
+            "Tool return lost durability, cleared a retired state, or duplicated release.");
+        fixture.Runtime.TryRelease(restored.captiveId, out _);
+        Require(fixture.PhysicalItems.Records.Count == 1 && fixture.OutcomeCount == 1,
+            "Repeated release duplicated the returned unique tool or outcome.");
+
+        using Fixture labor = new("labor-return-retry", captiveStatus: CaptivityStatus.Confined);
+        CaptiveState state = labor.State;
+        state.assignedLaborToolItemId = CaptivityItemDefinitions.PrisonerWorkKitItemId;
+        state.assignedLaborToolInstanceId = "item-instance:d09-return-work-kit";
+        state.assignedLaborToolMaximumDurability = 100f;
+        state.assignedLaborToolDurability = 22.5f;
+        state.laborToolAssignmentCompleted = true;
+        state.laborToolAssignmentOperationId = CaptivityLaborToolAssignmentOutbox.FormatOperationId(
+            state.captiveId, state.assignedLaborToolInstanceId);
+        state.laborToolAssignmentSourceStackId = "stack:d09-tool-source";
+        state.laborToolAssignmentCommitId = "commit:d09-tool-source";
+        before = JsonUtility.ToJson(state);
+        labor.ItemFaults.FailNextUniqueSpawn = true;
+        Require(!labor.Runtime.TrySetLaborPermissions(state.captiveId,
+                CaptiveLaborPermission.None, out failure)
+            && JsonUtility.ToJson(state) == before && labor.PhysicalItems.Records.Count == 0,
+            "Failed labor disable lost its assigned tool or changed the command state.");
+        Require(labor.Runtime.TrySetLaborPermissions(state.captiveId,
+                CaptiveLaborPermission.None, out failure)
+            && state.assignedLaborToolItemId.Length == 0
+            && labor.PhysicalItems.Records.Count == 1
+            && Mathf.Approximately(DurableToolItemRules.ReadCurrentDurability(
+                labor.PhysicalItems.Records.Single().itemId,
+                labor.PhysicalItems.Records.Single().components), 22.5f),
+            "Labor disable retry lost the exact durable tool: " + failure);
     }
 
     private static void VerifyReleaseSavedForwardRetry()
@@ -546,6 +723,11 @@ public static class CaptivityTransitionOutcomeDebugScenarios
         internal GameplayOutcomeLedger Ledger { get; }
         internal ConfigurablePublisher Publisher { get; }
         internal CaptivityRuntime Runtime { get; }
+        internal WorldItemRepository PhysicalItems { get; private set; }
+        internal DurableToolItems ItemFaults { get; private set; }
+        internal CaptivityDurableToolRuntime DurableTools { get; private set; }
+        internal ToolReturnMarkers ToolMarkers { get; private set; }
+        internal CaptivityLaborRuntime Labor { get; private set; }
         internal int ReleaseDecisionCount { get; private set; }
         internal int OutcomeCount => Ledger.GetGlobal(
             OutcomeCursor.FirstPage(32), OutcomeFilter.All).Items.Count;
@@ -578,6 +760,34 @@ public static class CaptivityTransitionOutcomeDebugScenarios
             CaptivityRuntime runtime = (CaptivityRuntime)
                 FormatterServices.GetUninitializedObject(typeof(CaptivityRuntime));
 #pragma warning restore SYSLIB0050
+            IDungeonItemCatalogProvider catalog = new ResourceDungeonItemCatalogProvider(
+                new ResourceItemDefinitionCatalog(
+                    new ResourceGameContentCatalog(new UnityGameContentRootLoader())));
+            PhysicalItems = new WorldItemRepository(new GuidPersistentIdGenerator(),
+                new DungeonRuntimeAggregateRootStore());
+            ToolMarkers = new ToolReturnMarkers();
+            IItemMarkerPresenter markers = ToolMarkers;
+            // Exercise the actual physical spawn method without assembling unrelated logistics.
+#pragma warning disable SYSLIB0050
+            WorldItemStackRuntime physical = (WorldItemStackRuntime)
+                FormatterServices.GetUninitializedObject(typeof(WorldItemStackRuntime));
+#pragma warning restore SYSLIB0050
+            Set(physical, "itemRepository", PhysicalItems);
+            Set(physical, "itemSpawner", new WorldItemSpawner(catalog, PhysicalItems, markers));
+            Set(physical, "itemQueryService", new WorldItemQueryService(catalog,
+                new PhysicalItemMassQuery(catalog), PhysicalItems, markers));
+            IWorldItemStackRuntime items = DispatchProxy.Create<IWorldItemStackRuntime, DurableToolItems>();
+            ItemFaults = (DurableToolItems)(object)items;
+            ItemFaults.Target = physical;
+            IPhysicalItemBatchDispositionService dispositions = new PhysicalItemBatchDispositionService(
+                PhysicalItems, new PhysicalItemMassQuery(catalog), markers);
+            DurableTools = new CaptivityDurableToolRuntime();
+            Set(runtime, "durableTools", DurableTools);
+            Labor = new CaptivityLaborRuntime(actors,
+                new CaptivityActorRuntimeLookup(id => World.AllCharacters.FirstOrDefault(
+                    actor => actor.Identity.PersistentId == id)), World,
+                CharacterAiEditorTestDependencies.BodyHealthRuntime, items, dispositions, Care, Clock, DurableTools);
+            Set(runtime, "laborRuntime", Labor);
             Set(runtime, "actorAccess", actors);
             Set(runtime, "worldRegistry", World);
             Set(runtime, "survivalFood", Food);
@@ -645,13 +855,59 @@ public static class CaptivityTransitionOutcomeDebugScenarios
 
         private static void Set(object target, string fieldName, object value)
         {
-            FieldInfo field = typeof(CaptivityRuntime).GetField(
+            FieldInfo field = target.GetType().GetField(
                 fieldName,
                 BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new MissingFieldException(
-                    typeof(CaptivityRuntime).FullName,
+                    target.GetType().FullName,
                     fieldName);
             field.SetValue(target, value);
+        }
+    }
+
+    internal sealed class ToolReturnMarkers : IItemMarkerPresenter
+    {
+        internal Action OnRefresh;
+        public void Initialize(IWorldItemMarkerDataSource dataSource) { }
+        public void RefreshAll(IEnumerable<Vector2Int> positions) { }
+        public void RefreshAt(Vector2Int position) => OnRefresh?.Invoke();
+        public bool TryGetMarkerAt(Vector2Int position, out UnityEngine.Object marker)
+        { marker = null; return false; }
+        public void Clear() { }
+    }
+
+    public class DurableToolItems : DispatchProxy
+    {
+        internal WorldItemStackRuntime Target;
+        internal bool FailNextUniqueSpawn;
+        internal bool FailNextDeliveryRequest;
+        internal int DeliveryRequests;
+        protected override object Invoke(MethodInfo method, object[] args)
+        {
+            if (method.Name == nameof(IWorldItemStackRuntime.GetAllStacks)) return Target.GetAllStacks();
+            if (method.Name == nameof(IWorldItemStackRuntime.TryRequestItemDelivery))
+            {
+                DeliveryRequests++;
+                bool reject = FailNextDeliveryRequest;
+                FailNextDeliveryRequest = false;
+                args[4] = reject ? 0 : 1;
+                args[5] = reject ? "d09-injected-delivery-request-failure" : string.Empty;
+                return !reject;
+            }
+            if (method.Name != nameof(IWorldItemStackRuntime.SpawnExistingUniqueItemAt)
+                || args.Length != 7)
+                throw new InvalidOperationException("Unexpected durable-tool physical call: " + method.Name);
+            args[6] = string.Empty;
+            if (FailNextUniqueSpawn)
+            {
+                FailNextUniqueSpawn = false;
+                return false;
+            }
+            bool result = Target.SpawnExistingUniqueItemAt((string)args[0], (ItemInstanceId)args[1],
+                (Vector2Int)args[2], (WorldItemStackState)args[3], (string)args[4],
+                (IReadOnlyList<ItemInstanceComponentSaveData>)args[5], out string stackId);
+            args[6] = stackId;
+            return result;
         }
     }
 
@@ -769,6 +1025,7 @@ public static class CaptivityTransitionOutcomeDebugScenarios
     {
         private int failures;
         internal FakeCareOwner(int failures) => this.failures = failures;
+        internal void FailNext() => failures = 1;
         public bool TryReconcileLive(IReadOnlyList<CaptiveState> states,
             out string failureReason)
         {
@@ -810,8 +1067,9 @@ public static class CaptivityTransitionOutcomeDebugScenarios
 
     private sealed class FakeClock : IGameClock
     {
+        internal float Elapsed;
         public float DeltaTime => 0.02f;
-        public float Time => GameCalendarRules.SecondsPerDay * 21f;
+        public float Time => GameCalendarRules.SecondsPerDay * 21f + Elapsed;
         public int FrameCount => 120;
         public bool IsPaused => false;
     }

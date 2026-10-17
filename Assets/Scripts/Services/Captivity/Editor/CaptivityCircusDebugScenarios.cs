@@ -12,6 +12,10 @@ public static class CaptivityCircusDebugScenarios
 {
     private const string ReportPath = "Temp/captivity-circus-contracts.tsv";
 
+    internal static string RunLaborContractsForArchitectureBatch() =>
+        VerifyCaptiveThresholds() + "\n" + VerifyDurableCaptivityTools()
+        + "\n" + VerifyLaborToolAssignmentPendingOutbox();
+
     public static void RunDoorPolicyOnly()
     {
         string precedence = VerifyDoorAccessPolicy();

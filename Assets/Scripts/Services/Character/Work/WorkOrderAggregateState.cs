@@ -70,6 +70,14 @@ public sealed class WorkOrderAggregateStateStore
             () => new WorkOrderAggregateState(),
             state => state.DeepClone());
 
+    internal void InvalidateCandidates()
+    {
+        unchecked
+        {
+            Writable.CandidateVersion++;
+        }
+    }
+
     internal void Replace(WorkOrderAggregateState state)
     {
         aggregateRootStore.Replace(

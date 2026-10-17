@@ -11,7 +11,7 @@ public static class EnvironmentalFireActionFactMapping
             (EnvironmentalFireIgnitionDisposition)snapshot.disposition,
             snapshot.fireId,
             snapshot.reason);
-        return EnvironmentOutcomeReceiptFactory.CreateFireIgnition(
+        return EnvironmentalFireOutcomeReceiptFactory.CreateFireIgnition(
             fact.ToRequest(),
             result,
             snapshot.targetDisplayName,
@@ -33,7 +33,7 @@ public static class EnvironmentalFireActionFactMapping
             snapshot.waterCommittedQuantity,
             snapshot.waterCommitId,
             snapshot.resultReason);
-        return EnvironmentOutcomeReceiptFactory.CreateFireSuppression(
+        return EnvironmentalFireOutcomeReceiptFactory.CreateFireSuppression(
             fact.ToCommand(),
             result,
             snapshot.workerDisplayName,

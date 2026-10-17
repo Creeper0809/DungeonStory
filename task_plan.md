@@ -1,5 +1,299 @@
 # DungeonStory Current Task Plan
 
+## 현재 단계 — 보고서 32개 처리·필수 실행 완료
+
+Status: complete
+
+F1/F2·G1~G10·조건부20의 수정/유지 판정과 필요한 표적 Unity 실행을 완료했다. 최종 공식 지원군 pending/completed whole-world7회와 관련 restock 복원6회도 PASS다. 현재 단계는 결과 문서·정적 링크·관련 생성 인덱스 마감이며 남은 구현/필수 Unity 실행은 없다. 최종 도구 Goal 판정은 [Artifacts/QA/RequiredStructureGoal-20261016/completion-audit-final-r1.json](Artifacts/QA/RequiredStructureGoal-20261016/completion-audit-final-r1.json)과 [마감 결과](Artifacts/QA/RequiredStructureGoal-20261016/verification-final-goal-close-r1.json)를 따른다.
+
+현재 소스1430/full native3880/tool9/Factions18, Runtime·Editor40.446704초/CS0와 동일 DLL6를 결합한다. 메인·검토자 READY/FROZEN, SOURCE_EDIT/UNITY_VERIFY CLOSED, native 모두 terminal. 소스·에셋·Unity 추가 변경 없이 문서/인덱스를 마감한다. 원래 Goal의32개 범위를 유지하며 순환952개 일괄 제거나 전수 자연 AI 검증으로 확대하지 않는다.
+
+## 이전 진행 기록 — 아래는 각 당시 기준
+
+## 현재 단계 — G4 실제 수정 마감, actual27/32
+
+G4 current native Runtime/Factions/Editor compile41.52초·오류0, 실제 지원군의 실패 child 영수증·JSON/fresh local domain+owner suffix retry·근무/life/narrative·정상 입장·완료 replay·게시 후 응답 소실 재시도·baseline 공식 복원 PASS/consoleErrors0/terminal0다. SOURCE_EDIT/UNITY_VERIFY는 닫혔고 source-pin-g4-reinforcement-r4(1421)/fullr33(3880)/Faction입력r2(18)/tool-g4-reinforcement-r2(9)를 유지한다. 관련 인덱스를 이 배치 마감에 한 번 갱신한다. 최신 결합은 verification-native-current-source-r8.json.
+
+source32/32·표적 actual27/32, 잔여 G5/G9/C1/C5/C9와 최종 통합을 유지한다. 다음 우선순위는 G5 치료 공급/소비/완료·취소·저장 재시도와 C5 노동/고용/도구 반환이다. G4는 통제 local route aggregate의 실제 factory/entry 및 route JSON을 확인했으며 자연 전략 명령이나 공식 whole-world pending faction-route 복원으로 확대하지 않는다. 최종 통합에 필요한 경계는 남긴다. 새 편집 전에 현재 상태·핀·프로세스를 재확인한다. 아래는 각 당시의 기록이다.
+
+## 현재 단계 — 실제26/32, G1·C18·C6 배치 마감
+
+전체32 대상의 소스 처리·유지 판정은 끝났고 실제 표적26개를 확인했다. G1 사고 영수증 수정, C18 실제 행동·시체 소비, C6 실제 급식·새 프로세스 공식 복원·ACK 실패 재시도는 마감했다. 메인 단독 Unity 검증은 모두 terminal이며 SOURCE_EDIT/UNITY_VERIFY는 닫혔다. 현재 source-pin-c6-native-owner-r2/fullr29/tool-g1-accident-r3를 유지하고 관련 인덱스를 한 번 갱신한다. 최신 결합은 verification-native-current-source-r7.json과 targets.json을 따른다.
+
+다음 우선순위는 G4/G5/G9의 실제 owner·저장 경계와 C1/C5/C9의 남은 실행, 최종 통합이다. C5의 포획·호송·수용과 cold housing join은 C6에서 일부 확인했으나 노동·고용·도구 반환 검증은 남았다. 기존 scope/strict 단언·메모리 기준·비간섭 실행을 유지한다. 다음 편집 전에 현재 Play/명령/컴파일 종료와 핀을 다시 확인한다. 전체 Goal은 active이며 아래는 각 당시의 기록이다.
+
+## 현재 단계 — 실제23/32, C7·C8·C16 마감과 G1 후속
+
+C16 실제 재방문 저장 결함을 수정하고 current Runtime/Editor native compile·B91 영수증 회귀·실제 AIRescue/공식 복원을 통과했다. source 편집과 Unity 검증은 닫혔으며 관련 인덱스 마감(query5·freshness2/실패0)까지 완료했다. current pins/evidence는 targets.json과 verification-native-current-source-r6.json.
+
+다음 우선순위는 G1 노동/사고 pending 복원·재시도와 G4/G5/G9 owner 경계, C1/C5/C6/C9/C18 실제 표적 및 최종 통합이다. 전체32 소스 처리와 실제23 완료를 구분하며 Goal active를 유지한다. 새 SOURCE_EDIT 전에 현재 Play/명령/컴파일 종료를 재확인하고, 복잡한 사고 producer/저장 설계는 메인이 수행한다. 기존32 대상·격리/메모리/timeout·원 단언을 줄이지 않는다.
+
+## 현재 단계 — C7/C8 실제 마감, C16 검증 준비 owner 연결
+
+직전 Goal 턴은 C3/G3 실제 검증과 코드·증거 갱신이 있었으므로 progress다. 이번 재개에서 Goal active, 현행 source/full/tool 핀 drift0와 Unity/launcher/compiler0를 확인했다. C7/C8의 나머지3그룹·실제 행동17개는 native terminal0로 마감해 actual22/32다. 현재 main EDIT_READY·SOURCE_EDIT, C16 Editor runner1파일만 소유한다.
+
+C16 batch는 기존 population preview의 level1 기술 후보를 통제 입력으로 준비하고 기존 Progression 선택/자동 습득 명령→Population Changed 동기화/준비 완료/요청 취소를 사용한다. 실제 프로필 DTO나 준비 완료 플래그를 직접 쓰지 않는다. authored Orc 신원/성장·원래 TrySpawnCharacter→입장과 식사/신체/Society/AIRescue·저장 단언 및40초 기준은 유지한다. 준비 UI·모델 추론 증거로 주장하지 않는다. 원 준비 실패 로그를 보존하고 native 성공 전 C16을 완료로 세지 않는다. Runtime/DTO/씬·프리팹·런처는 변경하지 않는다. 관련 인덱스는 이 Editor 배치 마감에 한 번 갱신한다.
+
+## 현재 단계 — 실제 표적20/32, 인덱스 마감·잔여 경계 준비
+
+소스 처리32/32, 실제 표적20/32다. C3와 G3 검증 배치는 SOURCE_EDIT CLOSED·native terminal 상태이며 관련 인덱스 마감 결과는 `Artifacts/QA/RequiredStructureGoal-20261016/knowledge-base-actual-followup-r1.json`에 기록한다. 현재 핀/증거는 같은 폴더의 `actual-followup-close-r1.json`과 `targets.json`을 따른다.
+
+다음 작업은 G1 사고와 G4/G5/G9 owner 경계, C1/C5/C6/C7/C8/C9/C16/C18의 남은 실제 검사 및 최종 통합이다. 기존 진입점 목록을 먼저 쓰고, 새 추상화나 수치 목표를 늘리지 않는다. C16은 실제 방문객 준비 실패를 재현했으므로 population 준비 owner와 통제 입력의 경계를 먼저 확정한 뒤 식사/신체/Society/AIRescue 원 단언을 유지해 재시도한다. memory guard/timeout/사용자 데스크톱 비간섭 기준은 유지한다. Goal 전체 완료로 표시하지 않는다.
+
+## 현재 단계 — 메모리 확보 후 G1 실제 복원 취소 결함 수정
+
+사용자 메모리 확인 후 availablePhysical 약10GiB/commit30GiB, current-source pins1401/full3871/tool9 drift0·Unity/launcher/compiler0를 확인했다. native restock r6는 current native compile41.164448초/errors0 후 pending checkpoint에서 memory guard, current DLL/cache 재사용 r7은 memory 중단 없이 terminal unityExit1로 정상 운반/selector reinjection PASS 뒤 pending restore1/cancel1의 durable lease/shop ownership 잔류를 재현했다. baseline 공식 복원 PASS. main EDIT_READY/SOURCE_EDIT, 검증 프로세스0. 아래 과거 BLOCKED 기록과 구분하며 Goal API status는 blocked 반환이 마지막이다.
+
+기존 RestockCargoOperation은 가변 작업 수명/취소의 단일 담당을 유지한다. 새 restore participant는 저장 형식을 늘리지 않고 기존 shop operation+quantity lease+fresh actor를 검증해 inert candidate의 transient handle만 연결한다. publish 실패 rollback은 handle만 분리하고 physical state는 원래 participant가 복구한다. outgoing actor도 world replacement 전에 같은 handle을 물리 명령 없이 넘기며, 실제 취소/다음 작업은 기존 cargo release를 호출한다. source coroutine/Inspector/GUID/기존 저장 DTO 유지. 기존 pending/carried 공식 restore·cancel2에 살아 있는 이전 cargo owner 교체 경계를 추가해 실제 회귀 검증한다.
+
+## 현재 단계 — G1 공식 pending/carried 복원 검증 source 마감·actual17/32
+
+최신 restock-world-source-close-r1.json/targets.json. 기존 restock entry에 실제 Pending/carry world Capture/JSON→각 fresh Restore2→각 cancel2/무중복 물리 회수→finally baseline Restore를 연결했다. 같은 공용 iterator 실패 담당을 쓰며 기존 restock assertions와 production/DTO/assets는 그대로다. current Editor1022 errors0/input1478 drift0는 current runtime2722를 참조한 offline 결과, 새 native는 NOT_RUN. main/leaf READY/FROZEN·SOURCE_EDIT CLOSED; related index 마감은 knowledge-base-restock-world-close-r1 결과를 따른다.
+
+actual 잔여 G1/G3/G4/G5/G8/G9/C1/C3/C5/C6/C7/C8/C9/C16/C18와 최종 official whole-world 저장·복원·같은 요청 재시도를 유지한다. 새 G1 fixture는 durable saved lease/shop/carry가 fresh facade 취소로 회수되는지를 실제 판정하기 위한 것이며 현재 코드가 된다는 증거나 버그 재현으로 간주하지 않는다. 기존 restock staging 승인경로 사용/selector reinjection, G1 stop 실패 정리, C16 live transfer, C3 full drain도 native 대기다. 사용자 코드 정리 우선/메모리 실패 미개선으로 Unity 재실행 보류, 다음 실행은 현 조건과 의향을 재확인한다. 전체 source 처리32와 필요한 actual17을 구분하며 Goal BLOCKED(실제 실행 검증 대기). 아래 계획은 과거 기록이다.
+
+
+최신 Goal 상태: `blocked` 반환 확인. 동일 메모리 차단이 연속3개 Goal 작업에서 남았고 필요한 독립 source 준비는 마감했다. 메모리/실행 조건이 바뀔 때까지 추가 코드·Unity 작업을 중단한다. 목표 전체와 actual15/최종 통합 잔여는 유지한다. 근거: `Artifacts/QA/RequiredStructureGoal-20261016/goal-blocked-audit-r1.json`.
+
+## 현재 단계 — C3 로컬 철거 수명 수정 / journal forward retry 연동
+
+C3 로컬 재진입·오류/label·완료 flag 수명 수정과 추출 실제 member 순수9/무관 본문 parity/누적 syntax134 PASS. 기존 RunBuildings에 native+registry fixture 연결했으나 Unity 미실행이다. main/소비자 READY/FROZEN·SOURCE_EDIT 닫힘. 다음 편집 전 process/AGENTS/source pin을 재확인한 뒤 기존 생산 철거 journal의 incomplete-teardown 거절/forward retry를 최우선으로 수정한다. C4는 Interact 응집성을 유지하되 근무 배치 yield 취소/새 grant와 stale cleanup 경계를 후속 검토한다. 전체32/완료6·기존 실제 미완료·Goal ACTIVE 유지.
+
+## 현재 단계 — C1 source-only 동결 / 남은 조건부 검토
+
+C1 단일 targeting 수명/선택 revision·취소·재진입 보호 구현, 순수15·production3 limited ABI47refs·API/domain parity PASS. A05 PlayerSelected+실제 transaction 회귀는 full/focused에 연결했고 실행 대기다. main/소비자 READY/FROZEN·SOURCE_EDIT 닫힘, Unity 미실행. 다음 편집은 현재 pin/process를 재확인한 뒤 C3/C4의 실제 수명/기존 담당부터 검토한다. 불필요한 클래스 증식 없이 확정 결함과 필요한 책임만 수정한다. C1을 포함한 현재 소스의 실제 실행 잔여·32대상/완료6/Goal ACTIVE 유지.
+
+## 최신 수정 묶음과 다음 작업
+
+- 현재 G10 main EDIT_READY/SOURCE_EDIT: source724/tool6 drift0·Unity/compiler0·fresh KB 확인. main이 request state/atomic admission·correlated cancel·dispatch/expiry·reset과 contract 이관을 구현한다. 읽기 담당은 private reflection/serialized 소비자만 확인하며 Unity는 사용하지 않는다. 새 owner pure 계약 및 actual component running cancel/late completion/reentrant admission을 검증한 뒤 G10 처리 판정을 확정한다.
+
+- 완료 증거: G10 host OS8/actual Unity16/exit0, Preparation 실제 UI5/문맥 JSON3/추가 폐기3/exit0, C10 max sequence 무효과 거절·정상 retry/실제 제작·WIP fresh restore/중복0/terminal3/exit0. 각 `verification-*.json`은 RequiredStructureGoal-20261016에 있다. 전체 Goal 완료로 확대하지 않는다.
+- source-pin-c10-fixture-r1(724)/tool-pin-preparation-r1(6), 현재 compile/격리probe·terminal0/owned Unity 및 dotnet compiler0 확인. 이번 영향 인덱스 갱신/내용·링크/최신성 검증과 최종 checkpoint를 마쳤다(verification-batch-close.json). 메인 EDIT_READY다. 다음 세션은 현재 상태 확인 후 새 SOURCE_EDIT를 연다.
+- 다음 우선 구현: G10의 queue/running/affinity 단일 요청 owner와 equipment-choice admission. 기존 scheduler/callback exactly-once·실행중 취소 후 finally 슬롯 해제·serialized field/GUID를 유지한다. 이어 G1 남은 lifecycle/restock, C10 factory 및 C11 반복취소/실제 lifecycle 검증과 전체 대상 처리를 계속한다. C17 응집 거래 유지 판정/실제 constructor cycle 수정은 완료했다.
+
+## 최신 G10 편집/검증 배치
+
+- 최신 host r3 표적16/OS8/terminal0 완료, verification-g10-host-r3.json. owned Unity/launcher/compiler0로 main EDIT_READY/SOURCE_EDIT. 다음 P0는 Preparation 전용 skill 문맥과 gameplay clock 의존을 제거하는 것이며 실제 준비 화면·후보 교체/취소·Gameplay 전환을 표적으로 검증한다. G10 나머지 queue 분리와 전체 Goal 유지.
+
+- G10 r1 current runtime/Editor Csc49.834011초·CS0·actual15/정상 Play stop PASS 뒤 physical667,148,288bytes guard로 전체 exit1. source 편집 창에서 실제 Unity OS 사용권 worker 획득→main Dispose→재획득/중복 Dispose 보호 검사를 기존 fixture에 추가했다. main READY/FROZEN: source-pin-g10-host-r2(715)/tool6, syntax30/0. SOURCE_EDIT 닫고 main 단독 UNITY_VERIFY r2; 새16번째 행과 terminal0을 검사하며 OS/메모리/60초 guard 불변. G10 queue 분리·Preparation P0·G1와 전체 Goal active.
+
+- main/읽기검토 READY/FROZEN: source-pin-g10-host-r1(715)/tool6. pure real-source OS8 PASS, SOURCE_EDIT 닫고 main UNITY_VERIFY로 actual F2 scene lifecycle을 current source에서 실행한다. 물리 host lease의 cross-thread 수명 변경이므로 기존 F2 결과를 새 호스트 코드의 실행 증거로 복사하지 않는다. G10 나머지 분리/Preparation P0/G1와 전체32대상은 active.
+
+## 최신 검증 배치
+
+F2 actual15·정상 Play stop/terminal0 완료. source-pin-f2-shutdown-r1(712)/tool6 동결을 유지해 별도 정상 whole-world r2를 메인 단독 UNITY_VERIFY로 실행한다. 기존104-section/복원3/변조9/assertion/60초·메모리guard/OS격리는 유지한다. 현재 자원 개선에 따른 검증이며 실행 중 source 수정 금지. 이후 owned 프로세스0 확인 후 main SOURCE_EDIT로 G10 실제 사용권 수명 결함을 수정한다.
+
+## 현재 편집 배치 — F2 복원 결과와 진행 차단
+
+- 최신 shutdown 배치 main READY/FROZEN: r7 실제15/marker PASS 이후 native Cleanup mono 정지로 overall exit-1. dump/관측 보존·owned process0 후 runner만 정상 Play 종료→EnteredEditMode→Exit로 보완했다. source-pin-f2-shutdown-r1(712)/tool6 동결, SOURCE_EDIT 닫고 main UNITY_VERIFY r8. 실제 assertion/60초/메모리·OSguard는 유지하며 terminal까지 재검증한다.
+
+- 최신 cycle 배치 main READY/FROZEN: source-pin-f2-cycle-r1/tool6, SOURCE_EDIT 닫고 메인 UNITY_VERIFY r6. 실제 Title 이후 Gameplay 생성자 순환20을 세대 조회의 원래 권위(IKinshipQuery) 직접 조회로 끊었으며 전체 Goal/C17 미완료. 실제 milestone 값 일치와 same-slot 재복원을 검사한다.
+
+- 최신: Title 실제 실패 원인 gameplay eager 초기화3경로를 해당 gameplay 등록으로 이관, main READY/FROZEN. source-pin-f2-recovery-r2(712)/tool6 불변으로 SOURCE_EDIT 닫고 메인 UNITY_VERIFY r4. 기존60초/메모리guard/OSprobe 유지. Preparation builder/evidence 초기화 결함은 별도 후속 P0이며 전체Goal active.
+
+- F2 실제 scene 복구 작성자/읽기검토 READY/FROZEN. source-pin-f2-recovery-r1(710)/기존tool6 동결, SOURCE_EDIT 닫고 메인 UNITY_VERIFY. outcome 전용 entry가 실제 저장→후처리 실패→UI 두 번 확인→타이틀 outgoing pause/신규 scale1→같은 slot 새 gameplay 복원/캡처와 파일 불변을 검사한다. 기존60초·메모리guard 유지, 실행 중 source 편집 금지.
+
+- 최신 EDIT_READY/SOURCE_EDIT: current 전체 Csc/CS0, F2 실제12/exit0, F1 lifetime10/exit0 확인. 일반 world의 세 번째 cleanup은 memory guard로 미완료(앞선2복원/음수 경계 PASS)라 전체 suite PASS 아님. runtime710 기반 Editor2파일만 F2 실제 타이틀→새 gameplay 동일 save 복구를 추가했고 읽기 검토 중이다. 다음 동결 pin은 source-pin-f2-recovery-r1(710); production/meta/tool은 기존 검증과 동일.
+
+- 현재 READY/FROZEN→UNITY_VERIFY: 가용 physical 약8GiB로 실제 조건이 개선됐고 Unity/launcher0 확인. source-pin-f2-g1-draft-r3(710)/tool-pin-f2-g1-r1(6)을 동결하며 메인 단독 실행한다. 현재 컴파일/정의6 → F2 outcome 단독 → F1 lifetime 단독 → 정상 world를 분리 실행한다. G1 actual restock/cancel과 후속 분리는 남아 있으며 검증 중 소스 편집 금지.
+
+- 사용자 응답: 메모리 확보를 기다리며 멈추지 말고 현재는 코드 정리를 계속한다. SOURCE_EDIT 유지, Unity 재실행은 보류한다. F2 읽기 검토에서 발견한 rollback/discard·저장 삭제·NextRun/scale 우회를 반영했다.
+- G1 진행: 보충 cargo/lease, 노동 정산·누적 소수, 숙련/종족 projection의 실제 상태 owner3개를 분리했다. 다음은 restock coroutine과 공통 run 종료/중단/사고 경계이며 G1 해결 완료로 세지 않는다. 기존 source-literal/reflection 검증 소비자도 새 관측 경계로 갱신한다.
+
+- 메인 SOURCE_EDIT 유지, Unity/launcher0. F2 구현과 전용 실제 컨테이너 실패 주입 entry 작성 완료, 읽기 검토 중이다. 현재 사용 가능 메모리 약1~1.6GiB로 실행 조건이 개선되지 않아 Unity 재시작을 반복하지 않는다.
+- 다음: F2 최종 diff/호출자 확인 → 가용 자원 확보 시 작성자 동결·소스/도구 pin → current compile → exact outcome/lifetime 단독 검증 → 정상 whole-world 복원. 그동안 G1 restock 실행 경계를 원본에서 확정한다.
+- F2나 전체 Goal은 미완료다. 32대상(F1/F2, G1~G10, 조건부20)의 구현/유지 근거와 필요한 실행 검증을 모두 마쳐야 완료한다.
+
+## 2026-10-16 새 Goal — 보고서 전체 수정
+
+- 사용자 명시 요청으로 새 Goal active/budget 없음. F1·F2 복원 계약, G1~G10 및 조건부20개 전체를 처리한다. 현재 범위는 전수 보고서 기준이며 과거37/최대SCC0을 숫자로 맞추는 목표로 돌아가지 않는다.
+- 현재 단계: F1 후보 수명 최소 수정과 실제 컨테이너 취소·stage/준비 거절·복원/재시도 → F2 commit 이후 결과와 소비자 → G/C의 실제 책임 분리 배치. 각 항목 처리/유지 판정에는 원본과 호출자 근거를 남긴다.
+- 편집 준비: 현재 Unity/launcher0 확인. 기존 소스핀/KB 확인 후 메인 단독 SOURCE_EDIT, 실제 복원 fixture와 main integration 소유. 서브 담당은 F2 소비자 읽기전용 inventory만. 씬/프리팹/asset 연결 변경 계획 없음.
+- 완료는 현재소스 컴파일·대표 실패/취소/저장 복원/동일 요청 재시도까지 실제 비간섭 격리 실행 후 판정한다. guard/timeout/기준 완화·partial/helper로 줄 수 맞추기 금지.
+- F1 READY/FROZEN: 메인 생산1파일/기존 world verifier1파일과 신규 Editor fixture/meta만 수정, 나머지 batch29 source682 보존. source-pin-f1-r1.json(684) 동결. SOURCE_EDIT 닫음, 메인 단독 UNITY_VERIFY로 current compile-character → 새 job의 실제 lifetime10/공식 world104-section 복원3/변조9를 실행한다. 다른 담당은 F2 읽기전용만.
+- F1 r1 결과: Runtime+Editor current Csc61.586622초/CS0 후 기존1GiB guard로 종료, 정의6/전체 PASS 아님. source684 동일 cached world에서 lifetime10은 PASS했지만 합산된 world 검사가 기존60초를 초과했다. 프로세스 종료 확인 후 SOURCE_EDIT에서 world verifier는 원본 바이트로 돌리고 lifetime10을 기존 실제 Movement/AI entry로 이동했다. timeout/launcher/메모리guard는 유지. r2 source 동결 후 실제 lifetime·이동/AI와 별도 공식 world를 실행한다.
+- F1 r4 최종 배치 READY/FROZEN: actor-r3 lifetime10 PASS 뒤 합산 메모리 중단도 보존하고 Movement runner를 before-F1 원문으로 복구했다. source-pin-f1-r4(684)/tool-pin-f1-r4(6) 동결. GameWorld runner의 exact RequestCharacterRestoreLifetimeForBatch 전용 mode로 캐릭터 payload만 capture하여 lifetime10을 실행하고, 기존 RequestActualContainerForBatch는 정상 world104-section/3/9 그대로 실행한다. bounded Luna의 launcher/guard3파일 추가-only diff와 순수80cases PASS 검토. SOURCE_EDIT 닫고 메인 UNITY_VERIFY, 편집 금지.
+- 현재 EDIT_READY/SOURCE_EDIT(F2): r4 current Editor Csc36.615413초/CS0 후 guard 중단. source684/tool6 불변 cached r5는 시작 probe의 가용 physical2,374,189,056bytes로 감소해 씬 열기 단계에서 guard 중단, lifetime 실행 전이다. Unity/launcher0 확인. 가용 자원이 달라질 때까지 Unity를 반복하지 않고 F2 구현·정적 검토를 진행한다. F1 actual10은 이전 두 실행 PASS이나 최신 단독 terminal/전체world는 보류이며 전체 Goal 미완료.
+
+## 2026-10-16 현재 요청 — 구조 전수 조사 보고서
+
+- 전면 리팩터링 Goal은 일시정지 상태를 유지한다. 현재 요청은 코드 수정 없이 갓 클래스와 필수 구조 개선 대상을 조사하여 Markdown 보고서 하나로 제출하는 것이다.
+- 완료: 전체 런타임 소스와 기존 지표 일치, 후보 분류·핵심 실패 계약/호출자 검토, 단일 보고서 작성과 링크/소스 무변경 검증. 산출물은 `docs/code-audit/god-class-and-required-fixes-2026-10-16.md`. 후속 코드 수정은 이번 요청에 포함하지 않는다.
+- 완료 기준: 전수 정적 스캔 범위와 수동 검토 범위, 구체적 실패 경로, 우선순위와 최소 수정 범위가 드러나야 한다. 줄 수나 SCC 소속만으로 필수 수정으로 판정하지 않는다. Unity 실행/기능 수정은 이번 요청 범위가 아니다.
+
+- batch29 PASS/EDIT_READY: source682/tool6/legacy8/character16·current Csc26.738470초/CS0, 기존character6·실제 DI/owner40/actual12·AI19 및 공식104-section 복원3/변조9/warnings0 PASS. 구현3개(factory/idle social/scheduling service)가 giant→SCC1, 새 계약6개는 giant에 남아 최대952/cyclic20. KB 생성/검증/freshness·문서 후 freshness·최종 checkpoint PASS(verification-batch29.json). 원37개 중20해소·17잔존/전체 큰 순환 Goal active. 다음 편집 전 process0/pins/fresh KB→원본; WorldSaveService가 concrete restore candidate를 계약에 노출하는 경계와 실제 callers/owner-consume 실패·폐기/재시도를 확인해 끊고, 남은 대형 책임 분리를 계속한다.
+
+- batch29 작성자 READY/FROZEN: 기존10 port/원본7 reverse byte parity·새file same default assembly·inventory2/ratchet criterion 유지 PASS. source682/tool6/legacy8/character16 동결, 대형17/static0/ctor12·기준 FAIL 유지. SOURCE_EDIT 닫고 메인 단독 UNITY_VERIFY: 기존 exact RunCharacterDefinitions edit로 current Csc/정의6, 새 job에서 실제 Movement/DI/AI19·복원 및 별도104-section world. 메모리 보호·OS probe·기준/timeout 불변, 검증 중 source 편집 금지.
+
+- batch29 EDIT_READY/SOURCE_EDIT: batch28는 실제 소유권/실행 검증 progress. 현재 source656/tool6/legacy8/character16·경로집합·Unity/launcher0 재확인, CharacterActor KB fresh→원본 확인. 기존 실제 port10개가 구현 파일을 끌어오는 역참조를 same CLR/Assembly-CSharp·서명/상속/동작 그대로 독립 계약 파일로 exact 이동한다. 새 추상화·상태·폴백·직렬화/저장·GUID 변경 없음. main 통합, bounded 담당 source-literal readonly 조사 후 inventory 기계 삽입만. 최종 current Csc·실제 DI/AI/복원·semantic graph로 효과를 판정하고 원37/남은17/큰949 전체 Goal 유지.
+
+- batch28 PASS/EDIT_READY: current source656/tool6/legacy8/character16·경로집합, current Csc·관측11/기존29/actual12·AI19/공식104-section 복원3/변조9, graph 및 KB 생성/검증/freshness와 최종 checkpoint PASS(verification-batch28.json). 원37개 중20해소·17잔존/최대949 전체 Goal active. 다음 편집 전 process0/pins/fresh KB→원본을 재확인하고 CharacterActor 및 action definition/실행의 구체 타입 역참조와 남은 대형 실행 책임을 조사·수정한다. 동일 public facade를 무조건 유지해 순환을 보존하지 말고, 필요하면 실제 모든 호출자·직렬화/저장 계약을 확인해 구체 타입 반환/직접 접근 경계 자체를 이관한다.
+
+- batch28 작성자 READY/FROZEN: source656/tool6/legacy8/character16 동결, API106/71·snapshot exact·inventory 역재조합 PASS. AIBrain2919→2649, 대형17/static0/ctor12로 기준 FAIL 유지. SOURCE_EDIT 닫고 메인 단독 UNITY_VERIFY: observation/cache11+기존 preference12/ledger9/movement8, 실제 restored Brain/AI19·official104-section world; 검증 중 소스 수정 금지. 독립 검토는 읽기 전용.
+
+- batch28 EDIT_READY/SOURCE_EDIT: process0·source648/tool6/legacy8/character16 및 경로집합 보존, fresh KB→원본 확인. 메인 단독으로 현재/최근 operation block의 수명·cooldown/source revision 확인·deferred 관측7field를 실제 owner로 분리하고, 불변 공개 snapshot 타입을 같은 assembly 별도 계약 파일로 이동한다. 관측은 실제 action 명령/예약/재평가를 실행하지 않고 history와 currentness를 구분하며 원 guard/Unity null/clock/도메인 revision callback 순서와 API·직렬화·저장을 보존한다. 독립 담당은 소비자/reflection readonly 조사. 표적 검증과 실제 AI·복원 후 graph로 판정하며 원37/남은17/큰946 전체 Goal 유지.
+
+- batch27 PASS/EDIT_READY: current source648/tool6/legacy8/character16·경로집합, current Csc, 격리 AI19/복원·공식104-section world, graph 및 KB 생성/검증/freshness와 최종 checkpoint PASS. 증거 verification-batch27.json, 상세 progress.md. 원37개 중20해소·17남음/큰946 전체 Goal active. 다음 편집 전 process0/pins 확인, fresh KB→원본으로 operation observation·행동 실행/정의·세계 실패의 실제 소유 경계를 확정한다.
+
+
+- batch27 전원 READY/FROZEN: single-owner50field·public/internal106 method/71property·직렬화/DTO/GUID·원 순서 검토 PASS, private forwarding5/이관된increment/classifier만 제거. source648/tool6/legacy8/character16 동결, AIBrain2919·대형17/static0/ctor12로 전체 Goal 미완료. 메인 단독 UNITY_VERIFY: 요청/선점/실패pure12+기존ledger9/movement8, actual restored Brain lease·manualcleanup/기존 core2+destinationless6+deprivation5+primitive6, official104-section world. 기준·timeout·메모리guard 유지, 검증 중 source 수정 금지.
+
+
+- batch27 EDIT_READY/SOURCE_EDIT: 이전 단계는 실제 owner/실행/복원·contract 분리의 progress. source640/tool6/legacy8/character16 및 경로집합·Unity/launcher0 재확인, fresh AIBrain KB→원본 조사. 메인은 선호 action/work 요청·deferred/hard failure 상태, 수동/외부 intent lease·선점/종료 및 failure 통계/branch 진단을 각각 단일 owner로 분리한다. parent는 실제 action/Actor/예약·중단/표현·실행 실패 근거를 유지하고 부모 callback·쓰기 사본·저장/직렬화/GUID/API 변경 없이 원 순서/Unity equality/clock·재시도를 유지한다. 독립 담당은 reflection/source literal 읽기 조사만 완료. 위험 경계 표적 fixture와 실제 AI/복원 격리 검증 후 현재 그래프로 판정하며 원37/남은17/큰945 전체 Goal 유지.
+
+
+- batch26 PASS/EDIT_READY: 구현·독립 검토·최종 current-source Unity·실제 복원/AI 실행·graph·KB 생성/검증/freshness 마감. 결과/증거는 progress.md·verification-batch26.json을 따른다. 다음 SOURCE_EDIT 전 Unity/launcher0 및 현재 pin/경로집합을 확인하고 fresh KB→원본으로 AIBrain 선호 요청·외부 소유·취소/실패 관측과 Actor/domain 의존 경계를 확정한다. 남은17개/기존 큰945 전체 Goal active; 예비 graph/중지한 예비KB/실패 폴더 보존.
+
+
+- batch26 追加 source boundary READY/FROZEN: preliminary graph에서 새 ledger가 scene scheduling 파일의 retry enum 참조로 giant946 편입됨을 확인했다. immutable retry/일정 관측 계약2개 970bytes를 같은 Assembly-CSharp의 독립 파일로 exact 이동, originalservice 역재조합/CLR·enum0..5 검증 및 inventory2 반영. 원장·관측9/current movement·BrainBT·world를 현재 최종 소스로 검증하고 최신 Bee graph/KB로 마감한다. 이전 PASS/실패·중지한 예비KB 보존; 기준/timeout/guard 불변.
+
+
+- batch26 메인·독립 작성/검토 READY/FROZEN: 54field 단일 owner, public/internal106메서드/71property 서명·GUID·저장/직렬화 유지, source637/tool5/legacy8/character16 동결. 대형17·AIBrain3324(원3752)로 아직 대형 해소 아님. SOURCE_EDIT 닫고 메인 단독 UNITY_VERIFY: 새 execution8/기존 movement8+actual9/flow projection·BrainBT core2/destinationless6, 실제104-section world. 진단 r1/r2 실패와 준비조건 결함 보존.
+
+
+- batch26 EDIT_READY/SOURCE_EDIT: 동일 소스 baseline r1/r2 실패 보존·process0. LookAround는 실제 방문 가능 시설이 생기면 cache miss가 만료되어 시작 조건이 사라지는 QA 준비 결함을 관측했다. visit history 원 명령으로 조건을 준비하고 기준/timeout/production AI는 유지한다. AIBrain 실행 epoch/진행·경로/예약·재시도 보존과 bounded trace54field를 actor/parent callback 없는 CharacterAiExecutionLedger 단일 owner로 이관한다. Host의 실제 실행/도메인·UI와 저장/직렬화/GUID 유지, reflected epoch fixture는 실제 notify 명령으로 준비. 원37/잔여17/큰945 전체 Goal 유지.
+
+
+- batch26 READ_ONLY/UNITY_VERIFY baseline: 前turn은 실제 owner 분리/현재 실행·복원의 progress. source632/tool5/legacy8/character16 핀·경로집합 및 Unity/launcher0 재확인, AIBrain fresh KB 조회 완료. r5의 일회 LookAround starvation 시작 관측 실패 원인을 미확정으로 보존했으므로 보강된 현재 r6 동일 소스로 baseline 실행을 관측한다. 실행 중 source 편집 금지. 그동안 메인은 AIBrain 실행 epoch/trace/경로·예약·재시도 진단의 단일 owner 경계와 실제 명령/관측 순서를 원본으로 확정하고, 독립 담당은 private reflection/source-literal 의존성만 읽기 조사한다. 남은17개와 큰945 순환 전체 Goal 유지.
+
+
+- batch25 현재 소스 PASS/EDIT_READY: AbilityMove2310→1935로 원 대형37개 중20해소·17남음. source632/tool5/legacy8/character16 핀과 경로집합, current compile·pure8/실제 movement9/기존 Brain·BT core2+destinationless6·공식 world104-section 복원3/변조9/직원 JSON 및 KB 마감 검증 완료. graph2130/giant945/cyclic20로 전체 Goal active. operation/receipt owner는 SCC1, departure owner는 기존 Actor 순환에 남는다. r5 LookAround starvation 시작 관측 실패는 원인 미확정이며 동일 runtime의 r6은 진단/정확한 final report 검사만 추가한 뒤 전체 PASS했다. 다음 SOURCE_EDIT 전 process0/hash/경로 집합 확인, 해당 AI 관측과 AIBrain 등 남은 큰 실행 책임·Actor/domain 의존 경계를 먼저 좁은 KB/원본으로 조사한다. 기준 완화/timeout 연장/관측 실패 은폐 없이 남은17개와 큰945 순환 전체 Goal 계속. 증거 verification-batch25.json.
+
+
+- batch25 메인/독립 검토/작성자 READY/FROZEN: public/internal34 서명·원문 이관3 owner·75→68 메서드 parity 확인, source632/tool5/legacy8/character16 동결. AbilityMove1935로 대형17/static0/ctor12이며 기준 완화 없음. PS guard69 PASS. SOURCE_EDIT 종료 후 메인 단독 UNITY_VERIFY: 비대화형 OS probe 뒤 pure8·실제 protected 이동/취소·response DTO/복원/retry·공식 actor 교체와 기존 Brain/BT core2/destinationless6, 이어 별도104-section world. 검증 중 소스 편집 금지.
+
+
+- batch25 EDIT_READY/SOURCE_EDIT: 前turn은 캐릭터 경계·실제 복원·953→944 순환 축소의 progress. source622/tool5/legacy8/character16 SHA와 경로 집합·Unity/launcher0 재확인, AbilityMove fresh KB 조회 완료. 메인이 이동 operation/version/선점, Society response 저장 영수증, dungeon departure admission/실패 owner를 분리한다. 기존 MonoBehaviour 코루틴·좌표 이동·public facade/직렬화/GUID·저장 DTO와 취소·보고·복원 순서를 유지한다. 부모 callback/두 번째 state authority 없이 실제 이동·실패·보호 소유·save/restore/retry를 격리 Unity에서 검증하고 원37개/큰 SCC 전체 Goal을 이어간다.
+
+
+- batch24 PASS/EDIT_READY: 캐릭터 정의/실행 경계를 원 CLR·직렬화 필드/GUID·실패 순서 그대로 분리했다. 현행 runtime compile39.685907초/Editor fixture 재compile14.775064초·CS0, character-r2 6묶음·실제 world104-section 공식 복원3/변조9/직원 empty+populated PASS·warnings0·exit0. source622/tool5/legacy8/character asset16 핀 보존. graph2127/최대944/cyclic20, 원37개 중19해소·18남음으로 전체 Goal active. 다음 SOURCE_EDIT 전 Unity/launcher0·핀/경로 집합 재확인 후 AbilityMove 등 남은 큰 실행 클래스의 실제 책임과 저장/취소/이동 경계를 좁은 KB 조회·원본으로 확정한다. 큰 순환944 전체 제거와 나머지18개를 계속하며 숫자 기준을 바꾸지 않는다. 상세 verification-batch24.json.
+
+
+- batch24 EDIT_READY/SOURCE_EDIT: batch23 source604/tool4/legacy8·현재 경로 집합 및 문자 경계 원본 hash 유지, Unity/launcher0 재확인. 前turn은 Crop 대형 해소/현행 실행 검증의 progress. 메인은 skill 정의13개·profile 생성 guard/SpawnRequest/factory 계약·personality 값과 행동 정책 분리, 사용처 없는 SO profile 인자 wrapper 제거와 실제 authored/factory/행동·저장 호환 검증을 통합한다. bounded 작성자는 WorkCommandResolver 선언만 byte-exact 이관한다. public CLR/assembly/직렬화 필드/GUID·실패/숫자/실제 producer 유지. 새 oversized/상태 복제/부모 callback/기준 완화 없이 큰 SCC와 남은18개 전체 Goal 계속.
+
+- batch23 PASS/EDIT_READY: source604/tool4와 legacy8 핀, current compile·crop persistence18/cache7/실제 observer·공식104-section world·current-import graph/KB 마감 완료(verification-batch23.json). Crop1828로 원 대형37개 중19개 해소·18개 남음, 최대953/cyclic20 미완료. 다음 SOURCE_EDIT 전에 process0/hash 재확인하고 CharacterSO의 불필요한 runtime-profile 역참조, profile 생성/SpawnRequest·catalog factory, personality/profile·work command·skill definition의 데이터/실행 혼합 경계를 원 타입/직렬화/GUID/guard 계약과 함께 확정한다. metadata extraction을 큰 SCC 제거 완료로 세지 않으며 남은18 runtime 책임 분리와 전체 Goal을 유지한다.
+
+- batch23 메인 READY/FROZEN: source 작성자는 메인 단독이며 수정 종료. public27/기존38본문·이동22본문/공개prefix2/중계36제거·GUID4 parity PASS, source604/tool4/legacy8 동결. 대형18/static0/ctor12·Crop1828로 기존 기준 유지. 독립 담당은 소스 수정 없는 읽기 검토만 수행. SOURCE_EDIT 닫고 메인 단독 UNITY_VERIFY: crop 실제 파종/관개·주기 실패/ACK/새 owner 복원·중복 방지와 cache/root, 이어 actual104-section world.
+
+- batch23 EDIT_READY/SOURCE_EDIT: 前turn은 source596/tool4 보존·실제 crop/world·graph/KB 마감의 progress. 현재 핀/경로 집합596·Unity/launcher0 재확인. 메인이 Sow/WIP, 자동 irrigation 거래/ACK, cycle receipt/실패 종료, 작물 선택·golden 예약을 단일 root/기존 mutation 위의 실제 담당자로 분리한다. public lookup/worker/phase 전처리와 원 실패/rollback·예약·소비·게시·ACK·sequence 및 DTO/schema 유지. 물/치료 contribution은 기존 각 owner로 이관한다. 모든 작성자 FROZEN 후 기존 actual crop/observer/cache/root 경계와 공식 world 검증; 기준 변경 없이 원37개와 큰 SCC 전체 제거를 계속한다.
+
+- batch22 PASS/EDIT_READY: 변경 source596/tool4/legacy8 핀 유지, 현행 compile·crop 실제 복원/재시도·공식 world·현재-import graph·KB 마감 완료(verification-batch22.json). Crop3977→3128이나 원37개 중18개 해소/19개 잔존·giant953로 Goal active. 다음 SOURCE_EDIT 전에 process0/hash 재확인 후 파종/WIP·관개/게시·주기 영수증/실패 종료를 확정된 단일 소유 경계로 분리한다. 기존 실제 producer→상태→저장/재시도와 공개 facade를 유지하고 새 oversized/부모 callback/기준 완화 없이 남은19개와 큰 SCC를 계속 제거한다.
+
+- batch22 READY/FROZEN: 모든 source 작성자와 독립 읽기 검토 완료. Parent72개 잔여/주요 moved19개 본문 parity·physical-input9개 parity·enum3개 역재조합/GUID6 유일성 PASS. source596/tool4/legacy8 핀 보존, 대형19/static0/ctor12·Crop3128로 기준 미변경. 메인 단독 UNITY_VERIFY: 격리 자체검사/창 probe→현재 소스 compile→crop persistence18/cache7/실제 observer 복원·재시도→actual104-section world. 전체 Goal active.
+
+- batch22 EDIT_READY/SOURCE_EDIT: batch21 source583/tool4 drift0 및 Unity/launcher0 재확인. 메인 current-root mutation fence/revision·dirty·replan과 물/치료 실행16개 분리, bounded 담당 physical-input descriptor/retirement9개 exact 이관 및 AIBrain의 순수 enum3개 선언 분리(실행 Target을 가진 snapshot은 원위치 유지). 공개 scheduling/fence 호출순서·원 저장/보상/물리소비/게시/ACK/sequence 유지. 모든 작성자 동결 후 기존 crop18/cache7/observer 실제 실패·ACK손실·새 owner 복원/중복방지와 actual104-section world, 관련 AI 계약 검증.
+
+- batch21 실행/graph checkpoint PASS, KB 생성/검증/freshness PASS: source583/tool4/legacy8 보존, Runtime compile37.099880초/CS0, cache7+persistence18+실제 crop observer reserve/ACK손실/새 owner JSON복원/정확키·효과1회 PASS, official GameplayScene104-section 복원3/warnings0 PASS. crop 기존6순환과 새5owner 모두 SCC1, giant953/cyclic20. 대형19·CropPlotRuntime3977은 미완료. 다음 main은 물/치료/파종 실행과 공통 mutation fence/notification의 실제 책임을 분리하며 원 root/상태전이/실패·재시도 순서를 유지한다. giant 메타모델 후보 단서는 별도 JSON이며 아직 구현 아님. Goal active/Unity0/EDIT_READY.
+
+- batch21 READY/FROZEN: main·identity·projection·independent review 전원 동결. harvest8/publication6/projection7 이관·6prefix/2formatter identity·공개API/DTO/원 root/guard/보상/ACK/sequence·reset 순서 보존. GUID6 유일/대형19/static0/ctor12, CropPlotRuntime3977. main 단독 UNITY_VERIFY: 새query cache7+기존 persistence18+실제 observer 실패/ACK손실/새 owner 복원/정확 키·중복 방지·기존 crop→공식104-section world.
+
+- batch21 EDIT_READY/SOURCE_EDIT: 이전 batch20 PASS 핀570/tool4 drift0, Unity/launcher0 확인. 메인 harvest 출력·ACK/사실 게시와 부모의 cycle reset 경계를 분리하며 snapshot/material 조회와 ID leaf는 파일별 담당 분리. 상태/DTO/공개API/저장형식·기존 예외/보상/재시도 순서 유지. 모든 작성자 동결 후 격리 crop 실제 실패·복원/재시도 및 공식 world 검증.
+
+- batch20 실행 checkpoint PASS/KB 생성/검증/freshness PASS: CropPlotRuntime 저장/복원 책임 단계 완료. source570 r2/tool4/legacy asset·scene8 핀, Runtime37.244636초/Editor17.063087초·CS0, crop 경계18+기존 실제 생산 복구/재시도, actual GameplayScene104-section 복원3 PASS. 현재 Unity/launcher0·EDIT_READY. 다음은 crop 수확/작업 실행 책임과 operation identity leaf; 대형19와 giant953 전체 제거 Goal active.
+
+- batch20 crop-r2 PASS/현행 Runtime compile37.244636초·CS0/source570 drift0. world-r1은 주요 assertion PASS 뒤 마지막 cleanup의 재캡처 전 메모리 보호 중단(전체 PASS 아님). Unity/launcher0→EDIT_READY에서 Editor QA만 실패 candidate/마지막 교체의 frame retirement 정리 경계를 보완. assertion/게임/메모리guard/timeout 불변, source570 r2 READY/FROZEN→메인 단독 UNITY_VERIFY. graph giant953/cyclic21; CropPlotRuntime은 giant 밖 작은6개 순환.
+
+- batch20 READY/FROZEN: main·독립 선언 담당·read-only review 동결. 저장 검증39개/공개 facade5개·생성자 순서·current root 조회·단일 Replace parity. GUID8 유일/guard55 PASS, 대형19/static0/ctor12/기준 유지. 메인 단독 UNITY_VERIFY: crop candidate 무변경/교체·실제 생산 복원/재시도→공식104-section 월드. 아직 compile/실행 미판정.
+
+- batch20 EDIT_READY/SOURCE_EDIT: batch19는 실제 코드·compile/visual/복원·graph/KB가 있는 progress. source554/tool4/asset8 drift0·Unity0과 KB narrow CropPlotRuntime fresh8/11을 확인했다. 메인이 CropPlotRuntime의 저장 DTO 투영/후보 생성, 일반 진행 복원 검증, 물리 영수증 복원 검증·공유 불변 계약/처리제 정의 조회를 실제 담당자로 분리한다. 기존 RootStore가 유일한 가변 authority, codec은 매 호출 current root를 조회하고 candidate만 생성하며 Restore의 Replace 명령은 facade에 유지한다. Capture의 live input-owner 조정은 원래 facade/순서로 먼저 수행한다. 모든 원 가드·실패/조회순서·public API·DTO/schema·ID·GUID·직렬화/씬 불변. 단순 writer는 새 state/dependency 파일4타입 exact 생성만 맡으며 parent통합·복잡한구현/QA/격리 Unity는 메인 단독. 이후 동일 root위의 작업·수확·물/처리 거래 책임을 계속 분리하여 CropPlot 전체와 남은19개·giant963 Goal을 완료한다. 현재 class/Goal 해소 아님.
+- batch19 PASS/EDIT_READY: current compile/typed generic binding/원 YAML asset5·scene3/visual·모듈러 에셋104·state8 및 actual world104-section 복원3·변조9까지 PASS. source554/tool4/asset8 drift0. 대형19/static0/ctor12/기준 유지; actual-import graph2100후보 giant963/cyclic20·기존9파일 이탈/새component mapping1 편입. KB 생성·validation·freshness/query5와 verification-batch19.json 마감 완료. 다음은 CropPlotRuntime6864행의 상태·작업·수확/영수증/복원 경계를 현재 원본부터 조사하고 실질 owner를 확정한다. 남은19개와 actor/AI/runtime-query giant 전체 Goal을 유지하며 partial/parent callback/복사 권위로 대체하지 않는다.
+- batch19 r2 terminal/Unity0 → EDIT_READY/SOURCE_EDIT → READY/FROZEN: source554/tool4/asset8 drift0. 현행 Editor compile16.727331초/CS0, binding/asset5/scene3/draw 뒤 기존 visual fixture가 Door visual resource 조립을 누락해 default Sprite-Lit을 관측했다. 기존 fixture catalog의 실제 DoorSpriteMaterial 주입을 추가했고 shader/정렬/크기 기대값·production 코드는 유지했다. fixture 역치환 byte parity PASS, source554 r3 봉인·tool4 불변. 메인 단독 UNITY_VERIFY.
+- batch19 r1 terminal/Unity0 → EDIT_READY/SOURCE_EDIT → READY/FROZEN: source554/tool4/asset8 drift0 재확인. 현행 runtime compile37.649802초/CS0 및 binding/asset5/scene3·draw 검사를 지나 기존 visual fixture의 영구ID 누락으로 중단했다. production guard를 유지하고 기존 fixture helper에 실제 GuidPersistentIdGenerator 주입1행만 추가, 역치환 byte parity PASS. source554 r2 재봉인·tool4 불변, 메인 단독 UNITY_VERIFY 재개.
+- batch19 READY/FROZEN → UNITY_VERIFY: main·enum writer·독립 READ_ONLY 검토 완료. enum/extension4·renderer/qualified4caller 역치환 parity, 원본 asset5+scene3 SHA 보존, 신규meta4 GUID 유일성·diff 공백 PASS. source554/tool4 봉인, guard48 PASS, 대형19/static0/ctor12·기준 불변. 메인 단독 isolated OS probe→현재 compile/RunBuildingVisual→actual world 복원을 순차 실행한다. 검증 중 소스 편집 금지.
+- batch19 EDIT_READY/SOURCE_EDIT: 이전 turn은 방어 port 실제 구현·compile/복원재시도·graph/KB가 있는 progress. 현재 source540/tool4 drift0·Unity0을 재확인했다. 메인이 GridTexture nested enum을 불변 BuildingTilemapLayer로 분리하고 설치된 Odin의 명시 BindTypeNameToTypeAttribute로 old nested enum 타입명을 연결한다. 기존 generic dictionary/comparer와 asset5·scene 렌더링을 실제 검사하며 asset/scene/GUID/필드명·enum0..3/저장 schema는 보존한다. 별도 작은 writer는 BuildingRuntimeArchetypeKind enum과 기존 extension4개 전체의 실제8종 Type/AddComponent mapping 분리만 exact 수행한다. 데이터 정의→runtime 역참조를 제거하며 기준/graph입력을 완화하지 않는다. 메인이 최종 통합과 전용 격리 compile/건물 생성·렌더링/복원을 맡고 검증 중 source edit 금지. 대형19·giant971은 아직 남고 전체 Goal active.
+- batch18 PASS/EDIT_READY: 실제 현재 compile/RunDefense와 actual world104-section 복원3·변조9까지 PASS. source540/tool4 drift0, oversized19/static0/ctor12/기준 유지; actual-import graph2098 giant971/cyclic20, 정의3파일 SCC1·새 context는 giant 잔존. KB 생성·query5·validation/freshness와 verification-batch18.json 마감 완료. 다음은 GridTexture nested enum을 renderer에서 분리하되 기존 Odin dictionary/comparer 타입명과 legacy5개 에셋·scene을 실제 보존하는 호환 계약부터 확정한다. 설치된 BindTypeNameToTypeAttribute는 후보이며 generic binding 검증은 아직 미실행이다. 같은 경계의 BuildingRuntimeArchetypeKind enum+pure IsDefined를 concrete From/ToComponentType·AddComponent 실행과 분리하고 기존8종 mapping을 실제 확인한다. Goal의 원래37개·큰 순환 전체 제거 요구를 유지한다.
+- batch18 READY/FROZEN → UNITY_VERIFY: main source freeze. context/body·SO6·resolver whole-file parity와 GUID3 유일성·공백 검사 PASS, pure guard41 PASS. source540/tool4 봉인. 메인 한 명만 isolated launcher의 native 자체검사→OS 비대화형 창 probe→현행 compile/RunDefense→actual world 복원을 순차 실행한다. 현재 실행 PASS를 주장하지 않으며 검증 중 소스 편집을 금지한다.
+- batch18 EDIT_READY/SOURCE_EDIT: batch17 verification/KB/query5/freshness 마감·source524/tool4 drift0와 Unity0을 재확인했다. 메인이 DefenseEffectSO와6 effect의 concrete context 의존을 순수 IDefenseEffectCommands로 바꾸고 기존 DefenseEffectContext를 실행 경계로 분리한다. 기존 체력 거래/영수증 리스트/상태·보고서 쓰기/rollback과 입력·호출 순서는 그대로 유지한다. Damage에는 현재 combatLogText 읽기만 노출하며 Actor/DefenseFacilityData/Runtime/report는 포트에 노출하지 않는다. 직렬화 타입·필드·GUID·asset/scene/저장 계약 불변. 표적6종 명령/JSON·실제 D06 rollback/저장과 ACK 양경계·실제 world 복원을 격리 검증한다. GridTexture/Odin 호환과 남은19개는 후속 진행이며 Goal active.
+- batch17 PASS/EDIT_READY: 건물 정의/실행 경계와 current collection/revision/provider cache, Inspector·저장 검증을 실제 완료했다. 대형19개는 그대로이며 Goal active. graph-batch17-final.json은 실제 새 Bee source list2097에 근거한 giant973/cyclic20이고 pre-import966을 최종 결과로 세지 않는다. KB 갱신·query5·validation·freshness와 verification-batch17.json 마감 완료. 다음은 DefenseEffectContext의 단일 체력 거래/영수증·rollback을 유지하는 순수 effect port/실행 owner 경계를 우선 확정한다. 이후 GridTexture.TilemapLayer의 Odin dictionary 타입명이 들어 있는 legacy5에셋과 scene을 보존하는 호환 경계를 해결하고 남은19개 대형 책임 분리도 계속한다. 이름만 옮기거나 graph/크기 기준을 완화하지 않는다.
+- batch17 READY/FROZEN → UNITY_VERIFY: main·leaf writer·독립 READ_ONLY review 완료. moved24/direct extensions23/null receiver·runtime13/불변6타입·시설 정의4/anchor3·Workshop accessor exact parity. 현재 source524/tool4 봉인, guard34 PASS, Unity0. metrics19/static0/largeCtor12/기준 유지; pre-import default graph는 새파일의 csproj 반영 전이므로 최종 수치로 세지 않고 보존, 실제 import/compile 뒤 재생성한다. 메인 단독 isolated OS probe→현재 compile/building·production 표적 회귀→actual world 복원. 현재 실행 PASS 아님.
+- batch17 EDIT_READY/SOURCE_EDIT: 이전 turn은 실제 코드/컴파일·명령/복원재시도·graph/KB가 있는 progress. source476/tool4 drift0·Unity/launcher0 재확인. 메인이 기존 building dispatcher에 typed runtime binding catalog를 조합하고, 능력13종의 실행 interface/명령을 readonly 정의 참조를 보유한 runtime adapter로 이동한다. BuildableObject의 기존 state/capability owner가 초기화된 실행 binding을 소유하고 기존 state module ID/생성/visual/use/exterior/범죄보정 순서를 유지한다. data는 설정·pure검증만 소유, 저장 DTO·직렬화 타입/필드·GUID·에셋 연결 불변. 미등록 marker/duplicate factory/무효 binding은 명시 거절하며 신규 fallback 없음. runtime anchor catalog와 FacilityData/slot을 분리하고 concrete 실행이 같이 있던 immutable leaf도 exact 이동. 쉬운 타입 이동만 독립 writer에게 배정, main이 최종 통합/어려운 QA·실제 isolated compile·전체 world 복원을 담당. 19 oversized와 giant969는 아직 남으며 전체 Goal 유지.
+- batch16 PASS/EDIT_READY: 생산 주문 책임 분리와 표적 실제 실행 완료. 원래37개 중18개 해소/19개 남음, default giant969는 그대로이며 전체 Goal active. KB 생성/검증/freshness와 verification-batch16.json 증거 마감 완료. 다음 SOURCE_EDIT는 새 process0/hash 확인으로 연다. default giant Building/Actor/world-query의 immutable definition→runtime 역참조 경계를 조사하고, CropPlot/WorkTaskExecutor 등의 실제 상태·트랜잭션 책임도 순서대로 분리한다. 기준 완화/새 oversized/부모 callback을 사용하지 않는다.
+- batch16 EDIT_READY/SOURCE_EDIT: 이전 turn은 실제 owner 분리/컴파일/복원·graph/KB가 있는 progress. source447/tool4 drift0·Unity/launcher0·KB fresh 재확인. 메인이 ProductionBillRuntime을 현재 상태 조회, 입력 claim·출력 예약 준비, 명령/관측 journal 단일 publication fence, 종료·WIP 영수증/GC 담당자로 조합한다. 기존 ProductionAggregateStateStore가 유일한 root/sequence/version/기록 권위이며 모든 helper는 현재 store를 매번 조회한다. publishingCommand와 activeWipCheckpointGcCandidate는 각각 단일 owner로 이동, prepare/commit/rollback/원래 null·public/MovedFrom/DTO/저장/실패 순서 유지. 쉬운 독립 범위는 불변 ID5개와 생산 caller의 exact qualifier 치환만 배정. 모든 작성자 동결 뒤 생산 명령/게시/저장/취소·재시도와 실제 월드 복원을 격리 검증한다. 현재 Production model assembly는 defaultAssembly giant graph 대상 밖이므로 그 한계를 구분한다.
+
+- batch15 PASS/EDIT_READY: 현재 소스 compile·campaign 재시도와 실제 world 복원·graph·KB 마감 완료(verification-batch15.json). 원래37개 중17개 해소/20개 남음, giant969 미해소·Goal active. 다음 SOURCE_EDIT 전에 process0/hash를 다시 확인하고 ProductionBillRuntime의 단일 주문 저장 owner와 준비/실행 영수증/취소 경계를 먼저 조사·확정한다. BuildingSO/Actor/world query의 데이터→실행 역참조는 별도 실제 결합을 확인해 해결하며, 줄 수 분할/새 oversized/부모 callback/기준 완화를 하지 않는다.
+
+- batch15 READY/FROZEN: 메인·독립 읽기 검토 완료. moved32/remaining16/facade6/nested3·기존 required guard36 순서와 optional2ctor 계약 parity PASS. 후보 생성은 단일 campaign의 원래13행으로 이동했고 부모의 불필요한 보관 field17을 제거했다. 새6owner는 readonly 참조만 보유하며 부모 역참조/새 저장 상태가 없다. 정적 대형20/static0/largeCtor12·기준 불변, source447/tool4 pins. 모든 소스 동결 후 메인 단독 UNITY_VERIFY.
+
+- batch15 EDIT_READY/SOURCE_EDIT: 前turn은 실제 코드/컴파일/실행/graph·KB가 완료된 progress. source435/tool4 drift0·Unity/launcher0·KB fresh 재확인. 메인 단독으로 효과 preflight/commit/capture/rollback 담당자, 복구 원장(replay/advance/공동 ACK/사실 발행), 관측 생애 명령 담당자와 은퇴 계획자를 조합한다. 기존 단일 root/persistence/예약·fact publisher를 공유하고, DTO/schema/원래 가드·optional/null·실패순서·명령 body를 보존한다. campaign 후보 복제는 기존 runtime이 원래 capture/publish 순서로 소유. 새 helper/부모 callback/복사 상태 없이 기존 facade를 유지하고, 모든 작성 FROZEN 후 campaign/실제 world·표적 취소/복원재시도·graph/KB로 검증한다.
+
+- batch14 PASS/EDIT_READY: 구현·독립 검토·현행 컴파일·표적 campaign·실제 world/query/복원·graph·KB 마감 완료. verification-batch14.json. 전체 Goal active/대형21·giant969. 다음 SOURCE_EDIT는 현재 process0/hash부터 재확인하고 EffectCommitPlan 및 preflight/commit/capture/rollback을 실제 content effect transaction 경계로 통합한다. 관측 생애 명령과 recovery journal은 그 공유 담당자를 사용하며, 부모 역참조·조기 optional 검증·상태 복제·순서 변경 없이 분리한다. 큰 Actor/Building/world query 경계 및 나머지 원래37개 해소는 계속 유지한다.
+
+- batch14 READY/FROZEN: 신규 계약13선언/9파일과 evidence29/planner7/query7 이동, remaining47 본문·공개 facade·transient3 타입 parity PASS. 현재 oversized21/static0/largeCtor12, 기준 불변. 실제 컨테이너 query readonly/공식 복원 동일 결과와 detached campaign root 교체 검사 추가. 소스435핀(신규 meta/metrics 포함), 작성자 동결 후 메인 단독 UNITY_VERIFY.
+
+- batch14 EDIT_READY/SOURCE_EDIT: batch13 최종404/tool4 hash drift0·Unity/launcher0·KB fresh 재확인. 이전 goal turn은 실제 V20 owner 분리/컴파일/실행/복원 증거가 있는 progress. 이번 묶음은 ContentResolution의 요청 판정·candidate 명령/ambition 확장, faction 계약 조회, effect application 증거 계산과 기존 top-level 계약/시설 query/UI dispatcher를 실제 책임별로 분리한다. Recovery journal/물리·typed 효과 commit/보상 rollback/observed life 거래 순서와 public facade·두 ctor의 null/optional 계약은 본체에 유지한다. 임시 before/after snapshot·child ID 표현만 내부 공유 타입으로 이동하고 DTO/schema/serialized 연결은 바꾸지 않는다. 메인 integration+request/query/snapshot+검증; 독립 담당은 신규파일에만 순수 evidence와 exact 선언 작성. 관련 배치 동결 후 campaign 표적/공식 world/graph·KB 마감. 클래스 전체 해소는 후속 stateful 경계까지 필요하며 목표를 줄이지 않는다.
+
+- batch13b 마감 PASS/EDIT_READY: source404/tool4 drift0, current compile30.291초/CS0·RunCampaign/실제104-section 공식 복원3 PASS, KB 마감 생성/검증/freshness PASS. 대형37→21/최대SCC1055→982/cyclic18, 기준 불변·전체Goal active. 증거 verification-batch13.json/graph-batch13b.json. 다음 복잡 구현은 V20ContentResolutionService의 recovery/effect application/evidence/faction 책임을 단일 상태 권위와 부모 orchestration으로 분리; TryExecute를 child에서 parent callback으로 역참조하지 않게 한다. 큰 Actor/Building/world-query 경계도 계속 정리한다. 새 편집 전 현재 Unity/launcher0과 파일 hash부터 재확인한다.
+
+## Active Goal — 2026-10-16 대형 클래스37·큰 의존 순환 제거
+
+- 사용자가 Goal 생성과 전체 제거를 명시 요청. Goal active, 임의 token/time budget 없음. 기존 변경·저장·증거·지침 보존. Unity/launcher0 확인, 메인 EDIT_READY→SOURCE_EDIT.
+- 완료 조건: 기존 크기/소유권 기준을 완화하지 않고 oversized37개를 실질 책임 단위로 해소(새 oversized 대체 클래스 금지), 1055-file SCC의 다중 도메인 순환을 단방향 계약/상태 소유권으로 제거. 각 묶음의 기존 실제 호출·저장/실패/재시도를 보존하고 현재 소스 컴파일·표적 실행·공식 월드 복원 검증. 단순 partial, 조건 우회, baseline 갱신으로 완료 처리하지 않는다.
+- 1 기준 완료/추가 조사 진행: 기준37/전체 SCC의 실제 책임·계약·쓰기 소유자 조사와 우선순위 확정. 기존 도구의 `metrics-before.json`/`graph-before.json`을 보존하며 별도 수작업 전수 감사 체계를 만들지 않는다.
+- 2 진행: V20 저장 codec/shared event 규칙과 명령 소유권 분리(메인). 독립적인 순수 결과 생성/검증 책임은 확정된 범위만 배정한다.
+- 3 진행: 물리 운송·생산·캐릭터·시설·의료 등 나머지 oversized 책임 분리. 복잡 상태/수명/다중 도메인은 메인 통합.
+- 4 진행: 공통 계약의 구현 역참조 제거, 큰 SCC의 owner별 분해. 실제 semantic graph로 감소 확인; 의도된 모듈 내부 묶음과 다중 도메인 순환을 구분한다.
+- 5 각 배치: 모든 작성자 READY/FROZEN→메인 단독 UNITY_VERIFY(비대화형 station/desktop probe). 종료·현행 컴파일·표적 실행 확인 후 새 EDIT_READY. 최종 KB는 코드 배치 마감에 갱신.
+- 증거: `Artifacts/QA/ArchitectureGoal-20261016/`. 최초 large37/largeCtor12/cyclic14/largest1055. 다음 자동 Goal 턴도 이 범위와 진행을 이어가며 일부 배치 성공을 전체 완료로 처리하지 않는다.
+- 검증 checkpoint: batch06 source270핀 drift0, current compile14.105초/CS0, 표적 core와 실제104-section 복원3회 PASS. 대형37→28, 최대SCC1055→985/cyclic17(분리된 소규모 그룹 포함). 전체Goal미완료. 원장 legacy usage-formula 및 구형 bill fixture 실패는 보존하고 표적 PASS와 구별. 다음은 ItemTransfer의 quiescence/retail/transit/quantity/carry 권한 분해와 남은 공통 계약 역참조 제거. KB는 batch06 묶음 마감 시 재생성/검증/freshness PASS. 이후 source edit로 다시 stale이 됨.
+- batch07 검증 checkpoint: source292 drift0/current compile34.174초/CS0, 추가5개 경로와 core·실제104-section 복원3회 PASS. 대형37→27, 최대SCC1055→984/cyclic17, static0/대형생성자12 유지. ItemTransfer2960행은 미해소. KB stale(관련 코드 배치 계속); 다음 SOURCE_EDIT에서 수량/기존 저장 owner 반납·해제 및 공용 값 계약 경계를 분리. Goal active.
+
+- batch08 SOURCE_EDIT/EDIT_READY: Unity·launcher0 확인. ItemTransfer의 수량 예약/소비·기존 저장 cargo 반납·exact owner 해제를 실제 명령 담당자로 분리하고 위치/metadata 규칙과 값 계약을 분리한다. 저장 repository·원래 실패/rollback 순서·카운터 수명·public facade/constructor 검증 유지. 메인 단독 통합, 계약 담당 READY/FROZEN. 23개 이동/42개 잔여 본문 parity와 public11개 서명 보존, 역참조0 확인. 수량 실패 무변경/같은 lease 재시도와 창고 반환의 실제 용량·mutation 후 rollback/재시도 검사를 연결. 메인과 모든 작성자 READY/FROZEN → 메인 단독 UNITY_VERIFY; r1 컴파일은 새 수량 owner의 기존 IReservedItemTransferService 선언 누락 CS1503로 실패, 테스트 미실행. Unity0/새 EDIT_READY에서 동일 기존 인터페이스를 연결했고 다시 READY/FROZEN. r2 현재 컴파일/표적 실행은 미검증.
+- batch08 검증 checkpoint: current compile23.050초/CS0, quantity/store-return/owned-release와 core·실제104-section 복원3회 PASS, source312 code drift0, Unity0. 대형26·최대SCC984/cyclic17. KB 마감 재생성·검증/freshness PASS. 다음 SOURCE_EDIT는 전투 stat 계산의 기존 rules 통합 및 world query 계약을 소비 도메인별 단방향 경계로 분리. Goal active.
+
+
+- batch09 EDIT_READY/SOURCE_EDIT: Unity·launcher0 재확인. 메인 장비 ammunition/power 명령 경계, 독립 순수 전투 계산은 기존 OffenseBattleSessionRules 통합, world query 값 인터페이스는 소비 도메인별 분리. 기존 상태 repository의 매 호출 조회와 저장 교체·검증 순서·API 계약 유지. 컴파일/실행 미검증.
+- batch09 READY/FROZEN: 메인·규칙·계약 담당 모두 동결. 장비11개 moved/84개 remaining parity, 전투7개 기존 rules 통합 parity·실제12call 연결, world query5개 선언 parity/GUID 보존. 새 장비 공급/전투 표적 실행과 기존 actual world 복원 예정. 정적 oversized24, static0/대형생성자12, baseline 변경 없음. 메인 단독 UNITY_VERIFY.
+- batch09 검증 checkpoint: compile29.631초/CS0·core/장비 supply/전투/실제104-section 복원3회 PASS, source330 drift0/Unity0. 대형24/최대SCC987/cyclic17. 다음 batch10은 창고 prepared-output admission 명령과 카탈로그/설정 provider 계약 경계. KB는 해당 경계 마감에 한 번 갱신. Goal active.
+
+- batch10 EDIT_READY/SOURCE_EDIT: batch09 Unity·launcher0/graph 마감 확인. 메인 WorldItemWarehouseService prepared-output authority/pickup/admission 실제 명령 분리(원 source 검증·prepare/publish/rollback 보존)와 직접 통합 fixture, 독립 담당 catalog/immutable settings provider 선언 분리. 기존 repository/optional admission/ID·hash 순서/legacy 실패 유지. 표적 실행+실제 월드 복원 후 관련 KB 마감 갱신.
+- batch10 READY/FROZEN: 모든 작성자 동결. Admission22개 moved/29개 remaining 본문 parity·facade11 유지, warehouseID parser 동일 constant 별칭을 기존 identity 규칙에 통합. 실제 repository/mass/admission 직접 경계·저장된 haul token 재구성/거절/재시도 검사와 물리 필드 비교 관측을 보강. 정적 oversized23. 메인 단독 격리 UNITY_VERIFY로 현재 컴파일/실행 확인 예정.
+- batch10 r1 컴파일 실패/테스트 미실행 보존: 옮긴 parser의 Select method-group 한 곳과 runtime Diagnostics→Editor helper 참조 CS0103 두 곳. Unity0/새 EDIT_READY에서 동일 parser owner qualified 참조와 기존 runtime authored catalog로 수정. 새 소스 r2 READY/FROZEN, 검증 조건/게임 동작 변경 없음.
+
+- batch10 r2 compile/기존 경계 PASS 후 새 fixture의 취소 ID 재사용 기대 실패 보존. Unity/launcher0 확인→EDIT_READY에서 fixture를 기존 source-transfer terminal ID 재사용 거절·활성 prepare replay·별도 시도·routed rollback 동일 요청 재시도로 구분. 게임 보호 규칙 불변. r3 source357 READY/FROZEN→메인 단독 UNITY_VERIFY.
+
+- batch10 r3: destination admission 전체 PASS. 다음 warehouse restore fixture는 공식 Begin/Publish restore transaction 누락으로 거절됨. Unity/launcher0→EDIT_READY에서 transaction 밖 복구 거절도 확인하고 실제 Begin/Publish/Rebuild/Complete 수명을 연결. production 불변, r4 READY/FROZEN→UNITY_VERIFY.
+
+- batch10 r4는 메모리 보호 중단(테스트 미시작), r5는 fixture의 다른 ledger 중복 binding 거절. Unity/launcher0→EDIT_READY에서 공식 복원처럼 기존 ledger의 transient candidate를 교체하도록 fixture 수정. singleton authority 보호 불변, source357 r6 READY/FROZEN→UNITY_VERIFY.
+
+- batch10 완료 checkpoint: source357/compile21.400초/CS0·새 직접 입고/운반예약 restore·core·실제104-section 복원3 PASS, graph986/cyclic17/대형23. KB 생성/검증/freshness PASS. Goal active; 다음 batch11 대피 목적지 계산/scene domain 참조 경계.
+
+- batch11 EDIT_READY/SOURCE_EDIT: Unity/launcher0 재확인. 메인 대피 목적지/방·위험 칸 조회11개를 InvasionEvacuationLocationPlanner로 분리, resident/owner 수명·코루틴·lease·fact·restore 상태는 기존 owner 유지. 별도 담당 scene domain5개 exact class 선언 분리. 씬/에셋/Inspector 변경 없음. 실제 대피·재복원 WIM048 표적 및 core/공식 월드 복원 예정.
+
+- batch11 READY/FROZEN: 메인·선언 담당 모두 동결. 대피 계산11개 moved/57개 remaining 본문 parity·public API/GUID 유지, scene class6개 parity/기존 GUID 보존. 정적 oversized22/static0/대형생성자12, baseline FAIL 유지. source371 핀 저장. 메인 단독 격리 UNITY_VERIFY(core→WIM048 실제 대피/복원→공식 월드 복원).
+
+- batch11 core-r2 PASS 후 실제 WIM048은 fire-action comparison tombstone의 temporal version/게시 metadata 누락으로 Capture 실패. 로그 보존, 명령줄/PID 확인한 소유 Unity76068만 종료/Unity0→EDIT_READY. 메인 P0 저장차단 수정: fire action/damage/resource의 identity projection을 기존 SnapshotCodec으로 통합해 원 발생/부모/게시 필드·comparison ledger revision 유지. 시각/부모 변조5종 거절/원상태/복원 동일 요청 재시도 및 기존 fire observer 회귀 추가. 메인·모든 작성자 source376 r3 READY/FROZEN→UNITY_VERIFY.
+
+- batch11 checkpoint PASS: source376 drift0/current compile22.985초/CS0, core·화재 temporal 회귀·실제 WIM048·공식104-section 복원3 PASS/Unity0. 대형22/최대SCC991/cyclic17(새 scene5파일 큰 순환 잔존), 신규 대피 planner 단독 SCC1. 다음 skill immutable version/primitives/narrative evidence 경계; 메모리 보호를 유지한 core의 직렬 시작 경로도 exact entry로 한정할 예정. Goal active.
+
+- batch12 EDIT_READY/SOURCE_EDIT: Unity/launcher0 확인. skill primitive enum6·narrative metadata/fact/ledger3·event context1의 exact declaration 분리. 스킬 formula version5는 불변 정의에 두고 기존 public generation const aliases 유지, SO는 version 계약만 참조. source hash 목록/단일 production formula hash의 두 소스 결합 반영. core만 edit/추가selector/resume금지로 직렬 startup 허용, 기존 메모리/OS격리 보호 유지·실제 production guard13cases 순수 PASS. 새 formula core 기존 검사와 core/월드 검증 예정.
+
+- batch12 READY/FROZEN: main·선언 담당 동결. 선언10개·원 attrs/API/GUID parity, formula version5 값과 generation aliases 유지·SO generation 역참조0. 도구 guard13 순수 PASS, threshold/launcher C# 불변. source388+launcher4 핀, oversized22/static0/대형생성자12. 메인 단독 UNITY_VERIFY: 같은 OS probe 후 직렬 profile에서 실제 core+formula→공식 월드 복원.
+
+- batch12 core-r1은 native launcher의 두 번째 exact entry allowlist에서 직렬 profile 거절, Unity 미시작/테스트 미실행. Unity/launcher0→EDIT_READY에서 native와 PS exact entry 계약을 맞추고 native self-test에 정상 entry/잘못된mode/접두entry 거절을 추가. 메모리/격리/timeout 보호 body 불변. Assets388 핀 불변·tool r2 READY/FROZEN→UNITY_VERIFY.
+
+- batch12 checkpoint PASS/EDIT_READY: source388+launcher4 drift0, current compile34.391초/CS0·수식/core·실제104-section 복원3 PASS. 대형22/최대SCC981/cyclic18, KB 생성/검증/freshness PASS/Unity0. Goal active. 다음: V20 사회 사건·관측/응답·guest·효과의 실제 명령 소유권을 메인이 설계/분리. shared pure event factory·effect 적용은 단방향, capturingIncident idle guard는 한 owner로 보존, evaluationAbsoluteDay의 daily scope/기존 fallback 일자 보존. 실제 상태 저장/복원/응답 실패·재시도 검사 후 검증. AbilityMove 계산-only200행 분할은 기존 planner 중복이라 배제. 컴파일과 heavy core를 별도 프로세스로 분리하는 compile-only 검증 경로는 메모리 보호를 유지하며 검토할 수 있음.
+
+- batch13 EDIT_READY/SOURCE_EDIT: source388/tool4 drift0·Unity/launcher0 재확인, 이전 goal turn은 실제 코드·검증 진전으로 분류. V20SocietyEventStateStore가 동일 rootStore의 current/writable/capture/prepare/publish와 단일 incident-publication fence·이력/재발 전이를 소유. ObservedIncident owner(lease/ACK/receipt·response accept/finalize 포함), SocietyEvent owner(daily/choice/guest), CampaignEffect owner(faction delta/work delay)를 기존 facade 뒤에서 조합하고 기존 ContentDefinitionRules에 정의 기반 계산을 재사용한다. 도메인 runtime→공용 state/definition 방향, 부모 역참조 없음. 모든 필드/DTO/원래 null/guard/실패 순서·일별 evaluation day scope 유지. 원장 actual rejection/uncertain ACK/재진입·WIM040 response/guest/life JSON 복원·기존 core·공식 월드로 검증한다. 메인 stateful 통합·검증, pure rule 이동만 별도 담당.
+
+## 현재 — 2026-10-15 저장 복구 영수증·책임/의존 분리
+
+- 1 완료: 물리 aggregate 소유 exact receipt/once 소비/지급 재개, additive legacy 계약, 부모 완료와 영수증의 joint acknowledgement·용량 선검사.
+- 2 완료: capture·incoming candidate·live retry 결합과 실제 소비/지급/소멸 후 복원·재시도, 실패 무변경·용량 회복 검증.
+- 3 완료: 복구 검증/DTO 책임 분리, request/action ID 계약 분리, 장비 저장3-file 순환 제거. 전체 대형 클래스와 거대 SCC는 후속 우선순위로 유지한다.
+- 4 실행 마감: 최종 contracts-r7와 실제104-section world-final-r8 PASS·동일 source70 hash 불변·Unity/launcher0. 메인 단독 비대화형 격리 실행. 결과와 실패 원본은 `Artifacts/QA/DesignRecovery-20261015-r1/`.
+- 현재: 코드 배치 동결 및 실행 검증 완료, 문서/KB 재생성·검증·freshness까지 마감. 다음 독립 배치는 V20 저장 codec/shared event rules 분리 → ItemTransfer 책임 경계 → 거대 SCC owner별 정리. 기존 승인 기능·이전 B155 미완료 범위는 유지한다.
+
+## 현재 — 2026-10-15 남은 설계 문제 수정·실행 검증
+
+- 기준: GitHub `0da13c84`. 수명 오염 → 실패 시 상태 손상 → 다중 상태 검증 순으로 수정. 저장 형식·씬/프리팹 연결 불변.
+- 1 구현: NarrativeRequestContextBuilder 전역 5 authority를 컨테이너 소유 서비스로 전환. 필수 생성자 주입, 종료 후 거부/참조 해제, 모든 생산 소비자 연결.
+- 2 구현: AtomicItemConsumptionService의 예약 앞부분 오차감과 후속 lease 실패 시 부분 변경 제거. 예약 소유자가 전체 exact-stack vector를 사전 검증한 뒤 일괄 변경하며 잘못된 입력 행은 거부.
+- 3 구현: V20 detached seasonal/faction 후보를 명시적으로 함께 검증. 다중 publish 직전에도 같은 pair를 재검증하며 실패 시 root 불변. content resolution과 population/funeral rollback 5경계 전파.
+- 검증 완료: 현행 소스 compile26.746925초/CS오류0; 실제 GameplayScene의 통제 actor 요청과 복수 container 수명 PASS, atomic 차감/실패/재시도 PASS, campaign join/폐기/재시도 PASS, 기존 child/ack/장례 복원 PASS. 4실행 exit0, source40 hash drift0. 자연 UI/AI 전체 플레이·장기 성능은 미실행.
+- 현재: 해당 3개 수정 배치 완료. 전원 READY/FROZEN 소스로 메인 단독 격리 검증 완료, Unity/launcher0·EDIT_READY. 구조 기준은 oversized37>baseline5로 FAIL 유지, mutable static0.
+- 후속 설계: 내구성 있는 아이템 child-commit 증거, 큰 runtime 책임 분리/assembly SCC는 별도 위험과 계약을 findings에 우선순위로 남김. 크기 수치만 맞추는 분할 금지.
+- 증거: `Artifacts/QA/DesignCleanup-20261015-r1/`.
+
 ## 현재 — 2026-10-15 게임 코드·디렉토리 전수 정리
 
 - 범위: DungeonStory 현재 디스크의 first-party 소스/에셋 참조/도구·디렉토리. 기존 사용자 변경, 저장·QA 증거, 외부 패키지 보존.
@@ -4115,3 +4409,242 @@ Accepted integration: catalog r1 contains 49 actions / 57 templates / 224 state 
 - [x] exact facility result identity, prepare/commit rollback, non-persistent target rejection, current-grid 단일성, official save row, aggregate save/restore, console clean 확인
 - [x] 격리 launcher exit 0, visible=false, interactive fallback 없음, 종료 후 관련 프로세스 0
 - [ ] 기존 계획의 다음 미완료 감사 항목을 선택해 동일한 좁은 current-source 증거 방식으로 진행
+
+
+Architecture Goal batch16 READY/FROZEN → UNITY_VERIFY (2026-10-16): production query/input/command/terminal owners 완료, moved81/retained26/facade21/nestedGC1 parity 및 독립 READ_ONLY review PASS. 단일 stateStore/command publication fence/GC candidate, order vs execution Bridge 유지. parent constructor-only refs4 제거, immutable IDs5/consumer qualifiers29. source 476·launcher4 봉인, Unity0 확인. metrics 대형19(원본37 중18개 분리)/mutableStatic0/largeConstructor12, default giant SCC 969; 기준 변경 없음. metrics Verify는 역사 baseline5 대비19로 예상 실패하며 Goal 미완료. production-only edit entry admission27 순수 guard PASS; 같은 격리 런처에서 실제 OS probe→현재 컴파일→명령 ACK/저장·복원/GC/준비출력 실행 예정. 현재 실행 PASS로 세지 않음.
+
+
+## 2026-10-16 G10 요청 상태 분리 — 현재 배치
+SOURCE_EDIT 메인: `LocalLlmRequestState`가 queue/running/affinity를 소유하고 완료 token은 원래 exactly-once gate를 유지한다. binary와 일반 요청을 공통 atomic admission으로 연결해 capacity 우회·eviction callback 재진입·중복 correlation을 수정했다. public 계약은 같은 assembly의 별도 파일로 정확 이동, component GUID/serialized23 불변. pure scheduler/state 검사와 기존 격리 NarrativeContextLifetime play entry의 표적 component7경계+실제 Preparation 회귀 예정. 이 시점 syntax44 PASS, semantic/Unity는 아직 미실행.
+
+G10 state r1 READY/FROZEN: main/Luna source 작성 종료, pure-state9 PASS, source732/tool7 pin, serialized23/public contracts parity PASS. SOURCE_EDIT 닫고 기존 exact NarrativeContextLifetime play entry로 UNITY_VERIFY를 연다. reviewer는 읽기 전용이며 Unity 담당은 메인 한 명이다.
+
+G10 r1은 CS0103(계약 파일 Encoding using 누락)로 컴파일 단계 exit1, Play 미실행이었다. Unity/launcher/compiler0 확인 후 참조를 복구하고 disable 시 running/queued 각1회 취소 관측을 보강했다. r2 source732/tool7 FROZEN, pure-state9 재통과, 독립 리뷰 잔여 확정 결함0. UNITY_VERIFY 재개.
+
+
+G10 r2 current runtime+Editor compile55.78s/CS0, Play fixture가 미설정 capture mode를 명시 거절해 exit1이었다. 종료/process0 뒤 fixture 자체가 isolated Play에서만 환경 flag를 scoped 설정·finally 복원하게 보완했다. production runtime 변화0. r3 source732/tool7 READY/FROZEN; UNITY_VERIFY 재개.
+
+
+
+## 2026-10-16 C11 장비 진화 취소·수명 경계
+G10 r3 정상 종료/process0 뒤 SOURCE_EDIT. 메인이 CancelReforge/CancelReattunement의 terminal Cancelled guard2곳과 표적 runtime fixture를 소유한다. 거래 aggregate는 유지하며 queue 실패 cleanup/반복 취소0효과/close 거절·JSON fresh-owner restore·동일 재시도/물리 WIP ACK 재생/완료 게시 rollback을 확인한다. Luna는 exact edit entry의 기존격리guard/wiring만 담당, Unity 담당은 메인 한 명이다.
+
+C11 READY/FROZEN: runtime terminal guard2·복원 max natural-state gate2, 표적 fixture10경계 준비. 독립 read-review 추가확정결함0, source738/tool8 pin. main/Luna 작성종료; SOURCE_EDIT 닫고 exact RunEquipmentEvolution edit/SerializedStartup으로 UNITY_VERIFY를 연다.
+
+C11 r1 current runtime+Editor compile43.31s/CS0, fixture 시작 전 edit mode의 의도된 QA save-root 미설정을 거절하여 exit1. owned process0 뒤 fixture가 launcher evidence/persistent-data를 기존 validator로 검증하는 scoped root를 설정·finally 복원하도록 했다. production/launcher무변경, r2 source738/tool8 FROZEN·UNITY_VERIFY.
+
+C11 r2 current Editor compile38.69s/CS0, 실제 formula 생성이 fixture의 누락된 원본 evidence를 명시 거절해 exit1. production guard를 건드리지 않고 fixture 초기 상태를 실제 RecordUsage→mastery threshold→원본 evidence/고정 history 생성으로 바꿨다. readonly 기준점으로 setup write와 완료 publication 계측도 구분한다. owned process0 후 Editor-only 수정, r3 source738/tool8 FROZEN.
+
+C11 r3 current Editor26.43s/CS0 뒤 guard RAM<1GiB로중단. source/tool동일·owned0·컴파일캐시조건변화로허용된1회 r4는cached2.56s/CS0,새runtime8경계전부통과후 기존lower materialfixture의누락된frozen input projection을엄격거절했다. owned0 뒤 lowerfixture3필드만보충하고기존assert/production validator유지. r5 source pin 업데이트, READY/FROZEN; 같은exactentry 검증.
+
+G10/C11 배치닫기: C11 r6 actual10/invalid16·currentcompile·OSprobe/exit0/process0, source740/tool8 동결. 이제 코드배치의영향받은생성KB를1회갱신한다. 이후G2정책owner를첫단일경계로진행하며G1및나머지목표를보존한다. 전체Goal미완료ACTIVE.
+
+마감 검증PASS/EDIT_READY·GoalACTIVE. 다음 G2정책owner는첫분리단계다. 보고서가요구한 식사 vs 약물/해독 실행소유권의 분리/처리판정까지 끝나기 전에는 G2완료로닫지 않는다. 현재원본은Models/Survival/Core/CharacterConsumablesRuntime.cs(Services경로아님), aggregate는CharacterConsumablesStateRules.cs; existing CharacterConsumablesPolicyFactFixture가reserve/publish 실패·ACK손실 회귀를제공한다.
+
+
+## 2026-10-16 G2 정책 소유권 — SOURCE_EDIT
+직전 Goal 턴은 G10/C11 구현·실행·지식베이스 갱신으로 progress였다. 현재 source740/tool8 drift0, Unity/launcher/compiler0를 재확인했다. 새 CharacterConsumablesPolicyRuntime은 정책3종·revision·pending fact의 query/command/reserve/publish/rollback/replay와 actor retirement를 단독 소유하며 현재 root store에서 매번 상태를 조회한다. DTO/codec/clock/공개 facade/API는 유지하고 parent→owner 단방향으로 연결한다. G2 전체는 식사와 약물/해독 실행 경계까지 끝나야 완료다.
+
+G2 policy r1 READY/FROZEN: policy15 bodies/unrelated93/public43/constructor parity, syntax52, admission101 PASS; read-only review 확정결함0. source748/tool8 pin, main/Luna 작성종료. SOURCE_EDIT 닫고 exact RunConsumablePolicies edit/SerializedStartup UNITY_VERIFY를 연다. 단일 Unity 담당 메인; current compile/실제 실행은 아직 미실행.
+
+G2 policy r1 runtime+Editor currentcompile57.09s/CS0·copied DLL 확인 후 fixture 시작 전 RAM<1GiB guard로 exit1. source748/tool8 drift0, owned job/compiler0·free RAM 약7GiB 회복 확인. 동일 소스 cached 재시도1회 r2만 허용하며 보호 기준/timeout은 유지했다.
+
+G2 policy r2 cachedcompile2.88s/CS0·OSprobe 통과, 검증 entry가 evidence directory를 만들지 않아 fixture 전 exit1. process0/EDIT_READY 뒤 생성 순서를 보완했다. 원본에서 pending policy fact가 남은 actor의 정책 값만 정리하면 복원 검증에 불일치하는 경로를 확인하여 owner의 replay 선행 조건·실패 무변경/동일 재시도로 수정한다.
+
+G2 policy r3 READY/FROZEN: retirement pending ACK 선행·실패 무변경/동일 재시도 추가, evidence directory 보완. 원본 StateRules→Runtime 상수 역참조4는 기존 persistence ID 계약으로 옮겨 제거하고 공개 const alias/문자열 값4·DTO·codec 나머지 token 동등을 확인했다. source750/tool8, syntax55/0, body15/93/public43 parity, 독립 review 확정결함0. SOURCE_EDIT 닫고 메인 UNITY_VERIFY 재개.
+
+G2 policy r3 실제 실행·정상 종료 완료: current Survival/Editor compile48.29s/CS0·CON01/actor closure PASS·source750/tool8 drift0·owned0. UNITY_VERIFY 닫고 EDIT_READY. 정책 배치의 보고/영향 인덱스를 마감한 뒤 G2 약물/해독 상태와 식사 실행의 경계를 구현한다. 공통 operation sequence/completion/fact publication의 소유권을 먼저 확정하고 actual substance/detox ACK·저장/복원·동일 재시도와 대표 meal 회귀를 같은 배치에서 검증한다. G2를 완료로 닫지 않는다.
+
+## 2026-10-16 G2 식사/약물·해독 실행 — SOURCE_EDIT
+직전 Goal 턴은 정책 owner/미확인 영수증 retirement 수정·현재 실제 실행·색인 마감으로 progress였다. 재개 source750/tool8 drift0·Unity/launcher/compiler0, AGENTS unchanged 확인. 메인이 약물/해독 plan·중독/toxicity/시간효과의 단일 owner와 공통 operation sequence/completed record/게시·재생 owner를 구현한다. 식사/배달·공통 수명 조정은 기존 facade에 유지하며 물리 거래는 기존 application port를 재사용한다. DTO/GUID/공개 ctor·API·clock/random 호출 순서를 보존하고 owner→parent callback/역참조를 만들지 않는다. Luna는 exact RunConsumableExecution edit entry의 기존 격리 wiring/meta만 소유한다. 단일 source 작성자/Unity 담당은 메인, 새 배치 전체를 동결한 뒤 meal·substance·detox의 실제 ACK/JSON fresh-owner 복원/재시도 회귀를 함께 수행한다.
+
+G2 execution r1 READY/FROZEN: substance46/common9/retained49/public43/18facade/struct2·Tick exact·retire predicates parity, syntax58/0·admission108 PASS. 공통 journal 단일 쓰기/parent 역참조0·DTO/codec 불변, 독립 read-review 확정결함0. source755/tool8 봉인, main/Luna 작성 종료. SOURCE_EDIT 닫고 exact RunConsumableExecution edit/SerializedStartup UNITY_VERIFY를 연다. 메인 단독 Unity 실행.
+
+G2 execution r1 current Survival/Editor compile64.01s/CS0·OSprobe, policy/actor closure 통과 후 실제 field meal ACK-pending 복원을 strict validator가 거절했다. field 경로가 physicalContextFrozen/위치·초기 vitals를 고정하지 않았으며 registered meal은 고정한다. 기존 본문 parity가 이 field 경로도 동일함을 입증하므로 이전부터 있던 producer 계약 누락이다. process0/source755·tool8 drift0 후 EDIT_READY. validator/DTO/게임 수치는 유지하고 field producer를 같은 physical context 계약으로 연결하며 JSON round-trip·변조 거절/무변경·ACK 재시도를 표적 보강한다.
+
+2026-10-17 G2 execution r2 READY/FROZEN: field producer의 기존 DTO8필드만 연결, JSON roundtrip/strict 변조 거절·상태보존/ACK 재시도 추가. 기존 WIM036/WIM028 overdose fixture의 consumption observer 누락은 현재 production observer/ledger 조립 패턴으로 보완(게임 guard·assert·수치 불변). source755/tool8, parity46/9/49·API43·syntax58/0, owner/field fix 독립리뷰 추가확정결함0. main/Luna 동결, SOURCE_EDIT 닫고 same exact edit entry UNITY_VERIFY.
+
+2026-10-17 G2 execution r2 actual9묶음/하위effect recovery9·current compile31.196538s/CS0·OSprobe·actualexit0·owned0·source755/tool8 drift0 PASS. G2의 보고서 최소 경계(식사 vs 약물/해독과 공통 operation/영수증 단일 권위)를 모두 구현·검증했다. 식사/배달·root 저장수명 조정은 기존 facade에 유지하고 물리·효과 거래는 기존 application ports를 재사용한다. G2를 완료 판정하고 해당 문서/인덱스를 1회 마감한다. 전체 Goal ACTIVE. 다음은 G1 잔여 restock/run 수명 분리와 현재 실제 취소·복원 검증, 함께 남은 C7/C8 회귀를 우선한다.
+
+2026-10-17 G1 SOURCE_EDIT/메인 EDIT_READY: 현재 Unity/compiler/launcher0, G2배치마감 완료. 메인이 공통 WorkRunRuntime의 수명·작업 승인·중단/inline receipt를 단일 권위로 묶고, WorkAccidentExecutionRuntime의 피해/사실 transaction 및 RestockWorkExecution의 운반 실행을 독립시킨다. 기존 cargo/labor/proficiency owner를 그대로 재사용하며 parent callback·상태 복제 없이 같은 owner 명령을 공유한다. public API/ctor/receipt/DTO/씬/프리팹/GUID/clock·RNG·cleanup순서 보존. 실제 restock/cancel/restore/C7/C8는 동결 후 관련 기존 entry만 검증한다. 읽기전용 담당은 fixture/reflection 소비자 inventory만. 전체Goal ACTIVE.
+
+
+2026-10-17 G1 실행분리 READY/FROZEN: run27/restock4/사고1·retained9 body/phase parity, 기존public7/ctor/공통정의5동일·syntax67/CS0. private reflection2와 source package/freshness3소비자 갱신. 신규meta4 GUID유일1·작성자FROZEN, source-pin-g1-execution-r2(766)/tool-pin-g1-execution-r1(8). SOURCE_EDIT 닫고 메인단독 UNITY_VERIFY로 기존 MovementOwnership actual entry를 실행해 current compile 및 C7/C8의 관련 실제 회귀부터 검사한다. physical 약6.8GiB/owned0, 원OSprobe·1GiB/2GiB·900s보존. G1 actual restock/취소/복원은 별도 남음, 전체Goal ACTIVE.
+
+
+G1 movement r1: current Csc53.665667s/CS0와pure4reports PASS, EnterPlay 직전 availablePhysical1059962880<1GiB로 owned job만 종료(launcherexit1). actualC7/C8/G1미완료. source766/tool8 drift0·owned0 확인 후 동일소스cached실행1회로 Csc/ILPP 초기부담을 제거해 확인한다. threshold/timeout/OS격리불변, 다른앱변경없음. 소스동결유지.
+
+
+G1 movement r2 실제 실패로 UNITY_VERIFY 닫힘/owned0 확인/메인 EDIT_READY. source766/tool8 drift0, 코드동결은 유지했다. currentcompile PASS와 actual 이동/복원8 PASS를 전체 성공으로 확대하지 않는다. core:repath의 fault 주입 이전 action commit/위치 및 start counter 경계를 좁혀 setup race와 실제 회귀를 구별하는 것이 다음 수정이다. 같은 assertion으로 blind rerun 금지. 이후 G1 실제 restock/취소/정상재시도/active 저장복원과 사고 거래 검증을 수행한다. index는 관련 G1배치가 닫힐 때1회 갱신. 전체Goal ACTIVE.
+
+2026-10-17 Goal전턴분류=progress(G1실제owner분리/currentcompile/actual8 및 core실패증거). 현재owned0/메인EDIT_READY로 SOURCE_EDIT 재개. core:repath assertion/20s/270s는 그대로 두고 PrepareAction reset→publication→fault 직전 position/path/actionStarts/move상태만 추가관측한다. source1 Editor fixture만 main소유, 생산수정없음. 원인이확정되기전 조건완화/실패재분류없음.
+
+
+G1 core진단 READY/FROZEN source-pin-g1-execution-r3(766)/tool8; syntax오류0·owned0·모든작성자FROZEN. SOURCE_EDIT닫고main UNITY_VERIFY, 기존 Movement actualentry로 같은assertion에서fault-boundary만관측.
+
+
+G1 r3진단: currentEditorCsc37.770029s/CS0, 실제move8뒤 core:repath실패의 원인관측을 확보했다. reset29→publication30(actionstarts0), fault30/block30·approvedpath30→31, start1→2/repath0. core:no-path시작뒤 memory877113344<1GiB중단이라 reportRUNNING보존. process0·source766drift0 확인/UNITY_VERIFY닫힘, mainEDIT_READY. SOURCE_EDIT은fixture만: setupAI pause+public work/shopping정리, 시작관측callback에서fault주입+원래block전경로확인; 원assertion/timeout불변.
+
+
+G1 corefixture r4 READY/FROZEN: production/meta/tool 불변, Editor1파일만setup pause/기존owner정리/stationary검사/startcallbackfault/pre-block검사/도착즉시관측으로수정. 원repath1/start1/20s/270s그대로, 독립읽기확정결함없음, syntax68/CS0·source-pin-g1-execution-r4(766)/tool8·owned0. 모든작성자FROZEN, SOURCE_EDIT닫고main UNITY_VERIFY로수정된접근검증.
+
+
+G1r4 currentEditorCsc28.103637s/CS0後entry전memory1054220288<1GiB로owned job종료. source766/tool8drift0·owned0. 동일소스cached1회(r5)로방금완료된Csc/ILPP부담제거확인, 원조건/OS격리불변·source동결유지.
+
+
+G1r5 actualcore2/FINAL/exactRows/failures0 통과: setupstationary29/start0, fault29/pathcontains30, repath0→1/start0→1. actualmovement8도PASS. 이후destinationless look-around recovery완료/starvation시작중memory912461824<1GiB로ownedjob종료, 나머지미실행. source766drift0/process0·UNITY_VERIFY닫음/mainEDIT_READY. 새SOURCE_EDIT: 메인 기존Movement orchestration에 exact standalone selector3 entry를추가(기존runner/assertions그대로), leaf담당launcher/guard/docs4파일wiring만. fullrun재시도/threshold변경없음.
+
+
+G1 standalone groups READY/FROZEN: exact RequestDestinationless/Deprivation/PrimitiveForBatch3, mainrunner는기존fault runner/gate를그대로공유. actual8 prefix·runner/report/expectedrows gate텍스트동일, corefixture r5해시불변, syntax68/CS0. leaflauncher4파일review/pure135/PowerShellparser PASS, 신규meta없음. source-pin-g1-execution-r5(766)/tool-pin-g1-execution-r2(8), owned0·모든작성자FROZEN. SOURCE_EDIT닫고main UNITY_VERIFY로남은각group별freshprocess직렬실행. fullworld/actual8/core를다시실행하지않으며기존증거한계보존.
+
+
+G1 standalone destinationless r1은 현재 Editor 컴파일23.541152초/CS0 뒤 메모리 부족으로 중단됐고, 같은 소스의 cached r2도 physical1002967040<1GiB로 중단됐다. RUNNING 보고서에서 look-around2/wait recovery1 완료만 확인했으며 wait starvation은 진행 중, exit2는 미실행이다. 관측된 assertion failure0/console error0을 전체 PASS로 확대하지 않는다. source766/tool8 drift0·owned0, UNITY_VERIFY 종료/메인 EDIT_READY. 같은 조건의 추가 Unity 시도는 멈추고 사용자 지시대로 코드 정리를 계속한다. G1 active-restock 공식 복원은 shop active operation과 physical lease를 검증하지만 새 CargoOperation에 재결합하는 원본 경로는 아직 확인되지 않았으므로 재현 전 결함으로 단정하지 않는다. 전체 Goal ACTIVE.
+
+
+## 2026-10-17 G3 자재 공급 책임 분리 계약
+
+메인 SOURCE_EDIT에서 G3 자재 수명 분리를 구현한다. 소유권·실패·복원 계약은 findings.md의 같은 날짜 절을 따른다. 현재 원본7/유지90/public31/생성자·phase parity와 syntax76/오류0, 독립 정적 검토를 통과했다. G1 restock/C10 factory/G3의 실제 Unity 검증은 사용자 메모리 상황에 따라 보류하며 완료로 세지 않는다. 전체 Goal ACTIVE.
+
+2026-10-17 source 묶음 READY/FROZEN: G3 material 수명/C10 definition·instance factory 구현 및 G1 restock 단독 경로 연결 완료. receipt `verification-g1-g3-c10-source-r1.json`, source777/tool8, syntax76/0·G3 moved7/retained90/public31/phase exact·C10 moved11/API29/ctor PASS. 새 source Unity semantic compile/actual은 미실행. 사용자 지시대로 source 정리를 계속하며 동일 RAM 조건의 반복 실행은 하지 않는다. G1 공식 active-restock 복원·사고/G3·C10 actual과 C7/C8 나머지, G4~G9·조건부 잔여를 모두 유지한다. Goal turn 분류=progress, 전체 ACTIVE. index는 관련 배치가 닫힐 때1회 갱신한다.
+
+2026-10-17 G4 SOURCE_EDIT/메인 EDIT_READY: 이전 Goal turn=progress(G3·C10 실제 책임 이관/정적 증거). 현재 verification process0·AGENTS 변경없음, 전체 Goal ACTIVE. 메인이 화물 publication/pending/capture gate와 증원 Unity materialization을 각 실제 owner로 옮긴다. 단일 domain/root·settlement recovery·observation 재진입 gate/DTO/GUID/실패순서 보존 계약은 findings.md에 기록한다. 실제 Unity는 사용자 지시대로 현재 보류하며 소스/소비자와 표적 검증 연결을 정리한다.
+
+G4 source parity8/retained69/public18/ctor2 및 syntax82/0·독립 검토 PASS, 실제 검증 pending. 같은 SOURCE_EDIT에서 메인 G5 치료/공급 owner 분리를 이어간다. 계약은 findings.md의 G5 절, 원본 snapshot은 g5-treatment. 다른 작성자 FROZEN·Unity 미실행.
+
+2026-10-17 G4/G5 READY/FROZEN: 실제 책임 이관+source 소비자 통합 완료, `verification-g4-g5-source-r1.json` source795/tool8. G4 body8/retained69/API18/ctor2, G5 medical29/query3/identity1·interface2·literal3/retained62/API41/ctor·fuel/restore 순서 동등 및 syntax90/0·독립 정적 리뷰 통과. 사용자 지시대로 새 source Unity semantic compile/actual은 미실행으로 남긴다. 이전 Goal turn에 이어 이번 turn도 progress이며 전체32대상/완료6 판정·실행 잔여를 유지한다. 다음 source 우선순위는 G6 terminal receipt/정리 수명, G7 수동 급수 custody, G8/G9 및 조건부 잔여다. index는 관련 배치가 닫힐 때1회 갱신한다.
+
+2026-10-17 G6 SOURCE_EDIT/메인 EDIT_READY: 직전 Goal turn=progress(G4/G5 책임 이관 및 실제 source/정적 증거). 현재 owned process0·기존 source795 drift0·AGENTS 변경없음. terminal journal/candidate GC 수명과 공유 authority pointer를 분리한다. 실제 소유권·불변식 계약은 findings.md의 G6 절, snapshot은 g6-terminal-journal. 다른 작성자는 읽기 조사만, Unity는 사용자 지시대로 현재 보류한다. 전체32대상/실행 잔여와 Goal ACTIVE 유지.
+
+G6 terminal17/snapshot3/contract11·유지72/API33/ctor/GC/복원 parity 통과, 실제 실행은 pending. 같은 SOURCE_EDIT에서 G7의 수동 급수 custody owner와 공유 topology/파생 상태 수명을 이어서 분리한다. 메인만 작성하며 읽기 담당은 source 소비자 조사만 수행한다. 계약은 findings.md의 G7 절, 원본은 g7-manual-water snapshot.
+
+2026-10-17 G6/G7 READY/FROZEN: 구현/소비자 연결 및 표적 정적 대조·syntax98/0·독립 읽기 검토 통과. source806/tool8, `verification-g6-g7-source-r1.json`. SOURCE_EDIT를 닫고 Unity는 사용자 지시대로 계속 보류한다. 현재 Goal turn=progress(책임·상태/실패 수명 이관), 실제 검증을 미완료로 유지하며 완료6/32·전체 ACTIVE다. 다음 source 작업은 현재 창 재확인 후 G8 조립 경계, G9 및 조건부 잔여를 우선한다.
+
+2026-10-17 G8 SOURCE_EDIT/메인 EDIT_READY: 직전 Goal turn=progress(G6/G7 실제 책임 이관·표적 정적 검증). 현재 source806 drift0/Unity·launcher·compiler0/AGENTS unchanged를 확인했다. 메인은 기존 작업 모듈4의 조립·주입 의존성/무효화 수명을 CharacterWorkModuleRuntime 하나로 옮긴다. 선택기 교체 뒤 기존 명령·restock 참조가 남는 경로는 상태를 초기화하지 않고 명시 rebind로 정리한다. 원본 snapshot은 g8-work-modules, 계약은 findings.md의 같은 절. Unity는 사용자 지시대로 보류, 읽기 담당은 소비자 조사만 한다. 전체 Goal ACTIVE.
+
+2026-10-17 G8 READY/FROZEN: module4/dependency32/주입10/factory1·유지110/API67/serialized/주입·생성/취소·복원 동등 및 순수 수명7/현재 syntax106/0/독립 정적 검토를 통과했다. reflection7/source 목록4 통합, source813/tool8·`verification-g8-source-r1.json`. SOURCE_EDIT를 닫으며 실제 Unity compile/AI·작업·취소/공식 복원·재주입은 미실행으로 유지한다. 현재 Goal turn=progress(실제 모듈 수명 이관·오래된 selector edge 수정과 표적 순수 증거), 전체32/완료6·ACTIVE다. 다음 source는 G9 거래 경계와 조건부 잔여, 실제 검증은 사용자 자원 조건 변화 후 별도 창이다.
+
+2026-10-17 G9 SOURCE_EDIT/메인 EDIT_READY: 직전 turn=progress(G8 조립/수명 owner·selector rebind 및 순수 수명7). 현재 source813 drift0/owned process0·AGENTS unchanged를 확인했다. 메인은 특성 추론의 검증/근거 소비/사실 게시와 rollback 보류 수명을 CharacterTraitInferenceTransaction으로 옮긴다. state/serialized 필드는 parent에 유지하고 internal authority port의 현재 조회/명령만 사용한다. 계약은 findings.md의 같은 절, snapshot은 g9-trait-inference. 읽기 담당은 소비자/기존 actual fixture 조사만, Unity는 사용자 지시대로 계속 보류. 전체32/완료6·Goal ACTIVE.
+
+
+2026-10-17 G9 READY/FROZEN: 특성 추론 거래4/latch1·authority9/유지76/API35·serialized/DTO/Inject/검증·게시/rollback·복원 동등, cached-production-ABI compile와 post-validation rollback 단위4·독립 읽기 리뷰를 통과했다. SOURCE_EDIT 마감 증거는 verification-g9-source-r1.json이며 현재 Unity semantic compile/actual은 미실행이다. 다음은 C9 capability owner 및 조건부 잔여, 관련 실제 검증은 사용자 자원 조건 변화 후 별도 창으로 남긴다. 완료6/32·Goal ACTIVE/이번 turn=progress, 관련 index batch는 계속 열려 있다.
+
+
+2026-10-17 C9 SOURCE_EDIT/메인 EDIT_READY: 직전 turn=progress(G9 거래 owner·표적 단위4/정적/제한 compile). 현재 source818/tool8 drift0·owned process0·AGENTS unchanged 확인 후 새 편집 창을 연다. 메인은 6종 capability의 명령/실패·복구와 상태 접근을 같은 identity store 위의 실제 owner로 분리하며 public facade/저장 형식/GUID/수치/순서를 보존한다. 읽기 담당은 소비자/기존 fixture inventory만, Unity 보류. contract는 findings.md의 C9 절, 원본 snapshot은 c9-extreme-capabilities. 전체32/완료6·Goal ACTIVE.
+
+
+2026-10-17 C9 READY/FROZEN: capability6/moved54/shared12·public28/type13/const6·같은 store/DTO/수확 receipt·death retention/Arcane partial resume/조건 순서/identity guards-only 대조, current10-file cached-ABI compile·연구 preparation/fixed hash managed5 및 독립 리뷰를 통과했다. SOURCE_EDIT 마감, verification-c9-source-r1.json과 source/tool 새 pin을 따른다. Unity semantic compile/actual은 사용자 지시대로 미실행. 다음은 C1/C2 및 조건부 잔여, 기존 actual 미완료와 전체32/완료6·ACTIVE 유지. 이번 turn=progress. index는 관련 배치 마감 때1회 갱신.
+
+
+2026-10-17 C1/C2 SOURCE_EDIT/메인 EDIT_READY: 직전 turn=progress(C9 capability6 actual body/ABI/managed5). 현재 source841/tool8 drift0·Unity/launcher/compiler0/AGENTS unchanged 확인 후 main C2 실행 owner를 작성한다. C1은 독립 읽기 판정만 위임했다. C2 계약은 findings.md의 같은 절, 원본은 c2-production-execution. 기존 query/input/command/terminal owner와 aggregate/저장 authority를 재사용하고 새 state clone/root/parent callback을 만들지 않는다. Unity는 사용자 지시대로 보류. 전체32/완료6·ACTIVE 유지.
+
+
+2026-10-17 C2 READY/FROZEN: execution22/retained25/public29/fields24·같은 store/4 owner/constructor/restore phase/ACK·receipt·ruin 동등, currentEconomy95-source managed player compile/47refs 및 독립 정적 리뷰 통과. 소비자5+제압 QA1 통합, source/tool pin·verification-c2-source-r1.json으로 마감한다. SOURCE_EDIT 닫힘/Unity NOT_RUN. 다음 main 최우선은 C1의 확인된 targeting-mode 공존/명시 취소 공백과 PlayerSelected lifecycle 회귀다. C1복잡한 구현은 main, 나머지 조건부/기존 actual 미완료/전체32·완료6/Goal ACTIVE 유지. 이번 turn=progress.
+
+2026-10-17 C5/C6: source1346/tool9 drift0·Unity/launcher/compiler0 확인, main EDIT_READY/SOURCE_EDIT. C5 노동 허가·작업 도구 수명을 같은 CaptivityActorAccess 위의 실제 owner로 분리한다. 기존 고유 아이템 생성에 components를 함께 넘겨 내구도 후속 쓰기를 제거하고, 반납 실패 시 해제·terminal 진입을 거절한다. C6 급식은 이 묶음 이후 독립 경계를 처리한다. Unity는 사용자 지시대로 보류하며 native 검증 미완료를 유지한다.
+
+2026-10-17 C5 main/leaf READY/FROZEN: 노동 owner10메서드와 도구 내구도 포함 단일 게시·반납 실패/재시도·이전 pending 복구 구현, 기존 D09 native fixture에 실패/JSON state 교체/재시도 연결. SOURCE_EDIT 닫고 현재 소스의 managed C# compiler·통제 실행 검증만 연다. source-pin-c5-labor-r1/tool-pin-c5-labor-r1, Unity/import/실제 복원 NOT_RUN 유지.
+
+C5 managed r1 종료/관련 process0 후 main EDIT_READY/SOURCE_EDIT: 공유 도구 반환 담당의 세션별 capture fence 보완. 통제 시험은 새 fence의 reentrant 저장 거절과 정상 완료 후 허용을 추가하며 기존 조건은 유지한다.
+
+C5 fence r2 READY/FROZEN: same durableTools instance를 노동/호송이 공유, 기존 Capture/BuildRestore 첫 경계에서 반환 중 capture 거절. static 순수 assignment·DTO/공개 facade 보존, dead-tools 자동 retry는 restore staging 중 억제. source/tool-pin-c5-labor-r2 봉인, main/leaf 작성 종료/SOURCE_EDIT 닫음. 현재 source managed 재검증만 실시, Unity 보류.
+
+C5 r2 현재 runtime/Editor Csc 오류0·입력 drift0, 반환 중 capture fence 통제3 추가 PASS. terminal/process0 확인 후 main EDIT_READY로 source-consumer 창을 열어 V27 배송 owner 경로와 exporter freshness에 실제 노동/공유 물리 소스를 연결했다. 기존 소유 도메인·manifest 행/판정은 유지한다. 마지막으로 자동 반납 retry 성공 시 대기 문구도 해제하고 동결한다.
+
+C5 r3 READY/FROZEN: source-consumer 2개 및 retry 성공 메시지 반영, source/tool-pin-c5-labor-r3 봉인. 메인/leaf 작성 종료·SOURCE_EDIT 닫힘, Unity 보류. 변경된 runtime/Editor만 현재 Csc와 통제 시험을 재검증한다.
+
+
+C5 r3 source 배치 마감: 현재 runtime2714/Editor1021 Csc 오류0·입력/참조 drift0, 통제32+원본2 및 source parity/syntax157·0 PASS. verification-c5-source-r1.json·source1355/tool9를 따른다. 실제 Unity·D09/호송/전체 저장 복원은 사용자 지시대로 미실행, C5 완료로 세지 않는다. main/leaf READY/FROZEN·SOURCE_EDIT 닫힘, 다음 C6 급식 담당 및 pending feed 영수증 경계. 전체32/완료6·Goal ACTIVE. 이번 turn=progress.
+
+2026-10-17 C6 SOURCE_EDIT/main EDIT_READY: 직전 turn=progress(C5 owner/반납 계약·현재 Csc/통제32). source1355/tool9 drift0·AGENTS unchanged·Unity/launcher/compiler0 확인 후 C6 급식·급수/배송·pending feed 조정을 같은 CapturedWildlifeStateSession 위의 독립 owner로 이관한다. 기존 포획/이동/보안·역할·restore projection owner와 public ctor/DTO/GUID/RNG 순서 보존, Unity는 사용자 지시대로 보류. main이 상태/영수증/검증을 통합하고 leaf는 확정 source-consumer 경로만 갱신한다.
+
+C6 r1 main/leaf READY/FROZEN: 급식 owner5메서드+필요4개 의존 이관, 기존 CarePublished/actor commit 및 receipt 검증은 유지하고 표시/현재 질병 수치의 오판만 제거했다. 기존 1.5 decay·식단/RNG 순서 유지, 보류 feed는 위치와 새 허기보다 먼저 retry한다. Capture/Stage/Projection 중 소유권 mutation을 세션별로 차단한다. 기존 native outbox Run에 실제 actor/물리 Sink·ACK 실패/JSON state 교체/재시도 및 정상 decay 검증 연결. source/tool-pin-c6-feeding-r1 봉인, SOURCE_EDIT 닫힘. 현재 managed C# compile/통제 검증만, Unity 보류.
+
+
+C6 source 배치 마감: 통제22+원본2/동등성·syntax161·0 및 현재 runtime2715/Editor1021 Csc 오류0·입력 drift0. main/leaf READY/FROZEN·SOURCE_EDIT 닫힘, verification-c6-source-r1/source1360/tool9. Unity·native/실제 AI·공식 저장 복원은 미실행으로 남기며 완료 수는6/32다. 다음 C12/C13 물리 routing/항목 facade의 실제 책임과 실패 경계 검토. 기존 index/actual 묶음과 Goal ACTIVE 유지.
+
+2026-10-17 C12/C13 main EDIT_READY/SOURCE_EDIT: Unity/launcher/compiler0 확인, 직전 C6 source1360/tool9 drift0, AGENTS 불변. C12 미사용 internal retire capability 제거와 C13 정확한 후보 identity/commit 재진입·읽기 복사 계약을 구현한다. 원본은 c12-c13-item-boundaries에 보존. 읽기 담당은 source 소비자 inventory만 수행하며 다른 작성자 없음. 현재 소스 Csc/통제 실패·취소·재시도를 확인하고 native fixture는 미실행으로 구분한다. Goal ACTIVE/실제 완료6/32 유지.
+
+2026-10-17 C12/C13 READY/FROZEN: 미사용 internal retire 제거·실제 후보 session/identity/reentry/DTO copy 수정 완료. 이전 결함4 재현/current16·parity/API/ctor·syntax162/0·current runtime2715/Editor1021 Csc 오류0, 독립 읽기 review PASS. verification-c12-c13-source-r1.json 및 source/tool pins 참조. SOURCE_EDIT 닫힘, native fixture compiled NOT_RUN/공식 복원·이전 actual 잔여 유지. 사용자 지시대로 Unity 없이 다음 C14 및 조건부 잔여 source를 우선한다. Goal ACTIVE/실제 완료6/32/turn=progress.
+
+2026-10-17 C14 main EDIT_READY/SOURCE_EDIT: 직전 turn=progress(C12 미사용 internal capability 제거/C13 후보 identity·copy 수정, 원본4/current16와 current Csc). source1363/tool9 drift0·Unity/launcher/compiler0·AGENTS 불변을 확인했다. 메인은 부품 설치/교체 transaction을 역참조 없이 같은 stateStore 위에서 분리한다. 다른 담당자는 읽기 inventory만, 원본 c14-surgical-parts 보존. API/저장/순서와 기존 frozen-outcome cancellation 정책을 유지하고 현재 Csc/통제·실제 Unity 미실행을 구분한다. 전체32/실제 완료6·Goal ACTIVE.
+
+2026-10-17 C14 READY/FROZEN: 설치9/교체20 실제 책임 이관·현재 aggregate 조회 방향 통합. 유지35/API·ctor·DTO/outbox/phase·실패·복원 원본 대조, 통제17/독립 검토/syntax164·0, current runtime2717/Editor1021 Csc0·input/reference drift0 PASS. verification-c14-source-r1.json/source/tool pins가 현재 증거다. SOURCE_EDIT 닫힘, 기존 native fixture compiled NOT_RUN 및 전체 actual 잔여 유지. 다음 C15 원장 응집성·잔여 조건부 구조, 실제 완료6/32·Goal ACTIVE/turn=progress.
+
+2026-10-17 C15 main EDIT_READY/SOURCE_EDIT: 직전 turn=progress(C14 설치/교체9+20 책임 이관·통제17/Csc). source1368/tool9 drift0·Unity/launcher/compiler0·AGENTS 불변 확인 후 main 단독 후보 인수 수명 수정. 원장 본체/메모리/조회 권위는 유지하고 Persistence token/정확한 owner/원자적 인수와 기존 native fixture만 보강한다. 원본 c15-outcome-ledger, 읽기 담당은 inventory만. 실제 Unity 보류/전체32·실제 완료6·Goal ACTIVE 유지.
+
+2026-10-17 C15 READY/FROZEN: 원장 응집성 유지 + admission 전 후보 소모/foreign root 인수 수정. baseline3/current full runtime·기존 Editor fixture6묶음/byte-exact core3·저장22/API/DTO/기존44·syntax166/0/독립 review PASS. current runtime2717 r1/Editor1021 r2 Csc0, source3865·참조 drift0(중간 fixture CS0103 수정 기록 보존). verification-c15-source-r1.json/source/tool pins 참조. SOURCE_EDIT 닫힘·Unity/native 전체 storage/world restore 미실행·기존 actual 잔여 유지. 다음 C16/C18/C19/C20, 전체32/실제 완료6·Goal ACTIVE/turn=progress.
+2026-10-17 C16 main EDIT_READY/SOURCE_EDIT: 이전 source1371/tool9 drift0 및 Unity/launcher/compiler0 확인. KB는 stale271로 원본/호출자를 확인했다. main 단독 사고 대응 owner/이동 provenance·복원 hook 구현, 원본 c16-campaign-response 보존. SOURCE_EDIT 동안 Unity/명시 compile 금지. public ctor/DTO/기존 GUID·단일 authority/실패 정책 유지, 현재 Csc·통제 identity/retry를 검증하며 실제 Unity는 계속 보류한다. 전체32/실제 완료6·Goal ACTIVE.
+
+2026-10-17 C16 READY/FROZEN: response owner12·exact mover/version/provenance·복원 hook/abandoned cleanup 수정. 통제15+Tick3/원본 대조9+3·부모11/기존 fixture19·syntax169/0/독립 review/current runtime2718 r1·Editor1021 r3 Csc0 및 source3866·참조 drift0 PASS. fixture 오류2는 계약 완화 없이 수정·실패 로그 보존. verification-c16-source-r1.json/source/tool pins, SOURCE_EDIT 닫힘·Unity 실제 이동/의료/공식 복원 NOT_RUN. 다음 C18/C19/C20 및 기존 actual backlog, 전체32·실제 완료6·Goal ACTIVE/turn=progress.
+2026-10-17 C18 main EDIT_READY/SOURCE_EDIT: 직전 turn=progress(C16 owner/이동 수명·current Csc/통제18). source1373/tool9 drift0·AGENTS 불변/하위 지침 없음·Unity/launcher/compiler0 확인. main 단독 실행 identity/거절 lease 정리 및 별도 corpse transaction 이관, 원본 c18-breakdown-runs 보존. C19 leaf는 읽기 inventory만, 다른 작성자 없음. 이후 FROZEN→현재 Csc/old iterator 재현·새 identity 회귀, 실제 Unity는 사용자 지시대로 보류. 전체32·실제 완료6·Goal ACTIVE.
+
+2026-10-17 C18 READY/FROZEN: corpse transaction4/pure3·exact run/admission·recursive nested gate/child disposal 구현. 이전 실제 managed iterator2/current28·parity retained31/API9/ctor/DTO·current runtime2719/Editor1021 r3 Csc0/source3867·참조 drift0/syntax172·0 통과. verification-c18-source-r1/source/tool pins, 최종 independent rereview pending·SOURCE_EDIT 닫힘. Unity native Brain/scheduler/corpse·공식 복원 NOT_RUN, 다음 C19/C20 및 existing actual backlog, 실제 완료6/32·Goal ACTIVE/turn=progress.
+
+C18 r4 READY/FROZEN 후속: disposed raw-path/raw-step owner 잔류를 추가 재현하고 exact version/owner finally cleanup. baseline4/current36·movement68 유지·current r4 Csc0/source3867·참조 drift0/syntax172·0/독립 final review PASS. 최신 source-pin-c18-r2/tool-pin-c18-r2/verification-c18-source-r1.json, pending rereview 해소·SOURCE_EDIT 닫힘. native 이동/Brain/scheduler/corpse/공식 world 복원 미실행, 다음 C19/C20·전체32 실제완료6·ACTIVE.
+2026-10-17 C19 main EDIT_READY/SOURCE_EDIT: 직전 turn=progress(C18 corpse/실행·nested/이동 정리, baseline4/current36/current Csc). source1377/tool9 drift0·AGENTS 불변/관련 하위 없음·Unity/launcher/compiler0 확인. main ports/physical/reference owner·시설 실패 경계 및 기존 native closure fixture, leaf는 CharacterConsumablesInputOwnerDebugScenarios.cs의 고정 source-consumer 검사만 소유한다. 원본 c19-consumable-physical 보존, 모든 작성자 FROZEN 뒤 현재 Csc/통제 검증. DTO/public ctor·core phase/상태/등록 identity·GUID/수치 유지, Unity 미실행·전체32 실제완료6·Goal ACTIVE.
+
+2026-10-17 C19 source batch 종료: 물리 소비/영수증 담당·공유 조회 분리와 복원 후보 시설/없는 시설 예약 수정 완료. 통제·현재 컴파일 결과는 progress C19와 verification-c19-source-r1 참조. source frozen, 다음 C20.
+
+
+2026-10-17 C20 main EDIT_READY: C19 sourcepin1382/tool9 drift0, Unity/launcher/compiler process0, root AGENTS unchanged/관련 하위 없음. SOURCE_EDIT OPEN; Unity 담당 메인·실행 보류. 메인 소유 runner/new completion+meta 및 기존 experience fixture, 독립 reviewer는 read-only. 계약 findings C20 확정 항목 참조.
+
+2026-10-17 C20 source batch 종료: 완료 게시/복구 담당과 실행 수명 수정 완료. 32개 대상 모두 source 처리/유지 판정, current Csc·표적 통제 완료. 생성 인덱스 배치 마감 완료(source-phase-close-r1.json); 다음 단계는 메모리가 확보될 때 비간섭 Unity에서 미실행 native 경로·공식 저장 복원/재시도 backlog 검증. 실제 완료6/32·Goal ACTIVE, 지금은 코드 정리 계속이라는 사용자 지시로 Unity 보류. 상세 검증은 progress/targets.json.
+
+
+2026-10-17 native 재개: 직전 turn=progress(C19/C20 source 처리·통제80·실제 결함4·현재 compile·index close). 현재 AGENTS 불변/Unity·launcher·compiler0/source1386·tool9·compiler3870 drift0, main/leaf FROZEN. 여유 RAM5862868KiB/commit17976732KiB로 자원 조건 변화 확인, 기존 serialized startup/OS isolation probe/메모리 보호 유지로 RunConsumableExecution 전용 fresh native 묶음1회 진행. 사용자 앱/포커스 조작 없음. SOURCE_EDIT CLOSED→UNITY_VERIFY, 메인 단일 실행 담당.
+
+
+2026-10-17 native r2 terminal/UNITY_VERIFY 종료→main EDIT_READY(SOURCE_EDIT OPEN): 현재 Root/Editor Unity DLL compile 완료/소스 drift0, native policy1 PASS 뒤 C19 fixture의 facility.Grid null 준비 결함으로 실패. live facility는 기존 grid 미주입 fixture이며 검증하려는 detached 후보에는 별도 실제 Grid(1,1)를 명시 준비/identity 확인한다. 게임 코드/assert 의미/timeout·메모리 기준 불변. 기존 packaged tare focused case를 같은 consumable 실행 묶음에 연결(9→10). 담당 메인 두 Editor 파일만, Unity/launcher/compiler0 확인.
+
+
+2026-10-17 primitive completion native r1 terminal→main EDIT_READY/SOURCE_EDIT OPEN(프로세스0): immunity/repeated/causal-owner/module-source/notification6/pending recovery는 PASS, post-observer fault 뒤 cold restore3만 동일 persistent ID의 old/new Context 동시 생존으로 실패. CharacterStateNarrativeObserver는 World.AllCharacters 첫 ID match를 조회해 old actor에 기록, 실제 single-authority 경계 위반은 fixture 준비다. 기존 Context를 snapshot 뒤 Dispose하고 fresh restored actor가 유일한지 assert해 원래 strict expectations 유지. 같은 기존 Editor fixture에 실제 actor/Brain 시작event2·scheduler 예외 cleanup/retry 및 same-epoch Reset/replacement/Dispose 표적 검사를 추가, production/DTO/asset 불변. 담당 메인 파일1, native10+primitive6 PASS 증거 보존.
+
+2026-10-17 native survival batch 종료: C19/C20 targeted actual 완료, 전체8/32·Goal ACTIVE. current source/Unity binding verification-native-current-source-r1, source-pin-native-fixture-r2/full native-input-pin-r1. Source edit 닫힘·main FROZEN·Unity terminal. 이번 변경3 Editor 파일 index 배치1회 마감 후 나머지24 native 및 최종 official world 저장·복원/동일 재시도 검증을 계속한다.
+
+
+2026-10-17 현재 단계: survival-native-close-r1로 C19/C20 실제 검증·index 마감 완료. 다음은 나머지24 native backlog를 기존 Architecture Core/Buildings/Crop 및 대상별 focused entry 순으로 확인하고, 변경이 끝난 현행 소스에서 official whole-world 복원/재시도를 마무리한다. Source edit 닫힘/Unity terminal/Goal ACTIVE.
+
+2026-10-17 core native: 직전 turn=progress(C19/C20 actual 완료·8/32·index 마감). AGENTS 불변/source1387·tool9·full3870 drift0/Unity·launcher·compiler0·RAM5634136KiB 확인. SOURCE_EDIT CLOSED/main READY/FROZEN→UNITY_VERIFY 메인 단독, 기존 격리/메모리 보호를 유지한 Architecture Core fresh batch. 사용자 앱·포커스 조작 없음.
+
+
+2026-10-17 core-r1 terminal→main EDIT_READY/SOURCE_EDIT OPEN(프로세스0/소스 drift0): ledger native storage 전체·save joins·campaign·physical candidate/quantity/cargo가 PASS 후 OrganPreservationRestoreJoinFixture의 abilityRuntimeDispatcher:null 준비에서 실패. 기존 실제 Editor dispatcher를 명시 주입하는 fixture1행만 수정, Buildable strict dependency/게임 코드/물리 authority·assert 불변. 담당 메인 파일1, source 동결 후 같은 전체Core 재실행.
+
+2026-10-17 core-r2 terminal→main EDIT_READY/SOURCE_EDIT OPEN: current Editor compile PASS 이후 pre-test memory guard 종료·Unity/launcher/compiler0. read-only caller review가 분류한 정상 초기화 fixture11파일16곳의 필수 dispatcher 누락만 기존 실제 Editor 담당으로 명시 연결한다. 미초기화 warehouse shell1곳은 유지한다. 원본/검토는 native-core-fixture-fix, 게임 의존성/실패 검사·DTO/asset·메모리 보호 불변.
+
+2026-10-17 apparel authority-r1 terminal→main EDIT_READY/SOURCE_EDIT OPEN: Unity/launcher/compiler0·source/full/tool drift0. 완료/취소·GC 실제 검증 PASS 후 별도 terminal authority fixture가 현재 V14 필수 exposureOutcomes를 작성하지 않아 section validation 실패. 메인 단독 fixture1곳에 명시적 빈 exposure 기록과 시퀀스0을 추가하고 strict validator/DTO/게임 로직·기대값은 유지한다. 기존 통과 검사는 이 무관한 fixture 변경으로 반복하지 않는다.
+
+2026-10-17 현재 단계: core-targets native close로 C12/C13/C15/C14/C2/C4/G6 actual 추가 완료, 전체 source32·표적 actual15/32. SOURCE_EDIT 닫힘/main FROZEN/Unity terminal. 관련 Editor13파일 index1회 마감 후 잔여17 표적(특히 C3 물리 drain·C16 live transfer)과 최종 official whole-world 저장·복원/동일 요청 재시도 검증을 계속한다. Goal ACTIVE, 전체 Core PASS 아님.
+
+2026-10-17 최신 단계: G7 native manual/유체 JsonUtility 복원·무중복 재시도 통과, 실제16/32·잔여16. 관련 index1회 생성·validation/freshness PASS·source edit CLOSED/main FROZEN/Unity terminal. 다음은 미완료16 표적과 최종 official world restore/retry; broad industrial 과거 expected-count 실패는 별도 보존. native-fluid-close-r1.json이 최신 상태이며 Goal ACTIVE.
+
+2026-10-17 native 후속: 직전 turn=progress(표적 실제8→16·Editor fixture13파일·native compile·index close). source1397/full3870/tool9 drift0·AGENTS 불변/Unity·launcher·compiler0/RAM6533424KiB 확인. SOURCE_EDIT CLOSED/main FROZEN→UNITY_VERIFY, 메인 단독 actual movement/core fault 묶음 실행. C3 물리 통합 entry는 leaf 읽기 inventory만 병행하며 사용자 앱·포커스/메모리 기준은 유지한다.
+
+2026-10-17 main EDIT_READY/SOURCE_EDIT OPEN: movement-r1은 native route/receipt/official actor restore8·core2 명시 PASS 뒤 후속 group 시작 중 memory guard terminal. Unity/launcher/compiler0·full source drift0 확인. 메인 소유 기존 Editor fixture2파일에 실제 module selector 재주입의 in-flight run/command/cargo/lease 보존 및 공식 복원 후 새 graph 검사를 추가한다. Base movement는 core2까지만, destinationless/deprivation/primitive는 이미 있는 전용 fresh entry로 모두 별도 실행하며 assertion/20초·270초 한계와 메모리 기준은 유지한다. C3 연결은 inventory 확인 중이며 생산 코드/DTO/assets 변경 없음.
+
+같은 SOURCE_EDIT main 계약 확장(C3): 기존 authored P03 physical destructive-drain/official slot-save-load coroutine를 그대로 재사용하는 정확한 isolated batch entry만 연결한다. batch request/report는 실행별 evidence 디렉터리에 create-only, 기존 Temp/menu request·report·사용자 저장은 보존하며 isolated mode가 거절하는 user-persistence snapshot을 이 명시적 별도 경로에서 호출하지 않는다. 종료는 report/Play 종료·owned start-scene lease cleanup 뒤 정확한 exit code, boot failure도 별도 실패. launcher 두 계층의 exact-entry/mode/추가 selector 거절과 기존 OS/메모리/timeout 기준 유지. Main=기존 Editor verifier·launcher2·workflow; leaf=고정 guard-test1파일만, 모든 작성자 동결 뒤 순수 검사→probe→native.
+
+2026-10-17 work/drain source READY/FROZEN: main Editor3·launcher2/workflow, leaf guard1 모두 동결. Base movement/core만 같은 프로세스·나머지3 fresh entry, 실제 module 재주입/공식 새 graph 관측, 기존 C3 P03 통합의 owned request/report·snapshot 비접근·종료 경계 연결. production/DTO/assets/meta 변화 없음. source/full/tool pins work-drain-r1/native-input-r4에 한정된 변경을 고정하고 SOURCE_EDIT CLOSED→순수 검사, 이후 probe/native main 단독.
+
+C3 batch-r1 terminal(실제 Unity 시작 전 launcher 거절)→main EDIT_READY: PS layer는152 PASS였으나 native launcher의 별도 serialized profile allowlist에 새 exact entry가 빠져 있었다. Unity/launcher/compiler0 확인. C# launcher1파일의 같은 exact profile 항목과 pure self-test(허용·잘못된 mode/prefix 거절)를 추가하고 safety/memory/OS 코드는 그대로 둔다. Editor3 source는 동결 유지.
+
+2026-10-17 사용자 코드 정리 우선 지시 유지: native destructive-drain-r2는 현행 Editor compile25.184193s 뒤 QA_MEMORY_PRESSURE로 terminal exit1, 실제 C3 실행 미완료. Unity/launcher/compiler0 확인하여 main EDIT_READY/SOURCE_EDIT OPEN. 메인 단독 기존 Editor verifier의 batch coroutine factory/nested MoveNext/Current/Dispose 예외·중도 종료를 실패 기록과 exit1에 연결한다. C# launcher가 모든 owned Play에 evidence env를 설정함을 확인, PS env 변경 불필요. 임시 scene은 기존 byte-preserving lease 생성물이며 복구 marker/원본 scene hash와 현재 공식 build settings를 보존, 수동 삭제하지 않는다. Unity 재실행 보류, 변경 경계의 순수/managed 표적 검증만 한다.
+
+2026-10-17 work/drain source 마감: main/leaf READY/FROZEN·SOURCE_EDIT CLOSED, 현재 Editor1021 오류0·1476 input drift0·통제15·syntax196/0·guard152·독립 review PASS. source1398/full3870/tool9의 work-drain-r2/native-input-r5/tool-r3에 동결. 관련 index 배치1회 마감 중. 실제 완료는16/32, 미완료16과 최종 official whole-world restore/retry 유지. 최신 사용자 지시대로 Unity 보류, 다음 실행은 새 사용자 의향과 현재 프로세스·자원·비간섭 프로브를 확인한 후에만 진행한다.
+
+work/drain index 마감 완료·생성/validation/freshness PASS. 이번 source batch CLOSED, work-drain-source-close-r1.json 참조; 잔여 actual16/최종 official restore는 미완료이며 사용자 코드 우선 지시로 native 보류.
+
+2026-10-17 Goal 후속: 이전 turn=progress(기존 batch exception failure 경계·통제15/current Editor1021·index close). source1398/full3870/tool9 drift0·AGENTS unchanged·Unity/launcher/compiler0 확인. 이번 Goal의 실제 검증 계속 요청에 따라 source 편집 없이 C10 기존 EEC06 edit 전용 검증을 선택한다(전체 Gameplay/active-restock Play 재시도 아님). 현재 여유 RAM5869628KiB/commit18867200KiB, 기존 OS isolation/self-test/probe/메모리 기준을 유지한다. main 단일 UNITY_VERIFY, main/leaf FROZEN·SOURCE_EDIT CLOSED. G1 공식 active-restock 복원 계약은 원본 읽기로 조사 중이며 현재 어떤 수정·완료 판정도 없음.
+
+2026-10-17 C10 EEC06 actual PASS/exit0 확인(verification-c10-execution-r9.json), 17/32. r1 최신 Editor compile24.305611s 후 memory guard 종료·r2 unchanged cached PASS. main SOURCE_EDIT CLOSED·작성자 FROZEN 유지, 다음 기존 movement actual+core2 fresh 전용 묶음1개만 실행(다른3 group 포함 안 함).
+
+2026-10-17 movement-current-r2: 실제 route/receipt/external intent/공식 actor·work graph 새 소유권9개+core2 명시 PASS, 전체 해당 묶음 marker/exit0. 현재 source/native import 반영 확인, G8 in-flight 재주입 및 G1 restock 실제는 아직 미완료. process0 확인, main 단독 기존 RequestRestockForBatch fresh 격리 묶음 실행; SOURCE_EDIT CLOSED·작성자 FROZEN·자원/포커스 기준 불변.
+
+2026-10-17 restock-r1 actual failure terminal→main EDIT_READY/SOURCE_EDIT: source protected fixture has logical GetNowXY preflight but actual TryStartSystemMove starts from grid.GetXY(transform.position). Later return preflight already uses physical origin. Main existing Editor fixture1 file aligns first preflight with same physical cell and adds no-motion/diagnostic assertions; no production movement/timeout/path/door/cargo changes and no teleport. Original snapshot restock-staging-origin. All other authors FROZEN, main closes edit after this exact patch.
+
+2026-10-17 restock-r3 actual diagnostic terminal: logical/physical both(19,0), preflight Reachable6 steps but new command broker Pending (expanded0/deferral1), so origin mismatch was not cause. Main EDIT_READY/source window uses existing TryStartProtectedSystemMoveWithResolvedPath for controlled preparation, preserving explicit typed approved route, then exact terminal Cancel releases retained protection before real restock. Actual restock path/no-path/door cancellation unchanged. source1398/full3870 stage-r2/native-input-r7, main READY/FROZEN·SOURCE_EDIT CLOSED.
+
+2026-10-17 C16 SOURCE_EDIT/main EDIT_READY: r5 native memory guard before test·프로세스0, 현 source stage-r2/full-r7/tool-r3를 유지한다. 기존 WIM040 actual meal/body collapse/AIRescue/official in-memory save 시나리오를 기존 Movement isolated bootstrap의 exact medical-transfer case로 연결한다. shared coroutine observer1개는 Editor 전용 공용 파일로 이관해 C3와 C16이 재사용(동일 factory/nested/Dispose/early-stop 경계), production runtime/DTO/scene/프리팹 불변. main=기존 Editor3/new Editor1+meta/launcher2/workflow, leaf=guard1파일만. 저장은 isolated root, actual in-memory official Save API 유지, legacy report 경로는 batch에서 쓰지 않고 create-only report·Play/process 종료는 기존 coordinator가 소유한다. Source/test/소유자 동결 후 현재 managed compiler와 순수 실패 경계만 검증, Unity 추가 실행 보류.
+
+2026-10-17 G1 SOURCE_EDIT/main EDIT_READY: 現 Unity/launcher/compiler0·source/tool drift0. 실제 restock cargo 회수 실패가 CancelActiveRun에서 예외를 내면 AbilityWork가 이미 분리한 main/check/suppress 코루틴의 Stop 호출이 모두 건너뛰어진다. 메인 소유 AbilityWork.StopActiveWorkRoutines 한 메서드만 취소 오류와 독립적인 세 handle 정리·모든 원인 보존으로 수정한다. 기존 run version/reentrant replacement·restock owner 재시도/단일 상태는 유지한다. Leaf는 고정 입력의 exact-method 통제 probe artifact만 작성하며 production/Editor source·Unity는 건드리지 않는다. 현재 user 코드 정리 우선·native 보류.
+
+2026-10-17 G1 restock-world-restore SOURCE_EDIT/main EDIT_READY: Unity/launcher/compiler0・selected1401/full3871/tool9 drift0, 여유 physical5926076416 bytes로 기존 failed phase보다 개선되지 않아 native 보류. 기존 exact restock entry에서 actual Pending lease/shop operation을 공식 whole-world JSON으로 캡처하고 original 시나리오 종료 뒤 fresh actor/shop/physical owner로 두 번 복원→공개 lifecycle 취소/반복 취소의 잔여 lease·shop admission/수량 무변경을 실제 검증하도록 연결한다. 테스트만 main 소유 기존 Editor2/workflow1, production/DTO/assets/launcher 변경 없음. 원래 core assertions 그대로, common coroutine observer 재사용, create-only checkpoint와 finally baseline restore/모든 실패 원인 보존. source 동결 후 현재 Editor semantic compiler·관련 probe/정적 경계만 검증, actual PASS는 실행까지 보류한다.

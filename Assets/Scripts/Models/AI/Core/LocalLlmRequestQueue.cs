@@ -12,525 +12,6 @@ using UnityEngine.Scripting.APIUpdating;
 using UnityEngine.Serialization;
 using VContainer;
 
-[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public enum LocalLlmQueueFullBehavior
-{
-    Fail,
-    RejectQuietly,
-    Drop
-}
-
-[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public sealed class LocalLlmRequestProfile
-{
-    public LocalLlmRequestProfile(
-        string id,
-        int priority,
-        float temperature = 0.4f,
-        LocalLlmQueueFullBehavior queueFullBehavior = LocalLlmQueueFullBehavior.Fail,
-        bool canBeEvictedForQueuePressure = false,
-        float maxQueueAgeSeconds = 0f,
-        bool logFailureWarnings = false,
-        int maxOutputTokens = 256)
-    {
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            throw new ArgumentException("A local LLM request profile requires a stable id.", nameof(id));
-        }
-
-        Id = id.Trim();
-        Priority = priority;
-        Temperature = Mathf.Clamp(temperature, 0f, 2f);
-        QueueFullBehavior = queueFullBehavior;
-        CanBeEvictedForQueuePressure = canBeEvictedForQueuePressure;
-        MaxQueueAgeSeconds = Mathf.Max(0f, maxQueueAgeSeconds);
-        LogFailureWarnings = logFailureWarnings;
-        MaxOutputTokens = Mathf.Max(64, maxOutputTokens);
-    }
-
-    public string Id { get; }
-    public int Priority { get; }
-    public float Temperature { get; }
-    public LocalLlmQueueFullBehavior QueueFullBehavior { get; }
-    public bool CanBeEvictedForQueuePressure { get; }
-    public float MaxQueueAgeSeconds { get; }
-    public bool LogFailureWarnings { get; }
-    public int MaxOutputTokens { get; }
-
-    public LocalLlmRequestProfile WithMaxQueueAge(float maxQueueAgeSeconds)
-    {
-        return new LocalLlmRequestProfile(
-            Id,
-            Priority,
-            Temperature,
-            QueueFullBehavior,
-            CanBeEvictedForQueuePressure,
-            maxQueueAgeSeconds,
-            LogFailureWarnings,
-            MaxOutputTokens);
-    }
-}
-
-[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public static class LocalLlmRequestProfiles
-{
-    public static readonly LocalLlmRequestProfile CharacterSkill = new LocalLlmRequestProfile(
-        "CharacterSkill",
-        40,
-        temperature: 0.35f,
-        queueFullBehavior: LocalLlmQueueFullBehavior.Fail,
-        logFailureWarnings: false,
-        maxOutputTokens: 768);
-    public static readonly LocalLlmRequestProfile CharacterSkillModuleSelection = new LocalLlmRequestProfile(
-        "CharacterSkillModuleSelection",
-        40,
-        temperature: 0.35f,
-        queueFullBehavior: LocalLlmQueueFullBehavior.Fail,
-        logFailureWarnings: false,
-        maxOutputTokens: 768);
-    public static readonly LocalLlmRequestProfile CharacterSkillLegacyV2 = new LocalLlmRequestProfile(
-        "CharacterSkillLegacyV2",
-        40,
-        temperature: 0.35f,
-        queueFullBehavior: LocalLlmQueueFullBehavior.Fail,
-        logFailureWarnings: false,
-        maxOutputTokens: 768);
-    public static readonly LocalLlmRequestProfile Persona = new LocalLlmRequestProfile("Persona", 30);
-    public static readonly LocalLlmRequestProfile MacroGoal = new LocalLlmRequestProfile(
-        "MacroGoal",
-        20,
-        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly);
-    public static readonly LocalLlmRequestProfile MoodImpulse = new LocalLlmRequestProfile(
-        "MoodImpulse",
-        18,
-        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly);
-    public static readonly LocalLlmRequestProfile FacilityEvolution = new LocalLlmRequestProfile(
-        "FacilityEvolution",
-        16,
-        logFailureWarnings: false,
-        maxOutputTokens: 768);
-    public static readonly LocalLlmRequestProfile FacilityEvolutionModuleSelection = new LocalLlmRequestProfile(
-        "FacilityEvolutionModuleSelection",
-        16,
-        temperature: 0.35f,
-        logFailureWarnings: false,
-        maxOutputTokens: 768);
-    public static readonly LocalLlmRequestProfile FacilityEvolutionLegacyV2 = new LocalLlmRequestProfile(
-        "FacilityEvolutionLegacyV2",
-        16,
-        logFailureWarnings: false,
-        maxOutputTokens: 768);
-    public static readonly LocalLlmRequestProfile EvolutionHistory = new LocalLlmRequestProfile(
-        "EvolutionHistory",
-        17,
-        temperature: 0.65f,
-        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
-        logFailureWarnings: false,
-        maxOutputTokens: 384);
-    public static readonly LocalLlmRequestProfile EvolutionHistoryLegacyV2 = new LocalLlmRequestProfile(
-        "EvolutionHistoryLegacyV2",
-        17,
-        temperature: 0.65f,
-        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
-        logFailureWarnings: false,
-        maxOutputTokens: 384);
-    public static readonly LocalLlmRequestProfile EquipmentChoiceLegacyV2 = new LocalLlmRequestProfile(
-        "EquipmentChoiceLegacyV2",
-        17,
-        temperature: 0f,
-        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
-        logFailureWarnings: false,
-        maxOutputTokens: 32);
-    public static readonly LocalLlmRequestProfile EquipmentEvolutionModuleSelection = new LocalLlmRequestProfile(
-        "EquipmentEvolutionModuleSelection",
-        17,
-        temperature: 0.35f,
-        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
-        logFailureWarnings: false,
-        maxOutputTokens: 512);
-    public static readonly LocalLlmRequestProfile AcquiredTrait = new LocalLlmRequestProfile(
-        "AcquiredTrait",
-        17,
-        temperature: 0.35f,
-        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
-        logFailureWarnings: false,
-        maxOutputTokens: 384);
-    public static readonly LocalLlmRequestProfile AcquiredTraitModuleSelection = new LocalLlmRequestProfile(
-        "AcquiredTraitModuleSelection",
-        17,
-        temperature: 0.35f,
-        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
-        logFailureWarnings: false,
-        maxOutputTokens: 512);
-    public static readonly LocalLlmRequestProfile AcquiredTraitLegacyV2 = new LocalLlmRequestProfile(
-        "AcquiredTraitLegacyV2",
-        17,
-        temperature: 0.35f,
-        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
-        logFailureWarnings: false,
-        maxOutputTokens: 384);
-    public static readonly LocalLlmRequestProfile SocialRumor = new LocalLlmRequestProfile(
-        "SocialRumor",
-        15,
-        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
-        maxOutputTokens: 384);
-    public static readonly LocalLlmRequestProfile CharacterRecord = new LocalLlmRequestProfile(
-        "CharacterRecord",
-        12,
-        temperature: 0.7f,
-        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly);
-    public static readonly LocalLlmRequestProfile MultiPerspective = new LocalLlmRequestProfile(
-        "MultiPerspective",
-        18,
-        temperature: 0.65f,
-        queueFullBehavior: LocalLlmQueueFullBehavior.Fail,
-        logFailureWarnings: false,
-        maxOutputTokens: 768);
-    public static readonly LocalLlmRequestProfile BubbleLine = new LocalLlmRequestProfile(
-        "BubbleLine",
-        10,
-        queueFullBehavior: LocalLlmQueueFullBehavior.Drop,
-        canBeEvictedForQueuePressure: true,
-        maxQueueAgeSeconds: 3f);
-}
-
-[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public enum LocalLlmRequestStatus
-{
-    Succeeded,
-    Failed,
-    Dropped,
-    TimedOut,
-    Cancelled
-}
-
-[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public interface ILocalLlmRuntime
-{
-    bool GenerateCharacterSkillAsync(string prompt, Action<LocalLlmResult> callback);
-    bool GeneratePersonaAsync(string prompt, Action<LocalLlmResult> callback);
-    bool GenerateMacroGoalAsync(string prompt, Action<LocalLlmResult> callback);
-    bool GenerateMoodImpulseAsync(string prompt, Action<LocalLlmResult> callback);
-    bool GenerateSocialRumorAsync(string prompt, Action<LocalLlmResult> callback);
-    bool GenerateFacilityEvolutionAsync(string prompt, Action<LocalLlmResult> callback);
-    bool GenerateCharacterRecordAsync(string prompt, string originalText, Action<LocalLlmResult> callback);
-    bool GenerateBubbleLineAsync(string prompt, string originalText, Action<LocalLlmResult> callback);
-}
-
-public enum LocalLlmRuntimeReadinessState
-{
-    Unknown = 0,
-    Starting = 1,
-    Ready = 2,
-    Failed = 3
-}
-
-public readonly struct LocalLlmRuntimeReadinessSnapshot
-{
-    public LocalLlmRuntimeReadinessSnapshot(
-        LocalLlmRuntimeReadinessState state,
-        string failureReason = "")
-    {
-        State = state;
-        FailureReason = failureReason?.Trim() ?? string.Empty;
-        if (state == LocalLlmRuntimeReadinessState.Unknown)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(state),
-                "Local LLM readiness must be explicit.");
-        }
-        if (state == LocalLlmRuntimeReadinessState.Failed
-            && FailureReason.Length == 0)
-        {
-            throw new ArgumentException(
-                "Failed local LLM readiness requires an explicit reason.",
-                nameof(failureReason));
-        }
-    }
-
-    public LocalLlmRuntimeReadinessState State { get; }
-    public string FailureReason { get; }
-}
-
-public interface ILocalLlmRuntimeReadiness
-{
-    LocalLlmRuntimeReadinessSnapshot CaptureReadiness();
-}
-
-/// <summary>
-/// An implementation returning true owns the complete lifetime of every
-/// request it accepts: queue wait, transport timeout, terminal failure, and
-/// cancellation. Each accepted request must invoke its callback exactly once.
-/// </summary>
-public interface ILocalLlmAcceptedRequestCompletionOwner
-{
-    bool OwnsAcceptedRequestCompletion { get; }
-}
-
-[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public interface ICorrelatedCharacterSkillLlmRuntime
-{
-    bool GenerateCharacterSkillAsync(
-        string requestKey,
-        string prompt,
-        Action<LocalLlmResult> callback);
-
-    void CancelCharacterSkillRequest(string requestKey);
-}
-
-public interface ICharacterSkillModuleSelectionLlmRuntime
-{
-    bool GenerateCharacterSkillModuleSelectionAsync(
-        string requestKey,
-        string prompt,
-        Action<LocalLlmResult> callback);
-}
-
-/// <summary>
-/// A runtime that can return every unresolved CharacterSkill module-selection
-/// candidate in one exact-count response. Legacy/test runtimes may continue to
-/// implement the single-selection interface and retain the service watchdog.
-/// </summary>
-public interface ICharacterSkillModuleSelectionBatchLlmRuntime
-{
-    bool GenerateCharacterSkillModuleSelectionBatchAsync(
-        string requestKey,
-        string prompt,
-        Action<LocalLlmResult> callback);
-}
-
-[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public interface ICorrelatedEvolutionHistoryLlmRuntime
-{
-    bool GenerateEvolutionHistoryAsync(
-        string requestKey,
-        string prompt,
-        Action<LocalLlmResult> callback);
-
-    bool GenerateEvolutionHistoryLegacyV2Async(
-        string requestKey,
-        string prompt,
-        Action<LocalLlmResult> callback);
-
-    void CancelEvolutionHistoryRequest(string requestKey);
-}
-
-public interface ICorrelatedEquipmentEvolutionModuleSelectionLlmRuntime
-{
-    bool GenerateEquipmentEvolutionModuleSelectionAsync(
-        string requestKey,
-        string prompt,
-        Action<LocalLlmResult> callback);
-}
-
-public interface ICorrelatedFacilityEvolutionModuleSelectionLlmRuntime
-{
-    bool GenerateFacilityEvolutionModuleSelectionAsync(
-        string requestKey,
-        string prompt,
-        Action<LocalLlmResult> callback);
-}
-
-public interface ICorrelatedAcquiredTraitLlmRuntime
-{
-    bool GenerateAcquiredTraitAsync(
-        string requestKey,
-        string prompt,
-        Action<LocalLlmResult> callback);
-
-    void CancelAcquiredTraitRequest(string requestKey);
-}
-
-public interface ICorrelatedAcquiredTraitModuleSelectionLlmRuntime
-{
-    bool GenerateAcquiredTraitModuleSelectionAsync(
-        string requestKey,
-        string prompt,
-        Action<LocalLlmResult> callback);
-}
-
-public interface IConstrainedEquipmentChoiceLlmRuntime
-{
-    bool GenerateEquipmentChoiceAsync(
-        string requestKey,
-        string prompt,
-        int candidateCount,
-        Action<LocalLlmChoiceResult> callback);
-}
-
-public interface IMultiPerspectiveNarrativeLlmRuntime
-{
-    bool GenerateMultiPerspectiveAsync(
-        NarrativeMultiPerspectiveRequest request,
-        string prompt,
-        Action<LocalLlmResult> callback);
-}
-
-public readonly struct LocalLlmChoiceResult
-{
-    public LocalLlmChoiceResult(bool succeeded, int selectedIndex, string error)
-    {
-        Succeeded = succeeded;
-        SelectedIndex = selectedIndex;
-        Error = error ?? string.Empty;
-    }
-
-    public bool Succeeded { get; }
-    public int SelectedIndex { get; }
-    public string Error { get; }
-}
-
-#if UNITY_EDITOR
-public sealed class LocalLlmCapturedRequest
-{
-    private readonly byte[] wireBodyBytes;
-
-    internal LocalLlmCapturedRequest(
-        string profileId,
-        string correlationId,
-        int attemptIndex,
-        string prompt,
-        string model,
-        int schemaVersion,
-        string schemaHash,
-        byte[] wireBodyBytes)
-    {
-        ProfileId = profileId ?? string.Empty;
-        CorrelationId = correlationId ?? string.Empty;
-        AttemptIndex = attemptIndex;
-        Prompt = prompt ?? string.Empty;
-        Model = model ?? string.Empty;
-        SchemaVersion = schemaVersion;
-        SchemaHash = schemaHash ?? string.Empty;
-        this.wireBodyBytes = wireBodyBytes != null
-            ? (byte[])wireBodyBytes.Clone()
-            : Array.Empty<byte>();
-    }
-
-    public string ProfileId { get; }
-    public string CorrelationId { get; }
-    public int AttemptIndex { get; }
-    public string Prompt { get; }
-    public string Model { get; }
-    public int SchemaVersion { get; }
-    public string SchemaHash { get; }
-    public string WireBodyJson => Encoding.UTF8.GetString(wireBodyBytes);
-    public bool CaptureOnly => true;
-    public bool NetworkSent => false;
-
-    public byte[] CopyWireBodyBytes()
-    {
-        return (byte[])wireBodyBytes.Clone();
-    }
-}
-#endif
-
-[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public readonly struct LocalLlmResult
-{
-    public LocalLlmResult(
-        LocalLlmRequestStatus status,
-        string content,
-        string error,
-        string originalText,
-        NarrativeGenerationTrace narrativeTrace = null,
-        string rawModelContent = null)
-    {
-        Status = status;
-        Content = content ?? string.Empty;
-        Error = error ?? string.Empty;
-        OriginalText = originalText ?? string.Empty;
-        NarrativeTrace = narrativeTrace;
-        RawModelContent = rawModelContent ?? string.Empty;
-    }
-
-    public LocalLlmRequestStatus Status { get; }
-    public string Content { get; }
-    public string Error { get; }
-    public string OriginalText { get; }
-    public NarrativeGenerationTrace NarrativeTrace { get; }
-    public string RawModelContent { get; }
-    public bool IsSuccess => Status == LocalLlmRequestStatus.Succeeded;
-    public bool IsCancelled => Status == LocalLlmRequestStatus.Cancelled;
-}
-
-internal sealed class LocalLlmQueuedRequest : IContextAwareLlmRequest
-{
-    public LocalLlmQueuedRequest(
-        LocalLlmRequestProfile profile,
-        string prompt,
-        string originalText,
-        float timeoutSeconds,
-        float enqueuedAt,
-        string correlationId,
-        NarrativeSchedulingMetadata scheduling,
-        Action<LocalLlmResult> callback,
-        bool isEquipmentChoice = false,
-        int candidateCount = 0)
-    {
-        Profile = profile ?? throw new ArgumentNullException(nameof(profile));
-        Prompt = prompt ?? throw new ArgumentNullException(nameof(prompt));
-        OriginalText = originalText ?? string.Empty;
-        TimeoutSeconds = Mathf.Max(0.1f, timeoutSeconds);
-        EnqueuedAt = enqueuedAt;
-        CorrelationId = correlationId ?? string.Empty;
-        Scheduling = scheduling ?? NarrativeSchedulingMetadata.CreateDefault(
-            profile,
-            prompt,
-            correlationId,
-            enqueuedAt);
-        Callback = callback;
-        IsEquipmentChoice = isEquipmentChoice;
-        CandidateCount = candidateCount;
-    }
-
-    public LocalLlmRequestProfile Profile { get; }
-    public string Prompt { get; }
-    public string OriginalText { get; }
-    public float TimeoutSeconds { get; }
-    public float EnqueuedAt { get; }
-    public string CorrelationId { get; }
-    public NarrativeSchedulingMetadata Scheduling { get; }
-    public bool IsEquipmentChoice { get; }
-    public int CandidateCount { get; }
-    int IContextAwareLlmRequest.Priority => Profile.Priority;
-    public float StartedAt { get; private set; } = -1f;
-    private Action<LocalLlmResult> Callback { get; set; }
-    private UnityWebRequest ActiveWebRequest { get; set; }
-
-    public bool IsCompleted { get; private set; }
-
-    public bool TryTakeCallback(out Action<LocalLlmResult> callback)
-    {
-        if (IsCompleted)
-        {
-            callback = null;
-            return false;
-        }
-
-        IsCompleted = true;
-        callback = Callback;
-        Callback = null;
-        return true;
-    }
-
-    public void Attach(UnityWebRequest request, float startedAt)
-    {
-        ActiveWebRequest = request;
-        StartedAt = startedAt;
-    }
-
-    public void Detach()
-    {
-        ActiveWebRequest = null;
-    }
-
-    public void Abort()
-    {
-        ActiveWebRequest?.Abort();
-    }
-}
-
 [DisallowMultipleComponent]
 [DrawWithUnity]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -581,16 +62,13 @@ public sealed class LocalLlmRequestQueue :
     [SerializeField, ReadOnly] private NarrativeQualityVerdict lastNarrativeQualityVerdict;
     [SerializeField, ReadOnly] private bool suppressWarningLogsForDebug;
 
-    private readonly List<LocalLlmQueuedRequest> queue = new List<LocalLlmQueuedRequest>();
-    private readonly HashSet<LocalLlmQueuedRequest> runningRequests = new HashSet<LocalLlmQueuedRequest>();
+    private readonly LocalLlmRequestState requests = new();
     private IUiClock uiClock;
     private DungeonStoryHostStructuredChatBackend structuredBackend;
     private readonly INarrativeTextQualityGate narrativeQualityGate =
         new NarrativeTextQualityGate();
     private DungeonStoryLlmHostProcess localHost;
     private Task<HostStartupResult> hostStartupTask;
-    private PrefixAffinityKey currentAffinityKey;
-    private int currentAffinityBurst;
     private bool isSuspended;
 #if UNITY_EDITOR
     private bool isIsolatedRequestCaptureMode;
@@ -599,8 +77,8 @@ public sealed class LocalLlmRequestQueue :
     private Func<LocalLlmCapturedRequest, string> isolatedTestResponseProvider;
 #endif
 
-    public int QueuedCount => queue.Count;
-    public int RunningCount => runningRequests.Count;
+    public int QueuedCount => requests.QueuedCount;
+    public int RunningCount => requests.RunningCount;
     public int DroppedEphemeralRequestCount => droppedEphemeralRequestCount;
     public int DroppedBubbleCount => droppedEphemeralRequestCount;
     public int TimeoutCount => timeoutCount;
@@ -634,18 +112,16 @@ public sealed class LocalLlmRequestQueue :
 
     public string PeekNextProfileIdForDebug()
     {
-        return queue.Count > 0
-            ? queue[FindNextRequestIndex()].Profile.Id
-            : string.Empty;
+        return requests.PeekNextProfile(Now);
     }
 
     public string GetRequestDiagnosticsForDebug()
     {
         float now = Now;
-        string running = string.Join(",", runningRequests
+        string running = string.Join(",", requests.Running
             .Where(request => request != null)
             .Select(request => $"{request.Profile.Id}:age={Mathf.Max(0f, now - request.StartedAt):0.0}s/timeout={request.TimeoutSeconds:0.0}s/prompt={request.Prompt.Length}"));
-        string waiting = string.Join(",", queue
+        string waiting = string.Join(",", requests.Queued
             .Where(request => request != null)
             .Take(8)
             .Select(request => $"{request.Profile.Id}:wait={Mathf.Max(0f, now - request.EnqueuedAt):0.0}s/prompt={request.Prompt.Length}"));
@@ -797,23 +273,9 @@ public sealed class LocalLlmRequestQueue :
             return false;
         }
 
-        LocalLlmQueuedRequest[] matches = queue
-            .Where(request => request != null
-                && string.Equals(
-                    request.CorrelationId,
-                    canonical,
-                    StringComparison.Ordinal))
-            .ToArray();
-        if (matches.Length == 0) return false;
-        if (matches.Length != 1)
-        {
-            throw new InvalidOperationException(
-                "Targeted isolated dispatch found duplicate correlations.");
-        }
-
-        LocalLlmQueuedRequest request = matches[0];
-        queue.Remove(request);
-        StartCoroutine(ProcessRequest(request));
+        if (!requests.TryBeginCorrelated(canonical, out LocalLlmQueuedRequest request))
+            return false;
+        StartExecution(request);
         return true;
     }
 
@@ -1034,14 +496,9 @@ public sealed class LocalLlmRequestQueue :
     private void ResetTransientState(string reason, bool remainSuspended)
     {
         isSuspended = true;
-        List<LocalLlmQueuedRequest> cancelled = new List<LocalLlmQueuedRequest>(
-            queue.Count + runningRequests.Count);
-        cancelled.AddRange(queue);
-        cancelled.AddRange(runningRequests);
-
+        IReadOnlyList<LocalLlmQueuedRequest> cancelled = requests.CapturePending();
         StopAllCoroutines();
-        queue.Clear();
-        runningRequests.Clear();
+        requests.Clear();
 
         LocalLlmResult result = new LocalLlmResult(
             LocalLlmRequestStatus.Cancelled,
@@ -1093,27 +550,29 @@ public sealed class LocalLlmRequestQueue :
             // Do not fail them merely because model hashing/loading is still in progress.
             return;
         }
-        while (RunningCount < Mathf.Max(1, maxConcurrentRequests) && queue.Count > 0)
+        while (requests.TryBeginNext(Now, maxConcurrentRequests, out LocalLlmQueuedRequest request))
+            StartExecution(request);
+    }
+
+    private void StartExecution(LocalLlmQueuedRequest request)
+    {
+        try
         {
-            int index = FindNextRequestIndex();
-            if (index < 0
-                || !ContextAwareLlmScheduler.CanDispatch(queue[index], Now, queue.Count))
+            Coroutine execution = StartCoroutine(ProcessRequest(request));
+            if (execution == null && requests.IsRunning(request))
+                throw new InvalidOperationException("Local LLM request execution did not start.");
+        }
+        catch (Exception exception)
+        {
+            try
             {
-                break;
+                request.Abort();
+                Complete(request, new LocalLlmResult(
+                    LocalLlmRequestStatus.Failed, string.Empty,
+                    "Local LLM request execution failed: " + exception.Message,
+                    request.OriginalText));
             }
-            LocalLlmQueuedRequest request = queue[index];
-            queue.RemoveAt(index);
-            if (request.Scheduling != null
-                && request.Scheduling.AffinityKey == currentAffinityKey)
-            {
-                currentAffinityBurst++;
-            }
-            else
-            {
-                currentAffinityKey = request.Scheduling?.AffinityKey ?? default;
-                currentAffinityBurst = 1;
-            }
-            StartCoroutine(ProcessRequest(request));
+            finally { requests.Finish(request); }
         }
     }
 
@@ -1342,7 +801,7 @@ public sealed class LocalLlmRequestQueue :
             canonical.Prompt,
             requestKey,
             now);
-        queue.Add(new LocalLlmQueuedRequest(
+        return AdmitRequest(new LocalLlmQueuedRequest(
             profile,
             canonical.Prompt,
             string.Empty,
@@ -1371,7 +830,6 @@ public sealed class LocalLlmRequestQueue :
             },
             isEquipmentChoice: true,
             candidateCount: candidateCount));
-        return true;
     }
 
     public void CancelEvolutionHistoryRequest(string requestKey)
@@ -1390,8 +848,7 @@ public sealed class LocalLlmRequestQueue :
         if (canonicalKey.Length == 0
             || !string.Equals(requestKey, canonicalKey, StringComparison.Ordinal))
             return false;
-        if (queue.Concat(runningRequests).Any(request => request != null
-                && string.Equals(request.CorrelationId, canonicalKey, StringComparison.Ordinal)))
+        if (requests.ContainsCorrelation(canonicalKey))
             return false;
         return Enqueue(
             LocalLlmRequestProfiles.EquipmentEvolutionModuleSelection,
@@ -1411,8 +868,7 @@ public sealed class LocalLlmRequestQueue :
         if (canonicalKey.Length == 0
             || !string.Equals(requestKey, canonicalKey, StringComparison.Ordinal))
             return false;
-        if (queue.Concat(runningRequests).Any(request => request != null
-                && string.Equals(request.CorrelationId, canonicalKey, StringComparison.Ordinal)))
+        if (requests.ContainsCorrelation(canonicalKey))
             return false;
         return Enqueue(
             LocalLlmRequestProfiles.FacilityEvolutionModuleSelection,
@@ -1439,11 +895,7 @@ public sealed class LocalLlmRequestQueue :
                 string.Empty));
             return false;
         }
-        if (queue.Concat(runningRequests).Any(request => request != null
-                && string.Equals(
-                    request.CorrelationId,
-                    canonicalKey,
-                    StringComparison.Ordinal)))
+        if (requests.ContainsCorrelation(canonicalKey))
         {
             lastError = "AcquiredTrait: Skipped - correlated request is already pending.";
             return false;
@@ -1481,8 +933,7 @@ public sealed class LocalLlmRequestQueue :
                 string.Empty));
             return false;
         }
-        if (queue.Concat(runningRequests).Any(request => request != null
-                && string.Equals(request.CorrelationId, canonicalKey, StringComparison.Ordinal)))
+        if (requests.ContainsCorrelation(canonicalKey))
         {
             lastError = "AcquiredTraitModuleSelection: Skipped - correlated request is already pending.";
             return false;
@@ -1523,18 +974,9 @@ public sealed class LocalLlmRequestQueue :
             return;
         }
 
-        LocalLlmQueuedRequest[] cancelled = queue
-            .Concat(runningRequests)
-            .Where(request => request != null
-                && string.Equals(
-                    request.CorrelationId,
-                    requestKey,
-                    StringComparison.Ordinal))
-            .Distinct()
-            .ToArray();
+        IReadOnlyList<LocalLlmQueuedRequest> cancelled = requests.CancelCorrelation(requestKey);
         foreach (LocalLlmQueuedRequest request in cancelled)
         {
-            queue.Remove(request);
             request.Abort();
             Complete(request, new LocalLlmResult(
                     LocalLlmRequestStatus.Cancelled,
@@ -1646,38 +1088,6 @@ public sealed class LocalLlmRequestQueue :
             return false;
         }
 
-        if (queue.Count >= maxQueueSize && !TryDropLowestPriorityEvictableRequest())
-        {
-            if (profile.QueueFullBehavior == LocalLlmQueueFullBehavior.Drop)
-            {
-                droppedEphemeralRequestCount++;
-                InvokeCallbackSafely(callback, new LocalLlmResult(
-                    LocalLlmRequestStatus.Dropped,
-                    string.Empty,
-                    $"{profile.Id} request dropped because the LLM queue is full.",
-                    originalText));
-                return false;
-            }
-
-            if (profile.QueueFullBehavior == LocalLlmQueueFullBehavior.RejectQuietly)
-            {
-                lastError = $"{profile.Id}: Skipped - LLM queue is full.";
-                return false;
-            }
-
-            lastError = $"{profile.Id}: Failed - LLM queue is full and no queued request can be evicted.";
-            InvokeCallbackSafely(callback, new LocalLlmResult(
-                LocalLlmRequestStatus.Failed,
-                string.Empty,
-                "LLM queue is full and no queued request can be evicted.",
-                originalText));
-            if (profile.LogFailureWarnings)
-            {
-                LogWarningIfAllowed(lastError);
-            }
-            return false;
-        }
-
         string contextualPrompt = prompt.Contains(NarrativeRequestContext.BeginMarker)
             ? prompt
             : NarrativeCultureStyleCatalog.Create(
@@ -1687,7 +1097,7 @@ public sealed class LocalLlmRequestQueue :
                     requireMotif: LlmStaticSchemaCatalog.Require(profile.Id)
                         .PersistentNarrative)
                 .AppendToPrompt(prompt);
-        queue.Add(new LocalLlmQueuedRequest(
+        return AdmitRequest(new LocalLlmQueuedRequest(
             profile,
             contextualPrompt,
             originalText,
@@ -1696,18 +1106,52 @@ public sealed class LocalLlmRequestQueue :
             correlationId,
             scheduling,
             callback));
-        return true;
+    }
+
+    private bool AdmitRequest(LocalLlmQueuedRequest request)
+    {
+        LocalLlmRequestAdmission admission = requests.Admit(
+            request, Mathf.Max(1, maxQueueSize), out LocalLlmQueuedRequest evicted);
+        switch (admission)
+        {
+            case LocalLlmRequestAdmission.Accepted:
+                if (evicted != null)
+                {
+                    droppedEphemeralRequestCount++;
+                    Complete(evicted, new LocalLlmResult(
+                        LocalLlmRequestStatus.Dropped, string.Empty,
+                        $"{evicted.Profile.Id} request dropped by queue pressure.",
+                        evicted.OriginalText));
+                }
+                return true;
+            case LocalLlmRequestAdmission.DuplicateCorrelation:
+                lastError = $"{request.Profile.Id}: Skipped - correlated request is already pending.";
+                return false;
+            case LocalLlmRequestAdmission.Dropped:
+                droppedEphemeralRequestCount++;
+                Complete(request, new LocalLlmResult(
+                    LocalLlmRequestStatus.Dropped, string.Empty,
+                    $"{request.Profile.Id} request dropped because the LLM queue is full.",
+                    request.OriginalText));
+                return false;
+            case LocalLlmRequestAdmission.RejectedQuietly:
+                lastError = $"{request.Profile.Id}: Skipped - LLM queue is full.";
+                return false;
+            default:
+                Complete(request, new LocalLlmResult(
+                    LocalLlmRequestStatus.Failed, string.Empty,
+                    "LLM queue is full and no queued request can be evicted.",
+                    request.OriginalText));
+                return false;
+        }
     }
 
     private IEnumerator ProcessRequest(LocalLlmQueuedRequest request)
     {
-        if (request == null || request.IsCompleted || !runningRequests.Add(request))
-        {
-            yield break;
-        }
-
         try
         {
+            if (!requests.IsRunning(request) || request.IsCompleted)
+                yield break;
             if (request.IsEquipmentChoice)
             {
 #if UNITY_EDITOR
@@ -1904,7 +1348,7 @@ public sealed class LocalLlmRequestQueue :
         finally
         {
             request.Detach();
-            runningRequests.Remove(request);
+            requests.Finish(request);
         }
     }
 
@@ -2176,75 +1620,15 @@ public sealed class LocalLlmRequestQueue :
         Debug.Log($"{name}: {message}", this);
     }
 
-    private bool TryDropLowestPriorityEvictableRequest()
-    {
-        int index = -1;
-        int lowestPriority = int.MaxValue;
-        float oldestTime = float.MaxValue;
-        for (int i = 0; i < queue.Count; i++)
-        {
-            LocalLlmQueuedRequest request = queue[i];
-            if (!request.Profile.CanBeEvictedForQueuePressure
-                || request.Profile.Priority > lowestPriority
-                || (request.Profile.Priority == lowestPriority && request.EnqueuedAt >= oldestTime))
-            {
-                continue;
-            }
-
-            lowestPriority = request.Profile.Priority;
-            oldestTime = request.EnqueuedAt;
-            index = i;
-        }
-
-        if (index < 0)
-        {
-            return false;
-        }
-
-        LocalLlmQueuedRequest dropped = queue[index];
-        queue.RemoveAt(index);
-        droppedEphemeralRequestCount++;
-        Complete(dropped, new LocalLlmResult(
-            LocalLlmRequestStatus.Dropped,
-            string.Empty,
-            $"{dropped.Profile.Id} request dropped by queue pressure.",
-            dropped.OriginalText));
-        return true;
-    }
-
     private void DropExpiredRequests()
     {
-        if (queue.Count == 0)
-        {
-            return;
-        }
-
-        for (int i = queue.Count - 1; i >= 0; i--)
-        {
-            LocalLlmQueuedRequest request = queue[i];
-            if (request.Profile.MaxQueueAgeSeconds <= 0f
-                || Now - request.EnqueuedAt <= request.Profile.MaxQueueAgeSeconds)
-            {
-                continue;
-            }
-
-            queue.RemoveAt(i);
-            droppedEphemeralRequestCount++;
+        if (QueuedCount == 0) return;
+        IReadOnlyList<LocalLlmQueuedRequest> expired = requests.TakeExpired(Now);
+        droppedEphemeralRequestCount += expired.Count;
+        foreach (LocalLlmQueuedRequest request in expired)
             Complete(request, new LocalLlmResult(
-                LocalLlmRequestStatus.Dropped,
-                string.Empty,
+                LocalLlmRequestStatus.Dropped, string.Empty,
                 $"{request.Profile.Id} request expired in the LLM queue.",
                 request.OriginalText));
-        }
     }
-
-    private int FindNextRequestIndex()
-    {
-        return ContextAwareLlmScheduler.FindNext(
-            queue,
-            Now,
-            currentAffinityKey,
-            currentAffinityBurst);
-    }
-
 }

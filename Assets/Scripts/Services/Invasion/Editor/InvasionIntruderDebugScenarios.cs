@@ -1452,7 +1452,8 @@ public static class InvasionIntruderDebugScenarios
             new DungeonDefenseTimeResponseRuntime(
                 eventBus,
                 timeScale,
-                settings);
+                settings,
+                new SafeRestoreQuery());
         runtime.Initialize();
         eventBus.Publish(new InvasionDungeonBreachedEvent(
             null,
@@ -1864,6 +1865,12 @@ public static class InvasionIntruderDebugScenarios
         public bool IsGridDestroyed => false;
         public bool IsGridVisitable => false;
         public bool IsGridMovement => true;
+    }
+
+    private sealed class SafeRestoreQuery : IDungeonRestoreSafetyQuery
+    {
+        public bool RequiresRecovery => false;
+        public string RecoveryMessage => string.Empty;
     }
 
     private sealed class ScenarioTimeScaleController :

@@ -708,7 +708,7 @@ public sealed class EnvironmentalWorkwearProductionOutputHandler :
                 ?? Array.Empty<FacilityBufferPlannedOutputRestoreStackSnapshot>())
             .OrderBy(value => value.OutputLineId, StringComparer.Ordinal)
             .ToArray();
-        string destinationId = ProductionBillRuntime.OutputDestinationPrefix
+        string destinationId = ProductionBillIdentity.OutputDestinationPrefix
             + facility.InstanceId.Value;
         bool exact = batch != null
             && string.Equals(

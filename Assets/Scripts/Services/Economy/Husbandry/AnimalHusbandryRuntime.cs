@@ -542,7 +542,7 @@ public sealed class AnimalHusbandryRuntime :
         }
 
         AnimalHusbandryOutcomeOperationKind outcomeKind =
-            ToOutcomeKind(kind);
+            AnimalHusbandryOutcomeEvidenceBuilder.ToOutcomeKind(kind);
         ItemDefinitionId outputItemId = default;
         int outputQuantity = 0;
         long outputMassGrams = 0L;
@@ -590,7 +590,7 @@ public sealed class AnimalHusbandryRuntime :
                 .GetDefinitionUnitMass(outputItemId).Value * outputQuantity;
         }
 
-        List<CraftContributionSaveData> contributors = CaptureContributions(
+        List<CraftContributionSaveData> contributors = AnimalHusbandryOutcomeEvidenceBuilder.CaptureContributions(
             progress,
             workerId.Value,
             accepted);
@@ -606,7 +606,7 @@ public sealed class AnimalHusbandryRuntime :
             WorkerId = workerId.Value,
             WorkerDisplayName = workerDisplayName,
             AnimalStatesBefore = new List<HusbandryAnimalState> { state.Clone() },
-            CompletedWorkMilliUnits = ToMilliWork(required),
+            CompletedWorkMilliUnits = AnimalHusbandryOutcomeEvidenceBuilder.ToMilliWork(required),
             Contributions = contributors,
             OutputItemId = outputItemId,
             OutputQuantity = outputQuantity,
@@ -775,7 +775,7 @@ public sealed class AnimalHusbandryRuntime :
 
         if (outputItemId.IsValid)
         {
-            pending.OutputStacks = CaptureOutputDeltas(
+            pending.OutputStacks = AnimalHusbandryOutcomeEvidenceBuilder.CaptureOutputDeltas(
                 outputBefore,
                 CaptureItemQuantities(outputPosition, outputItemId),
                 outputQuantity);
@@ -962,28 +962,6 @@ public sealed class AnimalHusbandryRuntime :
             .SequenceEqual(right.AllowedSpeciesIds.Select(value => value.Value)
                 .OrderBy(value => value, StringComparer.Ordinal), StringComparer.Ordinal);
 
-    private static AnimalHusbandryOutcomeOperationKind ToOutcomeKind(
-        AnimalHusbandryWorkKind kind) => kind switch
-    {
-        AnimalHusbandryWorkKind.Tame =>
-            AnimalHusbandryOutcomeOperationKind.Tame,
-        AnimalHusbandryWorkKind.CollectProduct =>
-            AnimalHusbandryOutcomeOperationKind.CollectProduct,
-        AnimalHusbandryWorkKind.CollectManure =>
-            AnimalHusbandryOutcomeOperationKind.CollectManure,
-        AnimalHusbandryWorkKind.Slaughter =>
-            AnimalHusbandryOutcomeOperationKind.Slaughter,
-        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
-    };
-
-    private static int ToMilliWork(float work)
-    {
-        double value = Math.Round(Math.Max(0f, work) * 1000d);
-        if (value <= 0d || value > int.MaxValue)
-            throw new InvalidOperationException("Husbandry completed work is out of range.");
-        return (int)value;
-    }
-
     private static void RecordContribution(
         HusbandryAnimalState state,
         string workerId,
@@ -1012,26 +990,6 @@ public sealed class AnimalHusbandryRuntime :
             string.CompareOrdinal(left.characterId, right.characterId));
     }
 
-    private static List<CraftContributionSaveData> CaptureContributions(
-        HusbandryAnimalState state,
-        string workerId,
-        float accepted)
-    {
-        var contributions = new Dictionary<string, float>(StringComparer.Ordinal);
-        foreach (CraftContributionSaveData value in
-                 state.PendingWorkContributions
-                 ?? new List<CraftContributionSaveData>())
-        {
-            if (value != null && !string.IsNullOrWhiteSpace(value.characterId))
-                contributions[value.characterId] = value.contributedWork;
-        }
-        contributions.TryGetValue(workerId, out float current);
-        contributions[workerId] = current + accepted;
-        return contributions.OrderBy(value => value.Key, StringComparer.Ordinal)
-            .Select(value => new CraftContributionSaveData
-            { characterId = value.Key, contributedWork = value.Value }).ToList();
-    }
-
     private IReadOnlyDictionary<string, int> CaptureItemQuantities(
         Vector2Int position,
         ItemDefinitionId itemId) => itemRuntime
@@ -1043,34 +1001,6 @@ public sealed class AnimalHusbandryRuntime :
             group => group.Key,
             group => group.Sum(value => value.Quantity),
             StringComparer.Ordinal);
-
-    private static List<AnimalHusbandryOutputStack> CaptureOutputDeltas(
-        IReadOnlyDictionary<string, int> before,
-        IReadOnlyDictionary<string, int> after,
-        int expectedQuantity)
-    {
-        var deltas = new List<AnimalHusbandryOutputStack>();
-        int total = 0;
-        foreach (KeyValuePair<string, int> value in after
-                     .OrderBy(value => value.Key, StringComparer.Ordinal))
-        {
-            int previous = before != null
-                && before.TryGetValue(value.Key, out int found)
-                    ? found
-                    : 0;
-            int delta = value.Value - previous;
-            if (delta <= 0)
-                continue;
-            deltas.Add(new AnimalHusbandryOutputStack { StackId = value.Key, Quantity = delta });
-            total = checked(total + delta);
-        }
-        if (total != expectedQuantity || deltas.Count == 0)
-        {
-            throw new InvalidOperationException(
-                "Husbandry physical output vector did not match the exact spawned quantity.");
-        }
-        return deltas;
-    }
 
     public AnimalPenCompatibilityResult EvaluatePen(BuildingInstanceId penId)
     {

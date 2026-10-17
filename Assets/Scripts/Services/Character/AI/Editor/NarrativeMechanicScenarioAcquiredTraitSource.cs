@@ -187,10 +187,10 @@ public sealed class NarrativeMechanicScenarioAcquiredTraitSource
                 : BuildEvaluationLedgerPublications(plan, scenarioId, ledger);
         NarrativePublicContextMaterial publicMaterial = evaluationPublications == null
             ? CharacterAcquiredTraitPromptBuilder.BuildPublicMaterialForLedgerEvidence(
-                progression,
+                NarrativeRequestContextTestFixture.CreateEmpty(), progression,
                 rawEvidenceFactIds)
             : CharacterAcquiredTraitPromptBuilder.BuildPublicMaterialForLedgerEvidence(
-                progression,
+                NarrativeRequestContextTestFixture.CreateEmpty(), progression,
                 rawEvidenceFactIds,
                 evaluationPublications);
         IReadOnlyList<string> evidenceFactIds =
@@ -514,7 +514,7 @@ public sealed class NarrativeMechanicScenarioAcquiredTraitSource
 
         NarrativePublicContextMaterial publicMaterial =
             CharacterAcquiredTraitPromptBuilder.BuildPublicMaterialForLedgerEvidence(
-                progression,
+                NarrativeRequestContextTestFixture.CreateEmpty(), progression,
                 ledger.Facts.Select((fact) => fact.factId));
         IReadOnlyList<string> projectedEvidenceFactIds =
             CharacterAcquiredTraitPromptBuilder.BuildProjectedEvidenceFactIds(
@@ -683,7 +683,7 @@ public sealed class NarrativeMechanicScenarioAcquiredTraitSource
             .ToArray();
         NarrativePublicContextMaterial publicMaterial =
             CharacterAcquiredTraitPromptBuilder.BuildPublicMaterialForLedgerEvidence(
-                progression,
+                NarrativeRequestContextTestFixture.CreateEmpty(), progression,
                 rawEvidenceFactIds);
         IReadOnlyList<string> evidenceFactIds =
             CharacterAcquiredTraitPromptBuilder.BuildProjectedEvidenceFactIds(
@@ -1606,7 +1606,12 @@ public sealed class NarrativeMechanicScenarioAcquiredTraitSource
             "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitValidation.cs",
             "Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitState.cs",
             "Assets/Scripts/Services/Character/Core/CharacterProgression.cs",
+            "Assets/Scripts/Services/Character/Core/CharacterTraitInferenceTransaction.cs",
+            "Assets/Scripts/Services/Character/Core/CharacterTraitInferenceAuthority.cs",
             "Assets/Scripts/Services/Character/Core/CharacterSkillModels.cs",
+            "Assets/Scripts/Services/Character/Core/CharacterSkillDefinitionData.cs",
+            "Assets/Scripts/Services/Character/Core/CharacterSkillPrimitives.cs",
+            "Assets/Scripts/Services/Character/Core/CharacterNarrativeLedger.cs",
             "Assets/Scripts/Services/Character/Core/MemoryErasureSealContracts.cs",
             "Assets/Scripts/Services/Character/Core/MemoryErasureSealTransactionService.cs",
             "Assets/Scripts/Services/Items/CharacterCarryInventory.cs",

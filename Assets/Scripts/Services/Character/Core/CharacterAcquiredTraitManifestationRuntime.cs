@@ -210,14 +210,16 @@ public static class CharacterAcquiredTraitPromptBuilder
     }
 
     public static NarrativePublicContextMaterial BuildPublicMaterial(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterProgression progression,
         CharacterAcquiredTraitRequestPacketDto packet)
     {
         if (packet == null) throw new ArgumentNullException(nameof(packet));
-        return BuildPublicMaterial(progression, packet.evidenceFactIds);
+        return BuildPublicMaterial(requestContexts, progression, packet.evidenceFactIds);
     }
 
     public static NarrativePublicContextMaterial BuildPublicMaterial(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterProgression progression,
         CharacterAcquiredTraitRequestPacketDto packet,
         IEnumerable<NarrativeLedgerPublicationDescriptor> ledgerPublicationDescriptors)
@@ -226,22 +228,24 @@ public static class CharacterAcquiredTraitPromptBuilder
         if (ledgerPublicationDescriptors == null)
             throw new ArgumentNullException(nameof(ledgerPublicationDescriptors));
         return BuildPublicMaterial(
-            progression,
+            requestContexts, progression,
             packet.evidenceFactIds,
             ledgerPublicationDescriptors);
     }
 
     public static NarrativePublicContextMaterial BuildPublicMaterial(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterProgression progression,
         IEnumerable<string> projectedOrLegacyEvidenceFactIds)
     {
         return BuildPublicMaterialCore(
-            progression,
+            requestContexts, progression,
             projectedOrLegacyEvidenceFactIds,
             ledgerPublicationDescriptors: null);
     }
 
     public static NarrativePublicContextMaterial BuildPublicMaterial(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterProgression progression,
         IEnumerable<string> projectedOrLegacyEvidenceFactIds,
         IEnumerable<NarrativeLedgerPublicationDescriptor> ledgerPublicationDescriptors)
@@ -249,12 +253,13 @@ public static class CharacterAcquiredTraitPromptBuilder
         if (ledgerPublicationDescriptors == null)
             throw new ArgumentNullException(nameof(ledgerPublicationDescriptors));
         return BuildPublicMaterialCore(
-            progression,
+            requestContexts, progression,
             projectedOrLegacyEvidenceFactIds,
             ledgerPublicationDescriptors);
     }
 
     private static NarrativePublicContextMaterial BuildPublicMaterialCore(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterProgression progression,
         IEnumerable<string> projectedOrLegacyEvidenceFactIds,
         IEnumerable<NarrativeLedgerPublicationDescriptor> ledgerPublicationDescriptors)
@@ -275,18 +280,20 @@ public static class CharacterAcquiredTraitPromptBuilder
             originalFactIds.UnionWith(resolved.Select(value => value.factId));
         }
         return ledgerPublicationDescriptors == null
-            ? BuildPublicMaterialForLedgerEvidence(progression, originalFactIds)
+            ? BuildPublicMaterialForLedgerEvidence(requestContexts, progression, originalFactIds)
             : BuildPublicMaterialForLedgerEvidence(
-                progression,
+                requestContexts, progression,
                 originalFactIds,
                 ledgerPublicationDescriptors);
     }
 
     public static NarrativePublicContextMaterial BuildPublicMaterialForLedgerEvidence(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterProgression progression,
         IEnumerable<string> originalEvidenceFactIds)
     {
-        return NarrativeRequestContextBuilder.BuildPublicMaterialForProgression(
+        if (requestContexts == null) throw new ArgumentNullException(nameof(requestContexts));
+        return requestContexts.BuildPublicMaterialForProgression(
             LocalLlmRequestProfiles.AcquiredTrait.Id,
             progression,
             requireCharacterFact: false,
@@ -295,13 +302,15 @@ public static class CharacterAcquiredTraitPromptBuilder
     }
 
     public static NarrativePublicContextMaterial BuildPublicMaterialForLedgerEvidence(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterProgression progression,
         IEnumerable<string> originalEvidenceFactIds,
         IEnumerable<NarrativeLedgerPublicationDescriptor> ledgerPublicationDescriptors)
     {
+        if (requestContexts == null) throw new ArgumentNullException(nameof(requestContexts));
         if (ledgerPublicationDescriptors == null)
             throw new ArgumentNullException(nameof(ledgerPublicationDescriptors));
-        return NarrativeRequestContextBuilder.BuildPublicMaterialForProgression(
+        return requestContexts.BuildPublicMaterialForProgression(
             LocalLlmRequestProfiles.AcquiredTrait.Id,
             progression,
             requireCharacterFact: false,
@@ -353,23 +362,25 @@ public static class CharacterAcquiredTraitPromptBuilder
     }
 
     public static string Build(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterProgression progression,
         CharacterAcquiredTraitRequestPacketDto packet)
     {
         return BuildEnvelope(
             progression,
             packet,
-            BuildPublicMaterial(progression, packet)).Prompt;
+            BuildPublicMaterial(requestContexts, progression, packet)).Prompt;
     }
 
     public static NarrativePublicPromptEnvelope BuildEnvelope(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterProgression progression,
         CharacterAcquiredTraitRequestPacketDto packet)
     {
         return BuildEnvelope(
             progression,
             packet,
-            BuildPublicMaterial(progression, packet));
+            BuildPublicMaterial(requestContexts, progression, packet));
     }
 
     public static NarrativePublicPromptEnvelope BuildEnvelope(
@@ -812,6 +823,7 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
     }
 
     private readonly ICharacterWorldQuery world;
+    private readonly NarrativeRequestContextBuilder requestContexts;
     private readonly ILocalLlmRuntimeProvider llmRuntimeProvider;
     private readonly IGameCalendar calendar;
     private readonly IUiClock uiClock;
@@ -831,6 +843,7 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
 
     [Inject]
     public CharacterAcquiredTraitManifestationRuntime(
+        NarrativeRequestContextBuilder requestContexts,
         IGameContentDefinitionSource content,
         ICharacterWorldQuery world,
         ILocalLlmRuntimeProvider llmRuntimeProvider,
@@ -841,6 +854,7 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
         DungeonStory.Foundation.Facts.IDomainFactPublisher facts,
         CharacterTraitInferencePublicationRuntime publications)
     {
+        this.requestContexts = requestContexts ?? throw new ArgumentNullException(nameof(requestContexts));
         if (content == null)
             throw new ArgumentNullException(nameof(content));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
@@ -1155,7 +1169,7 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
             .ToArray();
         NarrativePublicContextMaterial publicMaterial =
             CharacterAcquiredTraitPromptBuilder.BuildPublicMaterialForLedgerEvidence(
-                observation.Progression,
+                requestContexts, observation.Progression,
                 evidence);
         publicMaterial = GameplayOutcomeEvidencePublicMaterialComposer.AddExactEvidence(
             publicMaterial, exactBindings);
@@ -1270,7 +1284,7 @@ public sealed class CharacterAcquiredTraitManifestationRuntime :
             // Explicit legacy-v0 path. Identity is still checked below; neither
             // a changed context nor a missing v1 snapshot may be silently replaced.
             publicMaterial = CharacterAcquiredTraitPromptBuilder.BuildPublicMaterial(
-                observation.Progression,
+                requestContexts, observation.Progression,
                 localEvidence);
             publicMaterial = GameplayOutcomeEvidencePublicMaterialComposer.AddExactEvidence(
                 publicMaterial, persisted.evidenceBindings);

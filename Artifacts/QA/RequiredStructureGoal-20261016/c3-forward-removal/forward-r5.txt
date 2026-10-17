@@ -1,0 +1,31 @@
+Before normal-and-terminal-replay|FAIL|Exception:capture guard missing
+Before paid-failure-same-request-retry|FAIL|Exception:partial not deferred
+Before unregistered-owner-is-not-already-applied|FAIL|Exception:unregistered partial reported removed
+Before post-unregister-cache-failure|FAIL|Exception:cache partial reported removed
+Before same-id-replacement-is-not-old-owner|FAIL|Exception:physical/participant replay
+Before restore-clears-prior-world-reference|FAIL|Exception:restore hook missing
+Before fuel-defer-has-no-transient-world-mutation|FAIL|Exception:capture guard missing
+Before visual-failure-rolls-back-before-pending|FAIL|Exception:capture guard missing
+Before binding-change-is-explicit-conflict|FAIL|Exception:capture guard missing
+Before destroyed-new-or-wrong-cause-request-rejected|PASS
+Before observer-once-original-failure-retained|FAIL|Exception:observer loss or replay
+Before world-ack-retry-does-not-keep-or-replay-owner|FAIL|Exception:capture guard missing
+Before restore-invalidates-prior-conflict-observation|FAIL|InvalidCastException:Unable to cast object of type 'ProductionFacilityDestructiveDrainWorldRemovalPort' to type 'IDungeonSaveRestoreCompletedHook'.
+Before capture-blocked-during-grid-mutation|FAIL|Exception:capture guard missing
+Before capture-blocked-during-visual-mutation|FAIL|Exception:visual callback captured half-world
+After normal-and-terminal-replay|PASS
+After paid-failure-same-request-retry|PASS
+After unregistered-owner-is-not-already-applied|PASS
+After post-unregister-cache-failure|PASS
+After same-id-replacement-is-not-old-owner|PASS
+After restore-clears-prior-world-reference|PASS
+After fuel-defer-has-no-transient-world-mutation|PASS
+After visual-failure-rolls-back-before-pending|PASS
+After binding-change-is-explicit-conflict|PASS
+After destroyed-new-or-wrong-cause-request-rejected|PASS
+After observer-once-original-failure-retained|PASS
+After world-ack-retry-does-not-keep-or-replay-owner|PASS
+After restore-invalidates-prior-conflict-observation|PASS
+After capture-blocked-during-grid-mutation|PASS
+After capture-blocked-during-visual-mutation|PASS
+C3_FORWARD_SOURCE=PASS; cases=15; originalFailures=14; fullWorldRemovalRecoverySource=true; Unity/grid/fuel/DTO/journal/coordinator=DOUBLES; fullUnityCompile/execution=NOT_RUN

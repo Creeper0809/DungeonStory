@@ -718,11 +718,11 @@ public sealed class DoorVisualPlayModeVerificationRunner : MonoBehaviour
     }
 
     private static void AddHallwayTilemap(
-        Dictionary<GridTexture.TilemapLayer, Tilemap> tilemaps,
+        Dictionary<BuildingTilemapLayer, Tilemap> tilemaps,
         HashSet<Tilemap> result)
     {
         if (tilemaps != null
-            && tilemaps.TryGetValue(GridTexture.TilemapLayer.HALLWAY, out Tilemap hallwayTilemap)
+            && tilemaps.TryGetValue(BuildingTilemapLayer.HALLWAY, out Tilemap hallwayTilemap)
             && hallwayTilemap != null)
         {
             result.Add(hallwayTilemap);

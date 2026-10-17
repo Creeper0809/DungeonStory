@@ -11,7 +11,7 @@ public static class PopulationDiseaseExposureFactMapping
     {
         if (fact == null)
             throw new ArgumentNullException(nameof(fact));
-        return EnvironmentOutcomeReceiptFactory.CreateDiseaseExposure(
+        return EnvironmentConditionOutcomeReceiptFactory.CreateDiseaseExposure(
             fact.CharacterId,
             fact.CharacterDisplayName,
             fact.Disease,

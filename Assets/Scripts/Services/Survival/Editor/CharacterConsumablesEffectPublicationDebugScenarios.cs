@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using DungeonStory.Foundation;
 using DungeonStory.Foundation.Facts;
@@ -70,6 +71,67 @@ public static class CharacterConsumablesEffectPublicationDebugScenarios
         VerifyFutureConsumableTimesAndMissingTimelineAreRejectedAtomically();
         VerifyPrephysicalMealFailureSurvivesRestoreAndBlocksReplay();
         VerifyMealFailurePayloadValidationAndDurableHistory();
+    }
+
+    public static string RunSharedOperationOwnershipForArchitectureBatch()
+    {
+        Require(Application.isBatchMode && DungeonPersistencePaths.IsIsolatedVerification,
+            "Shared operation verification requires isolated batch persistence.");
+        Fixture source = CreateFixture(false, mealStackState: CharacterConsumablesStackState.Loose,
+            outcomeRejects: 0);
+        Require(source.Runtime.TryConsumeFieldMeal(ActorId, MealStackId, out var meal)
+                && meal.Success
+                && source.Runtime.TryConsumeSubstance(ActorId, SubstanceId.Value,
+                    medicalContext: true, combatContext: false, out var substance)
+                && substance.Success,
+            "Shared operation fixture did not complete a field meal followed by a substance.");
+        DungeonCharacterConsumablesSaveData saved = CloneSave(source.Runtime.Capture());
+        WriteOwnershipCheckpoint("shared-operation-completed.json", saved);
+        Require(saved.completedOperations.Count == 2
+                && saved.nextOperationSequence == 3L
+                && saved.completedOperations[0].meal && !saved.completedOperations[1].meal
+                && saved.completedOperations[0].operationId == CharacterConsumableIdForSequence(1)
+                && saved.completedOperations[1].operationId == CharacterConsumableIdForSequence(2)
+                && saved.substanceStates.Count == 1 && saved.toxicityStates.Count == 1,
+            "Meal and substance owners did not share one operation watermark and completion journal.");
+        BoundedOutcomePort outcomes = new(source.Port);
+        CharacterConsumablesRuntime restored = CreateRuntime(source.Port, source.Clock, outcomes);
+        Require(restored.GetSubstanceState(ActorId, SubstanceId.Value).activeSeconds == 0f,
+            "Fresh substance owner started with another root's state.");
+        restored.PublishRestoreCandidate(restored.BuildRestoreCandidate(saved));
+        Require(JsonUtility.ToJson(restored.Capture()) == JsonUtility.ToJson(saved)
+                && restored.GetSubstanceState(ActorId, SubstanceId.Value).activeSeconds > 0f,
+            "Fresh owners did not restore the common journal and substance state together.");
+        restored.ReconcilePersistentActorReferences(Array.Empty<CharacterId>());
+        DungeonCharacterConsumablesSaveData retired = restored.Capture();
+        WriteOwnershipCheckpoint("shared-operation-retired.json", retired);
+        Require(retired.completedOperations.Count == 0 && retired.substanceStates.Count == 0
+                && retired.toxicityStates.Count == 0 && retired.nextOperationSequence == 3L,
+            "Retirement did not route completion/substance/toxicity cleanup to their owners or lost its watermark.");
+        restored.ValidateRestorePayload(retired, requireWorldReferences: true);
+        restored.PublishRestoreCandidate(restored.BuildRestoreCandidate(saved));
+        Require(JsonUtility.ToJson(restored.Capture()) == JsonUtility.ToJson(saved)
+                && restored.TryGetMealOperationResult(meal.OperationId, out var completedMeal)
+                && completedMeal.Success
+                && source.Port.MealPhysicalCommits == 1 && source.Port.SubstancePhysicalCommits == 1
+                && source.Port.MealEffectApplications == 1 && source.Port.SubstanceEffectApplications == 1
+                && outcomes.ParentCommitAttempts == 0,
+            "Repeated root replacement wrote stale owner state or replayed committed effects.");
+        return "shared-operation-owner=PASS; meal/substance IDs=auto1/auto2; watermark=3; "
+            + "JSON fresh root=exact; retirement=completion/substance/toxicity; repeated root=exact; replay=0";
+    }
+
+    private static string CharacterConsumableIdForSequence(long sequence) =>
+        "consumable-operation:auto:v1:" + sequence.ToString("D16", CultureInfo.InvariantCulture);
+
+    private static void WriteOwnershipCheckpoint(string name, DungeonCharacterConsumablesSaveData save)
+    {
+        string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
+        Require(!string.IsNullOrWhiteSpace(output) && Path.IsPathRooted(output),
+            "Shared operation verification requires the launcher's evidence directory.");
+        using var stream = new FileStream(Path.Combine(output, name), FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+        using var writer = new StreamWriter(stream);
+        writer.Write(JsonUtility.ToJson(save));
     }
 
     internal static void VerifyInterruptedHungerRecoveryAdmission()

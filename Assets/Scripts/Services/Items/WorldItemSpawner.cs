@@ -214,7 +214,7 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
         string normalizedItemId = itemId?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(normalizedItemId)
             || !itemInstanceId.IsValid
-            || catalogProvider.GetDefinition(normalizedItemId).MaxStack != 1
+            || catalogProvider.GetDefinition(normalizedItemId)?.MaxStack != 1
             || repository.Records.Any(record => record != null
                 && string.Equals(
                     record.itemInstanceId,
@@ -240,9 +240,19 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
                 .Select(component => component.Clone())
                 .ToList()
         };
-        repository.Add(created);
-        markerPresenter.RefreshAt(position);
+        if (!repository.TryAddBatchAtomically(new[] { created }, null, out _))
+        {
+            return false;
+        }
         stackId = created.stackId;
+        try
+        {
+            markerPresenter.RefreshAt(position);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError($"Unique item '{stackId}' was committed, but its marker could not be refreshed: {exception}");
+        }
         return true;
     }
 

@@ -204,7 +204,10 @@ public static class CombatEquipmentCraftTransactionFixture
             IDungeonItemCatalogProvider itemCatalog =
                 EditorItemCatalogFactory.Create();
             ProductionDomainOutputPublicationDebugScenarios.DomainFixture domain =
-                new(runtimeObject: facility, itemCatalog: itemCatalog);
+                new(runtimeObject: facility, itemCatalog: itemCatalog,
+                    facilityPersistentId: facility.RequirePersistentInstanceId().Value);
+            if (domain.Handle.InstanceId.Value != facility.RequirePersistentInstanceId().Value)
+                return Fail("EEC06 output fixture does not refer to the actual crafting facility.");
             FixtureGateway physical = new(itemCatalog, domain.Repository);
             AcceptingCraftInputDestinations destinations = new();
             EvolutionGameplayOutcomeEditorFixture qualityOutcomes = new(
@@ -245,11 +248,11 @@ public static class CombatEquipmentCraftTransactionFixture
                 new CombatCraftCompletionFactProbeObserver(
                     completionObserver,
                     completionProbe));
-            IProductionDomainOutputPublicationService outputPublication =
+            var outputPublication = new ObservedOutputProbe(
                 CreateObservedPublication(
                     domain,
                     completionFacts,
-                    completionOutcomes);
+                    completionOutcomes));
             FixedExcellentCraftQualityResolver qualityResolver = new();
 
             CombatEquipmentRuntime runtime = CreateEec06Runtime(
@@ -262,6 +265,42 @@ public static class CombatEquipmentCraftTransactionFixture
                 qualityFacts,
                 outputPublication,
                 qualityResolver);
+            string nonexhaustedJson = CombatEquipmentSaveJson.Serialize(
+                runtime.Capture());
+            DungeonCombatEquipmentSaveData exhausted =
+                DungeonSaveJson.Deserialize<DungeonCombatEquipmentSaveData>(
+                    nonexhaustedJson);
+            exhausted.nextCraftSequence = int.MaxValue;
+            runtime.PublishRestoreCandidate(runtime.BuildRestoreCandidate(
+                exhausted));
+            string exhaustedJson = CombatEquipmentSaveJson.Serialize(
+                runtime.Capture());
+            if (runtime.TryQueueCraft(
+                    "weapon:longsword",
+                    "material:blacksteel",
+                    facility,
+                    out string exhaustedFailure)
+                || !string.Equals(
+                    exhaustedFailure,
+                    "equipment.craft.sequence_exhausted",
+                    StringComparison.Ordinal)
+                || destinations.OpenCalls != 0
+                || destinations.RequestCalls != 0
+                || destinations.CloseCalls != 0
+                || !string.Equals(
+                    CombatEquipmentSaveJson.Serialize(runtime.Capture()),
+                    exhaustedJson,
+                    StringComparison.Ordinal))
+            {
+                return Fail("EEC06 exhausted craft sequence mutated owner or input destination"
+                    + $":failure={exhaustedFailure}"
+                    + $",open={destinations.OpenCalls}"
+                    + $",request={destinations.RequestCalls}"
+                    + $",close={destinations.CloseCalls}");
+            }
+            runtime.PublishRestoreCandidate(runtime.BuildRestoreCandidate(
+                DungeonSaveJson.Deserialize<DungeonCombatEquipmentSaveData>(
+                    nonexhaustedJson)));
             string allowFailure = string.Empty;
             string priorityFailure = string.Empty;
             if (!runtime.SetCraftMaterialAllowed(
@@ -555,7 +594,16 @@ public static class CombatEquipmentCraftTransactionFixture
                 || !restoredPending.outputPublication.observationDelivered
                 || physical.GetAllStacks().Count != physicalCountAfterInterrupted + 1)
             {
-                return Fail("EEC06 restored production order did not complete exactly once");
+                return Fail("EEC06 restored production order did not complete exactly once"
+                    + $":completed={completed},definition={completedDefinition},material={completedMaterial},quality={completedQuality}"
+                    + $",queue={restored.CraftQueue.Count},completionRows={completionLedger.exactOutcomes.Count}"
+                    + $",completionFactEmpty={restoredPending.completionFact?.IsEmpty},delivered={restoredPending.outputPublication.observationDelivered}"
+                    + $",physicalStacks={physical.GetAllStacks().Count},expectedStacks={physicalCountAfterInterrupted + 1}"
+                    + $",outputPhase={restoredPending.outputPhase},outputPublished={restoredPending.outputPublication.outputPublished}"
+                    + $",observationExpected={restoredPending.outputPublication.observationExpected}"
+                    + $",materialAck={restoredPending.materialTransferAcknowledged},outputAck={restoredPending.outputPublication.outputAcknowledged}"
+                    + $",outputAckFailure={outputPublication.LastAcknowledgementFailure},recoveryFailure={outputPublication.LastRecoveryFailure}"
+                    + $",completionEffects={restoredPending.completionEffectsPublished}");
             }
             string outputStackId = restoredPending.outputPublication.stacks
                 .Single().stackId;
@@ -609,6 +657,7 @@ public static class CombatEquipmentCraftTransactionFixture
                 + "contributors=1; qualityChild=1; completionParent=1; "
                 + "unresolvedWipJsonRestore=pass; absentOutputFields=2; "
                 + "malformedOptionalRejects=3; rejectOwnerMutation=0; "
+                + "sequenceExhaustionMutation=0; sequenceRetry=pass; "
                 + "freshRestore=pass; replayDuplicate=0";
             return true;
         }
@@ -872,7 +921,8 @@ public static class CombatEquipmentCraftTransactionFixture
                     completionProbe));
 
             ProductionDomainOutputPublicationDebugScenarios.DomainFixture unique =
-                new(runtimeObject: facility);
+                new(runtimeObject: facility,
+                    facilityPersistentId: facility.RequirePersistentInstanceId().Value);
             IProductionDomainOutputPublicationService uniquePublication =
                 CreateObservedPublication(
                     unique,
@@ -1052,7 +1102,8 @@ public static class CombatEquipmentCraftTransactionFixture
             }
 
             ProductionDomainOutputPublicationDebugScenarios.DomainFixture ammo =
-                new(runtimeObject: facility);
+                new(runtimeObject: facility,
+                    facilityPersistentId: facility.RequirePersistentInstanceId().Value);
             IProductionDomainOutputPublicationService ammoPublication =
                 CreateObservedPublication(
                     ammo,
@@ -1363,6 +1414,41 @@ public static class CombatEquipmentCraftTransactionFixture
             deliveries: new GameplayDomainFactDeliveryQuery(
                 outcomes.Recorder,
                 outcomes.Ledger));
+
+    // Observes the actual service result without issuing an extra producer/ACK command.
+    private sealed class ObservedOutputProbe : IProductionDomainOutputPublicationService,
+        IObservedProductionDomainOutputPublicationService
+    {
+        private readonly IProductionDomainOutputPublicationService inner;
+        private readonly IObservedProductionDomainOutputPublicationService observed;
+        internal string LastAcknowledgementFailure { get; private set; } = string.Empty;
+        internal string LastRecoveryFailure { get; private set; } = string.Empty;
+        internal ObservedOutputProbe(IProductionDomainOutputPublicationService inner)
+        {
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+            observed = inner as IObservedProductionDomainOutputPublicationService
+                ?? throw new InvalidOperationException("EEC06 requires the real observed publication service.");
+        }
+        public ProductionDomainOutputPublicationResult EnsureCommitted(
+            ProductionDomainOutputPublicationSaveData owner, ProductionDomainOutputPublicationPlan plan) =>
+            inner.EnsureCommitted(owner, plan);
+        public ProductionDomainOutputPublicationResult EnsureCommitted<TFact>(
+            ProductionDomainOutputPublicationSaveData owner, ProductionDomainOutputPublicationPlan plan,
+            Func<ProductionDomainOutputFactPreview, TFact> capture) => observed.EnsureCommitted(owner, plan, capture);
+        public bool TryRecover<TFact>(ProductionDomainOutputPublicationSaveData owner, string ownerId,
+            Func<ProductionDomainOutputFactPreview, TFact> capture, out string failureReason)
+        {
+            bool recovered = observed.TryRecover(owner, ownerId, capture, out failureReason);
+            LastRecoveryFailure = failureReason;
+            return recovered;
+        }
+        public bool TryAcknowledge(ProductionDomainOutputPublicationSaveData owner, out string failureReason)
+        {
+            bool acknowledged = inner.TryAcknowledge(owner, out failureReason);
+            LastAcknowledgementFailure = failureReason;
+            return acknowledged;
+        }
+    }
 
     private sealed class CombatCraftCompletionFactProbeObserver :
         IDurableDomainFactObserver<CombatEquipmentCraftCompletedFact>,
@@ -1872,12 +1958,17 @@ public static class CombatEquipmentCraftTransactionFixture
     private sealed class AcceptingCraftInputDestinations :
         ICombatEquipmentCraftInputDestinationRuntime
     {
+        internal int OpenCalls { get; private set; }
+        internal int RequestCalls { get; private set; }
+        internal int CloseCalls { get; private set; }
+
         public bool TryOpen(
             CombatEquipmentCraftOrderSaveData order,
             BuildableObject facility,
             IReadOnlyDictionary<string, int> requirements,
             out string failureReason)
         {
+            OpenCalls++;
             failureReason = string.Empty;
             return true;
         }
@@ -1887,6 +1978,7 @@ public static class CombatEquipmentCraftTransactionFixture
             IReadOnlyDictionary<string, int> requirements,
             out string failureReason)
         {
+            RequestCalls++;
             failureReason = string.Empty;
             return true;
         }
@@ -1905,6 +1997,7 @@ public static class CombatEquipmentCraftTransactionFixture
             string reasonCode,
             out string failureReason)
         {
+            CloseCalls++;
             failureReason = string.Empty;
             return true;
         }

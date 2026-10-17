@@ -277,7 +277,7 @@ public static class RoomSystemDebugScenarios
                 building.ConstructBuildableObject(
                     new BuildingResearchWorkPortAdapter(BlueprintResearchWorkService),
                     FacilityCandidateCacheService,
-                    RoomFacilityPolicyService, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
+                    RoomFacilityPolicyService, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
             }),
             new BuildingPlacementValidator(), workOrderRuntime: null);
         Vector2Int target = new Vector2Int(3, 0);
@@ -455,7 +455,7 @@ public static class RoomSystemDebugScenarios
             building.ConstructBuildableObject(
                 new BuildingResearchWorkPortAdapter(BlueprintResearchWorkService),
                 FacilityCandidateCacheService,
-                RoomFacilityPolicyService, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
+                RoomFacilityPolicyService, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
             building.SetGrid(Grid);
             building.Initialization(data, position);
             bool registered = Grid.RegisterOccupant(

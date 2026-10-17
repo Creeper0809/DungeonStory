@@ -813,8 +813,8 @@ public static class CharacterAiFeatureQaRuntimeProbe
             return false;
         }
 
-        FieldInfo dutyControllerField = typeof(AbilityWork).GetField(
-            "dutyController",
+        PropertyInfo dutyControllerField = typeof(AbilityWork).GetProperty(
+            "DutyController",
             BindingFlags.Instance | BindingFlags.NonPublic);
         object dutyController = dutyControllerField?.GetValue(work);
         if (dutyController == null)

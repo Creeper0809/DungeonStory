@@ -1,0 +1,4 @@
+System.InvalidOperationException: QA_MEMORY_PRESSURE: stopping only this owned isolated job; availablePhysicalBytes=313966592; availableCommitBytes=10602295296; requiredPhysicalBytes=1073741824; requiredCommitBytes=2147483648; no other application or OS setting was changed.
+   위치: IsolatedUnityLauncher.RequireMemoryHeadroom(MemoryStatus memory, Boolean starting)
+   위치: IsolatedUnityLauncher.IsolatedStation.Run(String executable, String[] arguments, String workingDirectory, Int32 timeoutSeconds)
+   위치: IsolatedUnityLauncher.Main(String[] args)

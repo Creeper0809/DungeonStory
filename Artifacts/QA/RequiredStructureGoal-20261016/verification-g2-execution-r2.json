@@ -1,0 +1,71 @@
+{
+  "status": "PASS",
+  "goalStatus": "active",
+  "target": "G2",
+  "targetComplete": true,
+  "currentCompile": {
+    "runtimeAssembly": "DungeonStory.Survival.dll",
+    "seconds": 31.196538,
+    "editorAssembly": "Assembly-CSharp-Editor.dll",
+    "errorCs": 0
+  },
+  "scenarioGroups": [
+    "RunConsumablesPolicyOutcomeAtomicityFocused",
+    "RunPersistentActorCaptureClosureFocused",
+    "RunMealV7PendingOutboxFocused",
+    "RunSubstanceV8PendingOutboxFocused",
+    "RunSubstanceEffectsForArchitectureBatch",
+    "RunOverdosePolicyForArchitectureBatch",
+    "VerifyDetoxDomainFactFocused",
+    "RunSharedOperationOwnershipForArchitectureBatch",
+    "RunConsumableEffectRecovery"
+  ],
+  "actual": {
+    "sharedOwnership": "meal auto1/substance auto2; single watermark3; fresh/repeated JSON root exact; completion/substance/toxicity retirement; effects replay0",
+    "specificEffects": "three authored items; physical/effect once; JSON restore; expiry150/180/240; fatigue0.88/research1.18/combat1.08; pain trait204 projection",
+    "overdose": "30 once; duplicate0; natural daily recovery; cap100; invalid unchanged",
+    "substance": "real stock 2->1->1; ACK restore; carried stock exact",
+    "lowerEffectRecovery": "nine contracts; publication rejection; timeline; malformed restore unchanged; cancellation terminal history",
+    "policy": "reserve/publish rejection; pending JSON replay; retirement failure unchanged and same retry; repeated root replacement",
+    "detox": "internal free actual treatment/service runtime and exact ledger; controlled reserved/picked/committed/deposited haul; physical/service/survival/consumables official sections restore; ACK/rejection/owner loss retry no duplicates",
+    "meal": "facility pending restore/cancel/spoil; field physical context frozen and exact position; missing context rejected unchanged; JSON physical ACK retry; ledger no duplication"
+  },
+  "checkpoints": [
+    {
+      "file": "shared-operation-completed.json",
+      "sha256": "021f54f2900d83504e9fe48e85dcb0b178e2b5186fef7e8bbed0afe456cb4751",
+      "nextOperationSequence": 3,
+      "completedOperations": 2,
+      "substanceStates": 1,
+      "toxicityStates": 1
+    },
+    {
+      "file": "shared-operation-retired.json",
+      "sha256": "ef649245f61b0d57be8b00d00f3c4e183038ee6adf3b9619ffb784d73c6c7399",
+      "nextOperationSequence": 3,
+      "completedOperations": 0,
+      "substanceStates": 0,
+      "toxicityStates": 0
+    }
+  ],
+  "isolation": "noninteractive station/desktop/window probe PASS",
+  "unityExit": 0,
+  "ownedUnityCompilerAndLauncherAfter": 0,
+  "pins": {
+    "source-pin-g2-execution-r2.json": {
+      "drift": 0,
+      "files": 755
+    },
+    "tool-pin-g2-execution-r1.json": {
+      "drift": 0,
+      "files": 8
+    }
+  },
+  "staticEvidence": "g2-execution/static-verification-r2.json",
+  "report": "g2-execution-r2/unity-evidence/consumable-execution-boundary.txt",
+  "preservedFailure": "verification-g2-execution-r1.json",
+  "productionFix": "field meal now freezes existing physical context/position/vital fields; strict DTO codec unchanged",
+  "fixtureFix": "WIM036 and WIM028 overdose attach existing consumption observers/ledger; assertions not weakened",
+  "retainedFacade": "meal/delivery commands and atomic root lifetime; physical/effect transactions stay in existing application ports",
+  "limits": "Controlled runtime/component/physical/service fixtures. No natural AI movement, paid-patient path, long campaign, or full cold world claim."
+}

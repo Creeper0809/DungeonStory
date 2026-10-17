@@ -387,7 +387,7 @@
       "integration_reason": "Model-host infrastructure is diagnostic state, not gameplay truth.",
       "replacement_authority": "none; local model host diagnostics",
       "evidence": [
-        "Assets/Scripts/Models/AI/Core/LocalLlmRequestQueue.cs:806-842"
+        "Assets/Scripts/Models/AI/Core/LocalLlmRequestQueue.cs#HostStartupResult"
       ]
     },
     {

@@ -1,0 +1,19 @@
+Before normal-and-repeat|PASS
+Before observer-original-failure-label|FAIL|InvalidOperationException:destroyed-object-name-access
+Before observer-reentry|FAIL|InvalidOperationException:destroyed-object-gameObject-access
+Before subscriber-destroys-owner|FAIL|InvalidOperationException:destroyed-object-gameObject-access
+Before paid-release-retry|FAIL|InvalidOperationException:paid-fault
+Before registry-release-retry|FAIL|InvalidOperationException:registry-fault
+Before dirty-release-retry|FAIL|InvalidOperationException:dirty-fault
+Before paid-post-apply-failure-retry|FAIL|InvalidOperationException:paid-after-apply-fault
+Before observer-and-teardown-errors-both-retained|FAIL|InvalidOperationException:paid-fault
+After normal-and-repeat|PASS
+After observer-original-failure-label|PASS
+After observer-reentry|PASS
+After subscriber-destroys-owner|PASS
+After paid-release-retry|PASS
+After registry-release-retry|PASS
+After dirty-release-retry|PASS
+After paid-post-apply-failure-retry|PASS
+After observer-and-teardown-errors-both-retained|PASS
+C3_ACTUAL_MEMBER_LIFETIME=PASS; cases=9; originalFailures=8; extractedMembers=4; Unity/ports=DOUBLES; fullUnityCompile/execution=NOT_RUN

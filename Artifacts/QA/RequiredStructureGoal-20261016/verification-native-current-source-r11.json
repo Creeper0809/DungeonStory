@@ -1,0 +1,65 @@
+{
+  "status": "PASS_ALL_32_AND_REQUIRED_NATIVE_INTEGRATION_FINAL_CLOSE",
+  "sourceTargetsProcessed": 32,
+  "targetedActualCompleted": 32,
+  "requiredIntegration": "PASS; verification-final-integration-r4.json",
+  "relatedRegression": "PASS; verification-final-restock-regression-r1.json",
+  "remainingImplementation": [],
+  "completionAudit": "completion-audit-final-r1.json PASS",
+  "goalStatus": "complete",
+  "previousCurrentBinding": "verification-native-current-source-r10.json",
+  "sourcePin": "source-pin-final-integration-r3.json",
+  "fullNativeInputPin": "native-input-pin-r43.json",
+  "toolPin": "tool-pin-final-integration-r2.json",
+  "factionInputPin": "g4-faction-assembly-input-pin-r2.json",
+  "pins": {
+    "source-pin-final-integration-r3.json": {
+      "files": 1430,
+      "drift": []
+    },
+    "native-input-pin-r43.json": {
+      "files": 3880,
+      "drift": []
+    },
+    "tool-pin-final-integration-r2.json": {
+      "files": 9,
+      "drift": []
+    },
+    "g4-faction-assembly-input-pin-r2.json": {
+      "files": 18,
+      "drift": []
+    }
+  },
+  "assemblies": {
+    "Library\\ScriptAssemblies\\Assembly-CSharp-Editor.dll": "661d5d91d097a0afb30c66f31311c1d4aebd198821a751ce96ad2d724c955fd3",
+    "Library\\ScriptAssemblies\\Assembly-CSharp.dll": "2deb585c0625a095d8218abb07abc498d84554c8fa263690a84260a4b1261815",
+    "Library\\ScriptAssemblies\\DungeonStory.Buildings.dll": "e939738b02c6aebe5319a12ac7b476004597efdd6547c301e8e167cd77833b14",
+    "Library\\ScriptAssemblies\\DungeonStory.Economy.dll": "c6dffaa8e88a006e4f91612eb29108a2035cc6ce4d1462908d7615195cb43454",
+    "Library/ScriptAssemblies/DungeonStory.Factions.dll": "c384de7f49e87ab603f7750636594e035adfc7d8ed6cb079b0fe29caf43a04e2",
+    "Library/ScriptAssemblies/DungeonStory.Survival.dll": "e97861eefc80a99d13aa19daa78719bdccc95deb19ff168a656a8b303f9273ff"
+  },
+  "unchangedDiskInputs": {
+    "Assets/Resources/SO/Building/Modular/D04_배식카운터.asset": "2bcdee76a67785c5d2db3d80068f43009667bf0a48a3a51c5abc9d789cff3e1a",
+    "Assets/Resources/SO/Building/Modular/D04_배식카운터.asset.meta": "efbe8ab42cd71b10a593721838c5d8b34adf2456ac1b18d2403ceda604ee92ea",
+    "Assets/Scenes/GameplayScene.unity": "a698948004fd2a1db71ef1bebf5ab4d4c5d62caf85fed1ea5af2bb3972c30341",
+    "Assets/Scenes/GameplayScene.unity.meta": "0c7f1e7dac6804c5e9bad630433c81b9bb944b7532a9e63d5d938f9f3b56849e",
+    "ProjectSettings/EditorBuildSettings.asset": "8ee44400b9ae37cbd1092f671fe364f277601cc02357b02e3908d1d4e9a95ad4"
+  },
+  "currentRuntimeEditorNativeCompile": {
+    "run": "native-final-faction-world-current-r3",
+    "seconds": 40.446704,
+    "errors": 0,
+    "thatRunTerminatedByMemoryGuard": true,
+    "currentFrozenCachedPlayRun": "native-final-faction-world-current-r4"
+  },
+  "finalProductionChanges": [
+    "Committed actor world retirement releases scheduler/live/lifetime registrations before deferred destruction",
+    "Faction route owner restores derived marker/entry projections through existing post-restore hook; active movement prevents repeated hook restart"
+  ],
+  "dtoSchemaAssetGuidChanges": 0,
+  "indexClose": "knowledge-base-final-goal-close-r2.json",
+  "indexCloseStatus": "PASS",
+  "scope": "All32 targeted current-source ownership/failure contracts plus required official faction and related restock native integration; controlled inputs and cohesive retention limits recorded per target. No blanket all-suite/natural-AI or all-library recompile claim.",
+  "staticDocuments": "verification-final-static-documents-r2.json PASS",
+  "goalToolReceipt": "goal-tool-completion-r1.json"
+}

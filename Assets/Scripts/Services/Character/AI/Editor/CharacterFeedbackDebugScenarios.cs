@@ -474,6 +474,8 @@ public static class CharacterFeedbackDebugScenarios
 
     private static bool VerifyNarrativeResponseValidation()
     {
+        using NarrativeRequestContextBuilder requestContexts =
+            NarrativeRequestContextTestFixture.CreateEmpty();
         bool validResponse = CharacterLogNarrativeService.TryParseNarrativeLine(
             "{\"line\":\"테스트 캐릭터가 엉뚱한 방향으로 움직였다가 슬쩍 되돌아와 연구실에서 새 연구를 차분히 시작했다\"}",
             "작업 시작 · 연구 · 연구실",
@@ -577,6 +579,7 @@ public static class CharacterFeedbackDebugScenarios
         IReadOnlyList<string> phrases = CharacterLogNarrativeService.ExtractRequiredPhrases(
             "작업 종료 · 연금 연구 · 지하 연구실 · 새 제조법 정리 완료");
         string correctionPrompt = CharacterLogNarrativeService.BuildCorrectionPrompt(
+            requestContexts,
             new CharacterLogEntry(
                 8,
                 "작업 종료 · 연금 연구 · 지하 연구실 · 새 제조법 정리 완료",
@@ -612,6 +615,7 @@ public static class CharacterFeedbackDebugScenarios
                 actionId: "wait:wander",
                 narrativeEligible: false));
         string offDutyCorrectionPrompt = CharacterLogNarrativeService.BuildCorrectionPrompt(
+            requestContexts,
             new CharacterLogEntry(
                 10,
                 "비번 시작 · 근무 피로 누적",
@@ -623,6 +627,7 @@ public static class CharacterFeedbackDebugScenarios
             "awkward transition",
             NarrativeText);
         string variedCompletionPrompt = CharacterLogNarrativeService.BuildCorrectionPrompt(
+            requestContexts,
             new CharacterLogEntry(
                 11,
                 "작업 종료 · 연금 연구 · 지하 연구실 · 새 제조법 정리 완료",
@@ -635,6 +640,7 @@ public static class CharacterFeedbackDebugScenarios
             NarrativeText);
         string[] variedStartPrompts = Enumerable.Range(20, 4)
             .Select(entryId => CharacterLogNarrativeService.BuildPrompt(
+                requestContexts,
                 null,
                 null,
                 new CharacterLogEntry(

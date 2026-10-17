@@ -1,0 +1,1 @@
+G6_TERMINAL_JOURNAL_PARITY=PASS; terminal17/snapshot3/contracts11; retained=72; public=33; terminalFacades=12; same shared orders/terminal/revision pointer; ctor/restore/GC token+snapshot+version/replay/rollback exact; Unity=NOT_RUN

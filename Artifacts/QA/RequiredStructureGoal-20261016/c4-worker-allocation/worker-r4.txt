@@ -1,0 +1,31 @@
+Before action-cancel|FAIL|old allocation changed layer after cancellation
+Before movement-failure|FAIL|old allocation entered work after failed movement
+After normal-once-and-offset|PASS
+After facility-policy-rejection|PASS
+After shop-policy-rejection|PASS
+After shop-normal-release|PASS
+After stationary-worker-no-pose|PASS
+After action-cancel-before-pose|PASS
+After run-cancel-same-action|PASS
+After cancel-second-move|PASS
+After first-move-denied|PASS
+After second-move-denied|PASS
+After missing-result|PASS
+After null-result-is-not-success|PASS
+After movement-throw-releases|PASS
+After disposed-approach-releases|PASS
+After same-actor-stale-dispose|PASS
+After foreign-facility-new-pose-survives|PASS
+After explicit-layer-invalidates-pose|PASS
+After explicit-position-invalidates-pose|PASS
+After destroyed-owner-stops-approach|PASS
+After inactive-actor-stops-approach|PASS
+After movement-version-change|PASS
+After endpoint-not-reached|PASS
+After parallel-slots-and-retry|PASS
+After duplicate-admission-does-not-steal|PASS
+After cancelled-ready-pose-restores-offset|PASS
+After direct-layer-command-invalidates-pose|PASS
+After new-movement-keeps-position|PASS
+After missing-visual-is-explicit|PASS
+C4_WORKER_SOURCE=PASS; cases=28; actualCompleteAllocationOwner=true; extractedFacadeAndActorMembers=true; actor/movement/owner/grid/admission=DOUBLES; nativeUnity/fullCompile/restore=NOT_RUN

@@ -1,0 +1,46 @@
+{
+  "status": "G3_TARGETED_NATIVE_RUNTIME_FIXTURES_PASS",
+  "runs": {
+    "native-work-terminal-current-r1": {
+      "marker": "[Work Order Terminal Outcome] PASS",
+      "terminalUnityExit": 0,
+      "logSha256": "ef1b465951c538de0f8639f56070fc0c01221f07c6e5d2c0164785895429f007",
+      "isolationProbe": true
+    },
+    "native-work-input-owner-current-r2": {
+      "marker": "V27 work.construction exact input-owner scenarios passed.",
+      "terminalUnityExit": 0,
+      "logSha256": "3efcb51e5943ec8e61c09b13949ae33965a785ec737605c6eb47396ddc6b9eb0",
+      "isolationProbe": true
+    }
+  },
+  "pins": {
+    "source-pin-actual-followup-r1.json": {
+      "files": 1403,
+      "drift": []
+    },
+    "native-input-pin-r15.json": {
+      "files": 3872,
+      "drift": []
+    },
+    "tool-pin-actual-followup-r1.json": {
+      "files": 9,
+      "drift": []
+    }
+  },
+  "assemblies": {
+    "Library\\ScriptAssemblies\\Assembly-CSharp-Editor.dll": "4df5ad8fa0a52285e06b4216aa5449099567882300628c024542447b70d973fe",
+    "Library\\ScriptAssemblies\\Assembly-CSharp.dll": "fdad4c09342ff17e68a351dfa4e6aa90fd69dd2cb26c5cee9c97945cf915b53f",
+    "Library\\ScriptAssemblies\\DungeonStory.Buildings.dll": "e939738b02c6aebe5319a12ac7b476004597efdd6547c301e8e167cd77833b14",
+    "Library\\ScriptAssemblies\\DungeonStory.Economy.dll": "c6dffaa8e88a006e4f91612eb29108a2035cc6ce4d1462908d7615195cb43454"
+  },
+  "verified": [
+    "WorkAmount production owner construction/repair terminal lifecycle, cancel/refund, retry, JSON/save restore and rejected restore preservation, rollback/orphan recovery/drain",
+    "Exact typed construction input-owner descriptor, destination/capacity/revision/fingerprint and current save format14"
+  ],
+  "testRepair": "Old separate descriptor fixture expected save version10; updated exact expectation to current14. Production save format/fields/validation/owners unchanged. Original r1 failure preserved.",
+  "limits": [
+    "Controlled Editor fixtures with production runtime owners and catalogs; no unprompted natural worker AI or new whole-scene construction claim",
+    "Final official cross-target integration remains pending"
+  ]
+}

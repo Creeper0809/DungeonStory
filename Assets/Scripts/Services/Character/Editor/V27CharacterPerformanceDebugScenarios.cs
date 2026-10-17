@@ -367,8 +367,8 @@ public static class V27CharacterPerformanceDebugScenarios
         Require(Mathf.Approximately(orc.needs.hungerRateMultiplier, 1.20f)
                 && Mathf.Approximately(orc.needs.thirstRateMultiplier, 1.05f),
             "Orc upkeep must use hunger 1.20 and thirst 1.05.");
-        Require(CharacterSpeciesRuntimeSaveData.CurrentVersion == 4,
-            "Species runtime save schema must include durable Golem episodes V4.");
+        Require(CharacterSpeciesRuntimeSaveData.CurrentVersion == 5,
+            "Species runtime save schema must include durable Golem episodes and pending publication observations V5.");
         BuildingSO manaStorage = AssetDatabase.LoadAssetAtPath<BuildingSO>(
             "Assets/Resources/SO/Building/Modular/M02.asset");
         if (manaStorage == null)
@@ -1617,473 +1617,7 @@ public static class V27CharacterPerformanceDebugScenarios
             Require(arcane >= 0f,
                 "Arcane power consumer returned a negative multiplier.");
 
-            // Use the owned audit fixture rather than mutating an arbitrary
-            // live settlement actor while forcing the accident boundary.
-            CharacterActor accidentActor = moodActor;
-            AbilityWork abilityWork = accidentActor.GetComponent<AbilityWork>()
-                ?? throw new InvalidOperationException(
-                    "Work accident audit actor has no AbilityWork component.");
-            MethodInfo ensureWorkModules = typeof(AbilityWork).GetMethod(
-                "EnsureWorkModules",
-                BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new MissingMethodException(
-                    nameof(AbilityWork),
-                    "EnsureWorkModules");
-            FieldInfo assignedWorkType = typeof(AbilityWork).GetField(
-                "assignedWorkType",
-                BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new MissingFieldException(
-                    nameof(AbilityWork),
-                    "assignedWorkType");
-            FieldInfo taskExecutorField = typeof(AbilityWork).GetField(
-                "taskExecutor",
-                BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new MissingFieldException(
-                    nameof(AbilityWork),
-                    "taskExecutor");
-            FacilityWorkType originalWorkType =
-                (FacilityWorkType)assignedWorkType.GetValue(abilityWork);
-            BuildableObject originalAssignedShop = abilityWork.assignedShop;
-            bool originalWorking = abilityWork.isWorking;
-            IAnatomyHealthRuntime anatomy = scope.Container
-                .Resolve<IAnatomyHealthRuntime>();
-            ICharacterBodyHealthMutationTransaction bodyHealthMutation = scope
-                .Container.Resolve<ICharacterBodyHealthMutationTransaction>();
-            IDomainFactPublisher accidentFacts = scope.Container
-                .Resolve<IDomainFactPublisher>();
-            IDomainFactRecoveryPublisher accidentRecovery = scope.Container
-                .Resolve<IDomainFactRecoveryPublisher>();
-            WorkOrderAggregateStateStore workOrderState = scope.Container
-                .Resolve<WorkOrderAggregateStateStore>();
-            CharacterIdentityEventPublisher identityEvents = scope.Container
-                .Resolve<CharacterIdentityEventPublisher>();
-            IEnvironmentalFireCommand environmentalFire = scope.Container
-                .Resolve<IEnvironmentalFireCommand>();
-            IGameClock liveClock = scope.Container.Resolve<IGameClock>();
-            WorkAccidentObservationRuntime originalObservations = scope.Container
-                .Resolve<WorkAccidentObservationRuntime>();
-            IWorkAccidentPresentationDiagnostic incidentDiagnostics = scope
-                .Container.Resolve<IWorkAccidentPresentationDiagnostic>();
-            EventAlertRuntime alertRuntime =
-                UnityEngine.Object.FindFirstObjectByType<EventAlertRuntime>()
-                ?? throw new InvalidOperationException(
-                    "Work accident audit requires the production alert runtime.");
-            try
-            {
-                accidentActor.SetAiPaused(true);
-                BuildableObject accidentFacility = scope.Container
-                    .Resolve<ICharacterAiWorldRegistry>()
-                    .Buildings
-                    .Where(value => value != null
-                        && !value.isDestroy
-                        && value.PersistentInstanceId.IsValid
-                        && value.BuildingData
-                            ?.GetAbility<BuildingProcessAccidentFireSourceAbility>()
-                            is { } source
-                        && source.Supports(BuiltInWorkTypeIds.Operate.Value)
-                        && value.BuildingData
-                            .GetAbility<BuildingEnvironmentalFireAbility>()
-                            ?.Accepts(
-                                EnvironmentalFireIgnitionKind.ProcessAccident)
-                            == true)
-                    .OrderBy(
-                        value => value.PersistentInstanceId.Value,
-                        StringComparer.Ordinal)
-                    .FirstOrDefault()
-                    ?? throw new InvalidOperationException(
-                        "Work accident audit requires one actual persistent facility with a process-accident fire plan.");
-                WorkTypeId accidentWorkTypeId = BuiltInWorkTypeIds.Operate;
-                FacilityWorkType accidentLegacyWorkType =
-                    FacilityWorkTypeMap.GetRequired(accidentWorkTypeId);
-                assignedWorkType.SetValue(
-                    abilityWork,
-                    accidentLegacyWorkType);
-                abilityWork.assignedShop = accidentFacility;
-                ensureWorkModules.Invoke(abilityWork, null);
-                WorkTaskExecutor executor = taskExecutorField.GetValue(abilityWork)
-                    as WorkTaskExecutor
-                    ?? throw new InvalidOperationException(
-                        "Work accident executor is unavailable.");
-                MethodInfo accidentMethod = typeof(WorkTaskExecutor).GetMethod(
-                    "TryTriggerWorkAccident",
-                    BindingFlags.Instance | BindingFlags.NonPublic)
-                    ?? throw new MissingMethodException(
-                        nameof(WorkTaskExecutor),
-                        "TryTriggerWorkAccident");
-                Dictionary<string, float> nodeHealthBefore = anatomy
-                    .GetAnatomySnapshot(accidentActor)
-                    .Nodes
-                    .Where(value => value != null)
-                    .ToDictionary(
-                        value => value.nodeId,
-                        value => value.currentHealth,
-                        StringComparer.Ordinal);
-                IWorkOrderRuntime workOrders = scope.Container
-                    .Resolve<IWorkOrderRuntime>();
-                int persistedSequenceBefore = workOrders.Capture()
-                    .nextOrderSequence;
-                int workAccidentAlertsBefore = alertRuntime.EventLog.Count(
-                    value => value.SourceId.StartsWith(
-                        "work-accident:",
-                        StringComparison.Ordinal));
-                bool triggered = (bool)accidentMethod.Invoke(
-                    executor,
-                    new object[]
-                    {
-                        accidentActor,
-                        100_000f,
-                        accidentWorkTypeId
-                    });
-                Require(triggered,
-                    "Forced work accident did not trigger.");
-                AnatomyNodeHealthState damaged = anatomy
-                    .GetAnatomySnapshot(accidentActor)
-                    .Nodes
-                    .FirstOrDefault(value => value != null
-                        && nodeHealthBefore.TryGetValue(
-                            value.nodeId,
-                            out float previousHealth)
-                        && value.currentHealth < previousHealth);
-                Require(damaged != null,
-                    "Work accident did not damage an anatomy node.");
-                float appliedAccidentDamage =
-                    nodeHealthBefore[damaged.nodeId] - damaged.currentHealth;
-                Require(Mathf.Approximately(appliedAccidentDamage, 2f),
-                    "Work accident did not commit the authored exact damage once.");
-                string accidentOperationId =
-                    incidentDiagnostics.LastObservedWorkAccidentOperationId;
-                EventAlertRecord[] matchingAccidentAlerts = alertRuntime.EventLog
-                    .Where(value => string.Equals(
-                        value.SourceId,
-                        "work-accident:" + accidentOperationId,
-                        StringComparison.Ordinal))
-                    .ToArray();
-                EventAlertRecord accidentAlert = matchingAccidentAlerts
-                    .SingleOrDefault();
-                Require(
-                    accidentOperationId.Length > 0
-                    && matchingAccidentAlerts.Length == 1
-                    && alertRuntime.EventLog.Count(value =>
-                        value.SourceId.StartsWith(
-                            "work-accident:",
-                            StringComparison.Ordinal))
-                        == workAccidentAlertsBefore + 1
-                    && incidentDiagnostics
-                        .LastObservedWorkAccidentAlertPublished
-                    && !incidentDiagnostics
-                        .LastObservedWorkAccidentCallbackFailure.IsFailure
-                    && accidentAlert != null
-                    && accidentAlert.Count == 1
-                    && accidentAlert.Title == "작업 사고"
-                    && accidentAlert.Detail.Contains(
-                        accidentActor.Identity.DisplayName.Trim(),
-                        StringComparison.Ordinal)
-                    && accidentAlert.Detail.Contains(
-                        WorkTaskCatalog.GetDisplayName(
-                            accidentWorkTypeId),
-                        StringComparison.Ordinal)
-                    && accidentAlert.Detail.Contains(
-                        damaged.nodeId,
-                        StringComparison.Ordinal)
-                    && accidentAlert.Detail.Contains(
-                        accidentFacility.PersistentInstanceId.Value,
-                        StringComparison.Ordinal)
-                    && accidentAlert.Detail.Contains(
-                        accidentFacility.BuildingData.objectName.Trim(),
-                        StringComparison.Ordinal)
-                    && accidentAlert.Detail.Contains(
-                        $"{accidentFacility.centerPos.x},{accidentFacility.centerPos.y}",
-                        StringComparison.Ordinal)
-                    && accidentAlert.Detail.Contains(
-                        $"-{appliedAccidentDamage:0.###}",
-                        StringComparison.Ordinal)
-                    && accidentAlert.Detail.Contains(
-                        "발생 당시 확인된 원인:",
-                        StringComparison.Ordinal)
-                    && accidentAlert.Detail.Contains(
-                        "이 알림을 닫아도 피해는 복구되지 않습니다.",
-                        StringComparison.Ordinal),
-                    "Actual work accident did not publish one exact worker/work/node/cause response alert.");
-                float damagedHealth = damaged.currentHealth;
-                Require(
-                    alertRuntime.Dismiss(accidentAlert)
-                    && Mathf.Approximately(
-                        anatomy.GetAnatomySnapshot(accidentActor)
-                            .Nodes.Single(value => value != null
-                                && value.nodeId == damaged.nodeId)
-                            .currentHealth,
-                        damagedHealth),
-                    "Dismissing the work-accident alert changed the committed injury.");
-                Require(anatomy.TryHealNode(
-                        accidentActor,
-                        damaged.nodeId,
-                        appliedAccidentDamage,
-                        infectionReduction: 0f),
-                    "Work accident audit could not restore the damaged node.");
-
-                DungeonWorkOrderSaveData afterFirstAccident = workOrders
-                    .Capture();
-                Require(
-                    afterFirstAccident.nextOrderSequence
-                        == checked(persistedSequenceBefore + 1),
-                    "The first work accident did not consume exactly one persisted work-operation sequence.");
-                DungeonWorkOrderSaveData restoredWorkOrders =
-                    JsonUtility.FromJson<DungeonWorkOrderSaveData>(
-                        JsonUtility.ToJson(afterFirstAccident));
-                workOrders.ValidateRestorePayload(restoredWorkOrders);
-                WorkOrderRuntime restorableWorkOrders = workOrders
-                    as WorkOrderRuntime
-                    ?? throw new InvalidOperationException(
-                        "Work accident audit requires the production work-order runtime.");
-                IRestoreWorldCandidatePublisher restoreCandidates = scope
-                    .Container.Resolve<IRestoreWorldCandidatePublisher>();
-                ICharacterAiWorldRegistry liveWorld = scope.Container
-                    .Resolve<ICharacterAiWorldRegistry>();
-                Grid restoreGrid = scope.Container
-                    .Resolve<IGridSystemProvider>()
-                    .Grid;
-                restorableWorkOrders.BeginRestoreCandidate();
-                restoreCandidates.SetFacilityCandidate(
-                    restoreGrid,
-                    liveWorld.Buildings
-                        .Where(value => value != null && !value.isDestroy)
-                        .OrderBy(
-                            value => value.PersistentInstanceId.Value,
-                            StringComparer.Ordinal)
-                        .ToArray());
-                try
-                {
-                    WorkOrderRestoreCandidate restoreCandidate =
-                        restorableWorkOrders.PrepareRestoreCandidate(
-                            restoredWorkOrders);
-                    restorableWorkOrders.PublishRestoreCandidate(
-                        restoreCandidate);
-                    restorableWorkOrders.PublishRestoreCandidate();
-                    restorableWorkOrders.CompleteRestoreCandidate();
-                }
-                catch
-                {
-                    restorableWorkOrders.RollbackPublishedRestoreCandidate();
-                    throw;
-                }
-                finally
-                {
-                    restoreCandidates.ClearFacilityCandidate();
-                }
-                Require(
-                    workOrders.Capture().nextOrderSequence
-                        == afterFirstAccident.nextOrderSequence,
-                    "Current work-order save round trip changed the next persisted operation sequence.");
-
-                WorkAccidentObservationRuntime faultingObservations = new(
-                    workOrderState,
-                    accidentRecovery,
-                    identityEvents,
-                    new ThrowingWorkAccidentFireCommand(environmentalFire),
-                    liveClock);
-                abilityWork.ConstructWorkAccidentObservation(
-                    bodyHealthMutation,
-                    accidentFacts,
-                    faultingObservations);
-                ensureWorkModules.Invoke(abilityWork, null);
-                WorkTaskExecutor throwingExecutor = taskExecutorField
-                    .GetValue(abilityWork) as WorkTaskExecutor
-                    ?? throw new InvalidOperationException(
-                        "Throwing-fire work accident executor is unavailable.");
-                MethodInfo throwingAccidentMethod = typeof(WorkTaskExecutor)
-                    .GetMethod(
-                        "TryTriggerWorkAccident",
-                        BindingFlags.Instance | BindingFlags.NonPublic)
-                    ?? throw new MissingMethodException(
-                        nameof(WorkTaskExecutor),
-                        "TryTriggerWorkAccident");
-                Dictionary<string, float> secondNodeHealthBefore = anatomy
-                    .GetAnatomySnapshot(accidentActor)
-                    .Nodes
-                    .Where(value => value != null)
-                    .ToDictionary(
-                        value => value.nodeId,
-                        value => value.currentHealth,
-                        StringComparer.Ordinal);
-                int activitiesBeforeFireFailure = accidentActor.LogComponent
-                    .ActivityEntries.Count(value => value != null
-                        && string.Equals(
-                            value.ReasonCode,
-                            "work-accident",
-                            StringComparison.Ordinal));
-                int alertsBeforeFireFailure = alertRuntime.EventLog.Count(
-                    value => value.SourceId.StartsWith(
-                        "work-accident:",
-                        StringComparison.Ordinal));
-                int fireFailureActivityCallbacks = 0;
-                int fireFailureHealthCallbacks = 0;
-                int fireFailureWorkCallbacks = 0;
-                CharacterLogEntry fireFailureActivityEntry = default;
-                void ObserveFireFailureActivity(CharacterLogEntry entry)
-                {
-                    if (entry.Activity != null
-                        && string.Equals(
-                            entry.Activity.ReasonCode,
-                            "work-accident",
-                            StringComparison.Ordinal))
-                    {
-                        fireFailureActivityCallbacks++;
-                        fireFailureActivityEntry = entry;
-                        if (string.Equals(
-                                entry.Activity.KindId,
-                                CharacterActivityKinds.Health,
-                                StringComparison.Ordinal)
-                            && string.Equals(
-                                entry.Activity.ActionId,
-                                "health:damage",
-                                StringComparison.Ordinal))
-                        {
-                            fireFailureHealthCallbacks++;
-                        }
-                        else if (string.Equals(
-                            entry.Activity.KindId,
-                            CharacterActivityKinds.Work,
-                            StringComparison.Ordinal))
-                        {
-                            fireFailureWorkCallbacks++;
-                        }
-                    }
-                }
-
-                accidentActor.LogComponent.OnLogAdded += ObserveFireFailureActivity;
-                bool triggeredWithFireFailure;
-                try
-                {
-                    triggeredWithFireFailure = (bool)throwingAccidentMethod
-                        .Invoke(
-                            throwingExecutor,
-                            new object[]
-                            {
-                                accidentActor,
-                                100_000f,
-                                accidentWorkTypeId
-                            });
-                }
-                finally
-                {
-                    accidentActor.LogComponent.OnLogAdded -= ObserveFireFailureActivity;
-                }
-                Require(triggeredWithFireFailure,
-                    "A post-injury fire failure changed the committed accident result.");
-                AnatomyNodeHealthState secondDamaged = anatomy
-                    .GetAnatomySnapshot(accidentActor)
-                    .Nodes
-                    .SingleOrDefault(value => value != null
-                        && secondNodeHealthBefore.TryGetValue(
-                            value.nodeId,
-                            out float previousHealth)
-                        && value.currentHealth < previousHealth);
-                Require(secondDamaged != null,
-                    "The fire-failure accident did not retain its committed injury.");
-                float secondAppliedDamage =
-                    secondNodeHealthBefore[secondDamaged.nodeId]
-                    - secondDamaged.currentHealth;
-                string secondOperationId =
-                    incidentDiagnostics.LastObservedWorkAccidentOperationId;
-                PropertyInfo fireFailureDiagnostic = typeof(WorkTaskExecutor)
-                    .GetProperty(
-                        "LastWorkAccidentFireFailureDetailForDiagnostics",
-                        BindingFlags.Instance | BindingFlags.NonPublic)
-                    ?? throw new MissingMemberException(
-                        nameof(WorkTaskExecutor),
-                        "LastWorkAccidentFireFailureDetailForDiagnostics");
-                string fireFailureDetail = fireFailureDiagnostic.GetValue(
-                    throwingExecutor) as string ?? string.Empty;
-                WorkAccidentObservationSaveData pendingFire = workOrders
-                    .Capture()
-                    .pendingAccidents
-                    .SingleOrDefault(value => value?.fact != null
-                        && string.Equals(
-                            value.fact.operationId,
-                            secondOperationId,
-                            StringComparison.Ordinal));
-                int activitiesAfterFireFailure = accidentActor.LogComponent
-                    .ActivityEntries.Count(value => value != null
-                        && string.Equals(
-                            value.ReasonCode,
-                            "work-accident",
-                            StringComparison.Ordinal));
-                int alertsAfterFireFailure = alertRuntime.EventLog.Count(value =>
-                    value.SourceId.StartsWith(
-                        "work-accident:",
-                        StringComparison.Ordinal));
-                int secondOperationAlerts = alertRuntime.EventLog.Count(value =>
-                    string.Equals(
-                        value.SourceId,
-                        "work-accident:" + secondOperationId,
-                        StringComparison.Ordinal));
-                Require(
-                    Mathf.Approximately(secondAppliedDamage, 2f)
-                    && !string.Equals(
-                        secondOperationId,
-                        accidentOperationId,
-                        StringComparison.Ordinal)
-                    && workOrders.Capture().nextOrderSequence
-                        == checked(afterFirstAccident.nextOrderSequence + 1)
-                    && alertsAfterFireFailure == alertsBeforeFireFailure + 1
-                    && secondOperationAlerts == 1
-                    && fireFailureActivityCallbacks == 2
-                    && fireFailureHealthCallbacks == 1
-                    && fireFailureWorkCallbacks == 1
-                    && activitiesAfterFireFailure
-                        == activitiesBeforeFireFailure + 2
-                    && fireFailureActivityEntry.Count == 1
-                    && incidentDiagnostics
-                        .LastObservedWorkAccidentAlertPublished
-                    && !incidentDiagnostics
-                        .LastObservedWorkAccidentCallbackFailure.IsFailure
-                    && fireFailureDetail.Contains(
-                        "work-accident-fire-follow-up-failed",
-                        StringComparison.Ordinal)
-                    && fireFailureDetail.Contains(
-                        "operation=" + secondOperationId,
-                        StringComparison.Ordinal)
-                    && fireFailureDetail.Contains(
-                        "injuryCommitted=true;error=",
-                        StringComparison.Ordinal)
-                    && pendingFire != null
-                    && pendingFire.observationCompleted
-                    && pendingFire.identityNotificationAttempted
-                    && pendingFire.fact.fireEligible,
-                    FormattableString.Invariant(
-                        $"A fire follow-up failure lost or duplicated the canonical injury/alert/activity commit; damage={secondAppliedDamage:R}; firstOperation={accidentOperationId}; secondOperation={secondOperationId}; sequenceBefore={afterFirstAccident.nextOrderSequence}; sequenceAfter={workOrders.Capture().nextOrderSequence}; alertsBefore={alertsBeforeFireFailure}; alertsAfter={alertsAfterFireFailure}; secondOperationAlerts={secondOperationAlerts}; activitiesBefore={activitiesBeforeFireFailure}; activitiesAfter={activitiesAfterFireFailure}; callbacks={fireFailureActivityCallbacks}; healthCallbacks={fireFailureHealthCallbacks}; workCallbacks={fireFailureWorkCallbacks}; callbackAggregateCount={fireFailureActivityEntry.Count}; alertPublished={incidentDiagnostics.LastObservedWorkAccidentAlertPublished}; callbackFailure={incidentDiagnostics.LastObservedWorkAccidentCallbackFailure}; fireDetail={fireFailureDetail}"));
-                abilityWork.ConstructWorkAccidentObservation(
-                    bodyHealthMutation,
-                    accidentFacts,
-                    originalObservations);
-                ensureWorkModules.Invoke(abilityWork, null);
-                originalObservations.CompleteFollowups(secondOperationId);
-                Require(
-                    workOrders.Capture().pendingAccidents.All(value =>
-                        value?.fact == null
-                        || !string.Equals(
-                            value.fact.operationId,
-                            secondOperationId,
-                            StringComparison.Ordinal)),
-                    "The restored work-accident journal did not finish the retained fire follow-up exactly once.");
-                Require(anatomy.TryHealNode(
-                        accidentActor,
-                        secondDamaged.nodeId,
-                        secondAppliedDamage,
-                        infectionReduction: 0f),
-                    "Fire-failure accident audit could not restore the damaged node.");
-            }
-            finally
-            {
-                abilityWork.ConstructWorkAccidentObservation(
-                    bodyHealthMutation,
-                    accidentFacts,
-                    originalObservations);
-                ensureWorkModules.Invoke(abilityWork, null);
-                assignedWorkType.SetValue(abilityWork, originalWorkType);
-                abilityWork.assignedShop = originalAssignedShop;
-                abilityWork.isWorking = originalWorking;
-            }
+            VerifyWorkAccidentExecution(scope, moodActor, null, null);
 
             ICharacterManaCommand mana = scope.Container
                 .Resolve<ICharacterManaCommand>();
@@ -2103,6 +1637,568 @@ public static class V27CharacterPerformanceDebugScenarios
         Debug.Log(
             "V27_CHARACTER_PERFORMANCE_CONSUMER_AUDIT=RUNNING; "
             + "mana recovery evidence will be checked after live ticks.");
+    }
+
+    public static void RunWorkAccidentForArchitectureBatch(
+        DungeonRuntimeLifetimeScope scope, BuildableObject facility, ICollection<string> report)
+    {
+        Require(Application.isBatchMode && EditorApplication.isPlaying
+            && DungeonPersistencePaths.IsIsolatedVerification,
+            "Work accident execution requires isolated Play Mode.");
+        var objects = new List<GameObject>();
+        var data = new List<CharacterSO>();
+        try
+        {
+            CharacterActor actor = CreateSpeciesAuditActor(scope,
+                scope.Container.Resolve<ICharacterNarrativeCommand>(), "Human", objects, data);
+            VerifyWorkAccidentExecution(scope, actor, facility, report);
+        }
+        finally
+        {
+            foreach (GameObject value in objects)
+                if (value != null) UnityEngine.Object.Destroy(value);
+            foreach (CharacterSO value in data)
+                if (value != null) UnityEngine.Object.Destroy(value);
+        }
+    }
+
+    private static void VerifyWorkAccidentExecution(DungeonRuntimeLifetimeScope scope,
+        CharacterActor accidentActor, BuildableObject suppliedFacility, ICollection<string> report)
+    {
+        AbilityWork abilityWork = accidentActor.GetComponent<AbilityWork>()
+            ?? throw new InvalidOperationException(
+                "Work accident audit actor has no AbilityWork component.");
+        MethodInfo ensureWorkModules = typeof(AbilityWork).GetMethod(
+            "EnsureWorkModules",
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(
+                nameof(AbilityWork),
+                "EnsureWorkModules");
+        FieldInfo assignedWorkType = typeof(AbilityWork).GetField(
+            "assignedWorkType",
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingFieldException(
+                nameof(AbilityWork),
+                "assignedWorkType");
+        PropertyInfo taskExecutorField = typeof(AbilityWork).GetProperty(
+            "TaskExecutor",
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingFieldException(
+                nameof(AbilityWork),
+                "TaskExecutor");
+        FacilityWorkType originalWorkType =
+            (FacilityWorkType)assignedWorkType.GetValue(abilityWork);
+        BuildableObject originalAssignedShop = abilityWork.assignedShop;
+        bool originalWorking = abilityWork.isWorking;
+        IAnatomyHealthRuntime anatomy = scope.Container
+            .Resolve<IAnatomyHealthRuntime>();
+        ICharacterBodyHealthMutationTransaction bodyHealthMutation = scope
+            .Container.Resolve<ICharacterBodyHealthMutationTransaction>();
+        IDomainFactPublisher accidentFacts = scope.Container
+            .Resolve<IDomainFactPublisher>();
+        IDomainFactRecoveryPublisher accidentRecovery = scope.Container
+            .Resolve<IDomainFactRecoveryPublisher>();
+        WorkOrderAggregateStateStore workOrderState = scope.Container
+            .Resolve<WorkOrderAggregateStateStore>();
+        CharacterIdentityEventPublisher identityEvents = scope.Container
+            .Resolve<CharacterIdentityEventPublisher>();
+        IEnvironmentalFireCommand environmentalFire = scope.Container
+            .Resolve<IEnvironmentalFireCommand>();
+        IGameClock liveClock = scope.Container.Resolve<IGameClock>();
+        WorkAccidentObservationRuntime originalObservations = scope.Container
+            .Resolve<WorkAccidentObservationRuntime>();
+        IWorkAccidentPresentationDiagnostic incidentDiagnostics = scope
+            .Container.Resolve<IWorkAccidentPresentationDiagnostic>();
+        EventAlertRuntime alertRuntime =
+            UnityEngine.Object.FindFirstObjectByType<EventAlertRuntime>()
+            ?? throw new InvalidOperationException(
+                "Work accident audit requires the production alert runtime.");
+        try
+        {
+            accidentActor.SetAiPaused(true);
+            BuildableObject accidentFacility = suppliedFacility ?? scope.Container
+                .Resolve<ICharacterAiWorldRegistry>()
+                .Buildings
+                .Where(value => value != null
+                    && !value.isDestroy
+                    && value.PersistentInstanceId.IsValid
+                    && value.BuildingData
+                        ?.GetAbility<BuildingProcessAccidentFireSourceAbility>()
+                        is { } source
+                    && source.Supports(BuiltInWorkTypeIds.Operate.Value)
+                    && value.BuildingData
+                        .GetAbility<BuildingEnvironmentalFireAbility>()
+                        ?.Accepts(
+                            EnvironmentalFireIgnitionKind.ProcessAccident)
+                        == true)
+                .OrderBy(
+                    value => value.PersistentInstanceId.Value,
+                    StringComparer.Ordinal)
+                .FirstOrDefault()
+                ?? throw new InvalidOperationException(
+                    "Work accident audit requires one actual persistent facility with a process-accident fire plan.");
+            WorkTypeId accidentWorkTypeId = BuiltInWorkTypeIds.Operate;
+            FacilityWorkType accidentLegacyWorkType =
+                FacilityWorkTypeMap.GetRequired(accidentWorkTypeId);
+            assignedWorkType.SetValue(
+                abilityWork,
+                accidentLegacyWorkType);
+            abilityWork.assignedShop = accidentFacility;
+            ensureWorkModules.Invoke(abilityWork, null);
+            WorkTaskExecutor executor = taskExecutorField.GetValue(abilityWork)
+                as WorkTaskExecutor
+                ?? throw new InvalidOperationException(
+                    "Work accident executor is unavailable.");
+            Dictionary<string, float> nodeHealthBefore = anatomy
+                .GetAnatomySnapshot(accidentActor)
+                .Nodes
+                .Where(value => value != null)
+                .ToDictionary(
+                    value => value.nodeId,
+                    value => value.currentHealth,
+                    StringComparer.Ordinal);
+            IWorkOrderRuntime workOrders = scope.Container
+                .Resolve<IWorkOrderRuntime>();
+            int persistedSequenceBefore = workOrders.Capture()
+                .nextOrderSequence;
+            int workAccidentAlertsBefore = alertRuntime.EventLog.Count(
+                value => value.SourceId.StartsWith(
+                    "work-accident:",
+                    StringComparison.Ordinal));
+            var accidentExecution = StartApprovedWorkAccident(
+                scope, abilityWork, executor, accidentActor, accidentWorkTypeId, accidentFacility);
+            AnatomyNodeHealthState damaged = anatomy
+                .GetAnatomySnapshot(accidentActor)
+                .Nodes
+                .FirstOrDefault(value => value != null
+                    && nodeHealthBefore.TryGetValue(
+                        value.nodeId,
+                        out float previousHealth)
+                    && value.currentHealth < previousHealth);
+            Require(damaged != null,
+                "Work accident did not damage an anatomy node.");
+            float appliedAccidentDamage =
+                nodeHealthBefore[damaged.nodeId] - damaged.currentHealth;
+            Require(Mathf.Approximately(appliedAccidentDamage, 2f),
+                "Work accident did not commit the authored exact damage once.");
+            string accidentOperationId =
+                incidentDiagnostics.LastObservedWorkAccidentOperationId;
+            EventAlertRecord[] matchingAccidentAlerts = alertRuntime.EventLog
+                .Where(value => string.Equals(
+                    value.SourceId,
+                    "work-accident:" + accidentOperationId,
+                    StringComparison.Ordinal))
+                .ToArray();
+            EventAlertRecord accidentAlert = matchingAccidentAlerts
+                .SingleOrDefault();
+            Require(
+                accidentOperationId.Length > 0
+                && matchingAccidentAlerts.Length == 1
+                && alertRuntime.EventLog.Count(value =>
+                    value.SourceId.StartsWith(
+                        "work-accident:",
+                        StringComparison.Ordinal))
+                    == workAccidentAlertsBefore + 1
+                && incidentDiagnostics
+                    .LastObservedWorkAccidentAlertPublished
+                && !incidentDiagnostics
+                    .LastObservedWorkAccidentCallbackFailure.IsFailure
+                && accidentAlert != null
+                && accidentAlert.Count == 1
+                && accidentAlert.Title == "작업 사고"
+                && accidentAlert.Detail.Contains(
+                    accidentActor.Identity.DisplayName.Trim(),
+                    StringComparison.Ordinal)
+                && accidentAlert.Detail.Contains(
+                    WorkTaskCatalog.GetDisplayName(
+                        accidentWorkTypeId),
+                    StringComparison.Ordinal)
+                && accidentAlert.Detail.Contains(
+                    damaged.nodeId,
+                    StringComparison.Ordinal)
+                && accidentAlert.Detail.Contains(
+                    accidentFacility.PersistentInstanceId.Value,
+                    StringComparison.Ordinal)
+                && accidentAlert.Detail.Contains(
+                    accidentFacility.BuildingData.objectName.Trim(),
+                    StringComparison.Ordinal)
+                && accidentAlert.Detail.Contains(
+                    $"{accidentFacility.centerPos.x},{accidentFacility.centerPos.y}",
+                    StringComparison.Ordinal)
+                && accidentAlert.Detail.Contains(
+                    $"-{appliedAccidentDamage:0.###}",
+                    StringComparison.Ordinal)
+                && accidentAlert.Detail.Contains(
+                    "발생 당시 확인된 원인:",
+                    StringComparison.Ordinal)
+                && accidentAlert.Detail.Contains(
+                    "이 알림을 닫아도 피해는 복구되지 않습니다.",
+                    StringComparison.Ordinal),
+                "Actual work accident did not publish one exact worker/work/node/cause response alert.");
+            float damagedHealth = damaged.currentHealth;
+            Require(
+                alertRuntime.Dismiss(accidentAlert)
+                && Mathf.Approximately(
+                    anatomy.GetAnatomySnapshot(accidentActor)
+                        .Nodes.Single(value => value != null
+                            && value.nodeId == damaged.nodeId)
+                        .currentHealth,
+                    damagedHealth),
+                "Dismissing the work-accident alert changed the committed injury.");
+            Require(anatomy.TryHealNode(
+                    accidentActor,
+                    damaged.nodeId,
+                    appliedAccidentDamage,
+                    infectionReduction: 0f),
+                "Work accident audit could not restore the damaged node.");
+
+            AbortApprovedWorkAccident(scope, accidentActor, accidentExecution);
+            report?.Add("PASS approved work -> exact labor/injury/alert -> accident abort releases worker operation");
+            EnvironmentalFireCauseSaveRecord firstFire = scope.Container
+                .Resolve<IEnvironmentalFirePersistence>().Capture().processedCauses.Single(value =>
+                    value.causeId == "environmental-fire-process-accident:" + accidentOperationId);
+            Require(firstFire.evidenceId == "work-accident-receipt:" + accidentOperationId
+                && DomainFactValueSyntax.IsIdentity(firstFire.evidenceId)
+                && !workOrders.Capture().pendingAccidents.Any(value =>
+                    value.fact?.operationId == accidentOperationId),
+                "Canonical work-accident fire receipt did not complete its exact parent once.");
+            report?.Add("PASS canonical fire receipt from immutable parent operation; first actual fire and pending retirement committed");
+            DungeonWorkOrderSaveData afterFirstAccident = workOrders
+                .Capture();
+            Require(
+                afterFirstAccident.nextOrderSequence
+                    == checked(persistedSequenceBefore + 1),
+                "The first work accident did not consume exactly one persisted work-operation sequence.");
+            DungeonWorkOrderSaveData restoredWorkOrders =
+                JsonUtility.FromJson<DungeonWorkOrderSaveData>(
+                    JsonUtility.ToJson(afterFirstAccident));
+            workOrders.ValidateRestorePayload(restoredWorkOrders);
+            WorkOrderRuntime restorableWorkOrders = workOrders
+                as WorkOrderRuntime
+                ?? throw new InvalidOperationException(
+                    "Work accident audit requires the production work-order runtime.");
+            IRestoreWorldCandidatePublisher restoreCandidates = scope
+                .Container.Resolve<IRestoreWorldCandidatePublisher>();
+            ICharacterAiWorldRegistry liveWorld = scope.Container
+                .Resolve<ICharacterAiWorldRegistry>();
+            Grid restoreGrid = scope.Container
+                .Resolve<IGridSystemProvider>()
+                .Grid;
+            void RestoreWorkOrders(DungeonWorkOrderSaveData payload)
+            {
+                workOrders.ValidateRestorePayload(payload);
+                restorableWorkOrders.BeginRestoreCandidate();
+                restoreCandidates.SetFacilityCandidate(
+                    restoreGrid,
+                    liveWorld.Buildings
+                        .Where(value => value != null && !value.isDestroy)
+                        .OrderBy(
+                            value => value.PersistentInstanceId.Value,
+                            StringComparer.Ordinal)
+                        .ToArray());
+                try
+                {
+                    WorkOrderRestoreCandidate restoreCandidate =
+                        restorableWorkOrders.PrepareRestoreCandidate(
+                            payload);
+                    restorableWorkOrders.PublishRestoreCandidate(
+                        restoreCandidate);
+                    restorableWorkOrders.PublishRestoreCandidate();
+                    restorableWorkOrders.CompleteRestoreCandidate();
+                }
+                catch
+                {
+                    restorableWorkOrders.RollbackPublishedRestoreCandidate();
+                    throw;
+                }
+                finally
+                {
+                    restoreCandidates.ClearFacilityCandidate();
+                }
+            }
+            RestoreWorkOrders(restoredWorkOrders);
+            Require(
+                workOrders.Capture().nextOrderSequence
+                    == afterFirstAccident.nextOrderSequence,
+                "Current work-order save round trip changed the next persisted operation sequence.");
+
+            WorkAccidentObservationRuntime faultingObservations = new(
+                workOrderState,
+                accidentRecovery,
+                identityEvents,
+                new ThrowingWorkAccidentFireCommand(environmentalFire),
+                liveClock);
+            abilityWork.ConstructWorkAccidentObservation(
+                bodyHealthMutation,
+                accidentFacts,
+                faultingObservations);
+            ensureWorkModules.Invoke(abilityWork, null);
+            WorkTaskExecutor throwingExecutor = taskExecutorField
+                .GetValue(abilityWork) as WorkTaskExecutor
+                ?? throw new InvalidOperationException(
+                    "Throwing-fire work accident executor is unavailable.");
+            Dictionary<string, float> secondNodeHealthBefore = anatomy
+                .GetAnatomySnapshot(accidentActor)
+                .Nodes
+                .Where(value => value != null)
+                .ToDictionary(
+                    value => value.nodeId,
+                    value => value.currentHealth,
+                    StringComparer.Ordinal);
+            int activitiesBeforeFireFailure = accidentActor.LogComponent
+                .ActivityEntries.Count(value => value != null
+                    && string.Equals(
+                        value.ReasonCode,
+                        "work-accident",
+                        StringComparison.Ordinal));
+            int alertsBeforeFireFailure = alertRuntime.EventLog.Count(
+                value => value.SourceId.StartsWith(
+                    "work-accident:",
+                    StringComparison.Ordinal));
+            int fireFailureActivityCallbacks = 0;
+            int fireFailureHealthCallbacks = 0;
+            int fireFailureWorkCallbacks = 0;
+            CharacterLogEntry fireFailureActivityEntry = default;
+            void ObserveFireFailureActivity(CharacterLogEntry entry)
+            {
+                if (entry.Activity != null
+                    && string.Equals(
+                        entry.Activity.ReasonCode,
+                        "work-accident",
+                        StringComparison.Ordinal))
+                {
+                    fireFailureActivityCallbacks++;
+                    fireFailureActivityEntry = entry;
+                    if (string.Equals(
+                            entry.Activity.KindId,
+                            CharacterActivityKinds.Health,
+                            StringComparison.Ordinal)
+                        && string.Equals(
+                            entry.Activity.ActionId,
+                            "health:damage",
+                            StringComparison.Ordinal))
+                    {
+                        fireFailureHealthCallbacks++;
+                    }
+                    else if (string.Equals(
+                        entry.Activity.KindId,
+                        CharacterActivityKinds.Work,
+                        StringComparison.Ordinal))
+                    {
+                        fireFailureWorkCallbacks++;
+                    }
+                }
+            }
+
+            accidentActor.LogComponent.OnLogAdded += ObserveFireFailureActivity;
+            (object Owner, int RunId) throwingAccidentExecution;
+            try
+            {
+                throwingAccidentExecution = StartApprovedWorkAccident(
+                    scope, abilityWork, throwingExecutor, accidentActor, accidentWorkTypeId, accidentFacility);
+            }
+            finally
+            {
+                accidentActor.LogComponent.OnLogAdded -= ObserveFireFailureActivity;
+            }
+            AnatomyNodeHealthState secondDamaged = anatomy
+                .GetAnatomySnapshot(accidentActor)
+                .Nodes
+                .SingleOrDefault(value => value != null
+                    && secondNodeHealthBefore.TryGetValue(
+                        value.nodeId,
+                        out float previousHealth)
+                    && value.currentHealth < previousHealth);
+            Require(secondDamaged != null,
+                "The fire-failure accident did not retain its committed injury.");
+            float secondAppliedDamage =
+                secondNodeHealthBefore[secondDamaged.nodeId]
+                - secondDamaged.currentHealth;
+            string secondOperationId =
+                incidentDiagnostics.LastObservedWorkAccidentOperationId;
+            PropertyInfo fireFailureDiagnostic = typeof(WorkTaskExecutor)
+                .GetProperty(
+                    "LastWorkAccidentFireFailureDetailForDiagnostics",
+                    BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingMemberException(
+                    nameof(WorkTaskExecutor),
+                    "LastWorkAccidentFireFailureDetailForDiagnostics");
+            string fireFailureDetail = fireFailureDiagnostic.GetValue(
+                throwingExecutor) as string ?? string.Empty;
+            WorkAccidentObservationSaveData pendingFire = workOrders
+                .Capture()
+                .pendingAccidents
+                .SingleOrDefault(value => value?.fact != null
+                    && string.Equals(
+                        value.fact.operationId,
+                        secondOperationId,
+                        StringComparison.Ordinal));
+            int activitiesAfterFireFailure = accidentActor.LogComponent
+                .ActivityEntries.Count(value => value != null
+                    && string.Equals(
+                        value.ReasonCode,
+                        "work-accident",
+                        StringComparison.Ordinal));
+            int alertsAfterFireFailure = alertRuntime.EventLog.Count(value =>
+                value.SourceId.StartsWith(
+                    "work-accident:",
+                    StringComparison.Ordinal));
+            int secondOperationAlerts = alertRuntime.EventLog.Count(value =>
+                string.Equals(
+                    value.SourceId,
+                    "work-accident:" + secondOperationId,
+                    StringComparison.Ordinal));
+            Require(
+                Mathf.Approximately(secondAppliedDamage, 2f)
+                && !string.Equals(
+                    secondOperationId,
+                    accidentOperationId,
+                    StringComparison.Ordinal)
+                && workOrders.Capture().nextOrderSequence
+                    == checked(afterFirstAccident.nextOrderSequence + 1)
+                && alertsAfterFireFailure == alertsBeforeFireFailure + 1
+                && secondOperationAlerts == 1
+                && fireFailureActivityCallbacks == 2
+                && fireFailureHealthCallbacks == 1
+                && fireFailureWorkCallbacks == 1
+                && activitiesAfterFireFailure
+                    == activitiesBeforeFireFailure + 2
+                && fireFailureActivityEntry.Count == 1
+                && incidentDiagnostics
+                    .LastObservedWorkAccidentAlertPublished
+                && !incidentDiagnostics
+                    .LastObservedWorkAccidentCallbackFailure.IsFailure
+                && fireFailureDetail.Contains(
+                    "work-accident-fire-follow-up-failed",
+                    StringComparison.Ordinal)
+                && fireFailureDetail.Contains(
+                    "operation=" + secondOperationId,
+                    StringComparison.Ordinal)
+                && fireFailureDetail.Contains(
+                    "injuryCommitted=true;error=",
+                    StringComparison.Ordinal)
+                && pendingFire != null
+                && pendingFire.observationCompleted
+                && pendingFire.identityNotificationAttempted
+                && pendingFire.fact.fireEligible,
+                FormattableString.Invariant(
+                    $"A fire follow-up failure lost or duplicated the canonical injury/alert/activity commit; damage={secondAppliedDamage:R}; firstOperation={accidentOperationId}; secondOperation={secondOperationId}; sequenceBefore={afterFirstAccident.nextOrderSequence}; sequenceAfter={workOrders.Capture().nextOrderSequence}; alertsBefore={alertsBeforeFireFailure}; alertsAfter={alertsAfterFireFailure}; secondOperationAlerts={secondOperationAlerts}; activitiesBefore={activitiesBeforeFireFailure}; activitiesAfter={activitiesAfterFireFailure}; callbacks={fireFailureActivityCallbacks}; healthCallbacks={fireFailureHealthCallbacks}; workCallbacks={fireFailureWorkCallbacks}; callbackAggregateCount={fireFailureActivityEntry.Count}; alertPublished={incidentDiagnostics.LastObservedWorkAccidentAlertPublished}; callbackFailure={incidentDiagnostics.LastObservedWorkAccidentCallbackFailure}; fireDetail={fireFailureDetail}"));
+            AbortApprovedWorkAccident(scope, accidentActor, throwingAccidentExecution);
+            long retainedLabor = scope.Container.Resolve<ISettlementLaborAccountingService>()
+                .Capture().ActualLaborMilliWu;
+            int activitiesBeforeRetry = accidentActor.LogComponent.ActivityEntries
+                .Count(value => value != null && value.ReasonCode == "work-accident");
+            string pendingJson = JsonUtility.ToJson(workOrders.Capture());
+            DungeonWorkOrderSaveData pendingRestore = JsonUtility.FromJson<DungeonWorkOrderSaveData>(pendingJson);
+            RestoreWorkOrders(pendingRestore);
+            Require(workOrders.Capture().pendingAccidents.Any(value => value?.fact != null
+                    && value.fact.operationId == secondOperationId
+                    && value.observationCompleted && value.identityNotificationAttempted),
+                "Pending fire follow-up did not survive JSON and production candidate replacement.");
+            report?.Add("PASS failed fire follow-up retains committed injury/observation; pending JSON candidate restored");
+            abilityWork.ConstructWorkAccidentObservation(
+                bodyHealthMutation,
+                accidentFacts,
+                originalObservations);
+            ensureWorkModules.Invoke(abilityWork, null);
+            originalObservations.OnRestoreCompleted();
+            string fireAfterRestore = JsonUtility.ToJson(scope.Container
+                .Resolve<IEnvironmentalFirePersistence>().Capture());
+            originalObservations.OnRestoreCompleted();
+            originalObservations.CompleteFollowups(secondOperationId);
+            Require(scope.Container.Resolve<ISettlementLaborAccountingService>().Capture()
+                    .ActualLaborMilliWu == retainedLabor
+                && Mathf.Approximately(anatomy.GetAnatomySnapshot(accidentActor).Nodes
+                    .Single(value => value.nodeId == secondDamaged.nodeId).currentHealth,
+                    secondDamaged.currentHealth)
+                && accidentActor.LogComponent.ActivityEntries.Count(value => value != null
+                    && value.ReasonCode == "work-accident") == activitiesBeforeRetry
+                && alertRuntime.EventLog.Count(value => value.SourceId == "work-accident:" + secondOperationId) == 1
+                && scope.Container.Resolve<IEnvironmentalFirePersistence>().Capture().processedCauses
+                    .Count(value => value.causeId == "environmental-fire-process-accident:" + secondOperationId) == 1
+                && scope.Container.Resolve<IEnvironmentalFirePersistence>().Capture().processedCauses
+                    .Single(value => value.causeId == "environmental-fire-process-accident:" + secondOperationId)
+                    .evidenceId == "work-accident-receipt:" + secondOperationId
+                && JsonUtility.ToJson(scope.Container.Resolve<IEnvironmentalFirePersistence>().Capture()) == fireAfterRestore,
+                "Restored accident follow-up replayed injury/labor/activity/alert/fire or lost exact cause.");
+            report?.Add("PASS OnRestoreCompleted + repeated retry completes exact fire cause once; no injury/labor/activity/alert replay");
+            Require(
+                workOrders.Capture().pendingAccidents.All(value =>
+                    value?.fact == null
+                    || !string.Equals(
+                        value.fact.operationId,
+                        secondOperationId,
+                        StringComparison.Ordinal)),
+                "The restored work-accident journal did not finish the retained fire follow-up exactly once.");
+            Require(anatomy.TryHealNode(
+                    accidentActor,
+                    secondDamaged.nodeId,
+                    secondAppliedDamage,
+                    infectionReduction: 0f),
+                "Fire-failure accident audit could not restore the damaged node.");
+        }
+        finally
+        {
+            abilityWork.ConstructWorkAccidentObservation(
+                bodyHealthMutation,
+                accidentFacts,
+                originalObservations);
+            ensureWorkModules.Invoke(abilityWork, null);
+            assignedWorkType.SetValue(abilityWork, originalWorkType);
+            abilityWork.assignedShop = originalAssignedShop;
+            abilityWork.isWorking = originalWorking;
+        }
+
+    }
+
+    private static (object Owner, int RunId) StartApprovedWorkAccident(
+        DungeonRuntimeLifetimeScope scope, AbilityWork work, WorkTaskExecutor executor,
+        CharacterActor actor, WorkTypeId workType, BuildableObject facility)
+    {
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        object run = typeof(WorkTaskExecutor).GetField("run", flags)?.GetValue(executor)
+            ?? throw new InvalidOperationException("Shared work-run authority is unavailable.");
+        int runId = (int)(typeof(AbilityWork).GetMethod("BeginWorkRun", flags)?.Invoke(work, null)
+            ?? throw new MissingMethodException(nameof(AbilityWork), "BeginWorkRun"));
+        typeof(AbilityWork).GetField("assignedWorkType", flags).SetValue(work,
+            FacilityWorkTypeMap.GetRequired(workType));
+        work.assignedShop = facility;
+        run.GetType().GetMethod("BeginRun", flags).Invoke(run, new object[] { runId });
+        run.GetType().GetMethod("BeginDutyWorkRun", flags).Invoke(run, null);
+        run.GetType().GetMethod("BeginActiveWork", flags).Invoke(run, null);
+        long laborBefore = scope.Container.Resolve<ISettlementLaborAccountingService>()
+            .Capture().ActualLaborMilliWu;
+        // Force the existing controlled WU boundary through the production producer,
+        // including labor, proficiency and work-start publication before the injury.
+        run.GetType().GetMethod("RecordApprovedWork", flags).Invoke(run,
+            new object[] { 100_000f, actor, true, 0f, workType });
+        object accidents = run.GetType().GetField("accidents", flags)?.GetValue(run)
+            ?? throw new InvalidOperationException("Work accident execution authority is unavailable.");
+        Require((bool)accidents.GetType().GetProperty("Occurred", flags).GetValue(accidents),
+            "Approved production work did not commit the forced accident.");
+        Require(scope.Container.Resolve<ISettlementLaborAccountingService>()
+                .Capture().ActualLaborMilliWu == checked(laborBefore + 100_000_000L)
+            && scope.Container.Resolve<IEmergencyWorkAccountingService>()
+                .TryGetWorkerOperation(actor.Identity.PersistentId, out var entry)
+            && entry.OperationId == $"work:{actor.Identity.PersistentId}:{runId}:{workType.Value}"
+            && entry.RemainingMilliWu == 0,
+            "Approved work did not publish exact labor through the shared operation owner.");
+        return (run, runId);
+    }
+
+    private static void AbortApprovedWorkAccident(DungeonRuntimeLifetimeScope scope,
+        CharacterActor actor, (object Owner, int RunId) execution)
+    {
+        long labor = scope.Container.Resolve<ISettlementLaborAccountingService>()
+            .Capture().ActualLaborMilliWu;
+        execution.Owner.GetType().GetMethod("AbortWorkRun",
+            BindingFlags.Instance | BindingFlags.NonPublic).Invoke(execution.Owner,
+                new object[] { execution.RunId, actor, null, CharacterAiActionTerminalKind.Cancelled });
+        Require(!scope.Container.Resolve<IEmergencyWorkAccountingService>()
+                .TryGetWorkerOperation(actor.Identity.PersistentId, out _)
+            && scope.Container.Resolve<ISettlementLaborAccountingService>()
+                .Capture().ActualLaborMilliWu == labor,
+            "Accident abort retained the worker operation or changed already committed labor.");
     }
 
     [MenuItem("DungeonStory/Debug/V27/Run Negative Mood Capacity Audit")]

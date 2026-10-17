@@ -1,5 +1,205 @@
 # DungeonStory Current Findings
 
+## 최종 통합에서 확인한 수명·현재 root 계약
+
+공식 pending world 복원 직후 이전 actor의 Unity Destroy가 지연되어 같은 stable ID가 lifetime query에 두 번 남는 실제 결함을 재현했다. authority handoff가 성공한 뒤 retirement에서 기존 runtime bridge 등록만 즉시 반납하고 deferred OnDestroy는 idempotent하게 유지했다. 생명/사망 효과나 새 actor의 등록을 지우지 않는다.
+
+지원군 marker와 입장 이동은 저장 route authority에서 재구성하는 projection이다. 같은 Faction adapter의 기존 restore-completed hook으로 현재 root와 실제 actor를 다시 결합하고 active movement가 없는 SpawningOutside/EnteringDungeon만 정상 입장을 시작한다. hook 재호출은 기존 이동 version을 바꾸지 않는다. 새 상태/DTO/저장 버전/폴백을 만들지 않았다.
+
+메인 F1/F2/G1~G10과 독립 조건부20 대조에서32개 모두 verified, 추가 production 결함0이었다. 응집된 거래 유지와 조회 계약을 통한 실제 constructor cycle 제거를 구분했다. C8/C11의 낡은 기록2곳은 현재 소스·실행 근거에 맞췄다. 결정 근거는 [완료 대조](Artifacts/QA/RequiredStructureGoal-20261016/completion-audit-final-r1.json).
+
+## 이전 진행 기록 — 아래는 각 당시 기준
+
+## C1 수명·JSON과 skill owner/journal 입장 계약
+
+Native Edit A05의 plain Mono didAwake=False에서 GameObject 비활성화만으로 Play OnDisable을 기대한 fixture가 실패했다. Edit에서만 lifecycle message를 명시 호출하고 Play에서는 자동 callback 단언을 유지한다. 당시 실제 Play/camera/raycast/UI는 미실행이었고 후속 verification-c1-play-execution-r1.json에서 해소했다. fixed-skill actor DTO는 raw JsonUtility가 null restObservation을 빈 invalid fact로 바꾸므로 실제 Stats capture와 production public-field codec/exact reader로 왕복한다. 저장 validator·DTO는 완화하지 않는다.
+
+이전 exact-replay fixture는 completed journal/ledger를 남긴 채 actor limits/effects만 과거로 되감았다. 이는 일관된 전체 복원이 아니다. Source에서는 reserve 실패 뒤 기존 old row를 이번 attempt의 retained로 오인해 rollback을 생략할 위험이 보였다(원 실행에서 누출을 별도 측정한 것은 아님). manual/automatic 모두 이미 journaled next owner revision을 효과 전에 명시 거절한다. 나머지 transaction body·fields/API/recovery는 원본과 동일하다. 현재 native에서 두 잘못된 rewind의 owner/recipient/ledger/journal 무변경을 확인했고, 정상 completed event 재생 및 applied pending owner+journal JSON/fresh actor observer 복구 양성도 통과했다.
+
+## G5/G9 실제 표적 범위
+
+G5는 no-report-IO existing helper가 내부/유료 환자를 함께 다루므로 기존 scoped persistence/CreateNew batch wrapper만 연결했다. 물리 소비·치료/해독·정확 service payment와 공식4종 section 복원, ACK/소유자 상실 retry를 통과했다. G9 B83는 current generic edit launcher가 새 audit output을 실제로 전달하고 OS probe를 제공하므로 기존3그룹을 그대로 실행할 수 있었다. 오래된 inventory의 launcher-binding gap은 현재 launcher에는 적용되지 않는다. 두 대상 모두 통제 native fixture이며 자연 UI/AI/LLM·whole-world 치료/trait 복원으로 확대하지 않는다.
+
+## G4 지원군의 게시 영수증과 초기 신원
+
+Native r1에서 두 번째 factory Publish 직전 실패를 주면 실제 등록1/객체2/기록 ID2/완료false가 남았다. 원 owner는 Publish 전에 ID를 기록하고 매 retry를 index0부터 시작했다. ID를 Initialize 뒤 지정하던 순서도 바로잡았다. 다만 native r2에서 같은 fieldwork 오류와 life/narrative 누락이 지속돼 ID 순서만을 근본 원인으로 보지 않는다. 실제 prefab에는 AbilityWork가 없고 life publication은 NPC+AbilityWork를 요구한다. 기존 CreateInactive(compose) 패턴으로 근무 능력을 DI 전에 조립해야 실제 guard/life/narrative/숙련 경로가 연결된다. ID를 Initialize 전에 확정하고 성공한 canonical ID prefix만 기존 목록에 기록한다. 실패한 unpublished 객체는 폐기하며, 실제 lifetime 등록을 마친 뒤 응답을 잃은 객체는 같은 참조의 게시 완료를 확인해 child 영수증을 보존한다. 원 예외는 호출자에게 전달한다.
+
+캐릭터 게시에는 life/narrative 등록이 포함되므로 이미 성공한 actor를 단순 파괴하는 것은 원자 rollback이 아니다. 기존 actorsSpawned=false는 parent 미완료, ordered actor IDs는 성공 child 영수증으로 사용한다. 다음 owner는 prefix의 유일한 실제 actor를 확인하고 누락 suffix만 생성한다. 기존 DTO 필드/버전과 정상 완료 저장을 유지하며, 새 미완료 prefix도 canonical ID·개수 상한을 검증한다. native r3에서 route JSON/fresh domain·owner, 두 가지 publish 응답 실패, 실제 입장과 legacy 완료-shorter 호환을 구분해 모두 통과했다. 격리 local route 입력이며 공식 faction whole-world restore 증거로 확대하지 않는다.
+
+## C6 실제 급식·복원·재시도의 검사 경계
+
+잘못된 같은 delivery sequence는 inner child 검사 전에 outer provenance gate가 거절한다. child binding 음성 검사는 실제 child가 commit되고 첫 canonical ACK가 보류된 시점에서 원 요청의 animal 필드만 바꾼다. 정상 완료 뒤 같은 sequence의 변조 거절도 별도로 유지한다. 임의 stream이나 cursor 초기화로 검증을 우회하지 않는다. 구형 fixture version7 기대는 현재 CircusSaveData.CurrentVersion8과 일치시켰고 timer/물리/실패 기준은 유지했다.
+
+완료 feed를 새 프로세스의 공식104-section 후보로 복원해 stable animal/pen/worker/captive 결합과 같은 commit의 무효과 재시도를 확인했다. 저장 시각374.0668과 새 시각0.5165를 분리하며 남은5초를 새 clock에 재계산한다. 별도 기존 owner fixture는 실제 WildlifeActor/물리 Sink, ACK 실패 뒤 JSON state 교체/표시 변경/우리 밖 retry, 이전 detached 상태 보존과 일반 질병 회복을 다룬다. edit 배치는 native evidence 아래 persistence root를 함수 수명에만 설정/검증/원복하고 Run 본문은 유지한다. 통제 입력·대역을 사용한 범위이며 자연 AI 선택/훈련 증거로 확대하지 않는다.
+
+## G1 실제 화재 child 영수증 계약 결함
+
+Native r3에서 실제 노동/부상/알림/Abort는 통과했지만 정상 첫 화재가 fire-ignition-fact-invalid로 실패해 pending이 남고 다음 사고를 막았다. 원 producer의 evidenceId는 node=·damage=를 포함하지만 strict DomainFactValueSyntax.IsIdentity는 '='를 금지한다. Immutable parent operation ID로 canonical child evidenceId를 유도하며 causeId/producerId/원 parent/DTO/schema/피해·ACK·identityNotificationAttempted는 유지한다. 화재 Fact 생성은 stage/물리 mutation 전에 실패하며 현행 accepted fire payload 검증도 같은 constructor를 사용하므로 구형 invalid child를 accepted current cause로 바꾸지 않는다. pending WorkAccident parent에는 child evidenceId가 저장되지 않아 수정된 owner가 재시도 가능하다. 원 실패를 보존했고 native r4에서 canonical 정상 화재/실패 pending JSON 후보 교체/OnRestoreCompleted+반복 retry 무중복을 통과했다.
+
+
+## G1 사고 native 준비 경계
+
+실제 r2는 fire capability만으로 선택한 I16에 Operate를 강제했으나 operation proficiency가 없어 거절됐다. 현재 원본의 일반 산업/생산 설비와 Operate 시설은 같지 않다. 전 자산128개의 valid operation profile과 explicit process-fire source의 교집합도 없으므로 기존 V27 fixture 가정이 부적합했다. 이를 생산 데이터 오류나 자연 작업 화재 재현으로 확대하지 않는다. native owner/저장 경계를 위해 실제 D04 Operate profile의 일회성 SO clone에 명시적인 화재 입력만 구성한다. 자산/scene/GUID/DTO·수치는 변경하지 않고 실제 노동/부상/fact/Abort 및 실패 pending JSON/retry 원 단언을 유지한다. 이 검사는 자연 화재·실제 콘텐츠 전체 연결성의 증거가 아니다.
+
+
+## 2026-10-17 C16 확인된 저장 계약 수정
+
+visitorExitOperation의 Departed는 가장 최근 퇴장 영수증이고 AcquireVisitor의 isVisiting은 현재 방문이다. 이전 !isVisiting 요구가 실제 재방문 환자 capture를 거절했다. alive/non-owner/non-staff/Visitor인 정상 재방문만 허용하고 operation ID·공개 키·terminal kind·실패 빈값·visitCountBefore+1과 기존 actor/data/lifecycle·저널 역조인을 유지했다. DTO·schema·writer·이벤트 게시/ACK는 바꾸지 않는다. B91 변조8과 실제 공식 world 변조 횟수/의료 parent 거절을 통과했다. fixture 준비는 기존 Progression 명령·명시적 spawn/퇴장 명령과 Unity 지연 폐기 frame을 따르며 자연 준비 UI 증거로 세지 않는다.
+
+
+## 2026-10-17 실제 returning visitor의 퇴장 영수증 수명 결함
+
+r7 actual 보고서에서 두 실제 손님의 BeginExit/public departure가 성공한 뒤 첫 프로필이 다시 들어와 Downed·alive 환자/직원 안정화에 도달했으나 저장을 거절했다. AcquireVisitor는 현재 isVisiting을 true로 바꾸고 과거 visitorExitOperation은 남긴다. VisitorExitFactPreflight는 그 영수증/operation revision을 journal과 정확히 결합하므로 완료 기록을 지우는 수정은 부모 이력을 잃는다. 문제는 ValidateVisitorExit의 Departed가 현재 !isVisiting을 계속 강제한 점이다. 과거 완료 receipt와 새 방문의 상태를 구분하며 정상 현재 Visitor 역할만 허용하고 카운터·신원·키 결합·actor reverse join은 유지한다. 저장 버전 이관이나 새 상태/권위는 필요 없다. ExitFailed 등 다른 수명 사례는 이 관측 없이 일반화하지 않는다.
+
+## 2026-10-17 C16 population 준비 경계
+
+fresh KB CharacterPopulationApplicationAdapter 조회와 원본 확인: population은 unpublished preview Progression의 Changed를 받아 snapshot을 동기화하고, 실제 active/passive가 준비되면 pending 요청과 preview를 퇴역시킨다. 별도 medical batch의 profile 준비는 이 기존 owner 경로로 한정한다. 기존 fast-party와 같은 통제 후보 입력을 level1 draft에 두고 OnDraftReady/TryChooseActiveSkill을 호출한다. 준비 완료 DTO 직접 변경·다른 캐릭터 성장 복사·인구 전체 부분 복원은 사용하지 않는다. profile 신원·종족/성장·영수증·실제 방문객 생성과 이후 medical 단언은 원 경로를 유지한다. native r1의 PopulationProfilePreparing 실패는 이 준비 경계를 검증할 원 증거이며 의료 기능 실패/PASS 증거가 아니다.
+
+## 2026-10-17 C3·G3 실제 진입과 준비 계약 결정
+
+C3 격리 batch는 기존 byte-preserving sanitized Gameplay lease와 공식 시작 파티 명령을 사용한다. 수동 Title/준비 UI나 모델 추론의 증거로 세지 않는다. 철거 participant는 원본 registry의8개 정확 집합과 registry@5 fingerprint를 함께 검증한다. P03 준비의 low-level 연구 완료 상태 주입은 부모 영수증 없이 strict save preflight를 깨므로 기존 정상 연구 완료 명령으로 바꿨다. 저장 검증·철거 단언은 완화하지 않았다. 중간 checkpoint는 실제 기록, 공식 load는 terminal checkpoint에 대한 것이며 두 범위를 구분한다.
+
+G3 입력 소유권의 분리와 무관한 구형 fixture의 version10 기대만 현재 원본 DTO의 exact14로 수정했다. 기존 WorkAmount 정상/취소/실패/복원 경계와 descriptor 필드 검사를 유지한다. C16 실제 의료 진입은 프로필 준비 상태에서 실패했으며 의료 owner 결함이나 이송 PASS로 판정하지 않는다. timeout 연장이나 임의 프로필/성공 결과 주입 없이 준비 owner의 기존 API를 조사하는 것이 다음 경계다.
+
+## G1 실제 상태 경계 — 2026-10-16
+
+- RestockCargoOperation이 획득 당시 actor/lease/operation/shop admission을 소유하고 cargo drop→shop end→lease release 순으로 정리한다. drop/end/release 예외에는 식별자를 보존하여 같은 cancel을 재시도한다. 이동 actor 슬롯의 현재 값으로 기존 cargo 소유자를 바꾸지 않는다.
+- WorkRunLaborAccounting은 노동 fraction2개·현재 정산 operation/sequence를 소유한다. float→milli WU와 실제 노동/산출 조정 계산은 유지하고, Remove 거절 시 operation ID를 보존하도록 고쳤다. 원 private carry 필드를 읽던 live matrix는 owner의 읽기 전용 관측 property를 본다.
+- WorkProficiencyProgress는 approved amount·award latch·quality repetition과 숙련/종족 projection을 소유한다. 이관8메서드의 본문/분기는 보존했으며 기존 amount/품질/시간/종족 command 계약을 바꾸지 않았다. 세 owner 모두 부모 callback과 partial을 사용하지 않고 단일 쓰기 권위를 유지한다.
+- 조건부 C7 AIBrain은 이미 독립 owner7개, C8 AbilityMove는 이동/provenance/departure owner4개를 포함하는 응집된 Unity 조정 수명으로 유지 판정했다. 해당 source11개는 실제 검증된 batch29와 hash 일치하며, G1/F2 후 관련 현재 배치 회귀는 아직 남아 있다.
+
+## F2 결과/복구 소유 계약 — 2026-10-16
+
+- Foundation report는 요청 월드 미적용/적용 완료/적용 후 후처리 실패/rollback 자체 실패를 구분한다. 요청 월드 게시 표시는 실제 aggregate swap 직후만 기록한다. rollback/discard 실패도 안전한 미적용으로 취급하지 않는다.
+- 단일 컨테이너의 DungeonRestoreSafetyRuntime이 복구 필요를 latch한다. 저장 capture·같은 컨테이너 재복원·unpause/speed 변경을 거절하고 실제 pause/scale0을 요청한다. 새 scene/container가 복구 경계이며 동일 요청을 자동 재적용하지 않는다.
+- UI는 적용 여부에 맞는 메시지와 저장/로드/삭제/닫기 차단을 제공한다. 타이틀/종료는 명시적 두 번 누르기 이후 불완전 월드를 autosave하지 않는다. 결과창/침공의 이전 scale 복구도 recovery를 존중하고 타이틀 전환 fade는 outgoing world를 재개하지 않는다. 조회 계약은 Presentation asmdef가 이미 참조하는 Foundation에 둔다.
+- 저장 DTO/schema, 씬·프리팹·Inspector 연결은 변경하지 않았다. 신규 테스트는 통제 실패 주입이며 자연 플레이/AI 훈련 증거로 세지 않는다.
+
+## 2026-10-16 새 Goal F1 — 복원 후보 수명
+
+현 원본의 RestoreWorldCandidateIndex.SetCharacterCandidate는 중복을 거부하므로 감사 보고서의 “staged A 조회를 B가 덮는다” 서술을 정정했다. 실제 결함은 participant Discard가 prepared를 남겨 다음 준비를 막는 것과 staged/published의 늦은 거부다. 메인 단독으로 준비 진입 guard, prepared/staged 폐기, 토큰 Take의 기대 세대 검증 선행 및 stale token의 현재 후보 정리 금지를 구현한다. 기존 트랜잭션 밖 detached Prepare·정상 registry 경로·DTO/씬/GUID는 보존한다. 실제 컨테이너 fixture에서10개 취소/세대/stage/재시도 경계와 live owner/actor/input 불변을 검사한 뒤 기존 공식104-section 복원을 계속한다. 구현은 실행 검증 전이다. KB 선행 query는 오래 실행되어 편집 이후 stale 결과를 피하려 본인 PID/명령줄 확인 후 중단했고 원본으로 판단했다.
+
+F1 검증 배치는 기존 world/AI suite에 네 번의 detached 준비를 합치면 timeout 또는 메모리 보호에 걸렸다. lifetime10은 두 번 모두 PASS했지만 전체 suite 완료로 세지 않는다. 두 기존 verifier의 baseline은 보존하고 동일 GameWorld runner의 별도 exact lifetime-only entry에서 캐릭터 payload만 직접 capture하여 실행하도록 분리한다. 현재60초·1GiB/2GiB guard를 유지하며 전용 entry와 기존world 각각 terminal 성공을 확인한다.
+
+F2 예정 계약: 기존 bool은 전체 완료 여부로 유지하고 report는 미게시/게시완료/게시후복구필요를 구분한다. 새 루트 Publish 직후에만 게시 사실을 기록하며 completion 실패를 rollback 성공처럼 표시하지 않는다. 완료 hook은 개별 예외를 기록하고 나머지 hook도 시도한다. 컨테이너 수명의 단일 recovery-block owner가 게시 후 오류를 받아 pause/timeScale0·안전하지 않은 저장/일시정지 해제/동일 컨테이너 재복원을 명시 거부하고, UI는 실제 적용 사실과 새 씬으로 돌아가는 복구 행동을 표시한다. 새 씬/컨테이너가 복구 경계이며 실패한 월드를 자동 저장하거나 임의 재적용하지 않는다. 생산 구현과 실제 failure injection은 F1 동결/실행 종료 후 메인이 수행한다.
+
+## 2026-10-16 구조 전수 조사 — 판정 기준
+
+이번 요청은 보고서 작성만 수행한다. `God class`는 독립된 업무와 상태 전이가 한 구현에 집중되는 경우로 판정하고, 큰 집계체·순수 검증기·등록 코드·조회 façade를 길이/참조 수만으로 필수 수정 대상으로 올리지 않는다. 2,924개 runtime source의 ordinal SHA-256이 batch29 metrics와 일치한다. 별도 Roslyn 문법 inventory에서 partial 합산을 확인했으며 기존 17은 선언 단위 수치다. WildlifeCaptureRuntime, GameplayOutcomeLedger, OffenseWorldMapPanel까지 합산하면 2,000줄 초과 클래스는 20개지만 이 역시 결함 수가 아니다. 최종 판단과 출처는 요청된 단일 보고서에 모은다.
+
+## 2026-10-16 batch27 — request ownership and failure diagnosis
+
+CharacterAiPreferredActionRuntime 단일 owner가17field의 선호 definition/work scope·만료·deferred/hard failure·first-evidence consume·disposition/revision을 소유한다. 같은 IGameClock을 Construct에서 bind하고 Actor/parent callback 없이 상태를 읽고 바꾼다. same-type definition도 ReferenceEquals로 구분하며 Unity destroyed-object 비교와 C# is-query의 기존 차이를 유지한다. scoring-only expiry는 work/failure evidence를 유지하고 full clear와 구분한다. 후보 commit(count/disposition→clear deferred)과 direct preferred commit(clear deferred→count/disposition)의 원 순서도 따로 유지했다.
+
+CharacterExternalActionIntentRuntime이12field의 manual/external admission·same-owner renew·우선순위 선점·epoch/lease·종료/거절·pending clearFailures를 소유한다. 부모의 실제 OnStop/예약 해제/이동 취소 뒤 Begin, phase/trace 뒤 transition count와 실행 latch, End 후 replan이라는 순서를 유지한다. CharacterAiFailureDiagnosticsRuntime은21field의 failure/kind/branch 통계·현재 평가 pass별 최근 reason·반복 window와4회째 loop를 소유하고 trace를 먼저 남긴다. host의 lastActionFailure·cooldown 명령/Actor memory/Blackboard/operation block은 원 권위를 유지하여 StaffDuty reflection도 그대로다. failure counter와 SO equality에는 원 Unity Object 의미를 보존하며 이 owner는 Actor를 보관하지 않는다. phase classifier32줄은 phase를 소유하는 기존 execution ledger로 exact 이관했다.
+
+공개106 method·71property/기존 직렬화/DTO/schema/GUID는 유지했다. 부모의 forwarding-only private5개·이관된 IncrementFailureKind/classifier만 제거했다. 독립 원문 검토에서 state authority/실패·재시도/중단·종료 순서 변경을 찾지 못했다. AIBrain3321→2919이므로 아직 대형이며 기준을 바꾸지 않았다. 최신 graph2135후보/최대946/cyclic20/missing0에서 기존945집합은 모두 남고 preferred owner만 추가 편입됐다. external intent/failure diagnostics는 SCC1이다. 선호 요청의 실제 AIActionSet 정의/AIActionFailure 세계 target 결합을 숨기지 않았으며 다음 실제 계약 경계에서 끊어야 한다. 새로운 소유권을37개 전체/큰 순환 완료로 세지 않는다. actual restored Brain lease/manual command, 기존 production core/destinationless/deprivation/primitive19와 공식 world 복원까지 현재 소스에서 검사한다. 첫 실행은 compile/pure 통과 후 OS 물리 메모리946139136bytes로 기존1GiB guard가 owned job만 중단했다. source648 무변경·terminal/process0·현재 Csc 성공을 확인한 동일 소스 캐시 재실행이 전체 PASS했다. 메모리 guard/timeout/criteria 완화 없음; 첫 중단과 예외 로그는 보존했다.
+
+
+## 2026-10-16 batch26 — AI execution conservation ownership
+
+`CharacterAiExecutionLedger`가 실행 epoch, 시작/terminal·branch 보존, runtime/gameplay progress·queue/service heartbeat, exact path request/deferral, reservation, retry/scheduler, bounded32 trace의54field를 단일 소유한다. AIBrain은 실제 action 선택/실행·Actor/Unity 조립·표시·operation block/실패 근거를 유지한다. host는 알림 경계에서 time/nullable definition·destination·branch/phase hash 값만 넘기며 ledger에 parent callback·Actor/AIAction·clock service를 보관하지 않는다. SO identity는 기존 Unity equality를 보존하는 UnityEngine.Object로만 유지한다. terminal은 close/분류→비실패 block clear→terminal progress/trace 원 순서이며 selected fallback·branch anomaly edge/late path·재시도 구분을 보존했다. public/internal106메서드·71property/직렬화/DTO/schema/기존 GUID 불변; owner 새649줄, AIBrain3321로 아직 대형이다. source inventory2에 실제 owner를 추가하고 diagnostic trace 수동 evidence를 실제 새 RecordRuntimeTrace 위치로 갱신했다.
+
+동일 이전 runtime으로 r1/r2 LookAround 시작 실패를 재현했다. initial canStart=true/offDuty=true/visit1/look0이나 cache miss 만료 뒤 canLookAround=false가 되어 idle fallback이 실행됐다. QA는 거짓 cached miss 대신 실제 RegisterAvoidedVisit 이력을 준비하고 IsThereVisitableBuilding=false를 검사한다. r3/r4 protected 이동은 version6→8, HaulRoutine의 취소를 관측했다. scheduler는 Brain.enabled/BT.enabled와 별개로 direct decision을 구동하므로 통제 이동 동안 scheduler를 함께 정지하고 선택 작업을 원 종료 명령으로 정리한다. 실제 AI runner 전 원 enabled 상태를 복구한다. 게임 알고리즘·성공 기준·timeout·메모리 guard를 바꾸지 않았다. 실패 증거는 원 폴더에 보존한다. 신규9 경계/flow projection 및 실제 movement·receipt 복원/BrainBT8/world 복원이 현재 소스로 PASS했으며 장기 자연 플레이나 전체 NUnit를 실행한 것으로 확대하지 않는다.
+
+
+- batch25 결과: CharacterMovementOperationRuntime가 manual/system/retained protection/exit/version/선점 진단의 단일 쓰기 소유자이고, SocietyResponseMovementProvenanceRuntime가 response/external/facility/destination/receipt의 단일 저장 복원 소유자다. 둘은 SCC1이다. CharacterDungeonDepartureRuntime는 같은 operation owner와 기존 captivity/visitor를 사용해 admission·worker/visitor BeginExit·실패 정리를 수행하며 Actor 순환945에 남는다(기존944+새 departure1; 순환 해소 완료 아님). Parent public/internal34 서명·원문 변환/메서드75→68·기존 MonoScript GUID를 보존했다. 취소 알림/door/version/flags/StopCoroutine/manual/system/provenance 순서와 퇴장 실패6종 순서를 유지했고, callback-free door clear만 성공 gate commit 직후 같은 동기 호출에 수행한다. 실제 captured actor DTO의 영수증 JSON/fresh owner/동일 retry와 공식 새 actor 복원에서 transient ownership 제거를 확인했다. r5 기존 LookAround starvation 시작 관측1행 실패는 원인 미확정; runtime·timeout·기대값을 바꾸지 않은 r6에서 6행 전부 PASS했으므로 문제를 수정했다고 주장하지 않는다.
+
+
+- batch25 계약: 이동 host는 실제 coroutine/좌표/door traversal을 유지하고 pure operation owner가 manual/system/retained protection/exit/version/diagnostics를 소유한다. 저장 provenance owner의 ID 선검사 뒤 실제 actor 위치를 host가 확인하고 receipt join을 수행하므로 기존 실패 short circuit을 보존한다. departure owner는 같은 operation owner와 기존 captivity/visitor 서비스를 사용해 admission·work/visitor BeginExit·실패 시 lifecycle/terminal 순서를 관리한다. TryBegin 성공 시 callback 없는 ClearDoorPassage와 pure operation commit만 같은 동기 호출 안에서 교환 가능하며 거절 시 passage를 건드리지 않는다. 공개 저장 facade/DTO/schema/GUID는 유지한다.
+
+
+- batch24 결과: skill 정의13개와 SpawnRequest/IFactory 선언2개·WorkCommandResolver는 원문 그대로 실제 데이터/실행 소유 파일로 이동했다. SO의 미사용 profile 인자 wrapper를 제거하고 pure profile 생성의 archetype null guard를 factory의 원 두 호출 위치에 보존했다. Personality의 Actor/AIActionSet 정책은 Utility extension으로 분리하며 null receiver는 action 접근 전에 기존 NRE를 낸다. CharacterSO·personality·skill data·work data·profile model/factory·spawn/interface가 SCC1, 기존 giant11파일 이탈/실행 utility와 command resolver2파일 편입으로953→944. 새 oversized 없음. authored15종의 fixedSkills=0이어서 별도 populated skill 입력의 JSON/중첩 clone 변이 검증을 추가했고 authored 실제 스킬 검증으로 과장하지 않는다. V27 구조검사의 낡은 V4 고정만 실제 DTO 계약 V5 고정으로 수정했으며 실패 r1을 보존했다.
+
+
+- batch24 계약: CharacterSO의 두 인자 GetHoldingMoney는 profile을 사용하지 않고 실제 생산 caller는 one-arg뿐이다. Profile.Create는 archetype을 null 검사 외 사용하지 않아 같은 guard를 factory의 기존 두 호출 위치에서 유지하고 pure 계산 입력에서 제거한다. SpawnRequest/IFactory와 순수 skill 정의13개를 원 전역 타입/필드 그대로 소유 파일로 이동한다. Personality.GetActionMultiplier는 실제 AIActionSet 의존 정책이어서 Utility extension으로 옮기며 null receiver는 원 instance-call의 NullReferenceException을 action 접근 전에 보존한다. WorkPriorityProfile의 migration·데이터와 실제 WorkCommandResolver를 분리한다. 현재 graph/source 근거이며 분리 후 실제 graph·기존 데이터/실행 검증 전 완료로 세지 않는다.
+
+- batch23 결과: Sow owner가 frozen 요구량·physical WIP·생태 적용/ACK를, Irrigation owner가 reversible prepared supply·정확한 before-image와 publicationMayBeCommitted 복구를, CycleReceipt owner가 correlation/종료/실패 정리·공동 ACK를, CycleSelection owner가 작물/golden 예약 사실을 담당한다. 물/치료 work contribution은 기존 각 실행 owner로 이동했다. Parent public27/잔여38본문·moved22본문·guard prefix2/ctor검증 순서를 보존했고 새 root/상태/fallback/부모 callback 없이 private중계36개를 삭제했다. static0/ctor12·원 oversized 기준 유지, Crop1828은 더 이상 oversized가 아니며 새4 owner도 기준 이하. giant953 구성은 그대로다.
+
+- batch23 계약: public TrySetCrop/TryScheduleGoldenHarvest는 기존 TryGetState/worker/phase 검사 prefix를 Parent에 유지하고, 정확한 state를 하위 명령에 전달한 뒤 원 body tail을 실행한다. cycle receipt owner는 현재 root를 매번 조회하고 selection journal과 물/치료·입력 owner를 직접 사용한다. 이들이 Parent를 역참조하거나 root/state/clock을 복제하지 않는다. 파종의 Freeze/Clear 및 물/치료 contribution은 실제 해당 명령 owner에만 두고, 관개는 원 reversible prepared transaction과 publicationMayBeCommitted rollback 경계를 보존한다.
+
+- batch22 검토 결과: Parent 잔여72개와 주요 이동19개 본문 parity, physical-input9개 독립 parity, enum3개 역재조합 및 신규 GUID6 유일성 확인. 검토 중 Treatment의 기존 items 의존 필드/대입 누락1곳을 컴파일 전에 수정했고 다른 책임/상태/예외 처리 순서는 보존했다. 새 물/치료 owner는 정확한 전달 state를 사용하고 dirty-only는 매번 현재 root에 쓰며 공통 mutation 명령만 revision을 증가시킨다. 새6파일 모두 SCC1이나 giant 기존953 구성은 변하지 않았으므로 이번 묶음을 큰 순환 제거로 세지 않는다.
+
+- batch22 확정: CropPlotMutationRuntime이 기존 Version++→dirty→facility cache→선택 replan 및 irrigation/facility mutation fence를 소유한다. Parent와 물/치료 owner는 같은 명령을 호출하며 dirty-only publication에서 revision을 추가하지 않는다. physical-input service는 실제 ICropPlotInputOwnerRuntime authority를 사용해 descriptor/retirement/read만 분리한다. 기존 CreateEcologyFingerprint는 Outbox의 canonical query 호출이므로 치료 코드에서 그 호출을 직접 보존한다. Parent callbacks/new state/schema/fallback 없이 현재 store와 전달받은 정확한 CropPlotState를 사용한다. AIBrain의 enum3개는 전역 CLR/assembly/값/MonoScript GUID를 보존한 선언 소유 파일 분리이며 클래스 대형 해소가 아니다. CharacterOperationBlockSnapshot은 AIActionFailure.Target의 live BuildableObject를 포함하므로 순수 leaf로 옮기지 않는다.
+
+- batch21 결과: Parent가 동기화/작업·수명 orchestration과 다음주기 물리 정리를 유지하고, 수확 owner가 기존 freeze/보상·출력·terminal/완료 사실·ecology/golden ACK를 소유한다. 사실 게시 owner는 단일 publisher/lease/replay/확인/dirty, snapshot owner는 기존 root 파생 cache와 관측revision, input query는 단일 frozen requirement 검증을 소유한다. 현재 root를 매번 읽으며 parent 역참조/새 state/DTO/schema/fallback이 없다. 독립 리뷰에서 찾은 잘못된 시설 API 두 호출을 원 Count 조회로 수정한 뒤 컴파일했다. 순수 identity6const/2formatter 이관으로 receipt→runtime2참조가 없어져 기존 작은6순환도 해소(관련11파일 SCC1). 최대953은 유지하며 아직 해결되지 않았다.
+
+- batch21 계약: 수확 owner는 frozen output·child/terminal fact·ecology/golden ACK를 처리하고 정확한 frozen terminal receipt를 반환한다. Parent가 기존 checked sequence→입력/물 정리→다음 cycle reset을 유지하며 게시 뒤 mutable pending을 다시 조회하지 않는다. 공유 fact publication owner만 injected publisher/lease/replay/확인·dirty를 소유한다. Snapshot owner는 기존 root의 파생 cache와 process-local observation revision을 소유하고 commands/material query는 단일 기존 요구량 검증을 공유한다. Operation identity는 순수 canonical prefix/formatter를 소유해 receipt→runtime 역참조를 끊는다.
+
+- batch20 graph 결정: current-import 기본 후보2107/giant953/cyclic21, 기존 giant11개 이탈·state 파일1개 진입. CropPlotRuntime/SaveCodec/PhysicalValidator/SaveContract/CycleTerminalFact/PlanReceipt는 작은6개 순환이며 world/simulation dependency·treatment definition query는 각각 SCC1. 남은 작은 순환의 역참조는 CropPlanExecutionReceipt.cs:623/629의 runtime formatter/prefix2개다. 다음에 순수 operation identity를 실제 canonical owner로 추출해 public API는 alias 유지한다. Receipt를 SaveContract로 바로 연결하면 guard→receipt→guard의 작은 순환이 남으므로 그렇게 바꾸지 않는다. CropPlotRuntime은 6864→4869행, oversized19는 유지하며 실행 책임 분리가 계속 필요하다.
+
+- batch20 분리 범위: save contract/DTO codec/physical receipt validator/shared treatment definition query가 실제 기존 규칙을 소유한다. state/dependency4개 선언은 exact 이관, 새 owner는 부모 역참조·캐시한 root·새 fallback이 없다. CropPlotRuntime은 약4.9k행으로 여전히 대형이며 후속 생산 실행 책임 분리가 필요하다.
+
+- batch20 계약: CropPlotAggregateState와 DTO를 복제 권위로 만들지 않는다. CropPlotSaveCodec은 기존 store/current catalog/clock와 typed physical validator를 참조하며 실패하면 후보만 버린다. 기존 BuildRestore의 RequireSaveRoot→current clock/version→record 검사/clone 순서를 보존하고 facade Restore만 같은 store.Replace를 호출한다. 공용 CropPlotSaveContract가6 operation prefix와 기존25개 pure identity/receipt guard의 단일 본문을 소유하고 facade의 public const/static ID format API는 alias/forward로 유지한다. 실제 live command와 restore가 쓰는 처리제 정의 조회는 CropTreatmentDefinitionQuery 하나를 공유한다. Child ctor는 참조 조립만 하며 기존 부모 ctor의 required/optional guard 순서·neutral fallback·runtime 상태 생성을 앞당기지 않는다. parent callback/새 mutable state/global registry/fallback/schema 변경 없음.
+- batch19 결과/호환: BuildingSO→renderer 및 enum→component runtime 역참조를 끊었다. 종류 enum CLR/assembly/값 및 기존 extension class 전체4메서드 API는 exact 보존. Tile enum은 Buildings model 소유이며 이전 nested CLR 이름은 실제 설치 Odin의 명시 attribute가 generic argument까지 해석한다. old CLR lookup null/명시 enum·dictionary2/comparer1 binding, 원 YAML의5 tile asset과3 scene even/odd6개의 키/Unity 참조, current binary roundtrip 및 실제 draw/delete·visual을 확인했다. source/binary caller의 제거된 nested enum API는 의도된 변경이며 repo4 qualified caller10곳+renderer를 모두 옮겼다; authored files8 SHA 불변·수동연결 없음. actual graph BuildingSO/종류 enum/alias file은 SCC1, giant971→963(기존9 이탈/새 실행1 편입)·default2100/cyclic20. 근거 dependency-next-boundary-batch19.json.
+- batch19 계약: enum의 값과 이름·기존 field/GUID를 보존하며 TilemapLayer만 renderer 소유에서 Building 모델 소유로 바꾼다. 이전 GridTexture+TilemapLayer, Assembly-CSharp 이름을 Odin assembly attribute로 새 enum에 명시 결합한다. 공식 OdinSerializer DefaultSerializationBinder의 generic argument 재귀 binding은 호환 설계 근거이며 설치된 DLL에서 generic dictionary/enum comparer 실제 해석과 기존 YAML/scene 로딩·tile 출력으로 별도 확인한다. 데이터/입력 누락은 덮지 않고 실패하며 에셋 자동 재저장/마이그레이션은 하지 않는다. BuildingRuntimeArchetypeKind CLR 이름·Assembly-CSharp·8개 숫자·extension API·validation/생성 실패를 유지하고 enum과 기존 extension4개 전체의 concrete mapping/생성만 나누어 정적 호출 API까지 유지한다.
+- batch18 순환/호환 결정: IDefenseEffectCommands는 noEngineReferences인 기존 DungeonStory.Defense 모델 어셈블리에 두며 Actor/Runtime/report/저장 DTO를 참조하지 않는다. 새 실행 문맥은 원본문/가드/영수증 권위를 유지하고 현재 설정을 getter로 읽는다. 실제 import 후 BuildingAbility/DefenseFacilityData/DefenseEffectSO는 SCC1이 되어 giant973→971(기존3 이탈/새 runtime1 편입), default 후보2098/cyclic20. BuildingSO에는 GridTexture nested enum과 BuildingRuntimeArchetypeKind에 함께 있는 concrete component mapping/factory라는 두 runtime 역참조가 남아 있다. 후자는 enum·pure IsDefined와 생성/Type mapping 실행 책임을 나누어 직렬화 타입·숫자·assembly를 유지할 수 있다. 설치된 Odin API는 Grid enum 호환 후보 BindTypeNameToTypeAttribute를 제공한다. dictionary/comparer generic 및 legacy5개 에셋/scene 데이터 보존은 아직 구현·검증 전이다. 증거 dependency-next-boundary-batch18.json 및 -r2.json.
+- batch18 계약: 효과 정의는 pure command port와 DefenseStatusKind에만 의존한다. 실행 문맥이 기존 Actor/health mutation/prepared receipt/status/report/DefenseFacilityData 참조를 보유하며 값을 복제하지 않는다. 새 registry/global state/fallback 없이 기존 resolver가 같은 문맥·같은 거래를 사용한다. 공개 abstract Apply 입력은 IDefenseEffectCommands로 변경하고 저장되지 않는 모든 repo override8개를 함께 수정한다. SO 클래스명/MonoScript GUID/직렬화 필드·DTO/schema·에셋 연결은 유지한다.
+- batch17 결정: 불변 능력은 설정·순수 검증/조회만 소유하고 실행13adapter는 같은 정의를 readonly 참조한다. 기존 dispatcher에 typed factory를 조합해 중복/누락/무효 runtime을 명시 거절하며 미등록 기능은 BuildingData/state module 변경 전에 실패한다. 실행 binding은 기존 state/capability owner의 비저장 파생값이고 collection 참조·Revision·dispatcher 참조가 달라지면 완성 후보만 교체한다. Revision은 Add/Remove/EnsureStableIds 및 OnAfterDeserialize/Editor OnValidate에서만 갱신되는 NonSerialized metadata다. 기존 직접 호출23개는 runtime extension으로 유지했고 null receiver 예외도 보존했다. anchor runtime과 immutable facility data를 분리했으며 불변 정의·값6타입/기존 workshop accessor 이동은 exact parity다. ProfileFactory/종족 회귀는 통제된 authored metadata 복제와 한 Editor snapshot factory를 Actor/growth projector가 공유하고 기존 기대값을 유지한다; 실제 새 gameplay content나 자연 AI 증거가 아니다.
+
+- batch17 순환 결과: CharacterArchetypeId/FacilityDefinitionData/FacilityNeedRecoveryData/ProjectScale/ConveyorPortMode/ProductionWorkshopAbilities/IndustrialInfrastructureBuildingAbilities 파일은 SCC1이다. 기본 어셈블리 giant는 두 기존 정의 파일 이탈·새 runtime/mixed6파일 편입으로969→973이며 해결 완료가 아니다. BuildingAbility.cs→DefenseFacilityData→DefenseEffectSO의 concrete context→Actor/health transaction 역참조가 남아 있다. BuildingSO.tiles는 GridTexture.TilemapLayer를 사용하며 legacy5개 asset의 Odin dictionary/equality comparer에 GridTexture+TilemapLayer가 기록되어 있어 무조건 enum rename을 하면 안 된다. 미구현 다음 경계는 dependency-next-boundary-batch17.json에 한정 증거로 보존했다.
+- 다음 순환 경계(읽기 전용): BuildingSO.cs의 BuildableObject 참조에는 같은 파일 상단의 runtime anchor delegate/catalog가 포함된다. 별도 실행 책임으로 분리할 수 있지만, BuildingCover/Production 등 직렬화된 능력은 직접 CreateStateModule(BuildableObject)를 구현하므로 선언 이동만으로 의미 의존을 끊을 수 없다. 기존 capability/런타임 factory 등록을 먼저 확인한다. CharacterArchetypeId는 factory 파일에 함께 있으나 SpawnRequest.FromAuthoring은 실제 SO 의존이 있어 전체를 leaf로 오인하지 않는다. 아직 수정/검증된 경계가 아니며 근거는 Artifacts/QA/ArchitectureGoal-20261016/dependency-next-boundary-batch16.json이다.
+- batch16 결정: ProductionAggregateStateStore가 root/sequence/revision/명령 pending/WIP 영수증을 계속 단독 소유한다. Query는 현재 root 조회·snapshot, Input은 claim/출력 예약 준비, Command는 유일한 publishingCommand와 명령 journal/복구, Terminal은 유일한 active GC 후보와 종료·영수증 정리를 소유한다. 실행 코어는 facade에 남겼고 기존 stateful 명령 순서/rollback/null guard2/공개 API·MovedFrom·DTO/schema는 보존했다. order.Bridge(items/workforce/workshop/input)와 execution.Bridge(cycle/building)는 서로 같은 것으로 가정하지 않는다. ID leaf5개/consumer qualifier29만 기계적으로 이관했고 old constants는 alias다. 생성자 참조만 보관하던 부모 field4를 제거했다. 새4owner→부모 참조가 없으며 state cache/새 root/fallback을 추가하지 않았다. Production model assembly는 default graph 후보 밖이므로 이번 giant969 유지와 독립적으로 보고한다.
+- batch15 결정: 일반·관측 경로가 같은 V20ContentEffectTransaction을 사용하며, typed 명령과 일시 snapshot rollback은 별도의 실제 명령 담당자다. Journal은 같은 live milestone root의 phase/replay와 물리 영수증 공동 ACK/사실 발행을 소유하고 retirement planner의 같은 사전 판정을 재사용한다. 관측 생애 명령은 기존 source fact 예약/취소·owner rollback을 그대로 소유한다. 6개 컴포넌트는 readonly 참조만 가지며 parent를 보지 않는다. 후보4aggregate 복제는 기존 campaign runtime의 단일13행 메서드로 이동했다. 부모의 constructor-only field17 제거 시 required 가드는 parameter 대입으로 같은 순서에 유지했고 internal optional null은 조기 역참조하지 않는다. Actor/Building/world-query giant969와 원래20개의 oversized는 여전히 해결 대상이다.
+
+- batch14 결정: ContentResolution request planner는 detached candidate에만 기존 명령을 적용하고 ambition/requirements를 판정한다. 계약 query는 매 호출 live root와 실제 physical/facility/drop-zone을 같은 순서로 읽는다. Evidence는 순수 before/after 계산만 소유한다. private nested rollback snapshot3개만 내부 transient 타입으로 공유했으며 저장 DTO/schema는 바꾸지 않았다. 공개 계약13개와 구현9파일을 CLR 이름·assembly·본문 그대로 분리해 query/dispatcher 소비자가 content coordinator를 역참조하던 파일 의존을 끊었다. 부모의 복구·효과·관측 거래는 아직 함께 있어 본체3080행이 남는다. 다음 경계는 동일 effect transaction owner를 일반 요청/관측 생애/복구가 사용하도록 만들고, recovery acknowledgement와 snapshot rollback 순서를 보존하는 것이다. Callback으로 부모를 다시 참조하거나 helper/partial로 줄 수만 맞추지 않는다.
+
+2026-10-16 batch13b 의존 경계: pure DefinitionRules가 concrete V20StoryContentCatalog를 입력받으면 그 구현에 섞인4개 query interface와 SeasonalWildlifeArrivalRules의 Actor overload를 통해 큰 SCC에 재편입된다. 기존 ISocietyEventCatalog/IFactionStoryCatalog/IWorldEventCatalog/IEndingCatalog를 같은 CLR/assembly의 순수 계약 파일로 exact 이동하고, 세 rules 메서드는 기존 readonly interface만 받는다. live WildlifeActor 목록→species map 투영은 SeasonalWildlifeActorRestoreJoin에 원본 그대로 옮기고 기존 dictionary 검사만 internal로 공유했다. DTO overload·정의 검증·live 후보 검증의 canonical 규칙은 하나이며 공개 facade/저장 데이터/에셋 연결 불변이다. Live overload 소유 타입 변경에 따라 실제2caller도 함께 갱신했다.
+
+2026-10-16 batch13 결정: V20 society의 current/writable/capture/prepare/publish·게시 fence·이력/재발 전이를 같은 rootStore의 StateStore 한곳에 둔다. ObservedIncident owner는 관측/lease/ACK/생애 원장 및 응답 accept/start/receipt/failure/effects-published 전이를, SocietyEvent owner는 일반 사건/guest delivery 명령을, CampaignEffect owner는 faction delta/work delay와 기존 일일 evaluation day scope를 소유한다. 새 DTO/schema/캐시/parent 역참조 없음. 부모는 faction 계약·seasonal 및 교차 aggregate 조립을 유지한다. daily는 원래 state handle로 society 만료→faction 만료→자동/일반 사건 순서를 보존한다. reflection 호환 CreateEvent wrapper와 공개 API/기본값/attrs 유지. pure22개는 기존 DefinitionRules를 재사용한다. fence fixture의 취소 관측은 실제 Journal.PublishBatch의 내부 dispatcher Cancel에 두며, 이미 해제된 lease에 바깥 Cancel을 호출하지 않는 기존 계약은 불변이다. 별도 RunCampaign은 기존 표적5묶음을 실행하며 전체 core와 구별한다. 정확 entry/mode/selector/resume guard 및 동일 메모리 보호를 적용한다.
+
+2026-10-16 batch12 결정: immutable skill primitives·narrative evidence/state 타입과 formula schema version을 생성 알고리즘에서 분리. 기존 enum 값/필드 순서/default/attrs/CLR fullname·assembly와 generation public const alias 유지. source hash 경계도 신규 파일을 포함. SettingsSO+capability registry는 큰 SCC에서 독립한2-file 정의 묶음, primitives/ledger/version/provider계약은 단독. AbilityMove의 계산은 이미 CharacterIdleWanderPlanner/GridMovePathRules/TraversalGuard에 있으며200행 query-only 추가 분리는 책임 중복이므로 하지 않음. 남은 큰 메서드의 coroutine/cancel/lease/exit는 새 진짜 stateful owner 계약부터 필요.
+
+2026-10-16 batch11 결정: InvasionEvacuationLocationPlanner는 동일6개 live authority를 매 호출 조회하며 목적지/방/위험 칸 계산만 담당. resident/owner lease·coroutine·outcome·restore 수명은 기존 명령 owner에 유지, 새 mutable state 없음. actual WIM048에서 화재 Capture 차단을 발견: comparison tombstone의 시간 필드 누락과 revision0을 기존 SnapshotCodec의 전체 identity projection+incoming revision으로 수정. strict 시간/부모 거절과 실제 ledger 불변 유지. scene class5개는 각 선언만 분리해 실제 도메인 인터페이스로의 후속 축소가 남으며 최대SCC991을 해소로 세지 않음.
+
+2026-10-16 batch10 결정: WorldItemDestinationAdmissionService는 기존 repository와 warehouse/facility mass authority를 사용하며 새 저장 상태·카운터 없음. facade11 유지, 이동22·잔여29 본문 보존. warehouseID parser는 기존 WarehouseStorageIdentity 규칙으로 통합. 취소된 source-transfer operation ID 재사용 금지와 routed rollback 후 동일 요청 재시도를 구별; fixture를 위해 보호 규칙을 바꾸지 않음. 복원은 같은 ledger authority의 Begin/Publish/Rebuild/Complete로 transient token만 재구성. 분리한 item/definition 계약·물품 ID·resource provider는 단독 SCC이나 거대순환986은 남음.
+
+2026-10-16 batch09 결정: CombatEquipmentSupplyService는 탄약/재장전/전력 명령을 담당하지만 기존 IItemInstanceRepository.EquipmentInstances를 매 호출 읽으며 dictionary나 복제 상태를 잡지 않는다. 같은 physicalState writer/검증 순서를 유지. Offense의 stat/cover 7개 계산은 이미 있는 OffenseBattleSessionRules에 통합하고 session 생성/저장/명령은 그대로 둠. 조회 계약은 캐릭터/건물/야생동물/창고/retail/복합 registry로 분리; 창고 전용3consumer는 기존 IWarehouseWorldQuery만 요구. Actor/건물/야생동물 직접 의존은 여전히 큰 SCC이며 파일 수 변화로 전체 제거를 주장하지 않음.
+
+2026-10-16 batch08 결정: ItemTransfer의 quantity lease/소비 명령은 기존 IReservedItemTransferService를 구현하는 WorldItemQuantityTransferService, 원창고 반납의 물리/carry/admission rollback은 StoredCargoReturnService, exact owner 해제는 ExactOwnedItemReleaseService가 담당한다. repository가 유일 물리 상태 권위이며 새 저장/캐시 권위 없음. 위치/metadata 계산과 운송/예약/atomic/release 값 계약은 독립 파일. 큰 SCC984는 아직 유지되지만 새 값 계약4개와 반환/위치 규칙은 각 단독 SCC. typed carry 제거는 원본/현행 모두 root3개로 유지(반납은 TryConsumeCarriedStack), 검사 완화 없음. root constructor 검증 순서와 optional admission 그대로. 순수 helper 이동은 body owner prefix 외 동작 동일.
+
+추가 current-import graph에서 ledger가 retry enum을 통해 scene scheduling implementation 파일을 참조하여 SCC946에 편입됨을 확인했다. CharacterAiRetryKind와 CharacterAiDecisionScheduleObservation의970byte 선언을 같은 Assembly-CSharp 독립 관측 계약 파일로 exact 이동했다. 전역 public CLR/값0..5/constructor·method와 원 service 잔여 bytes는 동일하고 새 pure9번째 그룹이 실제 assembly/type와 scheduled/unscheduled/overdue 의미를 검사한다. 본문 변경을 숨기기 위한 file split이 아니라 순수 관측·재시도 계약이 장면 서비스 구현을 참조하던 경계를 바로잡는 이동이다. 예비 graph와 그 결과로 중지한 owned KB 생성 증거를 보존하고 최종 source640의 최신 Bee graph는2132후보/giant945/cyclic20이며 원945집합은 동일하고 새 실행 ledger와 관측계약은 SCC1이다. 신규 owner가 순환을 확대하지 않게 했으나 기존 큰 순환을 제거한 것으로 세지 않는다.
+
+## 2026-10-16 — Architecture Goal 책임/계약 경계
+
+- batch06 확정 경계: FacilityBufferMassAdmissionService의 규칙13개/불변 계약30개, 운반 eligibility6개(명시적 read-only query 포함), 생산 출력의 resolution/source-proof15개를 실제 명령·예약·publication·ACK 상태에서 분리했다. 기존 상태 소유자/실패 순서/hash/DTO와 internal4개 facade는 유지한다. 생산 planner는 readonly9개 의존만 가지며 실행 adapter 역참조가 없다.
+- 원장 registry 공용 계약18개와 텍스트/이름 syntax2개를 구현에서 분리했다. 현재 원장 구현6-file과 page/query/registry/value5-file 그룹은 거대 SCC에서 빠졌다. 물품 snapshot/예약값/gateway 계약9개, 나이 처리 enum, character random scope helper도 원본 선언 그대로 옮겼다. 새 DTO 쓰기 권위를 만들지 않았다.
+- 전수 크기 기준은 그대로이며 현재 oversized28/최대SCC985/cyclic17이다. cycle 수 증가는 거대 그룹에서 독립한 작은 순환을 포함하므로 전체 순환 제거로 보고하지 않는다.
+- 추가 실행에서 발견한 기존 시험 경계: UsageFormulaBudgetsPreserveDistinctSources는 미등록 test.outcome와 압축 context를 importance floor가 있는 수식에 넣는다. 운영 importance/정책 검증을 완화하지 않았고 기본 RunAll의 실패를 보존했다. 이번 표적 runner는 나머지 원장 저장/조회/retention/복원25개만 실행하며 전체 suite PASS가 아니다. 구형 ValidatePhysicalProductionBill도 command observation ports 미연결로 AddBill 단계에서 실패한다. 두 fixture의 현행 계약 연결은 남은 시험 부채다.
+- 다음 복잡한 owner 분해는 ItemTransferService: root repository는 계속 단일 물리 상태 권위이며 capacity actor quiescence/durable proof, retail transfer/rollback, transit admission, exact quantity extraction, carry/pickup/deposit/drop을 명령 경계로 나눈다. debug fault hook·sequence·lease/restore 순서와 public facade를 보존해야 한다. AnimalHusbandry의 RecordContribution은 실제 가변 상태 명령이라 evidence builder로 옮기지 않는다.
+
+- Goal 기준은 `Artifacts/QA/ArchitectureGoal-20261016/metrics-before.json`의 oversized37와 `graph-before.json`의14cyclic SCC/최대1055파일. 원래 로컬 diff hash를 별도 보존. 단순 partial/기준 갱신으로 수치를 없애지 않는다.
+- 첫 묶음: 환경 receipt 생성24개를 crop/fire/condition/wildlife 책임4개로 나누고 공유 검증은59행의 단일 support로 보존. 실제18caller와 causal-plan source inventory를 갱신. 물리 저장 검증은 coordinator→state/journal/routing/capacity→canonical rules로 분리, 원래26method/오류 순서/소비 영수증 검증 유지. 두 기존 oversized 해소 당시35개이며 Goal 전체 완료는 아니다.
+- V20: 계약/DTO/query/command67개 및 catalog를 구현에서 분리. SaveCodec/EventSaveValidation은 catalog와 DTO만 보고 runtime을 참조하지 않는다. 공유 identity/definition/evidence 규칙은 명령과 저장 양쪽에서 한 구현을 사용한다. normalizing validation은 기존 clone 이후에 실행. Seasonal 후보의 Attach/Release/Discard는 concrete runtime 대신 좁은 owner 계약에 원래 reference guard를 유지한다.
+- Milestone/endless 명령26개와 projection15개는 V20MilestoneRuntime이 같은 rootStore의 단일 aggregate를 변경한다. Runtime은 기존 public/internal API를 전달하며 world flag/pressure도 새 owner 명령을 거친다. 상태를 복제하거나 두 번째 DTO 쓰기 권위를 만들지 않는다. 원본/이동 목록과 독립 body/type 비교를 Artifacts에 보존.
+- 큰 SCC 우선 경계: DungeonAggregateReferencePreflight.cs에는 구현3492행과 공통 인터페이스4개가 함께 있다. incoming177 중 주요 참조는 IDungeonSavePreflightValidator111/IDungeonCapturedSavePreflightValidator109/IDungeonSaveRestoreCompletedHook60/IDungeonSaveCaptureGuard20이고 실제 구현 참조는1이다. 순수 계약을 구현 파일에서 떼는 것이 다음 낮은 위험 경계다. 그 뒤 character/item/progression candidate join validation을 책임별로 분리한다.
+- 다음 독립 pure validator: ProductionFacilityDestructiveDrainCrossAggregateSaveValidation. Terminal producer/physical producer/stock sensor/owner/participant 검증을 나누되 기존3Validate overload, core/orphan/fingerprint 순서, full-save만 work-order join 수행, publicstatic signature/오류를 보존한다. UNITY_VERIFY 중 담당자는 읽기 전용 계획만 반환했고 다음 EDIT_READY 전 편집 금지.
+- 첫 실행의 구형 VerifyPersistedWorkDelay는 의료 response의 Accepted 상태를 terminal 효과 적용으로 오해했다. 실제 MedicalCollapse emergency-care/transfer는 ReceiptCommitted를 기다리므로 시험은 작성된 response.effects를 실제 ApplyResolvedEffects 명령으로 적용한 뒤 원래 지연/속도/flood/복원 assertion을 유지하도록 정리했다. 의료 owner 실제완료는 WIM040 범위다. 이를 운영 guard 완화나 실제 의료플레이 PASS로 세지 않는다.
+
+
+- 실행 중 발견한 P0: destructive-drain 현재 lifecycle은8기여자이나 raw-save participant map은 demolition을 누락하고, Prepared source-owner 검사는 entry 소유 demolition snapshot을 읽지 않았다. current explicit의 유효 owner1/구형 V4 snapshot-free owner0을 구별해 연결한다. cause만으로1개 강제하면 기존 V4 migration을 깨므로 기존 Journal.IsValidOutcomeSnapshot를 재사용한다.
+- snapshot/owner/receipt canonical 규칙은 새 순수 `BuildingDemolitionOutcomeLifecycle`에 한 번만 두고 실제 participant와 raw-save join이 공유한다. source-only planned-owner projection API/DTO 버전은 유지한다. Planned는 빈commit/receipt, committed/ack는 canonical exact 영수증, Terminalize/빈target/정확 owner·step·request를 요구한다. full/registry/candidate 모두 같은 core이며 기존 외부 work-order join 범위는 유지한다.
+
+## 2026-10-15 — 물리 child 영수증 복구 계약
+
+- 권위는 `WorldItemRepositoryState.PhysicalEffectReceipts`. 소비/지급의 실제 성공 경계에서만 원래 exact vector, 요청 fingerprint, commit ID를 생성한다. 현재 재고/provenance에서 처리 이력을 역산하지 않는다. 조회/저장/후보는 복사본이며 실물과 같은 물리 aggregate에 저장된다.
+- 소비 once 명령은 기존 소비 명령과 분리한다. 같은 operation+vector는 저장된 결과, 다른 vector(빈 목록 포함)는 conflict. 지급은 명시 `RetainRecoveryReceipt` 계획만 같은 정책을 사용하며, 준비 중 동일 계획은 원래 vector로 재개한다. 준비 출력은 실패 시 실제 rollback하고 admission 이후는 저장 guard를 유지하며 앞으로 재시도한다.
+- 물리 envelope22 안에 sub-schema1을 추가한다. 두 확장 필드가 모두 없는 구형 JSON만 legacy empty로 읽는다. 일부 누락/지원하지 않는 버전/잘못된 fingerprint·중복은 거부한다. 구형 pending content에 이미 물리 효과가 있으면 증거를 만들지 않고 복원을 거부한다. 원 저장 파일은 변경하지 않는다.
+- V20 child evidence2는 실제 소비 commit/지급 receipt를 참조한다. `V20ContentRecoveryEvidence`가 metadata, exact effect 수량/출력 계획, capture/live retry/들어오는 restore 후보 결합을 소유한다. 이미 지급됐지만 응답을 잃은 비용 단계도 같은 영수증으로 재개한다. 현재 스택은 필수 근거가 아니다.
+- 영수증 수명은 부모 복구가 열려 있는 동안이다. `OutcomesCommitted` 이후 기존 rollback-capable acknowledgement participant 계약으로 milestone 복구 행 삭제와 두 물리 영수증 정리를 묶는다. 완료된 부모의 기존 terminal 상태가 반복 실행을 막는다. 중간 checkpoint에는 pending+receipt, 완료 checkpoint에는 terminal parent+정리된 receipt가 함께 저장된다. 무기한 누적/임의 오래된 receipt 삭제/한도 증가는 사용하지 않는다. 두 child가 필요한 요청은 두 슬롯을 비용 차감 전에 검사한다.
+- 책임/의존: recovery DTO/phase/application evidence를 runtime에서 분리하고 helper는 pending DTO 목록을 받아 runtime 역참조를 피한다. content request kind와 alert action ID codec도 독립 계약으로 이동한다. 장비 section ID는 Items 계약으로 옮기고 공통 join 검증을 section adapter와 분리하여 3-file SCC의 원인을 제거한다. 줄 수만 줄이는 partial 분할은 하지 않았다.
+- 남은 우선순위: V20CampaignRuntime의 catalog 기반 저장 검증/정규화 codec 분리(공유 observed-event 규칙 의존을 먼저 정리), ItemTransferService의 운송/소비/시설 전송 경계, 거대 SCC의 실제 owner별 이관. 기존 oversized37/largeCtor12와 전체 거대 SCC 해소를 이번 배치 완료로 보지 않는다.
+
+
+## 2026-10-15 설계 정리 — 수명·예약·후보 상태 계약
+
+- NarrativeRequestContextBuilder의 static 5 authority는 서로 다른 container/session이 덮어쓰고 종료 뒤에도 남는 수명 결함이었다. 명시 생성자 의존 + container IDisposable로 소유권을 옮겼다. 정적 순수 변환은 유지하며 Editor fixture는 빈 권위를 직접 전달한다.
+- AtomicItemConsumptionService는 요청 stack을 계산하고도 lease의 앞부분을 소비했다. multi-stack lease에서 B 요청이 A 예약을 없애며, 뒤 lease 검증 실패 때 앞 lease가 이미 바뀔 수 있었다. 실제 재고 사전 검사 후 예약 소유자가 정확한 stack vector를 clone에 투영/전체 검증하고 한 번에 반영한다. DTO 변경 없음.
+- V20 PrepareFactions는 detached 후보를 live Seasonal.Data와 조인했다. 새 seasonal 후보와 명시적으로 검증하고 PublishContentResolution도 동일 pair를 검증한다. 실패는 어느 root도 게시하지 않는다. 기존 restore staging은 공식 registry의 역순 Discard와 publish 동일성 guard가 있으므로 추측만으로 교체하지 않는다.
+- 캠페인 grant child-commit 검증을 현재 physical provenance 조회로 강화하는 안은 채택하지 않았다. 계약상 split/consume/release 후 원 지급 vector는 조회할 수 없으며 정상 복원을 거부할 수 있다. 지속 영수증 저장과 migration 없는 조회 추가는 올바른 수정이 아니다.
+- 남은 우선순위: P1 캠페인 physical child commit의 내구성 있는 receipt/복원 재검증 계약(소비·분할 이후 포함); P1 CropPlot/WorkTaskExecutor/ItemTransfer/V20의 별도 명령·저장 책임을 실제 호출 경계 기준으로 분리; P2 기본 assembly 의존 SCC 단계적 해소. 공개 restore helper의 숨은 staging 결합은 공식 수명 보장 밖 직접 호출을 축소할 때 함께 정리한다. 기존 고유 에셋·수동 QA 진입점은 무사용 근거가 없으므로 보존.
+
+
 B155 equipment-r1 원 실패: 복원된 장비/pending byte equality는 true이고 원 친화도30·공격30개가 존재한다. 이후 report.dispatches에는 trait/skill/record/bubble 등 다른 요청만 있으며 장비 replay0이다. 최초 capture는 이미 `TrySubmitNextFormulaPresentationForIsolatedCapture`→정확 correlation dispatch를 쓰지만 복원 구간은 공유 자동 스케줄만 기다렸다. 현 자료만으로 큐 내부 retry/inFlight 최종 상태까지 확정할 수 없으므로 수정은 복원도 동일한 명시 스케줄을 쓰고 전후 queue diagnostics를 남기는 한정 시험이다. 새 요청·응답·affinity 주입이나 timeout 연장은 아니다.
 
 B155 경계: 기존 장비 witness는 실제 force-fire→공격 원장→친화도30→pending을 이미 관측한다. 시설 witness는 준비 가구와 실제 손님 이용/진화 선택을 분리한다. 이 두 macro 앞에 plan guard를 평가하고 restore 전 원 요청과 봉인한다. 장비의 주인은 캐릭터/target은 장비 instance이며 시설 owner/target은 시설, 이용 actor는 별도다. catalog의 기존 역할 kind는 장비도 item이므로 새 equipment kind를 만들지 않는다. 훈련 @1과 새 단일요청 @2는 명시 버전으로 구별하며 게임 저장 migration이 아니다.
@@ -4907,3 +5107,259 @@ The 57-kind denominator hid branch and owner-state gaps: the expedition fixture 
 | P2 | 고유 보관 콘텐츠 | ARCHIVE-II200 GIF, ThirdPartySamples282개 고유 에셋은 현재 정적 참조가 없지만 고유 제작/구매 자료다. recovery 씬과 QA evidence는 보존 의무가 있으며 전체 폴더 삭제 대상이 아니다. |
 
 전수 범위는 파일 목록·크기·문자열/타입/메서드 후보·GUID·기존 구조 지표와 기본 어셈블리 semantic graph다. 181만 줄 각각의 의미와 임의 reflection/외부 번들을 모두 증명했다는 뜻이 아니다. 확인된 삭제는 현재 컴파일·실제 컨테이너 실행까지 검증했다.
+
+
+## batch28 관측 소유권 경계
+
+- 현재/최근 operation block7field와 revision reader는 관측 owner만 쓴다. 실제 action·Actor 명령·cooldown 생성·실행 실패 권위는 기존 호출자에 남기고 현재성 조회는 이미 관측한 대상 identity/실행 epoch/쿨다운 또는 도메인 revision만 읽는다. 기존 private reflection entry 및 public snapshot CLR·assembly·구조는 유지한다.
+- 시설·위치별 world signal·혼잡 민감도 cache6field는 단일 담당자로 이동하고 원래의 세 독립 invalidation과 selector callback을 유지한다. 순환 제거 실적은 최신 semantic graph로 판정한다. 저장 형식·직렬화·씬/프리팹 수정 없음.
+
+
+## batch29 — actor가 소비하는 계약과 구현 파일 경계
+
+- CharacterActor/bridge의 기존 port10개를 구현7파일에서 같은 Assembly-CSharp 별도 계약 파일로 exact 이동했다. 원 클래스 본문/가변 상태·DI 등록·타입/서명/상속·기존 GUID·직렬화/저장 변화는 없다. Main이 원 UTF16 span 제거 역재조합·새 계약 exact·기존 구현 meta·default assembly 배치를 검토했다.
+- 기존 진짜 인터페이스를 독립 배치하는 것이며 새 추상화나 미래용 빈 wrapper가 아니다. 현재 실제 Actor 생성/조립·AI/공식 복원을 검증하며 큰 SCC 해소 여부는 current import graph로 별도 판정한다. Ratchet의 진단 query 존재 기준은 그대로 새 선언 원본을 읽도록 경로만 바꿨다. 나머지 경로 pin은 구현의 실제 동작 근거여서 유지한다.
+- concrete Actor.Brain/ai 반환형, 직접 능력 cleanup과 명령 실행, 반환된 concrete restore candidate 등 실제 반대 의존도 남는다. 같은 public facade를 무조건 유지하는 것이 전체 순환 제거보다 우선하지 않는다. 필요하면 실제 모든 caller·직렬화/저장 계약을 함께 이관하며 Actor를 다시 받는 proxy/interface만 추가해 순환을 숨기지 않는다.
+
+- batch30 예비 읽기 조사: action-definition-query-batch30.log는 현재 fresh. AIActionSet.cs:30의 Descriptor는 이미 virtual 정의이고 Branch/HasSemanticTag는 그 정의를 읽는다. 존재하지 않는 중앙 subtype descriptor registry를 제거하는 작업을 새로 만들지 않는다. 이번 예비 조사는 source 편집/Unity 재실행이 아니다.
+
+- F2 실제 Title 복구에서 공통 Foundation의 gameplay eager 등록 결함을 재현했다. CharacterStateNarrativeObserver→월드 세션, outcome pump→게임 달력, husbandry 완료의 deferred build callback→dispatcher/달력 경로를 각각 Character/Core/Work gameplay 등록으로 exact 이관한다. Title은 UI Startup 완료로 준비를 판정하며 실제 gameplay 각각1/Title 없음과 같은 slot 복구를 검증한다. Preparation skill entry의 context builder 누락·evidence→달력 의존도 확인됐으며 별도 후속 P0로 남긴다.
+
+- F2 actual recovery-r5는 Title/UI/scale/파일 불변을 지나 새 Gameplay build에서 생성자 순환20노드를 재현했다. ProductionBill→recipe receipt→V20 content resolution→milestone world→offense→wildlife/combat/deprivation→파괴 drain→ProductionBill이다. 생애 사건은 전체 milestone snapshot 중 살아 있는 개체의 최대 혈연 세대만 읽었으므로 기존 characters+IKinshipQuery로 좁힌다. 같은 living filter·정렬·max와 0 하한을 유지하고 실제 milestone 세대 값과 일치 검증을 추가한다. 새 proxy/lazy locator/상태/저장 표현은 추가하지 않는다. C17은 이 실제 P0 우회 없이 해결 중이다.
+
+- 조건부 C9/C10/C11 독립 읽기 검토: ExtremeTraitRuntime의 6개 capability는 같은 identity store 위의 별도 mutation 수명이며 실제 소비자가 갈라져 분리 필요. Golden/Arcane 구형 완료 우회2개는 비-Editor 호출이 확인되지 않아 에셋/동적 경계를 확인하고 정리한다. CombatEquipmentCraftingRuntime은 제작 거래 자체를 유지하되 외부 장비 생성/material 정규화 책임을 분리한다. nextCraftSequence=int.MaxValue에서 현재 TryQueue의 checked 증가가 input destination을 연 뒤 예외가 되는 경로도 확인했다. 수정 계약은 유효한 소진 상태의 저장 복원을 보존하고, 새 주문은 물리 부수 효과 전에 명시 실패시키는 것이다(소진 상태 전체를 저장 불가로 만들지 않음). EquipmentEvolutionRuntime은 단일 장비 aggregate·취소/완료 원자성으로 유지가 타당하나 runtime 재단조/재귀속의 취소·fresh restore·동일 재시도 표적 검증을 확인/보강한 뒤 완료한다. 근거는 각각 ExtremeTraitRuntime.Write 계열/실제 combat·research·crop·arcane 생산자, CombatEquipmentCraftingRuntime.TryQueue/CreateExternalInstance, EquipmentEvolutionRuntime.HasActiveEquipmentOrder/CancelReforge/CancelReattunement·소비자이다.
+
+- 종료 조사 중 G10 host 수명 위험도 원본에서 확인했다. LocalLlmRequestQueue.OnEnable의 Task.Run에서 DungeonStoryLlmHostProcess가 named Mutex를 획득하고, OnDisable main/continuation에서 Dispose하며 ReleaseMutex의 thread-affinity 예외를 삼킨다. 현재 Unity Cleanup mono 정지의 원인으로 확정하지 않았고, 별도 pure 재현을 수행한다. F2 runner는 정상 Play 종료를 먼저 수행하게 보완하며 원래 assertion/60초/OS·메모리guard를 유지한다.
+
+- G10 host 사용권 수정 계약: thread-affine named Mutex를 per-user/per-Windows-session 경로의 독점 FileStream lease로 바꾼다. 실제 권위는 파일 존재가 아닌 열린 OS handle이며 프로세스 종료 때 자동 해제된다. lock 파일은 삭제 경쟁을 만들지 않도록 경로만 유지하고 scene/queue는 공유 mutable owner를 만들지 않는다. TryStart는 실패 때 모든 acquired lease를 반환하고 Dispose는 any-thread/idempotent로 처리한다. 공유 충돌과 기타 IO 실패를 명시적으로 구분하고 모델/host startup·요청 동작·timeout·저장 스키마는 유지한다. cross-thread release·동일 lease 재획득·중복 dispose·cross-process exclusion/crash 회수는 실제 source 순수 OS 시험으로 검사하고, 실제 scene lifecycle을 별도 검증한다.
+
+## 2026-10-16 Preparation P0 문맥 경계 결정
+
+Preparation은 unpublished prepared actor의 프로필·실제 progression ledger를 권위로 한다. 스킬 생성기의 입력을 ICharacterSkillNarrativeContext로 제한하고, Gameplay 구현은 기존 5-authority builder와 실제 outcome query를 사용한다. Preparation 구현은 후보의 실제 age/profile/원장을 읽으며 아직 없는 gameplay run/outcome binding은 거절한다. 게임플레이 5조회/달력의 빈 구현 또는 전체 gameplay 등록을 끌어오지 않는다. 공개 fact projection은 기존 ID/우선순위/순서/cap/descriptor 검증을 유지한 공용 하위 계산으로 이관했다(독립 exact parity PASS). 후보/스킬 DTO·직렬화·씬/프리팹 연결은 불변이며 기존 4인자 생성자는 과거 fixture의 명시 무성과 경로로 보존한다. 준비 UI·요청 동결 JSON·후보 교체/취소/재시작과 context 폐기를 기존 exact lifetime entry에서 실제 검사한다. 생성 응답/완성 스킬 주입이나 모델 추론을 증명하지 않는다.
+
+C10 추가 확정 결함: 정상 복원 가능한 nextCraftSequence=int.MaxValue 상태에서 큐잉이 입력 목적지를 연 뒤 overflow를 내던 경계를 effect 전 명시 거절로 옮겼다. 유효한 소진 저장을 거부하거나 sequence를 재설정하지 않는다. EEC06은 원 capture 무변/목적지 open-request-close0 및 원 sequence 복원 후 정상 retry를 표적으로 검사한다. 실제 검증 전 구현 상태다.
+
+## 2026-10-16 추가 처리 판정
+
+C17 V20ContentResolutionService는 후보/preflight→외부 child 효과→campaign/career 게시→fact journal→복구/rollback의 단일 application transaction을 조정한다. plan/이전 snapshot/child receipt/복구 원장을 공유하며 query/effect/rollback/응답·생애·retirement와 실제 도메인 쓰기 owner는 이미 분리돼 있다. 세대 조회 생성자 순환은 기존 IKinshipQuery로 제거했고 actual milestone parity·Title→동일 저장 Gameplay 재진입 및 정상 whole-world 복원을 통과했다. 남은 조정 책임은 유지한다.
+
+C11 EquipmentEvolutionRuntime는 개조/재조율의 같은 input custody/장비 상태/terminal exclusion을 공유하므로 aggregate 유지가 타당하다. 다만 두 Cancel이 Cancelled를 terminal로 거절하지 않아 두 번째 TryClose를 호출하며, 기존 Editor 검사는 outbox/input owner·DTO만 검사하고 runtime queue/apply/cancel 연결은 호출하지 않는다. 다음 main 수정은 Cancelled guard와 실제 runtime의 queue 거절 cleanup·반복취소·ACK 손실 fresh restore/retry·장비 게시 뒤 Close 실패 rollback을 다룬다. 현재 미수정이다.
+
+G10 후속 경계는 queue/runningRequests/affinity key·burst를 한 request-state owner로 옮기고 existing ContextAwareLlmScheduler·request exactly-once callback을 재사용하는 것이다. coroutine/network/profile 검증·schema/quality/host publication은 Unity façade에 유지한다. 실행 중 취소 후에는 coroutine finally 전 슬롯을 풀지 않고 late completion 중복을 거절해야 한다. EquipmentChoice의 직접 queue.Add가 일반 admission을 우회하는 경로도 main 계약 확정 후 함께 다룬다. 실제 serialized 진단 field/MonoScript/GUID는 보존한다.
+
+C10 실제 EEC06 복구 실패의 확정 원인은 검증 조립 신원 불일치다. c10-eec06-r7은 materialACK 전에 observation recovery가 combat-craft-completion-owner-conflict를 반환했다. 실제 order.facilityPersistentId와 DomainFixture의 상수 Handle/Profile/Claim 시설 ID가 달랐다. generic 순수 fixture의 기존 기본 ID는 보존하고, 실제 BuildableObject를 쓰는 combat fixture3곳은 같은 실제 PersistentId를 Claim/Profile/Handle에 명시 공급한다. Restore의 owner identity/fingerprint 검사나 실제 producer 호출/수용 조건은 완화하지 않는다. 제작 sequence 소진 거절은 별도 생산 코드 수정이며, 이 fixture 문제를 게임 오작동으로 확대하지 않는다.
+
+## 2026-10-16 G10 요청 상태 계약
+
+이전 Goal turn은 host lifetime/Preparation P0/C10 sequence 및 실제 실행·fresh KB로 권위 상태와 증거를 바꾼 progress다. 현재 source724/tool6 drift0·Unity/launcher/dotnet compiler0·fresh LocalLlmRequestQueue KB 확인 후 main EDIT_READY/SOURCE_EDIT를 연다. queue/running/affinity는 LocalLlmRequestState 단일 owner로 이관하고 callback claim과 transport handle은 기존 요청 token이 유지한다. Mono façade는 serialized 진단/설정·schema/quality·Unity coroutine/host 조립만 맡는다. 기존 immutable 계약과 request token을 같은 assembly의 별도 계약/owner 파일로 exact 이관하여 owner가 Mono 구현 파일을 다시 참조하지 않게 한다. DTO/필드/GUID/씬 연결은 유지한다.
+
+접수는 correlation 중복 및 queued 용량/eviction을 한 명령으로 처리하고, 새 요청을 큐에 게시한 뒤 제거된 요청의 callback을 알린다. 따라서 callback 재진입도 max queue를 초과하지 않는다. 장비 binary 선택도 같은 profile의 RejectQuietly 규칙을 적용하며 실패 원인을 lastError에 남긴다(기존 actual caller는 false를 RequestRejected로 처리). 일반 prompt/schema 준비 실패는 큐를 변경하기 전에 노출한다. 취소된 running 요청은 coroutine finally 전 슬롯/correlation을 유지하고 늦은 완료는 기존 exactly-once claim으로 거절한다. reset은 원래 순서대로 snapshot→StopAllCoroutines→clear→cancel callbacks이며 affinity도 새 수명으로 초기화한다. 만료는 callback 전에 고정 배치로 제거해 callback의 큐 변경이 순회를 손상하지 않게 한다. parent serialized drop counter는 진단만 소유하며 두 번째 요청 쓰기 권위를 만들지 않는다.
+
+
+## 2026-10-16 G10 요청 owner 처리 판정
+`LocalLlmRequestState`가 queued/running/affinity 수명을 단독 소유하고 token이 callback/transport handle의 일회성 완료를 보유한다. Mono는 serialized 설정·UI clock·호스트 조립·실제 transport/schema/quality 실행만 보유한다. public contract를 같은 assembly 별도 파일로 정확 이동해 state→Mono 구현 파일 의존도 제거했다. binary 직접 Add의 capacity 우회와 eviction callback 중 재접수 시 초과 접수, expiry callback 중 reset으로 고정 집합이 깨지는 문제를 공통 atomic 명령/고정 제거 집합으로 해결했다. 전역 비어있지 않은 correlation 중복은 queued/running 모두 거절하며 취소된 running도 finally 전에는 재사용할 수 없다. reset은 Stop 이전 snapshot, clear+affinity 초기화, callback 중 suspended를 유지한다. 기존 scheduler와 prompt/schema/quality/binary transport 본문은 exact parity, serialized23/component GUID 불변이다. 남은 Mono는 Unity 수명·설정·비동기 I/O 어댑터로 유지하며 줄 수를 위한 profile별 분할은 하지 않는다.
+
+
+## 2026-10-16 C11 실제 producer/restore 계약 불일치
+반복 CancelReforge/CancelReattunement가 Cancelled를 terminal로 거절하지 않아 입력 close를 재호출했다. 두 곳을 Completed와 동일한 명시적 거절로 수정했다. 추가로 Apply가 재료 소모 후 progress=requiredWork를 기록한 뒤 장비 게시/마지막 close 실패로 InProgress/Blocked를 남기는데 RestoreBuilder는 progress<required만 허용했다. 정확한 자연 상태인 materialsConsumed && materialTransferOperationId가 비어 있음 && (InProgress||Blocked)의 동등 최대 진행도만 허용하고 음수/초과/비유한/미소모/Waiting 최대값은 계속 거절한다. DTO/버전 변화0. 공개명령의 종결 예약·재료 custody·장비 게시/rollback이 같은 aggregate 경계를 공유하므로 runtime은 유지하고 이미 존재하는 MaterialOutbox/InputOwner/RestoreBuilder/ModuleSelectionPublication/EquipmentEvolutionRules를 재사용한다. 통제 ports와 실제 물리 재료 서비스의 검증은 아직 미실행.
+
+## 2026-10-16 G2 정책 소유권과 정리 경계
+정책3종·revision·pending fact는 reserve→값/revision 적용→게시→거절 rollback 또는 InDoubt 보존의 한 거래다. CharacterConsumablesPolicyRuntime이 이를 단독 소유하고 root store를 매 접근 조회하며 facade API/constructor는 유지한다. Actor retirement도 같은 owner가 맡는다. 기존 StateRules.ValidatePendingPolicyFact는 pending.AfterValue와 현재 정책값의 일치를 요구하므로 미확인 게시 상태에서 정책만 제거하면 저장본이 복원에 부적합하다. 해당 actor를 retire할 때만 exact fact 재생이 선행되어야 하며 실패/미확정이면 값·revision·pending을 유지하고 명시 거절한다. 게시 이력 자체를 버리거나 validator를 완화하지 않는다.
+코덱이 실행 클래스의 상수4개를 참조하던 방향도 기존 CharacterConsumableIdContract의 같은 문자열로 옮겼다. 공개 const alias를 보존하고 DTO 및 다른 codec token은 동일하다. 식사·배달은 parent에, 약물/해독 실행과 시간 효과는 아직 함께 남아 있어 이번 정책 분리를 G2 완료로 세지 않는다. 다음에는 공통 operation identity/completion/fact publication 경계를 확인한 뒤 약물/해독 상태의 단일 쓰기 권위를 옮긴다.
+
+## 2026-10-17 G2 실행 소유권 처리 판정
+CharacterConsumablesSubstanceRuntime은 substance/detox plan·중독/toxicity·시간효과·명령/조회와 정리를 소유한다. CharacterConsumablesOperationRuntime은 operation sequence, completed record와 outcome key, fact reserve/publish/rollback/replay·정리를 단독 소유한다. facade는 식사/배달 명령 및 전체 root 복원/수명 조정을 유지한다. 두 owner는 parent callback/역참조 없이 같은 root store·clock·random stream·ports를 읽고 COW root를 매번 조회한다. 기존 physical/effect transaction은 application ports에 계속 맡긴다. 공개 API43/ctor·DTO/codec·Tick 순서와 retirement predicate를 유지했으며 새 파일은 실제 쓰기 권위와 실패 경계를 옮긴 것이다.
+r1 실제 field meal ACK 대기 복원에서 기존 producer 결함도 확인했다. field plan만 physicalContextFrozen/소비 위치·초기 vitals를 고정하지 않아 strict committed-plan validator와 불일치했고 이 본문은 split 전과 동일했다. registered meal과 같은 기존8필드를 초기화해 고쳤으며 validator/DTO 버전/게임 수치는 유지한다. WIM036/overdose 검증기의 누락된 consumption observer는 기존 실제 observer/ledger 조립으로 보충했고 이를 게임 결함으로 보고하지 않는다. G2 최소 분리 경계를 충족하며 남은 meal/delivery coordinator는 해당 물리 명령·배달 상태와 동일 root 수명을 조정하므로 유지한다.
+
+## 2026-10-17 G1 실행/수명 소유권과 실제 회귀 경계
+
+- RestockWorkExecution은 source 선택→quantity lease→이동/heartbeat→실제 pickup→exact retail take/receive/rollback을 소유하고, 기존 RestockCargoOperation의 cargo/drop/admission/lease 종료 권위를 재사용한다. 부모 callback 없이 동일 WorkRunRuntime의 작업 승인·중단/종료 명령을 사용한다.
+- WorkRunRuntime은 run/환경중단/작업시작/승인·노동 정산/숙련/inline progress/응급 suspension receipt/cancellation resource를 한 수명으로 관리한다. WorkAccidentExecutionRuntime은 run별 사고 latch 및 anatomy damage/fact reserve/publish/rollback을 담당하고 durable journal은 기존 observation/work.orders owner에 남는다. parent는 작업 경로 선택·common order/handler/timed loop의 조정과 기존 public facade/진단을 유지한다.
+- 공통 dependency3/receipt/enum 정의5개를 WorkTaskExecutionContracts로 토큰동일 이전했다. 새 owner가 정의를 위해 parent 파일을 다시 참조하는 결합을 피하며 API/DTO/씬/프리팹/기존 GUID/clock/RNG/원자성 기준은 바꾸지 않는다.
+- Roslyn body 대조는 이동31+사고1/유지9/public7/ctor 및 begin/inline/cancellation phase의 동일성을 통과했다. private reflection2와 package/freshness3 소비자를 실제 새 owner로 갱신했고 독립 읽기 검토도 일치했다. 이는 static proof이며 actual restock/사고 성공 주장은 아니다.
+- g1-movement-r1은 current Csc53.665667s/CS0 이후 Play 직전1GiB memory guard 중단이다. 동일 pins/terminal0을 확인한 cached r2는 load149→26초로 실제 Play에 진입했고 보호이동/취소/receipt JSON fresh owner/공식 world actor 교체8개를 통과했다. 이후 기존 core:repath가 repath0(기대1), action start2(기대1)로 실패, core:no-path는 통과했다. 나머지3 selector는 미실행이다.
+- core fixture의 PrepareAction은 action 시작을 frame에서 관측하며 위치가 Start와 다르기만 해도 반환하므로 fault가 실제 blocker 통과 전에 주입됐는지 우선 좁혀야 한다. 현재는 setup 시점/실제 회귀 중 원인 미확정이며 assertion 완화나 성공 재분류를 하지 않는다. 기존 C7/C8 source11은 이전 검토 핀과 동일해도 이번 관련 실제 회귀 실패를 닫은 근거로 쓰지 않는다.
+- 다음은 core action commit/fault injection 경계 재현→G1 실제 restock NoPath/운반중 취소/정상retry/active 저장 복원 및 사고 거래다. 기존 Shop snapshot 직접 왕복은 공식 전체 복원/실행 재개의 대체 증거가 아니다.
+
+## 2026-10-17 G3 자재 공급 책임 분리 계약
+
+현재 SOURCE_EDIT/메인 EDIT_READY, 다른 작성자 FROZEN. WorkOrderMaterialSupplyRuntime이 건설 재료 선택·input-owner 열기/요청·physical WIP 준비/ACK·취소 반환·완료 전 release/commit 뒤 revoke·복원 input 조인을 담당한다. 기존 WorkConstructionInputOwnerRuntime/WorkOrderMaterialOutbox는 그대로 재사용하며 주문/품질/사이트 원장과 저장 DTO는 기존 owner에 유지한다. 같은 WorkOrderAggregateStateStore를 매 접근 사용하고 candidate revision 갱신은 store의 단일 명령으로 공유한다. 부모 callback·runtime 캐시·두 번째 원장·새 fallback/게임 수치/저장 형식은 만들지 않는다. 원본 명령 순서/오류/부분 진행·취소 재시도 의미를 보존한다. 기존 실제 construction/input-owner/terminal fixture를 다음 자원 확보 후 표적으로 실행하며 이번 SOURCE_EDIT에서는 본문·API·phase parity와 syntax만 판정한다. G1/C7/C8/C10 실제 미완료와 전체 Goal ACTIVE를 유지한다.
+
+## 2026-10-17 G1 fixture 원인 확정 / C10 분리 판정
+
+core:repath 진단에서 reset29→publication30(actionStarts0), fault30/block30, approved path30→31을 관측했다. 준비·게시 사이에 actor가 이동해 의도한 blocker를 이미 통과한 fixture 경합이다. 이전 활동의 정확한 producer는 확정하지 않았다. 준비 중 이전 AI pause 보존/복구와 기존 work/shopping/movement owner 정리, stationary 검사, 실제 action start 관측 callback에서 pre-block 경로를 확인하고 벽을 주입하도록 고쳤다. 원래 repath1/start1/20초/270초를 유지했고 actual core2가 통과했다. 관련 production C7/C8를 임의 수정하거나 단언을 완화하지 않았다.
+
+G1 active restock는 Shop snapshot의 operation marker와 physical reservation owner를 양방향 검증한다. 새 executor의 cargo scope에 이 저장 owner를 재결합하는 원본 경로는 아직 찾지 못했다. 실제 공식 복원 전 잠재 위험으로만 남기며 blanket marker 제거·cargo 삭제·복원 guard 완화는 하지 않는다. 새 restock 전용 entry는 기존 물리 운반 fixture와 단언을 재사용하며 save/restore·사고를 검증했다고 부르지 않는다.
+
+C10은 CombatEquipmentCraftDefinitionRules가 연구 unlock/재료 허용·정규화를 읽고, CombatEquipmentInstanceFactory가 같은 repository/allocator를 사용해 prepared 또는 등록된 인스턴스를 만든다. 주문·정책 사전·revision·품질/입력/출력 거래는 기존 owner에 남는다. prepared ID는 원래 생산 call site에서 할당하며 일반 생성의 검증 전 ID 할당, 외부 생성의 검증 후 할당 및 기존 연구 gate 차이를 유지한다. 새 owner는 parent callback/가변 root cache가 없다. 이전 sequence/WIP 실제 PASS는 분리 전 증거이며 새 소스 actual을 대신하지 않는다.
+
+## 2026-10-17 G4 화물/증원 실행 소유권 계약
+
+FactionRouteCargoRuntime이 exact source prepare→fact reserve/publish/replay→physical release/영수증 대조/rollback과 pending transaction 사전을 단독 소유한다. 공유 FactionDomainRuntime의 Routes/CurrentDay를 매 조회하고 기존 exact source/item/fact 권위를 그대로 사용한다. 부모의 observationActive 재진입 gate는 관계/정산/도착과 공유하므로 그대로 남기며 capture guard는 기존 순서대로 이 gate 확인 후 cargo owner의 불가 상태를 확인한다. 별도 guard·DTO·저장소·parent callback·fallback은 만들지 않는다.
+
+FactionReinforcementMaterializer는 동일 immutable definitions·캐릭터 catalog/spawner/factory/registry와 domain 명령을 사용해 실제 inactive actor 생성/초기화/ID/지원군 marker/publish/진입을 담당한다. 원래의 stable ID·Unity lifecycle/호출 순서·미지원 경로·실패 동작을 보존한다. parent는 외교/관계·route settlement/arrival 조정을 유지하고 기존 FactionTradeSettlementRecovery를 재사용한다. 공개/통제 constructor의 기존 검사·getter 순서와 optional fixture 의존성은 보존한다. 줄 수 대신 실제 cargo transaction 수명과 Unity actor 조립이 이전 대상이며 원본 snapshot을 기준으로 토큰/phase/API를 대조한다. 신규 소스 현재 compile·실제 cargo rollback/ACK/restore/재시도와 증원 생성은 별도 미완료로 기록한다.
+
+## 2026-10-17 G5 치료 실행과 공급 책임 계약
+
+SurvivalTreatmentRuntime이 표준 치료/해독의 환자 선택·약품 공급 조회/요청·service session·material commit/효과/ACK·종결과 work operation map을 소유한다. 저장되는 건강/activeTreatmentPlans/completedTreatmentOperationIds는 기존 SurvivalFoodAggregateState의 Data를 매 접근 조회하고 단일 root를 유지한다. map은 기존처럼 restore 게시 직후 owner 명령으로만 지운다. Food parent는 음식/일일 생존·환경·fuel 조정과 기존 API를 유지하며 maintenance의 fuel refresh→treatment loop→fuel recovery 순서를 유지한다.
+
+기존 표준/해독 의료의 물리 거래는 SurvivalFoodStockRuntime/consumables/serviceSession에 계속 위임한다. public treatment interface2와 stable prefix/reason/physical operation ID는 같은 문자열/메서드의 별도 contract로 옮기고 기존 parent 공개 API/const alias를 유지한다. 저장 validator/codec은 이 계약을 직접 참조해 구현 역참조를 줄인다. 음식과 치료가 공통으로 사용하는 consumer eligibility/enumeration/count는 기존 본문을 공유 query로 옮긴다. 부모 callback·state 복제·새 fallback·수치/clock/저장 버전/효과 순서 변경은 없다. current Unity 검증은 미실시로 남기고 원본 body/API/health·stock·session/fuel phase parity를 먼저 확인한다.
+
+## 2026-10-17 G6 terminal journal / checkpoint GC 계약
+
+ApparelWorkOrderTerminalJournal이 완료 effect/source receipt의 capture/canonical 검증·atomic publish와 checkpoint GC candidate의 prepare/publish/rollback/complete 수명을 소유한다. live 주문/terminal row/Version은 기존처럼 같은 authority state의 한 pointer swap으로 유지하며 공유 ApparelWorkOrderAuthorityStore를 통해 현재 pointer를 매 접근 조회한다. parent는 live 작업/물리 효과·저장 payload 검증·restore participant의 staging/rollback·lease 조정을 유지한다. GC의 active token·expected/published version·deep snapshot/empty candidate/rollback drift 거절 의미는 그대로 둔다. restore/reset에서 기존에 없던 token clear/새 guard를 추가하지 않는다.
+
+정의11종과 기존 pure deep-clone/identity equality는 별도 ApparelWorkOrderContracts로 이관하고 parent 공개 API/ctor/DTO schema/기존 MonoScript GUID를 보존한다. 새 state/terminal owner가 parent implementation이나 callback을 참조하지 않게 한다. clone은 기존 필드별 복사 본문을 그대로 재사용하며 JSON 기반 clone으로 바꾸거나 null 정규화·순서를 바꾸지 않는다. 동일 Version과 주문/terminal join을 두 번째 쓰기 원장으로 복제하지 않으며 실패·replay·restore·GC phase를 원본과 대조한다. 실제 Unity compile/terminal failure·복원·재시도 검증은 미실시 상태로 명시한다.
+
+## 2026-10-17 G7 수동 급수 custody 계약
+
+ManualWaterTransferRuntime이 물품 선택·pending physical transfer·fluid 적용·ACK 및 immediate operation sequence의 명령/조회와 재시도를 소유한다. 기존 FluidNetworkStateStore의 현재 node를 매 접근하고 같은 physical journal/input destination owner를 사용한다. 자동 급수/생산·clean/wastewater 계산·저장 조립은 network facade에 유지한다. DTO/ctor/API/기존 GUID·수량·실패·ACK 순서를 바꾸지 않는다.
+
+수동 명령도 기존 topology reconciliation을 정확히 같은 위치에서 호출해야 하므로, 기존 FluidNetworkProjectionAdapter에 topology 준비 및 restore 후 transient projection 무효화를 함께 둔다. tick 누적·backflow 안내 시각·water transfer snapshot은 저장되지 않는 기존 파생 상태 그대로 이 adapter 한 곳에 소유시키며 parent와 수동 owner가 같은 adapter/store를 공유한다. parent callback이나 두 번째 root/projection cache는 만들지 않는다. CanConsume은 기존처럼 읽기 전용이며 topology 준비/배송 요청을 하지 않는다. 물품 ID는 이미 있는 FluidFacilityInputOwnerProjectionAuthority의 동일 상수를 재사용한다. 실제 Unity 검증은 보류 상태이며 원본 snapshot과 본문·API·early return·restore reset 순서를 먼저 대조한다.
+
+## 2026-10-17 G8 작업 모듈 조립·수명 계약
+
+CharacterWorkModuleRuntime이 기존 selector/executor/duty/command4개와 해당 조립 의존성, Inject 이후 무효화·지연 생성 수명을 단독 소유한다. AbilityWork는 공개 Inject API/기존 query getter·Unity action/coroutine/작업 취소·응급/복원 조정 및 serialized 상태를 유지한다. 같은 AbilityWork 문맥과 기존 모듈을 사용하며 두 번째 ability·작업 상태/DTO·의존성 bag·새 fallback은 만들지 않는다. Awake 전 주입 지연, 각 기존 주입의 validation/assignment/reset 순서와 생성 실패 전파·동일 재시도 의미를 보존한다.
+
+원본 ConstructIdentityWorkQueries는 selector만, ConstructSettlementStandings는 selector/executor만 null로 만들어 기존 command handler가 이전 selector를 계속 보유한다. query-only 경로에서는 restock executor도 이전 selector를 보유한다. 현재 원본의 readonly 필드/생성자와 교체 경로로 확인한 참조 불일치이며 실제 플레이 실패 재현은 아직 아니다. 새 owner가 selector를 생성할 때 기존 command와 executor의 restock에 새 selector를 명시 rebind한다. command의 priority/risk 상태와 executor의 run/cargo/lease는 유지하고, 기존에 executor를 무효화하던 주입은 같은 동작을 유지한다. rebind는 참조만 바꾸며 취소/진행도/물리 영수증을 지우지 않는다. 기존 API/asmdef/에셋/GUID/clock/RNG·상수 값은 보존하고 pure module-lifetime 검증과 기존 actual AI/work fixture 범위를 구분한다.
+
+## 2026-10-17 G9 특성 추론·근거 거래 계약
+
+CharacterTraitInferenceTransaction이 후보/근거 검증·fact reserve와 publish·evidence prepare/anchor/seal/complete·추론 상태 적용/rollback 및 rollback 보류 latch를 소유한다. 기존 CharacterTraitInferencePublicationRuntime의 재진입 gate/미확인 게시 사실·retained rollback 복구를 그대로 사용한다. rollback closure는 새 owner와 동일 authority를 보유하므로 기존처럼 actor 수명이 끝나도 publication owner에서 잃지 않는다. parent의 serialized XP/growth/narrative/acquired-trait 상태와 기존 validation/capture/notification은 유일한 상태 권위로 남는다.
+
+새 internal ICharacterTraitInferenceAuthority는 현재 상태·서사 원장·evidence transaction 조회, stable identity query와 기존 후보 검증/상태 교체/알림 명령만 제공한다. transaction은 CharacterProgression 구현/Unity component·임의 callback·새 root cache를 참조하지 않는다. 상태 교체는 원래 frozenCandidate/previous pointer를 그대로 명령에 전달하며 중복 clone/revision/저장 schema·상수/DTO를 추가하지 않는다. parent 공개 TryCommitInferredTrait·attribute/Inject API/기존 GUID와 반응·memory-erasure·스킬 획득의 별도 차단은 유지한다. 원본 TryCommitInferredTrait/TryCommitInferredFormulaTrait/ApplyInferredTrait/IsCanonicalProjectedTraitEvidenceId4개와 latch1개가 이전 대상이며 알려진 실패/MayBeCommitted/재시도/복원 순서를 바꾸지 않는다. 준비 identity 전체 재설계나 새 fallback은 이번 경계에 포함하지 않는다. 정적 본문·API·port 호출/상태·복구 대조 후 실제 기존 inference/evidence 회귀는 별도 남긴다.
+
+
+G9 검증 경계: 기존 inference observer 실제 fixture는 exact binding 없는 후보를 사용하므로 PreparedGameplayOutcomeEvidenceUse.Cancel 실패를 포함하지 않는다. artifact 단위는 현재 owner/evidence-use/publication 소스를 함께 컴파일하고 실제 cached DTO/DomainFactDispatcher를 사용하되 authority/memory/observer를 제어한다. private ApplyInferredTrait만 직접 호출하여 seal 후 influence rollback2회 실패→3회 성공, 원래 pointer/local influence 복원과 publication capture gate/동일 identity 재개를 검사한다. 이는 선택 검증·실제 parent gate/생산/Unity 증거가 아니며 향후 같은 실제 ledger를 감싼 memory-command fault wrapper의 Editor 검증이 남는다. 새 facade 공개 계약은 그대로라 기존 actual entry를 재사용한다.
+
+
+C9 다음 조사 재개 단서(2026-10-17, 소스 수정 전): 현재 ExtremeTraitRuntime 원본은 6종 capability의 상태 명령과 Golden 외부 crop owner 영수증/사망 후 보존·Arcane health/equipment 부분 적용 재개를 한 구현에 둔다. 2026-10-16 최초 보고 이후 A07 operation 이력이 추가되어 현재 약1480행이지만 크기만으로 분리 범위를 정하지 않는다. 우선 Golden/Arcane의 서로 다른 실패·복구 수명과 기존 store/실제 생산자 경계부터 확정하고, LastStand/ForbiddenResearch/MiracleSurgery/Production의 작은 규칙이 별도 owner를 요구하는지는 현재 호출·상태 계약으로 판정한다. 구형 public 완료 API 두 개는 비-Editor 문자열 검색만으로 삭제하지 않는다. 첫 narrow KB ExtremeTraitRuntime/code+authority 조회는 stale133/exit1, 원본 fallback으로 읽었고 생성물 재생성·C9 소스 편집/Unity 실행은 하지 않았다. G9 마감 source818/tool8과 READY/FROZEN은 유지된다.
+
+
+## 2026-10-17 C9 극단 특성 capability 수명 계약
+
+LastStandTraitRuntime은 전투 encounter별 1회 활성/정리, ForbiddenResearchLeapTraitRuntime은 project별 detached preparation/연구 원자 거래 참여, MiracleSurgeryTraitRuntime은 critical surgery별 결정론적 1회 판정, GoldenHarvestTraitRuntime은 지연 예약/안정 prepared outcome·physical commit 뒤 commit/ACK·abort/사망 후 외부 owner 보존 및 census 검증, ProductionLimitBreakTraitRuntime은 batch lease/만료/종결, ArcaneOverchargeTraitRuntime은 activation/equipment별 자기 피해·내구도 부분 적용/실패/동일 operation 재개를 각각 소유한다. 부모는 동일 공개 API/attribute·constructor/등록 query·death retention interface와 조건 ID 합성만 유지한다. 실제 body를 옮기고 부모 callback·두 번째 상태/캐시·delegates bag를 만들지 않는다.
+
+모든 owner는 동일 CharacterIdentityStateStore를 공유한다. 공통 typed JSON read/write·trait rule/안정 identity 확인과 기존 시간/결정론 hash 함수는 stateless ExtremeTraitRuleAccess로 공유한다. 이는 각 capability 명령에서 현재 store를 조회/기록하며 새 root/state를 보관하지 않는다. 기존 DTO·enum·query 계약을 ExtremeTraitRuntimeContracts로, 이미 독립된 ForbiddenResearchLeapPreparation을 별도 원본 클래스 파일로 이동하고 rule ID 상수는 독립 계약에 둔다. 기존 공개 const는 같은 값의 alias다. 타입명/assembly·serialized fields와 JsonUtility/기존 null 처리·fixed roll/ID/clock/수치는 그대로다. const나 DTO 때문에 capability가 기존 facade 구현을 역참조하지 않게 한다.
+
+구형 Golden resolve/Arcane activate 공개 진입점은 삭제하지 않고 기존 호출 권한과 동작을 같은 owner에 이관한다. 실제 producer가 쓰는 prepared/부분 적용 경로도 함께 이관하고 저장/복원/lease/retention 검사를 약화하지 않는다. 원본 snapshot으로 모든 이전·유지 body/API/attribute·DTO/const/constructor·condition 합성 순서를 대조한다. 제한된 ABI compile과 순수 경계 검사는 실제 actor/Unity JSON/생산 경로 증거로 확대하지 않으며 current Unity·각 capability의 기존 실제 회귀는 사용자 지시대로 미실행으로 남긴다.
+
+
+C9 생산자/호환 판정: Golden은 CropPlotCycleSelectionRuntime 예약→CropPlotHarvestRuntime prepare/commit/ACK·abort→CropPhysicalRestoreGuard/DungeonCropSaveReferenceValidation census와 death-retention policy를 사용한다. Arcane은 StaffManagementSurfacePanel→IArcaneOverchargeCommand→ArcaneOverchargeCommandRuntime의 실제 health/equipment 명령과 부분 복구를 사용한다. 공개 facade가 유지돼 생산자 재배선은 필요 없다. 구형 TryResolveGoldenHarvest/TryActivateArcaneOvercharge의 비Editor·에셋 호출은 없으나 V26 audit/반사 명세 소비자가 있어 호환 진입점을 남겼다. 여섯 owner는 실제 mutation/복구 본문을 소유하며 facade 구현 역참조/두 번째 root/cache가 없다. Set은 shared access/Golden 직접 identity 쓰기, RemoveRule은 Golden/기존 detached preparation으로 권한을 옮겼다.
+
+C9 검증 한계: managed5는 current detached ForbiddenResearchLeapPreparation+공통 fixed hash와 cached 실제 CharacterIdentityStateStore/DTO를 실행한다. absent/existing preimage·원본 DTO 분리/중복 게시·반복 rollback·stale 거절/foreign state 충돌·동일 rollback 재시도/locale 고정 hash를 다루지만 payload는 opaque이며 JsonUtility/actor/연구 outbox/Unity는 미실행이다. 기존 V26 Golden JSON/사망 보존·commit/ACK와 EnvironmentCrop 실제 물리 output/terminal 복원, A07 controlled integration의 health 거절/identity JSON/health-only partial body+equipment+identity restore/내구도 재개/terminal 재실행 검증은 별도 남긴다. A07을 actualGameplayScene으로 확대하지 않는다.
+
+
+## 2026-10-17 C2 생산 cycle 실행 수명 계약
+
+ProductionBillExecutionRuntime이 작업 가용성/BeginWork/ExecuteWork와 passive Tick의 같은 cycle 실행을 소유한다. 입력 WIP/유틸리티 ACK·품질/worker reservation·prepared 또는 exact output·영수증/게임 outcome·batch stage/폐기/lease·후속 replan은 기존 순서 그대로 하나의 cycle 조정에서 수행하며 기존 output/receipt/input/command/terminal owner를 재사용한다. 같은 ProductionAggregateStateStore의 현재 Bills를 매 조회하고 별도 bill/root/prepared clone이나 parent callback은 만들지 않는다. public facade/ctor·MovedFrom/asmdef·저장 DTO/version/GUID/clock/수치/실패/취소 의미는 보존한다.
+
+부모는 주문/조회/종결 facade와 저장 candidate 생성·input/output destination 복원·root Replace를 유지한다. execution의 출력 authority building-version cache는 저장되지 않는 기존 파생 수명으로 함께 옮기고, parent Restore는 기존 cache assignment와 같은 위치(root Replace 직전)에 NotifyOutputAuthoritiesRestored(buildingWorld.BuildingVersion)를 호출한다. 기존 readonly dependencies bundle/동일 query/input/command/terminal 인스턴스만 전달한다. dependency bundle은 sealed immutable auto-properties라 getter read 이동은 상태 전환이 아니며 기존 외부 조립 명령·collaborator 생성 순서를 유지한다. 원본 본문·API·const·같은 store/생성자·restore phase를 대조하고 실제 batch/정상 output/ACK 실패·재시도/공식 복원은 미완료로 기록한다.
+
+
+C1 독립 조사와 main 원본 확인(2026-10-17): OwnerCommandController.TryIssuePriorityWorkCommand는 pendingManualSkillId가 있으면 해당 경로에서 무조건 반환한다. SetCombatInputMode는 combatInputMode만 쓰고, TryIssueManualSkillCommand의 PlayerSelected 시작은 pending source/id만 쓰므로 두 의도가 함께 유지될 수 있다. TryCompleteManualSkillTargeting은 실패 때 pending을 남기지만 explicit cancel/모드 전환 cancel이 없고 disable에서만 정리한다. 실제 UI 생산자는 StaffManagementSurfacePanel의 수동 skill 버튼과 CombatCommandBarUiController의 전투 버튼이다. 따라서 이전 수동 skill이 새 전투 모드 우클릭을 가로채고 성공 후 이전 combat mode가 남는 소스 경로를 확인했다. Unity 실행 재현은 미실시다.
+
+C1 다음 main 범위는 단일 targeting-session owner의 manual/combat 상호배타, 실패 재시도/명시 취소, 성공 1회 소모, source/selection invalidation과 disable reset이다. 선택/drag/info-feed는 기존3 owner를 재사용하고 이동/작업/방어/제압/전투 도메인 명령을 다시 분해하지 않는다. FullGameManualQaRuntimeProbe rebellion fixture는 public2-param TryIssueSuppressCommand를 NonPublic/1arg로 불러 실제 producer를 못 타는 QA 결함이 있어 직접 public 호출로 갱신한다. 기존 CombatPlayerCommand/CombatV14/SkillActivationOutcome fixture는 각각 이동·잠금/전투UI/AllEligible skill을 다루며 PlayerSelected targeting 취소/전환은 별도 보강해야 한다. C1 production 수정은 C2 source 묶음 마감 후 main 우선이며 현재는 미완료다.
+
+## 2026-10-17 C1 입력 대상 지정 계약
+
+실행 중인 Unity/launcher/compiler0·C2 source/tool pin drift0 확인 후 main 단독 EDIT_READY/SOURCE_EDIT. 전투/수동 대상 지정은 OwnerCommandTargetingSession 한 곳이 소유하며 새 intent는 이전 intent를 대체한다. 선택 구성/primary의 실제 변경과 source commandability 상실, 명시 취소/Escape/disable에서 폐기한다. 동일 선택의 재선택은 no-op이다. 실패한 target은 재시도 가능하게 남기고 성공한 manual은 해당 intent만 소모한다. 동기 observer가 새 intent를 설정해도 이전 완료가 삭제하지 않으며 같은 intent의 재진입 완료는 거절한다. combat의 기존 실제 dispatch 후 소모/invalid target 보존 정책은 유지한다. 활성화/쿨다운/효과/저장 권위는 기존 transaction에 남고 세션은 저장하지 않는다. 기존 선택/drag/info 담당·도메인 명령·public interface/Unity serialized fields/GUID/asset wiring을 유지한다. 변경한 실제 controller 생산자→transaction 회귀를 기존 A05에 추가하고 순수 수명/현재 source semantic 검사와 Unity 실행 증거를 구분한다. Unity 보류/같은 RAM 재시도 없음.
+
+C1 계약 보완: targeted 대상 클릭 실패는 같은 intent를 유지한다. 별도 즉시 스킬 버튼은 새 사용자 명령이므로 기존 target intent를 먼저 취소하고, 즉시 스킬 자체가 거절돼도 이전 target을 되살리지 않는다. domain cooldown/효과/원장은 기존 transaction만 변경한다. 독립 consumer 검토에서 실제 UI callback까지 확인했고 removal private-field reflection/serialized 소비자는 없다.
+
+## 2026-10-17 C3/C4 생명주기 검토 계약
+
+BuildableObject 좁은 KB stale184/exit2→원본 fallback. C1 source940/tool9 drift0·Unity/launcher/compiler0 확인 후 main 단독 EDIT_READY/SOURCE_EDIT. C3의 기존 occupancy/assignment/state-capability/spatial 담당과 facade는 유지한다. DestroySelf의 동기 재진입은 같은 철거 진행 중 no-op, 파괴 후 오류 보고에는 파괴 전 label만 사용한다. teardown 완료 flag는 모든 해제가 정상 반환한 뒤 세우며, 해제 실패 때는 원래 오류를 전달하고 객체를 보존해 같은 철거 요청으로 미완료 해제를 재시도할 수 있게 한다. destruction event는 기존 once 계약을 유지하고 성공한 paid/registry 단계는 기존 flags/idempotency를 사용한다. 새 teardown owner/DTO/직렬화/에셋·GUID 변경 없음. C4의 Interact는 한 active-use sequence/phase로 service/meal/water/effects/payment/cancel/receipt를 조정하며 실제 하위 runtime은 이미 분리돼 있다. 새 쓰기 사본 없이 현재 owner 조회와 공식 continuation 검증을 기준으로 유지 판단한다. main이 변경·어려운 failure/reentry 테스트를 맡고 서브는 읽기 전용 consumer inventory만 맡는다. Unity 재실행은 보류한다.
+
+C3/C4 후속 우선순위: local DestroySelf retry와 durable production-drain retry는 다르다. ProductionFacilityDestructiveDrainWorldRemovalPort.TryEnsureRemoved는 현재 world 등록이 남은 isDestroy 건물을 즉시 conflict로 거절하고 RequestAndDrive도 isDestroy를 거절한다. 이미 시작된 journal 단계의 geometry/visual/fuel/teardown을 다시 apply하지 않는 재개 계약이 다음 최우선이다. C4 AllocateWorker는 actual actor.MoveTo가 expected action/operation 취소로 반환해도 layer/두 번째 이동/phase를 계속한다. WorkTaskExecutor run 검사는 allocation 뒤여서 이 내부 side effect를 막지 못한다. same-actor 새 grant와 stale DeallocateWorker까지 IWorkableFacility 실제 caller 계약을 먼저 확정한다. Facility Interact/파일 자체는 이번 batch에서 유지했고 C4는 완료/retain 확정하지 않았다.
+
+## 2026-10-17 C3 forward world-removal 수명 계약
+
+source965/tool9 drift0·AGENTS 불변·Unity/launcher/compiler0·narrow KB stale190/exit2→원본 확인 후 main EDIT_READY/SOURCE_EDIT. 기존 world-removal port가 fuel/grid/visual 성공 후에만 transient pending teardown을 소유한다. 동일 stable ID + 정확한 source instance/grid/definition/footprint/layer를 묶고, 등록부에서 이미 빠진 경우에도 해당 owner의 DestroySelf 해제만 재시도한다. fuel/grid/visual·하위 participant는 다시 apply하지 않는다. 완전 해제와 registry/grid 부재를 확인하기 전에는 terminal world-removal/AlreadyApplied를 반환하지 않는다. 실패는 원래 이유를 Deferred로 알리고 pending 동안 capture를 차단한다. restore-completed hook에서 이전 transient 참조를 폐기하며 새 세계 같은 ID를 이전 owner로 처리하지 않는다. RecoveryRuntime의 isDestroy 입력은 같은 기존 journal/cause/AwaitingWorldRemoval(또는 terminal)만 허용하고 신규·불일치는 거절한다. 기존 capture guard도 incomplete teardown을 거절한다. DTO/schema/enum/timeout/participant 기준 변경 없음. main이 이 복잡한 상태·DI/검증 경계를 단독 통합하고 Unity는 보류한다.
+
+C3 forward 계약 보완: grid/visual callback은 transient receipt 생성 전에도 동기 capture를 요청할 수 있으므로 mutation-depth try/finally로 이 창을 막는다. 새 상태는 기존 world-removal owner의 일시적 작업 상태이며 DTO에 넣지 않는다. restore hook은 이전 transient owner만 폐기하고 현재 stack depth를 리셋하지 않는다. 동일 Singleton을 capture/restore hook으로 등록하며 V27은 해당 owner 등록문을 각각 검사한다. 기존 hook global3/10 및 DestroySelf4 denominator는 실제 소스와 어긋나 exact owner binding/기존5경로 검사로 대체했다.
+
+C4 호출 경계 확정: IWorkableFacility 구현은 Facility/Shop/Services/Grid/Building/ConstructionSite 3개, 실제 AI producer는 WorkTaskExecutor.Allocate1/Deallocate8, 명시 중단은 AbilityWork.StopAssignedWork, lifecycle release는 BuildableObject이며 Infrastructure/BuildingCharacterFacilityAdapters와 기존 CornerCase fixture가 직접 소비한다. 현재 actor-only API와 CharacterId+building+kind transient registry는 같은 actor의 구 grant/새 grant를 구분하지 않는다. actor action token만 비교해도 같은 action 안의 새 Work run을 구분하지 못하므로 배정별 identity와 취소 후 presentation 변경/해제의 경계를 함께 처리해야 한다. movement는 operation version 취소/door 실패 등으로 정상 endpoint 전에 반환할 수 있고, 현재 부모는 allocation 거절의 결과도 전달받지 않는다. 이번에는 C4 source를 바꾸지 않았다. 독립 consumer 담당 READY/FROZEN·reflection/name-string 소비자 없음, KB stale194→원본 확인.
+
+## 2026-10-17 C4 worker allocation 수명 계약 / SOURCE_EDIT
+
+직전 goal turn=progress(C3 forward teardown source15/limited compile). source1332/tool9 drift0·AGENTS unchanged·Unity/launcher/compiler0 재확인 후 main EDIT_READY/SOURCE_EDIT. 기존 IWorkableFacility에 명시적 synchronous admission+일회 allocation handle을 추가한다. Facility/Shop는 단일 handle, ConstructionSite는 기존 정원/slot과 actor별 handle을 소유하고 구 handle 해제는 정확한 identity가 일치할 때만 membership을 변경한다. 공통 BuildingWorkerAllocation은 접근/이동 성공·action/request currentness·pose 획득/반납·Dispose 수명을 소유하며 DTO/시설 capacity/실제 work progress 쓰기를 소유하지 않는다. 기존 actor-only API는 기존 fixture/수명 정리 호환 경로로 남기고 실제 AI는 새 admission 결과/핸들만 사용한다. WorkRun은 해당 run의 worker handle을 소유·교체/취소 시 해제하며 execution cancellation resource와 수명을 섞지 않는다. 캐릭터 visitor adapter는 actor-local pose token을 소유하고 새 pose/다른 layer·명시 position 변경이 구 token을 무효화하므로 stale cleanup이 새 표현을 바꾸지 못한다. MoveToWithResult는 실제 movement version/실패/endpoint로 결과를 알리며 가짜 성공/teleport fallback을 추가하지 않는다. 기존 저장/serialized/GUID/씬·프리팹 연결·work admission rules 유지. main이 상태·caller 통합/복잡한 검증을 직접 맡고 독립 기계적 fixture 계약 갱신만 위임한다. Unity는 사용자 지시대로 보류한다.
+
+C4 managed 검증 발견: 현재 Buildings32/Economy95/runtime2713는 기존 Unity rsp defines/references/analyzers를 사용한 별도 출력 Csc PASS다. Editor1021은 이전 G3 source-consumer 갱신에서 ClusterSpec 6역할 계약에 7번째 helper EvidenceLink를 삽입한 실제 CS1729 한 건으로 실패했다. compiler terminal/process0 재확인 후 다음 SOURCE_EDIT에서 helper 경로/fragment 증거를 같은 owner를 이미 검증하는 terminal link에 결합한다. 6역할/중복ID/전체 source fragment 조건을 완화하지 않는다. runtime input은 불변이므로 Editor만 재컴파일한다. Unity/import/ILPP/실행 NOT_RUN.
+
+C4 pose 후속 계약: 취소된 run도 자신이 아직 소유하는 pose의 offset을 반납해야 한다. 위치복원 여부를 run currentness로 제한하면 취소 순서상 자세 offset이 남는다. actor visitor의 exact pose token 외에 실제 CharacterVisual의 layer-command revision과 실제 movement version을 보존해, 취소된 자기 pose는 해제하되 이후 direct actor layer 명령/다른 movement를 구 cleanup이 덮지 않게 한다. Visual은 기존 layer writer만 revision을 갱신하고 Actor는 조회만 전달한다. 새 저장/serialized/세계 전역 상태 없음. compiler terminal/process0 후 SOURCE_EDIT 보완.
+
+## 2026-10-17 C5 노동·도구 반납 계약
+CaptivityDurableToolRuntime은 고유 인스턴스를 먼저 생성한 뒤 TrySetInstanceComponent의 false를 무시하고 할당을 지운다. 상위 노동 해제·terminal preparation도 반납 false를 무시한다. 따라서 실제 생성과 내구도를 단일 물리 게시로 합치고 실패는 기존 할당에 남긴다. IWorldItemStackRuntime에 components 포함 고유 생성 overload를 추가하되 기존 API/DTO/기존 장비 권위는 보존한다. WorldItemSpawner는 기존 repository atomic batch를 사용하고 commit 이후 marker 예외는 물리 실패로 거짓 보고하지 않고 명시 로그로 분리한다. 노동 owner는 같은 현재 aggregate access/actor lookup·careLabor input owner를 사용하고 부모 역참조/이중 상태·새 저장 필드를 만들지 않는다. 여러 도구의 순차 반환은 이미 성공한 개별 반환을 재적용하지 않으며 terminal 명령은 전부 반환되기 전 상태 전이를 시작하지 않는다. 기존 pending 노동 요청 실패는 정확한 이전 pending/destination을 복구한다. 격리 Unity 실행은 보류, 현재 C# compile/통제 실패·재시도와 기존 native fixture 연결을 구분한다.
+
+C5 compile r1: 현재 runtime2714/Editor1021 Csc 오류0 및 source/reference drift0, 통제29경계+원본 결함2 재현 통과. 후속 검토에서 고유 물리 Add→marker callback→CaptiveState 할당 해제 사이의 동기 capture가 같은 instance를 중복 소유로 저장할 수 있음을 확인했다. 기존 stateless CaptivityDurableToolRuntime을 세션별 도구 반환 담당으로 전환하고, 노동/호송이 같은 인스턴스의 반환-depth를 공유한다. 기존 facade Capture/BuildRestore에서 이 구간을 거절한다. DTO/CLR 이름과 static 순수 assign 검증은 유지하며 전역 mutable 상태는 추가하지 않는다. compile terminal/process0 후 main EDIT_READY, 이 경계와 native reentrant-capture 검증만 보완한다.
+
+## 2026-10-17 C6 급식·영수증 수명 계약
+CapturedWildlifeFeedingRuntime이 급식/급수·배송 후보와 pending feed 재조정을 소유하며 같은 stateSession을 매 호출 조회한다. 부모의 우리/동료 귀환/보안/탈출 정책과 기존 outcome/role owner는 유지한다. 현 TickAnimalCare는 ACK 실패 CarePublished 후에도 feedSicknessSeverity를 decay하고 lastCareStatus를 표시 문자열로 덮는다. Outbox.TerminalMatches는 이를 receipt authority로 다시 검사해 정상 재시도/복원을 거절한다. 보류 feed는 위치와 새 허기 조건보다 먼저 마무리한다. lastCareStatus는 표시 값, live feedSicknessSeverity는 정상 돌봄으로 계속 변하는 값이므로 terminal proof에서 제거하되 CarePublished phase·actor commit ID·품목·질병 확률/정확한 원본 receipt 및 pending sickness target의 범위 검증은 유지한다. 이미 적용된 효과는 재적용하지 않으며 기존 1.5 decay/식단 정렬/RNG·water cost를 그대로 유지한다. ACK 지연이 질병 회복 수치에 영향을 주는 새 상태를 만들지 않는다. 동기 physical/effect callback 중 capture/restore publication은 owner 세션별 mutation fence로 거절한다. 과거 Omnivore fallback은 이번 이관에서 추가·확대하지 않고 같은 missing-species 경로로 유지한다(정상 복원은 기존 strict species validator가 확인). ID 소진 시퀀스의 기존 단조 할당도 유지한다. DTO/저장 버전/scene·prefab·기존 meta 변경 없음. 통제 owner/receipt 시험과 기존 native fixture/실제 Unity 미실행을 구별한다.
+
+## 2026-10-17 C12/C13 물리 복원 후보 수명 계약
+C12의 internal destructive-retire port/후보/결과/4단계 구현은 실제 DI·생산자·reflection·fixture 소비자가 없다. 실제 용량/파괴 배출은 기존 ProductionPreparedOutputExactRouteLifecycle→일반 route/ACK를 사용한다. 미사용 capability만 제거하고 route/restore/overlay/checkpoint GC의 동일 물리 보존 권위는 유지한다. internal 계약 meta GUID의 에셋 참조는 없으며 씬/프리팹/Inspector 연결 변경은 없다. 수작업 outcome disposition의 해당 삭제 타입 행만 제거하고 생성 인덱스는 직접 편집하지 않는다.
+C13의 detached candidate index/조회/participant 수명은 PhysicalItemRestoreCandidateSession이 소유한다. 같은 mass query를 사용하고 live repository/명령/CommitRestore·표현은 기존 권위에 남긴다. 현재 구 stage A는 participant 폐기 후 새 B가 준비되어도 A.Discard가 B를 지우고 A.Commit이 예전 상태를 적용할 수 있다. 정확한 staged object identity를 묶어 stale Commit은 변경 전에 거절, stale Discard는 새 후보에 no-op으로 처리한다. commit 중 callback의 index 교체/participant reset/Dispose는 먼저 거절하고 실패 뒤 같은 stage retry는 허용한다. candidate DTO 조회의 drains/routes/list/get은 deep clone으로 내부 조회 증거를 보호한다. 기존 DTO·공개 API·ctor/DI identity·저장 버전·정상 participant 순서를 유지한다. main 단독 구현/복잡한 회귀 검증, Unity 실제 실행은 사용자 지시대로 보류한다.
+
+## 2026-10-17 C14 수술 부품 설치·교체 책임 계약
+SurgicalPartRuntime의 생성/품질·보존/수동 폐기와 별도 실패 수명인 일반 설치/Transfer outbox 및 교체(body CAS→설치→기존 부품 물리 출력→capacity commit→ACK)를 분리한다. SurgicalPartInstallationRuntime은 같은 SurgeryAggregateStateStore를 매 호출 조회하고 부품 lookup/예약 검증·설치 intent/Transfer·finalize를 소유한다. SurgicalPartReplacementTransaction은 설치 담당과 같은 physical mass/batchDisposition을 사용하고 기존3 internal replacement API/token·출력 join/복구·fingerprint를 소유한다. facade 역참조·캐시된 Parts/Orders·두 번째 저장 권위를 만들지 않는다. 기존 public API/ctor/DI identity/DTO·enum·CLR 이름/GUID/scene·prefab 연결과 statement/실패/재시도 순서를 보존한다. static fingerprint 검증 entry는 기존 facade를 통해 새 담당에 전달해 save 소비자를 보존한다.
+OutputReservationPending은 health-CAS refresh 실패 뒤 resultRolled=true/resultSucceeded=true/설치 effect index를 strict save validator가 요구하는 복구 상태다. public/internal cancellation은 resultRolled에서 먼저 거절하므로 pending abort 거절을 결함으로 단정하지 않고 기존 frozen-outcome forward-only 정책을 유지한다. 기존 replacement runtime fixture는 transfer/publication/ACK 실패·JSON phase restore·health CAS refresh·자연 장기 freshness replay를 이미 다룬다. 이번 이관은 원본 대조/현재 전체 Csc와 실제 새 owner·state/outbox의 통제 시험으로 확인하며 해당 native fixture와 공식 world 실행은 사용자 지시대로 미실행을 유지한다.
+
+## 2026-10-17 C15 원장 권위 유지·복원 후보 인수 계약
+GameplayOutcomeLedger의4 partial은 같은 gate/runtime root·page generation/result key/sequence와 ACK→retention/compaction→tombstone/복원 swap 불변식을 공유한다. registry/recorder/페이지 풀·runtime state/descriptor·codec·표현은 이미 독립 담당이다. query는 lock 안에서 detached DTO를 만들고 compaction scratch는 revision/generation 검사 뒤 같은 index/known key/retained 용량을 함께 게시한다. 줄 수를 줄이는 별도 쓰기 owner나 새 partial/helper는 만들지 않고 이 응집된 원장 권위를 유지한다.
+현재 PublishGameplayOutcomeRestore는 transaction 시작/이미 staged·published 검사 전에 candidate.Take를 호출해 거절된 명령이 후보를 소모한다. 또한 다른 원장에서 검증한 candidate도 수락해 그 원장의 registry/limits로 만든 mutable root를 잘못 인수할 수 있다. 검사를 같은 gate 안에서 먼저 하고 정확한 instance identity를 검증한 뒤 한 번만 인수한다. 후보는 독립 owner identity object만 보유하고 Ledger/registry/global context 참조는 보유하지 않는다. Take/Discard는 atomic reference exchange로 동일 token payload를 한 번만 해제한다. 잘못된 호출 뒤 같은 후보 재시도, 이미 staged/published 후보의 보존과 foreign 원장 거절/원래 원장 retry를 회귀 검증한다. DTO/버전/CLR·public API/DI/기존 원장 쓰기·compaction·hash/정상 publish 순서는 보존한다. 실제 native Unity는 사용자 코드 정리 지시에 따라 보류한다.
+## 2026-10-17 C16 사고 대응 수명 계약
+V20CampaignApplicationAdapter의 관찰 callback/일일 평가와 별도로 Tick 기반 식사 교체·응급 치료·격리 이동 및 영수증 완료/실패를 V20ObservedIncidentResponseRuntime이 소유한다. 같은 Society 명령/조회 권위와 기존 DTO·public ctor·등록 identity·실패 순서를 보존하고 parent 역참조나 새 저장 상태는 만들지 않는다. 이전 Dictionary<operationId,int>는 복원된 새 AbilityMove를 이전 actor와 구별하지 못한다. 정확한 mover reference+version을 묶고 기존 IDungeonSaveRestoreCompletedHook에서 임시 기록만 비운다. 이동 대기/취소는 목적지 외에 response/external/facility/destination provenance까지 확인하여 같은 칸으로 가는 다른 작업을 건드리지 않는다. 메인이 구현/복잡한 검증을 소유하며 씬·프리팹/Inspector 변경은 없다. 현재 Csc/통제 수명 시험과 실제 Unity·이동/공식 world 복원은 구분하고 후자는 사용자 지시에 따라 보류한다.
+## C18~C20 다음 배치 읽기 준비(소스 수정 전)
+C18 CharacterBreakdownActionRunner는 world/safe-drink/emergency-movement/state/consequences/water outbox를 이미 사용한다. 시체 소비의 stat/deprivation rollback→exact physical commit→ACK/publication 거래는 coroutine 제어와 별도 실패 수명 후보다(TryConsumeHumanoidCorpse/ApplyCannibalismConsequences/ResolveCannibalismReaction/RecoverCorpsePublications). 복잡한 거래 이관은 main이 담당하고 기존 실제 corpse fault/restore fixture(CharacterDeprivationProductionBtPlayModeVerifier 750/889)를 유지한다. TryFindVandalismTarget/RunViolentImpulse는 FacilityVandalismOutcomeDebugScenarios와 migrated entry의 private reflection 소비자가 있어 임의 이동하지 않는다.
+runningActorIds HashSet은 Reset/ReleaseActor 뒤 같은 ID의 새 실행이 등록돼도 오래된 RunBreakdownAction finally가 무조건 Remove한다. TryBegin도 Begin이 state/kind 거절한 경우 true를 반환한다. 실제 coroutine/Brain 실행 증거는 아직 없으므로 다음 배치에서 정확한 run identity와 실패 admission/lease 정리를 표적 검증한다. AIBrain.TryBeginExternallyDrivenAction은 동일 owner/kind에 같은 lease를 Renew할 수 있어 lease epoch만으로 old/new run을 구별하면 부족하다. C18~C20 Assets 변경 없음, KB stale271/원본 조사이며 C16 source pin1373/tool9가 최신 동결 증거다.
+## 2026-10-17 C18 실행 identity·시체 소비 거래 계약
+CharacterCorpseConsumptionTransaction이 기존 exact corpse 검증→stat/deprivation 사전 변경→물리 commit→ACK/게시·commit 전 rollback을 동일 world/stateStore/consequences/calendar 위에서 소유한다. main runner의 5종 coroutine과 기존 vandalism reflection 진입점/World·water outbox는 보존한다. 작은 actor query/거리 계산은 원본과 동일한 순수 구현이며 새 mutable authority/DTO·balance 변경은 없다.
+실행 표시는 CharacterId 집합 대신 actor/kind/generation/lease와 정확한 run object를 묶는다. old coroutine finally는 정확한 자기 run만 제거하며 Reset 뒤 같은 lease를 Renew한 replacement의 intent를 끝내지 않는다. 현재 run만 폭주 완료/세대 교체 재시작을 수행한다. Begin의 state/kind/lease 거절 또는 scheduler 예외는 자신이 획득한 현재 Breakdown intent만 반납하고, TryBegin은 실제 admission 실패를 false로 돌려준다. public ctor/Begin/기존 facade/DTО·GUID·수치/실제 이동·공격 정책은 유지한다. 현재 .NET iterator/identity 재현과 native Brain/실제 coroutine·사망/공식 restore는 구분한다.
+### C19 읽기 inventory 반환
+CharacterConsumablesApplicationPorts는 World/Inventory/Event/Workforce/RitualFastingMeal/EffectTransaction 포트를 한 production singleton(DungeonWorldSimulationRegistration 1252)으로 구현한다. world의 ritual/effect cast 및 public ctor/DebugRejectMealEffects/ToMealSnapshot은 유지한다. 물리 quantity/reserved-transfer/reserved-batch/batch/carried/tare 조립(875~1390)은 stateless 독립 담당 후보이나 mealFacilitySlotOwners capacity는 부모의 actor/facility 조정에 남긴다. CarryInventory Capture/Restore+batch commit 동기 rollback, operation/commit/source/quantity/input mass exact join, package tare→ACK 순서를 보존한다. phase/effect/계획/저장 쓰기 권위는 기존 CharacterConsumablesRuntime/SubstanceRuntime에 남겨야 한다.
+native 회귀 entry: SurvivalDebugScenarios.RunPhysicalMealAuthorityFocused/RunSubstanceV8PendingOutboxFocused/RunPackagedConsumableTareRecoveryFocused/RunPersistentActorCaptureClosureFocused, CharacterConsumablesEffectPublicationDebugScenarios.RunAll/RunSharedOperationOwnershipForArchitectureBatch, ConsumablesCon02ProductionRecoveryDebugScenarios.RunCon03RecoveryOrThrow/RunCon03DepartureBaselineOrThrow/RunOrThrow/VerifyObserverRecoveryFocused. state rules 1375/1437/1546이 pending receipt를 직접 검증한다. CharacterConsumablesInputOwnerDebugScenarios 163의 source fragment 검사와 MealUseContinuationPlayModeRunner 306의 concrete DebugRejectMealEffects 소비자를 함께 갱신/보존해야 한다. leaf는 읽기만 수행해 READY/FROZEN, C19 Assets 수정 없음.
+### C18 후속 수명 검토
+Reset 후 같은 Brain lease를 Renew하면 old nested coroutine도 CanCommit을 통과할 수 있다. Reset에서 Brain/저장 상태를 새로 변경하는 대신, production RunBreakdownAction이 exact run identity+기존 CanCommit predicate로 모든 중첩 IEnumerator의 MoveNext를 제한한다. 각 wrapper와 root는 소유 child를 finally에서 Dispose하여 parent 취소가 중첩 작업을 남기지 않게 한다. marker/lease cleanup의 replacement guard와 함께 적용한다. 표적 fixture는 실제 recursive gate의 정상 순서·중첩 중단/Dispose를 명시적 current(run) predicate로 검증하고 native actor/Brain/scheduler는 별도로 남긴다. scheduler 예외/빈 handle은 명시 예외와 exact lease cleanup으로 노출하며, 일반 state/kind/lease 거절만 false다. 예외를 false로 숨기지 않는다. 현재 r2 SOURCE_EDIT 닫힘/READY-FROZEN, main이 native 미검증 범위를 유지한다.
+
+C18 r4 이동 수명 후속: independent r3 검토에서 MoveByPathOwned의 post-yield CompleteMovementOperation이 Dispose 때 누락됨을 찾았고 동일한 MoveByStep도 실제 이전 outer iterator로 재현했다. 두 wrapper가 child Dispose를 소유하고 finally에서 기존 exact operationVersion/owner completion을 호출하도록 수정했다. completion 자체/나머지 이동68메서드는 그대로이고 새 CancelActiveMovement나 새 실패/성공 결과를 만들지 않는다. path→step 및 동일 owner path→path 후 old Dispose가 새 version/owner를 보존하는 통제8을 추가했다. actor-less .NET shell의 outer iterator만 실행하며 inner path/step은 시작하지 않는다. independent r4 final static review READY/FROZEN/추가 결함 없음, 실제 native 이동은 미실행이다.
+## 2026-10-17 C19 소비품 물리 포트·복원 대상 조회 계약
+CharacterConsumablesPhysicalInventory는 quantity lease/rebind/release, carried inventory debit+동일 rollback 범위의 batch sink, meal/substance/detox pending receipt와 tare→ACK를 담당한다. 기존 items/reservation/transfer/batch/tare 서비스의 동일 객체를 사용하고 phase/effect/계획·저장 authority는 기존 core runtime에 남긴다. CharacterConsumablesWorldReferences 하나를 parent/physical이 공유해 현재 restore candidate 또는 live registry를 매번 조회한다. parent 역참조·capturing-parent delegate/새 mutable authority·DTO/수치/등록 identity는 없다. public ctor·인터페이스/ritual/effect cast·DebugRejectMealEffects/ToMealSnapshot은 보존한다.
+원본 FindFacility는 FacilityIds와 달리 candidate를 무시하고 world.Buildings만 조회한다. shared references의 GetBuildings를 사용해 candidate closure를 맞춘다. TryReserveMealFacilitySlot은 없는 시설에 capacity=1을 주던 경로를 제거하고, 조회 실패 시 map 변경 전에 false를 반환한다. 기존 유효 시설의 min-capacity/idempotency/수치와 carried debit·실패 rollback/receipt join/tare ACK 순서는 유지한다. 기본 fallback을 추가하지 않으며 기존 optional quantity 서비스 호환 경로는 원본 동일하게 남긴다. main이 상태/물리·복잡한 검증을 맡고 leaf는 고정 source-consumer 검사만 갱신한다. Unity는 계속 보류한다.
+
+
+## 2026-10-17 C20 구현 계약 확정(아직 source edit 전)
+- KB narrow query CharacterPrimitiveSurvivalRunner/code+authority는 stale301로 반환, 원본·호출 경로 확인. 이전 실제 managed iterator에서 ReleaseActor 뒤 같은 epoch 교체를 old MoveNext/Dispose가 제거하는 결함2 재현(c20-primitive-survival/controlled-baseline-r1), native actor/Brain/scheduler 아님.
+- 같은 world/stateStore/clock/events/calendar/primitiveFacts로 완료 예약·freeze DTO·증거 검증·fact 게시/복구·retired 재시도 책임을 CharacterPrimitiveSurvivalCompletion에 이관한다. stat/물리 rollback·이동/행동 scheduling 및 가변 상태의 쓰기 권위는 기존 담당 유지, 새 저장표현/phase/호환 폴백 없음. 원본11 메서드와 resume 분기의 순서·엄격 검증·수치 유지.
+- 메인: exact run object+actor/kind/intentlease; stale completion/disposal는 새 marker/동일 lease를 건드리지 않는다. recursive current-run+기존 CanCommit gate와 child finally Dispose. 시작 이벤트/scheduler 예외는 exact marker/lease 정리 후 전파한다. ReleaseActor/Reset은 Brain·물리 효과를 직접 변경하지 않는다. 테스트는 null actor/registry/predicate와 실제 완료 DTO·상태 저장 경계의 managed 통제를 구분하고 native 초기 생존 경로/공식 복원은 미실행으로 남긴다.
+
+## 2026-10-17 native fixture 수명 결정
+C19 lookup fixture에는 live facility.Grid가 주입되지 않았으므로 detached restore candidate Grid를 명시 생성하고 staged identity를 확인한다. null을 게임 기본값으로 덮지 않는다. C20 observer-failure cold checkpoint 테스트는 old/new Context가 동일 ID로 동시에 world.AllCharacters에 남아 first-match observer가 원본에 기록했다. snapshot 후 original Dispose→fresh restore와 unique ID actor assertion으로 실제 owner 교체 수명을 맞췄고 strict body/narrative/owner/ledger 검증을 유지해 native 재실행이 통과했다. production observer나 완료 계약 변경은 필요 없었다. Native actor/Brain start/scheduler 실패와 같은 epoch 교체 취소4도 같은 기존 fixture 안에서 검증했다.
+
+## 2026-10-17 native fixture와 검증 범위 결정
+실제 초기화되는 건물 fixture11파일16곳과 organ fixture1곳이 필수 dispatcher를 null로 전달했다. 기존 실제 Editor dispatcher만 명시 주입하고 미초기화 warehouse shell의 null1곳은 유지했다. Apparel terminal fixture는 현재 V14 필수 exposureOutcomes를 누락했으므로 명시적 빈 배열/시퀀스0을 작성한다. 생산 의존성 검사·strict payload validator·DTO·기대값은 완화하지 않는다.
+Core의 early native suite는 성공 후 후반 메모리 보호로 종료됐다. 전체 PASS를 만들지 않고, 완료된 ledger/physical 표적 marker와 별도 focused route/surgery/buildings/apparel 실행을 각각 증거로 구분한다. 이미 통과한 독립 검사는 무관한 fixture 변경 때문에 반복하지 않는다. 격리·메모리 기준/사용자 앱은 변경하지 않았다.
+
+## 2026-10-17 work/drain 소스 경계 결정
+G8는 실제 restock의 graph/executor/duty/command/run/cargo identity와 물리 lease payload를 유지한 selector 재주입, 공식 world 교체 뒤 새 graph 소유권을 기존 Editor fixture에서 관측한다. movement 본 묶음은 실제 route/receipt/restore와 core2까지만 실행하며 destinationless/deprivation/primitive는 기존 fresh 전용 entry로 각각 검증한다. C3는 기존 P03 actual destructive-drain/공식 save-load coroutine와 strict 검증식을 재사용한다. 새 isolated adapter에서 중첩 IEnumerator 예외가 Unity host 밖으로 빠지면 종료 신호가 없어지는 결함을 발견해 factory/MoveNext/Current/Dispose·중도 중단 전체를 감시하고 모든 원인 보존·부모/자식 정리 후 실패를 먼저 기록한다. 파일 쓰기/요청 삭제 실패에도 Play 종료와 exit1 경로를 유지하고 기존 보고서를 덮어쓰지 않는다. legacy request/사용자 persistence snapshot/공식 scene bytes는 보존, schema와 production 코드 변경 없음.
+
+## 2026-10-17 재입고 준비와 의료 검증 수명 결정
+재입고 실제 진단에서 논리/물리 출발지는 모두(19,0)이었고 사전 경로는 Reachable6, 두 번째 즉시 경로 명령은 broker Pending이었다. 출발지 불일치나 production restock 회귀로 단정하지 않는다. Editor의 통제 준비에만 기존 승인 typed path를 기존 protected resolved-path API로 전달하고 실제 도착 뒤 retained protection을 정확 취소한다. 본 restock의 Pending/NoPath·door·물리 보존/selector 검사는 유지한다.
+
+C16은 기존 WIM040 Run/게임 helpers를 원문 그대로 재사용한다. batch adapter는 격리 root의 자동 persistence만 정지하고 legacy 고정 보고서를 쓰지 않으며, 기존 coordinator가 create-only evidence/종료를 소유한다. 중첩 coroutine의 factory/MoveNext/Current/Dispose/중단 실패를 감시하는 기존 C3 owner를 Editor 공용1개로 옮겨 재사용한다. 구독 해제 실패에도 Pause를 시도하고, coroutine Dispose 예외가 process exit1을 막지 못하도록 했다. 이는 실제 의료 전송·디스크 slot 복원의 증거가 아니라 검증 실행 수명 수정이다.
+
+## 2026-10-17 G1 취소 실패와 코루틴 정리 계약
+실제 호출은 AbilityWork.StopActiveWorkRoutines→WorkTaskExecutor.CancelActiveRun→WorkRunRuntime.CancelActiveRun→RestockCargoOperation.Release다. cargo 회수 거절은 정확한 운반/상점/lease 소유권을 보존한 채 예외를 낸다. 기존 호출자는 main/check/suppress 참조를 미리 지운 뒤 취소를 호출하므로 예외 뒤 세 Stop가 전부 생략됐다. 호출자 한 메서드에서 취소와 세 old handle 정리를 각각 시도하고 단일 예외 원형/여러 원인 전체를 노출한다. 재진입 새 fields·운반 owner/state/DTO·다른 lifecycle/메서드는 그대로다. 범용 실패를 가짜 성공이나 기본 동작으로 덮지 않는다.
+
+## 2026-10-17 G1 saved restock 검증 경계
+기존 restock-only branch에는 공식 active world restore가 연결돼 있지 않았다. 새 검증은 기존 실제 Pending FacilityBuffer lease/상점 admission와 실제 positive carry 전환 두 곳에서 캡처한다. 저장 JSON과 스칼라 id/수량만 남기고 원래 시나리오/객체를 정리한 뒤 fresh restored actor/shop에만 명령한다. 저장한 durable lease·admission·cargo는 보존하되 old work coroutine은 복원하지 않는 기존 계약을 확인하고, 기존 facade 취소가 원래 물리 수량/stock을 바꾸지 않고 current-cell 회수·lease/admission 해제와 반복 안전성을 제공하는지 판정한다. 실제 owner recovery 구현이 되는지 또는 결함인지는 native 없이 단정하지 않는다. baseline restore는 모든 정상/실패 finally에서 시도하고 관측/정리/보고서 실패 원인을 전부 보존한다.
+
+
+### G1 actual restock restore cancellation — 2026-10-17
+
+native-restock-current-r7에서 pending/no-path, selector reinjection, door-cancel, 자연 pickup/shop 입고와 보존은 PASS했고 pending world 복원 후 첫 취소에서 durable ownership 잔류가 재현됐다. 기존 Cargo scope는 DTO에 없고 새 graph가 빈 scope를 생성하며 AbilityWork는 coroutine/isWorking이 없으면 CancelActiveRun을 생략한다. 원본 CharacterWorldSaveService의 retirement도 새 physical root 게시 후 old work를 취소하므로 새 바인딩과 함께 명시적 old handle relinquish가 필요하다. 새 participant226은 기존 haul225와 같은 reversible publication 경계에서 fresh handle만 연결하며 새 저장 권위를 만들지 않는다.
+
+
+### C3 batch boot boundary — 2026-10-17
+
+native-destructive-drain-current-r3은 Title/owner selection까지만 PASS하고 staff/draft 확정이 없는 준비 UI에서 Start를 기다려 실패했다. 실제 철거 기능 실패나 memory guard가 아니다. 새 isolated batch만 기존 Movement/whole-world와 같은 공식 fast-party command로 조립된 Gameplay를 사용하고, 수동 verification의 Title UI 경로는 유지한다. 실패 뒤 다른 준비 경로를 시도하는 fallback을 추가하지 않으며 batch 진입 경로를 고정한다.

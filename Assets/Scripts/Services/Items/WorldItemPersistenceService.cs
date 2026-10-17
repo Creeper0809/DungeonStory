@@ -117,6 +117,7 @@ public sealed class WorldItemPersistenceService
                 .CapturePhysicalItemRelocations()
                 .ToList(),
             physicalItemTransformations = repository.CapturePhysicalItemTransformations().ToList(),
+            physicalEffectReceipts = repository.CapturePhysicalEffectReceipts().ToList(),
             pendingExactOutputRoutes = exactRouteOutboxPersistence
                 .CaptureOutbox()
                 .OrderBy(value => value.routeOperationId, StringComparer.Ordinal)
@@ -508,7 +509,8 @@ public sealed class WorldItemPersistenceService
                 snapshot.pendingProductionCustodyDrains,
                 snapshot.pendingProductionInputDestinationDrains,
                 snapshot.pendingCapacityRoutingDrains,
-                snapshot.physicalItemTransformations),
+                snapshot.physicalItemTransformations,
+                snapshot.physicalEffectReceipts),
             WarehouseAssessment = warehouseAssessment,
             ReservationIntents = CloneReservationIntents(
                 snapshot.reservationIntents

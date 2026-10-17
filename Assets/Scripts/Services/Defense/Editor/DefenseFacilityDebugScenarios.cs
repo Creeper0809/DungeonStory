@@ -748,7 +748,7 @@ public static class DefenseFacilityDebugScenarios
                 new BuildingResearchWorkPortAdapter(BlueprintResearchWorkService),
                 FacilityCandidateCache,
                 RoomFacilityPolicy,
-                gameClock: CharacterAiEditorTestDependencies.GameClock, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
+                gameClock: CharacterAiEditorTestDependencies.GameClock, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
             defense.ConstructDefenseFacilityEventBus(
                 CharacterAiEditorTestDependencies.GameEvents, worldThreatModifiers: null, defenseRuntime: null);
             defense.ConstructDebugRules(DisabledDungeonDebugRuleQuery.Instance);
@@ -1211,7 +1211,7 @@ internal sealed class DebugProbeDefenseEffectSO : DefenseEffectSO
     public override string EffectId => "debug.custom-defense-effect";
     public override string DisplayName => "확장 효과";
 
-    public override void Apply(DefenseEffectContext context)
+    public override void Apply(IDefenseEffectCommands context)
     {
         context.ApplyDamage(Amount, DisplayName);
         context.AddEffectTag(LogTag);

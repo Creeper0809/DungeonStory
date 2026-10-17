@@ -686,6 +686,7 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
             }
 
             aggregateRootStore.PublishRestoreStaging();
+            report.RecordWorldPublished();
             return TryCompleteTransactionParticipants(report);
         }
         DiscardStages(stages, report);
@@ -770,6 +771,7 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
         if (!rollbackPrepared || !rollbackCommitted)
         {
             aggregateRootStore.DiscardRestoreStaging();
+            report.RecordRollbackFailure();
             report.AddError("Restore failed and the live-world rollback image could not be reapplied.");
             foreach (string rollbackError in rollbackReport.Errors)
             {
@@ -924,6 +926,7 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
             }
             catch (Exception exception)
             {
+                report.RecordRollbackFailure();
                 report.AddError(
                     $"Failed to roll back published restore transaction participant '{participant.ParticipantId}': {exception.Message}");
             }
@@ -958,6 +961,7 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
         }
         catch (Exception exception)
         {
+            report.RecordRollbackFailure();
             report.AddError(
                 $"Failed to discard restore transaction participant '{participant.ParticipantId}': {exception.Message}");
         }
@@ -1201,6 +1205,7 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
             {
                 report.AddError(
                     $"Failed to discard staged section '{stages[index].SectionId}': {exception.Message}");
+                report.RecordRollbackFailure();
             }
         }
     }

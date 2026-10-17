@@ -62,7 +62,7 @@
 - `Grid/DungeonStory/Building` 영역: `DataManager`, `GameManager`, `NoticeFeed`, 입력 액션을 직접 사용하므로 현재 게임 통합 영역이다.
 - `Grid/DungeonStory/UI/GridConstructTab`, `GridUIManager`, `DungeonStoryGridGhostPresenter`: 건설 패널, 건물 정보 UI, 선택 건물 표시를 연결하므로 현재 게임 통합 영역이다.
 - `Grid/UI/UIGridTab`: 특정 게임 데이터 없이 카테고리 탭만 토글하므로 재사용 영역이다. 필드 이름도 `categoryId`처럼 범용 이름을 사용한다.
-- `Grid/Rendering/GridTexture`: Tilemap 출력과 벽 계산을 담당하는 재사용 렌더링 컴포넌트다. `IGridBuildingVisual`을 구현하므로 건설 런타임에 주입할 수 있다. `GridTexture.TilemapLayer`가 기존 건물 자산에 직렬화되어 있으므로 이름/enum 변경은 자산 마이그레이션이 필요하다.
+- `Grid/Rendering/GridTexture`: Tilemap 출력과 벽 계산을 담당하는 재사용 렌더링 컴포넌트다. `IGridBuildingVisual`을 구현하므로 건설 런타임에 주입할 수 있다. 레이어 정의는 모델의 `BuildingTilemapLayer`가 소유한다. 기존 건물/씬에 직렬화된 `GridTexture.TilemapLayer` 이름은 `BuildingTilemapLayerSerialization`의 명시 Odin type binding으로 새 enum에 연결한다. 값과 필드명·기존 자산을 보존하며 generic dictionary/comparer와 실제 로딩을 함께 검증한다.
 
 ## 0.1 완료 기준 매핑
 

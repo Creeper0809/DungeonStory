@@ -16,12 +16,14 @@ internal sealed class CaptivityEscortRuntime :
     private readonly IGridSystemProvider gridProvider;
     private readonly IDoorAccessCommandService doorAccessCommands;
     private readonly IGameClock gameClock;
+    private readonly CaptivityDurableToolRuntime durableTools;
     private readonly Dictionary<string, Transform> carriedParents =
         new Dictionary<string, Transform>(StringComparer.Ordinal);
 
     public CaptivityEscortRuntime(
         CaptivityActorAccess actors,
         CaptivityActorRuntimeLookup actorRuntime,
+        CaptivityDurableToolRuntime durableTools,
         CaptivityCharacterContext characters,
         CaptivityWorldContext world,
         CaptivitySessionContext session)
@@ -29,6 +31,8 @@ internal sealed class CaptivityEscortRuntime :
         this.actors = actors ?? throw new ArgumentNullException(nameof(actors));
         this.actorRuntime = actorRuntime
             ?? throw new ArgumentNullException(nameof(actorRuntime));
+        this.durableTools = durableTools
+            ?? throw new ArgumentNullException(nameof(durableTools));
         characters = characters
             ?? throw new ArgumentNullException(nameof(characters));
         world = world ?? throw new ArgumentNullException(nameof(world));
@@ -321,7 +325,7 @@ internal sealed class CaptivityEscortRuntime :
                 state.reservedCarrierId);
         }
 
-        CaptivityDurableToolRuntime.TryReturnRestraint(
+        bool restraintReturned = durableTools.TryReturnRestraint(
             itemRuntime,
             state,
             state.capturePosition);
@@ -335,6 +339,8 @@ internal sealed class CaptivityEscortRuntime :
         state.lastResult = string.IsNullOrWhiteSpace(reason)
             ? "포획 중단"
             : reason;
+        if (!restraintReturned)
+            state.lastResult += ": 구속구 반납 대기";
     }
 
     private void ConfiscateEquipment(CharacterActor subject, Vector2Int position)
@@ -370,9 +376,16 @@ internal sealed class CaptivityEscortRuntime :
 
 }
 
-internal static class CaptivityDurableToolRuntime
+internal sealed class CaptivityDurableToolRuntime
 {
     private const float RestraintUseWear = 5f;
+    private int returnDepth;
+
+    public void ValidateBeforeCapture()
+    {
+        if (returnDepth != 0)
+            throw new InvalidOperationException("Captivity durable-tool return is still publishing physical ownership.");
+    }
 
     public static bool TryAssignRestraint(
         CaptiveState state,
@@ -446,7 +459,7 @@ internal static class CaptivityDurableToolRuntime
         return true;
     }
 
-    public static bool TryReturnRestraint(
+    public bool TryReturnRestraint(
         IWorldItemStackRuntime items,
         CaptiveState state,
         Vector2Int position) =>
@@ -464,7 +477,7 @@ internal static class CaptivityDurableToolRuntime
                 state.assignedRestraintMaximumDurability = 0f;
             });
 
-    public static bool TryReturnLaborTool(
+    public bool TryReturnLaborTool(
         IWorldItemStackRuntime items,
         CaptiveState state,
         Vector2Int position) =>
@@ -476,7 +489,7 @@ internal static class CaptivityDurableToolRuntime
             position,
             () => CaptivityLaborToolAssignmentOutbox.ClearAssignment(state));
 
-    private static bool TryReturn(
+    private bool TryReturn(
         IWorldItemStackRuntime items,
         string itemId,
         string instanceId,
@@ -484,28 +497,39 @@ internal static class CaptivityDurableToolRuntime
         Vector2Int position,
         Action clear)
     {
-        if (string.IsNullOrWhiteSpace(itemId))
+        returnDepth++;
+        try
         {
+            if (string.IsNullOrWhiteSpace(itemId))
+            {
+                return true;
+            }
+
+            if (items == null
+                || !((ItemInstanceId)instanceId).IsValid
+                || !DurableToolItemRules.TryGetMaximumDurability(itemId, out float maximum)
+                || float.IsNaN(durability)
+                || float.IsInfinity(durability)
+                || durability < 0f
+                || durability > maximum
+                || !items.SpawnExistingUniqueItemAt(
+                    itemId,
+                    (ItemInstanceId)instanceId,
+                    position,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    new[] { DurableToolItemRules.CreateDurability(itemId, durability) },
+                    out string stackId))
+            {
+                return false;
+            }
+
+            clear?.Invoke();
             return true;
         }
-
-        if (items == null
-            || !((ItemInstanceId)instanceId).IsValid
-            || !items.SpawnExistingUniqueItemAt(
-                itemId,
-                (ItemInstanceId)instanceId,
-                position,
-                WorldItemStackState.Loose,
-                string.Empty,
-                out string stackId))
+        finally
         {
-            return false;
+            returnDepth--;
         }
-
-        items.TrySetInstanceComponent(
-            stackId,
-            DurableToolItemRules.CreateDurability(itemId, durability));
-        clear?.Invoke();
-        return true;
     }
 }

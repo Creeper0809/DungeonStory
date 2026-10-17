@@ -21,10 +21,8 @@ public sealed class BuildingDefenseAbility : BuildingAbility
 
 [Serializable]
 [BuildingAbilityDisplayName("엄폐")]
-public sealed class BuildingCoverAbility :
-    BuildingAbility,
-    IBuildingRuntimeStateAbility,
-    IBuildingVisualRuntimeAbility
+public sealed class BuildingCoverAbility : BuildingAbility,
+    IBuildingRuntimeAbilityDefinition
 {
     [InspectorName("엄폐 높이")]
     public CombatCoverHeight height = CombatCoverHeight.Low;
@@ -36,39 +34,12 @@ public sealed class BuildingCoverAbility :
     public bool allowsCornerPeek;
     [Min(1f), InspectorName("엄폐 내구")]
     public float coverHitPoints = 60f;
-
-    public IBuildingStateModule CreateStateModule(BuildableObject building)
-    {
-        return CombatCoverDurability.Ensure(
-            building,
-            this,
-            RequireCombatCoverDurabilityRegistry(building));
-    }
-
-    public void ConfigureVisual(BuildableObject building)
-    {
-        CombatCoverDurability.Ensure(
-            building,
-            this,
-            RequireCombatCoverDurabilityRegistry(building));
-    }
-
-    private static ICombatCoverDurabilityRegistry
-        RequireCombatCoverDurabilityRegistry(BuildableObject building)
-    {
-        return building.RequireCoverDurabilityRegistry()
-            as ICombatCoverDurabilityRegistry
-            ?? throw new InvalidOperationException(
-                $"{nameof(BuildingCoverAbility)} requires a combat cover durability adapter.");
-    }
 }
 
 [Serializable]
 [BuildingAbilityDisplayName("구조 내구도")]
-public sealed class BuildingStructuralIntegrityAbility :
-    BuildingAbility,
-    IBuildingRuntimeStateAbility,
-    IBuildingVisualRuntimeAbility
+public sealed class BuildingStructuralIntegrityAbility : BuildingAbility,
+    IBuildingRuntimeAbilityDefinition
 {
     [Min(1f), InspectorName("최대 내구도")]
     public float maxHitPoints = 300f;
@@ -78,16 +49,6 @@ public sealed class BuildingStructuralIntegrityAbility :
     public float repairHitPointsPerWork = 2f;
     [InspectorName("파괴 가능")]
     public bool breachable = true;
-
-    public IBuildingStateModule CreateStateModule(BuildableObject building)
-    {
-        return BuildingStructuralIntegrity.Ensure(building, this);
-    }
-
-    public void ConfigureVisual(BuildableObject building)
-    {
-        BuildingStructuralIntegrity.Ensure(building, this);
-    }
 }
 
 [Serializable]
@@ -122,18 +83,13 @@ public sealed class BuildingRecreationalSubstanceServiceAbility : BuildingAbilit
 [BuildingAbilityDisplayName("생산")]
 public sealed class BuildingProductionAbility : BuildingAbility,
     IBuildingWorkCompletionAbility,
-    IBuildingRuntimeStateAbility,
+    IBuildingRuntimeAbilityDefinition,
     IBuildingStockCategorySignal
 {
     [InspectorName("생산 품목")] public StockCategory outputCategory = StockCategory.General;
     [Min(0), InspectorName("생산량")] public int amount;
 
     public bool IsValid => amount > 0;
-
-    public IBuildingStateModule CreateStateModule(BuildableObject building)
-    {
-        return new BuildingProductionStateModule(building, this);
-    }
 
     public IEnumerable<StockCategory> GetStockCategorySignals()
     {
@@ -146,7 +102,8 @@ public sealed class BuildingProductionAbility : BuildingAbility,
 
 [Serializable]
 [BuildingAbilityDisplayName("조명")]
-public sealed class BuildingLightingAbility : BuildingAbility, IBuildingVisualRuntimeAbility
+public sealed class BuildingLightingAbility : BuildingAbility,
+    IBuildingRuntimeAbilityDefinition
 {
     [InspectorName("공용 조명 설정")] public BuildingLightingSettingsSO settings;
     [Min(0f), InspectorName("빛 세기")] public float intensity = 0.75f;
@@ -178,17 +135,12 @@ public sealed class BuildingLightingAbility : BuildingAbility, IBuildingVisualRu
             .Where(SortingLayer.IsValid)
             .ToArray();
     }
-
-    public void ConfigureVisual(BuildableObject building)
-    {
-        ModularFacilityRuntimeEffects.ConfigureLighting(building, this);
-    }
 }
 
 [Serializable]
 [BuildingAbilityDisplayName("작업량")]
 public sealed class BuildingWorkAmountAbility : BuildingAbility,
-    IBuildingWorkAmountRuntimeAbility,
+    IBuildingRuntimeAbilityDefinition,
     IBuildingConstructionMaterialValidator
 {
     [SerializeField, InspectorName("건설 프로젝트 규모")]
@@ -237,14 +189,7 @@ public sealed class BuildingWorkAmountAbility : BuildingAbility,
         }
     }
 
-    public float GetRequiredWork(BuildableObject building, WorkTypeId workTypeId)
-    {
-        return WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition)
-            ? GetConfiguredRequiredWork(FacilityWorkTypeMap.GetRequired(definition))
-            : 0f;
-    }
-
-    private float GetConfiguredRequiredWork(FacilityWorkType workType)
+    internal float GetConfiguredRequiredWork(FacilityWorkType workType)
     {
         return workType switch
         {
@@ -324,25 +269,18 @@ public sealed class BuildingWorkAmountAbility : BuildingAbility,
 
 [Serializable]
 [BuildingAbilityDisplayName("Expedition Recovery")]
-public sealed class BuildingExpeditionRecoveryAbility : BuildingAbility, IBuildingUseCompletedRuntimeAbility
+public sealed class BuildingExpeditionRecoveryAbility : BuildingAbility,
+    IBuildingRuntimeAbilityDefinition
 {
     [Range(0f, 1f)] public float healthHealRatio = 0.2f;
     [Range(0f, 1f)] public float injuryReduction = 0.1f;
     [Min(0f)] public float stressRecovery = 25f;
-
-    public void ApplyUseCompleted(IBuildingVisitorPort actor, BuildableObject building)
-    {
-        actor?.ApplyExpeditionRecovery(
-            healthHealRatio,
-            injuryReduction,
-            stressRecovery);
-    }
 }
 
 [Serializable]
 [BuildingAbilityDisplayName("Entrance Reception")]
 public sealed class BuildingReceptionAbility : BuildingAbility,
-    IBuildingExteriorWorkRuntimeAbility,
+    IBuildingRuntimeAbilityDefinition,
     IBuildingWorkCompletionAbility
 {
     [Min(0.1f)] public float workSeconds = 1.2f;
@@ -356,35 +294,12 @@ public sealed class BuildingReceptionAbility : BuildingAbility,
         return workTypeId == BuiltInWorkTypeIds.Reception;
     }
 
-    public bool IsExteriorWorkAvailable(IBuildingVisitorPort actor, BuildableObject building, WorkTypeId workTypeId)
-    {
-        return SupportsExteriorWork(workTypeId)
-            && building is ExteriorZoneMarker marker
-            && marker.CanRunReceptionWork;
-    }
-
-    public float GetExteriorWorkSeconds(IBuildingVisitorPort actor, BuildableObject building, WorkTypeId workTypeId)
-    {
-        return SupportsExteriorWork(workTypeId) ? Mathf.Max(0.1f, workSeconds) : 0f;
-    }
-
-    public float GetExteriorWorkUrgency(IBuildingVisitorPort actor, BuildableObject building, WorkTypeId workTypeId)
-    {
-        if (!IsExteriorWorkAvailable(actor, building, workTypeId)
-            || building is not ExteriorZoneMarker marker)
-        {
-            return 0f;
-        }
-
-        return marker.GetReceptionUrgency();
-    }
-
 }
 
 [Serializable]
 [BuildingAbilityDisplayName("Exterior Patrol")]
 public sealed class BuildingPatrolPostAbility : BuildingAbility,
-    IBuildingExteriorWorkRuntimeAbility,
+    IBuildingRuntimeAbilityDefinition,
     IBuildingWorkCompletionAbility
 {
     [Min(0.1f)] public float workSeconds = 1.6f;
@@ -396,35 +311,12 @@ public sealed class BuildingPatrolPostAbility : BuildingAbility,
         return workTypeId == BuiltInWorkTypeIds.Guard;
     }
 
-    public bool IsExteriorWorkAvailable(IBuildingVisitorPort actor, BuildableObject building, WorkTypeId workTypeId)
-    {
-        return SupportsExteriorWork(workTypeId)
-            && building is ExteriorZoneMarker marker
-            && marker.CanRunPatrolWork;
-    }
-
-    public float GetExteriorWorkSeconds(IBuildingVisitorPort actor, BuildableObject building, WorkTypeId workTypeId)
-    {
-        return SupportsExteriorWork(workTypeId) ? Mathf.Max(0.1f, workSeconds) : 0f;
-    }
-
-    public float GetExteriorWorkUrgency(IBuildingVisitorPort actor, BuildableObject building, WorkTypeId workTypeId)
-    {
-        if (!IsExteriorWorkAvailable(actor, building, workTypeId)
-            || building is not ExteriorZoneMarker marker)
-        {
-            return 0f;
-        }
-
-        return marker.GetPatrolUrgency();
-    }
-
 }
 
 [Serializable]
 [BuildingAbilityDisplayName("Outdoor Rest")]
 public sealed class BuildingOutdoorRestAbility : BuildingAbility,
-    IBuildingExteriorWorkRuntimeAbility,
+    IBuildingRuntimeAbilityDefinition,
     IBuildingWorkCompletionAbility
 {
     [Min(0.1f)] public float workSeconds = 1.4f;
@@ -437,44 +329,12 @@ public sealed class BuildingOutdoorRestAbility : BuildingAbility,
         return workTypeId == BuiltInWorkTypeIds.Rest;
     }
 
-    public bool IsExteriorWorkAvailable(IBuildingVisitorPort actor, BuildableObject building, WorkTypeId workTypeId)
-    {
-        if (!SupportsExteriorWork(workTypeId)
-            || actor == null
-            || building is not ExteriorZoneMarker marker
-            || !marker.IsOutdoorRestSpot)
-        {
-            return false;
-        }
-
-        BuildingVisitorSnapshot visitor = actor.VisitorSnapshot;
-        return visitor.Mood < 85f || visitor.ExpeditionStress > 0f;
-    }
-
-    public float GetExteriorWorkSeconds(IBuildingVisitorPort actor, BuildableObject building, WorkTypeId workTypeId)
-    {
-        return SupportsExteriorWork(workTypeId) ? Mathf.Max(0.1f, workSeconds) : 0f;
-    }
-
-    public float GetExteriorWorkUrgency(IBuildingVisitorPort actor, BuildableObject building, WorkTypeId workTypeId)
-    {
-        if (!IsExteriorWorkAvailable(actor, building, workTypeId))
-        {
-            return 0f;
-        }
-
-        BuildingVisitorSnapshot visitor = actor.VisitorSnapshot;
-        float moodNeed = Mathf.Clamp(85f - visitor.Mood, 0f, 85f);
-        float stress = visitor.ExpeditionStress;
-        return Mathf.Clamp(moodNeed * 0.75f + stress * 0.45f, 15f, 80f);
-    }
-
 }
 
 [Serializable]
 [BuildingAbilityDisplayName("Exterior Maintenance")]
 public sealed class BuildingExteriorMaintenanceAbility : BuildingAbility,
-    IBuildingExteriorWorkRuntimeAbility,
+    IBuildingRuntimeAbilityDefinition,
     IBuildingWorkCompletionAbility
 {
     [Min(0.1f)] public float cleanWorkSeconds = 1.1f;
@@ -487,76 +347,18 @@ public sealed class BuildingExteriorMaintenanceAbility : BuildingAbility,
         return workTypeId == BuiltInWorkTypeIds.Clean || workTypeId == BuiltInWorkTypeIds.Repair;
     }
 
-    public bool IsExteriorWorkAvailable(IBuildingVisitorPort actor, BuildableObject building, WorkTypeId workTypeId)
-    {
-        if (!SupportsExteriorWork(workTypeId) || building is not ExteriorZoneMarker marker)
-        {
-            return false;
-        }
-
-        return workTypeId == BuiltInWorkTypeIds.Clean
-            ? marker.CanRunExteriorCleanWork
-            : marker.CanRunExteriorRepairWork;
-    }
-
-    public float GetExteriorWorkSeconds(IBuildingVisitorPort actor, BuildableObject building, WorkTypeId workTypeId)
-    {
-        return workTypeId == BuiltInWorkTypeIds.Clean
-            ? Mathf.Max(0.1f, cleanWorkSeconds)
-            : SupportsExteriorWork(workTypeId)
-                ? Mathf.Max(0.1f, repairWorkSeconds)
-                : 0f;
-    }
-
-    public float GetExteriorWorkUrgency(IBuildingVisitorPort actor, BuildableObject building, WorkTypeId workTypeId)
-    {
-        if (!IsExteriorWorkAvailable(actor, building, workTypeId)
-            || building is not ExteriorZoneMarker marker)
-        {
-            return 0f;
-        }
-
-        return workTypeId == BuiltInWorkTypeIds.Clean
-            ? marker.GetCleanUrgency()
-            : marker.GetRepairUrgency();
-    }
-
 }
 
 
 [Serializable]
 [BuildingAbilityDisplayName("훈련")]
-public sealed class BuildingTrainingAbility : BuildingAbility, IBuildingUseCompletedRuntimeAbility
+public sealed class BuildingTrainingAbility : BuildingAbility,
+    IBuildingRuntimeAbilityDefinition
 {
     public string moodLabel;
     public float moodAmount;
     [Min(0f)] public float durationSeconds = 180f;
     [Min(0)] public int experienceAmount = 24;
-
-    public void ApplyUseCompleted(IBuildingVisitorPort actor, BuildableObject building)
-    {
-        if (actor == null || building == null)
-        {
-            return;
-        }
-
-        if (experienceAmount > 0)
-        {
-            actor.AddExperience(experienceAmount);
-        }
-
-        if (Mathf.Approximately(moodAmount, 0f))
-        {
-            return;
-        }
-
-        actor.ApplyMoodFactor(
-            $"facility-training:{building.RequirePersistentInstanceId().Value}:{AbilityId}",
-            string.IsNullOrWhiteSpace(moodLabel) ? "훈련을 마침" : moodLabel,
-            moodAmount,
-            Mathf.Max(0f, durationSeconds),
-            1);
-    }
 }
 
 
@@ -564,27 +366,18 @@ public sealed class BuildingTrainingAbility : BuildingAbility, IBuildingUseCompl
 [BuildingAbilityDisplayName("경비")]
 public sealed class BuildingSecurityAbility : BuildingAbility,
     IBuildingWorkCompletionAbility,
-    IBuildingRuntimeStateAbility
+    IBuildingRuntimeAbilityDefinition
 {
     [Min(1)] public int maxAlarmCharges = 3;
     [Min(1)] public int chargesPerGuardWork = 1;
-
-    public IBuildingStateModule CreateStateModule(BuildableObject building)
-    {
-        return new BuildingSecurityStateModule(building, this);
-    }
 
 }
 
 [Serializable]
 [BuildingAbilityDisplayName("범죄 위험 보정")]
-public sealed class BuildingCrimeRiskModifierAbility : BuildingAbility, IBuildingCrimeRiskModifier
+public sealed class BuildingCrimeRiskModifierAbility : BuildingAbility,
+    IBuildingRuntimeAbilityDefinition
 {
     [Min(0f), InspectorName("위험 배율")] public float multiplier = 1f;
     [Range(-1f, 1f), InspectorName("고정 위험 보정")] public float flatOffset;
-
-    public float ModifyCrimePressure(float pressure, FacilityCrimeRiskContext context)
-    {
-        return Mathf.Max(0f, (Mathf.Max(0f, pressure) * multiplier) + flatOffset);
-    }
 }

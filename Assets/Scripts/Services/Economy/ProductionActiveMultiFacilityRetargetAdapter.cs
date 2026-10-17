@@ -551,7 +551,7 @@ public static class ProductionActiveFacilityRetargetSnapshotProjector
             return false;
         }
         HashSet<string> sourceOutputDestinations = sourceIds
-            .Select(value => ProductionBillRuntime.OutputDestinationPrefix + value)
+            .Select(value => ProductionBillIdentity.OutputDestinationPrefix + value)
             .ToHashSet(StringComparer.Ordinal);
         if ((source.PhysicalItems.pendingExactOutputRoutes
                 ?? new List<FacilityOutputExactRouteOutboxSaveData>())
@@ -618,7 +618,7 @@ public static class ProductionActiveFacilityRetargetSnapshotProjector
                 continue;
             }
             bill.buildingInstanceId = binding.TargetFacilityId.Value;
-            bill.outputDestinationId = ProductionBillRuntime.OutputDestinationPrefix
+            bill.outputDestinationId = ProductionBillIdentity.OutputDestinationPrefix
                 + binding.TargetFacilityId.Value;
             billTargets.Add(bill.billId, binding);
         }
@@ -708,9 +708,9 @@ public static class ProductionActiveFacilityRetargetSnapshotProjector
         foreach (KeyValuePair<string, ProductionFacilityRetargetBinding> pair in
                  map.OrderBy(value => value.Key, StringComparer.Ordinal))
         {
-            string sourceOutput = ProductionBillRuntime.OutputDestinationPrefix
+            string sourceOutput = ProductionBillIdentity.OutputDestinationPrefix
                 + pair.Key;
-            string targetOutput = ProductionBillRuntime.OutputDestinationPrefix
+            string targetOutput = ProductionBillIdentity.OutputDestinationPrefix
                 + pair.Value.TargetFacilityId.Value;
             AddOrRequireSame(result, sourceOutput, new(
                 targetOutput,

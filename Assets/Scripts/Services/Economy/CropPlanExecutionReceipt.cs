@@ -620,13 +620,13 @@ public static class CropPlanExecutionReceiptAuthority
                 && value.harvestOperationSequence >= 0
                 && string.Equals(
                     value.harvestOperationId,
-                    CropPlotRuntime.FormatHarvestOperationId(
+                    CropPlotOperationIdentity.FormatHarvestOperationId(
                         (BuildingInstanceId)value.plotId,
                         value.harvestOperationSequence),
                     StringComparison.Ordinal)
                 && string.Equals(
                     value.outputBatchCommitId,
-                    CropPlotRuntime.HarvestOutputBatchCommitPrefix
+                    CropPlotOperationIdentity.HarvestOutputBatchCommitPrefix
                         + value.harvestOperationId,
                     StringComparison.Ordinal)
                 && Digest(value.outputOutcomeFingerprint)

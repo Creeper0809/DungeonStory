@@ -6,9 +6,9 @@ public sealed class DefenseDamageEffectSO : DefenseEffectSO
     public override string EffectId => DefenseEffectIds.Damage;
     public override string DisplayName => "피해";
 
-    public override void Apply(DefenseEffectContext context)
+    public override void Apply(IDefenseEffectCommands context)
     {
-        context.ApplyDamage(Amount, context.Defense.combatLogText);
+        context.ApplyDamage(Amount, context.CombatLogText);
         context.AddEffectTag(EffectiveLogTag);
     }
 }

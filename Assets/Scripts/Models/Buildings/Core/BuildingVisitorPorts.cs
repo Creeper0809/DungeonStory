@@ -513,6 +513,10 @@ public interface IBuildingVisitorPort : IBuildingCharacterPort
         string detail,
         IBuildingWorldEntryPort destination);
     IEnumerator MoveTo(Vector3 position, float speed, object expectedAction);
+    IEnumerator MoveToWithResult(
+        Vector3 position, float speed, object expectedAction, Action<string> completed);
+    void BeginWorkerPose(object allocation);
+    void EndWorkerPose(object allocation, Vector3? restoredPosition);
     IEnumerator MoveToGrid(Vector2Int position);
     void SetWorldPosition(Vector3 position);
     void HideForTraversal(float failSafeDelay);

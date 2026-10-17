@@ -755,7 +755,15 @@ public static class FactionPayloadValidation
                 $"Faction route '{route.routeId}' has no reinforcement-actor list.");
             return;
         }
-        if (route.actorsSpawned != (route.reinforcementActorIds.Count > 0))
+        int expected = Math.Clamp((int)Math.Ceiling(route.strength / 40d), 1, 3);
+        bool pendingReinforcement = route.kind == FactionRouteKind.Reinforcement
+            && route.status == FactionRouteStatus.Arrived
+            && !route.actorsSpawned && route.reinforcementActorIds.Count > 0
+            && route.reinforcementActorIds.Count <= expected;
+        if ((!pendingReinforcement
+                && route.actorsSpawned != (route.reinforcementActorIds.Count > 0))
+            || (route.kind == FactionRouteKind.Reinforcement
+                && route.reinforcementActorIds.Count > expected))
         {
             report.AddError(
                 $"Faction route '{route.routeId}' has inconsistent actor-spawn state.");

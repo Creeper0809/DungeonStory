@@ -23,6 +23,7 @@ public static class V27ServiceContinuityEvidenceDebugScenarios
     {
         "Assets/Scripts/Services/Survival/Editor/PrimitiveStartSurvivalPlayModeVerifier.cs",
         "Assets/Scripts/Services/Survival/CharacterPrimitiveSurvivalRunner.cs",
+        "Assets/Scripts/Services/Survival/CharacterPrimitiveSurvivalCompletion.cs",
         "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveFieldMeal.cs",
         "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveLatrine.cs",
         "Assets/Scripts/Services/Character/AI/Action/AIPrimitiveBucketWash.cs",

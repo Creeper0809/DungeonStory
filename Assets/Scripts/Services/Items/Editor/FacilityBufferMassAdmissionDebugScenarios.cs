@@ -520,7 +520,7 @@ public static class FacilityBufferMassAdmissionDebugScenarios
             "Scripts/Services/Items");
         string warehouse = File.ReadAllText(Path.Combine(
             services,
-            "WorldItemWarehouseService.cs"));
+            "WorldItemDestinationAdmissionService.cs"));
         int prepareStart = warehouse.IndexOf(
             "internal bool TryPreparePreparedOutputAdmission(",
             StringComparison.Ordinal);

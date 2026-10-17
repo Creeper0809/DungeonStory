@@ -12,7 +12,7 @@ public static class RoomEnvironmentFactObserverMapping
     {
         if (fact == null)
             throw new ArgumentNullException(nameof(fact));
-        return EnvironmentOutcomeReceiptFactory.CreateRoomExperience(
+        return EnvironmentConditionOutcomeReceiptFactory.CreateRoomExperience(
             fact.Sequence,
             fact.ActorId,
             fact.ActorDisplayName,
@@ -34,7 +34,7 @@ public static class RoomEnvironmentFactObserverMapping
     {
         if (fact == null)
             throw new ArgumentNullException(nameof(fact));
-        return EnvironmentOutcomeReceiptFactory.CreateRoomCondition(
+        return EnvironmentConditionOutcomeReceiptFactory.CreateRoomCondition(
             fact.Sequence,
             fact.ObserverId,
             fact.ObserverDisplayName,

@@ -9,6 +9,110 @@ using Object = UnityEngine.Object;
 
 public static class CharacterAiPriorityCornerCaseDebugScenarios
 {
+    public static string RunWorkerAllocationLifetimeForArchitectureBatch()
+    {
+        using PriorityScenarioWorld world = new();
+        BuildableObject target = world.Place("R01_간이침대", new Vector2Int(2, 0));
+        target.SetDamaged(true);
+        CharacterActor actor = world.CreateOwner("Owner_Slime", Vector2Int.zero);
+        if (target is not IWorkableFacility facility
+            || target is not IAllocatedWorkerOccupancyQuery occupancy)
+            throw new InvalidOperationException("Worker allocation fixture requires a real workable facility.");
+        IBuildingVisitorPort visitor = DispatchProxy.Create<IBuildingVisitorPort, WorkerApproachVisitor>();
+        var probe = (WorkerApproachVisitor)(object)visitor;
+        probe.Actor = actor;
+        probe.Target = actor.BuildingVisitor;
+        bool current = true;
+        if (!facility.TryAllocateWorker(visitor, null, () => current,
+                out IBuildingWorkerAllocation cancelled, out string failure))
+            throw new InvalidOperationException("Worker admission failed: " + failure);
+        IEnumerator approach = cancelled.Approach();
+        if (!occupancy.HasAllocatedWorker || !approach.MoveNext()
+            || approach.Current is not IEnumerator movement)
+            throw new InvalidOperationException("Worker approach did not retain its admitted owner.");
+        DrainControlledWorkerApproach(movement);
+        current = false;
+        if (approach.MoveNext() || occupancy.HasAllocatedWorker || probe.PoseBegins != 0)
+            throw new InvalidOperationException("Cancelled worker approach acquired a pose or retained capacity.");
+
+        current = true;
+        if (!facility.TryAllocateWorker(visitor, null, () => current, out var replacement, out failure))
+            throw new InvalidOperationException("Worker retry admission failed: " + failure);
+        DrainControlledWorkerApproach(replacement.Approach());
+        if (!replacement.IsReady || !occupancy.HasAllocatedWorker || probe.PoseBegins != 1)
+            throw new InvalidOperationException("Worker retry did not finish the actual facility admission.");
+        int poseEnds = probe.PoseEnds;
+        cancelled.Dispose();
+        if (!replacement.IsReady || !occupancy.HasAllocatedWorker || probe.PoseEnds != poseEnds
+            || facility.TryAllocateWorker(visitor, null, () => current, out _, out _))
+            throw new InvalidOperationException("A stale worker handle released/replaced the new admission.");
+        current = false;
+        replacement.Dispose();
+        replacement.Dispose();
+        if (occupancy.HasAllocatedWorker || probe.PoseEnds != poseEnds + 1
+            || actor.transform.position != probe.LastApproachPosition)
+            throw new InvalidOperationException("Worker grant release was not idempotent.");
+        return "worker-allocation=PASS; native facility/actor/pose/registry; controlled movement; cancel/retry/stale-dispose; natural AI/whole-world restore=not-covered";
+    }
+
+    private static void DrainControlledWorkerApproach(IEnumerator routine)
+    {
+        var stack = new Stack<IEnumerator>();
+        stack.Push(routine);
+        try
+        {
+            while (stack.Count != 0)
+            {
+                IEnumerator current = stack.Peek();
+                if (!current.MoveNext())
+                {
+                    (current as IDisposable)?.Dispose();
+                    stack.Pop();
+                }
+                else if (current.Current is IEnumerator child)
+                    stack.Push(child);
+                else
+                    throw new InvalidOperationException("Controlled worker fixture unexpectedly requires frame time.");
+            }
+        }
+        finally
+        {
+            while (stack.Count != 0)
+                (stack.Pop() as IDisposable)?.Dispose();
+        }
+    }
+
+    public class WorkerApproachVisitor : DispatchProxy
+    {
+        public CharacterActor Actor;
+        public IBuildingVisitorPort Target;
+        public int PoseBegins;
+        public int PoseEnds;
+        public Vector3 LastApproachPosition;
+
+        protected override object Invoke(MethodInfo method, object[] arguments)
+        {
+            if (method.Name == nameof(IBuildingVisitorPort.MoveToWithResult))
+                return MoveThenComplete((Vector3)arguments[0], (float)arguments[1], (Action<string>)arguments[3]);
+            if (method.Name == nameof(IBuildingVisitorPort.BeginWorkerPose)) PoseBegins++;
+            if (method.Name == nameof(IBuildingVisitorPort.EndWorkerPose)) PoseEnds++;
+            try { return method.Invoke(Target, arguments); }
+            catch (TargetInvocationException error) when (error.InnerException != null)
+            {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error.InnerException).Throw();
+                throw;
+            }
+        }
+
+        private IEnumerator MoveThenComplete(Vector3 position, float speed, Action<string> completed)
+        {
+            if (speed == 1f) LastApproachPosition = position;
+            Actor.transform.position = position;
+            completed(string.Empty);
+            yield break;
+        }
+    }
+
     [MenuItem("DungeonStory/Debug/AI/Run Priority Corner Case Scenarios")]
     public static void RunFromMenu()
     {

@@ -1075,7 +1075,7 @@ public static class OperatingDaySettlementDebugScenarios
         building.ConstructBuildableObject(
             new BuildingResearchWorkPortAdapter(BlueprintResearchWorkService),
             FacilityCandidateCache,
-            RoomFacilityPolicy, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
+            RoomFacilityPolicy, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
         building.Initialization(data, Vector2Int.zero);
         building.SetDamaged(damaged);
         return building;
@@ -1125,7 +1125,7 @@ public static class OperatingDaySettlementDebugScenarios
         warehouse.ConstructBuildableObject(
             new BuildingResearchWorkPortAdapter(BlueprintResearchWorkService),
             FacilityCandidateCache,
-            RoomFacilityPolicy, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
+            RoomFacilityPolicy, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
         warehouse.Initialization(data, Vector2Int.zero);
         return warehouse;
     }

@@ -2161,6 +2161,7 @@ public static partial class MigratedProducerEconomyServiceEntryE2EDebugScenarios
         private readonly FacilityUseValues values = new();
         private Vector3 position;
         private bool actionEnded;
+        private object workerPoseToken;
 
         internal ControlledFacilityVisitor(
             bool canMove,
@@ -2248,6 +2249,16 @@ public static partial class MigratedProducerEconomyServiceEntryE2EDebugScenarios
             float speed,
             object expectedAction) => MoveToRoutine(target);
 
+        public IEnumerator MoveToWithResult(
+            Vector3 target,
+            float speed,
+            object expectedAction,
+            Action<string> completed)
+        {
+            yield return MoveToRoutine(target);
+            completed(string.Empty);
+        }
+
         private IEnumerator MoveToRoutine(Vector3 target)
         {
             position = target;
@@ -2262,7 +2273,26 @@ public static partial class MigratedProducerEconomyServiceEntryE2EDebugScenarios
             yield break;
         }
 
-        public void SetWorldPosition(Vector3 target) => position = target;
+        public void SetWorldPosition(Vector3 target)
+        {
+            workerPoseToken = null;
+            position = target;
+        }
+
+        public void BeginWorkerPose(object allocation) =>
+            workerPoseToken = allocation;
+
+        public void EndWorkerPose(object allocation, Vector3? restoredPosition)
+        {
+            if (!ReferenceEquals(workerPoseToken, allocation))
+                return;
+
+            workerPoseToken = null;
+            if (restoredPosition.HasValue)
+                SetWorldPosition(restoredPosition.Value);
+            ChangeLayer("Default");
+        }
+
         public void HideForTraversal(float failSafeDelay)
         {
         }
@@ -2273,6 +2303,7 @@ public static partial class MigratedProducerEconomyServiceEntryE2EDebugScenarios
 
         public void ChangeLayer(string layerName)
         {
+            workerPoseToken = null;
         }
 
         public void FaceRight()

@@ -1875,6 +1875,8 @@ public static class ResourceEconomyAssetBuilder
         public bool SpawnUniqueItemAt(string itemId, Vector2Int position, WorldItemStackState state, string destinationId, out string stackId) { stackId = string.Empty; return false; }
         public bool SpawnUniqueItemAt(string itemId, Vector2Int position, WorldItemStackState state, string destinationId, Vector2Int destinationPosition, out string stackId) { stackId = string.Empty; return false; }
         public bool SpawnExistingUniqueItemAt(string itemId, ItemInstanceId itemInstanceId, Vector2Int position, WorldItemStackState state, string destinationId, out string stackId) { stackId = string.Empty; return false; }
+
+        public bool SpawnExistingUniqueItemAt(string itemId, ItemInstanceId itemInstanceId, Vector2Int position, WorldItemStackState state, string destinationId, IReadOnlyList<ItemInstanceComponentSaveData> components, out string stackId) { stackId = string.Empty; return false; }
         public bool TryAbsorbUniqueItemStack(string stackId, ItemInstanceId expectedInstanceId) => false;
         public bool SpawnHumanoidCorpse(CharacterActor source, Vector2Int position, string deathReason, out string stackId) { stackId = string.Empty; return false; }
         public bool TryRequestFacilityDelivery(StockCategory category, int amount, Vector2Int destinationPosition, string destinationId, out int requested, out string failureReason) { requested = 0; failureReason = string.Empty; return false; }

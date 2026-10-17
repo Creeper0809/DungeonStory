@@ -69,11 +69,18 @@ public static class DungeonCoreInfrastructureRegistration
             .As<IDungeonRestoreTransactionParticipant>();
         builder.RegisterEntryPoint<GameCalendarRuntime>(Lifetime.Singleton)
             .As<IGameCalendar>();
+        builder.RegisterEntryPoint<GameplayOutcomeConsolidationRuntime>(
+                Lifetime.Singleton)
+            .As<IInitializable>()
+            .As<ITickable>()
+            .As<IGameplayOutcomeConsolidationPumpDiagnostics>();
         builder.Register<ResourceClimateDefinitionCatalog>(Lifetime.Singleton)
             .As<IClimateDefinitionCatalog>();
         builder.RegisterEntryPoint<ClimateRuntime>(Lifetime.Singleton)
             .As<IClimateQuery>()
             .As<IClimatePersistence>();
+        builder.Register<DungeonRestoreSafetyRuntime>(Lifetime.Singleton)
+            .AsSelf().As<IDungeonRestoreSafetyQuery>();
         builder.Register<GameSpeedController>(Lifetime.Singleton)
             .As<IGameSpeedController>();
         builder.Register<TreasuryEconomyAggregateStateStore>(Lifetime.Singleton);
@@ -218,6 +225,8 @@ public static class DungeonCoreInfrastructureRegistration
             .As<IDungeonRestoreTransactionParticipant>()
             .As<IDungeonSaveRestoreCompletedHook>();
         builder.Register<HaulDeliveryIntentRestoreCoordinator>(Lifetime.Singleton)
+            .As<IDungeonRestoreTransactionParticipant>();
+        builder.Register<RestockCargoRestoreCoordinator>(Lifetime.Singleton)
             .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<OperatingDaySettlementSaveService>(Lifetime.Singleton)
             .As<IOperatingDaySettlementSaveService>();

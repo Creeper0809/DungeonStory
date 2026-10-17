@@ -54,7 +54,7 @@ public static class SpeciesActionFactMapping
                     "golem-upkeep-kind-invalid");
         }
 
-        return EnvironmentOutcomeReceiptFactory.CreateGolemUpkeep(
+        return WildlifeOutcomeReceiptFactory.CreateGolemUpkeep(
             GolemKey(source),
             source.revision,
             new CharacterId(source.characterId),
@@ -77,7 +77,7 @@ public static class SpeciesActionFactMapping
     {
         SpeciesIncidentFactSaveData source = fact.Snapshot();
         source.Validate();
-        return EnvironmentOutcomeReceiptFactory.CreateSpeciesIncident(
+        return WildlifeOutcomeReceiptFactory.CreateSpeciesIncident(
             SpeciesIncidentKey(source),
             source.revision,
             new CharacterId(source.characterId),
@@ -95,7 +95,7 @@ public static class SpeciesActionFactMapping
     {
         HarpyGaleFactSaveData source = fact.Snapshot();
         source.Validate();
-        return EnvironmentOutcomeReceiptFactory.CreateHarpyGaleRelocation(
+        return WildlifeOutcomeReceiptFactory.CreateHarpyGaleRelocation(
             new GameplayResultKey(
                 EnvironmentOutcomeIds.SpeciesIncidentProducer,
                 new GameplayOperationId(source.operationId),

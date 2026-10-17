@@ -25,6 +25,11 @@ public interface IBuildingWorkCompletionAbility
 {
 }
 
+// A definition declares executable capability; concrete execution is bound by the scene dispatcher.
+public interface IBuildingRuntimeAbilityDefinition
+{
+}
+
 public interface IBuildingStockCategorySignal
 {
     IEnumerable<StockCategory> GetStockCategorySignals();
@@ -32,11 +37,22 @@ public interface IBuildingStockCategorySignal
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public sealed class BuildingAbilityCollection
+public sealed class BuildingAbilityCollection : ISerializationCallbackReceiver
 {
     [SerializeReference, SerializeField]
     private List<BuildingAbility> items = new List<BuildingAbility>();
     [NonSerialized] private IReadOnlyList<BuildingAbility> itemsView;
+    [NonSerialized] private int revision;
+
+    public int Revision => revision;
+
+    public void NotifyAuthoringChanged() => revision++;
+    void ISerializationCallbackReceiver.OnBeforeSerialize() { }
+    void ISerializationCallbackReceiver.OnAfterDeserialize()
+    {
+        itemsView = null;
+        revision++;
+    }
 
     public IReadOnlyList<BuildingAbility> Items
     {
@@ -72,17 +88,22 @@ public sealed class BuildingAbilityCollection
         }
 
         items.Add(ability);
+        revision++;
     }
 
     public int RemoveNullEntries()
     {
-        return items?.RemoveAll(ability => ability == null) ?? 0;
+        int removed = items?.RemoveAll(ability => ability == null) ?? 0;
+        if (removed > 0) revision++;
+        return removed;
     }
 
     public int Remove<TAbility>()
         where TAbility : BuildingAbility
     {
-        return items?.RemoveAll(ability => ability is TAbility) ?? 0;
+        int removed = items?.RemoveAll(ability => ability is TAbility) ?? 0;
+        if (removed > 0) revision++;
+        return removed;
     }
 
     public int EnsureStableIds()
@@ -101,6 +122,7 @@ public sealed class BuildingAbilityCollection
             }
         }
 
+        if (changed > 0) revision++;
         return changed;
     }
 

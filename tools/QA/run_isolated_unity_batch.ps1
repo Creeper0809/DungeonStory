@@ -139,6 +139,42 @@ if ($ExecuteMethod -eq 'GameWorldLineageDebugScenarios.RequestActualContainerFor
         throw 'Game-world lineage requires its dedicated fresh PlayMode entry without selectors or resume inputs.'
     }
 }
+if ($ExecuteMethod -eq 'GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatch') {
+    $qaCharacterRestoreLifetimeParameters = @('ExecuteMethod','OutputDirectory','Mode','UnityExecutable','SerializedStartup')
+    if ($Mode -ne 'play' -or @($PSBoundParameters.Keys | Where-Object { $_ -notin $qaCharacterRestoreLifetimeParameters }).Count -ne 0) {
+        throw 'Character restore lifetime requires its dedicated fresh PlayMode entry without selectors or resume inputs.'
+    }
+}
+if ($ExecuteMethod -eq 'GameWorldLineageDebugScenarios.RequestRestoreOutcomeForBatch') {
+    $qaRestoreOutcomeParameters = @('ExecuteMethod','OutputDirectory','Mode','UnityExecutable','SerializedStartup')
+    if ($Mode -ne 'play' -or @($PSBoundParameters.Keys | Where-Object { $_ -notin $qaRestoreOutcomeParameters }).Count -ne 0) {
+        throw 'Restore outcome requires its dedicated fresh PlayMode entry without selectors or resume inputs.'
+    }
+}
+if ($ExecuteMethod -in @('MovementOwnershipDebugScenarios.RequestActualContainerForBatch', 'MovementOwnershipDebugScenarios.RequestDestinationlessForBatch', 'MovementOwnershipDebugScenarios.RequestDeprivationForBatch', 'MovementOwnershipDebugScenarios.RequestPrimitiveForBatch', 'MovementOwnershipDebugScenarios.RequestRestockForBatch', 'MovementOwnershipDebugScenarios.RequestMedicalTransferForBatch', 'MovementOwnershipDebugScenarios.RequestWorkAccidentForBatch', 'MovementOwnershipDebugScenarios.RequestFactionReinforcementForBatch', 'MovementOwnershipDebugScenarios.RequestSkillTargetingForBatch')) {
+    $qaMovementOwnershipParameters = @('ExecuteMethod','OutputDirectory','Mode','UnityExecutable','SerializedStartup')
+    if ($Mode -ne 'play' -or @($PSBoundParameters.Keys | Where-Object { $_ -notin $qaMovementOwnershipParameters }).Count -ne 0) {
+        throw 'Movement ownership requires its dedicated fresh PlayMode entry without selectors or resume inputs.'
+    }
+}
+if ($ExecuteMethod -eq 'PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatch') {
+    $qaDestructiveDrainParameters = @('ExecuteMethod','OutputDirectory','Mode','UnityExecutable','SerializedStartup')
+    if ($Mode -ne 'play' -or @($PSBoundParameters.Keys | Where-Object { $_ -notin $qaDestructiveDrainParameters }).Count -ne 0) {
+        throw 'Physical destructive drain requires its dedicated fresh PlayMode entry without selectors or resume inputs.'
+    }
+}
+if ($ExecuteMethod -eq 'NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch') {
+    $qaNarrativeContextLifetimeParameters = @('ExecuteMethod','OutputDirectory','Mode','UnityExecutable','SerializedStartup')
+    if ($Mode -ne 'play' -or @($PSBoundParameters.Keys | Where-Object { $_ -notin $qaNarrativeContextLifetimeParameters }).Count -ne 0) {
+        throw 'Narrative context lifetime requires its dedicated fresh PlayMode entry without selectors or resume inputs.'
+    }
+}
+if ($ExecuteMethod -in @('ArchitectureRefactorVerificationBatch.RunCore', 'ArchitectureRefactorVerificationBatch.RunCampaign', 'ArchitectureRefactorVerificationBatch.RunProductionBills', 'ArchitectureRefactorVerificationBatch.RunBuildings', 'ArchitectureRefactorVerificationBatch.RunDefense', 'ArchitectureRefactorVerificationBatch.RunBuildingVisual', 'ArchitectureRefactorVerificationBatch.RunCropPersistence', 'ArchitectureRefactorVerificationBatch.RunCharacterDefinitions', 'ArchitectureRefactorVerificationBatch.RunEquipmentEvolution', 'ArchitectureRefactorVerificationBatch.RunConsumablePolicies', 'ArchitectureRefactorVerificationBatch.RunConsumableExecution')) {
+    $qaArchitectureCoreParameters = @('ExecuteMethod','OutputDirectory','Mode','UnityExecutable','SerializedStartup')
+    if ($Mode -ne 'edit' -or @($PSBoundParameters.Keys | Where-Object { $_ -notin $qaArchitectureCoreParameters }).Count -ne 0) {
+        throw 'Architecture verification requires its dedicated edit-mode entry without selectors or resume inputs.'
+    }
+}
 if ($PSBoundParameters.ContainsKey('SerializedStartup')) {
     $qaSerializedSelectors = @($PSBoundParameters.GetEnumerator() | Where-Object {
         $_.Key -ne 'SerializedStartup' -and
@@ -164,7 +200,23 @@ if ($PSBoundParameters.ContainsKey('SerializedStartup')) {
         $ExecuteMethod -eq 'ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatch'
     $qaSerializedGameWorldLineage = $Mode -eq 'play' -and $qaSerializedSelectors.Count -eq 0 -and
         $ExecuteMethod -eq 'GameWorldLineageDebugScenarios.RequestActualContainerForBatch'
+    $qaSerializedCharacterRestoreLifetime = $Mode -eq 'play' -and $qaSerializedSelectors.Count -eq 0 -and
+        $ExecuteMethod -eq 'GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatch'
+    $qaSerializedRestoreOutcome = $Mode -eq 'play' -and $qaSerializedSelectors.Count -eq 0 -and
+        $ExecuteMethod -eq 'GameWorldLineageDebugScenarios.RequestRestoreOutcomeForBatch'
+    $qaSerializedMovementOwnership = $Mode -eq 'play' -and $qaSerializedSelectors.Count -eq 0 -and
+        $ExecuteMethod -in @('MovementOwnershipDebugScenarios.RequestActualContainerForBatch', 'MovementOwnershipDebugScenarios.RequestDestinationlessForBatch', 'MovementOwnershipDebugScenarios.RequestDeprivationForBatch', 'MovementOwnershipDebugScenarios.RequestPrimitiveForBatch', 'MovementOwnershipDebugScenarios.RequestRestockForBatch', 'MovementOwnershipDebugScenarios.RequestMedicalTransferForBatch', 'MovementOwnershipDebugScenarios.RequestWorkAccidentForBatch', 'MovementOwnershipDebugScenarios.RequestFactionReinforcementForBatch', 'MovementOwnershipDebugScenarios.RequestSkillTargetingForBatch')
+    $qaSerializedNarrativeContextLifetime = $Mode -eq 'play' -and $qaSerializedSelectors.Count -eq 0 -and
+        $ExecuteMethod -eq 'NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch'
+    $qaSerializedDestructiveDrain = $Mode -eq 'play' -and $qaSerializedSelectors.Count -eq 0 -and
+        $ExecuteMethod -eq 'PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatch'
+    $qaSerializedArchitectureCore = $Mode -eq 'edit' -and $qaSerializedSelectors.Count -eq 0 -and
+        $ExecuteMethod -in @('ArchitectureRefactorVerificationBatch.RunCore', 'ArchitectureRefactorVerificationBatch.RunCampaign', 'ArchitectureRefactorVerificationBatch.RunProductionBills', 'ArchitectureRefactorVerificationBatch.RunBuildings', 'ArchitectureRefactorVerificationBatch.RunDefense', 'ArchitectureRefactorVerificationBatch.RunBuildingVisual', 'ArchitectureRefactorVerificationBatch.RunCropPersistence', 'ArchitectureRefactorVerificationBatch.RunCharacterDefinitions', 'ArchitectureRefactorVerificationBatch.RunEquipmentEvolution', 'ArchitectureRefactorVerificationBatch.RunConsumablePolicies', 'ArchitectureRefactorVerificationBatch.RunConsumableExecution')
     if (-not $qaSerializedCropEntry -and -not $qaSerializedComposition -and -not $qaSerializedGameWorldLineage -and
+        -not $qaSerializedCharacterRestoreLifetime -and
+        -not $qaSerializedRestoreOutcome -and
+        -not $qaSerializedNarrativeContextLifetime -and -not $qaSerializedMovementOwnership -and -not $qaSerializedArchitectureCore -and
+        -not $qaSerializedDestructiveDrain -and
         ((-not $qaSerializedEntry -and -not $qaSerializedObserverEntry) -or $qaSerializedSelectors.Count -ne 1)) {
         throw 'SerializedStartup accepts only explicitly owned serialized verification entries.'
     }
@@ -327,6 +379,19 @@ if ($Mode -ne 'edit' -and $ExecuteMethod -notin @(
         'DungeonFullWorldRoundTripPlayModeFacade.RequestIsolatedBatch',
         'ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatch',
         'GameWorldLineageDebugScenarios.RequestActualContainerForBatch',
+        'GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatch',
+        'GameWorldLineageDebugScenarios.RequestRestoreOutcomeForBatch',
+        'MovementOwnershipDebugScenarios.RequestActualContainerForBatch',
+        'MovementOwnershipDebugScenarios.RequestDestinationlessForBatch',
+        'MovementOwnershipDebugScenarios.RequestDeprivationForBatch',
+        'MovementOwnershipDebugScenarios.RequestPrimitiveForBatch',
+        'MovementOwnershipDebugScenarios.RequestRestockForBatch',
+        'MovementOwnershipDebugScenarios.RequestMedicalTransferForBatch',
+        'MovementOwnershipDebugScenarios.RequestWorkAccidentForBatch',
+        'MovementOwnershipDebugScenarios.RequestFactionReinforcementForBatch',
+        'MovementOwnershipDebugScenarios.RequestSkillTargetingForBatch',
+        'PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatch',
+        'NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch',
         'V20CampaignDebugScenarios.RequestWim044IsolatedBatch',
         'DungeonFullWorldRoundTripPlayModeFacade.RequestInjuredReturneeSaveRegression',
         'DungeonFullWorldRoundTripPlayModeFacade.RequestExteriorDepartureExposureRegression',

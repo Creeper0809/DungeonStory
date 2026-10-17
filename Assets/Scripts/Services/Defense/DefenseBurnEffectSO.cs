@@ -11,7 +11,7 @@ public sealed class DefenseBurnEffectSO : DefenseEffectSO
     public float EnvironmentalIgnitionIntensity =>
         Mathf.Clamp01(environmentalIgnitionIntensity);
 
-    public override void Apply(DefenseEffectContext context)
+    public override void Apply(IDefenseEffectCommands context)
     {
         context.ApplyStatus(DefenseStatusKind.Burn, Amount, Duration, Stacks);
         if (EnvironmentalIgnitionIntensity > 0f)

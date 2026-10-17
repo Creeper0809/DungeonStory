@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "nativeRun": "native-final-restock-regression-current-r1",
+  "report": "work-restock-actual.txt",
+  "reportSha256": "125242d4137d00c850a700487baba5f52dd6aa862b3bf3726525ac4212ffa3d6",
+  "terminalUnityExit": 0,
+  "sourceAndAssemblyBinding": "verification-final-integration-r4.json current Runtime/Editor unchanged",
+  "relatedChange": "Immediate outgoing actor scheduler/live/lifetime deregistration after committed carry/restock ownership handoff",
+  "verified": [
+    "Existing native work failure matrix and actual selector reinjection preserve run/command/cargo/leases",
+    "Pending/no-path/door cancel and actual arrival/pickup/shop transfer conserve physical quantity4 to4",
+    "Official104-section pending/carried restore6; repeated cancellation8; live old-owner replacement2 conserve lease/shop/cargo and unique fresh actor; baseline restored"
+  ],
+  "scope": "Existing exact restock entry; controlled route budget/doors/faults and production natural physical handoff in actual GameplayScene, not real model inference.",
+  "assemblies": {
+    "Library\\ScriptAssemblies\\Assembly-CSharp-Editor.dll": "661d5d91d097a0afb30c66f31311c1d4aebd198821a751ce96ad2d724c955fd3",
+    "Library\\ScriptAssemblies\\Assembly-CSharp.dll": "2deb585c0625a095d8218abb07abc498d84554c8fa263690a84260a4b1261815",
+    "Library\\ScriptAssemblies\\DungeonStory.Buildings.dll": "e939738b02c6aebe5319a12ac7b476004597efdd6547c301e8e167cd77833b14",
+    "Library\\ScriptAssemblies\\DungeonStory.Economy.dll": "c6dffaa8e88a006e4f91612eb29108a2035cc6ce4d1462908d7615195cb43454",
+    "Library/ScriptAssemblies/DungeonStory.Factions.dll": "c384de7f49e87ab603f7750636594e035adfc7d8ed6cb079b0fe29caf43a04e2",
+    "Library/ScriptAssemblies/DungeonStory.Survival.dll": "e97861eefc80a99d13aa19daa78719bdccc95deb19ff168a656a8b303f9273ff"
+  }
+}

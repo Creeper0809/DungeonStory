@@ -113,7 +113,7 @@ public static class FacilityCrimeRiskDebugScenarios
             float chance = FacilityCrimeEditorTestDependencies.Evaluator
                 .CalculateShopliftingChance(Context(fixture.Building));
             RequireApproximately(chance, 0.17f, "building ability modifier");
-            Require(fixture.Data.Abilities.OfType<IBuildingCrimeRiskModifier>().Count() == 1,
+            Require(fixture.Building.GetRuntimeAbilities<IBuildingCrimeRiskModifier>().Count() == 1,
                 "Crime modifier is not exposed through the building ability list.");
         }
         finally
@@ -125,8 +125,9 @@ public static class FacilityCrimeRiskDebugScenarios
     private static void VerifySpeciesDataMultiplier()
     {
         BuildingFixture fixture = new BuildingFixture();
-        CharacterSpeciesSO species = ScriptableObject.CreateInstance<CharacterSpeciesSO>();
-        CharacterSO characterData = ScriptableObject.CreateInstance<CharacterSO>();
+        CharacterSO characterData = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+            CharacterType.Customer, "Crime Risk Scenario Actor", "Slime");
+        CharacterSpeciesSO species = UnityEngine.Object.Instantiate(characterData.species);
         GameObject actorObject = null;
         try
         {
@@ -135,10 +136,20 @@ public static class FacilityCrimeRiskDebugScenarios
             species.incidentType = CharacterSpeciesIncidentType.None;
             characterData.characterType = CharacterType.Customer;
             characterData.characterName = "Crime Risk Scenario Actor";
+            characterData.ConfigureStableIdentity("character:qa:crime-risk", "visual:qa:crime-risk");
+            characterData.traits = Array.Empty<CharacterTraitSO>();
             characterData.species = species;
             characterData.speciesTag = species.speciesTag;
             actorObject = CharacterAiPlanDebugFixtures.CreateActorObject("Crime Risk Scenario Actor");
             CharacterActor actor = actorObject.GetComponent<CharacterActor>();
+            var profileFactory = new ScenarioProfileFactory(characterData);
+            typeof(CharacterActor).GetField("runtimeProfileFactory",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .SetValue(actor, profileFactory);
+            typeof(CharacterProgression).GetField("profileProjector",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                .SetValue(actorObject.GetComponent<CharacterProgression>(), new CharacterProgressionProfileProjector(
+                    new ResourceGameContentCatalog(new UnityGameContentRootLoader()), profileFactory));
             actor.Initialize(characterData);
             foreach (CharacterCondition condition in Enum.GetValues(typeof(CharacterCondition)))
             {
@@ -244,6 +255,7 @@ public static class FacilityCrimeRiskDebugScenarios
             Object = new GameObject("Crime Risk Scenario Building");
             Building = Object.AddComponent<BuildableObject>();
             Building.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+            CharacterAiEditorTestDependencies.Inject(Building);
             Building.Initialization(Data, Vector2Int.zero);
         }
 
@@ -255,6 +267,20 @@ public static class FacilityCrimeRiskDebugScenarios
         {
             if (Object != null) UnityEngine.Object.DestroyImmediate(Object);
             if (Data != null) UnityEngine.Object.DestroyImmediate(Data);
+        }
+    }
+
+    private sealed class ScenarioProfileFactory : ICharacterRuntimeProfileFactory
+    {
+        private readonly CharacterSO definition;
+        internal ScenarioProfileFactory(CharacterSO definition) { this.definition = definition; }
+        public CharacterRuntimeProfile Create(CharacterSpawnRequest request)
+        {
+            if (!request.CharacterArchetypeId.Equals(definition.DefinitionId)
+                || !request.PhenotypeSpeciesId.Equals(definition.species.DefinitionId)
+                || request.ExpressedTraitIds.Count != 0 || request.LatentTraitIds.Count != 0)
+                throw new InvalidOperationException("Crime fixture profile identity differs from its explicit definition.");
+            return CharacterRuntimeProfileFactory.CreateEditorSnapshot(definition);
         }
     }
 }

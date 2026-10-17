@@ -1,0 +1,15 @@
+{
+  "entry": "ArchitectureRefactorVerificationBatch.RunBuildings -> RunWorkerAllocationLifetimeForArchitectureBatch",
+  "evidence": [
+    "native-buildings-current-r1/unity.log"
+  ],
+  "scope": "Native facility/actor/pose/registry with controlled movement: rejected admission/approach, cancel/retry, exact handle disposal, stale disposal preserving replacement/new pose; registered runtime bindings/state JSON groups also PASS. Final buildings marker and exit 0.",
+  "target": "C4",
+  "status": "implemented_and_targeted_actual_verified",
+  "currentCompile": "verification-native-current-source-r2.json",
+  "limitations": [
+    "Controlled native fixture scope; no natural UI/AI claim.",
+    "Cold official whole-world integration remains a separate final goal gate."
+  ],
+  "goalStatus": "active"
+}

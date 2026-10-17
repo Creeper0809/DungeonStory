@@ -14,7 +14,7 @@ public sealed class DefenseGuardAttackEffectSO : DefenseEffectSO
         set => damageReason = value;
     }
 
-    public override void Apply(DefenseEffectContext context)
+    public override void Apply(IDefenseEffectCommands context)
     {
         string reason = string.IsNullOrWhiteSpace(damageReason) ? DisplayName : damageReason;
         context.ApplyDamage(Amount, reason);

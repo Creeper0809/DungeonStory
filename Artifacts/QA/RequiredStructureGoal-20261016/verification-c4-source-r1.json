@@ -1,0 +1,137 @@
+{
+  "status": "WORKER_LIFETIME_SPLIT_AND_FIXED_CURRENT_MANAGED_COMPILE_PASS_UNITY_PENDING",
+  "goalStatus": "active",
+  "completedTargets": 6,
+  "totalTargets": 32,
+  "allGoalTargetsComplete": false,
+  "sourcePin": {
+    "drift": 0,
+    "path": "source-pin-c4-worker-r1.json",
+    "files": 1346
+  },
+  "toolPin": {
+    "drift": 0,
+    "path": "tool-pin-c4-worker-r1.json",
+    "files": 9
+  },
+  "allowedOldDrift": [
+    "Assets/Scripts/Services/Buildings/Facility.cs",
+    "Assets/Scripts/Services/Buildings/Shop.cs",
+    "Assets/Scripts/Services/Character/Ability/AbilityWork.cs",
+    "Assets/Scripts/Services/Character/Core/CharacterBuildingVisitorPort.cs",
+    "Assets/Scripts/Services/Character/Work/WorkRunRuntime.cs",
+    "Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs",
+    "Assets/Scripts/Services/Economy/Editor/V27DomainClusterClosureDebugScenarios.cs",
+    "Assets/Scripts/Services/Grid/Building/ConstructionSite.cs",
+    "Assets/Scripts/Services/Infrastructure/Editor/ArchitectureRefactorVerificationBatch.cs"
+  ],
+  "currentSourceFiles": [
+    "Assets/Scripts/Services/Buildings/Facility.cs",
+    "Assets/Scripts/Services/Buildings/Shop.cs",
+    "Assets/Scripts/Services/Character/Ability/AbilityWork.cs",
+    "Assets/Scripts/Services/Character/Core/CharacterBuildingVisitorPort.cs",
+    "Assets/Scripts/Services/Character/Work/WorkRunRuntime.cs",
+    "Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs",
+    "Assets/Scripts/Services/Economy/Editor/V27DomainClusterClosureDebugScenarios.cs",
+    "Assets/Scripts/Services/Grid/Building/ConstructionSite.cs",
+    "Assets/Scripts/Services/Infrastructure/Editor/ArchitectureRefactorVerificationBatch.cs",
+    "Assets/Scripts/Models/Buildings/Core/BuildingInteractionContracts.cs",
+    "Assets/Scripts/Models/Buildings/Core/BuildingVisitorPorts.cs",
+    "Assets/Scripts/Services/Buildings/BuildingWorkerAllocation.cs",
+    "Assets/Scripts/Services/Character/AI/Editor/CharacterAiPriorityCornerCaseDebugScenarios.cs",
+    "Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerEconomyServiceEntryE2EDebugScenarios.cs",
+    "Assets/Scripts/Services/Character/Core/CharacterActor.cs",
+    "Assets/Scripts/Services/Character/Core/CharacterVisual.cs"
+  ],
+  "sourceWindow": "All authors READY/FROZEN; SOURCE_EDIT closed; Unity not opened",
+  "ownership": {
+    "newProductionClasses": 1,
+    "newMetas": 1,
+    "presentation": "Actor-local token; actual CharacterVisual layer revision and movement version reject stale pose cleanup",
+    "serializedDtoGuidsAssets": "preserved",
+    "run": "Exact worker handle separate from execution cancellation resource",
+    "facility": "Single allocation authority replaces worker fields; construction retains its existing capacity/slot authority",
+    "newContractInterfaces": 1,
+    "newRuntimeOwner": "BuildingWorkerAllocation owns approach/action+run currentness/movement result/pose/disposal; no saved state"
+  },
+  "tests": {
+    "sourceParity": {
+      "constructorsSerializedBase": "exact",
+      "sharedRun": "Remaining bodies exact after scope guards",
+      "existingPublicMethods": 217,
+      "executedMembers": "matched",
+      "retainedMethods": 445,
+      "workBody": "Only admission/currentness/8 scoped releases"
+    },
+    "scope": "Complete allocation owner + actual extracted facade/actor/ability/grant members, explicit actor/movement/owner/grid/admission/coroutine/workModule doubles; not native gameplay",
+    "controlledRunReentry": 12,
+    "controlledApproach": 28,
+    "intendedBaselineRegressions": 4,
+    "syntax": {
+      "files": 147,
+      "errors": 0
+    }
+  },
+  "managedCompilation": {
+    "runtime": {
+      "sources": 2713,
+      "errors": 0,
+      "warnings": 3
+    },
+    "evidence": "c4-worker-allocation/managed-current-r2/results.json",
+    "Buildings": {
+      "sources": 32,
+      "evidence": "c4-worker-allocation/managed-current-r1/results.json",
+      "errors": 0,
+      "warnings": 0
+    },
+    "Economy": {
+      "sources": 95,
+      "evidence": "c4-worker-allocation/managed-current-r1/results.json",
+      "errors": 0,
+      "warnings": 0
+    },
+    "scope": "Existing Unity Csc defines/references/analyzers with current source discovery. All default runtime/Editor + changed Buildings/Economy current sources compiled, remaining assemblies referenced cached. No Library outputs changed.",
+    "sourceInventory": "Existing runtime rsp2687 all retained +26 current files; existing Editor1021 all retained; existing omitted0",
+    "notCovered": "Unity import/ILPP/full-current-project/native execution",
+    "sourceReferenceDrift": 0,
+    "editor": {
+      "sources": 1021,
+      "errors": 0,
+      "warnings": 23
+    }
+  },
+  "consumerFix": "G3 source guard had 7 links passed to 6-role constructor. Same-owner material proof folded into terminal link, all original fragments and six-role gate preserved; Editor CS1729 corrected.",
+  "nativeFixture": "RunWorkerAllocationLifetimeForArchitectureBatch uses actual facility/actor/pose/registry with controlled movement, wired RunBuildings and compiled; NOT_RUN",
+  "officialRestoreNaturalAi": "NOT_RUN; existing FacilityUseContinuation and Work live/restore groups still required",
+  "earlierFailuresPreserved": "Root limited ABI r1-r4 failed from missing same-assembly closure/type identity; source2 boundary r5 superseded by current full default Csc. Probe r1 definite-assignment setup fixed; parity tool signature/explicit-interface/stub selection fixes preserved; no gameplay assertion weakened.",
+  "Unity": "NOT_RUN",
+  "fullCurrentUnityCompilation": "NOT_RUN",
+  "knowledgeBase": {
+    "query": "Facility AllocateWorker",
+    "preEditFailures": 194,
+    "preEditStatus": "stale",
+    "action": "Original source fallback; related index batch open, no rebuild"
+  },
+  "nextPriority": "C5 CaptivityRuntime / C6 WildlifeCaptureRuntime source/caller/transaction ownership review; all previous actual validation remains required",
+  "evidence": [
+    "c4-worker-allocation/worker-r4.txt",
+    "c4-worker-allocation/worker-run-r1.txt",
+    "c4-worker-allocation/static-parity-r6.txt",
+    "c4-worker-allocation/managed-current-r1/results.json",
+    "c4-worker-allocation/managed-current-r2/results.json",
+    "c4-worker-allocation/managed-current-r2/post-check.json",
+    "verification-c4-source-r1.json"
+  ],
+  "committedOrPushed": false,
+  "finalChecks": {
+    "sourceToolCompilerDrift": 0,
+    "compilerSourceFiles": 3861,
+    "relatedProcesses": 0,
+    "reportLocalLinks": 626,
+    "missingLocalLinks": 0,
+    "newGuidUnique": true,
+    "authors": "READY/FROZEN",
+    "sourceEdit": "CLOSED"
+  }
+}

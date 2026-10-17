@@ -3,14 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using VContainer;
 
-public interface IItemDefinitionCatalog
-{
-    IReadOnlyList<ItemDefinitionSO> All { get; }
-    bool TryGet(ItemDefinitionId itemId, out ItemDefinitionSO definition);
-    ItemDefinitionSO GetRequired(ItemDefinitionId itemId);
-    IReadOnlyList<string> Validate();
-}
-
 /// <summary>
 /// The single authoritative item-definition index. Domain catalogs are read-only projections
 /// over this index; they must not invent items when an ID is missing.

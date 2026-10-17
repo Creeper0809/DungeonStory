@@ -1,0 +1,32 @@
+{
+  "status": "PASS",
+  "documents": {
+    "HANDOFF.md": "26a33f63aa8385f02a10e8111549c359f9d78aab017c2b217d6672e214e7aed1",
+    "task_plan.md": "328453323b2b947b90df6b5df4734b7ceb5785359e6554ee73a417ea71709f13",
+    "findings.md": "16ecb02de228b004cb3534ea8eca2fe32f1726c8f064c858d15de5c6522bbf11",
+    "progress.md": "0991f59b9930d2fe2c98523b1122a62523de97fbd48df3c3e14fdb028cf5f1f9",
+    "docs/code-audit/god-class-and-required-fixes-2026-10-16.md": "1d5fb54304ae3d618c10b87c6c4aa4066c5f15c62f36aa076634838015d964a2",
+    "docs/dev/unity-workflow.md": "332d1bc9291b7542c54b5e50a187e53f56445986124828d3f2e3599decc74289"
+  },
+  "localLinks": 676,
+  "broken": [],
+  "finalTableTargets": 32,
+  "scopedDiffExit": 0,
+  "scopedDiffLog": "final-goal-scoped-diff-check-r2.log",
+  "productionFiles": [
+    "Assets/Scripts/Services/Character/Core/CharacterActor.cs",
+    "Assets/Scripts/Services/Character/Ability/AbilityMove.cs",
+    "Assets/Scripts/Services/Factions/FactionReinforcementMaterializer.cs",
+    "Assets/Scripts/Services/Factions/FactionRuntime.cs",
+    "Assets/Scripts/Services/Infrastructure/Registration/DungeonFactionWarRegistration.cs"
+  ],
+  "editorFiles": [
+    "Assets/Scripts/Services/Factions/Editor/FactionCargoPublicationDebugScenarios.cs",
+    "Assets/Scripts/Services/Character/AI/Editor/MovementOwnershipDebugScenarios.cs"
+  ],
+  "originalLocalReinforcementScenario": "body to EOF exact against final-integration/before snapshot",
+  "newSourceFiles": 0,
+  "scope": "Changed final documents and final integration source boundaries; native execution is in separate receipts.",
+  "previousStaticReceipt": "verification-final-static-documents-r1.json",
+  "finalDocumentPrecision": "Only faction report has explicit consoleErrors counter; both native reports and terminal exits independently PASS."
+}

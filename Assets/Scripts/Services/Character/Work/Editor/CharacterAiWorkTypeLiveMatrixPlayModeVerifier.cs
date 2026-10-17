@@ -1966,7 +1966,7 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
         CharacterMedicalOrder Current() => medical.ActiveOrders.Single(value => value.orderId == orderId);
         double ExecutorLaborCarry(bool requireExecutor)
         {
-            FieldInfo executorField = typeof(AbilityWork).GetField("taskExecutor",
+            PropertyInfo executorField = typeof(AbilityWork).GetProperty("TaskExecutor",
                 BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new InvalidOperationException("W03 executor observation field missing.");
             object executor = executorField.GetValue(work);
@@ -1976,9 +1976,9 @@ public sealed class CharacterAiWorkTypeLiveMatrixPlayModeRunner : MonoBehaviour
                 Require(!requireExecutor, "completed repair executor missing");
                 return 0d;
             }
-            FieldInfo carryField = typeof(WorkTaskExecutor).GetField("actualLaborMilliWuCarry",
+            PropertyInfo carryField = typeof(WorkTaskExecutor).GetProperty("ActualLaborMilliWuCarryForDiagnostics",
                 BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("W03 labor carry observation field missing.");
+                ?? throw new InvalidOperationException("W03 labor carry observation property missing.");
             return (double)carryField.GetValue(executor);
         }
         long TotalLabor()

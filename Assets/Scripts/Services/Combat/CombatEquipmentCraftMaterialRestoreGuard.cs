@@ -571,7 +571,7 @@ public sealed class CombatEquipmentCraftMaterialRestoreGuard :
                             order.destinationY)
                         && string.Equals(
                             value.DestinationId,
-                            ProductionBillRuntime.OutputDestinationPrefix
+                            ProductionBillIdentity.OutputDestinationPrefix
                             + order.facilityPersistentId,
                             StringComparison.Ordinal))
                     && snapshots.Sum(value => (long)value.Quantity)

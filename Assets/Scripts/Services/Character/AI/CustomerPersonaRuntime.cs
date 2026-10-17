@@ -41,20 +41,27 @@ public sealed class CustomerPersonaData
 public static class CustomerPersonaPromptBuilder
 {
     public static NarrativePublicContextMaterial BuildPublicMaterial(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterActor actor)
     {
-        return NarrativeRequestContextBuilder.BuildPublicMaterialForActorWithCurrentNeeds(
+        if (requestContexts == null)
+            throw new ArgumentNullException(nameof(requestContexts));
+        return requestContexts.BuildPublicMaterialForActorWithCurrentNeeds(
             LocalLlmRequestProfiles.Persona.Id,
             actor,
             requireCharacterFact: false,
             requireMotif: false);
     }
 
-    public static string Build(CharacterActor actor) =>
-        BuildEnvelope(actor, BuildPublicMaterial(actor)).Prompt;
+    public static string Build(
+        NarrativeRequestContextBuilder requestContexts,
+        CharacterActor actor) =>
+        BuildEnvelope(actor, BuildPublicMaterial(requestContexts, actor)).Prompt;
 
-    public static NarrativePublicPromptEnvelope BuildEnvelope(CharacterActor actor) =>
-        BuildEnvelope(actor, BuildPublicMaterial(actor));
+    public static NarrativePublicPromptEnvelope BuildEnvelope(
+        NarrativeRequestContextBuilder requestContexts,
+        CharacterActor actor) =>
+        BuildEnvelope(actor, BuildPublicMaterial(requestContexts, actor));
 
     public static NarrativePublicPromptEnvelope BuildEnvelope(
         CharacterActor actor,
@@ -107,6 +114,7 @@ public sealed class CustomerPersonaRuntime : SerializedMonoBehaviour
     [SerializeField, ReadOnly] private string lastPrompt;
     [SerializeField, ReadOnly] private string lastError;
     private ILocalLlmRuntimeProvider llmRuntimeProvider;
+    private NarrativeRequestContextBuilder requestContexts;
     private string activeRequestKey = string.Empty;
     private string activeCandidatePacketHash = string.Empty;
 
@@ -118,8 +126,12 @@ public sealed class CustomerPersonaRuntime : SerializedMonoBehaviour
     public NarrativeInferenceAuditRecord? LastInferenceAudit { get; private set; }
 
     [Inject]
-    public void ConstructCustomerPersonaRuntime(ILocalLlmRuntimeProvider llmRuntimeProvider)
+    public void ConstructCustomerPersonaRuntime(
+        NarrativeRequestContextBuilder requestContexts,
+        ILocalLlmRuntimeProvider llmRuntimeProvider)
     {
+        this.requestContexts = requestContexts
+            ?? throw new ArgumentNullException(nameof(requestContexts));
         this.llmRuntimeProvider = llmRuntimeProvider
             ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));
     }
@@ -159,7 +171,7 @@ public sealed class CustomerPersonaRuntime : SerializedMonoBehaviour
         }
 
         NarrativePublicContextMaterial publicMaterial =
-            CustomerPersonaPromptBuilder.BuildPublicMaterial(actor);
+            CustomerPersonaPromptBuilder.BuildPublicMaterial(requestContexts, actor);
         NarrativePublicPromptEnvelope promptEnvelope =
             CustomerPersonaPromptBuilder.BuildEnvelope(actor, publicMaterial);
         lastPrompt = promptEnvelope.Prompt;

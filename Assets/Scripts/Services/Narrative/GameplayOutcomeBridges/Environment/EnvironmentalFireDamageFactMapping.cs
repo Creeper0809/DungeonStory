@@ -21,7 +21,7 @@ public static class EnvironmentalFireDamageFactMapping
         var command = new EnvironmentalFireDamageCommand(value.operationId, value.fireId,
             new EnvironmentalFireTargetRef((EnvironmentalFireTargetKind)value.targetKind, value.targetId),
             new UnityEngine.Vector2Int(value.positionX, value.positionY), value.intensity, value.requestedDamage);
-        return EnvironmentOutcomeReceiptFactory.CreateFireDamage(command,
+        return EnvironmentalFireOutcomeReceiptFactory.CreateFireDamage(command,
             new EnvironmentalFireDamageResult(true, value.appliedDamage, value.targetRemainsCombustible),
             value.targetDisplayName, value.absoluteDay, value.ownerRevision);
     }

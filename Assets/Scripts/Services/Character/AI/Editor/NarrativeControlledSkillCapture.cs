@@ -39,7 +39,7 @@ public static class NarrativeControlledSkillCapture
         CharacterSkillSystemSettingsSO settings = ResolveSettings();
         ValidateAuthoredSettings(settings);
         CharacterSkillGenerationService authority = new(
-            new FixedSettingsProvider(settings),
+            NarrativeRequestContextTestFixture.CreateEmpty(), new FixedSettingsProvider(settings),
             new UnavailableRuntimeProvider(),
             new FixedUiClock());
 
@@ -58,7 +58,7 @@ public static class NarrativeControlledSkillCapture
         IReadOnlyList<RuleOptions> ruleOptions = RequireAllLegalOptions(draft, settings);
         NarrativePublicContextMaterial publicMaterial =
             CharacterSkillPromptBuilder.BuildPublicMaterial(
-                fixture.Progression,
+                NarrativeRequestContextTestFixture.CreateEmpty(), fixture.Progression,
                 publications);
         NarrativePublicPromptEnvelope envelope = CharacterSkillPromptBuilder.BuildEnvelope(
             fixture.Progression,

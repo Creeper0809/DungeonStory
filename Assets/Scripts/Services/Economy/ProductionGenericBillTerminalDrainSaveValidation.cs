@@ -168,7 +168,7 @@ public sealed class ProductionGenericBillTerminalDrainSaveValidation
                 ProductionFacilityDestructiveDrainParticipantIds
                     .GenericProductionBills,
                 expectedOwner);
-        string expectedDestination = ProductionBillRuntime.DestinationPrefix
+        string expectedDestination = ProductionBillIdentity.DestinationPrefix
             + producer.billId;
         if (!string.Equals(producer.ownerStableId,
                 expectedOwner, StringComparison.Ordinal)

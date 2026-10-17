@@ -183,12 +183,10 @@ public sealed class CharacterRuntimeProfile
 
     internal static CharacterRuntimeProfile Create(
         CharacterSpawnRequest request,
-        CharacterSO archetype,
         CharacterSpeciesSO species,
         IEnumerable<CharacterTraitSO> expressedTraits)
     {
         if (request == null) throw new ArgumentNullException(nameof(request));
-        if (archetype == null) throw new ArgumentNullException(nameof(archetype));
         if (species == null) throw new ArgumentNullException(nameof(species));
 
         CharacterTraitSO[] traits = (expressedTraits ?? Array.Empty<CharacterTraitSO>())

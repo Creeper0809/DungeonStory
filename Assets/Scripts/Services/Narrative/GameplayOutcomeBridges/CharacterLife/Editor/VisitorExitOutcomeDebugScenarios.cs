@@ -9,6 +9,12 @@ using UnityEngine;
 
 public static class VisitorExitOutcomeDebugScenarios
 {
+    public static void RunCurrentVisitorExitSaveForBatch()
+    {
+        Require(RunAll(true), "Current visitor-exit save checks failed.");
+        Debug.Log("B91_CURRENT_VISITOR_EXIT_SAVE_BATCH=PASS");
+    }
+
     public static void RunVisitorExitObserverFocusedForBatchMode()
     {
         string output = Environment.GetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT");
@@ -32,6 +38,7 @@ public static class VisitorExitOutcomeDebugScenarios
             VerifyTheftRejectionAndRetry(2);
             VerifyCarryCallbackSourceDrift();
             VerifyDepartureRejectionAndAckLoss();
+            VerifyReturningVisitorHistoricalDeparture();
             VerifyTheftRecoveryThenTerminal(false, false);
             VerifyTheftRecoveryThenTerminal(true, false);
             VerifyTheftRecoveryThenTerminal(true, true);
@@ -177,6 +184,113 @@ public static class VisitorExitOutcomeDebugScenarios
         o.Events.Publish(new VisitorDepartureAppliedEvent(f.Actor.Identity.PersistentId, f.Actor.Identity.DisplayName, 1));
         Require(world.Observations == 2, "Activity observer failed to rebind.");
         Validate(restored, p);
+    }
+
+    private static void VerifyReturningVisitorHistoricalDeparture()
+    {
+        using var f = new TheftFixture("character:b91-returning", 0);
+        using var o = new OutcomeFixture("run:b91-returning");
+        var population = new FakePopulation(f.Actor, Profile(f.Actor, 2));
+        var runtime = Owner(f, population, o.Journal, o.Events);
+        Require(runtime.BeginExit(f.Actor, "macro:first-exit", out var failure), failure);
+        string firstOperationId = population.Current(f.Actor).visitorExitOperation.operationId;
+        Require(runtime.TryCompleteDeparture(f.Actor, "spawner-pool-handoff", out failure), failure);
+        Validate(o, population);
+
+        VisitorExitPublicationSaveData journal = RoundTrip(o.Journal);
+        ProfileEnvelope envelope = DungeonSaveJson.Deserialize<ProfileEnvelope>(
+            DungeonCharacterWorldSaveCodec.SerializeFields(new ProfileEnvelope
+            {
+                profiles = population.CaptureProfiles()
+            }));
+        WorldCharacterProfile returning = envelope.profiles.Single().Clone();
+        CharacterVisitorExitOperationSaveData departure =
+            returning.visitorExitOperation.Clone();
+        VisitorExitPublicationData departureRow = journal.observations.Single();
+        long nextSequence = returning.nextVisitorExitSequence;
+        Require(departure.phase == CharacterVisitorExitPhase.Departed
+            && departure.operationId == firstOperationId
+            && departureRow.departure.operationId == firstOperationId
+            && departureRow.publicationKey == departure.departurePublicationKey
+            && !returning.isVisiting
+            && returning.visitCount == departure.visitCountBefore + 1,
+            "Initial departure did not produce the historical receipt fixture.");
+
+        returning.isVisiting = true;
+        returning.settlementStanding = CharacterSettlementStanding.Visitor;
+        string receiptBeforeValidation = JsonUtility.ToJson(
+            returning.visitorExitOperation);
+        string journalBeforeValidation = JsonUtility.ToJson(journal);
+        VisitorExitFactPreflight.ValidateOwners(journal, new[] { returning });
+        Require(returning.nextVisitorExitSequence == nextSequence
+            && JsonUtility.ToJson(returning.visitorExitOperation)
+                == receiptBeforeValidation
+            && JsonUtility.ToJson(journal) == journalBeforeValidation
+            && returning.visitorExitOperation.operationId == departure.operationId
+            && returning.visitorExitOperation.departurePublicationKey
+                == departure.departurePublicationKey
+            && journal.observations.Single().publicationKey == departureRow.publicationKey
+            && journal.observations.Single().departure.operationId
+                == departureRow.departure.operationId,
+            "Returning validation mutated the sequence, journal key, or historical receipt.");
+
+        WorldCharacterProfile decreased = returning.Clone();
+        decreased.visitCount--;
+        ExpectInvalid(() => VisitorExitFactPreflight.ValidateOwners(
+            journal, new[] { decreased }), "Returning visit-count decrease accepted.");
+        WorldCharacterProfile increased = returning.Clone();
+        increased.visitCount++;
+        ExpectInvalid(() => VisitorExitFactPreflight.ValidateOwners(
+            journal, new[] { increased }), "Returning visit-count increase accepted.");
+        WorldCharacterProfile foreign = returning.Clone();
+        foreign.visitorExitOperation.operationId = "visitor-exit:character:b91-foreign:"
+            + foreign.visitorExitOperation.ownerRevision;
+        ExpectInvalid(() => VisitorExitFactPreflight.ValidateOwners(
+            journal, new[] { foreign }), "Foreign departure operation identity accepted.");
+        WorldCharacterProfile changedKey = returning.Clone();
+        changedKey.visitorExitOperation.departurePublicationKey += ":changed";
+        ExpectInvalid(() => VisitorExitFactPreflight.ValidateOwners(
+            journal, new[] { changedKey }), "Changed departure publication key accepted.");
+        WorldCharacterProfile dead = returning.Clone();
+        dead.isAlive = false;
+        ExpectInvalid(() => VisitorExitFactPreflight.ValidateOwners(
+            journal, new[] { dead }), "Dead returning visitor accepted.");
+        WorldCharacterProfile staff = returning.Clone();
+        staff.isStaff = true;
+        ExpectInvalid(() => VisitorExitFactPreflight.ValidateOwners(
+            journal, new[] { staff }), "Staff returning visitor accepted.");
+        WorldCharacterProfile owner = returning.Clone();
+        owner.isOwner = true;
+        ExpectInvalid(() => VisitorExitFactPreflight.ValidateOwners(
+            journal, new[] { owner }), "Owner returning visitor accepted.");
+        WorldCharacterProfile prepared = returning.Clone();
+        prepared.settlementStanding = CharacterSettlementStanding.PreparedCandidate;
+        ExpectInvalid(() => VisitorExitFactPreflight.ValidateOwners(
+            journal, new[] { prepared }), "Prepared-candidate returning visitor accepted.");
+
+        using var restored = new OutcomeFixture("run:b91-returning-restored");
+        restored.RestoreLedger(o.Ledger.CaptureGameplayOutcomes());
+        restored.Journal.Restore(journal);
+        population.RestoreProfiles(new[] { returning });
+        population.BindActor(population.Current(f.Actor), f.Actor);
+        f.Actor.SetLifecycleState(CharacterLifecycleState.Active);
+        VisitorExitPublicationData historical = restored.Journal.Capture().observations.Single();
+        string historicalJournal = JsonUtility.ToJson(restored.Journal.Capture());
+        var resumed = Owner(f, population, restored.Journal, restored.Events,
+            new EditorFixedGameCalendar(20));
+        Require(resumed.BeginExit(f.Actor, "macro:returning-exit", out failure), failure);
+        WorldCharacterProfile active = population.Current(f.Actor);
+        VisitorExitPublicationData preserved = restored.Journal.Capture().observations.Single();
+        Require(active.visitorExitOperation.phase == CharacterVisitorExitPhase.ExitPending
+            && active.visitorExitOperation.ownerRevision == nextSequence
+            && active.visitorExitOperation.operationId == "visitor-exit:"
+                + active.persistentId + ":" + nextSequence
+            && active.nextVisitorExitSequence == nextSequence + 1
+            && JsonUtility.ToJson(restored.Journal.Capture()) == historicalJournal
+            && preserved.publicationKey == historical.publicationKey
+            && preserved.departure.operationId == historical.departure.operationId,
+            "Returning visitor did not begin a new revision over preserved history.");
+        Validate(restored, population);
     }
 
     private static void VerifyTheftRecoveryThenTerminal(bool depart, bool noCanonicalAck)

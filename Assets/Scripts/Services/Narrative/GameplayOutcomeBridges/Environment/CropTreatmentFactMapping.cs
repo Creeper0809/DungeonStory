@@ -41,7 +41,7 @@ public static class CropTreatmentFactMapping
             throw new InvalidOperationException(
                 "Only an applied crop-treatment fact can be captured.");
 
-        return EnvironmentOutcomeReceiptFactory.CreateCropTreatment(
+        return CropProductionOutcomeReceiptFactory.CreateCropTreatment(
             source,
             fact.PlotId.Value,
             source.plotDisplayName,

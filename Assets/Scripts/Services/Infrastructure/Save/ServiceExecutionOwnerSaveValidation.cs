@@ -230,7 +230,7 @@ public sealed class ServiceExecutionOwnerSaveValidation :
         {
             if (plan == null) throw new InvalidOperationException("Treatment owner missing.");
             if (string.IsNullOrEmpty(plan.serviceSessionId)) continue;
-            if (plan.operationId != SurvivalFoodRuntime.TreatmentOperationPrefix + plan.serviceSessionId)
+            if (plan.operationId != SurvivalTreatmentIdentity.TreatmentOperationPrefix + plan.serviceSessionId)
                 report.AddError("Treatment operation/session identity mismatch: " + plan.operationId);
             if (active.ContainsKey(plan.serviceSessionId))
             {
@@ -245,7 +245,7 @@ public sealed class ServiceExecutionOwnerSaveValidation :
         foreach (CharacterDetoxTreatmentPlanSaveData plan in consumables.activeDetoxTreatmentPlans)
         {
             if (plan == null) throw new InvalidOperationException("Detox owner missing.");
-            const string prefix = SurvivalFoodRuntime.DetoxOperationPrefix;
+            const string prefix = SurvivalTreatmentIdentity.DetoxOperationPrefix;
             if (string.IsNullOrEmpty(plan.operationId) || !plan.operationId.StartsWith(prefix, StringComparison.Ordinal)
                 || plan.operationId.Length == prefix.Length)
             {

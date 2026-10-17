@@ -41,6 +41,7 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
     private ILocalLlmRuntimeProvider llmRuntimeProvider;
     private IRandomStream socialRandom;
     private ICharacterSocialMemoryFactory socialMemoryFactory;
+    private NarrativeRequestContextBuilder requestContexts;
     private GlobalFacilityReputationLedger globalReputationLedger;
     private SocialRumorPromptComposer promptComposer;
 
@@ -98,6 +99,7 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
 
     [Inject]
     public void ConstructSocialReputationRuntime(
+        NarrativeRequestContextBuilder requestContexts,
         ILocalLlmRuntimeProvider llmRuntimeProvider,
         ICharacterWorldQuery characterWorldQuery,
         IBuildingWorldQuery buildingWorldQuery,
@@ -106,6 +108,8 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
         IRandomStreamProvider randomStreamProvider,
         IUiClock uiClock)
     {
+        this.requestContexts = requestContexts
+            ?? throw new ArgumentNullException(nameof(requestContexts));
         this.llmRuntimeProvider = llmRuntimeProvider
             ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));
         this.characterWorldQuery = characterWorldQuery
@@ -120,6 +124,9 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
         socialRandom = (randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
             .Get("social-reputation");
+        promptComposer = new SocialRumorPromptComposer(
+            this.requestContexts,
+            this.buildingWorldQuery);
 
         if (isActiveAndEnabled)
         {
@@ -371,7 +378,9 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
 
     private SocialRumorPromptComposer RequirePromptComposer()
     {
-        return promptComposer ??= new SocialRumorPromptComposer(RequireBuildingWorldQuery());
+        return promptComposer
+            ?? throw new InvalidOperationException(
+                $"{nameof(SocialReputationRuntime)} requires {nameof(NarrativeRequestContextBuilder)} injection.");
     }
 
     private GlobalFacilityReputationLedger RequireGlobalReputationLedger()

@@ -49,12 +49,7 @@ public sealed class EnvironmentalFireResourceFactPreflight : IDungeonSavePreflig
             {
                 if (row == null || !Relevant(row.producerId)) continue;
                 string key = new GameplayResultKey(row.producerId, new GameplayOperationId(row.operationId), row.commitRevision, row.localResultIndex).ToString();
-                Add(key, new GameplayOutcomeTombstoneSnapshot
-                {
-                    runId = row.runId, sequence = row.sequence, producerId = row.producerId, operationId = row.operationId,
-                    commitRevision = row.commitRevision, localResultIndex = row.localResultIndex, ownerRevision = row.ownerRevision,
-                    canonicalHash = row.immutablePayloadHash, terminalTier = NarrativeMemoryTier.Forgotten
-                });
+                Add(key, GameplayOutcomeSnapshotCodec.CaptureTombstoneIdentity(row));
                 if (incoming.outbox.Contains(row)) undelivered.Add(key);
             }
             foreach (var row in incoming.tombstones)
@@ -93,7 +88,8 @@ public sealed class EnvironmentalFireResourceFactPreflight : IDungeonSavePreflig
                         || debit.publicationDelivered && undelivered.Contains(expected))))
                     throw new InvalidOperationException("fire-resource-publication-proof-conflict");
                 var subset = new GameplayOutcomeLedgerSaveData
-                    { runId = incoming.runId, worldEpoch = incoming.worldEpoch, nextSequence = incoming.nextSequence };
+                    { runId = incoming.runId, worldEpoch = incoming.worldEpoch,
+                    revision = incoming.revision, nextSequence = incoming.nextSequence };
                 if (exists) subset.tombstones.Add(canonical);
                 subset.knownResultKeyHighWater = subset.tombstones.Count;
                 var restored = ledger.PrepareGameplayOutcomeRestore(subset);

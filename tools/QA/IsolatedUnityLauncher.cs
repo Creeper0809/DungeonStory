@@ -273,6 +273,19 @@ internal static class IsolatedUnityLauncher
         return method == "DungeonFullWorldRoundTripPlayModeFacade.RequestIsolatedBatch"
             || method == "ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatch"
             || method == "GameWorldLineageDebugScenarios.RequestActualContainerForBatch"
+            || method == "GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatch"
+            || method == "GameWorldLineageDebugScenarios.RequestRestoreOutcomeForBatch"
+            || method == "MovementOwnershipDebugScenarios.RequestActualContainerForBatch"
+            || method == "MovementOwnershipDebugScenarios.RequestDestinationlessForBatch"
+            || method == "MovementOwnershipDebugScenarios.RequestDeprivationForBatch"
+            || method == "MovementOwnershipDebugScenarios.RequestPrimitiveForBatch"
+            || method == "MovementOwnershipDebugScenarios.RequestRestockForBatch"
+            || method == "MovementOwnershipDebugScenarios.RequestMedicalTransferForBatch"
+            || method == "MovementOwnershipDebugScenarios.RequestWorkAccidentForBatch"
+            || method == "MovementOwnershipDebugScenarios.RequestFactionReinforcementForBatch"
+            || method == "MovementOwnershipDebugScenarios.RequestSkillTargetingForBatch"
+            || method == "PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatch"
+            || method == "NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch"
             || method == "V20CampaignDebugScenarios.RequestWim044IsolatedBatch"
             || method == "DungeonFullWorldRoundTripPlayModeFacade.RequestInjuredReturneeSaveRegression"
             || method == "DungeonFullWorldRoundTripPlayModeFacade.RequestExteriorDepartureExposureRegression"
@@ -304,6 +317,44 @@ internal static class IsolatedUnityLauncher
             "Composition closure requires its dedicated PlayMode entry.");
         Require(method != "GameWorldLineageDebugScenarios.RequestActualContainerForBatch" || mode == "play",
             "Game-world lineage requires its dedicated PlayMode entry.");
+        Require(method != "GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatch" || mode == "play",
+            "Character restore lifetime requires its dedicated PlayMode entry.");
+        Require(method != "GameWorldLineageDebugScenarios.RequestRestoreOutcomeForBatch" || mode == "play",
+            "Restore outcome requires its dedicated PlayMode entry.");
+        Require(method != "MovementOwnershipDebugScenarios.RequestActualContainerForBatch" || mode == "play",
+            "Movement ownership requires its dedicated PlayMode entry.");
+        Require(method != "MovementOwnershipDebugScenarios.RequestDestinationlessForBatch" || mode == "play",
+            "Destinationless movement requires its dedicated PlayMode entry.");
+        Require(method != "MovementOwnershipDebugScenarios.RequestDeprivationForBatch" || mode == "play",
+            "Deprivation movement requires its dedicated PlayMode entry.");
+        Require(method != "MovementOwnershipDebugScenarios.RequestPrimitiveForBatch" || mode == "play",
+            "Primitive movement requires its dedicated PlayMode entry.");
+        Require(method != "MovementOwnershipDebugScenarios.RequestRestockForBatch" || mode == "play",
+            "Restock movement requires its dedicated PlayMode entry.");
+        Require(method != "MovementOwnershipDebugScenarios.RequestMedicalTransferForBatch" || mode == "play",
+            "Medical transfer requires its dedicated PlayMode entry.");
+        Require(method != "MovementOwnershipDebugScenarios.RequestWorkAccidentForBatch" || mode == "play",
+            "Work accident requires its dedicated PlayMode entry.");
+        Require(method != "MovementOwnershipDebugScenarios.RequestFactionReinforcementForBatch" || mode == "play",
+            "Faction reinforcement requires its dedicated PlayMode entry.");
+        Require(method != "MovementOwnershipDebugScenarios.RequestSkillTargetingForBatch" || mode == "play",
+            "Skill targeting requires its dedicated PlayMode entry.");
+        Require(method != "PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatch" || mode == "play",
+            "Physical destructive drain requires its dedicated PlayMode entry.");
+        Require(method != "NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch" || mode == "play",
+            "Narrative context lifetime requires its dedicated PlayMode entry.");
+        Require((method != "ArchitectureRefactorVerificationBatch.RunCore"
+                && method != "ArchitectureRefactorVerificationBatch.RunCampaign"
+                && method != "ArchitectureRefactorVerificationBatch.RunProductionBills"
+                && method != "ArchitectureRefactorVerificationBatch.RunBuildings"
+                && method != "ArchitectureRefactorVerificationBatch.RunDefense"
+                && method != "ArchitectureRefactorVerificationBatch.RunBuildingVisual"
+                && method != "ArchitectureRefactorVerificationBatch.RunCropPersistence"
+                && method != "ArchitectureRefactorVerificationBatch.RunCharacterDefinitions"
+                && method != "ArchitectureRefactorVerificationBatch.RunEquipmentEvolution"
+                && method != "ArchitectureRefactorVerificationBatch.RunConsumablePolicies"
+                && method != "ArchitectureRefactorVerificationBatch.RunConsumableExecution") || mode == "edit",
+            "Architecture verification requires its dedicated edit-mode entry.");
         Require(startupProfile == null || startupProfile == "serial-import-job1", "Unknown startup resource profile.");
         if (startupProfile != null)
             Require((mode == "edit" && (method == "FacilityShopPurchaseT01DebugScenarios.RunFromBatch"
@@ -315,11 +366,35 @@ internal static class IsolatedUnityLauncher
                 || method == "MigratedProducerRunOffenseEntryE2EDebugScenarios.RunRelationshipObservationBatch"
                 || method == "ObserverCompositionClosureDebugScenarios.RunForBatch"
                 || method == "PilotInputExperienceProfileExporter.RunForBatch"
+                || method == "ArchitectureRefactorVerificationBatch.RunCore"
+                || method == "ArchitectureRefactorVerificationBatch.RunCampaign"
+                || method == "ArchitectureRefactorVerificationBatch.RunProductionBills"
+                || method == "ArchitectureRefactorVerificationBatch.RunBuildings"
+                || method == "ArchitectureRefactorVerificationBatch.RunDefense"
+                || method == "ArchitectureRefactorVerificationBatch.RunBuildingVisual"
+                || method == "ArchitectureRefactorVerificationBatch.RunCropPersistence"
+                || method == "ArchitectureRefactorVerificationBatch.RunCharacterDefinitions"
+                || method == "ArchitectureRefactorVerificationBatch.RunEquipmentEvolution"
+                || method == "ArchitectureRefactorVerificationBatch.RunConsumablePolicies"
+                || method == "ArchitectureRefactorVerificationBatch.RunConsumableExecution"
                 || method == "V25NarrativeInferenceDebugScenarios.RunSkillNarrativeEvidenceBatch"
                 || method == "MigratedProducerEconomyServiceEntryE2EDebugScenarios.RunFacilityUseObserverBatch"))
                 || (mode == "play" && (method == "DungeonFullWorldRoundTripPlayModeFacade.RequestIsolatedBatch"
                     || method == "ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatch"
-                    || method == "GameWorldLineageDebugScenarios.RequestActualContainerForBatch")),
+                    || method == "GameWorldLineageDebugScenarios.RequestActualContainerForBatch"
+                    || method == "GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatch"
+                    || method == "GameWorldLineageDebugScenarios.RequestRestoreOutcomeForBatch"
+                    || method == "MovementOwnershipDebugScenarios.RequestActualContainerForBatch"
+                    || method == "MovementOwnershipDebugScenarios.RequestDestinationlessForBatch"
+                    || method == "MovementOwnershipDebugScenarios.RequestDeprivationForBatch"
+                    || method == "MovementOwnershipDebugScenarios.RequestPrimitiveForBatch"
+                    || method == "MovementOwnershipDebugScenarios.RequestRestockForBatch"
+                    || method == "MovementOwnershipDebugScenarios.RequestMedicalTransferForBatch"
+                    || method == "MovementOwnershipDebugScenarios.RequestWorkAccidentForBatch"
+                    || method == "MovementOwnershipDebugScenarios.RequestFactionReinforcementForBatch"
+                    || method == "MovementOwnershipDebugScenarios.RequestSkillTargetingForBatch"
+                    || method == "PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatch"
+                    || method == "NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch")),
                 "Serialized startup requires a dedicated supported edit or owned whole-world PlayMode entry.");
         var arguments = new System.Collections.Generic.List<string>
         {
@@ -356,7 +431,33 @@ internal static class IsolatedUnityLauncher
         Require(IsOwnedPlayEntry("ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatch"), "Composition PlayMode entry rejected.");
         Require(!IsOwnedPlayEntry("ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatchUnexpected"), "Prefixed composition entry accepted.");
         Require(IsOwnedPlayEntry("GameWorldLineageDebugScenarios.RequestActualContainerForBatch"), "Game-world lineage PlayMode entry rejected.");
+        Require(IsOwnedPlayEntry("GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatch"), "Character restore lifetime PlayMode entry rejected.");
+        Require(IsOwnedPlayEntry("GameWorldLineageDebugScenarios.RequestRestoreOutcomeForBatch"), "Restore outcome PlayMode entry rejected.");
+        Require(IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestActualContainerForBatch"), "Movement ownership PlayMode entry rejected.");
+        Require(IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestDestinationlessForBatch"), "Destinationless movement PlayMode entry rejected.");
+        Require(IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestDeprivationForBatch"), "Deprivation movement PlayMode entry rejected.");
+        Require(IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestPrimitiveForBatch"), "Primitive movement PlayMode entry rejected.");
+        Require(IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestRestockForBatch"), "Restock movement PlayMode entry rejected.");
+        Require(IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestMedicalTransferForBatch"), "Medical transfer PlayMode entry rejected.");
+        Require(!IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestMedicalTransferForBatchUnexpected"), "Prefixed medical transfer entry accepted.");
+        Require(IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestWorkAccidentForBatch"), "Work accident PlayMode entry rejected.");
+        Require(!IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestWorkAccidentForBatchUnexpected"), "Prefixed work accident entry accepted.");
+        Require(IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestFactionReinforcementForBatch"), "Faction reinforcement PlayMode entry rejected.");
+        Require(!IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestFactionReinforcementForBatchUnexpected"), "Prefixed faction reinforcement entry accepted.");
+        Require(IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestSkillTargetingForBatch"), "Skill targeting PlayMode entry rejected.");
+        Require(!IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestSkillTargetingForBatchUnexpected"), "Prefixed skill targeting entry accepted.");
+        Require(IsOwnedPlayEntry("PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatch"), "Physical destructive-drain PlayMode entry rejected.");
+        Require(!IsOwnedPlayEntry("PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatchUnexpected"), "Prefixed physical destructive-drain entry accepted.");
+        Require(!IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestRestockForBatchUnexpected"), "Prefixed restock movement entry accepted.");
+        Require(!IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestDestinationlessForBatchUnexpected"), "Prefixed destinationless movement entry accepted.");
+        Require(!IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestDeprivationForBatchUnexpected"), "Prefixed deprivation movement entry accepted.");
+        Require(!IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestPrimitiveForBatchUnexpected"), "Prefixed primitive movement entry accepted.");
         Require(!IsOwnedPlayEntry("GameWorldLineageDebugScenarios.RequestActualContainerForBatchUnexpected"), "Prefixed game-world lineage entry accepted.");
+        Require(!IsOwnedPlayEntry("GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatchUnexpected"), "Prefixed character restore lifetime entry accepted.");
+        Require(!IsOwnedPlayEntry("GameWorldLineageDebugScenarios.RequestRestoreOutcomeForBatchUnexpected"), "Prefixed restore outcome entry accepted.");
+        Require(!IsOwnedPlayEntry("MovementOwnershipDebugScenarios.RequestActualContainerForBatchUnexpected"), "Prefixed movement ownership entry accepted.");
+        Require(IsOwnedPlayEntry("NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch"), "Narrative context lifetime PlayMode entry rejected.");
+        Require(!IsOwnedPlayEntry("NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatchUnexpected"), "Prefixed narrative context lifetime entry accepted.");
         Require(!IsOwnedPlayEntry("Wim029CompanionRoleOutcomePlayModeVerifier.RunHaulBatchUnexpected"), "Prefixed PlayMode entry accepted.");
         const string captureRoot = @"C:\DungeonStory-QA";
         string captureReport = Path.Combine(captureRoot, "captivity-wildlife-lifecycle-report.txt");
@@ -380,6 +481,17 @@ internal static class IsolatedUnityLauncher
             "MigratedProducerRunOffenseEntryE2EDebugScenarios.RunRelationshipObservationBatch",
             "ObserverCompositionClosureDebugScenarios.RunForBatch",
             "PilotInputExperienceProfileExporter.RunForBatch",
+            "ArchitectureRefactorVerificationBatch.RunCore",
+            "ArchitectureRefactorVerificationBatch.RunCampaign",
+            "ArchitectureRefactorVerificationBatch.RunProductionBills",
+            "ArchitectureRefactorVerificationBatch.RunBuildings",
+            "ArchitectureRefactorVerificationBatch.RunDefense",
+            "ArchitectureRefactorVerificationBatch.RunBuildingVisual",
+            "ArchitectureRefactorVerificationBatch.RunCropPersistence",
+            "ArchitectureRefactorVerificationBatch.RunCharacterDefinitions",
+            "ArchitectureRefactorVerificationBatch.RunEquipmentEvolution",
+            "ArchitectureRefactorVerificationBatch.RunConsumablePolicies",
+            "ArchitectureRefactorVerificationBatch.RunConsumableExecution",
             "MigratedProducerEconomyServiceEntryE2EDebugScenarios.RunFacilityUseObserverBatch",
             "V25NarrativeInferenceDebugScenarios.RunSkillNarrativeEvidenceBatch" })
             Require(BuildUnityArguments(captureRoot, entry, captureRoot, "edit", "serial-import-job1")
@@ -397,8 +509,93 @@ internal static class IsolatedUnityLauncher
             captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
                 new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
             "Serialized game-world lineage PlayMode arguments differ.");
+        Require(BuildUnityArguments(captureRoot, "GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatch",
+            captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+            "Serialized character restore lifetime PlayMode arguments differ.");
+        Require(BuildUnityArguments(captureRoot, "GameWorldLineageDebugScenarios.RequestRestoreOutcomeForBatch",
+            captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+            "Serialized restore outcome PlayMode arguments differ.");
+        Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestActualContainerForBatch",
+            captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+            "Serialized movement ownership PlayMode arguments differ.");
+        Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestDestinationlessForBatch",
+            captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+            "Serialized destinationless movement PlayMode arguments differ.");
+        Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestDeprivationForBatch",
+            captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+            "Serialized deprivation movement PlayMode arguments differ.");
+        Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestPrimitiveForBatch",
+            captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+            "Serialized primitive movement PlayMode arguments differ.");
+        Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestRestockForBatch",
+            captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+            "Serialized restock movement PlayMode arguments differ.");
+        Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestMedicalTransferForBatch",
+            captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+            "Serialized medical transfer movement PlayMode arguments differ.");
+        Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestWorkAccidentForBatch",
+            captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+            "Serialized work accident movement PlayMode arguments differ.");
+        Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestFactionReinforcementForBatch",
+            captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+            "Serialized faction reinforcement movement PlayMode arguments differ.");
+        Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestSkillTargetingForBatch",
+            captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+            "Serialized skill targeting movement PlayMode arguments differ.");
+        Require(BuildUnityArguments(captureRoot, "PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatch",
+            captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+            "Serialized physical destructive-drain PlayMode arguments differ.");
+        Require(BuildUnityArguments(captureRoot, "NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch",
+            captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+            "Serialized narrative context lifetime PlayMode arguments differ.");
         foreach (string[] invalid in new[]
         {
+            new[] { "ArchitectureRefactorVerificationBatch.RunCore", "play", null },
+            new[] { "ArchitectureRefactorVerificationBatch.RunCore", "play", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunCoreUnexpected", "edit", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunCampaign", "play", null },
+            new[] { "ArchitectureRefactorVerificationBatch.RunCampaign", "play", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunCampaignUnexpected", "edit", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunProductionBills", "play", null },
+            new[] { "ArchitectureRefactorVerificationBatch.RunProductionBills", "play", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunProductionBillsUnexpected", "edit", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunBuildings", "play", null },
+            new[] { "ArchitectureRefactorVerificationBatch.RunBuildings", "play", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunBuildingsUnexpected", "edit", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunDefense", "play", null },
+            new[] { "ArchitectureRefactorVerificationBatch.RunDefense", "play", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunDefenseUnexpected", "edit", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunBuildingVisual", "play", null },
+            new[] { "ArchitectureRefactorVerificationBatch.RunBuildingVisual", "play", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunBuildingVisualUnexpected", "edit", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunCropPersistence", "play", null },
+            new[] { "ArchitectureRefactorVerificationBatch.RunCropPersistence", "play", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunCropPersistenceUnexpected", "edit", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunCharacterDefinitions", "play", null },
+            new[] { "ArchitectureRefactorVerificationBatch.RunCharacterDefinitions", "play", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunCharacterDefinitionsUnexpected", "edit", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunEquipmentEvolution", "play", null },
+            new[] { "ArchitectureRefactorVerificationBatch.RunEquipmentEvolution", "play", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunEquipmentEvolutionUnexpected", "edit", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunConsumablePolicies", "play", null },
+            new[] { "ArchitectureRefactorVerificationBatch.RunConsumablePolicies", "play", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunConsumablePoliciesUnexpected", "edit", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunConsumableExecution", "play", null },
+            new[] { "ArchitectureRefactorVerificationBatch.RunConsumableExecution", "play", "serial-import-job1" },
+            new[] { "ArchitectureRefactorVerificationBatch.RunConsumableExecutionUnexpected", "edit", "serial-import-job1" },
             new[] { shopEntry, "play", "serial-import-job1" },
             new[] { "Unknown.Run", "edit", "serial-import-job1" },
             new[] { "MigratedProducerEconomyServiceEntryE2EDebugScenarios.RunFacilityUseObserverBatch", "play", "serial-import-job1" },
@@ -414,8 +611,49 @@ internal static class IsolatedUnityLauncher
             new[] { "ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatch", "campaign", "serial-import-job1" },
             new[] { "ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatchUnexpected", "play", "serial-import-job1" },
             new[] { "GameWorldLineageDebugScenarios.RequestActualContainerForBatch", "edit", "serial-import-job1" },
+            new[] { "GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatch", "edit", "serial-import-job1" },
+            new[] { "GameWorldLineageDebugScenarios.RequestRestoreOutcomeForBatch", "edit", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestActualContainerForBatch", "edit", "serial-import-job1" },
             new[] { "GameWorldLineageDebugScenarios.RequestActualContainerForBatch", "campaign", "serial-import-job1" },
+            new[] { "GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatch", "campaign", "serial-import-job1" },
+            new[] { "GameWorldLineageDebugScenarios.RequestRestoreOutcomeForBatch", "campaign", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestActualContainerForBatch", "campaign", "serial-import-job1" },
             new[] { "GameWorldLineageDebugScenarios.RequestActualContainerForBatchUnexpected", "play", "serial-import-job1" },
+            new[] { "GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatchUnexpected", "play", "serial-import-job1" },
+            new[] { "GameWorldLineageDebugScenarios.RequestRestoreOutcomeForBatchUnexpected", "play", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestActualContainerForBatchUnexpected", "play", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestDestinationlessForBatch", "edit", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestDestinationlessForBatch", "campaign", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestDestinationlessForBatchUnexpected", "play", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestDeprivationForBatch", "edit", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestDeprivationForBatch", "campaign", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestDeprivationForBatchUnexpected", "play", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestPrimitiveForBatch", "edit", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestPrimitiveForBatch", "campaign", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestPrimitiveForBatchUnexpected", "play", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestRestockForBatch", "edit", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestRestockForBatch", "campaign", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestRestockForBatchUnexpected", "play", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestMedicalTransferForBatch", "edit", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestMedicalTransferForBatch", "campaign", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestMedicalTransferForBatchUnexpected", "play", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestWorkAccidentForBatch", "edit", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestWorkAccidentForBatch", "campaign", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestWorkAccidentForBatchUnexpected", "play", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestFactionReinforcementForBatch", "edit", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestFactionReinforcementForBatch", "campaign", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestFactionReinforcementForBatchUnexpected", "play", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestSkillTargetingForBatch", "edit", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestSkillTargetingForBatch", "campaign", "serial-import-job1" },
+            new[] { "MovementOwnershipDebugScenarios.RequestSkillTargetingForBatchUnexpected", "play", "serial-import-job1" },
+            new[] { "PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatch", "edit", null },
+            new[] { "PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatch", "campaign", null },
+            new[] { "PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatch", "edit", "serial-import-job1" },
+            new[] { "PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatch", "campaign", "serial-import-job1" },
+            new[] { "PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatchUnexpected", "play", "serial-import-job1" },
+            new[] { "NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch", "edit", "serial-import-job1" },
+            new[] { "NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch", "campaign", "serial-import-job1" },
+            new[] { "NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatchUnexpected", "play", "serial-import-job1" },
             new[] { "DungeonFullWorldRoundTripPlayModeFacade.RequestIsolatedBatch", "campaign", "serial-import-job1" },
             new[] { shopEntry, "edit", "serial-import-job1-extra" },
             new[] { "V20CampaignDebugScenarios.RequestWim044IsolatedBatch", "edit", null },

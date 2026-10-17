@@ -522,9 +522,9 @@ public sealed class CharacterSkillGenerationService :
     }
 
     private readonly ICharacterSkillSystemSettingsProvider settingsProvider;
+    private readonly ICharacterSkillNarrativeContext requestContexts;
     private readonly ILocalLlmRuntimeProvider llmRuntimeProvider;
     private readonly IUiClock uiClock;
-    private readonly IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery;
     private readonly Dictionary<string, PendingRequest> pending = new Dictionary<string, PendingRequest>();
     private readonly List<PendingRequest> tickBuffer = new List<PendingRequest>();
     private readonly HashSet<CharacterProgression> invalidatedDraftRegeneration = new();
@@ -584,31 +584,34 @@ public sealed class CharacterSkillGenerationService :
 
     [Inject]
     public CharacterSkillGenerationService(
-        ICharacterSkillSystemSettingsProvider settingsProvider,
-        ILocalLlmRuntimeProvider llmRuntimeProvider,
-        IUiClock uiClock,
-        IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery)
-    {
-        this.settingsProvider = settingsProvider
-            ?? throw new ArgumentNullException(nameof(settingsProvider));
-        this.llmRuntimeProvider = llmRuntimeProvider
-            ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));
-        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
-        this.outcomeEvidenceQuery = outcomeEvidenceQuery
-            ?? throw new ArgumentNullException(nameof(outcomeEvidenceQuery));
-    }
-
-    public CharacterSkillGenerationService(
+        ICharacterSkillNarrativeContext requestContexts,
         ICharacterSkillSystemSettingsProvider settingsProvider,
         ILocalLlmRuntimeProvider llmRuntimeProvider,
         IUiClock uiClock)
     {
-        this.settingsProvider = settingsProvider
-            ?? throw new ArgumentNullException(nameof(settingsProvider));
-        this.llmRuntimeProvider = llmRuntimeProvider
-            ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));
+        this.requestContexts = requestContexts ?? throw new ArgumentNullException(nameof(requestContexts));
+        this.settingsProvider = settingsProvider ?? throw new ArgumentNullException(nameof(settingsProvider));
+        this.llmRuntimeProvider = llmRuntimeProvider ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));
         this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
     }
+
+    public CharacterSkillGenerationService(
+        NarrativeRequestContextBuilder requestContexts,
+        ICharacterSkillSystemSettingsProvider settingsProvider,
+        ILocalLlmRuntimeProvider llmRuntimeProvider,
+        IUiClock uiClock,
+        IGameplayOutcomeNarrativeEvidenceQuery outcomeEvidenceQuery)
+        : this(new GameplayCharacterSkillNarrativeContext(requestContexts, outcomeEvidenceQuery),
+            settingsProvider, llmRuntimeProvider, uiClock) { }
+
+    // Preserve the historical fixture constructor; production scopes supply a scene context.
+    public CharacterSkillGenerationService(
+        NarrativeRequestContextBuilder requestContexts,
+        ICharacterSkillSystemSettingsProvider settingsProvider,
+        ILocalLlmRuntimeProvider llmRuntimeProvider,
+        IUiClock uiClock)
+        : this(new GameplayCharacterSkillNarrativeContext(requestContexts, null, allowMissingFixtureEvidence: true),
+            settingsProvider, llmRuntimeProvider, uiClock) { }
 
     public CharacterSkillDraft CreateDraft(
         CharacterProgression progression,
@@ -634,10 +637,7 @@ public sealed class CharacterSkillGenerationService :
             : $"unbound-growth:{growth.generationSeed}";
         List<GameplayOutcomeEvidenceBindingSnapshot> outcomeEvidence =
             GameplayOutcomeEvidenceFormulaProjection.Capture(
-                progression.Actor == null || outcomeEvidenceQuery == null
-                    ? Array.Empty<GameplayOutcomeNarrativeEvidenceSource>()
-                    : outcomeEvidenceQuery.GetForCharacter(
-                        actorId, 24, 0f, includeCompacted: true));
+                requestContexts.GetOutcomeEvidence(progression));
         int formulaBudget = CharacterSkillFormulaGeneration
             .CalculateNarrativeBudget(
                 progression,
@@ -838,7 +838,7 @@ public sealed class CharacterSkillGenerationService :
         draft.requestSubmitted = true;
     }
 
-    private static bool TryBuildLivePublicMaterial(
+    private bool TryBuildLivePublicMaterial(
         CharacterProgression progression,
         CharacterSkillDraft draft,
         out NarrativePublicContextMaterial publicMaterial,
@@ -850,7 +850,7 @@ public sealed class CharacterSkillGenerationService :
             if (publicMaterial == null)
             {
                 publicMaterial = CharacterSkillPromptBuilder.BuildModuleSelectionPublicMaterial(
-                    progression, draft);
+                    requestContexts, progression, draft);
                 var frozen = CharacterSkillRequestContextSnapshot.Capture(progression, draft, publicMaterial);
                 string frozenHash = frozen.ComputeHash(draft.requestKey);
                 draft.requestContext = frozen;
@@ -1658,9 +1658,7 @@ public sealed class CharacterSkillGenerationService :
             foreach (GameplayOutcomeEvidenceBindingSnapshot binding in skills.SelectMany(value =>
                          value.evidenceBindings ?? new List<GameplayOutcomeEvidenceBindingSnapshot>()))
             {
-                if (outcomeEvidenceQuery == null)
-                    throw new InvalidOperationException("CharacterSkill evidence query is required before response commit.");
-                if (!outcomeEvidenceQuery.TryResolveExactBinding(binding, out _))
+                if (!requestContexts.TryResolveExactBinding(binding))
                 {
                     RejectChangedEvidence(request, binding?.publicFactId ?? "<null>");
                     return;
@@ -1979,6 +1977,25 @@ public static class CharacterSkillValidation
 public static class CharacterSkillPromptBuilder
 {
     public static NarrativePublicContextMaterial BuildModuleSelectionPublicMaterial(
+        NarrativeRequestContextBuilder requestContexts,
+        CharacterProgression progression, CharacterSkillDraft draft)
+    {
+        if (requestContexts == null) throw new ArgumentNullException(nameof(requestContexts));
+        return BuildModuleSelectionPublicMaterial(
+            ids => requestContexts.BuildSkillMaterialWithRequiredFacts(progression, ids), progression, draft);
+    }
+
+    internal static NarrativePublicContextMaterial BuildModuleSelectionPublicMaterial(
+        ICharacterSkillNarrativeContext requestContexts,
+        CharacterProgression progression, CharacterSkillDraft draft)
+    {
+        if (requestContexts == null) throw new ArgumentNullException(nameof(requestContexts));
+        return BuildModuleSelectionPublicMaterial(
+            ids => requestContexts.BuildSkillMaterialWithRequiredFacts(progression, ids), progression, draft);
+    }
+
+    private static NarrativePublicContextMaterial BuildModuleSelectionPublicMaterial(
+        Func<IEnumerable<string>, NarrativePublicContextMaterial> capture,
         CharacterProgression progression, CharacterSkillDraft draft)
     {
         if (progression == null || draft == null) throw new ArgumentNullException();
@@ -1990,8 +2007,7 @@ public static class CharacterSkillPromptBuilder
         if (facts.Length != required.Length)
             throw new InvalidOperationException("Selected skill narrative evidence is absent or ambiguous.");
         NarrativePublicContextMaterial material =
-            NarrativeRequestContextBuilder.BuildSkillMaterialWithRequiredFacts(progression,
-                facts.Select(fact => NarrativePublicContextFactory.BuildProjectedFactId(
+            capture(facts.Select(fact => NarrativePublicContextFactory.BuildProjectedFactId(
                     fact.domain.ToString(), fact.factId, fact.subjectId)));
         material = GameplayOutcomeEvidencePublicMaterialComposer.AddExactEvidence(
             material, draft.outcomeEvidenceBindings);
@@ -2023,9 +2039,11 @@ public static class CharacterSkillPromptBuilder
     }
 
     public static NarrativePublicContextMaterial BuildPublicMaterial(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterProgression progression)
     {
-        return NarrativeRequestContextBuilder.BuildPublicMaterialForProgression(
+        if (requestContexts == null) throw new ArgumentNullException(nameof(requestContexts));
+        return requestContexts.BuildPublicMaterialForProgression(
             LocalLlmRequestProfiles.CharacterSkill.Id,
             progression,
             requireCharacterFact: true,
@@ -2033,12 +2051,14 @@ public static class CharacterSkillPromptBuilder
     }
 
     public static NarrativePublicContextMaterial BuildPublicMaterial(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterProgression progression,
         IEnumerable<NarrativeLedgerPublicationDescriptor> ledgerPublicationDescriptors)
     {
+        if (requestContexts == null) throw new ArgumentNullException(nameof(requestContexts));
         if (ledgerPublicationDescriptors == null)
             throw new ArgumentNullException(nameof(ledgerPublicationDescriptors));
-        return NarrativeRequestContextBuilder.BuildPublicMaterialForProgression(
+        return requestContexts.BuildPublicMaterialForProgression(
             LocalLlmRequestProfiles.CharacterSkill.Id,
             progression,
             requireCharacterFact: true,
@@ -2048,6 +2068,7 @@ public static class CharacterSkillPromptBuilder
     }
 
     public static string Build(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterProgression progression,
         CharacterSkillDraft draft,
         CharacterSkillSystemSettingsSO settings,
@@ -2057,11 +2078,12 @@ public static class CharacterSkillPromptBuilder
             progression,
             draft,
             settings,
-            draft.RestoreRequestPublicContext() ?? BuildModuleSelectionPublicMaterial(progression, draft),
+            draft.RestoreRequestPublicContext() ?? BuildModuleSelectionPublicMaterial(requestContexts, progression, draft),
             correction).Prompt;
     }
 
     public static NarrativePublicPromptEnvelope BuildEnvelope(
+        NarrativeRequestContextBuilder requestContexts,
         CharacterProgression progression,
         CharacterSkillDraft draft,
         CharacterSkillSystemSettingsSO settings,
@@ -2071,7 +2093,7 @@ public static class CharacterSkillPromptBuilder
             progression,
             draft,
             settings,
-            draft.RestoreRequestPublicContext() ?? BuildModuleSelectionPublicMaterial(progression, draft),
+            draft.RestoreRequestPublicContext() ?? BuildModuleSelectionPublicMaterial(requestContexts, progression, draft),
             correction);
     }
 

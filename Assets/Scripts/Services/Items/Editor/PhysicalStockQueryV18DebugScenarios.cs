@@ -16,6 +16,19 @@ public static class PhysicalStockQueryV18DebugScenarios
     private const string LumberItemId = "material:lumber";
     private const string InoculatedLogItemId = "supply:inoculated-log";
 
+    public static void RunTransferTransitForBatch()
+    {
+        if (!Application.isBatchMode)
+            throw new InvalidOperationException("Transfer transit verification requires isolated batch execution.");
+        WorldItemRepository repository = new(
+            new GuidPersistentIdGenerator(), new DungeonRuntimeAggregateRootStore());
+        IDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
+        IPhysicalItemMassQuery massQuery = CreateMassQuery(catalog);
+        PhysicalStockQuery query = new(repository, catalog, massQuery);
+        VerifyConveyorWarehouseMassAdmission(repository, catalog, massQuery, query);
+        Debug.Log("ARCHITECTURE_TRANSFER_TRANSIT=PASS; facility fault rollback; warehouse capacity; retained transit");
+    }
+
     public static void RunWim020MassFocused()
     {
         WorldItemRepository repository = new(

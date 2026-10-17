@@ -5,11 +5,11 @@ using System.Linq;
 
 public static class CharacterSkillFormulaGeneration
 {
-    public const int ModuleSelectionFormulaVersion = 2;
-    public const int DrawbackModuleSelectionFormulaVersion = 3;
-    public const int RuntimeStatDrawbackFormulaVersion = 4;
-    public const int MathematicalScalingFormulaVersion = 5;
-    public const int EffectiveBoundsFormulaVersion = 6;
+    public const int ModuleSelectionFormulaVersion = CharacterSkillFormulaVersions.ModuleSelectionFormulaVersion;
+    public const int DrawbackModuleSelectionFormulaVersion = CharacterSkillFormulaVersions.DrawbackModuleSelectionFormulaVersion;
+    public const int RuntimeStatDrawbackFormulaVersion = CharacterSkillFormulaVersions.RuntimeStatDrawbackFormulaVersion;
+    public const int MathematicalScalingFormulaVersion = CharacterSkillFormulaVersions.MathematicalScalingFormulaVersion;
+    public const int EffectiveBoundsFormulaVersion = CharacterSkillFormulaVersions.EffectiveBoundsFormulaVersion;
     private sealed class FrozenOption
     {
         public CharacterSkillCandidateRule Rule;

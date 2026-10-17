@@ -13,7 +13,7 @@ public static class CropCycleTerminalFactMapping
             CropPlanExecutionReceiptAuthority.ProjectTerminal(
                 snapshot.correlationId,
                 snapshot);
-        return EnvironmentOutcomeReceiptFactory.CreateCropPlan(
+        return CropProductionOutcomeReceiptFactory.CreateCropPlan(
             projected,
             fact.PlotId,
             fact.PlotDisplayName,

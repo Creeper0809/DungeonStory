@@ -97,6 +97,12 @@ public static class V26FounderTraitAuditScenario
     private const string ReportPath =
         "Artifacts/QA/v26-founder-trait-mythic-audit.txt";
 
+    internal static string RunExtremeTraitsForArchitectureBatch()
+    {
+        VerifyExtremeTraitRuntime();
+        return "capabilities=6; last-stand,forbidden-research,miracle-surgery,golden-harvest,production-limit-break,arcane-overcharge; threshold/reuse/aftermath; same-store capture/restore/death retention; derived revision cache";
+    }
+
     [MenuItem("DungeonStory/V26/Audit Founder Traits and Mythic")]
     public static void Run()
     {

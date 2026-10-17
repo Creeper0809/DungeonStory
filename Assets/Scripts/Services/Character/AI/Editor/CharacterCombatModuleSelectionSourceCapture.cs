@@ -45,7 +45,7 @@ internal static class CharacterCombatModuleSelectionSourceCapture
         using var actor = new SelectionActor(characterId, DisplayName, null, evidence.OwnerCheckpoint);
         RecordProjectedFacts(actor.Progression, evidence.Bindings);
         CharacterSkillGenerationService service = new(
-            new SkillSettingsProvider(settings),
+            NarrativeRequestContextTestFixture.CreateEmpty(), new SkillSettingsProvider(settings),
             MissingLlmRuntimeProvider.Instance,
             ZeroUiClock.Instance);
         CharacterSkillDraft draft = service.CreateDraft(
@@ -82,7 +82,7 @@ internal static class CharacterCombatModuleSelectionSourceCapture
             "skill");
         NarrativePublicContextMaterial publicMaterial =
             CharacterSkillPromptBuilder.BuildModuleSelectionPublicMaterial(
-                restored.Progression, restoredDraft);
+                NarrativeRequestContextTestFixture.CreateEmpty(), restored.Progression, restoredDraft);
         string prompt = CharacterSkillPromptBuilder.BuildEnvelope(
             restored.Progression,
             restoredDraft,
@@ -159,7 +159,7 @@ internal static class CharacterCombatModuleSelectionSourceCapture
             .ToArray();
         NarrativePublicContextMaterial publicMaterial =
             CharacterAcquiredTraitPromptBuilder
-                .BuildPublicMaterialForLedgerEvidence(progression, local);
+                .BuildPublicMaterialForLedgerEvidence(NarrativeRequestContextTestFixture.CreateEmpty(), progression, local);
         publicMaterial = GameplayOutcomeEvidencePublicMaterialComposer
             .AddExactEvidence(publicMaterial, evidence.Bindings);
         IReadOnlyList<string> projectedLocal = local.Length == 0
@@ -237,7 +237,7 @@ internal static class CharacterCombatModuleSelectionSourceCapture
             .ToArray();
         NarrativePublicContextMaterial restoredMaterial =
             CharacterAcquiredTraitPromptBuilder.BuildPublicMaterial(
-                restored.Progression,
+                NarrativeRequestContextTestFixture.CreateEmpty(), restored.Progression,
                 localEvidence);
         restoredMaterial = GameplayOutcomeEvidencePublicMaterialComposer
             .AddExactEvidence(restoredMaterial, pending.evidenceBindings);
@@ -347,7 +347,7 @@ internal static class CharacterCombatModuleSelectionSourceCapture
             actor.Progression.SetPublicSkillNotificationsSuppressed(true);
             var runtime = new ReplaySkillRuntime(canonicalResponse);
             CharacterSkillGenerationService service = new(
-                new SkillSettingsProvider(settings),
+                NarrativeRequestContextTestFixture.CreateEmpty(), new SkillSettingsProvider(settings),
                 new ReplaySkillRuntimeProvider(runtime),
                 ZeroUiClock.Instance);
             service.RequestDraft(actor.Progression, draft);
@@ -1020,7 +1020,7 @@ internal static class CharacterCombatModuleSelectionSourceCapture
                 // Replace it BEFORE restoring pending requests: only the real service
                 // may update selection state, and capture never dispatches an LLM.
                 generationService = new CharacterSkillGenerationService(
-                    new SkillSettingsProvider(actor.Progression.SkillSettings),
+                    NarrativeRequestContextTestFixture.CreateEmpty(), new SkillSettingsProvider(actor.Progression.SkillSettings),
                     MissingLlmRuntimeProvider.Instance, ZeroUiClock.Instance);
                 SetProgressionField(actor.Progression, "generationService", generationService);
                 if (checkpoint != null)

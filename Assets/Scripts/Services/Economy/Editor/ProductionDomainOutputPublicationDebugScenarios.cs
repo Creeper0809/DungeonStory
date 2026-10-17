@@ -833,7 +833,8 @@ public static class ProductionDomainOutputPublicationDebugScenarios
             IFacilityBufferPlannedOutputAcknowledgementFaultInjector
                 acknowledgementFault = null,
             object runtimeObject = null,
-            IDungeonItemCatalogProvider itemCatalog = null)
+            IDungeonItemCatalogProvider itemCatalog = null,
+            string facilityPersistentId = FacilityId)
         {
             IDungeonItemCatalogProvider resolvedCatalog = itemCatalog
                 ?? new FacilityBufferPlannedOutputPublicationDebugScenarios
@@ -857,7 +858,7 @@ public static class ProductionDomainOutputPublicationDebugScenarios
                         DropPosition,
                         OwnerDomain,
                         DestinationId,
-                        FacilityId,
+                        facilityPersistentId,
                         FacilityBufferDestinationAnchorKind.LiveBuilding),
                     out _,
                     out _),
@@ -871,7 +872,7 @@ public static class ProductionDomainOutputPublicationDebugScenarios
                 DropPosition,
                 OwnerDomain,
                 DestinationId,
-                FacilityId,
+                facilityPersistentId,
                 new PhysicalMassGrams(10_000L),
                 1L);
             Require(Admission.TryReplaceOwnedProfiles(
@@ -889,7 +890,7 @@ public static class ProductionDomainOutputPublicationDebugScenarios
                 acknowledgementFault);
             Handle = new ProductionFacilityHandle(
                 runtimeObject ?? new object(),
-                (BuildingInstanceId)FacilityId,
+                (BuildingInstanceId)facilityPersistentId,
                 DropPosition,
                 false,
                 string.Empty,

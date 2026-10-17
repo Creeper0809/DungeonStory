@@ -30,6 +30,7 @@ public static class DungeonFactionWarRegistration
         builder.RegisterEntryPoint<FactionRuntimeApplicationAdapter>(Lifetime.Singleton)
             .As<IFactionRuntime>()
             .As<IFactionContractQuery>()
+            .As<IDungeonSaveRestoreCompletedHook>()
             .As<IDungeonSaveCaptureGuard>();
         builder.RegisterEntryPoint<InvasionCampaignRuntime>(Lifetime.Singleton)
             .As<IInvasionCampaignRuntime>();

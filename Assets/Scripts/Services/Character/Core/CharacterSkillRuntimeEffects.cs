@@ -949,12 +949,6 @@ public static class CharacterSkillRuntimeEffects
     }
 }
 
-public interface ICharacterRuntimeTransientStateRegistry :
-    ICharacterCarryInventoryRegistry,
-    ICharacterSkillTransientStateRegistry
-{
-}
-
 public sealed class CharacterSkillExecutionContext
 {
     public CharacterSkillExecutionContext(

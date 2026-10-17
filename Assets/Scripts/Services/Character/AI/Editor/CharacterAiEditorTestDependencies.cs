@@ -12,6 +12,8 @@ using UnityEngine;
 
 internal static class CharacterAiEditorTestDependencies
 {
+    private static readonly NarrativeRequestContextBuilder RequestContexts =
+        NarrativeRequestContextTestFixture.CreateEmpty();
     private static readonly IGameContentCatalog GameContent =
         new ResourceGameContentCatalog(new UnityGameContentRootLoader());
     private static readonly ICharacterSpeciesCatalog CharacterSpecies =
@@ -561,9 +563,11 @@ internal static class CharacterAiEditorTestDependencies
             DisabledDungeonDebugRuleQuery.Instance);
 
         actorObject.GetComponent<CustomerPersonaRuntime>()?.ConstructCustomerPersonaRuntime(
+            RequestContexts,
             LocalLlm);
 
         actorObject.GetComponent<CharacterDialogueRuntime>()?.ConstructCharacterDialogueRuntime(
+            RequestContexts,
             LocalLlm,
             scheduling,
             DialogueBubbles,
@@ -1100,6 +1104,7 @@ internal static class CharacterAiEditorTestDependencies
     public static void Inject(SocialReputationRuntime runtime)
     {
         runtime?.ConstructSocialReputationRuntime(
+            RequestContexts,
             LocalLlm,
             WorldRegistry,
             WorldRegistry,
@@ -1146,6 +1151,7 @@ internal static class CharacterAiEditorTestDependencies
     public static void Inject(AiDirectorRuntime runtime)
     {
         runtime?.ConstructAiDirectorRuntime(
+            RequestContexts,
             LocalLlm,
             DirectorContext,
             Scheduling,

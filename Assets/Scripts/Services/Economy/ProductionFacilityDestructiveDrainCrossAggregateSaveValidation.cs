@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using DungeonStory.Environment;
 using UnityEngine;
@@ -159,10 +158,12 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                     saveData,
                     ProductionApparelOrderTerminalDrainSaveSection.Id),
                 drain);
-            ValidateWorkOrderDestructiveDrainJoins(
-                workOrders,
-                world,
-                drain);
+            ProductionFacilityDestructiveDrainOwnerJoinValidation
+                .ValidateWorkOrderDestructiveDrainJoins(
+                    workOrders,
+                    world,
+                    drain,
+                    buildingDefinitions);
         }
         catch (Exception exception)
         {
@@ -291,10 +292,12 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                     envelopes,
                     ProductionApparelOrderTerminalDrainSaveSection.Id),
                 drain);
-            ValidateWorkOrderDestructiveDrainJoins(
-                workOrders,
-                world,
-                drain);
+            ProductionFacilityDestructiveDrainOwnerJoinValidation
+                .ValidateWorkOrderDestructiveDrainJoins(
+                    workOrders,
+                    world,
+                    drain,
+                    buildingDefinitions);
         }
         catch (Exception exception)
         {
@@ -348,7 +351,7 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
         DungeonProductionFacilityDestructiveDrainSaveData drain)
     {
         drain = ProductionFacilityDestructiveDrainJournal
-            .MigrateV3Payload(drain);
+            .MigrateLegacyPayload(drain);
         if (drain?.entries == null
             || drain.version !=
                 DungeonProductionFacilityDestructiveDrainSaveData.CurrentVersion
@@ -380,9 +383,10 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
         genericTerminalValidation.ValidateOwnPayload(genericTerminalDrains);
         combatTerminalValidation.ValidateOwnPayload(combatTerminalDrains);
         apparelTerminalValidation.ValidateOwnPayload(apparelTerminalDrains);
-        ValidateCapacityRoutingActorAuthorityDisjoint(
-            items.pendingCapacityRoutingDrains,
-            characters);
+        ProductionFacilityDestructiveDrainPhysicalProducerJoinValidation
+            .ValidateCapacityRoutingActorAuthorityDisjoint(
+                items.pendingCapacityRoutingDrains,
+                characters);
         HashSet<string> joinedPhysicalProducerSteps =
             new(StringComparer.Ordinal);
         HashSet<string> joinedCapacityProducerSteps =
@@ -415,40 +419,48 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                 ProductionFacilityDestructiveDrainPhase
                     .WorldRemovedAwaitingCheckpointGc;
             IReadOnlyDictionary<string, string> contributors = worldRemoved
-                ? ProjectAbsentContributors(
-                    facilityId,
-                    world,
-                    production,
-                    combat,
-                    maintenance,
-                    environment,
-                    items,
-                    characters,
+                ? ProductionFacilityDestructiveDrainParticipantSaveValidation
+                    .ProjectAbsentContributors(
+                        facilityId,
+                        world,
+                        production,
+                        combat,
+                        maintenance,
+                        environment,
+                        items,
+                        characters,
+                        routing,
+                        fire)
+                : ProductionFacilityDestructiveDrainParticipantSaveValidation
+                    .ProjectPresentContributors(
+                        facilityId,
+                        world,
+                        production,
+                        genericTerminalDrains,
+                        combat,
+                        maintenance,
+                        environment,
+                        items,
+                        characters,
+                        routing,
+                        fire,
+                        buildingDefinitions,
+                        capacityProjector,
+                        massQuery);
+            ProductionFacilityDestructiveDrainParticipantSaveValidation
+                .ValidateParticipants(entry, contributors);
+            ProductionFacilityDestructiveDrainPhysicalProducerJoinValidation
+                .ValidatePhysicalCustodyProducerJoin(
+                    entry,
+                    items.pendingProductionCustodyDrains,
+                    joinedPhysicalProducerSteps);
+            ProductionFacilityDestructiveDrainPhysicalProducerJoinValidation
+                .ValidateCapacityRoutingProducerJoin(
+                    entry,
+                    items.pendingCapacityRoutingDrains,
                     routing,
-                    fire)
-                : ProjectPresentContributors(
-                    facilityId,
-                    world,
-                    production,
-                    genericTerminalDrains,
-                    combat,
-                    maintenance,
-                    environment,
-                    items,
-                    characters,
-                    routing,
-                    fire);
-            ValidateParticipants(entry, contributors);
-            ValidatePhysicalCustodyProducerJoin(
-                entry,
-                items.pendingProductionCustodyDrains,
-                joinedPhysicalProducerSteps);
-            ValidateCapacityRoutingProducerJoin(
-                entry,
-                items.pendingCapacityRoutingDrains,
-                routing,
-                items.pendingExactOutputRoutes,
-                joinedCapacityProducerSteps);
+                    items.pendingExactOutputRoutes,
+                    joinedCapacityProducerSteps);
             ValidateGenericTerminalProducerJoin(
                 entry,
                 genericTerminalDrains.entries,
@@ -466,16 +478,20 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                 production,
                 items.pendingProductionInputDestinationDrains,
                 joinedStockSensorChildSteps);
-            ValidateFireDamageOutcomeJoin(
-                entry,
-                fire?.damageOperations,
-                joinedFireDamageOperations);
+            ProductionFacilityDestructiveDrainOwnerJoinValidation
+                .ValidateFireDamageOutcomeJoin(
+                    entry,
+                    fire?.damageOperations,
+                    joinedFireDamageOperations);
+            ProductionFacilityDestructiveDrainOwnerJoinValidation
+                .ValidateBuildingDemolitionOutcomeJoin(entry);
             if (entry.phase == ProductionFacilityDestructiveDrainPhase.Prepared)
             {
-                ValidatePreparedOwnerBijection(
-                    entry,
-                    ProductionFacilityDestructiveDrainPlannedOwnerSaveProjection
-                        .Project(
+                ProductionFacilityDestructiveDrainParticipantSaveValidation
+                    .ValidatePreparedOwnerBijection(
+                        entry,
+                        ProductionFacilityDestructiveDrainPlannedOwnerSaveProjection
+                            .Project(
                             facilityId,
                             production,
                             combat,
@@ -602,7 +618,8 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
         ProductionInputDestinationCustodyDrainSaveData orphanStockSensorChild =
             items.pendingProductionInputDestinationDrains.FirstOrDefault(value =>
                 value != null
-                && IsStockSensorChild(value)
+                && ProductionFacilityDestructiveDrainStockSensorProducerJoinValidation
+                    .IsStockSensorChild(value)
                 && !joinedStockSensorChildSteps.Contains(
                     value.stepOperationId ?? string.Empty));
         if (orphanStockSensorChild != null)
@@ -624,63 +641,6 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
             throw new InvalidOperationException(
                 "production-destructive-drain-fire-damage-owner-orphan: "
                 + orphanFireDamage.operationId);
-        }
-    }
-
-    private static void ValidateFireDamageOutcomeJoin(
-        ProductionFacilityDestructiveDrainEntrySaveData entry,
-        IReadOnlyList<EnvironmentalFireDamageRecord> operations,
-        ISet<string> joined)
-    {
-        ProductionFacilityDestructiveDrainParticipantSaveData row = entry
-            .participants.Single(value => value != null
-                && string.Equals(
-                    value.participantId,
-                    ProductionFacilityDestructiveDrainParticipantIds
-                        .EnvironmentalFireDamageOutcome,
-                    StringComparison.Ordinal));
-        foreach (ProductionFacilityDestructiveDrainOwnerSaveData owner in
-                 row.owners)
-        {
-            const string Prefix = "fire-damage:";
-            if (owner == null
-                || !owner.ownerStableId.StartsWith(Prefix,
-                    StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-fire-damage-owner-invalid");
-            }
-            string operationId = owner.ownerStableId.Substring(Prefix.Length);
-            EnvironmentalFireDamageRecord operation = (operations
-                    ?? Array.Empty<EnvironmentalFireDamageRecord>())
-                .SingleOrDefault(value => value != null
-                    && string.Equals(value.operationId, operationId,
-                        StringComparison.Ordinal));
-            if (operation == null
-                || operation.targetKind !=
-                    (int)EnvironmentalFireTargetKind.Building
-                || !string.Equals(operation.targetId, entry.facilityId,
-                    StringComparison.Ordinal)
-                || !string.Equals(operation.requestFingerprint,
-                    owner.requestFingerprint, StringComparison.Ordinal)
-                || operation.phase ==
-                    EnvironmentalFireDamagePhase.Prepared
-                || operation.phase is
-                        EnvironmentalFireDamagePhase.Delivered or EnvironmentalFireDamagePhase.Applied
-                    && (owner.phase !=
-                            ProductionFacilityDestructiveDrainStepPhase
-                                .OwnerAcknowledged
-                        || entry.phase is not
-                            ProductionFacilityDestructiveDrainPhase
-                                .AwaitingWorldRemoval
-                            and not ProductionFacilityDestructiveDrainPhase
-                                .WorldRemovedAwaitingCheckpointGc)
-                || !joined.Add(operationId))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-fire-damage-owner-mismatch: "
-                    + operationId);
-            }
         }
     }
 
@@ -718,338 +678,16 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
                 && value.phase ==
                     EnvironmentalFireDamagePhase.AwaitingWorldRemoval);
 
-    private void ValidateWorkOrderDestructiveDrainJoins(
-        DungeonWorkOrderSaveData workOrders,
-        ModularFacilityWorldSaveData world,
-        DungeonProductionFacilityDestructiveDrainSaveData drain)
-    {
-        if (workOrders == null
-            || workOrders.version != DungeonWorkOrderSaveData.CurrentVersion
-            || workOrders.orders == null
-            || workOrders.qualityPipelines == null
-            || world?.buildings == null)
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-work-order-payload-invalid");
-        }
-
-        HashSet<string> joinedOperations = new(StringComparer.Ordinal);
-        foreach (WorkOrderSaveData order in workOrders.orders
-                     .Where(value => value != null)
-                     .OrderBy(value => value.workOrderId, StringComparer.Ordinal))
-        {
-            string operationValue = order.destructiveDrainOperationId
-                ?? string.Empty;
-            bool hasOwnerState = operationValue.Length > 0
-                || order.facilityRemovedForRetry
-                || order.cancelRebuildAfterDestructiveDrain;
-            if (!hasOwnerState)
-                continue;
-            if (!string.Equals(
-                    order.workTypeId,
-                    BuiltInWorkTypeIds.Dismantle.Value,
-                    StringComparison.Ordinal)
-                || !ProductionFacilityDestructiveDrainOperationId.TryParse(
-                    operationValue,
-                    out ProductionFacilityDestructiveDrainOperationId operation))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-work-order-owner-invalid: "
-                    + (order.workOrderId ?? string.Empty));
-            }
-            if (!joinedOperations.Add(operation.Value))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-work-order-owner-duplicate: "
-                    + operation.Value);
-            }
-
-            QualityTargetPipelineSaveData[] pipelineMatches =
-                workOrders.qualityPipelines
-                    .Where(pipeline => pipeline != null
-                        && string.Equals(
-                            pipeline.pipelineId,
-                            order.qualityPipelineId,
-                            StringComparison.Ordinal))
-                    .Take(2)
-                    .ToArray();
-            if (string.IsNullOrEmpty(order.qualityPipelineId)
-                || pipelineMatches.Length != 1)
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-work-order-pipeline-cardinality: "
-                    + (order.workOrderId ?? string.Empty));
-            }
-            QualityTargetPipelineSaveData pipeline = pipelineMatches[0];
-            BuildingSO definition =
-                buildingDefinitions.GetBuilding(order.targetBuildingId);
-            string numericDefinitionId = order.targetBuildingId.ToString(
-                CultureInfo.InvariantCulture);
-            bool definitionMatches = definition != null
-                && (string.Equals(
-                        pipeline.definitionId,
-                        definition.ContentDefinitionId,
-                        StringComparison.Ordinal)
-                    || string.Equals(
-                        pipeline.definitionId,
-                        numericDefinitionId,
-                        StringComparison.Ordinal));
-            if (!definitionMatches
-                || !pipeline.facilityPipeline
-                || pipeline.footprintX != order.gridX
-                || pipeline.footprintY != order.gridY
-                || pipeline.footprintWidth !=
-                    Math.Max(1, definition.Placement.Width)
-                || pipeline.footprintHeight !=
-                    Math.Max(1, definition.Placement.Height))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-work-order-pipeline-identity-mismatch: "
-                    + (order.workOrderId ?? string.Empty));
-            }
-            if (order.cancelRebuildAfterDestructiveDrain
-                && (pipeline.stage != QualityTargetPipelineStage.Cancelled
-                    || order.status != (order.facilityRemovedForRetry
-                        ? WorkOrderStatus.WaitingForOutputSpace
-                        : WorkOrderStatus.Blocked)))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-work-order-cancel-state-mismatch: "
-                    + (order.workOrderId ?? string.Empty));
-            }
-
-            ProductionFacilityDestructiveDrainEntrySaveData[] matches =
-                (drain?.entries
-                    ?? new List<
-                        ProductionFacilityDestructiveDrainEntrySaveData>())
-                .Where(entry => entry != null
-                    && string.Equals(
-                        entry.operationId,
-                        operation.Value,
-                        StringComparison.Ordinal))
-                .ToArray();
-            if (matches.Length != 1)
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-work-order-journal-cardinality: "
-                    + operation.Value);
-            }
-
-            ProductionFacilityDestructiveDrainEntrySaveData entry = matches[0];
-            BuildingInstanceId facilityId =
-                (BuildingInstanceId)(entry.facilityId ?? string.Empty);
-            if (!facilityId.IsValid
-                || !string.Equals(
-                    ProductionFacilityDestructiveDrainOperationId
-                        .FromFacility(facilityId).Value,
-                    operation.Value,
-                    StringComparison.Ordinal)
-                || entry.cause !=
-                    ProductionFacilityDestructiveDrainCause.ExplicitDemolition)
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-work-order-journal-identity-mismatch: "
-                    + operation.Value);
-            }
-            if (order.facilityRemovedForRetry
-                && entry.phase != ProductionFacilityDestructiveDrainPhase
-                    .WorldRemovedAwaitingCheckpointGc)
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-work-order-terminal-phase-mismatch: "
-                    + operation.Value);
-            }
-            if (entry.phase == ProductionFacilityDestructiveDrainPhase
-                    .WorldRemovedAwaitingCheckpointGc)
-            {
-                continue;
-            }
-
-            ModularFacilityBuildingSaveData[] worldMatches = world.buildings
-                .Where(building => building != null
-                    && string.Equals(
-                        building.persistentInstanceId,
-                        facilityId.Value,
-                        StringComparison.Ordinal))
-                .Take(2)
-                .ToArray();
-            if (worldMatches.Length != 1
-                || worldMatches[0].buildingId != order.targetBuildingId
-                || worldMatches[0].centerX != order.gridX
-                || worldMatches[0].centerY != order.gridY)
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-work-order-world-target-mismatch: "
-                    + operation.Value);
-            }
-        }
-    }
-
-    private static void ValidateCapacityRoutingActorAuthorityDisjoint(
-        IReadOnlyList<ProductionCapacityRoutingDrainSaveData> producers,
-        DungeonCharacterWorldSaveData characters)
-    {
-        foreach (ProductionCapacityRoutingDrainSaveData producer in
-                 producers ?? Array.Empty<ProductionCapacityRoutingDrainSaveData>())
-        {
-            if (producer == null)
-                continue;
-            if (producer.phase is ProductionCapacityRoutingDrainPhase
-                    .QuiescingActors
-                or ProductionCapacityRoutingDrainPhase
-                    .ReleasingOperationAuthority)
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-capacity-transient-save-phase: "
-                    + producer.stepOperationId);
-            }
-            if (producer.phase < ProductionCapacityRoutingDrainPhase
-                    .AwaitingStablePhysicalState)
-            {
-                continue;
-            }
-            HashSet<string> releasedOperations = producer
-                .actorAuthorityReleases
-                .Where(value => value != null && value.effectsCommitted)
-                .SelectMany(value => value.operationIds ?? new List<string>())
-                .ToHashSet(StringComparer.Ordinal);
-            if (releasedOperations.Count == 0)
-                continue;
-            foreach (DungeonCharacterSaveData actor in characters?.actors
-                         ?? new List<DungeonCharacterSaveData>())
-            {
-                string characterId = actor?.persistentId ?? string.Empty;
-                if (actor?.haulDeliveryIntent != null
-                    && releasedOperations.Contains(
-                        actor.haulDeliveryIntent.operationId)
-                    || actor?.carryInventory?.items?.Any(item => item != null
-                        && item.quantity > 0
-                        && releasedOperations.Contains(
-                            item.ownerOperationId)) == true)
-                {
-                    throw new InvalidOperationException(
-                        "production-destructive-drain-released-character-authority-live: "
-                        + producer.stepOperationId + ":" + characterId);
-                }
-            }
-        }
-    }
-
     public static void ValidateGenericTerminalProducerJoin(
         ProductionFacilityDestructiveDrainEntrySaveData entry,
         IReadOnlyList<ProductionGenericBillTerminalDrainSaveData> producers,
         ISet<string> joinedSteps)
     {
-        ProductionFacilityDestructiveDrainParticipantSaveData participant =
-            entry.participants.Single(value => string.Equals(
-                value.participantId,
-                ProductionFacilityDestructiveDrainParticipantIds
-                    .GenericProductionBills,
-                StringComparison.Ordinal));
-        IReadOnlyList<ProductionFacilityDestructiveDrainOwnerSaveData> owners =
-            participant.owners
-                ?? throw new InvalidOperationException(
-                    "Generic destructive-drain participant has no owner collection.");
-        foreach (ProductionFacilityDestructiveDrainOwnerSaveData owner in owners)
-        {
-            if (owner == null)
-            {
-                throw new InvalidOperationException(
-                    "Generic destructive-drain owner is null.");
-            }
-
-            ProductionGenericBillTerminalDrainSaveData[] matches =
-                (producers
-                    ?? Array.Empty<
-                        ProductionGenericBillTerminalDrainSaveData>())
-                .Where(value => value != null
-                    && string.Equals(
-                        value.stepOperationId,
-                        owner.stepOperationId,
-                        StringComparison.Ordinal))
-                .ToArray();
-            if (matches.Length == 0)
-            {
-                if (owner.phase ==
-                    ProductionFacilityDestructiveDrainStepPhase.Planned)
-                {
-                    continue;
-                }
-                throw new InvalidOperationException(
-                    "production-destructive-drain-generic-producer-missing: "
-                    + owner.stepOperationId);
-            }
-            if (matches.Length != 1 || !joinedSteps.Add(owner.stepOperationId))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-generic-producer-duplicate: "
-                    + owner.stepOperationId);
-            }
-
-            ProductionGenericBillTerminalDrainSaveData producer = matches[0];
-            if (!string.Equals(
-                    producer.parentOperationId,
-                    entry.operationId,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    producer.ownerStableId,
-                    owner.ownerStableId,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    producer.facilityId,
-                    entry.facilityId,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    producer.requestFingerprint,
-                    owner.requestFingerprint,
-                    StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-generic-producer-request-mismatch: "
-                    + owner.stepOperationId);
-            }
-
-            bool phaseMatches = owner.phase switch
-            {
-                ProductionFacilityDestructiveDrainStepPhase.Planned =>
-                    producer.phase !=
-                        ProductionGenericBillTerminalDrainPhase
-                            .OwnerAcknowledgedAwaitingCheckpointGc,
-                ProductionFacilityDestructiveDrainStepPhase
-                    .EffectCommittedAwaitingOwnerAck =>
-                    producer.phase is
-                        ProductionGenericBillTerminalDrainPhase
-                            .BillTerminalCommittedAwaitingOwnerAcknowledgement
-                        or ProductionGenericBillTerminalDrainPhase
-                            .OwnerAcknowledgedAwaitingCheckpointGc,
-                ProductionFacilityDestructiveDrainStepPhase.OwnerAcknowledged =>
-                    producer.phase ==
-                        ProductionGenericBillTerminalDrainPhase
-                            .OwnerAcknowledgedAwaitingCheckpointGc,
-                _ => false
-            };
-            if (!phaseMatches)
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-generic-producer-phase-mismatch: "
-                    + owner.stepOperationId);
-            }
-            if (owner.phase !=
-                    ProductionFacilityDestructiveDrainStepPhase.Planned
-                && (!string.Equals(
-                        owner.commitId,
-                        producer.commitId,
-                        StringComparison.Ordinal)
-                    || !string.Equals(
-                        owner.receiptFingerprint,
-                        producer.receiptFingerprint,
-                        StringComparison.Ordinal)))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-generic-producer-receipt-mismatch: "
-                    + owner.stepOperationId);
-            }
-        }
+        ProductionFacilityDestructiveDrainTerminalProducerJoinValidation
+            .ValidateGenericTerminalProducerJoin(
+                entry,
+                producers,
+                joinedSteps);
     }
 
     public static void ValidateCombatTerminalProducerJoin(
@@ -1057,81 +695,11 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
         IReadOnlyList<CombatEquipmentTerminalDrainSaveData> producers,
         ISet<string> joinedSteps)
     {
-        ProductionFacilityDestructiveDrainParticipantSaveData participant =
-            entry.participants.Single(value => string.Equals(
-                value.participantId,
-                ProductionFacilityDestructiveDrainParticipantIds
-                    .CombatEquipmentCrafting,
-                StringComparison.Ordinal));
-        IReadOnlyList<ProductionFacilityDestructiveDrainOwnerSaveData> owners =
-            participant.owners
-                ?? throw new InvalidOperationException(
-                    "Combat destructive-drain participant has no owner collection.");
-        foreach (ProductionFacilityDestructiveDrainOwnerSaveData owner in owners)
-        {
-            if (owner == null)
-                throw new InvalidOperationException(
-                    "Combat destructive-drain owner is null.");
-            CombatEquipmentTerminalDrainSaveData[] matches = (producers
-                    ?? Array.Empty<CombatEquipmentTerminalDrainSaveData>())
-                .Where(value => value != null
-                    && string.Equals(value.stepOperationId,
-                        owner.stepOperationId, StringComparison.Ordinal))
-                .ToArray();
-            if (matches.Length == 0)
-            {
-                if (owner.phase ==
-                    ProductionFacilityDestructiveDrainStepPhase.Planned)
-                    continue;
-                throw new InvalidOperationException(
-                    "production-destructive-drain-combat-producer-missing: "
-                    + owner.stepOperationId);
-            }
-            if (matches.Length != 1 || !joinedSteps.Add(owner.stepOperationId))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-combat-producer-duplicate: "
-                    + owner.stepOperationId);
-            }
-
-            CombatEquipmentTerminalDrainSaveData producer = matches[0];
-            if (!string.Equals(producer.parentOperationId,
-                    entry.operationId, StringComparison.Ordinal)
-                || !string.Equals(producer.source.ownerStableId,
-                    owner.ownerStableId, StringComparison.Ordinal)
-                || !string.Equals(producer.source.facilityId,
-                    entry.facilityId, StringComparison.Ordinal)
-                || !string.Equals(producer.requestFingerprint,
-                    owner.requestFingerprint, StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-combat-producer-request-mismatch: "
-                    + owner.stepOperationId);
-            }
-
-            bool phaseMatches = owner.phase switch
-            {
-                ProductionFacilityDestructiveDrainStepPhase.Planned =>
-                    producer.phase != CombatEquipmentTerminalDrainPhase
-                        .OwnerAcknowledgedAwaitingCheckpointGc,
-                ProductionFacilityDestructiveDrainStepPhase
-                    .EffectCommittedAwaitingOwnerAck =>
-                    producer.phase is CombatEquipmentTerminalDrainPhase
-                            .TerminalEffectsCommittedAwaitingOwnerAcknowledgement
-                        or CombatEquipmentTerminalDrainPhase
-                            .OwnerAcknowledgedAwaitingCheckpointGc,
-                ProductionFacilityDestructiveDrainStepPhase.OwnerAcknowledged =>
-                    producer.phase == CombatEquipmentTerminalDrainPhase
-                        .OwnerAcknowledgedAwaitingCheckpointGc,
-                _ => false
-            };
-            ValidateTerminalProducerPhaseAndReceipt(
-                owner,
-                producer.commitId,
-                producer.receiptFingerprint,
-                phaseMatches,
-                "combat");
-        }
+        ProductionFacilityDestructiveDrainTerminalProducerJoinValidation
+            .ValidateCombatTerminalProducerJoin(
+                entry,
+                producers,
+                joinedSteps);
     }
 
     public static void ValidateApparelTerminalProducerJoin(
@@ -1139,396 +707,11 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
         IReadOnlyList<ProductionApparelOrderTerminalDrainSaveData> producers,
         ISet<string> joinedSteps)
     {
-        ProductionFacilityDestructiveDrainParticipantSaveData participant =
-            entry.participants.Single(value => string.Equals(
-                value.participantId,
-                ProductionFacilityDestructiveDrainParticipantIds
-                    .ApparelWorkOrders,
-                StringComparison.Ordinal));
-        IReadOnlyList<ProductionFacilityDestructiveDrainOwnerSaveData> owners =
-            participant.owners
-                ?? throw new InvalidOperationException(
-                    "Apparel destructive-drain participant has no owner collection.");
-        foreach (ProductionFacilityDestructiveDrainOwnerSaveData owner in owners)
-        {
-            if (owner == null)
-                throw new InvalidOperationException(
-                    "Apparel destructive-drain owner is null.");
-            ProductionApparelOrderTerminalDrainSaveData[] matches = (producers
-                    ?? Array.Empty<
-                        ProductionApparelOrderTerminalDrainSaveData>())
-                .Where(value => value != null
-                    && string.Equals(value.stepOperationId,
-                        owner.stepOperationId, StringComparison.Ordinal))
-                .ToArray();
-            if (matches.Length == 0)
-            {
-                if (owner.phase ==
-                    ProductionFacilityDestructiveDrainStepPhase.Planned)
-                    continue;
-                throw new InvalidOperationException(
-                    "production-destructive-drain-apparel-producer-missing: "
-                    + owner.stepOperationId);
-            }
-            if (matches.Length != 1 || !joinedSteps.Add(owner.stepOperationId))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-apparel-producer-duplicate: "
-                    + owner.stepOperationId);
-            }
-
-            ProductionApparelOrderTerminalDrainSaveData producer = matches[0];
-            if (!string.Equals(producer.parentOperationId,
-                    entry.operationId, StringComparison.Ordinal)
-                || !string.Equals(producer.ownerStableId,
-                    owner.ownerStableId, StringComparison.Ordinal)
-                || !string.Equals(producer.facilityId,
-                    entry.facilityId, StringComparison.Ordinal)
-                || !string.Equals(producer.requestFingerprint,
-                    owner.requestFingerprint, StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-apparel-producer-request-mismatch: "
-                    + owner.stepOperationId);
-            }
-
-            bool phaseMatches = owner.phase switch
-            {
-                ProductionFacilityDestructiveDrainStepPhase.Planned =>
-                    producer.phase !=
-                        ProductionApparelOrderTerminalDrainPhase
-                            .OwnerAcknowledgedAwaitingCheckpointGc,
-                ProductionFacilityDestructiveDrainStepPhase
-                    .EffectCommittedAwaitingOwnerAck =>
-                    producer.phase is
-                        ProductionApparelOrderTerminalDrainPhase
-                            .SourceOrderTerminalCommittedAwaitingOwnerAcknowledgement
-                        or ProductionApparelOrderTerminalDrainPhase
-                            .OwnerAcknowledgedAwaitingCheckpointGc,
-                ProductionFacilityDestructiveDrainStepPhase.OwnerAcknowledged =>
-                    producer.phase ==
-                        ProductionApparelOrderTerminalDrainPhase
-                            .OwnerAcknowledgedAwaitingCheckpointGc,
-                _ => false
-            };
-            ValidateTerminalProducerPhaseAndReceipt(
-                owner,
-                producer.commitId,
-                producer.receiptFingerprint,
-                phaseMatches,
-                "apparel");
-        }
-    }
-
-    private static void ValidateTerminalProducerPhaseAndReceipt(
-        ProductionFacilityDestructiveDrainOwnerSaveData owner,
-        string producerCommitId,
-        string producerReceiptFingerprint,
-        bool phaseMatches,
-        string producerKind)
-    {
-        if (!phaseMatches)
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-" + producerKind
-                + "-producer-phase-mismatch: " + owner.stepOperationId);
-        }
-        if (owner.phase != ProductionFacilityDestructiveDrainStepPhase.Planned
-            && (!string.Equals(owner.commitId,
-                    producerCommitId, StringComparison.Ordinal)
-                || !string.Equals(owner.receiptFingerprint,
-                    producerReceiptFingerprint, StringComparison.Ordinal)))
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-" + producerKind
-                + "-producer-receipt-mismatch: " + owner.stepOperationId);
-        }
-    }
-
-    private static void ValidateCapacityRoutingProducerJoin(
-        ProductionFacilityDestructiveDrainEntrySaveData entry,
-        IReadOnlyList<ProductionCapacityRoutingDrainSaveData> producers,
-        ProductionPreparedOutputRoutingSaveData routing,
-        IReadOnlyList<FacilityOutputExactRouteOutboxSaveData> physicalRoutes,
-        ISet<string> joinedSteps)
-    {
-        ProductionFacilityDestructiveDrainParticipantSaveData participant =
-            entry.participants.Single(value => string.Equals(
-                value.participantId,
-                ProductionFacilityDestructiveDrainParticipantIds
-                    .CapacityRoutingOutbox,
-                StringComparison.Ordinal));
-        IReadOnlyList<ProductionFacilityDestructiveDrainOwnerSaveData> owners =
-            participant.owners
-                ?? throw new InvalidOperationException(
-                    "Capacity destructive-drain participant has no owner collection.");
-        foreach (ProductionFacilityDestructiveDrainOwnerSaveData owner in owners)
-        {
-            if (owner == null)
-                throw new InvalidOperationException(
-                    "Capacity destructive-drain owner is null.");
-            ProductionCapacityRoutingDrainSaveData[] matches = producers
-                .Where(value => value != null
-                    && string.Equals(
-                        value.stepOperationId,
-                        owner.stepOperationId,
-                        StringComparison.Ordinal))
-                .ToArray();
-            if (matches.Length == 0)
-            {
-                if (owner.phase ==
-                    ProductionFacilityDestructiveDrainStepPhase.Planned)
-                {
-                    continue;
-                }
-                throw new InvalidOperationException(
-                    "production-destructive-drain-capacity-producer-missing: "
-                    + owner.stepOperationId);
-            }
-            if (matches.Length != 1 || !joinedSteps.Add(owner.stepOperationId))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-capacity-producer-duplicate: "
-                    + owner.stepOperationId);
-            }
-
-            ProductionCapacityRoutingDrainSaveData producer = matches[0];
-            if (producer.phase is ProductionCapacityRoutingDrainPhase
-                    .QuiescingActors
-                or ProductionCapacityRoutingDrainPhase
-                    .ReleasingOperationAuthority)
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-capacity-transient-save-phase: "
-                    + producer.stepOperationId);
-            }
-            string expectedOwner =
-                ProductionFacilityDestructiveDrainOwnerStableIds.RoutingBatch(
-                    producer.batchCommitId);
-            if (!string.Equals(
-                    producer.ownerStableId,
-                    owner.ownerStableId,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    producer.ownerStableId,
-                    expectedOwner,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    producer.facilityId,
-                    entry.facilityId,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    producer.sourceDestinationId,
-                    entry.destinationId,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    producer.requestFingerprint,
-                    owner.requestFingerprint,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    producer.sourceOwnershipFingerprint,
-                    participant.preparedContributionFingerprint,
-                    StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-capacity-producer-request-mismatch: "
-                    + owner.stepOperationId);
-            }
-
-            bool phaseMatches = owner.phase switch
-            {
-                ProductionFacilityDestructiveDrainStepPhase.Planned =>
-                    producer.phase != ProductionCapacityRoutingDrainPhase
-                        .OwnerAcknowledgedAwaitingCheckpointGc,
-                ProductionFacilityDestructiveDrainStepPhase
-                    .EffectCommittedAwaitingOwnerAck =>
-                    producer.phase is ProductionCapacityRoutingDrainPhase
-                            .EffectCommittedAwaitingOwnerAck
-                        or ProductionCapacityRoutingDrainPhase
-                            .OwnerAcknowledgedAwaitingCheckpointGc,
-                ProductionFacilityDestructiveDrainStepPhase.OwnerAcknowledged =>
-                    producer.phase == ProductionCapacityRoutingDrainPhase
-                        .OwnerAcknowledgedAwaitingCheckpointGc,
-                _ => false
-            };
-            if (!phaseMatches)
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-capacity-producer-phase-mismatch: "
-                    + owner.stepOperationId);
-            }
-            if (owner.phase != ProductionFacilityDestructiveDrainStepPhase.Planned
-                && (!string.Equals(
-                        owner.commitId,
-                        producer.commitId,
-                        StringComparison.Ordinal)
-                    || !string.Equals(
-                        owner.receiptFingerprint,
-                        producer.receiptFingerprint,
-                        StringComparison.Ordinal)))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-capacity-producer-receipt-mismatch: "
-                    + owner.stepOperationId);
-            }
-            ValidateCapacityRoutingProducerSource(
-                producer,
-                routing,
-                physicalRoutes);
-        }
-    }
-
-    private static void ValidateCapacityRoutingProducerSource(
-        ProductionCapacityRoutingDrainSaveData producer,
-        ProductionPreparedOutputRoutingSaveData routing,
-        IReadOnlyList<FacilityOutputExactRouteOutboxSaveData> physicalRoutes)
-    {
-        ProductionPreparedOutputRoutingBatchSaveData[] batchMatches =
-            (routing?.batches
-                ?? new List<ProductionPreparedOutputRoutingBatchSaveData>())
-            .Where(value => value != null
-                && string.Equals(
-                    value.batchCommitId,
-                    producer.batchCommitId,
-                    StringComparison.Ordinal))
-            .ToArray();
-        FacilityOutputExactRouteOutboxSaveData[] itemRoutes =
-            (physicalRoutes ?? Array.Empty<FacilityOutputExactRouteOutboxSaveData>())
-            .Where(value => value != null
-                && string.Equals(
-                    value.batchCommitId,
-                    producer.batchCommitId,
-                    StringComparison.Ordinal))
-            .OrderBy(value => value.routeOperationId, StringComparer.Ordinal)
-            .ToArray();
-        bool terminal = producer.phase is ProductionCapacityRoutingDrainPhase
-                .EffectCommittedAwaitingOwnerAck
-            or ProductionCapacityRoutingDrainPhase
-                .OwnerAcknowledgedAwaitingCheckpointGc;
-        bool mayObserveCheckpointGap = producer.phase ==
-            ProductionCapacityRoutingDrainPhase.AwaitingDurableCheckpointGc;
-        if (batchMatches.Length == 0)
-        {
-            if ((!terminal && !mayObserveCheckpointGap)
-                || itemRoutes.Length != 0)
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-capacity-source-missing-one-sided: "
-                    + producer.stepOperationId);
-            }
-            return;
-        }
-        if (batchMatches.Length != 1 || terminal)
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-capacity-source-terminal-or-duplicate: "
-                + producer.stepOperationId);
-        }
-
-        ProductionPreparedOutputRoutingBatchSaveData batch = batchMatches[0];
-        if (!string.Equals(batch.ownerFacilityId, producer.facilityId,
-                StringComparison.Ordinal)
-            || !string.Equals(batch.destinationId, producer.sourceDestinationId,
-                StringComparison.Ordinal)
-            || !string.Equals(batch.outcomeFingerprint,
-                producer.sourceOutcomeFingerprint, StringComparison.Ordinal)
-            || !string.Equals(batch.routingFingerprint,
-                producer.sourceRoutingFingerprint, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-capacity-source-batch-mismatch: "
-                + producer.stepOperationId);
-        }
-
-        Dictionary<string, ProductionPreparedOutputRoutingLineSaveData> lines =
-            (batch.lines ?? new List<ProductionPreparedOutputRoutingLineSaveData>())
-            .Where(value => value != null)
-            .ToDictionary(value => value.lineCommitId, StringComparer.Ordinal);
-        foreach (ProductionCapacityRoutingDrainLineSaveData frozen in
-                 producer.sourceLines)
-        {
-            if (!lines.TryGetValue(
-                    frozen.lineCommitId,
-                    out ProductionPreparedOutputRoutingLineSaveData live)
-                || !string.Equals(live.outputLineId, frozen.outputLineId,
-                    StringComparison.Ordinal)
-                || !string.Equals(live.itemId, frozen.itemId,
-                    StringComparison.Ordinal)
-                || !string.Equals(live.componentFingerprint,
-                    frozen.componentFingerprint, StringComparison.Ordinal)
-                || !string.Equals(live.outputCapabilityId,
-                    frozen.outputCapabilityId, StringComparison.Ordinal)
-                || live.outputCapabilityVersion !=
-                    frozen.outputCapabilityVersion
-                || !string.Equals(live.outputComponentCodecId,
-                    frozen.outputComponentCodecId, StringComparison.Ordinal)
-                || live.outputComponentCodecVersion !=
-                    frozen.outputComponentCodecVersion
-                || !string.Equals(live.outputCapabilityFingerprint,
-                    frozen.outputCapabilityFingerprint,
-                    StringComparison.Ordinal)
-                || live.originalQuantity != frozen.originalQuantity
-                || live.originalMassGrams != frozen.originalMassGrams
-                || live.remainingQuantity > frozen.remainingQuantity
-                || live.remainingMassGrams > frozen.remainingMassGrams
-                || live.routedQuantity < frozen.routedQuantity
-                || live.routedMassGrams < frozen.routedMassGrams)
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-capacity-source-line-mismatch: "
-                    + producer.stepOperationId + ":" + frozen.lineCommitId);
-            }
-        }
-
-        Dictionary<string, ProductionPreparedOutputRouteOperationSaveData>
-            operations = lines.Values
-                .SelectMany(line => line.routeOperations
-                    ?? new List<ProductionPreparedOutputRouteOperationSaveData>())
-                .Where(value => value != null)
-                .ToDictionary(value => value.routeOperationId,
-                    StringComparer.Ordinal);
-        foreach (ProductionCapacityRoutingDrainRouteSaveData frozen in
-                 producer.sourceRoutes)
-        {
-            if (!operations.TryGetValue(
-                    frozen.routeOperationId,
-                    out ProductionPreparedOutputRouteOperationSaveData live)
-                || !string.Equals(live.requestFingerprint,
-                    frozen.requestFingerprint, StringComparison.Ordinal)
-                || (int)live.phase < frozen.phase
-                || !string.IsNullOrEmpty(frozen.physicalReceiptFingerprint)
-                    && !string.Equals(live.physicalReceiptFingerprint,
-                        frozen.physicalReceiptFingerprint,
-                        StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-capacity-source-route-mismatch: "
-                    + producer.stepOperationId + ":"
-                    + frozen.routeOperationId);
-            }
-        }
-
-        if (producer.finalRouteOperationIds.Count > 0)
-        {
-            string[] liveOperationIds = operations.Keys
-                .OrderBy(value => value, StringComparer.Ordinal)
-                .ToArray();
-            string[] physicalOperationIds = itemRoutes
-                .Select(value => value.routeOperationId)
-                .OrderBy(value => value, StringComparer.Ordinal)
-                .ToArray();
-            if (!producer.finalRouteOperationIds.SequenceEqual(
-                    liveOperationIds,
-                    StringComparer.Ordinal)
-                || !producer.finalRouteOperationIds.SequenceEqual(
-                    physicalOperationIds,
-                    StringComparer.Ordinal))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-capacity-terminal-route-set-mismatch: "
-                    + producer.stepOperationId);
-            }
-        }
+        ProductionFacilityDestructiveDrainTerminalProducerJoinValidation
+            .ValidateApparelTerminalProducerJoin(
+                entry,
+                producers,
+                joinedSteps);
     }
 
     public static void ValidateStockSensorCompositeProducerJoin(
@@ -1537,585 +720,12 @@ public sealed class ProductionFacilityDestructiveDrainCrossAggregateSaveValidati
         IReadOnlyList<ProductionInputDestinationCustodyDrainSaveData> children,
         ISet<string> joinedChildSteps)
     {
-        if (entry == null
-            || production == null
-            || children == null
-            || joinedChildSteps == null
-            || !ProductionFacilityDestructiveDrainOperationId.TryParse(
-                entry.operationId,
-                out ProductionFacilityDestructiveDrainOperationId operationId))
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-stock-sensor-join-input-invalid");
-        }
-
-        BuildingInstanceId facilityId =
-            (BuildingInstanceId)(entry.facilityId ?? string.Empty);
-        if (!facilityId.IsValid)
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-stock-sensor-facility-invalid");
-        }
-
-        ProductionFacilityDestructiveDrainParticipantSaveData participant =
-            (entry.participants
-                ?? new List<ProductionFacilityDestructiveDrainParticipantSaveData>())
-            .Single(value => string.Equals(
-                value.participantId,
-                ProductionFacilityDestructiveDrainParticipantIds
-                    .StockSensorEmbeddedSalvage,
-                StringComparison.Ordinal));
-        IReadOnlyList<ProductionFacilityDestructiveDrainOwnerSaveData> owners =
-            participant.owners
-            ?? throw new InvalidOperationException(
-                "Stock-sensor destructive-drain participant has no owner collection.");
-        if (owners.Count > 1 || owners.Any(value => value == null))
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-stock-sensor-owner-cardinality");
-        }
-
-        ProductionStockSensorPhysicalCommitSaveData pending =
-            SingleStockSensorRow(
-                production.pendingStockSensorInstalls,
-                facilityId.Value,
-                value => value?.facilityId,
-                "pending-install");
-        ProductionInstalledStockSensorSaveData installed =
-            SingleStockSensorRow(
-                production.installedStockSensors,
-                facilityId.Value,
-                value => value?.facilityId,
-                "installed");
-        ProductionStockSensorRemovalSaveData removal =
-            SingleStockSensorRow(
-                production.pendingStockSensorRemovals,
-                facilityId.Value,
-                value => value?.facilityId,
-                "removal");
-        if (!ProductionStockSensorDestructiveDrainCanonical.Provenance.TryCreate(
-                facilityId,
-                pending,
-                installed,
-                removal,
-                out ProductionStockSensorDestructiveDrainCanonical.Provenance
-                    provenance))
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-stock-sensor-provenance-conflict");
-        }
-
-        string expectedOwner =
-            ProductionFacilityDestructiveDrainOwnerStableIds.StockSensor(
-                facilityId.Value);
-        string expectedUpperStep = ProductionFacilityDestructiveDrainCanonical
-            .BuildStepOperationId(
-                operationId,
-                ProductionFacilityDestructiveDrainParticipantIds
-                    .StockSensorEmbeddedSalvage,
-                expectedOwner);
-        string expectedChildStep =
-            ProductionStockSensorDestructiveDrainCanonical
-                .BuildChildStepOperationId(expectedUpperStep);
-        string expectedDestination =
-            ProductionStockSensorRuntime.BuildDestinationId(facilityId.Value);
-        ProductionInputDestinationCustodyDrainSaveData[] childMatches = children
-            .Where(value => value != null
-                && string.Equals(value.stepOperationId,
-                    expectedChildStep, StringComparison.Ordinal))
-            .ToArray();
-
-        if (owners.Count == 0)
-        {
-            if (provenance.Present || childMatches.Length != 0)
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-stock-sensor-owner-missing");
-            }
-            return;
-        }
-
-        ProductionFacilityDestructiveDrainOwnerSaveData owner = owners[0];
-        if (!string.Equals(owner.ownerStableId,
-                expectedOwner, StringComparison.Ordinal)
-            || !string.Equals(owner.stepOperationId,
-                expectedUpperStep, StringComparison.Ordinal)
-            || owner.disposition !=
-                ProductionFacilityDestructiveDrainDisposition.Terminalize
-            || !string.IsNullOrEmpty(owner.targetDestinationId))
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-stock-sensor-owner-identity-mismatch");
-        }
-
-        if (childMatches.Length == 0)
-        {
-            if (owner.phase ==
-                ProductionFacilityDestructiveDrainStepPhase.Planned)
-            {
-                return;
-            }
-            throw new InvalidOperationException(
-                "production-destructive-drain-stock-sensor-child-missing: "
-                + expectedChildStep);
-        }
-        if (childMatches.Length != 1
-            || !joinedChildSteps.Add(expectedChildStep))
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-stock-sensor-child-duplicate: "
-                + expectedChildStep);
-        }
-
-        ProductionInputDestinationCustodyDrainSaveData child = childMatches[0];
-        if (!ProductionInputDestinationCustodyDrainContract.IsValidSave(child)
-            || !string.Equals(child.parentOperationId,
-                entry.operationId, StringComparison.Ordinal)
-            || !string.Equals(child.ownerStableId,
-                expectedOwner, StringComparison.Ordinal)
-            || !string.Equals(child.billId,
-                expectedDestination, StringComparison.Ordinal)
-            || !string.Equals(child.facilityId,
-                facilityId.Value, StringComparison.Ordinal)
-            || !string.Equals(child.sourceDestinationId,
-                expectedDestination, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-stock-sensor-child-identity-mismatch: "
-                + expectedChildStep);
-        }
-
-        string expectedRequest =
-            ProductionStockSensorDestructiveDrainCanonical
-                .BuildRequestFingerprint(child.requestFingerprint, provenance);
-        if (!string.Equals(owner.requestFingerprint,
-                expectedRequest, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-stock-sensor-request-mismatch: "
-                + expectedUpperStep);
-        }
-
-        bool childPhaseMatches = owner.phase switch
-        {
-            ProductionFacilityDestructiveDrainStepPhase.Planned =>
-                !ProductionStockSensorDestructiveDrainCanonical
-                    .IsChildAcknowledged(child.phase),
-            ProductionFacilityDestructiveDrainStepPhase
-                .EffectCommittedAwaitingOwnerAck =>
-                ProductionStockSensorDestructiveDrainCanonical
-                    .IsChildEffectCommitted(child.phase),
-            ProductionFacilityDestructiveDrainStepPhase.OwnerAcknowledged =>
-                ProductionStockSensorDestructiveDrainCanonical
-                    .IsChildAcknowledged(child.phase),
-            _ => false
-        };
-        bool removalPhaseMatches = owner.phase switch
-        {
-            ProductionFacilityDestructiveDrainStepPhase.Planned =>
-                removal == null
-                || !ProductionStockSensorDestructiveDrainCanonical
-                    .IsSensorAcknowledged(removal.phase),
-            ProductionFacilityDestructiveDrainStepPhase
-                .EffectCommittedAwaitingOwnerAck =>
-                provenance.Present
-                    ? removal != null
-                        && ProductionStockSensorDestructiveDrainCanonical
-                            .IsSensorEffectCommitted(removal.phase)
-                    : removal == null,
-            ProductionFacilityDestructiveDrainStepPhase.OwnerAcknowledged =>
-                provenance.Present
-                    ? removal != null
-                        && ProductionStockSensorDestructiveDrainCanonical
-                            .IsSensorAcknowledged(removal.phase)
-                    : removal == null,
-            _ => false
-        };
-        if (!childPhaseMatches || !removalPhaseMatches)
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-stock-sensor-phase-mismatch: "
-                + expectedUpperStep);
-        }
-
-        if (owner.phase == ProductionFacilityDestructiveDrainStepPhase.Planned)
-            return;
-        if (!ProductionStockSensorDestructiveDrainCanonical
-                .TryBuildCompositeTerminal(
-                    owner.requestFingerprint,
-                    child,
-                    removal,
-                    out string expectedCommit,
-                    out string expectedReceipt)
-            || !string.Equals(owner.commitId,
-                expectedCommit, StringComparison.Ordinal)
-            || !string.Equals(owner.receiptFingerprint,
-                expectedReceipt, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-stock-sensor-terminal-mismatch: "
-                + expectedUpperStep);
-        }
-    }
-
-    private static T SingleStockSensorRow<T>(
-        IEnumerable<T> rows,
-        string facilityId,
-        Func<T, string> facilitySelector,
-        string sourceKind)
-        where T : class
-    {
-        T[] matches = (rows ?? Array.Empty<T>())
-            .Where(value => value != null
-                && string.Equals(facilitySelector(value),
-                    facilityId, StringComparison.Ordinal))
-            .ToArray();
-        if (matches.Length > 1)
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-stock-sensor-source-duplicate: "
-                + sourceKind + ":" + facilityId);
-        }
-        return matches.SingleOrDefault();
-    }
-
-    private static bool IsStockSensorChild(
-        ProductionInputDestinationCustodyDrainSaveData child) =>
-        child != null
-        && ((child.ownerStableId ?? string.Empty).StartsWith(
-                "stock-sensor:", StringComparison.Ordinal)
-            || (child.billId ?? string.Empty).StartsWith(
-                "production-sensor:", StringComparison.Ordinal)
-            || (child.sourceDestinationId ?? string.Empty).StartsWith(
-                "production-sensor:", StringComparison.Ordinal));
-
-    private static void ValidatePhysicalCustodyProducerJoin(
-        ProductionFacilityDestructiveDrainEntrySaveData entry,
-        IReadOnlyList<ProductionPhysicalCustodyDrainSaveData> producers,
-        ISet<string> joinedSteps)
-    {
-        ProductionFacilityDestructiveDrainParticipantSaveData participant =
-            entry.participants.Single(value => string.Equals(
-                value.participantId,
-                ProductionFacilityDestructiveDrainParticipantIds
-                    .PhysicalCustodyCarryRecovery,
-                StringComparison.Ordinal));
-        IReadOnlyList<ProductionFacilityDestructiveDrainOwnerSaveData> owners =
-            participant.owners
-                ?? throw new InvalidOperationException(
-                    "Physical destructive-drain participant has no owner collection.");
-        if (owners.Count > 1)
-        {
-            throw new InvalidOperationException(
-                "Physical destructive-drain participant must use one atomic destination owner.");
-        }
-        if (owners.Count == 0)
-            return;
-
-        ProductionFacilityDestructiveDrainOwnerSaveData owner = owners[0]
-            ?? throw new InvalidOperationException(
-                "Physical destructive-drain owner is null.");
-        ProductionPhysicalCustodyDrainSaveData[] matches = producers
-            .Where(value => value != null
-                && string.Equals(
-                    value.stepOperationId,
-                    owner.stepOperationId,
-                    StringComparison.Ordinal))
-            .ToArray();
-        if (matches.Length == 0)
-        {
-            if (owner.phase == ProductionFacilityDestructiveDrainStepPhase.Planned)
-                return;
-            throw new InvalidOperationException(
-                "production-destructive-drain-physical-producer-missing: "
-                + owner.stepOperationId);
-        }
-        if (matches.Length != 1 || !joinedSteps.Add(owner.stepOperationId))
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-physical-producer-duplicate: "
-                + owner.stepOperationId);
-        }
-
-        ProductionPhysicalCustodyDrainSaveData producer = matches[0];
-        if (!string.Equals(
-                producer.ownerStableId,
-                owner.ownerStableId,
-                StringComparison.Ordinal)
-            || !string.Equals(
-                producer.sourceDestinationId,
-                entry.destinationId,
-                StringComparison.Ordinal)
-            || !string.Equals(
-                producer.requestFingerprint,
-                owner.requestFingerprint,
-                StringComparison.Ordinal)
-            || !string.Equals(
-                producer.sourceOwnershipFingerprint,
-                participant.preparedContributionFingerprint,
-                StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-physical-producer-request-mismatch: "
-                + owner.stepOperationId);
-        }
-
-        bool phaseMatches = owner.phase switch
-        {
-            ProductionFacilityDestructiveDrainStepPhase.Planned =>
-                producer.phase != ProductionPhysicalCustodyDrainPhase
-                    .OwnerAcknowledgedAwaitingCheckpointGc,
-            ProductionFacilityDestructiveDrainStepPhase
-                .EffectCommittedAwaitingOwnerAck =>
-                producer.phase is ProductionPhysicalCustodyDrainPhase
-                        .EffectCommittedAwaitingOwnerAck
-                    or ProductionPhysicalCustodyDrainPhase
-                        .OwnerAcknowledgedAwaitingCheckpointGc,
-            ProductionFacilityDestructiveDrainStepPhase.OwnerAcknowledged =>
-                producer.phase == ProductionPhysicalCustodyDrainPhase
-                    .OwnerAcknowledgedAwaitingCheckpointGc,
-            _ => false
-        };
-        if (!phaseMatches)
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-physical-producer-phase-mismatch: "
-                + owner.stepOperationId);
-        }
-        if (owner.phase != ProductionFacilityDestructiveDrainStepPhase.Planned
-            && (!string.Equals(
-                    owner.commitId,
-                    producer.commitId,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    owner.receiptFingerprint,
-                    producer.receiptFingerprint,
-                    StringComparison.Ordinal)))
-        {
-            throw new InvalidOperationException(
-                "production-destructive-drain-physical-producer-receipt-mismatch: "
-                + owner.stepOperationId);
-        }
-    }
-
-    private IReadOnlyDictionary<string, string> ProjectPresentContributors(
-        BuildingInstanceId facilityId,
-        ModularFacilityWorldSaveData world,
-        DungeonProductionBillSaveData production,
-        DungeonProductionGenericBillTerminalDrainSaveData
-            genericTerminalDrains,
-        DungeonCombatEquipmentSaveData combat,
-        CombatEquipmentMaintenanceSaveData maintenance,
-        DungeonCharacterEnvironmentSaveData environment,
-        DungeonPhysicalItemSaveData items,
-        DungeonCharacterWorldSaveData characters,
-        ProductionPreparedOutputRoutingSaveData routing,
-        DungeonEnvironmentalFireSaveData fire)
-    {
-        ProductionOutputCapacityDurableProjection capacity =
-            ProductionOutputDestinationDurableSaveProjector
-                .ProjectCapacityRoutingFromSave(
-                    facilityId,
-                    world,
-                    production,
-                    genericTerminalDrains,
-                    items,
-                    characters,
-                    routing,
-                    items.pendingExactOutputRoutes,
-                    buildingDefinitions,
-                    capacityProjector,
-                    massQuery);
-        return CreateContributorMap(
-            facilityId,
-            production,
-            combat,
-            maintenance,
-            environment,
-            items,
-            characters,
-            fire,
-            capacity.Fingerprint);
-    }
-
-    private static IReadOnlyDictionary<string, string>
-        ProjectAbsentContributors(
-            BuildingInstanceId facilityId,
-            ModularFacilityWorldSaveData world,
-            DungeonProductionBillSaveData production,
-            DungeonCombatEquipmentSaveData combat,
-            CombatEquipmentMaintenanceSaveData maintenance,
-            DungeonCharacterEnvironmentSaveData environment,
-        DungeonPhysicalItemSaveData items,
-        DungeonCharacterWorldSaveData characters,
-        ProductionPreparedOutputRoutingSaveData routing,
-        DungeonEnvironmentalFireSaveData fire)
-    {
-        ProductionOutputDestinationDurableSaveProjector
-            .ProjectAbsentFacilityAggregateFromSave(
-                facilityId,
-                world,
+        ProductionFacilityDestructiveDrainStockSensorProducerJoinValidation
+            .ValidateStockSensorCompositeProducerJoin(
+                entry,
                 production,
-                combat,
-                maintenance,
-                environment,
-                items,
-                characters,
-                routing,
-                fire);
-        string capacity = ProductionOutputDestinationDurableSaveProjector
-            .ProjectCapacityRouting(
-                facilityId,
-                null,
-                new FacilityBufferPhysicalOccupancySnapshot(0L, 0L),
-                routing,
-                items.pendingExactOutputRoutes);
-        return CreateContributorMap(
-            facilityId,
-            production,
-            combat,
-            maintenance,
-            environment,
-            items,
-            characters,
-            fire,
-            capacity);
-    }
-
-    private static IReadOnlyDictionary<string, string> CreateContributorMap(
-        BuildingInstanceId facilityId,
-        DungeonProductionBillSaveData production,
-        DungeonCombatEquipmentSaveData combat,
-        CombatEquipmentMaintenanceSaveData maintenance,
-        DungeonCharacterEnvironmentSaveData environment,
-        DungeonPhysicalItemSaveData items,
-        DungeonCharacterWorldSaveData characters,
-        DungeonEnvironmentalFireSaveData fire,
-        string capacityFingerprint) =>
-        new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            [ProductionOutputDestinationDurableSaveProjector
-                .ApparelContributorId] =
-                ProductionOutputDestinationDurableSaveProjector.ProjectApparel(
-                    facilityId,
-                    environment),
-            [ProductionOutputDestinationDurableSaveProjector
-                .CapacityRoutingContributorId] = capacityFingerprint,
-            [ProductionOutputDestinationDurableSaveProjector
-                .EquipmentContributorId] =
-                ProductionOutputDestinationDurableSaveProjector.ProjectEquipment(
-                    facilityId,
-                    combat,
-                    maintenance),
-            [ProductionOutputDestinationDurableSaveProjector
-                .FireDamageContributorId] =
-                EnvironmentalFireDamageAuthority
-                    .ProjectFacilityContribution(
-                        facilityId,
-                        fire?.damageOperations),
-            [ProductionOutputDestinationDurableSaveProjector
-                .GenericBillsContributorId] =
-                ProductionOutputDestinationDurableSaveProjector.ProjectGenericBills(
-                    facilityId,
-                    production),
-            [ProductionOutputDestinationDurableSaveProjector
-                .PhysicalCustodyContributorId] =
-                ProductionOutputDestinationDurableSaveProjector.ProjectPhysicalCustody(
-                    facilityId,
-                    items,
-                    characters),
-            [ProductionOutputDestinationDurableSaveProjector
-                .StockSensorContributorId] =
-                ProductionOutputDestinationDurableSaveProjector.ProjectStockSensor(
-                    facilityId,
-                    production,
-                    items,
-                    characters)
-        };
-
-    private static void ValidateParticipants(
-        ProductionFacilityDestructiveDrainEntrySaveData entry,
-        IReadOnlyDictionary<string, string> contributors)
-    {
-        HashSet<string> seen = new(StringComparer.Ordinal);
-        foreach (ProductionFacilityDestructiveDrainParticipantSaveData participant
-                 in entry.participants
-                     ?? new List<ProductionFacilityDestructiveDrainParticipantSaveData>())
-        {
-            if (participant == null
-                || !ProductionFacilityDestructiveDrainParticipantRegistry
-                    .TryGetRequiredContractVersion(
-                        participant.participantId,
-                        out int requiredContractVersion)
-                || participant.contractVersion != requiredContractVersion
-                || !contributors.TryGetValue(
-                    participant.participantId ?? string.Empty,
-                    out string currentFingerprint)
-                || !seen.Add(participant.participantId)
-                || !string.Equals(
-                    participant.expectedCurrentContributionFingerprint,
-                    currentFingerprint,
-                    StringComparison.Ordinal)
-                || entry.phase ==
-                    ProductionFacilityDestructiveDrainPhase.Prepared
-                    && !string.Equals(
-                        participant.preparedContributionFingerprint,
-                        currentFingerprint,
-                        StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException(
-                    "Destructive-drain entry has an unknown, duplicate, version-drifted or contribution-mismatched participant: "
-                    + (participant?.participantId ?? string.Empty));
-            }
-        }
-        if (seen.Count != contributors.Count)
-        {
-            throw new InvalidOperationException(
-                "Destructive-drain entry is missing one or more required lifecycle participants.");
-        }
-    }
-
-    private static void ValidatePreparedOwnerBijection(
-        ProductionFacilityDestructiveDrainEntrySaveData entry,
-        IReadOnlyDictionary<string, IReadOnlyList<string>> sourceOwners)
-    {
-        foreach (ProductionFacilityDestructiveDrainParticipantSaveData participant
-                 in entry.participants)
-        {
-            if (!sourceOwners.TryGetValue(
-                    participant.participantId,
-                    out IReadOnlyList<string> expected))
-            {
-                throw new InvalidOperationException(
-                    "Destructive-drain participant has no planned source-owner projection: "
-                    + participant.participantId);
-            }
-            IReadOnlyList<ProductionFacilityDestructiveDrainOwnerSaveData>
-                journalOwners = participant.owners
-                    ?? throw new InvalidOperationException(
-                        "Prepared destructive-drain participant has no owner collection: "
-                        + participant.participantId);
-            string[] actual = journalOwners
-                .Where(value => value != null)
-                .Select(value => value.ownerStableId)
-                .OrderBy(value => value, StringComparer.Ordinal)
-                .ToArray();
-            if (actual.Length != journalOwners.Count
-                || !actual.SequenceEqual(expected, StringComparer.Ordinal))
-            {
-                throw new InvalidOperationException(
-                    "production-destructive-drain-prepared-owner-source-bijection-mismatch: "
-                    + participant.participantId);
-            }
-            if (journalOwners.Any(owner =>
-                    owner.phase !=
-                        ProductionFacilityDestructiveDrainStepPhase.Planned))
-            {
-                throw new InvalidOperationException(
-                    "Prepared destructive-drain owner is not in the Planned phase: "
-                    + participant.participantId);
-            }
-        }
+                children,
+                joinedChildSteps);
     }
 
     private static TPayload RequirePayload<TPayload>(

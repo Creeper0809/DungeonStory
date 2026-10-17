@@ -45,12 +45,7 @@ public sealed class EnvironmentalFireDamageFactPreflight : IDungeonSavePreflight
             {
                 if (row == null) throw new InvalidOperationException("fire-damage-canonical-row-null");
                 string key = new GameplayResultKey(row.producerId, new GameplayOperationId(row.operationId), row.commitRevision, row.localResultIndex).ToString();
-                Add(key, new GameplayOutcomeTombstoneSnapshot
-                {
-                    runId = row.runId, sequence = row.sequence, producerId = row.producerId, operationId = row.operationId,
-                    commitRevision = row.commitRevision, localResultIndex = row.localResultIndex, ownerRevision = row.ownerRevision,
-                    canonicalHash = row.immutablePayloadHash, terminalTier = NarrativeMemoryTier.Forgotten
-                });
+                Add(key, GameplayOutcomeSnapshotCodec.CaptureTombstoneIdentity(row));
                 if (incoming.outbox.Contains(row)) undelivered.Add(key);
             }
             foreach (var row in incoming.tombstones)
@@ -82,7 +77,8 @@ public sealed class EnvironmentalFireDamageFactPreflight : IDungeonSavePreflight
                     || record.publicationFingerprint != canonical.canonicalHash))
                     throw new InvalidOperationException("fire-damage-delivered-proof-conflict");
                 var subset = new GameplayOutcomeLedgerSaveData
-                    { runId = incoming.runId, worldEpoch = incoming.worldEpoch, nextSequence = incoming.nextSequence };
+                    { runId = incoming.runId, worldEpoch = incoming.worldEpoch,
+                    revision = incoming.revision, nextSequence = incoming.nextSequence };
                 if (exists)
                 {
                     if (canonical.ownerRevision != record.ownerRevision || string.IsNullOrWhiteSpace(canonical.canonicalHash))

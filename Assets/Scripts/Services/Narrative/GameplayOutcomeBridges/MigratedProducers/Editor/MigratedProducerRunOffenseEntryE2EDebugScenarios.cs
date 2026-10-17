@@ -4731,7 +4731,8 @@ public static partial class MigratedProducerRunOffenseEntryE2EDebugScenarios
     }
 
     private sealed class EmptyAtomicItemConsumption :
-        IAtomicItemConsumptionService
+        IAtomicItemConsumptionService,
+        IIdempotentAtomicItemConsumptionService
     {
         internal static readonly EmptyAtomicItemConsumption Instance = new();
 
@@ -4742,6 +4743,25 @@ public static partial class MigratedProducerRunOffenseEntryE2EDebugScenarios
         {
             failure = DomainFailure.None;
             return consumptions == null || consumptions.Count == 0;
+        }
+
+        public bool TryConsumeReservedOnce(
+            IReadOnlyList<ReservedItemConsumption> consumptions,
+            string reservationOwnerId,
+            out PhysicalEffectReceiptSaveData receipt,
+            out DomainFailure failure)
+        {
+            receipt = null;
+            if (consumptions == null || consumptions.Count == 0)
+            {
+                failure = DomainFailure.None;
+                return true;
+            }
+
+            failure = new DomainFailure(
+                FailureCode.ItemTransferConsumptionFailed,
+                reservationOwnerId ?? string.Empty);
+            return false;
         }
     }
 

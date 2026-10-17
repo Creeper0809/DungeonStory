@@ -64,7 +64,7 @@ public sealed class CropWaterRefillFactMapping
                 "The exact physical water-refill child outcome is unavailable.");
         }
 
-        return EnvironmentOutcomeReceiptFactory.CreateManualWaterRefill(
+        return CropProductionOutcomeReceiptFactory.CreateManualWaterRefill(
             source,
             fact.PlotId,
             source.plotDisplayName,

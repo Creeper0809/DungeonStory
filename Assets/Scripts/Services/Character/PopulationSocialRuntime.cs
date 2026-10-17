@@ -316,12 +316,15 @@ public sealed class KinshipHouseholdRuntime :
         campaign.CaptureFactions(),
         campaign.CaptureMilestones());
 
-    private void RestoreCampaign(CampaignMutationSnapshot snapshot) =>
+    private void RestoreCampaign(CampaignMutationSnapshot snapshot)
+    {
+        SeasonalEventAggregateState seasonal = campaign.PrepareSeasonal(snapshot.Seasonal);
         campaign.PublishContentResolution(
-            campaign.PrepareSeasonal(snapshot.Seasonal),
+            seasonal,
             campaign.PrepareSociety(snapshot.Society),
-            campaign.PrepareFactions(snapshot.Factions),
+            campaign.PrepareFactions(snapshot.Factions, seasonal),
             campaign.PrepareMilestones(snapshot.Milestones));
+    }
 
     private void PublishLineageCompletion(V20ResolvedEventResult resolution)
     {

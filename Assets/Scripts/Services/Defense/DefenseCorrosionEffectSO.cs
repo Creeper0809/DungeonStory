@@ -6,7 +6,7 @@ public sealed class DefenseCorrosionEffectSO : DefenseEffectSO
     public override string EffectId => DefenseEffectIds.Corrosion;
     public override string DisplayName => "방어력 감소";
 
-    public override void Apply(DefenseEffectContext context)
+    public override void Apply(IDefenseEffectCommands context)
     {
         context.ApplyStatus(DefenseStatusKind.Corrosion, Amount, Duration, Stacks);
         context.AddEffectTag(EffectiveLogTag);

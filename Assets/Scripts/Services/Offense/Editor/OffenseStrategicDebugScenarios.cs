@@ -1237,7 +1237,7 @@ public static class OffenseStrategicDebugScenarios
                 combatEquipmentRuntime: null,
                 worldRegistry: null,
                 worldItemStackRuntime: null,
-                abilityRuntimeDispatcher: null,
+                abilityRuntimeDispatcher: CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
                 gameClock: null,
                 paidFacilityContracts: null,
                 evolutionState: new FacilityEvolutionStateComponentFactory());

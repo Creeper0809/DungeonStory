@@ -658,7 +658,7 @@ public static class Wim003ApparelConditionRuntimeDebugScenarios
                     BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy.Create<IBuildingEquipmentCraftingRuntimePort>(),
                     BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy.Create<IBuildingWorldRegistryPort>(),
                     BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy.Create<IBuildingItemStackPort>(),
-                    BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy.Create<IBuildingAbilityRuntimeDispatcher>(),
+                    CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
                     services.Resolve<IGameClock>(),
                     BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy.Create<IBuildingPaidFacilityContractPort>(),
                     new FacilityEvolutionStateComponentFactory());

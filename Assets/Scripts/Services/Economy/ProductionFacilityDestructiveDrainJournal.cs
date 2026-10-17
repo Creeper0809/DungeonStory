@@ -739,7 +739,7 @@ public sealed class ProductionFacilityDestructiveDrainJournal :
         ValidateParticipants(operationId, entry.participants);
     }
 
-    private static bool IsValidOutcomeSnapshot(
+    internal static bool IsValidOutcomeSnapshot(
         ProductionFacilityDestructiveDrainEntrySaveData entry)
     {
         ProductionFacilityDestructiveDrainOutcomeSnapshot snapshot =

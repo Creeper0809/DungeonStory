@@ -274,6 +274,7 @@ public static class PhysicalItemExactSourcePublicationDebugScenarios
             Publication = publication;
             RestoreCandidates = new MutableAcknowledgedCandidates();
             Service = new PhysicalItemExactSourcePublicationService(
+                repository,
                 mass,
                 lifecycle,
                 Claims,

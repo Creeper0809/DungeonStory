@@ -105,6 +105,15 @@ public static partial class ProductionEconomyDebugScenarios
         Debug.Log("Prepared-output real adapter contracts passed.");
     }
 
+    public static void RunPreparedOutputResolutionForBatch()
+    {
+        if (!Application.isBatchMode)
+            throw new InvalidOperationException("Production resolution verification requires isolated batch execution.");
+        ValidateProcessLossPreparedOutputRealAdapter();
+        ValidateRuinedPreparedOutputMaximumProof();
+        Debug.Log("ARCHITECTURE_PRODUCTION_RESOLUTION=PASS; normal; declared loss; ruined; source proof; JSON restore; replay");
+    }
+
     public static void RunZeroInputSourceBillFocused()
     {
         ValidateZeroInputSourceBillInputAuthority();
@@ -1642,16 +1651,16 @@ public static partial class ProductionEconomyDebugScenarios
                 warehouseSource,
                 "facilityBufferMassAdmission.TryReserveExactLot(") == 1,
             "production item retargeting must use one preflighted exact transaction and retain no partial spawn path");
-        string billRuntimeSource = File.ReadAllText(Path.Combine(
+        string billTerminalRuntimeSource = File.ReadAllText(Path.Combine(
             Application.dataPath,
             "Scripts",
             "Models",
             "Economy",
             "Content",
-            "ProductionBillRuntime.cs"));
+            "ProductionBillTerminalRuntime.cs"));
         Require(
             CountOrdinalOccurrences(
-                billRuntimeSource,
+                billTerminalRuntimeSource,
                 "items.TryReleaseDestinationAtomically(") == 4,
             "every production-bill claim-revocation path must close carried delivery ownership atomically");
 

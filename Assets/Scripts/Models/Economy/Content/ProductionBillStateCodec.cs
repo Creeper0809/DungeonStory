@@ -850,11 +850,11 @@ internal static class ProductionBillStateCodec
         }
         if (!string.Equals(
                 saved.materialDestinationId,
-                ProductionBillRuntime.DestinationPrefix + billId.Value,
+                ProductionBillIdentity.DestinationPrefix + billId.Value,
                 StringComparison.Ordinal)
             || !string.Equals(
                 saved.outputDestinationId,
-                ProductionBillRuntime.OutputDestinationPrefix + buildingId.Value,
+                ProductionBillIdentity.OutputDestinationPrefix + buildingId.Value,
                 StringComparison.Ordinal))
         {
             throw new InvalidOperationException(

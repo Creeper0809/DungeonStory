@@ -242,6 +242,8 @@ public sealed class CharacterSkillActivationTransaction :
         if (limits.activationSequence == long.MaxValue)
         { failureReason = "skill-activation-sequence-exhausted"; return false; }
         long revision = limits.activationSequence + 1;
+        if (publications.Find(sourceId, revision) != null)
+        { failureReason = "skill-activation-owner-publication-history-mismatch"; return false; }
         long expires, readyAfter;
         try
         {
@@ -342,6 +344,8 @@ public sealed class CharacterSkillActivationTransaction :
             && !source.Progression.CanUseUltimate(request.UltimateDomain, request.TriggerSerial))
         { failureReason = "skill-automatic-ultimate-limit-active"; return false; }
         long revision = limits.activationSequence + 1;
+        if (publications.Find(sourceId, revision) != null)
+        { failureReason = "skill-activation-owner-publication-history-mismatch"; return false; }
         CharacterSkillActivationKind kind = request.ActivationKind;
         int useBefore = limits.automaticSkillActivations.Count(value => value.activationKind == kind && value.skillId == skill.id);
         long hour = Math.Max(0L, calendar.AbsoluteHour);

@@ -54,7 +54,6 @@ public static class DungeonFoundationRegistration
         builder.Register<CharacterWaterFactObserver>(Lifetime.Singleton);
         builder.RegisterMigratedDomainFact<CharacterRestAppliedFact>(
             "log:character-rest-applied", CharacterRestFactMapping.Capture);
-        builder.RegisterEntryPoint<CharacterStateNarrativeObserver>(Lifetime.Singleton);
         builder.Register<CharacterRestFactPreflight>(Lifetime.Singleton)
             .As<IDungeonSavePreflightValidator>().As<IDungeonCapturedSavePreflightValidator>();
         builder.Register<CharacterWaterFactBinding>(Lifetime.Singleton).As<IDomainFactObserverBinding>();
@@ -126,9 +125,6 @@ public static class DungeonFoundationRegistration
             "log:economy.husbandry-command", AnimalHusbandryCommandFactMapping.Capture);
         builder.RegisterMigratedDomainFact<AnimalHusbandryWorkFact>(
             "log:economy.husbandry-work", AnimalHusbandryWorkFactMapping.Capture);
-        builder.RegisterWorkCompletionDomainFact<AnimalHusbandryCompletionFact>(
-            "log:economy.husbandry-completion", AnimalHusbandryCompletionObservation.CreateRequest,
-            WorkCompletionNotificationMode.ReferencedEvent);
         builder.Register<ResourceStockSaleFactMapping>(Lifetime.Singleton);
         builder.Register(resolver => new MigratedDomainFactObserverBinding<ResourceStockSaleFact>(
             "log:economy.surplus-stock-sale", resolver.Resolve<ResourceStockSaleFactMapping>().Capture,
@@ -173,11 +169,6 @@ public static class DungeonFoundationRegistration
             .As<IMigratedProducerOutcomeTransaction>()
             .As<IMigratedProducerOutcomeExternalBatchTransaction>()
             .As<IMigratedProducerOutcomePersistence>();
-        builder.RegisterEntryPoint<GameplayOutcomeConsolidationRuntime>(
-                Lifetime.Singleton)
-            .As<IInitializable>()
-            .As<ITickable>()
-            .As<IGameplayOutcomeConsolidationPumpDiagnostics>();
         builder.RegisterTradeInventoryGameplayOutcomes();
         builder.RegisterBuildingDemolitionGameplayOutcomes();
         builder.RegisterPolicyStatusChangeGameplayOutcomes();

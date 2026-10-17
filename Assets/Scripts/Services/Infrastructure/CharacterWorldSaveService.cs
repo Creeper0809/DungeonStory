@@ -88,12 +88,18 @@ public sealed class CharacterWorldRestoreCandidate :
     private IReadOnlyDictionary<string, string> LegacyCharacterIds { get; }
 
     internal CharacterWorldSaveService.DetachedCharacterWorldCandidate Take(
-        CharacterWorldSaveService expectedOwner)
+        CharacterWorldSaveService expectedOwner,
+        CharacterWorldSaveService.DetachedCharacterWorldCandidate expectedWorld)
     {
         if (!ReferenceEquals(owner, expectedOwner) || world == null)
         {
             throw new InvalidOperationException(
                 "Character-world restore candidate has the wrong owner or was already consumed.");
+        }
+        if (!ReferenceEquals(world, expectedWorld))
+        {
+            throw new InvalidOperationException(
+                "Character restore candidate does not match the prepared world.");
         }
         CharacterWorldSaveService.DetachedCharacterWorldCandidate result = world;
         world = null;
@@ -122,12 +128,6 @@ public sealed class CharacterWorldRestoreCandidate :
                 + $"'{mapping.Key}' -> '{mapping.Value}'.");
         }
     }
-}
-
-public interface ICharacterIdRegistry
-{
-    bool TryGetPersistentId(CharacterActor actor, out string persistentId);
-    string GetOrAssignPersistentId(CharacterActor actor);
 }
 
 /// <summary>
@@ -950,7 +950,14 @@ public sealed class CharacterWorldSaveService :
             return;
         }
 
-        restoreWorldCandidates.ClearCharacterCandidate();
+        if (preparedCandidate != null)
+        {
+            DiscardPreparedCandidate(preparedCandidate);
+        }
+        else
+        {
+            restoreWorldCandidates.ClearCharacterCandidate();
+        }
         if (stagedCandidate != null)
         {
             DestroyCharacterCandidates(stagedCandidate.Characters);
@@ -973,6 +980,7 @@ public sealed class CharacterWorldSaveService :
 
             if (actor.TryGetAbility(out AbilityWork work))
             {
+                work.RelinquishRestockForWorldRestore();
                 work.ReleaseAssignedWorkTarget();
             }
             string persistentId = actor.Identity?.PersistentId?.Trim()
@@ -1126,6 +1134,11 @@ public sealed class CharacterWorldSaveService :
         {
             throw new InvalidOperationException(
                 "A character-world restore candidate is already prepared.");
+        }
+        if (stagedCandidate != null || activePublication != null)
+        {
+            throw new InvalidOperationException(
+                "Cannot prepare a character-world restore candidate while another world is staged or published.");
         }
 
         DungeonGameRestoreReport report = new DungeonGameRestoreReport();
@@ -1311,12 +1324,7 @@ public sealed class CharacterWorldSaveService :
                 "Character restore candidate staging is not active or already has a value.");
         }
 
-        DetachedCharacterWorldCandidate taken = candidate.Take(this);
-        if (!ReferenceEquals(taken, preparedCandidate))
-        {
-            throw new InvalidOperationException(
-                "Character restore candidate does not match the prepared world.");
-        }
+        DetachedCharacterWorldCandidate taken = candidate.Take(this, preparedCandidate);
         preparedCandidate = null;
         stagedCandidate = taken;
     }
@@ -1324,15 +1332,15 @@ public sealed class CharacterWorldSaveService :
     internal void DiscardPreparedCandidate(
         DetachedCharacterWorldCandidate candidate)
     {
+        // A discarded token can outlive its participant transaction. It may
+        // retire only the world still prepared by this owner, never a newer one.
+        if (candidate == null || !ReferenceEquals(preparedCandidate, candidate))
+        {
+            return;
+        }
         restoreWorldCandidates.ClearCharacterCandidate();
-        if (candidate != null)
-        {
-            DestroyCharacterCandidates(candidate.Characters);
-        }
-        if (ReferenceEquals(preparedCandidate, candidate))
-        {
-            preparedCandidate = null;
-        }
+        DestroyCharacterCandidates(candidate.Characters);
+        preparedCandidate = null;
     }
 
     private IReadOnlyList<CharacterActor> BuildCandidateCharacterView(

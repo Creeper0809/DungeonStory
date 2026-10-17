@@ -1,0 +1,91 @@
+{
+  "status": "SOURCE_IMPLEMENTED_PURE_LIFETIME_AND_STATIC_VERIFIED_UNITY_DEFERRED",
+  "goalStatus": "active",
+  "allGoalTargetsComplete": false,
+  "window": "All authors READY/FROZEN; SOURCE_EDIT closed; no UNITY_VERIFY launched",
+  "sourcePin": {
+    "path": "source-pin-g8-cleanup-r1.json",
+    "files": 813
+  },
+  "toolPin": {
+    "path": "tool-pin-g1-g3-c10-cleanup-r1.json",
+    "files": 8,
+    "drift": 0
+  },
+  "g8": {
+    "modules": 4,
+    "constructionDependencies": 32,
+    "stableIdentityConstants": 1,
+    "movedInjectionMethods": 10,
+    "publicInjectionMethodsPreserved": 11,
+    "retainedMethods": 110,
+    "publicMethods": 67,
+    "factory": 1,
+    "singleOwner": "CharacterWorkModuleRuntime owns the existing module graph/dependencies/invalidation and lazy construction. AbilityWork retains Unity routines and serialized/gameplay state.",
+    "selectorFix": "Rebind existing command and executor restock selector references when selection is recreated; no command/run/cargo/lease reset. Existing full/executor-only injection reset scopes are retained.",
+    "collaborators": "Three existing classes only gain reference setter/forwarding; existing members token-exact except readonly removal on selector field.",
+    "reflectionCallsitesUpdated": 7,
+    "consumerFilesUpdated": 9,
+    "sourceFreshnessListsUpdated": 4,
+    "readReview": "No additional confirmed defect; static only"
+  },
+  "pureLifetime": {
+    "rows": 7,
+    "status": "PASS",
+    "realProductionOwnerCompiledAndExecuted": true,
+    "ownerSHA256": "beaeb2ebd3e7f0dbe71ce94c105aaf03f3e95e79d995326281227424954a959d",
+    "collaborators": "TEST_DOUBLES",
+    "scope": [
+      "deferred pre-injection",
+      "lazy identity/stream",
+      "selector rebind preserves collaborator identity",
+      "standing original reset scope",
+      "rejected dependency graph unchanged",
+      "construction failure propagates/same-request retry",
+      "full reconfiguration scope"
+    ],
+    "UnityOrGameplayClaimed": false
+  },
+  "syntax": {
+    "files": 106,
+    "errors": 0,
+    "UnitySemanticCompilation": "NOT_RUN",
+    "UnityExecution": "NOT_RUN"
+  },
+  "sameDefaultAssembly": {
+    "Assets/Scripts/Services/Character/Ability/AbilityWork.cs": "Assembly-CSharp(default)",
+    "Assets/Scripts/Services/Character/Work/CharacterWorkModuleRuntime.cs": "Assembly-CSharp(default)",
+    "Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs": "Assembly-CSharp(default)",
+    "Assets/Scripts/Services/Character/Work/WorkCommandHandler.cs": "Assembly-CSharp(default)",
+    "Assets/Scripts/Services/Character/Work/RestockWorkExecution.cs": "Assembly-CSharp(default)"
+  },
+  "newMeta": {
+    "path": "Assets/Scripts/Services/Character/Work/CharacterWorkModuleRuntime.cs.meta",
+    "guid": "52cf8d3272e3404495656b8291300ff3",
+    "occurrences": 1
+  },
+  "knowledgeBase": {
+    "query": "AbilityWork",
+    "observedAt": "start source806 snapshot",
+    "status": "STALE",
+    "failureCount": 102,
+    "exitCode": 1,
+    "action": "Original source fallback; related source batch open; no index rebuild"
+  },
+  "executionLimit": "User asked to continue source cleanup. No same-RAM-condition Unity retry or other-app/desktop-input actions. Actual selector reinjection/work/cancel/official restore/retry remains required.",
+  "remainingGoalWork": true,
+  "completedTargets": 6,
+  "totalTargets": 32,
+  "committedOrPushed": false,
+  "finalChecks": {
+    "sourcePinDrift": 0,
+    "toolPinDrift": 0,
+    "reportLocalLinks": 591,
+    "missingLocalLinks": 0,
+    "newSourceWhitespace": "PASS",
+    "unitOwnerHashMatchesCurrentSource": true,
+    "targetCount": 32,
+    "scopedDiffCheck": "PASS",
+    "ownedUnityLauncherCompiler": 0
+  }
+}

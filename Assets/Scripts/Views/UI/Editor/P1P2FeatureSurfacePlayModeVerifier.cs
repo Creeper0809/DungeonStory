@@ -1494,11 +1494,11 @@ public static class P1P2FeatureSurfacePlayModeVerifier
         }
 
         // Keep the off-screen QA room valid without introducing a visible sprite into captures.
-        private static Dictionary<GridTexture.TilemapLayer, UnityEngine.Tilemaps.Tile> CreateQaTileVisual()
+        private static Dictionary<BuildingTilemapLayer, UnityEngine.Tilemaps.Tile> CreateQaTileVisual()
         {
-            return new Dictionary<GridTexture.TilemapLayer, UnityEngine.Tilemaps.Tile>
+            return new Dictionary<BuildingTilemapLayer, UnityEngine.Tilemaps.Tile>
             {
-                { GridTexture.TilemapLayer.HALLWAY, null }
+                { BuildingTilemapLayer.HALLWAY, null }
             };
         }
 

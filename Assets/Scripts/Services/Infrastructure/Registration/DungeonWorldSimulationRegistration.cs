@@ -170,7 +170,8 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<LeasedItemReservationService>(Lifetime.Singleton)
             .As<ILeasedItemReservationService>();
         builder.Register<AtomicItemConsumptionService>(Lifetime.Singleton)
-            .As<IAtomicItemConsumptionService>();
+            .As<IAtomicItemConsumptionService>()
+            .As<IIdempotentAtomicItemConsumptionService>();
         builder.Register<WorldItemSpawner>(Lifetime.Singleton)
             .As<IWorldItemSpawner>();
         builder.RegisterMigratedDomainFact<PhysicalItemTransformedFact>(
@@ -261,6 +262,9 @@ public static class DungeonWorldSimulationRegistration
             .As<IWorldItemStackRuntime>()
             .As<IPhysicalItemRestoreStaging>()
             .As<IPhysicalItemRestoreCandidateQuery>()
+            .As<IPhysicalEffectReceiptQuery>()
+            .As<IPhysicalEffectReceiptAcknowledgement>()
+            .As<IPhysicalEffectReceiptRestoreQuery>()
             .As<IPhysicalItemRestoreCandidateStackQuery>()
             .As<IProductionInputDestinationCustodyDrainRestoreCandidateQuery>()
             .As<IPhysicalItemRestoreCandidateOutputQuery>()
@@ -829,7 +833,9 @@ public static class DungeonWorldSimulationRegistration
             .As<IProductionFacilityDestructiveDrainAuthorityRevoker>();
         builder.Register<ProductionFacilityDestructiveDrainWorldRemovalPort>(
                 Lifetime.Singleton)
-            .As<IProductionFacilityDestructiveDrainWorldRemovalPort>();
+            .As<IProductionFacilityDestructiveDrainWorldRemovalPort>()
+            .As<IDungeonSaveCaptureGuard>()
+            .As<IDungeonSaveRestoreCompletedHook>();
         builder.RegisterEntryPoint<
                 ProductionFacilityDestructiveDrainRecoveryRuntime>(
                 Lifetime.Singleton)

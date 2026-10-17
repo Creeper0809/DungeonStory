@@ -1,0 +1,43 @@
+{
+  "status": "C18_TARGETED_ACTUAL_BT_CORPSE_AND_OFFICIAL_RESTORE_PASS",
+  "runs": [
+    {
+      "run": "native-breakdown-deprivation-current-r1",
+      "report": "native-breakdown-deprivation-current-r1\\deprivation-a09-playmode.txt",
+      "sha256": "719af7039b035176d7036820f6c3dc00bcda5f834a9c5ee45511efffb5697c73",
+      "passRows": 56,
+      "terminalUnityExit": 0
+    },
+    {
+      "run": "native-breakdown-corpse-current-r1",
+      "report": "native-breakdown-corpse-current-r1\\corpse-eating-a04-playmode.txt",
+      "sha256": "725e53b5d1ce5f7832f8e3647806135787c119bf48b97c967e23f223451d5f4c",
+      "passRows": 30,
+      "terminalUnityExit": 0
+    }
+  ],
+  "currentNativeCompile": "verification-g1-accident-native-compile-r3.json",
+  "currentPins": {
+    "source-pin-g1-accident-r3.json": {
+      "files": 1403,
+      "drift": []
+    },
+    "native-input-pin-r24.json": {
+      "files": 3872,
+      "drift": []
+    },
+    "tool-pin-g1-accident-r3.json": {
+      "files": 9,
+      "drift": []
+    }
+  },
+  "assembliesUnchanged": true,
+  "verified": [
+    "Five real BehaviorTree/decision pipeline breakdown routes and typed terminals; path/reservation/lease cleanup",
+    "Actual death -> physical corpse -> production food selection; rejected commit restores stats/domain/ledger/physical state",
+    "One physical consume and typed taboo parent; actor/victim/stack causal identity",
+    "Official whole-world JSON restore with fresh actor and exact prior consumption identity",
+    "Stale corpse reference restore rejected without live mutation; same consumption and public command duplicate inert"
+  ],
+  "scope": "Explicit aggregate/CharacterStats prerequisites; actual BT/physical/world restore execution, not naturally emergent triggering."
+}

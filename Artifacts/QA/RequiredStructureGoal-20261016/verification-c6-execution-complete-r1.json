@@ -1,0 +1,22 @@
+{
+  "status": "C6_TARGETED_NATIVE_ACTUAL_COMPLETE",
+  "target": "C6",
+  "receipts": [
+    "verification-c6-execution-r4.json",
+    "verification-c6-cold-execution-r1.json",
+    "verification-c6-native-owner-r2.json"
+  ],
+  "producerPassRows": 218,
+  "freshProcessPassRows": 29,
+  "nativeOwnerAcknowledgementRetry": "PASS",
+  "terminalUnityExit": [
+    0,
+    0,
+    0
+  ],
+  "sourcePin": "source-pin-c6-native-owner-r2.json",
+  "fullNativeInputPin": "native-input-pin-r29.json",
+  "toolPin": "tool-pin-g1-accident-r3.json",
+  "scope": "Actual controlled capture/stabilize/escort/confinement and wildlife lifecycle/food physical consumption; official104-section fresh-process completed-feed restore, strict invalid-reference rejection, same-commit replay inert, relative5-second cadence; actual owner ACK failure/JSON state replacement/display change/retry without duplicated consume/effect. No natural selection/AI/LLM training claim.",
+  "remainingFinalIntegration": "PENDING"
+}

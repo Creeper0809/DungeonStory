@@ -12,16 +12,13 @@ using VContainer.Unity;
 public sealed class FactionRuntimeApplicationAdapter :
     IFactionRuntime,
     IDungeonSaveCaptureGuard,
+    IDungeonSaveRestoreCompletedHook,
     IStartable,
     ITickable,
     IDisposable
 {
     private const float SecondsPerHex = 20f;
-    private const string CargoSourceOwnerDomain = "faction.route-cargo";
-    private const string CargoReleaseReason =
-        "faction-route-cargo-delivery";
-    private const string CargoOutcomeRollbackReason =
-        "faction-route-cargo-outcome-rollback";
+
     private readonly ResourceDungeonFactionCatalogApplicationAdapter catalog;
     private readonly IReadOnlyList<FactionDefinitionSnapshot> definitions;
     private readonly FactionDomainRuntime domain;
@@ -30,11 +27,6 @@ public sealed class FactionRuntimeApplicationAdapter :
     private readonly IWorldItemStackRuntime itemRuntime;
     private readonly IPhysicalItemBatchDispositionService batchDispositions;
     private readonly IWorldDropZoneQuery dropZones;
-    private readonly IPhysicalItemExactSourcePublicationService exactSources;
-    private readonly IRunCharacterCatalog characterCatalog;
-    private readonly ICharacterSpawnerProvider spawnerProvider;
-    private readonly ICharacterSpawnObjectFactory characterFactory;
-    private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly IGameClock clock;
     private readonly IGameEventBus events;
     private readonly IFactionRouteEconomicPolicyRegistry routeEconomicPolicies;
@@ -46,8 +38,9 @@ public sealed class FactionRuntimeApplicationAdapter :
     private readonly FactionTradeSettlementRecovery tradeSettlementRecovery;
     private readonly IDomainFactPublisher domainFacts;
     private readonly IDomainFactRecoveryPublisher factRecovery;
-    private readonly Dictionary<string, PendingFactionCargoPublication>
-        pendingCargo = new(StringComparer.Ordinal);
+    private readonly FactionRouteCargoRuntime routeCargo;
+    private readonly FactionReinforcementMaterializer reinforcements;
+
     private bool observationActive;
     private readonly IFactionCampaignQuery campaignQuery;
     private readonly IFactionCampaignCommand campaignCommand;
@@ -58,20 +51,6 @@ public sealed class FactionRuntimeApplicationAdapter :
     private bool synchronizingWorldHomes;
     [ApplicationAdapterTransientState]
     private int projectedRestoreRevision;
-
-    private sealed class PendingFactionCargoPublication
-    {
-        public PhysicalItemExactSourcePublicationPlan Plan;
-        public PhysicalItemExactSourcePublicationTransaction Transaction;
-        public FactionRouteCargoDeliveryReceipt ExpectedReceipt;
-        public FactionRouteCargoDeliveryReceipt BeforeReceipt;
-        public DungeonPhysicalItemSaveData PhysicalItemsBefore;
-        public DomainFactLease FactLease;
-        public FactionCargoDeliveredFact Fact;
-        public string PublicationKey;
-        public bool PublicationUncertain;
-        public bool OutcomeCommitted;
-    }
 
     private sealed class PreparedFactionRouteArrival
     {
@@ -114,11 +93,11 @@ public sealed class FactionRuntimeApplicationAdapter :
         itemRuntime = itemLogistics.ItemRuntime;
         batchDispositions = itemLogistics.BatchDispositions;
         dropZones = itemLogistics.DropZones;
-        exactSources = itemLogistics.ExactSources;
-        characterCatalog = characterSpawning.CharacterCatalog;
-        spawnerProvider = characterSpawning.SpawnerProvider;
-        characterFactory = characterSpawning.CharacterFactory;
-        worldRegistry = characterSpawning.WorldRegistry;
+        IPhysicalItemExactSourcePublicationService exactSources = itemLogistics.ExactSources;
+        IRunCharacterCatalog characterCatalog = characterSpawning.CharacterCatalog;
+        ICharacterSpawnerProvider spawnerProvider = characterSpawning.SpawnerProvider;
+        ICharacterSpawnObjectFactory characterFactory = characterSpawning.CharacterFactory;
+        ICharacterAiWorldRegistry worldRegistry = characterSpawning.WorldRegistry;
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.routeEconomicPolicies = routeEconomicPolicies
@@ -139,6 +118,12 @@ public sealed class FactionRuntimeApplicationAdapter :
         campaignPersistence = campaign;
         domain = new FactionDomainRuntime(
             aggregateRootStore ?? throw new ArgumentNullException(nameof(aggregateRootStore)));
+        routeCargo = new FactionRouteCargoRuntime(
+            domain, definitions, dropZones, exactSources, itemRuntime,
+            domainFacts, factRecovery);
+        reinforcements = new FactionReinforcementMaterializer(
+            domain, definitions, characterCatalog, spawnerProvider,
+            characterFactory, worldRegistry);
     }
 
     internal FactionRuntimeApplicationAdapter(
@@ -172,11 +157,6 @@ public sealed class FactionRuntimeApplicationAdapter :
         this.itemRuntime = itemRuntime;
         batchDispositions = physicalBatchDispositions;
         this.dropZones = dropZones;
-        this.exactSources = exactSources;
-        characterCatalog = null;
-        spawnerProvider = null;
-        characterFactory = null;
-        worldRegistry = null;
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.routeEconomicPolicies = routeEconomicPolicies;
@@ -200,6 +180,11 @@ public sealed class FactionRuntimeApplicationAdapter :
         domain.ReplaceState(initialState
             ?? throw new ArgumentNullException(nameof(initialState)));
         projectedRestoreRevision = domain.PublishedRestoreRevision;
+        routeCargo = new FactionRouteCargoRuntime(
+            domain, this.definitions, dropZones, exactSources, itemRuntime,
+            domainFacts, factRecovery);
+        reinforcements = new FactionReinforcementMaterializer(
+            domain, this.definitions, null, null, null, null);
     }
 
     public IReadOnlyList<FactionDefinitionSnapshot> Definitions =>
@@ -262,7 +247,7 @@ public sealed class FactionRuntimeApplicationAdapter :
                          FactionRouteCargoDeliveryState.Ready
                          or FactionRouteCargoDeliveryState.Publishing))
         {
-            TryDeliverCargoCore(arrived);
+            routeCargo.TryDeliverCargoCore(arrived);
         }
         foreach (FactionRouteState arrived in routes.Where(value =>
                      value != null
@@ -270,7 +255,7 @@ public sealed class FactionRuntimeApplicationAdapter :
                      && value.status == FactionRouteStatus.Arrived
                      && !value.actorsSpawned))
         {
-            MaterializeReinforcements(arrived);
+            reinforcements.MaterializeReinforcements(arrived);
         }
 
         if (clock.IsPaused || clock.DeltaTime <= 0f)
@@ -1320,6 +1305,8 @@ public sealed class FactionRuntimeApplicationAdapter :
         SynchronizeWorldHomesUnlessStaging();
     }
 
+    public void OnRestoreCompleted() => reinforcements.RebindRestoredActors();
+
     public void ValidateBeforeCapture()
     {
         tradeSettlementRecovery.EnsureResolved("save capture");
@@ -1329,23 +1316,7 @@ public sealed class FactionRuntimeApplicationAdapter :
     private void EnsureCargoPublicationCaptureSafe(string boundary)
     {
         EnsureObservationIdle();
-        string[] publishingRouteIds = routes
-            .Where(value => value?.cargoDelivery?.state
-                == FactionRouteCargoDeliveryState.Publishing)
-            .Select(value => value.routeId ?? string.Empty)
-            .OrderBy(value => value, StringComparer.Ordinal)
-            .ToArray();
-        if (pendingCargo.Count > 0 || publishingRouteIds.Length > 0)
-        {
-            throw new InvalidOperationException(
-                "Faction exact cargo publication is pending during "
-                + (boundary ?? "an unknown boundary")
-                + ": transient="
-                + pendingCargo.Count
-                + ", routes="
-                + string.Join(",", publishingRouteIds)
-                + ".");
-        }
+        routeCargo.EnsureCaptureSafe(boundary);
     }
 
     private void EnsureInitialized()
@@ -2065,11 +2036,11 @@ public sealed class FactionRuntimeApplicationAdapter :
             or FactionRouteKind.SupplyCaravan
             or FactionRouteKind.Restitution)
         {
-            TryDeliverCargoCore(route);
+            routeCargo.TryDeliverCargoCore(route);
         }
         else if (route.kind == FactionRouteKind.Reinforcement)
         {
-            MaterializeReinforcements(route);
+            reinforcements.MaterializeReinforcements(route);
         }
     }
 
@@ -2077,455 +2048,6 @@ public sealed class FactionRuntimeApplicationAdapter :
     {
         if (observationActive) throw new InvalidOperationException("faction-observation-active");
     }
-
-    private bool TryDeliverCargoCore(FactionRouteState route)
-    {
-        if (route?.cargoDelivery?.state
-            == FactionRouteCargoDeliveryState.Delivered)
-        {
-            return true;
-        }
-        if (route?.cargoDelivery?.state
-            == FactionRouteCargoDeliveryState.Publishing)
-        {
-            if (!pendingCargo.TryGetValue(
-                    route.routeId,
-                    out PendingFactionCargoPublication pending))
-            {
-                throw new InvalidOperationException(
-                    $"Faction route '{route.routeId}' lost its exact cargo publication transaction.");
-            }
-            return TryCommitCargo(route, pending);
-        }
-        if (route?.cargoDelivery?.state
-                != FactionRouteCargoDeliveryState.Ready
-            || !dropZones.TryGetDeliveryDropoff(out Vector2Int dropoff))
-        {
-            return false;
-        }
-
-        PhysicalItemExactSourcePublicationPlan plan =
-            CreateCargoPublicationPlan(route, dropoff);
-        DungeonPhysicalItemSaveData physicalItemsBefore;
-        try
-        {
-            physicalItemsBefore = itemRuntime.Capture();
-        }
-        catch
-        {
-            throw;
-        }
-        PhysicalItemExactSourcePublicationTransaction transaction;
-        try
-        {
-            if (!exactSources.TryPrepare(
-                    plan,
-                    out transaction,
-                    out _))
-            {
-                return false;
-            }
-        }
-        catch
-        {
-            throw;
-        }
-
-        FactionRouteCargoDeliveryReceipt expectedReceipt =
-            ProjectCargoReceipt(plan, transaction);
-        FactionCargoDeliveredFact fact;
-        DomainFactLease prepared = default;
-        bool reserved;
-        try
-        {
-            fact = new FactionCargoDeliveredFact(route, DisplayName(route.factionId), Math.Max(1, currentDay), expectedReceipt);
-            reserved = domainFacts.TryReserve(fact, out prepared, out _);
-            reserved = reserved && prepared.IsValid && !string.IsNullOrWhiteSpace(prepared.PublicationKey);
-        }
-        catch
-        {
-            domainFacts.Cancel(prepared);
-            if (!exactSources.TryRollback(transaction, CargoOutcomeRollbackReason, out string rollbackFailure))
-                throw new InvalidOperationException("Faction cargo reservation exception could not roll back: " + rollbackFailure);
-            itemRuntime.Restore(physicalItemsBefore);
-            throw;
-        }
-        if (!reserved)
-        {
-            domainFacts.Cancel(prepared);
-            if (!exactSources.TryRollback(
-                    transaction,
-                    CargoOutcomeRollbackReason,
-                    out string rollbackFailure))
-            {
-                throw new InvalidOperationException(
-                    "Faction cargo outcome reservation failed and its exact-source transaction could not roll back: "
-                    + rollbackFailure);
-            }
-            itemRuntime.Restore(physicalItemsBefore);
-            return false;
-        }
-
-        PendingFactionCargoPublication created = new()
-        {
-            Plan = plan,
-            Transaction = transaction,
-            ExpectedReceipt = expectedReceipt,
-            BeforeReceipt = route.cargoDelivery.Clone(),
-            PhysicalItemsBefore = physicalItemsBefore,
-            FactLease = prepared,
-            Fact = fact,
-            PublicationKey = prepared.PublicationKey
-        };
-        try
-        {
-            pendingCargo.Add(route.routeId, created);
-            route.cargoDelivery.state =
-                FactionRouteCargoDeliveryState.Publishing;
-        }
-        catch
-        {
-            domainFacts.Cancel(prepared);
-            if (!exactSources.TryRollback(
-                    transaction,
-                    CargoOutcomeRollbackReason,
-                    out string rollbackFailure))
-            {
-                throw new InvalidOperationException(
-                    "Faction cargo prepare failed and its physical candidate could not roll back: "
-                    + rollbackFailure);
-            }
-            itemRuntime.Restore(physicalItemsBefore);
-            route.cargoDelivery = created.BeforeReceipt.Clone();
-            pendingCargo.Remove(route.routeId);
-            throw;
-        }
-        return TryCommitCargo(route, created);
-    }
-
-    private bool TryCommitCargo(
-        FactionRouteState route,
-        PendingFactionCargoPublication pending)
-    {
-        if (pending?.ExpectedReceipt == null)
-        {
-            throw new InvalidOperationException(
-                $"Faction route '{route?.routeId}' has no prebuilt durable cargo receipt.");
-        }
-        bool rollbackAttempted = false;
-        bool publicationAttempted = false;
-        try
-        {
-            if (!pending.OutcomeCommitted)
-            {
-                domain.MarkCargoDelivered(route, pending.ExpectedReceipt);
-                DomainFactDelivery delivered;
-                if (pending.PublicationUncertain)
-                {
-                    var deliveries = new DomainFactDelivery[1];
-                    if (!factRecovery.ReplayBatch(new[] { DomainFactReplay.Create(pending.PublicationKey, pending.Fact) }, deliveries, out _))
-                    {
-                        route.cargoDelivery = pending.BeforeReceipt.Clone();
-                        route.cargoDelivery.state = FactionRouteCargoDeliveryState.Publishing;
-                        return false;
-                    }
-                    delivered = deliveries[0];
-                }
-                else
-                {
-                    publicationAttempted = true;
-                    delivered = domainFacts.Publish(pending.FactLease, pending.Fact);
-                }
-                if (!delivered.MayBeCommitted && !pending.PublicationUncertain)
-                {
-                    rollbackAttempted = true;
-                    RollbackPreparedCargo(route, pending);
-                    return false;
-                }
-                if (delivered.Phase is not (DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery)
-                    || delivered.OperationKey != pending.PublicationKey || string.IsNullOrWhiteSpace(delivered.PublicationId)
-                    || delivered.Fingerprint?.Length != 64 || !delivered.Fingerprint.All(Uri.IsHexDigit))
-                {
-                    pending.PublicationUncertain = true;
-                    domainFacts.Cancel(pending.FactLease);
-                    route.cargoDelivery = pending.BeforeReceipt.Clone();
-                    route.cargoDelivery.state = FactionRouteCargoDeliveryState.Publishing;
-                    return false;
-                }
-                route.cargoPublicationKey = delivered.OperationKey;
-                route.cargoPublicationId = delivered.PublicationId;
-                route.cargoPublicationFingerprint = delivered.Fingerprint;
-                route.cargoObservationDay = pending.Fact.AbsoluteDay;
-                route.cargoFactionDisplayName = pending.Fact.FactionDisplayName;
-                pending.OutcomeCommitted = true;
-                route.cargoDelivery = pending.BeforeReceipt.Clone();
-                route.cargoDelivery.state =
-                    FactionRouteCargoDeliveryState.Publishing;
-            }
-
-            if (!exactSources.TryCommitReleased(
-                    pending.Transaction,
-                    FacilityBufferAcknowledgedOutputReleaseTarget.Unassigned,
-                    CargoReleaseReason,
-                    out PhysicalItemExactSourcePublicationReceipt physicalReceipt,
-                    out _))
-            {
-                return false;
-            }
-            if (!CargoReceiptMatches(pending.ExpectedReceipt, physicalReceipt))
-            {
-                throw new InvalidOperationException(
-                    $"Faction route '{route.routeId}' exact cargo receipt drifted after publication.");
-            }
-
-            domain.MarkCargoDelivered(route, pending.ExpectedReceipt);
-            pendingCargo.Remove(route.routeId);
-            return true;
-        }
-        catch
-        {
-            // A transport exception cannot prove that observers did not commit.
-            // Keep the same physical candidate and recover its frozen fact.
-            if (publicationAttempted && !pending.OutcomeCommitted && !rollbackAttempted)
-            {
-                pending.PublicationUncertain = true;
-                domainFacts.Cancel(pending.FactLease);
-            }
-            if (!pending.OutcomeCommitted && !pending.PublicationUncertain && !rollbackAttempted)
-            {
-                domainFacts.Cancel(pending.FactLease);
-                RollbackPreparedCargo(route, pending);
-            }
-            else if (route?.cargoDelivery != null)
-            {
-                route.cargoDelivery = pending.BeforeReceipt.Clone();
-                route.cargoDelivery.state =
-                    FactionRouteCargoDeliveryState.Publishing;
-            }
-            throw;
-        }
-    }
-
-    private static PhysicalItemExactSourcePublicationPlan
-        CreateCargoPublicationPlan(
-            FactionRouteState route,
-            Vector2Int dropoff)
-    {
-        if (route == null
-            || route.cargo == null
-            || route.cargo.Count == 0)
-        {
-            throw new InvalidOperationException(
-                "Faction cargo publication requires a frozen non-empty vector.");
-        }
-
-        FacilityBufferPlannedOutputSlice[] outputs = route.cargo
-            .Select((line, index) =>
-            {
-                if (line == null
-                    || string.IsNullOrWhiteSpace(line.itemId)
-                    || line.amount <= 0)
-                {
-                    throw new InvalidOperationException(
-                        "Faction cargo contains an invalid frozen line.");
-                }
-                ItemDefinitionId itemId = (ItemDefinitionId)line.itemId;
-                return new FacilityBufferPlannedOutputSlice(
-                    $"cargo:{index:D4}:{line.itemId}",
-                    PhysicalItemMassSubject.ForDefinition(itemId),
-                    ResolveCargoDeliveryQuantity(
-                        line.amount,
-                        route.strength));
-            })
-            .ToArray();
-        return new PhysicalItemExactSourcePublicationPlan(
-            CargoSourceOwnerDomain,
-            route.routeId,
-            dropoff,
-            outputs);
-    }
-
-    private static int ResolveCargoDeliveryQuantity(int amount, int strength)
-    {
-        long scaled = checked((long)amount * strength);
-        long whole = scaled / 100L;
-        long remainder = scaled % 100L;
-        if (remainder > 50L
-            || (remainder == 50L && (whole & 1L) != 0L))
-        {
-            whole = checked(whole + 1L);
-        }
-        return Math.Max(1, checked((int)whole));
-    }
-
-    private static FactionRouteCargoDeliveryReceipt ProjectCargoReceipt(
-        PhysicalItemExactSourcePublicationPlan plan,
-        PhysicalItemExactSourcePublicationTransaction transaction)
-    {
-        List<ProductionDomainPublishedStackSaveData> stacks = transaction
-            .PreparedStacks
-            .OrderBy(value => value.OutputLineId, StringComparer.Ordinal)
-            .ThenBy(value => value.StackId, StringComparer.Ordinal)
-            .Select(value => new ProductionDomainPublishedStackSaveData
-            {
-                outputLineId = value.OutputLineId,
-                itemId = value.ItemDefinitionId.Value,
-                itemInstanceId = value.ItemInstanceId ?? string.Empty,
-                stackId = value.StackId,
-                quantity = value.Quantity,
-                massGrams = value.MassGrams
-            })
-            .ToList();
-        long totalMass = 0L;
-        foreach (ProductionDomainPublishedStackSaveData stack in stacks)
-        {
-            totalMass = checked(totalMass + stack.massGrams);
-        }
-        return new FactionRouteCargoDeliveryReceipt
-        {
-            state = FactionRouteCargoDeliveryState.Delivered,
-            batchCommitId = plan.BatchCommitId,
-            destinationId = plan.DestinationId,
-            outcomeFingerprint = plan.OutcomeFingerprint,
-            deliveryX = plan.DropPosition.x,
-            deliveryY = plan.DropPosition.y,
-            totalMassGrams = totalMass,
-            stacks = stacks
-        };
-    }
-
-    private static bool CargoReceiptMatches(
-        FactionRouteCargoDeliveryReceipt expected,
-        PhysicalItemExactSourcePublicationReceipt actual)
-    {
-        if (expected == null
-            || actual.IsRetained
-            || !string.Equals(
-                expected.batchCommitId,
-                actual.BatchCommitId,
-                StringComparison.Ordinal)
-            || !string.Equals(
-                expected.destinationId,
-                actual.DestinationId,
-                StringComparison.Ordinal)
-            || expected.totalMassGrams != actual.TotalMassGrams
-            || expected.stacks.Count != actual.Stacks.Count)
-        {
-            return false;
-        }
-        for (int index = 0; index < expected.stacks.Count; index++)
-        {
-            ProductionDomainPublishedStackSaveData left =
-                expected.stacks[index];
-            FacilityBufferPublishedOutputStackReceipt right =
-                actual.Stacks[index];
-            if (!string.Equals(
-                    left.outputLineId,
-                    right.OutputLineId,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    left.itemId,
-                    right.ItemDefinitionId.Value,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    left.itemInstanceId,
-                    right.ItemInstanceId,
-                    StringComparison.Ordinal)
-                || !string.Equals(
-                    left.stackId,
-                    right.StackId,
-                    StringComparison.Ordinal)
-                || left.quantity != right.Quantity
-                || left.massGrams != right.MassGrams)
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private void MaterializeReinforcements(FactionRouteState route)
-    {
-        if (route.actorsSpawned
-            || !spawnerProvider.TryGetSpawner(out CharacterSpawner spawner)
-            || spawner == null
-            || spawner.characterPrefab == null
-            || !spawner.TryGetEntryGridPosition(out Vector2Int entry))
-        {
-            return;
-        }
-
-        FactionDefinitionSnapshot definition = FindDefinition(route.factionId);
-        CharacterSO template = characterCatalog.Characters
-            .Where(value => value != null)
-            .Where(value => string.Equals(
-                value.SpeciesTag,
-                definition?.SpeciesTag,
-                StringComparison.OrdinalIgnoreCase))
-            .OrderBy(value => value.id)
-            .FirstOrDefault();
-        if (template == null)
-        {
-            return;
-        }
-
-        int count = Mathf.Clamp(
-            Mathf.CeilToInt(route.strength / 40f),
-            1,
-            3);
-        for (int index = 0; index < count; index++)
-        {
-            GameObject instance = characterFactory.CreateInactive(
-                spawner.characterPrefab);
-            CharacterActor actor = instance.GetComponent<CharacterActor>();
-            if (actor == null)
-            {
-                characterFactory.Destroy(instance);
-                continue;
-            }
-
-            CharacterId actorId = CharacterId.FromStableSuffix(
-                $"{route.routeId}:ally:{index + 1}");
-            instance.name =
-                $"{definition?.DisplayName ?? route.factionId} 지원군 {index + 1}";
-            instance.transform.position =
-                spawner.GetOutsideSpawnWorldPosition()
-                + Vector3.right * (index * 0.35f);
-            actor.Initialize(template);
-            actor.characterType = CharacterType.NPC;
-            actor.Identity?.SetCharacterType(CharacterType.NPC);
-            actor.Identity?.SetPersistentId(actorId);
-            actor.SetLifecycleState(CharacterLifecycleState.SpawningOutside);
-            if (actor.TryGetAbility(out AbilityWork work))
-            {
-                work.WorkPriorities.SetPriority(
-                    BuiltInWorkTypeIds.Guard,
-                    WorkPriorityLevel.Priority1);
-            }
-
-            FactionReinforcementMarker marker =
-                instance.GetComponent<FactionReinforcementMarker>()
-                ?? instance.AddComponent<FactionReinforcementMarker>();
-            marker.Configure(route.routeId, route.factionId, route.strength);
-            domain.AddReinforcementActor(route, actorId.Value);
-            characterFactory.Publish(instance);
-
-            if (actor.TryGetAbility(out AbilityMove move))
-            {
-                move.StartEnterDungeon(
-                    spawner.GetEntryDoorWorldPosition(),
-                    entry);
-            }
-            else if (worldRegistry.TryGetGrid(out Grid grid))
-            {
-                actor.transform.position = grid.GetWorldPos(entry);
-                actor.SetLifecycleState(CharacterLifecycleState.Active);
-            }
-        }
-
-        domain.FinishReinforcementMaterialization(route);
-    }
-
 
     private static bool IsAcknowledged(in DomainFactDelivery delivery, string key) =>
         delivery.Phase is DomainFactDeliveryPhase.Delivered or DomainFactDeliveryPhase.AcceptedPendingDelivery
@@ -2587,29 +2109,6 @@ public sealed class FactionRuntimeApplicationAdapter :
             treasurySnapshot
             ?? throw new ArgumentNullException(nameof(treasurySnapshot)));
         tradeSettlementRecovery.CompletePublication();
-    }
-
-    private void RollbackPreparedCargo(
-        FactionRouteState route,
-        PendingFactionCargoPublication pending)
-    {
-        domainFacts.Cancel(pending.FactLease);
-        if (!exactSources.TryRollback(
-                pending.Transaction,
-                CargoOutcomeRollbackReason,
-                out string rollbackFailure))
-        {
-            throw new InvalidOperationException(
-                "Faction cargo outcome was rejected but its exact-source transaction could not roll back: "
-                + rollbackFailure);
-        }
-        itemRuntime.Restore(
-            pending?.PhysicalItemsBefore
-            ?? throw new ArgumentNullException(nameof(pending)));
-        route.cargoDelivery = (pending.BeforeReceipt
-            ?? throw new InvalidOperationException(
-                "Faction cargo rollback receipt is missing.")).Clone();
-        pendingCargo.Remove(route.routeId);
     }
 
     private static void RestoreRouteSnapshot(

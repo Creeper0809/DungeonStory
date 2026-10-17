@@ -1602,7 +1602,7 @@ public sealed class DungeonLiveNarrativeCampaignRunner
         var currentEvidence = GameplayOutcomeEvidenceFormulaProjection.Capture(
             outcomeEvidence.GetForCharacter(owner.Identity.PersistentId, 24, 0f, includeCompacted: true));
         var laterMaterial = GameplayOutcomeEvidencePublicMaterialComposer.AddExactEvidence(
-            CharacterSkillPromptBuilder.BuildPublicMaterial(owner.Progression), currentEvidence);
+            CharacterSkillPromptBuilder.BuildPublicMaterial(scope.Container.Resolve<NarrativeRequestContextBuilder>(), owner.Progression), currentEvidence);
         report.skillLaterContextChanged = laterMaterial.SemanticHash != laterPending.RestoreRequestPublicContext().SemanticHash;
         WriteNew("post-dispatch-current-context.json", JsonUtility.ToJson(laterMaterial.CaptureSnapshot(), true));
         Require(report.skillLaterContextChanged && report.skillLaterOutcomes.Count > 0,
@@ -11846,7 +11846,7 @@ public sealed class DungeonLiveNarrativeCampaignRunner
         WriteNew("trait-restored-pending.json", JsonUtility.ToJson(traitPending, true));
         WriteNew("trait-restored-owner-binding.json", JsonUtility.ToJson(CharacterNarrativeRequestOwnerBinding.Capture(owner.Progression), true));
         var boundIds = traitPending.evidenceBindings.Select(value => value.publicFactId).ToHashSet(StringComparer.Ordinal);
-        var restoredContext = CharacterAcquiredTraitPromptBuilder.BuildPublicMaterial(owner.Progression,
+        var restoredContext = CharacterAcquiredTraitPromptBuilder.BuildPublicMaterial(scope.Container.Resolve<NarrativeRequestContextBuilder>(), owner.Progression,
             traitPending.evidenceFactIds.Where(value => !boundIds.Contains(value)));
         restoredContext = GameplayOutcomeEvidencePublicMaterialComposer.AddExactEvidence(restoredContext, traitPending.evidenceBindings);
         WriteNew("trait-restored-context.json", JsonUtility.ToJson(restoredContext.CaptureSnapshot(), true));

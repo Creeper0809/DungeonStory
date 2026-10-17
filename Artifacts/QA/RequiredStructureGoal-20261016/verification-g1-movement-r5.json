@@ -1,0 +1,29 @@
+{
+  "status": "CORE_FIX_ACTUAL_PASS_REMAINDER_MEMORY_ABORT",
+  "goalStatus": "active",
+  "targetComplete": false,
+  "currentCompile": "g1-movement-r4/unity.log: editor28.103637s/CS0; same source cached run",
+  "core": "status FINAL/result PASS/exactRows True/core2/failures0/consoleErrors0",
+  "coreProof": {
+    "stationary": "29,1 -> 29,1; starts0->0",
+    "fault": "29,1; approved path includes30,1",
+    "repaths": "0->1",
+    "actionStarts": "0->1",
+    "noPath": "PASS"
+  },
+  "movementActualPassed": 8,
+  "failedReport": "g1-movement-r5/ai-destinationless/character-ai-fault-recovery-destinationless-playmode.txt",
+  "remainderStatus": "RUNNING: look_around recovery passed, starvation started, remaining4 not started",
+  "memoryAbort": {
+    "availablePhysicalBytes": 912461824,
+    "requiredPhysicalBytes": 1073741824,
+    "availableCommitBytes": 10060673024
+  },
+  "isolation": "PASS",
+  "launcherExit": 1,
+  "ownedAfter": 0,
+  "sourceFiles": 766,
+  "sourceDrift": 0,
+  "next": "Split remaining existing selector groups into exact dedicated fresh-process entries; no full-run blind retry and no assertion/threshold changes",
+  "remainingGoalWork": true
+}

@@ -344,11 +344,11 @@ public static class V26FounderTraitConnectivityManifestScenario
             new()
             {
                 [300] = ("ExtremeCraftInspirationRuntime", "CombatEquipmentCraftingRuntime|ApparelWorkOrderRuntime", "item provenance + CharacterIdentityStateStore", "V26 mythic audit"),
-                [301] = ("ExtremeTraitRuntime", "CharacterBodyHealthRuntime|CharacterCombatCommandRuntime", "CharacterIdentityStateStore", "critical-health combat gate"),
-                [302] = ("ExtremeTraitRuntime", "ResearchTreeWindow", "CharacterIdentityStateStore", "research leap UI gate"),
-                [303] = ("ExtremeTraitRuntime", "SurgeryRuntime", "CharacterIdentityStateStore", "fatal surgery focused gate"),
-                [304] = ("ExtremeTraitRuntime", "CropPlotBuildingPanelPresenter|CropPlotRuntime", "CropPlotSaveData v3 + CharacterIdentityStateStore", "golden harvest save/worker/hash gate"),
-                [305] = ("ExtremeTraitRuntime", "ProductionBuildingPanelPresenter|ProductionBillSceneFacade", "Production bill v7 + CharacterIdentityStateStore", "production lease/atomic-start gate"),
+                [301] = ("LastStandTraitRuntime", "CharacterBodyHealthRuntime|CharacterCombatCommandRuntime", "CharacterIdentityStateStore", "critical-health combat gate"),
+                [302] = ("ForbiddenResearchLeapTraitRuntime", "ResearchTreeWindow", "CharacterIdentityStateStore", "research leap UI gate"),
+                [303] = ("MiracleSurgeryTraitRuntime", "SurgeryRuntime", "CharacterIdentityStateStore", "fatal surgery focused gate"),
+                [304] = ("GoldenHarvestTraitRuntime", "CropPlotBuildingPanelPresenter|CropPlotRuntime", "CropPlotSaveData v3 + CharacterIdentityStateStore", "golden harvest save/worker/hash gate"),
+                [305] = ("ProductionLimitBreakTraitRuntime", "ProductionBuildingPanelPresenter|ProductionBillSceneFacade", "Production bill v7 + CharacterIdentityStateStore", "production lease/atomic-start gate"),
                 [306] = ("ArcaneOverchargeCommandRuntime", "StaffManagementSurfacePanel|CharacterCombatCommandRuntime", "body-health v5 + equipment + CharacterIdentityStateStore", "mana spend/refund/overcharge gate")
             };
         foreach (int id in Enumerable.Range(300, 7))
@@ -357,7 +357,10 @@ public static class V26FounderTraitConnectivityManifestScenario
             (string runtime, string entry, string save, string test) = evidence[id];
             bool connected = entry.Split('|').All(symbol =>
                     LiveFileContainsSymbol(liveSources, symbol))
-                && LiveFileContainsSymbol(liveSources, runtime);
+                && LiveFileContainsSymbol(liveSources, runtime)
+                && (id != 306 || LiveFileContainsSymbol(
+                    liveSources,
+                    "ArcaneOverchargeTraitRuntime"));
             rows.Add(new Row
             {
                 Kind = "extreme",

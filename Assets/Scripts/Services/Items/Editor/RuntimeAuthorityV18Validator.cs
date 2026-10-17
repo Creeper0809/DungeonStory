@@ -2210,6 +2210,16 @@ public static class RuntimeAuthorityV18Validator
             "Assets/Scripts/Services/Medical/SurgicalPartRuntime.cs",
             "RestoreParts(",
             "Surgical part state must be replaced only through the surgery Aggregate candidate.");
+        ForbidSourceContract(
+            errors,
+            "Assets/Scripts/Services/Medical/SurgicalPartInstallationRuntime.cs",
+            "RestoreParts(",
+            "Surgical part state must be replaced only through the surgery Aggregate candidate.");
+        ForbidSourceContract(
+            errors,
+            "Assets/Scripts/Services/Medical/SurgicalPartReplacementTransaction.cs",
+            "RestoreParts(",
+            "Surgical part state must be replaced only through the surgery Aggregate candidate.");
         RequireSourceContract(
             errors,
             "Assets/Scripts/Models/Invasion/Core/InvasionAggregateState.cs",
@@ -2371,7 +2381,7 @@ public static class RuntimeAuthorityV18Validator
             "Production-bill restore must retain the raw building ID for exact typed-ID validation.");
         RequireSourceContract(
             errors,
-            "Assets/Scripts/Models/Economy/Content/ProductionBillRuntime.cs",
+            "Assets/Scripts/Models/Economy/Content/ProductionBillCommandRuntime.cs",
             "nextBillSequence == int.MaxValue",
             "Production-bill creation must fail before the persistent ID sequence overflows.");
         RequireSourceContract(
@@ -3018,6 +3028,8 @@ public static class RuntimeAuthorityV18Validator
             "Production focused evidence must cover removal output-space recovery.");
         const string fluidRuntimePath =
             "Assets/Scripts/Services/Infrastructure/Industrial/FluidNetworkRuntime.cs";
+        const string manualWaterRuntimePath =
+            "Assets/Scripts/Services/Infrastructure/Industrial/ManualWaterTransferRuntime.cs";
         const string fluidModelsPath =
             "Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureModels.cs";
         const string fluidSavePath =
@@ -3029,7 +3041,17 @@ public static class RuntimeAuthorityV18Validator
             "Manual water must not retain the count-only item debit.");
         ForbidSourceContract(
             errors,
+            manualWaterRuntimePath,
+            "TryConsumeFacilityItemBuffer(",
+            "Manual water must not retain the count-only item debit.");
+        ForbidSourceContract(
+            errors,
             fluidRuntimePath,
+            "TryConsumeFacilityBuffer(",
+            "Container-to-network feed must not retain category-only deletion.");
+        ForbidSourceContract(
+            errors,
+            manualWaterRuntimePath,
             "TryConsumeFacilityBuffer(",
             "Container-to-network feed must not retain category-only deletion.");
         RequireSourceContract(
@@ -3039,7 +3061,7 @@ public static class RuntimeAuthorityV18Validator
             "Fluid V7 must persist physical ownership and frozen-pipe hysteresis.");
         RequireSourceContract(
             errors,
-            fluidRuntimePath,
+            manualWaterRuntimePath,
             "NextImmediateManualWaterOperationSequence",
             "Immediate manual-water calls require a durable monotonic identity.");
         RequireSourceContract(
@@ -3523,9 +3545,21 @@ public static class RuntimeAuthorityV18Validator
             "Physical transactional restore must retain a discardable candidate-view lifetime.");
         RequireSourceContract(
             errors,
-            "Assets/Scripts/Services/Items/WorldItemStackRuntime.cs",
+            "Assets/Scripts/Services/Items/PhysicalItemRestoreCandidateSession.cs",
             "ResetPhysicalRestoreCandidateLifetime();",
             "Physical candidate views must clear only after participant completion, rollback, or discard.");
+        RequireSourceContract(errors,
+            "Assets/Scripts/Services/Items/WorldItemStackRuntime.cs",
+            "candidates.BeginStageCommit(staged);",
+            "Physical restore stages must prove exact current candidate ownership before commit.");
+        RequireSourceContract(errors,
+            "Assets/Scripts/Services/Items/WorldItemStackRuntime.cs",
+            "owner.restoreCandidates.DiscardIfCurrent(staged);",
+            "A stale physical stage must not discard a later candidate.");
+        RequireSourceContract(errors,
+            "Assets/Scripts/Services/Items/PhysicalItemRestoreCandidateSession.cs",
+            "ReferenceEquals(indexedState, staged)",
+            "Physical candidate ownership must use the exact staged object identity.");
         const string regionalTransferFixturePath =
             "Assets/Scripts/Services/Economy/Editor/RegionalSupplyContractTransferOutboxDebugScenarios.cs";
         RequireSourceContract(
@@ -4702,6 +4736,8 @@ public static class RuntimeAuthorityV18Validator
             "Work-order save validation must reject transient worker reservations.");
         const string workOrderMaterialOutboxPath =
             "Assets/Scripts/Services/Character/Work/WorkOrderMaterialOutbox.cs";
+        const string workOrderMaterialSupplyPath =
+            "Assets/Scripts/Services/Character/Work/WorkOrderMaterialSupplyRuntime.cs";
         const string workOrderContractsPath =
             "Assets/Scripts/Services/Character/Work/WorkOrderContracts.cs";
         ForbidSourceContract(
@@ -4714,6 +4750,16 @@ public static class RuntimeAuthorityV18Validator
             workOrderRuntimePath,
             "RemoveStacksByStateAndDestination(",
             "Work-order cancellation must not delete destination stacks through an untyped bulk mutation.");
+        ForbidSourceContract(
+            errors,
+            workOrderMaterialSupplyPath,
+            "TryConsumeFacilityItemBuffer(",
+            "Work-order material supply must retain exact physical WIP custody.");
+        ForbidSourceContract(
+            errors,
+            workOrderMaterialSupplyPath,
+            "RemoveStacksByStateAndDestination(",
+            "Work-order material release must not delete destination stacks through an untyped bulk mutation.");
         RequireSourceContract(
             errors,
             workOrderMaterialOutboxPath,
@@ -5641,6 +5687,18 @@ public static class RuntimeAuthorityV18Validator
             string source = string.Join(
                 Environment.NewLine,
                 Directory.GetFiles(industrialDirectory, $"{stem}*.cs")
+                    .Concat(string.Equals(
+                            fileName,
+                            "FluidNetworkRuntime.cs",
+                            StringComparison.Ordinal)
+                        ? new[]
+                        {
+                            Path.Combine(
+                                industrialDirectory,
+                                "ManualWaterTransferRuntime.cs")
+                        }
+                        : Array.Empty<string>())
+                    .Distinct(StringComparer.Ordinal)
                     .OrderBy(candidate => candidate, StringComparer.Ordinal)
                     .Select(File.ReadAllText));
             if (!source.Contains(

@@ -20,4 +20,14 @@ public static class WarehouseStorageIdentity
 
         return DestinationPrefix + buildingId.Value;
     }
+
+    public static string ParseWarehouseIdOrEmpty(string destinationId)
+    {
+        string value = destinationId?.Trim() ?? string.Empty;
+        return value.StartsWith(
+                DestinationPrefix,
+                StringComparison.Ordinal)
+            ? value.Substring(DestinationPrefix.Length)
+            : string.Empty;
+    }
 }

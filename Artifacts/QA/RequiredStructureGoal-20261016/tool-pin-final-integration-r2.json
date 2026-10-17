@@ -1,0 +1,11 @@
+{
+  "Tools/Documentation/gameplay_outcome_ledger_group1_dispositions.json": "4907a6ebdf49fa4d5dc13ea61b3422b7ca071889149bbf5549f5f6a329fd1836",
+  "Tools/Documentation/gameplay_outcome_ledger_group3_dispositions.json": "57e9132ae0aae6f5dd177bb3e87105e445cfdbd24b7ef00017215d09bc50f51e",
+  "Tools/Documentation/gameplay_outcome_ledger_group4_dispositions.json": "de99497739ff5017f120f96f9e000db69f228b9d5a2be420e4e21ae8688eddf9",
+  "Tools/Documentation/gameplay_outcome_ledger_group6_dispositions.json": "b6f1fd6bb40f0d37aff2fe7b0d01cdcdad8e9df6fad28d4f586761f340897c39",
+  "Tools/Documentation/verify_v25_narrative_mechanic_handoff.py": "0d1cd3395ab70ee6f160b01242949958026aa55bcf6af75515f5ad521dc537e2",
+  "Tools/QA/IsolatedUnityLauncher.cs": "c5b90fd446835058715fffc715cd352ed5af06361c35ade8a0ce3ca8abc24160",
+  "Tools/QA/run_isolated_unity_batch.ps1": "f6bccc7e0c283e1a3beca4e3205ab51c25f5d05a944ea31a5237f9d808ad33ee",
+  "Tools/QA/test_architecture_core_startup_guards.ps1": "de96ae9996adc25aa0e8c2cd661562df068c541c23c785c0699e323f19ea21b6",
+  "docs/dev/unity-workflow.md": "332d1bc9291b7542c54b5e50a187e53f56445986124828d3f2e3599decc74289"
+}

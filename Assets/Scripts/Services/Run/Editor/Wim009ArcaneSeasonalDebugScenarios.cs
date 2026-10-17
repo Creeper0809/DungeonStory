@@ -144,18 +144,21 @@ public static class Wim009ArcaneSeasonalDebugScenarios
         string preflightSource = File.ReadAllText(Path.Combine(
             Application.dataPath,
             "Scripts/Services/Infrastructure/Save/DungeonAggregateReferencePreflight.cs"));
+        string seasonalJoinSource = File.ReadAllText(Path.Combine(
+            Application.dataPath,
+            "Scripts/Services/Infrastructure/Save/DungeonExpeditionSaveReferenceValidation.cs"));
         string strategicTargetSource = File.ReadAllText(Path.Combine(
             Application.dataPath,
             "Scripts/Services/Offense/OffenseStrategicExpeditionServices.cs"));
         Require(preflightSource.Contains("ValidateSeasonalOffenseOfferJoins")
                 && preflightSource.Contains("SeasonalWorldEventsSaveSection.Id")
-                && preflightSource.Contains(
+                && seasonalJoinSource.Contains(
                     "site.expiresDay == occurrence.deadlineAbsoluteDay + 1")
                 && strategicTargetSource.Contains("SeasonalLaunchIsCurrent")
                 && strategicTargetSource.Contains(
                     "<= site.seasonalOffer.offerDeadlineAbsoluteDay"),
             "Revealed seasonal offer restore/launch guards are missing.");
-        Require(SeasonalEventWorldSaveData.CurrentVersion == 5
+        Require(SeasonalEventWorldSaveData.CurrentVersion == 6
                 && OffenseWorldSaveData.CurrentVersion == 10
                 && DungeonOffenseSaveData.CurrentVersion == 6
                 && DungeonOffenseAggregateSaveData.CurrentVersion == 11,
@@ -355,7 +358,7 @@ public static class Wim009ArcaneSeasonalDebugScenarios
         DungeonOffenseAggregateSaveData offense,
         DungeonGameRestoreReport report) =>
         InvokeRuntimeRule(
-            typeof(DungeonAggregateReferencePreflight),
+            typeof(DungeonExpeditionSaveReferenceValidation),
             "ValidateSeasonalOffenseOfferJoins",
             session,
             seasonal,

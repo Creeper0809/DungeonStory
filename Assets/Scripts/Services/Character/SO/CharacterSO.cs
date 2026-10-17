@@ -182,14 +182,6 @@ public class CharacterSO : ScriptableObject
         int maxExclusive = Mathf.Max(min + 1, maxHoldingMoney);
         return randomStream.NextInt(min, maxExclusive);
     }
-
-    public int GetHoldingMoney(
-        IRandomStream randomStream,
-        CharacterRuntimeProfile profile)
-    {
-        int baseMoney = GetHoldingMoney(randomStream);
-        return baseMoney;
-    }
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //                                                                                                                              //
     //                                                                    ForEditor                                                 //

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.Scripting.APIUpdating;
@@ -103,6 +104,19 @@ public interface IWorkableFacility
     bool CanAssignWorker(IBuildingVisitorPort actor, out string failureReason);
     IEnumerator AllocateWorker(IBuildingVisitorPort actor);
     void DeallocateWorker(IBuildingVisitorPort actor);
+    bool TryAllocateWorker(
+        IBuildingVisitorPort actor,
+        object expectedAction,
+        Func<bool> isRequestCurrent,
+        out IBuildingWorkerAllocation allocation,
+        out string failureReason);
+}
+
+/// <summary>One transient worker admission. Disposal releases only this grant.</summary>
+public interface IBuildingWorkerAllocation : IDisposable
+{
+    bool IsReady { get; }
+    IEnumerator Approach();
 }
 
 /// <summary>

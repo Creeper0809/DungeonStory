@@ -133,7 +133,7 @@ public sealed class SurvivalResourcesSaveSection :
             pendingReceipts.FirstOrDefault(receipt => receipt != null
                 && string.Equals(
                     receipt.ReasonCode,
-                    SurvivalFoodRuntime.TreatmentPhysicalSinkReason,
+                    SurvivalTreatmentIdentity.TreatmentPhysicalSinkReason,
                     StringComparison.Ordinal));
         if (plans.Count == 0)
         {
@@ -235,7 +235,7 @@ public sealed class SurvivalResourcesSaveSection :
             bool facilityHasSession = facilityLive
                 && facility.GetServiceHubAbility() != null;
             bool planHasSession = !string.IsNullOrEmpty(plan.serviceSessionId);
-            if (planHasSession && plan.operationId != SurvivalFoodRuntime.TreatmentOperationPrefix + plan.serviceSessionId)
+            if (planHasSession && plan.operationId != SurvivalTreatmentIdentity.TreatmentOperationPrefix + plan.serviceSessionId)
                 throw new InvalidOperationException("Survival treatment operation/session identity mismatch: " + plan.operationId);
             if (!ownerLost && facilityHasSession != planHasSession)
             {
@@ -291,7 +291,7 @@ public sealed class SurvivalResourcesSaveSection :
             if (receipt != null
                 && string.Equals(
                     receipt.ReasonCode,
-                    SurvivalFoodRuntime.TreatmentPhysicalSinkReason,
+                    SurvivalTreatmentIdentity.TreatmentPhysicalSinkReason,
                     StringComparison.Ordinal)
                 && !ownedPhysicalOperations.Contains(receipt.OperationId))
             {

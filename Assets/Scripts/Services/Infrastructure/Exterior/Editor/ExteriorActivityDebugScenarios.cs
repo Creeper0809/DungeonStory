@@ -643,10 +643,10 @@ public static class ExteriorActivityDebugScenarios
 
     private static bool VerifyExteriorAbilityContracts()
     {
-        IBuildingExteriorWorkRuntimeAbility reception = new BuildingReceptionAbility();
-        IBuildingExteriorWorkRuntimeAbility patrol = new BuildingPatrolPostAbility();
-        IBuildingExteriorWorkRuntimeAbility rest = new BuildingOutdoorRestAbility();
-        IBuildingExteriorWorkRuntimeAbility maintenance = new BuildingExteriorMaintenanceAbility();
+        IBuildingExteriorWorkRuntimeAbility reception = BuildingAbilityRuntimeCatalog.CreateBuiltIns().Bind(new BuildingAbility[] { new BuildingReceptionAbility() }).OfType<IBuildingExteriorWorkRuntimeAbility>().Single();
+        IBuildingExteriorWorkRuntimeAbility patrol = BuildingAbilityRuntimeCatalog.CreateBuiltIns().Bind(new BuildingAbility[] { new BuildingPatrolPostAbility() }).OfType<IBuildingExteriorWorkRuntimeAbility>().Single();
+        IBuildingExteriorWorkRuntimeAbility rest = BuildingAbilityRuntimeCatalog.CreateBuiltIns().Bind(new BuildingAbility[] { new BuildingOutdoorRestAbility() }).OfType<IBuildingExteriorWorkRuntimeAbility>().Single();
+        IBuildingExteriorWorkRuntimeAbility maintenance = BuildingAbilityRuntimeCatalog.CreateBuiltIns().Bind(new BuildingAbility[] { new BuildingExteriorMaintenanceAbility() }).OfType<IBuildingExteriorWorkRuntimeAbility>().Single();
         return reception.SupportsExteriorWork(BuiltInWorkTypeIds.Reception)
             && patrol.SupportsExteriorWork(BuiltInWorkTypeIds.Guard)
             && rest.SupportsExteriorWork(BuiltInWorkTypeIds.Rest)

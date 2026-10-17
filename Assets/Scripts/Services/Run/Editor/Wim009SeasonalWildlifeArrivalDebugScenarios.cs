@@ -240,7 +240,7 @@ public static class Wim009SeasonalWildlifeArrivalDebugScenarios
                         JsonUtility.ToJson(restored.CaptureSeasonal()),
                         StringComparison.Ordinal),
                     "Frozen occurrence plan did not round-trip exactly.");
-                SeasonalWildlifeArrivalRules.ValidateRestoreJoin(
+                SeasonalWildlifeActorRestoreJoin.ValidateRestoreJoin(
                     saved,
                     Array.Empty<WildlifeActor>());
                 WildlifeSaveData[] savedWildlife = plan

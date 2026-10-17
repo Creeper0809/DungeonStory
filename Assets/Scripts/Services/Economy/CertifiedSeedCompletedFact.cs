@@ -24,9 +24,12 @@ public sealed class CertifiedSeedCompletedFact
         if (!DomainFactValueSyntax.IsIdentity(sourceReceipt.ActionId)
             || !DomainFactValueSyntax.IsIdentity(sourceReceipt.OrderId)
             || sourceReceipt.OrderSequence < 0
-            || !DomainFactValueSyntax.IsIdentity(sourceReceipt.DestinationId)
             || !DomainFactValueSyntax.IsIdentity(sourceReceipt.FacilityInstanceId)
-            || !DomainFactValueSyntax.IsIdentity(sourceReceipt.CropId))
+            || !DomainFactValueSyntax.IsIdentity(sourceReceipt.CropId)
+            || !string.Equals(sourceReceipt.DestinationId,
+                CertifiedSeedInputOwnerAuthority.BuildDestinationId(
+                    sourceReceipt.FacilityInstanceId, sourceReceipt.CropId, sourceReceipt.OrderSequence),
+                StringComparison.Ordinal))
         {
             throw new ArgumentException(
                 "certified-seed-completion-source-invalid",

@@ -3,6 +3,32 @@ using DungeonStory.Narrative.Korean;
 
 internal static class GameplayOutcomeSnapshotCodec
 {
+    // A comparison ledger needs the same occurrence, causation and publication
+    // metadata as the exact record; this projection does not retire the live row.
+    internal static GameplayOutcomeTombstoneSnapshot CaptureTombstoneIdentity(
+        GameplayOutcomeSnapshot row)
+    {
+        if (row == null) throw new System.ArgumentNullException(nameof(row));
+        return new GameplayOutcomeTombstoneSnapshot
+        {
+            runId = row.runId, sequence = row.sequence,
+            producerId = row.producerId, operationId = row.operationId,
+            commitRevision = row.commitRevision, localResultIndex = row.localResultIndex,
+            ownerRevision = row.ownerRevision,
+            temporalMetadataVersion = GameplayOutcomeDeliveryTime.CurrentVersion,
+            absoluteDay = row.absoluteDay,
+            parentRunId = row.parentRunId, parentSequence = row.parentSequence,
+            deliveryMetadataVersion = row.deliveryMetadataVersion,
+            deliveryClockId = row.deliveryClockId,
+            recordedAbsoluteHour = row.recordedAbsoluteHour,
+            publishedRevision = row.publishedRevision,
+            deliveryFaultCount = row.deliveryFaultCount,
+            deliveryDelayReason = row.deliveryDelayReason,
+            canonicalHash = row.immutablePayloadHash,
+            terminalTier = NarrativeMemoryTier.Forgotten
+        };
+    }
+
     public static GameplayOutcomeSnapshot Capture(GameplayOutcomeValuePage page)
     {
         GameplayOutcomeSnapshot snapshot = new GameplayOutcomeSnapshot

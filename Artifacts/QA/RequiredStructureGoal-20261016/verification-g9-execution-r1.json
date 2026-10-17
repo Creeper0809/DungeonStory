@@ -1,0 +1,40 @@
+{
+  "status": "G9_TARGETED_NATIVE_TRAIT_INFERENCE_PASS",
+  "run": "native-g9-trait-inference-current-r1",
+  "logSha256": "6e9e4f7c504004c0358d58a51b27e71d7fdff501f898982665b7c5a773b9e17f",
+  "terminalUnityExit": 0,
+  "marker": "B83_TRAIT_INFERENCE_OBSERVER_FOCUSED=PASS",
+  "groups": [
+    "VerifyAcquiredTraitOutcomeFailureRollback",
+    "VerifyAcquiredTraitAutomaticProducerResume",
+    "VerifyAcquiredTraitAutomaticOwnerInvalidation"
+  ],
+  "pins": {
+    "source-pin-g5-treatment-r1.json": {
+      "files": 1421,
+      "drift": []
+    },
+    "native-input-pin-r34.json": {
+      "files": 3880,
+      "drift": []
+    },
+    "tool-pin-g5-treatment-r1.json": {
+      "files": 9,
+      "drift": []
+    },
+    "g4-faction-assembly-input-pin-r2.json": {
+      "files": 18,
+      "drift": []
+    }
+  },
+  "assembliesUnchanged": true,
+  "currentBinding": "verification-g5-execution-r1.json",
+  "reportedRuntimeExceptionLines": [],
+  "verified": [
+    "Missing observer/precommit exception/known publication rejection preserve trait state and influence use; no journal/reservation residue.",
+    "Committed acknowledgement loss retains exactly one trait/effect/result key and pending fact; strict publication JSON joins/tamper rejection and fresh owner retry.",
+    "Frozen module evidence/prompt retained across changed live offers and owner JSON replacement; duplicate callbacks inert.",
+    "Invalid pending inputs reject atomically and stale life/generation callbacks cannot mutate replacement owner."
+  ],
+  "limits": "Controlled actual native CharacterProgression component/service/dispatcher/outcome fixture; no real LLM inference, natural gameplay scene, live UI or official whole-world trait restore claim. Existing three methods executed unchanged."
+}

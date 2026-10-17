@@ -2,68 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-[Serializable]
-public sealed class SeasonalWildlifeArrivalMemberSaveData
-{
-    public string wildlifeId = string.Empty;
-    public int positionX;
-    public int positionY;
-    public bool spawned;
-}
-
-[Serializable]
-public sealed class SeasonalWildlifeArrivalSaveData
-{
-    public bool configured;
-    public string speciesId = string.Empty;
-    public int exactCount;
-    public string requiredHabitatId = string.Empty;
-    public SeasonalWildlifeArrivalQualification qualification;
-    public List<SeasonalWildlifeArrivalMemberSaveData> members = new();
-    public string lastFailureReason = string.Empty;
-    public string outcomeResultKey = string.Empty;
-    public SeasonalWildlifeArrivalFactData observation = new();
-    public SeasonalTerminalPublicationSaveData publication = new();
-
-    public static SeasonalWildlifeArrivalSaveData FromProfile(
-        SeasonalWildlifeArrivalProfile profile)
-    {
-        if (profile?.IsConfigured != true)
-        {
-            return new SeasonalWildlifeArrivalSaveData();
-        }
-
-        return new SeasonalWildlifeArrivalSaveData
-        {
-            configured = true,
-            speciesId = profile.speciesId,
-            exactCount = profile.exactCount,
-            requiredHabitatId = profile.requiredHabitatId,
-            qualification = profile.qualification
-        };
-    }
-}
-
-public interface ISeasonalWildlifeArrivalCommand
-{
-    bool TryRecordSeasonalWildlifeArrivalPlan(
-        string occurrenceInstanceId,
-        IReadOnlyList<SeasonalWildlifeArrivalMemberSaveData> members,
-        out string failureReason);
-    bool TryRecordSeasonalWildlifeArrivalFailure(
-        string occurrenceInstanceId,
-        string failureReason);
-    bool TryMarkSeasonalWildlifeArrivalSpawned(
-        string occurrenceInstanceId,
-        string wildlifeId,
-        out string failureReason);
-    bool TryObserveSeasonalWildlifeArrival(
-        string occurrenceInstanceId,
-        string speciesDisplayName,
-        int absoluteDay,
-        out string failureReason);
-}
-
 public static class SeasonalWildlifeArrivalRules
 {
     private const int MaximumFailureReasonLength = 256;
@@ -214,23 +152,6 @@ public static class SeasonalWildlifeArrivalRules
 
     public static void ValidateRestoreJoin(
         SeasonalEventWorldSaveData payload,
-        IReadOnlyList<WildlifeActor> candidateWildlife)
-    {
-        if (payload?.activeEvents == null || candidateWildlife == null)
-            throw new InvalidOperationException(
-                "Seasonal wildlife restore requires seasonal and wildlife candidates.");
-
-        Dictionary<string, string> speciesByWildlifeId = candidateWildlife
-            .Where(value => value != null && value.IsAlive)
-            .ToDictionary(
-                value => value.WildlifeId,
-                value => value.SpeciesId,
-                StringComparer.Ordinal);
-        ValidateRestoreJoin(payload, speciesByWildlifeId);
-    }
-
-    public static void ValidateRestoreJoin(
-        SeasonalEventWorldSaveData payload,
         IReadOnlyList<WildlifeSaveData> candidateWildlife)
     {
         if (payload?.activeEvents == null || candidateWildlife == null)
@@ -248,7 +169,7 @@ public static class SeasonalWildlifeArrivalRules
         ValidateRestoreJoin(payload, speciesByWildlifeId);
     }
 
-    private static void ValidateRestoreJoin(
+    internal static void ValidateRestoreJoin(
         SeasonalEventWorldSaveData payload,
         IReadOnlyDictionary<string, string> speciesByWildlifeId)
     {

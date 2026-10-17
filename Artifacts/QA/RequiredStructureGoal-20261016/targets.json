@@ -1,0 +1,527 @@
+{
+  "goal": "report-complete-remediation",
+  "targets": [
+    {
+      "id": "F1",
+      "name": "Character restore candidate lifetime",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "f1-lifetime-r6/character-restore-lifetime.tsv",
+        "f1-f2-world-r2/world-lineage-report.json",
+        "verification-final-restock-regression-r1.json"
+      ],
+      "verificationLimit": "후보 수명10/terminal0 및 current104-section 실제 복원3·변조9·실패 rollback/동일 요청 재시도·empty/populated staff JSON과 terminal0 통과."
+    },
+    {
+      "id": "F2",
+      "name": "Post-commit restore outcome and consumers",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "f2-recovery-r9/restore-outcome.tsv",
+        "f2-recovery-r9/launcher-exit.txt",
+        "verification-f2-recovery-r9.json",
+        "f1-f2-world-r2/world-lineage-report.json"
+      ],
+      "verificationLimit": "통제8+실제7=15 PASS, actual Title→fresh Gameplay same-slot restore/capture, OS isolation, normal Play stop and Unity exit0. Current general whole-world104-section/restore3/malformed9 separately PASS."
+    },
+    {
+      "id": "G1",
+      "name": "WorkTaskExecutor",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "g1-execution/static-parity-r3.txt",
+        "g1-execution/syntax-r3.txt",
+        "verification-g1-movement-r2.json",
+        "verification-g1-movement-r5.json",
+        "verification-g1-destinationless-r2.json",
+        "verification-native-current-source-r3.json",
+        "verification-movement-work-graph-execution-r1.json",
+        "verification-restock-staging-source-r1.json",
+        "verification-g1-work-stop-source-r1.json",
+        "verification-g1-restock-world-source-r1.json",
+        "verification-g1-restock-rebind-source-r1.json",
+        "verification-g1-restock-execution-r1.json",
+        "verification-world-after-restock-r1.json",
+        "verification-g1-accident-launcher-rejection-r1.json",
+        "verification-g1-accident-execution-r2.json",
+        "verification-g1-accident-execution-r3.json",
+        "verification-g1-accident-native-compile-r3.json",
+        "verification-g1-accident-execution-r4.json",
+        "verification-final-restock-regression-r1.json"
+      ],
+      "verificationLimit": "Actual restock/selector reinjection/physical pickup and pending/carried official world restore6, cancellation8/live owner handoff2 retained. Current native Runtime2723+Editor1022 compile36.44s/errors0 and actual approved-WU/labor/injury/alert/abort/release, canonical fire receipt, injected pending failure JSON WorkOrderRuntime candidate replacement/OnRestoreCompleted+repeated retry no replay/official baseline restore terminal0. Real invalid child ID reproduced r3 and fixed in producer without weakening strict Fact validation. Controlled runtime fire-plan clone; no natural content fire/AI selection, cold whole-world pending accident restore or separate fire damage measurement claimed.",
+      "latestSourceDelta": "Restored local cargo ownership rehydrated by reversible participant226 after actual character/reservation/haul publication; outgoing actor relinquishes without touching new-root durable operation. Restored idle work cancellation reaches cargo owner. Native pending/carried restore6/cancel8/live handoff2 and physical conservation PASS; accident-specific boundary and final integration remain. Canonical child fire evidence now derives from immutable parent operation; actual approved work/injury/abort and pending JSON candidate replacement/repeated retry PASS.",
+      "latestSourceVerification": "verification-g1-accident-native-compile-r3.json; verification-g1-accident-execution-r4.json"
+    },
+    {
+      "id": "G2",
+      "name": "CharacterConsumablesRuntime",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "verification-g2-policy-r3.json",
+        "verification-g2-execution-r2.json",
+        "g2-execution-r2/unity-evidence/consumable-execution-boundary.txt",
+        "g2-execution/static-verification-r2.json"
+      ],
+      "verificationLimit": "정책·약물/해독·공통operation/journal owner 분리 완료. current compile/actual9묶음·physical/service/JSON fresh+repeated root restore/ACK/cancel/failure/retry PASS. 식사/배달·공통 root 수명은 응집된 facade에 유지, 자연 AI·paid patient·full cold world 미실행."
+    },
+    {
+      "id": "G3",
+      "name": "WorkOrderRuntime",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "g3-material-supply/static-parity-r1.txt",
+        "g3-material-supply/syntax-r1.txt",
+        "verification-g1-g3-c10-source-r1.json",
+        "verification-actual-followup-source-r1.json",
+        "verification-g3-execution-r1.json"
+      ],
+      "verificationLimit": "Current production Runtime2723 and Editor1022 native compiled. Controlled production WorkAmount construction/repair terminal, cancellation/refund, retry, JSON/save restore/rejected restore preservation, rollback/orphan/drain fixtures PASS. Exact typed input descriptor/destination/capacity/revision/fingerprint/current schema14 fixture PASS; terminal0 each. Old fixture version10 expectation repaired without changing production DTO/validation. No natural worker AI/whole-scene construction claim; final integration pending."
+    },
+    {
+      "id": "G4",
+      "name": "FactionRuntimeApplicationAdapter",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "g4-route-delivery/static-parity-r1.txt",
+        "g4-route-delivery/syntax-r1.txt",
+        "verification-g4-g5-source-r1.json",
+        "verification-g4-cargo-execution-r1.json",
+        "verification-g4-reinforcement-execution-r1.json",
+        "verification-g4-reinforcement-source-r2.json",
+        "verification-g4-reinforcement-execution-r2.json",
+        "verification-g4-reinforcement-source-r3.json",
+        "verification-g4-reinforcement-native-compile-r3.json",
+        "verification-g4-reinforcement-execution-r3.json",
+        "verification-g4-execution-complete-r1.json",
+        "verification-final-integration-r4.json"
+      ],
+      "verificationLimit": "Current Runtime+Editor native compile40.447s/CS0 and source-frozen actual campaign/alliance/request/arrival producer, official104-section pending+completed JSON7restores, partial/full response-loss prefix, fresh current root/actors, immediate unique lifetime membership, marker/guard/life/narrative, idempotent hooks/normal entry and baseline restore PASS/consoleErrors0/terminal0. Existing cargo native evidence retained. Controlled travel/fault; not natural strategic AI/LLM.",
+      "latestSourceDelta": "Missing AbilityWork composed before DI; stable ID before Initialize; child receipt recorded after actual publication or verified committed response loss; retry starts at committed prefix and resumes entry. Existing DTO fields/version retained with strict partial-prefix admission.",
+      "latestSourceVerification": "verification-native-current-source-r8.json"
+    },
+    {
+      "id": "G5",
+      "name": "SurvivalFoodRuntime",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "g5-treatment/static-parity-r2.txt",
+        "g5-treatment/syntax-r2.txt",
+        "verification-g4-g5-source-r1.json",
+        "g5-treatment-native/source-close-r1.json",
+        "verification-g5-execution-r1.json"
+      ],
+      "verificationLimit": "Current native Editor compile32.79s/errors0 and existing production Runtime unchanged/bound. Internal+paid actual actor/work/physical/service fixture:4 completions each, payments0/4, detox outcomes2 each; supply no-effect reads, physical/consumables/survival/service official section JSON restores, ACK/service reservation failure, owner-loss/cancel/retry no duplicate and fuel boundary PASS/engineErrors0/terminal0. Historical fixed report preserved. Controlled fixture; no natural hauling/AI/health UI or whole-world treatment restore."
+    },
+    {
+      "id": "G6",
+      "name": "ApparelWorkOrderRuntime",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "g6-terminal-journal/static-parity-r1.txt",
+        "g7-manual-water/syntax-r1.txt",
+        "verification-g6-g7-source-r1.json",
+        "verification-g6-execution-r1.json"
+      ],
+      "verificationLimit": "Native four production terminal paths/cancel and repair pending recovery; real terminal authority/outbox exact GC publication, unrelated-row preservation, byte-exact rollback and gate retry; seven terminal-authority checks for effect-row-first, exact source removal/replay, drift rejection, current-version JSON round trip, tamper rejection, order-only overwrite fence and cancellation/terminal retry. Explicit proxy ports remain for unused physical/catalog collaborators in authority/GC fixtures. Controlled native scope; natural UI/AI and final official whole-world integration remain separate."
+    },
+    {
+      "id": "G7",
+      "name": "FluidNetworkRuntime",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "g7-manual-water/static-parity-r1.txt",
+        "g7-manual-water/syntax-r1.txt",
+        "verification-g6-g7-source-r1.json",
+        "verification-g7-execution-r1.json"
+      ],
+      "verificationLimit": "Current Unity/native targeted manual physical custody and autonomous flow/JsonUtility restore/retry PASS, with explicit controlled ports. ACK failure/staged same-key replay/conflict/restore ACK/process conservation and pending autonomous outcome resume are observed on real owners. No source change; broad industrial content-count fixture fails36/38 and remains preserved. Natural AI/UI and official whole-world restore are separate."
+    },
+    {
+      "id": "G8",
+      "name": "AbilityWork",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "g8-work-modules/static-parity-r1.txt",
+        "g8-work-modules/lifetime-r1.txt",
+        "g8-work-modules/syntax-r1.txt",
+        "verification-g8-source-r1.json",
+        "verification-work-drain-source-r1.json",
+        "verification-movement-work-graph-execution-r1.json",
+        "verification-restock-staging-source-r1.json",
+        "verification-c16-medical-batch-source-r1.json",
+        "verification-g1-restock-world-source-r1.json",
+        "verification-g1-restock-rebind-source-r1.json",
+        "verification-g1-restock-execution-r1.json",
+        "verification-world-after-restock-r1.json",
+        "verification-native-current-source-r4.json",
+        "verification-final-restock-regression-r1.json"
+      ],
+      "verificationLimit": "Current native work module graph/reinjection and physical cargo/lease conservation PASS. Official pending/carried checkpoint restore6, repeated cancellation8, live old-owner replacement2, baseline restore, plus current general official104-section world restore3/malformed9 all terminal0. Existing module single-owner/lazy/rebind lifetime7 and new stop-method11 controlled cases retained. Natural UI/model inference remain outside this scoped target.",
+      "latestSourceVerification": "Current Runtime2723 and Editor1022 native compile/source binding r4 with actual restock and official world exit0. Subsequent C3 fixture-only Editor boot change is separate and pending native execution."
+    },
+    {
+      "id": "G9",
+      "name": "CharacterProgression",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "g9-trait-inference/static-parity-r1.txt",
+        "g9-trait-inference/abi-compile-r2.json",
+        "g9-trait-inference/rollback-contract-r1.json",
+        "verification-g9-source-r1.json",
+        "verification-g9-execution-r1.json"
+      ],
+      "verificationLimit": "Current native Runtime/Editor binding unchanged; B83 three actual native component/service/dispatcher groups PASS/terminal0. Missing observer/precommit/rejected publication no trait/influence/journal mutation; lost committed ACK, strict JSON proof/tamper/fresh owner replay once; frozen module evidence/prompt and stale/duplicate callback invalidation. Controlled fixture; no real LLM, natural GameplayScene/live UI or official whole-world trait restore."
+    },
+    {
+      "id": "G10",
+      "name": "LocalLlmRequestQueue",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "verification-g10-host-r3.json",
+        "g10-request-state/request-state-contracts.log",
+        "g10-queue-scene-r3/llm-request-queue-lifecycle.tsv",
+        "verification-g10-queue-r3.json"
+      ],
+      "disposition": "호스트 사용권·queue/running/affinity 요청 상태 owner 및 equipment choice admission-only 경계를 분리/정리하고 해당 실제 표적 검증을 완료했다. 모델 추론/network 실행 완료 주장은 아니다.",
+      "verificationLimit": "Host OS ownership8 + actual host/lifecycle16 previously PASS and unchanged. Request owner pure9 + actual component7 + actual Preparation5/current compile/normal Play stop/exit0 PASS. Binary is admission-only; no model inference/network claim."
+    },
+    {
+      "id": "C1",
+      "name": "OwnerCommandController",
+      "path": "Assets/Scripts/Controllers/Character/Input/OwnerCommandController.cs",
+      "status": "targeting_owner_implemented_targeted_actual_verified",
+      "evidence": [
+        "c1-targeting-session/static-parity-r1.txt",
+        "c1-targeting-session/abi-compile-r2.json",
+        "c1-targeting-session/pure-lifetime-r2.json",
+        "verification-c1-source-r1.json",
+        "verification-c1-execution-r1.json",
+        "verification-c1-execution-r2.json",
+        "verification-c1-execution-r3.json",
+        "verification-c1-execution-r4.json",
+        "verification-c1-play-execution-r1.json"
+      ],
+      "disposition": "One targeting-session owner makes combat/manual exclusive, guards synchronous duplicate completion and protects newer intents. Real selection revision invalidates old intent; repeated same-actor selection is a no-op. Explicit/Escape/None/disable/source invalidation clears targeting. Failed target retries; new immediate request cancels previous targeting even when rejected. Existing domain command routing and selection/drag/info owners retained.",
+      "verificationLimit": "Full current A05 controlled native PASS plus actual production staff Button, automatic Play lifecycle/Update, real camera/collider/raycaster/UI blocker, invalid retry/one effect/duplicate/cancel and official baseline restore PASS/consoleErrors0/terminal0. Controlled input/local actual transaction; not hardware/natural AI or official pending skill world restore."
+    },
+    {
+      "id": "C2",
+      "name": "ProductionBillRuntime",
+      "path": "Assets/Scripts/Models/Economy/Content/ProductionBillRuntime.cs",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "c2-production-execution/static-parity-r1.txt",
+        "c2-production-execution/abi-compile-r3.json",
+        "verification-c2-source-r1.json",
+        "verification-c2-execution-r1.json"
+      ],
+      "disposition": "Begin/Execute/passive Tick and quality/WIP/utility/prepared+exact output/receipt/ruin lifecycle owned by ProductionBillExecutionRuntime. Existing query/input/command/terminal owners and current aggregate store reused; facade keeps persistence and exact restore phase/cache handoff.",
+      "verificationLimit": "Native production command transactions and capture/restore/reentrant-command fences, ACK lost before/after commit with JSON fresh-owner retry, causal owner restore, authored sawmill/perishable full-current-format round trips, normal/loss/ruin resolution, exact WIP terminal receipt GC with foreign/stale/root/revision guards and rollback/retry. Final production-bills and buildings markers PASS, exit 0. Controlled native scope; natural UI/AI and final official whole-world integration remain separate."
+    },
+    {
+      "id": "C3",
+      "name": "BuildableObject",
+      "path": "Assets/Scripts/Services/Buildings/BuildableObject.cs",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "c3-c4-building-lifetime/lifetime-r2.txt",
+        "c3-c4-building-lifetime/static-parity-r3.txt",
+        "verification-c3-source-r1.json",
+        "c3-forward-removal/forward-r5.txt",
+        "c3-forward-removal/static-parity-r2.txt",
+        "c3-forward-removal/recovery-abi-r2.json",
+        "c3-forward-removal/consumer-static-r1.json",
+        "verification-c3-forward-r1.json",
+        "verification-c3-native-partial-r1.json",
+        "verification-work-drain-source-r1.json",
+        "verification-c3-controlled-boot-source-r1.json",
+        "verification-c3-controlled-boot-source-r3.json",
+        "verification-c3-execution-r1.json"
+      ],
+      "disposition": "Retain existing facade and domain owners. Local destruction reentry/completion/error lifetime fixed. Existing world-removal owner now retains an exact transient teardown receipt after successful fuel/grid/visual preparation, resumes incomplete unregistered owners without replay, blocks capture during mutation/pending teardown and discards old-world references after official restore. Existing journal/cause guards and completion postconditions retained; no saved schema or new public abstraction.",
+      "verificationLimit": "Actual isolated sanitized Gameplay/controlled official party; P03 physical inputs, exact warehouse route, cancellation and stale destination replan; exact8 participants/registry@5; intermediate deferred disk checkpoint, six-step same operation retry, completed demolition despite notification failure; quantity18/mass21600g conserved; terminal official slot load/no duplication/second checkpoint no-op;104-section baseline restored.53 checks/errors0/warnings0/unityExit0. Intermediate state not cold-loaded; natural UI/model inference/final all-target integration not claimed.",
+      "latestSourceVerification": "verification-native-current-source-r5.json; C3 current Editor canonical research completion compiled native r6, unchanged cached r8 PASS; subsequent G3 Editor-only schema assertion update does not change C3 source or production Runtime."
+    },
+    {
+      "id": "C4",
+      "name": "Facility",
+      "path": "Assets/Scripts/Services/Buildings/Facility.cs",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "c4-worker-allocation/worker-r4.txt",
+        "c4-worker-allocation/worker-run-r1.txt",
+        "c4-worker-allocation/static-parity-r6.txt",
+        "c4-worker-allocation/managed-current-r1/results.json",
+        "c4-worker-allocation/managed-current-r2/results.json",
+        "c4-worker-allocation/managed-current-r2/post-check.json",
+        "verification-c4-source-r1.json",
+        "verification-c4-execution-r1.json"
+      ],
+      "disposition": "Retain the single saved Facility.Interact phase with existing service/meal/water/recovery owners. Separate shared worker admission/approach/pose/disposal lifetime into BuildingWorkerAllocation, used by Facility/Shop/ConstructionSite. Facility capacity/slots stay authoritative; WorkRun owns only its admitted handle. Reject failed admission/movement before work, revalidate action/run after yields, release exact grants and detach coroutine/resource handles before reentrant callbacks. Actor pose tokens + actual layer revision/movement version protect newer presentation and return cancelled offsets. Existing public APIs/DTO/serialized/GUID/asset wiring preserved.",
+      "verificationLimit": "Native facility/actor/pose/registry with controlled movement: rejected admission/approach, cancel/retry, exact handle disposal, stale disposal preserving replacement/new pose; registered runtime bindings/state JSON groups also PASS. Final buildings marker and exit 0. Controlled native scope; natural UI/AI and final official whole-world integration remain separate."
+    },
+    {
+      "id": "C5",
+      "name": "CaptivityRuntime",
+      "path": "Assets/Scripts/Services/Captivity/CaptivityRuntime.cs",
+      "status": "labor_owner_implemented_targeted_actual_verified",
+      "evidence": [
+        "verification-c5-source-r1.json",
+        "c5-c6-captivity/controlled-r5.txt",
+        "c5-c6-captivity/static-parity-r3.txt",
+        "c5-c6-captivity/managed-current-r3/results.json",
+        "verification-c6-execution-r4.json",
+        "verification-c6-cold-execution-r1.json",
+        "verification-c5-execution-r1.json"
+      ],
+      "disposition": "Labor permissions/tool delivery-assignment-wear-return have one owner on the current aggregate access. Preserve existing terminal transition and lower owners. Atomic unique components publication, explicit return failures/retry and a session-local shared labor/escort capture fence preserve custody.",
+      "verificationLimit": "Current native Editor compile27.429s/CS0; labor threshold/owner+delivery failure rollback/actual tool assignment+permission+employment/wear/JSON close retry/broken return retry plus original D09/shared-care/outbox PASS/consoleErrors0/terminal0. Explicit clock/delivery/care ports; not natural AI/hauling or official pending labor world restore."
+    },
+    {
+      "id": "C6",
+      "name": "WildlifeCaptureRuntime",
+      "path": "Assets/Scripts/Services/Captivity/WildlifeCaptureRuntime.cs",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "verification-c6-source-r1.json",
+        "c6-wildlife-feeding/controlled-r2.txt",
+        "c6-wildlife-feeding/static-parity-r1.txt",
+        "c6-wildlife-feeding/managed-current-r1/results.json",
+        "verification-c6-execution-r4.json",
+        "verification-c6-cold-execution-r1.json",
+        "verification-c6-native-owner-r2.json",
+        "verification-c6-execution-complete-r1.json"
+      ],
+      "disposition": "CapturedWildlifeFeedingRuntime owns food/water delivery, consumption and pending feed recovery with the same current stateSession. Existing capture/roles/security/escape/projection owners remain. CarePublished phase plus actor commit identity and exact source receipt prove the applied effect; changing display text/live sickness no longer blocks acknowledgement. Ordinary 1.5 sickness decay and diet/RNG order are preserved. Pending feed recovery works away from pen and is fenced against reentrant capture/restore.",
+      "verificationLimit": "Controlled fixture with explicit surrounding ports; no natural AI capture/feeding claim. Existing Run body unchanged. Engine Error/Exception/Assert collection in fixture is empty. Producer218 and fresh-process29 PASS with console0/terminal0; native owner ACK/actualActor/JSON retry marker PASS/terminal0. Official104-section restore/partial candidate/no live fallback/bad housing/same-commit replay/relative5-second cadence verified. Final broader integration pending."
+    },
+    {
+      "id": "C7",
+      "name": "AIBrain",
+      "path": "Assets/Scripts/Services/Character/AI/AIBrain.cs",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "conditional-c7-c8-review-pins.json",
+        "verification-g1-movement-r2.json",
+        "verification-g1-movement-r5.json",
+        "verification-g1-destinationless-r2.json",
+        "verification-movement-work-graph-execution-r1.json",
+        "verification-native-current-source-r3.json",
+        "verification-g1-work-stop-source-r1.json",
+        "verification-c7-c8-execution-r1.json"
+      ],
+      "disposition": "기존 독립 owner와 응집된 Unity 조정을 유지한다. 앞선 실제 이동/영수증/공식 actor·work graph 복원9/core2 및 현재 Runtime의 destinationless6/deprivation5/primitive6 행동을3개 격리 프로세스의 FINAL/PASS·consoleErrors0/failures0/terminal0로 확인했다. 통제 실패·전제 조건의 실제 Brain/scheduler/BT 경계이며 전수 자연 AI 조합이나 최종 통합을 주장하지 않는다.",
+      "latestSourceDelta": "Production Runtime unchanged from actual restock/restore cancellation closure; named current3 native groups completed. New C16 Editor-only scenario preparation does not change these owners or their runner."
+    },
+    {
+      "id": "C8",
+      "name": "AbilityMove",
+      "path": "Assets/Scripts/Services/Character/Ability/AbilityMove.cs",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "conditional-c7-c8-review-pins.json",
+        "verification-g1-movement-r2.json",
+        "verification-g1-movement-r5.json",
+        "verification-g1-destinationless-r2.json",
+        "verification-movement-work-graph-execution-r1.json",
+        "verification-native-current-source-r3.json",
+        "verification-g1-work-stop-source-r1.json",
+        "verification-c7-c8-execution-r1.json",
+        "verification-final-integration-r4.json",
+        "verification-final-restock-regression-r1.json"
+      ],
+      "disposition": "기존 독립 owner와 응집된 Unity 조정을 유지한다. 앞선 실제 이동/영수증/공식 actor·work graph 복원9/core2 및 현재 Runtime의 destinationless6/deprivation5/primitive6 행동을3개 격리 프로세스의 FINAL/PASS·consoleErrors0/failures0/terminal0로 확인했다. 통제 실패·전제 조건의 실제 Brain/scheduler/BT 경계이며 전수 자연 AI 조합이나 최종 통합을 주장하지 않는다.",
+      "latestSourceDelta": "Final integration added the read-only internal HasActiveMovement query used by reinforcement restore. Existing movement owners retain state authority. Current native official faction restore proves missing-entry restart and duplicate-hook idempotence; related restock proves cancellation/live owner handoff."
+    },
+    {
+      "id": "C9",
+      "name": "ExtremeTraitRuntime",
+      "path": "Assets/Scripts/Services/Character/Identity/Runtime/ExtremeTraitRuntime.cs",
+      "status": "six_capability_owners_implemented_targeted_actual_verified",
+      "evidence": [
+        "c9-extreme-capabilities/static-parity-r2.txt",
+        "c9-extreme-capabilities/abi-compile-r2.json",
+        "c9-extreme-capabilities/preparation-contract-r1.json",
+        "verification-c9-source-r1.json",
+        "verification-c9-execution-r1.json"
+      ],
+      "disposition": "Six distinct capability command/state/rollback lifetimes moved behind unchanged public facade; same identity store/current reads/writes, stable DTO/type/IDs/clock/hash retained. Common stateless access and rule IDs no longer depend on facade implementation. Legacy Golden/Arcane entry methods retained for explicit Editor/reflection compatibility; non-Editor/asset call inventory empty.",
+      "verificationLimit": "Current native Editor compile25.952s/CS0; original six owners/shared store + Golden actual crop/physical JSON fresh active/terminal retry PASS/consoleErrors0/terminal0. Separate unchanged A07 actual body/equipment/identity rejection/partial JSON restore/missing-only resume/terminal no mutation report PASS/terminal0. Controlled ports; not natural AI or pending capability whole-world restore."
+    },
+    {
+      "id": "C10",
+      "name": "CombatEquipmentCraftingRuntime",
+      "path": "Assets/Scripts/Services/Combat/CombatEquipmentCraftingRuntime.cs",
+      "status": "sequence_definition_rules_and_instance_factory_actual_verified",
+      "evidence": [
+        "verification-c10-r8.json",
+        "c10-eec06-r8/combat-craft-eec06-report.txt",
+        "c10-factory/result.txt",
+        "verification-g1-g3-c10-source-r1.json",
+        "verification-c10-execution-r9.json"
+      ],
+      "disposition": "Sequence preflight and definition/material rules/instance creation owners verified in current native EEC06: commands5, source stacks2, output1, JSON WIP fresh restore/exact retry, malformed input and sequence exhaustion no-effect rejection, zero-WIP GC/crash-ahead replay, duplicate prevention; terminal exit0. Original allocator timing/API retained. Natural smith UI/AI and final cold official world remain outside this target proof.",
+      "verificationLimit": "Actual production craft runtime with authored equipment/material/building definitions and real Unity worker/facility/exact physical repository. Controlled gateway/clock/outcome ports. Material allow/priority/order/policy/quality commands5, input source stacks2, output1/quality child1/completion parent1; unresolved WIP/fresh JSON restore, absent output null fields2, malformed optional rejects3/no owner mutation, sequence exhaustion/no mutation/retry, exact replay no duplicate. Terminal exact source removal/zero-WIP GC/crash-ahead retry/frozen source drift. Existing sequence native proof and current owner parity/factory11/rules7 managed checks retained. Not natural smith AI/UI or final cold whole-world claim."
+    },
+    {
+      "id": "C11",
+      "name": "EquipmentEvolutionRuntime",
+      "path": "Assets/Scripts/Services/Combat/EquipmentEvolutionRuntime.cs",
+      "status": "reviewed_retained_with_terminal_and_restore_fixes_actual_verified",
+      "disposition": "개조/재조율의 공유 거래는 하나의 응집된 aggregate로 유지했다. 이미 Cancelled인 주문의 반복 취소를 거절하고 완료 작업량에 도달한 정상 보류 주문의 복원 gate를 고쳤다. 실제 runtime queue/apply/cancel10·잘못된 진행도16 거절·정상 full-progress2 수락·fresh parent/root/input owner 복원과 실제 재료 ACK 재시도를 격리 Unity에서 검증했다.",
+      "evidence": [
+        "verification-c11-r6.json",
+        "c11-equipment-evolution-r6/equipment-evolution-lifecycle.tsv"
+      ],
+      "verificationLimit": "Cohesive transaction retained; Cancelled terminal guard2 + natural full-work restore gate2 fixed. Actual runtime10/invalid16/current compile/isolated exit0 PASS. Controlled equipment/input/world ports, real material disposition. Fresh parent owner only; child physical service retained."
+    },
+    {
+      "id": "C12",
+      "name": "FacilityOutputExactRouteService",
+      "path": "Assets/Scripts/Services/Items/FacilityOutputExactRouteService.cs",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "verification-c12-c13-source-r1.json",
+        "c12-c13-item-boundaries/static-parity-r2.txt",
+        "c12-c13-item-boundaries/managed-current-r2/results.json",
+        "verification-c12-execution-r1.json"
+      ],
+      "verificationLimit": "14 unconditional assertion groups: exact partition/mass, replay/conflict, ACK, stateful/perishable route, malformed/stale restore, delivery overlay lifecycle, checkpoint-GC publish/rollback/replay and physical deferral. Real route service/repository with controlled catalog/mass/marker collaborators. Controlled native scope; natural UI/AI and final official whole-world integration remain separate."
+    },
+    {
+      "id": "C13",
+      "name": "WorldItemStackRuntime",
+      "path": "Assets/Scripts/Services/Items/WorldItemStackRuntime.cs",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "verification-c12-c13-source-r1.json",
+        "c12-c13-item-boundaries/controlled-r4/result.json",
+        "c12-c13-item-boundaries/controlled-baseline-r1/run.log",
+        "verification-c13-execution-r1.json"
+      ],
+      "verificationLimit": "Explicit native PASS markers completed for real WorldItemStackRuntime/repository and JsonUtility A/B snapshots: stale commit rejected without mutation, stale discard preserves replacement, current participant publication/complete, rollback/replacement/same-candidate retry. The five physical save groups also passed. Controlled native scope; natural UI/AI and final official whole-world integration remain separate. Later unrelated tests were interrupted by memory guard (job exit 1). Completed target markers remain valid; whole Core is NOT PASS."
+    },
+    {
+      "id": "C14",
+      "name": "SurgicalPartRuntime",
+      "path": "Assets/Scripts/Services/Medical/SurgicalPartRuntime.cs",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "verification-c14-source-r1.json",
+        "c14-surgical-parts/static-parity-r1.txt",
+        "c14-surgical-parts/controlled-r1/result.json",
+        "c14-surgical-parts/managed-current-r1/results.json",
+        "verification-c14-execution-r1.json"
+      ],
+      "verificationLimit": "19/19 native surgery contracts PASS, including installation pending physical receipt/ACK exactly once, strict material sink join, replacement physical identity, actual replacement runtime stale body-CAS rejection, refreshed output admission through JSON restore, post-CAS publication and natural-organ transfer retry without reroll; late participant rollback and organ-preservation joins. Controlled native scope; natural UI/AI and final official whole-world integration remain separate."
+    },
+    {
+      "id": "C15",
+      "name": "GameplayOutcomeLedger",
+      "path": "Assets/Scripts/Services/Narrative/GameplayOutcomes/GameplayOutcomeLedgerMemory.cs",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "verification-c15-source-r1.json",
+        "c15-outcome-ledger/static-parity-r1.txt",
+        "c15-outcome-ledger/controlled-r1/result.json",
+        "c15-outcome-ledger/managed-final.json",
+        "verification-c15-execution-r1.json"
+      ],
+      "verificationLimit": "Full native storage/query/retention/restore suite and JsonUtility with real ledger/registry/recorder: pre-admission and foreign-owner rejection preserves candidates, active reservation fences, staged/published duplicate rejection, rollback/same-candidate retry, identity/evidence/tamper/replay, deterministic consolidation, retention/capacity-before-mutation. Existing unrelated usage-formula budget fixture remains separate. Controlled native scope; natural UI/AI and final official whole-world integration remain separate. Explicit storage suite PASS marker completed before the later memory-guard interruption; whole Core is NOT PASS."
+    },
+    {
+      "id": "C16",
+      "name": "V20CampaignApplicationAdapter",
+      "path": "Assets/Scripts/Services/Run/V20CampaignApplicationAdapter.cs",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "verification-c16-source-r1.json",
+        "c16-campaign-response/static-parity-r1.txt",
+        "c16-campaign-response/controlled-r2/result.json",
+        "c16-campaign-response/managed-final.json",
+        "verification-c16-native-partial-r1.json",
+        "verification-c16-medical-batch-source-r1.json",
+        "verification-c16-medical-execution-r1.json",
+        "verification-c16-visitor-preparation-source-r5.json",
+        "verification-c16-medical-execution-r3.json",
+        "verification-c16-medical-execution-r5.json",
+        "verification-c16-medical-execution-r6.json",
+        "verification-c16-medical-execution-r7.json",
+        "verification-c16-returning-visitor-contract-r1.json",
+        "verification-c16-medical-execution-r8.json"
+      ],
+      "verificationLimit": "Current native Runtime2723/Editor1022 compile errors0; B91 real exit owner/journal JSON returning-receipt retention, eight tamper rejections and next revision PASS. Actual physical meal/replay/compensation/contamination/retirement, ordinary and Society-owned official world JSON restore, returning MedicalCollapse/AIRescue stabilization and carry into M11/receipt once PASS. Returning count and foreign Society medical join rejected atomically. Native terminal0 with exact frozen source/DLL. Controlled visitor preparation/spawn, no human preparation UI/model inference, disk slot load or completed treatment claim."
+    },
+    {
+      "id": "C17",
+      "name": "V20ContentResolutionService",
+      "path": "Assets/Scripts/Services/Run/V20ContentResolutionService.cs",
+      "status": "reviewed_retained_constructor_cycle_fixed_and_targeted_actual_verified",
+      "evidence": [
+        "f2-recovery-r9/restore-outcome.tsv",
+        "f1-f2-world-r2/world-lineage-report.json",
+        "verification-g10-host-r3.json"
+      ],
+      "disposition": "공유 plan/rollback snapshot/child receipt/recovery journal에 대한 한 application transaction을 조정하며 가변 도메인 권위는 이미 별도 owner에 있다. 생애 세대 조회만 IKinshipQuery로 바로 연결해 실제 재진입 constructor cycle을 해소하고 milestone parity/Title 재로드를 검증했다. 추가 기계적 분리는 하지 않는다."
+    },
+    {
+      "id": "C18",
+      "name": "CharacterBreakdownActionRunner",
+      "path": "Assets/Scripts/Services/Survival/CharacterBreakdownActionRunner.cs",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "verification-c18-source-r1.json",
+        "c18-breakdown-runs/static-parity-r1.txt",
+        "c18-breakdown-runs/controlled-r4/result.json",
+        "c18-breakdown-runs/managed-final.json",
+        "verification-c18-execution-r1.json"
+      ],
+      "verificationLimit": "Current native source/DLL frozen: five actual BT breakdown routes, typed terminals and ownership cleanup; actual death/corpse selection, rejected physical commit rollback, exact physical/taboo parent once; official whole-world JSON restore/fresh actor/causal identity, invalid stale reference no mutation and duplicate consume/public command inert. Both reports STATUS PASS, console warnings/errors0, terminal0. Prerequisites are controlled V18 aggregate/CharacterStats inputs; no natural triggering claim."
+    },
+    {
+      "id": "C19",
+      "name": "CharacterConsumablesApplicationPorts",
+      "path": "Assets/Scripts/Services/Survival/CharacterConsumablesApplicationAdapters.cs",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "verification-c19-source-r1.json",
+        "c19-consumable-physical/managed-final.json",
+        "c19-consumable-physical/controlled-r4/result.json",
+        "verification-c19-execution-r1.json"
+      ],
+      "verificationLimit": "Current Unity compile/import, actual consumable runtime/physical ports groups10 and terminal exit0; staged facility exclusion/slot retry, real carried consume, missing tare/pending and fresh-owner exactly-once return, meal/substance/detox failure/JSON section restore/retry. Natural UI/AI and cold official whole-world restore remain separate integration scope."
+    },
+    {
+      "id": "C20",
+      "name": "CharacterPrimitiveSurvivalRunner",
+      "path": "Assets/Scripts/Services/Survival/CharacterPrimitiveSurvivalRunner.cs",
+      "status": "implemented_and_targeted_actual_verified",
+      "evidence": [
+        "verification-c20-source-r1.json",
+        "c20-primitive-survival/managed-final.json",
+        "c20-primitive-survival/controlled-r1/result.json",
+        "verification-c20-native-fault-r1.json",
+        "verification-c20-execution-r1.json",
+        "verification-c20-native-completion-r1.json"
+      ],
+      "verificationLimit": "Current Unity compile/import and targeted actual native execution PASS: real GameplayScene Brain/BT fault rows6/checks53; actor/Stats/ledger completion/notification/pending restore/retry; real Brain start failure4 and same-epoch replacement disposal; four primitive production paths commit/reject/delivery retry. Controlled actors/schedulers/faults; natural AI/UI and cold official world remain separate integration."
+    }
+  ],
+  "currentSourceVerification": {
+    "latestSourceReceipt": "verification-native-current-source-r11.json",
+    "sourcePin": "source-pin-final-integration-r3.json",
+    "fullNativeInputPin": "native-input-pin-r43.json",
+    "toolPin": "tool-pin-final-integration-r2.json",
+    "factionInputPin": "g4-faction-assembly-input-pin-r2.json",
+    "native": "All32 targeted and required official faction7/related restock6 native PASS; final32 source/evidence review, documents and generated index PASS.",
+    "runtime": "Current5-file retirement/projection/hook fix compiled and natively verified; no DTO/authoring change.",
+    "editor": "Current official campaign/arrival/fresh root/actor pending+completed fixture and existing related restock entry.",
+    "indexClose": "knowledge-base-final-goal-close-r2.json",
+    "indexCloseStatus": "PASS"
+  },
+  "goalStatus": "complete",
+  "goalStatusEvidence": "goal-tool-completion-r1.json",
+  "executionProgress": "Source32/32 + targeted actual32/32 + required official faction/restock native integration + final source/evidence/documents/index close PASS. Goal complete.",
+  "completionAudit": "completion-audit-final-r1.json PASS"
+}

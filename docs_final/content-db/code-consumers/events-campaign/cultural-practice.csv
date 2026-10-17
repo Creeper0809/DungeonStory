@@ -3,4 +3,5 @@ CulturalPracticeDefinitionSO,content-type,,type-reference,services:character,con
 CulturalPracticeDefinitionSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterNarrativeContracts.cs
 CulturalPracticeDefinitionSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterNarrativeRuntime.cs
 CulturalPracticeDefinitionSO,content-type,,type-reference,services:narrative,runtime,structural-type-consumer,Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/SocialLife/CampaignPresentationObserver.cs
-CulturalPracticeDefinitionSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20ContentResolutionService.cs
+CulturalPracticeDefinitionSO,content-type,,type-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20ContentResolutionRequestPlanner.cs
+CulturalPracticeDefinitionSO,content-type,,type-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20ContentTypedEffectRuntime.cs

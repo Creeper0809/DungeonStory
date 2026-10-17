@@ -776,7 +776,7 @@ public struct OutcomeWriteBuilder
     {
         if (page == null
             || !fact.FactId.IsValid
-            || !GameplayOutcomeLedger.IsValidBoundedUtf16(
+            || !GameplayOutcomeValueSyntax.IsValidBoundedUtf16(
                 fact.Value,
                 GameplayOutcomeBufferLimits.MaximumFactValueUtf16Length,
                 allowEmpty: false)
@@ -824,7 +824,7 @@ public struct OutcomeWriteBuilder
         page != null
         && participant.EntityId.IsValid
         && participant.RoleId.IsValid
-        && GameplayOutcomeLedger.IsValidDisplayNameSnapshot(participant.DisplayName)
+        && GameplayOutcomeValueSyntax.IsValidDisplayNameSnapshot(participant.DisplayName)
         && (int)participant.ParticipationKind >= (int)GameplayParticipationKind.Direct
         && (int)participant.ParticipationKind <= (int)GameplayParticipationKind.GroupObservation
         && (participant.ParticipationKind != GameplayParticipationKind.OptionalWitness

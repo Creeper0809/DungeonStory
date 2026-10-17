@@ -163,6 +163,15 @@ internal sealed class EditorWarehouseStockRuntime : IWorldItemStackRuntime
         return false;
     }
 
+    public bool SpawnExistingUniqueItemAt(string itemId,
+        ItemInstanceId itemInstanceId, Vector2Int position,
+        WorldItemStackState state, string destinationId,
+        IReadOnlyList<ItemInstanceComponentSaveData> components, out string stackId)
+    {
+        stackId = string.Empty;
+        return false;
+    }
+
     public bool TryAbsorbUniqueItemStack(
         string stackId,
         ItemInstanceId expectedInstanceId) => false;

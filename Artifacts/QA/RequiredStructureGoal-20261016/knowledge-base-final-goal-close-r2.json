@@ -1,0 +1,50 @@
+{
+  "status": "PASS",
+  "log": "knowledge-base-final-goal-close-r2.log",
+  "logSha256": "e141632db086c3797d7ccdcbd23140ce7e70195bed2ccfe8a0dfeaf49018bf52",
+  "terminalExit": 0,
+  "queryTests": 5,
+  "queryTestReceipt": "knowledge-base-final-goal-close-r1.json",
+  "previousFullClose": "knowledge-base-final-goal-close-r1.json",
+  "knowledgeValidation": {
+    "architecture_systems": 19,
+    "architecture_source_links": 179,
+    "code_systems": 76,
+    "code_source_files": 4001,
+    "state_authority_rows": 36,
+    "implementation_status_rows": 37,
+    "documents": 74,
+    "content_types": 75,
+    "system_content_relations": 301,
+    "research_unlock_relations": 938,
+    "failure_count": 0,
+    "failures": []
+  },
+  "freshness": {
+    "artifact_count": 2,
+    "failure_count": 0,
+    "artifacts": [
+      {
+        "artifact_kind": "dungeonstory-content-database",
+        "output_root": "docs_final/content-db",
+        "source_files": 19573,
+        "output_files": 491,
+        "source_digest": "cd419a14ca8d91fc0d8bec2cf64dfc2ea416667b109861c05ca83fae6280c9b1",
+        "output_digest": "ab600e2ec56ecc50a5a7d4305d1ac7ab4864942ee172a052fb94f237407f32b5",
+        "failure_count": 0,
+        "failures": []
+      },
+      {
+        "artifact_kind": "dungeonstory-system-knowledge-base",
+        "output_root": "docs_final/knowledge-base",
+        "source_files": 4157,
+        "output_files": 90,
+        "source_digest": "31d7c2470b1632e11a91c333aa492f0fe4c056fe5fc6ba2139c996a26a0a5d13",
+        "output_digest": "25ea41907417883180b37e248262016147f9b3e5736d812f986881b2daecc17e",
+        "failure_count": 0,
+        "failures": []
+      }
+    ]
+  },
+  "scope": "Report-only precision correction; regenerate affected knowledge base only, validate it, and verify both artifacts. Content database and source unchanged."
+}

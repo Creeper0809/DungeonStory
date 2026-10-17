@@ -313,7 +313,15 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
             "Assets/Scripts/Models/Work/SettlementLaborAuthority.cs",
             "Assets/Scripts/Services/Character/AI/CharacterAiDecisionPipeline.cs",
             "Assets/Scripts/Services/Character/Ability/AbilityWork.cs",
+            "Assets/Scripts/Services/Character/Work/CharacterWorkModuleRuntime.cs",
             "Assets/Scripts/Services/Character/Work/WorkTaskExecutor.cs",
+            "Assets/Scripts/Services/Character/Work/WorkTaskExecutionContracts.cs",
+            "Assets/Scripts/Services/Character/Work/WorkRunRuntime.cs",
+            "Assets/Scripts/Services/Character/Work/WorkAccidentExecutionRuntime.cs",
+            "Assets/Scripts/Services/Character/Work/RestockWorkExecution.cs",
+            "Assets/Scripts/Services/Character/Work/RestockCargoOperation.cs",
+            "Assets/Scripts/Services/Character/Work/WorkRunLaborAccounting.cs",
+            "Assets/Scripts/Services/Character/Work/WorkProficiencyProgress.cs",
             "Assets/Scripts/Models/Economy/Content/WorldResourceRuntime.cs",
             "Assets/Scripts/Services/Economy/ProductionItemGateway.cs",
             "Assets/Scripts/Services/Economy/CropEcologyRuntime.cs",
@@ -529,6 +537,7 @@ public static class V27BalanceWholeGameCoverageDebugScenarios
             "Assets/Scripts/Services/Economy/V27SurvivalClosedLoopModels.cs",
             "Assets/Scripts/Services/Survival/Editor/PrimitiveStartSurvivalPlayModeVerifier.cs",
             "Assets/Scripts/Services/Survival/CharacterPrimitiveSurvivalRunner.cs",
+            "Assets/Scripts/Services/Survival/CharacterPrimitiveSurvivalCompletion.cs",
             "Assets/Scripts/Services/Survival/CharacterSafeReliefRunner.cs",
             "Assets/Scripts/Services/Character/AI/Editor/CharacterAiSelfCarePlayModeVerifier.cs"
         };

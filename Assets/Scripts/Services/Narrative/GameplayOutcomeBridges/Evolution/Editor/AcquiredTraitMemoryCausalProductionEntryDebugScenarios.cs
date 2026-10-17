@@ -735,7 +735,7 @@ public static class AcquiredTraitMemoryCausalProductionEntryDebugScenarios
         {
             NarrativePublicContextMaterial publicMaterial =
                 CharacterAcquiredTraitPromptBuilder.BuildPublicMaterialForLedgerEvidence(
-                    actor.Progression,
+                    NarrativeRequestContextTestFixture.CreateEmpty(), actor.Progression,
                     EvidenceFactIds);
             return CharacterAcquiredTraitPromptBuilder.BuildProjectedEvidenceFactIds(
                 publicMaterial,

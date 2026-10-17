@@ -1276,7 +1276,7 @@ public sealed class CharacterIdentityStateStore
 
     [GameplayInternalOnly(
         "Only identity-rule runtimes may mutate their own stable rule-state record.",
-        "CharacterPersistentNeedRuntime|ExtremeTraitRuntime|ForbiddenResearchLeapPreparation|CharacterRitualFastingRuntime")]
+        "CharacterPersistentNeedRuntime|ExtremeTraitRuleAccess|GoldenHarvestTraitRuntime|ForbiddenResearchLeapPreparation|CharacterRitualFastingRuntime")]
     public void Set(string characterId, string traitDefinitionId, string ruleId, int revision, string payload)
     {
         if (revision <= 0) throw new ArgumentOutOfRangeException(nameof(revision));
@@ -1347,7 +1347,7 @@ public sealed class CharacterIdentityStateStore
 
     [GameplayInternalOnly(
         "Retire a death-retained state or restore the absent preimage of an uncommitted attempt.",
-        "ExtremeTraitRuntime|ForbiddenResearchLeapPreparation|CharacterRitualFastingRuntime")]
+        "GoldenHarvestTraitRuntime|ForbiddenResearchLeapPreparation|CharacterRitualFastingRuntime")]
     public bool RemoveRule(
         string characterId,
         string traitDefinitionId,

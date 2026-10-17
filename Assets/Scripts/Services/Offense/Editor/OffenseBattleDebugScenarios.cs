@@ -8,6 +8,18 @@ using UnityEngine;
 
 public static class OffenseBattleDebugScenarios
 {
+    public static void RunProjectionRulesForBatch()
+    {
+        Require(Application.isBatchMode, "Battle projection validation requires isolated batch execution.");
+        Require(VerifyDamageAndInitiative(), "Damage/initiative regression failed.");
+        Require(VerifyLoadedAmmunitionSettlementProducer(), "Ammunition settlement regression failed.");
+        Require(VerifySmokeAndSummonEffects(), "Smoke/cover projection regression failed.");
+        Require(VerifyEncounterCounterEvaluation(), "Encounter projection regression failed.");
+        Require(VerifyOutcomesAndIdempotence(), "Battle command retry regression failed.");
+        Require(VerifyExactPersistence(), "Battle persistence regression failed.");
+        Debug.Log("ARCHITECTURE_OFFENSE_PROJECTION=PASS; real preview and attack; smoke and cover; encounter counters; command idempotence; session restore");
+    }
+
     [MenuItem("DungeonStory/Debug/Offense/Run Turn Battle Scenarios")]
     public static void RunFromMenu()
     {

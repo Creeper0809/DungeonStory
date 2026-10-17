@@ -39,7 +39,7 @@ public static class GameplayExperienceIntegrationDebugScenarios
                 damage = before - after, healthBefore = before, healthAfter = after,
                 reasonCode = "experience-controlled-fixture"
             };
-            var receipt = EnvironmentOutcomeReceiptFactory.CreateEnvironmentalExposureThreshold(data);
+            var receipt = EnvironmentConditionOutcomeReceiptFactory.CreateEnvironmentalExposureThreshold(data);
             Require(bridge.TryPrepare(receipt, out var prepared, out string failure), failure);
             Require(bridge.Commit(prepared, data.ownerRevision).CanClearOwnerPending,
                 "Controlled receipt was not committed.");

@@ -7,7 +7,7 @@ using UnityEngine;
 public sealed class WorkCommandHandler
 {
     private readonly AbilityWork work;
-    private readonly WorkTargetSelector targetSelector;
+    private WorkTargetSelector targetSelector;
     private readonly IDefenseEngagementRuntime defenseEngagementRuntime;
     private BuildableObject priorityWorkTarget;
     private CharacterActor prioritySuppressTarget;
@@ -25,6 +25,9 @@ public sealed class WorkCommandHandler
         this.targetSelector = targetSelector;
         this.defenseEngagementRuntime = defenseEngagementRuntime;
     }
+
+    internal void RebindTargetSelector(WorkTargetSelector selector) =>
+        targetSelector = selector ?? throw new ArgumentNullException(nameof(selector));
 
     public BuildableObject PriorityWorkTarget => priorityWorkTarget != null ? priorityWorkTarget : null;
     public CharacterActor PrioritySuppressActor => prioritySuppressTarget != null ? prioritySuppressTarget : null;

@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "target": "C19 CharacterConsumablesApplicationPorts focused native execution",
+  "groups": 10,
+  "scope": "scope=controlled runtime and physical ports; meal/substance/detox/expiry; JSON parent/root restore; no natural UI/AI or cold whole-world claim",
+  "report": "native-consumable-current-r4/unity-evidence/consumable-execution-boundary.txt",
+  "exitCode": 0,
+  "sourcePin": "source-pin-native-fixture-r1.json",
+  "sourceDrift": 0,
+  "nonInteractiveProbe": "PASS",
+  "realBoundaries": [
+    "candidate facility exclusion/live fallback/slot exact retry/capacity/release",
+    "real actors/physical meal and carried substance consumption",
+    "missing tare retains pending; fresh owner restores tare once and replay zero",
+    "meal/substance/detox failure/ACK/rejected restore/JSON section restore/retry",
+    "effects and shared operation root replacement/dedup"
+  ],
+  "notClaimed": [
+    "natural UI/AI",
+    "cold official whole-world restore"
+  ],
+  "priorAttempts": {
+    "r1": "current Unity Csc PASS; QA_MEMORY_PRESSURE before tests",
+    "r2": "policy PASS; fixture missing grid failure",
+    "r3": "fixture-only Editor Csc PASS; QA_MEMORY_PRESSURE before tests"
+  },
+  "fixtureRepair": "explicit detached Grid(1,1) and exact staged identity assertion; no production fallback or assertion relaxation"
+}

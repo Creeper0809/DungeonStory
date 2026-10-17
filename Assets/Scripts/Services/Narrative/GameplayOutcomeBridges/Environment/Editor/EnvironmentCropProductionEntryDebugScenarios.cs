@@ -64,10 +64,18 @@ public static partial class EnvironmentCropProductionEntryDebugScenarios
             + "exactly its one completion outcome.");
     }
 
+    internal static string RunGoldenHarvestForArchitectureBatch()
+    {
+        VerifyGoldenHarvestOutcome("jackpot", roll => roll < 0.12f, ExtremeRiskOutcome.Jackpot);
+        VerifyGoldenHarvestOutcome("loss", roll => roll >= 0.12f && roll < 0.30f, ExtremeRiskOutcome.Loss);
+        return "golden=jackpot,loss; actual crop producer/physical repository; active+terminal crop/identity/physical/ledger JSON fresh restore; exact harvester/roll/ecology/outcome; completed retry no duplicate";
+    }
+
     public static bool RunAll(bool log = false)
     {
         try
         {
+            VerifyCertifiedSeedDestinationIdentity();
             using Fixture fixture = new(includeParallelPlot: true);
             VerifyCertifiedSeedCompletion(fixture);
             VerifyAutomaticIrrigationAndHarvest(fixture);
@@ -868,6 +876,39 @@ public static partial class EnvironmentCropProductionEntryDebugScenarios
         Require(
             Snapshot().Phase == CropPlotPhase.Growing,
             "Causal crop setup did not preserve its growing owner state.");
+    }
+
+    private static void VerifyCertifiedSeedDestinationIdentity()
+    {
+        const string facilityId = "building:qa-certified-seed-identity";
+        const string cropId = "crop:qa-certified-seed-identity";
+        string destination = CertifiedSeedInputOwnerAuthority.BuildDestinationId(facilityId, cropId, 7);
+        Require(destination.Contains("%3A"), "certified seed identity test lost the real escaped owner identity");
+        CertifiedSeedCompletedFact Fact(string target) => new(
+            CertifiedSeedPlanExecutionReceipt.CaptureIdentifiers("action:qa-certified-seed-identity",
+                "certified-seed-order:00000007", 7, target, facilityId, cropId),
+            "종자 인증 작업대", "시험 곡물", "seed:qa-certified-identity", "인증 종자",
+            1, 50, new string('a', 64), 23, 1);
+        var fact = Fact(destination);
+        Require(CertifiedSeedCompletedFact.FromSave(fact.Snapshot()).SourceReceipt.DestinationId == destination,
+            "certified seed completion did not preserve its canonical escaped destination");
+        string[] invalid =
+        {
+            destination.Replace("%3A", ":"),
+            destination.Replace("%3A", "%3a"),
+            CertifiedSeedInputOwnerAuthority.BuildDestinationId(facilityId, cropId, 8),
+            CertifiedSeedInputOwnerAuthority.BuildDestinationId("building:other-certified-seed", cropId, 7)
+        };
+        foreach (string target in invalid)
+        {
+            bool rejected = false;
+            try { Fact(target); }
+            catch (ArgumentException) { rejected = true; }
+            Require(rejected, "certified seed completion accepted a different or noncanonical destination");
+        }
+        Require(Fact(destination).SourceReceipt.DestinationId == destination,
+            "canonical certified seed fact could not retry after invalid identity rejection");
+        Debug.Log("ARCHITECTURE_CERTIFIED_SEED_IDENTITY=PASS; actual escaped owner format; roundtrip; invalid=4; valid retry");
     }
 
     private static void VerifyCertifiedSeedCompletion(
