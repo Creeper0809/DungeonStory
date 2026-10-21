@@ -21,9 +21,8 @@ public static class DungeonCoreInfrastructureRegistration
             .As<IRoomEnvironmentAuthoredContentPort>()
             .As<IOffenseAuthoredContentPort>()
             .As<ICoreSessionRulesProvider>();
-        builder.Register<IInGameNarrativeTextQuery>(
-            _ => new ResourceInGameNarrativeTextQuery(),
-            Lifetime.Singleton);
+        builder.Register<ResourceInGameNarrativeTextQuery>(Lifetime.Singleton)
+            .As<IInGameNarrativeTextQuery>();
     }
 
     public static void RegisterDungeonCoreInfrastructure(
@@ -52,7 +51,8 @@ public static class DungeonCoreInfrastructureRegistration
         builder.RegisterEntryPoint<SceneBuildableLeakValidator>(Lifetime.Singleton)
             .AsSelf();
         builder.Register<UnityGameContentRootLoader>(Lifetime.Singleton)
-            .As<IGameContentRootLoader>();
+            .As<IGameContentRootLoader>()
+            .As<ITextAssetResourceLoader>();
         builder.Register<GameContentDataCatalog>(Lifetime.Singleton)
             .As<IDataCatalog>();
         builder.Register<BuildingDefinitionLookup>(Lifetime.Singleton)
@@ -235,7 +235,8 @@ public static class DungeonCoreInfrastructureRegistration
         builder.Register<OffenseSaveService>(Lifetime.Singleton)
             .As<IOffenseSaveService>();
         builder.Register<InvasionSaveRuntimeAdapter>(Lifetime.Singleton)
-            .As<IInvasionSaveRuntimePort>();
+            .As<IInvasionSaveRuntimePort>()
+            .As<IDungeonSaveRestoreCompletedHook>();
         builder.Register<InvasionSaveService>(Lifetime.Singleton)
             .As<IInvasionSaveService>()
             .As<IDungeonRestoreTransactionParticipant>();

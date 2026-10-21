@@ -342,7 +342,7 @@ public static class ExternalInfluenceG09DebugScenarios
             PhysicalItemBatchDispositionService inner = new(
                 repository,
                 new PhysicalItemMassQuery(items.CatalogProvider),
-                EditorNullItemMarkerPresenter.Instance);
+                EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
             FailOnceAcknowledgementDisposition dispositions = new(inner);
             IdempotentMoneyAccount money = new(10000);
             GameEventBus events = new();
@@ -403,6 +403,7 @@ public static class ExternalInfluenceG09DebugScenarios
                 events,
                 "run:g09-offense-truth");
             Runtime.Construct(
+                new DungeonStory.Foundation.UnityUiClock(),
                 events,
                 externalInfluence,
                 campaign,

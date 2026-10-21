@@ -142,9 +142,9 @@ public sealed class ResourceInGameNarrativeTextQuery : IInGameNarrativeTextQuery
 {
     private readonly IReadOnlyDictionary<string, string> textByKey;
 
-    public ResourceInGameNarrativeTextQuery()
-        : this(Resources.Load<InGameNarrativeTextCatalogSO>(
-            InGameNarrativeTextCatalogSO.ResourcePath))
+    public ResourceInGameNarrativeTextQuery(IGameContentDefinitionSource content)
+        : this((content ?? throw new ArgumentNullException(nameof(content)))
+            .RequireSingle<InGameNarrativeTextCatalogSO>())
     {
     }
 

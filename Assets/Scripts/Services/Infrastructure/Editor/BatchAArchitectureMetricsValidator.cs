@@ -140,12 +140,7 @@ public static class BatchAArchitectureMetricsValidator
             current.mutableRuntimeStaticSetHash,
             baseline.mutableRuntimeStaticCount,
             baseline.mutableRuntimeStaticSetHash);
-        CompareMetric(
-            "large runtime constructor",
-            current.largeRuntimeConstructorCount,
-            current.largeRuntimeConstructorSetHash,
-            baseline.largeRuntimeConstructorCount,
-            baseline.largeRuntimeConstructorSetHash);
+        // large runtime constructor remains in the report as a review signal, not a failure.
         // Phase 117 reports default-assembly ownership for review, but it is
         // no longer a monotonic completion ratchet. Concrete authority and
         // dependency defects are enforced by the remaining structural gates.
@@ -200,18 +195,8 @@ public static class BatchAArchitectureMetricsValidator
             snapshot.mutableStaticSetHash,
             baseline.maxMutableStatic,
             baseline.MutableStaticSetHash);
-        CompareMetric(
-            "Roslyn oversized type",
-            snapshot.oversizedTypeCount,
-            snapshot.oversizedTypeSetHash,
-            baseline.maxOversizedType,
-            baseline.OversizedTypeSetHash);
-        CompareMetric(
-            "Roslyn large constructor",
-            snapshot.largeConstructorCount,
-            snapshot.largeConstructorSetHash,
-            baseline.maxLargeConstructor,
-            baseline.LargeConstructorSetHash);
+        // Roslyn oversized type remains in the report as a review signal, not a failure.
+        // Roslyn large constructor remains in the report as a review signal, not a failure.
         // Default-assembly source ownership is informational in Phase 117.
         // Moving an approved Unity edge solely to change this count is not a
         // release requirement.

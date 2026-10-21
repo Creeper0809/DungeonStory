@@ -1,0 +1,301 @@
+Domain fact dispatcher smoke
+missing observer rejected: yes
+duplicate fact type rejected: yes
+duplicate observer identity rejected: yes
+idempotent lease cancellation: yes
+subscription replacement: yes
+single publish commit calls: 1
+published lease reuse rejected: yes
+reserved publication key preserved: yes
+recovery cohort atomic commit calls: 1
+duplicate/unavailable recovery rejected: yes
+partial recovery prepare cancelled: yes
+recovery commit exception keeps exact keys in doubt: yes
+same-key fake generation unchanged: yes
+staged identity preserved: yes
+cancelled/disconnected stage reuse rejected: yes
+single staged commit calls: 1
+two-lease atomic batch commit calls: 1
+commit exception remains in doubt: yes
+disposed publisher reuse rejected: yes
+assertions: 35
+
+atomic-observation-pair-proof=PASS
+physical-neutral-facts/assembly-boundary/json/name-observation/invalid-input=PASS
+physical-relocation-observer/missing-observer/lost-before-and-after-commit/json-fresh-owner/dedup/frozen-day-name/canonical-tamper=PASS
+physical-disposition/observer-required/rejection-rollback/lost-before-and-after-commit/json-fresh-owner/automatic-replay/dedup/frozen-day-name/canonical-tamper=PASS
+corpse-observer/atomic-pair/frozen-json/cold-recovery/dedup/canonical-and-raw-rejection=PASS;physical-effects-and-natural-AI=NOT-RUN
+deprivation-personal-producer/witness-observer/exact-evidence/lease-and-detach=PASS;natural-AI=NOT-RUN
+synthetic-water-observer/clean/foul-atomic/cancel/unsubscribe/cold-recovery/dedup/save-guards/unknown-before-after/notification-once=PASS;natural-water-and-health=NOT-RUN
+water-fact=PASS; clean=triplet; clean-breakdown=triplet; foul-breakdown=triplet
+PASS TradeInventoryOutcomeDebugScenarios
+progress-completion-unlocks-replay=PASS
+reject-rollback/unknown-commit/json-fresh-owner/canonical-and-torn-save-rejection=PASS
+delivery-pending-save-continuation=PASS
+capacity-before-mutation=PASS
+blueprint-and-invalid-input=PASS
+leap-variants-replay=PASS
+leap-faults-capacity-save=PASS
+immediate-completion=PASS
+knowledge-progress=PASS
+research-save-sequence-join=PASS
+research-work/progress-completion-unlocks/rejection-rollback/capacity/leap/immediate/knowledge-progress/saved-recovery=PASS
+RESEARCH_EQUIPMENT_OUTCOME=PASS (5 groups)
+research-completion/space-parent/event-and-restore-reconciliation=PASS
+space-observer/missing-observer/lost-before-and-after-commit/frozen-grid-json/retry-dedup/tamper=PASS
+knowledge-completion-fact/codex-recon/clone/snapshot/validation/cancel/commit/replay/dedup/canonical-rejection=PASS;natural-research-and-physical-effects=NOT-RUN
+PASS knowledge research commit-gap faults (3 groups)
+PASS knowledge completion save recovery
+[PASS] knowledge residue physical restore join: torn-state rejection, exact replay, mismatch rejection, orphan rejection, joint completion identity, durable research/physical/ledger join
+knowledge-progress/physical-completion/evidence-restore-regression=PASS
+certified-seed/frozen-fact/pending-delivery/json-owner-roundtrip/admission-session-reset/canonical-tamper/replay-dedup=PASS
+medical-procedure/facts/rejection/unknown-reply/saved-replay/canonical-join/dedup=PASS
+healing-facts/atomic-two-transitions/rejection-rollback/unknown-before-and-after/json-new-owner/replay-without-effects/canonical-torn-rejection=PASS
+fatality-facts/atomic-transitions/rejection-rollback/unknown-before-and-after/json-new-owner/replay-without-death-effects/parent-source-join=PASS
+REPRODUCTION_OBSERVER=PASS plan/start/daily/death/extraction/birth; unknown-before/after; frozen-json-replay/canonical-join/dedup
+facility-vandalism/observer-focused=PASS
+exact=actor+facility+source+reason+definition+child;replayDuplicate=0
+commit-reject=damage+owner-rollback;durableOutcome=0
+entry=CharacterAiDecisionPipeline.RunVandalizeMacro;outcome=1
+entry=CharacterBreakdownActionRunner.RunViolentImpulse;source=deprivation;movementInvalidation=no-mutation
+save=v7-json-roundtrip;tamperedPublication=rejected-no-mutation;restoredReplay=0
+unknown-before/repair-redamage/destroyed-owner/json-new-dispatcher/replay-once=PASS
+unknown-after/repair-redamage/destroyed-owner/json-new-dispatcher/replay-once=PASS
+fire-damage/actual-domain-authority-and-observer/rejection/unknown-before-after/saved-new-dispatcher/dedup/canonical-tamper=PASS;physical-damage-and-whole-save=NOT-RUN
+fire-actions/actual-runtime-and-observer/ignition-suppression/unknown-before-after/saved-new-dispatcher/exact-request/dedup=PASS;water-port-controlled;Unity-scene-and-whole-save=NOT-RUN
+fire-resource/actual-fuel-water-entry/missing-observer/rejection/unknown-before-after/json-recovery/no-second-debit/save-join=PASS
+service-mode-fact/actual-mode-command/rejection/unknown-before-and-after/json-new-owner/replay-only/retired-hub/canonical-join=PASS
+service-terminal-observer/normal/reserve-reject/paid-and-cancel-recovery/unknown-before-after/json-new-owner/exact-payment/canonical-tamper=PASS
+production-commands-and-ledger=YES;controlled-fixtures=YES;natural-ai-and-whole-world=NOT-RUN
+result=PASS
+diagnostics=27;errors=0
+Warning: Knowledge residue committed work requires finalization: injected-sink-reject
+UnityEngine.Debug:LogWarning (object)
+KnowledgeResidueProcessingRuntime:ReportFinalizationPending (string) (at Assets/Scripts/Services/Infrastructure/KnowledgeResidueProcessingRuntime.cs:590)
+KnowledgeResidueProcessingRuntime:ApplyWorkInternal (CharacterActor,BuildableObject,single,bool,DurableFacilityEquipmentUseContext) (at Assets/Scripts/Services/Infrastructure/KnowledgeResidueProcessingRuntime.cs:414)
+KnowledgeResidueProcessingRuntime:ApplyApprovedWork (CharacterActor,BuildableObject,single,DurableFacilityEquipmentUseContext) (at Assets/Scripts/Services/Infrastructure/KnowledgeResidueProcessingRuntime.cs:359)
+KnowledgeResearchOutcomeDebugScenarios:VerifyCompletionCanonicalReplyUnknownRecovery () (at Assets/Scripts/Services/Infrastructure/Editor/KnowledgeResearchOutcomeDebugScenarios.cs:343)
+KnowledgeResearchOutcomeDebugScenarios:RunCommitGapFaults () (at Assets/Scripts/Services/Infrastructure/Editor/KnowledgeResearchOutcomeDebugScenarios.cs:64)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:57)
+
+Warning: Knowledge residue committed work requires finalization: knowledge-completion-delivery-pending:owner-outcome-commit-ambiguous:InvalidOperationException
+UnityEngine.Debug:LogWarning (object)
+KnowledgeResidueProcessingRuntime:ReportFinalizationPending (string) (at Assets/Scripts/Services/Infrastructure/KnowledgeResidueProcessingRuntime.cs:590)
+KnowledgeResidueProcessingRuntime:Tick () (at Assets/Scripts/Services/Infrastructure/KnowledgeResidueProcessingRuntime.cs:283)
+KnowledgeResearchOutcomeDebugScenarios:VerifyCompletionCanonicalReplyUnknownRecovery () (at Assets/Scripts/Services/Infrastructure/Editor/KnowledgeResearchOutcomeDebugScenarios.cs:363)
+KnowledgeResearchOutcomeDebugScenarios:RunCommitGapFaults () (at Assets/Scripts/Services/Infrastructure/Editor/KnowledgeResearchOutcomeDebugScenarios.cs:64)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:57)
+
+Warning: Knowledge residue committed work requires finalization: knowledge-finalization-exception:InvalidOperationException
+UnityEngine.Debug:LogWarning (object)
+KnowledgeResidueProcessingRuntime:ReportFinalizationPending (string) (at Assets/Scripts/Services/Infrastructure/KnowledgeResidueProcessingRuntime.cs:590)
+KnowledgeResidueProcessingRuntime:ApplyWorkInternal (CharacterActor,BuildableObject,single,bool,DurableFacilityEquipmentUseContext) (at Assets/Scripts/Services/Infrastructure/KnowledgeResidueProcessingRuntime.cs:414)
+KnowledgeResidueProcessingRuntime:ApplyApprovedWork (CharacterActor,BuildableObject,single,DurableFacilityEquipmentUseContext) (at Assets/Scripts/Services/Infrastructure/KnowledgeResidueProcessingRuntime.cs:359)
+KnowledgeResearchOutcomeDebugScenarios:VerifyJointAcknowledgementThenThrowKeepsCleanup () (at Assets/Scripts/Services/Infrastructure/Editor/KnowledgeResearchOutcomeDebugScenarios.cs:424)
+KnowledgeResearchOutcomeDebugScenarios:RunCommitGapFaults () (at Assets/Scripts/Services/Infrastructure/Editor/KnowledgeResearchOutcomeDebugScenarios.cs:66)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:57)
+
+Warning: Knowledge residue committed work requires finalization: injected-sink-reject
+UnityEngine.Debug:LogWarning (object)
+KnowledgeResidueProcessingRuntime:ReportFinalizationPending (string) (at Assets/Scripts/Services/Infrastructure/KnowledgeResidueProcessingRuntime.cs:590)
+KnowledgeResidueProcessingRuntime:ApplyWorkInternal (CharacterActor,BuildableObject,single,bool,DurableFacilityEquipmentUseContext) (at Assets/Scripts/Services/Infrastructure/KnowledgeResidueProcessingRuntime.cs:414)
+KnowledgeResidueProcessingRuntime:ApplyApprovedWork (CharacterActor,BuildableObject,single,DurableFacilityEquipmentUseContext) (at Assets/Scripts/Services/Infrastructure/KnowledgeResidueProcessingRuntime.cs:359)
+KnowledgeResearchOutcomeDebugScenarios:VerifyWholeSaveRoundTrip () (at Assets/Scripts/Services/Infrastructure/Editor/KnowledgeResearchOutcomeDebugScenarios.cs:445)
+KnowledgeResearchOutcomeDebugScenarios:RunCompletionSaveRecovery () (at Assets/Scripts/Services/Infrastructure/Editor/KnowledgeResearchOutcomeDebugScenarios.cs:41)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:58)
+
+Warning: Knowledge residue committed work requires finalization: knowledge-completion-delivery-pending:
+UnityEngine.Debug:LogWarning (object)
+KnowledgeResidueProcessingRuntime:ReportFinalizationPending (string) (at Assets/Scripts/Services/Infrastructure/KnowledgeResidueProcessingRuntime.cs:590)
+KnowledgeResidueProcessingRuntime:Tick () (at Assets/Scripts/Services/Infrastructure/KnowledgeResidueProcessingRuntime.cs:283)
+KnowledgeResearchOutcomeDebugScenarios:VerifyWholeSaveRoundTrip () (at Assets/Scripts/Services/Infrastructure/Editor/KnowledgeResearchOutcomeDebugScenarios.cs:464)
+KnowledgeResearchOutcomeDebugScenarios:RunCompletionSaveRecovery () (at Assets/Scripts/Services/Infrastructure/Editor/KnowledgeResearchOutcomeDebugScenarios.cs:41)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:58)
+
+Warning: Character medical observation: medical-procedure-pending:injected-medical-reply-loss
+UnityEngine.Debug:LogWarning (object)
+CharacterMedicalRuntime:ReportFactFailure (string) (at Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:1150)
+CharacterMedicalRuntime:TryCommitMedicalFact (CharacterMedicalOrder,CharacterActor,DungeonStory.Foundation.Facts.DomainFactLease&,CharacterMedicalProcedureFactData,CharacterBodyHealthMutationSnapshot&) (at Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:1114)
+CharacterMedicalRuntime:AdvanceStabilization (string,CharacterActor,single) (at Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:741)
+CharacterMedicalSupplyDestinationDrainRuntimeDebugScenarios:VerifyMedicalProcedureFactRecovery (bool) (at Assets/Scripts/Services/Combat/CharacterMedicalOutcomeProductionEntryDebugScenarios.cs:235)
+CharacterMedicalSupplyDestinationDrainRuntimeDebugScenarios:RunMedicalOutcomeProductionEntryOrThrow () (at Assets/Scripts/Services/Combat/CharacterMedicalOutcomeProductionEntryDebugScenarios.cs:24)
+CharacterMedicalOutcomeProductionEntryDebugScenarios:RunOrThrow () (at Assets/Scripts/Services/Combat/CharacterMedicalOutcomeProductionEntryDebugScenarios.cs:16)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:63)
+
+Warning: Character medical observation: medical-procedure-pending:injected-medical-reply-loss
+UnityEngine.Debug:LogWarning (object)
+CharacterMedicalRuntime:ReportFactFailure (string) (at Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:1150)
+CharacterMedicalRuntime:TryCommitMedicalFact (CharacterMedicalOrder,CharacterActor,DungeonStory.Foundation.Facts.DomainFactLease&,CharacterMedicalProcedureFactData,CharacterBodyHealthMutationSnapshot&) (at Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:1114)
+CharacterMedicalRuntime:AdvanceStabilization (string,CharacterActor,single) (at Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:741)
+CharacterMedicalSupplyDestinationDrainRuntimeDebugScenarios:VerifyMedicalProcedureFactRecovery (bool) (at Assets/Scripts/Services/Combat/CharacterMedicalOutcomeProductionEntryDebugScenarios.cs:235)
+CharacterMedicalSupplyDestinationDrainRuntimeDebugScenarios:RunMedicalOutcomeProductionEntryOrThrow () (at Assets/Scripts/Services/Combat/CharacterMedicalOutcomeProductionEntryDebugScenarios.cs:25)
+CharacterMedicalOutcomeProductionEntryDebugScenarios:RunOrThrow () (at Assets/Scripts/Services/Combat/CharacterMedicalOutcomeProductionEntryDebugScenarios.cs:16)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:63)
+
+Warning: Character medical observation: medical-procedure-reserve:fact-observer-reserve:CapacityDeferred:injected-medical-prepare-rejection
+UnityEngine.Debug:LogWarning (object)
+CharacterMedicalRuntime:ReportFactFailure (string) (at Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:1150)
+CharacterMedicalRuntime:TryReserveMedicalFact (CharacterMedicalOrder,CharacterActor,CharacterActor,CharacterMedicalProcedureKind,single,single,DungeonStory.Foundation.Facts.DomainFactLease&,CharacterMedicalProcedureFactData&) (at Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:1064)
+CharacterMedicalRuntime:AdvanceStabilization (string,CharacterActor,single) (at Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:731)
+CharacterMedicalSupplyDestinationDrainRuntimeDebugScenarios:RunMedicalOutcomeProductionEntryOrThrow () (at Assets/Scripts/Services/Combat/CharacterMedicalOutcomeProductionEntryDebugScenarios.cs:90)
+CharacterMedicalOutcomeProductionEntryDebugScenarios:RunOrThrow () (at Assets/Scripts/Services/Combat/CharacterMedicalOutcomeProductionEntryDebugScenarios.cs:16)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:63)
+
+Warning: Character medical observation: fact-observer-write:AdapterWriteFailed:injected-medical-write-rejection
+UnityEngine.Debug:LogWarning (object)
+CharacterMedicalRuntime:ReportFactFailure (string) (at Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:1150)
+CharacterMedicalRuntime:TryCommitMedicalFact (CharacterMedicalOrder,CharacterActor,DungeonStory.Foundation.Facts.DomainFactLease&,CharacterMedicalProcedureFactData,CharacterBodyHealthMutationSnapshot&) (at Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:1105)
+CharacterMedicalRuntime:AdvanceStabilization (string,CharacterActor,single) (at Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:741)
+CharacterMedicalSupplyDestinationDrainRuntimeDebugScenarios:RunMedicalOutcomeProductionEntryOrThrow () (at Assets/Scripts/Services/Combat/CharacterMedicalOutcomeProductionEntryDebugScenarios.cs:107)
+CharacterMedicalOutcomeProductionEntryDebugScenarios:RunOrThrow () (at Assets/Scripts/Services/Combat/CharacterMedicalOutcomeProductionEntryDebugScenarios.cs:16)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:63)
+
+Warning: Character medical observation: medical-procedure-pending:owner-outcome-delivery-PendingDeliveryFault:injected-medical-delivery-fault
+UnityEngine.Debug:LogWarning (object)
+CharacterMedicalRuntime:ReportFactFailure (string) (at Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:1150)
+CharacterMedicalRuntime:TryCommitMedicalFact (CharacterMedicalOrder,CharacterActor,DungeonStory.Foundation.Facts.DomainFactLease&,CharacterMedicalProcedureFactData,CharacterBodyHealthMutationSnapshot&) (at Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:1114)
+CharacterMedicalRuntime:AdvanceStabilization (string,CharacterActor,single) (at Assets/Scripts/Services/Combat/CharacterMedicalRuntime.cs:741)
+CharacterMedicalSupplyDestinationDrainRuntimeDebugScenarios:RunMedicalOutcomeProductionEntryOrThrow () (at Assets/Scripts/Services/Combat/CharacterMedicalOutcomeProductionEntryDebugScenarios.cs:146)
+CharacterMedicalOutcomeProductionEntryDebugScenarios:RunOrThrow () (at Assets/Scripts/Services/Combat/CharacterMedicalOutcomeProductionEntryDebugScenarios.cs:16)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:63)
+
+Warning: Character healing observation: injected-healing-reply-loss:injected-healing-reply-loss;injected-healing-reply-loss
+UnityEngine.Debug:LogWarning (object)
+CharacterBodyHealthRuntime:ReportHealingFactFailure (string) (at Assets/Scripts/Services/Combat/CharacterBodyHealthRuntime.cs:1467)
+CharacterBodyHealthRuntime:Heal (CharacterActor,single,bool) (at Assets/Scripts/Services/Combat/CharacterBodyHealthRuntime.cs:1409)
+MigratedProducerCombatDefenseEntryE2EDebugScenarios/HealthEntryFixture:InvokeProductionEntry () (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerCombatDefenseEntryE2EDebugScenarios.cs:1379)
+MigratedProducerCombatDefenseEntryE2EDebugScenarios:VerifyHealingReplyLoss (bool) (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/CharacterHealingFactRecoveryDebugScenarios.cs:38)
+MigratedProducerCombatDefenseEntryE2EDebugScenarios:VerifyHealingFactRecoveryFocused () (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/CharacterHealingFactRecoveryDebugScenarios.cs:26)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:65)
+
+Warning: Character healing observation: injected-healing-reply-loss:injected-healing-reply-loss;injected-healing-reply-loss
+UnityEngine.Debug:LogWarning (object)
+CharacterBodyHealthRuntime:ReportHealingFactFailure (string) (at Assets/Scripts/Services/Combat/CharacterBodyHealthRuntime.cs:1467)
+CharacterBodyHealthRuntime:Heal (CharacterActor,single,bool) (at Assets/Scripts/Services/Combat/CharacterBodyHealthRuntime.cs:1409)
+MigratedProducerCombatDefenseEntryE2EDebugScenarios/HealthEntryFixture:InvokeProductionEntry () (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerCombatDefenseEntryE2EDebugScenarios.cs:1379)
+MigratedProducerCombatDefenseEntryE2EDebugScenarios:VerifyHealingReplyLoss (bool) (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/CharacterHealingFactRecoveryDebugScenarios.cs:38)
+MigratedProducerCombatDefenseEntryE2EDebugScenarios:VerifyHealingFactRecoveryFocused () (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/CharacterHealingFactRecoveryDebugScenarios.cs:27)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:65)
+
+Warning: Character fatality observation: injected-healing-reply-loss:injected-healing-reply-loss;injected-healing-reply-loss
+UnityEngine.Debug:LogWarning (object)
+CharacterBodyHealthRuntime:ReportFatalityFactFailure (string) (at Assets/Scripts/Services/Combat/CharacterBodyHealthRuntime.cs:679)
+CharacterBodyHealthRuntime:Kill (CharacterActor,CharacterDeathCauseCode,string) (at Assets/Scripts/Services/Combat/CharacterBodyHealthRuntime.cs:629)
+MigratedProducerCombatDefenseEntryE2EDebugScenarios/HealthEntryFixture:InvokeProductionEntry () (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerCombatDefenseEntryE2EDebugScenarios.cs:1384)
+MigratedProducerCombatDefenseEntryE2EDebugScenarios:VerifyFatalityReplyLoss (bool) (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/CharacterFatalityFactRecoveryDebugScenarios.cs:44)
+MigratedProducerCombatDefenseEntryE2EDebugScenarios:VerifyFatalityFactRecoveryFocused () (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/CharacterFatalityFactRecoveryDebugScenarios.cs:27)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:66)
+
+Warning: Character fatality observation: injected-healing-reply-loss:injected-healing-reply-loss;injected-healing-reply-loss
+UnityEngine.Debug:LogWarning (object)
+CharacterBodyHealthRuntime:ReportFatalityFactFailure (string) (at Assets/Scripts/Services/Combat/CharacterBodyHealthRuntime.cs:679)
+CharacterBodyHealthRuntime:Kill (CharacterActor,CharacterDeathCauseCode,string) (at Assets/Scripts/Services/Combat/CharacterBodyHealthRuntime.cs:629)
+MigratedProducerCombatDefenseEntryE2EDebugScenarios/HealthEntryFixture:InvokeProductionEntry () (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerCombatDefenseEntryE2EDebugScenarios.cs:1384)
+MigratedProducerCombatDefenseEntryE2EDebugScenarios:VerifyFatalityReplyLoss (bool) (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/CharacterFatalityFactRecoveryDebugScenarios.cs:44)
+MigratedProducerCombatDefenseEntryE2EDebugScenarios:VerifyFatalityFactRecoveryFocused () (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/CharacterFatalityFactRecoveryDebugScenarios.cs:28)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:66)
+
+Warning: reproduction-observation-pending:reproduction:qa:observer-unknown:injected-reproduction-observer-reply-lost
+UnityEngine.Debug:LogWarning (object)
+ReproductionTransitionPublication:TryCommit (ReproductionWorldSaveData,ReproductionWorldAggregate,ReproductionProcess,ReproductionTransitionFact,DomainFailure&) (at Assets/Scripts/Services/Character/ReproductionTransitionPublication.cs:58)
+ReproductionProcessTransitionRuntime:TryAdvance (string,ReproductionDailyContext,DomainFailure&) (at Assets/Scripts/Services/Character/ReproductionProcessTransitionRuntime.cs:76)
+ReproductionProcessTransitionDebugScenarios:RunObserverFocused () (at Assets/Scripts/Services/Character/Editor/ReproductionProcessTransitionDebugScenarios.cs:359)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:67)
+
+Warning: reproduction-observation-pending:reproduction:qa:observer-unknown:injected-reproduction-observer-reply-lost
+UnityEngine.Debug:LogWarning (object)
+ReproductionTransitionPublication:TryCommit (ReproductionWorldSaveData,ReproductionWorldAggregate,ReproductionProcess,ReproductionTransitionFact,DomainFailure&) (at Assets/Scripts/Services/Character/ReproductionTransitionPublication.cs:58)
+ReproductionProcessTransitionRuntime:TryAdvance (string,ReproductionDailyContext,DomainFailure&) (at Assets/Scripts/Services/Character/ReproductionProcessTransitionRuntime.cs:76)
+ReproductionProcessTransitionDebugScenarios:RunObserverFocused () (at Assets/Scripts/Services/Character/Editor/ReproductionProcessTransitionDebugScenarios.cs:359)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:67)
+
+Warning: owner-outcome-delivery-PendingDeliveryFault:delivery-subsystem-fault
+UnityEngine.Debug:LogWarning (object)
+ServiceSessionRuntime:ReportModeFactFailure (string) (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:1029)
+ServiceSessionRuntime:SetMode (BuildableObject,ServiceOperationMode) (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:488)
+ServiceSessionRuntime:SwitchToDirect (BuildableObject) (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:507)
+MigratedProducerEconomyServiceEntryE2EDebugScenarios/ServiceModeScenario:SwitchToDirect () (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerEconomyServiceEntryE2EDebugScenarios.cs:2550)
+MigratedProducerEconomyServiceEntryE2EDebugScenarios:VerifyServiceModeChangeEntry () (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerEconomyServiceEntryE2EDebugScenarios.cs:366)
+MigratedProducerEconomyServiceEntryE2EDebugScenarios:VerifyServiceModeFactRecoveryFocused () (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/ServiceModeFactRecoveryDebugScenarios.cs:14)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:72)
+
+Warning: injected-mode-reply-loss
+UnityEngine.Debug:LogWarning (object)
+ServiceSessionRuntime:ReportModeFactFailure (string) (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:1029)
+ServiceSessionRuntime:SetMode (BuildableObject,ServiceOperationMode) (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:488)
+ServiceSessionRuntime:SwitchToDirect (BuildableObject) (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:507)
+MigratedProducerEconomyServiceEntryE2EDebugScenarios/ServiceModeScenario:SwitchToDirect () (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerEconomyServiceEntryE2EDebugScenarios.cs:2550)
+MigratedProducerEconomyServiceEntryE2EDebugScenarios:VerifyModeReplyLoss (bool) (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/ServiceModeFactRecoveryDebugScenarios.cs:25)
+MigratedProducerEconomyServiceEntryE2EDebugScenarios:VerifyServiceModeFactRecoveryFocused () (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/ServiceModeFactRecoveryDebugScenarios.cs:15)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:72)
+
+Warning: injected-mode-reply-loss
+UnityEngine.Debug:LogWarning (object)
+ServiceSessionRuntime:ReportModeFactFailure (string) (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:1029)
+ServiceSessionRuntime:SetMode (BuildableObject,ServiceOperationMode) (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:488)
+ServiceSessionRuntime:SwitchToDirect (BuildableObject) (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:507)
+MigratedProducerEconomyServiceEntryE2EDebugScenarios/ServiceModeScenario:SwitchToDirect () (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerEconomyServiceEntryE2EDebugScenarios.cs:2550)
+MigratedProducerEconomyServiceEntryE2EDebugScenarios:VerifyModeReplyLoss (bool) (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/ServiceModeFactRecoveryDebugScenarios.cs:25)
+MigratedProducerEconomyServiceEntryE2EDebugScenarios:VerifyServiceModeFactRecoveryFocused () (at Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/ServiceModeFactRecoveryDebugScenarios.cs:16)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:72)
+
+Error: service-session-terminal-pending:service:b63e8ff6e36e4edf90784c07b47ccce1:qa-service-publication-rejected
+UnityEngine.Debug:LogError (object)
+ServiceSessionRuntime:TryCompleteSession (string,ServiceSessionSnapshot&,DomainFailure&) (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:652)
+ServiceSessionOutcomeDebugScenarios:VerifyPaymentCommittedParentFailureRestore () (at Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs:778)
+ServiceSessionOutcomeDebugScenarios:RunObserverFocused () (at Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs:91)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:74)
+
+Error: service-session-terminal-retry-pending:service:b63e8ff6e36e4edf90784c07b47ccce1:qa-service-publication-rejected
+UnityEngine.Debug:LogError (object)
+ServiceSessionRuntime:ResumePendingTerminals () (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:1043)
+ServiceSessionRuntime:Capture () (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:711)
+ServiceSessionOutcomeDebugScenarios:VerifyPaymentCommittedParentFailureRestore () (at Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs:790)
+ServiceSessionOutcomeDebugScenarios:RunObserverFocused () (at Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs:91)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:74)
+
+Error: service-session-cancellation-pending:service:628f1946278f48c6825c4798f5f8c9b4:qa-service-publication-rejected
+UnityEngine.Debug:LogError (object)
+ServiceSessionRuntime:CancelSession (string,string) (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:702)
+ServiceSessionOutcomeDebugScenarios:VerifyCancelledParentFailureRestore () (at Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs:824)
+ServiceSessionOutcomeDebugScenarios:RunObserverFocused () (at Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs:92)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:74)
+
+Error: service-session-terminal-retry-pending:service:628f1946278f48c6825c4798f5f8c9b4:qa-service-publication-rejected
+UnityEngine.Debug:LogError (object)
+ServiceSessionRuntime:ResumePendingTerminals () (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:1043)
+ServiceSessionRuntime:Capture () (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:711)
+ServiceSessionOutcomeDebugScenarios:VerifyCancelledParentFailureRestore () (at Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs:828)
+ServiceSessionOutcomeDebugScenarios:RunObserverFocused () (at Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs:92)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:74)
+
+Error: service-session-terminal-pending:service:960e7413ede54c3ea6bdc5ec072095b6:qa-service-reply-lost
+UnityEngine.Debug:LogError (object)
+ServiceSessionRuntime:TryCompleteSession (string,ServiceSessionSnapshot&,DomainFailure&) (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:652)
+ServiceSessionOutcomeDebugScenarios:VerifyUnknownTerminalReply (bool) (at Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs:106)
+ServiceSessionOutcomeDebugScenarios:RunObserverFocused () (at Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs:93)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:74)
+
+Error: service-session-terminal-retry-pending:service:960e7413ede54c3ea6bdc5ec072095b6:qa-service-reply-lost
+UnityEngine.Debug:LogError (object)
+ServiceSessionRuntime:ResumePendingTerminals () (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:1043)
+ServiceSessionRuntime:Capture () (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:711)
+ServiceSessionOutcomeDebugScenarios:VerifyUnknownTerminalReply (bool) (at Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs:112)
+ServiceSessionOutcomeDebugScenarios:RunObserverFocused () (at Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs:93)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:74)
+
+Error: service-session-terminal-pending:service:c0b2e55559f54c5c9ade1df8d9eb3040:qa-service-reply-lost
+UnityEngine.Debug:LogError (object)
+ServiceSessionRuntime:TryCompleteSession (string,ServiceSessionSnapshot&,DomainFailure&) (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:652)
+ServiceSessionOutcomeDebugScenarios:VerifyUnknownTerminalReply (bool) (at Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs:106)
+ServiceSessionOutcomeDebugScenarios:RunObserverFocused () (at Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs:94)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:74)
+
+Error: service-session-terminal-retry-pending:service:c0b2e55559f54c5c9ade1df8d9eb3040:qa-service-reply-lost
+UnityEngine.Debug:LogError (object)
+ServiceSessionRuntime:ResumePendingTerminals () (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:1043)
+ServiceSessionRuntime:Capture () (at Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs:711)
+ServiceSessionOutcomeDebugScenarios:VerifyUnknownTerminalReply (bool) (at Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs:112)
+ServiceSessionOutcomeDebugScenarios:RunObserverFocused () (at Assets/Scripts/Services/ServiceRooms/Editor/ServiceSessionOutcomeDebugScenarios.cs:94)
+ResearchWorkObserverDebugScenarios:RunFromBatch () (at Assets/Scripts/Services/Research/Editor/ResearchWorkObserverDebugScenarios.cs:74)
+

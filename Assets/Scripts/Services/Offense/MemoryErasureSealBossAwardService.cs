@@ -103,6 +103,7 @@ public sealed class MemoryErasureSealBossAwardService :
     private readonly IWorldDropZoneQuery dropZones;
     private readonly MemoryErasureBossAwardPublicationRuntime publications;
     private readonly IGameCalendar calendar;
+    private readonly IUiClock clock;
     private bool reconciliationPending;
     private float nextReconciliationAt;
 
@@ -118,6 +119,7 @@ public sealed class MemoryErasureSealBossAwardService :
 
     [Inject]
     public MemoryErasureSealBossAwardService(
+        IUiClock clock,
         IOffenseRegionMemoryErasureSealAwardAuthority regions,
         IOffenseWorldSimulation world,
         IPhysicalItemSourcePublicationService physicalSources,
@@ -125,6 +127,7 @@ public sealed class MemoryErasureSealBossAwardService :
         MemoryErasureBossAwardPublicationRuntime publications,
         IGameCalendar calendar)
     {
+        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.regions = regions
             ?? throw new ArgumentNullException(nameof(regions));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
@@ -152,14 +155,14 @@ public sealed class MemoryErasureSealBossAwardService :
     public void Tick()
     {
         if (!reconciliationPending
-            || Time.unscaledTime < nextReconciliationAt)
+            || clock.Time < nextReconciliationAt)
         {
             return;
         }
 
         if (!TryReconcilePendingAwards(out _))
         {
-            nextReconciliationAt = Time.unscaledTime
+            nextReconciliationAt = clock.Time
                 + RetryIntervalSeconds;
         }
     }

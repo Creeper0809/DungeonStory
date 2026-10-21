@@ -8121,7 +8121,7 @@ public static class CharacterProgressionDebugScenarios
                 Repository,
                 mass,
                 EditorNullItemMarkerPresenter.Instance,
-                reservations);
+                reservations, clock: new DungeonStory.Foundation.UnityUiClock());
             StackId = WorldItemRepositoryEditorAccess.AddStack(
                 Repository,
                 MemoryErasureSealItemRules.ItemId,

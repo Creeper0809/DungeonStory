@@ -330,6 +330,7 @@ public static class ServiceHubDayCausalProductionEntryDebugScenarios
                 ?? throw new InvalidOperationException(
                     "Authored core-session rules are missing.");
             serviceRooms = new ServiceSessionRuntime(
+                new DungeonStory.Foundation.UnityUiClock(),
                 buildingWorld,
                 EmptyServiceLinks.Instance,
                 EmptyServiceProcessCatalog.Instance,

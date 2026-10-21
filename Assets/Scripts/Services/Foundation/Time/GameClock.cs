@@ -16,6 +16,13 @@ namespace DungeonStory.Foundation
         float Time { get; }
     }
 
+    /// <summary>Monotonic wall time for recovery and external-operation deadlines, including while paused.</summary>
+    public interface IRealtimeClock
+    {
+        float Time { get; }
+        double TimeAsDouble { get; }
+    }
+
     public interface IGameTimeScaleController
     {
         float Scale { get; set; }
@@ -67,6 +74,12 @@ namespace DungeonStory.Foundation
     {
         public float DeltaTime => UnityEngine.Time.unscaledDeltaTime;
         public float Time => UnityEngine.Time.unscaledTime;
+    }
+
+    public sealed class UnityRealtimeClock : IRealtimeClock
+    {
+        public float Time => UnityEngine.Time.realtimeSinceStartup;
+        public double TimeAsDouble => UnityEngine.Time.realtimeSinceStartupAsDouble;
     }
 
     public sealed class UnityGameTimeScaleController : IGameTimeScaleController

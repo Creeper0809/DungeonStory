@@ -1,0 +1,2 @@
+EQUIPMENT_EVOLUTION_LIFECYCLE=PASS; contracts=10; controlled-runtime-ports; physical-material-transactions; fresh-parent-owner
+ARCHITECTURE_EQUIPMENT_EVOLUTION_BATCH=PASS; queue/cancel; parent JSON restore; material ACK; publication rollback/retry

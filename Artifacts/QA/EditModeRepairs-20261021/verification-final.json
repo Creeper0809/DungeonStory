@@ -1,0 +1,400 @@
+{
+  "status": "PASS",
+  "completedUtc": "2026-10-21T16:04:48.433275+00:00",
+  "baseCommit": "d9b3fba53940d43c8350427b01cb245c080ac608",
+  "sourceLabel": "r24",
+  "sourceFileCount": 21613,
+  "sourceManifestSha256": "912d8f0ed0a29f2606244893836014594fd42308e3cfee5e6ccceb1fd9179c62",
+  "sourceVerification": "Full remote SHA-256 comparison of Assets/Packages/ProjectSettings before/after execution; zero drift. Later changes only QA evidence and generated documentation.",
+  "editMode": {
+    "scope": "Latest assertion result per test: full r8 194/198, failed/affected r9 7/7, final affected invasion r24 3/3. Not one 198/198 run on r24.",
+    "evidence": "editmode-latest-results.json",
+    "latestPassed": 198,
+    "latestFailed": 0,
+    "finalAffectedRun": {
+      "label": "repair-editmode-invasion-r3",
+      "exit_code": 0,
+      "seconds": 60,
+      "stop_reason": null,
+      "source_label": "r24",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "counts": {
+        "result": "Passed",
+        "total": "3",
+        "passed": "3",
+        "failed": "0",
+        "skipped": "0"
+      },
+      "failures": [],
+      "evidence": "repair-editmode-invasion-r3/editmode.sanitized.xml"
+    }
+  },
+  "runtimeRuns": [
+    {
+      "label": "repair-observers-r7",
+      "exit_code": 0,
+      "seconds": 170,
+      "stop_reason": null,
+      "source_label": "r14",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "evidence": "repair-observers-r7/research-work-observers.txt"
+    },
+    {
+      "label": "repair-equipment-state-r2",
+      "exit_code": 0,
+      "seconds": 50,
+      "stop_reason": null,
+      "source_label": "r10",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "evidence": "repair-equipment-state-r2/assertions.txt"
+    },
+    {
+      "label": "repair-equipment-retry-r1",
+      "exit_code": 0,
+      "seconds": 50,
+      "stop_reason": null,
+      "source_label": "r10",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "evidence": "repair-equipment-retry-r1/diagnostics.redacted.txt"
+    },
+    {
+      "label": "repair-surgery-r3",
+      "exit_code": 0,
+      "seconds": 50,
+      "stop_reason": null,
+      "source_label": "r13",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "evidence": "repair-surgery-r3/assertions.txt"
+    },
+    {
+      "label": "repair-defense-r3",
+      "exit_code": 0,
+      "seconds": 50,
+      "stop_reason": null,
+      "source_label": "r13",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "evidence": "repair-defense-r3/assertions.txt"
+    },
+    {
+      "label": "repair-full-world-r12",
+      "exit_code": 0,
+      "seconds": 260,
+      "stop_reason": null,
+      "source_label": "r24",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "evidence": "repair-full-world-r12/full-world-report.txt"
+    }
+  ],
+  "earlierFailedRuns": [
+    {
+      "label": "repair-compile-content-r1",
+      "exit_code": 1,
+      "seconds": 170,
+      "stop_reason": null,
+      "source_label": "r4",
+      "compiler_error_count": 14,
+      "source_drift": [],
+      "diagnostic": "Assets/Scripts/Models/Buildings/Core/ConditionNeedToConnect.cs(2,7): error CS0246: The type or namespace name 'Sirenix' could not be found (are you missing a using directive or an assembly reference?)\nAssets/Scripts/Models/Buildings/Core/ConditionNeedToConnect.cs(12,6): error CS0246: The type or namespace name 'HideIfAttribute' could not be found (are you missing a using directive or an assembly reference?)\nAssets/Scripts/Models/Buildings/Core/ConditionNeedToConnect.cs(12,6): error CS0246: The type or namespace name 'HideIf' could not be found (are you missing a using directive or an assembly reference?)\nAssets/Scripts/Models/Buildings/Core/ConditionNeedToConnect.cs(2,7): error CS0246: The type or namespace name 'Sirenix' could not be found (are you missing a using directive or an assembly reference?)\nAssets/Scripts/Models/Buildings/Core/ConditionNeedToConnect.cs(12,6): error CS0246: The type or namespace name 'HideIfAttribute' could not be found (are you missing a using directive or an assembly reference?)\nAssets/Scripts/Models/Buildings/Core/ConditionNeedToConnect.cs(12,6): error CS0246: The type or namespace name 'HideIf' could not be found (are you missing a using directive or an assembly reference?)\nAssets/Scripts/Models/Buildings/Core/ConditionNeedToConnect.cs(2,7): error CS0246: The type or namespace name 'Sirenix' could not be found (are you missing a using directive or an assembly reference?)\nAssets/Scripts/Models/Buildings/Core/ConditionNeedToConnect.cs(12,6): error CS0246: The type or namespace name 'HideIfAttribute' could not be found (are you missing a using di"
+    },
+    {
+      "label": "repair-compile-content-r2",
+      "exit_code": 1,
+      "seconds": 110,
+      "stop_reason": null,
+      "source_label": "r5",
+      "compiler_error_count": 126,
+      "source_drift": [],
+      "diagnostic": "Assets/Scripts/Models/Medical/Core/AnatomyModels.cs(245,12): error CS0246: The type or namespace name 'ApparelBodyForm' could not be found (are you missing a using directive or an assembly reference?)\nAssets/Scripts/Models/Medical/Core/AnatomyModels.cs(246,12): error CS0246: The type or namespace name 'ApparelSizeClass' could not be found (are you missing a using directive or an assembly reference?)\nAssets/Scripts/Models/Medical/Core/AnatomyModels.cs(247,12): error CS0246: The type or namespace name 'AnatomyAttachmentPoint' could not be found (are you missing a using directive or an assembly reference?)\nAssets/Scripts/Models/Medical/Core/AnatomyModels.cs(193,9): error CS0246: The type or namespace name 'ApparelBodyForm' could not be found (are you missing a using directive or an assembly reference?)\nAssets/Scripts/Models/Medical/Core/AnatomyModels.cs(194,9): error CS0246: The type or namespace name 'ApparelSizeClass' could not be found (are you missing a using directive or an assembly reference?)\nAssets/Scripts/Models/Medical/Core/AnatomyModels.cs(195,9): error CS0246: The type or namespace name 'AnatomyAttachmentPoint' could not be found (are you missing a using directive or an assembly reference?)\nAssets/Scripts/Models/Medical/Core/AnatomyModels.cs(193,59): error CS1061: 'ApparelBodyForm' does not contain a definition for 'Humanoid' and no accessible extension method 'Humanoid' accepting a first argument of type 'ApparelBodyForm' could be found (are you missing a using directive or an assembly reference?)\nAssets/Scripts/Models/Medical/Core/AnatomyModels.cs(194,40): error "
+    },
+    {
+      "label": "repair-compile-content-r3",
+      "exit_code": 1,
+      "seconds": 180,
+      "stop_reason": null,
+      "source_label": "r6",
+      "compiler_error_count": 21,
+      "source_drift": [],
+      "diagnostic": "Assets/Tests/EditMode/GameplayArchitectureRatchetTests.cs(2525,22): error CS0121: The call is ambiguous between the following methods or properties: 'EqualConstraint.Using<T>(IComparer<T>)' and 'EqualConstraint.Using<T>(IEqualityComparer<T>)'\nAssets/Scripts/Services/Character/Editor/ArcaneOverchargeA07DebugScenarios.cs(510,30): error CS7036: There is no argument given that corresponds to the required formal parameter 'gameCalendar' of 'CharacterBodyHealthRuntime.CharacterBodyHealthRuntime(IRealtimeClock, ICharacterAiWorldRegistry, IGameClock, IGameEventBus, IDynamicFrameWorkBudget, IAnatomyProfileCatalog, DungeonRuntimeAggregateRootStore, IGameCalendar)'\nAssets/Scripts/Services/Infrastructure/Editor/ScriptableObjectModularityDebugScenarios.cs(286,52): error CS7036: There is no argument given that corresponds to the required formal parameter 'gameCalendar' of 'CharacterBodyHealthRuntime.CharacterBodyHealthRuntime(IRealtimeClock, ICharacterAiWorldRegistry, IGameClock, IGameEventBus, IDynamicFrameWorkBudget, IAnatomyProfileCatalog, DungeonRuntimeAggregateRootStore, IGameCalendar)'\nAssets/Scripts/Services/Narrative/GameplayOutcomeBridges/SocialLife/Editor/SocialLifeProductionEntryExecutionDebugScenarios.cs(646,17): error CS1503: Argument 1: cannot convert from 'DungeonStory.Foundation.Facts.DomainFactDispatcher' to 'DungeonStory.Foundation.IUiClock'\nAssets/Scripts/Services/Narrative/GameplayOutcomeBridges/SocialLife/Editor/SocialLifeProductionEntryExecutionDebugScenarios.cs(648,17): error CS1503: Argument 3: cannot convert from 'DungeonRuntimeAggregateRootStore' to 'DungeonStor"
+    },
+    {
+      "label": "repair-defense-r1",
+      "exit_code": 1,
+      "seconds": 50,
+      "stop_reason": null,
+      "source_label": "r10",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "InvalidOperationException: Injected defense mechanical fault was not surfaced.\n"
+    },
+    {
+      "label": "repair-defense-r2",
+      "exit_code": 1,
+      "seconds": 50,
+      "stop_reason": null,
+      "source_label": "r11",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "InvalidOperationException: Committed defense action did not publish exactly one attack and one damage row.\n"
+    },
+    {
+      "label": "repair-editmode-r1",
+      "exit_code": 2,
+      "seconds": 550,
+      "stop_reason": null,
+      "source_label": "r8",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "counts": {
+        "result": "Failed(Child)",
+        "total": "198",
+        "passed": "194",
+        "failed": "4",
+        "skipped": "0"
+      },
+      "failures": [
+        {
+          "name": "DungeonStory.Tests.Architecture.CharacterSpawnCompositionArchitectureTests.AllProductionAndRestoreCallersUseThePublicationBoundary",
+          "message": "  actor.Identity?.SetPersistentId(actorId);\n  Expected: greater than 1763\n  But was:  -1\n"
+        },
+        {
+          "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CharacterSaveUsesActiveAndLifetimeRegistries",
+          "message": "  Expected: String containing \"lifecycleCoordinator.OnDestroyed(runtimeBridge, presentationBridge)\"\n  But was:  \"using System;\nusing System.Collections;\nusing System.Collections.Generic;\nusing System.Linq;\nusing BehaviorDesigner.Runtime;\nusing DungeonStory.Foundation;\nusing Sirenix.OdinInspector;\nusing UnityEngine;\nusing VContainer;\n\n[DrawWithUnity]\n[DisallowMultipleComponent]\n[RequireComponent(typeof(CharacterIdentity))]\n[RequireComponent(typeof(CharacterProgression))]\n[RequireComponent(typeof(CharacterAbilityCache))]\n[RequireComponent(typeof(CharacterStats))]\n[RequireComponent(typeof(CharacterVisual))]\n[RequireComponent(typeof(CharacterLifecycle))]\n[RequireComponent(typeof(CharacterLog))]\n[RequireComponent(typeof(CharacterBlackboard))]\n[RequireComponent(typeof(CustomerPersonaRuntime))]\n[RequireComponent(typeof(CharacterDialogueRuntime))]\n[RequireComponent(typeof(CharacterSocialMemory))]\n[RequireComponent(typeof(CharacterAiMemoryRuntime))]\n[RequireComponent(typeof(BehaviorTree))]\npublic class CharacterActor : SerializedMonoBehaviour,\n    IInfoable,\n    IBuildingCharacterPort,\n    IInvasionThreatSubject,\n    ICharacterMovementKinematicsActor\n{\n    public GameObject noExit;\n\n    private readonly CharacterActorLifecycleCoordinator lifecycleCoordinator = new();\n    private readonly CharacterActorAbilityBridge abilityBridge = new();\n    private readonly CharacterActorActivityBridge activityBridge = new();\n\n    private AIBrain brain;\n    [SerializeField, ReadOnly] private CharacterIdentity identity;\n    [SerializeField, ReadOnly] private CharacterProgression progression;\n    [SerializeField, ReadOnly] private CharacterAbilityCache abilityCache;\n    [SerializeField, ReadOnly] private CharacterStats characterStats;\n    [SerializeField, ReadOnly] private CharacterVisual visual;\n    [SerializeField, ReadOnly] private CharacterLifecycle lifecycle;\n    [SerializeField, ReadOnly] private CharacterLog characterLog;\n    [SerializeField, ReadOnly] private CharacterBlackboard blackboard;\n    [SerializeField, ReadOnly] private CustomerPersonaRuntime personaRuntime;\n    [SerializeField, ReadOnly] private CharacterDialogueRuntime dialogueRuntime;\n    [SerializeField, ReadOnly] private CharacterSocialMemory socialMemory;\n    [SerializeField, ReadOnly] private CharacterAiMemoryRuntime aiMemory;\n    [SerializeField, ReadOnly] private BehaviorTree behaviorTree;\n    private CharacterCarryInventory carryInventory;\n    private ICharacterSocialMemoryFactory socialMemoryFactory;\n    private ICharacterRuntimeProfileFactory runtimeProfileFactory;\n    private CharacterMoodPolicyService moodPolicy;\n    private IGameEventBus domainEvents;\n    private IIdleSocialInteractionCommand idleSocialInteractionCommand;\n    [SerializeField, ReadOnly] private CharacterActorRuntimeBridge runtimeBridge;\n    [SerializeField, ReadOnly] private CharacterActorPresentationBridge presentationBridge;\n    private bool runtimeStateInitialized;\n    private bool runtimeStateInitializing;\n    private boo"
+        },
+        {
+          "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.HighRiskGlobalAccessDoesNotGrow",
+          "message": "  Direct Unity time is limited to the clock adapter, diagnostics, presentation animation, and localization-key false positives.\nModels/CoreSession/ServiceSessionContracts.cs: 1 unapproved occurrences\nServices/Combat/CombatActionPublicationRuntime.cs: 2 unapproved occurrences\n  Expected: <empty>\n  But was:  < \"Models/CoreSession/ServiceSessionContracts.cs: 1 unapproved occurrences\", \"Services/Combat/CombatActionPublicationRuntime.cs: 2 unapproved occurrences\" >\n"
+        },
+        {
+          "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.WorkAssemblyOwnsStableWorkIds",
+          "message": "  Expected: String containing \"GetRequiredWork(BuildableObject building, WorkTypeId workTypeId\"\n  But was:  \"using System;\nusing System.Collections.Generic;\nusing System.Linq;\nusing UnityEngine;\n\n\n[Serializable]\n[BuildingAbilityDisplayName(\"시설 운영\")]\npublic sealed class BuildingFacilityAbility : BuildingAbility\n{\n    [InspectorName(\"시설 설정\")] public FacilityData settings = new FacilityData();\n}\n\n\n[Serializable]\n[BuildingAbilityDisplayName(\"방어 시설\")]\npublic sealed class BuildingDefenseAbility : BuildingAbility\n{\n    [InspectorName(\"방어 설정\")] public DefenseFacilityData settings = new DefenseFacilityData();\n}\n\n[Serializable]\n[BuildingAbilityDisplayName(\"엄폐\")]\npublic sealed class BuildingCoverAbility : BuildingAbility,\n    IBuildingRuntimeAbilityDefinition\n{\n    [InspectorName(\"엄폐 높이\")]\n    public CombatCoverHeight height = CombatCoverHeight.Low;\n    [Range(0f, 1f), InspectorName(\"기본 차단 확률\")]\n    public float blockChance = 0.35f;\n    [InspectorName(\"보호 방향\")]\n    public Vector2Int facingDirection = Vector2Int.left;\n    [InspectorName(\"모서리 사격 허용\")]\n    public bool allowsCornerPeek;\n    [Min(1f), InspectorName(\"엄폐 내구\")]\n    public float coverHitPoints = 60f;\n}\n\n[Serializable]\n[BuildingAbilityDisplayName(\"구조 내구도\")]\npublic sealed class BuildingStructuralIntegrityAbility : BuildingAbility,\n    IBuildingRuntimeAbilityDefinition\n{\n    [Min(1f), InspectorName(\"최대 내구도\")]\n    public float maxHitPoints = 300f;\n    [Min(0f), InspectorName(\"구조 강도\")]\n    public float toughness = 18f;\n    [Min(0.01f), InspectorName(\"작업량당 수리량\")]\n    public float repairHitPointsPerWork = 2f;\n    [InspectorName(\"파괴 가능\")]\n    public bool breachable = true;\n}\n\n[Serializable]\n[BuildingAbilityDisplayName(\"시설 진화 기여\")]\npublic sealed class BuildingEvolutionAbility : BuildingAbility\n{\n    [InspectorName(\"진화 설정\")]\n    public FacilityEvolutionContributionData settings = new FacilityEvolutionContributionData();\n}\n\n[Serializable]\n[BuildingAbilityDisplayName(\"욕구 회복\")]\npublic sealed class BuildingNeedRecoveryAbility : BuildingAbility\n{\n    [InspectorName(\"회복 수치\")] public FacilityNeedRecoveryData recovery;\n\n    public bool HasEffect => recovery.HasEffect;\n}\n\n[Serializable]\n[BuildingAbilityDisplayName(\"유흥 음료 서비스\")]\npublic sealed class BuildingRecreationalSubstanceServiceAbility : BuildingAbility\n{\n    [Min(0f), InspectorName(\"재미 회복\")] public float funRecovery = 8f;\n    [Range(-1f, 1f), InspectorName(\"시설 경험 평판\")] public float facilitySentiment = 0.25f;\n\n    public bool IsValid => funRecovery > 0f;\n}\n\n\n[Serializable]\n[BuildingAbilityDisplayName(\"생산\")]\npublic sealed class BuildingProductionAbility : BuildingAbility,\n    IBuildingWorkCompletionAbility,\n    IBuildingRuntimeAbilityDefinition,\n    IBuildingStockCategorySignal\n{\n    [InspectorName(\"생산 품목\")] public StockCategory outputCategory = StockCategory.General;\n    [Min(0), InspectorName(\"생산량\")] public int amount;\n\n    public bool IsValid => amount > 0;\n\n    public IEnumerable<StockCategory> GetStockCategorySignals()\n    {\n        if (IsValid)\n        {\n   "
+        }
+      ],
+      "diagnostic": "\n"
+    },
+    {
+      "label": "repair-equipment-state-r1",
+      "exit_code": 1,
+      "seconds": 50,
+      "stop_reason": null,
+      "source_label": "r9",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "NullReferenceException: Object reference not set to an instance of an object\n"
+    },
+    {
+      "label": "repair-full-world-r1",
+      "exit_code": 1,
+      "seconds": 130,
+      "stop_reason": null,
+      "source_label": "r10",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "RESULT=FAIL\ntarget=FULL_WORLD_ROUND_TRIP\nisolatedPersistence=True\nsetup=controlled-start-party-fixture; not-training-source\nhumanApprovalClaimed=false\ntrainingEligible=false\nscene=Assets/Scenes/GameplayScene.unity\nregisteredSections=104\ncapturedSections=104\npostRoundTripSections=104\nsectionCoverageMatched=True\nbaselineRestored=True\ncanonicalBaselineMatched=True\ncharacterProgressionContractsPassed=False\ncharacterProgressionDetail=Invalid character position did not fail atomically.\nconsoleWarnings=0\nconsoleErrors=2\ndetail=The round trip emitted Console warnings or errors.\ncompletedUtc=2026-10-21T13:45:58.1477350Z\n[ERROR] Character progression save contracts failed: Invalid character position did not fail atomically.\n[ERROR] System.InvalidOperationException: Knowledge residue completion was not held in the durable outbox before save capture.\n  at DungeonGameSaveDebugScenarios.RunFullGameRoundTrip () [0x01588] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infrastructure/Editor/DungeonGameSaveDebugScenarios.cs:783 \n  at DungeonFullWorldRoundTripPlayModeRunner+<Start>d__6.MoveNext () [0x00c9a] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infrastructure/Editor/DungeonFullWorldRoundTripPlayModeFacade.cs:720 \n"
+    },
+    {
+      "label": "repair-full-world-r10",
+      "exit_code": 1,
+      "seconds": 240,
+      "stop_reason": null,
+      "source_label": "r22",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "RESULT=FAIL\ntarget=FULL_WORLD_ROUND_TRIP\nisolatedPersistence=True\nsetup=controlled-start-party-fixture; not-training-source\nhumanApprovalClaimed=false\ntrainingEligible=false\nscene=Assets/Scenes/GameplayScene.unity\nregisteredSections=104\ncapturedSections=104\npostRoundTripSections=104\nsectionCoverageMatched=True\nbaselineRestored=True\ncanonicalBaselineMatched=True\ncharacterProgressionContractsPassed=True\ncharacterProgressionDetail=CHARACTER_WORLD_V18_CONTRACTS_PASSED Lv.4 XP=19 active=0 passive=0 staffWorkRoundTrip=true legacyNormalized=true identityDoubleRestore=true transientIdentityCanonical=true inputUnchanged=true directRejected=true ownerlessRejected=true invalidCellRejected=true rollbackFreeLateFailure=true preV18Rejected=true warnings=2\nconsoleWarnings=0\nconsoleErrors=1\ndetail=The round trip emitted Console warnings or errors.\ncompletedUtc=2026-10-21T15:43:46.8979510Z\n[ERROR] System.InvalidOperationException: Failed invasion publication or a completion callback changed the live world. revision=8->8, state=False, engagements=True, activeGuards=True, detached=0->0; section.changed:invasion.state[payload:length 8492->8484,firstDifference@1965: before=h\":false,\"raidAwareness\":{\"raidId\":\"human-operation:1\",\"identificationStage\":1,\"routeChangeReason\":\"현재 작전 경로\",\"breachTargetBuildingInstanceId\":\"\",\"knownRisks\":[],\"expectedPath\":[{\"x\":22,\"y\":0},{\"x\":21,\"y\":0},{\"x\":20,\"y\":0},{\"x\":19,\"y\":0},{\"x\":18,\"y\":0},{\"x\":17,\"y\":0},{\"x\":16,\"y\":0},{\"x\":15,\"y\":0},{\"x\":14,\"y\":0},{\"x\":13; after=h\":false,\"raidAwareness\":{\"raidId\":\"human-operation:1\",\"identificationStage\":1,\"routeChangeReason\":\"\""
+    },
+    {
+      "label": "repair-full-world-r11",
+      "exit_code": 1,
+      "seconds": 310,
+      "stop_reason": null,
+      "source_label": "r23",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "RESULT=FAIL\ntarget=FULL_WORLD_ROUND_TRIP\nisolatedPersistence=True\nsetup=controlled-start-party-fixture; not-training-source\nhumanApprovalClaimed=false\ntrainingEligible=false\nscene=Assets/Scenes/GameplayScene.unity\nregisteredSections=104\ncapturedSections=104\npostRoundTripSections=104\nsectionCoverageMatched=True\nbaselineRestored=True\ncanonicalBaselineMatched=True\ncharacterProgressionContractsPassed=True\ncharacterProgressionDetail=CHARACTER_WORLD_V18_CONTRACTS_PASSED Lv.4 XP=19 active=0 passive=0 staffWorkRoundTrip=true legacyNormalized=true identityDoubleRestore=true transientIdentityCanonical=true inputUnchanged=true directRejected=true ownerlessRejected=true invalidCellRejected=true rollbackFreeLateFailure=true preV18Rejected=true warnings=2\nconsoleWarnings=0\nconsoleErrors=1\ndetail=The round trip emitted Console warnings or errors.\ncompletedUtc=2026-10-21T15:51:47.8237120Z\n[ERROR] System.InvalidOperationException: Legacy rejection did not identify the unsupported run-variable payload version: run-variable-fact-save-join:run-variable-fact-owner-version-conflict\n  at DungeonGameSaveDebugScenarios.RunFullGameRoundTrip () [0x02e3b] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infrastructure/Editor/DungeonGameSaveDebugScenarios.cs:1347 \n  at DungeonFullWorldRoundTripPlayModeRunner+<Start>d__6.MoveNext () [0x00c9a] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infrastructure/Editor/DungeonFullWorldRoundTripPlayModeFacade.cs:720 \n"
+    },
+    {
+      "label": "repair-full-world-r2",
+      "exit_code": 1,
+      "seconds": 130,
+      "stop_reason": null,
+      "source_label": "r13",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "RESULT=FAIL\ntarget=FULL_WORLD_ROUND_TRIP\nisolatedPersistence=True\nsetup=controlled-start-party-fixture; not-training-source\nhumanApprovalClaimed=false\ntrainingEligible=false\nscene=Assets/Scenes/GameplayScene.unity\nregisteredSections=104\ncapturedSections=104\npostRoundTripSections=104\nsectionCoverageMatched=True\nbaselineRestored=True\ncanonicalBaselineMatched=True\ncharacterProgressionContractsPassed=False\ncharacterProgressionDetail=System.InvalidOperationException: Character-world restore candidate is invalid: Character 'character:staff:24680:01':rest-applied-fact-invalid\n  at CharacterWorldSaveService.PrepareRestoreCandidate (Grid grid, DungeonCharacterWorldSaveData source) [0x005bc] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infrastructure/CharacterWorldSaveService.cs:1310 \n  at CharacterProgressionSavePlayModeFacade.Run (System.String& message) [0x005dc] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infrastructure/Editor/CharacterProgressionSavePlayModeFacade.cs:234 \n  at DungeonFullWorldRoundTripPlayModeRunner+<Start>d__6.MoveNext () [0x00bc7] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infrastructure/Editor/DungeonFullWorldRoundTripPlayModeFacade.cs:677 \nconsoleWarnings=0\nconsoleErrors=2\ndetail=The round trip emitted Console warnings or errors.\ncompletedUtc=2026-10-21T14:23:51.1527730Z\n[ERROR] Character progression save contracts threw: System.InvalidOperationException: Character-world restore candidate is invalid: Char"
+    },
+    {
+      "label": "repair-full-world-r3",
+      "exit_code": 1,
+      "seconds": 140,
+      "stop_reason": null,
+      "source_label": "r14",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "RESULT=FAIL\ntarget=FULL_WORLD_ROUND_TRIP\nisolatedPersistence=True\nsetup=controlled-start-party-fixture; not-training-source\nhumanApprovalClaimed=false\ntrainingEligible=false\nscene=Assets/Scenes/GameplayScene.unity\nregisteredSections=104\ncapturedSections=104\npostRoundTripSections=104\nsectionCoverageMatched=True\nbaselineRestored=True\ncanonicalBaselineMatched=True\ncharacterProgressionContractsPassed=True\ncharacterProgressionDetail=CHARACTER_WORLD_V18_CONTRACTS_PASSED Lv.4 XP=19 active=0 passive=0 staffWorkRoundTrip=true legacyNormalized=true identityDoubleRestore=true transientIdentityCanonical=true inputUnchanged=true directRejected=true ownerlessRejected=true invalidCellRejected=true rollbackFreeLateFailure=true preV18Rejected=true warnings=2\nconsoleWarnings=0\nconsoleErrors=1\ndetail=The round trip emitted Console warnings or errors.\ncompletedUtc=2026-10-21T14:35:45.9012120Z\n[ERROR] System.InvalidOperationException: The sealed save did not capture one joined knowledge task, material receipt, published result, and Codex reward.\n  at DungeonGameSaveDebugScenarios.RunFullGameRoundTrip () [0x01a7b] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infrastructure/Editor/DungeonGameSaveDebugScenarios.cs:915 \n  at DungeonFullWorldRoundTripPlayModeRunner+<Start>d__6.MoveNext () [0x00c9a] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infrastructure/Editor/DungeonFullWorldRoundTripPlayModeFacade.cs:720 \n"
+    },
+    {
+      "label": "repair-full-world-r4",
+      "exit_code": 1,
+      "seconds": 240,
+      "stop_reason": null,
+      "source_label": "r15",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "RESULT=FAIL\ntarget=FULL_WORLD_ROUND_TRIP\nisolatedPersistence=True\nsetup=controlled-start-party-fixture; not-training-source\nhumanApprovalClaimed=false\ntrainingEligible=false\nscene=Assets/Scenes/GameplayScene.unity\nregisteredSections=104\ncapturedSections=104\npostRoundTripSections=104\nsectionCoverageMatched=True\nbaselineRestored=True\ncanonicalBaselineMatched=True\ncharacterProgressionContractsPassed=True\ncharacterProgressionDetail=CHARACTER_WORLD_V18_CONTRACTS_PASSED Lv.4 XP=19 active=0 passive=0 staffWorkRoundTrip=true legacyNormalized=true identityDoubleRestore=true transientIdentityCanonical=true inputUnchanged=true directRejected=true ownerlessRejected=true invalidCellRejected=true rollbackFreeLateFailure=true preV18Rejected=true warnings=2\nconsoleWarnings=0\nconsoleErrors=1\ndetail=The round trip emitted Console warnings or errors.\ncompletedUtc=2026-10-21T14:44:07.3250460Z\n[ERROR] System.InvalidOperationException: Active invasion intruder did not round-trip with health and defense statuses. reported=1, active=1, state=DamagingFacility, rally=0, breached=True, pattern=invasion:pattern:hunter/invasion:pattern:hunter, facilityDamage=1, health=97.2/97.2, statuses=Burn:1.5:2.\n  at DungeonGameSaveDebugScenarios.RunFullGameRoundTrip () [0x028f1] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infrastructure/Editor/DungeonGameSaveDebugScenarios.cs:1253 \n  at DungeonFullWorldRoundTripPlayModeRunner+<Start>d__6.MoveNext () [0x00c9a] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infrastru"
+    },
+    {
+      "label": "repair-full-world-r5",
+      "exit_code": 1,
+      "seconds": 240,
+      "stop_reason": null,
+      "source_label": "r16",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "RESULT=FAIL\ntarget=FULL_WORLD_ROUND_TRIP\nisolatedPersistence=True\nsetup=controlled-start-party-fixture; not-training-source\nhumanApprovalClaimed=false\ntrainingEligible=false\nscene=Assets/Scenes/GameplayScene.unity\nregisteredSections=104\ncapturedSections=104\npostRoundTripSections=104\nsectionCoverageMatched=True\nbaselineRestored=True\ncanonicalBaselineMatched=True\ncharacterProgressionContractsPassed=True\ncharacterProgressionDetail=CHARACTER_WORLD_V18_CONTRACTS_PASSED Lv.4 XP=19 active=0 passive=0 staffWorkRoundTrip=true legacyNormalized=true identityDoubleRestore=true transientIdentityCanonical=true inputUnchanged=true directRejected=true ownerlessRejected=true invalidCellRejected=true rollbackFreeLateFailure=true preV18Rejected=true warnings=2\nconsoleWarnings=0\nconsoleErrors=1\ndetail=The round trip emitted Console warnings or errors.\ncompletedUtc=2026-10-21T14:50:20.5588730Z\n[ERROR] System.InvalidOperationException: Active invasion intruder did not round-trip with health and defense statuses. reported=1, active=1, state=DamagingFacility, rally=0, breached=True, pattern=invasion:pattern:hunter/invasion:pattern:hunter, facilityDamage=1, health=97.2/97.2, statuses=Burn:1.5:2.\n  at DungeonGameSaveDebugScenarios.RunFullGameRoundTrip () [0x028fa] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infrastructure/Editor/DungeonGameSaveDebugScenarios.cs:1254 \n  at DungeonFullWorldRoundTripPlayModeRunner+<Start>d__6.MoveNext () [0x00c9a] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infrastru"
+    },
+    {
+      "label": "repair-full-world-r6",
+      "exit_code": 1,
+      "seconds": 250,
+      "stop_reason": null,
+      "source_label": "r17",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "RESULT=FAIL\ntarget=FULL_WORLD_ROUND_TRIP\nisolatedPersistence=True\nsetup=controlled-start-party-fixture; not-training-source\nhumanApprovalClaimed=false\ntrainingEligible=false\nscene=Assets/Scenes/GameplayScene.unity\nregisteredSections=104\ncapturedSections=104\npostRoundTripSections=104\nsectionCoverageMatched=True\nbaselineRestored=True\ncanonicalBaselineMatched=False\ncharacterProgressionContractsPassed=True\ncharacterProgressionDetail=CHARACTER_WORLD_V18_CONTRACTS_PASSED Lv.4 XP=19 active=0 passive=0 staffWorkRoundTrip=true legacyNormalized=true identityDoubleRestore=true transientIdentityCanonical=true inputUnchanged=true directRejected=true ownerlessRejected=true invalidCellRejected=true rollbackFreeLateFailure=true preV18Rejected=true warnings=2\nconsoleWarnings=0\nconsoleErrors=4\ndetail=The round trip emitted Console warnings or errors.\ncompletedUtc=2026-10-21T14:57:30.2910710Z\n[ERROR] Coroutine couldn't be started because the the game object 'Miru' is inactive!\nUnityEngine.MonoBehaviour:StartCoroutine (System.Collections.IEnumerator)\nDefenseEngagementRuntime:StartGuardMovement (Grid,DefenseEngagement,CharacterActor,UnityEngine.Vector2Int,bool,System.Collections.Generic.Queue`1<GridMoveStep>) (at Assets/Scripts/Services/Invasion/DefenseEngagementRuntime.cs:972)\nDefenseEngagementPersistence:PrepareAndMove (Grid,DefenseEngagement,System.Action`2<CharacterActor, string>,DefenseGuardMovementStarter,DefenseRangedMovementStarter) (at Assets/Scripts/Services/Invasion/DefenseEngagementPersistence.cs:361)\nDefenseEngagementPersistence:ActivateRestoreProjection (System.Action`2<CharacterA"
+    },
+    {
+      "label": "repair-full-world-r7",
+      "exit_code": 1,
+      "seconds": 230,
+      "stop_reason": null,
+      "source_label": "r18",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "RESULT=FAIL\ntarget=FULL_WORLD_ROUND_TRIP\nisolatedPersistence=True\nsetup=controlled-start-party-fixture; not-training-source\nhumanApprovalClaimed=false\ntrainingEligible=false\nscene=Assets/Scenes/GameplayScene.unity\nregisteredSections=104\ncapturedSections=0\npostRoundTripSections=0\nsectionCoverageMatched=False\nbaselineRestored=False\ncanonicalBaselineMatched=False\ncharacterProgressionContractsPassed=False\ncharacterProgressionDetail=\nconsoleWarnings=0\nconsoleErrors=2\ndetail=Full-world round trip threw an exception.\ncompletedUtc=2026-10-21T15:21:49.8478650Z\n[ERROR] INVASION_ATOMIC_RESTORE valid round trip failed: Failed to stage section 'invasion.atomic-contract': Invasion world candidate is invalid: Owner evacuation restore requires the staged facility and character world candidates.\nUnityEngine.Debug:LogError (object)\nInvasionIntruderDebugScenarios:RunAtomicInvasionRestoreContracts () (at Assets/Scripts/Services/Invasion/Editor/InvasionIntruderDebugScenarios.cs:267)\nDungeonFullWorldRoundTripPlayModeRunner/<Start>d__6:MoveNext () (at Assets/Scripts/Services/Infrastructure/Editor/DungeonFullWorldRoundTripPlayModeFacade.cs:664)\nUnityEngine.SetupCoroutine:InvokeMoveNext (System.Collections.IEnumerator,intptr) (at /home/bokken/build/output/unity/unity/Runtime/Export/Scripting/Coroutines.cs:17)\n\n[ERROR] System.InvalidOperationException: Invasion publication, rollback or deferred activation contract failed.\n  at DungeonFullWorldRoundTripPlayModeRunner+<Start>d__6.MoveNext () [0x00b63] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infra"
+    },
+    {
+      "label": "repair-full-world-r8",
+      "exit_code": 1,
+      "seconds": 230,
+      "stop_reason": null,
+      "source_label": "r19",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "RESULT=FAIL\ntarget=FULL_WORLD_ROUND_TRIP\nisolatedPersistence=True\nsetup=controlled-start-party-fixture; not-training-source\nhumanApprovalClaimed=false\ntrainingEligible=false\nscene=Assets/Scenes/GameplayScene.unity\nregisteredSections=104\ncapturedSections=104\npostRoundTripSections=104\nsectionCoverageMatched=True\nbaselineRestored=True\ncanonicalBaselineMatched=True\ncharacterProgressionContractsPassed=True\ncharacterProgressionDetail=CHARACTER_WORLD_V18_CONTRACTS_PASSED Lv.4 XP=19 active=0 passive=0 staffWorkRoundTrip=true legacyNormalized=true identityDoubleRestore=true transientIdentityCanonical=true inputUnchanged=true directRejected=true ownerlessRejected=true invalidCellRejected=true rollbackFreeLateFailure=true preV18Rejected=true warnings=2\nconsoleWarnings=0\nconsoleErrors=1\ndetail=The round trip emitted Console warnings or errors.\ncompletedUtc=2026-10-21T15:28:48.5624370Z\n[ERROR] System.InvalidOperationException: The live breach must dispatch moving guards for the restore activation regression.\n  at DungeonGameSaveDebugScenarios.RunFullGameRoundTrip () [0x01266] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infrastructure/Editor/DungeonGameSaveDebugScenarios.cs:659 \n  at DungeonFullWorldRoundTripPlayModeRunner+<Start>d__6.MoveNext () [0x00c9a] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infrastructure/Editor/DungeonFullWorldRoundTripPlayModeFacade.cs:720 \n"
+    },
+    {
+      "label": "repair-full-world-r9",
+      "exit_code": 1,
+      "seconds": 240,
+      "stop_reason": null,
+      "source_label": "r20",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "RESULT=FAIL\ntarget=FULL_WORLD_ROUND_TRIP\nisolatedPersistence=True\nsetup=controlled-start-party-fixture; not-training-source\nhumanApprovalClaimed=false\ntrainingEligible=false\nscene=Assets/Scenes/GameplayScene.unity\nregisteredSections=104\ncapturedSections=104\npostRoundTripSections=104\nsectionCoverageMatched=True\nbaselineRestored=True\ncanonicalBaselineMatched=True\ncharacterProgressionContractsPassed=True\ncharacterProgressionDetail=CHARACTER_WORLD_V18_CONTRACTS_PASSED Lv.4 XP=19 active=0 passive=0 staffWorkRoundTrip=true legacyNormalized=true identityDoubleRestore=true transientIdentityCanonical=true inputUnchanged=true directRejected=true ownerlessRejected=true invalidCellRejected=true rollbackFreeLateFailure=true preV18Rejected=true warnings=2\nconsoleWarnings=0\nconsoleErrors=1\ndetail=The round trip emitted Console warnings or errors.\ncompletedUtc=2026-10-21T15:35:46.5688020Z\n[ERROR] System.InvalidOperationException: Failed invasion publication or a completion callback changed the live world.\n  at DungeonGameSaveDebugScenarios.VerifyInvasionPublicationRollback (DungeonRuntimeLifetimeScope scope, IDungeonGameSaveService saves, DungeonGameSaveData target) [0x00174] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infrastructure/Editor/DungeonGameSaveDebugScenarios.cs:1435 \n  at DungeonGameSaveDebugScenarios.RunFullGameRoundTrip () [0x01c65] in /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets/Scripts/Services/Infrastructure/Editor/DungeonGameSaveDebugScenarios.cs:968 \n  at DungeonFullWorldRoundTripPlayModeR"
+    },
+    {
+      "label": "repair-observers-r1",
+      "exit_code": 1,
+      "seconds": 60,
+      "stop_reason": null,
+      "source_label": "r9",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "RESEARCH_OUTCOME_TRANSACTION=PASS (10 groups)\nInvalidOperationException: Knowledge research outcome: Whole-save setup did not retain one committed Codex reward, material receipt, task owner, and pending outbox: success=True, completed=False, task=True, phase=RewardsApplied, ownerRevision=3, pending=1, outbox=0, exact=2, codexLines=1, clue=서로 다른 증언에서 같은 종소리가 반복된다. 장소는 달라지지만 시간은 같았다.\n"
+    },
+    {
+      "label": "repair-observers-r2",
+      "exit_code": 1,
+      "seconds": 160,
+      "stop_reason": null,
+      "source_label": "r10",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "RESEARCH_OUTCOME_TRANSACTION=PASS (10 groups)\nInvalidOperationException: Pending observation retired its order.\n"
+    },
+    {
+      "label": "repair-observers-r3",
+      "exit_code": 1,
+      "seconds": 160,
+      "stop_reason": null,
+      "source_label": "r11",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "RESEARCH_OUTCOME_TRANSACTION=PASS (10 groups)\nInvalidOperationException: Unexpected healing canonical join: body-observation-save-join:Specified argument was out of the range of valid values.\n"
+    },
+    {
+      "label": "repair-observers-r4",
+      "exit_code": -15,
+      "seconds": 203,
+      "stop_reason": "resource-or-time-limit",
+      "source_label": "r12",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "\n"
+    },
+    {
+      "label": "repair-observers-r5",
+      "exit_code": -15,
+      "seconds": 211,
+      "stop_reason": "resource-or-time-limit",
+      "source_label": "r13",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "RESEARCH_OUTCOME_TRANSACTION=PASS (10 groups)\n"
+    },
+    {
+      "label": "repair-observers-r6",
+      "exit_code": 1,
+      "seconds": 70,
+      "stop_reason": null,
+      "source_label": "r13",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "RESEARCH_OUTCOME_TRANSACTION=PASS (10 groups)\nInvalidOperationException: Research observer tests emitted 6 Unity errors.\n"
+    },
+    {
+      "label": "repair-surgery-r1",
+      "exit_code": 1,
+      "seconds": 50,
+      "stop_reason": null,
+      "source_label": "r10",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "InvalidOperationException: Character archetype '' has no phenotype species.\n"
+    },
+    {
+      "label": "repair-surgery-r2",
+      "exit_code": 1,
+      "seconds": 50,
+      "stop_reason": null,
+      "source_label": "r11",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "diagnostic": "InvalidOperationException: Doctor fixture must reach reservation guards.\n"
+    }
+  ],
+  "reuse": "Equipment r10 and EditMode r8/r9 results retained where related contracts did not change. Later edits fix fixture setup, body receipt preflight capacity, and remove a duplicate clock input; r13 surgery/defense and r14 observer/r24 whole-world runs cover those changes; r18 production changes defer defense activation until all character participants complete, and retires outgoing combat projections without health/UI reads. r24 also keeps detached candidate breach initialization from clearing the live raid awareness/reservation. The r24 actual-scene run covers moving guards, canonical world retirement, a fault after all invasion projections publish, exact live-state rollback, retry of the same saved snapshot and completion-hook idempotence.",
+  "limitations": [
+    "Controlled domain fixtures plus actual GameplayScene save/restore; not exhaustive natural AI play or long-run performance proof.",
+    "Existing main V27 historical source inventory and old market/physical-mass evidence are stale. Not recertified or weakened by this work."
+  ],
+  "design": "Five size-only extractions reverted. Size/constructor counts remain review signals; dependency, ownership, save atomicity and retry gates retained.",
+  "preexistingCiFailure": {
+    "workflow": "V27 ledger integrity",
+    "mainCommit": "d9b3fba53940d43c8350427b01cb245c080ac608",
+    "url": "https://github.com/Creeper0809/DungeonStory/actions/runs/39055699125",
+    "reason": "source digest mismatch for .gitattributes: expected=4c6b6f9466466522d0af0397ac3128244d2108c47d15618097729958dc12c139 actual=87c7574972c83715b8b4d149cc7672cb0aa6c76fdae34a924b112a437b799b1a"
+  },
+  "staticChecks": {
+    "architecture": "PASS; architecture-final.txt",
+    "balanceAnalyzer": "PASS; pinned rebuild equals HEAD LFS digest 585c016c and DSB001-DSB008 positive/negative tests",
+    "knowledgeBase": "PASS; r24 rebuild, validation and source/output freshness",
+    "diffCheck": "Tracked changes passed. Final staged review found only EOF blank-line warnings in AnatomyApparelPrimitives.cs and the observer report; verified source/report bytes are retained."
+  }
+}

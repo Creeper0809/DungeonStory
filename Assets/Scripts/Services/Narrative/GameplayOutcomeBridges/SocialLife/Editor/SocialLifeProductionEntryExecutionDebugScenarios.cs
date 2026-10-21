@@ -282,6 +282,7 @@ public static class SocialLifeProductionEntryExecutionDebugScenarios
             target.Actor.SocialMemory.CaptureSnapshot());
         float moodBefore = target.Actor.Stats.Mood;
         var command = new IdleSocialInteractionCommandRuntime(
+            new DungeonStory.Foundation.UnityUiClock(),
             new RejectIdleSocialPublisher(fixture.Facts),
             fixture.Facts,
             fixture.Roots,
@@ -642,6 +643,7 @@ public static class SocialLifeProductionEntryExecutionDebugScenarios
 
         public IdleSocialInteractionCommandRuntime CreateIdleSocialCommand() =>
             new(
+                new DungeonStory.Foundation.UnityUiClock(),
                 Facts,
                 Facts,
                 Roots,

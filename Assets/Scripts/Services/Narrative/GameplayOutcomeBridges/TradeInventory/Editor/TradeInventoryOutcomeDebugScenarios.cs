@@ -202,7 +202,7 @@ public static class TradeInventoryOutcomeDebugScenarios
             null,
             null,
             new MutableOutcomeDeliveryQuery(diagnostics),
-            null);
+            null, clock: new DungeonStory.Foundation.UnityUiClock());
         CanonicalCommitIdentityDeferredParticipant participant = new(
             diagnostics);
         string operation = "qa:trade-inventory:post-commit-fault";
@@ -227,6 +227,8 @@ public static class TradeInventoryOutcomeDebugScenarios
 
         TestHaulingSettings hauling = new();
         WorldItemPersistenceService sourcePersistence = new(
+            new EquipmentEvolutionFormulaCatalogs(
+                CharacterAiEditorTestDependencies.ContentDefinitions),
             catalog,
             hauling,
             repository,
@@ -249,6 +251,8 @@ public static class TradeInventoryOutcomeDebugScenarios
             new GuidPersistentIdGenerator(),
             new DungeonRuntimeAggregateRootStore());
         WorldItemPersistenceService restoredPersistence = new(
+            new EquipmentEvolutionFormulaCatalogs(
+                CharacterAiEditorTestDependencies.ContentDefinitions),
             catalog,
             new TestHaulingSettings(),
             restoredRepository,
@@ -263,7 +267,7 @@ public static class TradeInventoryOutcomeDebugScenarios
             null,
             null,
             new MutableOutcomeDeliveryQuery(diagnostics),
-            null);
+            null, clock: new DungeonStory.Foundation.UnityUiClock());
         // Simulate the interrupted window after canonical acknowledgement but
         // before the physical join attached its identity. Consolidation may
         // compact the ledger row before this independently saved pending row
@@ -388,7 +392,7 @@ public static class TradeInventoryOutcomeDebugScenarios
                 EditorNullItemMarkerPresenter.Instance),
             deferredFacts,
             dispatcher,
-            EditorFixedGameCalendar.Instance);
+            EditorFixedGameCalendar.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         string operation = "qa:trade-inventory:relocation-journal";
         Require(
             service.TryRelocateQuantity(
@@ -406,6 +410,8 @@ public static class TradeInventoryOutcomeDebugScenarios
             "Relocation journal did not commit the exact physical move.");
 
         WorldItemPersistenceService persistence = new(
+            new EquipmentEvolutionFormulaCatalogs(
+                CharacterAiEditorTestDependencies.ContentDefinitions),
             catalog,
             new TestHaulingSettings(),
             repository,
@@ -429,6 +435,8 @@ public static class TradeInventoryOutcomeDebugScenarios
             new GuidPersistentIdGenerator(),
             new DungeonRuntimeAggregateRootStore());
         WorldItemPersistenceService restoredPersistence = new(
+            new EquipmentEvolutionFormulaCatalogs(
+                CharacterAiEditorTestDependencies.ContentDefinitions),
             catalog,
             new TestHaulingSettings(),
             restoredRepository,
@@ -443,7 +451,7 @@ public static class TradeInventoryOutcomeDebugScenarios
                 EditorNullItemMarkerPresenter.Instance),
             dispatcher,
             dispatcher,
-            EditorFixedGameCalendar.Instance);
+            EditorFixedGameCalendar.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         Require(
             restored.TryRelocateQuantity(
                 stackId,

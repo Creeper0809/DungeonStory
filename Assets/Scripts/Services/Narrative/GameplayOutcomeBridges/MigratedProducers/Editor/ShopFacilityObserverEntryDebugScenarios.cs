@@ -67,7 +67,7 @@ public static partial class MigratedProducerEconomyEntryExtendedE2EDebugScenario
                     alerts++;
                     throw new InvalidOperationException("qa-b106-shop-display-failed");
                 });
-                var service = new ShopCustomerInteractionService(source.shop, () => source.shop.transform.position);
+                var service = new ShopCustomerInteractionService(new DungeonStory.Foundation.UnityRealtimeClock(), source.shop, () => source.shop.transform.position);
                 var profile = BuildingCheckoutPatienceRules.Create(1f, 1f, 1);
                 source.shopping.BeginVisitInteraction(source.shop);
                 JObject owners = source.CaptureOwnerCheckpoint();

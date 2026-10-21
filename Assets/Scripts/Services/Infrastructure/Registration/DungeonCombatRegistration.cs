@@ -50,6 +50,7 @@ public static class DungeonCombatRegistration
         builder.Register<ResourceEquipmentModuleCatalog>(Lifetime.Singleton)
             .As<IEquipmentModuleCatalog>();
         builder.Register<CombatEquipmentStatProjector>(Lifetime.Singleton);
+        builder.Register<EquipmentEvolutionFormulaCatalogs>(Lifetime.Singleton);
         builder.RegisterFactory<IProductionOutputCapabilityRegistry>(
             resolver => () => resolver.Resolve<IProductionOutputCapabilityRegistry>(),
             Lifetime.Singleton);

@@ -1836,6 +1836,7 @@ public static partial class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 events,
                 "run:migrated-entry-offense-node-truth");
             world.Construct(
+                new DungeonStory.Foundation.UnityUiClock(),
                 events,
                 null,
                 campaign,
@@ -2344,7 +2345,8 @@ public static partial class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 ? DefaultFactionId
                 : CausalGameplaySyntax.RequireId(factionId, nameof(factionId));
             var allianceBudget =
-                new ResourceFactionAllianceBenefitBudgetApplicationAdapter();
+                new ResourceFactionAllianceBenefitBudgetApplicationAdapter(
+                    CharacterAiEditorTestDependencies.ContentDefinitions);
             if (string.IsNullOrEmpty(initialState.AllianceBenefitAuthorityDigest))
             {
                 initialState.AllianceBenefitAuthorityDigest =
@@ -2399,7 +2401,7 @@ public static partial class MigratedProducerRunOffenseEntryE2EDebugScenarios
                         new GameplayDomainFactDeliveryQuery(
                             Outcomes.Recorder,
                             Outcomes.Ledger),
-                        EditorFixedGameCalendar.Instance);
+                        EditorFixedGameCalendar.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
                 effectiveItemSpawner = new WorldItemSpawner(
                     itemCatalog,
                     itemRepository,
@@ -2716,7 +2718,8 @@ public static partial class MigratedProducerRunOffenseEntryE2EDebugScenarios
             FactionAggregateState state = CreateState();
             campaign = new MultiFactionCampaignDouble(state.Factions.Values);
             var allianceBudget =
-                new ResourceFactionAllianceBenefitBudgetApplicationAdapter();
+                new ResourceFactionAllianceBenefitBudgetApplicationAdapter(
+                    CharacterAiEditorTestDependencies.ContentDefinitions);
             state.AllianceBenefitAuthorityDigest = allianceBudget.AuthorityDigest;
             state.AllianceBenefitBalanceMilliEwu = allianceBudget.CapacityMilliEwu;
             state.AllianceBenefitLastRefillDay = state.CurrentDay;
@@ -3085,7 +3088,10 @@ public static partial class MigratedProducerRunOffenseEntryE2EDebugScenarios
                 world: new FactionWorldDouble(),
                 routeEconomicPolicies: new FactionEconomicPolicyDouble(),
                 gameSessionState: sessionStore,
-                treasuryState: treasury);
+                treasuryState: treasury,
+                allianceBenefitBudget:
+                    new ResourceFactionAllianceBenefitBudgetApplicationAdapter(
+                        CharacterAiEditorTestDependencies.ContentDefinitions));
         }
 
         public override string CaptureDomain()

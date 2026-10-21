@@ -104,7 +104,10 @@ public static class PhysicalItemDispositionFactRecoveryDebugScenarios
             int fault = 0, bool subscribe = true)
         {
             Repository = new WorldItemRepository(new GuidPersistentIdGenerator(), new DungeonRuntimeAggregateRootStore());
-            Persistence = new WorldItemPersistenceService(Catalog, new Hauling(), Repository,
+            Persistence = new WorldItemPersistenceService(
+                new EquipmentEvolutionFormulaCatalogs(
+                    CharacterAiEditorTestDependencies.ContentDefinitions),
+                Catalog, new Hauling(), Repository,
                 EmptyFacilityOutputExactRouteOutboxPersistence.Instance);
             if (physical != null)
             { Persistence.RestoreForEditorTest(physical); stackId = physical.pendingBatchDispositions.Single().sourceStackIds.Single(); }
@@ -127,7 +130,7 @@ public static class PhysicalItemDispositionFactRecoveryDebugScenarios
             publicationFault = fault == 0 ? null : new Fault(dispatcher, fault);
             Service = new PhysicalItemBatchDispositionService(Repository, new Mass(), EditorNullItemMarkerPresenter.Instance,
                 null, Catalog, (IDomainFactStagingPublisher)publicationFault ?? dispatcher, dispatcher,
-                new GameplayDomainFactDeliveryQuery(recorder, Ledger), Calendar);
+                new GameplayDomainFactDeliveryQuery(recorder, Ledger), Calendar, clock: new DungeonStory.Foundation.UnityUiClock());
         }
         public void ResumePublication() => publicationFault.Mode = 0;
         public WorldItemRepository Repository { get; }

@@ -1836,7 +1836,7 @@ public static class CombatEquipmentCraftTransactionFixture
             dispositions = new PhysicalItemBatchDispositionService(
                 repository,
                 mass,
-                EditorNullItemMarkerPresenter.Instance);
+                EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         }
 
         internal bool FailNextAcknowledgement { get; set; }

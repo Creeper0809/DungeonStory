@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using DungeonStory.Foundation;
 using DungeonStory.Foundation.Facts;
 using UnityEngine;
 
 internal sealed class CharacterBreakdownWorld
 {
+    private readonly IUiClock uiClock;
     internal sealed class FilthTransactionSnapshot
     {
         internal FilthTransactionSnapshot(
@@ -51,6 +53,7 @@ internal sealed class CharacterBreakdownWorld
     private string lastCorpseRecoveryFailure = string.Empty;
 
     public CharacterBreakdownWorld(
+        IUiClock uiClock,
         IGridSystemProvider gridSystemProvider,
         IWorldItemStackRuntime itemStackRuntime,
         IWorldFilthQuery filthQuery,
@@ -61,6 +64,7 @@ internal sealed class CharacterBreakdownWorld
         IDomainFactStagingPublisher facts = null,
         IDomainFactRecoveryPublisher recovery = null)
     {
+        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.itemStackRuntime = itemStackRuntime
@@ -181,8 +185,8 @@ internal sealed class CharacterBreakdownWorld
             foreach (var pending in owner.CaptureCorpsePublications())
                 QueueCorpseRecovery(pending.fact.physical.operationId);
         }
-        if (pendingCorpsePublications.Count == 0 || Time.unscaledTime < nextCorpseRecoveryAt) return;
-        nextCorpseRecoveryAt = Time.unscaledTime + 1f;
+        if (pendingCorpsePublications.Count == 0 || uiClock.Time < nextCorpseRecoveryAt) return;
+        nextCorpseRecoveryAt = uiClock.Time + 1f;
         int count = Math.Min(8, pendingCorpsePublications.Count);
         string failure = string.Empty;
         for (int index = 0; index < count; index++)

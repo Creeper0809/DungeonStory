@@ -224,7 +224,7 @@ public static class PreparedOutputCustodyMutationGuardDebugScenarios
             repository,
             mass,
             EditorNullItemMarkerPresenter.Instance,
-            reservations);
+            reservations, clock: new DungeonStory.Foundation.UnityUiClock());
         IReadOnlyList<ItemInstanceComponentSaveData> custody = CreateCustody();
 
         string reservedStackId = WorldItemRepositoryEditorAccess.AddStack(
@@ -628,7 +628,7 @@ public sealed class DeterministicPhysicalItemRelocationOutcomeFixture : IDisposa
             markers),
         publisher,
         dispatcher,
-        new RelocationFixtureCalendar());
+        new RelocationFixtureCalendar(), clock: new DungeonStory.Foundation.UnityUiClock());
 
     public void Dispose() => dispatcher.Dispose();
 

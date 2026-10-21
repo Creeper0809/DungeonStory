@@ -1244,7 +1244,7 @@ public sealed class DefenseEngagementRuntime :
 
     public void RetirePreviousRestoreProjection()
     {
-        persistence.RetirePreviousRestoreProjection(CompleteEngagement);
+        persistence.RetirePreviousRestoreProjection(combatRuntime.RetireForWorldRestore);
     }
 
     public void ActivateRestoreProjection()

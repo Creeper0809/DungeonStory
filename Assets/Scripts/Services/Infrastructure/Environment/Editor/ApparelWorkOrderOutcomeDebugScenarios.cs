@@ -98,7 +98,7 @@ public static class ApparelWorkOrderOutcomeDebugScenarios
             var dispositions = new PhysicalItemBatchDispositionService(
                 repository,
                 new PhysicalItemMassQuery(items.CatalogProvider),
-                EditorNullItemMarkerPresenter.Instance);
+                EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
             var outcomes = new MigratedProducerOutcomeEditorFixture(
                 "run:apparel-work-order-terminal");
             var probe = new MigratedProducerOutcomeProbeTransaction(

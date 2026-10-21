@@ -608,6 +608,8 @@ public static class OrganPreservationRestoreJoinFixture
                 new GuidPersistentIdGenerator(),
                 new DungeonRuntimeAggregateRootStore());
             physicalPersistence = new WorldItemPersistenceService(
+                new EquipmentEvolutionFormulaCatalogs(
+                    CharacterAiEditorTestDependencies.ContentDefinitions),
                 dungeonCatalog,
                 new FixtureHaulingSettings(),
                 Repository,
@@ -619,7 +621,7 @@ public static class OrganPreservationRestoreJoinFixture
             Batch = new PhysicalItemBatchDispositionService(
                 Repository,
                 mass,
-                EditorNullItemMarkerPresenter.Instance);
+                EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
             WorldItemSpawner spawner = new(
                 dungeonCatalog,
                 Repository,
@@ -639,7 +641,7 @@ public static class OrganPreservationRestoreJoinFixture
                 dungeonCatalog,
                 EditorNullItemMarkerPresenter.Instance,
                 new FixedGameSessionStateProvider(),
-                physicalFacts));
+                physicalFacts, clock: new DungeonStory.Foundation.UnityUiClock()));
             IPhysicalItemTransformService physicalTransforms = transforms
                 ?? (failFirstTransform
                     ? new RejectOnceTransform(Transform)
@@ -1396,7 +1398,7 @@ public static class OrganPreservationRestoreJoinFixture
     {
         IDungeonItemCatalogProvider catalog=EditorItemCatalogFactory.Create();
         WorldItemRepository repository=new(new GuidPersistentIdGenerator(),new DungeonRuntimeAggregateRootStore());
-        PhysicalItemBatchDispositionService inner=new(repository,new PhysicalItemMassQuery(catalog),EditorNullItemMarkerPresenter.Instance);
+        PhysicalItemBatchDispositionService inner=new(repository,new PhysicalItemMassQuery(catalog),EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         FailOnce dispositions=new(inner){FailNext=true};
         string stack=WorldItemRepositoryEditorAccess.AddStack(repository,"medical:organ-preservation-canister",2,WorldItemStackState.FacilityBuffer,position:new Vector2Int(2,2),destinationId:"building:organ-storage");
         SurgicalPartInstance part=new(){partInstanceId="surgical-part:9",kind=SurgicalPartKind.NaturalOrgan};

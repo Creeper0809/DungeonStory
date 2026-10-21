@@ -341,38 +341,4 @@ public sealed partial class EquipmentEvolutionFormulaCatalogSO : ScriptableObjec
             $"Unknown equipment formula capability '{capabilityId ?? string.Empty}'.");
     }
 
-    public static EquipmentEvolutionFormulaCatalogSO LoadRequired()
-    {
-        return LoadAtPath(ResourcePath, EquipmentEvolutionRules.CurrentFormulaVersion);
-    }
-
-    public static EquipmentEvolutionFormulaCatalogSO LoadForPersistedNode(int formulaVersion)
-    {
-        if (formulaVersion == EquipmentEvolutionRules.DrawbackModuleSelectionFormulaVersion)
-            return LoadAtPath(
-                LegacyV3ResourcePath,
-                EquipmentEvolutionRules.DrawbackModuleSelectionFormulaVersion);
-        if (formulaVersion >= EquipmentEvolutionRules.CurrentFormulaVersion)
-            return LoadAtPath(ResourcePath, formulaVersion);
-
-        // V2 did not store a catalog hash. Its existing descriptors are a
-        // strict subset of the current catalog, so retain the pre-V3 route.
-        return LoadRequired();
-    }
-
-    private static EquipmentEvolutionFormulaCatalogSO LoadAtPath(
-        string resourcePath,
-        int expectedFormulaVersion)
-    {
-        EquipmentEvolutionFormulaCatalogSO catalog = Resources.Load<EquipmentEvolutionFormulaCatalogSO>(resourcePath);
-        if (catalog == null)
-            throw new InvalidOperationException(
-                $"Required authored equipment formula catalog Resources/{resourcePath}.asset is missing.");
-        catalog.RequirePolicy();
-        if (catalog.formulaPolicy.formulaVersion != expectedFormulaVersion)
-            throw new InvalidOperationException(
-                $"Equipment formula catalog Resources/{resourcePath}.asset has version "
-                + $"{catalog.formulaPolicy.formulaVersion}, expected {expectedFormulaVersion}.");
-        return catalog;
-    }
 }

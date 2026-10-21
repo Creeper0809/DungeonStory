@@ -192,7 +192,7 @@ public static partial class TabooButcheryCausalProductionEntryDebugScenarios
             world = new CustomerAiDebugScenarios.CustomerAiScenarioWorld();
             try
             {
-                health = new CharacterBodyHealthRuntime(CharacterAiEditorTestDependencies.WorldRegistry, clock, events,
+                health = new CharacterBodyHealthRuntime(new UnityRealtimeClock(), CharacterAiEditorTestDependencies.WorldRegistry, clock, events,
                     new DynamicFrameWorkBudget(clock, new UnityUiClock()),
                     new ResourceAnatomyProfileCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader())),
                     outcomes.AggregateRootStore,
@@ -215,7 +215,7 @@ public static partial class TabooButcheryCausalProductionEntryDebugScenarios
                 var transforms = new PhysicalItemTransformService(repository,
                     new WorldItemSpawner(items.CatalogProvider, repository, EditorNullItemMarkerPresenter.Instance),
                     items.MassQuery, items.CatalogProvider, EditorNullItemMarkerPresenter.Instance,
-                    new FixedGameSessionStateProvider(Day), physicalFacts);
+                    new FixedGameSessionStateProvider(Day), physicalFacts, clock: new DungeonStory.Foundation.UnityUiClock());
                 carcasses = new WildlifeCarcassService(items, transforms,
                     new ResourceWildlifeSpeciesCatalogProvider(content, itemCatalog), events);
                 wildlifeActivities = new WildlifeCarcassActivityObserver(events);

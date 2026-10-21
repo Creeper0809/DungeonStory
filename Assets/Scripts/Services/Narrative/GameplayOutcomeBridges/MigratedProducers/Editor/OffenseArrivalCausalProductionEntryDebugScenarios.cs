@@ -328,6 +328,7 @@ public static partial class OffenseArrivalCausalProductionEntryDebugScenarios
                 events,
                 causalRunId + ":truth");
             worldMap.Construct(
+                new DungeonStory.Foundation.UnityUiClock(),
                 events,
                 null,
                 campaign,

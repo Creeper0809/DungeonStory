@@ -2313,7 +2313,7 @@ public static partial class EnvironmentCropProductionEntryDebugScenarios
                     batchDispositionFactory: !recordPhysicalConsumption ? null : (r, m, q) =>
                         new PhysicalItemBatchDispositionService(r, m, EditorNullItemMarkerPresenter.Instance,
                             q, itemCatalog, domainFacts, domainFacts,
-                            new GameplayDomainFactDeliveryQuery(recorder, Ledger), clock));
+                            new GameplayDomainFactDeliveryQuery(recorder, Ledger), clock, clock: new DungeonStory.Foundation.UnityUiClock()));
             Repository = repository;
             stock = new PhysicalStockQuery(
                 Repository,
@@ -2345,7 +2345,7 @@ public static partial class EnvironmentCropProductionEntryDebugScenarios
                     Repository,
                     WorldItems.MassQuery,
                     EditorNullItemMarkerPresenter.Instance,
-                    reservations));
+                    reservations, clock: new DungeonStory.Foundation.UnityUiClock()));
             IPackagedLotTareDispositionService realTare =
                 new PackagedLotTareDispositionService(
                     (IPackagedLotDefinitionQuery)WorldItems.MassQuery,
@@ -3513,7 +3513,8 @@ public static partial class EnvironmentCropProductionEntryDebugScenarios
             inner.Acknowledge(committed);
 
         public int RetryPendingDeliveries(int maximumCount) =>
-            inner.RetryPendingDeliveries(maximumCount);
+            // Reconciliation must observe the same delivery outage as TryDeliver.
+            FailCertifiedSeedDelivery ? 0 : inner.RetryPendingDeliveries(maximumCount);
     }
 
     private sealed class FixedEffectBounds : IGameplayEffectResultBoundsQuery

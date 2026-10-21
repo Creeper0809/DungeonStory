@@ -172,7 +172,7 @@ public static class EquipmentEvolutionLifecycleFixture
             repository = new WorldItemRepository(new GuidPersistentIdGenerator(), new DungeonRuntimeAggregateRootStore());
             var mass = new PhysicalItemMassQuery(items);
             query = new WorldItemQueryService(items, mass, repository, EditorNullItemMarkerPresenter.Instance);
-            Physical = new PhysicalProbe(new PhysicalItemBatchDispositionService(repository, mass, EditorNullItemMarkerPresenter.Instance));
+            Physical = new PhysicalProbe(new PhysicalItemBatchDispositionService(repository, mass, EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock()));
             world = DispatchProxy.Create<IWorldItemStackRuntime, WorldProbe>();
             ((WorldProbe)(object)world).Read = () => query.GetAllStacks().Concat(new[]
             {
@@ -201,7 +201,10 @@ public static class EquipmentEvolutionLifecycleFixture
         private void CreateRuntime()
         {
             Input = new InputProbe();
-            runtime = new EquipmentEvolutionRuntime((ICombatEquipmentRuntime)(object)Equipment,
+            runtime = new EquipmentEvolutionRuntime(
+                new EquipmentEvolutionFormulaCatalogs(
+                    CharacterAiEditorTestDependencies.ContentDefinitions),
+                (ICombatEquipmentRuntime)(object)Equipment,
                 new UsageLedgerCompactor(), new EvolutionModuleRegistry(), materials, world, Physical, Input,
                 new FacilityEvolutionStateComponentFactory(), new DungeonRuntimeAggregateRootStore(),
                 new GameplayOutcomeNarrativeEvidenceQuery(outcomes.Ledger),

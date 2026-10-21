@@ -26,6 +26,7 @@ public static class DefenseCombatOutcomeTransactionDebugScenarios
             CharacterAiEditorTestDependencies.WorldRegistry.RegisterCharacter(attacker);
             CharacterAiEditorTestDependencies.WorldRegistry.RegisterCharacter(defender);
             VerifyRollbackRetryAndOrigin(attacker, defender);
+            Debug.Log("DEFENSE_COMBAT_TRANSACTION=PASS; rollback=True; retry=True; origin=True; duplicateRejected=True");
         }
         finally
         {
@@ -96,6 +97,7 @@ public static class DefenseCombatOutcomeTransactionDebugScenarios
                 migrated,
                 new GameplayDomainFactCommitGroup(recorder, ledger)));
         var publications = new CombatActionPublicationRuntime(
+            new DungeonStory.Foundation.UnityUiClock(),
             roots,
             facts,
             facts);
@@ -168,8 +170,8 @@ public static class DefenseCombatOutcomeTransactionDebugScenarios
             "던전 방어 교전: 방어 공격자",
             CharacterCommandOrigin.Autonomous);
         Require(!failed.Succeeded
-                && failed.FailureReason == "injected-defense-mechanical-fault",
-            "Injected defense mechanical fault was not surfaced.");
+                && failed.FailureReason == "combat-action-failed:injected-defense-mechanical-fault",
+            "Injected defense mechanical fault was not surfaced: " + failed.FailureReason);
         Require(failureApplied && failureRolledBack && !failureCompleted,
             "Failed defense mutation did not follow apply/rollback semantics.");
         Require(Mathf.Approximately(
@@ -231,14 +233,23 @@ public static class DefenseCombatOutcomeTransactionDebugScenarios
             "Committed defense outcome applied the wrong health delta.");
         GameplayOutcomeQueryPage operation = ledger.GetForOperation(
             new GameplayOperationId(operationId));
-        Require(operation.Items.Count == 2
+        // The combat authority owns the damage operation; the observer assigns
+        // the attack its own durable identity and links it to the domain commit.
+        GameplayResultKey attackKey = MigratedProducerOutcomeCatalog.ResultKey(
+            MigratedProducerOutcomeKind.CombatAttackResult, retryReservation.Proposal.Identity, 1);
+        GameplayOutcomeQueryPage attack = ledger.GetForOperation(attackKey.OperationId);
+        Require(ledger.CaptureGameplayOutcomes().exactOutcomes.Count == 2
+                && operation.Items.Count == 1
                 && operation.Items.Count(value => value.Exact != null
                     && value.Exact.outcomeTypeId
                         == ProductionCombatOutcomeIds.CombatDamageResolved.Value) == 1
-                && operation.Items.Count(value => value.Exact != null
+                && attack.Items.Count == 1
+                && attack.Items.Count(value => value.Exact != null
                     && value.Exact.outcomeTypeId == MigratedProducerOutcomeCatalog.Get(
                             MigratedProducerOutcomeKind.CombatAttackResult)
-                        .OutcomeTypeId.Value) == 1,
+                        .OutcomeTypeId.Value
+                    && value.Exact.provenance.Count(reference => reference.kindId == "domain-commit"
+                        && reference.value == operationId) == 1) == 1,
             "Committed defense action did not publish exactly one attack and one damage row.");
         Require(ledger.GetOutboxSnapshot().Count == 0,
             "Committed defense outcome was not delivered and acknowledged.");

@@ -335,6 +335,7 @@ public static class OffenseWorldMapDebugScenarios
                 "run:offense-truth-reveal-editor");
             OutcomeLedger = truthFacts.Ledger;
             Runtime.Construct(
+                new DungeonStory.Foundation.UnityUiClock(),
                 GameEvents,
                 externalInfluence: null,
                 campaign,

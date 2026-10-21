@@ -426,7 +426,7 @@ public static class CaptivityCircusDebugScenarios
         var batch = new PhysicalItemBatchDispositionService(
             repository,
             new PhysicalItemMassQuery(catalog),
-            EditorNullItemMarkerPresenter.Instance);
+            EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         const string captiveId = "character:captive:outbox";
         const string instanceId = "item-instance:captive-work-kit:outbox";
         ItemInstanceComponentSaveData durability =

@@ -152,7 +152,7 @@ public static class TradeInventoryProductionEntryExecutionDebugScenarios
             facts,
             facts,
             new GameplayDomainFactDeliveryQuery(recorder, ledger),
-            calendar);
+            calendar, clock: new DungeonStory.Foundation.UnityUiClock());
 
         bool succeeded = service.TryCommit(
             new[] { new PhysicalItemTransformInput(stackId, 1) },
@@ -214,7 +214,7 @@ public static class TradeInventoryProductionEntryExecutionDebugScenarios
             preparedRelocations,
             facts,
             facts,
-            calendar);
+            calendar, clock: new DungeonStory.Foundation.UnityUiClock());
 
         bool succeeded = service.TryRelocateQuantity(
             sourceStackId,

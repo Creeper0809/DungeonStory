@@ -1,5 +1,16 @@
 # DungeonStory Current Task Plan
 
+## 현재 작업 — EditMode 회귀 수정·실행 완료 (2026-10-22)
+
+Status: implementation_verified. codex/fix-editmode-regressions에서 소스 수정과 필수 실행을 완료했다. GitHub main 통합 여부의 권위는 이 변경을 포함한 PR의 merged 상태와 원격 main 커밋이다.
+
+1. 원본 서버 XML 198/179/19와 소스 신원을 확인하고 격리 worktree에서 원인을 분류했다.
+2. 본 작업의 불필요 분리 5개를 원복했다. 줄 수·생성자 인자 수는 조사 지표로 남겼으며 실제 의존 방향, 상태 권위, 복원·실패 계약을 기준으로 수정했다.
+3. 전체 EditMode 194/198 후 실패·영향 범위 7/7, 최종 r24 침입 관련 3/3을 통과했다. 198개 각각 최신 PASS이며 최종 소스 단일 198/198 실행은 아니다. 장비 저장·재시도, 수술 거절, 전투 롤백, 관측 영수증 복구와 실제 GameplayScene 104-section 복원·후속 처리·baseline 복원을 통과했다.
+4. 현재 소스 컴파일, source drift 0, 관련 생성 인덱스·정적 검사와 최종 diff 검토를 완료하고 증거를 커밋에 포함한다. push·PR·main 결과는 GitHub 기록으로 확인한다.
+
+SOURCE_EDIT / UNITY_VERIFY CLOSED. 최종 소스 r24, 모든 Unity 실행 terminal. 원래 checkout의 UI 감사·LLM 변경은 보존했다. [실행 증거](Artifacts/QA/EditModeRepairs-20261021/verification-final.json). 기존 main의 V27 historical source inventory/장기 원장 자료 불일치는 별도 미해결이며, 이번 통제 fixture·실제 씬 검증으로 재인증한 것으로 세지 않는다.
+
 ## 현재 작업 — SO 모듈 확장 완료 (2026-10-18)
 
 Status: complete

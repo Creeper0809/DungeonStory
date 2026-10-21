@@ -1815,7 +1815,7 @@ public static class CombatSystemDebugScenarios
             actor.EnsureRuntimeState();
             actor.Identity.SetPersistentId("character:combat-downed-hysteresis");
             CharacterBodyHealthRuntime bodyHealth =
-                new CharacterBodyHealthRuntime(
+                new CharacterBodyHealthRuntime(new DungeonStory.Foundation.UnityRealtimeClock(),
                     CharacterAiEditorTestDependencies.WorldRegistry,
                     new UnityGameClock(),
                     new GameEventBus(),
@@ -1887,7 +1887,7 @@ public static class CombatSystemDebugScenarios
                 CharacterAiEditorTestDependencies.WorldRegistry);
             vitalsActivities.Initialize();
             CharacterBodyHealthRuntime bodyHealth =
-                new CharacterBodyHealthRuntime(
+                new CharacterBodyHealthRuntime(new DungeonStory.Foundation.UnityRealtimeClock(),
                     CharacterAiEditorTestDependencies.WorldRegistry,
                     new UnityGameClock(),
                     events,
@@ -2118,7 +2118,7 @@ public static class CombatSystemDebugScenarios
             actor.EnsureRuntimeState();
             actor.Identity.SetPersistentId("character:body-health-strict-save");
             DungeonRuntimeAggregateRootStore root = new DungeonRuntimeAggregateRootStore();
-            CharacterBodyHealthRuntime runtime = new CharacterBodyHealthRuntime(
+            CharacterBodyHealthRuntime runtime = new CharacterBodyHealthRuntime(new DungeonStory.Foundation.UnityRealtimeClock(),
                 CharacterAiEditorTestDependencies.WorldRegistry,
                 new UnityGameClock(),
                 new GameEventBus(),

@@ -606,7 +606,7 @@ public static class AnimalHusbandryOutcomeDebugScenarios
                 physicalFacts = fixture.CreatePhysicalTransformationFacts(Probe);
                 var transforms = new PhysicalItemTransformService(repository, spawner,
                     physical.MassQuery, catalog, EditorNullItemMarkerPresenter.Instance,
-                    new FixedGameSessionStateProvider(23), physicalFacts);
+                    new FixedGameSessionStateProvider(23), physicalFacts, clock: new DungeonStory.Foundation.UnityUiClock());
                 productionCarcasses = new WildlifeCarcassService(physical, transforms,
                     speciesCatalog, new GameEventBus());
                 productionCarcasses.ConstructFactPublisher(calendar, physicalFacts);

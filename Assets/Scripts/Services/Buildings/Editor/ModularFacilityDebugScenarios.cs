@@ -824,6 +824,7 @@ public static class ModularFacilityDebugScenarios
             Facility logistics = (Facility)CreateAndRegister(foodGrid, Load("L01"), new Vector2Int(15, 0), created);
             Shop foodShop = (Shop)CreateAndRegister(foodGrid, Load("S01"), new Vector2Int(18, 0), created);
             foodShop.ConstructShop(
+                new DungeonStory.Foundation.UnityRealtimeClock(),
                 new EditorGameMoneyAccount(gameData),
                 ShopStockCatalog,
                 numberFeedback,
@@ -882,6 +883,7 @@ public static class ModularFacilityDebugScenarios
             CreateAndRegister(weaponGrid, Load("S07"), new Vector2Int(8, 0), created);
             Shop weaponShop = (Shop)CreateAndRegister(weaponGrid, Load("S01"), new Vector2Int(11, 0), created);
             weaponShop.ConstructShop(
+                new DungeonStory.Foundation.UnityRealtimeClock(),
                 new EditorGameMoneyAccount(gameData),
                 ShopStockCatalog,
                 numberFeedback,
@@ -898,6 +900,7 @@ public static class ModularFacilityDebugScenarios
             CreateAndRegister(generalGrid, Load("S02"), new Vector2Int(5, 0), created);
             Shop generalShop = (Shop)CreateAndRegister(generalGrid, Load("S01"), new Vector2Int(8, 0), created);
             generalShop.ConstructShop(
+                new DungeonStory.Foundation.UnityRealtimeClock(),
                 new EditorGameMoneyAccount(gameData),
                 ShopStockCatalog,
                 numberFeedback,
@@ -915,6 +918,7 @@ public static class ModularFacilityDebugScenarios
             CreateAndRegister(manaGrid, Load("M04"), new Vector2Int(7, 0), created);
             Shop manaShop = (Shop)CreateAndRegister(manaGrid, Load("S01"), new Vector2Int(11, 0), created);
             manaShop.ConstructShop(
+                new DungeonStory.Foundation.UnityRealtimeClock(),
                 new EditorGameMoneyAccount(gameData),
                 ShopStockCatalog,
                 numberFeedback,
@@ -955,6 +959,7 @@ public static class ModularFacilityDebugScenarios
             CreateAndRegister(grid, Load("D09"), new Vector2Int(12, 0), created);
             Shop shop = (Shop)CreateAndRegister(grid, Load("S01"), new Vector2Int(16, 0), created);
             shop.ConstructShop(
+                new DungeonStory.Foundation.UnityRealtimeClock(),
                 new EditorGameMoneyAccount(gameData),
                 ShopStockCatalog,
                 new NoopFloatingNumberFeedbackService(),

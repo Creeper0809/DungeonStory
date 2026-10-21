@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer;
 
@@ -130,6 +132,77 @@ public static class U1FullWorldOwnerBindingVerification
             evidence.Add("humanApprovalClaimed=false;trainingEligible=false");
             WriteNew("u1-owner-binding-world-report.txt", string.Join("\n", evidence));
             Require(baselineRestored, "World baseline restore failed: " + string.Join(" | ", restored.Errors));
+        }
+    }
+
+    public static void RunPrisonerIdentity(DungeonRuntimeLifetimeScope scope, IDungeonGameSaveService saves)
+    {
+        Require(DungeonPersistencePaths.IsIsolatedVerification, "Prisoner verification requires isolated persistence.");
+        DungeonGameSaveData baseline = saves.Capture();
+        ICharacterBodyHealthPersistence health = scope.Container.Resolve<ICharacterBodyHealthPersistence>();
+        string healthBefore = JsonUtility.ToJson(health.Capture());
+        string[] previousIds = health.Capture().characters.Select(value => value.characterId).ToArray();
+        bool passed = false;
+        try
+        {
+            CharacterId expectedId = CharacterId.FromStableSuffix("qa:prisoner-owner-binding");
+            Require(!previousIds.Contains(expectedId.Value), "Prisoner verification identity already exists.");
+            IEnemyIndividualFactory individuals = scope.Container.Resolve<IEnemyIndividualFactory>();
+            EnemyArchetypeDefinitionSO archetype = scope.Container.Resolve<IEnemyArchetypeCatalog>().All
+                .Where(value => value.speciesTag == "Human")
+                .OrderBy(value => value.stableId, StringComparer.Ordinal).First();
+            var arrival = new OffenseReturnArrivalState
+            {
+                kind = OffenseReturnArrivalKind.Prisoner,
+                requestedAmount = 1,
+                prisonerIndividuals = new List<EnemyIndividualSaveData>
+                {
+                    individuals.Create(archetype.stableId, expectedId, "qa:prisoner-owner-binding")
+                }
+            };
+            Require(scope.Container.Resolve<IGridSystemProvider>().TryGetGrid(out Grid grid),
+                "Prisoner verification requires the actual gameplay grid.");
+            CharacterActor owner = ResolveOwner(scope);
+            var runtime = (OffenseReturnArrivalRuntime)scope.Container.Resolve<IOffenseReturnArrivalRuntime>();
+            MethodInfo spawn = typeof(OffenseReturnArrivalRuntime).GetMethod("TrySpawnPrisoner",
+                BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("Prisoner production materialization entry is missing.");
+            // Controlled arrival input; invoke the real scene-bound production creation path.
+            // This does not fabricate a completed expedition or append an invalid expedition to saves.
+            object[] arguments = { arrival, grid, grid.GetXY(owner.transform.position), null };
+            Require((bool)spawn.Invoke(runtime, arguments) && (string)arguments[3] == expectedId.Value,
+                "Prisoner materialization did not publish its canonical identity.");
+            CharacterActor prisoner = scope.Container.Resolve<ICharacterWorldQuery>().Characters
+                .Single(actor => actor != null && actor.Identity != null && actor.Identity.TypedPersistentId.Equals(expectedId));
+            Require(prisoner.HasBeenPublished && prisoner.CurrentLifecycleState == CharacterLifecycleState.Downed,
+                "Prisoner was not published with its actual downed state.");
+            DungeonCharacterBodyHealthSaveData captured = health.Capture();
+            string[] addedIds = captured.characters.Select(value => value.characterId)
+                .Except(previousIds, StringComparer.Ordinal).ToArray();
+            Require(captured.characters.Count == previousIds.Length + 1
+                && addedIds.SequenceEqual(new[] { expectedId.Value }),
+                "Prisoner initialization left a provisional body-health identity behind.");
+            var restoredHealth = JsonUtility.FromJson<DungeonCharacterBodyHealthSaveData>(JsonUtility.ToJson(captured));
+            Require(restoredHealth.characters.Count(value => value.characterId == expectedId.Value) == 1
+                && restoredHealth.characters.Count == captured.characters.Count,
+                "Prisoner health persistence did not preserve exactly one canonical record.");
+            CharacterSkillTransientState transient = prisoner.GetComponent<CharacterSkillTransientState>();
+            Require(transient != null && transient.IsConfigured, "Prisoner transient skill state is not configured.");
+            transient.BeginWork(BuiltInWorkTypeIds.Restock, 1.25f);
+            Require(Mathf.Approximately(scope.Container.Resolve<ICharacterSkillTransientStateRegistry>()
+                .GetWorkSpeedMultiplier(expectedId), 1.25f), "Prisoner transient state retained a provisional identity.");
+            transient.EndWork();
+            passed = true;
+        }
+        finally
+        {
+            bool baselineRestored = saves.TryRestore(baseline, out DungeonGameRestoreReport restored);
+            bool healthRestored = baselineRestored && JsonUtility.ToJson(health.Capture()) == healthBefore;
+            WriteNew("prisoner-identity.txt", (passed && healthRestored ? "RESULT=PASS" : "RESULT=FAIL")
+                + "\nactualSceneFactory=true;canonicalHealthRecords=1;transientOwnerExact=" + passed
+                + ";baselineRestored=" + baselineRestored + ";healthBaselineExact=" + healthRestored + "\n");
+            Require(baselineRestored && healthRestored,
+                "Prisoner world baseline restore failed: " + string.Join(" | ", restored.Errors));
         }
     }
 

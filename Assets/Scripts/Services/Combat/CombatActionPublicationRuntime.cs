@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Foundation;
 using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer.Unity;
@@ -6,6 +7,7 @@ using VContainer.Unity;
 /// <summary>The combat authority keeps applied facts; the observer owns all log identities and policy.</summary>
 public sealed class CombatActionPublicationRuntime : IStartable, ITickable, IDungeonSaveRestoreCompletedHook
 {
+    private readonly IUiClock clock;
     private readonly DungeonRuntimeAggregateRootStore roots;
     private readonly IDomainFactPublisher publisher;
     private readonly IDomainFactRecoveryPublisher recovery;
@@ -14,9 +16,10 @@ public sealed class CombatActionPublicationRuntime : IStartable, ITickable, IDun
     private float nextRecovery;
     private string lastFailure = string.Empty;
     private int recoveryCursor;
-    public CombatActionPublicationRuntime(DungeonRuntimeAggregateRootStore roots,
+    public CombatActionPublicationRuntime(IUiClock clock, DungeonRuntimeAggregateRootStore roots,
         IDomainFactPublisher publisher, IDomainFactRecoveryPublisher recovery)
     {
+        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.roots = roots ?? throw new ArgumentNullException(nameof(roots));
         this.publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
         this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
@@ -92,8 +95,8 @@ public sealed class CombatActionPublicationRuntime : IStartable, ITickable, IDun
     public void OnRestoreCompleted() { recoveryCursor = 0; nextRecovery = 0; lastFailure = string.Empty; Recover(); }
     public void Tick()
     {
-        if (roots.IsRestoreStaging || activeProposal != null || Current.Count == 0 || Time.unscaledTime < nextRecovery) return;
-        nextRecovery = Time.unscaledTime + 1f;
+        if (roots.IsRestoreStaging || activeProposal != null || Current.Count == 0 || clock.Time < nextRecovery) return;
+        nextRecovery = clock.Time + 1f;
         Recover();
     }
     public bool Recover()

@@ -1,0 +1,1 @@
+SAVE_ROUND_TRIP PASS jsonBytes=2094921 buildings=138 characters=3 expeditions=1 intruders=1 knowledgeContinuation=PASS defenseGuardActivation=PASS invasionRollbackRetry=PASS warnings=0

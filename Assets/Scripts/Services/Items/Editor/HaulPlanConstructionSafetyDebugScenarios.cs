@@ -1582,6 +1582,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 GridLayer.Building);
             siteObject = new GameObject("HaulConstructionDestinationSite");
             site = siteObject.AddComponent<ConstructionSite>();
+            site.Construct(new DungeonStory.Foundation.UnityUiClock());
             site.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
             site.ConstructBuildableObject(
                 new BuildingResearchWorkPortAdapter(
@@ -1706,6 +1707,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             duplicateSiteObject = new GameObject(
                 "HaulConstructionDestinationDuplicateSite");
             duplicateSite = duplicateSiteObject.AddComponent<ConstructionSite>();
+            duplicateSite.Construct(new DungeonStory.Foundation.UnityUiClock());
             duplicateSite.ConstructPersistentIdentity(
                 new GuidPersistentIdGenerator());
             duplicateSite.ConstructBuildableObject(
@@ -1827,6 +1829,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             wallData = CreateBuildingData(99002, "테스트 벽", BuildingCategory.Wall, GridLayer.Building);
             siteObject = new GameObject("ConstructionSafetySite");
             ConstructionSite site = siteObject.AddComponent<ConstructionSite>();
+            site.Construct(new DungeonStory.Foundation.UnityUiClock());
             site.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
             site.ConstructBuildableObject(
                 new BuildingResearchWorkPortAdapter(new NoopBlueprintResearchWorkService()),

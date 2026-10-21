@@ -8,17 +8,20 @@ using UnityEngine;
 /// </summary>
 public sealed class CombatEquipmentStatProjector
 {
+    private readonly EquipmentEvolutionFormulaCatalogs formulaCatalogs;
     private readonly IItemInstanceRepository itemInstances;
     private readonly IEvolutionModuleRegistry evolutionModules;
     private readonly IEquipmentModuleCatalog moduleCatalog;
     private readonly IPhysicalItemMassQuery physicalMass;
 
     public CombatEquipmentStatProjector(
+        EquipmentEvolutionFormulaCatalogs formulaCatalogs,
         IItemInstanceRepository itemInstances,
         IEvolutionModuleRegistry evolutionModules,
         IEquipmentModuleCatalog moduleCatalog,
         IPhysicalItemMassQuery physicalMass)
     {
+        this.formulaCatalogs = formulaCatalogs ?? throw new ArgumentNullException(nameof(formulaCatalogs));
         this.itemInstances = itemInstances
             ?? throw new ArgumentNullException(nameof(itemInstances));
         this.evolutionModules = evolutionModules
@@ -112,7 +115,7 @@ public sealed class CombatEquipmentStatProjector
                     || !node.narrativeReady)
                     continue;
                 EquipmentEvolutionFormulaCatalogSO catalog =
-                    EquipmentEvolutionFormulaCatalogSO.LoadForPersistedNode(node.formulaVersion);
+                    formulaCatalogs.RequireForPersistedNode(node.formulaVersion);
                 EquipmentEvolutionRules.ValidateFormulaNode(node, catalog);
                 foreach (EquipmentEvolutionFormulaCapabilityEnvelope envelope in
                          node.formulaCapabilities)

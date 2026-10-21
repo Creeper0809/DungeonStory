@@ -168,7 +168,7 @@ public static class PhysicalTransformationObserverDebugScenarios
                 ? new LostResponse(dispatcher, loseResponse.Value) : dispatcher;
             Transforms = new PhysicalItemTransformService(repository,
                 new WorldItemSpawner(Items.CatalogProvider, repository, EditorNullItemMarkerPresenter.Instance),
-                Items.MassQuery, Items.CatalogProvider, EditorNullItemMarkerPresenter.Instance, Session, publisher);
+                Items.MassQuery, Items.CatalogProvider, EditorNullItemMarkerPresenter.Instance, Session, publisher, clock: new DungeonStory.Foundation.UnityUiClock());
             var content = new ResourceGameContentCatalog(new UnityGameContentRootLoader());
             var definitions = new ResourceItemDefinitionCatalog(content);
             Carcasses = new WildlifeCarcassService(Items, Transforms,

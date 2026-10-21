@@ -65,11 +65,11 @@ public sealed class ResourceFactionAllianceBenefitBudgetApplicationAdapter
     private readonly IReadOnlyList<
         FactionAllianceBenefitRouteBudgetSnapshot> orderedRoutes;
 
-    public ResourceFactionAllianceBenefitBudgetApplicationAdapter()
+    public ResourceFactionAllianceBenefitBudgetApplicationAdapter(IGameContentDefinitionSource content)
     {
-        FactionAllianceBenefitBudgetSO source = UnityEngine.Resources.Load<
-            FactionAllianceBenefitBudgetSO>(
-            FactionAllianceBenefitBudgetSO.ResourcePath);
+        FactionAllianceBenefitBudgetSO source =
+            (content ?? throw new ArgumentNullException(nameof(content)))
+            .RequireSingle<FactionAllianceBenefitBudgetSO>();
         if (source == null)
         {
             throw new InvalidOperationException(

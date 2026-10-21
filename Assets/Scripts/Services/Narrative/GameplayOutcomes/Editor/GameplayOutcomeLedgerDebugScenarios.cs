@@ -727,13 +727,16 @@ public static class GameplayOutcomeLedgerDebugScenarios
         if (kind == "equipment")
         {
             EquipmentEvolutionState state = new();
-            var catalog = EquipmentEvolutionFormulaCatalogSO.LoadRequired();
+            var catalog = new EquipmentEvolutionFormulaCatalogs(
+                CharacterAiEditorTestDependencies.ContentDefinitions)
+                .RequireCurrent();
             var definition = UnityEngine.Resources.LoadAll<CombatEquipmentDefinitionSO>("SO/Combat/Equipment")
                 .Where(value => value != null && value.Kind == CombatEquipmentKind.MeleeWeapon)
                 .OrderBy(value => value.EquipmentId, StringComparer.Ordinal).First();
             EquipmentFormulaTargetContext target = new(definition);
             contentId = definition.EquipmentId;
-            record = index => EquipmentEvolutionRules.RecordFormulaEvidence(state, Record(state.usageLedger, index));
+            record = index => EquipmentEvolutionRules.RecordFormulaEvidence(
+                state, Record(state.usageLedger, index), catalog);
             prepare = exact => EquipmentEvolutionRules.BuildFormulaNode(state, catalog, target,
                 subjectId, "equipment-node:qa-origin", string.Empty, "history:qa-origin",
                 EquipmentEvolutionDirection.Melee, string.Empty, 0, true,

@@ -905,7 +905,7 @@ public static class ResourceStockPolicySaleOutcomeE2EDebugScenarios
                 domainFacts,
                 domainFacts,
                 new GameplayDomainFactDeliveryQuery(Recorder, Ledger),
-                calendar);
+                calendar, clock: new DungeonStory.Foundation.UnityUiClock());
             IWorldItemStackRuntime routedItems = RoutedWorldItems.Create(
                 Items,
                 dispositions);

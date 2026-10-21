@@ -273,7 +273,8 @@ public class InvasionIntruderRuntime :
     InvasionIntruderPatternDefinition
         IInvasionIntruderRestorePort.ResolvePattern(string id) =>
         ResolvePattern(id);
-    void IInvasionIntruderRestorePort.ClearBreachState() => ClearBreachState();
+    void IInvasionIntruderRestorePort.ClearBreachState() =>
+        ExecutionCoordinator.ClearLocalBreachState();
     void IInvasionIntruderRestorePort.RefreshPathRandomStream() =>
         pathRandomStream = ResolvePathRandomStream();
     void IInvasionIntruderRestorePort.StartRestoredInside()

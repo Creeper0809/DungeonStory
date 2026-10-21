@@ -650,10 +650,10 @@ public sealed class SurgeryRuntime :
                 doctor.Identity?.PersistentId,
                 StringComparison.Ordinal))
         {
-            order = null;
             failure = new DomainFailure(
                 FailureCode.SurgeryPreferredDoctorOnly,
                 order.preferredDoctorId);
+            order = null;
             return false;
         }
 
@@ -663,10 +663,10 @@ public sealed class SurgeryRuntime :
                 doctor.Identity?.PersistentId,
                 StringComparison.Ordinal))
         {
-            order = null;
             failure = new DomainFailure(
                 FailureCode.SurgeryDoctorAlreadyAssigned,
                 order.doctorId);
+            order = null;
             return false;
         }
 
@@ -674,10 +674,10 @@ public sealed class SurgeryRuntime :
                 order.procedureId,
                 out SurgicalProcedureSO procedure))
         {
-            order = null;
             failure = new DomainFailure(
                 FailureCode.SurgeryProcedureMissing,
                 order.procedureId);
+            order = null;
             return false;
         }
 

@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Foundation;
 using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer.Unity;
@@ -7,13 +8,18 @@ public sealed class FacilityVandalismPublicationOutbox : IStartable, ITickable, 
 {
     private readonly DungeonRuntimeAggregateRootStore roots;
     private readonly IDomainFactRecoveryPublisher recovery;
+    private readonly IUiClock clock;
     private float nextRecovery;
     private int cursor;
     private string lastFailure = string.Empty;
-    public FacilityVandalismPublicationOutbox(DungeonRuntimeAggregateRootStore roots, IDomainFactRecoveryPublisher recovery)
+    public FacilityVandalismPublicationOutbox(
+        DungeonRuntimeAggregateRootStore roots,
+        IDomainFactRecoveryPublisher recovery,
+        IUiClock clock)
     {
         this.roots = roots ?? throw new ArgumentNullException(nameof(roots));
         this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
+        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
     }
     private FacilityVandalismPendingState Current => roots.GetOrCreate(() => new FacilityVandalismPendingState());
     private FacilityVandalismPendingState Writable => roots.GetOrCreateWritable(
@@ -36,8 +42,8 @@ public sealed class FacilityVandalismPublicationOutbox : IStartable, ITickable, 
     public void OnRestoreCompleted() { cursor = 0; nextRecovery = 0; lastFailure = string.Empty; Recover(); }
     public void Tick()
     {
-        if (roots.IsRestoreStaging || Current.Count == 0 || Time.unscaledTime < nextRecovery) return;
-        nextRecovery = Time.unscaledTime + 0.5f;
+        if (roots.IsRestoreStaging || Current.Count == 0 || clock.Time < nextRecovery) return;
+        nextRecovery = clock.Time + 0.5f;
         Recover();
     }
     public bool Recover()

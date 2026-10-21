@@ -1,0 +1,74 @@
+<?xml version='1.0' encoding='utf-8'?>
+<test-run id="2" testcasecount="7" result="Passed" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-21 13:24:17Z" end-time="2026-10-21 13:26:23Z" duration="126.471587">
+  <test-suite type="TestSuite" id="1000" name="DungeonStory" fullname="DungeonStory" runstate="Runnable" testcasecount="200" result="Passed" start-time="2026-10-21 13:24:17Z" end-time="2026-10-21 13:26:23Z" duration="126.471587" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1190" name="DungeonStory.Architecture.Tests.dll" fullname="/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/ScriptAssemblies/DungeonStory.Architecture.Tests.dll" runstate="Runnable" testcasecount="171" result="Passed" start-time="2026-10-21 13:24:17Z" end-time="2026-10-21 13:26:23Z" duration="126.443113" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="4028644" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestSuite" id="1191" name="DungeonStory" fullname="DungeonStory" runstate="Runnable" testcasecount="171" result="Passed" start-time="2026-10-21 13:24:17Z" end-time="2026-10-21 13:26:23Z" duration="126.440850" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1192" name="Tests" fullname="DungeonStory.Tests" runstate="Runnable" testcasecount="171" result="Passed" start-time="2026-10-21 13:24:17Z" end-time="2026-10-21 13:26:23Z" duration="126.438937" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestSuite" id="1194" name="Architecture" fullname="DungeonStory.Tests.Architecture" runstate="Runnable" testcasecount="169" result="Passed" start-time="2026-10-21 13:24:17Z" end-time="2026-10-21 13:26:23Z" duration="126.435937" total="7" passed="7" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="TestFixture" id="1011" name="CharacterSpawnCompositionArchitectureTests" fullname="DungeonStory.Tests.Architecture.CharacterSpawnCompositionArchitectureTests" classname="DungeonStory.Tests.Architecture.CharacterSpawnCompositionArchitectureTests" runstate="Runnable" testcasecount="6" result="Passed" start-time="2026-10-21 13:24:17Z" end-time="2026-10-21 13:24:17Z" duration="0.086608" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1016" name="AllProductionAndRestoreCallersUseThePublicationBoundary" fullname="DungeonStory.Tests.Architecture.CharacterSpawnCompositionArchitectureTests.AllProductionAndRestoreCallersUseThePublicationBoundary" methodname="AllProductionAndRestoreCallersUseThePublicationBoundary" classname="DungeonStory.Tests.Architecture.CharacterSpawnCompositionArchitectureTests" runstate="Runnable" seed="74454569" result="Passed" start-time="2026-10-21 13:24:17Z" end-time="2026-10-21 13:24:17Z" duration="0.046365" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+            </test-suite>
+            <test-suite type="TestFixture" id="1038" name="GameplayArchitectureRatchetTests" fullname="DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests" classname="DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests" runstate="Runnable" testcasecount="95" result="Passed" start-time="2026-10-21 13:24:17Z" end-time="2026-10-21 13:26:23Z" duration="126.326539" total="6" passed="6" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1100" name="CharacterSaveUsesActiveAndLifetimeRegistries" fullname="DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CharacterSaveUsesActiveAndLifetimeRegistries" methodname="CharacterSaveUsesActiveAndLifetimeRegistries" classname="DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests" runstate="Runnable" seed="78451147" result="Passed" start-time="2026-10-21 13:24:17Z" end-time="2026-10-21 13:24:28Z" duration="11.281217" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1041" name="HighRiskGlobalAccessDoesNotGrow" fullname="DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.HighRiskGlobalAccessDoesNotGrow" methodname="HighRiskGlobalAccessDoesNotGrow" classname="DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests" runstate="Runnable" seed="747066006" result="Passed" start-time="2026-10-21 13:24:28Z" end-time="2026-10-21 13:24:37Z" duration="8.936983" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1039" name="PersistentCharacterSchedulingUsesCanonicalCharacterIds" fullname="DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.PersistentCharacterSchedulingUsesCanonicalCharacterIds" methodname="PersistentCharacterSchedulingUsesCanonicalCharacterIds" classname="DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests" runstate="Runnable" seed="325976274" result="Passed" start-time="2026-10-21 13:24:37Z" end-time="2026-10-21 13:24:43Z" duration="5.678808" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1131" name="PlayModePersistenceCaptureFailsClosedAndFinalFacadeOwnsCaptureTiming" fullname="DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.PlayModePersistenceCaptureFailsClosedAndFinalFacadeOwnsCaptureTiming" methodname="PlayModePersistenceCaptureFailsClosedAndFinalFacadeOwnsCaptureTiming" classname="DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests" runstate="Runnable" seed="302708424" result="Passed" start-time="2026-10-21 13:24:43Z" end-time="2026-10-21 13:24:52Z" duration="9.285253" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1045" name="RuntimeSizeReportRetainsReviewEvidence" fullname="DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.RuntimeSizeReportRetainsReviewEvidence" methodname="RuntimeSizeReportRetainsReviewEvidence" classname="DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests" runstate="Runnable" seed="814943814" result="Passed" start-time="2026-10-21 13:24:52Z" end-time="2026-10-21 13:24:52Z" duration="0.016350" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+              </test-case>
+              <test-case id="1077" name="WorkAssemblyOwnsStableWorkIds" fullname="DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.WorkAssemblyOwnsStableWorkIds" methodname="WorkAssemblyOwnsStableWorkIds" classname="DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests" runstate="Runnable" seed="1086320803" result="Passed" start-time="2026-10-21 13:24:52Z" end-time="2026-10-21 13:26:23Z" duration="91.017736" asserts="0">
+                <properties>
+                  <property name="retryIteration" value="0" />
+                  <property name="repeatIteration" value="0" />
+                </properties>
+                <output>Saving results to: /home/vulpo/.config/unity3d/DungeonStory/DungeonStory/TestResults.xml</output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

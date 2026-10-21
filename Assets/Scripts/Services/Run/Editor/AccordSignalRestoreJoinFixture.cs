@@ -76,7 +76,7 @@ public static class AccordSignalRestoreJoinFixture
     {
         IDungeonItemCatalogProvider itemCatalog=EditorItemCatalogFactory.Create();
         WorldItemRepository repository=new(new GuidPersistentIdGenerator(),new DungeonRuntimeAggregateRootStore());
-        PhysicalItemBatchDispositionService inner=new(repository,new PhysicalItemMassQuery(itemCatalog),EditorNullItemMarkerPresenter.Instance);
+        PhysicalItemBatchDispositionService inner=new(repository,new PhysicalItemMassQuery(itemCatalog),EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         FailOnce disposition=new(inner){FailNext=true};
         string stack=WorldItemRepositoryEditorAccess.AddStack(repository,"supply:alliance-signal-kit",2,WorldItemStackState.FacilityBuffer,position:new Vector2Int(1,1),destinationId:"building:signal");
         V20StoryContentCatalog catalog=new(new ResourceGameContentCatalog(new UnityGameContentRootLoader()));

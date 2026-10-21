@@ -1369,6 +1369,7 @@ public static partial class MigratedProducerEconomyServiceEntryE2EDebugScenarios
             RegularCustomerRuntime runtime =
                 host.AddComponent<RegularCustomerRuntime>();
             runtime.ConstructRecruitmentRuntime(
+                new DungeonStory.Foundation.UnityUiClock(),
                 new RegularCustomerCharacterServices(
                     new RecruitActivation(Actor),
                     population),
@@ -1533,6 +1534,7 @@ public static partial class MigratedProducerEconomyServiceEntryE2EDebugScenarios
             runtimeObject = new GameObject("Migrated Regular Customer E2E");
             Runtime = runtimeObject.AddComponent<RegularCustomerRuntime>();
             Runtime.ConstructRecruitmentRuntime(
+                new DungeonStory.Foundation.UnityUiClock(),
                 new RecruitActivation(Actor),
                 new DungeonStory.Foundation.GameEventBus(),
                 new FixedGameSessionStateProvider(20),
@@ -1600,6 +1602,7 @@ public static partial class MigratedProducerEconomyServiceEntryE2EDebugScenarios
             RegularCustomerRuntime restored =
                 replacement.AddComponent<RegularCustomerRuntime>();
             restored.ConstructRecruitmentRuntime(
+                new DungeonStory.Foundation.UnityUiClock(),
                 new RecruitActivation(Actor),
                 new DungeonStory.Foundation.GameEventBus(),
                 new FixedGameSessionStateProvider(20),
@@ -2486,6 +2489,7 @@ public static partial class MigratedProducerEconomyServiceEntryE2EDebugScenarios
             modeStore = new DungeonRuntimeAggregateRootStore();
             var restoreCandidates = new RestoreWorldCandidateIndex();
             runtime = new ServiceSessionRuntime(
+                new DungeonStory.Foundation.UnityUiClock(),
                 DefaultProxy.Create<IBuildingWorldQuery>(),
                 DefaultProxy.Create<IServiceRoomLinkRuntime>(),
                 DefaultProxy.Create<IServiceProcessCatalog>(),
@@ -2655,7 +2659,7 @@ public static partial class MigratedProducerEconomyServiceEntryE2EDebugScenarios
                 catalog,
                 markers,
                 new FixedGameSessionStateProvider(11),
-                physicalFacts);
+                physicalFacts, clock: new DungeonStory.Foundation.UnityUiClock());
             sourceStackId = WorldItemRepositoryEditorAccess.AddStack(
                 repository,
                 SourceItemId,

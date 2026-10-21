@@ -28,6 +28,7 @@ public sealed class PhysicalItemBatchDispositionService :
     private readonly IPhysicalItemDispositionEffect defaultEffect;
     private readonly IDomainFactRecoveryPublisher recovery;
     private readonly IDomainFactDeliveryQuery deliveries;
+    private readonly IUiClock clock;
     private readonly Queue<string> pendingPublications = new();
     private readonly HashSet<string> queuedPublications = new(StringComparer.Ordinal);
     private float nextRecoveryTime;
@@ -42,8 +43,8 @@ public sealed class PhysicalItemBatchDispositionService :
 
     public void Tick()
     {
-        if (pendingPublications.Count == 0 || UnityEngine.Time.unscaledTime < nextRecoveryTime) return;
-        nextRecoveryTime = UnityEngine.Time.unscaledTime + 1f;
+        if (pendingPublications.Count == 0 || clock.Time < nextRecoveryTime) return;
+        nextRecoveryTime = clock.Time + 1f;
         int count = Math.Min(8, pendingPublications.Count);
         string failure = string.Empty;
         for (int index = 0; index < count; index++)
@@ -72,17 +73,20 @@ public sealed class PhysicalItemBatchDispositionService :
 #endif
 
     public PhysicalItemBatchDispositionService(WorldItemRepository repository, IPhysicalItemMassQuery massQuery,
-        IItemMarkerPresenter markers) : this(repository, massQuery, markers, null, null, null, null, null, null) { }
+        IItemMarkerPresenter markers, IUiClock clock)
+        : this(repository, massQuery, markers, null, null, null, null, null, null, clock) { }
 
     public PhysicalItemBatchDispositionService(WorldItemRepository repository, IPhysicalItemMassQuery massQuery,
-        IItemMarkerPresenter markers, ItemQuantityReservationService quantityReservations)
-        : this(repository, massQuery, markers, quantityReservations, null, null, null, null, null) { }
+        IItemMarkerPresenter markers, ItemQuantityReservationService quantityReservations,
+        IUiClock clock)
+        : this(repository, massQuery, markers, quantityReservations, null, null, null, null, null, clock) { }
 
     [Inject]
     public PhysicalItemBatchDispositionService(WorldItemRepository repository, IPhysicalItemMassQuery massQuery,
         IItemMarkerPresenter markers, ItemQuantityReservationService quantityReservations,
         IDungeonItemCatalogProvider itemCatalog, IDomainFactStagingPublisher facts,
-        IDomainFactRecoveryPublisher recovery, IDomainFactDeliveryQuery deliveries, IGameCalendar calendar)
+        IDomainFactRecoveryPublisher recovery, IDomainFactDeliveryQuery deliveries, IGameCalendar calendar,
+        IUiClock clock)
     {
         this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
         this.massQuery = massQuery ?? throw new ArgumentNullException(nameof(massQuery));
@@ -91,6 +95,7 @@ public sealed class PhysicalItemBatchDispositionService :
         this.itemCatalog = itemCatalog;
         this.recovery = recovery;
         this.deliveries = deliveries;
+        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         if (facts != null) defaultEffect = new DefaultEffect(facts, calendar ?? throw new ArgumentNullException(nameof(calendar)));
     }
 

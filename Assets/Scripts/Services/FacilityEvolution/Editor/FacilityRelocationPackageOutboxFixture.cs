@@ -8,7 +8,7 @@ public static class FacilityRelocationPackageOutboxFixture
     {
         IDungeonItemCatalogProvider catalog=EditorItemCatalogFactory.Create();
         WorldItemRepository repository=new(new GuidPersistentIdGenerator(),new DungeonRuntimeAggregateRootStore());
-        PhysicalItemBatchDispositionService inner=new(repository,new PhysicalItemMassQuery(catalog),EditorNullItemMarkerPresenter.Instance);
+        PhysicalItemBatchDispositionService inner=new(repository,new PhysicalItemMassQuery(catalog),EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         FailOnce service=new(inner){FailNext=true};
         string stack=WorldItemRepositoryEditorAccess.AddStack(repository,EvolutionCatalystItemDefinitions.FacilityPackageItemId,1,WorldItemStackState.FacilityBuffer,position:new Vector2Int(3,3),destinationId:"facility-input:relocation:qa");
         FacilityRelocationOrder order=new(){orderId="facility-relocation:qa",packageItemId=EvolutionCatalystItemDefinitions.FacilityPackageItemId,packageStackId=stack,destinationId="facility-input:relocation:qa",phase=FacilityRelocationPhase.WaitingForPackage};

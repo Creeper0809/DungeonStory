@@ -613,7 +613,7 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
                 events,
                 CharacterAiEditorTestDependencies.WorldRegistry);
             vitalsActivities.Initialize();
-            Health = new CharacterBodyHealthRuntime(
+            Health = new CharacterBodyHealthRuntime(new DungeonStory.Foundation.UnityRealtimeClock(),
                 CharacterAiEditorTestDependencies.WorldRegistry,
                 clock,
                 events,

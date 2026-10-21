@@ -281,15 +281,34 @@ namespace DungeonStory.Tests.Architecture
             string createStaff = ExtractMethod(
                 preparedParty,
                 "private CharacterActor CreateStaffActor",
+                "private static void PrepareStaffComposition(");
+            string prepareStaffComposition = ExtractMethod(
+                preparedParty,
+                "private static void PrepareStaffComposition(",
                 "private void PlaceParty");
             AssertInOrder(
                 createStaff,
+                "CharacterId canonicalId =",
                 "characterObjectFactory.CreateInactive(",
-                "EnsureStaffWorkAbility",
-                "actor.Initialize(staffData);");
+                "candidate => PrepareStaffComposition(candidate, canonicalId));",
+                "actor.Initialize(staffData);",
+                "CharacterId composedId = CharacterPersistentIdentity.Require(actor);",
+                "if (!composedId.Equals(canonicalId))",
+                "actor.RefreshAbilityCache();",
+                "if (actor.TryGetAbility(out AbilityWork _))",
+                "return actor;");
+            AssertInOrder(
+                prepareStaffComposition,
+                "CharacterIdentity identity =",
+                "identity.SetPersistentId(canonicalId);",
+                "if (staffObject.GetComponent<AbilityWork>() == null)",
+                "staffObject.AddComponent<AbilityWork>();");
             Assert.That(createStaff, Does.Not.Contain("SetActive(true)"));
-            Assert.That(preparedParty, Does.Contain(
-                "characterObjectFactory.Publish(staff.gameObject);"));
+            Assert.That(prepareStaffComposition, Does.Not.Contain("SetActive(true)"));
+            AssertInOrder(
+                preparedParty,
+                "CharacterActor staff = CreateStaffActor(",
+                "characterObjectFactory.Publish(staff.gameObject);");
 
             Assert.That(recruitment, Does.Contain(
                 "characterObjectFactory.CreateInactive("));
@@ -416,6 +435,10 @@ namespace DungeonStory.Tests.Architecture
                 faction,
                 "internal void MaterializeReinforcements",
                 "private FactionDefinitionSnapshot FindDefinition");
+            string reinforcementPublicationRecovery = ExtractMethod(
+                materializeReinforcements,
+                "catch (Exception failure)",
+                "domain.FinishReinforcementMaterialization(route);");
             string offenseTrySpawnPrisoner = ExtractMethod(
                 offense,
                 "private bool TrySpawnPrisoner",
@@ -424,38 +447,90 @@ namespace DungeonStory.Tests.Architecture
                 exterior,
                 "public bool TrySpawn(",
                 "public bool TryFind(");
+            string prepareIncidentComposition = ExtractMethod(
+                exterior,
+                "private static void PrepareIncidentComposition(",
+                "public bool TryFind(");
+            string validateIncidentIdentity = ExtractMethod(
+                exteriorTrySpawn,
+                "CharacterId composedActorId = CharacterPersistentIdentity.Require(actor);",
+                "// These are visitors, not promoted population staff.");
 
             AssertInOrder(
                 materializeReinforcements,
-                "characterFactory.CreateInactive(",
                 "CharacterId actorId = CharacterId.FromStableSuffix(",
+                "characterFactory.CreateInactive(",
+                "actor.Identity.SetPersistentId(actorId);",
                 "actor.Initialize(template);",
-                "actor.Identity?.SetPersistentId(actorId);",
+                "characterFactory.Publish(instance);",
                 "domain.AddReinforcementActor(route, actorId.Value);",
-                "characterFactory.Publish(instance);");
+                "recorded = true;");
+            AssertInOrder(
+                reinforcementPublicationRecovery,
+                "bool published = actor != null && actor.HasBeenPublished",
+                "if (published)",
+                "if (!recorded) domain.AddReinforcementActor(route, actorId.Value);",
+                "else",
+                "if (instance.activeSelf) instance.SetActive(false);",
+                "characterFactory.Destroy(instance);",
+                "throw;");
             Assert.That(materializeReinforcements, Does.Not.Contain(
                 "RegisterCharacter(actor)"));
             Assert.That(materializeReinforcements, Does.Not.Contain(
                 "RegisterCharacterLifetime(actor)"));
             AssertInOrder(
                 offenseTrySpawnPrisoner,
-                "characterFactory.CreateInactive(",
                 "EnemyIndividualBlueprint blueprint = enemyIndividuals.RequireBlueprint(",
                 "CharacterId characterId = blueprint.CharacterId;",
+                "characterFactory.CreateInactive(",
+                "spawner.characterPrefab,",
+                "candidate =>",
+                "CharacterIdentity identity = candidate.GetComponent<CharacterIdentity>()",
+                "?? throw new InvalidOperationException(\"Prisoner composition requires CharacterIdentity.\");",
+                "identity.SetPersistentId(characterId);",
+                "CharacterActor actor = characterObject.GetComponent<CharacterActor>();",
                 "actorId = characterId.Value;",
                 "actor.Initialize(data, blueprint.SpawnRequest);",
-                "actor.Identity?.SetPersistentId(characterId);",
+                "enemyIndividuals.EnsureCharacterDomains(blueprint);",
+                "ApplyDownedArrivalHealth(actor);",
+                "actor.SetLifecycleState(CharacterLifecycleState.Downed);",
                 "characterFactory.Publish(characterObject);");
+            int offenseInitialization = offenseTrySpawnPrisoner.IndexOf(
+                "actor.Initialize(data, blueprint.SpawnRequest);",
+                StringComparison.Ordinal);
+            Assert.That(offenseInitialization, Is.GreaterThanOrEqualTo(0));
+            Assert.That(
+                offenseTrySpawnPrisoner.Substring(offenseInitialization),
+                Does.Not.Contain("SetPersistentId("),
+                "A prisoner identity must be final before injection and initialization; post-initialize reassignment would orphan identity-keyed runtime state.");
             Assert.That(offenseTrySpawnPrisoner, Does.Not.Contain(
                 "RegisterCharacter(actor)"));
             Assert.That(offenseTrySpawnPrisoner, Does.Not.Contain(
                 "RegisterCharacterLifetime(actor)"));
             AssertInOrder(
                 exteriorTrySpawn,
+                "CharacterId canonicalActorId = new(actorId);",
                 "objectFactory.CreateInactive(",
+                "candidate => PrepareIncidentComposition(",
+                "canonicalActorId));",
                 "actor.Initialize(data);",
-                "actor.Identity?.SetPersistentId(actorId);",
+                "CharacterId composedActorId = CharacterPersistentIdentity.Require(actor);",
+                "lifePublication.EnsureRegistered(",
                 "objectFactory.Publish(instance);");
+            AssertInOrder(
+                prepareIncidentComposition,
+                "CharacterIdentity identity = instance.GetComponent<CharacterIdentity>();",
+                "if (identity == null)",
+                "identity.SetPersistentId(canonicalActorId);");
+            Assert.That(prepareIncidentComposition,
+                Does.Not.Contain("SetActive(true)"));
+            AssertInOrder(
+                validateIncidentIdentity,
+                "CharacterId composedActorId = CharacterPersistentIdentity.Require(actor);",
+                "if (!composedActorId.Equals(canonicalActorId))",
+                "objectFactory.Destroy(instance);",
+                "actor = null;",
+                "throw new InvalidOperationException(");
             string exteriorSpawnVisitor = ExtractMethod(
                 exterior,
                 "protected bool SpawnVisitor(",
@@ -474,8 +549,11 @@ namespace DungeonStory.Tests.Architecture
                 "RegisterCharacterLifetime(actor)"));
             AssertInOrder(
                 save,
+                "CharacterId canonicalStaffId = canonicalActorIds[staffSave];",
                 "characterObjectFactory.CreateDetached(",
-                "EnsureRestoredStaffWorkAbility",
+                "candidate => PrepareRestoredStaffComposition(",
+                "canonicalStaffId,",
+                "staffSave.characterType));",
                 "candidates.Add(staffCandidate);",
                 "staff.Initialize(staffData);",
                 "ApplyActorState(grid, staff, staffSave);",
@@ -489,10 +567,28 @@ namespace DungeonStory.Tests.Architecture
                 "staff.Initialize(staffData);");
             Assert.That(save, Does.Not.Contain(
                 "characterObjectFactory.Inject(staffObject)"));
+            string prepareRestoredStaffComposition = ExtractMethod(
+                save,
+                "private static void PrepareRestoredStaffComposition(",
+                "private void DestroyCharacterCandidates(");
+            AssertInOrder(
+                prepareRestoredStaffComposition,
+                "CharacterIdentity identity =",
+                "identity.SetPersistentId(canonicalId);",
+                "if (characterType == CharacterType.NPC",
+                "&& staffObject.GetComponent<AbilityWork>() == null)",
+                "staffObject.AddComponent<AbilityWork>();");
+            Assert.That(prepareRestoredStaffComposition,
+                Does.Not.Contain("SetActive(true)"));
             AssertInOrder(
                 save,
                 "actor.RefreshAbilityCache();",
-                "if (!source.isOwner && work == null)",
+                "AbilityWork work = actor.GetAbility<AbilityWork>();",
+                "bool requiresStaffWork = !source.isOwner",
+                "&& source.characterType == CharacterType.NPC;",
+                "if (requiresStaffWork && work == null)",
+                "if (work == null",
+                "if (work != null)",
                 "work.SetDutyState(source.dutyState);",
                 "work.WorkPriorities.GetPriority(workTypeId)",
                 "work.CurrentDutyState != source.dutyState");

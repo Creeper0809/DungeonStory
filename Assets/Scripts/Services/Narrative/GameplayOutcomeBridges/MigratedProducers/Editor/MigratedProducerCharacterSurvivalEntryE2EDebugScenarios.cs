@@ -2300,6 +2300,7 @@ public static class MigratedProducerCharacterSurvivalEntryE2EDebugScenarios
             primitiveFacts = Outcomes.CreatePrimitiveSurvivalFacts(Probe);
             runner = new CharacterPrimitiveSurvivalRunner(
                 new CharacterBreakdownWorld(
+                    new DungeonStory.Foundation.UnityUiClock(),
                     gridProvider,
                     itemStacks,
                     filth,
@@ -2482,6 +2483,7 @@ public static class MigratedProducerCharacterSurvivalEntryE2EDebugScenarios
                 waterFacts,
                 Probe);
             var waterPublications = new CharacterWaterPublicationOutbox(
+                new DungeonStory.Foundation.UnityUiClock(),
                 new CharacterDeprivationStateStore(Outcomes.AggregateRootStore),
                 waterPublisher,
                 waterPublisher,
@@ -2589,6 +2591,7 @@ public static class MigratedProducerCharacterSurvivalEntryE2EDebugScenarios
                 Probe);
             var events = new GameEventBus();
             var waterPublications = new CharacterWaterPublicationOutbox(
+                new DungeonStory.Foundation.UnityUiClock(),
                 stateStore,
                 waterPublisher,
                 waterPublisher,
@@ -2597,6 +2600,7 @@ public static class MigratedProducerCharacterSurvivalEntryE2EDebugScenarios
             var clock = new DrainingGameClock();
             scheduler = new DrainingCoroutineScheduler(clock);
             var world = new CharacterBreakdownWorld(
+                new DungeonStory.Foundation.UnityUiClock(),
                 gridProvider,
                 itemStacks,
                 EmptyWorldFilthQuery.Instance,
@@ -2641,7 +2645,8 @@ public static class MigratedProducerCharacterSurvivalEntryE2EDebugScenarios
             actorObject.SetActive(false);
             actorObject.AddComponent<SpriteRenderer>();
             actorObject.AddComponent<AbilityMove>();
-            actorObject.AddComponent<AIBrain>();
+            AIBrain brain = actorObject.AddComponent<AIBrain>();
+            brain.availableActions = AiDebugScenarioActionFactory.CreateStaffActions();
             actor = actorObject.AddComponent<CharacterActor>();
             CharacterAiEditorTestDependencies.Inject(actorObject);
             actor.Brain.ConstructCharacterAbility(gridProvider);
@@ -2804,7 +2809,7 @@ public static class MigratedProducerCharacterSurvivalEntryE2EDebugScenarios
                         Observe("marker");
                 }),
                 new FixedGameSessionStateProvider(transformDayOverride ?? EditorFixedGameCalendar.Instance.Day),
-                physicalFacts);
+                physicalFacts, clock: new DungeonStory.Foundation.UnityUiClock());
             carcasses = new WildlifeCarcassService(
                 itemStacks,
                 transforms,

@@ -35,7 +35,7 @@ public sealed class CharacterBodyFactPreflight : IDungeonSavePreflightValidator,
                     (IGameplayOutcomeDescriptor)new MigratedProducerOutcomeDescriptor(value, new KoreanJosaFormatter())),
                 new IGameplayOutcomeAdapterRegistration[] { new MigratedProducerOutcomeAdapter() });
             var ledger = new GameplayOutcomeLedger(registry, new GameplayOutcomeBufferLimits(
-                smallPageCount: 3, largePageCount: 3, knownResultKeyCapacity: 4,
+                smallPageCount: 3, largePageCount: 3, knownResultKeyCapacity: 6,
                 retainedSmallPageCount: 3, retainedLargePageCount: 3));
             var recorder = new GameplayOutcomeRecorder(ledger, registry, new GameEventBus());
             var migrated = new MigratedProducerOutcomeRuntime(new DungeonRuntimeAggregateRootStore(), ledger, recorder, ledger);

@@ -330,6 +330,7 @@ public static class OffenseTruthRevealCausalProductionEntryDebugScenarios
             campaign = new OffenseCampaignRuntime();
             worldMap = root.AddComponent<OffenseWorldMapRuntime>();
             worldMap.Construct(
+                new DungeonStory.Foundation.UnityUiClock(),
                 events,
                 externalInfluence: null,
                 campaign,

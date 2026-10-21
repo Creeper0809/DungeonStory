@@ -1,5 +1,43 @@
 # DungeonStory Current Findings
 
+## 2026-10-22 실제 방어 복원 수명 결함
+
+r23에서 실제 fault 이후 전체 canonical 상태, revision, 기존 교전/경비와 후보 수가 모두 보존되고 정상 재시도·새 경비 이동·중복 완료 알림도 통과했다. 마지막 legacy 저장 거절은 RunVariableFactPreflight의 정확한 owner-version-conflict로 발생했으며, fixture만 예전 section 단계의 영문 오류를 기대했다. r24는 이 선행 preflight의 정확한 오류 1개를 요구하며 거절·무변경 검사를 유지한다.
+
+r22 실제 fault 실행은 revision8·기존 교전/경비·detached0을 보존했지만 invasion.state의 raidAwareness.routeChangeReason을 원래 값에서 빈 값으로 변경했다. 복원 후보의 ClearBreachState가 현재 raid의 공유 awareness와 breach reservation까지 정리했기 때문이다. r23은 후보 포트에서 로컬 breach 필드만 초기화하고, 정상 실행 종료는 기존 공유 상태 해제를 유지한다. 같은 실제 fault·정확 canonical 비교·재시도를 통해 검증하며 새 클래스/저장 형식은 추가하지 않는다.
+
+r17 whole-world에서 정상 breach와 시설 공격을 결합하자 새 경비가 아직 inactive인데 역순 participant completion에서 coroutine을 시작하는 오류를 재현했다. 기존 restore-completed hook으로 engagement 활성화만 지연한다. 이전 engagement 퇴역은 일반 전투 완료의 UI·체력 조회·AI 재개를 실행하지 않고 기존 이동·제어 핸들만 해제한다. 따라서 이미 교체된 body root에 이전 침입자 레코드를 재생성하지 않아야 한다. 새 추상화·저장 DTO는 추가하지 않는다. 실제 전체 씬에서 fresh active guard/movement, 동일 snapshot과 canonical baseline을 검증하고, 실제 전체 월드에서 게시 실패 뒤 root revision·canonical state·기존 교전 객체·candidate 누수 불변, 동일 저장 재시도 및 완료 알림 중복 호출을 검증한다. r18에서 옛 단독 침입 registry fixture는 현재 필요한 facility/character staged 후보를 준비하지 못해 실패했다. 해당 실행을 PASS로 세지 않고 실제 full-world 경로의 checkpoint에 fault를 주입한다. r19는 baseline 전체 정합성 복구를 통과했지만 새 이동 중 fixture가 도착 후 상태 InterceptPlanned를 요구해 멈췄다. r20은 실제 CreateEngagement의 Dispatching과 미도착 lead/존재하는 이동 coroutine을 정확히 요구한다.
+
+## 2026-10-21 실행에서 확인한 결함과 검증 준비 수정
+
+- CharacterDeprivationRuntime은 기존 system.UiClock을 그대로 사용한다. 별도 clock 인자를 추가했던 중복을 되돌리고 outbox·하위 실행기로 같은 시계를 전달한다.
+- 실제 저장 결함: CharacterBodyFactPreflight가 6개 page에 key capacity 4를 지정해 pending healing/fatality 복원 preflight가 생성 단계에서 예외를 냈다. 생성자 불변조건의 최소값 6으로 수정한다. 정상 pending join, 변조·부분 영수증 거절과 정확히 한 번 재시도 검증을 유지한다.
+- KnowledgeResearch와 CertifiedSeed의 recorder decorator는 TryDeliver만 차단하고 reconciliation의 RetryPendingDeliveries를 통과시켰다. 장애 동안 양쪽 진입을 차단해 실제 pending outbox JSON 복원·재시도 단언을 유지한다.
+- 장비 fixture의 uninitialized-object factory에는 새 필수 formula catalog를 명시 공급한다. 수술의 새 거절 회귀 fixture는 종족이 없는 빈 SO 대신 기존 authored Human fixture를 사용한다.
+- Defense의 실패 사유는 현재 실제 적용 경계가 붙이는 `combat-action-failed:` 접두어까지 정확히 검사한다. 공격 observer와 피해 authority의 서로 다른 operation identity 및 domain-commit 연결을 각각 검사한다. 전체 exact row 2개, apply/rollback, 건강 불변, 영수증 없음, 성공 후 중복 방지는 유지한다.
+- CharacterProgression의 변경 저장 fixture는 일반 JsonUtility가 null DTO를 빈 객체로 바꾸지 않도록 기존 character field-only codec을 재사용한다. 좌표 거절의 원인·owner 동일성·후보 유출 여부를 별도로 기록한다.
+- 전체 저장 fixture의 연구 직접 완료/침입 피해 카운터 reflection은 현재 영수증 소유권을 누락했다. 기존 연구 완료 명령과 침입 피해 명령을 사용하고, 통제된 원정 역사 저장 marker는 동일 결과를 실제 publication owner로 발행해 결합한다. 자연 전투나 훈련 원본 증거로 주장하지 않는다.
+- whole-world 정상 지식 완료는 동기 observer가 이미 발행한 exact outcome과 정리 대기 task/physical receipt를 저장한다. 이를 명시적으로 검사하며, 배달 장애 중 pending outbox 복구는 별도 KnowledgeResearch fixture가 담당한다. 통합에서 outbox가 남는다고 가정하거나 정상/실패를 둘 다 허용하지 않는다. 저장된 physical receipt의 delivered proof도 exact outcome과 동일하게 검사한다. 통제 위치 설정 뒤 실제 breach 명령과 시설 피해 명령을 순서대로 실행해 정합한 상태/영수증을 준비한다. 침입자의 state/rally/breach는 저장 직전 값과 정확히 비교한다.
+
+
+## EditMode 회귀 수정의 계약 (2026-10-21)
+
+추가 실행에서 194/198이 통과했고 뒤쪽 낡은 호출 단언 3종과 직접 시간 접근이 남았다. 단독 주석 줄의 Time 표기를 실행 접근으로 세지 않도록 검사 범위를 명확히 하고, 실제 CombatActionPublicationRuntime은 기존 unscaled 축의 IUiClock을 주입한다. 호출부와 실제 WorkTypeId·lifetime registry 소유자를 끝까지 추적해 단언을 갱신했다.
+
+귀환 포로 경로는 실제 수명 결함이었다. 정식 ID가 없는 채 CreateInactive→DI→Initialize를 실행해 임시 ID의 체력 원장과 transient skill owner가 생긴 뒤 정식 ID로 덮었다. blueprint의 ID를 CreateInactive compose callback에서 먼저 설치하도록 옮겼다. 기존 full-world 격리 검증에 실제 scene factory/정확한 health ID 1개/동일 transient owner/공식 baseline 복원 검사를 추가했다.
+
+19개 실패 중 생성/복원·AI 서비스·조회 계약의 이동을 따라가지 못한 문자열 검사와 weather:clear fixture 누락이 있다. Medical의 Economy 참조, shopping의 미주입 전역 시간 폴백, 중앙 로더 밖 Resources 접근은 실제 원본을 확인한다. 저장·복원·재시도 소유권과 SO/DTO 형식은 보존한다.
+
+최초 현재 소스 재생성에서 oversized 17→14, 기존 상한5 초과로 분석기가 FAIL이었다. 다만 사용자의 지적에 따라 이 수치의 해석을 정정한다. `ProductRuntimeSourcesRespectV18LineLimitsAndBaseline`는 생성된 크기 초과 개수와 baseline만 비교하고 책임·응집성·상태 소유권을 분석하지 않는다. 따라서 이 실패만으로 해당 클래스의 분리가 필수라고 결론낼 수 없다. 수치 통과를 목표로 분리 범위를 확대한 판단을 정정하고, 이미 작성한 분리는 구체적인 책임 경계 개선과 동작 보존으로 재평가한다. 추가 분리는 실제 구조 결함 근거가 있을 때만 수행한다. 검증되지 않은 변경을 개선 완료로 주장하거나 기준을 키워 실패를 숨기지 않는다.
+
+이번 작업에서 만든 식사 공급, 포획 수용 조회, 야생동물 도착, 건강 fact outbox, 장비 입력 조회 분리 5개를 되돌렸다. 기존 응집된 상태 권위와 파일을 복구했고 독립적인 clock/content 주입 수정은 유지했다. 크기/생성자 인자 수는 analyzer·Editor validator·EditMode에서 검토 신호로 통일하고 금지 의존·상태 소유권·복원/재시도 계약 검사는 유지한다. SurgeryRuntime.TryReserveWork의 3개 거절 경로에서 out order를 비운 뒤 참조하던 실제 NullReference 결함을 수정하고 실패 코드·문맥·무변경·반복 호출 회귀를 추가했다. 최종 수술 거절 회귀는 실제 Unity에서 3경로/6회·상태 불변으로 PASS했다.
+
+정적 검사 재검토: ContentEscape는 원문 문자열을 세어 `#if UNITY_EDITOR` 전용 fixture 8개를 런타임 위반으로 오판했다. active Roslyn 호출 구문으로 바꾸고 실제 금지 호출 3종·공백·주석·문자열·비활성 Editor 경계의 검출 회귀를 `-Verify`에 추가했다. 루트 카탈로그 참조는 main과 동일한 정확한 3개였으나 baseline 집합 해시만 오래되어 해당 해시만 갱신했다(상한3 유지). 분석기 PASS, contentEscape0/directSessionMutation0이다.
+
+V27 CI의 별도 선행 결함: 최초 worktree의 로컬 BalanceAnalyzers.dll 물질화가 고정 소스/도구 재빌드와 달랐으나 공식 재빌드 585c016c...는 HEAD LFS 포인터와 일치한다. DLL 의미 변경 없이 DSB001~DSB008 양/음성 검증 PASS. historical V27 source inventory는 main의 .gitattributes조차 다른 해시로 기록하며 과거 market/physical-mass receipt도 현재 소스와 맞지 않는다. 본 수정의 실행 PASS로 해당 장기 밸런스 원장 검증을 대체하지 않는다.
+
+현재 소스 실제 컴파일에서 Medical→Economy 참조는 완전히 미사용이 아님을 확인했다. AnatomyProfile이 경제 SO 파일에 선언된 AnatomyAttachmentPoint/ApparelSizeClass/ApparelBodyForm을 사용하므로, 참조 삭제에 더해 세 공통 enum만 기존 Foundation으로 옮겼다. 이름·숫자값·SO MonoScript GUID·저장 형식은 그대로이며, 양쪽 도메인이 공통 형식을 참조하도록 했다. 이는 줄 수 분할이 아니라 실제 잘못된 의존 방향의 수정이다. NUnit 비교기 오버로드도 명시적으로 고쳤다.
+
 ## SO 모듈 확장 — 최종 설계 판정 (2026-10-17)
 
 전수 타입별 판정은 `Artifacts/QA/SoModularity-20261017/audit-final.json`, 설명은 `docs/dev/so-modularity-audit-20261017.md`가 소유한다. 기존 메커니즘의 조합/추가 정의가 실제로 거절되거나 소비에서 버려지는 경계만 고친다. 단순 enum·고정 스키마·새 메커니즘의 등록은 결함이 아니다. 미정의 유전 효과4계열과 설명용 species tags/미구현 incident semantics는 기능 공백으로 남기며 구현 완료로 세지 않는다.

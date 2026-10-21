@@ -22,7 +22,7 @@ public static class FactionRestitutionOutboxDebugScenarios
         PhysicalItemBatchDispositionService batch = new(
             repository,
             massQuery,
-            EditorNullItemMarkerPresenter.Instance);
+            EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         FakeCampaign campaign = new(FactionId, grievance: 80);
 
         string sourceStackId = WorldItemRepositoryEditorAccess.AddStack(

@@ -18,6 +18,7 @@ public sealed class PhysicalItemTransformService : IPhysicalItemTransformService
     private readonly IGameSessionStateProvider gameDataProvider;
     private readonly IDomainFactPublisher facts;
     private readonly IDomainFactRecoveryPublisher recovery;
+    private readonly IUiClock clock;
     private readonly Queue<string> pending = new();
     private readonly HashSet<string> queued = new(StringComparer.Ordinal);
     private float nextRecoveryTime;
@@ -30,7 +31,8 @@ public sealed class PhysicalItemTransformService : IPhysicalItemTransformService
         IDungeonItemCatalogProvider catalog,
         IItemMarkerPresenter markerPresenter,
         IGameSessionStateProvider gameDataProvider,
-        IDomainFactPublisher facts)
+        IDomainFactPublisher facts,
+        IUiClock clock)
     {
         this.repository = repository
             ?? throw new ArgumentNullException(nameof(repository));
@@ -43,6 +45,7 @@ public sealed class PhysicalItemTransformService : IPhysicalItemTransformService
         this.gameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
         this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
+        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         recovery = facts as IDomainFactRecoveryPublisher
             ?? throw new ArgumentException("Physical transformations require durable fact recovery.", nameof(facts));
     }
@@ -512,8 +515,8 @@ public sealed class PhysicalItemTransformService : IPhysicalItemTransformService
 
     public void Tick()
     {
-        if (pending.Count == 0 || Time.unscaledTime < nextRecoveryTime) return;
-        nextRecoveryTime = Time.unscaledTime + 1f;
+        if (pending.Count == 0 || clock.Time < nextRecoveryTime) return;
+        nextRecoveryTime = clock.Time + 1f;
         int count = Math.Min(8, pending.Count);
         string failure = string.Empty;
         for (int index = 0; index < count; index++)

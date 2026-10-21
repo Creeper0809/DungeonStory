@@ -264,6 +264,179 @@ public static class GameContentCatalogAssetBuilder
     }
 
     /// <summary>
+    /// Replaces only the authored application-content slices in the domain
+    /// catalog. The explicit entry point validates every source asset before
+    /// testing the candidate catalog, so unrelated definitions are preserved.
+    /// </summary>
+    public static void ReindexApplicationDefinitions()
+    {
+        GameDomainContentCatalogSO domainCatalog =
+            AssetDatabase.LoadAssetAtPath<GameDomainContentCatalogSO>(
+                DomainCatalogPath)
+            ?? throw new InvalidOperationException(
+                $"Required domain content catalog is missing at '{DomainCatalogPath}'.");
+        if (EditorUtility.IsDirty(domainCatalog))
+        {
+            throw new InvalidOperationException(
+                "Application-definition reindex refused to overwrite unsaved changes "
+                + $"on '{DomainCatalogPath}'. Save or revert that catalog first.");
+        }
+
+        IReadOnlyList<string> currentErrors = domainCatalog.ValidateCatalog();
+        if (currentErrors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Application-definition reindex requires a valid current domain catalog:\n"
+                + string.Join("\n", currentErrors));
+        }
+
+        string[] narrativePaths = AssetDatabase
+            .FindAssets("t:InGameNarrativeTextCatalogSO", new[] { "Assets/Resources" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+        InGameNarrativeTextCatalogSO[] narrativeCatalogs = narrativePaths
+            .Select(path =>
+                AssetDatabase.LoadAssetAtPath<InGameNarrativeTextCatalogSO>(path)
+                ?? throw new InvalidOperationException(
+                    $"Application-definition reindex could not load '{path}' "
+                    + "as InGameNarrativeTextCatalogSO."))
+            .ToArray();
+        if (narrativeCatalogs.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Application-definition reindex requires exactly one "
+                + "InGameNarrativeTextCatalogSO asset; found "
+                + narrativeCatalogs.Length + ".");
+        }
+        IReadOnlyList<string> narrativeErrors = narrativeCatalogs[0].ValidateCatalog();
+        if (narrativeErrors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "In-game narrative catalog is invalid:\n"
+                + string.Join("\n", narrativeErrors));
+        }
+
+        string[] budgetPaths = AssetDatabase
+            .FindAssets("t:FactionAllianceBenefitBudgetSO", new[] { "Assets/Resources" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+        FactionAllianceBenefitBudgetSO[] budgets = budgetPaths
+            .Select(path =>
+                AssetDatabase.LoadAssetAtPath<FactionAllianceBenefitBudgetSO>(path)
+                ?? throw new InvalidOperationException(
+                    $"Application-definition reindex could not load '{path}' "
+                    + "as FactionAllianceBenefitBudgetSO."))
+            .ToArray();
+        if (budgets.Length != 1)
+        {
+            throw new InvalidOperationException(
+                "Application-definition reindex requires exactly one "
+                + "FactionAllianceBenefitBudgetSO asset; found "
+                + budgets.Length + ".");
+        }
+        IReadOnlyList<string> budgetErrors = budgets[0].ValidateDefinition();
+        if (budgetErrors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Faction-alliance benefit budget is invalid:\n"
+                + string.Join("\n", budgetErrors));
+        }
+
+        string[] formulaPaths = AssetDatabase
+            .FindAssets("t:EquipmentEvolutionFormulaCatalogSO", new[] { "Assets/Resources" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+        EquipmentEvolutionFormulaCatalogSO[] formulaCatalogs = formulaPaths
+            .Select(path =>
+                AssetDatabase.LoadAssetAtPath<EquipmentEvolutionFormulaCatalogSO>(path)
+                ?? throw new InvalidOperationException(
+                    $"Application-definition reindex could not load '{path}' "
+                    + "as EquipmentEvolutionFormulaCatalogSO."))
+            .ToArray();
+        HashSet<int> formulaVersions = new();
+        foreach (EquipmentEvolutionFormulaCatalogSO formulaCatalog in formulaCatalogs)
+        {
+            formulaCatalog.RequirePolicy();
+            int formulaVersion = formulaCatalog.formulaPolicy.formulaVersion;
+            if (!formulaVersions.Add(formulaVersion))
+            {
+                throw new InvalidOperationException(
+                    "Application-definition reindex found duplicate equipment formula "
+                    + $"version {formulaVersion}.");
+            }
+        }
+        if (!formulaVersions.Contains(EquipmentEvolutionRules.CurrentFormulaVersion)
+            || !formulaVersions.Contains(
+                EquipmentEvolutionRules.DrawbackModuleSelectionFormulaVersion))
+        {
+            throw new InvalidOperationException(
+                "Application-definition reindex requires both the current and V3 "
+                + "equipment formula catalogs.");
+        }
+
+        ScriptableObject[] preservedDefinitions = domainCatalog.Definitions
+            .Where(definition =>
+                definition is not InGameNarrativeTextCatalogSO
+                && definition is not FactionAllianceBenefitBudgetSO
+                && definition is not EquipmentEvolutionFormulaCatalogSO)
+            .ToArray();
+        ScriptableObject[] requestedDefinitions = preservedDefinitions
+            .Concat(narrativeCatalogs.Cast<ScriptableObject>())
+            .Concat(budgets.Cast<ScriptableObject>())
+            .Concat(formulaCatalogs.Cast<ScriptableObject>())
+            .ToArray();
+        GameDomainContentCatalogSO candidate =
+            UnityEngine.Object.Instantiate(domainCatalog);
+        ScriptableObject[] candidateDefinitions;
+        try
+        {
+            candidate.SetDefinitions(requestedDefinitions);
+            IReadOnlyList<string> candidateErrors = candidate.ValidateCatalog();
+            if (candidateErrors.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    "Application-definition reindex produced an invalid domain catalog:\n"
+                    + string.Join("\n", candidateErrors));
+            }
+
+            candidateDefinitions = candidate.Definitions.ToArray();
+            ScriptableObject[] candidatePreservedDefinitions = candidateDefinitions
+                .Where(definition =>
+                    definition is not InGameNarrativeTextCatalogSO
+                    && definition is not FactionAllianceBenefitBudgetSO
+                    && definition is not EquipmentEvolutionFormulaCatalogSO)
+                .ToArray();
+            if (candidatePreservedDefinitions.Length
+                    != preservedDefinitions.Length
+                || !new HashSet<ScriptableObject>(candidatePreservedDefinitions)
+                    .SetEquals(preservedDefinitions))
+            {
+                throw new InvalidOperationException(
+                    "Application-definition reindex changed the unrelated domain slice.");
+            }
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(candidate);
+        }
+
+        if (domainCatalog.Definitions.SequenceEqual(candidateDefinitions))
+        {
+            return;
+        }
+
+        domainCatalog.SetDefinitions(candidateDefinitions);
+        EditorUtility.SetDirty(domainCatalog);
+        AssetDatabase.SaveAssetIfDirty(domainCatalog);
+    }
+
+    /// <summary>
     /// Authors installation-kit definitions for an explicit building set and
     /// refreshes only the item-definition index.  It is for narrow content
     /// additions; it deliberately does not invoke the broad catalog migration.

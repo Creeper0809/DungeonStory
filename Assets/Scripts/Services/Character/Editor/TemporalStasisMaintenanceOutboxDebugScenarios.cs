@@ -57,7 +57,7 @@ public static class TemporalStasisMaintenanceOutboxDebugScenarios
                 [PhysicalAgeTreatmentRuntime.RuneConductorItemId] = 700L,
                 [PhysicalAgeTreatmentRuntime.ManaCrystalItemId] = 500L
             }),
-            EditorNullItemMarkerPresenter.Instance);
+            EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         PhysicalFacilityItemSinkGateway baseGateway = new(stock, dispositions);
         string operationId = PhysicalAgeTreatmentRuntime.FormatOperationId(
             new CharacterId(Character),
@@ -138,7 +138,7 @@ public static class TemporalStasisMaintenanceOutboxDebugScenarios
                 [PhysicalAgeTreatmentRuntime.RuneConductorItemId] = 700L,
                 [PhysicalAgeTreatmentRuntime.ManaCrystalItemId] = 500L
             }),
-            EditorNullItemMarkerPresenter.Instance);
+            EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         PhysicalFacilityItemSinkGateway gateway = new(
             new FixedStockQuery(Snapshot(
                 runeStack,
@@ -174,7 +174,7 @@ public static class TemporalStasisMaintenanceOutboxDebugScenarios
                     CreateRepository(),
                     new FixedMassQuery(
                         new Dictionary<string, long>(StringComparer.Ordinal)),
-                    EditorNullItemMarkerPresenter.Instance)));
+                    EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock())));
 
         Require(
             runtime.TryRecoverPending(out DomainFailure failure),

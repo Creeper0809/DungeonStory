@@ -32,6 +32,7 @@ public class Shop : BuildableObject,
     private IServiceSessionRuntime serviceSessionRuntime;
     private IShopServiceSessionCompletionPort serviceSessionCompletionPort;
     private IRetailStockPhysicalRuntime retailStockPhysicalRuntime;
+    private IRealtimeClock realtimeClock;
     private readonly HashSet<string> activeRestockOperations =
         new(StringComparer.Ordinal);
     private ShopInventoryRuntime Inventory =>
@@ -42,6 +43,7 @@ public class Shop : BuildableObject,
         serviceCompletion ??= new ShopServiceCompletion(EndShopUse);
     private ShopCustomerInteractionService CustomerInteraction =>
         customerInteraction ??= new ShopCustomerInteractionService(
+            realtimeClock,
             this,
             () => transform.position);
 
@@ -110,6 +112,7 @@ public class Shop : BuildableObject,
 
     [Inject]
     public void ConstructShop(
+        IRealtimeClock realtimeClock,
         IGameMoneyAccount moneyAccount,
         IShopStockCatalog stockCatalog,
         IFloatingNumberFeedbackService floatingNumberFeedbackService,
@@ -122,6 +125,8 @@ public class Shop : BuildableObject,
         IRetailStockPhysicalRuntime retailStockPhysicalRuntime,
         IStockQuery stockQuery)
     {
+        this.realtimeClock = realtimeClock
+            ?? throw new ArgumentNullException(nameof(realtimeClock));
         this.moneyAccount = moneyAccount
             ?? throw new ArgumentNullException(nameof(moneyAccount));
         Inventory.Configure(stockCatalog, stockQuery);

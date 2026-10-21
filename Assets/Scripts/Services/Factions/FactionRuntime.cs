@@ -161,7 +161,7 @@ public sealed class FactionRuntimeApplicationAdapter :
         this.events = events ?? throw new ArgumentNullException(nameof(events));
         this.routeEconomicPolicies = routeEconomicPolicies;
         this.allianceBenefitBudget = allianceBenefitBudget
-            ?? new ResourceFactionAllianceBenefitBudgetApplicationAdapter();
+            ?? throw new ArgumentNullException(nameof(allianceBenefitBudget));
         this.money = money ?? throw new ArgumentNullException(nameof(money));
         this.gameSessionState = gameSessionState;
         this.treasuryState = treasuryState;

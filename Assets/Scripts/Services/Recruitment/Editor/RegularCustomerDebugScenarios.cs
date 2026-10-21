@@ -347,6 +347,7 @@ public static class RegularCustomerDebugScenarios
                 "run:regular-customer-visits");
             using var facts = new RegularCustomerFactEditorFixture(outcomes);
             runtime.ConstructRecruitmentRuntime(
+                new DungeonStory.Foundation.UnityUiClock(),
                 new FakeRecruitActivationService(),
                 new DungeonStory.Foundation.GameEventBus(),
                 new FixedSessionStateProvider(1),
@@ -440,6 +441,7 @@ public static class RegularCustomerDebugScenarios
             "run:regular-customer-reward");
         using var facts = new RegularCustomerFactEditorFixture(outcomes);
         runtime.ConstructRecruitmentRuntime(
+            new DungeonStory.Foundation.UnityUiClock(),
             new FakeRecruitActivationService(),
             new DungeonStory.Foundation.GameEventBus(),
             new FixedSessionStateProvider(1),
@@ -507,8 +509,12 @@ public static class RegularCustomerDebugScenarios
             new DungeonRuntimeAggregateRootStore();
         DungeonRuntimeAggregateRootStore targetRoot =
             new DungeonRuntimeAggregateRootStore();
-        source.ConstructRestoreRootForDebug(sourceRoot);
-        target.ConstructRestoreRootForDebug(targetRoot);
+        source.ConstructRestoreRootForDebug(
+            new DungeonStory.Foundation.UnityUiClock(),
+            sourceRoot);
+        target.ConstructRestoreRootForDebug(
+            new DungeonStory.Foundation.UnityUiClock(),
+            targetRoot);
         FixedRunCharacterCatalog catalog =
             new FixedRunCharacterCatalog(customer.data);
 

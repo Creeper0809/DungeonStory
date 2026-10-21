@@ -905,7 +905,7 @@ public static class SurgeryDebugScenarios
         var batch = new PhysicalItemBatchDispositionService(
             repository,
             new PhysicalItemMassQuery(catalog),
-            EditorNullItemMarkerPresenter.Instance);
+            EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         string sourceStackId = repository.AddEditorTestStack(
             "material:lumber",
             1,
@@ -2826,7 +2826,7 @@ public static class SurgeryDebugScenarios
             BatchDispositions = new PhysicalItemBatchDispositionService(
                 Repository,
                 mass,
-                EditorNullItemMarkerPresenter.Instance);
+                EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
             FailOnceReplacementBatchDisposition incomingTransferFault =
                 failFirstIncomingTransfer
                     ? new FailOnceReplacementBatchDisposition(
@@ -2896,7 +2896,7 @@ public static class SurgeryDebugScenarios
                     catalog,
                     EditorNullItemMarkerPresenter.Instance,
                     new FixedGameSessionStateProvider(),
-                    physicalFacts),
+                    physicalFacts, clock: new DungeonStory.Foundation.UnityUiClock()),
                 itemDefinitions,
                 mass,
                 claims,

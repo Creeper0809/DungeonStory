@@ -3559,7 +3559,8 @@ public static partial class ProductionPreparedOutputFullPersistenceDebugScenario
                 Repository,
                 Mass,
                 EditorNullItemMarkerPresenter.Instance,
-                QuantityReservations);
+                QuantityReservations,
+                clock: new DungeonStory.Foundation.UnityUiClock());
             ProductionStockSensorPhysicalGateway stockSensorPhysical = new(
                 new PhysicalFacilityItemSinkGateway(stock, dispositions));
             ProductionStockSensorRemovalOutputGateway sensorRemoval = new(
@@ -3637,7 +3638,10 @@ public static partial class ProductionPreparedOutputFullPersistenceDebugScenario
                 maximumFactors,
                 componentCodec,
                 Mass,
-                maximumMass);
+                maximumMass,
+                clearanceProfiles:
+                    new ProductionOutputClearanceProfileResourceSource(
+                        new UnityGameContentRootLoader()));
             CapacityProjector = capacity;
             FacilityBufferDestinationLifecycleService lifecycle = new(
                 Claims,

@@ -86,7 +86,7 @@ public static class EnvironmentalFireFocusedDebugScenarios
         var fixture = new Fixture(false, 0.4f, outcomes: outcomes);
         Require(fixture.Ignite("cause:clocked-save-join").Created,
             "Clocked join fixture did not execute real ignition.");
-        var damage = new EnvironmentalFireDamageAuthority(outcomes.Facts, outcomes.Facts);
+        var damage = new EnvironmentalFireDamageAuthority(new DungeonStory.Foundation.UnityUiClock(), outcomes.Facts, outcomes.Facts);
         var command = DamageCommand("fire-damage:clocked-save-join");
         Require(damage.TryBegin(command, "시각 검사 시설", 23, out _, out _)
             && damage.TryCommitApplied(command.OperationId, 7, true, out var result, out _)
@@ -259,7 +259,7 @@ public static class EnvironmentalFireFocusedDebugScenarios
         {
             using var source = new OutcomeFixture(includeDamage: true);
             var faults = new ControlledDamagePublisher(source.Facts) { Mode = mode };
-            var authority = new EnvironmentalFireDamageAuthority(faults, faults);
+            var authority = new EnvironmentalFireDamageAuthority(new DungeonStory.Foundation.UnityUiClock(), faults, faults);
             var command = DamageCommand("fire-damage:unknown:" + mode);
             Require(authority.TryBegin(command, "당시 시설", 23, out _, out _), "Unknown damage could not reserve.");
             Require(authority.TryCommitApplied(command.OperationId, 7, true, out var result, out _)
@@ -276,7 +276,7 @@ public static class EnvironmentalFireFocusedDebugScenarios
             var restoredLedger = target.Ledger.PrepareGameplayOutcomeRestore(ledgerSave);
             target.Ledger.BeginRestoreCandidate(); target.Ledger.PublishGameplayOutcomeRestore(restoredLedger);
             target.Ledger.PublishRestoreCandidate(); target.Ledger.CompleteRestoreCandidate();
-            var restored = new EnvironmentalFireDamageAuthority(target.Facts, target.Facts);
+            var restored = new EnvironmentalFireDamageAuthority(new DungeonStory.Foundation.UnityUiClock(), target.Facts, target.Facts);
             restored.Restore(saved.damageOperations);
             restored.OnRestoreCompleted();
             var delivered = restored.Capture().Single();
@@ -317,7 +317,7 @@ public static class EnvironmentalFireFocusedDebugScenarios
 
         using var rejectedSource = new OutcomeFixture(includeDamage: true);
         var reject = new ControlledDamagePublisher(rejectedSource.Facts) { Mode = ControlledCommitMode.Fail };
-        var rejectedOwner = new EnvironmentalFireDamageAuthority(reject, reject);
+        var rejectedOwner = new EnvironmentalFireDamageAuthority(new DungeonStory.Foundation.UnityUiClock(), reject, reject);
         var rejectedCommand = DamageCommand("fire-damage:known-rejection");
         Require(rejectedOwner.TryBegin(rejectedCommand, "거절 시설", 24, out _, out _)
             && !rejectedOwner.TryCommitApplied(rejectedCommand.OperationId, 7, true, out _, out _)
@@ -524,7 +524,7 @@ public static class EnvironmentalFireFocusedDebugScenarios
     private static void VerifyDamageRestoreTransactionIsolation()
     {
         using var outcomes = new OutcomeFixture(includeDamage: true);
-        var live = new EnvironmentalFireDamageAuthority(outcomes.Facts, outcomes.Facts);
+        var live = new EnvironmentalFireDamageAuthority(new DungeonStory.Foundation.UnityUiClock(), outcomes.Facts, outcomes.Facts);
         EnvironmentalFireDamageCommand liveCommand = DamageCommand(
             "fire-damage:restore-live");
         Require(live.TryBegin(
@@ -536,7 +536,7 @@ public static class EnvironmentalFireFocusedDebugScenarios
             "Live fire-damage restore fixture could not reserve: " + liveBeginFailure);
         string preparedLive = DamageState(live);
 
-        var incoming = new EnvironmentalFireDamageAuthority(outcomes.Facts, outcomes.Facts);
+        var incoming = new EnvironmentalFireDamageAuthority(new DungeonStory.Foundation.UnityUiClock(), outcomes.Facts, outcomes.Facts);
         EnvironmentalFireDamageCommand incomingCommand = DamageCommand(
             "fire-damage:restore-incoming");
         Require(incoming.TryBegin(
@@ -849,7 +849,7 @@ public static class EnvironmentalFireFocusedDebugScenarios
     private static void VerifyDamageOutcomeReplayRestoreAndFailureRetry()
     {
         using var outcomes = new OutcomeFixture(includeDamage: true);
-        var authority = new EnvironmentalFireDamageAuthority(
+        var authority = new EnvironmentalFireDamageAuthority(new DungeonStory.Foundation.UnityUiClock(),
             outcomes.Facts, outcomes.Facts);
         EnvironmentalFireDamageCommand command = DamageCommand(
             "fire-damage:replay");
@@ -893,7 +893,7 @@ public static class EnvironmentalFireFocusedDebugScenarios
             && conflictFailure == "environmental-fire-damage-operation-conflict",
             "Conflicting fire-damage replay was accepted.");
 
-        var restored = new EnvironmentalFireDamageAuthority(
+        var restored = new EnvironmentalFireDamageAuthority(new DungeonStory.Foundation.UnityUiClock(),
             outcomes.Facts, outcomes.Facts);
         restored.Restore(authority.Capture());
         Require(restored.TryCommitApplied(
@@ -920,7 +920,7 @@ public static class EnvironmentalFireFocusedDebugScenarios
     {
         using var outcomes = new OutcomeFixture(includeDamage: true);
         var committer = new ControlledDamagePublisher(outcomes.Facts) { Mode = initialMode };
-        var authority = new EnvironmentalFireDamageAuthority(committer, committer);
+        var authority = new EnvironmentalFireDamageAuthority(new DungeonStory.Foundation.UnityUiClock(), committer, committer);
         EnvironmentalFireDamageCommand command = DamageCommand(operationId);
         Require(authority.TryBegin(
                 command,
@@ -940,7 +940,7 @@ public static class EnvironmentalFireFocusedDebugScenarios
             && pending.phase == EnvironmentalFireDamagePhase.Applied,
             "Failed lethal fire-damage commit did not remain retryable.");
 
-        var restored = new EnvironmentalFireDamageAuthority(committer, committer);
+        var restored = new EnvironmentalFireDamageAuthority(new DungeonStory.Foundation.UnityUiClock(), committer, committer);
         restored.Restore(authority.Capture());
         committer.Mode = ControlledCommitMode.Success;
         Require(restored.TryFinalizeAfterWorldRemoval(

@@ -485,6 +485,7 @@ public static partial class StaffRebellionResponseDebugScenarios
                 : facts;
             RootStore = new DungeonRuntimeAggregateRootStore();
             Runtime.Construct(
+                CharacterAiEditorTestDependencies.UiClock,
                 CharacterAiEditorTestDependencies.WorldRegistry,
                 events,
                 RootStore,

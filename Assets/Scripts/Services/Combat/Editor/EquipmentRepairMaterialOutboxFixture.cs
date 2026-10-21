@@ -339,7 +339,7 @@ public static class EquipmentRepairMaterialOutboxFixture
             PhysicalItemBatchDispositionService inner = new(
                 Repository,
                 mass,
-                EditorNullItemMarkerPresenter.Instance);
+                EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
             Service = new FailOnce(inner)
             {
                 FailNext = failAcknowledgement

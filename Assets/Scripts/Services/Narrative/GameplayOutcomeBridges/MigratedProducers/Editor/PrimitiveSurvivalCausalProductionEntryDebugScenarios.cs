@@ -561,6 +561,7 @@ public static partial class PrimitiveSurvivalCausalProductionEntryDebugScenarios
             calendar.SetDateTime(InitialDay, 0);
             filth = new RecordingWorldFilthQuery();
             world = new CharacterBreakdownWorld(
+                    new DungeonStory.Foundation.UnityUiClock(),
                     gridProvider,
                     itemStacks,
                     filth,

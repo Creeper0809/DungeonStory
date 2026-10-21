@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using DungeonStory.Foundation;
 using DungeonStory.Foundation.Facts;
 using VContainer.Unity;
 
@@ -72,6 +73,7 @@ public sealed class PhysicalItemRelocationService : IPhysicalItemRelocationServi
     private readonly IDomainFactStagingPublisher facts;
     private readonly IDomainFactRecoveryPublisher recovery;
     private readonly IGameCalendar calendar;
+    private readonly IUiClock clock;
     private readonly Queue<string> pendingPublications = new();
     private readonly HashSet<string> queuedPublications = new(StringComparer.Ordinal);
     private float nextRecoveryTime;
@@ -79,13 +81,14 @@ public sealed class PhysicalItemRelocationService : IPhysicalItemRelocationServi
 
     public PhysicalItemRelocationService(WorldItemRepository repository,
         IPreparedPhysicalItemRelocationService relocations, IDomainFactStagingPublisher facts,
-        IDomainFactRecoveryPublisher recovery, IGameCalendar calendar)
+        IDomainFactRecoveryPublisher recovery, IGameCalendar calendar, IUiClock clock)
     {
         this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
         this.relocations = relocations ?? throw new ArgumentNullException(nameof(relocations));
         this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
         this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
+        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
     }
 
     public void OnRestoreCompleted()
@@ -100,8 +103,8 @@ public sealed class PhysicalItemRelocationService : IPhysicalItemRelocationServi
 
     public void Tick()
     {
-        if (pendingPublications.Count == 0 || Time.unscaledTime < nextRecoveryTime) return;
-        nextRecoveryTime = Time.unscaledTime + 1f;
+        if (pendingPublications.Count == 0 || clock.Time < nextRecoveryTime) return;
+        nextRecoveryTime = clock.Time + 1f;
         int count = Math.Min(8, pendingPublications.Count);
         string failure = string.Empty;
         for (int index = 0; index < count; index++)

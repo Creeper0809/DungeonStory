@@ -26,6 +26,7 @@ public class OwnerRunManager : SerializedMonoBehaviour
     private IDomainFactPublisher factPublisher;
     private IDomainFactRecoveryPublisher factRecovery;
     private IRunCompletionPreparation completionPreparation;
+    private IUiClock uiClock;
     private bool completionMutationActive;
     private float nextCompletionRetry;
     private string lastCompletionFailure;
@@ -54,9 +55,11 @@ public class OwnerRunManager : SerializedMonoBehaviour
     #if UNITY_EDITOR
     // Actor-only fixture setup; completion still requires explicit fact observers.
     public void ConstructOwnerRunManager(
+        IUiClock uiClock,
         IOwnerCandidateCatalog ownerCandidateCatalog,
         IOwnerCharacterFactory ownerCharacterFactory,
         IGameEventBus gameEventBus) => ConstructOwnerRunManager(
+        uiClock,
         ownerCandidateCatalog,
         ownerCharacterFactory,
         gameEventBus,
@@ -70,6 +73,7 @@ public class OwnerRunManager : SerializedMonoBehaviour
 
     [Inject]
     public void ConstructOwnerRunManager(
+        IUiClock uiClock,
         IOwnerCandidateCatalog ownerCandidateCatalog,
         IOwnerCharacterFactory ownerCharacterFactory,
         IGameEventBus gameEventBus,
@@ -80,6 +84,7 @@ public class OwnerRunManager : SerializedMonoBehaviour
         IDomainFactRecoveryPublisher factRecovery,
         IRunCompletionPreparation completionPreparation)
     {
+        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
         this.ownerCandidateCatalog = ownerCandidateCatalog
             ?? throw new ArgumentNullException(nameof(ownerCandidateCatalog));
         this.ownerCharacterFactory = ownerCharacterFactory
@@ -453,8 +458,8 @@ public class OwnerRunManager : SerializedMonoBehaviour
 
     private void Update()
     {
-        if (completionMutationActive || Time.unscaledTime < nextCompletionRetry) return;
-        nextCompletionRetry = Time.unscaledTime + 5f;
+        if (completionMutationActive || uiClock.Time < nextCompletionRetry) return;
+        nextCompletionRetry = uiClock.Time + 5f;
         ResumePendingRunCompletion();
     }
 

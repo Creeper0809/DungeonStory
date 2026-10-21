@@ -325,6 +325,22 @@ internal sealed class DefenseEngagementCombatRuntime
         store.Remove(engagement);
     }
 
+    public void RetireForWorldRestore(DefenseEngagement engagement)
+    {
+        if (engagement == null) return;
+        engagement.State = DefenseEngagementState.Completed;
+        // Normal completion refreshes combat UI, which reads the outgoing
+        // intruder's health and can recreate it in the replacement body ledger.
+        // These scene objects are about to be retired by their world owners.
+        guardControl.RetireForWorldRestore(engagement.LeadGuard, engagement.LeadMovement);
+        guardControl.RetireForWorldRestore(engagement.ReserveGuard, engagement.ReserveMovement);
+        guardControl.RetireForWorldRestore(engagement.RangedGuard, engagement.RangedMovement);
+        guardControl.RetireForWorldRestore(engagement.SecondaryRangedGuard, engagement.SecondaryRangedMovement);
+        tacticalCoordinator.Release(GetPersistentId(engagement.RangedGuard));
+        tacticalCoordinator.Release(GetPersistentId(engagement.SecondaryRangedGuard));
+        store.Remove(engagement);
+    }
+
     public void ReleaseRangedGuard(
         DefenseEngagement engagement,
         string reason,

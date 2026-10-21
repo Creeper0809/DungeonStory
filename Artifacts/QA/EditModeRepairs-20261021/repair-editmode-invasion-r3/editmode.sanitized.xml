@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8'?>
+<test-run id="2" testcasecount="3" result="Passed" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-21 16:00:23Z" end-time="2026-10-21 16:00:23Z" duration="0.1448498">
+  <test-suite type="TestSuite" id="1000" name="DungeonStory" fullname="DungeonStory" runstate="Runnable" testcasecount="200" result="Passed" start-time="2026-10-21 16:00:23Z" end-time="2026-10-21 16:00:23Z" duration="0.144850" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <test-suite type="Assembly" id="1190" name="DungeonStory.Architecture.Tests.dll" fullname="/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/ScriptAssemblies/DungeonStory.Architecture.Tests.dll" runstate="Runnable" testcasecount="171" result="Passed" start-time="2026-10-21 16:00:23Z" end-time="2026-10-21 16:00:23Z" duration="0.121267" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <test-suite type="TestSuite" id="1191" name="DungeonStory" fullname="DungeonStory" runstate="Runnable" testcasecount="171" result="Passed" start-time="2026-10-21 16:00:23Z" end-time="2026-10-21 16:00:23Z" duration="0.114065" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <test-suite type="TestSuite" id="1192" name="Tests" fullname="DungeonStory.Tests" runstate="Runnable" testcasecount="171" result="Passed" start-time="2026-10-21 16:00:23Z" end-time="2026-10-21 16:00:23Z" duration="0.107978" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <test-suite type="TestSuite" id="1194" name="Architecture" fullname="DungeonStory.Tests.Architecture" runstate="Runnable" testcasecount="169" result="Passed" start-time="2026-10-21 16:00:23Z" end-time="2026-10-21 16:00:23Z" duration="0.102362" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <test-suite type="TestFixture" id="1134" name="InvasionIntruderArchitectureTests" fullname="DungeonStory.Tests.Architecture.InvasionIntruderArchitectureTests" classname="DungeonStory.Tests.Architecture.InvasionIntruderArchitectureTests" runstate="Runnable" testcasecount="3" result="Passed" start-time="2026-10-21 16:00:23Z" end-time="2026-10-21 16:00:23Z" duration="0.092983" total="3" passed="3" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <test-case id="1136" name="ExecutionCoordinatorRetainsDeterministicAndLifecycleContracts" fullname="DungeonStory.Tests.Architecture.InvasionIntruderArchitectureTests.ExecutionCoordinatorRetainsDeterministicAndLifecycleContracts" methodname="ExecutionCoordinatorRetainsDeterministicAndLifecycleContracts" classname="DungeonStory.Tests.Architecture.InvasionIntruderArchitectureTests" runstate="Runnable" seed="1416250526" result="Passed" start-time="2026-10-21 16:00:23Z" end-time="2026-10-21 16:00:23Z" duration="0.046638" asserts="0">
+                </test-case>
+              <test-case id="1137" name="FactoryOwnsPostCreationFailureCleanup" fullname="DungeonStory.Tests.Architecture.InvasionIntruderArchitectureTests.FactoryOwnsPostCreationFailureCleanup" methodname="FactoryOwnsPostCreationFailureCleanup" classname="DungeonStory.Tests.Architecture.InvasionIntruderArchitectureTests" runstate="Runnable" seed="240405143" result="Passed" start-time="2026-10-21 16:00:23Z" end-time="2026-10-21 16:00:23Z" duration="0.008076" asserts="0">
+                </test-case>
+              <test-case id="1135" name="RuntimeDelegatesExecutionWithoutDuplicatingStateAuthority" fullname="DungeonStory.Tests.Architecture.InvasionIntruderArchitectureTests.RuntimeDelegatesExecutionWithoutDuplicatingStateAuthority" methodname="RuntimeDelegatesExecutionWithoutDuplicatingStateAuthority" classname="DungeonStory.Tests.Architecture.InvasionIntruderArchitectureTests" runstate="Runnable" seed="550582355" result="Passed" start-time="2026-10-21 16:00:23Z" end-time="2026-10-21 16:00:23Z" duration="0.007451" asserts="0">
+                </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

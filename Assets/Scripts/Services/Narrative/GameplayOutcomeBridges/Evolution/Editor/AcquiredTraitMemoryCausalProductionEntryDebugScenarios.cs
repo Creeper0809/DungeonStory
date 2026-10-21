@@ -389,7 +389,7 @@ public static class AcquiredTraitMemoryCausalProductionEntryDebugScenarios
                 repository,
                 mass,
                 EditorNullItemMarkerPresenter.Instance,
-                reservations);
+                reservations, clock: new DungeonStory.Foundation.UnityUiClock());
             sealStackId = WorldItemRepositoryEditorAccess.AddStack(
                 repository,
                 MemoryErasureSealItemRules.ItemId,

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
+public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort, IDungeonSaveRestoreCompletedHook
 {
     internal const string CampaignPublicationCheckpoint = "campaign";
     internal const string IntruderPublicationCheckpoint = "intruders";
@@ -67,6 +67,7 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
     private PreparedRestoreCandidate preparedCandidate;
     private int publishedProjectionCount;
     private bool restorePublicationPending;
+    private bool engagementActivationPending;
     private bool threatOwnershipPublished;
     private InvasionThreatEndlessCrisisOwnershipState previousThreatOwnership;
 
@@ -171,10 +172,10 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
         {
             throw new ArgumentNullException(nameof(report));
         }
-        if (preparedCandidate != null)
+        if (preparedCandidate != null || engagementActivationPending)
         {
             throw new InvalidOperationException(
-                "An invasion runtime restore candidate is already prepared.");
+                "An invasion runtime restore candidate is already prepared or awaiting activation.");
         }
 
         try
@@ -409,14 +410,22 @@ public sealed class InvasionSaveRuntimeAdapter : IInvasionSaveRuntimePort
         InvokeCompletionCheckpoint(
             OwnerEvacuationActivatedCompletionCheckpoint);
 
-        engagementRuntime.ActivateRestoreProjection();
-        InvokeCompletionCheckpoint(
-            EngagementActivatedCompletionCheckpoint);
+        // Character participants complete later in reverse dependency order.
+        // Their inactive candidates cannot own movement coroutines yet.
+        engagementActivationPending = true;
 
         publishedProjectionCount = 0;
         restorePublicationPending = false;
         threatOwnershipPublished = false;
         previousThreatOwnership = default;
+    }
+
+    public void OnRestoreCompleted()
+    {
+        if (!engagementActivationPending) return;
+        engagementRuntime.ActivateRestoreProjection();
+        engagementActivationPending = false;
+        InvokeCompletionCheckpoint(EngagementActivatedCompletionCheckpoint);
     }
 
     public void DiscardRestoreCandidate()

@@ -290,7 +290,11 @@ public static class OwnerRunCompletionCausalProductionEntryDebugScenarios
                 manager = host.AddComponent<OwnerRunManager>();
                 // Owner construction precedes meta setup, but completion is
                 // intentionally unavailable until the real meta participant is bound.
-                manager.ConstructOwnerRunManager(ownerCatalog, ownerFactory, events);
+                manager.ConstructOwnerRunManager(
+                    new DungeonStory.Foundation.UnityUiClock(),
+                    ownerCatalog,
+                    ownerFactory,
+                    events);
                 manager.SelectOwner(archetype);
                 initialName = Actor.Identity.DisplayName;
                 var invasion = new InvasionSceneRuntimeReferences(
@@ -301,7 +305,9 @@ public static class OwnerRunCompletionCausalProductionEntryDebugScenarios
                     clock ?? FrozenClock.Instance, catalog, store);
                 meta.ConstructDomainFacts(domainFacts);
                 meta.SetShowRunResultPanel(false);
-                manager.ConstructOwnerRunManager(ownerCatalog, ownerFactory,
+                manager.ConstructOwnerRunManager(
+                    new DungeonStory.Foundation.UnityUiClock(),
+                    ownerCatalog, ownerFactory,
                     events, ownerFacts.Publisher, runSeed, store, content,
                     ownerFacts.Recovery, meta);
                 var pacing = new ExperiencePacingRuntime(new ExperiencePacingApplicationAdapter(events, store, content));
@@ -346,6 +352,7 @@ public static class OwnerRunCompletionCausalProductionEntryDebugScenarios
             Require(!disposed, "Disposed owner fixture.");
             manager.AssertCompletionIdle();
             manager.ConstructOwnerRunManager(
+                new DungeonStory.Foundation.UnityUiClock(),
                 ownerCatalog,
                 ownerFactory,
                 events,

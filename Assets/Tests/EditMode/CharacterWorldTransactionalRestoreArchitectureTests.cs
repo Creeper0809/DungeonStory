@@ -16,10 +16,25 @@ namespace DungeonStory.Tests.Architecture
                 "Services/Infrastructure/CharacterV18RestoreIdentityResolver.cs");
             string aggregatePreflight = ReadScript(
                 "Services/Infrastructure/Save/DungeonAggregateReferencePreflight.cs");
+            string physicalValidation = ReadScript(
+                "Services/Infrastructure/Save/DungeonPhysicalSaveReferenceValidation.cs");
+            string referenceRules = ReadScript(
+                "Services/Infrastructure/Save/DungeonSaveReferenceRules.cs");
             string tryResolve = ExtractMethod(
                 identityResolver,
                 "public static bool TryResolve(",
                 "public static CharacterId RequireCharacterId(");
+            string validateCharacters = ExtractMethod(
+                physicalValidation,
+                "internal DungeonSaveCharacterReferenceIndex ValidateCharacters(",
+                "internal DungeonSaveBuildingReferenceIndex ValidateBuildings(");
+            int requireUniqueCharacterIdStart = referenceRules.IndexOf(
+                "internal static bool RequireUniqueCharacterId(",
+                StringComparison.Ordinal);
+            Assert.That(requireUniqueCharacterIdStart, Is.GreaterThanOrEqualTo(0),
+                "Missing delegated canonical character identity validator.");
+            string requireUniqueCharacterId = referenceRules.Substring(
+                requireUniqueCharacterIdStart);
             string prepare = ExtractMethod(
                 source,
                 "public CharacterWorldRestoreCandidate PrepareRestoreCandidate(",
@@ -48,10 +63,37 @@ namespace DungeonStory.Tests.Architecture
                 "StringComparison.Ordinal");
             Assert.That(identityResolver, Does.Not.Contain(
                 "string normalized = persistentId.Trim();"));
-            Assert.That(aggregatePreflight, Does.Contain(
-                "RequireUniqueCharacterId("));
-            Assert.That(aggregatePreflight, Does.Not.Contain(
-                "profile?.persistentId?.Trim()"));
+            AssertInOrder(
+                aggregatePreflight,
+                "physicalSaveReference = new DungeonPhysicalSaveReferenceValidation(",
+                "physicalSaveReference.ValidateCharacters(characters, report);");
+            AssertInOrder(
+                validateCharacters,
+                "foreach (DungeonCharacterSaveData actor in source?.actors",
+                "if (RequireUniqueCharacterId(",
+                "actor.persistentId,",
+                "result.KnownCharacterIds,",
+                "rejectDuplicate: true,",
+                "result.ActorIds.Add(actorId);",
+                "foreach (WorldCharacterProfile profile in source?.populationProfiles",
+                "if (RequireUniqueCharacterId(",
+                "profile?.persistentId,",
+                "result.KnownCharacterIds,",
+                "rejectDuplicate: false,",
+                "result.LivingCharacterIds.Add(profileId);");
+            AssertInOrder(
+                requireUniqueCharacterId,
+                "CharacterV18RestoreIdentityResolver.TryResolve(",
+                "allowLegacyCharacterIds: false,",
+                "string.Equals(",
+                "rawId,",
+                "characterId.Value,",
+                "StringComparison.Ordinal",
+                "canonicalId = characterId.Value;",
+                "if (!ids.Add(canonicalId) && rejectDuplicate)",
+                "return false;",
+                "return true;");
+            Assert.That(requireUniqueCharacterId, Does.Not.Contain(".Trim()"));
         }
 
         [Test]
@@ -168,7 +210,7 @@ namespace DungeonStory.Tests.Architecture
             string complete = ExtractMethod(
                 source,
                 "private void CompleteCharacterPublication(",
-                "private static void EnsureRestoredStaffWorkAbility(");
+                "private static void PrepareRestoredStaffComposition(");
 
             AssertInOrder(
                 complete,
@@ -176,7 +218,9 @@ namespace DungeonStory.Tests.Architecture
                 "characterPopulationService.CompleteRestore(",
                 "candidate.ExistingStaff.Concat(",
                 "publication.OwnerPublication?.PreviousOwner",
-                "PrepareForWorldRetirement(retiringActors);",
+                "PrepareForWorldRetirement(",
+                "persistentRetiringActors,",
+                "candidate.ActorsById);",
                 "oldStaff.gameObject.SetActive(false);",
                 "characterObjectFactory.CompleteDetachedPublication(",
                 "characterObjectFactory.Destroy(oldStaff.gameObject);",

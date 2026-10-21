@@ -9,6 +9,7 @@ public sealed class CombatEquipmentRuntime :
     ICombatEquipmentBurdenQuery,
     IReversibleRetailEquipmentAuthority
 {
+    private readonly EquipmentEvolutionFormulaCatalogs formulaCatalogs;
     private readonly ICombatEquipmentCatalog catalog;
     private readonly IItemInstanceRepository itemInstances;
     private readonly CombatEquipmentSupplyService supplies;
@@ -27,6 +28,7 @@ public sealed class CombatEquipmentRuntime :
         itemInstances.EquipmentModules;
 
     public CombatEquipmentRuntime(
+        EquipmentEvolutionFormulaCatalogs formulaCatalogs,
         ICombatEquipmentCatalog catalog,
         IItemInstanceRepository itemInstances,
         ICharacterCarryInventoryRegistry carryInventories,
@@ -36,6 +38,7 @@ public sealed class CombatEquipmentRuntime :
         CombatEquipmentCraftingRuntime crafting,
         CombatEquipmentLoadoutRuntime loadoutRuntime)
     {
+        this.formulaCatalogs = formulaCatalogs ?? throw new ArgumentNullException(nameof(formulaCatalogs));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.itemInstances = itemInstances
             ?? throw new ArgumentNullException(nameof(itemInstances));
@@ -504,11 +507,11 @@ public sealed class CombatEquipmentRuntime :
 
         EquipmentEvolutionState supplied = evolutionState
             ?? new EquipmentEvolutionState();
-        EquipmentEvolutionRules.ValidateFormulaState(supplied);
+        EquipmentEvolutionRules.ValidateFormulaState(supplied, formulaCatalogs);
         CombatEquipmentInstance candidate = instance.Clone();
         candidate.evolution = supplied.Clone();
         CombatEquipmentStatProjector.NormalizeEvolutionPresentationState(candidate.evolution);
-        EquipmentEvolutionRules.ValidateFormulaState(candidate.evolution);
+        EquipmentEvolutionRules.ValidateFormulaState(candidate.evolution, formulaCatalogs);
         PersistPhysicalState(candidate);
         instances[candidate.instanceId] = candidate;
         return true;

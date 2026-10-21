@@ -22,6 +22,7 @@ public class RegularCustomerRuntime : MonoBehaviour
     private IGameSessionStateProvider gameDataProvider;
     private IDomainFactPublisher factPublisher;
     private IDomainFactRecoveryPublisher factRecovery;
+    private IUiClock uiClock;
     private bool mutationActive;
     private readonly Dictionary<string, string> observationFailures = new(StringComparer.Ordinal);
     private IGameMoneyAccount money;
@@ -77,6 +78,7 @@ public class RegularCustomerRuntime : MonoBehaviour
 
     [Inject]
     public void ConstructRecruitmentRuntime(
+        IUiClock uiClock,
         RegularCustomerCharacterServices characterServices,
         IGameEventBus gameEventBus,
         IEmploymentContractRuntime employmentContracts,
@@ -89,6 +91,7 @@ public class RegularCustomerRuntime : MonoBehaviour
         IDomainFactPublisher factPublisher,
         IDomainFactRecoveryPublisher factRecovery)
     {
+        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
         characterServices = characterServices
             ?? throw new ArgumentNullException(nameof(characterServices));
         characterActivationService = characterServices.Activation;
@@ -115,12 +118,14 @@ public class RegularCustomerRuntime : MonoBehaviour
 
 #if UNITY_EDITOR
     public void ConstructRecruitmentRuntime(
+        IUiClock uiClock,
         IRecruitedCharacterActivationService characterActivationService,
         IGameEventBus gameEventBus,
         IGameSessionStateProvider gameDataProvider,
         IDomainFactPublisher factPublisher,
         IDomainFactRecoveryPublisher factRecovery)
     {
+        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
         this.characterActivationService = characterActivationService
             ?? throw new ArgumentNullException(nameof(characterActivationService));
         this.gameEventBus = gameEventBus
@@ -157,8 +162,10 @@ public class RegularCustomerRuntime : MonoBehaviour
 
 #if UNITY_EDITOR
     public void ConstructRestoreRootForDebug(
+        IUiClock uiClock,
         DungeonRuntimeAggregateRootStore rootStore)
     {
+        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
         aggregateRootStore = rootStore
             ?? throw new ArgumentNullException(nameof(rootStore));
         state = new RegularCustomerState(aggregateRootStore);
@@ -824,12 +831,12 @@ public class RegularCustomerRuntime : MonoBehaviour
 
     private void Update()
     {
-        if (Time.unscaledTime < nextRecruitDeliveryRetryAt)
+        if (uiClock.Time < nextRecruitDeliveryRetryAt)
         {
             return;
         }
 
-        nextRecruitDeliveryRetryAt = Time.unscaledTime + 5f;
+        nextRecruitDeliveryRetryAt = uiClock.Time + 5f;
         RetryPendingRecruitDeliveries();
     }
 

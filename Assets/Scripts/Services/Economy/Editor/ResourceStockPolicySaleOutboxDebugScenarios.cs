@@ -25,7 +25,7 @@ public static class ResourceStockPolicySaleOutboxDebugScenarios
         PhysicalItemBatchDispositionService dispositions = new(
             repository,
             massQuery,
-            EditorNullItemMarkerPresenter.Instance);
+            EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         PhysicalFacilityItemSinkGateway gateway = new(
             new PhysicalStockQuery(repository, catalog, massQuery),
             dispositions);

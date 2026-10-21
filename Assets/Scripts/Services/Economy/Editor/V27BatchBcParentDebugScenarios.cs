@@ -449,7 +449,8 @@ public static class V27BatchBcParentDebugScenarios
 
     private static void RequireActualClearanceProfileResource()
     {
-        ProductionOutputClearanceProfileResourceSource strict = new();
+        ProductionOutputClearanceProfileResourceSource strict =
+            new(new UnityGameContentRootLoader());
         Require(
             strict.Records.Count
                 == ProductionOutputClearanceProfileResourceSource

@@ -776,6 +776,7 @@ public static class BatchACoreSessionSaveDebugScenarios
                 DungeonDebugCommandResult.Succeeded("ok"));
 
             ServiceSessionRuntime services = new(
+                new DungeonStory.Foundation.UnityUiClock(),
                 DefaultInterfaceProxy.Create<IBuildingWorldQuery>(),
                 DefaultInterfaceProxy.Create<IServiceRoomLinkRuntime>(),
                 serviceProcesses,

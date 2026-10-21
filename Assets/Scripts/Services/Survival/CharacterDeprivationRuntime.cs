@@ -133,7 +133,7 @@ public sealed class CharacterDeprivationRuntime :
             gridSystemProvider,
             stateStore);
         waterPublications = new CharacterWaterPublicationOutbox(
-            stateStore, authority.Notifications, authority.Recovery, gameEventBus);
+            uiClock, stateStore, authority.Notifications, authority.Recovery, gameEventBus);
         safeReliefRunner = new CharacterSafeReliefRunner(
             itemStackRuntime,
             authority.PrimitiveSurvival.ReservedTransfers,
@@ -152,6 +152,7 @@ public sealed class CharacterDeprivationRuntime :
             authority.PrimitiveSurvival.Calendar,
             authority.Notifications);
         CharacterBreakdownWorld breakdownWorld = new CharacterBreakdownWorld(
+            uiClock,
             gridSystemProvider,
             itemStackRuntime,
             filthQuery,

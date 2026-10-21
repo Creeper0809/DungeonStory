@@ -108,7 +108,7 @@ internal sealed class DefenseEngagementPersistence
     }
 
     public void RetirePreviousRestoreProjection(
-        Action<DefenseEngagement, bool> complete)
+        Action<DefenseEngagement> retire)
     {
         if (!restorePublicationPending || previousProjectionRetired)
         {
@@ -118,7 +118,7 @@ internal sealed class DefenseEngagementPersistence
 
         foreach (DefenseEngagement engagement in store.Engagements.ToArray())
         {
-            complete(engagement, false);
+            retire(engagement);
         }
         store.ClearEngagements();
         previousProjectionRetired = true;

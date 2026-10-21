@@ -780,7 +780,7 @@ public static class CaptivityTransitionOutcomeDebugScenarios
             ItemFaults = (DurableToolItems)(object)items;
             ItemFaults.Target = physical;
             IPhysicalItemBatchDispositionService dispositions = new PhysicalItemBatchDispositionService(
-                PhysicalItems, new PhysicalItemMassQuery(catalog), markers);
+                PhysicalItems, new PhysicalItemMassQuery(catalog), markers, clock: new DungeonStory.Foundation.UnityUiClock());
             DurableTools = new CaptivityDurableToolRuntime();
             Set(runtime, "durableTools", DurableTools);
             Labor = new CaptivityLaborRuntime(actors,

@@ -101,7 +101,10 @@ public static class PhysicalItemRelocationFactRecoveryDebugScenarios
             bool uncertain = false, bool commitFirst = false, bool subscribe = true)
         {
             Repository = new WorldItemRepository(new GuidPersistentIdGenerator(), new DungeonRuntimeAggregateRootStore());
-            Persistence = new WorldItemPersistenceService(Catalog, new Hauling(), Repository,
+            Persistence = new WorldItemPersistenceService(
+                new EquipmentEvolutionFormulaCatalogs(
+                    CharacterAiEditorTestDependencies.ContentDefinitions),
+                Catalog, new Hauling(), Repository,
                 EmptyFacilityOutputExactRouteOutboxPersistence.Instance);
             if (physical != null) { Persistence.RestoreForEditorTest(physical); sourceId = physical.physicalItemRelocations.Single().sourceStackId; }
             else sourceId = WorldItemRepositoryEditorAccess.AddStack(Repository, ItemCatalog.ItemId, 3,
@@ -122,7 +125,7 @@ public static class PhysicalItemRelocationFactRecoveryDebugScenarios
                 PhysicalItemRelocatedFact, TradeInventoryOutcomeReceipt>(PhysicalItemRelocationFactObservation.Capture,
                 registry, Ledger, recorder, new GameplayDomainFactCommitGroup(recorder, Ledger)));
             service = new PhysicalItemRelocationService(Repository, this,
-                uncertain ? new LostResponse(dispatcher, commitFirst) : dispatcher, dispatcher, Calendar);
+                uncertain ? new LostResponse(dispatcher, commitFirst) : dispatcher, dispatcher, Calendar, clock: new DungeonStory.Foundation.UnityUiClock());
         }
         public WorldItemRepository Repository { get; }
         public WorldItemPersistenceService Persistence { get; }
