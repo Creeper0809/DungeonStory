@@ -50,7 +50,10 @@ public sealed class CharacterBodyHealthRuntime :
     private readonly List<string> creationDiagnosticsForEditor = new();
 #endif
 
+    private readonly IRealtimeClock recoveryClock;
+
     public CharacterBodyHealthRuntime(
+        IRealtimeClock recoveryClock,
         ICharacterAiWorldRegistry worldRegistry,
         IGameClock gameClock,
         IGameEventBus gameEventBus,
@@ -59,6 +62,7 @@ public sealed class CharacterBodyHealthRuntime :
         DungeonRuntimeAggregateRootStore aggregateRootStore,
         IGameCalendar gameCalendar)
     {
+        this.recoveryClock = recoveryClock ?? throw new ArgumentNullException(nameof(recoveryClock));
         this.worldRegistry = worldRegistry ?? throw new ArgumentNullException(nameof(worldRegistry));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.gameCalendar = gameCalendar ?? throw new ArgumentNullException(nameof(gameCalendar));
@@ -94,9 +98,9 @@ public sealed class CharacterBodyHealthRuntime :
     private void TickRuntime()
     {
         EnsureAggregateRevision();
-        if (Time.realtimeSinceStartup >= nextHealingRecoveryTime)
+        if (recoveryClock.Time >= nextHealingRecoveryTime)
         {
-            nextHealingRecoveryTime = Time.realtimeSinceStartup + 0.5f;
+            nextHealingRecoveryTime = recoveryClock.Time + 0.5f;
             RecoverPendingHealingFacts();
             RecoverPendingFatalityFacts();
         }

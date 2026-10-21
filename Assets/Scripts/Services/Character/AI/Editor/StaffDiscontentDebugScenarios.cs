@@ -1194,6 +1194,7 @@ public static partial class StaffDiscontentDebugScenarios
                 ? new RejectingTransitionPublisher(facts)
                 : facts;
             Runtime.Construct(
+                new DungeonStory.Foundation.UnityUiClock(),
                 world,
                 events,
                 RootStore,

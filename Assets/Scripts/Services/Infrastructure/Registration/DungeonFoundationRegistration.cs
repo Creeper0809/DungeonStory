@@ -17,6 +17,8 @@ public static class DungeonFoundationRegistration
             .As<IGameClock>();
         builder.Register<UnityUiClock>(Lifetime.Singleton)
             .As<IUiClock>();
+        builder.Register<UnityRealtimeClock>(Lifetime.Singleton)
+            .As<IRealtimeClock>();
         builder.Register<UnityGameTimeScaleController>(Lifetime.Singleton)
             .As<IGameTimeScaleController>();
         builder.Register(

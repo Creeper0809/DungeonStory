@@ -34,12 +34,15 @@ public interface IKnowledgeResidueProcessingRuntime
 public sealed class KnowledgeResidueExecutionServices
 {
     public KnowledgeResidueExecutionServices(
+        IRealtimeClock realtimeClock,
         IWorkforceReplanService workforce,
         IGameEventBus eventBus,
         IGameClock gameClock,
         IGameCalendar calendar,
         IDungeonDebugRuleQuery debugRules)
     {
+        RealtimeClock = realtimeClock
+            ?? throw new ArgumentNullException(nameof(realtimeClock));
         Workforce = workforce ?? throw new ArgumentNullException(nameof(workforce));
         EventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
         GameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
@@ -48,6 +51,7 @@ public sealed class KnowledgeResidueExecutionServices
     }
 
     public IWorkforceReplanService Workforce { get; }
+    public IRealtimeClock RealtimeClock { get; }
     public IGameEventBus EventBus { get; }
     public IGameClock GameClock { get; }
     public IGameCalendar Calendar { get; }
@@ -71,6 +75,7 @@ public sealed class KnowledgeResidueProcessingRuntime :
     private readonly IWorkforceReplanService workforce;
     private readonly IGameEventBus eventBus;
     private readonly IGameClock gameClock;
+    private readonly IRealtimeClock realtimeClock;
     private readonly IGameCalendar calendar;
     private readonly IDungeonDebugRuleQuery debugRules;
     private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
@@ -116,6 +121,7 @@ public sealed class KnowledgeResidueProcessingRuntime :
         workforce = execution.Workforce;
         eventBus = execution.EventBus;
         gameClock = execution.GameClock;
+        realtimeClock = execution.RealtimeClock;
         calendar = execution.Calendar;
         debugRules = execution.DebugRules;
         this.aggregateRootStore = aggregateRootStore
@@ -215,7 +221,7 @@ public sealed class KnowledgeResidueProcessingRuntime :
         if (gameClock.IsPaused && current.HasTasks
             && current.FirstTask.dispositionPhase == KnowledgeResidueDispositionPhase.RewardsApplied)
         {
-            double now = Time.realtimeSinceStartupAsDouble;
+            double now = realtimeClock.TimeAsDouble;
             if (now >= nextPausedCompletionRecovery)
             {
                 nextPausedCompletionRecovery = now + DeliveryCheckInterval;

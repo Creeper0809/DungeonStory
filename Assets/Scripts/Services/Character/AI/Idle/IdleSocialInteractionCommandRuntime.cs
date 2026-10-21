@@ -12,6 +12,7 @@ public sealed class IdleSocialInteractionCommandRuntime :
     private readonly IDomainFactRecoveryPublisher recovery;
     private readonly DungeonRuntimeAggregateRootStore roots;
     private readonly IGameCalendar calendar;
+    private readonly IUiClock clock;
     private readonly Func<string> operationIdFactory;
     private bool active;
     private float nextRecovery;
@@ -19,13 +20,16 @@ public sealed class IdleSocialInteractionCommandRuntime :
     private string lastFailure = string.Empty;
 
     [Inject]
-    public IdleSocialInteractionCommandRuntime(IDomainFactPublisher publisher, IDomainFactRecoveryPublisher recovery,
+    public IdleSocialInteractionCommandRuntime(IUiClock clock,
+        IDomainFactPublisher publisher, IDomainFactRecoveryPublisher recovery,
         DungeonRuntimeAggregateRootStore roots, IGameCalendar calendar)
-        : this(publisher, recovery, roots, calendar, null) { }
+        : this(clock, publisher, recovery, roots, calendar, null) { }
 
-    internal IdleSocialInteractionCommandRuntime(IDomainFactPublisher publisher, IDomainFactRecoveryPublisher recovery,
+    internal IdleSocialInteractionCommandRuntime(IUiClock clock,
+        IDomainFactPublisher publisher, IDomainFactRecoveryPublisher recovery,
         DungeonRuntimeAggregateRootStore roots, IGameCalendar calendar, Func<string> operationIdFactory)
     {
+        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
         this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
         this.roots = roots ?? throw new ArgumentNullException(nameof(roots));
@@ -153,8 +157,8 @@ public sealed class IdleSocialInteractionCommandRuntime :
     public void OnRestoreCompleted() { recoveryCursor = 0; nextRecovery = 0; lastFailure = string.Empty; Recover(); }
     public void Tick()
     {
-        if (active || roots.IsRestoreStaging || Current.Count == 0 || Time.unscaledTime < nextRecovery) return;
-        nextRecovery = Time.unscaledTime + 1f;
+        if (active || roots.IsRestoreStaging || Current.Count == 0 || clock.Time < nextRecovery) return;
+        nextRecovery = clock.Time + 1f;
         Recover();
     }
     public bool Recover()

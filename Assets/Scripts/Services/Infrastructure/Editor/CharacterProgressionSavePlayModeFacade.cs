@@ -124,8 +124,8 @@ public static class CharacterProgressionSavePlayModeFacade
             }
 
             DungeonCharacterSaveData staffContract =
-                JsonUtility.FromJson<DungeonCharacterSaveData>(
-                    JsonUtility.ToJson(savedOwner));
+                DungeonSaveSectionPayload.Deserialize<DungeonCharacterSaveData>(
+                    SerializeCharacterFixture(savedOwner));
             staffContract.persistentId = LegacyStaffWorkRoundTripId;
             staffContract.dataId = staffData.id;
             staffContract.isOwner = false;
@@ -150,12 +150,7 @@ public static class CharacterProgressionSavePlayModeFacade
             };
             staffContract.dutyState = AbilityWork.DutyState.OffDuty;
             savedCharacters.actors.Add(staffContract);
-            DungeonSaveSectionPayload.Write(
-                captured,
-                CharacterWorldSaveSection.Id,
-                CharacterWorldSaveSection.CurrentVersion,
-                DungeonSaveRestorePhase.Characters,
-                savedCharacters);
+            WriteCharacterFixture(captured, savedCharacters);
 
             DungeonCharacterBodyHealthSaveData bodyHealth =
                 DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterBodyHealthSaveData>(
@@ -758,12 +753,7 @@ public static class CharacterProgressionSavePlayModeFacade
                 ownerless,
                 CharacterWorldSaveSection.Id);
         ownerlessCharacters.actors.RemoveAll(actor => actor != null && actor.isOwner);
-        DungeonSaveSectionPayload.Write(
-            ownerless,
-            CharacterWorldSaveSection.Id,
-            CharacterWorldSaveSection.CurrentVersion,
-            DungeonSaveRestorePhase.Characters,
-            ownerlessCharacters);
+        WriteCharacterFixture(ownerless, ownerlessCharacters);
         ResealFixture(ownerless);
         bool ownerlessRestored = saveService.TryRestore(
             ownerless,
@@ -803,21 +793,18 @@ public static class CharacterProgressionSavePlayModeFacade
         invalidOwner.lifecycleState = CharacterLifecycleState.Active;
         invalidOwner.gridX = int.MinValue;
         invalidOwner.gridY = int.MinValue;
-        DungeonSaveSectionPayload.Write(
-            invalidPosition,
-            CharacterWorldSaveSection.Id,
-            CharacterWorldSaveSection.CurrentVersion,
-            DungeonSaveRestorePhase.Characters,
-            invalidCharacters);
+        WriteCharacterFixture(invalidPosition, invalidCharacters);
         ResealFixture(invalidPosition);
-        if (saveService.TryRestore(invalidPosition, out DungeonGameRestoreReport positionReport)
-            || !positionReport.Errors.Any(error => error.Contains(
-                "not walkable in the candidate grid",
-                StringComparison.Ordinal))
-            || !OwnerIsUnchanged(ownerProvider, liveOwner)
-            || candidates.TryGetCharacters(out _))
+        bool positionRestored = saveService.TryRestore(invalidPosition, out DungeonGameRestoreReport positionReport);
+        bool positionIdentified = positionReport.Errors.Any(error => error.Contains(
+            "not walkable in the candidate grid", StringComparison.Ordinal));
+        bool positionOwnerUnchanged = OwnerIsUnchanged(ownerProvider, liveOwner);
+        bool positionStaged = candidates.TryGetCharacters(out _);
+        if (positionRestored || !positionIdentified || !positionOwnerUnchanged || positionStaged)
         {
-            failure = "Invalid character position did not fail atomically.";
+            failure = "Invalid character position did not fail atomically. "
+                + $"restored={positionRestored}; identified={positionIdentified}; ownerUnchanged={positionOwnerUnchanged}; "
+                + $"staged={positionStaged}; errors={string.Join(" | ", positionReport.Errors)}";
             return false;
         }
 
@@ -855,12 +842,7 @@ public static class CharacterProgressionSavePlayModeFacade
         DungeonCharacterSaveData owner = characters.actors
             .Single(actor => actor != null && actor.isOwner);
         owner.persistentId = invalidId;
-        DungeonSaveSectionPayload.Write(
-            invalidSave,
-            CharacterWorldSaveSection.Id,
-            CharacterWorldSaveSection.CurrentVersion,
-            DungeonSaveRestorePhase.Characters,
-            characters);
+        WriteCharacterFixture(invalidSave, characters);
         ResealFixture(invalidSave);
 
         bool restored = saveService.TryRestore(
@@ -905,22 +887,17 @@ public static class CharacterProgressionSavePlayModeFacade
                 CharacterWorldSaveSection.Id);
         DungeonCharacterSaveData owner = characters.actors
             .Single(actor => actor != null && actor.isOwner);
-        DungeonCharacterSaveData legacy = JsonUtility.FromJson<DungeonCharacterSaveData>(
-            JsonUtility.ToJson(owner));
+        DungeonCharacterSaveData legacy = DungeonSaveSectionPayload.Deserialize<DungeonCharacterSaveData>(
+            SerializeCharacterFixture(owner));
         legacy.isOwner = false;
         legacy.persistentId = legacyId;
-        DungeonCharacterSaveData canonical = JsonUtility.FromJson<DungeonCharacterSaveData>(
-            JsonUtility.ToJson(owner));
+        DungeonCharacterSaveData canonical = DungeonSaveSectionPayload.Deserialize<DungeonCharacterSaveData>(
+            SerializeCharacterFixture(owner));
         canonical.isOwner = false;
         canonical.persistentId = canonicalId;
         characters.actors.Add(legacy);
         characters.actors.Add(canonical);
-        DungeonSaveSectionPayload.Write(
-            collision,
-            CharacterWorldSaveSection.Id,
-            CharacterWorldSaveSection.CurrentVersion,
-            DungeonSaveRestorePhase.Characters,
-            characters);
+        WriteCharacterFixture(collision, characters);
         ResealFixture(collision);
 
         bool restored = saveService.TryRestore(
@@ -946,6 +923,22 @@ public static class CharacterProgressionSavePlayModeFacade
 
         failure = string.Empty;
         return true;
+    }
+
+    private static void WriteCharacterFixture(DungeonGameSaveData save, DungeonCharacterWorldSaveData payload)
+    {
+        save.sections.Single(section => section.sectionId == CharacterWorldSaveSection.Id).payloadJson =
+            SerializeCharacterFixture(payload);
+    }
+
+    private static string SerializeCharacterFixture(object payload)
+    {
+        // Use the production field-only codec: JsonUtility turns absent nested
+        // DTOs into empty objects, causing shape failures before the intended guard.
+        var codec = typeof(CharacterWorldSaveSection).Assembly.GetType("DungeonCharacterWorldSaveCodec", true);
+        var serialize = codec.GetMethod("SerializeFields", BindingFlags.Static | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("Character save codec entry is missing.");
+        return (string)serialize.Invoke(null, new[] { payload });
     }
 
     private static void ResealFixture(DungeonGameSaveData save)

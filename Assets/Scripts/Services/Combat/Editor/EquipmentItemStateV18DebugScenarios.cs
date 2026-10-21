@@ -199,8 +199,10 @@ public static class EquipmentItemStateV18DebugScenarios
                     1.375f),
             "V3 legacy fixed mechanics changed while migrating to formulaVersion 0.");
 
+        EquipmentEvolutionFormulaCatalogs formulaCatalogs = new(
+            CharacterAiEditorTestDependencies.ContentDefinitions);
         EquipmentEvolutionFormulaCatalogSO formulaCatalog =
-            EquipmentEvolutionFormulaCatalogSO.LoadRequired();
+            formulaCatalogs.RequireCurrent();
         Require(formulaCatalog.formulaPolicy.formulaVersion
                     == EquipmentEvolutionRules.CurrentFormulaVersion
                 && string.Equals(
@@ -551,7 +553,7 @@ public static class EquipmentItemStateV18DebugScenarios
                 && formulaNode.calculatedCost == 0
                 && formulaNode.moduleSelectionOffers.Count > 1,
             "Equipment formula v2 froze mechanics before module selection.");
-        InvokeInternal<object>("ValidateFormulaState", formulaState);
+        InvokeInternal<object>("ValidateFormulaState", formulaState, formulaCatalogs);
 
         CombatEquipmentInstance formulaEquipment = new()
         {
@@ -575,7 +577,7 @@ public static class EquipmentItemStateV18DebugScenarios
             "Equipment formula budget did not survive the physical item save round trip.");
 
         EquipmentEvolutionFormulaCatalogSO legacyV3FormulaCatalog =
-            EquipmentEvolutionFormulaCatalogSO.LoadForPersistedNode(
+            formulaCatalogs.RequireForPersistedNode(
                 EquipmentEvolutionRules.DrawbackModuleSelectionFormulaVersion);
         Require(legacyV3FormulaCatalog.formulaPolicy.formulaVersion
                     == EquipmentEvolutionRules.DrawbackModuleSelectionFormulaVersion
@@ -1607,6 +1609,16 @@ public static class EquipmentItemStateV18DebugScenarios
     {
         EquipmentEvolutionRuntime runtime = (EquipmentEvolutionRuntime)
             FormatterServices.GetUninitializedObject(typeof(EquipmentEvolutionRuntime));
+        FieldInfo formulaCatalogsField = typeof(EquipmentEvolutionRuntime).GetField(
+            "formulaCatalogs",
+            BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingFieldException(
+                typeof(EquipmentEvolutionRuntime).FullName,
+                "formulaCatalogs");
+        formulaCatalogsField.SetValue(
+            runtime,
+            new EquipmentEvolutionFormulaCatalogs(
+                CharacterAiEditorTestDependencies.ContentDefinitions));
         FieldInfo equipmentField = typeof(EquipmentEvolutionRuntime).GetField(
             "equipment",
             BindingFlags.Instance | BindingFlags.NonPublic)

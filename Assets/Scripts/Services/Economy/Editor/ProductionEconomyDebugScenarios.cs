@@ -401,7 +401,10 @@ public static partial class ProductionEconomyDebugScenarios
                 maximumFactors,
                 componentCodec,
                 massQuery,
-                maximumMass);
+                maximumMass,
+                clearanceProfiles:
+                    new ProductionOutputClearanceProfileResourceSource(
+                        new UnityGameContentRootLoader()));
             DungeonRuntimeAggregateRootStore itemStore = new();
             WorldItemRepository repository = new(
                 new GuidPersistentIdGenerator(),
@@ -926,7 +929,10 @@ public static partial class ProductionEconomyDebugScenarios
                 maximumFactors,
                 componentCodec,
                 massQuery,
-                maximumMass);
+                maximumMass,
+                clearanceProfiles:
+                    new ProductionOutputClearanceProfileResourceSource(
+                        new UnityGameContentRootLoader()));
             DungeonRuntimeAggregateRootStore itemStore = new();
             WorldItemRepository repository = new(
                 new GuidPersistentIdGenerator(),

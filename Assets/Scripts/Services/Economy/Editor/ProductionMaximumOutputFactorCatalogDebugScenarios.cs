@@ -677,7 +677,10 @@ public static class ProductionMaximumOutputFactorCatalogDebugScenarios
                     candidate.WorkstationTag,
                     StringComparison.Ordinal),
                 maximumMass.CaptureAutomatic,
-                maximumMass.CaptureDeclared);
+                maximumMass.CaptureDeclared,
+                clearanceProfiles:
+                    new ProductionOutputClearanceProfileResourceSource(
+                        new UnityGameContentRootLoader()));
             ProductionFacilityCapacitySubject subject = new(
                 (BuildingInstanceId)"building:qa:multi-unit-ruin",
                 new Vector2Int(7, 9),
@@ -799,7 +802,10 @@ public static class ProductionMaximumOutputFactorCatalogDebugScenarios
                 facility.WorkstationTag,
                 recipe.WorkstationTag,
                 StringComparison.Ordinal),
-            maximumMass.CaptureAutomatic);
+            maximumMass.CaptureAutomatic,
+            clearanceProfiles:
+                new ProductionOutputClearanceProfileResourceSource(
+                    new UnityGameContentRootLoader()));
 
         BuildingSO definition = buildings.Single(value =>
             value != null
@@ -862,7 +868,10 @@ public static class ProductionMaximumOutputFactorCatalogDebugScenarios
                 candidate.WorkstationTag,
                 StringComparison.Ordinal),
             maximumMass.CaptureAutomatic,
-            maximumMass.CaptureDeclared);
+            maximumMass.CaptureDeclared,
+            clearanceProfiles:
+                new ProductionOutputClearanceProfileResourceSource(
+                    new UnityGameContentRootLoader()));
         int authoredInputQuantity = recipe.Inputs.Sum(value => value.Amount);
         long authoredWipMassGrams = recipe.Inputs.Aggregate(
             0L,
@@ -1225,7 +1234,10 @@ public static class ProductionMaximumOutputFactorCatalogDebugScenarios
             (facility, recipe) => string.Equals(
                 facility.WorkstationTag,
                 recipe.WorkstationTag,
-                StringComparison.Ordinal));
+                StringComparison.Ordinal),
+            clearanceProfiles:
+                new ProductionOutputClearanceProfileResourceSource(
+                    new UnityGameContentRootLoader()));
 
         BuildingSO feedbenchDefinition = buildings.Single(value =>
             value != null
@@ -1577,7 +1589,10 @@ public static class ProductionMaximumOutputFactorCatalogDebugScenarios
             (facility, recipe) => string.Equals(
                 facility.WorkstationTag,
                 recipe.WorkstationTag,
-                StringComparison.Ordinal));
+                StringComparison.Ordinal),
+            clearanceProfiles:
+                new ProductionOutputClearanceProfileResourceSource(
+                    new UnityGameContentRootLoader()));
         ProductionOutputBufferCapacitySourceSnapshot shuffled =
             shuffledProjector.CapturePortfolioSource(feedbench);
         Require(string.Equals(
@@ -1680,7 +1695,10 @@ public static class ProductionMaximumOutputFactorCatalogDebugScenarios
             (facility, recipe) => string.Equals(
                 facility.WorkstationTag,
                 recipe.WorkstationTag,
-                StringComparison.Ordinal));
+                StringComparison.Ordinal),
+            clearanceProfiles:
+                new ProductionOutputClearanceProfileResourceSource(
+                    new UnityGameContentRootLoader()));
 
         BuildingSO sawmillDefinition = buildings.Single(value =>
             value != null
@@ -1821,7 +1839,10 @@ public static class ProductionMaximumOutputFactorCatalogDebugScenarios
             (facility, recipe) => string.Equals(
                 facility.WorkstationTag,
                 recipe.WorkstationTag,
-                StringComparison.Ordinal));
+                StringComparison.Ordinal),
+            clearanceProfiles:
+                new ProductionOutputClearanceProfileResourceSource(
+                    new UnityGameContentRootLoader()));
         BuildingSO definition = buildings.Single(value =>
             value != null
             && string.Equals(

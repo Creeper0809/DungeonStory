@@ -477,6 +477,7 @@ public static class OffenseRewardDebugScenarios
             outcomes.BossAwardFacts);
         MemoryErasureSealBossAwardService sourceService =
             new MemoryErasureSealBossAwardService(
+                new DungeonStory.Foundation.UnityUiClock(),
                 sourceRegions,
                 BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                     .Create<IOffenseWorldSimulation>(),
@@ -563,6 +564,7 @@ public static class OffenseRewardDebugScenarios
         restoredPublications.Restore(savedPublications);
         MemoryErasureSealBossAwardService restoredService =
             new MemoryErasureSealBossAwardService(
+                new DungeonStory.Foundation.UnityUiClock(),
                 restoredRegions,
                 BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                     .Create<IOffenseWorldSimulation>(),
@@ -671,6 +673,7 @@ public static class OffenseRewardDebugScenarios
         MemorySealPhysicalFixture physical = new MemorySealPhysicalFixture();
         physical.Gateway.RejectNextSpawn = true;
         MemoryErasureSealBossAwardService firstService = new(
+            new DungeonStory.Foundation.UnityUiClock(),
             regions,
             BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                 .Create<IOffenseWorldSimulation>(),
@@ -705,6 +708,7 @@ public static class OffenseRewardDebugScenarios
         firstCalendar.SetDateTime(day: 32, hour: 7);
         var retryCalendar = firstCalendar;
         MemoryErasureSealBossAwardService retryService = new(
+            new DungeonStory.Foundation.UnityUiClock(),
             regions,
             BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                 .Create<IOffenseWorldSimulation>(),
@@ -760,6 +764,7 @@ public static class OffenseRewardDebugScenarios
         OffenseRegionRuntime regions = new OffenseRegionRuntime();
         MemorySealPhysicalFixture physical = new MemorySealPhysicalFixture();
         MemoryErasureSealBossAwardService service = new(
+            new DungeonStory.Foundation.UnityUiClock(),
             regions,
             BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                 .Create<IOffenseWorldSimulation>(),
@@ -2124,6 +2129,7 @@ public static class OffenseRewardDebugScenarios
                 gameEventBus,
                 "run:offense-reward-world-map");
             Runtime.Construct(
+                new DungeonStory.Foundation.UnityUiClock(),
                 gameEventBus,
                 externalInfluence: null,
                 campaign,

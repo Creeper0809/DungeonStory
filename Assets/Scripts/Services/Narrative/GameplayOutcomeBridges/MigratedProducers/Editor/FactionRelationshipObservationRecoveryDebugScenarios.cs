@@ -422,7 +422,8 @@ public static partial class MigratedProducerRunOffenseEntryE2EDebugScenarios
             FactionAggregateState state = CreateState();
             campaign = new MultiFactionCampaignDouble(state.Factions.Values);
             var allianceBudget =
-                new ResourceFactionAllianceBenefitBudgetApplicationAdapter();
+                new ResourceFactionAllianceBenefitBudgetApplicationAdapter(
+                    CharacterAiEditorTestDependencies.ContentDefinitions);
             state.AllianceBenefitAuthorityDigest =
                 allianceBudget.AuthorityDigest;
             state.AllianceBenefitBalanceMilliEwu =

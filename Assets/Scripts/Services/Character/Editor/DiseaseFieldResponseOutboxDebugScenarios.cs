@@ -51,7 +51,7 @@ public static class DiseaseFieldResponseOutboxDebugScenarios
         PhysicalItemBatchDispositionService dispositions = new(
             repository,
             new FixedMassQuery(750L),
-            EditorNullItemMarkerPresenter.Instance);
+            EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         PhysicalFacilityItemSinkGateway gateway = new(stock, dispositions);
         DiseaseFieldResponseCommitSaveData intent =
             persistence.Capture().pendingFieldResponse;
@@ -124,7 +124,7 @@ public static class DiseaseFieldResponseOutboxDebugScenarios
         PhysicalItemBatchDispositionService dispositions = new(
             repository,
             new FixedMassQuery(750L),
-            EditorNullItemMarkerPresenter.Instance);
+            EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         DiseaseFieldResponseRuntime runtime = CreateRuntime(
             diseases,
             persistence,

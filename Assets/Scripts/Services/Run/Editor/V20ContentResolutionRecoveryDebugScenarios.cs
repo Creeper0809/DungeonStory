@@ -1232,7 +1232,7 @@ public static class V20ContentResolutionRecoveryDebugScenarios
                 Repository, content.ItemCatalog, Items,
                 grantState ?? throw new ArgumentNullException(nameof(grantState)));
 
-            Health = new CharacterBodyHealthRuntime(
+            Health = new CharacterBodyHealthRuntime(new DungeonStory.Foundation.UnityRealtimeClock(),
                 CharacterAiEditorTestDependencies.WorldRegistry,
                 CharacterAiEditorTestDependencies.GameClock,
                 CharacterAiEditorTestDependencies.GameEvents,
@@ -1648,7 +1648,7 @@ public static class V20ContentResolutionRecoveryDebugScenarios
             actual = new PhysicalItemExactSourcePublicationService(repository, items.MassQuery,
                 lifecycle, claims, admission, admission, publication, this,
                 new PhysicalItemBatchDispositionService(repository, items.MassQuery,
-                    EditorNullItemMarkerPresenter.Instance, null),
+                    EditorNullItemMarkerPresenter.Instance, null, clock: new DungeonStory.Foundation.UnityUiClock()),
                 EmptyFacilityBufferAcknowledgedOutputRestoreCandidateQuery.Instance);
         }
 

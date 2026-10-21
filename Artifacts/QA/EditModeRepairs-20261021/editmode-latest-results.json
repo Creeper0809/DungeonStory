@@ -1,0 +1,1068 @@
+{
+  "scope": "Latest assertion result per test: full r8 194/198, failed/affected r9 7/7, final affected invasion r24 3/3. Not one 198/198 run on r24.",
+  "total_unique_tests": 198,
+  "passed": 198,
+  "failed": 0,
+  "runs": [
+    {
+      "label": "repair-editmode-r1",
+      "exit_code": 2,
+      "seconds": 550,
+      "stop_reason": null,
+      "source_label": "r8",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "counts": {
+        "result": "Failed(Child)",
+        "total": "198",
+        "passed": "194",
+        "failed": "4",
+        "skipped": "0"
+      },
+      "failures": [
+        {
+          "name": "DungeonStory.Tests.Architecture.CharacterSpawnCompositionArchitectureTests.AllProductionAndRestoreCallersUseThePublicationBoundary",
+          "message": "  actor.Identity?.SetPersistentId(actorId);\n  Expected: greater than 1763\n  But was:  -1\n"
+        },
+        {
+          "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CharacterSaveUsesActiveAndLifetimeRegistries",
+          "message": "  Expected: String containing \"lifecycleCoordinator.OnDestroyed(runtimeBridge, presentationBridge)\"\n  But was:  \"using System;\nusing System.Collections;\nusing System.Collections.Generic;\nusing System.Linq;\nusing BehaviorDesigner.Runtime;\nusing DungeonStory.Foundation;\nusing Sirenix.OdinInspector;\nusing UnityEngine;\nusing VContainer;\n\n[DrawWithUnity]\n[DisallowMultipleComponent]\n[RequireComponent(typeof(CharacterIdentity))]\n[RequireComponent(typeof(CharacterProgression))]\n[RequireComponent(typeof(CharacterAbilityCache))]\n[RequireComponent(typeof(CharacterStats))]\n[RequireComponent(typeof(CharacterVisual))]\n[RequireComponent(typeof(CharacterLifecycle))]\n[RequireComponent(typeof(CharacterLog))]\n[RequireComponent(typeof(CharacterBlackboard))]\n[RequireComponent(typeof(CustomerPersonaRuntime))]\n[RequireComponent(typeof(CharacterDialogueRuntime))]\n[RequireComponent(typeof(CharacterSocialMemory))]\n[RequireComponent(typeof(CharacterAiMemoryRuntime))]\n[RequireComponent(typeof(BehaviorTree))]\npublic class CharacterActor : SerializedMonoBehaviour,\n    IInfoable,\n    IBuildingCharacterPort,\n    IInvasionThreatSubject,\n    ICharacterMovementKinematicsActor\n{\n    public GameObject noExit;\n\n    private readonly CharacterActorLifecycleCoordinator lifecycleCoordinator = new();\n    private readonly CharacterActorAbilityBridge abilityBridge = new();\n    private readonly CharacterActorActivityBridge activityBridge = new();\n\n    private AIBrain brain;\n    [SerializeField, ReadOnly] private CharacterIdentity identity;\n    [SerializeField, ReadOnly] private CharacterProgression progression;\n    [SerializeField, ReadOnly] private CharacterAbilityCache abilityCache;\n    [SerializeField, ReadOnly] private CharacterStats characterStats;\n    [SerializeField, ReadOnly] private CharacterVisual visual;\n    [SerializeField, ReadOnly] private CharacterLifecycle lifecycle;\n    [SerializeField, ReadOnly] private CharacterLog characterLog;\n    [SerializeField, ReadOnly] private CharacterBlackboard blackboard;\n    [SerializeField, ReadOnly] private CustomerPersonaRuntime personaRuntime;\n    [SerializeField, ReadOnly] private CharacterDialogueRuntime dialogueRuntime;\n    [SerializeField, ReadOnly] private CharacterSocialMemory socialMemory;\n    [SerializeField, ReadOnly] private CharacterAiMemoryRuntime aiMemory;\n    [SerializeField, ReadOnly] private BehaviorTree behaviorTree;\n    private CharacterCarryInventory carryInventory;\n    private ICharacterSocialMemoryFactory socialMemoryFactory;\n    private ICharacterRuntimeProfileFactory runtimeProfileFactory;\n    private CharacterMoodPolicyService moodPolicy;\n    private IGameEventBus domainEvents;\n    private IIdleSocialInteractionCommand idleSocialInteractionCommand;\n    [SerializeField, ReadOnly] private CharacterActorRuntimeBridge runtimeBridge;\n    [SerializeField, ReadOnly] private CharacterActorPresentationBridge presentationBridge;\n    private bool runtimeStateInitialized;\n    private bool runtimeStateInitializing;\n    private boo"
+        },
+        {
+          "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.HighRiskGlobalAccessDoesNotGrow",
+          "message": "  Direct Unity time is limited to the clock adapter, diagnostics, presentation animation, and localization-key false positives.\nModels/CoreSession/ServiceSessionContracts.cs: 1 unapproved occurrences\nServices/Combat/CombatActionPublicationRuntime.cs: 2 unapproved occurrences\n  Expected: <empty>\n  But was:  < \"Models/CoreSession/ServiceSessionContracts.cs: 1 unapproved occurrences\", \"Services/Combat/CombatActionPublicationRuntime.cs: 2 unapproved occurrences\" >\n"
+        },
+        {
+          "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.WorkAssemblyOwnsStableWorkIds",
+          "message": "  Expected: String containing \"GetRequiredWork(BuildableObject building, WorkTypeId workTypeId\"\n  But was:  \"using System;\nusing System.Collections.Generic;\nusing System.Linq;\nusing UnityEngine;\n\n\n[Serializable]\n[BuildingAbilityDisplayName(\"시설 운영\")]\npublic sealed class BuildingFacilityAbility : BuildingAbility\n{\n    [InspectorName(\"시설 설정\")] public FacilityData settings = new FacilityData();\n}\n\n\n[Serializable]\n[BuildingAbilityDisplayName(\"방어 시설\")]\npublic sealed class BuildingDefenseAbility : BuildingAbility\n{\n    [InspectorName(\"방어 설정\")] public DefenseFacilityData settings = new DefenseFacilityData();\n}\n\n[Serializable]\n[BuildingAbilityDisplayName(\"엄폐\")]\npublic sealed class BuildingCoverAbility : BuildingAbility,\n    IBuildingRuntimeAbilityDefinition\n{\n    [InspectorName(\"엄폐 높이\")]\n    public CombatCoverHeight height = CombatCoverHeight.Low;\n    [Range(0f, 1f), InspectorName(\"기본 차단 확률\")]\n    public float blockChance = 0.35f;\n    [InspectorName(\"보호 방향\")]\n    public Vector2Int facingDirection = Vector2Int.left;\n    [InspectorName(\"모서리 사격 허용\")]\n    public bool allowsCornerPeek;\n    [Min(1f), InspectorName(\"엄폐 내구\")]\n    public float coverHitPoints = 60f;\n}\n\n[Serializable]\n[BuildingAbilityDisplayName(\"구조 내구도\")]\npublic sealed class BuildingStructuralIntegrityAbility : BuildingAbility,\n    IBuildingRuntimeAbilityDefinition\n{\n    [Min(1f), InspectorName(\"최대 내구도\")]\n    public float maxHitPoints = 300f;\n    [Min(0f), InspectorName(\"구조 강도\")]\n    public float toughness = 18f;\n    [Min(0.01f), InspectorName(\"작업량당 수리량\")]\n    public float repairHitPointsPerWork = 2f;\n    [InspectorName(\"파괴 가능\")]\n    public bool breachable = true;\n}\n\n[Serializable]\n[BuildingAbilityDisplayName(\"시설 진화 기여\")]\npublic sealed class BuildingEvolutionAbility : BuildingAbility\n{\n    [InspectorName(\"진화 설정\")]\n    public FacilityEvolutionContributionData settings = new FacilityEvolutionContributionData();\n}\n\n[Serializable]\n[BuildingAbilityDisplayName(\"욕구 회복\")]\npublic sealed class BuildingNeedRecoveryAbility : BuildingAbility\n{\n    [InspectorName(\"회복 수치\")] public FacilityNeedRecoveryData recovery;\n\n    public bool HasEffect => recovery.HasEffect;\n}\n\n[Serializable]\n[BuildingAbilityDisplayName(\"유흥 음료 서비스\")]\npublic sealed class BuildingRecreationalSubstanceServiceAbility : BuildingAbility\n{\n    [Min(0f), InspectorName(\"재미 회복\")] public float funRecovery = 8f;\n    [Range(-1f, 1f), InspectorName(\"시설 경험 평판\")] public float facilitySentiment = 0.25f;\n\n    public bool IsValid => funRecovery > 0f;\n}\n\n\n[Serializable]\n[BuildingAbilityDisplayName(\"생산\")]\npublic sealed class BuildingProductionAbility : BuildingAbility,\n    IBuildingWorkCompletionAbility,\n    IBuildingRuntimeAbilityDefinition,\n    IBuildingStockCategorySignal\n{\n    [InspectorName(\"생산 품목\")] public StockCategory outputCategory = StockCategory.General;\n    [Min(0), InspectorName(\"생산량\")] public int amount;\n\n    public bool IsValid => amount > 0;\n\n    public IEnumerable<StockCategory> GetStockCategorySignals()\n    {\n        if (IsValid)\n        {\n   "
+        }
+      ]
+    },
+    {
+      "label": "repair-editmode-focused-r2",
+      "exit_code": 0,
+      "seconds": 320,
+      "stop_reason": null,
+      "source_label": "r9",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "counts": {
+        "result": "Passed",
+        "total": "7",
+        "passed": "7",
+        "failed": "0",
+        "skipped": "0"
+      },
+      "failures": []
+    },
+    {
+      "label": "repair-editmode-invasion-r3",
+      "exit_code": 0,
+      "seconds": 60,
+      "stop_reason": null,
+      "source_label": "r24",
+      "compiler_error_count": 0,
+      "source_drift": [],
+      "counts": {
+        "result": "Passed",
+        "total": "3",
+        "passed": "3",
+        "failed": "0",
+        "skipped": "0"
+      },
+      "failures": []
+    }
+  ],
+  "tests": [
+    {
+      "name": "DungeonStory.Tests.Architecture.CharacterBuildingVisitorArchitectureTests.AdapterRetainsVisitorBehaviorAndCallersUseTheFacade",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CharacterBuildingVisitorArchitectureTests.CharacterActorOwnsIdentityWhileAdapterOwnsBuildingVisits",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CharacterSpawnCompositionArchitectureTests.AllProductionAndRestoreCallersUseThePublicationBoundary",
+      "result": "Passed",
+      "verified_run": "repair-editmode-focused-r2"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CharacterSpawnCompositionArchitectureTests.FirstStartPreservesSceneAuthoredRestoreAndPoolSemantics",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CharacterSpawnCompositionArchitectureTests.OwnerPrefabUsesTheSameInactiveCompositionBoundary",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CharacterSpawnCompositionArchitectureTests.ProductionCharacterCallersInitializeBeforeActivation",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CharacterSpawnCompositionArchitectureTests.SpawnFactoryCompletesInactiveCompositionBeforePublication",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CharacterSpawnCompositionArchitectureTests.UnpublishedCompositionSuppressesAllCharacterExternalEffects",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CharacterWorldTransactionalRestoreArchitectureTests.ActorIndexUsesExactPreviousRootForRollback",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CharacterWorldTransactionalRestoreArchitectureTests.CompletionActivatesCandidatesAndRetiresOldWorldWithoutChangingSavedPopulation",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CharacterWorldTransactionalRestoreArchitectureTests.OwnerPublicationTokenIsReversibleUntilCompletion",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CharacterWorldTransactionalRestoreArchitectureTests.PrepareBuildsDetachedPopulationAndReputationCandidatesOnly",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CharacterWorldTransactionalRestoreArchitectureTests.PublishAppliesDomainRootsBeforeInactiveActorAndPointerPublication",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CharacterWorldTransactionalRestoreArchitectureTests.PublishExposesRollbackTokenBeforeAnyFalliblePublicationWork",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CharacterWorldTransactionalRestoreArchitectureTests.RollbackRestoresPointerOwnerAndStaffThenSocialBeforePopulation",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CircusTransactionalRestoreArchitectureTests.CapturedWildlifeProjectionTokenRollsBackToPreviousRoot",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CircusTransactionalRestoreArchitectureTests.CoordinatorExposesRollbackTokenBeforeFalliblePublication",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CircusTransactionalRestoreArchitectureTests.CoordinatorRollsBackInReverseAndCompletesOnlyAfterCommit",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CircusTransactionalRestoreArchitectureTests.LateParticipantFailureRestoresExactCircusProjection",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.CircusTransactionalRestoreArchitectureTests.WildlifeActorsCarryAndDoorProjectionChangeOnlyOnCompletion",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.ExteriorAndCombatTransactionalRestoreArchitectureTests.CombatProjectionChangesLivePresentationOnlyOnCompletion",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.ExteriorAndCombatTransactionalRestoreArchitectureTests.ExteriorCompleteRetiresOldWorldOnlyAfterSuccess",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.ExteriorAndCombatTransactionalRestoreArchitectureTests.ExteriorPublishSwapsOnlyReversibleRoots",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.ExteriorAndCombatTransactionalRestoreArchitectureTests.ExteriorRollbackRestoresExactPreviousRootsBeforeDiscard",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.ExteriorAndCombatTransactionalRestoreArchitectureTests.ParticipantCompletionUsesReverseDependencyOrder",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.AiActionsUseTheBrainOwnedRandomStream",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.AiAssemblyOwnsStableDecisionIdentifiers",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.AiStateAndWildlifeUseInjectedTimeAndRandom",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.BatchCProductionAndAutomationAssembliesOwnPureState",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.BuildableReservationsUseScopedGameTime",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.BuildingAssemblyOwnsStableBuildingPrimitives",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.BuildingFeatureOwnsQueryCommandAndPresentation",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.BuildingWorkAbilitiesUseRegisteredHandlersOnly",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CharacterActorDelegatesRuntimeAndPresentationLifecycle",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CharacterAiSchedulerUsesScopedGameClock",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CharacterAssemblyOwnsIdentityPrimitivesAndPerformanceHasSingleAuthority",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CharacterDeprivationUsesInjectedClockAndRandomStream",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CharacterMedicalRuntimeUsesNarrowAuthorityFacets",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CharacterNeedAssemblyOwnsStableDefinitionsWithoutRuntimeActors",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CharacterNeedQueryBasePortStaysExplicitlyRegistered",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CharacterPanelsUseScopedTimeAndDiagnosticPorts",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CharacterProgressionCompletesConfigurationInEitherBindOrder",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CharacterSaveUsesActiveAndLifetimeRegistries",
+      "result": "Passed",
+      "verified_run": "repair-editmode-focused-r2"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CharacterSkillWorkEventsExposeStableWorkTypeIdsOnly",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CharacterStaticDataDoesNotRollRuntimeRandom",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CodexFeatureOwnsQueryCommandAndPresentation",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CombatAssemblyOwnsResolutionPrimitives",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CombatPresentationUsesRegisteredCommandPortAndUiClock",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CombatResolutionUsesTheScopedRandomStream",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CompositionRootDelegatesDomainRegistration",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.CoreRuntimeProvidersUseCapturedSceneReferences",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.DefenseCoordinatorDelegatesCombatExecution",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.DefenseCoordinatorDelegatesEngagementStorage",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.DefenseFeatureOwnsQueryCommandAndPresentation",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.DomainRuntimeProvidersUseCompositionTimeReferences",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.DomainSummariesUseScopedProvidersInsteadOfSceneSearches",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.ExpeditionFeatureOwnsQueryCommandAndPresentation",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.ExteriorActivityUsesInjectedClockAndRandomStream",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.FeatureSurfaceShellOnlyOwnsLayoutAndViewContracts",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.FinalChildVerifiersDoNotCaptureNestedPersistenceSnapshots",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.FloatingIconFeedbackUsesCapturedGameManager",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.FoundationRegistrationSuppliesTheAggregateBackedRandomProviderExplicitly",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.GameContentCatalogRegistrationExposesOneExplicitContractSet",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.GameplaySceneKeepsAuthoredGroundAndTransientGridVisualsClean",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.GameplaySceneRootHierarchyUsesAuthoringBuckets",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.GridCoreUsesNamedAssemblyAndReadOnlyOccupantCapabilities",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.GridPathBrokerPortsStayExplicitlyRegisteredWithoutDebugCycle",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.GridRandomPathSelectionRequiresACallerOwnedStream",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.HighRiskGlobalAccessDoesNotGrow",
+      "result": "Passed",
+      "verified_run": "repair-editmode-focused-r2"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.HotWorldQueriesUseScopedRegistriesInsteadOfSceneSearches",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.InfrastructureAssemblyOwnsSaveContractsAndEnvelope",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.InvasionAssemblyOwnsPolicyAndThreatPrimitives",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.InvasionIntruderUsesInjectedGameClock",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.InvasionPathPlanningUsesAnInjectedRandomStream",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.InvasionThreatUsesInjectedClockAndRandomStream",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.ItemAssemblyOwnsStableItemPrimitives",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.LocalLlmQueueUsesScopedUiClock",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.MedicalAssemblyOwnsAuthoredDefinitionsWithoutUnityActorPorts",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.MetaProgressionUsesInjectedGameClock",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.OffenseAssemblyOwnsRouteAndPreparationPrimitives",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.OperatingDaySettlementUsesScopedWorldQueries",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.OperationsFeatureOwnsQueryCommandAndPresentation",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.PersistentCharacterSchedulingUsesCanonicalCharacterIds",
+      "result": "Passed",
+      "verified_run": "repair-editmode-focused-r2"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.PlayModePersistenceCaptureFailsClosedAndFinalFacadeOwnsCaptureTiming",
+      "result": "Passed",
+      "verified_run": "repair-editmode-focused-r2"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.PresentationAssemblyOwnsTabAndFeaturePresenterContracts",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.PrimitiveSurvivalVerifierOwnsADurableSourceBoundRequestLifecycle",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.ProductAssemblyGraphIsCompleteAcyclicAndLayered",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.ProductCodeHasNoStaticActiveRuntimeAccessor",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.ProductScriptsUseMvcTopLevelFolders",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.ProductionSurgeryDemandReadsAggregateWithoutRuntimeCycle",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.RandomStreamsHaveAnIndependentV18SaveSection",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.ResearchFeatureOwnsQueryCommandAndPresentation",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.ResearchTreePlayModeVerifierPreparesAnIndependentPlayableRun",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.ResolutionVerifierCommitsPartyBeforeGameplayHudChecks",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.RoomAssemblyOwnsStableRoleCatalog",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.RunResultPresentationUsesRegistryAndTimeScalePort",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.RuntimeSizeReportRetainsReviewEvidence",
+      "result": "Passed",
+      "verified_run": "repair-editmode-focused-r2"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.SaveContractsAreOwnedByFoundation",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.SaveDtosAreOwnedByTheirDomains",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.SaveRootContainsOnlyMetadataAndSectionEnvelopes",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.SaveRootDefaultsToCurrentV24",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.SaveUiUsesClockAndGameSpeedPorts",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.SettingsUiUsesCapturedRuntimeAndGameSpeedPort",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.ShopFeatureOwnsQueryCommandAndPresentation",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.ShopUsesScopedRandomAndHasNoDeadRandomPositionApi",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.SocialReputationUsesScopedWorldDependencies",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.SocialRumorModelsReceiveTimeFromTheirOwner",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.StartPartyPreparationOwnsOnlyPreparationState",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.SurvivalAssemblyOwnsStableSurvivalModels",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.UserSettingsAndDedicatedCanvasesUseCapturedTargets",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.WarehouseFeatureOwnsQueryCommandAndPresentation",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.WildlifeAssemblyOwnsStateAndSavePrimitives",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.WildlifeEcosystemUsesInjectedRandomStream",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.WorkAssemblyOwnsStableWorkIds",
+      "result": "Passed",
+      "verified_run": "repair-editmode-focused-r2"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.WorkExecutorUsesRegisteredOpenDispatch",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.WorldAssemblyOwnsSharedGridPrimitives",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.WorldItemRuntimeDelegatesHaulPlanning",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.WorldItemRuntimeDelegatesInventoryTransfer",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.WorldSimulationAndDebugCommandsUseScopedReferences",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.GameplayArchitectureRatchetTests.WorldViewTogglesUseScopedCanvasAndUiClock",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.InvasionIntruderArchitectureTests.ExecutionCoordinatorRetainsDeterministicAndLifecycleContracts",
+      "result": "Passed",
+      "verified_run": "repair-editmode-invasion-r3"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.InvasionIntruderArchitectureTests.FactoryOwnsPostCreationFailureCleanup",
+      "result": "Passed",
+      "verified_run": "repair-editmode-invasion-r3"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.InvasionIntruderArchitectureTests.RuntimeDelegatesExecutionWithoutDuplicatingStateAuthority",
+      "result": "Passed",
+      "verified_run": "repair-editmode-invasion-r3"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.AgingCareModesApplyQuarterSpeedAndSupplyGatedStasis",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.BloodRejuvenationUsesAdultPlusFiveFloorAndOneYearCooldown",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.CalendarProjectsTheFixedOneHundredTwentyDayYear(1,1,1,Spring,1)",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.CalendarProjectsTheFixedOneHundredTwentyDayYear(120,1,120,Winter,30)",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.CalendarProjectsTheFixedOneHundredTwentyDayYear(121,2,1,Spring,1)",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.CalendarProjectsTheFixedOneHundredTwentyDayYear(30,1,30,Spring,30)",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.CalendarProjectsTheFixedOneHundredTwentyDayYear(31,1,31,Summer,1)",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.CalendarProjectsTheFixedOneHundredTwentyDayYear(61,1,61,Autumn,1)",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.CalendarProjectsTheFixedOneHundredTwentyDayYear(91,1,91,Winter,1)",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.ChildSafetyBlocksCombatSupplyAtTheDirectTraversalRule",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.CompletedReproductionPublishesExactlyOnePersistentResultCharacter",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.ElderBirthdayCreatesConditionButNeverPerformsAgeDeath",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.HazardEscapeOnlyAllowsStrictlyLowerRisk",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.JointFuneralAndLongNightMemorialConvertBoundedGriefOnce",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.KinshipColdArchiveKeepsThreeGenerationAncestryAndCompressesUnrelatedDeaths",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.MentoringAwardsAtMostOncePerStudentPerDayAndRoundTrips",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.MinorsAgeFourUnitsAndAdultsAgeSixUnitsPerDay",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.PopulationHealthUsesBoundedExposureProbabilityAndDeterministicOutbreaks",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.RegionalTimeUsesOneAbsoluteCalendarAndBoundedHourOffset",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.ReproductionAttemptUsesHealthNutritionAndFertilityAdjustedChance",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.RestrictedTraversalRequiresAdolescentApprenticeshipAuthorization",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.RetireesOnlyPerformSafeWorkForFourHoursPerDay",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.SenescenceHazardMatchesTheApprovedCurveAndCap",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.TemperateClimateUsesApprovedSeasonalCurveAndBoundedNoise",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.TwoHundredThousandUntreatedLivesMatchApprovedExpectancies",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CalendarAndLifeTests.WholeBodyRegenerationReducesAgeAndOnlyApprovedConditionStages",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CropEcologyTests.CultivarMutationAndSaveRoundTripAreDeterministic",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CropEcologyTests.InitialPhysicalSeedGrantIsExactlyOnceAndPersistent",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CropEcologyTests.PhysicalSeedLotRoundTripsAsStackAffectingItemState",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V19CropEcologyTests.RotationFertilityPestsDeathAndSeedReturnFollowApprovedRules",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V25ProficiencyRulesTests.AllThirtyOneWorkTypesHaveOneExplicitXpDisposition",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V25ProficiencyRulesTests.ApprovedWorkMatchesTargetRankCadence",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V25ProficiencyRulesTests.CanonicalCatalogContainsExactlyNineUniqueIds",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V25ProficiencyRulesTests.CraftsmanshipUsesOnlyAuthoritativeProficiencyExperience",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V25ProficiencyRulesTests.DecayScheduleUsesCurrentRankBoundary",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V25ProficiencyRulesTests.ExpertAndMasterDecayAreLazyAndDemoteAtTheBoundary",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.V25ProficiencyRulesTests.WaitingAndCancelledWorkAwardNothing",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.WildlifeRuntimeArchitectureTests.RestorePublicationRetainsV18WorldOrdering",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.WildlifeRuntimeArchitectureTests.RuntimeRestoreAndWorldResponsibilitiesRemainSeparated",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.WildlifeTransactionalRestoreArchitectureTests.ActorPublicationFailureReturnsToDetachedCandidateState",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.WildlifeTransactionalRestoreArchitectureTests.ActorRestorePublicationCanRollbackOrComplete",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.WildlifeTransactionalRestoreArchitectureTests.CompletionAloneActivatesNewActorsAndRetiresOldPopulation",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.WildlifeTransactionalRestoreArchitectureTests.EcosystemAndFreshnessUseExactRootSwapTransactions",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.WildlifeTransactionalRestoreArchitectureTests.PublishKeepsOldPopulationAndActorsUntilCompletion",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.WildlifeTransactionalRestoreArchitectureTests.RollbackReversesActorsPopulationFreshnessThenEcosystem",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Architecture.WildlifeTransactionalRestoreArchitectureTests.RuntimeOverridesEveryTransactionParticipantPhase",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.FromStableSuffixPreservesOperationalIdentity(\"faction-route:4:ally:2\",\"character:faction-route:4:ally:2\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.FromStableSuffixPreservesOperationalIdentity(\"incident:Thief:9:actor\",\"character:incident:Thief:9:actor\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.FromStableSuffixPreservesOperationalIdentity(\"invasion:raid-a:intruder:1\",\"character:invasion:raid-a:intruder:1\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.FromStableSuffixPreservesOperationalIdentity(\"return:7:prisoner:3\",\"character:return:7:prisoner:3\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.FromStableSuffixRejectsMissingOrAlreadyScopedValues(\"   \")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.FromStableSuffixRejectsMissingOrAlreadyScopedValues(\"\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.FromStableSuffixRejectsMissingOrAlreadyScopedValues(\"character:already-scoped\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.FromStableSuffixRejectsMissingOrAlreadyScopedValues(\"owner\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.FromStableSuffixRejectsMissingOrAlreadyScopedValues(null)",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.RestoreCanonicalizationAcceptsExactEarlyV18OperationalIds(\"faction-route:4:ally:2\",\"character:faction-route:4:ally:2\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.RestoreCanonicalizationAcceptsExactEarlyV18OperationalIds(\"incident:Thief:9:actor\",\"character:incident:Thief:9:actor\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.RestoreCanonicalizationAcceptsExactEarlyV18OperationalIds(\"invasion:0123456789abcdef0123456789abcdef\",\"character:invasion:0123456789abcdef0123456789abcdef\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.RestoreCanonicalizationAcceptsExactEarlyV18OperationalIds(\"return:7:prisoner:3\",\"character:return:7:prisoner:3\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.RestoreCanonicalizationRejectsNearbyMalformedOperationalIds(\" character:staff:73:01\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.RestoreCanonicalizationRejectsNearbyMalformedOperationalIds(\" staff:73:01\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.RestoreCanonicalizationRejectsNearbyMalformedOperationalIds(\"faction-route:04:ally:2\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.RestoreCanonicalizationRejectsNearbyMalformedOperationalIds(\"faction-route:4:ally:02\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.RestoreCanonicalizationRejectsNearbyMalformedOperationalIds(\"incident:None:9:actor\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.RestoreCanonicalizationRejectsNearbyMalformedOperationalIds(\"incident:Thief:09:actor\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.RestoreCanonicalizationRejectsNearbyMalformedOperationalIds(\"invasion:raid-a\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.RestoreCanonicalizationRejectsNearbyMalformedOperationalIds(\"return:07:prisoner:3\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.RestoreCanonicalizationRejectsNearbyMalformedOperationalIds(\"return:7:prisoner:03\")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.CharacterIdTests.RestoreCanonicalizationRejectsNearbyMalformedOperationalIds(\"staff:73:01 \")",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.RandomStreamProviderTests.CapturedStateRestoresAtTheNextDraw",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.RandomStreamProviderTests.DuplicateStreamStateIsRejected",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.RandomStreamProviderTests.ReseedUpdatesPreviouslyIssuedStreamReferences",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Foundation.RandomStreamProviderTests.SameSeedAndStreamIdProduceSameSequence",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Run.Wim009SeasonalDriftCargoDeadlineTests.CargoCellRequiresActorSpecificReachablePlannerPickupStand",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    },
+    {
+      "name": "DungeonStory.Tests.Run.Wim009SeasonalDriftCargoDeadlineTests.ExpiredUnspawnedCargoTerminatesBeforeSelectingOrSpawning",
+      "result": "Passed",
+      "verified_run": "repair-editmode-r1"
+    }
+  ]
+}

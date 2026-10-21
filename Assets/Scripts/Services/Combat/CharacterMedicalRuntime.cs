@@ -66,7 +66,9 @@ public sealed partial class CharacterMedicalRuntime :
         set => writableAggregateState.OrderSequence = value;
     }
 
-    public CharacterMedicalRuntime(
+    private readonly IRealtimeClock recoveryClock;
+
+    public CharacterMedicalRuntime(IRealtimeClock recoveryClock,
         ICharacterBodyHealthQuery bodyHealthQuery,
         CharacterMedicalWorldServices world,
         IGameEventBus gameEventBus,
@@ -87,6 +89,7 @@ public sealed partial class CharacterMedicalRuntime :
         IGameCalendar calendar,
         ISettlementLaborAccountingService laborAccounting = null)
     {
+        this.recoveryClock = recoveryClock ?? throw new ArgumentNullException(nameof(recoveryClock));
         this.bodyHealthQuery = bodyHealthQuery
             ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
         this.bodyHealthMutation = bodyHealthMutation
@@ -305,9 +308,9 @@ public sealed partial class CharacterMedicalRuntime :
 
     private void TickRuntime()
     {
-        if (Time.realtimeSinceStartup >= nextFactRecoveryTime)
+        if (recoveryClock.Time >= nextFactRecoveryTime)
         {
-            nextFactRecoveryTime = Time.realtimeSinceStartup + 0.5f;
+            nextFactRecoveryTime = recoveryClock.Time + 0.5f;
             RecoverPendingProcedureFacts();
         }
         for (int index = 0; index < orders.Count; index++)

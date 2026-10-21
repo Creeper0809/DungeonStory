@@ -10,14 +10,18 @@ internal sealed class ShopCustomerInteractionService
     private const float SelfServiceCheckoutSeconds = 0.8f;
     private const float StaffedCheckoutSeconds = 0.35f;
 
+    private readonly IRealtimeClock realtimeClock;
     private readonly Shop owner;
     private readonly Func<Vector3> worldPositionProvider;
     private readonly string ownerDisplayName;
 
     internal ShopCustomerInteractionService(
+        IRealtimeClock realtimeClock,
         Shop owner,
         Func<Vector3> worldPositionProvider)
     {
+        this.realtimeClock = realtimeClock
+            ?? throw new ArgumentNullException(nameof(realtimeClock));
         this.owner = owner ?? throw new ArgumentNullException(nameof(owner));
         this.worldPositionProvider = worldPositionProvider
             ?? throw new ArgumentNullException(nameof(worldPositionProvider));
@@ -526,8 +530,8 @@ internal sealed class ShopCustomerInteractionService
         if (!consumed && meal.AcceptedPending)
         {
             actor.SetActionPhase("식사 중", owner, "4s");
-            float deadline = Time.realtimeSinceStartup + 15f;
-            while (Time.realtimeSinceStartup < deadline)
+            float deadline = realtimeClock.Time + 15f;
+            while (realtimeClock.Time < deadline)
             {
                 yield return null;
                 if (!TryContinueInteraction(

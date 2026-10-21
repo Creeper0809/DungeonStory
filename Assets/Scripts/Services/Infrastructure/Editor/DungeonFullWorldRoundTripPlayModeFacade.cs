@@ -711,6 +711,7 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
             {
                 U1FullWorldOwnerBindingVerification.Run(scope, saves);
                 U1FullWorldOwnerBindingVerification.RunTrait(scope, saves);
+                U1FullWorldOwnerBindingVerification.RunPrisonerIdentity(scope, saves);
             }
 
             bool roundTripReturned = false;
@@ -834,6 +835,9 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
             "registeredSections=" + registeredSections,
             "capturedSections=" + capturedSections,
             "postRoundTripSections=" + postRoundTripSections,
+            "sectionCoverageMatched=" + (registeredSections > 0
+                && capturedSections == registeredSections
+                && postRoundTripSections == registeredSections),
             "baselineRestored=" + baselineRestored,
             "canonicalBaselineMatched=" + canonicalBaselineMatched,
             "characterProgressionContractsPassed="

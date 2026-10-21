@@ -20,6 +20,7 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
     private IOffenseCampaignCatalog targetCatalog;
     private IDomainFactStagingPublisher facts;
     private IDomainFactRecoveryPublisher recovery;
+    private IUiClock uiClock;
     private float nextTruthRetry;
     private IGameCalendar gameCalendar;
 
@@ -67,6 +68,7 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
 
     [Inject]
     public void Construct(
+        IUiClock uiClock,
         IGameEventBus gameEventBus,
         IExternalInfluenceRuntime externalInfluence,
         IOffenseCampaignStateAuthority campaign,
@@ -76,6 +78,7 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
         IDomainFactRecoveryPublisher recovery,
         IGameCalendar gameCalendar)
     {
+        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.externalInfluence = externalInfluence;
@@ -335,8 +338,8 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
 
     private void Update()
     {
-        if (campaign == null || !campaign.HasPendingTruthWork || Time.unscaledTime < nextTruthRetry) return;
-        nextTruthRetry = Time.unscaledTime + 1f;
+        if (campaign == null || !campaign.HasPendingTruthWork || uiClock.Time < nextTruthRetry) return;
+        nextTruthRetry = uiClock.Time + 1f;
         if (!TryRecoverPendingTruth(out string failure)) Debug.LogWarning(failure);
     }
     private static bool Recoverable(Exception exception) => exception is not OutOfMemoryException

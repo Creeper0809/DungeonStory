@@ -28,6 +28,7 @@ public static class SurvivalDebugScenarios
         IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
             new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
         SurvivalFoodRuntime runtime = new(
+            new UnityUiClock(),
             new SurvivalFoodRuntimeDependencies(
                 new EmptyGridSystemProvider(),
                 new EditorWarehouseStockRuntime(),
@@ -1696,6 +1697,7 @@ public static class SurvivalDebugScenarios
         IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
             new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
         SurvivalFoodRuntime runtime = new SurvivalFoodRuntime(
+            new UnityUiClock(),
             new SurvivalFoodRuntimeDependencies(
                 new EmptyGridSystemProvider(),
                 new EditorWarehouseStockRuntime(),
@@ -1863,6 +1865,7 @@ public static class SurvivalDebugScenarios
         IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
             new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
         SurvivalFoodRuntime runtime = new SurvivalFoodRuntime(
+            new UnityUiClock(),
             new SurvivalFoodRuntimeDependencies(
                 new EmptyGridSystemProvider(),
                 physicalItems,
@@ -1896,6 +1899,7 @@ public static class SurvivalDebugScenarios
             new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
         DungeonRuntimeAggregateRootStore root = new DungeonRuntimeAggregateRootStore();
         SurvivalFoodRuntime runtime = new SurvivalFoodRuntime(
+            new UnityUiClock(),
             new SurvivalFoodRuntimeDependencies(
                 new EmptyGridSystemProvider(),
                 new EditorWarehouseStockRuntime(),
@@ -1997,6 +2001,7 @@ public static class SurvivalDebugScenarios
             EmptySurvivalServiceSessions.Instance;
 
         SurvivalFoodRuntime runtime = new SurvivalFoodRuntime(
+            new UnityUiClock(),
             dependencies,
             new EmptyWildlifeSpeciesCatalog(),
             new GameEventBus(),
@@ -2018,6 +2023,7 @@ public static class SurvivalDebugScenarios
             "missing survival target did not return a stable typed failure");
 
         RequireThrows<ArgumentNullException>(() => new SurvivalFoodRuntime(
+                new UnityUiClock(),
                 dependencies,
                 new EmptyWildlifeSpeciesCatalog(),
                 new GameEventBus(),
@@ -2029,6 +2035,7 @@ public static class SurvivalDebugScenarios
                 new DungeonRuntimeAggregateRootStore()),
             "survival runtime accepted a missing world authority");
         RequireThrows<ArgumentNullException>(() => new SurvivalFoodRuntime(
+                new UnityUiClock(),
                 dependencies,
                 new EmptyWildlifeSpeciesCatalog(),
                 new GameEventBus(),
@@ -2040,6 +2047,7 @@ public static class SurvivalDebugScenarios
                 new DungeonRuntimeAggregateRootStore()),
             "survival runtime accepted a missing clock authority");
         RequireThrows<ArgumentNullException>(() => new SurvivalFoodRuntime(
+                new UnityUiClock(),
                 dependencies,
                 new EmptyWildlifeSpeciesCatalog(),
                 new GameEventBus(),
@@ -2051,6 +2059,7 @@ public static class SurvivalDebugScenarios
                 new DungeonRuntimeAggregateRootStore()),
             "survival runtime accepted a missing threat authority");
         RequireThrows<ArgumentNullException>(() => new SurvivalFoodRuntime(
+                new UnityUiClock(),
                 dependencies,
                 new EmptyWildlifeSpeciesCatalog(),
                 new GameEventBus(),
@@ -5791,7 +5800,7 @@ public static class SurvivalDebugScenarios
                 new GameplayDomainFactDeliveryQuery(
                     outcomes.Recorder,
                     outcomes.Ledger),
-                calendar);
+                calendar, clock: new DungeonStory.Foundation.UnityUiClock());
             IStockQuery stock = new PhysicalStockQuery(repository, items.CatalogProvider, items.MassQuery);
             warehouse.Inventory.BindPhysicalStock(stock, warehouse.RequirePersistentInstanceId(),
                 CharacterAiEditorTestDependencies.AuthoredGameplay);
@@ -5813,6 +5822,7 @@ public static class SurvivalDebugScenarios
             GameEventBus events = new();
             items.Start();
             food = new SurvivalFoodRuntime(
+                new UnityUiClock(),
                 new SurvivalFoodRuntimeDependencies(gridProvider, items, catalog, stock,
                     FixedClimateQuery.Instance, sinks,
                     treatmentBufferCapacities: capacities,
@@ -6154,6 +6164,7 @@ public static class SurvivalDebugScenarios
         DungeonRuntimeAggregateRootStore sharedRoots = null)
     {
         SurvivalFoodRuntime runtime = new(
+            new UnityUiClock(),
             new SurvivalFoodRuntimeDependencies(
                 gridProvider ?? new EmptyGridSystemProvider(),
                 items,

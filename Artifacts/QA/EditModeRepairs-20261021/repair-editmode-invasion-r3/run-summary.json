@@ -1,0 +1,16 @@
+{
+  "exit_code": 0,
+  "seconds": 60,
+  "stop_reason": null,
+  "source_label": "r24",
+  "compiler_error_count": 0,
+  "source_drift": [],
+  "counts": {
+    "result": "Passed",
+    "total": "3",
+    "passed": "3",
+    "failed": "0",
+    "skipped": "0"
+  },
+  "failures": []
+}

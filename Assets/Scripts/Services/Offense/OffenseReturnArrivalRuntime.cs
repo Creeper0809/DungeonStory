@@ -710,8 +710,23 @@ public sealed class OffenseReturnArrivalRuntime :
             return false;
         }
 
+        int individualIndex = arrival.materializedIds.Count;
+        if (individualIndex < 0
+            || individualIndex >= arrival.prisonerIndividuals.Count)
+        {
+            return false;
+        }
+        EnemyIndividualBlueprint blueprint = enemyIndividuals.RequireBlueprint(
+            arrival.prisonerIndividuals[individualIndex]);
+        CharacterId characterId = blueprint.CharacterId;
         GameObject characterObject = characterFactory.CreateInactive(
-            spawner.characterPrefab);
+            spawner.characterPrefab,
+            candidate =>
+            {
+                CharacterIdentity identity = candidate.GetComponent<CharacterIdentity>()
+                    ?? throw new InvalidOperationException("Prisoner composition requires CharacterIdentity.");
+                identity.SetPersistentId(characterId);
+            });
         CharacterActor actor = characterObject.GetComponent<CharacterActor>();
         if (actor == null)
         {
@@ -719,16 +734,6 @@ public sealed class OffenseReturnArrivalRuntime :
             return false;
         }
 
-        int individualIndex = arrival.materializedIds.Count;
-        if (individualIndex < 0
-            || individualIndex >= arrival.prisonerIndividuals.Count)
-        {
-            characterFactory.Destroy(characterObject);
-            return false;
-        }
-        EnemyIndividualBlueprint blueprint = enemyIndividuals.RequireBlueprint(
-            arrival.prisonerIndividuals[individualIndex]);
-        CharacterId characterId = blueprint.CharacterId;
         actorId = characterId.Value;
         characterObject.name = $"귀환 포로 {arrival.materializedIds.Count + 1}";
         characterObject.transform.position = grid.GetWorldPos(position);
@@ -736,7 +741,6 @@ public sealed class OffenseReturnArrivalRuntime :
         actor.Initialize(data, blueprint.SpawnRequest);
         actor.characterType = CharacterType.Intruder;
         actor.Identity?.SetCharacterType(CharacterType.Intruder);
-        actor.Identity?.SetPersistentId(characterId);
         enemyIndividuals.EnsureCharacterDomains(blueprint);
         ApplyDownedArrivalHealth(actor);
         actor.SetLifecycleState(CharacterLifecycleState.Downed);

@@ -548,6 +548,7 @@ public static class FacilityDebugScenarios
             if (building is Shop shop)
             {
                 shop.ConstructShop(
+                    new DungeonStory.Foundation.UnityRealtimeClock(),
                     moneyAccount,
                     ShopStockCatalogService,
                     FloatingNumberFeedbackService,

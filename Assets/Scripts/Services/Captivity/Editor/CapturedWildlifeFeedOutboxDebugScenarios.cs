@@ -52,7 +52,7 @@ public static class CapturedWildlifeFeedOutboxDebugScenarios
         PhysicalItemBatchDispositionService inner = new(
             repository,
             new PhysicalItemMassQuery(catalog),
-            EditorNullItemMarkerPresenter.Instance);
+            EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         FailOnceAcknowledgementDisposition disposition = new(inner);
         string stackId = WorldItemRepositoryEditorAccess.AddStack(
             repository,
@@ -220,7 +220,7 @@ public static class CapturedWildlifeFeedOutboxDebugScenarios
         DungeonRuntimeAggregateRootStore root = new();
         WorldItemRepository repository = new(new GuidPersistentIdGenerator(), root);
         PhysicalItemBatchDispositionService physical = new(repository,
-            new PhysicalItemMassQuery(catalog), EditorNullItemMarkerPresenter.Instance);
+            new PhysicalItemMassQuery(catalog), EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         FailOnceAcknowledgementDisposition dispositions = new(physical);
         CapturedWildlifeStateSession states = new(root);
         ICharacterAiWorldRegistry world = CharacterAiEditorTestDependencies.WorldRegistry;

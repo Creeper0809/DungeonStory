@@ -90,7 +90,9 @@ public static class RegularCustomerObserverRecoveryDebugScenarios
         {
             var activation = new CountingActivation(source.Actor);
             var runtime = host.AddComponent<RegularCustomerRuntime>();
-            runtime.ConstructRecruitmentRuntime(activation, new GameEventBus(),
+            runtime.ConstructRecruitmentRuntime(
+                new DungeonStory.Foundation.UnityUiClock(),
+                activation, new GameEventBus(),
                 new FixedGameSessionStateProvider(20), restoredFacts.Publisher, restoredFacts.Recovery);
             var adapter = new RegularCustomerPersistenceAdapter(runtime, new Catalog(source.Actor.data));
             var section = new RegularCustomerSaveSection(adapter, adapter);

@@ -2083,6 +2083,8 @@ public static class PhysicalItemDebugScenarios
             $"normal freshness decay invalidated lease: {freshnessFailure}");
 
         WorldItemPersistenceService persistence = new(
+            new EquipmentEvolutionFormulaCatalogs(
+                CharacterAiEditorTestDependencies.ContentDefinitions),
             new TestCatalogProvider(),
             new TestHaulingSettings(1f),
             repository,
@@ -3679,7 +3681,7 @@ public static class PhysicalItemDebugScenarios
             repository,
             runtime.MassQuery,
             EditorNullItemMarkerPresenter.Instance,
-            quantityReservations);
+            quantityReservations, clock: new DungeonStory.Foundation.UnityUiClock());
         reservedBatch = dispositions;
         batch = dispositions;
         return runtime;
@@ -3712,7 +3714,7 @@ public static class PhysicalItemDebugScenarios
             repository,
             runtime.MassQuery,
             EditorNullItemMarkerPresenter.Instance,
-            quantityReservations);
+            quantityReservations, clock: new DungeonStory.Foundation.UnityUiClock());
         reservedBatch = dispositions;
         batch = dispositions;
         return runtime;
@@ -4259,7 +4261,8 @@ public static class PhysicalItemDebugScenarios
             repository,
             runtime.MassQuery,
             EditorNullItemMarkerPresenter.Instance,
-            quantityReservations);
+            quantityReservations,
+            clock: new DungeonStory.Foundation.UnityUiClock());
         reservedBatch = service;
         batch = service;
         exactRouteRestoreParticipant = captured
@@ -5975,7 +5978,7 @@ public static class PhysicalItemDebugScenarios
                 repository,
                 items.MassQuery,
                 EditorNullItemMarkerPresenter.Instance,
-                quantityReservations);
+                quantityReservations, clock: new DungeonStory.Foundation.UnityUiClock());
         var dispositions = new FailOnceBatchDispositionService(
             innerDispositions);
         Require(items.SpawnItemAt(

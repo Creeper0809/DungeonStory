@@ -53,7 +53,8 @@ public static class CharacterMedicalSupplyOutboxDebugScenarios
             PhysicalItemBatchDispositionService dispositions = new(
                 repository,
                 new FixedMassQuery(140L),
-                NullItemMarkerPresenter.Instance);
+                NullItemMarkerPresenter.Instance,
+                clock: new DungeonStory.Foundation.UnityUiClock());
             PhysicalFacilityItemSinkGateway baseGateway = new(
                 new FixedStockQuery(stack),
                 dispositions);
@@ -155,7 +156,7 @@ public static class CharacterMedicalSupplyOutboxDebugScenarios
             PhysicalItemBatchDispositionService dispositions = new(
                 repository,
                 new FixedMassQuery(140L),
-                NullItemMarkerPresenter.Instance);
+                NullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
             CharacterMedicalOrder order = CreateIntentOrder();
             CharacterMedicalSupplyCoordinator coordinator = new(
                 new FixedSupplyStockPort(),

@@ -464,7 +464,7 @@ public static class AgeConditionAnatomyProjectionDebugScenarios
                 events,
                 worldRegistry);
             vitalsActivities.Initialize();
-            var body = new CharacterBodyHealthRuntime(
+            var body = new CharacterBodyHealthRuntime(new DungeonStory.Foundation.UnityRealtimeClock(),
                 worldRegistry,
                 clock,
                 events,

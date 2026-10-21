@@ -338,7 +338,7 @@ public class AbilityShopping : CharacterAbility
     {
         // StartCoroutine advances synchronously. The current frame's delta was
         // already consumed by the saved execution, and may remain nonzero even
-        // after the load UI pauses Time.timeScale. Bind ownership immediately,
+        // after the load UI pauses the game clock. Bind ownership immediately,
         // but do not advance any saved timer/effect until a new frame.
         yield return null;
         yield return Shopping(action, restored: true);
@@ -789,7 +789,7 @@ public class AbilityShopping : CharacterAbility
         out bool canLookAround,
         out bool shouldExitDungeon)
     {
-        float now = gameClock?.Time ?? Time.time;
+        float now = RequireGameClock().Time;
         float cacheSeconds = actor?.NaturalnessSettings?.SignalCacheSeconds ?? 0f;
         int facilityVersion = actor?.Brain?.RequireFacilityCandidateCache()
             .DynamicStateVersion ?? int.MinValue;
@@ -813,7 +813,7 @@ public class AbilityShopping : CharacterAbility
 
     public void RecordVisitableFacilitySearchResult(bool hasCandidate)
     {
-        float now = gameClock?.Time ?? Time.time;
+        float now = RequireGameClock().Time;
         int facilityVersion = actor?.Brain?.RequireFacilityCandidateCache()
             .DynamicStateVersion ?? int.MinValue;
         CacheDecisionState(now, facilityVersion, hasCandidate);

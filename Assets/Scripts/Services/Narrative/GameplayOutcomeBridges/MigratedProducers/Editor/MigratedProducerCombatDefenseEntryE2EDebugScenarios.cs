@@ -1174,6 +1174,7 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
                         commits,
                         Probe));
             CombatActions = new CombatActionPublicationRuntime(
+                new DungeonStory.Foundation.UnityUiClock(),
                 AggregateRootStore,
                 Facts,
                 Facts);
@@ -1340,7 +1341,7 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
                 events,
                 CharacterAiEditorTestDependencies.WorldRegistry);
             vitalsActivities.Initialize();
-            health = new CharacterBodyHealthRuntime(
+            health = new CharacterBodyHealthRuntime(new DungeonStory.Foundation.UnityRealtimeClock(),
                 CharacterAiEditorTestDependencies.WorldRegistry,
                 clock,
                 events,
@@ -1453,7 +1454,7 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
                 events,
                 CharacterAiEditorTestDependencies.WorldRegistry);
             vitalsActivities.Initialize();
-            health = new CharacterBodyHealthRuntime(
+            health = new CharacterBodyHealthRuntime(new DungeonStory.Foundation.UnityRealtimeClock(),
                 CharacterAiEditorTestDependencies.WorldRegistry,
                 clock,
                 events,
@@ -1668,7 +1669,7 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
                 events,
                 CharacterAiEditorTestDependencies.WorldRegistry);
             vitalsActivities.Initialize();
-            health = new CharacterBodyHealthRuntime(
+            health = new CharacterBodyHealthRuntime(new DungeonStory.Foundation.UnityRealtimeClock(),
                 CharacterAiEditorTestDependencies.WorldRegistry,
                 clock,
                 events,
@@ -2686,7 +2687,7 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
                 events,
                 CharacterAiEditorTestDependencies.WorldRegistry);
             vitalsActivities.Initialize();
-            health = new CharacterBodyHealthRuntime(
+            health = new CharacterBodyHealthRuntime(new DungeonStory.Foundation.UnityRealtimeClock(),
                 CharacterAiEditorTestDependencies.WorldRegistry,
                 clock,
                 events,

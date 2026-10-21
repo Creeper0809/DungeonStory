@@ -296,6 +296,7 @@ public static class EquipmentEvolutionRules
     }
 
     internal static EquipmentAttunementAdvanceResult AddAttunement(
+        EquipmentEvolutionFormulaCatalogSO catalog,
         EquipmentEvolutionState state,
         EquipmentFormulaTargetContext targetContext,
         string targetResolutionFailureReason,
@@ -342,7 +343,7 @@ public static class EquipmentEvolutionRules
             else if (nodeGenerationFailureReason.Length == 0)
             {
                 TryGetRuntimeApplicablePositiveOfferFailure(
-                    EquipmentEvolutionFormulaCatalogSO.LoadRequired(),
+                    catalog,
                     targetContext,
                     out nodeGenerationFailureReason);
             }
@@ -358,7 +359,7 @@ public static class EquipmentEvolutionRules
             for (int tier = previousTier + 1; tier <= nextTier; tier++)
             {
                 CreateAttunementHistoryNode(
-                    state,
+                    catalog, state,
                     record,
                     targetContext,
                     equipmentInstanceId,
@@ -373,6 +374,7 @@ public static class EquipmentEvolutionRules
     }
 
     internal static void CreateAttunementHistoryNode(
+        EquipmentEvolutionFormulaCatalogSO catalog,
         EquipmentEvolutionState state,
         AttunementRecord record,
         EquipmentFormulaTargetContext targetContext,
@@ -411,8 +413,6 @@ public static class EquipmentEvolutionRules
             + "|"
             + historyHash);
         string nodeId = $"equipment-history:{historyNodeHash}";
-        EquipmentEvolutionFormulaCatalogSO catalog =
-            EquipmentEvolutionFormulaCatalogSO.LoadRequired();
         EquipmentEvolutionDirection direction = InferDirectionFromOpenLedger(
             state.usageLedger);
         EvolutionNode node = BuildFormulaNode(
@@ -443,12 +443,11 @@ public static class EquipmentEvolutionRules
 
     internal static void RecordFormulaEvidence(
         EquipmentEvolutionState state,
-        UsageLedgerEvent recorded)
+        UsageLedgerEvent recorded, EquipmentEvolutionFormulaCatalogSO catalog)
     {
+        if (catalog == null) throw new ArgumentNullException(nameof(catalog));
         if (state == null) throw new ArgumentNullException(nameof(state));
         if (recorded == null) throw new ArgumentNullException(nameof(recorded));
-        EquipmentEvolutionFormulaCatalogSO catalog =
-            EquipmentEvolutionFormulaCatalogSO.LoadRequired();
         string evidenceId = RequireCanonical(recorded.evidenceId, "equipment evidenceId");
         state.formulaEvidence ??= new List<EquipmentEvolutionFormulaEvidenceRecord>();
         if (state.formulaEvidence.Any(value => value != null
@@ -1403,7 +1402,7 @@ public static class EquipmentEvolutionRules
             throw new InvalidOperationException("Equipment formula mechanical description changed after freezing.");
     }
 
-    internal static void ValidateFormulaState(EquipmentEvolutionState state)
+    internal static void ValidateFormulaState(EquipmentEvolutionState state, EquipmentEvolutionFormulaCatalogs formulaCatalogs)
     {
         if (state == null) throw new ArgumentNullException(nameof(state));
         if (state.generation < 0
@@ -1498,7 +1497,7 @@ public static class EquipmentEvolutionRules
         foreach (EvolutionNode node in formulaNodes)
         {
             EquipmentEvolutionFormulaCatalogSO catalog =
-                EquipmentEvolutionFormulaCatalogSO.LoadForPersistedNode(node.formulaVersion);
+                formulaCatalogs.RequireForPersistedNode(node.formulaVersion);
             ValidateFormulaNode(node, catalog);
             if (!Enum.IsDefined(typeof(EquipmentEvolutionPresentationState), node.presentationState)
                 || node.presentationState == EquipmentEvolutionPresentationState.Legacy

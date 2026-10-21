@@ -425,7 +425,7 @@ public static class DiseaseAnatomyBurdenProjectionDebugScenarios
             var clock = new UnityGameClock();
             var events = new GameEventBus();
             var root = new DungeonRuntimeAggregateRootStore();
-            var body = new CharacterBodyHealthRuntime(
+            var body = new CharacterBodyHealthRuntime(new DungeonStory.Foundation.UnityRealtimeClock(),
                 worldRegistry,
                 clock,
                 events,

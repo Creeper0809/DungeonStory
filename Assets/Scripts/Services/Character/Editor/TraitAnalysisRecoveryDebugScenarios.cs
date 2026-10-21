@@ -787,7 +787,7 @@ public static class TraitAnalysisRecoveryDebugScenarios
             PhysicalItemBatchDispositionService physical = new(
                 Repository,
                 new FixedMassQuery(KitMassGrams),
-                EditorNullItemMarkerPresenter.Instance);
+                EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
             Physical = new FaultingDisposition(physical);
 
             Evolution = new EvolutionGameplayOutcomeEditorFixture(runId);

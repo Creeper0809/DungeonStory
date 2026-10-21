@@ -8,6 +8,7 @@ using UnityEngine;
 // the frozen experience; it never repeats water debit, healing or contamination.
 internal sealed class CharacterWaterPublicationOutbox
 {
+    private readonly IUiClock uiClock;
     private readonly CharacterDeprivationStateStore owner;
     private readonly IDomainFactPublisher publisher;
     private readonly IDomainFactRecoveryPublisher recovery;
@@ -19,9 +20,11 @@ internal sealed class CharacterWaterPublicationOutbox
     private float nextRecoveryAt;
     private string lastFailure = string.Empty;
 
-    internal CharacterWaterPublicationOutbox(CharacterDeprivationStateStore owner, IDomainFactPublisher publisher,
+    internal CharacterWaterPublicationOutbox(IUiClock uiClock,
+        CharacterDeprivationStateStore owner, IDomainFactPublisher publisher,
         IDomainFactRecoveryPublisher recovery, IGameEventBus events)
     {
+        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
         this.owner = owner ?? throw new ArgumentNullException(nameof(owner));
         this.publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
         this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
@@ -110,8 +113,8 @@ internal sealed class CharacterWaterPublicationOutbox
             queue.Clear(); queued.Clear(); nextRecoveryAt = 0f;
             foreach (var pending in owner.CaptureWaterPublications()) Enqueue(pending.fact.characterId);
         }
-        if (queue.Count == 0 || Time.unscaledTime < nextRecoveryAt) return;
-        nextRecoveryAt = Time.unscaledTime + 1f;
+        if (queue.Count == 0 || uiClock.Time < nextRecoveryAt) return;
+        nextRecoveryAt = uiClock.Time + 1f;
         int count = Math.Min(8, queue.Count);
         string failure = string.Empty;
         for (int index = 0; index < count; index++)

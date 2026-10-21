@@ -36,6 +36,8 @@ public static class CombatEquipmentEditorTestFactory
         moduleCatalog = Require(moduleCatalog, nameof(moduleCatalog));
         itemStackRuntime = Require(itemStackRuntime, nameof(itemStackRuntime));
         calendar = Require(calendar, nameof(calendar));
+        EquipmentEvolutionFormulaCatalogs formulaCatalogs = new(
+            CharacterAiEditorTestDependencies.ContentDefinitions);
 
         IProductionOutputCapabilityRegistry outputCapabilities =
             CreateOutputCapabilities(
@@ -54,6 +56,7 @@ public static class CombatEquipmentEditorTestFactory
         CombatEquipmentRuntimeCollaborators collaborators =
             new CombatEquipmentRuntimeCollaborators(
                 new CombatEquipmentStatProjector(
+                    formulaCatalogs,
                     itemInstances,
                     evolutionModules,
                     moduleCatalog,
@@ -109,6 +112,7 @@ public static class CombatEquipmentEditorTestFactory
                 collaborators.StatProjector,
                 crafting);
         return new CombatEquipmentRuntime(
+            formulaCatalogs,
             catalog,
             itemInstances,
             carryInventories,

@@ -483,7 +483,7 @@ public static partial class MigratedProducerCombatDefenseEntryE2EDebugScenarios
             calendar = new GameCalendarRuntime(session, events, clock);
             calendar.SetDateTime(CharacterAiEditorTestDependencies.GameCalendar.Day,
                 CharacterAiEditorTestDependencies.GameCalendar.Hour);
-            health = new CharacterBodyHealthRuntime(
+            health = new CharacterBodyHealthRuntime(new DungeonStory.Foundation.UnityRealtimeClock(),
                 CharacterAiEditorTestDependencies.WorldRegistry,
                 clock,
                 events,

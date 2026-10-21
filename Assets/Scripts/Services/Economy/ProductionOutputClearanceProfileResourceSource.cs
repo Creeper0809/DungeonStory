@@ -175,11 +175,15 @@ public sealed class ProductionOutputClearanceProfileResourceSource :
     public const string MissingFailureToken =
         "PRODUCTION_OUTPUT_CLEARANCE_PROFILE_RESOURCE_MISSING";
 
+    private readonly ITextAssetResourceLoader textAssetLoader;
     private readonly ProductionOutputClearanceProfileCatalog catalog;
 
-    public ProductionOutputClearanceProfileResourceSource()
+    public ProductionOutputClearanceProfileResourceSource(
+        ITextAssetResourceLoader textAssetLoader)
     {
-        TextAsset asset = Resources.Load<TextAsset>(ResourcePath);
+        this.textAssetLoader = textAssetLoader
+            ?? throw new ArgumentNullException(nameof(textAssetLoader));
+        TextAsset asset = this.textAssetLoader.LoadTextAsset(ResourcePath);
         if (asset == null)
             throw new InvalidOperationException(MissingFailureToken);
         catalog = ProductionOutputClearanceProfileResourceCodec.ParseRequired(

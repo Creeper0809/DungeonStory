@@ -80,6 +80,16 @@ internal sealed class DefenseGuardControlRuntime
         guard.Brain?.RequestImmediateReplan(clearFailures: false);
     }
 
+    public void RetireForWorldRestore(CharacterActor guard, Coroutine movement)
+    {
+        // The replacement world already owns this ID. Stop the old scene work
+        // without reading its health or restarting its AI against the new root.
+        Release(guard, movement, resumeAi: false);
+        string id = GetPersistentId(guard);
+        pauseStateBeforeDefense.Remove(id);
+        controlledGuards.Remove(id);
+    }
+
     public void ReleaseOrphans(
         bool releaseAll,
         Func<CharacterActor, bool> isAssigned)

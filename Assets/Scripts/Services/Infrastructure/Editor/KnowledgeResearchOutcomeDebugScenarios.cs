@@ -783,7 +783,7 @@ public static partial class KnowledgeResearchOutcomeDebugScenarios
                     null,
                     null,
                     new GameplayDomainFactDeliveryQuery(Faults, Ledger),
-                    null);
+                    null, clock: new DungeonStory.Foundation.UnityUiClock());
             IJointPhysicalFacilityItemSinkGateway actualGateway =
                 new PhysicalFacilityItemSinkGateway(
                     new PhysicalStockQuery(Repository, catalog, Items.MassQuery),
@@ -834,6 +834,7 @@ public static partial class KnowledgeResearchOutcomeDebugScenarios
                 new FacilityFeatureSceneRuntimeReferences(null, null, Codex),
                 Regions,
                 new KnowledgeResidueExecutionServices(
+                    new DungeonStory.Foundation.UnityRealtimeClock(),
                     workforce,
                     Events,
                     clock,
@@ -1117,7 +1118,9 @@ public static partial class KnowledgeResearchOutcomeDebugScenarios
             inner.Acknowledge(committed);
 
         public int RetryPendingDeliveries(int maximumCount) =>
-            inner.RetryPendingDeliveries(maximumCount);
+            // Reconciliation also pumps delivery. Keep the injected outage active
+            // on that entry point so the save really contains a pending outbox.
+            FailDelivery ? 0 : inner.RetryPendingDeliveries(maximumCount);
     }
 
     private sealed class SavedPhysicalCandidateQuery :

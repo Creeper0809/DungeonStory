@@ -203,14 +203,17 @@ public static class DungeonGameSaveDebugScenarios
                     && project.Unlocks.OfType<BlueprintRecipeUnlock>().Any());
             Require(migratedRecipeProject != null,
                 "A research project with a recipe reward is missing.");
-            research.State.Projects.Complete(migratedRecipeProject.ProjectId);
+            Require(research.TryCompleteProjectImmediatelyForVerification(
+                    migratedRecipeProject.ProjectId, out string recipeCompletionFailure),
+                "Research completion marker failed: " + recipeCompletionFailure);
             string migratedRecipeId = migratedRecipeProject.Unlocks
                 .OfType<BlueprintRecipeUnlock>()
                 .Select(unlock => unlock.recipeId)
                 .FirstOrDefault();
             Require(!string.IsNullOrWhiteSpace(migratedRecipeId),
                 "The completed research project has no current recipe reward.");
-            research.State.UnlockRecipe(migratedRecipeId);
+            Require(research.State.UnlockedRecipeIds.Contains(migratedRecipeId),
+                "Research completion did not publish its authored recipe unlock.");
             BuildingSO researchUnlockBuilding = catalog.Buildings.FirstOrDefault(candidate => candidate != null
                 && candidate.IsModularFacility()
                 && candidate.GetUnlockPhase() > 1);
@@ -587,6 +590,22 @@ public static class DungeonGameSaveDebugScenarios
                         new[] { "Save QA reward" })
                 }));
 
+            // Controlled historical storage marker: publish the exact restored
+            // history through its observation owner, without claiming a played battle.
+            OffenseExpeditionResult historyMarker = expeditions.ResultHistory.Single(
+                result => result.expeditionId == ExpeditionResultMarker);
+            var historicalRun = new OffenseExpeditionRun(ExpeditionResultMarker,
+                offenseTarget, new[] { expeditionMember }, 88f, 50f);
+            var resultPublications = scope.Container.Resolve<OffenseExpeditionResultPublicationRuntime>();
+            resultPublications.Begin(ExpeditionResultMarker);
+            try
+            {
+                var delivery = resultPublications.PublishApplied(OffenseExpeditionResolvedFact.Capture(
+                    historicalRun, historyMarker, calendar.Day, false, false));
+                Require(delivery.Completed, "Historical result marker publication failed: " + delivery.Detail);
+            }
+            finally { resultPublications.End(); }
+
             InvasionThreatSnapshot invasionSpawnSnapshot = new InvasionThreatSnapshot(
                 101f,
                 InvasionThreatStage.Candidate,
@@ -613,29 +632,44 @@ public static class DungeonGameSaveDebugScenarios
                 .FirstOrDefault(candidate =>
                     candidate != null
                     && candidate.PersistentInstanceId.IsValid
+                    && InvasionFacilityDamageResolver.IsDamageableFacility(candidate)
+                    && !candidate.SupportsWork(BuiltInWorkTypeIds.Research)
                     && baselineBuildingIds.Contains(
                         candidate.PersistentInstanceId.Value));
-            FieldInfo damagedFacilityIdsField = typeof(InvasionIntruderRuntime)
-                .GetField(
-                    "damagedFacilityIds",
-                    BindingFlags.Instance | BindingFlags.NonPublic);
-            FieldInfo facilityDamageCountField = typeof(InvasionIntruderRuntime)
-                .GetField(
-                    "facilityDamageCount",
-                    BindingFlags.Instance | BindingFlags.NonPublic);
-            ISet<BuildingInstanceId> damagedFacilityIds =
-                damagedFacilityIdsField != null && savedIntruderRuntime != null
-                    ? damagedFacilityIdsField.GetValue(savedIntruderRuntime)
-                        as ISet<BuildingInstanceId>
-                    : null;
-            Require(savedIntruderRuntime != null
-                    && damagedFacility != null
-                    && damagedFacilityIds != null
-                    && facilityDamageCountField != null,
-                "The invasion save test could not create canonical facility damage progress.");
-            damagedFacilityIds.Add(
-                damagedFacility.RequirePersistentInstanceId());
-            facilityDamageCountField.SetValue(savedIntruderRuntime, 1);
+            Require(savedIntruderRuntime != null && damagedFacility != null,
+                "The invasion save test needs a live damageable baseline facility.");
+            Vector2Int[] damagePositions = new[] { damagedFacility.centerPos,
+                    damagedFacility.centerPos + Vector2Int.left, damagedFacility.centerPos + Vector2Int.right }
+                .Where(position => grid.IsWalkable(position)
+                    && grid.GetGridCell(position)?.AreaType == GridCellAreaType.DungeonInterior).ToArray();
+            Require(damagePositions.Length > 0, "No walkable position exists beside the damage marker.");
+            savedIntruder.transform.position = grid.GetWorldPos(damagePositions[0]);
+            // This controlled positioning must still commit the production breach
+            // transition before facility damage, as the movement coordinator does.
+            MethodInfo markBreached = typeof(InvasionIntruderRuntime).GetMethod(
+                "TryMarkDungeonBreached", BindingFlags.Instance | BindingFlags.NonPublic);
+            Require(markBreached != null, "The invasion breach command is missing.");
+            markBreached.Invoke(savedIntruderRuntime, new object[] { grid, damagePositions[0] });
+            Require(savedIntruderRuntime.HasBreachedDungeonInterior,
+                "The invasion breach command did not commit the interior arrival.");
+            Require(savedIntruderRuntime.TryDamageNearbyFacility(grid, damagedFacility)
+                    && damagedFacility.IsDamaged && savedIntruderRuntime.FacilityDamageCount == 1,
+                "The invasion damage command did not commit its facility state and observation.");
+            IDefenseEngagementRuntime savedDefense = scope.Container.Resolve<IDefenseEngagementRuntime>();
+            Require(savedDefense.TryGetEngagement(savedIntruderRuntime, out DefenseEngagement savedEngagement)
+                    && savedEngagement.State == DefenseEngagementState.Dispatching
+                    && !savedEngagement.LeadArrived && savedEngagement.LeadMovement != null,
+                "The live breach must dispatch moving guards for the restore activation regression. "
+                + $"state={savedEngagement?.State}, leadArrived={savedEngagement?.LeadArrived}, "
+                + $"leadMovement={savedEngagement?.LeadMovement != null}.");
+            // Facility damage is a transient action. Hand control back to the
+            // already committed defensive front before taking its checkpoint.
+            savedIntruderRuntime.SetEngagementState(false);
+            string savedLeadGuardId = savedEngagement.LeadGuard.Identity.PersistentId;
+            CharacterActor previousLeadGuard = savedEngagement.LeadGuard;
+            InvasionIntruderState savedIntruderState = savedIntruderRuntime.State;
+            float savedIntruderRallySeconds = savedIntruderRuntime.RallySecondsRemaining;
+            bool savedIntruderBreached = savedIntruderRuntime.HasBreachedDungeonInterior;
             savedIntruder.ApplyDamage(7f, "save-qa");
             DefenseStatusRuntime savedIntruderStatuses = defenseStatusRuntimeService.GetOrAdd(savedIntruder);
             savedIntruderStatuses.ApplyStatus(DefenseStatusKind.Burn, 1.5f, 33f, 2);
@@ -656,8 +690,8 @@ public static class DungeonGameSaveDebugScenarios
                 new InvasionThreatFactors(5f, 4f, 3f, 2f)));
 
             // Hold one real knowledge completion at the durable joint-commit
-            // point: reward/task/material/outbox are committed, but delivery
-            // and acknowledgement have not run yet. The sealed full save must
+            // point: reward/task/material/result are committed, but task cleanup
+            // and physical acknowledgement have not run yet. The sealed full save must
             // restore this exact continuation without replaying its reward.
             Require(knowledgeProcessing.Tasks.Count == 0,
                 "Knowledge residue save QA requires an empty task queue baseline.");
@@ -778,15 +812,21 @@ public static class DungeonGameSaveDebugScenarios
                         "memory-residue",
                         knowledgeClue),
                 "Knowledge residue joint commit did not retain its exact task owner and Codex reward.");
+            // The production observer publishes synchronously. This integration
+            // witness preserves the pending physical/task cleanup after publication.
+            // Delivery-outage/outbox JSON recovery is exercised separately by
+            // KnowledgeResearchOutcomeDebugScenarios.RunCompletionSaveRecovery.
             GameplayOutcomeLedgerSaveData committedKnowledgeLedger =
                 outcomeLedger.CaptureGameplayOutcomes();
-            Require(committedKnowledgeLedger.outbox.Count(value =>
+            Require(committedKnowledgeLedger.exactOutcomes.Count(value =>
                         value != null
                         && value.producerId ==
                             KnowledgeCompletionOutcomeIds.ProducerId
                         && value.operationId == knowledgeOperationId
-                        && value.commitRevision == knowledgeOwnerRevision) == 1,
-                "Knowledge residue completion was not held in the durable outbox before save capture.");
+                        && value.commitRevision == knowledgeOwnerRevision) == 1
+                    && committedKnowledgeLedger.outbox.All(value => value == null
+                        || value.operationId != knowledgeOperationId),
+                "Knowledge residue completion was not published exactly once before save capture.");
 
             // Event-producing setup above is intentional; pin the ledger marker last.
             settlement.RestorePersistentState(new OperatingDaySettlementPersistenceState(
@@ -910,18 +950,22 @@ public static class DungeonGameSaveDebugScenarios
                             parsedOutcomeLedger,
                             knowledgeOperationId,
                             knowledgeOwnerRevision)) == 1
-                && parsedOutcomeLedger.outbox.Count(value => value != null
+                && parsedOutcomeLedger.exactOutcomes.Count(value => value != null
                         && value.producerId ==
                             KnowledgeCompletionOutcomeIds.ProducerId
                         && value.operationId == knowledgeOperationId
                         && value.commitRevision
                             == knowledgeOwnerRevision) == 1
+                && parsedOutcomeLedger.outbox.All(value => value == null
+                    || value.operationId != knowledgeOperationId)
                 && parsedCodex.entries.Any(entry => entry != null
                     && entry.category == CodexEntryCategory.Invasion
                     && entry.entryId == "memory-residue"
                     && entry.lines.Any(line => line != null
                         && line.text == knowledgeClue)),
-                "The sealed save did not capture one joined knowledge task, material receipt, outbox result, and Codex reward.");
+                "The sealed save did not capture one joined knowledge task, material receipt, published result, and Codex reward.");
+
+            VerifyInvasionPublicationRollback(scope, saveService, parsed);
 
             gameData.holdingMoney.Value = 1;
             research.ReplaceWithEmptyStateForDebug();
@@ -999,9 +1043,8 @@ public static class DungeonGameSaveDebugScenarios
             owner.LogComponent.RestoreVisibleEntries(Array.Empty<string>());
             discontent.RestoreSnapshots(Array.Empty<StaffDiscontentSnapshot>());
 
-            Require(
-                saveService.TryRestore(parsed, out DungeonGameRestoreReport report),
-                "Marker restore failed: " + string.Join(" | ", report.Errors));
+            DungeonGameRestoreReport report = RestoreWithInvasionActivationCheck(
+                scope, saveService, parsed);
             Require(gameData.holdingMoney.Value == markerMoney, "Money did not round-trip.");
             Require(research.State.UnlockedRecipeIds.Contains(migratedRecipeId),
                 "Completed research project did not restore its current recipe reward.");
@@ -1049,18 +1092,20 @@ public static class DungeonGameSaveDebugScenarios
                                 restoredKnowledgeLedger,
                                 knowledgeOperationId,
                                 knowledgeOwnerRevision)) == 1
-                    && restoredKnowledgeLedger.outbox.Count(value =>
+                    && restoredKnowledgeLedger.exactOutcomes.Count(value =>
                         value != null
                         && value.producerId ==
                             KnowledgeCompletionOutcomeIds.ProducerId
                         && value.operationId == knowledgeOperationId
                         && value.commitRevision
                             == knowledgeOwnerRevision) == 1
+                    && restoredKnowledgeLedger.outbox.All(value => value == null
+                        || value.operationId != knowledgeOperationId)
                     && codex.State.HasInfo(
                         CodexEntryCategory.Invasion,
                         "memory-residue",
                         knowledgeClue),
-                "Full save restore lost the joined knowledge task, material receipt, outbox result, or Codex reward.");
+                "Full save restore lost the joined knowledge task, material receipt, published result, or Codex reward.");
             ((KnowledgeResidueProcessingRuntime)knowledgeProcessing).Tick();
             GameplayOutcomeLedgerSaveData finalizedKnowledgeLedger =
                 outcomeLedger.CaptureGameplayOutcomes();
@@ -1231,9 +1276,9 @@ public static class DungeonGameSaveDebugScenarios
             Require(report.RestoredIntruderCount == 1
                 && invasionDirector.ActiveIntruders.Count == 1
                 && restoredIntruder != null
-                && restoredIntruder.State == InvasionIntruderState.Rallying
-                && restoredIntruder.RallySecondsRemaining > 0f
-                && !restoredIntruder.HasBreachedDungeonInterior
+                && restoredIntruder.State == savedIntruderState
+                && Mathf.Approximately(restoredIntruder.RallySecondsRemaining, savedIntruderRallySeconds)
+                && restoredIntruder.HasBreachedDungeonInterior == savedIntruderBreached
                 && restoredIntruder.Pattern.id == savedIntruderPatternId
                 && restoredIntruder.FacilityDamageCount == 1
                 && Mathf.Approximately(restoredIntruder.IntruderActor.CurrentHealth, savedIntruderHealth)
@@ -1244,14 +1289,23 @@ public static class DungeonGameSaveDebugScenarios
                 "Active invasion intruder did not round-trip with health and defense statuses. "
                 + $"reported={report.RestoredIntruderCount}, "
                 + $"active={invasionDirector.ActiveIntruders.Count}, "
-                + $"state={restoredIntruder?.State}, "
-                + $"rally={restoredIntruder?.RallySecondsRemaining:0.###}, "
-                + $"breached={restoredIntruder?.HasBreachedDungeonInterior}, "
+                + $"state={restoredIntruder?.State}/{savedIntruderState}, "
+                + $"rally={restoredIntruder?.RallySecondsRemaining:0.###}/{savedIntruderRallySeconds:0.###}, "
+                + $"breached={restoredIntruder?.HasBreachedDungeonInterior}/{savedIntruderBreached}, "
                 + $"pattern={restoredIntruder?.Pattern?.id}/{savedIntruderPatternId}, "
                 + $"facilityDamage={restoredIntruder?.FacilityDamageCount}, "
                 + $"health={restoredIntruder?.IntruderActor?.CurrentHealth:0.###}/"
                 + $"{savedIntruderHealth:0.###}, "
                 + $"statuses={restoredStatusSummary}.");
+            Require(savedDefense.TryGetEngagement(restoredIntruder, out DefenseEngagement restoredEngagement)
+                    && restoredEngagement.LeadGuard != previousLeadGuard
+                    && restoredEngagement.LeadGuard.Identity.PersistentId == savedLeadGuardId
+                    && restoredEngagement.LeadGuard.gameObject.activeInHierarchy
+                    && (restoredEngagement.LeadArrived || restoredEngagement.LeadMovement != null)
+                    && (restoredEngagement.ReserveGuard == null
+                        || restoredEngagement.ReserveGuard.gameObject.activeInHierarchy
+                            && (restoredEngagement.ReserveArrived || restoredEngagement.ReserveMovement != null)),
+                "Restored defense movement did not bind active replacement guards.");
             Require(report.Warnings.Count == 0,
                 "V18 restore emitted warnings: " + string.Join(" | ", report.Warnings));
 
@@ -1290,16 +1344,12 @@ public static class DungeonGameSaveDebugScenarios
                     legacyWithoutDoctrine,
                     out DungeonGameRestoreReport legacyReport),
                 "Legacy run-variable payload was accepted by the strict V18 boundary.");
-            Require(
-                legacyReport.Errors.Any(error =>
-                    error?.IndexOf(
-                        "Run-variable payload version",
-                        StringComparison.OrdinalIgnoreCase) >= 0
-                    && error.IndexOf(
-                        "unsupported",
-                        StringComparison.OrdinalIgnoreCase) >= 0),
-                "Legacy rejection did not identify the unsupported run-variable "
-                + "payload version: " + string.Join(" | ", legacyReport.Errors));
+            // The observation-owner preflight rejects this version before the
+            // individual run-variable section is staged.
+            Require(legacyReport.Errors.SequenceEqual(new[]
+                { "run-variable-fact-save-join:run-variable-fact-owner-version-conflict" }),
+                "Legacy rejection did not identify the exact run-variable owner version conflict: "
+                + string.Join(" | ", legacyReport.Errors));
             DungeonGameSaveData stateAfterLegacyRejection = saveService.Capture();
             Require(
                 string.Equals(
@@ -1325,7 +1375,7 @@ public static class DungeonGameSaveDebugScenarios
                 + $"buildings={report.RestoredBuildingCount} characters={report.RestoredCharacterCount} "
                 + $"expeditions={report.RestoredExpeditionCount} "
                 + $"intruders={report.RestoredIntruderCount} "
-                + "knowledgeContinuation=PASS "
+                + "knowledgeContinuation=PASS defenseGuardActivation=PASS invasionRollbackRetry=PASS "
                 + $"warnings={report.Warnings.Count}");
         }
         finally
@@ -1334,6 +1384,87 @@ public static class DungeonGameSaveDebugScenarios
             {
                 Debug.LogError("Save QA baseline restore failed: " + string.Join(" | ", cleanupReport.Errors));
             }
+        }
+    }
+
+    private static void VerifyInvasionPublicationRollback(
+        DungeonRuntimeLifetimeScope scope,
+        IDungeonGameSaveService saves,
+        DungeonGameSaveData target)
+    {
+        InvasionSaveRuntimeAdapter adapter = (InvasionSaveRuntimeAdapter)
+            scope.Container.Resolve<IInvasionSaveRuntimePort>();
+        PropertyInfo hook = typeof(InvasionSaveRuntimeAdapter).GetProperty(
+            "RestorePublicationCheckpoint", BindingFlags.Instance | BindingFlags.NonPublic);
+        Require(hook != null, "The invasion publication fault checkpoint is missing.");
+        DungeonGameSaveData beforeSave = saves.Capture();
+        string before = Canonicalize(beforeSave);
+        DungeonRuntimeAggregateRootStore roots = scope.Container.Resolve<DungeonRuntimeAggregateRootStore>();
+        int revision = roots.PublishedRestoreRevision;
+        IDefenseEngagementRuntime defense = scope.Container.Resolve<IDefenseEngagementRuntime>();
+        DefenseEngagement[] engagements = defense.ActiveEngagements.ToArray();
+        int detached = InvasionIntruderDebugScenarios.CountDetachedRestoreCandidates();
+        bool reached = false;
+        hook.SetValue(adapter, (Action<string>)(checkpoint =>
+        {
+            if (checkpoint != "engagements") return;
+            reached = true;
+            throw new InvalidOperationException("Injected full-world invasion publication failure.");
+        }));
+        try
+        {
+            Require(!saves.TryRestore(target, out DungeonGameRestoreReport failed)
+                    && reached && !failed.Success
+                    && failed.Errors.Any(value => value.Contains("Injected full-world invasion publication failure")),
+                "The full-world invasion publication fault was not rejected at its intended boundary.");
+        }
+        finally
+        {
+            hook.SetValue(adapter, null);
+        }
+        adapter.OnRestoreCompleted();
+        DungeonGameSaveData afterSave = saves.Capture();
+        bool sameState = string.Equals(before, Canonicalize(afterSave), StringComparison.Ordinal);
+        bool sameEngagements = engagements.SequenceEqual(defense.ActiveEngagements);
+        bool activeGuards = engagements.All(value => value.LeadGuard.gameObject.activeInHierarchy);
+        int detachedAfter = InvasionIntruderDebugScenarios.CountDetachedRestoreCandidates();
+        Require(roots.PublishedRestoreRevision == revision
+                && sameState && sameEngagements && activeGuards && detachedAfter == detached,
+            "Failed invasion publication or a completion callback changed the live world. "
+            + $"revision={revision}->{roots.PublishedRestoreRevision}, state={sameState}, "
+            + $"engagements={sameEngagements}, activeGuards={activeGuards}, detached={detached}->{detachedAfter}; "
+            + DescribeSaveDifferences(beforeSave, afterSave));
+    }
+
+    private static DungeonGameRestoreReport RestoreWithInvasionActivationCheck(
+        DungeonRuntimeLifetimeScope scope,
+        IDungeonGameSaveService saves,
+        DungeonGameSaveData target)
+    {
+        InvasionSaveRuntimeAdapter adapter = (InvasionSaveRuntimeAdapter)
+            scope.Container.Resolve<IInvasionSaveRuntimePort>();
+        PropertyInfo hook = typeof(InvasionSaveRuntimeAdapter).GetProperty(
+            "RestoreCompletionCheckpoint", BindingFlags.Instance | BindingFlags.NonPublic);
+        Require(hook != null, "The invasion completion checkpoint is missing.");
+        List<string> checkpoints = new();
+        hook.SetValue(adapter, (Action<string>)checkpoints.Add);
+        try
+        {
+            Require(saves.TryRestore(target, out DungeonGameRestoreReport report),
+                "Marker restore failed: " + string.Join(" | ", report.Errors));
+            Require(checkpoints.SequenceEqual(new[] { "engagements-retired", "owner-evacuation-retired",
+                    "intruders-activated", "owner-evacuation-activated", "engagements-activated" }),
+                "The full-world invasion completion phases ran out of order or more than once.");
+            string before = Canonicalize(saves.Capture());
+            adapter.OnRestoreCompleted();
+            Require(checkpoints.Count == 5
+                    && string.Equals(before, Canonicalize(saves.Capture()), StringComparison.Ordinal),
+                "A repeated invasion completion callback changed the restored world.");
+            return report;
+        }
+        finally
+        {
+            hook.SetValue(adapter, null);
         }
     }
 
@@ -1451,6 +1582,13 @@ public static class DungeonGameSaveDebugScenarios
                 fields.Add(
                     $"payload:length {expectedSection.payloadJson?.Length ?? 0}"
                     + $"->{actualSection.payloadJson?.Length ?? 0}");
+                string left = expectedSection.payloadJson ?? string.Empty;
+                string right = actualSection.payloadJson ?? string.Empty;
+                int offset = 0;
+                while (offset < Math.Min(left.Length, right.Length) && left[offset] == right[offset]) offset++;
+                int start = Math.Max(0, offset - 100);
+                fields.Add($"firstDifference@{offset}: before={left.Substring(start, Math.Min(320, left.Length - start))}; "
+                    + $"after={right.Substring(start, Math.Min(320, right.Length - start))}");
             }
             if (fields.Count > 0)
             {
@@ -1533,7 +1671,7 @@ public static class DungeonGameSaveDebugScenarios
             || ownerRevision <= 0L
             || pending.ownerRevision != ownerRevision
             || !pending.publicationExpected
-            || pending.publicationDelivered
+            || !pending.publicationDelivered
             || !string.Equals(
                 pending.publicationKey,
                 new GameplayResultKey(
@@ -1544,7 +1682,7 @@ public static class DungeonGameSaveDebugScenarios
                 StringComparison.Ordinal))
             return false;
 
-        GameplayOutcomeSnapshot[] matches = (ledger.outbox
+        GameplayOutcomeSnapshot[] matches = (ledger.exactOutcomes
                 ?? new List<GameplayOutcomeSnapshot>())
             .Where(value => value != null
                 && string.Equals(value.producerId,

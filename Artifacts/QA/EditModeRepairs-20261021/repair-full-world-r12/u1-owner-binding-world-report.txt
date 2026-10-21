@@ -1,0 +1,8 @@
+RESULT=PASS
+ownerId=owner
+lifecycleRevision=1
+pendingRequestKey=skill:owner:Active:5:r1:g1:l1
+officialWorldRestore=true;freshPublishedOwner=true;registryExact=true;healthExact=true;pendingBindingExact=true;frozenDraftExact=true
+baselineRestored=True
+scope=controlled-live-skill-pending;not-source9
+humanApprovalClaimed=false;trainingEligible=false

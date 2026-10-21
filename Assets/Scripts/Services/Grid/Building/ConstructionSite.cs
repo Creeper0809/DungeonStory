@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using DungeonStory.Foundation;
 using UnityEngine;
+using VContainer;
 
 public readonly struct BuildingPlacementCommitReceipt
 {
@@ -62,6 +63,7 @@ public sealed class ConstructionSite : BuildableObject,
         new Vector2Int(int.MinValue, int.MinValue);
     private bool hasCachedSafetyResult;
     private IWorkOrderRuntime workOrderRuntime;
+    private IUiClock uiClock;
     private Sprite ownedSiteSprite;
     private Texture2D ownedSiteTexture;
 
@@ -110,6 +112,12 @@ public sealed class ConstructionSite : BuildableObject,
         public IBuildingCharacterPort Worker { get; }
         public float ExpiresAt { get; set; }
         public int SlotIndex { get; }
+    }
+
+    [Inject]
+    public void Construct(IUiClock uiClock)
+    {
+        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
     }
 
     public void ConfigureWorkOrderRuntime(IWorkOrderRuntime runtime)
@@ -438,7 +446,7 @@ public sealed class ConstructionSite : BuildableObject,
                 out ParallelWorkerReservation existingReservation))
         {
             existingReservation.ExpiresAt =
-                Time.unscaledTime + Mathf.Max(0.1f, seconds);
+                uiClock.Time + Mathf.Max(0.1f, seconds);
             status = FacilityAssignmentStatus.Allowed();
             return true;
         }
@@ -462,7 +470,7 @@ public sealed class ConstructionSite : BuildableObject,
 
         workerReservations.Add(characterId, new ParallelWorkerReservation(
             actor,
-            Time.unscaledTime + Mathf.Max(0.1f, seconds),
+            uiClock.Time + Mathf.Max(0.1f, seconds),
             slotIndex));
         MarkFacilityDynamicStateDirty();
         status = FacilityAssignmentStatus.Allowed();
@@ -479,7 +487,7 @@ public sealed class ConstructionSite : BuildableObject,
                 actor.BuildingCharacterId,
                 out ParallelWorkerReservation reservation))
         {
-            reservation.ExpiresAt = Time.unscaledTime + Mathf.Max(0.1f, seconds);
+            reservation.ExpiresAt = uiClock.Time + Mathf.Max(0.1f, seconds);
         }
     }
 
@@ -506,7 +514,7 @@ public sealed class ConstructionSite : BuildableObject,
     private void PruneParallelWorkerReservations()
     {
         if (workerReservations.Count == 0) return;
-        float now = Time.unscaledTime;
+        float now = uiClock.Time;
         expiredWorkerReservations.Clear();
         foreach (KeyValuePair<CharacterId, ParallelWorkerReservation> pair in workerReservations)
         {

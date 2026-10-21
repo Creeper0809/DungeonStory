@@ -151,6 +151,7 @@ public sealed class ServiceSessionRuntime :
     private readonly ICharacterWorldPersistenceIdentityQuery persistentCharacters;
     private readonly ServiceHubSubscriptionRegistry<BuildableObject>
         hubSubscriptions;
+    private readonly IUiClock uiClock;
     private int projectedRestoreRevision;
     private IFacilityEvolutionModifierQuery evolutionModifiers;
     private ICharacterWorldSaveService characterWorldSave;
@@ -159,6 +160,7 @@ public sealed class ServiceSessionRuntime :
         () => new ServiceSessionAggregate());
 
     public ServiceSessionRuntime(
+        IUiClock uiClock,
         IBuildingWorldQuery buildings,
         IServiceRoomLinkRuntime links,
         IServiceProcessCatalog processCatalog,
@@ -167,6 +169,7 @@ public sealed class ServiceSessionRuntime :
         IRestoreWorldCandidateQuery restoreWorldCandidates,
         ICharacterWorldPersistenceIdentityQuery persistentCharacters)
     {
+        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
         this.buildings = buildings
             ?? throw new ArgumentNullException(nameof(buildings));
         this.links = links ?? throw new ArgumentNullException(nameof(links));
@@ -225,9 +228,9 @@ public sealed class ServiceSessionRuntime :
 
     public void Tick()
     {
-        if (UnityEngine.Time.unscaledTime >= nextFactRecoveryAt)
+        if (uiClock.Time >= nextFactRecoveryAt)
         {
-            nextFactRecoveryAt = UnityEngine.Time.unscaledTime + 0.5f;
+            nextFactRecoveryAt = uiClock.Time + 0.5f;
             RecoverPendingModeFacts();
         }
         ResumePendingTerminals();

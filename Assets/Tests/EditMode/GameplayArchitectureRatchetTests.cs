@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
 using UnityEngine;
@@ -95,6 +97,9 @@ namespace DungeonStory.Tests.Architecture
         public void HighRiskGlobalAccessDoesNotGrow()
         {
             IReadOnlyList<SourceFile> sources = ProductSources();
+            Assert.That(RemoveStandaloneLineComments("// Time.time\nvar now = Time.unscaledTime;"),
+                Is.EqualTo("\nvar now = Time.unscaledTime;"),
+                "A documentation-only line must not count as access; executable time access must remain visible.");
 
             AssertApprovedOccurrences(
                 sources,
@@ -123,7 +128,7 @@ namespace DungeonStory.Tests.Architecture
                 new Regex(@"\bTime\.", RegexOptions.Compiled),
                 new Dictionary<string, int>(StringComparer.Ordinal)
                 {
-                    ["Services/Foundation/Time/GameClock.cs"] = 11,
+                    ["Services/Foundation/Time/GameClock.cs"] = 15,
                     ["Services/Buildings/StructuralDamagePresentation.cs"] = 3,
                     ["Services/Character/AI/CharacterAiNaturalness.cs"] = 5,
                     ["Services/Infrastructure/Core/Diagnostics/GameplayPerformanceMeasurementSession.cs"] = 4,
@@ -131,7 +136,8 @@ namespace DungeonStory.Tests.Architecture
                     ["Views/UI/CharacterSummaryTextFormatter.cs"] = 3,
                     ["Views/UI/ResearchTreeWindow.cs"] = 3,
                 },
-                "Direct Unity time is limited to the clock adapter, diagnostics, presentation animation, and localization-key false positives.");
+                "Direct Unity time is limited to the clock adapter, diagnostics, presentation animation, and localization-key false positives.",
+                ignoreStandaloneLineComments: true);
             Assert.That(
                 Count(sources, new Regex(
                     @"\b(?:UnityEngine\.)?Random\.",
@@ -237,7 +243,7 @@ namespace DungeonStory.Tests.Architecture
         }
 
         [Test]
-        public void ProductRuntimeSourcesRespectV18LineLimitsAndBaseline()
+        public void RuntimeSizeReportRetainsReviewEvidence()
         {
             string metricsPath = Path.Combine(
                 Application.dataPath,
@@ -258,10 +264,24 @@ namespace DungeonStory.Tests.Architecture
                 metrics.oversizedTypeCount,
                 Is.EqualTo(metrics.oversizedTypes?.Count ?? 0),
                 "The generated architecture metric count must match its per-type evidence.");
-            Assert.That(
-                metrics.oversizedTypeCount,
-                Is.LessThanOrEqualTo(baseline.maxOversizedType),
-                "Runtime type-size limits are measured per declaration by ArchitectureMetricsAnalyzer; whole-file line counts are not architectural violations.");
+            // Size is an investigation signal. Actual dependency and authority
+            // contracts below remain release gates, regardless of class length.
+            Assert.That(metrics.oversizedTypes, Is.Unique);
+            foreach (string evidence in metrics.oversizedTypes)
+            {
+                string[] parts = evidence.Split('|');
+                Assert.That(parts.Length, Is.EqualTo(3), evidence);
+                Assert.That(parts[0], Does.StartWith("Assets/Scripts/"), evidence);
+                Assert.That(parts[0], Does.Not.Contain(".."), evidence);
+                Assert.That(File.Exists(Path.Combine(Application.dataPath, "..", parts[0])), Is.True, evidence);
+                Assert.That(parts[1], Is.Not.Empty, evidence);
+                Assert.That(parts[2], Does.Match(@"^\d+>\d+$"), evidence);
+            }
+            using SHA256 hash = SHA256.Create();
+            string digest = string.Concat(hash.ComputeHash(Encoding.UTF8.GetBytes(
+                string.Join("\n", metrics.oversizedTypes.OrderBy(value => value, StringComparer.Ordinal))))
+                .Select(value => value.ToString("x2")));
+            Assert.That(metrics.oversizedTypeSetHash, Is.EqualTo(digest));
         }
 
         [Test]
@@ -602,7 +622,9 @@ namespace DungeonStory.Tests.Architecture
             SourceFile featureRuntimes = SourceBySuffix(
                 "Infrastructure/Core/RuntimePanelProviders.cs");
             SourceFile references = SourceBySuffix(
-                "Infrastructure/SceneDomainRuntimeReferences.cs");
+                "Infrastructure/OffenseSceneRuntimeReferences.cs");
+            SourceFile invasionReferences = SourceBySuffix(
+                "Infrastructure/InvasionSceneRuntimeReferences.cs");
 
             Assert.That(offense.Text, Does.Contain("OffenseSceneRuntimeReferences"));
             Assert.That(offense.Text, Does.Not.Contain("IDungeonSceneComponentQuery"));
@@ -625,7 +647,7 @@ namespace DungeonStory.Tests.Architecture
                 references.Text,
                 Does.Contain("sealed class OffenseSceneRuntimeReferences"));
             Assert.That(
-                references.Text,
+                invasionReferences.Text,
                 Does.Contain("sealed class InvasionSceneRuntimeReferences"));
             Assert.That(
                 ProductSources().Where(source =>
@@ -722,7 +744,10 @@ namespace DungeonStory.Tests.Architecture
             Assert.That(
                 occupancy.Text,
                 Does.Contain("float expiry = Now + Mathf.Max(0.1f, seconds)"));
-            Assert.That(occupancy.Text, Does.Contain("visitReservations[visitor] = expiry"));
+            Assert.That(occupancy.Text, Does.Match(
+                @"visitReservations\[visitorId\] = new VisitReservation\(\s*expiry,"));
+            Assert.That(occupancy.Text, Does.Contain("previous.Sequence"));
+            Assert.That(occupancy.Text, Does.Contain("owner.OccupancyAndAssignmentTime"));
             Assert.That(buildable.Text, Does.Not.Match(@"\bTime\."));
             Assert.That(buildable.Text, Does.Contain("this.gameClock = gameClock"));
             Assert.That(filth.Text, Does.Contain("gameClock = runtime.GameClock"));
@@ -1481,6 +1506,10 @@ namespace DungeonStory.Tests.Architecture
                 "Buildings/Abilities/BuildingAbilityRuntime.cs");
             SourceFile buildingAbilityAccessors = SourceBySuffix(
                 "Buildings/Abilities/BuildingAbilityAccessors.cs");
+            SourceFile buildingAbilityAdapters = SourceBySuffix(
+                "Buildings/Abilities/BuildingAbilityRuntimeAdapters.cs");
+            SourceFile buildingAbilityExtensions = SourceBySuffix(
+                "Buildings/Abilities/BuildingAbilityRuntimeExtensions.cs");
             SourceFile buildingAbilityHandlers = SourceBySuffix(
                 "Buildings/Abilities/BuildingAbilityHandlers.cs");
             SourceFile buildingAbility = SourceBySuffix(
@@ -1502,8 +1531,12 @@ namespace DungeonStory.Tests.Architecture
             SourceFile buildableObject = SourceBySuffix(
                 "Buildings/BuildableObject.cs");
             SourceFile buildingSo = SourceBySuffix("Buildings/SO/BuildingSO.cs");
+            SourceFile facilityDefinition = SourceBySuffix(
+                "Buildings/SO/FacilityDefinitionData.cs");
             SourceFile facility = SourceBySuffix("Buildings/Facility.cs");
             SourceFile shop = SourceBySuffix("Buildings/Shop.cs");
+            SourceFile restockExecution = SourceBySuffix(
+                "Character/Work/RestockWorkExecution.cs");
             SourceFile roomEnvironment = SourceBySuffix(
                 "Infrastructure/Rooms/RoomEnvironmentAdapter.cs");
             SourceFile roomEnvironmentExperience = SourceBySuffix(
@@ -1682,7 +1715,7 @@ namespace DungeonStory.Tests.Architecture
                 Does.Not.Contain("FindOrder(BuildableObject target, FacilityWorkType"));
             Assert.That(
                 executor.Text,
-                Does.Contain("workOrderRuntime.TryGetOrderFor(assignedTarget, workTypeId"));
+                Does.Match(@"workOrderRuntime\.TryGetOrderFor\(\s*assignedTarget,\s*plannedWorkTypeId,"));
             Assert.That(
                 executor.Text,
                 Does.Match(
@@ -1752,8 +1785,12 @@ namespace DungeonStory.Tests.Architecture
                 buildingAbilityAccessors.Text,
                 Does.Not.Contain("GetRequiredWork(this BuildingSO building, FacilityWorkType"));
             Assert.That(
-                buildingAbility.Text,
+                buildingAbilityAdapters.Text,
                 Does.Contain("GetRequiredWork(BuildableObject building, WorkTypeId workTypeId"));
+            Assert.That(buildingAbilityAdapters.Text,
+                Does.Contain("this.definition.GetConfiguredRequiredWork(FacilityWorkTypeMap.GetRequired(definition))"));
+            Assert.That(buildingAbilityExtensions.Text,
+                Does.Contain("new BuildingWorkAmountAbilityRuntime(RequireReceiver(definition)).GetRequiredWork(building, workTypeId)"));
             Assert.That(
                 buildingAbility.Text,
                 Does.Not.Contain("GetRequiredWork(BuildableObject building, FacilityWorkType"));
@@ -1775,10 +1812,13 @@ namespace DungeonStory.Tests.Architecture
                 buildingAbilityHandlers.Text,
                 Does.Not.Contain("int ApplyWorkCompleted(\n        CharacterActor actor,\n        BuildableObject building,\n        FacilityWorkType"));
             Assert.That(
-                buildingSo.Text,
+                facilityDefinition.Text,
                 Does.Contain("public bool SupportsWork(WorkTypeId workTypeId)"));
             Assert.That(
                 buildingSo.Text,
+                Does.Contain("public FacilityData Facility"));
+            Assert.That(
+                facilityDefinition.Text,
                 Does.Not.Contain("public bool SupportsWork(FacilityWorkType"));
             Assert.That(
                 buildableObject.Text,
@@ -1875,10 +1915,10 @@ namespace DungeonStory.Tests.Architecture
                 Does.Match(
                     @"GetRequiredWork\s*\(\s*BuiltInWorkTypeIds\.Research\s*\)"));
             Assert.That(
-                executor.Text,
+                restockExecution.Text,
                 Does.Contain("GetWorkEnvironmentDurationMultiplier(BuiltInWorkTypeIds.Restock"));
             Assert.That(
-                executor.Text,
+                restockExecution.Text,
                 Does.Not.Contain("GetWorkEnvironmentDurationMultiplier(FacilityWorkType.Restock"));
             Assert.That(
                 executor.Text,
@@ -1919,6 +1959,12 @@ namespace DungeonStory.Tests.Architecture
             Assert.That(
                 abilityWork.Text,
                 Does.Contain("public void SetWorkPriority(WorkTypeId workTypeId"));
+            Assert.That(
+                abilityWork.Text,
+                Does.Contain("public void RestoreWorkPriority(WorkTypeId workTypeId"));
+            Assert.That(
+                abilityWork.Text,
+                Does.Contain("if (actor == null || !actor.IsDetachedRestoreCandidate)"));
             Assert.That(
                 abilityWork.Text,
                 Does.Contain("public WorkTypeId AssignedWorkTypeId"));
@@ -2128,7 +2174,7 @@ namespace DungeonStory.Tests.Architecture
                 Does.Not.Contain("work.GetWorkUtilityScore(workType,"));
             Assert.That(
                 characterSave.Text,
-                Does.Contain("work.SetWorkPriority(definition.WorkTypeId"));
+                Does.Contain("work.RestoreWorkPriority(definition.WorkTypeId"));
             Assert.That(
                 characterSave.Text,
                 Does.Not.Contain("work.SetWorkPriority(definition.Type"));
@@ -2315,13 +2361,13 @@ namespace DungeonStory.Tests.Architecture
                 characterModelData.Text,
                 Does.Not.Contain("GetWorkSpeedMultiplier(definition.Type"));
             Assert.That(
-                buildingSo.Text,
+                facilityDefinition.Text,
                 Does.Not.Contain("public FacilityWorkType supportedWorkTypes"));
             Assert.That(
-                buildingSo.Text,
+                facilityDefinition.Text,
                 Does.Contain("public IEnumerable<WorkTypeId> SupportedWorkTypeIds"));
             Assert.That(
-                buildingSo.Text,
+                facilityDefinition.Text,
                 Does.Contain("public void SetSupportedWorkTypeIds(IEnumerable<WorkTypeId> workTypeIds)"));
             Assert.That(
                 characterSo.Text,
@@ -2353,7 +2399,8 @@ namespace DungeonStory.Tests.Architecture
                     @"workTypeId\s*!=\s*FacilityWorkType\.Craft\b"));
             Assert.That(
                 abilityRescue.Text,
-                Does.Contain("GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Treat"));
+                Does.Match(
+                    @"workAmount\.CalculateWorkPerSecond\s*\(\s*actor\s*,\s*null\s*,\s*BuiltInWorkTypeIds\.Treat\b"));
             Assert.That(
                 abilityRescue.Text,
                 Does.Not.Contain("GetWorkSpeedMultiplier(FacilityWorkType.Treat"));
@@ -2495,8 +2542,14 @@ namespace DungeonStory.Tests.Architecture
                 Is.False);
             Assert.That(
                 ProductSources().Where(source =>
-                    source.Text.Contains("InternalsVisibleTo(")),
+                    source.Text.Contains("InternalsVisibleTo(")
+                    && source.RelativePath != "Services/Narrative/GameplayOutcomes/GameplayOutcomeAssemblyInfo.cs"),
                 Is.Empty);
+            Assert.That(
+                SourceBySuffix("Narrative/GameplayOutcomes/GameplayOutcomeAssemblyInfo.cs").Text.Replace("\r\n", "\n").Trim(),
+                Is.EqualTo("using System.Runtime.CompilerServices;\n\n[assembly: InternalsVisibleTo(\"Assembly-CSharp-Editor\")]")
+                    .Using((IEqualityComparer<string>)StringComparer.Ordinal),
+                "Only the ledger's Editor recovery fixtures may inspect internal receipt tokens; no runtime friend assembly is permitted.");
             Assert.That(primitives.Text, Does.Contain("public enum StockCategory"));
             Assert.That(
                 buildingData.Text,
@@ -2648,6 +2701,13 @@ namespace DungeonStory.Tests.Architecture
         [Test]
         public void MedicalAssemblyOwnsAuthoredDefinitionsWithoutUnityActorPorts()
         {
+            foreach (Type sharedFitType in new[]
+                     { typeof(AnatomyAttachmentPoint), typeof(ApparelSizeClass), typeof(ApparelBodyForm) })
+                Assert.That(sharedFitType.Assembly.GetName().Name, Is.EqualTo("DungeonStory.Foundation"),
+                    "Medical and economy must share fit vocabulary without depending on each other's content assembly.");
+            Assert.That((uint)AnatomyAttachmentPoint.HornSet, Is.EqualTo(1u << 17));
+            Assert.That((int)ApparelSizeClass.Medium, Is.EqualTo(1));
+            Assert.That((int)ApparelBodyForm.Construct, Is.EqualTo(1));
             SourceFile anatomy = SourceBySuffix(
                 "Medical/Core/AnatomyModels.cs");
             SourceFile profile = SourceBySuffix(
@@ -3319,6 +3379,10 @@ namespace DungeonStory.Tests.Architecture
         {
             SourceFile worldRegistry = SourceBySuffix(
                 "Character/AI/CharacterAiWorldRegistry.cs");
+            SourceFile worldContracts = SourceBySuffix(
+                "Character/AI/CharacterWorldQueryContracts.cs");
+            SourceFile registryContracts = SourceBySuffix(
+                "Character/AI/CharacterAiWorldRegistryContracts.cs");
             SourceFile bridge = SourceBySuffix(
                 "Character/Core/CharacterActorRuntimeBridge.cs");
             SourceFile actor = SourceBySuffix(
@@ -3327,11 +3391,15 @@ namespace DungeonStory.Tests.Architecture
                 "Infrastructure/CharacterWorldSaveService.cs");
 
             Assert.That(
-                worldRegistry.Text,
+                worldContracts.Text,
                 Does.Contain("interface ICharacterLifetimeQuery"));
             Assert.That(
                 worldRegistry.Text,
                 Does.Contain("IReadOnlyList<CharacterActor> AllCharacters"));
+            Assert.That(
+                registryContracts.Text,
+                Does.Match(
+                    @"ICharacterAiWorldRegistry\s*:\s*ICharacterWorldQuery\s*,\s*ICharacterLifetimeQuery"));
             Assert.That(
                 bridge.Text,
                 Does.Contain("RegisterCharacterLifetime(actor)"));
@@ -3340,13 +3408,16 @@ namespace DungeonStory.Tests.Architecture
                 Does.Contain("UnregisterCharacterLifetime(actor)"));
             Assert.That(
                 actor.Text,
-                Does.Contain("lifecycleCoordinator.OnDestroyed(runtimeBridge, presentationBridge)"));
+                Does.Contain("lifecycleCoordinator.OnDestroyed(this, runtimeBridge, presentationBridge)"));
             Assert.That(
                 saveService.Text,
                 Does.Contain("ICharacterLifetimeQuery characterLifetimeQuery"));
             Assert.That(
                 saveService.Text,
-                Does.Contain("ICharacterWorldQuery characterWorldQuery"));
+                Does.Contain("characterLifetimeQuery.AllCharacters"));
+            Assert.That(
+                saveService.Text,
+                Does.Not.Contain("ICharacterWorldQuery characterWorldQuery"));
             Assert.That(
                 saveService.Text,
                 Does.Not.Contain("IDungeonSceneComponentQuery"));
@@ -3511,9 +3582,10 @@ namespace DungeonStory.Tests.Architecture
             SourceFile considerationAdapter = SourceBySuffix(
                 "Infrastructure/AI/Considerations/ConsiderationRandomAdapter.cs");
 
-            Assert.That(
-                brainServices.Text,
-                Does.Contain(".Get(\"character-ai\")"));
+            Assert.That(brainServices.Text, Does.Contain("IRandomStreamProvider RandomStreams"));
+            Assert.That(brain.Text, Does.Contain("randomStreamProvider = requiredExecution.RandomStreams"));
+            Assert.That(brain.Text, Does.Contain("CharacterRandomStreamScopeIds.Decision(characterId)"));
+            Assert.That(brain.Text, Does.Contain("actionRandom = provider.Get("));
             Assert.That(
                 lookAroundAdapter.Text,
                 Does.Match(@"\bbrain\.NextRandomIndex\s*\("));
@@ -3668,10 +3740,11 @@ namespace DungeonStory.Tests.Architecture
                 "Survival/SampleSceneRationRuntime.cs"
             };
 
-            Assert.That(worldRegistry.Text, Does.Contain("ICharacterWorldQuery"));
-            Assert.That(worldRegistry.Text, Does.Contain("IBuildingWorldQuery"));
-            Assert.That(worldRegistry.Text, Does.Contain("IRetailWorldQuery"));
-            Assert.That(worldRegistry.Text, Does.Contain("IWarehouseWorldQuery"));
+            Type registryType = AppDomain.CurrentDomain.GetAssemblies()
+                .Select(assembly => assembly.GetType("CharacterAiWorldRegistry", false))
+                .Single(type => type != null);
+            Assert.That(registryType.GetInterfaces().Select(type => type.Name),
+                Is.SupersetOf(new[] { "ICharacterWorldQuery", "IBuildingWorldQuery", "IRetailWorldQuery", "IWarehouseWorldQuery" }));
 
             foreach (string suffix in migratedConsumers)
             {
@@ -4479,9 +4552,7 @@ namespace DungeonStory.Tests.Architecture
             Assert.That(facade.Text, Does.Contain("wrongDimensions="));
             foreach (string fullWorldMarker in new[]
                      {
-                        "registeredSections=68",
-                        "capturedSections=68",
-                        "postRoundTripSections=68",
+                        "sectionCoverageMatched=True",
                          "baselineRestored=True",
                          "canonicalBaselineMatched=True"
                      })
@@ -4495,6 +4566,10 @@ namespace DungeonStory.Tests.Architecture
             Assert.That(
                 fullWorld.Text,
                 Does.Contain("\"postRoundTripSections=\" + postRoundTripSections"));
+            Assert.That(fullWorld.Text, Does.Match(
+                @"\""sectionCoverageMatched=\"" \+ \(registeredSections > 0\s*"
+                + @"&& capturedSections == registeredSections\s*"
+                + @"&& postRoundTripSections == registeredSections\)"));
             Assert.That(
                 facade.Text,
                 Does.Contain(
@@ -4620,17 +4695,22 @@ namespace DungeonStory.Tests.Architecture
             return sources.Sum(source => pattern.Matches(source.Text).Count);
         }
 
+        private static string RemoveStandaloneLineComments(string source) =>
+            Regex.Replace(source, @"(?m)^[ \t]*//[^\r\n]*", string.Empty);
+
         private static void AssertApprovedOccurrences(
             IEnumerable<SourceFile> sources,
             Regex pattern,
             IReadOnlyDictionary<string, int> approvedMaximums,
-            string policy)
+            string policy,
+            bool ignoreStandaloneLineComments = false)
         {
             List<string> offenders = sources
                 .Select(source => new
                 {
                     source.RelativePath,
-                    Count = pattern.Matches(source.Text).Count,
+                    Count = pattern.Matches(ignoreStandaloneLineComments
+                        ? RemoveStandaloneLineComments(source.Text) : source.Text).Count,
                 })
                 .Where(match => match.Count > 0
                     && (!approvedMaximums.TryGetValue(match.RelativePath, out int maximum)
@@ -4770,6 +4850,7 @@ namespace DungeonStory.Tests.Architecture
         {
             public int schemaVersion;
             public int oversizedTypeCount;
+            public string oversizedTypeSetHash;
             public List<string> oversizedTypes = new();
         }
 

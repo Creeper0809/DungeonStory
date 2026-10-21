@@ -24,7 +24,7 @@ public static class FacilityModificationMaterialOutboxFixture
         PhysicalItemBatchDispositionService inner = new(
             repository,
             massQuery,
-            EditorNullItemMarkerPresenter.Instance);
+            EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         FailOnce service = new(inner) { FailNext = true };
         WorldItemQueryService query = new(
             catalog,
@@ -147,7 +147,7 @@ public static class FacilityModificationMaterialOutboxFixture
         PhysicalItemBatchDispositionService service = new(
             repository,
             massQuery,
-            EditorNullItemMarkerPresenter.Instance);
+            EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         WorldItemQueryService query = new(
             catalog,
             massQuery,

@@ -207,11 +207,12 @@ public static class SocialLifeCausalProductionEntryDebugScenarios
                     migrated,
                     new GameplayDomainFactCommitGroup(recorder, ledger)));
             combatActions = new CombatActionPublicationRuntime(
+                new DungeonStory.Foundation.UnityUiClock(),
                 roots,
                 facts,
                 facts);
 
-            bodyHealth = new CharacterBodyHealthRuntime(
+            bodyHealth = new CharacterBodyHealthRuntime(new DungeonStory.Foundation.UnityRealtimeClock(),
                 CharacterAiEditorTestDependencies.WorldRegistry,
                 clock,
                 events,

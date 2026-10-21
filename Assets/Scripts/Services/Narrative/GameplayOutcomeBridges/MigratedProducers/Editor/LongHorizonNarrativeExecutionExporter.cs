@@ -737,6 +737,7 @@ public static class LongHorizonNarrativeExecutionExporter
                 waterFacts,
                 Probe);
             var waterPublications = new CharacterWaterPublicationOutbox(
+                new DungeonStory.Foundation.UnityUiClock(),
                 new CharacterDeprivationStateStore(Outcomes.AggregateRootStore),
                 waterPublisher,
                 waterPublisher,

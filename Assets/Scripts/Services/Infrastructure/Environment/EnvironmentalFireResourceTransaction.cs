@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Environment;
+using DungeonStory.Foundation;
 using DungeonStory.Foundation.Facts;
 using UnityEngine;
 using VContainer.Unity;
@@ -10,6 +11,7 @@ using VContainer.Unity;
 public sealed class EnvironmentalFireResourceTransaction : IDungeonRestoreTransactionParticipant,
     IDungeonSaveRestoreCompletedHook, IStartable, ITickable
 {
+    private readonly IUiClock uiClock;
     private readonly IDomainFactStagingPublisher facts;
     private readonly IDomainFactRecoveryPublisher recovery;
     private readonly IPhysicalItemBatchDispositionService physical;
@@ -20,9 +22,11 @@ public sealed class EnvironmentalFireResourceTransaction : IDungeonRestoreTransa
     private int cursor;
     private string lastFailure = string.Empty;
 
-    public EnvironmentalFireResourceTransaction(IDomainFactStagingPublisher facts,
+    public EnvironmentalFireResourceTransaction(IUiClock uiClock,
+        IDomainFactStagingPublisher facts,
         IDomainFactRecoveryPublisher recovery, IPhysicalItemBatchDispositionService physical)
     {
+        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
         this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
         this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
         this.physical = physical ?? throw new ArgumentNullException(nameof(physical));
@@ -138,8 +142,8 @@ public sealed class EnvironmentalFireResourceTransaction : IDungeonRestoreTransa
     public void OnRestoreCompleted() { cursor = 0; nextRecovery = 0; lastFailure = string.Empty; Recover(); }
     public void Tick()
     {
-        if (restoring || records.Count == 0 || Time.unscaledTime < nextRecovery) return;
-        nextRecovery = Time.unscaledTime + 0.5f; Recover();
+        if (restoring || records.Count == 0 || uiClock.Time < nextRecovery) return;
+        nextRecovery = uiClock.Time + 0.5f; Recover();
     }
     public void Recover()
     {

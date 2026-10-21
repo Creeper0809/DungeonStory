@@ -4,7 +4,6 @@
   "references": [
     "DungeonStory.Buildings",
     "DungeonStory.Combat",
-    "DungeonStory.Economy",
     "DungeonStory.Environment",
     "DungeonStory.Foundation"
   ],

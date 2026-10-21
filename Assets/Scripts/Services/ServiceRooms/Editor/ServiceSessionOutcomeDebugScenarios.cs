@@ -1330,6 +1330,7 @@ public static class ServiceSessionOutcomeDebugScenarios
             Runtime?.Dispose();
             store = sharedRoots ?? new DungeonRuntimeAggregateRootStore();
             Runtime = new ServiceSessionRuntime(
+                new DungeonStory.Foundation.UnityUiClock(),
                 buildingWorld,
                 links,
                 processes,

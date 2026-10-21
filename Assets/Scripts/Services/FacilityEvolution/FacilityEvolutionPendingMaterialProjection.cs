@@ -1,3 +1,4 @@
+using DungeonStory.Foundation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,11 +25,14 @@ public sealed class FacilityEvolutionPendingMaterialProjection :
     private bool reconciling;
     private float nextPendingRetryAt = float.PositiveInfinity;
 
-    public FacilityEvolutionPendingMaterialProjection(
+    private readonly IUiClock recoveryClock;
+
+    public FacilityEvolutionPendingMaterialProjection(IUiClock recoveryClock,
         IBuildingWorldQuery buildings,
         IFacilityCandidateCache facilityStateVersions,
         FacilityFeatureSceneRuntimeReferences runtimeReferences)
     {
+        this.recoveryClock = recoveryClock ?? throw new ArgumentNullException(nameof(recoveryClock));
         this.buildings = buildings
             ?? throw new ArgumentNullException(nameof(buildings));
         this.facilityStateVersions = facilityStateVersions
@@ -53,7 +57,7 @@ public sealed class FacilityEvolutionPendingMaterialProjection :
         if (!force
             && observedBuildingVersion == buildingVersion
             && observedFacilityStateVersion == facilityStateVersion
-            && Time.unscaledTime < nextPendingRetryAt)
+            && recoveryClock.Time < nextPendingRetryAt)
         {
             return;
         }
@@ -116,7 +120,7 @@ public sealed class FacilityEvolutionPendingMaterialProjection :
                 facilityStateVersions.DynamicStateVersion;
             // A delivery acknowledgement may recover without any building revision.
             // Retry only while an owner remains pending, at a bounded cadence.
-            nextPendingRetryAt = retryPending ? Time.unscaledTime + 1f : float.PositiveInfinity;
+            nextPendingRetryAt = retryPending ? recoveryClock.Time + 1f : float.PositiveInfinity;
         }
     }
 }

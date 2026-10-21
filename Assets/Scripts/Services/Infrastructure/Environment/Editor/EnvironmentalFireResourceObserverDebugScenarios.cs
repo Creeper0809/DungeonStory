@@ -110,8 +110,8 @@ public static class EnvironmentalFireResourceObserverDebugScenarios
                 registry, Ledger, recorder, new GameplayDomainFactCommitGroup(recorder, Ledger)));
             dispositions = new PhysicalItemBatchDispositionService(repository, Items.MassQuery,
                 EditorNullItemMarkerPresenter.Instance, reservations, Items.CatalogProvider,
-                null, null, new GameplayDomainFactDeliveryQuery(recorder, Ledger), null);
-            Owner = new EnvironmentalFireResourceTransaction(fault == 0 ? facts : new Fault(facts, fault), facts, dispositions);
+                null, null, new GameplayDomainFactDeliveryQuery(recorder, Ledger), null, clock: new DungeonStory.Foundation.UnityUiClock());
+            Owner = new EnvironmentalFireResourceTransaction(new DungeonStory.Foundation.UnityUiClock(), fault == 0 ? facts : new Fault(facts, fault), facts, dispositions);
             if (fire != null) Owner.Restore(fire.resourceOperations);
         }
         public int Quantity => repository.GetEditorTestQuantity(StackId);

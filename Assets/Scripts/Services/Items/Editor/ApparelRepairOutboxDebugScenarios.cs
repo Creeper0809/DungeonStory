@@ -66,7 +66,7 @@ public static class ApparelRepairOutboxDebugScenarios
             PhysicalItemBatchDispositionService innerDisposition = new(
                 repository,
                 new PhysicalItemMassQuery(items.CatalogProvider),
-                EditorNullItemMarkerPresenter.Instance);
+                EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
             FailOnceAcknowledgementDisposition disposition = new(innerDisposition);
             var outcomeFixture = new MigratedProducerOutcomeEditorFixture(
                 "run:apparel-repair-outbox");

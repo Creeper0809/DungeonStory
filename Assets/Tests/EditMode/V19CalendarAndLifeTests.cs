@@ -511,6 +511,11 @@ namespace DungeonStory.Tests.Architecture
                 "climate:test",
                 catalog,
                 () => 0.5d);
+            Assert.That(state.WeatherFrontId, Is.EqualTo("weather:clear"));
+            Assert.That(state.FrontRemainingDays, Is.EqualTo(5));
+            Assert.That(
+                state.GetOutdoorTemperature(catalog),
+                Is.EqualTo(20f).Within(0.0001f));
             state.AdvanceToDay(30, catalog, () => 0.5d);
             Assert.That(state.GetOutdoorTemperature(catalog), Is.EqualTo(14f).Within(0.0001f));
             ClimateWorldSaveData captured = state.Capture();
@@ -744,7 +749,7 @@ namespace DungeonStory.Tests.Architecture
         private sealed class TestClimateCatalog : IClimateDefinitionCatalog
         {
             private readonly WeatherFrontDefinition front = new(
-                "weather:test-clear",
+                "weather:clear",
                 WeatherFrontKind.Clear,
                 1,
                 3,

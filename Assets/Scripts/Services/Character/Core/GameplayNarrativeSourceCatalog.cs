@@ -612,7 +612,7 @@ public static class EquipmentGameplayFormulaReplay
                     rowIndex,
                     factIndex,
                     amount));
-            EquipmentEvolutionRules.RecordFormulaEvidence(state, recorded);
+            EquipmentEvolutionRules.RecordFormulaEvidence(state, recorded, catalog);
             state.formulaEvidence.Single(value => value != null
                 && string.Equals(value.evidenceId, recorded.evidenceId,
                     StringComparison.Ordinal)).influenceUseCount = influenceUseCount;

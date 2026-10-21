@@ -176,7 +176,8 @@ public static class ProductionOutputClearanceFrozenProfilePipeline
             ResourceAssetPath,
             ImportAssetOptions.ForceSynchronousImport
                 | ImportAssetOptions.ForceUpdate);
-        ProductionOutputClearanceProfileResourceSource strict = new();
+        ProductionOutputClearanceProfileResourceSource strict =
+            new(new UnityGameContentRootLoader());
         if (!string.Equals(
                 strict.AuthorityDigest,
                 candidate.AuthorityDigest,

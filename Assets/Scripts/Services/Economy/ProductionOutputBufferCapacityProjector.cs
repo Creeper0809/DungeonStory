@@ -443,7 +443,7 @@ public sealed class ProductionOutputBufferCapacityProjector :
             ?? throw new ArgumentNullException(nameof(componentCodec));
         this.massQuery = massQuery ?? throw new ArgumentNullException(nameof(massQuery));
         this.clearanceProfiles = clearanceProfiles
-            ?? new ProductionOutputClearanceProfileResourceSource();
+            ?? throw new ArgumentNullException(nameof(clearanceProfiles));
         IProductionOutputMaximumMassRegistry requiredMaximumMassRegistry =
             maximumMassRegistry
             ?? throw new ArgumentNullException(nameof(maximumMassRegistry));
@@ -579,7 +579,7 @@ public sealed class ProductionOutputBufferCapacityProjector :
             ?? throw new ArgumentNullException(nameof(componentCodec));
         this.massQuery = massQuery ?? throw new ArgumentNullException(nameof(massQuery));
         this.clearanceProfiles = clearanceProfiles
-            ?? new ProductionOutputClearanceProfileResourceSource();
+            ?? throw new ArgumentNullException(nameof(clearanceProfiles));
         this.resolveCycleCapacity = resolveCycleCapacity
             ?? throw new ArgumentNullException(nameof(resolveCycleCapacity));
         this.matchesWorkstation = matchesWorkstation

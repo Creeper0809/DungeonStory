@@ -23,10 +23,12 @@ public sealed class GuestRequestDeliveryRuntime :
     private readonly IPhysicalFacilityItemBatchTransferGateway transfers;
     private readonly IV20MilestoneWorldSnapshotQuery world;
     private readonly IGameCalendar calendar;
+    private readonly IGameClock clock;
     private readonly IGameEventBus events;
     private float nextEvaluationTime;
 
     public GuestRequestDeliveryRuntime(
+        IGameClock clock,
         ISocietyEventQuery society,
         IGuestRequestDeliveryStateCommand stateCommands,
         IContentResolutionService content,
@@ -41,6 +43,7 @@ public sealed class GuestRequestDeliveryRuntime :
         IGameCalendar calendar,
         IGameEventBus events)
     {
+        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.society = society ?? throw new ArgumentNullException(nameof(society));
         this.stateCommands = stateCommands
             ?? throw new ArgumentNullException(nameof(stateCommands));
@@ -95,14 +98,14 @@ public sealed class GuestRequestDeliveryRuntime :
     public void Start()
     {
         AdvanceAll();
-        nextEvaluationTime = Time.time + EvaluationIntervalSeconds;
+        nextEvaluationTime = clock.Time + EvaluationIntervalSeconds;
     }
 
     public void Tick()
     {
-        if (Time.time < nextEvaluationTime)
+        if (clock.Time < nextEvaluationTime)
             return;
-        nextEvaluationTime = Time.time + EvaluationIntervalSeconds;
+        nextEvaluationTime = clock.Time + EvaluationIntervalSeconds;
         AdvanceAll();
     }
 

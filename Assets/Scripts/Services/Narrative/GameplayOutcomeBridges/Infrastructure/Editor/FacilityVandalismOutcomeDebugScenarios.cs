@@ -565,7 +565,7 @@ public static class FacilityVandalismOutcomeDebugScenarios
         facts,
         new FacilityVandalismPublicationOutbox(
             new DungeonRuntimeAggregateRootStore(),
-            facts),
+            facts, clock: new DungeonStory.Foundation.UnityUiClock()),
         new BuildingStructuralIntegrityRuntime(),
         EditorFixedGameCalendar.Instance);
 
@@ -655,7 +655,7 @@ public static class FacilityVandalismOutcomeDebugScenarios
                     new GameplayDomainFactCommitGroup(recorder, Ledger)));
             Publications = new FacilityVandalismPublicationOutbox(
                 new DungeonRuntimeAggregateRootStore(),
-                facts);
+                facts, clock: new DungeonStory.Foundation.UnityUiClock());
             Command = new CharacterVandalismCommand(
                 loseReplyAfterCommit.HasValue ? new LostReplyPublisher(facts, loseReplyAfterCommit.Value) : facts,
                 Publications,
@@ -957,12 +957,14 @@ public static class FacilityVandalismOutcomeDebugScenarios
                 });
             var events = new GameEventBus();
             var waterPublications = new CharacterWaterPublicationOutbox(
+                new DungeonStory.Foundation.UnityUiClock(),
                 stateStore,
                 notifications,
                 notifications,
                 events);
             var diagnostics = new CharacterDeprivationDiagnostics();
             var world = new CharacterBreakdownWorld(
+                new DungeonStory.Foundation.UnityUiClock(),
                 gridProvider,
                 itemStacks,
                 EmptyWorldFilthQuery.Instance,

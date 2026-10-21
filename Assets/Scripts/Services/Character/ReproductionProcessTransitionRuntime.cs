@@ -220,20 +220,23 @@ public sealed class ReproductionTransitionRecoveryAdapter : IStartable, ITickabl
 {
     private readonly IReproductionProcessTransitionCommand transitions;
     private readonly ReproductionTransitionPublication publications;
+    private readonly IUiClock clock;
     private float nextRecovery;
     private string lastFailure = string.Empty;
     public ReproductionTransitionRecoveryAdapter(IReproductionProcessTransitionCommand transitions,
-        ReproductionTransitionPublication publications)
+        ReproductionTransitionPublication publications,
+        IUiClock clock)
     {
         this.transitions = transitions ?? throw new ArgumentNullException(nameof(transitions));
         this.publications = publications ?? throw new ArgumentNullException(nameof(publications));
+        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
     }
     public void Start() => Recover();
     public void OnRestoreCompleted() { nextRecovery = 0; Recover(); }
     public void Tick()
     {
-        if (Time.unscaledTime < nextRecovery) return;
-        nextRecovery = Time.unscaledTime + 0.5f;
+        if (clock.Time < nextRecovery) return;
+        nextRecovery = clock.Time + 0.5f;
         Recover();
     }
     private void Recover()

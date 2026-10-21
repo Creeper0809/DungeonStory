@@ -644,7 +644,10 @@ public static class ProductionFacilityOutputCapacityContributorRegistryDebugScen
                 StringComparison.Ordinal),
             maximumMass.CaptureAutomatic,
             maximumMass.CaptureDeclared,
-            contributors);
+            contributors,
+            clearanceProfiles:
+                new ProductionOutputClearanceProfileResourceSource(
+                    new UnityGameContentRootLoader()));
         ProductionOutputBufferCapacitySourceSnapshot source =
             projector.CapturePortfolioSource(subject);
         Require(source.MaximumBatchMassGrams == 18_000L
@@ -845,7 +848,10 @@ public static class ProductionFacilityOutputCapacityContributorRegistryDebugScen
                 StringComparison.Ordinal),
             maximumMass.CaptureAutomatic,
             maximumMass.CaptureDeclared,
-            contributors);
+            contributors,
+            clearanceProfiles:
+                new ProductionOutputClearanceProfileResourceSource(
+                    new UnityGameContentRootLoader()));
         ProductionOutputBufferCapacitySourceSnapshot source =
             projector.CapturePortfolioSource(subject);
         Require(source.MaximumBatchMassGrams == 1_380L
@@ -936,7 +942,10 @@ public static class ProductionFacilityOutputCapacityContributorRegistryDebugScen
                 StringComparison.Ordinal),
             maximumMass.CaptureAutomatic,
             maximumMass.CaptureDeclared,
-            contributors);
+            contributors,
+            clearanceProfiles:
+                new ProductionOutputClearanceProfileResourceSource(
+                    new UnityGameContentRootLoader()));
         ProductionOutputBufferCapacitySourceSnapshot source =
             projector.CapturePortfolioSource(subject);
         Require(source.MaximumBatchMassGrams >= expected

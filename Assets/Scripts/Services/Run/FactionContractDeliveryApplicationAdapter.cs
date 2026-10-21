@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using DungeonStory.Operation;
 using UnityEngine;
 using VContainer.Unity;
@@ -24,16 +25,19 @@ public sealed class FactionContractDeliveryApplicationAdapter :
     ITickable
 {
     private const float EvaluationIntervalSeconds = 0.5f;
+    private readonly IGameClock clock;
     private readonly IFactionContractDeliveryResolutionCommand command;
     private readonly IV20MilestoneWorldSnapshotQuery world;
     private readonly IGameCalendar calendar;
     private float nextEvaluationTime;
 
     public FactionContractDeliveryApplicationAdapter(
+        IGameClock clock,
         IFactionContractDeliveryResolutionCommand command,
         IV20MilestoneWorldSnapshotQuery world,
         IGameCalendar calendar)
     {
+        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.command = command ?? throw new ArgumentNullException(nameof(command));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
@@ -42,14 +46,14 @@ public sealed class FactionContractDeliveryApplicationAdapter :
     public void Start()
     {
         Advance();
-        nextEvaluationTime = Time.time + EvaluationIntervalSeconds;
+        nextEvaluationTime = clock.Time + EvaluationIntervalSeconds;
     }
 
     public void Tick()
     {
-        if (Time.time < nextEvaluationTime)
+        if (clock.Time < nextEvaluationTime)
             return;
-        nextEvaluationTime = Time.time + EvaluationIntervalSeconds;
+        nextEvaluationTime = clock.Time + EvaluationIntervalSeconds;
         Advance();
     }
 

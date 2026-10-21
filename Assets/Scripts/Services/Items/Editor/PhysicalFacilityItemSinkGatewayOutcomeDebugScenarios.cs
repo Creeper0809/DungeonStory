@@ -98,7 +98,7 @@ public static class PhysicalFacilityItemSinkGatewayOutcomeDebugScenarios
                     null,
                     null,
                     null,
-                    null);
+                    null, clock: new DungeonStory.Foundation.UnityUiClock());
             Gateway = new PhysicalFacilityItemSinkGateway(
                 new PhysicalStockQuery(repository, Items.CatalogProvider, Items.MassQuery),
                 dispositions);

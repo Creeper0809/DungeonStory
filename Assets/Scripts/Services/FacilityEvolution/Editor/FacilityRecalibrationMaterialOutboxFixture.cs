@@ -13,7 +13,7 @@ public static class FacilityRecalibrationMaterialOutboxFixture
         PhysicalItemBatchDispositionService inner = new(
             repository,
             new PhysicalItemMassQuery(catalog),
-            EditorNullItemMarkerPresenter.Instance);
+            EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         WorldItemQueryService itemQuery = new(
             catalog,
             new PhysicalItemMassQuery(catalog),

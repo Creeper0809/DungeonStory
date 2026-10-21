@@ -28,7 +28,7 @@ public static class CharacterWaterFactDebugScenarios
         using var subscription = events.Subscribe<CharacterWaterConsumedEvent>(_ => notifications++);
         var owner = new CharacterDeprivationStateStore(fixture.AggregateRootStore);
         var publisher = new UnknownWaterPublisher(dispatcher, afterCommit);
-        var outbox = new CharacterWaterPublicationOutbox(owner, publisher, dispatcher, events);
+        var outbox = new CharacterWaterPublicationOutbox(new DungeonStory.Foundation.UnityUiClock(), owner, publisher, dispatcher, events);
         var fact = Fact("unknown-" + afterCommit, WorldWaterQuality.Foul);
         var lease = outbox.Reserve(Proposal(fact));
         string key = lease.PublicationKey;

@@ -257,7 +257,7 @@ public static class ExternalInfluenceTrailCharmOutboxDebugScenarios
             PhysicalItemBatchDispositionService inner = new(
                 repository,
                 new PhysicalItemMassQuery(items.CatalogProvider),
-                EditorNullItemMarkerPresenter.Instance);
+                EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
             FailOnceAcknowledgementDisposition dispositions = new(inner);
             ExternalInfluenceRuntimeApplicationAdapter runtime = new(
                 new GameEventBus(),

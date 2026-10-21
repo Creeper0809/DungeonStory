@@ -36,6 +36,8 @@ public static class WorldItemEditorTestFactory
                 massQuery,
                 itemMarkerPresenter);
         WorldItemPersistenceService persistence = new WorldItemPersistenceService(
+            new EquipmentEvolutionFormulaCatalogs(
+                CharacterAiEditorTestDependencies.ContentDefinitions),
             catalog,
             haulingSettings,
             repository,
@@ -79,7 +81,7 @@ public static class WorldItemEditorTestFactory
             batchDispositionOverride ?? new PhysicalItemBatchDispositionService(
                 repository,
                 massQuery,
-                itemMarkerPresenter);
+                itemMarkerPresenter, clock: new DungeonStory.Foundation.UnityUiClock());
         return new WorldItemStackRuntime(
             gridProvider,
             characterIds,

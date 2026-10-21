@@ -269,6 +269,7 @@ public static class InvasionIntruderDebugScenarios
                     + string.Join(" | ", valid.Errors));
                 return false;
             }
+            runtimeAdapter.OnRestoreCompleted();
 
             string stateBeforeFailure = JsonUtility.ToJson(service.Capture());
             int revisionBeforeFailure = rootStore.PublishedRestoreRevision;
@@ -372,17 +373,35 @@ public static class InvasionIntruderDebugScenarios
                 OwnerEvacuationActivatedCompletionCheckpoint,
                 EngagementActivatedCompletionCheckpoint
             };
+            string[] expectedParticipantCompletionOrder =
+                expectedCompletionOrder.Take(4).ToArray();
             SetRestoreHook(
                 runtimeAdapter,
                 "RestoreCompletionCheckpoint",
                 completionOrder.Add);
             DungeonGameRestoreReport orderingReport = new();
             bool orderingAccepted;
+            bool participantCompletionOrdered = false;
+            bool restoreHookCompletionOrdered = false;
+            bool restoreHookIdempotent = false;
             try
             {
                 orderingAccepted = registry.RestoreAll(
                     registry.CaptureAll(),
                     orderingReport);
+                if (orderingAccepted && orderingReport.Success)
+                {
+                    participantCompletionOrdered = completionOrder.SequenceEqual(
+                            expectedParticipantCompletionOrder)
+                        && !completionOrder.Contains(
+                            EngagementActivatedCompletionCheckpoint);
+                    runtimeAdapter.OnRestoreCompleted();
+                    restoreHookCompletionOrdered = completionOrder.SequenceEqual(
+                        expectedCompletionOrder);
+                    runtimeAdapter.OnRestoreCompleted();
+                    restoreHookIdempotent = completionOrder.SequenceEqual(
+                        expectedCompletionOrder);
+                }
             }
             finally
             {
@@ -393,7 +412,9 @@ public static class InvasionIntruderDebugScenarios
             }
             if (!orderingAccepted
                 || !orderingReport.Success
-                || !completionOrder.SequenceEqual(expectedCompletionOrder))
+                || !participantCompletionOrdered
+                || !restoreHookCompletionOrdered
+                || !restoreHookIdempotent)
             {
                 Debug.LogError(
                     "INVASION_ATOMIC_RESTORE completion dependency order was incorrect: "
@@ -1505,6 +1526,7 @@ public static class InvasionIntruderDebugScenarios
             new UnityGameContentRootLoader());
         OwnerRunManager manager = managerObject.AddComponent<OwnerRunManager>();
         manager.ConstructOwnerRunManager(
+            new DungeonStory.Foundation.UnityUiClock(),
             new FixedOwnerCandidateCatalog(ownerData),
             new ScenarioOwnerCharacterFactory(world),
             CharacterAiEditorTestDependencies.GameEvents,

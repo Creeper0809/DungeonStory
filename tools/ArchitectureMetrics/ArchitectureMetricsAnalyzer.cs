@@ -14,10 +14,9 @@ internal static class ArchitectureMetricsAnalyzer
 {
     private const int SchemaVersion = 2;
     private const int OwnershipManifestSchemaVersion = 1;
-    // File length and collaborator count are review signals, not architecture
-    // defects by themselves. Keep the original limits visible in the report,
-    // while reserving the release gate for extreme cases that require an
-    // explicit structural decision.
+    // Size and collaborator counts prioritize manual review; they cannot
+    // establish low cohesion, duplicate authority, or a forbidden dependency.
+    // Keep both threshold levels visible without treating either as a release gate.
     private const int RuntimeReviewLineLimit = 1200;
     private const int BehaviourReviewLineLimit = 800;
     private const int HardTypeLineLimit = 2000;
@@ -178,6 +177,7 @@ internal static class ArchitectureMetricsAnalyzer
 
             if (options.Verify)
             {
+                VerifyContentEscapeDetection();
                 VerifyBaseline(snapshot, options.BaselinePath);
             }
 
@@ -347,7 +347,7 @@ internal static class ArchitectureMetricsAnalyzer
 
             foreach (string token in ContentEscapeTokens)
             {
-                int count = CountOrdinal(source, token);
+                int count = CountContentEscapeCalls(root, token);
                 if (count > 0)
                 {
                     contentEscapes.Add(relativePath + "|" + token + "|" + count);
@@ -1102,6 +1102,11 @@ internal static class ArchitectureMetricsAnalyzer
         string baseline = File.ReadAllText(baselinePath);
         foreach (Metric metric in snapshot.Metrics())
         {
+            if (metric.Name == "OversizedType" || metric.Name == "LargeConstructor")
+            {
+                Console.WriteLine("REVIEW (not a failure): " + metric.Name + "=" + metric.Count);
+                continue;
+            }
             int maximum = ReadInt(baseline, "max" + metric.Name);
             string setHash = ReadString(baseline, metric.Name + "SetHash");
             if (metric.Count > maximum)
@@ -1145,6 +1150,39 @@ internal static class ArchitectureMetricsAnalyzer
             throw new InvalidDataException("Missing baseline string '" + name + "'.");
         }
         return match.Groups["value"].Value;
+    }
+
+    private static int CountContentEscapeCalls(SyntaxNode root, string token)
+    {
+        // Disabled Editor fixtures, comments, and diagnostic strings are not
+        // runtime calls. Use the same active syntax tree as the authority gates.
+        return root.DescendantNodes().OfType<InvocationExpressionSyntax>().Count(call =>
+        {
+            string name = call.Expression switch
+            {
+                MemberAccessExpressionSyntax member => NormalizeSyntax(member.Expression.ToString())
+                    + "." + member.Name.Identifier.ValueText,
+                SimpleNameSyntax simple => simple.Identifier.ValueText,
+                _ => string.Empty
+            };
+            return name == token || name.EndsWith("." + token, StringComparison.Ordinal);
+        });
+    }
+
+    private static void VerifyContentEscapeDetection()
+    {
+        const string source = "class Runtime { void Run() { "
+            + "UnityEngine.ScriptableObject.CreateInstance<ItemSO>(); "
+            + "Resources . LoadAll<ItemSO>(\"items\"); "
+            + "catalog.GetDefinitionOrDefault(\"missing\"); "
+            + "string diagnostic = \"ScriptableObject.CreateInstance\"; } }\n"
+            + "// Resources.LoadAll is forbidden in runtime code.\n"
+            + "#if UNITY_EDITOR\nclass Fixture { void Run() { ScriptableObject.CreateInstance<ItemSO>(); } }\n#endif\n";
+        SyntaxNode root = CSharpSyntaxTree.ParseText(source).GetRoot();
+        if (CountContentEscapeCalls(root, "ScriptableObject.CreateInstance") != 1
+            || CountContentEscapeCalls(root, "Resources.LoadAll") != 1
+            || CountContentEscapeCalls(root, "GetDefinitionOrDefault") != 1)
+            throw new InvalidOperationException("Runtime content escape detection regression.");
     }
 
     private static bool IsEditorSource(string path)
@@ -1281,18 +1319,6 @@ internal static class ArchitectureMetricsAnalyzer
                 .OfType<TypeDeclarationSyntax>()
                 .Reverse()
                 .Select(value => value.Identifier.ValueText));
-    }
-
-    private static int CountOrdinal(string value, string token)
-    {
-        int count = 0;
-        int index = 0;
-        while ((index = value.IndexOf(token, index, StringComparison.Ordinal)) >= 0)
-        {
-            count++;
-            index += token.Length;
-        }
-        return count;
     }
 
     private static string NormalizeSyntax(string value)

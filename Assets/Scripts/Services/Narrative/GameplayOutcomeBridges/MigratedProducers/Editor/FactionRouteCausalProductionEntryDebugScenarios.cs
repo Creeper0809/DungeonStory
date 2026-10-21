@@ -383,7 +383,8 @@ public static partial class FactionRouteCausalProductionEntryDebugScenarios
             var treasury = new TreasuryEconomyAggregateStateStore(
                 aggregateRootStore);
             var allianceBudget =
-                new ResourceFactionAllianceBenefitBudgetApplicationAdapter();
+                new ResourceFactionAllianceBenefitBudgetApplicationAdapter(
+                    CharacterAiEditorTestDependencies.ContentDefinitions);
             factionFacts = CreateFactionFacts(outcomes, probe);
             exactSources = new ExactSourcePublicationDouble();
             runtime = new FactionRuntimeApplicationAdapter(

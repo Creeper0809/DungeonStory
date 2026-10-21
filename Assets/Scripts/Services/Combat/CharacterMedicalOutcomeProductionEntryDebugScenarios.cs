@@ -420,7 +420,7 @@ public static partial class CharacterMedicalSupplyDestinationDrainRuntimeDebugSc
             Mutation = new MedicalTestMutation(
                 CharacterPersistentIdentity.Require(patient));
             Publication = new MedicalReplyFaults(Facts);
-            Runtime = new CharacterMedicalRuntime(
+            Runtime = new CharacterMedicalRuntime(new DungeonStory.Foundation.UnityRealtimeClock(),
                 new FixedBodyHealthQuery(true),
                 new CharacterMedicalWorldServices(
                     new UnavailableGridProvider(),

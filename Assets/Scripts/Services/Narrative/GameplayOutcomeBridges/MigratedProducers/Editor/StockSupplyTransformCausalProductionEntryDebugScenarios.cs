@@ -335,7 +335,7 @@ public static class StockSupplyTransformCausalProductionEntryDebugScenarios
                 catalog,
                 markers,
                 session,
-                physicalFacts);
+                physicalFacts, clock: new DungeonStory.Foundation.UnityUiClock());
 
             try
             {

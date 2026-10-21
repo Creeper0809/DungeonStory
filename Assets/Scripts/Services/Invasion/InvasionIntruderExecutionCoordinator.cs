@@ -97,17 +97,24 @@ internal sealed class InvasionIntruderExecutionCoordinator
     public void ClearBreachState()
     {
         host.BreachPlanner?.ReleaseReservation(host.RuntimeId);
-        host.BreachTarget = null;
-        host.BreachAttackCell = default;
-        host.TrappedSince = 0f;
-        host.NextStructureAttackAt = 0f;
-        host.EnragedBreach = false;
+        ClearLocalBreachState();
         host.RaidAwareness?.SetBreachTarget(
             InvasionIntruderCombatRules.ResolveRaidId(
                 host.Settings,
                 host.RuntimeId),
             null,
             string.Empty);
+    }
+
+    public void ClearLocalBreachState()
+    {
+        // A detached restore candidate does not own the live raid's shared
+        // awareness or breach reservation, even when it has the same raid ID.
+        host.BreachTarget = null;
+        host.BreachAttackCell = default;
+        host.TrappedSince = 0f;
+        host.NextStructureAttackAt = 0f;
+        host.EnragedBreach = false;
     }
 
     public void MarkDungeonBreached(Grid grid, Vector2Int cellPosition)

@@ -692,7 +692,7 @@ public static partial class CharacterMedicalSupplyDestinationDrainRuntimeDebugSc
             // These fixtures exercise destination drain/recovery only and never
             // complete a medical procedure, so no fact observer is required.
             facts = new DomainFactDispatcher();
-            Runtime = new CharacterMedicalRuntime(
+            Runtime = new CharacterMedicalRuntime(new DungeonStory.Foundation.UnityRealtimeClock(),
                 new FixedBodyHealthQuery(downed),
                 new CharacterMedicalWorldServices(
                     new UnavailableGridProvider(),

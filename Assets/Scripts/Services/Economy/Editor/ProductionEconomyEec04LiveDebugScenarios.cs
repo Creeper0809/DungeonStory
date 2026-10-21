@@ -885,7 +885,10 @@ public static partial class ProductionEconomyDebugScenarios
                     new[] { supportDefinition }),
                 componentCodec,
                 mass,
-                maximumMass);
+                maximumMass,
+                clearanceProfiles:
+                    new ProductionOutputClearanceProfileResourceSource(
+                        new UnityGameContentRootLoader()));
             return new ProductionPreparedOutputExecutionAdapter(
                 catalog,
                 outputPlanning,

@@ -2202,7 +2202,7 @@ public static partial class FacilityEvolutionDebugScenarios
             && sourceState.HasPendingMaterialCommit;
 
         FacilityEvolutionPendingMaterialProjection projection =
-            new FacilityEvolutionPendingMaterialProjection(
+            new FacilityEvolutionPendingMaterialProjection(new DungeonStory.Foundation.UnityUiClock(),
                 new GridOccupantBuildingQuery(world.Grid, world.SourcePosition),
                 new FacilityCandidateCacheStore(
                     CharacterAiEditorTestDependencies.WorldRegistry,

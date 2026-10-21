@@ -508,6 +508,7 @@ public static class ArcaneOverchargeA07DebugScenarios
 
     private static CharacterBodyHealthRuntime CreateBodyHealthRuntime(
         IGameClock clock) => new(
+            new UnityRealtimeClock(),
             CharacterAiEditorTestDependencies.WorldRegistry,
             clock,
             CharacterAiEditorTestDependencies.GameEvents,

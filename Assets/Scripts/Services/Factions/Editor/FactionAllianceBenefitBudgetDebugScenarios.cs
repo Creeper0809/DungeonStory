@@ -11,7 +11,8 @@ public static class FactionAllianceBenefitBudgetDebugScenarios
     public static void Verify()
     {
         ResourceFactionAllianceBenefitBudgetApplicationAdapter authority =
-            new ResourceFactionAllianceBenefitBudgetApplicationAdapter();
+            new ResourceFactionAllianceBenefitBudgetApplicationAdapter(
+                CharacterAiEditorTestDependencies.ContentDefinitions);
         V27BalanceAuditOutput audit = V27BalanceAudit.Generate(
             DungeonStory.Balance.BalanceLedgerExecutionMode.AuditOnly);
         FactionAllianceBenefitBudgetReviewSnapshot review =

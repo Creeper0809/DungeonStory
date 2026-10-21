@@ -3607,7 +3607,7 @@ public static class CropPhysicalTransactionFixture
             dispositions = new PhysicalItemBatchDispositionService(
                 repository,
                 mass,
-                EditorNullItemMarkerPresenter.Instance);
+                EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
             sink = new PhysicalFacilityItemSinkGateway(
                 new PhysicalStockQuery(repository, catalog, mass),
                 dispositions);

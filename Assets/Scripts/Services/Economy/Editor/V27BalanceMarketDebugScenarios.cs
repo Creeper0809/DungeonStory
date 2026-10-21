@@ -556,7 +556,8 @@ public static class V27BalanceMarketDebugScenarios
             .Select(value => value.ToSnapshot())
             .OrderBy(value => value.StableId, StringComparer.Ordinal)
             .ToArray();
-        ResourceFactionAllianceBenefitBudgetApplicationAdapter budget = new();
+        ResourceFactionAllianceBenefitBudgetApplicationAdapter budget = new(
+            CharacterAiEditorTestDependencies.ContentDefinitions);
         if (definitions.Length == 0 || definitions.Length != budget.Routes.Count)
         {
             throw new InvalidOperationException(

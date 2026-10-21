@@ -1,0 +1,3 @@
+REVIEW (not a failure): OversizedType=14
+REVIEW (not a failure): LargeConstructor=12
+Architecture metrics PASS: files=2980, types=9752, mutableStatics=0, reviewTypes=122, hardOversizedTypes=14, reviewConstructors=77, hardLargeConstructors=12, defaultAssemblyFiles=2196, defaultAllowed=176, namedRequired=1081, reviewRequired=939, unapprovedDefaultDomainAuthorities=2020, crossDomainCycleCandidates=162, contentEscapes=0, directSessionMutations=0, rawKoreanStrings=12088, rootCatalogReferences=3.

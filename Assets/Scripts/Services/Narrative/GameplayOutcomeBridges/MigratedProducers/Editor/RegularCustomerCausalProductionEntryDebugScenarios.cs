@@ -311,6 +311,7 @@ public static class RegularCustomerCausalProductionEntryDebugScenarios
             root = new GameObject("Causal regular customer owner");
             runtime = root.AddComponent<RegularCustomerRuntime>();
             runtime.ConstructRecruitmentRuntime(
+                new DungeonStory.Foundation.UnityUiClock(),
                 new RecruitActivation(),
                 new GameEventBus(),
                 new FixedGameSessionStateProvider(AbsoluteDay),

@@ -22,7 +22,7 @@ public static class Wim023VitalsNoHealDebugScenarios
                 bus,
                 CharacterAiEditorTestDependencies.WorldRegistry);
             vitalsActivities.Initialize();
-            var runtime = new CharacterBodyHealthRuntime(
+            var runtime = new CharacterBodyHealthRuntime(new DungeonStory.Foundation.UnityRealtimeClock(),
                 CharacterAiEditorTestDependencies.WorldRegistry, clock, bus,
                 new DynamicFrameWorkBudget(clock, new UnityUiClock()),
                 new ResourceAnatomyProfileCatalog(

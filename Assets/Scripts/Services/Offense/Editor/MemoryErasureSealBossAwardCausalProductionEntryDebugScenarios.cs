@@ -263,6 +263,7 @@ public static class MemoryErasureSealBossAwardCausalProductionEntryDebugScenario
                     + (8f * GameCalendarRules.SecondsPerDay / 24f),
                 calendar: new EditorFixedGameCalendar(AbsoluteDay));
             service = new MemoryErasureSealBossAwardService(
+                new DungeonStory.Foundation.UnityUiClock(),
                 regions,
                 BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
                     .Create<IOffenseWorldSimulation>(),

@@ -941,8 +941,9 @@ public static class EnvironmentFirePhysicalProductionEntryDebugScenarios
                 null,
                 null,
                 new GameplayDomainFactDeliveryQuery(recorder, Ledger),
-                null);
+                null, clock: new DungeonStory.Foundation.UnityUiClock());
             ResourceTransaction = new EnvironmentalFireResourceTransaction(
+                new DungeonStory.Foundation.UnityUiClock(),
                 facts,
                 facts,
                 dispositions);
@@ -975,7 +976,7 @@ public static class EnvironmentFirePhysicalProductionEntryDebugScenarios
             world.RegisterCharacter(Worker);
             WorkerId = CharacterPersistentIdentity.Require(Worker);
 
-            DamageAuthority = new EnvironmentalFireDamageAuthority(facts, facts);
+            DamageAuthority = new EnvironmentalFireDamageAuthority(new DungeonStory.Foundation.UnityUiClock(), facts, facts);
             PhysicalAdapter = new EnvironmentalFireWorldAdapter(
                 world,
                 world,

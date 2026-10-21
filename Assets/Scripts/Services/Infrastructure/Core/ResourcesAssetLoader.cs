@@ -6,14 +6,19 @@ public interface IGameContentRootLoader
     ScriptableObject LoadRequiredRoot();
 }
 
-public sealed class UnityGameContentRootLoader : IGameContentRootLoader
+public interface ITextAssetResourceLoader
+{
+    TextAsset LoadTextAsset(string resourcePath);
+}
+
+public sealed class UnityGameContentRootLoader : IGameContentRootLoader, ITextAssetResourceLoader
 {
     private const string RootResourcePath = "SO/GameContentCatalog";
 
     public ScriptableObject LoadRequiredRoot()
     {
-        ScriptableObject root = Resources.Load<ScriptableObject>(
-            RootResourcePath);
+        ScriptableObject root = (ScriptableObject)Load(
+            RootResourcePath, typeof(ScriptableObject));
         if (root == null)
         {
             throw new InvalidOperationException(
@@ -23,4 +28,10 @@ public sealed class UnityGameContentRootLoader : IGameContentRootLoader
 
         return root;
     }
+
+    public TextAsset LoadTextAsset(string resourcePath) =>
+        (TextAsset)Load(resourcePath, typeof(TextAsset));
+
+    private static UnityEngine.Object Load(string resourcePath, Type assetType) =>
+        Resources.Load(resourcePath, assetType);
 }

@@ -78,6 +78,7 @@ public sealed partial class SurvivalFoodRuntime :
     private const string CookedMealItemId = "survival:cooked_meal";
     private const string PreservedFoodItemId = "survival:preserved_food";
 
+    private readonly IUiClock uiClock;
     private readonly IWildlifeSpeciesCatalogProvider speciesCatalog;
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly IWorldItemStackRuntime itemStackRuntime;
@@ -147,6 +148,7 @@ public sealed partial class SurvivalFoodRuntime :
     }
 
     public SurvivalFoodRuntime(
+        IUiClock uiClock,
         SurvivalFoodRuntimeDependencies dependencies,
         IWildlifeSpeciesCatalogProvider speciesCatalog,
         IGameEventBus gameEventBus,
@@ -159,6 +161,7 @@ public sealed partial class SurvivalFoodRuntime :
         ICharacterCarryInventoryRegistry carryInventories = null,
         ICharacterConsumablesApplication consumables = null)
     {
+        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
         _ = dependencies ?? throw new ArgumentNullException(nameof(dependencies));
         this.speciesCatalog = speciesCatalog ?? throw new ArgumentNullException(nameof(speciesCatalog));
         this.worldRegistry = worldRegistry
@@ -956,8 +959,8 @@ public sealed partial class SurvivalFoodRuntime :
 
     public void Tick()
     {
-        if (pendingMealMissedDays.Count == 0 || Time.unscaledTime < nextMealMissedRecoveryTime) return;
-        nextMealMissedRecoveryTime = Time.unscaledTime + 1f;
+        if (pendingMealMissedDays.Count == 0 || uiClock.Time < nextMealMissedRecoveryTime) return;
+        nextMealMissedRecoveryTime = uiClock.Time + 1f;
         RecoverPendingMealMissedFacts();
     }
 

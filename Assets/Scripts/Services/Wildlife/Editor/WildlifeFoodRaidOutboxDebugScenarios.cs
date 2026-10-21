@@ -667,7 +667,7 @@ public static class WildlifeFoodRaidOutboxDebugScenarios
                 facts,
                 facts,
                 new GameplayDomainFactDeliveryQuery(Recorder, Ledger),
-                EditorFixedGameCalendar.Instance);
+                EditorFixedGameCalendar.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
             Dispositions = new FailOnceAcknowledgementDisposition(
                 innerDispositions);
             FaultingFacts = new FaultingDomainFacts(facts, facts);

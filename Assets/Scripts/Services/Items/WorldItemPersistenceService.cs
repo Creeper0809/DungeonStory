@@ -21,6 +21,7 @@ internal sealed class WorldItemRestoreState
 /// </summary>
 public sealed class WorldItemPersistenceService
 {
+    private readonly EquipmentEvolutionFormulaCatalogs formulaCatalogs;
     private readonly IDungeonItemCatalogProvider catalogProvider;
     private readonly IItemHaulingSettingsProvider haulingSettings;
     private readonly WorldItemRepository repository;
@@ -38,6 +39,7 @@ public sealed class WorldItemPersistenceService
             "Exact-route outbox persistence must own a restore transaction participant.");
 
     public WorldItemPersistenceService(
+        EquipmentEvolutionFormulaCatalogs formulaCatalogs,
         IDungeonItemCatalogProvider catalogProvider,
         IItemHaulingSettingsProvider haulingSettings,
         WorldItemRepository repository,
@@ -45,6 +47,7 @@ public sealed class WorldItemPersistenceService
         IItemQuantityReservationPersistence reservationPersistence = null,
         IItemReservationMutationGate mutationGate = null)
     {
+        this.formulaCatalogs = formulaCatalogs ?? throw new ArgumentNullException(nameof(formulaCatalogs));
         this.catalogProvider = catalogProvider
             ?? throw new ArgumentNullException(nameof(catalogProvider));
         this.haulingSettings = haulingSettings
@@ -552,7 +555,7 @@ public sealed class WorldItemPersistenceService
         }
     }
 
-    private static void DecodeUniqueItems(
+    private void DecodeUniqueItems(
         IEnumerable<UniqueItemInstanceSaveData> savedItems,
         IDictionary<string, CombatEquipmentInstance> equipment,
         IDictionary<string, EquipmentModuleInstance> modules)
@@ -612,7 +615,7 @@ public sealed class WorldItemPersistenceService
                     $"Invalid physical unique item '{unique?.itemInstanceId}': {decodeError}");
             }
             EquipmentEvolutionRules.ValidateFormulaState(
-                payload.equipment.evolution ?? new EquipmentEvolutionState());
+                payload.equipment.evolution ?? new EquipmentEvolutionState(), formulaCatalogs);
             equipment.Add(unique.itemInstanceId, payload.equipment.Clone());
             foreach (EquipmentModuleInstance module in payload.attachedModules)
             {

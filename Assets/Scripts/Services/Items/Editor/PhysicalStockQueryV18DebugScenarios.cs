@@ -440,7 +440,7 @@ public static class PhysicalStockQueryV18DebugScenarios
             catalog,
             markers,
             session,
-            physicalFacts);
+            physicalFacts, clock: new DungeonStory.Foundation.UnityUiClock());
         long lumberMass = massQuery.GetDefinitionUnitMass(
             (ItemDefinitionId)LumberItemId).Value;
         DungeonItemDefinition output = catalog.All
@@ -606,7 +606,7 @@ public static class PhysicalStockQueryV18DebugScenarios
             catalog,
             new ThrowOnceItemMarkerPresenter(),
             session,
-            physicalFacts);
+            physicalFacts, clock: new DungeonStory.Foundation.UnityUiClock());
         int outputBeforeRollback = stockQuery.GetAllStacks()
             .Where(value => value.Position == multiOutputPosition
                 && string.Equals(value.ItemId, output.ItemId,
@@ -777,7 +777,7 @@ public static class PhysicalStockQueryV18DebugScenarios
         PhysicalItemBatchDispositionService batch = new(
             repository,
             massQuery,
-            EditorNullItemMarkerPresenter.Instance);
+            EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         Require(
             batch.TryCommit(
                 new[]
@@ -819,7 +819,7 @@ public static class PhysicalStockQueryV18DebugScenarios
         PhysicalItemBatchDispositionService throwingBatch = new(
             repository,
             massQuery,
-            new ThrowOnceItemMarkerPresenter());
+            new ThrowOnceItemMarkerPresenter(), clock: new DungeonStory.Foundation.UnityUiClock());
         Require(
             throwingBatch.TryCommit(
                 new[]
@@ -868,7 +868,7 @@ public static class PhysicalStockQueryV18DebugScenarios
         PhysicalItemBatchDispositionService sourceBatch = new(
             sourceRepository,
             massQuery,
-            EditorNullItemMarkerPresenter.Instance);
+            EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         string operationId = "production-wip:qa-pending-receipt:00000001";
         PhysicalItemTransformInput[] inputs =
         {
@@ -913,6 +913,8 @@ public static class PhysicalStockQueryV18DebugScenarios
             "Pending operation accepted a mismatched retry.");
 
         WorldItemPersistenceService sourcePersistence = new(
+            new EquipmentEvolutionFormulaCatalogs(
+                CharacterAiEditorTestDependencies.ContentDefinitions),
             catalog,
             new FixedHaulingSettings(),
             sourceRepository,
@@ -927,6 +929,8 @@ public static class PhysicalStockQueryV18DebugScenarios
             new GuidPersistentIdGenerator(),
             new DungeonRuntimeAggregateRootStore());
         WorldItemPersistenceService restoredPersistence = new(
+            new EquipmentEvolutionFormulaCatalogs(
+                CharacterAiEditorTestDependencies.ContentDefinitions),
             catalog,
             new FixedHaulingSettings(),
             restoredRepository,
@@ -935,7 +939,7 @@ public static class PhysicalStockQueryV18DebugScenarios
         PhysicalItemBatchDispositionService restoredBatch = new(
             restoredRepository,
             massQuery,
-            EditorNullItemMarkerPresenter.Instance);
+            EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         Require(
             restoredBatch.TryCommitPending(
                 inputs,
@@ -1015,7 +1019,7 @@ public static class PhysicalStockQueryV18DebugScenarios
             repository,
             massQuery,
             EditorNullItemMarkerPresenter.Instance,
-            reservations);
+            reservations, clock: new DungeonStory.Foundation.UnityUiClock());
         Require(
             batch.TryCommitReservedSinkPending(
                 lease.leaseId,
@@ -1080,7 +1084,7 @@ public static class PhysicalStockQueryV18DebugScenarios
             repository,
             massQuery,
             new ThrowOnceItemMarkerPresenter(),
-            reservations);
+            reservations, clock: new DungeonStory.Foundation.UnityUiClock());
         Require(
             throwingBatch.TryCommitReservedSinkPending(
                 rollbackLease.leaseId,
@@ -1115,7 +1119,7 @@ public static class PhysicalStockQueryV18DebugScenarios
             repository,
             massQuery,
             EditorNullItemMarkerPresenter.Instance,
-            reservations);
+            reservations, clock: new DungeonStory.Foundation.UnityUiClock());
 
         string operationId =
             "apparel:qa:reserved-transfer-pending:00000001";
@@ -1279,7 +1283,7 @@ public static class PhysicalStockQueryV18DebugScenarios
             repository,
             massQuery,
             new ThrowOnceItemMarkerPresenter(),
-            reservations);
+            reservations, clock: new DungeonStory.Foundation.UnityUiClock());
         Require(
             throwingBatch.TryCommitReservedTransferPending(
                 rollbackLease.leaseId,
@@ -1355,7 +1359,7 @@ public static class PhysicalStockQueryV18DebugScenarios
             catalog,
             markers,
             new FixedGameSessionStateProvider(),
-            physicalFacts);
+            physicalFacts, clock: new DungeonStory.Foundation.UnityUiClock());
         Vector2Int position = new(37, 4);
         string sourceStackId = WorldItemRepositoryEditorAccess.AddStack(
             repository,
@@ -2154,6 +2158,8 @@ public static class PhysicalStockQueryV18DebugScenarios
             + overfillFailure.Code);
 
         WorldItemPersistenceService sourcePersistence = new(
+            new EquipmentEvolutionFormulaCatalogs(
+                CharacterAiEditorTestDependencies.ContentDefinitions),
             catalog,
             new FixedHaulingSettings(),
             repository,
@@ -2163,6 +2169,8 @@ public static class PhysicalStockQueryV18DebugScenarios
             new GuidPersistentIdGenerator(),
             new DungeonRuntimeAggregateRootStore());
         WorldItemPersistenceService restoredPersistence = new(
+            new EquipmentEvolutionFormulaCatalogs(
+                CharacterAiEditorTestDependencies.ContentDefinitions),
             catalog,
             new FixedHaulingSettings(),
             restoredRepository,

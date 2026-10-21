@@ -10,6 +10,7 @@ public sealed class EquipmentEvolutionRuntime :
     IEquipmentEvolutionRuntime,
     IAttunementRuntime
 {
+    private readonly EquipmentEvolutionFormulaCatalogs formulaCatalogs;
     private const string DefaultBindingItemId = "resource:dark-resin";
 
     private readonly ICombatEquipmentRuntime equipment;
@@ -39,6 +40,7 @@ public sealed class EquipmentEvolutionRuntime :
         WritableState.ReattunementOrders;
 
     public EquipmentEvolutionRuntime(
+        EquipmentEvolutionFormulaCatalogs formulaCatalogs,
         ICombatEquipmentRuntime equipment,
         IUsageLedgerCompactor ledgerCompactor,
         IEvolutionModuleRegistry modules,
@@ -53,6 +55,7 @@ public sealed class EquipmentEvolutionRuntime :
         EquipmentModuleSelectionPublicationRuntime moduleSelections = null,
         IGameSessionStateProvider sessionStateProvider = null)
     {
+        this.formulaCatalogs = formulaCatalogs ?? throw new ArgumentNullException(nameof(formulaCatalogs));
         this.equipment = equipment
             ?? throw new ArgumentNullException(nameof(equipment));
         this.ledgerCompactor = ledgerCompactor
@@ -121,7 +124,7 @@ public sealed class EquipmentEvolutionRuntime :
             generation: state.generation,
             repeatCount: repeatCount,
             narrativeContext: narrativeContext);
-        RecordFormulaEvidence(state, recorded);
+        RecordFormulaEvidence(state, recorded, formulaCatalogs.RequireCurrent());
         state.mastery = Mathf.Max(0f, state.mastery + Mathf.Max(0f, mastery));
         if (!string.IsNullOrWhiteSpace(ownerPersistentId)
             && attunementPoints > 0)
@@ -131,7 +134,7 @@ public sealed class EquipmentEvolutionRuntime :
                 out EquipmentFormulaTargetContext targetContext,
                 out string targetResolutionFailureReason);
             EquipmentAttunementAdvanceResult attunementResult = AddAttunement(
-                state,
+                formulaCatalogs.RequireCurrent(), state,
                 targetContext,
                 targetResolutionFailureReason,
                 instance.instanceId,
@@ -242,7 +245,7 @@ public sealed class EquipmentEvolutionRuntime :
         EquipmentEvolutionFormulaCatalogSO catalog;
         try
         {
-            catalog = EquipmentEvolutionFormulaCatalogSO.LoadForPersistedNode(node.formulaVersion);
+            catalog = formulaCatalogs.RequireForPersistedNode(node.formulaVersion);
             ValidateFormulaNode(node, catalog);
         }
         catch (Exception error) when (error is ArgumentException
@@ -442,7 +445,7 @@ public sealed class EquipmentEvolutionRuntime :
         EvolutionNode node;
         try
         {
-            catalog = EquipmentEvolutionFormulaCatalogSO.LoadForPersistedNode(pending.formulaVersion);
+            catalog = formulaCatalogs.RequireForPersistedNode(pending.formulaVersion);
             NarrativeFormulaModuleSelectionRequest selectionRequest =
                 EquipmentEvolutionRules.BuildModuleSelectionRequest(pending, catalog);
             NarrativeFormulaModuleSelectionChoice choice = new(
@@ -673,7 +676,7 @@ public sealed class EquipmentEvolutionRuntime :
         {
             alreadyCaptured = request.RestorePublicContext() != null;
             request.BindPublicContext(material);
-            ValidateFormulaState(state);
+            ValidateFormulaState(state, formulaCatalogs);
         }
         catch (Exception error) when (error is ArgumentException or InvalidOperationException)
         {
@@ -2168,7 +2171,7 @@ public sealed class EquipmentEvolutionRuntime :
             instance.instanceId + "|" + order.orderId);
         return BuildFormulaNode(
             state,
-            EquipmentEvolutionFormulaCatalogSO.LoadRequired(),
+            formulaCatalogs.RequireCurrent(),
             RequireFormulaTargetContext(instance),
             instance.instanceId,
             $"equipment-node:{nodeHash}",
@@ -2314,7 +2317,7 @@ public sealed class EquipmentEvolutionRuntime :
             return false;
         }
         if (!TryGetRuntimeApplicablePositiveOfferFailure(
-                EquipmentEvolutionFormulaCatalogSO.LoadRequired(),
+                formulaCatalogs.RequireCurrent(),
                 targetContext,
                 out failureReason))
         {

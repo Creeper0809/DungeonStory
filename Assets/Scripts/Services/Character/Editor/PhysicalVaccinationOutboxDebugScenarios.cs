@@ -53,7 +53,7 @@ public static class PhysicalVaccinationOutboxDebugScenarios
             PhysicalItemBatchDispositionService dispositions = new(
                 repository,
                 new FixedMassQuery(400L),
-                EditorNullItemMarkerPresenter.Instance);
+                EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
             PhysicalFacilityItemSinkGateway baseGateway = new(
                 stock,
                 dispositions);
@@ -158,7 +158,7 @@ public static class PhysicalVaccinationOutboxDebugScenarios
             PhysicalItemBatchDispositionService dispositions = new(
                 repository,
                 new FixedMassQuery(400L),
-                EditorNullItemMarkerPresenter.Instance);
+                EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
             PhysicalVaccinationRuntime runtime = CreateRuntime(
                 vaccine,
                 diseases,

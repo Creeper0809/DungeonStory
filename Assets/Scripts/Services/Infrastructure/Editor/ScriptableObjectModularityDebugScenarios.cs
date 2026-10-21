@@ -283,7 +283,8 @@ public static class ScriptableObjectModularityDebugScenarios
         var profiles = new ResourceAnatomyProfileCatalog(content);
         var events = new GameEventBus();
         var clock = new UnityGameClock();
-        CharacterBodyHealthRuntime CreateBody() => new(CharacterAiEditorTestDependencies.WorldRegistry,
+        CharacterBodyHealthRuntime CreateBody() => new(new UnityRealtimeClock(),
+            CharacterAiEditorTestDependencies.WorldRegistry,
             clock, events, new DynamicFrameWorkBudget(clock, new UnityUiClock()), profiles,
             new DungeonRuntimeAggregateRootStore(), CharacterAiEditorTestDependencies.GameCalendar);
         CharacterBodyHealthRuntime body = CreateBody();

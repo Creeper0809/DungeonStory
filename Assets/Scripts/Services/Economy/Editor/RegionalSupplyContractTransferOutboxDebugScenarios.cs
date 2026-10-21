@@ -86,7 +86,7 @@ public static class RegionalSupplyContractTransferOutboxDebugScenarios
         PhysicalItemBatchDispositionService dispositions = new(
             repository,
             massQuery,
-            EditorNullItemMarkerPresenter.Instance);
+            EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock());
         PhysicalFacilityItemSinkGateway gateway = new(
             new PhysicalStockQuery(repository, catalog, massQuery),
             dispositions);
@@ -504,7 +504,7 @@ public static class RegionalSupplyContractTransferOutboxDebugScenarios
                 new PhysicalItemBatchDispositionService(
                     repository,
                     items.MassQuery,
-                    EditorNullItemMarkerPresenter.Instance));
+                    EditorNullItemMarkerPresenter.Instance, clock: new DungeonStory.Foundation.UnityUiClock()));
             Require(gateway.TryCommitTransferPending(
                     DestinationId,
                     new Dictionary<string, int>(StringComparer.Ordinal)

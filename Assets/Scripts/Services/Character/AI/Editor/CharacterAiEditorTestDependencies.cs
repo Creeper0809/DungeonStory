@@ -215,7 +215,7 @@ internal static class CharacterAiEditorTestDependencies
     private static readonly Lazy<CharacterBodyHealthRuntime> BodyHealth =
         new Lazy<CharacterBodyHealthRuntime>(() =>
         {
-            var runtime = new CharacterBodyHealthRuntime(
+            var runtime = new CharacterBodyHealthRuntime(new DungeonStory.Foundation.UnityRealtimeClock(),
                 WorldRegistry,
                 GameClock,
                 GameEvents,
@@ -1317,6 +1317,7 @@ internal static class CharacterAiEditorTestDependencies
         if (manager != null)
         {
             manager.ConstructOwnerRunManager(
+                UiClock,
                 OwnerCandidates,
                 new EditorOwnerCharacterFactory(manager),
                 GameEvents);
@@ -1347,6 +1348,7 @@ internal static class CharacterAiEditorTestDependencies
         _ = StaffDiscontentPresentation.Value;
         DomainFactDispatcher facts = CreateStaffDiscontentTransitionFacts();
         runtime.Construct(
+            UiClock,
             WorldRegistry,
             GameEvents,
             new DungeonRuntimeAggregateRootStore(),
@@ -1385,6 +1387,7 @@ internal static class CharacterAiEditorTestDependencies
         _ = StaffDiscontentPresentation.Value;
         DomainFactDispatcher facts = CreateStaffDiscontentTransitionFacts();
         runtime.Construct(
+            UiClock,
             WorldRegistry,
             GameEvents,
             new DungeonRuntimeAggregateRootStore(),
@@ -1467,6 +1470,8 @@ internal static class CharacterAiEditorTestDependencies
         IBuildingRoomPolicyPort roomPolicy,
         IGameClock gameClock = null)
     {
+        if (building is ConstructionSite constructionSite)
+            constructionSite.Construct(UiClock);
         building?.ConstructPersistentIdentity(PersistentIds);
         building?.ConstructBuildableObject(
             new BuildingResearchWorkPortAdapter(blueprintResearch),
@@ -1508,6 +1513,7 @@ internal static class CharacterAiEditorTestDependencies
     {
         GameSessionState state = GetGameData();
         shop?.ConstructShop(
+            new DungeonStory.Foundation.UnityRealtimeClock(),
             new GameMoneyAccount(new FixedGameDataProvider(state), RetailMoneyLedger),
             ShopStock,
             new NoopFloatingNumberFeedbackService(),
@@ -1808,6 +1814,7 @@ internal static class CharacterAiEditorTestDependencies
         if (manager == null)
             throw new ArgumentNullException(nameof(manager));
         manager.ConstructOwnerRunManager(
+            UiClock,
             OwnerCandidates,
             new EditorOwnerCharacterFactory(manager),
             GameEvents,

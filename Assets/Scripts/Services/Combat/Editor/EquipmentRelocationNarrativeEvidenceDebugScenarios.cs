@@ -167,7 +167,7 @@ internal static class EquipmentRelocationNarrativeEvidenceFixture
                 prepared,
                 facts,
                 facts,
-                calendar);
+                calendar, clock: new DungeonStory.Foundation.UnityUiClock());
             if (!service.TryRelocateQuantity(
                     sourceStackId,
                     1,
@@ -258,7 +258,7 @@ internal static class EquipmentRelocationNarrativeEvidenceFixture
                     facts,
                     facts,
                     new GameplayDomainFactDeliveryQuery(recorder, ledger),
-                    calendar);
+                    calendar, clock: new DungeonStory.Foundation.UnityUiClock());
                 if (!dispositions.TryCommit(
                         new[]
                         {

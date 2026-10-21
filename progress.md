@@ -1,5 +1,19 @@
 # DungeonStory Current Progress
 
+## EditMode repair — 최종 실행 완료 (2026-10-22)
+
+- 불필요 분리 5개 원복, Medical 공용 형식 소유권 및 시간/콘텐츠 주입 수정, 수술 null 접근·포로 신원 초기화·회복/사망 복원 용량 결함 수정. 경비 이동은 캐릭터 활성화 완료 뒤 재개하며 이전 교전 퇴역이 새 체력 원장을 오염시키지 않게 했다. 복원 후보의 breach 초기화도 현재 작전의 공유 정보를 변경하지 않게 했다. 크기만으로 실패시키는 검사를 책임·의존·저장 계약 중심으로 재검토했다.
+- cuha EditMode 전체 r8 194/198, 실패·영향 r9 7/7, 최종 침입 영향 범위 r24 3/3 → 198개 각각 최신 PASS. 단일 최종 198/198 실행이 아니다.
+- 장비 상태/재시도 r10, 수술 거절·전투 r13, 영수증 복구 r14, 실제 전체 씬 r24 PASS. 최종 전체 씬 104/104/104 영역, 캐릭터 계약·정식 포로 ID/소유자·지식 후속 정리·이동 중 경비 복원·침입 원자 게시/롤백/완료 중복 방지·legacy 거절·baseline canonical 일치, 경고/오류 0. 모든 성공 실행 compile errors 0/source drift 0.
+- 실패 로그와 메모리 보호 중단 이력은 보존했다. 마지막 fixture 수정은 동기 게시와 실제 명령 결과에 기대값을 맞춘 것이며, 정합성 거절·원자성·중복 방지 단언은 유지했다. 로컬 사용자 Editor·다른 앱은 건드리지 않았다.
+- Roslyn architecture -Verify, 고정 Balance analyzer 재빌드/양·음성 검증, r24 생성 인덱스 source/output 검증 PASS. 최종 staged diff는 새 소스/보고서의 EOF 빈 줄 경고 2건만 있으며 실행 당시 원본 바이트를 유지했다. 기존 main V27 source digest 불일치는 재인증하지 않았다.
+
+[최종 증거](Artifacts/QA/EditModeRepairs-20261021/verification-final.json). 편집/Unity 창 CLOSED, source r24·21,613파일. GitHub 통합은 이 증거를 포함한 PR/원격 main 기록을 따른다. 아래 항목은 각 당시 기록이다.
+
+## 2026-10-21 EditMode 원인 확인 및 작업 격리
+
+원본 서버 결과는 C:/Users/vulpo/Documents/Codex/2026-10-21/task/results/editmode-20261021-licensed-02에 보존되어 있다. XML198/179/19, 컴파일 성공 및 산출물 SHA를 확인했다. snapshot의 관련 C#/asmdef/Architecture 입력4074개와 원본 checkout 사이 drift0. 새 worktree codex/fix-editmode-regressions에서 수정 시작, 원본 checkout 변경은 미포함. 최신 구조 분석은 oversized14>5로 실패했으며 Unity 재실행은 아직 하지 않았다.
+
 ## 2026-10-18 SO 최종 실행 완료
 
 메모리 확보 후 source-pin-r6 그대로 native-r4/character/campaign/combat/Play 5회 모두 PASS/exit0. Runtime/Editor compile36.238804초/CS0, 새 SO 생산/소비·JSON/fresh owner/retry·신체 초기화/피해/착용·실제 DI 조합과 기존 회귀를 통과했다. 실제 GameplayScene Play149modules/153bindings/facts도 PASS다. 입력4081/DLL47 drift0, OS 비대화형 probe5회 PASS, 메모리 보호 중단/소스 추가 수정0. 모든 프로세스 terminal/Unity0·편집/검증 창 CLOSED. [최종 근거](Artifacts/QA/SoModularity-20261017/verification-final.json), [보고서](docs/dev/so-modularity-audit-20261017.md). 아래 메모리 대기/재개 기록은 당시 상태다.

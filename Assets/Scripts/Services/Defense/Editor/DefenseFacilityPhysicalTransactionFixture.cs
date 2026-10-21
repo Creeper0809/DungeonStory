@@ -371,7 +371,7 @@ public static class DefenseFacilityPhysicalTransactionFixture
                 facts,
                 facts,
                 new GameplayDomainFactDeliveryQuery(recorder, ledger),
-                CharacterAiEditorTestDependencies.GameCalendar);
+                CharacterAiEditorTestDependencies.GameCalendar, clock: new DungeonStory.Foundation.UnityUiClock());
         }
 
         internal GameplayOutcomeLedger Ledger { get; }

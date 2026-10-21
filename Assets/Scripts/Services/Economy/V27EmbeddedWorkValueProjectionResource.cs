@@ -141,11 +141,15 @@ public sealed class V27EmbeddedWorkValueProjectionResourceSource :
 {
     public const string ResourcePath = "Balance/v27-embedded-work-values";
 
+    private readonly ITextAssetResourceLoader textAssetLoader;
     private readonly IReadOnlyDictionary<string, V27EmbeddedWorkValueProjection> values;
 
-    public V27EmbeddedWorkValueProjectionResourceSource()
+    public V27EmbeddedWorkValueProjectionResourceSource(
+        ITextAssetResourceLoader textAssetLoader)
     {
-        TextAsset asset = Resources.Load<TextAsset>(ResourcePath);
+        this.textAssetLoader = textAssetLoader
+            ?? throw new ArgumentNullException(nameof(textAssetLoader));
+        TextAsset asset = this.textAssetLoader.LoadTextAsset(ResourcePath);
         if (asset == null)
         {
             AuthorityFailure =

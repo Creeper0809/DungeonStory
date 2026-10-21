@@ -121,7 +121,8 @@ public static class OffenseStrategicDebugScenarios
             .Load<InGameNarrativeTextCatalogSO>(
                 InGameNarrativeTextCatalogSO.ResourcePath);
         Require(narrativeCatalog != null, "원정 서술 카탈로그가 없습니다.");
-        IInGameNarrativeTextQuery narrative = new ResourceInGameNarrativeTextQuery();
+        IInGameNarrativeTextQuery narrative = new ResourceInGameNarrativeTextQuery(
+            CharacterAiEditorTestDependencies.ContentDefinitions);
         foreach ((InGameNarrativeTextKind kind, string stableId)
                  in AuthoredWeatherNarrativeEntries)
         {

@@ -28,6 +28,7 @@ public class StaffDiscontentRuntime : MonoBehaviour
     private ICharacterSettlementStandingQuery settlementStandings;
     private DungeonStory.Foundation.IGameEventBus gameEventBus;
     private StaffDiscontentPublicationRuntime publications;
+    private IUiClock uiClock;
     private bool commandActive;
     private float nextPublicationRetry;
     private IGameCalendar calendar;
@@ -40,6 +41,7 @@ public class StaffDiscontentRuntime : MonoBehaviour
 
     [Inject]
     public void Construct(
+        IUiClock uiClock,
         ICharacterWorldQuery characterWorldQuery,
         DungeonStory.Foundation.IGameEventBus gameEventBus,
         DungeonRuntimeAggregateRootStore aggregateRootStore,
@@ -48,6 +50,7 @@ public class StaffDiscontentRuntime : MonoBehaviour
         IDomainFactRecoveryPublisher recovery,
         IGameCalendar calendar)
     {
+        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
         this.characterWorldQuery = characterWorldQuery
             ?? throw new ArgumentNullException(nameof(characterWorldQuery));
         this.gameEventBus = gameEventBus
@@ -405,8 +408,8 @@ public class StaffDiscontentRuntime : MonoBehaviour
     }
     private void Update()
     {
-        if (publications == null || commandActive || !(state.HasPendingPublication || state.HasPendingNotification) || Time.unscaledTime < nextPublicationRetry) return;
-        nextPublicationRetry = Time.unscaledTime + 1f;
+        if (publications == null || commandActive || !(state.HasPendingPublication || state.HasPendingNotification) || uiClock.Time < nextPublicationRetry) return;
+        nextPublicationRetry = uiClock.Time + 1f;
         if (!TryRecoverPendingPublications(out string failure)) Debug.LogWarning(failure);
     }
     private Action CaptureRollback()

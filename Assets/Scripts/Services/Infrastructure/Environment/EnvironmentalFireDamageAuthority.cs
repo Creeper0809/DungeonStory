@@ -1,3 +1,4 @@
+using DungeonStory.Foundation;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -77,8 +78,11 @@ public sealed class EnvironmentalFireDamageAuthority :
     private string lastFailure = string.Empty;
     private readonly HashSet<string> pendingDelivery = new(StringComparer.Ordinal);
 
-    public EnvironmentalFireDamageAuthority(IDomainFactPublisher facts, IDomainFactRecoveryPublisher recovery)
+    private readonly IUiClock recoveryClock;
+
+    public EnvironmentalFireDamageAuthority(IUiClock recoveryClock, IDomainFactPublisher facts, IDomainFactRecoveryPublisher recovery)
     {
+        this.recoveryClock = recoveryClock ?? throw new ArgumentNullException(nameof(recoveryClock));
         this.facts = facts ?? throw new ArgumentNullException(nameof(facts));
         this.recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
     }
@@ -331,8 +335,8 @@ public sealed class EnvironmentalFireDamageAuthority :
     public void OnRestoreCompleted() { recoveryCursor = 0; nextRecovery = 0; lastFailure = string.Empty; Recover(); }
     public void Tick()
     {
-        if (restoreTransactionActive || pendingDelivery.Count == 0 || Time.unscaledTime < nextRecovery) return;
-        nextRecovery = Time.unscaledTime + 0.5f; Recover();
+        if (restoreTransactionActive || pendingDelivery.Count == 0 || recoveryClock.Time < nextRecovery) return;
+        nextRecovery = recoveryClock.Time + 0.5f; Recover();
     }
     public bool Recover()
     {

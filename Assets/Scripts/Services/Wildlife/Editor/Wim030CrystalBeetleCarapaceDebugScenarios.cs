@@ -254,7 +254,7 @@ public static class Wim030CrystalBeetleCarapaceDebugScenarios
                 new CarapaceExcludedCatalog(itemCatalog),
                 EditorNullItemMarkerPresenter.Instance,
                 session,
-                physicalFacts);
+                physicalFacts, clock: new DungeonStory.Foundation.UnityUiClock());
         WildlifeCarcassService rejectingService = new(
             runtime,
             rejectingTransform,
@@ -292,7 +292,7 @@ public static class Wim030CrystalBeetleCarapaceDebugScenarios
                     itemCatalog,
                     EditorNullItemMarkerPresenter.Instance,
                     session,
-                    physicalFacts));
+                    physicalFacts, clock: new DungeonStory.Foundation.UnityUiClock()));
         WildlifeCarcassService committedService = new(
             runtime,
             committedTransform,
