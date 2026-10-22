@@ -4,7 +4,7 @@ using System.Linq;
 using VContainer.Unity;
 
 /// <summary>
-/// Owner-neutral forward-retry driver for restored durable equipment slots.
+/// Owner-neutral forward-retry driver for live and restored durable equipment slots.
 /// Policies provide content; this runner only advances the shared lifecycle.
 /// </summary>
 public sealed class DurableFacilityEquipmentSlotRecoveryRuntime :
@@ -36,13 +36,24 @@ public sealed class DurableFacilityEquipmentSlotRecoveryRuntime :
 
     public void Tick()
     {
-        if (!resumeRequested)
-            return;
-        resumeRequested = false;
         unresolvedConflict = string.Empty;
         try
         {
-            DrivePendingToCompletion();
+            if (resumeRequested)
+            {
+                resumeRequested = false;
+                DrivePendingToCompletion();
+            }
+            else
+            {
+                // Live drains can wait for actor cancellation across frames.
+                // Advance them once per tick; restore still requires complete,
+                // monotonic recovery before gameplay is allowed to resume.
+                DurableFacilityEquipmentSlotResult conflict = command.TryAdvancePending()
+                    .FirstOrDefault(value => value.Status == DurableFacilityEquipmentSlotStatus.Conflict);
+                if (conflict.Status == DurableFacilityEquipmentSlotStatus.Conflict)
+                    throw new InvalidOperationException(conflict.FailureReason);
+            }
         }
         catch (Exception exception)
         {

@@ -1,5 +1,18 @@
 # DungeonStory Current Task Plan
 
+## 현재 작업 — 실제 플레이 진행·기능 연결 점검 (2026-10-22)
+
+Status: implementation_verified. Branch: codex/fix-play-progression (origin/main 694c559dda1e에서 시작). 원격 통합의 완료 권위는 해당 PR의 merged 상태와 main push CI이며 최종 연결 결과는 외부 play-progression-integration-final.json에 회수한다. 원본 Documents checkout은 보존한다.
+
+현재 source batch r81/21615 입력은 검증 마감·SOURCE_EDIT/UNITY_VERIFY CLOSED다. actual 첫 진행210초와 같은 소스의 짧은 core160초/character150초/effects150초/world240초/crop190초가 모두 native0/C#0/stop없음/drift0/console0으로 완료됐다. 연구3회31.3초·45초 budget 유지, actual world104-section JSON/공식 복원·baseline 복구 및 crop actual 수확/복원/재시도를 확인했다. Artifacts/QA/ImpactCI/verification.json과 PlayProgression-20261022는 current source e66d9bc9…/config50162526…를 따른다. Python25/25, 인덱스 재생성/내용·링크·최신성2개/failure0, Unity0/lock exclusive를 확인했다. 장기 콘텐츠/시드 전수 인증은 실행하지 않았다. 남은 원격 단계는 commit/push/PR attach/CI/main 병합·병합 후 CI이며 해당 GitHub 상태가 최종 권위다.
+
+1. 시작 준비→게임 입장→첫 목표·생존·생산의 실제 호출 경로와 기존 짧은 Play 검증을 확인하고 재현할 진행 막힘을 좁힌다.
+2. 재현된 원인의 기존 상태 소유자/명령/소비자만 수정한다. 불필요한 구조 분리·전체 콘텐츠/시드 인증은 수행하지 않는다.
+3. 현재 소스 컴파일과 영향받는 실제 Play 및 실패/복원·재시도 경계를 검증한다. 실행/소스 편집 창은 겹치지 않는다.
+4. 필요한 증거와 관련 인덱스를 마감하고 commit/push/PR attach/CI/main 병합·병합 후 CI를 완료한다.
+
+이전 V27 CI 정리는 PR #11/main 694c559dda1e 및 병합 후 CI 39763606631 성공으로 완료했다. v27-ci-main 후속 자동 실행은 삭제됐다. 아래 전수 V27 기록은 과거 이력이며 다시 실행할 계획이 아니다.
+
 ## 현재 작업 — 변경 영향 범위 CI 정리 및 main 통합 (2026-10-22)
 
 Status: implementation_verified; remote integration is determined by the merged PR and main CI.

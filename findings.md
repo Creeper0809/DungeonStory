@@ -1,5 +1,19 @@
 # DungeonStory Current Findings
 
+## 2026-10-22 실제 플레이 진행 점검 — 범위와 관측 권위
+
+현재 main에서 기존 primitive 실제 GameplayScene/brain/behavior-tree 검증을 먼저 실행했다. 다음은 기존 FirstRunObjective verifier의 상점 구매→물리 설계도→보관대 운반→연구 예약→실제 AI 작업·완료 경로를 재사용한다. 독립적인 새 감사 프레임워크나 구조 분리는 추가하지 않는다. 서버용 진입점은 기존 빠른 파티 준비의 통제 기술을 사용하며 실제 모델 추론/Title→준비 완료와 픽셀 렌더링을 PASS로 주장하지 않는다. screenshot yield는 명시 NOT_RUN, 장치 polling 대신 실제 가시성/raycast를 거친 pointer callback이며 게임 연결 assertion은 유지한다. 검증 본문 예외/중도 종료는 completed=false로 실패시킨다. 수동 실행의 기존 persistence snapshot은 유지하고 격리 batch에서는 보호 guard에 따라 사용자 persistence를 읽지 않는다.
+
+기본 시설은 설계상 언제든 다시 구매할 수 있지만 ShopFeatureCommandService의 고정 basic key HashSet과 presenter의 row.IsPurchased가 각각 런 내 재구매를 차단했다. 기본 경로만 repeatable로 지정하여 두 UI 제한을 제외한다. 실제 결제/배송은 기존 DailyFacilityShopRuntime의 새 purchase sequence/publicationKey와 journal이 계속 소유하며, 동일 거래 replay를 새 구매로 바꾸지 않는다. 일일 한정 상품의 기존 1회성 제한과 식별자·상품 유효성 검사는 유지한다. 저장 스키마·에셋·게임 수치는 변경하지 않는다.
+
+r72 실제 Play는 연구 첫 승인 작업6.6 이후 소진 도구 slot이 Draining/input1·1300g/released0에 남고 프로젝트가 정지하는 것을 재현했다. 같은 상태에서 autosave의 upper/child join 검사가 거절된 것도 보존했다. 원인은 DurableFacilityEquipmentSlotRecoveryRuntime.Tick이 Start/restore 요청 때만 실행되어 일반 플레이에서 새로 시작한 drain을 다시 구동하지 않은 것이다. 기존 slot/물리 custody가 계속 유일한 상태 소유자다. 일반 Tick은 pending을 한 단계씩 계속 진전시키고, 복원 완료의 기존 동기·단조 진행 강제 검사는 유지한다. 완료 시 active 사전에서 제거하므로 advance 대상 목록을 먼저 고정한다. 실제 Conflict/예외는 기존 capture guard에 남기며, 유효한 Deferred snapshot은 이미 제공되는 AppliedDrainPending 상태로 반환한다(정상 비동기 정리를 post-commit fault로 오분류하지 않음). 기존 복원 회귀와 별도로 startup 후 새 drain의 일반 Tick 완료 및 유효한 deferred use를 기존 순수 계약에 추가했다. 첫 진행 UI 검증의 도구 소진→정리→새 sequence 운반·연구 재개가 실제 수용 조건이다.
+
+실제 r74는 소진 도구의 물리 회수·권위 해제·다음 sequence 입고를 통과했지만 중간 autosave가 실패하여 게임 안전 정지가 발생했다. child TryAdvance의 Deferred도 actor 해제 등 실제 단계를 진전시키는데 upper는 성공 상태에서만 snapshot을 반영하여 저장 join이 오래된 값을 비교했다. Deferred의 유효 snapshot도 기존 upper에 즉시 반영하고 revision을 올린다. Conflict readback은 수용하지 않으며 저장 exact join·capture guard는 변경하지 않는다. 기존 순수 시나리오는 Deferred에서 실제 child phase가 바뀌도록 하고 upper와 JSON 저장 표현의 즉시 일치를 검사한다.
+
+r75도 autosave exact join에서 거절됐다. 추가 원인은 producer가 slot의 저장된 definition-mass projection fingerprint 대신 실시간 admission/occupancy revision fingerprint를 drain owner claim으로 보낸 것이었다. 두 fingerprint는 의도부터 다르며 기존 저장·복원 계약은 상위 projection과 child owner claim의 정확한 일치를 요구한다. producer의 claim을 기존 state.Projection.SourceAuthorityFingerprint로 수정한다. live capacity 등록 확인·물리 ownership capture·request/receipt hash와 모든 join validator는 그대로 유지한다. pending JSON을 실제 CrossAggregateJoin에 통과시키는 회귀와 기존 저장 변조·누락 거절 시나리오를 짧은 core에 연결한다.
+
+실제 첫 진행 verifier의 관측 간섭도 제거했다. Loose publication 관측 전 AI 픽업, terminal receipt의 성공 checkpoint GC, 연구 우선 명령과 자율 운반의 충돌을 각각 통제 경계로 분리했다. 연구 cycle 사이 매1초 반복 명령은 candidate/path/score를 초기화해 headless 판단을 굶길 수 있으므로 committed progress가 바뀐 주기당1회 명령으로 같은 대상 시설만 유지한다. 시간 배속은 기존 controller로 fixedDeltaTime과 동기화하고 두 값 모두 finally 복구한다. 원래45초 budget·17WU 프로젝트·실제 AI 승인/마모/물리 회수/저장·완료 단언은 유지한다. 파티 기술/도구 공급/생존 결핍은 통제 입력이며 자연 모델 추론·Title UI·픽셀 렌더링이나 전체 콘텐츠 인증은 주장하지 않는다.
+
 ## 2026-10-22 변경 영향 CI — 최신 사용자 범위
 
 사용자가 불필요한 전수 검증 중단과 변경 영향 CI를 승인했다. 아래 bootstrap/승격/strict/paired512 필수 계획은 과거 기록이며 현재 병합 조건이 아니다. 일반 PR은 변경 없는 V27 archive의 manifest byte 무결성과 현재 컴파일·짧은 계약 실행을 구분한다. archive 자체 변경/명시적 출시 인증만 기존 strict verifier를 호출한다. source/scene/seed/복원/no-op 계약을 낮춰 구형 자료를 현재 PASS로 바꾸지 않는다.

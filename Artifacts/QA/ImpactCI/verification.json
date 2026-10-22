@@ -2,55 +2,55 @@
   "schema": "impact-ci-v1",
   "scope": "targeted-contracts-not-full-balance-certification",
   "source": {
-    "digest": "ab263e9ccc34ae5ac041cdc9e367a9b8005ee0144591f9352590c8fa51acae29",
+    "digest": "e66d9bc942104c06ee90ed583818aeafc8207e4f9ec89aeba0f7fa154a8dd6a9",
     "count": 4739,
     "pathsDigest": "6b7c8f37246be0617f9f5d07c8a7fd38ebdcc1eea5d7be1055b480bacf582921"
   },
-  "configurationDigest": "d55e7469fcd02ef6865fb1bda489adc9b57ccf56373cda167311492cb81363c7",
+  "configurationDigest": "50162526d9c417248bffd7176c4c22064e89e82badaa6becb3adc1a6e027d726",
   "unity": "6000.3.8f1",
   "platform": "cuha Linux headless; DISPLAY and WAYLAND_DISPLAY unset",
-  "sourceManifest": "r67; 21615 input files; complete pre/post SHA verification",
+  "sourceManifest": "r81; 21615 input files; complete pre/post SHA verification",
   "redaction": "Native outcome/error lines retained; player-connection network identifiers omitted; originals preserved in external run evidence.",
   "checks": [
     {
       "group": "core",
       "method": "V27CiEvidenceBatch.RunImpactCoreContracts",
       "log": "Artifacts/QA/ImpactCI/core.log",
-      "logSha256": "df81733af0e629608f69436265b2b9a117ce62b2a1b7a8844dbaad442b86ae85",
+      "logSha256": "6b258903629cde111a4f17b9c2d53b09342db01f2ae06897f91f51b5f0426d3c",
       "summary": "Artifacts/QA/ImpactCI/core-summary.json",
-      "summarySha256": "e99420b880a34cd8491188a450892218ec2c99a37256ea324fd733c73c6d00bf"
+      "summarySha256": "aa1ae56adba580473af50d0d5d0900b73e60e3ec3610a93a832dff1edc03b7e1"
     },
     {
       "group": "character",
       "method": "V27CiEvidenceBatch.RunImpactCharacterContracts",
       "log": "Artifacts/QA/ImpactCI/character.log",
-      "logSha256": "5f89a73ceb026f79bdf4dff2e14e577aa16324dd01429d5df8fee9c40ce66c5a",
+      "logSha256": "d5d158050365f4dca0a56c9d7b36a7dbc19f2a85d752a05b9dd74d9a3e381d3d",
       "summary": "Artifacts/QA/ImpactCI/character-summary.json",
-      "summarySha256": "29b2e421a2d840014fbb9a3389431b734378cced0c46e58cfb09857046e6b064"
+      "summarySha256": "61da2676bc56195b76efb0229c2576a12b675bc2a706190cae5c0f613ec5e113"
     },
     {
       "group": "effects",
       "method": "V27CiEvidenceBatch.RunImpactEffectContracts",
       "log": "Artifacts/QA/ImpactCI/effects.log",
-      "logSha256": "67c5f9f1b5dbd6e93789fed8bd4ef50e0b3f820f0bdc671a953cf3f083d61f71",
+      "logSha256": "f13fe110ee7cd640426dcbf66680d5e9d36141a599eed431cc43e262077e09ac",
       "summary": "Artifacts/QA/ImpactCI/effects-summary.json",
-      "summarySha256": "29b2e421a2d840014fbb9a3389431b734378cced0c46e58cfb09857046e6b064"
+      "summarySha256": "61da2676bc56195b76efb0229c2576a12b675bc2a706190cae5c0f613ec5e113"
     },
     {
       "group": "crop",
       "method": "V27CiEvidenceBatch.RunImpactCrops",
       "log": "Artifacts/QA/ImpactCI/crop.log",
-      "logSha256": "ee35748393a24eefb34fccc6ae4a02f620e6042b1de1a1de5c21cfd6ee5a5818",
+      "logSha256": "7e52458fb9351446a45b864e4e39d1e45732a77a9fa519caeab38657c8dcf6ac",
       "summary": "Artifacts/QA/ImpactCI/crop-summary.json",
-      "summarySha256": "94b78dc308416b338d139b4e9fe09030c6e1ed305667418aa03ed952e2c48c34"
+      "summarySha256": "d5b3d62955d7a920e8c2cc9e60da5ce78c10c9339c906412c4ffc2300d69de7a"
     },
     {
       "group": "world",
       "method": "V27CiEvidenceBatch.RunImpactWorldRestore",
       "log": "Artifacts/QA/ImpactCI/world.log",
-      "logSha256": "d29c11f18d37df5f7f361a5b67b11e996898ac45efae1261a20c9d03cf67bdb9",
+      "logSha256": "3a0d5e5f964444e489af4d608d344d6c8ffbd91ab8261b72e905adf09523977a",
       "summary": "Artifacts/QA/ImpactCI/world-summary.json",
-      "summarySha256": "9bec7bbb88bef6ed21b08f82fe994f9eae891a69146f61a1a15ced21dd5ad5db"
+      "summarySha256": "72751a6d5c080af0967df109087712ba427406d85bb1d17dee986dc966bf6248"
     }
   ]
 }

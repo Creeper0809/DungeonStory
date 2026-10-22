@@ -1,0 +1,74 @@
+FIRST_RUN_OBJECTIVE PASS
+[PASS] CONTROLLED_PARTY_COMMIT committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; tierZero=changed=True;columns=27->29;startX=17;entrance=(17, 0); liveStaff=2; inactiveStaffObjects=0; customerPoolInactive=0; actors=Roma:-54572:character:staff:1:01:active=True,Miru:-54640:character:staff:1:02:active=True; diagnostics=prepared-1:name=Roma;go=-54544;id=character:staff:1:01;active=False || prepared-2:name=Miru;go=-54612;id=character:staff:1:02;active=False || scan:name=Roma;go=-54544;id=character:staff:1:01;active=True;retained=True || scan:name=Miru;go=-54612;id=character:staff:1:02;active=True;retained=True || retained:name=Roma;go=-54544;id=character:staff:1:01;active=True || retained:name=Miru;go=-54612;id=character:staff:1:02;active=True
+[PASS] GAMEPLAY_PARTY_READY Roma:active=True,lifecycle=Active,dead=False,move=True,work=True,role=Regular | Leon:active=True,lifecycle=Active,dead=False,move=True,work=True,role=Owner | Miru:active=True,lifecycle=Active,dead=False,move=True,work=True,role=Regular
+[PASS] SCENE_TRANSITION_INPUT_RELEASED transition blocker destroyed before product UI interaction
+[PASS] DI_SCOPE active game container resolved
+[PASS] OBJECTIVE_RUNTIME runtime resolved
+[PASS] INITIAL_OBJECTIVE AcquireBlueprint
+[PASS] OBJECTIVE_HIDDEN panelExists=False; active=False
+[PASS] NO_PRODUCT_OBJECTIVE_PANEL panelExists=False; active=False
+[PASS] POINTER_TARGET shop tab
+[PASS] POINTER_RAYCAST shop tab->Text (TMP)
+[PASS] POINTER_TARGET daily blueprint attempt 1
+[INFO] SCROLL_POSITION_FALLBACK P0Action_ShopDaily_3; normalized=1->0.497; targetY0=446.1; targetY1=-221.32; visible=True; point=(532.23, 114.70)
+[PASS] POINTER_RAYCAST daily blueprint attempt 1->P0Action_ShopDaily_3
+[PASS] PUBLIC_BLUEPRINT_PURCHASE offer=3; blueprint=6101; attempts=1; acquired=True; physical=True; money=5000->4880; cost=120; queue=0->0
+[PASS] POST_PURCHASE_OBJECTIVE CompleteResearch
+[PASS] DAILY_OFFER_DUPLICATE_REJECTED 이미 구매한 상품입니다.
+[PASS] POINTER_TARGET shop tab close
+[PASS] POINTER_RAYCAST shop tab close->Text (TMP)
+[PASS] RESEARCH_ARCHIVE_READY 연구용책장@(36, 2)
+[PASS] BLUEPRINT_AT_DROPOFF state=Loose; pos=(16, 0)
+[PASS] BLUEPRINT_ARCHIVE_DESTINATION_CLAIM_EXACT destination=research-archive:building:456d7eaa70f846e3baafa37091a1ff25; facility=building:456d7eaa70f846e3baafa37091a1ff25; drop=(36, 2)
+[PASS] BLUEPRINT_ARCHIVE_CAPACITY_EXACT max=1200g; revision=1; reserved=0g
+[PASS] BLUEPRINT_UNIT_MASS_EXACT item=research-blueprint:6101; mass=150g
+[PASS] BLUEPRINT_ARCHIVE_DELIVERY_ASSIGNED destination=research-archive:building:456d7eaa70f846e3baafa37091a1ff25; expected=research-archive:building:456d7eaa70f846e3baafa37091a1ff25
+[PASS] BLUEPRINT_HAUL_PLAN_READY actor=Roma; destination=research-archive:building:456d7eaa70f846e3baafa37091a1ff25; stacks=stack:e31641c70fb14a59a9918c6e4b9b4b95
+[PASS] BLUEPRINT_AI_HAUL_OWNERSHIP_OBSERVED destination=research-archive:building:456d7eaa70f846e3baafa37091a1ff25; stack=stack:e31641c70fb14a59a9918c6e4b9b4b95
+[PASS] BLUEPRINT_ARCHIVE_COMMITTED_CARRIED_MASS destination=research-archive:building:456d7eaa70f846e3baafa37091a1ff25; expected=150g
+[PASS] BLUEPRINT_AI_HAUL_TO_ARCHIVE elapsed=15.7s; 연구용책장
+[PASS] BLUEPRINT_AI_HAUL_OWNERSHIP_CLEAN state=FacilityBuffer; reserved=0; committed=0; mass=150g
+[PASS] BLUEPRINT_PROJECT_MAPPING research:commerce:expansion
+[PASS] RESEARCH_WORKER_READY Roma
+[PASS] BLUEPRINT_NODE_CONDITION_ACTIVATED state=Locked; blocker=Missing prerequisite research: 상업 진열
+[PASS] PROJECT_AUTO_QUEUE 상업 확장 연구 경로를 대기열에 등록했습니다.; added=3
+[PASS] RESEARCH_WORKER_AND_FACILITY_READY worker=Roma; facility=연구책상
+[PASS] RESEARCH_ARCANE_INDEX_SEQUENCE_AUTHORITY destination=facility-input:exact:durable-equipment:research.arcane-index:building:270172db722b4dd3a33f12df5fe0ed09:00000001; sequence=1; capacity=1300g
+[PASS] RESEARCH_ARCANE_INDEX_HAULER_BRAIN Roma
+[PASS] RESEARCH_ARCANE_INDEX_EXACT_SUPPLY_REQUEST spawned=True; durability=True; status=Applied; failure=
+[PASS] RESEARCH_ARCANE_INDEX_AI_HAUL_TO_SEQUENCE preferred=True; action=True; starts=1->2; delivered=True; destination=facility-input:exact:durable-equipment:research.arcane-index:building:270172db722b4dd3a33f12df5fe0ed09:00000001; actual=FacilityBuffer/facility-input:exact:durable-equipment:research.arcane-index:building:270172db722b4dd3a33f12df5fe0ed09:00000001/durability=0.0001
+[PASS] RESEARCH_WORKER_STABILIZED 연구 검증 중 생존 결핍과 붕괴를 격리함
+[PASS] RESEARCH_PRIORITY_COMMAND 연구책상
+[PASS] RESEARCH_AI_ACTION_AVAILABLE 연구 작업 액션을 다음 판단에 예약함
+[PASS] RESEARCH_ARCANE_INDEX_DEPLETION_DRAIN_EXACT phase=ClosedAwaitingCheckpointGc; revoked=True; input=1/1300g; released=1/1300g; stack=Loose/
+[PASS] RESEARCH_EQUIPMENT_DRAIN_SAVE_JSON actual aggregate capture/preflight and sealed JSON before replacement; sections=104
+[PASS] RESEARCH_ARCANE_INDEX_REPLACEMENT_AI_HAUL spawned=True; sequence=2; requested=True; action=True; starts=2->3; delivered=True; ready=True; current=운반; failure=
+[PASS] RESEARCH_FIRST_APPROVED_WU revision=0->4; generic=1.997/6; cycle=6; project=0->0
+[PASS] RESEARCH_FIRST_APPROVED_COMMIT project=research:commerce:logistics; approved=6.6; delta=6.6; starts=1; events=1
+[PASS] RESEARCH_FIRST_COMMIT_MODIFIERS actual=6.6; expected=6.6; cycle=6; contribution=1; meta=1; sequenceIndex=True; rawIndex=False; residue=False; instant=False
+[PASS] RESEARCH_FIRST_COMMIT_CONSERVATION approved=6.6; delta=6.6; aggregateSample=0->0
+[PASS] RESEARCH_AFTER_REPLACEMENT_COMMAND
+[INFO] RESEARCH_RESUME_PROGRESS elapsed=15.7; scale=8; fixed=0.1599999; working=False; routine=False; pending=False; resets=20/4; running=False; executed=False; ended=True; generic=0/0; progress=6.6; action=운반; phase=; detail=; failure=; tools=stack:29da64db2efd4ab8807d951d06666bd2/Loose//durability=0|stack:8c5519008ed740039a6d6497d11999f1/FacilityBuffer/facility-input:exact:durable-equipment:research.arcane-index:building:270172db722b4dd3a33f12df5fe0ed09:00000002/durability=160
+[INFO] RESEARCH_RESUME_PROGRESS elapsed=21.0; scale=8; fixed=0.1599999; working=True; routine=True; pending=False; resets=20/4; running=True; executed=True; ended=False; generic=6/6; progress=6.6; action=일하기; phase=연구 100%; detail=; failure=; tools=stack:29da64db2efd4ab8807d951d06666bd2/Loose//durability=0|stack:8c5519008ed740039a6d6497d11999f1/FacilityBuffer/facility-input:exact:durable-equipment:research.arcane-index:building:270172db722b4dd3a33f12df5fe0ed09:00000002/durability=160
+[PASS] RESEARCH_NEXT_CYCLE_COMMAND
+[INFO] RESEARCH_RESUME_PROGRESS elapsed=26.0; scale=8; fixed=0.1599999; working=True; routine=True; pending=False; resets=22/4; running=True; executed=True; ended=False; generic=1.699103/6; progress=13.2; action=일하기; phase=연구 28%; detail=; failure=; tools=stack:29da64db2efd4ab8807d951d06666bd2/Loose//durability=0|stack:8c5519008ed740039a6d6497d11999f1/FacilityBuffer/facility-input:exact:durable-equipment:research.arcane-index:building:270172db722b4dd3a33f12df5fe0ed09:00000002/durability=159.94
+[PASS] PROJECT_COMPLETED_BY_WORK_ROUTINE project=research:commerce:logistics; purchasedTarget=research:commerce:expansion; starts=3; elapsed=31.3s
+[PASS] POST_RESEARCH_OBJECTIVE DefendInvasion
+[NOT_RUN] PHYSICAL_RESEARCH_FLOW_CAPTURE headless gameplay connection verification
+[CONTROLLED] BASIC_PURCHASE_UNLOCK building=0; UI purchase regression setup, not research completion evidence
+[PASS] BASIC_REPLENISHMENT_OFFER affordable unlocked basic facility
+[PASS] BASIC_REJECTED_PURCHASE_UNCHANGED missing key and invalid offer; retry uses the same valid key
+[PASS] POINTER_TARGET basic shop tab
+[PASS] POINTER_RAYCAST basic shop tab->Text (TMP)
+[PASS] POINTER_TARGET basic facility first purchase
+[INFO] SCROLL_POSITION_FALLBACK P0Action_ShopBasic_0; normalized=0.492->0.013; targetY0=123.55; targetY1=-538.48; visible=True; point=(532.23, 114.70)
+[PASS] POINTER_RAYCAST basic facility first purchase->P0Action_ShopBasic_0
+[PASS] POINTER_TARGET basic facility second purchase
+[PASS] POINTER_RAYCAST basic facility second purchase->P0Action_ShopBasic_0
+[PASS] BASIC_FACILITY_REPURCHASE offer=복도; cost=88; kits=0->2; money=4816->4640; sequence=1->3
+[PASS] POINTER_TARGET basic shop tab close
+[PASS] POINTER_RAYCAST basic shop tab close->Text (TMP)
+[PASS] OBJECTIVE_HIDDEN panelExists=False; active=False
+[PASS] NO_PRODUCT_OBJECTIVE_PANEL panelExists=False; active=False
+[NOT_RUN] SCREEN_CAPTURE headless gameplay connection verification
+capturedErrors=0; capturedWarnings=0

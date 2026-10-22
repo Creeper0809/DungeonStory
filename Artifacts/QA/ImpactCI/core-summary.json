@@ -1,8 +1,8 @@
 {
   "exit_code": 0,
-  "seconds": 250,
+  "seconds": 160,
   "stop_reason": null,
-  "source_label": "r67",
+  "source_label": "r81",
   "compiler_error_count": 0,
   "source_drift": []
 }

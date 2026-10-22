@@ -3,7 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -25,6 +27,20 @@ public static class FirstRunObjectivePlayModeVerifier
         "qa:first-run-objective";
     private const string PersistenceOwnedKey =
         "DungeonStory.FirstRunObjective.PersistenceOwned";
+    private const string GameplayBatchKey = "DungeonStory.FirstRunObjective.GameplayBatch";
+    internal static bool IsGameplayBatch => SessionState.GetBool(GameplayBatchKey, false);
+
+    public static void RequestGameplayProgressionForBatch()
+    {
+        if (!Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification
+            || EditorApplication.isPlayingOrWillChangePlaymode || File.Exists(RequestPath))
+            throw new InvalidOperationException("First progression requires a fresh isolated batch.");
+        if (SceneManager.GetActiveScene().isDirty)
+            throw new InvalidOperationException("First progression refuses to replace an unsaved scene.");
+        SessionState.SetBool(GameplayBatchKey, true);
+        EditorSceneManager.OpenScene("Assets/Scenes/GameplayScene.unity", OpenSceneMode.Single);
+        RequestRunFromMenu();
+    }
 
     private static bool runnerCreated;
 
@@ -66,7 +82,7 @@ public static class FirstRunObjectivePlayModeVerifier
                 SessionState.EraseBool(PersistenceOwnedKey);
             }
 
-            if (!DungeonFinalPlayModeAcceptanceRequestFacade
+            if (!IsGameplayBatch && !DungeonFinalPlayModeAcceptanceRequestFacade
                     .IsPersistenceCoordinatorActive
                 && !SessionState.GetBool(PersistenceOwnedKey, false))
             {
@@ -75,7 +91,7 @@ public static class FirstRunObjectivePlayModeVerifier
                 SessionState.SetBool(PersistenceOwnedKey, true);
             }
 
-            ApplyTitleStartSceneOverride();
+            if (!IsGameplayBatch) ApplyTitleStartSceneOverride();
             EditorApplication.EnterPlaymode();
         }
         catch (Exception exception)
@@ -100,6 +116,23 @@ public static class FirstRunObjectivePlayModeVerifier
                     + "[FAIL] PLAYMODE_ABORTED verifier returned to EditMode before completion\n");
                 File.Delete(RequestPath);
             }
+            if (IsGameplayBatch)
+            {
+                SessionState.EraseBool(GameplayBatchKey);
+                string result = File.ReadAllText(ReportPath);
+                string[] args = Environment.GetCommandLineArgs();
+                int logIndex = Array.IndexOf(args, "-logFile");
+                if (logIndex < 0 || logIndex + 1 >= args.Length)
+                    throw new InvalidOperationException("Isolated progression log path is missing.");
+                string evidence = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(args[logIndex + 1])),
+                    "first-run-progression.txt");
+                using (var stream = new FileStream(evidence, FileMode.CreateNew, FileAccess.Write))
+                using (var writer = new StreamWriter(stream)) writer.Write(result);
+                bool passed = result.Split('\n')[0].TrimEnd('\r') == "FIRST_RUN_OBJECTIVE PASS";
+                Debug.Log("FIRST_RUN_GAMEPLAY_BATCH=" + (passed ? "PASS" : "FAIL")
+                    + "; controlled starting-party skills; actual shop/archive/haul/research; rendering and model inference untested");
+                EditorApplication.Exit(passed ? 0 : 1);
+            }
             return;
         }
 
@@ -113,7 +146,7 @@ public static class FirstRunObjectivePlayModeVerifier
             && File.Exists(RequestPath))
         {
             RestoreTitleStartSceneOverride();
-            if (!string.Equals(
+            if (!IsGameplayBatch && !string.Equals(
                     SceneManager.GetActiveScene().path,
                     TitleScenePath,
                     StringComparison.OrdinalIgnoreCase))
@@ -204,6 +237,11 @@ public static class FirstRunObjectivePlayModeVerifier
             + "[FAIL] EDITOR_BOOT_GUARD " + detail + "\n");
         File.Delete(RequestPath);
         Debug.LogError(detail);
+        if (IsGameplayBatch)
+        {
+            SessionState.EraseBool(GameplayBatchKey);
+            EditorApplication.Exit(1);
+        }
     }
 
     private static void RecoverStaleStartSceneLeaseIfOrphaned()
@@ -235,6 +273,7 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
     private readonly List<string> report = new List<string>();
     private readonly List<string> errors = new List<string>();
     private readonly List<string> warnings = new List<string>();
+    private readonly Dictionary<CharacterActor, bool> initialAiPauseStates = new();
     private const float RuntimeReadyTimeoutSeconds = 45f;
     private const float PartyReadyTimeoutSeconds = 20f;
 
@@ -242,6 +281,7 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
     private Mouse originalMouse;
     private Mouse verificationMouse;
     private float originalTimeScale;
+    private float originalFixedDeltaTime;
 
     private IEnumerator Start()
     {
@@ -255,11 +295,22 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         Application.logMessageReceived += CaptureLog;
         ConfigureInput();
         originalTimeScale = Time.timeScale;
+        originalFixedDeltaTime = Time.fixedDeltaTime;
+        bool completed = false;
 
         try
         {
             yield return EnsureProductBoot();
             yield return WaitForSceneTransitionInputRelease();
+            if (FirstRunObjectivePlayModeVerifier.IsGameplayBatch)
+            {
+                // Observe publication before autonomous haulers can pick it up.
+                foreach (CharacterActor actor in FindObjectsByType<CharacterActor>(FindObjectsSortMode.None))
+                {
+                    initialAiPauseStates.Add(actor, actor.IsAiPaused());
+                    actor.SetAiPaused(true);
+                }
+            }
             DungeonRuntimeLifetimeScope scope = FindScope();
             Check(scope != null, "DI_SCOPE", "active game container resolved");
             if (scope == null)
@@ -350,6 +401,17 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                 objective.CurrentObjective == FirstRunObjectiveId.CompleteResearch,
                 "POST_PURCHASE_OBJECTIVE",
                 objective.CurrentObjective.ToString());
+            if (FirstRunObjectivePlayModeVerifier.IsGameplayBatch && acquired)
+            {
+                ShopFeatureOfferRow daily = scope.Container.Resolve<IShopFeatureQueryService>()
+                    .Capture().DailyOffers.Single(row => row.Index == blueprintOfferIndex);
+                int sequence = shop.UnlockState.PurchaseSequence;
+                ShopFeatureCommandResult duplicate = scope.Container.Resolve<IShopFeatureCommandService>()
+                    .PurchaseDaily(daily.Index, daily.PurchaseKey);
+                Check(!duplicate.Succeeded && shop.UnlockState.PurchaseSequence == sequence
+                        && gameData.holdingMoney.Value == moneyAfter,
+                    "DAILY_OFFER_DUPLICATE_REJECTED", duplicate.Message);
+            }
 
             yield return Click(shopTab, "shop tab close");
             yield return new WaitForSecondsRealtime(0.2f);
@@ -358,20 +420,25 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                 research,
                 itemRuntime,
                 purchasedBlueprint);
+            if (FirstRunObjectivePlayModeVerifier.IsGameplayBatch)
+                yield return VerifyBasicPurchaseReplenishment(scope, itemRuntime);
             CheckNonBlocking(objective);
             CheckPanelBounds(objective);
             yield return CaptureScreen();
+            completed = true;
         }
         finally
         {
+            RestoreInitialAiPauseStates();
             Time.timeScale = originalTimeScale;
+            Time.fixedDeltaTime = originalFixedDeltaTime;
             Application.logMessageReceived -= CaptureLog;
             TeardownInput();
 
             report.Add($"capturedErrors={errors.Count}; capturedWarnings={warnings.Count}");
             foreach (string error in errors) report.Add("[CONSOLE ERROR] " + error.Replace('\n', ' '));
             foreach (string warning in warnings) report.Add("[CONSOLE WARNING] " + warning.Replace('\n', ' '));
-            bool passed = report.All(line => !line.StartsWith("[FAIL]", StringComparison.Ordinal))
+            bool passed = completed && report.All(line => !line.StartsWith("[FAIL]", StringComparison.Ordinal))
                 && errors.Count == 0
                 && warnings.Count == 0;
             report.Insert(0, passed ? "FIRST_RUN_OBJECTIVE PASS" : "FIRST_RUN_OBJECTIVE FAIL");
@@ -437,6 +504,7 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             blueprintStack != null
                 ? $"state={blueprintStack.State}; pos={blueprintStack.Position}"
                 : "stack missing");
+        RestoreInitialAiPauseStates();
         if (blueprintStack == null)
         {
             yield break;
@@ -596,7 +664,7 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                 ? $"status={planStatus.Location}; reserved={blueprintStack.ReservedQuantity}"
                 : "eligible hauler missing";
         }
-        Time.timeScale = 8f;
+        scope.Container.Resolve<IGameTimeScaleController>().Scale = 8f;
         float haulStartedAt = Time.realtimeSinceStartup;
         bool exactHaulOwnershipObserved = false;
         bool committedCarriedMassObserved = false;
@@ -727,7 +795,7 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                 : $"stack missing; committed={committedAfterArchive}");
         // Keep the bounded first-run flow ahead of unrelated operating-day
         // defense commands; approved-WU accounting remains game-clock based.
-        Time.timeScale = 8f;
+        scope.Container.Resolve<IGameTimeScaleController>().Scale = 8f;
 
         bool mapped = projectCatalog.TryGetForBlueprint(blueprint.id, out ResearchProjectSO project);
         Check(
@@ -786,6 +854,13 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         HashSet<string> completedProjectsBefore = research.State.Projects
             .CompletedProjectIds
             .ToHashSet(StringComparer.Ordinal);
+        if (FirstRunObjectivePlayModeVerifier.IsGameplayBatch)
+        {
+            // Isolate this worker's work/progress observations only after the
+            // natural blueprint delivery; the research queue is still empty.
+            foreach (CharacterActor actor in FindObjectsByType<CharacterActor>(FindObjectsSortMode.None))
+                if (actor != hauler) actor.SetAiPaused(true);
+        }
         ResearchQueueCommandResult queued = queueCommands.Enqueue(project.ProjectId);
         Check(
             queued.Succeeded,
@@ -934,6 +1009,10 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         long initialHaulStartsBefore = researchHaul?.RuntimeHaulStartCount ?? 0L;
         bool initialHaulActionObserved = false;
         bool initialArcaneDelivered = false;
+        AIAction[] equipmentHaulActions = brain.availableActions;
+        if (FirstRunObjectivePlayModeVerifier.IsGameplayBatch)
+            brain.availableActions = equipmentHaulActions
+                .Where(action => action != null && action.actionset is AIHaul).ToArray();
         brain.enabled = true;
         hauler.SetAiPaused(false);
         bool initialHaulPreferred = brain.PreferActionOnNextDecision<AIHaul>(90f);
@@ -968,6 +1047,7 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         brain.StopCurrentActionForReplan(
             "first-run arcane-index delivery verification");
         yield return null;
+        brain.availableActions = equipmentHaulActions;
         Check(
             initialHaulPreferred
                 && initialHaulActionObserved
@@ -975,7 +1055,10 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                 && researchHaul.RuntimeHaulStartCount > initialHaulStartsBefore
                 && initialArcaneDelivered,
             "RESEARCH_ARCANE_INDEX_AI_HAUL_TO_SEQUENCE",
-            $"preferred={initialHaulPreferred}; action={initialHaulActionObserved}; starts={initialHaulStartsBefore}->{researchHaul?.RuntimeHaulStartCount}; delivered={initialArcaneDelivered}; destination={arcaneSequenceOne.DestinationId}");
+            $"preferred={initialHaulPreferred}; action={initialHaulActionObserved}; starts={initialHaulStartsBefore}->{researchHaul?.RuntimeHaulStartCount}; delivered={initialArcaneDelivered}; destination={arcaneSequenceOne.DestinationId}; actual="
+            + string.Join("|", itemRuntime.GetAllStacks()
+                .Where(stack => stack.ItemId == DurableToolItemRules.ArcaneIndex)
+                .Select(stack => $"{stack.State}/{stack.DestinationId}/durability={DurableToolItemRules.ReadCurrentDurability(stack.ItemId, stack.Components)}")));
         if (!initialArcaneDelivered)
         {
             RestoreResearchWorkerAi(
@@ -1139,11 +1222,9 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         hauler.SetAiPaused(false);
 
         float researchStartedAt = Time.realtimeSinceStartup;
-        float nextPriorityRefreshAt = researchStartedAt + 1f;
         float nextNeedStabilizationAt = researchStartedAt + 0.5f;
-        while (!research.State.Projects.CompletedProjectIds.Any(
-                   id => !completedProjectsBefore.Contains(id))
-               && Time.realtimeSinceStartup - researchStartedAt < 45f)
+        DurableFacilityEquipmentSlotSnapshot arcaneSequenceOneAfter = null;
+        while (Time.realtimeSinceStartup - researchStartedAt < 45f)
         {
             if (work.isWorking && !wasWorking)
             {
@@ -1170,28 +1251,21 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                 StabilizeResearchWorker(hauler, deprivationRuntime);
             }
 
-            if (!work.isWorking
-                && Time.realtimeSinceStartup >= nextPriorityRefreshAt)
-            {
-                nextPriorityRefreshAt = Time.realtimeSinceStartup + 1f;
-                work.TrySetPriorityWorkTarget(
-                    researchFacility,
-                    BuiltInWorkTypeIds.Research,
-                    researchGrid.SearchPath(hauler.GetNowXY()),
-                    out _);
-                brain?.RequestImmediateReplan(clearFailures: false);
-            }
-
-            yield return null;
-        }
-
-        researchProgressSubscription.Dispose();
-        DurableFacilityEquipmentSlotSnapshot arcaneSequenceOneAfter =
-            durableEquipmentSlotQuery.CaptureAll()
+            arcaneSequenceOneAfter = durableEquipmentSlotQuery.CaptureAll()
                 .FirstOrDefault(value => value != null
                     && value.AssignmentSequence
                         == arcaneSequenceOne.AssignmentSequence
                     && value.Key.Equals(arcaneAssignment.Key));
+            // Observe the terminal receipt before a successful autosave can
+            // collect it, then supply the replacement needed for more work.
+            if (firstResearchProgressEvent.HasValue
+                && arcaneSequenceOneAfter?.LifecyclePhase ==
+                    DurableFacilityEquipmentSlotLifecyclePhase.ClosedAwaitingCheckpointGc)
+                break;
+            yield return null;
+        }
+
+        researchProgressSubscription.Dispose();
         WorldItemStackSnapshot depletedArcane = itemRuntime.GetAllStacks()
             .FirstOrDefault(stack => stack != null
                 && string.Equals(
@@ -1244,9 +1318,23 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         if (arcaneDrainExact)
         {
             hauler.SetAiPaused(true);
+            work.ClearPriorityWorkTarget(); // Explicit research commands suppress autonomous AIHaul.
             brain.StopCurrentActionForReplan(
                 "first-run arcane-index replacement verification");
             yield return null;
+
+            IDungeonGameSaveService saves = scope.Container.Resolve<IDungeonGameSaveService>();
+            DungeonGameSaveData drainCheckpoint = saves.FromJson(saves.ToJson(saves.Capture()));
+            DungeonDurableFacilityEquipmentSaveData savedEquipment =
+                DungeonSaveSectionPayload.ReadOrNew<DungeonDurableFacilityEquipmentSaveData>(
+                    drainCheckpoint, DurableFacilityEquipmentPersistenceContract.SectionId);
+            Check(savedEquipment.slots.Any(slot =>
+                    slot.assignmentSequence == arcaneSequenceOne.AssignmentSequence
+                    && slot.lifecyclePhase == DurableFacilityEquipmentSlotLifecyclePhase.ClosedAwaitingCheckpointGc
+                    && slot.drainReleasedQuantity == 1 && slot.drainReleasedMassGrams == 1300L),
+                "RESEARCH_EQUIPMENT_DRAIN_SAVE_JSON",
+                "actual aggregate capture/preflight and sealed JSON before replacement; sections="
+                    + drainCheckpoint.sections.Count);
 
             bool replacementSpawned = itemRuntime.SpawnUniqueItemAt(
                 DurableToolItemRules.ArcaneIndex,
@@ -1286,6 +1374,9 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                 researchHaul.RuntimeHaulStartCount;
             if (replacementRequested)
             {
+                if (FirstRunObjectivePlayModeVerifier.IsGameplayBatch)
+                    brain.availableActions = equipmentHaulActions
+                        .Where(action => action != null && action.actionset is AIHaul).ToArray();
                 brain.enabled = true;
                 hauler.SetAiPaused(false);
                 brain.PreferActionOnNextDecision<AIHaul>(90f);
@@ -1322,6 +1413,7 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             brain.StopCurrentActionForReplan(
                 "first-run arcane-index replacement delivered");
             yield return null;
+            brain.availableActions = equipmentHaulActions;
             bool replacementSlotReady = arcaneSequenceTwo != null
                 && durableEquipmentSlotQuery.TryCapture(
                     arcaneAssignment.Key,
@@ -1338,7 +1430,7 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                     && replacementDelivered
                     && replacementSlotReady,
                 "RESEARCH_ARCANE_INDEX_REPLACEMENT_AI_HAUL",
-                $"spawned={replacementSpawned}; sequence={arcaneSequenceTwo?.AssignmentSequence}; requested={replacementRequested}; action={replacementHaulObserved}; starts={replacementHaulStartsBefore}->{researchHaul.RuntimeHaulStartCount}; delivered={replacementDelivered}; ready={replacementSlotReady}");
+                $"spawned={replacementSpawned}; sequence={arcaneSequenceTwo?.AssignmentSequence}; requested={replacementRequested}; action={replacementHaulObserved}; starts={replacementHaulStartsBefore}->{researchHaul.RuntimeHaulStartCount}; delivered={replacementDelivered}; ready={replacementSlotReady}; current={brain.CurrentActionDebugLabel}; failure={brain.LastActionFailure}");
         }
 
         float expectedFirstCommittedWork =
@@ -1401,6 +1493,54 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                   + $"aggregateSample={firstProjectProgressBefore:0.###}->{aggregateProgressAfterFirstCommit:0.###}"
                 : "first research progress event missing");
 
+        if (replacementDelivered)
+        {
+            bool resumed = work.TrySetPriorityWorkTarget(researchFacility, BuiltInWorkTypeIds.Research,
+                researchGrid.SearchPath(hauler.GetNowXY()), out string resumeMessage);
+            Check(resumed, "RESEARCH_AFTER_REPLACEMENT_COMMAND", resumeMessage);
+            brain.enabled = true;
+            hauler.SetAiPaused(false);
+            brain.PreferWorkActionOnNextDecision(BuiltInWorkTypeIds.Research, 90f);
+            brain.RequestImmediateReplan(clearFailures: true);
+        }
+        // Keep the original total research budget; replacement must resume real
+        // work rather than leaving the verifier's worker paused after delivery.
+        float nextResearchObservationAt = 0f;
+        float lastCommandedResearchProgress = research.State.Projects.GetProgress(firstActiveProjectId).Progress;
+        while (replacementDelivered && !research.State.Projects.CompletedProjectIds.Any(
+                   id => !completedProjectsBefore.Contains(id))
+               && Time.realtimeSinceStartup - researchStartedAt < 45f)
+        {
+            float currentProgress = research.State.Projects.GetProgress(firstActiveProjectId).Progress;
+            if (currentProgress > lastCommandedResearchProgress
+                && (!work.isWorking || work.assignedShop != researchFacility))
+            {
+                // A completed cycle releases its explicit target. Keep this
+                // controlled tool fixture at one facility, issuing one command
+                // per committed cycle rather than resetting an idle decision.
+                lastCommandedResearchProgress = currentProgress;
+                bool continued = work.TrySetPriorityWorkTarget(researchFacility, BuiltInWorkTypeIds.Research,
+                    researchGrid.SearchPath(hauler.GetNowXY()), out string continuationMessage);
+                Check(continued, "RESEARCH_NEXT_CYCLE_COMMAND", continuationMessage);
+                brain.PreferWorkActionOnNextDecision(BuiltInWorkTypeIds.Research, 90f);
+            }
+            if (Time.realtimeSinceStartup >= nextResearchObservationAt)
+            {
+                nextResearchObservationAt = Time.realtimeSinceStartup + 5f;
+                report.Add($"[INFO] RESEARCH_RESUME_PROGRESS elapsed={Time.realtimeSinceStartup - researchStartedAt:0.0}; scale={Time.timeScale}; fixed={Time.fixedDeltaTime}; working={work.isWorking}; routine={work.HasActiveWorkRoutineForDiagnostics}; pending={brain.IsActionScoringPending}; resets={brain.CandidateResetCountForDiagnostics}/{brain.CandidatePendingResetCountForDiagnostics}; running={brain.HasRunningAction}; executed={brain.isExecuted}; ended={brain.isBestActionEnd}; generic={work.GenericCompletedWorkForDiagnostics}/{work.GenericRequiredWorkForDiagnostics}; progress={research.State.Projects.GetProgress(firstActiveProjectId).Progress}; action={brain.CurrentActionDebugLabel}; phase={brain.CurrentActionPhase}; detail={brain.CurrentActionPhaseDetail}; failure={brain.LastActionFailure}; tools="
+                    + string.Join("|", itemRuntime.GetAllStacks().Where(stack => stack.ItemId == DurableToolItemRules.ArcaneIndex)
+                        .Select(stack => $"{stack.StackId}/{stack.State}/{stack.DestinationId}/durability={DurableToolItemRules.ReadCurrentDurability(stack.ItemId, stack.Components)}")));
+            }
+            if (work.isWorking && !wasWorking) workStarts++;
+            wasWorking = work.isWorking;
+            if (Time.realtimeSinceStartup >= nextNeedStabilizationAt)
+            {
+                nextNeedStabilizationAt = Time.realtimeSinceStartup + 0.5f;
+                StabilizeResearchWorker(hauler, deprivationRuntime);
+            }
+            yield return null;
+        }
+
         string completedProjectId = research.State.Projects
             .CompletedProjectIds
             .FirstOrDefault(id => !completedProjectsBefore.Contains(id));
@@ -1456,6 +1596,13 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         actor?.SetAiPaused(aiWasPaused);
     }
 
+    private void RestoreInitialAiPauseStates()
+    {
+        foreach (KeyValuePair<CharacterActor, bool> entry in initialAiPauseStates)
+            if (entry.Key != null) entry.Key.SetAiPaused(entry.Value);
+        initialAiPauseStates.Clear();
+    }
+
     private static void StabilizeResearchWorker(
         CharacterActor actor,
         ICharacterDeprivationRuntime deprivationRuntime)
@@ -1501,6 +1648,32 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
 
     private IEnumerator EnsureProductBoot()
     {
+        if (FirstRunObjectivePlayModeVerifier.IsGameplayBatch)
+        {
+            float deadline = Time.realtimeSinceStartup + RuntimeReadyTimeoutSeconds;
+            DungeonRuntimeLifetimeScope gameplay = null;
+            while (Time.realtimeSinceStartup < deadline)
+            {
+                gameplay = FindScope();
+                if (gameplay?.Container != null) break;
+                yield return null;
+            }
+            if (gameplay?.Container == null)
+                throw new InvalidOperationException("Gameplay container was not ready.");
+            string preparation = StartPartyPreparationPlayModeVerifier.RunFastCommitForDebug();
+            Check(preparation.StartsWith("committed=True;", StringComparison.Ordinal),
+                "CONTROLLED_PARTY_COMMIT", preparation);
+            if (!preparation.StartsWith("committed=True;", StringComparison.Ordinal))
+                throw new InvalidOperationException("Controlled party preparation failed: " + preparation);
+            FindFirstObjectByType<GameManager>().isPause = false;
+            gameplay.Container.Resolve<IGameTimeScaleController>().Scale = 1f;
+            deadline = Time.realtimeSinceStartup + PartyReadyTimeoutSeconds;
+            while (FindWorldReadyActor() == null && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            Check(FindWorldReadyActor() != null, "GAMEPLAY_PARTY_READY",
+                DescribeCharacterPublicationState());
+            yield break;
+        }
         float titleDeadline = Time.realtimeSinceStartup
             + RuntimeReadyTimeoutSeconds;
         DungeonTitleLifetimeScope titleScope = null;
@@ -1684,6 +1857,58 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             + DescribeCharacterPublicationState());
     }
 
+    private IEnumerator VerifyBasicPurchaseReplenishment(
+        DungeonRuntimeLifetimeScope scope, IWorldItemStackRuntime items)
+    {
+        IShopFeatureQueryService query = scope.Container.Resolve<IShopFeatureQueryService>();
+        DailyFacilityShopRuntime shop = scope.Container.Resolve<ProgressionSceneRuntimeReferences>().FacilityShop;
+        IGameMoneyAccount money = scope.Container.Resolve<IGameMoneyAccount>();
+        if (query.Capture().BasicOffers.Count == 0)
+        {
+            BuildingSO basic = scope.Container.Resolve<IFacilityShopCatalog>().Buildings
+                .Where(building => building != null && building.id >= 0
+                    && !building.IsDeprecatedCompatibilityAsset
+                    && FacilityShopService.CanEnterBasicPurchase(building))
+                .OrderBy(building => building.id).First();
+            shop.UnlockState.UnlockBasicPurchase(basic);
+            report.Add("[CONTROLLED] BASIC_PURCHASE_UNLOCK building=" + basic.id
+                + "; UI purchase regression setup, not research completion evidence");
+        }
+        ShopFeatureOfferRow row = query.Capture().BasicOffers
+            .Where(offer => offer.Cost > 0 && offer.Cost * 2 <= money.Balance)
+            .OrderBy(offer => offer.Cost).FirstOrDefault();
+        Check(row != null, "BASIC_REPLENISHMENT_OFFER", "affordable unlocked basic facility");
+        if (row == null) yield break;
+        FacilityShopOffer offer = shop.CurrentBasicPurchaseOffers[row.Index];
+        string itemId = FacilityInstallationKitItemIds.ForBuilding(((FacilityBuildingOffer)offer).Building);
+        float previousScale = Time.timeScale;
+        Time.timeScale = 0f; // Keep unrelated day-end debits out of the two purchase receipts.
+        int CountKits() => items.GetAllStacks().Where(stack => stack != null && stack.ItemId == itemId)
+            .Sum(stack => stack.Quantity);
+        int beforeKits = CountKits();
+        int beforeMoney = money.Balance;
+        int beforeSequence = shop.UnlockState.PurchaseSequence;
+        IShopFeatureCommandService commands = scope.Container.Resolve<IShopFeatureCommandService>();
+        ShopFeatureCommandResult invalidKey = commands.PurchaseBasic(row.Index, string.Empty);
+        ShopFeatureCommandResult invalidIndex = commands.PurchaseBasic(-1, row.PurchaseKey);
+        Check(!invalidKey.Succeeded && !invalidIndex.Succeeded && CountKits() == beforeKits
+                && money.Balance == beforeMoney && shop.UnlockState.PurchaseSequence == beforeSequence,
+            "BASIC_REJECTED_PURCHASE_UNCHANGED", "missing key and invalid offer; retry uses the same valid key");
+        Button tab = FindTopTabButton(TabId.Shop);
+        yield return Click(tab, "basic shop tab");
+        yield return Click(FindButton(row.ActionId), "basic facility first purchase");
+        yield return Click(FindButton(row.ActionId), "basic facility second purchase");
+        float deliveryDeadline = Time.realtimeSinceStartup + 2f;
+        while (CountKits() < beforeKits + 2 && Time.realtimeSinceStartup < deliveryDeadline)
+            yield return null;
+        Check(CountKits() == beforeKits + 2 && money.Balance == beforeMoney - 2 * row.Cost
+                && shop.UnlockState.PurchaseSequence == beforeSequence + 2,
+            "BASIC_FACILITY_REPURCHASE",
+            $"offer={row.Title}; cost={row.Cost}; kits={beforeKits}->{CountKits()}; money={beforeMoney}->{money.Balance}; sequence={beforeSequence}->{shop.UnlockState.PurchaseSequence}");
+        yield return Click(tab, "basic shop tab close");
+        Time.timeScale = previousScale;
+    }
+
     private static string DescribeCharacterPublicationState()
     {
         CharacterActor[] actors = CharacterActorCollection.DistinctByGameObject(
@@ -1742,6 +1967,16 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
         }
         if (!targetMatched)
         {
+            yield break;
+        }
+        if (FirstRunObjectivePlayModeVerifier.IsGameplayBatch)
+        {
+            // Batch mode has no focused GameView to consume queued device input.
+            // Keep the actual raycast/visibility gate and dispatch the same UI
+            // pointer handlers, rather than invoking a domain command directly.
+            PlayModeVerificationFrameWait.DispatchPointerClick(button.gameObject, point);
+            yield return null;
+            yield return null;
             yield break;
         }
         verificationMouse.MakeCurrent();
@@ -1908,6 +2143,11 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
 
     private IEnumerator CaptureScreen()
     {
+        if (FirstRunObjectivePlayModeVerifier.IsGameplayBatch)
+        {
+            report.Add("[NOT_RUN] SCREEN_CAPTURE headless gameplay connection verification");
+            yield break;
+        }
         yield return new WaitForEndOfFrame();
         Texture2D capture = ScreenCapture.CaptureScreenshotAsTexture();
         Color32[] pixels = capture != null ? capture.GetPixels32() : Array.Empty<Color32>();
@@ -1922,6 +2162,11 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
 
     private IEnumerator CapturePhysicalFlowScreen()
     {
+        if (FirstRunObjectivePlayModeVerifier.IsGameplayBatch)
+        {
+            report.Add("[NOT_RUN] PHYSICAL_RESEARCH_FLOW_CAPTURE headless gameplay connection verification");
+            yield break;
+        }
         Directory.CreateDirectory("Artifacts/QA");
         yield return new WaitForEndOfFrame();
         Texture2D capture = ScreenCapture.CaptureScreenshotAsTexture();
