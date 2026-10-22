@@ -714,6 +714,84 @@ public static class CharacterProgressionDebugScenarios
     public static bool RunSkillAcquiredOutcomeAtomicityScenario() =>
         VerifySkillAcquiredOutcomeAtomicity();
 
+    public static bool RunPreparationSkillAcquisitionScenario()
+    {
+        var settings = EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
+        settings.formulaPolicy.formulaVersion = CharacterSkillFormulaGeneration.ModuleSelectionFormulaVersion;
+        CharacterSkillFormulaCatalogAssetBuilder.Populate(settings);
+        using ActorFixture actor = new(7792, "준비 기술 검증자", "human", unpublishedComposition: true);
+        try
+        {
+            var settingsProvider = new TestSettingsProvider(settings);
+            var content = new ResourceGameContentCatalog(new UnityGameContentRootLoader());
+            var projector = new CharacterProgressionProfileProjector(content, new CharacterRuntimeProfileFactory(content));
+            var service = new CharacterSkillGenerationService(NarrativeRequestContextTestFixture.CreateEmpty(),
+                settingsProvider, new MissingLlmRuntimeProvider(), CharacterAiEditorTestDependencies.UiClock);
+            var progression = actor.Actor.Progression;
+            progression.ConfigurePreview(service, settingsProvider, projector);
+            progression.SetPublicSkillNotificationsSuppressed(true);
+            // ActorFixture starts with legacy diagnostic drafts. Start this
+            // formula-only case through the same reroll owner command as the UI.
+            progression.ApplyPreparedIdentity("준비 기술 검증자", "prepared skill boundary",
+                Array.Empty<int>(), progression.PotentialGrade, 7792,
+                autoChooseDrafts: false, ensureInitialDrafts: false);
+            Require(progression.ActiveSkills.Count == 0 && progression.PassiveSkills.Count == 0
+                    && progression.GrowthState.skillAcquisitionRevision == 0L,
+                "Preparation fixture did not start with empty skill selections.");
+            progression.RecordNarrative(CharacterNarrativeDomain.Work, "work:prepared-skill",
+                "facility:prepared-skill", CharacterActivityOutcomes.Completed, day: 1);
+            CharacterSkillDraft active = CreateReadyFormulaDraftForOutcome(service, progression,
+                CharacterSkillKind.Active, 1, "준비 기술 검증자");
+            progression.GrowthState.drafts.RemoveAll(value => value?.kind == CharacterSkillKind.Active && value.unlockLevel == 1);
+            progression.GrowthState.drafts.Add(active);
+            string before = JsonUtility.ToJson(progression.GrowthState);
+            string ledgerBefore = JsonUtility.ToJson(progression.NarrativeLedger);
+            Require(!progression.TryChooseActiveSkill(1, 0, true, out string unprepared)
+                    && unprepared == "skill-acquisition-preview-contract-invalid"
+                    && before == JsonUtility.ToJson(progression.GrowthState)
+                    && ledgerBefore == JsonUtility.ToJson(progression.NarrativeLedger),
+                "A preview without a prepared profile changed state: " + unprepared);
+
+            progression.GrowthState.startingProfile.prepared = true;
+            var events = new GameEventBus();
+            progression.ConstructCharacterProgression(service, settingsProvider,
+                new CharacterProgressionNotificationApplicationAdapter(events), projector, events,
+                new UnexpectedEvidenceUseTransaction(), facts: null, skillAcquisitions: null);
+            before = JsonUtility.ToJson(progression.GrowthState);
+            Require(!progression.TryChooseActiveSkill(1, 0, true, out string missingPublisher)
+                    && missingPublisher == "skill-acquisition-observation-not-configured"
+                    && before == JsonUtility.ToJson(progression.GrowthState)
+                    && ledgerBefore == JsonUtility.ToJson(progression.NarrativeLedger),
+                "World configuration retained preview permission or bypassed a missing publisher: " + missingPublisher);
+
+            progression.ConfigurePreview(service, settingsProvider, projector);
+            int usesBefore = progression.NarrativeLedger.Facts.Sum(value => value?.influenceUseCount ?? 0);
+            Require(progression.TryChooseActiveSkill(1, 0, true, out string activeFailure),
+                "Prepared active selection failed: " + activeFailure);
+            CharacterSkillDraft passive = CreateReadyFormulaDraftForOutcome(service, progression,
+                CharacterSkillKind.Passive, 1, "준비 기술 검증자");
+            progression.GrowthState.drafts.RemoveAll(value => value?.kind == CharacterSkillKind.Passive && value.unlockLevel == 1);
+            progression.GrowthState.drafts.Add(passive);
+            progression.OnDraftReady(passive);
+            Require(progression.ActiveSkills.Count == 1 && progression.PassiveSkills.Count == 1
+                    && progression.GrowthState.skillAcquisitionRevision == 0L
+                    && progression.NarrativeLedger.Facts.Sum(value => value?.influenceUseCount ?? 0) > usesBefore,
+                $"Prepared choices mismatch: active={progression.ActiveSkills.Count}; passive={progression.PassiveSkills.Count}; "
+                    + $"revision={progression.GrowthState.skillAcquisitionRevision}; usesBefore={usesBefore}; "
+                    + $"usesAfter={progression.NarrativeLedger.Facts.Sum(value => value?.influenceUseCount ?? 0)}.");
+            before = JsonUtility.ToJson(progression.GrowthState);
+            ledgerBefore = JsonUtility.ToJson(progression.NarrativeLedger);
+            progression.OnDraftReady(passive);
+            Require(progression.TryChooseActiveSkill(1, 0, true, out _)
+                    && !progression.TryChooseActiveSkill(1, 1, true, out _)
+                    && before == JsonUtility.ToJson(progression.GrowthState)
+                    && ledgerBefore == JsonUtility.ToJson(progression.NarrativeLedger),
+                "Redelivered preparation choices changed state or consumed evidence twice.");
+            return true;
+        }
+        finally { UnityEngine.Object.DestroyImmediate(settings); }
+    }
+
     public static void RunObserverFocusedForBatchMode()
     {
         string output = Environment.GetEnvironmentVariable(
@@ -753,6 +831,9 @@ public static class CharacterProgressionDebugScenarios
 
     public static bool RunAcquiredTraitMilestoneLifecycleScenario() =>
         VerifyAcquiredTraitMilestoneLifecycle();
+
+    public static bool RunAcquiredTraitEffectProjectionScenario() =>
+        VerifyAuthoredAcquiredTraitEffectProjection();
 
     public static bool RunAcquiredTraitAutomaticProducerResumeScenario() =>
         VerifyAcquiredTraitAutomaticProducerResume();
@@ -2495,12 +2576,20 @@ public static class CharacterProgressionDebugScenarios
                 },
                 pendingRequests = new List<CharacterAcquiredTraitPendingRequestState>()
             };
+            int moduleEnumerations = 0;
+            IEnumerable<CharacterAcquiredTraitModuleSO> ReadModulesOnce()
+            {
+                Require(++moduleEnumerations == 1,
+                    "Effect projection enumerated its authored input more than once.");
+                foreach (var definition in modules) yield return definition;
+            }
             IReadOnlyList<IGameplayEffectSource> sources =
                 CharacterAcquiredTraitEffectSourceProjection.Project(
                     state,
                     ledger,
                     settings,
-                    modules);
+                    ReadModulesOnce());
+            Require(moduleEnumerations == 1, "Effect projection did not validate authored definitions.");
             Require(
                 sources.Count == 1
                 && sources[0].SourceRef.Kind
@@ -2553,6 +2642,42 @@ public static class CharacterProgressionDebugScenarios
                 }
                 projectedBindingCount++;
             }
+
+            void RequireProjectionRejection(
+                CharacterAcquiredTraitAggregateState candidate,
+                CharacterNarrativeLedger candidateLedger,
+                CharacterAcquiredTraitSettingsSO candidateSettings,
+                IReadOnlyList<CharacterAcquiredTraitValidationIssue> expected,
+                bool structuralFailure)
+            {
+                Require(expected.Count > 0, "Invalid projection fixture had no validation failure.");
+                string before = JsonUtility.ToJson(candidate);
+                string ledgerBefore = JsonUtility.ToJson(candidateLedger);
+                moduleEnumerations = 0;
+                string failure = null;
+                try { CharacterAcquiredTraitEffectSourceProjection.Project(
+                    candidate, candidateLedger, candidateSettings, ReadModulesOnce()); }
+                catch (InvalidOperationException exception) { failure = exception.Message; }
+                Require(failure == "Acquired-trait effect projection rejected invalid state: "
+                        + string.Join(" | ", expected.Select(value => value.ToString()))
+                    && moduleEnumerations == (structuralFailure ? 0 : 1)
+                    && JsonUtility.ToJson(candidate) == before
+                    && JsonUtility.ToJson(candidateLedger) == ledgerBefore,
+                    "Effect projection changed its rejection priority, skipped validation, or mutated rejected input.");
+            }
+
+            // Run after a valid query: a warm query must not conceal later
+            // malformed state, changed evidence, or absent definition authority.
+            var malformed = state.Clone();
+            malformed.formatVersion = -1;
+            RequireProjectionRejection(malformed, ledger, null,
+                CharacterAcquiredTraitStateValidator.ValidatePersistentState(malformed, ledger), true);
+            var changedLedger = ledger.Clone();
+            changedLedger.facts[0].sourceEventIds.Clear();
+            RequireProjectionRejection(state, changedLedger, settings,
+                CharacterAcquiredTraitStateValidator.ValidatePersistentState(state, changedLedger), true);
+            RequireProjectionRejection(state, ledger, null,
+                CharacterAcquiredTraitStateValidator.ValidateWithDefinitions(state, ledger, null, modules), false);
         }
 
         Require(
@@ -6584,7 +6709,7 @@ public static class CharacterProgressionDebugScenarios
         }
     }
 
-    private static bool VerifyInFlightGenerationTimeout()
+    public static bool VerifyInFlightGenerationTimeout()
     {
         CharacterSkillSystemSettingsSO settings =
             EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
@@ -6655,6 +6780,60 @@ public static class CharacterProgressionDebugScenarios
                         "accepted-request-timeout",
                         StringComparison.Ordinal),
                 "Timed-out generation did not preserve its explicit failure diagnostic.");
+
+            progression.GrowthState.drafts.Add(draft);
+            CharacterProgressionSnapshot captured = progression.CapturePersistentState();
+            CharacterProgressionSnapshot saved = new(
+                captured.Level, captured.CurrentExperience,
+                DungeonSaveSectionPayload.Deserialize<CharacterGrowthState>(
+                    JsonUtility.ToJson(captured.GrowthState)),
+                DungeonSaveSectionPayload.Deserialize<CharacterNarrativeLedger>(
+                    JsonUtility.ToJson(captured.NarrativeLedger)),
+                captured.AcquiredTraitState);
+            string savedJson = JsonConvert.SerializeObject(saved);
+            using ActorFixture restoredActor = new(
+                993, "시간 검증자", "human",
+                persistentId: actor.Actor.Identity.PersistentId, detachedRestore: true);
+            CharacterProgression restored = restoredActor.Actor.Progression;
+            NeverCompletingLlmRuntime restoredRuntime = new();
+            CharacterSkillGenerationService restoredService = new(
+                NarrativeRequestContextTestFixture.CreateEmpty(), settingsProvider,
+                new TestLlmRuntimeProvider(restoredRuntime), new MutableUiClock());
+            try
+            {
+                restored.ConstructCharacterProgression(
+                    restoredService, settingsProvider, gameEventBus: new GameEventBus(),
+                    profileProjector: new CharacterProgressionProfileProjector(
+                        new ResourceGameContentCatalog(new UnityGameContentRootLoader()),
+                        new CharacterRuntimeProfileFactory(
+                            new ResourceGameContentCatalog(new UnityGameContentRootLoader()))));
+                restoredActor.Actor.Lifecycle.RestorePersistentState(
+                    actor.Actor.CurrentLifecycleState, actor.Actor.Lifecycle.LifecycleRevision);
+                restored.RestorePersistentState(saved);
+                restoredActor.Actor.PublishDetachedRestore();
+                restored.ResumePendingGenerationAfterWorldRestore();
+                restored.ResumePendingGenerationAfterWorldRestore();
+                restoredService.Tick();
+                Require(savedJson == JsonConvert.SerializeObject(restored.CapturePersistentState())
+                        && restoredService.PendingRequestCount == 0
+                        && restoredRuntime.CharacterSkillCallCount == 0,
+                    "World restore retried an exhausted skill request or changed its saved failure state.");
+
+                CharacterSkillDraft retried = restored.Drafts.Single(
+                    value => value.requestKey == draft.requestKey);
+                restoredService.RequestDraft(restored, retried);
+                Require(restoredService.PendingRequestCount == 1 && retried.requestSubmitted
+                        && retried.presentationFailureCount == 0
+                        && retried.presentationState == CharacterSkillPresentationState.PresentationPending
+                        && retried.requestContextHash == draft.requestContextHash,
+                    "An explicit retry did not retain the saved request identity/context and renew its failure budget.");
+                restoredService.Tick();
+                restoredService.RequestDraft(restored, retried);
+                restoredService.Tick();
+                Require(restoredRuntime.CharacterSkillCallCount == 1 && restoredService.PendingRequestCount == 1,
+                    "Repeated retry duplicated the pending transport request.");
+            }
+            finally { restoredService.CancelRequests(restored); }
             return true;
         }
         finally
@@ -7143,7 +7322,7 @@ public static class CharacterProgressionDebugScenarios
         });
     }
 
-    private static string BuildValidModuleSelectionJson(
+    internal static string BuildValidModuleSelectionJson(
         CharacterSkillDraft draft,
         string characterName) =>
         JsonUtility.ToJson(BuildValidModuleSelectionDto(draft, characterName));

@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
@@ -732,6 +733,9 @@ public static class CropPlotDebugScenarios
         Facility detachedRoundTripConflictPlot = null;
         try
         {
+            V27OutputCapacityEvidenceDebugScenarios.CaptureCurrentRunIdentity(
+                out string currentSourceDigest,
+                out string gameplaySceneSha256);
             Require(
                 CropPhysicalTransactionFixture.Run(),
                 "crop physical transaction fixture failed");
@@ -1242,6 +1246,11 @@ public static class CropPlotDebugScenarios
                     $"{entry.Key}x{entry.Value}")));
             lines.Add($"inoculatedLog=700g;consumed={requiredLogs}");
             lines.Add($"fungalPhase={fungalGrowing.Phase}");
+            V27OutputCapacityEvidenceDebugScenarios.RequireUnchangedRunIdentity(
+                currentSourceDigest,
+                gameplaySceneSha256);
+            lines.Add("currentSourceDigest=" + currentSourceDigest);
+            lines.Add("gameplaySceneSha256=" + gameplaySceneSha256);
             lines.Add("valid=true");
             WriteReport(lines);
             Debug.Log(string.Join(Environment.NewLine, lines));
@@ -1461,6 +1470,20 @@ public static class CropPlotDebugScenarios
         Require(admission != null, "Facility-buffer admission service is missing.");
         Require(publication != null,
             "Facility-buffer publication service is missing.");
+        CharacterActor harvester = services.Resolve<ICharacterWorldQuery>().Characters
+            .Select(CharacterActorCollection.GetCanonical)
+            .Where(actor => actor != null && !actor.IsDead
+                && actor.CurrentLifecycleState == CharacterLifecycleState.Active
+                && !string.IsNullOrWhiteSpace(actor.Identity?.PersistentId))
+            .OrderBy(actor => actor.Identity.PersistentId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        Require(harvester != null, "A live harvest worker is required.");
+        string beforeWorkerlessHarvest = JsonUtility.ToJson(runtime.Capture());
+        Require(!runtime.ApplyWork(plot, BuiltInWorkTypeIds.Harvest,
+                    harvest.RequiredWork, out bool workerlessCompleted)
+                && !workerlessCompleted
+                && JsonUtility.ToJson(runtime.Capture()) == beforeWorkerlessHarvest,
+            "Workerless harvest changed progress or created an unrestorable output owner.");
         BuildingInstanceId plotId = plot.RequirePersistentInstanceId();
         string destinationId = ProductionOutputDestinationId
             .FromFacility(plotId)
@@ -1594,6 +1617,7 @@ public static class CropPlotDebugScenarios
                     plot,
                     BuiltInWorkTypeIds.Harvest,
                     harvest.RequiredWork,
+                    harvester,
                     out bool completedWhileFull)
                 && !completedWhileFull,
                 "Capacity-blocked crop harvest did not retain its completed work for retry.");
@@ -1602,6 +1626,7 @@ public static class CropPlotDebugScenarios
                 entry.buildingInstanceId == plotId.Value);
             Require(waiting.pendingHarvest.phase == CropHarvestOutputPhase.Frozen
                 && waiting.pendingHarvest.outputPublication.IsEmpty
+                && waiting.pendingHarvest.harvesterId == harvester.Identity.PersistentId
                 && waiting.pendingHarvest.harvestQuantity > 0
                 && waiting.pendingHarvest.seedQuantity > 0
                 && Mathf.Approximately(waiting.harvestWork, harvest.RequiredWork),
@@ -1822,6 +1847,7 @@ public static class CropPlotDebugScenarios
                     plot,
                     BuiltInWorkTypeIds.Harvest,
                     harvest.RequiredWork,
+                    harvester,
                     out bool replayCompleted)
                 && !replayCompleted
                 && CountItem(items, crop.HarvestItemId) == stockAfter
@@ -1844,7 +1870,7 @@ public static class CropPlotDebugScenarios
             + $"plot={plotId.Value};harvest={stockBefore}->{stockAfter}"
             + ";capacityWait=true;frozenRestore=true;replayDelta=0"
             + ";executionReceipt=true;physicalBatchJoin=true"
-            + ";terminalRestore=true;ackRetention=true";
+            + ";terminalRestore=true;ackRetention=true;workerlessRejected=true";
     }
 
     private static void VerifyStrictSaveIsolation(
@@ -1890,7 +1916,15 @@ public static class CropPlotDebugScenarios
     {
         string absolutePath = Path.GetFullPath(ReportPath);
         Directory.CreateDirectory(Path.GetDirectoryName(absolutePath) ?? ".");
-        File.WriteAllLines(absolutePath, lines);
+        string report = string.Join("\n", lines)
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n');
+        if (!report.EndsWith("\n", StringComparison.Ordinal))
+            report += "\n";
+        File.WriteAllText(
+            absolutePath,
+            report,
+            new UTF8Encoding(false, true));
     }
 }
 

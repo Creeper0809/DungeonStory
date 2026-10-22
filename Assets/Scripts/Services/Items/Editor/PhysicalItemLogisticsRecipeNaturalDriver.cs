@@ -156,9 +156,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             }
             state.ClearanceTelemetry.BeginCapture(
                 "v27.output-clearance.recipe.portfolio");
-            PhysicalItemLogisticsPlayModeVerificationRunner
-                .EnsureVerificationTimeScale();
-            Time.timeScale = NaturalPortfolioAcceleratedTimeScale;
+            NaturalPortfolioTimeScope.ApplyTimeScale(NaturalPortfolioAcceleratedTimeScale);
 
             owner.activeNaturalClearanceSeedRun = new NaturalClearanceSeedRunState
             {
@@ -179,9 +177,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
                  turn < NaturalRecipeProductionMaximumTurns;
                  turn++)
             {
-                PhysicalItemLogisticsPlayModeVerificationRunner
-                    .EnsureVerificationTimeScale();
-                Time.timeScale = NaturalPortfolioAcceleratedTimeScale;
+                NaturalPortfolioTimeScope.ApplyTimeScale(NaturalPortfolioAcceleratedTimeScale);
                 if (state.ReceiptQuery.TryCaptureExecutionReceipt(
                         request.ActionId,
                         out ProductionRecipeExecutionReceipt completed)
@@ -483,7 +479,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             state.Content = owner.Resolve<IResourceEconomyContentCatalog>(scope);
             state.GameContent = owner.Resolve<IGameContentCatalog>(scope);
             state.World = owner.Resolve<ICharacterAiWorldRegistry>(scope);
-            state.SaveRegistry = owner.Resolve<IDungeonSaveSectionRegistry>(scope);
+            state.SaveService = owner.Resolve<IDungeonGameSaveService>(scope);
             state.Orders = owner.Resolve<IProductionBillOrderCommand>(scope);
             state.Bills = owner.Resolve<IProductionBillQuery>(scope);
             state.Work = owner.Resolve<IProductionBillWorkExecution>(scope);
@@ -517,7 +513,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
                 && state.World != null
                 && state.World.TryGetGrid(out state.Grid)
                 && state.Grid != null
-                && state.SaveRegistry != null
+                && state.SaveService != null
                 && state.Orders != null
                 && state.Bills != null
                 && state.Work != null
@@ -552,10 +548,11 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             state.ClockDiagnostics.RebaseDeterministicCheckpointTime(
                 state.CheckpointTime,
                 state.CheckpointFrame);
-            state.Baseline = state.SaveRegistry.CaptureAll();
+            state.Baseline = state.SaveService.FromJson(
+                state.SaveService.ToJson(state.SaveService.Capture()));
             state.BaselineFingerprint = ComputeTextSha256(
-                CaptureRestoreStableWholeRootSaveFingerprint(state.Baseline));
-            return (state.Baseline.Count > 0
+                CaptureRestoreStableWholeRootSaveFingerprint(state.Baseline.sections, expectedRestore: true));
+            return (state.Baseline.sections.Count > 0
                     && state.BaselineFingerprint.Length == 64)
                 || Fail("recipe-natural-driver-checkpoint-capture-failed",
                     out failureReason);
@@ -2238,7 +2235,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             out string failureReason)
         {
             failureReason = string.Empty;
-            if (state == null || state.SaveRegistry == null)
+            if (state == null || state.SaveService == null || state.Baseline == null)
             {
                 active = null;
                 return Fail("recipe-natural-driver-restore-authority-missing",
@@ -2281,16 +2278,15 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             state.ClockDiagnostics?.RebaseDeterministicCheckpointTime(
                 state.CheckpointTime,
                 state.CheckpointFrame);
-            DungeonGameRestoreReport report = new();
-            bool restored = state.SaveRegistry.RestoreAll(
+            bool restored = state.SaveService.TryRestore(
                     state.Baseline,
-                    report)
+                    out DungeonGameRestoreReport report)
                 && report.Success;
             state.ClockDiagnostics?.RebaseDeterministicCheckpointTime(
                 state.CheckpointTime,
                 state.CheckpointFrame);
             List<DungeonSaveSectionEnvelope> recaptured = restored
-                ? state.SaveRegistry.CaptureAll()
+                ? state.SaveService.Capture().sections
                 : new List<DungeonSaveSectionEnvelope>();
             string restoredFingerprint = restored
                 ? ComputeTextSha256(
@@ -2310,7 +2306,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
                 && leakedFixtureCount == 0;
             string restoreDifference = restored
                 ? DescribeRestoreStableWholeRootSaveDifference(
-                    state.Baseline,
+                    state.Baseline.sections,
                     recaptured)
                 : "recapture-skipped";
             string restoreErrors = report.Errors.Count == 0
@@ -2768,7 +2764,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             internal IResourceEconomyContentCatalog Content;
             internal IGameContentCatalog GameContent;
             internal ICharacterAiWorldRegistry World;
-            internal IDungeonSaveSectionRegistry SaveRegistry;
+            internal IDungeonGameSaveService SaveService;
             internal IProductionBillOrderCommand Orders;
             internal IProductionBillQuery Bills;
             internal IProductionBillWorkExecution Work;
@@ -2799,7 +2795,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             internal ProductionRecipeSO Recipe;
             internal ProductionBillSnapshot Bill;
             internal ProductionRecipeExecutionCorrelation Correlation;
-            internal List<DungeonSaveSectionEnvelope> Baseline;
+            internal DungeonGameSaveData Baseline;
             internal string BaselineFingerprint = string.Empty;
             internal float CheckpointTime;
             internal int CheckpointFrame;

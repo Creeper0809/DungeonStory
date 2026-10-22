@@ -97,7 +97,8 @@ public sealed class ProductionCompletionFactPreflight : IDungeonSavePreflightVal
             || fact.lines.Any(line => !batch.lines.Any(physical => physical != null
                 && physical.outputLineId == line.outputLineId && physical.itemId == line.itemId
                 && physical.outputCapabilityFingerprint == line.capabilityFingerprint && physical.quantity == line.quantity
-                && physical.exactMassGrams == line.massGrams && line.commitIds.Count == 1 && line.commitIds[0] == physical.lineCommitId))
+                && physical.exactMassGrams == line.massGrams && line.commitIds.Count == 1
+                && line.commitIds[0] == ProductionCycleFactCapture.PreparedCommitIdentity(batch.batchCommitId, physical.outputLineId, physical.lineCommitId)))
             || batch.physicalCandidates == null || fact.stacks.Count != batch.physicalCandidates.Count
             || fact.stacks.Any(stack => !batch.physicalCandidates.Any(physical => physical.stackId == stack.stackId
                 && physical.outputLineId == stack.outputLineId && physical.itemId == stack.itemId

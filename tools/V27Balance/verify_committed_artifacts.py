@@ -31,6 +31,30 @@ MARKET_SECOND_APPLY_RECEIPT_PATH = (
 AUDIT_SECOND_GENERATION_RECEIPT_PATH = (
     QA / "v27-balance-audit-second-generation-noop.json"
 )
+REVIEWED_GAMEPLAY_SCENE_SHA256 = "a698948004fd2a1db71ef1bebf5ab4d4c5d62caf85fed1ea5af2bb3972c30341"
+MANIFEST_ARTIFACT_HASHES = {
+    "sourceInventoryByteHash": "Artifacts/QA/v27-balance-source-inventory.json",
+    "csvByteHash": "Artifacts/QA/v27-balance-before-after.csv",
+    "markdownByteHash": "docs/generated/V27_Balance_Before_After.md",
+    "auditByteHash": "Artifacts/QA/v27-balance-recalibration-audit.txt",
+    "anomalyGraphByteHash": "Artifacts/QA/v27-balance-anomaly-graph.json",
+    "economy256EvidenceHash": "Artifacts/QA/v27-balance-economy-256-seed.txt",
+    "verticalSliceFullLoopEvidenceHash": "Artifacts/QA/v27-balance-vertical-slice-full-loop-playmode.txt",
+    "assetRollbackEvidenceHash": "Artifacts/QA/v27-balance-asset-rollback.txt",
+    "marketAuthorityEvidenceHash": "Artifacts/QA/v27-balance-market-authority.txt",
+    "laborFacilityAuthorityEvidenceHash": "Artifacts/QA/v27-balance-labor-facility-authority.txt",
+    "combatOutcome1000SeedEvidenceHash": "Artifacts/QA/combat-balance-final.txt",
+    "wholeGameCoverageEvidenceHash": "Artifacts/QA/v27-balance-whole-game-coverage.txt",
+    "laborAuthorityMatrixEvidenceHash": "Artifacts/QA/v27-labor-authority-matrix.txt",
+    "ledgerContractEvidenceHash": "Artifacts/QA/v27-balance-ledger-contracts.txt",
+    "equipmentReadinessEvidenceHash": "Artifacts/QA/v26-equipment-readiness-throughput.md",
+    "dailyRoutine157181EvidenceHash": "Artifacts/QA/phase157-daily-routine-wu-seed-157181.txt",
+    "dailyRoutine157182EvidenceHash": "Artifacts/QA/phase157-daily-routine-wu-seed-157182.txt",
+    "dailyRoutine157183EvidenceHash": "Artifacts/QA/phase157-daily-routine-wu-seed-157183.txt",
+    "finalAcceptanceEvidenceHash": "Artifacts/QA/final-acceptance-report.txt",
+    "approvalDigest": "docs/game-design/v27-balance-critical-approvals.json",
+    "analyzerDllHash": "Assets/Analyzers/DungeonStory.BalanceAnalyzers.dll",
+}
 
 
 def fail(message: str) -> None:
@@ -215,6 +239,20 @@ def require_lf_json_file(path: Path, label: str) -> None:
         fail(f"{label} is not strict UTF-8: {error}")
 
 
+def require_current_gameplay_scene(recorded_hash: object, label: str) -> str:
+    """Bind execution evidence to the checked-out scene, not a past release."""
+    recorded = require_sha256_value(recorded_hash, f"{label} scene digest")
+    scene = resolve_repository_file(
+        "Assets/Scenes/GameplayScene.unity", "official GameplayScene"
+    )
+    actual, _ = read_file_identity(scene, "official GameplayScene")
+    if recorded != actual:
+        fail(f"{label} scene binding is stale: recorded={recorded} current={actual}")
+    if actual != REVIEWED_GAMEPLAY_SCENE_SHA256:
+        fail(f"{label} scene has not been reviewed for full V27 certification")
+    return actual
+
+
 def utf16_ordinal_key(value: str) -> bytes:
     # StringComparer.Ordinal compares UTF-16 code units, not Unicode scalars.
     return value.encode("utf-16-be", errors="strict")
@@ -333,6 +371,20 @@ def require_hash(manifest: dict[str, object], key: str, relative: str) -> None:
     actual = sha256(ROOT / relative)
     if not expected or actual != expected:
         fail(f"{key} mismatch for {relative}: expected={expected} actual={actual}")
+
+
+def verify_manifest_artifact_bytes(manifest: dict[str, object]) -> None:
+    for key, path in MANIFEST_ARTIFACT_HASHES.items():
+        require_hash(manifest, key, path)
+
+    analyzer_source = ROOT / "tools/DungeonStory.BalanceAnalyzers/DungeonStoryBalanceAnalyzer.cs"
+    expected_analyzer_source = str(manifest.get("analyzerSourceHash", "")).lower()
+    actual_analyzer_source = canonical_source_sha256(analyzer_source)
+    if not expected_analyzer_source or actual_analyzer_source != expected_analyzer_source:
+        fail(
+            "analyzerSourceHash mismatch for canonical analyzer source: "
+            f"expected={expected_analyzer_source} actual={actual_analyzer_source}"
+        )
 
 
 def require_text(path: Path, markers: tuple[str, ...]) -> None:
@@ -1334,6 +1386,40 @@ def parse_unique_simple_fields(text: str, path: Path) -> dict[str, str]:
     return values
 
 
+def verify_output_capacity_receipts() -> None:
+    """Check actual runtime receipts; checkout timestamps are not evidence."""
+    aggregate = QA / "v27-balance-output-capacity-playmode.txt"
+    text = aggregate.read_text(encoding="utf-8-sig")
+    if "RESULT=PASS; checks=2; failures=0" not in text.splitlines():
+        fail("output-capacity aggregate is not terminal PASS")
+    fields = parse_unique_simple_fields(text, aggregate)
+    source, _, _ = current_source_snapshot()
+    if fields.get("currentSourceDigest") != source:
+        fail("output-capacity aggregate source binding is stale")
+    scene = require_current_gameplay_scene(fields.get("gameplaySceneSha256"), "output-capacity aggregate")
+    for key, relative, marker, required in (
+        ("worldResource", "docs/implementation-reports/world-resource-runtime-latest.txt",
+         "PASS WORLD_RESOURCE_EXACT_SOURCE_ATOMIC_PUBLICATION ", ("conserved=true",)),
+        ("cropPlot", "docs/implementation-reports/crop-plot-runtime-latest.txt",
+         "PASS CROP_OUTPUT_FACILITY_BUFFER_WAIT_RESTORE_RETRY_EXACT_ONCE ",
+         ("capacityWait=true", "frozenRestore=true", "replayDelta=0",
+          "executionReceipt=true", "physicalBatchJoin=true", "terminalRestore=true")),
+    ):
+        if fields.get(key + "ReportPath") != relative:
+            fail(f"output-capacity {key} receipt path differs")
+        path = resolve_repository_file(relative, key + " runtime receipt")
+        if fields.get(key + "ReportSha256") != sha256(path):
+            fail(f"output-capacity {key} receipt byte hash differs")
+        receipt_text = path.read_text(encoding="utf-8-sig")
+        receipt = parse_unique_simple_fields(receipt_text, path)
+        if (receipt.get("valid") != "true" or receipt.get("currentSourceDigest") != source
+                or receipt.get("gameplaySceneSha256") != scene):
+            fail(f"output-capacity {key} runtime identity is stale or unsuccessful")
+        markers = [line for line in receipt_text.splitlines() if line.startswith(marker)]
+        if len(markers) != 1 or any(value not in markers[0] for value in required):
+            fail(f"output-capacity {key} conservation markers are missing or ambiguous")
+
+
 def require_current_source_parent_fields(
     fields: dict[str, str], path: Path, schema_key: str, schema: str
 ) -> tuple[str, int, str, str]:
@@ -2064,16 +2150,9 @@ def verify_natural_output_clearance_portfolio() -> None:
 
     expected_source = report.get("currentSourceDigest", "")
     require_lower_sha256(expected_source, "natural portfolio historical source digest")
-    expected_scene = sha256(ROOT / "Assets/Scenes/GameplayScene.unity")
-    official_scene = (
-        "6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40"
+    expected_scene = require_current_gameplay_scene(
+        report.get("gameplaySceneSha256"), "natural portfolio"
     )
-    if expected_scene != official_scene or report.get("gameplaySceneSha256") != expected_scene:
-        fail(
-            "natural portfolio official GameplayScene digest mismatch: "
-            f"official={official_scene} current={expected_scene} "
-            f"report={report.get('gameplaySceneSha256')}"
-        )
     runner_required = {
         "naturalRunnerSchema": "v27-production-output-clearance-natural-runner@2",
         "naturalMinimumV27Plans": "92",
@@ -3263,13 +3342,9 @@ def verify_audit_second_generation_noop_receipt(
         or receipt["currentSourcePathDigest"] != path_digest
     ):
         fail("AuditOnly no-op receipt current-source binding is stale")
-    scene_hash, _ = read_file_identity(
-        ROOT / "Assets" / "Scenes" / "GameplayScene.unity",
-        "official GameplayScene",
+    require_current_gameplay_scene(
+        receipt["gameplaySceneSha256"], "AuditOnly no-op receipt"
     )
-    official_scene = "6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40"
-    if scene_hash != official_scene or receipt["gameplaySceneSha256"] != scene_hash:
-        fail("AuditOnly no-op receipt official GameplayScene binding is stale")
 
     manifest_fields = {
         "generatorVersion": "generatorVersion",
@@ -3395,40 +3470,7 @@ def main() -> int:
     if int(manifest.get("approvedCount", 0)) <= 0:
         fail("V27 manifest has no exact approvals")
 
-    hashes = {
-        "sourceInventoryByteHash": "Artifacts/QA/v27-balance-source-inventory.json",
-        "csvByteHash": "Artifacts/QA/v27-balance-before-after.csv",
-        "markdownByteHash": "docs/generated/V27_Balance_Before_After.md",
-        "auditByteHash": "Artifacts/QA/v27-balance-recalibration-audit.txt",
-        "anomalyGraphByteHash": "Artifacts/QA/v27-balance-anomaly-graph.json",
-        "economy256EvidenceHash": "Artifacts/QA/v27-balance-economy-256-seed.txt",
-        "verticalSliceFullLoopEvidenceHash": "Artifacts/QA/v27-balance-vertical-slice-full-loop-playmode.txt",
-        "assetRollbackEvidenceHash": "Artifacts/QA/v27-balance-asset-rollback.txt",
-        "marketAuthorityEvidenceHash": "Artifacts/QA/v27-balance-market-authority.txt",
-        "laborFacilityAuthorityEvidenceHash": "Artifacts/QA/v27-balance-labor-facility-authority.txt",
-        "combatOutcome1000SeedEvidenceHash": "Artifacts/QA/combat-balance-final.txt",
-        "wholeGameCoverageEvidenceHash": "Artifacts/QA/v27-balance-whole-game-coverage.txt",
-        "laborAuthorityMatrixEvidenceHash": "Artifacts/QA/v27-labor-authority-matrix.txt",
-        "ledgerContractEvidenceHash": "Artifacts/QA/v27-balance-ledger-contracts.txt",
-        "equipmentReadinessEvidenceHash": "Artifacts/QA/v26-equipment-readiness-throughput.md",
-        "dailyRoutine157181EvidenceHash": "Artifacts/QA/phase157-daily-routine-wu-seed-157181.txt",
-        "dailyRoutine157182EvidenceHash": "Artifacts/QA/phase157-daily-routine-wu-seed-157182.txt",
-        "dailyRoutine157183EvidenceHash": "Artifacts/QA/phase157-daily-routine-wu-seed-157183.txt",
-        "finalAcceptanceEvidenceHash": "Artifacts/QA/final-acceptance-report.txt",
-        "approvalDigest": "docs/game-design/v27-balance-critical-approvals.json",
-        "analyzerDllHash": "Assets/Analyzers/DungeonStory.BalanceAnalyzers.dll",
-    }
-    for key, path in hashes.items():
-        require_hash(manifest, key, path)
-
-    analyzer_source = ROOT / "tools/DungeonStory.BalanceAnalyzers/DungeonStoryBalanceAnalyzer.cs"
-    expected_analyzer_source = str(manifest.get("analyzerSourceHash", "")).lower()
-    actual_analyzer_source = canonical_source_sha256(analyzer_source)
-    if not expected_analyzer_source or actual_analyzer_source != expected_analyzer_source:
-        fail(
-            "analyzerSourceHash mismatch for canonical analyzer source: "
-            f"expected={expected_analyzer_source} actual={actual_analyzer_source}"
-        )
+    verify_manifest_artifact_bytes(manifest)
 
     verify_source_inventory(manifest)
     baseline_ids = verify_csv(manifest)
@@ -3450,6 +3492,7 @@ def main() -> int:
     verify_combat()
     verify_daily_routine()
     verify_physical_mass_coupling()
+    verify_output_capacity_receipts()
     # Batch A/B/C and the former F/G parent reports are historical checkpoint
     # receipts. Their covered production contracts are now checked by the
     # current ledger, physical-mass coupling, focused Unity gates, and the

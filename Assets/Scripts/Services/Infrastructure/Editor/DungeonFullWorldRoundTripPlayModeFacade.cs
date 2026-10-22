@@ -880,7 +880,7 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
         if (Application.isBatchMode)
         {
             EditorApplication.delayCall += () =>
-                EditorApplication.Exit(passed ? 0 : 1);
+                EditorApplication.Exit(V27CiEvidenceBatch.CompleteImpactWorldRestoreForBatch(passed) ? 0 : 1);
         }
     }
 

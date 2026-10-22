@@ -37,21 +37,13 @@ public static class CharacterAcquiredTraitEffectSourceProjection
             return Array.Empty<IGameplayEffectSource>();
         }
 
-        IReadOnlyList<CharacterAcquiredTraitValidationIssue> structural =
-            CharacterAcquiredTraitStateValidator.ValidatePersistentState(
-                state,
-                ledger);
-        if (structural.Count > 0)
-            throw InvalidState(structural);
-        CharacterAcquiredTraitModuleSO[] modules =
-            (moduleDefinitions ?? Array.Empty<CharacterAcquiredTraitModuleSO>())
-            .ToArray();
         IReadOnlyList<CharacterAcquiredTraitValidationIssue> validation =
-            CharacterAcquiredTraitStateValidator.ValidateWithDefinitions(
+            CharacterAcquiredTraitStateValidator.ValidateForEffectProjection(
                 state,
                 ledger,
                 settings,
-                modules);
+                moduleDefinitions,
+                out CharacterAcquiredTraitModuleSO[] modules);
         if (validation.Count > 0)
             throw InvalidState(validation);
 

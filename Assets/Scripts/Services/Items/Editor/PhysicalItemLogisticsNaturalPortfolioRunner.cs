@@ -166,11 +166,13 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
         ProductionOutputClearanceNaturalPortfolioRunResult completed = null;
         IEnumerator execution = null;
         Exception executionFailure = null;
-        NaturalPortfolioCaptureDeltaScope captureDeltaScope = null;
+        NaturalPortfolioTimeScope timeScope = null;
         autosave.Dispose();
         try
         {
-            captureDeltaScope = NaturalPortfolioCaptureDeltaScope.Begin(
+            timeScope = NaturalPortfolioTimeScope.Begin(
+                Resolve<IGameTimeScaleController>(scope),
+                NaturalPortfolioAcceleratedTimeScale,
                 NaturalPortfolioFixedCaptureDeltaTime);
             execution = ProductionOutputClearanceNaturalPortfolioCoordinator
                 .Execute(
@@ -208,7 +210,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             }
             finally
             {
-                captureDeltaScope?.Dispose();
+                timeScope?.Dispose();
                 autosave.Start();
             }
         }
@@ -265,46 +267,78 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             capturedErrors.Count);
 }
 
-internal sealed class NaturalPortfolioCaptureDeltaScope : IDisposable
+internal sealed class NaturalPortfolioTimeScope : IDisposable
 {
     private static bool active;
     private static int generation;
+    private static IGameTimeScaleController controller;
+    private static float originalTimeScale;
+    private static float originalFixedDeltaTime;
     private static float originalCaptureDeltaTime;
     private readonly int ownerGeneration;
     private bool disposed;
 
-    static NaturalPortfolioCaptureDeltaScope()
+    static NaturalPortfolioTimeScope()
     {
         AssemblyReloadEvents.beforeAssemblyReload += RestoreActiveState;
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
         EditorApplication.quitting += RestoreActiveState;
     }
 
-    private NaturalPortfolioCaptureDeltaScope(int ownerGeneration)
+    private NaturalPortfolioTimeScope(int ownerGeneration)
     {
         this.ownerGeneration = ownerGeneration;
     }
 
-    internal static NaturalPortfolioCaptureDeltaScope Begin(float fixedDeltaTime)
+    internal static bool IsActive => active;
+
+    internal static NaturalPortfolioTimeScope Begin(
+        IGameTimeScaleController timeController, float scale, float captureDeltaTime)
     {
-        if (!float.IsFinite(fixedDeltaTime) || fixedDeltaTime <= 0f)
+        if (timeController == null) throw new ArgumentNullException(nameof(timeController));
+        if (!float.IsFinite(scale) || scale <= 0f)
+            throw new ArgumentOutOfRangeException(nameof(scale));
+        if (!float.IsFinite(captureDeltaTime) || captureDeltaTime <= 0f)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(fixedDeltaTime),
-                fixedDeltaTime,
+                nameof(captureDeltaTime),
+                captureDeltaTime,
                 "Natural portfolio capture delta must be positive and finite.");
         }
         if (active)
         {
             throw new InvalidOperationException(
-                "Natural portfolio capture delta scope is already active.");
+                "Natural portfolio time scope is already active.");
         }
 
+        int currentGeneration = checked(generation + 1);
+        controller = timeController;
+        originalTimeScale = Time.timeScale;
+        originalFixedDeltaTime = Time.fixedDeltaTime;
         originalCaptureDeltaTime = Time.captureDeltaTime;
         active = true;
-        int currentGeneration = checked(++generation);
-        Time.captureDeltaTime = fixedDeltaTime;
-        return new NaturalPortfolioCaptureDeltaScope(currentGeneration);
+        generation = currentGeneration;
+        try
+        {
+            ApplyTimeScale(scale);
+            Time.captureDeltaTime = captureDeltaTime;
+            Debug.Log($"V27_NATURAL_CLOCK scale={Time.timeScale:R};fixed={Time.fixedDeltaTime:R};capture={Time.captureDeltaTime:R}");
+            return new NaturalPortfolioTimeScope(currentGeneration);
+        }
+        catch
+        {
+            RestoreActiveState();
+            throw;
+        }
+    }
+
+    internal static void ApplyTimeScale(float scale)
+    {
+        if (!active || controller == null)
+            throw new InvalidOperationException("Natural portfolio time scope is not active.");
+        if (!float.IsFinite(scale) || scale <= 0f)
+            throw new ArgumentOutOfRangeException(nameof(scale));
+        controller.Scale = scale;
     }
 
     public void Dispose()
@@ -326,9 +360,17 @@ internal sealed class NaturalPortfolioCaptureDeltaScope : IDisposable
     {
         if (!active)
             return;
-        Time.captureDeltaTime = originalCaptureDeltaTime;
-        originalCaptureDeltaTime = 0f;
-        active = false;
+        try { controller.Scale = originalTimeScale; }
+        finally
+        {
+            Time.timeScale = originalTimeScale;
+            Time.fixedDeltaTime = originalFixedDeltaTime;
+            Time.captureDeltaTime = originalCaptureDeltaTime;
+            controller = null;
+            originalTimeScale = originalFixedDeltaTime = originalCaptureDeltaTime = 0f;
+            active = false;
+            Debug.Log($"V27_NATURAL_CLOCK_RESTORED scale={Time.timeScale:R};fixed={Time.fixedDeltaTime:R};capture={Time.captureDeltaTime:R}");
+        }
     }
 }
 #endif

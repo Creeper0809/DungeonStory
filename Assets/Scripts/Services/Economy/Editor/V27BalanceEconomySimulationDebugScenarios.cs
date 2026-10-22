@@ -229,15 +229,15 @@ public static class V27BalanceEconomySimulationDebugScenarios
             report = "RESULT=FAIL; seeds=256; reason=" + exception.Message + "\n";
         }
 
+        string persistedReport = report
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n')
+            .Replace("\n", "\r\n", StringComparison.Ordinal);
         V27BalanceArtifactWriter.WriteIfDifferent(ReportPath, stream =>
         {
-            using StreamWriter writer = new(
-                stream,
-                new UTF8Encoding(false, true),
-                4096,
-                leaveOpen: true);
-            writer.Write(report);
-            writer.Flush();
+            byte[] bytes = new UTF8Encoding(false, true).GetBytes(
+                persistedReport);
+            stream.Write(bytes, 0, bytes.Length);
         });
         AssetDatabase.Refresh();
         if (failure == null)

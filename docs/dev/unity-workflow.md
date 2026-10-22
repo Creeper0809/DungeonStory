@@ -7,6 +7,8 @@
 프로젝트의 현행 제어 경로는 공식 Unity CLI와 `com.unity.pipeline`이다. 구형 Assistant relay `unity-mcp`는 비활성 상태로 보존한다.
 이 설명은 연결 허가가 아니다. 현재 사용자가 MCP 사용을 금지한 작업에서는 그 결정을 유지하고 서버를 임의 등록·재활성화하지 않는다.
 
+V27 headless 증거 실행은 `DUNGEONSTORY_V27_HEADLESS_EVIDENCE=1`을 명시한다. 기존 `V27CiEvidenceBatch` 부트스트랩이 고정 Assistant 패키지의 `RelayService.SuppressAutoStart()` 테스트 API를 호출해 사용하지 않는 편집기 relay의 자동 시작만 억제한다. 패키지의 internal 타입 때문에 정확한 public 메서드를 reflection으로 연결하며 API가 없거나 달라지면 실행을 실패시킨다. 실제 Assistant 호출의 lazy initialization과 게임 콘솔 오류 검사는 유지한다. 패키지의 180초 정상 유휴 종료가 오류로 기록되는 서버 실행 문제를 피하기 위한 설정이며 일반 Editor에는 적용하지 않는다.
+
 명령은 실제 주 프로젝트를 지정한다. 별도 임시 Unity 프로젝트로 검증을 대체하지 않는다.
 
 ```powershell

@@ -1,16 +1,25 @@
 name: V27 ledger integrity
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
+      - "Assets/**"
       - ".gitattributes"
+      - ".gitignore"
       - ".github/workflows/v27-ledger-integrity.yml"
       - "tools/V27Balance/**"
       - "tools/DungeonStory.BalanceAnalyzers/**"
       - "Assets/Analyzers/**"
       - "Assets/Scripts/**"
-      - "Assets/Resources/**/*.asset"
-      - "Artifacts/QA/v27-balance-*"
+      - "Assets/Resources/**"
+      - "Assets/Scenes/GameplayScene.unity"
+      - "Packages/**"
+      - "ProjectSettings/**"
+      - "Artifacts/QA/ImpactCI/**"
+      - "Artifacts/QA/v27-*"
+      - "docs/implementation-reports/world-resource-runtime-latest.txt"
+      - "docs/implementation-reports/crop-plot-runtime-latest.txt"
       - "Artifacts/QA/v26-equipment-readiness-throughput.md"
       - "Artifacts/QA/v27-labor-authority-matrix.txt"
       - "Artifacts/QA/combat-balance-final/**"
@@ -24,14 +33,22 @@ on:
   push:
     branches: [main]
     paths:
+      - "Assets/**"
       - ".gitattributes"
+      - ".gitignore"
       - ".github/workflows/v27-ledger-integrity.yml"
       - "tools/V27Balance/**"
       - "tools/DungeonStory.BalanceAnalyzers/**"
       - "Assets/Analyzers/**"
       - "Assets/Scripts/**"
-      - "Assets/Resources/**/*.asset"
-      - "Artifacts/QA/v27-balance-*"
+      - "Assets/Resources/**"
+      - "Assets/Scenes/GameplayScene.unity"
+      - "Packages/**"
+      - "ProjectSettings/**"
+      - "Artifacts/QA/ImpactCI/**"
+      - "Artifacts/QA/v27-*"
+      - "docs/implementation-reports/world-resource-runtime-latest.txt"
+      - "docs/implementation-reports/crop-plot-runtime-latest.txt"
       - "Artifacts/QA/v26-equipment-readiness-throughput.md"
       - "Artifacts/QA/v27-labor-authority-matrix.txt"
       - "Artifacts/QA/combat-balance-final/**"
@@ -55,6 +72,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -69,5 +88,16 @@ jobs:
       - name: Rebuild and verify Roslyn analyzer
         run: python tools/DungeonStory.BalanceAnalyzers/verify_analyzer.py --dotnet dotnet
 
-      - name: Verify deterministic ledger and durable evidence
+      - name: Test evidence binding rejection paths
+        run: python -m unittest discover -s tools/V27Balance -p "test_*.py"
+
+      - name: Verify changed-domain execution and archived evidence bytes
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python tools/V27Balance/verify_change_scope.py --base "$BASE_SHA" --head "$HEAD_SHA"
+
+      - name: Full release balance certification (explicit run)
+        if: github.event_name == 'workflow_dispatch'
         run: python tools/V27Balance/verify_committed_artifacts.py

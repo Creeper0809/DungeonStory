@@ -3,6 +3,9 @@ param(
     [Parameter(Mandatory = $true)][string]$PortfolioCsv,
     [Parameter(Mandatory = $true)][string]$CentralStateDirectory,
     [Parameter(Mandatory = $true)][string]$ExpectedSourceDigest,
+    [Parameter(Mandatory = $true)]
+    [ValidatePattern('^[0-9a-f]{64}$')]
+    [string]$ExpectedSceneDigest,
     [Parameter(Mandatory = $true)][string]$ExpectedPortfolioDigest,
     [Parameter(Mandatory = $true)][string]$ExpectedMeasurementPortfolioDigest,
     [Parameter(Mandatory = $true)][string]$ExpectedAuthorityTreeDigest,
@@ -20,8 +23,7 @@ param(
         'C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Unity.exe'
 )
 $ErrorActionPreference = 'Stop'
-$officialSceneSha256 =
-    '6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40'
+$officialSceneSha256 = $ExpectedSceneDigest
 $officialSceneMetaSha256 =
     '0c7f1e7dac6804c5e9bad630433c81b9bb944b7532a9e63d5d938f9f3b56849e'
 $officialBuildSettingsSha256 =
@@ -41,6 +43,7 @@ if (-not (Test-Path -LiteralPath $resolvedWorker -PathType Container) -or
     -not (Test-Path -LiteralPath $resolvedPortfolio -PathType Leaf) -or
     -not (Test-Path -LiteralPath $resolvedUnity -PathType Leaf) -or
     $ExpectedSourceDigest -notmatch '^[0-9a-f]{64}$' -or
+    $ExpectedSceneDigest -notmatch '^[0-9a-f]{64}$' -or
     $ExpectedPortfolioDigest -notmatch '^[0-9a-f]{64}$' -or
     $ExpectedMeasurementPortfolioDigest -notmatch '^[0-9a-f]{64}$' -or
     $ExpectedAuthorityTreeDigest -notmatch '^[0-9a-f]{64}$' -or

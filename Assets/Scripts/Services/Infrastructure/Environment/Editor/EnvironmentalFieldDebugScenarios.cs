@@ -372,7 +372,11 @@ public static class EnvironmentalFieldDebugScenarios
             "configurable thermostat save round trip",
             VerifyThermostatRoundTrip,
             failures);
-        Verify("sparse save round trip", VerifySaveRoundTrip, failures);
+        Verify("heated-cell save round trip", VerifySaveRoundTrip, failures);
+        Verify(
+            "ambient-independent complete save and sparse v3 restore",
+            VerifyAmbientIndependentSaveRoundTrip,
+            failures);
         Verify(
             "narrow facets and atomic field restore",
             VerifyNarrowFacetsAndAtomicRestore,
@@ -404,6 +408,18 @@ public static class EnvironmentalFieldDebugScenarios
         }
 
         Debug.Log("EnvironmentalFieldDebugScenarios passed.");
+    }
+
+    [MenuItem(
+        "DungeonStory/Debug/Run Environmental Ambient-Independent Save Round Trip")]
+    public static void RunAmbientIndependentSaveRoundTrip()
+    {
+        VerifyAmbientIndependentSaveRoundTrip();
+        VerifySaveRoundTrip();
+        VerifyThermostatRoundTrip();
+        VerifyNarrowFacetsAndAtomicRestore();
+        Debug.Log(
+            "Environmental ambient-independent save round trip passed.");
     }
 
     private static bool VerifyThermalSource()
@@ -483,6 +499,237 @@ public static class EnvironmentalFieldDebugScenarios
         {
             source.Dispose();
             target.Dispose();
+        }
+    }
+
+    private static bool VerifyAmbientIndependentSaveRoundTrip()
+    {
+        const int width = 6;
+        const int height = 2;
+        const int cellCount = width * height;
+        Vector2Int exteriorPosition = new Vector2Int(0, 0);
+        Vector2Int thermostatPosition = new Vector2Int(4, 1);
+        TestWorld source = new TestWorld(width, height, 20f);
+        TestWorld target = new TestWorld(width, height, -10f);
+        TestWorld sparseTarget = new TestWorld(width, height, -10f);
+        try
+        {
+            source.Grid.SetAreaType(
+                exteriorPosition,
+                GridCellAreaType.ExteriorPath);
+            target.Grid.SetAreaType(
+                exteriorPosition,
+                GridCellAreaType.ExteriorPath);
+            sparseTarget.Grid.SetAreaType(
+                exteriorPosition,
+                GridCellAreaType.ExteriorPath);
+            source.Calendar.TimeOfDay = global::TimeOfDay.Noon;
+            target.Calendar.TimeOfDay = global::TimeOfDay.Night;
+            sparseTarget.Calendar.TimeOfDay = global::TimeOfDay.Night;
+
+            source.Advance(1);
+            target.Advance(1);
+            sparseTarget.Advance(1);
+            EnvironmentalCellSnapshot[] initialSource =
+                CaptureAllCells(source, cellCount, "source initial");
+
+            source.Add(source.CreateBuilding(
+                "ambient-hvac",
+                thermostatPosition,
+                CreateConfigurableThermostat()));
+            target.Add(target.CreateBuilding(
+                "ambient-hvac",
+                thermostatPosition,
+                CreateConfigurableThermostat()));
+            sparseTarget.Add(sparseTarget.CreateBuilding(
+                "ambient-hvac",
+                thermostatPosition,
+                CreateConfigurableThermostat()));
+            source.Advance(1);
+            target.Advance(1);
+            sparseTarget.Advance(1);
+            Require(
+                source.Runtime.TrySetTargetTemperature(
+                    thermostatPosition,
+                    30f,
+                    out DomainFailure controlFailure),
+                $"source thermostat command failed: {controlFailure.Code}");
+            source.Advance(1);
+
+            EnvironmentalCellSnapshot[] finalSource =
+                CaptureAllCells(source, cellCount, "source heated");
+            int unchangedCells = 0;
+            int changedCells = 0;
+            for (int i = 0; i < cellCount; i++)
+            {
+                if (initialSource[i].TemperatureC
+                    == finalSource[i].TemperatureC)
+                    unchangedCells++;
+                else
+                    changedCells++;
+            }
+            Require(
+                unchangedCells > 0 && changedCells > 0,
+                "complete save fixture did not retain both initial and "
+                + "heater-modified cell values");
+
+            Require(
+                source.Runtime.TryGetCell(
+                    exteriorPosition,
+                    out EnvironmentalCellSnapshot sourceAmbient)
+                && target.Runtime.TryGetCell(
+                    exteriorPosition,
+                    out EnvironmentalCellSnapshot targetAmbient)
+                && sourceAmbient.TemperatureC != targetAmbient.TemperatureC
+                && sourceAmbient.LightLevel != targetAmbient.LightLevel,
+                "source daytime/20C and target night/-10C ambient values "
+                + "did not differ at the exterior cell");
+
+            DungeonEnvironmentalFieldSaveData sourceSave =
+                source.Runtime.Capture();
+            Require(
+                sourceSave.version
+                    == DungeonEnvironmentalFieldSaveData.CurrentVersion
+                && sourceSave.width == width
+                && sourceSave.height == height
+                && sourceSave.cells.Count == cellCount,
+                "complete environmental save did not contain all 12 cells");
+            for (int i = 0; i < cellCount; i++)
+            {
+                EnvironmentalCellSaveData savedCell = sourceSave.cells[i];
+                EnvironmentalCellSnapshot liveCell = finalSource[i];
+                Require(
+                    savedCell.x == liveCell.Position.x
+                    && savedCell.y == liveCell.Position.y
+                    && savedCell.temperatureC == liveCell.TemperatureC
+                    && savedCell.airQuality == liveCell.AirQuality
+                    && savedCell.lightLevel == liveCell.LightLevel,
+                    $"complete environmental save cell {i} did not match "
+                    + "the live source field");
+            }
+            Require(
+                sourceSave.thermostats.Count == 1
+                && sourceSave.nextControlOutcomeSequence > 0,
+                "fixture did not persist thermostat/control metadata");
+            string sourceJson = JsonUtility.ToJson(sourceSave);
+            DungeonEnvironmentalFieldSaveData serializedSource =
+                JsonUtility.FromJson<DungeonEnvironmentalFieldSaveData>(
+                    sourceJson);
+            target.Runtime.Restore(
+                target.Runtime.PrepareRestore(serializedSource));
+            DungeonEnvironmentalFieldSaveData restoredSave =
+                target.Runtime.Capture();
+            RequireSavedCellsExactlyMatch(
+                sourceSave.cells,
+                restoredSave.cells,
+                cellCount,
+                "ambient-independent restore");
+            Require(
+                string.Equals(
+                    sourceJson,
+                    JsonUtility.ToJson(restoredSave),
+                    StringComparison.Ordinal),
+                "complete environmental save JSON changed after restoring "
+                + "under different weather/light ambient values");
+
+            DungeonEnvironmentalFieldSaveData sparseSave =
+                JsonUtility.FromJson<DungeonEnvironmentalFieldSaveData>(
+                    sourceJson);
+            EnvironmentalCellSaveData retained = sparseSave.cells.Single(
+                cell => cell.x == thermostatPosition.x
+                    && cell.y == thermostatPosition.y);
+            sparseSave.cells = new List<EnvironmentalCellSaveData> { retained };
+            Require(
+                sparseSave.version
+                    == DungeonEnvironmentalFieldSaveData.CurrentVersion
+                && sparseSave.cells.Count < cellCount,
+                "sparse compatibility fixture is not a partial v3 payload");
+            sparseTarget.Runtime.Restore(
+                sparseTarget.Runtime.PrepareRestore(sparseSave));
+            Require(
+                sparseTarget.Runtime.TryGetCell(
+                    thermostatPosition,
+                    out EnvironmentalCellSnapshot retainedAfter)
+                && retainedAfter.TemperatureC == retained.temperatureC
+                && retainedAfter.AirQuality == retained.airQuality
+                && retainedAfter.LightLevel == retained.lightLevel,
+                "sparse v3 restore did not apply its retained cell exactly");
+            Require(
+                sparseTarget.Runtime.TryGetCell(
+                    exteriorPosition,
+                    out EnvironmentalCellSnapshot omittedAfter)
+                && omittedAfter.Position == exteriorPosition
+                && omittedAfter.TemperatureC == -10f
+                && omittedAfter.AirQuality == 100f
+                && omittedAfter.LightLevel
+                    == DungeonStory.Environment
+                        .EnvironmentalFieldSimulationRules
+                        .ResolveExteriorAmbientLight(isNight: true),
+                "sparse v3 restore did not initialize an omitted cell from "
+                + "the target environment");
+            DungeonEnvironmentalFieldSaveData sparseRestored =
+                sparseTarget.Runtime.Capture();
+            Require(
+                sparseRestored.thermostats.Count
+                    == sourceSave.thermostats.Count
+                && sparseRestored.thermostats[0].buildingInstanceId
+                    == sourceSave.thermostats[0].buildingInstanceId
+                && sparseRestored.thermostats[0].targetTemperatureC
+                    == sourceSave.thermostats[0].targetTemperatureC
+                && sparseRestored.nextControlOutcomeSequence
+                    == sourceSave.nextControlOutcomeSequence
+                && sparseRestored.controlOutcomes.Count
+                    == sourceSave.controlOutcomes.Count,
+                "sparse v3 restore changed thermostat/control metadata");
+            return true;
+        }
+        finally
+        {
+            source.Dispose();
+            target.Dispose();
+            sparseTarget.Dispose();
+        }
+    }
+
+    private static EnvironmentalCellSnapshot[] CaptureAllCells(
+        TestWorld world,
+        int cellCount,
+        string label)
+    {
+        var result = new EnvironmentalCellSnapshot[cellCount];
+        for (int index = 0; index < cellCount; index++)
+        {
+            Vector2Int position = world.Grid.GetPositionFromCellIndex(index);
+            Require(
+                world.Runtime.TryGetCell(position, out result[index]),
+                $"{label} cell {position} was unavailable");
+        }
+        return result;
+    }
+
+    private static void RequireSavedCellsExactlyMatch(
+        IReadOnlyList<EnvironmentalCellSaveData> expected,
+        IReadOnlyList<EnvironmentalCellSaveData> actual,
+        int cellCount,
+        string label)
+    {
+        Require(
+            expected != null
+            && actual != null
+            && expected.Count == cellCount
+            && actual.Count == cellCount,
+            $"{label} did not expose exactly {cellCount} cells");
+        for (int i = 0; i < cellCount; i++)
+        {
+            EnvironmentalCellSaveData expectedCell = expected[i];
+            EnvironmentalCellSaveData actualCell = actual[i];
+            Require(
+                expectedCell.x == actualCell.x
+                && expectedCell.y == actualCell.y
+                && expectedCell.temperatureC == actualCell.temperatureC
+                && expectedCell.airQuality == actualCell.airQuality
+                && expectedCell.lightLevel == actualCell.lightLevel,
+                $"{label} cell {i} changed");
         }
     }
 
@@ -981,14 +1228,11 @@ public static class EnvironmentalFieldDebugScenarios
                 "failed field preparation mutated live state");
 
             DungeonEnvironmentalFieldSaveData valid = world.Runtime.Capture();
-            valid.cells.Add(new EnvironmentalCellSaveData
-            {
-                x = 0,
-                y = 0,
-                temperatureC = 5f,
-                airQuality = 90f,
-                lightLevel = 40f
-            });
+            EnvironmentalCellSaveData modifiedCell =
+                valid.cells.Single(cell => cell.x == 0 && cell.y == 0);
+            modifiedCell.temperatureC = 5f;
+            modifiedCell.airQuality = 90f;
+            modifiedCell.lightLevel = 40f;
             EnvironmentalFieldRestoreCandidate candidate =
                 world.Runtime.PrepareRestore(valid);
             Require(

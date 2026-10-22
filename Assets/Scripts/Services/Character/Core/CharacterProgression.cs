@@ -43,6 +43,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
     private IGameSessionStateProvider sessionStateProvider;
     private ICharacterSkillActivationTransaction skillActivationTransactions;
     private bool suppressPublicSkillNotifications;
+    private bool preparationPreview;
 
     public CharacterActor Actor => actor;
     public CharacterSkillSystemSettingsSO SkillSettings => settingsProvider?.Settings
@@ -148,6 +149,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         this.facts = facts;
         this.skillAcquisitions = skillAcquisitions;
         this.sessionStateProvider = sessionStateProvider;
+        preparationPreview = false;
         CompleteConfigurationIfReady();
     }
 
@@ -167,6 +169,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         this.profileProjector = profileProjector
             ?? throw new ArgumentNullException(nameof(profileProjector));
         levelEvents = gameEventBus ?? throw new ArgumentNullException(nameof(gameEventBus));
+        preparationPreview = false;
         CompleteConfigurationIfReady();
     }
 
@@ -174,6 +177,13 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         ICharacterSkillGenerationService generationService,
         ICharacterSkillSystemSettingsProvider settingsProvider,
         CharacterProgressionProfileProjector profileProjector)
+        => ConfigurePreparedGeneration(generationService, settingsProvider, profileProjector, preview: true);
+
+    private void ConfigurePreparedGeneration(
+        ICharacterSkillGenerationService generationService,
+        ICharacterSkillSystemSettingsProvider settingsProvider,
+        CharacterProgressionProfileProjector profileProjector,
+        bool preview)
     {
         this.generationService = generationService
             ?? throw new ArgumentNullException(nameof(generationService));
@@ -181,6 +191,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             ?? throw new ArgumentNullException(nameof(settingsProvider));
         this.profileProjector = profileProjector
             ?? throw new ArgumentNullException(nameof(profileProjector));
+        preparationPreview = preview;
         CompleteConfigurationIfReady();
     }
 
@@ -203,7 +214,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             ?? throw new ArgumentNullException(nameof(skillAcquisitions));
         this.sessionStateProvider = sessionStateProvider
             ?? throw new ArgumentNullException(nameof(sessionStateProvider));
-        ConfigurePreview(generationService, settingsProvider, profileProjector);
+        ConfigurePreparedGeneration(generationService, settingsProvider, profileProjector, preview: false);
     }
 
     public static int GetExperienceRequired(int currentLevel)
@@ -923,7 +934,9 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             generationService?.CancelRequests(this);
             return;
         }
-        ResumePendingRequests();
+        // Restoring a world is not a new narrative retry. Keep exhausted
+        // presentation requests and their failure diagnostics exactly as saved.
+        ResumePendingRequests(retryDeferredPresentations: false);
     }
 
     public void RestorePersistentState(
@@ -1236,7 +1249,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             EnsureDraft(CharacterSkillKind.Ultimate, MaxLevel);
         }
 
-        ResumePendingRequests();
+        ResumePendingRequests(retryDeferredPresentations: true);
     }
 
     private void EnsureDraft(CharacterSkillKind kind, int unlockLevel)
@@ -1280,7 +1293,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
             EnsureUnlockedDrafts();
     }
 
-    private void ResumePendingRequests()
+    private void ResumePendingRequests(bool retryDeferredPresentations)
     {
         if (generationService == null)
         {
@@ -1290,7 +1303,9 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
         foreach (CharacterSkillDraft draft in GrowthState.drafts.Where(item => item != null
             && !item.IsInvalidated()
             && !item.isReady
-            && !item.permanentlyChosen))
+            && !item.permanentlyChosen
+            && (retryDeferredPresentations
+                || item.presentationState != CharacterSkillPresentationState.AwaitingNarrativeRetry)))
         {
             generationService.RequestDraft(this, draft);
         }
@@ -1486,6 +1501,32 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
                 return false;
             }
             selected.Add(fact);
+        }
+        if (preparationPreview)
+        {
+            // A reroll candidate owns only its prepared selection. It has no
+            // gameplay outcome identity, journal or gameplay acquisition revision.
+            // Population preparation uses the world transaction below instead.
+            if (actor?.IsUnpublishedComposition != true
+                || GrowthState.startingProfile?.prepared != true || exactIds.Count != 0)
+            { error = "skill-acquisition-preview-contract-invalid"; return false; }
+            CharacterGrowthState beforePreview = GrowthState.Clone();
+            int[] beforePreviewUses = selected.Select(value => value.influenceUseCount).ToArray();
+            try
+            {
+                foreach (CharacterNarrativeFact fact in selected) fact.influenceUseCount++;
+                ownerCommit();
+                return true;
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                && exception is not StackOverflowException && exception is not AccessViolationException)
+            {
+                growthState = beforePreview;
+                for (int i = 0; i < selected.Count; i++) selected[i].influenceUseCount = beforePreviewUses[i];
+                RebuildLegacySkillViews();
+                error = "skill-acquisition-preview-command:" + exception.Message;
+                return false;
+            }
         }
         long beforeAcquisitionRevision = GrowthState.skillAcquisitionRevision;
         if (beforeAcquisitionRevision == long.MaxValue)

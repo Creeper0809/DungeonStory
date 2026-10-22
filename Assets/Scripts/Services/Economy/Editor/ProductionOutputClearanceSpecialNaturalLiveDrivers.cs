@@ -541,7 +541,12 @@ public abstract class ProductionOutputClearanceSpecialNaturalLiveDriver<TPayload
         if (string.IsNullOrWhiteSpace(value)
             || !string.Equals(value, value.Trim(), StringComparison.Ordinal)
             || value.Any(char.IsWhiteSpace))
+        {
+            // Result codes are single tokens; retain the host's detailed restore
+            // diagnostics before returning the existing canonical failure code.
+            Debug.Log($"V27_NATURAL_DRIVER_FAILURE code={fallback};detail={value}");
             return fallback;
+        }
         return value;
     }
 }

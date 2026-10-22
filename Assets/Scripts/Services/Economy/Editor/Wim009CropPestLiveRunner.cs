@@ -399,8 +399,20 @@ public sealed class Wim009CropPestLiveRunner
         var plot = Plot(id);
         Require(crops.TryGetWork(plot, BuiltInWorkTypeIds.Harvest, out var work) && work.Available,
             "Harvest unavailable: " + work.UnavailableReason);
+        CharacterActor harvester = scope.Container.Resolve<ICharacterWorldQuery>()
+            .Characters
+            .Select(CharacterActorCollection.GetCanonical)
+            .Where(actor => actor != null
+                && !actor.IsDead
+                && actor.CurrentLifecycleState == CharacterLifecycleState.Active
+                && CharacterPersistentIdentity.TryGet(actor, out _))
+            .OrderBy(actor => actor.Identity.PersistentId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        Require(harvester != null,
+            "Capacity-blocked harvest requires an active canonical worker.");
         int beforePrimary = Count(crop.HarvestItemId), beforeSeed = Count(crop.SeedItemId);
-        Require(crops.ApplyWork(plot, BuiltInWorkTypeIds.Harvest, work.RequiredWork, out bool completed) && !completed,
+        Require(crops.ApplyWork(plot, BuiltInWorkTypeIds.Harvest, work.RequiredWork,
+                harvester, out bool completed) && !completed,
             "Capacity-blocked actual harvest did not freeze its output for retry.");
         var pending = Row(id).pendingHarvest;
         Require(pending.phase == CropHarvestOutputPhase.Frozen && pending.outputPublication.IsEmpty

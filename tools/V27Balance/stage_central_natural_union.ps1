@@ -13,12 +13,14 @@ quarantined and the prior directory is restored.
 
 .EXAMPLE
 $source = '<64-character-current-source-digest>'
+$scene = '<64-character-official-scene-digest>'
 $mode = 'bootstrap'
 $authority = '<64-character-profile-authority-digest>'
 $central = "../DungeonStoryV27NaturalCentral/$source/$mode/$authority"
 & ./tools/V27Balance/stage_central_natural_union.ps1 `
     -CentralUnionDirectory $central `
     -ExpectedSourceDigest $source `
+    -ExpectedSceneDigest $scene `
     -ExpectedProfileMode $mode `
     -ExpectedProfileAuthorityDigest $authority `
     -ExpectedShardKeySetDigest '<64-character-shard-key-set-digest>' `
@@ -30,6 +32,7 @@ $central = "../DungeonStoryV27NaturalCentral/$source/$mode/$authority"
 & ./tools/V27Balance/stage_central_natural_union.ps1 `
     -CentralUnionDirectory $central `
     -ExpectedSourceDigest $source `
+    -ExpectedSceneDigest $scene `
     -ExpectedProfileMode $mode `
     -ExpectedProfileAuthorityDigest $authority `
     -ExpectedShardKeySetDigest '<64-character-shard-key-set-digest>' `
@@ -75,9 +78,9 @@ param(
 
     [int]$ExpectedFirstSeed = 157181,
 
+    [Parameter(Mandatory = $true)]
     [ValidatePattern('^[0-9a-f]{64}$')]
-    [string]$ExpectedSceneDigest =
-        '6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40',
+    [string]$ExpectedSceneDigest,
 
     [switch]$ValidateOnly
 )

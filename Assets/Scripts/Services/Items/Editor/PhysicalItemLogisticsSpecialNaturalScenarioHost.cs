@@ -354,8 +354,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
                  turn < NaturalSpecialCropGrowthMaximumTurns;
                  turn++)
             {
-                PhysicalItemLogisticsPlayModeVerificationRunner
-                    .EnsureVerificationTimeScale();
+                EnsureNaturalMeasurementTimeScale();
                 state.Crops.Tick();
                 if (state.Crops.TryGetWork(
                         state.Facility,
@@ -691,7 +690,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             state.Content = owner.Resolve<IResourceEconomyContentCatalog>(scope);
             state.GameContent = owner.Resolve<IGameContentCatalog>(scope);
             state.World = owner.Resolve<ICharacterAiWorldRegistry>(scope);
-            state.SaveRegistry = owner.Resolve<IDungeonSaveSectionRegistry>(scope);
+            state.SaveService = owner.Resolve<IDungeonGameSaveService>(scope);
             state.ProductionBridge = owner.Resolve<IProductionAssemblyBridge>(scope);
             state.Workshops = owner.Resolve<IProductionWorkshopRuntime>(scope);
             state.Rooms = owner.Resolve<IRoomLayoutCache>(scope);
@@ -747,7 +746,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
                 && state.World != null
                 && state.World.TryGetGrid(out state.Grid)
                 && state.Grid != null
-                && state.SaveRegistry != null
+                && state.SaveService != null
                 && state.ProductionBridge != null
                 && state.Workshops != null
                 && state.Rooms != null
@@ -971,7 +970,6 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             failureReason = string.Empty;
             state.CheckpointTime = state.Clock.Time;
             state.CheckpointFrame = state.Clock.FrameCount;
-            state.OriginalTimeScale = Time.timeScale;
             state.HasOriginalWeather = state.SurvivalEnvironment != null;
             if (state.HasOriginalWeather)
             {
@@ -981,10 +979,11 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             state.ClockDiagnostics.RebaseDeterministicCheckpointTime(
                 state.CheckpointTime,
                 state.CheckpointFrame);
-            state.Baseline = state.SaveRegistry.CaptureAll();
+            state.Baseline = state.SaveService.FromJson(
+                state.SaveService.ToJson(state.SaveService.Capture()));
             state.BaselineFingerprint = ComputeTextSha256(
-                CaptureRestoreStableWholeRootSaveFingerprint(state.Baseline));
-            return (state.Baseline.Count > 0
+                CaptureRestoreStableWholeRootSaveFingerprint(state.Baseline.sections, expectedRestore: true));
+            return (state.Baseline.sections.Count > 0
                     && state.BaselineFingerprint.Length == 64)
                 || Fail("special-natural-host-checkpoint-capture-failed",
                     out failureReason);
@@ -992,12 +991,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
 
         private static void EnsureNaturalMeasurementTimeScale()
         {
-            if (!Mathf.Approximately(
-                    Time.timeScale,
-                    NaturalPortfolioAcceleratedTimeScale))
-            {
-                Time.timeScale = NaturalPortfolioAcceleratedTimeScale;
-            }
+            NaturalPortfolioTimeScope.ApplyTimeScale(NaturalPortfolioAcceleratedTimeScale);
         }
 
         private bool TryCreatePhysicalFixture(
@@ -2519,7 +2513,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             out string failureReason)
         {
             failureReason = string.Empty;
-            if (state == null || state.SaveRegistry == null
+            if (state == null || state.SaveService == null
                 || state.Baseline == null)
             {
                 active = null;
@@ -2530,20 +2524,18 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
                 state,
                 out string warehouseRestoreFailure);
             owner.RestoreBrain();
-            Time.timeScale = state.OriginalTimeScale;
             if (state.HasOriginalWeather && state.SurvivalDebug != null)
                 state.SurvivalDebug.DebugSetWeather(state.OriginalWeather);
             state.ClockDiagnostics.RebaseDeterministicCheckpointTime(
                 state.CheckpointTime,
                 state.CheckpointFrame);
-            DungeonGameRestoreReport report = new();
-            bool restored = state.SaveRegistry.RestoreAll(state.Baseline, report)
+            bool restored = state.SaveService.TryRestore(state.Baseline, out DungeonGameRestoreReport report)
                 && report.Success;
             state.ClockDiagnostics.RebaseDeterministicCheckpointTime(
                 state.CheckpointTime,
                 state.CheckpointFrame);
             List<DungeonSaveSectionEnvelope> recaptured = restored
-                ? state.SaveRegistry.CaptureAll()
+                ? state.SaveService.Capture().sections
                 : new List<DungeonSaveSectionEnvelope>();
             string restoredFingerprint = restored
                 ? ComputeTextSha256(
@@ -2563,7 +2555,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
                         StringComparison.Ordinal));
             string restoreDifference = restored
                 ? DescribeRestoreStableWholeRootSaveDifference(
-                    state.Baseline,
+                    state.Baseline.sections,
                     recaptured)
                 : "recapture-skipped";
             string restoreErrors = report.Errors.Count == 0
@@ -2728,7 +2720,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             internal IResourceEconomyContentCatalog Content;
             internal IGameContentCatalog GameContent;
             internal ICharacterAiWorldRegistry World;
-            internal IDungeonSaveSectionRegistry SaveRegistry;
+            internal IDungeonGameSaveService SaveService;
             internal IProductionAssemblyBridge ProductionBridge;
             internal IProductionWorkshopRuntime Workshops;
             internal IRoomLayoutCache Rooms;
@@ -2778,11 +2770,10 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
                 CropGenomeWitnesses;
             internal readonly List<Facility> CreatedSupports = new();
             internal ProductionOutputClearanceNaturalPreparedScenario Scenario;
-            internal List<DungeonSaveSectionEnvelope> Baseline;
+            internal DungeonGameSaveData Baseline;
             internal string BaselineFingerprint = string.Empty;
             internal float CheckpointTime;
             internal int CheckpointFrame;
-            internal float OriginalTimeScale;
             internal bool HasOriginalWeather;
             internal SurvivalWeatherType OriginalWeather;
             internal string WarehouseDestinationId = string.Empty;

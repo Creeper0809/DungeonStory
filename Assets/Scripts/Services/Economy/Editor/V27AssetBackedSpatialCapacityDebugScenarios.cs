@@ -457,7 +457,9 @@ public static class V27AssetBackedSpatialCapacityDebugScenarios
                     absolutePath);
             canonical.Append(path.Replace('\\', '/'))
                 .Append('=')
-                .Append(HashSpatialSourceFile(absolutePath))
+                .Append(Path.GetExtension(path) == ".cs"
+                    ? V27CurrentSourceEvidenceDigest.ComputeSourceFileDigest(path)
+                    : HashSpatialSourceFile(absolutePath))
                 .Append('\n');
         }
         BuildingSO[] assets = LoadAssets();

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 using VContainer;
@@ -23,6 +24,9 @@ public static class WorldResourceDebugScenarios
 
         try
         {
+            V27OutputCapacityEvidenceDebugScenarios.CaptureCurrentRunIdentity(
+                out string currentSourceDigest,
+                out string gameplaySceneSha256);
             Require(Application.isPlaying, "Play Mode is required.");
             DungeonRuntimeLifetimeScope scope =
                 UnityEngine.Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>();
@@ -171,6 +175,11 @@ public static class WorldResourceDebugScenarios
 
             lines.Add($"logsBefore={logsBefore}");
             lines.Add($"logsAfter={logsAfter}");
+            V27OutputCapacityEvidenceDebugScenarios.RequireUnchangedRunIdentity(
+                currentSourceDigest,
+                gameplaySceneSha256);
+            lines.Add("currentSourceDigest=" + currentSourceDigest);
+            lines.Add("gameplaySceneSha256=" + gameplaySceneSha256);
             lines.Add("valid=true");
             WriteReport(lines);
             Debug.Log(string.Join(Environment.NewLine, lines));
@@ -509,6 +518,14 @@ public static class WorldResourceDebugScenarios
     {
         string absolutePath = Path.GetFullPath(ReportPath);
         Directory.CreateDirectory(Path.GetDirectoryName(absolutePath) ?? ".");
-        File.WriteAllLines(absolutePath, lines);
+        string report = string.Join("\n", lines)
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n');
+        if (!report.EndsWith("\n", StringComparison.Ordinal))
+            report += "\n";
+        File.WriteAllText(
+            absolutePath,
+            report,
+            new UTF8Encoding(false, true));
     }
 }
