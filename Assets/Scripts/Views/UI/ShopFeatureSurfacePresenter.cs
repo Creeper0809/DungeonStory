@@ -367,7 +367,8 @@ public sealed class ShopFeatureCommandService : IShopFeatureCommandService
             purchaseKey,
             (DailyFacilityShopRuntime runtime, GameSessionState gameData, out FacilityShopPurchaseResult result) =>
                 runtime.TryPurchaseBasicOffer(index, gameData, out result),
-            "기본 구매");
+            "기본 구매",
+            repeatable: true);
     }
 
     public ShopFeatureCommandResult AdjustProcurementBudget(
@@ -459,14 +460,15 @@ public sealed class ShopFeatureCommandService : IShopFeatureCommandService
     private ShopFeatureCommandResult Purchase(
         string purchaseKey,
         PurchaseOperation operation,
-        string label)
+        string label,
+        bool repeatable = false)
     {
         if (string.IsNullOrWhiteSpace(purchaseKey))
         {
             return new ShopFeatureCommandResult(false, $"{label} 실패: 상품 식별자가 없습니다.");
         }
 
-        if (purchasedKeys.Contains(purchaseKey))
+        if (!repeatable && purchasedKeys.Contains(purchaseKey))
         {
             return new ShopFeatureCommandResult(false, "이미 구매한 상품입니다.");
         }
@@ -488,7 +490,7 @@ public sealed class ShopFeatureCommandService : IShopFeatureCommandService
         int afterMoney = gameData.holdingMoney != null
             ? gameData.holdingMoney.Value
             : -1;
-        if (succeeded)
+        if (succeeded && !repeatable)
         {
             purchasedKeys.Add(purchaseKey);
         }
@@ -697,7 +699,8 @@ public sealed class ShopFeatureSurfacePresenter : IFeatureSurfaceTabPresenter
                 () => Execute(
                     view,
                     captured,
-                    commandService.PurchaseBasic),
+                    commandService.PurchaseBasic,
+                    repeatable: true),
                 CardHeight);
         }
 
@@ -742,16 +745,17 @@ public sealed class ShopFeatureSurfacePresenter : IFeatureSurfaceTabPresenter
     private static void Execute(
         IFeatureSurfaceView view,
         ShopFeatureOfferRow row,
-        Func<int, string, ShopFeatureCommandResult> command)
+        Func<int, string, ShopFeatureCommandResult> command,
+        bool repeatable = false)
     {
-        if (row.IsPurchased)
+        if (!repeatable && row.IsPurchased)
         {
             view.ShowFeedback($"{row.Title}은 이미 구매했습니다.");
             return;
         }
 
         ShopFeatureCommandResult result = command(row.Index, row.PurchaseKey);
-        if (result.Succeeded)
+        if (result.Succeeded && !repeatable)
         {
             row.IsPurchased = true;
         }

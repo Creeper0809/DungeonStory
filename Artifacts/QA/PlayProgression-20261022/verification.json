@@ -1,0 +1,44 @@
+{
+  "schema": "targeted-play-progression-v1",
+  "sourceLabel": "r81",
+  "compiledSource": "e66d9bc942104c06ee90ed583818aeafc8207e4f9ec89aeba0f7fa154a8dd6a9",
+  "configurationDigest": "50162526d9c417248bffd7176c4c22064e89e82badaa6becb3adc1a6e027d726",
+  "sourceManifestInputCount": 21615,
+  "nativePrePostInputDrift": [],
+  "execution": "Unity 6000.3.8f1; cuha Linux headless; isolated persistence; no user desktop input",
+  "passed": true,
+  "evidence": {
+    "first-run-progression.txt": "b4e9dc915923c7b4228ff8bca9927f75a882a278c0e94ef571324c49d3ca2bfe",
+    "run-summary.json": "1706b754d4d385d20ca924cb53ec89b2f175a57c2fe87f7625027e79716f99cf",
+    "unity.log": "915bab0b73f33594d35ae14366726a39e1a944c6ec2cdf6de2052dc327968244"
+  },
+  "scope": [
+    "authored GameplayScene boot with controlled prepared party skills",
+    "visible/raycasted shop UI pointer handlers and physical blueprint publication",
+    "actual AI blueprint haul and exact archive custody cleanup",
+    "research action, approved work/wear, exhausted-tool drain and physical replacement",
+    "research completion and next objective",
+    "actual aggregate save capture/preflight and sealed JSON at exhausted-tool checkpoint",
+    "two basic facility purchases with exact money, kit count and sequence",
+    "invalid purchases unchanged and limited daily-offer duplicate rejected"
+  ],
+  "limitations": [
+    "No Title/preparation-screen input or live model inference claim",
+    "Controlled research worker, needs, tool supply and haul action selection; command once per committed work cycle keeps the fixture at one research desk",
+    "No rendered pixels/screenshots or exhaustive content/seed certification"
+  ],
+  "priorFailedRuns": [
+    "r72-play-first-progression",
+    "r73-play-first-progression",
+    "r74-play-first-progression",
+    "r75-play-first-progression",
+    "r76-play-first-progression",
+    "r77-play-first-progression",
+    "r78-play-first-progression",
+    "r79-play-first-progression",
+    "r80-play-first-progression"
+  ],
+  "priorFailureNote": "Preserved externally; partial successes are not current whole-flow PASS.",
+  "rawReportSha256": "18fd18ee8a32866aa32937a4f058190053b4c854490ff2325e20d61acf5f8319",
+  "reportNormalization": "Trailing spaces removed from the copied report; native original preserved in external r81 run evidence."
+}

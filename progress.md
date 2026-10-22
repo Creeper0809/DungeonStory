@@ -1,5 +1,25 @@
 # DungeonStory Current Progress
 
+## 2026-10-22 실제 플레이 진행 점검 시작
+
+r81 최종 짧은 계약5개(core160초/character150초/effects150초/world240초/crop190초)는 모두 exit0/C#0/stop없음/drift0/console0이다. source e66d9bc942104c06ee90ed583818aeafc8207e4f9ec89aeba0f7fa154a8dd6a9 및 configuration50162526d9c417248bffd7176c4c22064e89e82badaa6becb3adc1a6e027d726로 단일 결합했다. actual world는104/104 sections JSON·공식 복원·canonical baseline 복구, crop은 실제 수확/복원/재시도·cleanup PASS다. Python25/25, query5/5, 콘텐츠/지식 인덱스 재생성·내용/링크검사 및 freshness2개 모두failure0이다. Unity0/operation.lock exclusive 확인, source/verify 창 닫힘. 최종 diff 마감 뒤 원격 통합 결과를 GitHub PR/main CI와 외부 play-progression-integration-final.json으로 확인한다.
+
+r81-play-first-progression은210초/exit0/C#0/stop없음/drift0, consoleErrors/Warnings0으로 전체 PASS했다. 실제 UI blueprint120골드 결제/물리150g 배송·archive AI haul, 1300g 도구의 소진→권위 해제/회수 exact1개, 실제104-section aggregate capture/preflight·sealed JSON, sequence2 AI haul/ready, 승인6.6WU의3회 AI 작업31.3초→첫17WU research:commerce:logistics 완료·DefendInvasion 목표 전환을 확인했다. 기본 UI2회는88×2/kit0→2/money4816→4640/sequence1→3, invalid key/index 무변경과 daily 중복 거절 PASS다. 자연 첫 설계도 운반과 통제된 연구·도구 공급 범위를 구분하며 Title/model/pixels는 NOT_RUN이다. r79의 반복 idle replan 원인 및 r80의 실제 third work11칸 이동/자세 관측을 바탕으로 완료주기당1명령·기존 controller 배속을 적용했으며45초 기준을 늘리지 않았다. 원본 실패 로그는 외부 보존, 최종 evidence는 PlayProgression-20261022에 마감한다.
+
+r78 actual240초/exit1/C#0/stop없음/drift0/console0: 초기 Loose·실제 archive haul, exact drain·104-section save JSON, 교체 AI haul/ready와 연구 재개 명령, 기본 UI2회 구매는 모두 PASS. 연구45초 내 프로젝트 완료가 없어 전체 FAIL다. runtime을 더 바꾸지 않고 terminal/Unity0/lock 확인 후 verifier에5초 간격 시간/approved work/현재 프로젝트 진행/도구 상태 관측만 추가했다. 오래된 firstActiveProgress 참조 대신 현재 State.Projects.GetProgress를 읽어 상태 교체의 영향을 구분한다.
+
+r77 actual220초/exit1/C#0/stop없음/drift0/console0: 소진 도구의 exact drain과 실제104개 aggregate capture/preflight·sealed JSON PASS. 실패는 첫 Loose 관측 전에 NPC가 이미 픽업한 경합 및 explicit research priority가 autonomous AIHaul을 차단하는 기존 의도와 fixture 요구의 충돌이다(AIHaul.TryGetEnabledPriority 원본 확인). terminal/Unity0/lock exclusive 후 Editor verifier1파일만 변경했다. 첫 publication까지 pause를 소유·finally 복구하고, replacement haul 전 ClearPriorityWorkTarget/후 TrySetPriorityWorkTarget로 실제 명령을 사용한다. 원래 총45초 연구 budget·물리 회수·완료 단언은 유지했다.
+
+r76 core 첫 실행은201초/C#0에서 resource guard로 중단했다(전체 PASS 아님). 종료/lock 확인 후 해당 실행이 남긴 정확한 owned compiler만 정리하고 같은 소스로 재실행한 r76-impact-core-retry는160초/exit0/C#0/stop없음/drift0/console0, live/restore/JSON/저장 변조·누락 거절 PASS였다. 이어 actual Play140초/exit1은 capturedErrors/Warnings0, canRun=true여서 저장 결함은 사라졌지만 verifier가45초 기다린 뒤 이미 checkpoint GC된 영수증을 찾고 교체 후 연구를 재개하지 않아 전체 FAIL였다. 원본 실패 보존, terminal/Unity0/lock exclusive 후 Editor verifier1파일만 순서 수정하고 actual aggregate capture/JSON checkpoint를 추가했다. 원래 총45초 연구 budget은 유지한다.
+
+r75는300초/exit1/C#0/stop없음/drift0으로 실제 회수·교체와 기본 재구매 PASS, 연구 완료는 autosave exact join에서 다시 FAIL였다. 기존 validator3곳이 요구하는 definition authority fingerprint와 runtime producer의 transient admission fingerprint가 다른 것을 원본으로 확인했다. validator를 완화하지 않고 producer claim을 기존 slot의 저장된 projection에 맞췄다. terminal/Unity0/lock exclusive 이후 r76 편집이다.
+
+r74는260초/exit1/C#0/stop없음/drift0이다. 실제 소진 도구 drain은 ClosedAwaitingCheckpointGc/권위 해제/input=release1·1300g, 교체 sequence2 실제 운반/공급 준비와 기본 UI2회 구매는 통과했다. 전체는 Deferred child/upper 저장 join 불일치로 autosave가 안전 정지시켜 연구 완료 FAIL였다. terminal/Unity0/lock exclusive 확인 뒤 해당 readback 반영과 pending JSON 회귀를 수정했다. 검사·자동저장 실패 보호를 낮추지 않는다.
+
+실제 r72 실행340초/exit1/C#0/drift0에서 연구 첫 작업 후 도구 drain 영구 정지와 autosave upper/child join 거절을 재현했다. r73 수정 실행250초/exit1/C#0/drift0/console0에서는 기본 시설 실제 UI2회→키트2/88×2 결제/sequence+2, invalid key/index 무변경 및 daily 중복 거절 PASS. 전체는 통제 도구의 입고 관측 전에 연구가 선행하여 FAIL이며 연구 완료 PASS로 세지 않는다. r74는 그 운반 단계의 action 집합만 기존 AIHaul로 한정하고 같은 실제 입고/연구/소진·교체 assertion을 유지했다. 최신 실행 label과 동결 상태는 task_plan 현재 단계다. 순수 live/restore/Deferred·실제 fault 회귀는 core batch에 연결했으며 아직 r74 최종 수용 전이다.
+
+main 694c559dda1e 기반 codex/fix-play-progression으로 분리했다. r67-play-primitive는 기존 실제 brain/behavior-tree primitive 그룹 PASS, native80초/exit0/C#0/stop없음/drift0. 증거는 외부 2026-10-21/task/results/editmode-repairs-20261021/r67-play-primitive다. r68 신규 batch 진입점은 기존 사용자 persistence snapshot 금지 guard에서 Play 전에 실패하여 소유 실행만 종료하고 원본 로그를 보존했다. guard는 유지하고 격리 경로 호출부를 수정했다. r69 compile0/exit1은 headless의 queued device input이 UI callback에 전달되지 않은 실행 도구 경계로 분류했으며 게임 구매/연구 PASS가 아니다. r70은 실제 raycast/가시성 검사를 유지하며 기존 pointer dispatch로 callback을 실행한다. 첫 연구 경로와 기본 시설 재구매를 확인 중이며 런타임 수정·최종 수용·원격 통합은 아직이다.
+
 ## 2026-10-22 변경 영향 CI 전환 / 전수 실행 종료
 
 최신 사용자 지시로 소유 r64-v27-bootstrap-resume2 supervisor/Unity만 중단했다. native1517초/exit0/C#0/drift0/stop_reason=supervisor-signal-15이며 의도적 중단이지 전체 PASS가 아니다. terminal/Unity0/operation.lock exclusive EDIT_READY를 확인했다. 원본 scene/meta/build settings와 임시 QA 파일을 SHA로 대조한 뒤 정확한 임시 folder/meta/lease만 같은 실행 증거 폴더에 이동 보존했다. 증거는 외부 `C:/Users/vulpo/Documents/Codex/2026-10-21/task/results/editmode-repairs-20261021/r64-v27-bootstrap-resume2`와 cuha 같은 label에 보존한다.

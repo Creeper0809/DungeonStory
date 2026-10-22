@@ -274,7 +274,8 @@ public sealed class DurableFacilityEquipmentUseRuntime :
             if (projection.ExhaustedAfter)
             {
                 DurableFacilityEquipmentSlotResult close = slotCommands.TryClose(key, "equipment-exhausted");
-                if (!close.Succeeded)
+                if (!close.Succeeded && (close.Status != DurableFacilityEquipmentSlotStatus.Deferred
+                        || close.Snapshot == null))
                     return AppliedWithFault(
                         appliedStatus,
                         close.Snapshot ?? slot,

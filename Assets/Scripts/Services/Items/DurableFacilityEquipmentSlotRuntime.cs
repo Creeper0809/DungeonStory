@@ -504,13 +504,14 @@ public sealed class DurableFacilityEquipmentSlotRuntime :
 
     [GameplayInternalOnly(
         "Resumes every pending common durable-equipment custody drain.",
-        "Items recovery entry point before ordinary gameplay ticks")]
+        "Items recovery driver during live ticks and before restored gameplay resumes")]
     public IReadOnlyList<DurableFacilityEquipmentSlotResult> TryAdvancePending()
     {
         return active.Values
             .Where(value => value.Phase !=
                 DurableFacilityEquipmentSlotLifecyclePhase.Active)
             .OrderBy(value => value.Sequence)
+            .ToArray()
             .Select(AdvanceClose)
             .ToArray();
     }
@@ -924,7 +925,7 @@ public sealed class DurableFacilityEquipmentSlotRuntime :
             if (!capacityAuthority.TryGetCapacityAuthorityFingerprint(
                     state.DestinationId,
                     state.Assignment.DropPosition,
-                    out string authorityFingerprint))
+                    out _))
             {
                 return Deferred(
                     Capture(state),
@@ -944,7 +945,10 @@ public sealed class DurableFacilityEquipmentSlotRuntime :
                 state.Assignment.OwnerFacilityId.Value,
                 state.DestinationId,
                 state.Assignment.DropPosition,
-                authorityFingerprint);
+                // The drain joins the slot's persisted definition authority.
+                // Live admission also hashes transient occupancy/revisions and
+                // is only used above to require a currently registered buffer.
+                state.Projection.SourceAuthorityFingerprint);
             FacilityBufferDestinationCustodyDrainResult prepared =
                 drains.TryPrepare(descriptor);
             if (!prepared.Succeeded || prepared.Snapshot == null)
@@ -967,11 +971,18 @@ public sealed class DurableFacilityEquipmentSlotRuntime :
                 drains.TryAdvance(
                     child.StepOperationId,
                     child.RequestFingerprint);
+            // Deferred may already have released actors or operation custody.
+            // Persist that authoritative readback before returning pending so
+            // an intervening save captures the exact upper/child join.
+            if (advanced.Snapshot != null && (advanced.Succeeded
+                    || advanced.Status == FacilityBufferDestinationCustodyDrainStatus.Deferred))
+            {
+                state.Drain = advanced.Snapshot;
+                child = advanced.Snapshot;
+                revision = advancedRevision;
+            }
             if (!advanced.Succeeded || advanced.Snapshot == null)
                 return FromChildFailure(state, advanced);
-            state.Drain = advanced.Snapshot;
-            child = advanced.Snapshot;
-            revision = advancedRevision;
             if (!child.EffectCommitted)
             {
                 return Deferred(

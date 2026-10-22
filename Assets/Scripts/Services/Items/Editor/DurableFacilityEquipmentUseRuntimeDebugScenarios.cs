@@ -26,6 +26,7 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
         VerifyEffectPreflightCannotWearEquipment();
         VerifyFailedAndThrownEffectsRollbackAcrossUnrelatedRevisionChanges();
         VerifyExhaustionDelegatesToTheCommonSlotDrain();
+        VerifyExhaustionDelegatesToTheCommonSlotDrain(deferredClose: true);
         VerifyCommittedEffectSurvivesPostCommitSlotFaults();
         VerifyAssignedDeliveryAndCommitmentAreNotDoubleCounted();
 
@@ -226,9 +227,10 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
             + disposition);
     }
 
-    private static void VerifyExhaustionDelegatesToTheCommonSlotDrain()
+    private static void VerifyExhaustionDelegatesToTheCommonSlotDrain(bool deferredClose = false)
     {
         Fixture fixture = CreateFixture(CreateStack("stack:last-use", 5d));
+        fixture.Slot.CloseDefers = deferredClose;
         RecordingEffect effect = new();
 
         DurableFacilityEquipmentUseResult result = fixture.Runtime
@@ -250,6 +252,7 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
                 "equipment-exhausted",
                 StringComparison.Ordinal)
             && effect.CommitCalls == 1
+            && string.IsNullOrEmpty(result.PostCommitFaultCode)
             && Nearly(ReadDurability(fixture.Physical, "stack:last-use"), 0d),
             "Wear-to-zero did not commit the effect and enter the common slot drain exactly once.");
     }
@@ -698,6 +701,7 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
         internal string LastCloseReason { get; private set; } = string.Empty;
         internal bool CloseThrows { get; set; }
         internal bool CloseRejects { get; set; }
+        internal bool CloseDefers { get; set; }
         internal bool CaptureThrows { get; set; }
         internal bool CaptureMissing { get; set; }
 
@@ -736,6 +740,10 @@ public static class DurableFacilityEquipmentUseRuntimeDebugScenarios
                     Snapshot,
                     "qa-slot-close-rejected");
             }
+            if (CloseDefers)
+                return new DurableFacilityEquipmentSlotResult(
+                    DurableFacilityEquipmentSlotStatus.Deferred, Snapshot,
+                    "durable-equipment-custody-drain-in-progress");
             return new DurableFacilityEquipmentSlotResult(
                 DurableFacilityEquipmentSlotStatus.Applied,
                 Snapshot,

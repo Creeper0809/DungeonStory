@@ -20,6 +20,7 @@ public static class DurableFacilityEquipmentSlotRuntimeDebugScenarios
     public static void RunAll()
     {
         VerifyRegisteredRuntimeLifecycleIsExactAndExtensionClosed();
+        VerifyRegisteredRuntimeLifecycleIsExactAndExtensionClosed(closeDuringGameplay: true);
 
         Debug.Log(
             "[V27][PASS] Durable facility-equipment slot runtime preserves "
@@ -28,7 +29,7 @@ public static class DurableFacilityEquipmentSlotRuntimeDebugScenarios
             + "sequence-scoped reopening without touching foreign owners.");
     }
 
-    private static void VerifyRegisteredRuntimeLifecycleIsExactAndExtensionClosed()
+    private static void VerifyRegisteredRuntimeLifecycleIsExactAndExtensionClosed(bool closeDuringGameplay = false)
     {
         DurableFacilityEquipmentRequirement requirement = new(
             "arcane-index",
@@ -103,6 +104,9 @@ public static class DurableFacilityEquipmentSlotRuntimeDebugScenarios
             capacityAuthority,
             drain,
             admissionFences);
+        DurableFacilityEquipmentSlotRecoveryRuntime recovery = new(runtime, runtime);
+        recovery.Start();
+        recovery.Tick(); // Consume startup before a new live drain is created.
         FacilityBufferDestinationAdmissionFenceQuery fences = new(
             new IFacilityBufferDestinationAdmissionFenceSource[]
             {
@@ -185,6 +189,18 @@ public static class DurableFacilityEquipmentSlotRuntimeDebugScenarios
             && drain.AdvanceCalls == 1
             && drain.AcknowledgeCalls == 0,
             "Exhausted equipment did not enter the common drain and defer safely.");
+        Require(drain.TryCapture(deferred.Snapshot.Drain.StepOperationId,
+                    out FacilityBufferDestinationCustodyDrainSnapshot deferredChild)
+                && deferredChild.Phase == FacilityBufferDestinationCustodyDrainPhase.ReleasingActors
+                && deferred.Snapshot.Drain.Phase == deferredChild.Phase,
+            "A deferred child advance was not persisted in the upper save projection.");
+        DungeonDurableFacilityEquipmentSaveData pendingSave = JsonUtility.FromJson<
+            DungeonDurableFacilityEquipmentSaveData>(JsonUtility.ToJson(runtime.CaptureSaveData()));
+        Require(pendingSave.slots.Single(value => value.assignmentSequence == 1L).drainPhase
+                == deferredChild.Phase,
+            "JSON capture lost a deferred child's authoritative phase before the next live tick.");
+        DurableFacilityEquipmentCrossAggregateJoin.Validate(
+            pendingSave.slots, new[] { deferredChild });
 
         FacilityBufferDestinationAdmissionFenceSubject fenceSubject = new(
             deferred.Snapshot.DestinationId,
@@ -213,11 +229,17 @@ public static class DurableFacilityEquipmentSlotRuntimeDebugScenarios
             && fences.TryCaptureOpenFence(fenceSubject, out _),
             "A child conflict revoked authority, acknowledged early, or opened admission.");
 
-        DurableFacilityEquipmentSlotRecoveryRuntime recovery = new(
-            runtime,
-            runtime);
-        recovery.OnRestoreCompleted();
-        recovery.OnRestoreCompleted();
+        if (closeDuringGameplay)
+        {
+            recovery.Tick();
+            recovery.Tick();
+            recovery.ValidateBeforeCapture();
+        }
+        else
+        {
+            recovery.OnRestoreCompleted();
+            recovery.OnRestoreCompleted();
+        }
         DurableFacilityEquipmentSlotSnapshot closed = runtime.CaptureAll()
             .Single(value => value.AssignmentSequence == 1L);
         Require(
@@ -232,7 +254,7 @@ public static class DurableFacilityEquipmentSlotRuntimeDebugScenarios
                 closed.DestinationId).Any()
             && !lifecycle.HasOwnerClaim(closed.DestinationId)
             && !fences.TryCaptureOpenFence(fenceSubject, out _),
-            "Synchronous restore recovery did not clear, revoke, acknowledge, close, and replay idempotently before gameplay resumed.");
+            "Live/restore recovery did not clear, revoke, acknowledge, close, and replay idempotently: live=" + closeDuringGameplay);
         AssertDrainOrdering(eventLog);
         AssertForeignAuthorityUnchanged(
             lifecycle,
@@ -800,6 +822,9 @@ public static class DurableFacilityEquipmentSlotRuntimeDebugScenarios
                 : AdvanceDisposition.Commit;
             if (disposition == AdvanceDisposition.Deferred)
             {
+                current = Copy(current, FacilityBufferDestinationCustodyDrainPhase.ReleasingActors,
+                    string.Empty, string.Empty);
+                byStep[stepOperationId] = current;
                 eventLog.Add("drain:advance:deferred");
                 return Failure(
                     FacilityBufferDestinationCustodyDrainStatus.Deferred,

@@ -72,6 +72,9 @@ public static class V27CiEvidenceBatch
         RunProductionCommitIdentityContracts();
         RunNaturalRestoreContracts();
         RunSkillRestoreRetryContracts();
+        DurableFacilityEquipmentSlotRuntimeDebugScenarios.RunAll();
+        DurableFacilityEquipmentUseRuntimeDebugScenarios.RunAll();
+        DurableFacilityEquipmentSaveDebugScenarios.RunAll();
         Debug.Log(V27RandomStreamManifestDebugScenarios.RunAll());
     });
 

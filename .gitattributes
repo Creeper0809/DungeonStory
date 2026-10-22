@@ -212,3 +212,4 @@ Artifacts/QA/v27-balance-audit-second-generation-noop.json text eol=lf
 
 # Preserve cleanup snapshots and byte-hash audit evidence exactly.
 Artifacts/QA/CleanupAudit-20261015-r1/** -text
+Artifacts/QA/PlayProgression-20261022/** -text
