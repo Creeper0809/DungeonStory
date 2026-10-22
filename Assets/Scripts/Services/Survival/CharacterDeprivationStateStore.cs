@@ -1607,8 +1607,25 @@ public static class CharacterDeprivationAuthorityDebugScenarios
 
     private static void VerifyRollbackFreeContract()
     {
-        Require(DungeonDarkSurvivalSaveData.CurrentVersion == 6,
-            "dark-survival payload is not exact V6");
+        Require(DungeonDarkSurvivalSaveData.CurrentVersion == 7,
+            "dark-survival payload is not exact V7");
+        DungeonDarkSurvivalSaveData payload = JsonUtility.FromJson<DungeonDarkSurvivalSaveData>(
+            JsonUtility.ToJson(new DungeonDarkSurvivalSaveData()));
+        CharacterDeprivationPersistenceCoordinator.ValidatePayloadShape(payload);
+        foreach (int unsupportedVersion in new[] { 6, 8 })
+        {
+            payload.version = unsupportedVersion;
+            string before = JsonUtility.ToJson(payload);
+            bool rejected = false;
+            try { CharacterDeprivationPersistenceCoordinator.ValidatePayloadShape(payload); }
+            catch (InvalidOperationException exception)
+            {
+                rejected = exception.Message ==
+                    $"Unsupported dark survival save version {unsupportedVersion}.";
+            }
+            Require(rejected && before == JsonUtility.ToJson(payload),
+                "unsupported dark-survival version was not rejected without mutation");
+        }
         Require(typeof(IDungeonRollbackFreeSaveSection).IsAssignableFrom(
                 typeof(DarkSurvivalSaveSection)),
             "dark-survival save section is not rollback-free");

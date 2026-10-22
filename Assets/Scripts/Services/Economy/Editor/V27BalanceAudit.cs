@@ -4208,6 +4208,10 @@ public static class V27BalanceAudit
             throw new InvalidOperationException(
                 "V27 output-capacity PlayMode evidence is missing.");
         string[] lines = File.ReadAllLines(path, Encoding.UTF8);
+        if (!string.Equals(File.ReadAllText(path, Encoding.UTF8).Replace("\r\n", "\n"),
+                V27OutputCapacityEvidenceDebugScenarios.RunAll().Replace("\r\n", "\n"),
+                StringComparison.Ordinal))
+            throw new InvalidOperationException("V27 output-capacity aggregate differs from its current runtime receipts.");
         string expectedSourceDigest = V27OutputCapacityEvidenceDebugScenarios
             .ComputeEvidenceSourceDigest();
         if (!lines.Contains("RESULT=PASS; checks=2; failures=0", StringComparer.Ordinal)
@@ -4247,6 +4251,10 @@ public static class V27BalanceAudit
             CaptureFocusedPairedRunMetrics(capture);
             return;
         }
+        if (ParseTextKey(lines[0], "sourceDigest") != V27PairedClutterPlayModeVerifier.ComputeEvidenceSourceDigest()
+            || ParseTextKey(lines[0], "currentSourceDigest") != V27CurrentSourceEvidenceDigest.ComputeAllScriptsDigest()
+            || ParseTextKey(lines[0], "gameplaySceneSha256") != V27CurrentSourceEvidenceDigest.ComputeGameplaySceneDigest())
+            throw new InvalidOperationException("V27 paired-run evidence is stale for the current source or scene.");
         string sourceDigest = HashText(File.ReadAllText(path));
         CaptureInvariantMetric(capture, "chaos", "paired-run", "paired-run:four-arm",
             "seed-count", "seeds", ParseKey(lines[0], "seeds"), path, sourceDigest,
@@ -4445,6 +4453,9 @@ public static class V27BalanceAudit
         if (lines.Length == 0
             || !lines[0].StartsWith("RESULT=PASS;", StringComparison.Ordinal))
             throw new InvalidOperationException("V27 random-stream manifest is not PASS.");
+        if (!string.Equals(File.ReadAllText(path).Replace("\r\n", "\n"),
+                V27RandomStreamManifestDebugScenarios.RunAll().Replace("\r\n", "\n"), StringComparison.Ordinal))
+            throw new InvalidOperationException("V27 random-stream manifest differs from current consumers and isolation results.");
         string digest = HashText(File.ReadAllText(path));
         string[] snapshots = lines
             .Where(line => line.StartsWith("SNAPSHOT\t", StringComparison.Ordinal))

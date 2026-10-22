@@ -9,6 +9,14 @@ using Object = UnityEngine.Object;
 
 public static class ScriptableObjectModularityDebugScenarios
 {
+    public static string RunCatalogExtensionsForBatch()
+    {
+        if (!Application.isBatchMode || Application.isPlaying)
+            throw new InvalidOperationException("Catalog verification requires isolated edit batch execution.");
+        VerifyCatalogExtensions();
+        return "SO_CATALOG=PASS; typed snapshots; SetDefinitions/OnValidate invalidation; read-only; extensions";
+    }
+
     public static string RunForBatch()
     {
         if (!Application.isBatchMode || Application.isPlaying)
@@ -24,6 +32,49 @@ public static class ScriptableObjectModularityDebugScenarios
     private static void VerifyCatalogExtensions()
     {
         using var fixture = new ContentFixture();
+        GameDomainContentCatalogSO cachedDomain = fixture.Own(
+            ScriptableObject.CreateInstance<GameDomainContentCatalogSO>());
+        BuildingSO[] cacheBuildings = fixture.Baseline.GetAll<BuildingSO>().Take(2).ToArray();
+        CharacterSO cacheOtherType = fixture.Baseline.GetAll<CharacterSO>()[0];
+        cachedDomain.SetDefinitions(new ScriptableObject[] { cacheBuildings[0] });
+        IReadOnlyList<BuildingSO> firstView = cachedDomain.GetAll<BuildingSO>();
+        Require(ReferenceEquals(firstView, cachedDomain.GetAll<BuildingSO>()),
+            "Repeated domain typed reads did not reuse their read-only view.");
+        cachedDomain.SetDefinitions(new ScriptableObject[] { cacheBuildings[0], cacheBuildings[1] });
+        IReadOnlyList<BuildingSO> expandedView = cachedDomain.GetAll<BuildingSO>();
+        Require(firstView.Count == 1 && firstView[0] == cacheBuildings[0]
+            && expandedView.Count == 2
+            && expandedView.Contains(cacheBuildings[0])
+            && expandedView.Contains(cacheBuildings[1]),
+            "SetDefinitions did not invalidate the domain typed view without mutating an existing view.");
+        bool externalWriteRejected = false;
+        try
+        {
+            ((IList<BuildingSO>)expandedView).Add(cacheBuildings[0]);
+        }
+        catch (NotSupportedException)
+        {
+            externalWriteRejected = true;
+        }
+        Require(externalWriteRejected,
+            "Domain typed views allowed callers to mutate a cached result.");
+        var definitionsField = typeof(GameDomainContentCatalogSO).GetField(
+            "definitions", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        var onValidate = typeof(GameDomainContentCatalogSO).GetMethod(
+            "OnValidate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Require(definitionsField != null && onValidate != null,
+            "Domain catalog validation hooks were unavailable to the regression fixture.");
+        definitionsField.SetValue(cachedDomain, new List<ScriptableObject>
+        {
+            cacheBuildings[1], null, cacheOtherType, cacheBuildings[0], cacheBuildings[1]
+        });
+        onValidate.Invoke(cachedDomain, null);
+        IReadOnlyList<BuildingSO> inspectedView = cachedDomain.GetAll<BuildingSO>();
+        Require(inspectedView.Count == 2
+            && inspectedView[0] == cacheBuildings[1]
+            && inspectedView[1] == cacheBuildings[0]
+            && expandedView.Count == 2,
+            "OnValidate did not refresh the ordered, distinct, null-filtered domain typed view.");
         fixture.AddV20<LifeEventDefinitionSO>();
         fixture.AddV20<GuestRequestDefinitionSO>();
         ServiceIncidentDefinitionSO incident = fixture.AddV20<ServiceIncidentDefinitionSO>(

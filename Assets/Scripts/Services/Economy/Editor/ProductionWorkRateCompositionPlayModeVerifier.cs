@@ -11,8 +11,78 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using VContainer;
 
+[InitializeOnLoad]
 public static class ProductionWorkRateCompositionPlayModeVerifier
 {
+    private const string BatchOwnedKey = "V27.WorkRate.BatchOwned";
+    private const string BatchResultKey = "V27.WorkRate.BatchResult";
+    private const string BatchReturnedKey = "V27.WorkRate.BatchReturned";
+    private const string BatchErrorKey = "V27.WorkRate.BatchError";
+
+    static ProductionWorkRateCompositionPlayModeVerifier()
+    {
+        EditorApplication.update += ExitCompletedBatch;
+        EditorApplication.playModeStateChanged += state =>
+        {
+            if (state == PlayModeStateChange.EnteredEditMode && SessionState.GetBool(BatchOwnedKey, false))
+                SessionState.SetBool(BatchReturnedKey, true);
+        };
+        Application.logMessageReceived -= ObserveBatchLog;
+        Application.logMessageReceived += ObserveBatchLog;
+    }
+
+    public static void RequestRunForBatch()
+    {
+        if (!Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification
+            || EditorApplication.isPlayingOrWillChangePlaymode || File.Exists(RequestPath)
+            || SessionState.GetBool(BatchOwnedKey, false))
+            throw new InvalidOperationException("Work-rate batch requires a fresh isolated EditMode session.");
+        AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+        File.Delete(ReportPath);
+        SessionState.SetInt(BatchResultKey, -1);
+        SessionState.SetBool(BatchReturnedKey, false);
+        SessionState.SetBool(BatchErrorKey, false);
+        SessionState.SetBool(BatchOwnedKey, true);
+        RequestRun();
+    }
+
+    internal static void RecordBatchResult(bool passed)
+    {
+        if (!SessionState.GetBool(BatchOwnedKey, false))
+            return;
+        bool failed = !passed
+            || SessionState.GetInt(BatchResultKey, -1) == 1
+            || SessionState.GetBool(BatchErrorKey, false);
+        SessionState.SetInt(BatchResultKey, failed ? 1 : 0);
+    }
+
+    private static void ObserveBatchLog(
+        string message,
+        string stackTrace,
+        LogType type)
+    {
+        if (SessionState.GetBool(BatchOwnedKey, false)
+            && type is LogType.Error or LogType.Exception or LogType.Assert)
+            SessionState.SetBool(BatchErrorKey, true);
+    }
+
+    private static void ExitCompletedBatch()
+    {
+        if (!Application.isBatchMode || !SessionState.GetBool(BatchOwnedKey, false)
+            || !SessionState.GetBool(BatchReturnedKey, false)
+            || EditorApplication.isPlayingOrWillChangePlaymode)
+            return;
+        int result = SessionState.GetBool(BatchErrorKey, false)
+            ? 1
+            : SessionState.GetInt(BatchResultKey, -1);
+        if (result < 0) return;
+        SessionState.EraseInt(BatchResultKey);
+        SessionState.EraseBool(BatchReturnedKey);
+        SessionState.EraseBool(BatchErrorKey);
+        SessionState.EraseBool(BatchOwnedKey);
+        EditorApplication.Exit(result);
+    }
+
     public const string RequestPath =
         "Temp/v27-production-work-rate-composition.request";
     public const string ReportPath =
@@ -81,6 +151,9 @@ public sealed class ProductionWorkRateCompositionPlayModeRunner : MonoBehaviour
         throughputEnvelopes = new();
     private readonly List<ProductionOutputClearanceMeasurementPlan>
         clearanceMeasurementPlans = new();
+    private BuildingSO[] authoredBuildings;
+    private int authoredRecipeCount;
+    private int authoredAssignmentCount;
 
     private sealed class CurrentCommandExecutionConnectionQuery :
         IResearchFacilityCommandExecutionConnectionQuery
@@ -134,6 +207,7 @@ public sealed class ProductionWorkRateCompositionPlayModeRunner : MonoBehaviour
 
         Application.logMessageReceived -= CaptureLog;
         WriteReport();
+        ProductionWorkRateCompositionPlayModeVerifier.RecordBatchResult(failures.Count == 0);
         Destroy(gameObject);
         EditorApplication.ExitPlaymode();
     }
@@ -180,8 +254,17 @@ public sealed class ProductionWorkRateCompositionPlayModeRunner : MonoBehaviour
             != null, "Recipe work-rate maximum authority is unresolved.");
         ProductionFacilityDefinitionCatalog facilityDefinitions =
             container.Resolve<ProductionFacilityDefinitionCatalog>();
-        Check(facilityDefinitions.DefinitionCount == 377
-                && facilityDefinitions.IgnoredRuntimeArchetypeCount == 42,
+        authoredBuildings = LoadResourceDefinitions<BuildingSO>();
+        BuildingSO[] identified = authoredBuildings.Where(value => value.id >= 0).ToArray();
+        BuildingSO[] archetypes = authoredBuildings.Where(value => value.id < 0).ToArray();
+        // Exact positive membership plus the total count excludes runtime archetypes
+        // without imposing authored facility identity rules on them.
+        Check(identified.Length > 0 && archetypes.Length > 0
+                && facilityDefinitions.DefinitionCount == identified.Length
+                && facilityDefinitions.IgnoredRuntimeArchetypeCount == archetypes.Length
+                && identified.Select(ProductionFacilityDefinitionIdentity.Resolve).Distinct().Count() == identified.Length
+                && identified.All(value => ReferenceEquals(value,
+                    facilityDefinitions.Require(ProductionFacilityDefinitionIdentity.Resolve(value)))),
             "FACILITY_DEFINITION_RUNTIME_ARCHETYPE_BOUNDARY",
             "definitions=" + facilityDefinitions.DefinitionCount
             + ";ignoredRuntimeArchetypes="
@@ -267,7 +350,7 @@ public sealed class ProductionWorkRateCompositionPlayModeRunner : MonoBehaviour
         Check(sharedScope.AutomaticProducerCount == 92
                 && sharedScope.RecipeOnlyProducerCount == 85
                 && sharedScope.SpecialProducerCount == 7
-                && sharedScope.DistinctRecipeCount == 271
+                && sharedScope.DistinctRecipeCount == authoredRecipeCount
                 && sharedScope.SpecialCandidateCount == 904
                 && sharedScope.SpecialGapCount == 0
                 && sharedScope.Coverage.CompleteEnvelopes.Count == 92
@@ -295,9 +378,9 @@ public sealed class ProductionWorkRateCompositionPlayModeRunner : MonoBehaviour
         Check(measurementScope.Contexts.Count == 92
                 && measurementScope.Plans.Count == 92
                 && measurementScope.Gaps.Count == 0
-                && recipeMeasurementBranches == 278
+                && recipeMeasurementBranches == authoredAssignmentCount
                 && specialMeasurementBranches == 904
-                && measurementCandidates == 1182,
+                && measurementCandidates == authoredAssignmentCount + 904,
             "OUTPUT_CLEARANCE_MEASUREMENT_SCOPE_EXACT",
             "contexts=" + measurementScope.Contexts.Count
                 + ";plans=" + measurementScope.Plans.Count
@@ -547,10 +630,25 @@ public sealed class ProductionWorkRateCompositionPlayModeRunner : MonoBehaviour
         }
 
         ProductionRecipeSO[] distinctRecipes = recipes
-            .GroupBy(value => value.RecipeId, StringComparer.Ordinal)
-            .Select(group => group.Single())
+            .Distinct()
             .OrderBy(value => value.RecipeId, StringComparer.Ordinal)
             .ToArray();
+        // Read authored assets independently of the runtime content/census queries.
+        // Compare identities, not a historical count that changes when content grows.
+        ProductionRecipeSO[] authoredRecipes = LoadResourceDefinitions<ProductionRecipeSO>();
+        Require(authoredRecipes.Select(value => value.RecipeId).Distinct(StringComparer.Ordinal).Count()
+                == authoredRecipes.Length, "Authored recipe IDs are not unique.");
+        ProductionRecipeSO[] expectedRecipes = subjects.Where(value => value.Recipes.Count > 0)
+            .SelectMany(subject => authoredRecipes.Where(recipe =>
+                recipe.WorkstationTag == subject.WorkstationTag))
+            .Distinct()
+            .OrderBy(value => value.RecipeId, StringComparer.Ordinal).ToArray();
+        authoredRecipeCount = expectedRecipes.Length;
+        Require(authoredRecipeCount > 0 && distinctRecipes.Select(value => value.RecipeId)
+                .SequenceEqual(expectedRecipes.Select(value => value.RecipeId), StringComparer.Ordinal)
+                && distinctRecipes.Select(ProductionRecipeSemanticDigest.Capture)
+                    .SequenceEqual(expectedRecipes.Select(ProductionRecipeSemanticDigest.Capture), StringComparer.Ordinal),
+            "Runtime recipe-only scope is missing, duplicating, or adding an authored recipe.");
         string workTypeSummary = string.Join("|", distinctRecipes
             .GroupBy(value => value.WorkTypeId.Value, StringComparer.Ordinal)
             .OrderBy(group => group.Key, StringComparer.Ordinal)
@@ -560,7 +658,7 @@ public sealed class ProductionWorkRateCompositionPlayModeRunner : MonoBehaviour
                 && subjects.Count(value => value.Recipes.Count > 0) == 85
                 && subjects.Count(value =>
                     value.SpecialCandidates.Count > 0) == 7
-                && distinctRecipes.Length == 271,
+                && distinctRecipes.Length == authoredRecipeCount,
             "PRODUCER_WIDE_SCOPE_EXACT",
             "facilities=" + subjects.Count + ";recipes="
                 + distinctRecipes.Length + ";recipeKeys="
@@ -575,14 +673,20 @@ public sealed class ProductionWorkRateCompositionPlayModeRunner : MonoBehaviour
                 + subjects.Sum(value => value.SpecialGaps.Count));
         Check(string.Equals(
                 workTypeSummary,
-                "work:cook:28|work:craft:242|work:quarry:1",
+                string.Join("|", expectedRecipes.GroupBy(value => value.WorkTypeId.Value, StringComparer.Ordinal)
+                    .OrderBy(group => group.Key, StringComparer.Ordinal)
+                    .Select(group => group.Key + ":" + group.Count())),
                 StringComparison.Ordinal),
             "RECIPE_ONLY_WORK_TYPE_SET_EXACT",
             workTypeSummary);
         Check(distinctRecipes.Count(value => value.ProcessKind
-                    == ProductionProcessKind.WorkOnly) == 263
+                    == ProductionProcessKind.WorkOnly) == expectedRecipes.Count(value =>
+                        value.ProcessKind == ProductionProcessKind.WorkOnly)
                 && distinctRecipes.Count(value => value.ProcessKind
-                    == ProductionProcessKind.PassiveBatch) == 8,
+                    == ProductionProcessKind.PassiveBatch) == expectedRecipes.Count(value =>
+                        value.ProcessKind == ProductionProcessKind.PassiveBatch)
+                && expectedRecipes.All(value => value.ProcessKind is
+                    ProductionProcessKind.WorkOnly or ProductionProcessKind.PassiveBatch),
             "RECIPE_PROCESS_KIND_SET_EXACT",
             "workOnly=" + distinctRecipes.Count(value => value.ProcessKind
                 == ProductionProcessKind.WorkOnly)
@@ -591,9 +695,21 @@ public sealed class ProductionWorkRateCompositionPlayModeRunner : MonoBehaviour
 
         IProductionMaximumOutputFactorCatalog factors =
             container.Resolve<IProductionMaximumOutputFactorCatalog>();
-        int supportAssignments = distinctRecipes.Sum(value =>
-            factors.CaptureFeasibleAssignments(value).Count);
-        Check(supportAssignments == 278,
+        ProductionMaximumOutputFactorCatalog authoredFactors = new(authoredBuildings);
+        string[] expectedAssignmentKeys = subjects.Where(value => value.Recipes.Count > 0)
+            .SelectMany(subject => authoredRecipes.Where(recipe => recipe.WorkstationTag == subject.WorkstationTag)
+                .SelectMany(recipe => authoredFactors.CaptureFeasibleAssignments(recipe)
+                    .Select(assignment => subject.DefinitionId + "|" + recipe.RecipeId + "|" + assignment.SourceDigest)))
+            .OrderBy(value => value, StringComparer.Ordinal).ToArray();
+        authoredAssignmentCount = expectedAssignmentKeys.Length;
+        string[] runtimeAssignmentKeys = subjects.SelectMany(subject => subject.Recipes
+                .SelectMany(recipe => factors.CaptureFeasibleAssignments(recipe)
+                    .Select(assignment => subject.DefinitionId + "|" + recipe.RecipeId + "|" + assignment.SourceDigest)))
+            .OrderBy(value => value, StringComparer.Ordinal).ToArray();
+        int supportAssignments = runtimeAssignmentKeys.Length;
+        Check(authoredAssignmentCount > 0 && supportAssignments == authoredAssignmentCount
+                && expectedAssignmentKeys.Distinct(StringComparer.Ordinal).Count() == authoredAssignmentCount
+                && runtimeAssignmentKeys.SequenceEqual(expectedAssignmentKeys, StringComparer.Ordinal),
             "RECIPE_SUPPORT_ASSIGNMENTS_EXACT",
             "assignments=" + supportAssignments);
 
@@ -636,9 +752,11 @@ public sealed class ProductionWorkRateCompositionPlayModeRunner : MonoBehaviour
             .Distinct(StringComparer.Ordinal)
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();
-        Check(recipeCandidates.Count == 278
+        Check(recipeCandidates.Count == authoredAssignmentCount
                 && recipeGaps.Count == 0
-                && recipeCandidates.Count + recipeGaps.Count == 278,
+                && recipeCandidates.Select(value => value.DefinitionId + "|" + value.RecipeId + "|" + value.SupportAssignmentSourceDigest)
+                    .OrderBy(value => value, StringComparer.Ordinal)
+                    .SequenceEqual(expectedAssignmentKeys, StringComparer.Ordinal),
             "RECIPE_PROJECTION_CANDIDATE_GAP_EXACT",
             "candidates=" + recipeCandidates.Count + ";gaps="
                 + recipeGaps.Count + ";firstGap="
@@ -669,6 +787,14 @@ public sealed class ProductionWorkRateCompositionPlayModeRunner : MonoBehaviour
         WriteProjectionCsv();
         WriteEnvelopeCsv(coverage.SourceDigest);
     }
+
+    private static T[] LoadResourceDefinitions<T>() where T : UnityEngine.Object =>
+        AssetDatabase.FindAssets("t:" + typeof(T).Name, new[] { "Assets/Resources" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .Select(path => AssetDatabase.LoadAssetAtPath<T>(path)
+                ?? throw new InvalidOperationException("Authored definition could not load: " + path))
+            .ToArray();
 
     private void WriteEnvelopeCsv(string catalogSourceDigest)
     {

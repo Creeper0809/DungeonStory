@@ -74,6 +74,55 @@ public static class PhysicalItemLogisticsPlayModeVerifier
     private const string DestructiveDrainBatchOutputKey = "DungeonStory.PhysicalItemLogistics.DestructiveDrainBatchOutput";
     private const string DestructiveDrainBatchResultKey = "DungeonStory.PhysicalItemLogistics.DestructiveDrainBatchResult";
     private static bool runnerCreated;
+    private const string NaturalBatchKey = "V27.NaturalPortfolio.BatchOwned";
+    private const string NaturalBatchResultKey = "V27.NaturalPortfolio.BatchResult";
+    private const string NaturalBatchCleanedKey = "V27.NaturalPortfolio.BatchCleaned";
+    private const string NaturalBatchErrorKey = "V27.NaturalPortfolio.BatchError";
+    internal static bool IsNaturalBatch => SessionState.GetBool(NaturalBatchKey, false);
+
+    public static void RequestNaturalOutputPortfolioForBatch()
+    {
+        if (!Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification
+            || EditorApplication.isPlayingOrWillChangePlaymode || HasAnyRequest()
+            || IsNaturalBatch || IsDestructiveDrainBatch)
+            throw new InvalidOperationException("Natural portfolio batch requires a fresh isolated EditMode session.");
+        AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+        SessionState.SetInt(NaturalBatchResultKey, -1);
+        SessionState.SetBool(NaturalBatchCleanedKey, false);
+        SessionState.SetBool(NaturalBatchErrorKey, false);
+        SessionState.SetBool(NaturalBatchKey, true);
+        RequestNaturalOutputPortfolioRunFromMenu();
+    }
+
+    public static void RequestNaturalOutputBootstrapForBatch()
+    {
+        if (!Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification)
+            throw new InvalidOperationException("Natural bootstrap requires an isolated batch.");
+        Environment.SetEnvironmentVariable(
+            ProductionOutputClearanceNaturalBootstrapProfileSource.EnvironmentVariable,
+            ProductionOutputClearanceNaturalBootstrapProfileSource.EnvironmentContract);
+        RequestNaturalOutputPortfolioForBatch();
+    }
+
+    internal static void RecordNaturalBatchResult(bool passed)
+    {
+        if (!IsNaturalBatch)
+            return;
+        bool failed = !passed
+            || SessionState.GetInt(NaturalBatchResultKey, -1) == 1
+            || SessionState.GetBool(NaturalBatchErrorKey, false);
+        SessionState.SetInt(NaturalBatchResultKey, failed ? 1 : 0);
+    }
+
+    private static void FailNaturalBatch(Exception exception)
+    {
+        RecordNaturalBatchResult(false);
+        try { FailBeforePlay("NATURAL_BATCH_EXECUTION_FAILED: " + exception); }
+        finally
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) EditorApplication.ExitPlaymode();
+        }
+    }
 
     internal static bool IsDestructiveDrainBatch => SessionState.GetBool(DestructiveDrainBatchKey, false);
     private static string RequiredStartScenePath => IsDestructiveDrainBatch
@@ -90,6 +139,18 @@ public static class PhysicalItemLogisticsPlayModeVerifier
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
         EditorApplication.delayCall -= RecoverStaleStartSceneLeaseIfOrphaned;
         EditorApplication.delayCall += RecoverStaleStartSceneLeaseIfOrphaned;
+        Application.logMessageReceived -= ObserveNaturalBatchLog;
+        Application.logMessageReceived += ObserveNaturalBatchLog;
+    }
+
+    private static void ObserveNaturalBatchLog(
+        string message,
+        string stackTrace,
+        LogType type)
+    {
+        if (IsNaturalBatch
+            && type is LogType.Error or LogType.Exception or LogType.Assert)
+            SessionState.SetBool(NaturalBatchErrorKey, true);
     }
 
     [MenuItem("DungeonStory/Debug/QA/Request Physical Item Logistics Verification")]
@@ -497,6 +558,20 @@ public static class PhysicalItemLogisticsPlayModeVerifier
 
     private static void OnEditorUpdate()
     {
+        if (IsNaturalBatch && SessionState.GetInt(NaturalBatchResultKey, -1) >= 0
+            && SessionState.GetBool(NaturalBatchCleanedKey, false)
+            && !EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            int result = SessionState.GetBool(NaturalBatchErrorKey, false)
+                ? 1
+                : SessionState.GetInt(NaturalBatchResultKey, 1);
+            SessionState.EraseInt(NaturalBatchResultKey);
+            SessionState.EraseBool(NaturalBatchCleanedKey);
+            SessionState.EraseBool(NaturalBatchErrorKey);
+            SessionState.EraseBool(NaturalBatchKey);
+            EditorApplication.Exit(result);
+            return;
+        }
         if (IsDestructiveDrainBatch && SessionState.GetInt(DestructiveDrainBatchResultKey, -1) >= 0
             && !EditorApplication.isPlayingOrWillChangePlaymode)
         {
@@ -530,14 +605,18 @@ public static class PhysicalItemLogisticsPlayModeVerifier
             {
                 throw new InvalidDataException(failure);
             }
-            if (!IsDestructiveDrainBatch && SessionState.GetBool(PersistenceOwnedKey, false)
+            if (!IsDestructiveDrainBatch && !IsNaturalBatch
+                && SessionState.GetBool(PersistenceOwnedKey, false)
                 && !PlayModeVerificationPersistenceSnapshot.Exists(
                     PersistenceSnapshotId))
             {
                 SessionState.EraseBool(PersistenceOwnedKey);
             }
 
-            if (!IsDestructiveDrainBatch && !DungeonFinalPlayModeAcceptanceRequestFacade
+            // Both batch entry points require a runner-owned isolated save root.
+            // Player-file snapshots belong only to interactive verification.
+            if (!IsDestructiveDrainBatch && !IsNaturalBatch
+                && !DungeonFinalPlayModeAcceptanceRequestFacade
                     .IsPersistenceCoordinatorActive
                 && !SessionState.GetBool(PersistenceOwnedKey, false))
             {
@@ -573,6 +652,7 @@ public static class PhysicalItemLogisticsPlayModeVerifier
             bool ownsReturnedPlayMode =
                 SessionState.GetBool(PersistenceOwnedKey, false)
                 || IsDestructiveDrainBatch
+                || IsNaturalBatch
                 || HasAnyRequest()
                 || PlayModeVerificationStartSceneLease.IsOwnedBy(
                     StartSceneLeaseOwnerId);
@@ -620,7 +700,9 @@ public static class PhysicalItemLogisticsPlayModeVerifier
             {
                 Debug.LogError(cleanupFailure);
                 RecordDestructiveDrainBatchResult(false);
+                RecordNaturalBatchResult(false);
             }
+            if (IsNaturalBatch) SessionState.SetBool(NaturalBatchCleanedKey, true);
             return;
         }
 
@@ -691,6 +773,8 @@ public static class PhysicalItemLogisticsPlayModeVerifier
             Func<IEnumerator> createRun = () => new PhysicalItemLogisticsPlayModeVerificationRunner().Run();
             PlayModeVerificationCoroutineHost.RunFactory = IsDestructiveDrainBatch
                 ? () => PlayModeVerificationCoroutine.Observe(createRun, FailDestructiveDrainBatch)
+                : IsNaturalBatch
+                ? () => PlayModeVerificationCoroutine.Observe(createRun, FailNaturalBatch)
                 : createRun;
             runner.AddComponent<PlayModeVerificationCoroutineHost>();
         }
@@ -698,6 +782,7 @@ public static class PhysicalItemLogisticsPlayModeVerifier
         {
             PlayModeVerificationCoroutineHost.RunFactory = null;
             if (runner != null) UnityEngine.Object.Destroy(runner);
+            if (IsNaturalBatch) { FailNaturalBatch(exception); return; }
             if (!IsDestructiveDrainBatch) throw;
             FailDestructiveDrainBatch(exception);
         }
@@ -734,6 +819,7 @@ public static class PhysicalItemLogisticsPlayModeVerifier
 
     private static void FailBeforePlay(string detail)
     {
+        RecordNaturalBatchResult(false);
         if (IsDestructiveDrainBatch)
         {
             FailDestructiveDrainBatch(new InvalidOperationException(detail));
@@ -813,6 +899,8 @@ public static class PhysicalItemLogisticsPlayModeVerifier
         File.Delete(requestPath);
         Debug.LogError(detail);
         RecordDestructiveDrainBatchResult(false);
+        if (IsNaturalBatch && !EditorApplication.isPlayingOrWillChangePlaymode)
+            SessionState.SetBool(NaturalBatchCleanedKey, true);
     }
 
     internal static void PublishBootFailureReportForDiagnostics(
@@ -1817,22 +1905,17 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
         BuildingSO hallway = FindBuildingAsset(value => value != null
             && value.id == StarterBuildingDefinitionIds.Hallway
             && value.Placement.Layer == GridLayer.Hallway);
-        const int InteriorDoorDefinitionId = 8;
-        BuildingSO interiorDoor = FindBuildingAsset(value => value != null
-            && value.id == InteriorDoorDefinitionId
-            && value.IsInteriorDoor);
         if (grid == null
             || factory == null
             || session == null
             || progression == null
-            || hallway == null
-            || interiorDoor == null)
+            || hallway == null)
         {
             failureReason =
                 $"authored-hallway-authority-invalid:grid={grid != null};"
                 + $"factory={factory != null};session={session != null};"
                 + $"progression={progression != null};"
-                + $"hallway={hallway != null};door={interiorDoor != null}";
+                + $"hallway={hallway != null}";
             return false;
         }
 
@@ -1876,29 +1959,28 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             workOrderRuntime: null);
 
         Vector2Int actorPosition = actor.GetNowXY();
-        BuildableObject boundaryWall = null;
-        for (int x = actorPosition.x + 1; x < grid.width; x++)
+        if (!DungeonSpaceGridLayout.TryCapture(
+                grid,
+                out DungeonInteriorLayoutSnapshot layout,
+                out string layoutFailure))
         {
-            GridCell cell = grid.GetGridCell(new Vector2Int(x, actorPosition.y));
-            BuildableObject candidate =
-                cell?.GetOccupant(GridLayer.Building) as BuildableObject;
-            if (candidate != null
-                && candidate.BuildingData != null
-                && candidate.BuildingData.IsStructuralWall)
-            {
-                boundaryWall = candidate;
-                break;
-            }
+            failureReason = $"authored-hallway-layout-invalid:{layoutFailure}";
+            return false;
         }
-        if (boundaryWall == null)
+        if (expandedStartX <= layout.StartX
+            || expandedStartX >= layout.EndExclusiveX)
         {
-            failureReason = "authored-hallway-boundary-wall-missing";
+            failureReason = $"authored-hallway-expansion-range-invalid:{expandedStartX}";
             return false;
         }
 
-        int corridorY = actorPosition.y;
-        int corridorStartX = boundaryWall.centerPos.x + 1;
-        int corridorEndExclusiveX = grid.width - 1;
+        // The authored entrance corridor already includes interior doors. Extend
+        // its hallway layer through the researched interior without replacing
+        // buildings or assuming a structural wall at the old expansion edge.
+        int corridorY = layout.EntrancePosition.y;
+        int corridorStartX = layout.EntrancePosition.x + 1;
+        // Normal placement reserves the outermost horizontal cell.
+        int corridorEndExclusiveX = Mathf.Min(layout.EndExclusiveX, grid.width - 1);
         for (int x = corridorStartX; x < corridorEndExclusiveX; x++)
         {
             Vector2Int position = new(x, corridorY);
@@ -1938,29 +2020,6 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             createdHallways++;
         }
 
-        Vector2Int doorPosition = boundaryWall.centerPos;
-        if (!placement.CanPlaceBuilding(
-                interiorDoor,
-                doorPosition,
-                out string doorValidationFailure))
-        {
-            failureReason =
-                $"authored-hallway-door-validator-rejected:{doorPosition.x}:"
-                + $"{doorPosition.y}:{doorValidationFailure}";
-            return false;
-        }
-        if (!placement.TryPlaceBuildingImmediateUnchecked(
-                interiorDoor,
-                doorPosition,
-                chargeCost: false,
-                out string doorPlacementFailure))
-        {
-            failureReason =
-                $"authored-hallway-door-placement-failed:{doorPosition.x}:"
-                + $"{doorPosition.y}:{doorPlacementFailure}";
-            return false;
-        }
-
         Vector2Int[] reachable = grid.SearchPath(actorPosition)
             .GetReachablePositions()
             .Where(position => grid.IsValidGridPos(position)
@@ -1969,7 +2028,9 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             .ToArray();
         reachableCells = reachable.Length;
         reachableExpandedCells = reachable.Count(position =>
-            position.x >= expandedStartX);
+            position.x >= expandedStartX
+            && position.x < layout.EndExclusiveX
+            && grid.GetGridCell(position).AreaType == GridCellAreaType.DungeonInterior);
         const int MinimumExpandedReachableCells = 12;
         if (reachableExpandedCells < MinimumExpandedReachableCells)
         {
@@ -1978,7 +2039,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
                 + $"expanded={reachableExpandedCells};"
                 + $"required={MinimumExpandedReachableCells};"
                 + $"total={reachableCells};expandedStart={expandedStartX};"
-                + $"door={doorPosition.x}:{doorPosition.y}";
+                + $"corridor={corridorStartX}..{corridorEndExclusiveX};row={corridorY}";
             return false;
         }
         return true;
@@ -8019,7 +8080,10 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             if (!allPreferred)
                 yield break;
 
-            Time.timeScale = verificationTimeScale;
+            if (naturalOutputPortfolioOnly)
+                NaturalPortfolioTimeScope.ApplyTimeScale(verificationTimeScale);
+            else
+                Time.timeScale = verificationTimeScale;
 
             int schedulerStartFrame = Time.frameCount;
             int schedulerLoopTurns = 0;
@@ -8071,7 +8135,11 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
                     observedStartedOperationCount =
                         stagedReservationsByOperation.Count;
                 }
-                if (!Mathf.Approximately(
+                if (naturalOutputPortfolioOnly)
+                {
+                    NaturalPortfolioTimeScope.ApplyTimeScale(verificationTimeScale);
+                }
+                else if (!Mathf.Approximately(
                         Time.timeScale,
                         verificationTimeScale))
                 {
@@ -12471,8 +12539,28 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
     }
 
     private static string GetRestoreStableRootPayload(
-        DungeonSaveSectionEnvelope envelope)
+        DungeonSaveSectionEnvelope envelope,
+        bool expectedRestore = false)
     {
+        if (expectedRestore && envelope?.sectionId == GameplayOutcomeLedgerSaveSection.Id)
+        {
+            GameplayOutcomeLedgerSaveData ledger = JsonUtility.FromJson<
+                GameplayOutcomeLedgerSaveData>(envelope.payloadJson);
+            if (ledger == null || ledger.version != GameplayOutcomeLedgerSaveData.CurrentVersion
+                || ledger.worldEpoch <= 0 || ledger.consolidationJobs == null)
+                throw new InvalidOperationException("Natural checkpoint outcome ledger is invalid.");
+            long restoredEpoch = checked(ledger.worldEpoch + 1L);
+            foreach (GameplayOutcomeConsolidationJobSnapshot job in ledger.consolidationJobs)
+            {
+                if (job == null || job.worldEpoch != ledger.worldEpoch)
+                    throw new InvalidOperationException("Natural checkpoint job epoch is invalid.");
+                job.worldEpoch = restoredEpoch;
+            }
+            // Official restore invalidates old tokens. Compare the actual new
+            // epoch to this exact expected transition; preserve every other byte.
+            ledger.worldEpoch = restoredEpoch;
+            return JsonUtility.ToJson(ledger);
+        }
         if (envelope == null
             || !string.Equals(
                 envelope.sectionId,
@@ -12509,6 +12597,44 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             : envelope.payloadJson;
     }
 
+    internal static void VerifyNaturalRestoreExpectation()
+    {
+        GameplayOutcomeLedgerSaveData saved = new()
+        {
+            runId = "run:v27-restore-expectation", worldEpoch = 7, revision = 11,
+            consolidationJobs = new List<GameplayOutcomeConsolidationJobSnapshot>
+            {
+                new() { worldEpoch = 7, evaluationDay = 2, cutoffSequence = 3,
+                    policyVersion = 1, nextSequence = 2 }
+            }
+        };
+        string original = JsonUtility.ToJson(saved);
+        DungeonSaveSectionEnvelope envelope = new()
+        {
+            sectionId = GameplayOutcomeLedgerSaveSection.Id,
+            payloadJson = original
+        };
+        string expected = GetRestoreStableRootPayload(envelope, expectedRestore: true);
+        GameplayOutcomeLedgerSaveData actual = JsonUtility.FromJson<GameplayOutcomeLedgerSaveData>(original);
+        bool Matches() => string.Equals(expected, JsonUtility.ToJson(actual), StringComparison.Ordinal);
+        void Require(bool valid, string message)
+        {
+            if (!valid) throw new InvalidOperationException(message);
+        }
+        Require(!Matches(), "Unadvanced restore epoch was accepted.");
+        actual.worldEpoch = 8;
+        Require(!Matches(), "Stale consolidation job epoch was accepted.");
+        actual.consolidationJobs[0].worldEpoch = 8;
+        Require(Matches(), "Official one-generation restore transition was rejected.");
+        actual.worldEpoch = 9;
+        Require(!Matches(), "Wrong restore epoch was accepted.");
+        actual.worldEpoch = 8;
+        actual.revision++;
+        Require(!Matches(), "Unrelated ledger mutation was normalized away.");
+        Require(envelope.payloadJson == original && JsonUtility.ToJson(saved) == original,
+            "Restore expectation changed the saved baseline.");
+    }
+
     private static string CaptureWholeRootSaveFingerprint(
         IEnumerable<DungeonSaveSectionEnvelope> envelopes)
     {
@@ -12525,7 +12651,8 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
     }
 
     private static string CaptureRestoreStableWholeRootSaveFingerprint(
-        IEnumerable<DungeonSaveSectionEnvelope> envelopes)
+        IEnumerable<DungeonSaveSectionEnvelope> envelopes,
+        bool expectedRestore = false)
     {
         return string.Join(
             "\n",
@@ -12536,7 +12663,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
                 + value.sectionVersion + "|"
                 + value.restorePhase + "|"
                 + value.optional + "|"
-                + GetRestoreStableRootPayload(value)));
+                + GetRestoreStableRootPayload(value, expectedRestore)));
     }
 
     private static string DescribeWholeRootSaveDifference(
@@ -12631,7 +12758,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
                 && expectedEnvelope.restorePhase == actualEnvelope.restorePhase
                 && expectedEnvelope.optional == actualEnvelope.optional;
             string expectedPayload = GetRestoreStableRootPayload(
-                expectedEnvelope);
+                expectedEnvelope, expectedRestore: true);
             string actualPayload = GetRestoreStableRootPayload(
                 actualEnvelope);
             bool payloadExact = string.Equals(
@@ -13558,7 +13685,10 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
     {
         if (Time.timeScale < 0.1f)
         {
-            Time.timeScale = 8f;
+            if (NaturalPortfolioTimeScope.IsActive)
+                NaturalPortfolioTimeScope.ApplyTimeScale(NaturalPortfolioAcceleratedTimeScale);
+            else
+                Time.timeScale = 8f;
         }
     }
 
@@ -13693,46 +13823,55 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
             titleReady
                 ? "Title scope and production scene navigator are ready."
                 : "Title scope or production scene navigator was not ready.");
-        if (!titleReady
-            || !navigator.StartNewGame(
-                DungeonDifficulty.Normal,
-                DungeonSurvivalPressure.Standard))
-        {
-            Check(false, "BOOT_PREPARATION_REQUESTED",
-                "Production StartNewGame request was rejected.");
-            yield break;
-        }
-
+        if (!titleReady) yield break;
+        using NaturalPreparationSkillFixture skillFixture =
+            PhysicalItemLogisticsPlayModeVerifier.IsNaturalBatch
+                ? new NaturalPreparationSkillFixture() : null;
+        FixedLocalLlmRuntimeProvider fixtureProvider = skillFixture == null
+            ? null : new FixedLocalLlmRuntimeProvider(skillFixture);
+        IDisposable preparationInstallation = fixtureProvider == null ? null
+            : VContainer.Unity.LifetimeScope.Enqueue(builder =>
+                builder.RegisterInstance(fixtureProvider).As<ILocalLlmRuntimeProvider>());
         Button owner = null;
         Button next = null;
-        for (int turn = 0; turn <= VerificationBootMaximumTurns; turn++)
+        try
         {
-            owner = Resources.FindObjectsOfTypeAll<Button>()
-                .Where(candidate => candidate != null
-                    && candidate.gameObject.scene.IsValid()
-                    && candidate.gameObject.activeInHierarchy
-                    && candidate.interactable
-                    && candidate.name.StartsWith(
-                        "OwnerCandidate_",
-                        StringComparison.Ordinal))
-                .OrderBy(candidate => candidate.name, StringComparer.Ordinal)
-                .FirstOrDefault();
-            next = StartPartyPlayModeTestDriver.FindButton(
-                "PreparationOwnerNextButton",
-                requireInteractable: false);
-            if (owner != null
-                && next != null
-                && string.Equals(
-                    SceneManager.GetActiveScene().name,
-                    DungeonSceneNavigator.PreparationSceneName,
-                    StringComparison.Ordinal))
+            if (!navigator.StartNewGame(DungeonDifficulty.Normal, DungeonSurvivalPressure.Standard))
             {
-                break;
+                Check(false, "BOOT_PREPARATION_REQUESTED",
+                    "Production StartNewGame request was rejected.");
+                yield break;
             }
-            if (turn == VerificationBootMaximumTurns)
-                break;
-            yield return null;
+            for (int turn = 0; turn <= VerificationBootMaximumTurns; turn++)
+            {
+                owner = Resources.FindObjectsOfTypeAll<Button>()
+                    .Where(candidate => candidate != null
+                        && candidate.gameObject.scene.IsValid()
+                        && candidate.gameObject.activeInHierarchy
+                        && candidate.interactable
+                        && candidate.name.StartsWith(
+                            "OwnerCandidate_",
+                            StringComparison.Ordinal))
+                    .OrderBy(candidate => candidate.name, StringComparer.Ordinal)
+                    .FirstOrDefault();
+                next = StartPartyPlayModeTestDriver.FindButton(
+                    "PreparationOwnerNextButton",
+                    requireInteractable: false);
+                if (owner != null
+                    && next != null
+                    && string.Equals(
+                        SceneManager.GetActiveScene().name,
+                        DungeonSceneNavigator.PreparationSceneName,
+                        StringComparison.Ordinal))
+                {
+                    break;
+                }
+                if (turn == VerificationBootMaximumTurns)
+                    break;
+                yield return null;
+            }
         }
+        finally { preparationInstallation?.Dispose(); }
 
         bool preparationReady = owner != null && next != null;
         Check(preparationReady, "BOOT_PREPARATION_READY",
@@ -13741,6 +13880,14 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
                 : "Preparation owner selection did not become ready.");
         if (!preparationReady)
             yield break;
+
+        DungeonPreparationLifetimeScope preparationScope = skillFixture == null ? null
+            : UnityEngine.Object.FindFirstObjectByType<DungeonPreparationLifetimeScope>();
+        if (skillFixture != null && !ReferenceEquals(
+                preparationScope?.Container.Resolve<ILocalLlmRuntimeProvider>(), fixtureProvider))
+            throw new InvalidOperationException("Natural preparation fixture was not installed in the preparation scope.");
+        IStartPartyPreparationService preparationService = skillFixture == null ? null
+            : preparationScope.Container.Resolve<IStartPartyPreparationService>();
 
         ClickButton(owner);
         yield return null;
@@ -13756,8 +13903,10 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
         ClickButton(next);
 
         Button start = null;
+        float preparationWaitStarted = Time.realtimeSinceStartup;
         for (int turn = 0; turn <= VerificationBootMaximumTurns; turn++)
         {
+            skillFixture?.CompletePending(preparationService);
             start = StartPartyPlayModeTestDriver.FindButton(
                 "PreparationStartRunButton",
                 requireInteractable: true);
@@ -13776,9 +13925,23 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
         Check(start != null, "BOOT_PREPARED_START_READY",
             start != null
                 ? "Prepared start command is interactable."
-                : "Prepared start command did not become interactable.");
+                : "Prepared start command did not become interactable; "
+                    + $"elapsedRealtime={Time.realtimeSinceStartup - preparationWaitStarted:0.###}; "
+                    + $"scene={SceneManager.GetActiveScene().name}; transitioning={navigator.IsTransitioning}; "
+                    + $"startPresent={StartPartyPlayModeTestDriver.FindButton("PreparationStartRunButton", requireInteractable: false) != null}; "
+                    + StartPartyPlayModeTestDriver.DescribePreparationState());
         if (start == null)
             yield break;
+
+        if (skillFixture != null)
+        {
+            var staff = preparationService.Members.Where(member => !member.IsOwner).ToArray();
+            bool prepared = staff.Length == 2 && staff.All(member => member.IsReadyToStart
+                && skillFixture.ResponsesFor(member.Progression) == 4);
+            Check(prepared, "BOOT_CONTROLLED_SKILL_INPUTS_COMMITTED",
+                "two staff; three active offers and one passive each; production validation/acquisition; modelInference=false");
+            if (!prepared) yield break;
+        }
 
         ClickButton(start);
         yield return null;
@@ -13833,6 +13996,11 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
                 if (!syntheticSceneExact)
                     yield break;
 
+                if (fixtureProvider != null && ReferenceEquals(fixtureProvider,
+                        UnityEngine.Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>()
+                            .Container.Resolve<ILocalLlmRuntimeProvider>()))
+                    throw new InvalidOperationException("Preparation fixture leaked into the gameplay scope.");
+
                 productBootSucceeded = true;
                 Check(true, "BOOT_GAMEPLAY_READY",
                     "PreparedNewRun reached the exact Gameplay scene with a runtime container.");
@@ -13844,6 +14012,87 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
         }
         Check(false, "BOOT_GAMEPLAY_READY",
             "PreparedNewRun did not reach Gameplay before timeout.");
+    }
+
+    // Preparation is an explicit input fixture for this logistics test. The
+    // production generator validates every offered response and owns acquisition;
+    // this transport does not alter drafts, ready flags, gameplay AI or logistics.
+    private sealed class NaturalPreparationSkillFixture : ILocalLlmRuntime,
+        ICharacterSkillModuleSelectionLlmRuntime, ICorrelatedCharacterSkillLlmRuntime,
+        IDisposable
+    {
+        private readonly Dictionary<string, (string Prompt, Action<LocalLlmResult> Callback)> pending = new();
+        private readonly Dictionary<int, int> responses = new();
+        private bool disposed;
+
+        internal NaturalPreparationSkillFixture()
+        {
+            if (!Application.isBatchMode || !DungeonPersistencePaths.IsIsolatedVerification
+                || !PhysicalItemLogisticsPlayModeVerifier.IsNaturalBatch)
+                throw new InvalidOperationException("Controlled preparation requires isolated natural batch verification.");
+        }
+
+        internal int ResponsesFor(CharacterProgression progression) =>
+            responses.TryGetValue(progression.GetInstanceID(), out int count) ? count : 0;
+
+        public bool GenerateCharacterSkillModuleSelectionAsync(
+            string requestKey, string prompt, Action<LocalLlmResult> callback)
+        {
+            if (disposed) throw new ObjectDisposedException(nameof(NaturalPreparationSkillFixture));
+            if (string.IsNullOrWhiteSpace(requestKey) || callback == null
+                || !pending.TryAdd(requestKey, (prompt, callback)))
+                throw new InvalidOperationException("Invalid or duplicate controlled preparation request.");
+            return true;
+        }
+
+        internal void CompletePending(IStartPartyPreparationService preparation)
+        {
+            foreach (var request in pending.ToArray())
+            {
+                // A preceding completion can cancel another queued request.
+                if (!pending.ContainsKey(request.Key)) continue;
+                // Use the preparation owner's roster, including its pending
+                // reroll previews, rather than a global scene/object search.
+                var matches = preparation.Roster
+                    .SelectMany(member => new[] { member.Progression, member.prefetchedSkillProgression })
+                    .Where(progression => progression != null).Distinct()
+                    .SelectMany(progression => progression.Drafts
+                        .Where(draft => draft != null && !draft.isReady && !draft.permanentlyChosen
+                            && !draft.IsInvalidated() && draft.moduleSelectionOffers != null
+                            && draft.nextPresentationIndex >= 0
+                            && draft.nextPresentationIndex < draft.moduleSelectionOffers.Count)
+                        .Select(draft => new { Progression = progression, Draft = draft }))
+                    .Where(value => NarrativePublicContextIdentity.Bind(
+                        value.Draft.requestKey + ":" + value.Draft.moduleSelectionOffers[
+                            value.Draft.nextPresentationIndex].selectionId,
+                        value.Draft.RestoreRequestPublicContext().SemanticHash) == request.Key)
+                    .ToArray();
+                if (matches.Length != 1)
+                    throw new InvalidOperationException("Controlled preparation request has no unique current owner: " + request.Key);
+                var match = matches[0];
+                string selectionId = match.Draft.moduleSelectionOffers[match.Draft.nextPresentationIndex].selectionId;
+                if (request.Value.Prompt?.Contains(selectionId, StringComparison.Ordinal) != true)
+                    throw new InvalidOperationException("Controlled preparation prompt differs from its frozen offer.");
+                string response = CharacterProgressionDebugScenarios.BuildValidModuleSelectionJson(
+                    match.Draft, match.Progression.GrowthState.displayName);
+                pending.Remove(request.Key);
+                request.Value.Callback(new LocalLlmResult(LocalLlmRequestStatus.Succeeded, response, string.Empty, string.Empty));
+                int id = match.Progression.GetInstanceID();
+                responses[id] = ResponsesFor(match.Progression) + 1;
+            }
+        }
+
+        public void CancelCharacterSkillRequest(string requestKey) => pending.Remove(requestKey);
+        public void Dispose() { disposed = true; pending.Clear(); }
+        public bool GenerateCharacterSkillAsync(string key, string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateCharacterSkillAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GeneratePersonaAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateMacroGoalAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateMoodImpulseAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateSocialRumorAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateFacilityEvolutionAsync(string prompt, Action<LocalLlmResult> callback) => false;
+        public bool GenerateCharacterRecordAsync(string prompt, string originalText, Action<LocalLlmResult> callback) => false;
+        public bool GenerateBubbleLineAsync(string prompt, string originalText, Action<LocalLlmResult> callback) => false;
     }
 
     private IEnumerator EnsureDestructiveDrainBatchBoot()
@@ -15140,6 +15389,7 @@ public sealed partial class PhysicalItemLogisticsPlayModeVerificationRunner
         }
 
         PhysicalItemLogisticsPlayModeVerifier.RecordDestructiveDrainBatchResult(passed);
+        PhysicalItemLogisticsPlayModeVerifier.RecordNaturalBatchResult(passed);
         EditorApplication.ExitPlaymode();
     }
 

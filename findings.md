@@ -1,5 +1,76 @@
 # DungeonStory Current Findings
 
+## 2026-10-22 변경 영향 CI — 최신 사용자 범위
+
+사용자가 불필요한 전수 검증 중단과 변경 영향 CI를 승인했다. 아래 bootstrap/승격/strict/paired512 필수 계획은 과거 기록이며 현재 병합 조건이 아니다. 일반 PR은 변경 없는 V27 archive의 manifest byte 무결성과 현재 컴파일·짧은 계약 실행을 구분한다. archive 자체 변경/명시적 출시 인증만 기존 strict verifier를 호출한다. source/scene/seed/복원/no-op 계약을 낮춰 구형 자료를 현재 PASS로 바꾸지 않는다.
+
+`verify_change_scope.py`는 삭제/이동 양쪽 경로, 도메인 소유와 공용/미분류 의존성을 처리한다. 모든 Unity 변경은 core+actual world, 알려진 도메인은 character/effects/crop을 추가하며 CI 정책·공용·미분류 변경은 짧은 전체 계약을 요구한다. 실행 receipt는 현재 source tuple 및 YAML/meta/ProjectSettings, 실제 native exit/중단/compile/drift, 정제 로그 bytes와 C# 완료 표식에 묶인다. 장기 자연 AI/밸런스 인증으로 주장하지 않는다. 기존 동기 fixture와 실제 full-world Play runner를 재사용하며 코드 존재/통제 계약/실제 씬 복원을 구분한다.
+
+독립 정적 검토 뒤 런타임 JSON/바이너리까지 Assets/Packages/ProjectSettings 전체 입력을 결합하고, 실행기 자체와 asmdef/asmref/rsp 변경은 모든 짧은 계약을 요구하도록 보완했다. 두 runtime receipt 문서는 archive 변경으로 처리한다. PR head checkout/merge-base diff로 분류와 검증 tree를 일치시켰다. 전체 출시 검사의 공식 scene pin은 현재 검토된 a6989480…를 명시하며 새 receipt만 생성해 다른 씬을 승인할 수 없다. 플랫폼 개행 변환 대상인 extensionless LICENSE/대문자 XML까지 UTF-8 text를 정규화하고 NUL/비UTF8/opaque .bytes는 원본 bytes로 결합한다.
+
+## 2026-10-22 V27 제어 연결과 원격 supervisor 수명
+
+r64 게임 검증 중 로컬4개 PowerShell 시작이 OOM/CLR/stack 오류로 실패했고 cmd 시작도 실패했다. 앱 연결이 끊기면서 원격 save()의 stdout print가 BrokenPipeError를 냈다. hardened supervisor는 설계대로 소유 Unity를 안전 종료하고 lock을 해제했다(게임 실패나 전체 PASS가 아님). 단순히 print 예외를 숨기기보다 원격 파일 기반 stdout/stderr·DEVNULL stdin·새 session/닫힌 상속 descriptor를 가진 별도 supervisor로 transport 수명을 분리한다. 기존 source/시드/60000 yield/4096turn·memory/disk/console-zero·종료 cleanup은 그대로다. 동일 source+mode+SHA raw를 기존 C# resume parser로 검증한 뒤에만 재개한다. 로컬 조회는 작은 cmd/python 한 개로 처리한다.
+
+## 2026-10-22 V27 증류기 물리 영수증과 관측 ID
+
+r63의 building:1086/workstation:distillery 첫 seed157181은 실제 작업22/22 뒤 완료 fact 준비에서 거절됐다. 물리 batch ID+canonical outputLineId79자를 합친 lineCommitId가 일반 fact/ledger ID192자 상한을 초과했다. 외부 .NET 원본 컴파일 재현에서도 짧은 commit만 PASS, 같은 quantity1/900g fact의 compound key200자만 production-completion-line-invalid였다. 물리 ProductionPreparedOutputIdentity/저장/영수증 원본은 변경하지 않는다. 기존 ProductionCycleFactCapture에서 valid ASCII compound commit의 관측 ID만 production-commit-digest:SHA256으로 투영하고, 짧은 ID는 그대로 보존한다. prepared/exact line 및 exact slice에 같은 함수를 적용하며 prepared preflight는 물리 raw ID의 canonical BuildLineCommitId 일치와 동일 투영을 대조한다. malformed 입력을 해시로 숨기지 않고 거절한다. 공통192자 검증/수량·질량·capability·ledger canonical 대조/ACK 재시도 계약은 유지한다.
+
+## 2026-10-22 V27 headless 편집기 relay
+
+r62도 사용하지 않는 Assistant relay가 연결 해제 180초 뒤 정상 exit0을 Running→Failed로 기록했다. 고정 패키지 2.13.0-pre.2에는 env/CLI 비활성화 경로가 없으며, test bootstrap용 public static SuppressAutoStart()가 deferred auto-start 전에 호출되도록 제공된다. r63은 기존 V27CiEvidenceBatch에서 명시적 DUNGEONSTORY_V27_HEADLESS_EVIDENCE=1 + batch 조건에만 이 API를 연결한다. internal 패키지 타입 때문에 정확한 reflection binding을 사용하고 API 불일치는 로그·exit1로 실패한다. 실제 Assistant lazy-init과 게임 console-zero gate는 유지한다. Packages/사용자 Editor 설정은 변경하지 않는다.
+
+## 2026-10-22 V27 스킬 재시도와 월드 복원
+
+r61은 생산/입고를 완료한 19번째 표본의 복원에서 characters.world.requestSubmitted가 false→true로 바뀌어 거절됐다. ResumePendingGenerationAfterWorldRestore가 모든 미완료 draft에 RequestDraft를 호출하고, RequestDraft는 AwaitingNarrativeRetry의 실패 횟수를0으로 돌려 새 요청을 만든다. 복원은 새 narrative/retry 명령이 아니므로 world hook에서는 해당 대기 상태를 그대로 보존한다. 기존 narrative/unlock 경로와 명시적 요청은 재시도를 유지한다. 저장 비교에서 필드를 제거하지 않는다.
+
+## 2026-10-22 V27 natural 시간 소유권
+
+Natural 검증의 직접 timeScale=16 대입은 정식 UnityGameTimeScaleController의 fixedDeltaTime 동기화를 누락했다. 기존 16배속과 captureDeltaTime=1/60을 유지하면서 동일 controller를 사용하고, 바깥 scope 하나가 세 시간 설정의 정확한 복원을 소유한다. Play 종료 callback이 coroutine 폐기보다 먼저 실행될 수 있으므로 special host의 중복 시간 캡처/복원을 제거한다. 비활성 scope 호출 거절은 유지하며 정리 순서 때문에 weather/save 복원을 건너뛰지 않게 한다.
+
+## 2026-10-22 V27 CI 원인과 수정 경계
+
+r58 natural의 첫 표본은 복원까지 완료했으나 두 번째에서 invasion.state의 activation pending 거절이 발생했다. InvasionSaveRuntimeAdapter는 정식 DungeonGameSaveService.OnRestoreCompleted 후에만 다음 복원이 가능하다. 두 natural host가 하위 SaveRegistry.RestoreAll만 호출해 완료 hook과 aggregate preflight를 우회한 것이 원인이다. r59는 IDungeonGameSaveService.Capture→JSON 왕복→TryRestore→Capture로 연결한다. runtime pending 거절·모든 완료 hook·sealed manifest 검증·전체 payload 비교를 유지한다.
+
+r57 source identity: paired/output/spatial의 C# 좁은 digest가 raw CRLF를 사용해 Linux Git checkout의 LF와 불일치했다. 현재 Python 필수 gate의 직접 실패는 아니지만 Unity Audit 재현성을 깨뜨린다. 기존 full-source와 같은 strict UTF-8/BOM·줄바꿈 정규화만 공유하고, 소스 내용·경로·에셋 의미 및 실행 산출물 raw byte hash는 유지한다. 별도 회귀에서 LF/CRLF/CR/BOM 동등성, 내용 변조·잘못된 UTF-8·누락 파일 거절과 raw artifact hash 차이를 검사한다.
+
+r54 상세 진단: 첫 natural 생산/운반은 exact지만 checkpoint 재캡처에서 environment.field sparse cells[]→ambient 셀 목록과 outcome ledger worldEpoch1→2가 달랐다. 전자는 Capture가 현재 ambient와 가까운 실제 값을 생략해 restore-time ambient에 의존하는 저장 결함이다. r55는 같은 v3 스키마에 전체 셀 값을 저장하며 기존 sparse restore 입력은 유지한다. 후자는 GameplayOutcomePersistence의 공식 token 무효화 계약이다. natural 비교는 baseline의 ledger/job epoch+1만 기대값으로 만들고 실제 payload 전체를 비교한다. epoch 무시/임의 정규화 대신 미증가·잘못된 증가·stale job·unrelated revision 변조 거절을 검사한다.
+
+r51 bootstrap은 실제 준비 UI/선택8회/Start/Gameplay 진입을 통과한 뒤 hallway-boundary-wall-missing으로 실패했다. 실제 autosave의 world.facilities에는 구조벽이 없고 기존 문12개와 복도가 있다. r52 fixture는 DungeonSpaceGridLayout의 입구 행과 실제 EndExclusiveX를 기준으로 누락 hallway만 정상 CanPlaceBuilding 검증 후 배치한다. 기존 건물을 교체하지 않으며 실제 hauler의 경로 탐색으로 확장 내부 최소12칸 도달 조건을 유지한다. 씬/배치 에셋·생산 경로 규칙은 변경하지 않는다.
+
+r49 실제 UI 요청이 producer validation을 통과하자 passive 획득에서 skill-acquisition-observation-not-configured가 발생했다. 준비 후보는 ConfigurePreview/IsUnpublishedComposition이며 PreparedCharacterSkillNarrativeContext도 gameplay run/outcome 없음으로 정의한다. r50은 explicit preview mode+unpublished+prepared+exact outcome binding0에서만 local 선택/evidence use를 원자 반영하고 gameplay acquisition revision·월드 기록은 만들지 않는다. Inject와 population 구성은 false로 기존 발행/복구 거래를 유지한다. 준비 snapshot이 실제 gameplay에 적용되며 mode는 직렬화하지 않는다. 국소 회귀는 unprepared 거절, world 재구성 뒤 publisher 누락 거절/무변경, active/passive 준비 선택과 중복 no-op 및 기존 실제 획득 원장 rollback/save/retry를 확인한다.
+
+준비 미리보기는 HideAndDontSave로 생성되므로 게임 씬의 일반 오브젝트 검색을 owner 계약으로 사용할 수 없다. r49 fixture는 IStartPartyPreparationService.Roster의 실제 current/prefetch progression을 사용하며, 기존 Assembly-CSharp-Editor friend 범위에서 읽기만 한다. global 검색과 임의 scene 이름 가정을 제거하고 요청 key/context exact match·생산 validation/acquisition·선택 직원별4회 응답 단언을 유지한다.
+
+r44~r45 자연 준비 UI는 owner 완료·직원 skill pending4에서 막혔고, 원인은 mounted LlamaCppServer manifest의 Linux host 공란/명시적 runtime-not-ready다. r46은 isolated NaturalBatch의 preparation scope에만 명시적 LLM response transport를 설치한다. 실제 frozen offer/request context로 응답을 만들고 production validation/acquisition, owner/Next/Start UI, 정확한 Gameplay 경로를 유지한다. 직원별3 active+1 passive 응답과 시작 준비를 단언하며 Gameplay에는 provider가 유출되지 않아야 한다. 모델 추론은 검증 범위에 포함하지 않고 물류/AI/생산 검사·시간·표본 기준은 유지한다.
+
+r43 natural bootstrap은 Play 이전에 `Isolated batch verification must not snapshot player persistence`를 정확히 거절했다. 새 NaturalBatch entry는 격리 root를 요구했지만 기존 boot 조립에서 DestructiveDrainBatch만 player snapshot을 건너뛰어 잘못된 경로로 들어갔다. r44는 두 isolated batch를 같은 snapshot 제외 분기로 연결한다. 실제 게임 저장 snapshot 보호·interactive capture/restore·전용 QA root와 natural 실행/정리 오류 latch는 유지한다. r43의 오류0/drift0/exit1과 원 로그를 보존하며 실제 bootstrap 재실행으로 확인한다.
+
+r41~r42 실제 CPU frame에서 후천 특성 projection이 입력 수집 비용의 대부분이었다. r42의107-query 프레임에서 PersistentValidation130회284.529ms, DefinitionsValidation65회447.910ms(내부 persistent 포함), Content.GetAll105.697ms였다. r43은 Project가 같은 상태를 두 번 구조 검증하던 중복만 제거하고 정의 입력은 구조 검증 성공 후 한 번만 동결한다. 전체 검증 항목·오류 우선순위는 유지하며 가변 runtime/저장 상태 캐시를 도입하지 않는다. GameDomainContentCatalogSO만 read-only typed view를 재사용하고 SetDefinitions/OnValidate/OnEnable에서 폐기한다. 새 회귀는 정상 authored8개/9효과, 이후 malformed state·ledger·정의 누락 거절/원본 무변경, 입력 단일 순회와 catalog 갱신을 확인한다. 실행 전에는 성능 해결이나 PASS로 세지 않는다.
+
+r42 첫 실행은 이 검증의 이전 native build가 남긴 VBCSCompiler 두 개(RSS 합계 약5.2GiB)로 메모리 보호가 작동했다. Unity0/operation.lock과 정확한 isolated editor 경로·PID/startticks를 확인한 뒤 해당 두 프로세스만 종료했고 여유 RAM은 약11GiB로 복구됐다. 사용자 서비스나 다른 dotnet 프로세스는 건드리지 않았다. cached2는150초/intentional exit2의 진단이며 수용 PASS가 아니다. 계측 코드는 r43에서 모두 제거했다.
+
+r40의 한정 CPU 진단은 실제 6프레임을 저장하고 의도한 exit2/DIAGNOSTIC_ONLY로 종료했다(280초·C#오류0·source drift0). 효과 입력 수집 CollectSources가 실제 부하 프레임에서 60~233회, self164~1955ms를 소비한 반면 해부 snapshot/normalization은 합계 수십 ms였다. 따라서 해부 구조나 판정 기준을 먼저 바꾸지 않는다. r41은 같은 입력 수집 안의 선택 특성·후천 특성·스킬 부담·장비·수술·상태·연구를 분리 계측하는 진단만 추가했다. 동작 수정과 수용 PASS는 아직 아니다. r40 frame-profile.txt는 외부 실행 결과 폴더에 보존했다.
+
+r38은 r37과 동일 소스/시간 제한을 CPU4/nice0으로 실행했지만 같은15초 픽업 준비 실패를 재현했다. 메인 스레드는 wall 약1초당 CPU 약0.99초를 소비했고 운반자는(18,0)에서(35,1)까지 진행했다. CPU starvation만으로 설명되지 않으며 clock adapter 수정도 실패 원인을 해결하지 않았다. r39 선택적 `V27_CI_PROFILE=1`은 Unity 기본 CPU frame의 상위 self-time을 Temp에만 기록하고 원래 profiler 설정을 복원한다. 진단 파일은 수용 증거가 아니며 게임시간/실시간 제한·게임 동작·평가 기준을 변경하지 않는다.
+
+Paired의 direct `Time.timeScale=32`는 production `IGameTimeScaleController.Scale`이 함께 조정하는 fixed timestep을 우회했다. r35에서는 게임시간 예산 전에15초 wall watchdog이 먼저 만료됐고 운반자는 유효23-step 경로를 계속 진행 중이었다. r37은 bootstrap에서 기존 production adapter, scope 이후 등록된 controller를 사용하며 시작/pickup/종료의 scale·fixed·capture를 관측한다. 종료는 원래 세 값으로 정확히 복원한다. 시드·윈도우·게임시간·15초 watchdog은 변경하지 않으며 부하 원인 해소 여부는 actual 재실행으로 판단한다. r36은 업로드만 한 중간 snapshot이고 native 실행하지 않았다.
+r34 paired는 단일 접근 배치/critical·egress 양성/허가 위치 음성 probe를 지난 뒤 공식 Capture에서 `research-completion-parent-reference-missing`을 거절했다. 생산 fixture가 세 프로젝트의 완료 목록을 직접 변경해 completion publication key/부모 원장 없이 저장했기 때문이다. r35는 기존 canonical `TryCompleteProjectImmediatelyForVerification`을 사용하고 crop unlock도 그 명령의 결과만 조회한다. 저장 preflight와 연구 runtime은 유지한다. critical fixture 재사용/신규 후보의 non-egress·빈 칸·non-burst 조건도 일치시킨다.
+Paired fixture는 시작 씬에 단일 접근 필수 시설이 우연히 존재한다고 가정했으나 r33에서 실제 후보가0이었다. r34는 authored 서비스/기존 placement validator/실제 work-access 규칙으로 합법적 단일 접근 시설을 준비하고 live 등록 후 공식 checkpoint에 포함한다. 게임 씬·SO를 고치거나 criticalAccess 필수 조건을 제거하지 않는다. critical access와 egress 각각의 차단 양성 및 허가 생산 위치의 음성 probe를 검증한다. 기존 통계 평가의 32→64 seed 확대는 batch 종료에서도 512/1024 windows와 함께 수용한다.
+r32 WorkRate의8개 실패는 이전 콘텐츠 통합 `6e77756f8909`의 authored 변화와 과거 상수 불일치였다. 시설21 canonical key 제거+2 추가=377→358, 수술 레시피12개 추가=271→283이며 모두 M06/work:craft/WorkOnly/지원 태그 없음이므로 조합·후보278→290이다. 외부 `v27-ci/workrate-census.json`에 ID/경로/이력을 보존했다. r33 테스트는 독립 AssetDatabase Resources 입력의 시설 exact membership·내용/레시피 identity·semantic digest·지원 조합 및 projection key set을 런타임과 대조한다. runtime-only archetype에 authored identity를 강요하지 않고, 공유 workstation의 레시피는 집합·시설별 조합은 각각 계산한다. 기존92/85/7/904/32/2944 및 gap/error0 계약은 유지한다.
+RandomStreamIsolation의 외부 CharacterId 회귀는 `CurrentVersion == 6`에 고정되어 현재 primitive completion 영수증을 소유하는 V7과 불일치했다. V7 고정 계약을 확인하고 실제 JSON payload shape 수용 및 V6/V8 거절·무변경을 함께 검사한다. 런타임의 exact-current validation과 rollback-free/staged candidate 단언은 유지한다.
+
+Profile Resource 승격은 full C# source digest에 잡히지 않는 실제 capacity authority 변경이다. candidate/resource 바이트가 달라지면 동일 소스여도 capacity projector를 경유하는 crop/paired 및 crop child 집계를 승격 뒤 재실행한다. World/workrate에는 해당 profile 의존이 없다.
+r29의 실제 수확은 worker=null인 공개 overload가 빈 harvesterId의 frozen owner를 만든 뒤 복원/terminal completion에서 거절됐다. 정상 AbilityWork→ResourceGatheringWorkExecutionHandler는 context.Actor를 전달하므로 이 경로를 유지한다. 새 Harvest 시작은 작업자의 canonical 신원이 없으면 진행도/가변 상태를 변경하기 전에 false를 반환한다. 이미 동결된 owner의 재시도는 기존 신원을 사용한다. crop runtime fixture는 실제 worker, workerless 무변경 거절, valid worker의 중복 완료 거절을 함께 검사하며 WIM009 최초 동결 호출도 같은 계약을 따른다. r30은 최초 Gameplay 진입의 시작 파티 미커밋으로 active worker가 없어 멈췄으므로 배치 조립에서 기존 정식 파티 준비/커밋 후 새 LifetimeScope와 활성 worker를 확인한다. 제한 시간을 늘리거나 임의로 Actor를 활성화하지 않는다.
+
+실제 crop gate는 오래된 fixture 두 곳에서 막혔다. 인증 종자의 이미 관측·승인된 출력 checkpoint에 immutable completion fact/observation receipt가 없었고, work identity 완료 cursor도 EffectsAppliedWithOutcome만 지정한 빈 observation이었다. production의 엄격한 거절은 유지하며 fixture를 완전한 checkpoint로 구성한다. 인증 종자 변조 복원은 상태·입력 영수증을 보존하고 정상 완료의 두 번째 호출은 0이어야 한다. 중복 identity cursor 검사는 먼저 단일 cursor 유효성을 확인한 뒤 중복 거절 후 기존 상태 보존을 확인한다. 별도 정적 검토에서 work-rate/natural batch의 Play 종료 중 오류 로그 누락도 확인하여 batch 수명 전체의 실패 latch를 둔다.
+
+선행 원장 실행에서 공간 수용량 자료의 source drift를 실제 거절했다. 자원 생산/작물 output-capacity 자료도 stale이며, 하위 보고서의 mtime만으로 freshness를 판단하면 Git checkout으로 오래된 증거가 최신처럼 보일 수 있다. 실제 생산자 보고서에 source/scene 신원을 기록하고 집계에서 확인하는 방향으로 수정한다. full paired와 random manifest도 과거 실행 자료이므로 실제 현재 producer로 재검증한다. CI 경로 필터에는 기존에 빠진 Resources JSON·GameplayScene·Packages·V27 증거 경로를 추가한다.
+
+현재 main에서 원장 source inventory, 시장 두 번째 적용, 감사 두 번째 생성, 물리 질량 결합 증거의 source binding이 오래됐다. CSV/정확 승인/전투/일일/노동 검사는 개별 진단에서 PASS였다. 자연 생산/감사 검사는 과거 GameplayScene SHA를 코드 상수로 고정해 새 씬의 정확한 증거도 거부한다. 현재 씬 파일과 실제 증거의 SHA 일치로 연결하며, 누락·변조·다른 씬 증거 거절을 회귀 검사한다. 과거 자연 생산 증거는 현 씬과 불일치하므로 재생성 필요성을 유지한다. Windows에서는 profile-generation.txt가 Git checkout 시 CRLF가 되어 strict LF 검사도 실패하므로 V27 기계 판독 보고서/JSON의 LF 속성을 명시한다. 기존 CRLF 지정 보고서와 CSV 형식은 유지한다.
+
+기존 승인값·게임 수치·자연 실행 분모·원자성/중복 방지 기준은 변경하지 않는다. 먼저 Unity AuditOnly로 현재 원장을 실제 생성하고, 실패 시 원래 오류를 보존해 생산자/계약을 수정한다. 실행 증거는 외부 작업 디렉터리 C:/Users/vulpo/Documents/Codex/2026-10-22/v27-ci와 최종 저장소 QA 기록으로 보존한다.
+
 ## 2026-10-22 실제 방어 복원 수명 결함
 
 r23에서 실제 fault 이후 전체 canonical 상태, revision, 기존 교전/경비와 후보 수가 모두 보존되고 정상 재시도·새 경비 이동·중복 완료 알림도 통과했다. 마지막 legacy 저장 거절은 RunVariableFactPreflight의 정확한 owner-version-conflict로 발생했으며, fixture만 예전 section 단계의 영문 오류를 기대했다. r24는 이 선행 preflight의 정확한 오류 1개를 요구하며 거절·무변경 검사를 유지한다.

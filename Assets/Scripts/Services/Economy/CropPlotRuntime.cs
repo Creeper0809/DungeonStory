@@ -645,6 +645,11 @@ public sealed class CropPlotRuntime :
                 mutation.MarkChanged();
                 return true;
             }
+            // A new harvest must retain the worker required by its durable
+            // completion receipt. Retrying an existing frozen owner uses its
+            // captured worker and does not need a replacement actor.
+            if (!IsCanonicalToken(worker?.Identity?.PersistentId))
+                return false;
             if (!mutation.TryRequireMutable(state.PlotId, out _))
                 return false;
             state.Phase = CropPlotPhase.Harvesting;

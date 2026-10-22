@@ -539,7 +539,7 @@ public static class V27PairedClutterPlayModeVerifier
         foreach (string path in EvidenceSourcePaths)
         {
             builder.Append(path).Append('\t')
-                .Append(V27BalanceArtifactWriter.ComputeSha256(path))
+                .Append(V27CurrentSourceEvidenceDigest.ComputeSourceFileDigest(path))
                 .Append('\n');
         }
 
@@ -973,6 +973,8 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
     private Facility fixtureCropPlot;
     private BuildingSO producerFacilityAsset;
     private float originalTimeScale;
+    private float originalFixedDeltaTime;
+    private IGameTimeScaleController timeScaleController;
     private bool originalRunInBackground;
     private bool originalFreezeNeeds;
     private bool originalFriendlyInvincible;
@@ -1017,13 +1019,22 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
             V27CurrentSourceEvidenceDigest.ComputeAllScriptsDigest();
         SetPhase("starting");
         originalTimeScale = Time.timeScale;
+        originalFixedDeltaTime = Time.fixedDeltaTime;
+        timeScaleController = new UnityGameTimeScaleController();
         originalCaptureDeltaTime = Time.captureDeltaTime;
         originalRunInBackground = Application.runInBackground;
         Application.runInBackground = true;
         // Three exact game seconds per rendered frame divides the 90/45/90
         // measurement windows without a partial final tick.
         Time.captureDeltaTime = 3f / VerificationTimeScale;
-        Time.timeScale = VerificationTimeScale;
+        timeScaleController.Scale = VerificationTimeScale;
+        float expectedFixedDelta = originalFixedDeltaTime
+            / (originalTimeScale > 0f ? originalTimeScale : 1f) * VerificationTimeScale;
+        Check(Mathf.Approximately(Time.timeScale, VerificationTimeScale)
+                && Mathf.Approximately(Time.fixedDeltaTime, expectedFixedDelta),
+            "PAIRED_CLOCK_SCALE_FIXED_STEP_COUPLED",
+            $"scale={Time.timeScale};fixedDelta={Time.fixedDeltaTime};expectedFixedDelta={expectedFixedDelta}");
+        Debug.Log($"V27_PAIRED_CLOCK_CONFIGURATION scale={Time.timeScale};fixedDelta={Time.fixedDeltaTime};captureDelta={Time.captureDeltaTime}");
         Application.logMessageReceived += CaptureIssue;
         yield return ExecuteGuarded(RunAll());
         Finish();
@@ -1128,7 +1139,7 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         {
             for (int frame = 0; frame < 8; frame++)
                 yield return null;
-            Time.timeScale = VerificationTimeScale;
+            timeScaleController.Scale = VerificationTimeScale;
         }
 
         foreach (CharacterActor actor in FindObjectsByType<CharacterActor>(
@@ -1192,6 +1203,8 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         progression = Resolve<ProgressionSceneRuntimeReferences>();
         clock = Resolve<IGameClock>();
         clockDiagnostics = clock as IGameClockDiagnosticsControl;
+        timeScaleController = Resolve<IGameTimeScaleController>()
+            ?? throw new InvalidOperationException("Paired verification requires the registered game time-scale controller.");
         gameSpeed = Resolve<IGameSpeedController>();
         debugMode = Resolve<IDungeonDebugModeService>();
         userSettings = Resolve<IDungeonUserSettingsService>();
@@ -1712,6 +1725,10 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         if (!anyPlan)
             yield break;
 
+        yield return PrepareCriticalAccessFixture(reachable, placement, expandedLayout.EntrancePosition);
+        if (failures.Count > 0)
+            yield break;
+
         QuiesceActorsForCheckpoint();
         IsolatePreexistingLogistics();
         for (int frame = 0; frame < 2; frame++)
@@ -1877,7 +1894,6 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         IReadOnlyCollection<Vector2Int> criticalAccess)
     {
         Vector2Int? protectedProbeCell = emergencyEgress
-            .Concat(criticalAccess)
             .Distinct()
             .OrderBy(value => value.x)
             .ThenBy(value => value.y)
@@ -1893,6 +1909,18 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
             $"egress={emergencyEgress.Count};operationalAccess={operationalAccess.Count};"
             + $"criticalAccess={criticalAccess.Count}");
         if (!protectedProbeCell.HasValue)
+            return false;
+
+        Vector2Int? criticalProbeCell = criticalAccess
+            .Where(value => !emergencyEgress.Contains(value)
+                && items.GetStacksAt(value, includeStored: true).Count == 0)
+            .OrderBy(value => value.x).ThenBy(value => value.y)
+            .Select(value => (Vector2Int?)value).FirstOrDefault();
+        if (!Check(criticalProbeCell.HasValue,
+                "PAIRED_FLOOR_CLUTTER_CRITICAL_PROBE_CELL", "critical access must be independently exercised")
+            || !TryProbeFloorClutterCell(criticalProbeCell.Value,
+                expectImmediateFailure: true,
+                "PAIRED_FLOOR_CLUTTER_CRITICAL_ACCESS_POSITIVE"))
             return false;
 
         if (!TryProbeFloorClutterCell(
@@ -1917,9 +1945,66 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         return cleanup.OutsideContainment.Count == 0;
     }
 
-    private static bool IsCriticalServiceFacility(BuildableObject building)
+    private IEnumerator PrepareCriticalAccessFixture(
+        Vector2Int[] reachable, BuildingPlacementValidator placement, Vector2Int entrance)
     {
-        FacilityData facility = building?.BuildingData?.Facility;
+        bool CanProbe(Vector2Int cell) => cell != entrance && cell != entrance + Vector2Int.right
+            && cell != burstCell && cell != cropBurstCell && cell != miningBurstCell
+            && items.GetStacksAt(cell, includeStored: true).Count == 0;
+        if (world.Buildings.OfType<BuildableObject>()
+            .Where(IsCriticalServiceFacility)
+            .Select(value => WalkableAccess(value.BuildingData, value.centerPos))
+            .Any(access => access.Length == 1 && CanProbe(access[0])))
+            yield break;
+
+        // A sole service access is a fixture precondition, not a property that
+        // the authored starting layout must happen to have. Place a real service
+        // at a legal boundary using the same placement and access rules as play.
+        var candidate = AssetDatabase.FindAssets("t:BuildingSO",
+                new[] { "Assets/Resources/SO/Building" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
+            .Where(value => IsCriticalServiceDefinition(value)
+                && value.GetStorageCapacity() == 0)
+            .OrderBy(value => value.width * value.height).ThenBy(value => value.id)
+            .SelectMany(definition => reachable
+                .Where(cell => cell != burstCell && cell != cropBurstCell
+                    && cell != miningBurstCell
+                    && placement.CanBuild(grid, definition, cell, out _))
+                .Select(cell => new { Definition = definition, Cell = cell,
+                    Access = WalkableAccess(definition, cell) })
+                .Where(value => value.Access.Length == 1 && CanProbe(value.Access[0])))
+            .FirstOrDefault();
+        if (!Check(candidate != null, "PAIRED_CRITICAL_SERVICE_PLACEMENT_CANDIDATE",
+                "a legal authored service with exactly one walkable work access is required"))
+            yield break;
+        bool placed = livePlacementService.TryPlaceBuildingImmediateUnchecked(
+            candidate.Definition, candidate.Cell, chargeCost: false, out string failure);
+        if (!Check(placed, "PAIRED_CRITICAL_SERVICE_PLACED", failure))
+            yield break;
+        for (int frame = 0; frame < 4; frame++)
+            yield return null;
+        BuildableObject published = world.Buildings.OfType<BuildableObject>()
+            .SingleOrDefault(value => value != null && value.BuildingData == candidate.Definition
+                && value.centerPos == candidate.Cell);
+        Check(published != null && IsCriticalServiceFacility(published)
+                && WalkableAccess(published.BuildingData, published.centerPos).SequenceEqual(candidate.Access),
+            "PAIRED_CRITICAL_SERVICE_LIVE_ACCESS",
+            $"asset={candidate.Definition.id};cell={candidate.Cell};access={candidate.Access[0]};published={published != null}");
+    }
+
+    private Vector2Int[] WalkableAccess(BuildingSO definition, Vector2Int anchor) =>
+        BuildingWorkAccessRules.EnumerateCandidates(
+                definition.GetGridPosList(anchor), definition.IsGridMovement)
+            .Where(value => grid.IsValidGridPos(value) && grid.IsWalkable(value))
+            .Distinct().OrderBy(value => value.x).ThenBy(value => value.y).ToArray();
+
+    private static bool IsCriticalServiceFacility(BuildableObject building) =>
+        IsCriticalServiceDefinition(building?.BuildingData);
+
+    private static bool IsCriticalServiceDefinition(BuildingSO definition)
+    {
+        FacilityData facility = definition?.Facility;
         return facility != null
             && (facility.SupportsWork(BuiltInWorkTypeIds.DrawWater)
                 || facility.SupportsWork(BuiltInWorkTypeIds.Cook)
@@ -1988,19 +2073,18 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
     {
         SetPhase("prepare-production-burst-authorities");
         BlueprintResearchRuntime research = progression.BlueprintResearch;
-        research.State.Projects.Complete(
-            new ResearchProjectId("research:agriculture:field"));
-        research.State.Projects.Complete(
-            new ResearchProjectId("research:agriculture:gathering"));
-        research.State.Projects.Complete(
-            new ResearchProjectId("research:mining:surface"));
+        foreach (string projectId in new[] { "research:agriculture:gathering",
+                     "research:agriculture:field", "research:mining:surface" })
+        {
+            bool completed = research.TryCompleteProjectImmediatelyForVerification(
+                new ResearchProjectId(projectId), out string failure);
+            if (!Check(completed, "PAIRED_PRODUCTION_RESEARCH_COMMITTED", projectId + ":" + failure))
+                yield break;
+        }
 
         BuildingSO cropAsset = FindCropPlotAsset();
-        bool cropBuildingUnlocked = cropAsset != null
-            && research.State.UnlockBuilding(cropAsset.id);
         Check(cropAsset != null
-                && (cropBuildingUnlocked
-                    || research.State.IsBuildingUnlocked(cropAsset.id)),
+                && research.State.IsBuildingUnlocked(cropAsset.id),
             "PAIRED_CROP_BUILDING_RESEARCH_UNLOCKED",
             $"asset={cropAsset?.name ?? "missing"};"
             + $"buildingId={cropAsset?.id ?? -1};"
@@ -2339,7 +2423,7 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
     {
         currentBurstProbe = null;
         SetPhase($"seed-{seed}-{arm}-warmup");
-        Time.timeScale = VerificationTimeScale;
+        timeScaleController.Scale = VerificationTimeScale;
         yield return ObserveDuration(seed, arm, -1, WarmupSeconds, false);
         if (failures.Count > 0)
             yield break;
@@ -2726,11 +2810,13 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
             Time.captureDeltaTime = acceleratedCaptureDeltaTime;
             int carriedAtFault = CountActorCarriedQuantity(
                 faultActor, currentBurstProbe.ItemId);
+            Debug.Log($"V27_PAIRED_PICKUP_CLOCK seed={seed};arm={arm};carried={carriedAtFault};scale={Time.timeScale};fixedDelta={Time.fixedDeltaTime};captureDelta={Time.captureDeltaTime}");
             Check(carriedAtFault > 0,
                 "PAIRED_HAULER_FAULT_AFTER_PHYSICAL_PICKUP",
                 $"seed={seed};arm={arm};actor={faultActorId};carried={carriedAtFault};"
                 + $"position={faultActor.GetNowXY()};clock={clock.Time:0.###};"
                 + $"pickupBudget={pickupGameBudget:0.###};"
+                + $"timeScale={Time.timeScale};fixedDelta={Time.fixedDeltaTime};"
                 + $"haulObserved={haulExecutionObserved};"
                 + $"directTravel={directPickupTravelSeconds:0.###};"
                 + $"moveSpeed={pickupMoveSpeed:0.###};"
@@ -3619,8 +3705,13 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
         }
         Application.logMessageReceived -= CaptureIssue;
         CurrentPhase = "finished";
-        Time.timeScale = originalTimeScale;
+        timeScaleController.Scale = originalTimeScale;
+        Time.fixedDeltaTime = originalFixedDeltaTime;
         Time.captureDeltaTime = originalCaptureDeltaTime;
+        Check(Time.timeScale == originalTimeScale && Time.fixedDeltaTime == originalFixedDeltaTime
+                && Time.captureDeltaTime == originalCaptureDeltaTime,
+            "PAIRED_CLOCK_RESTORED", "scaled, fixed and capture clocks must match their original values");
+        Debug.Log($"V27_PAIRED_CLOCK_RESTORED scale={Time.timeScale};fixedDelta={Time.fixedDeltaTime};captureDelta={Time.captureDeltaTime}");
         Application.runInBackground = originalRunInBackground;
         WriteArtifacts();
         PublishCurrentProgress("FINISHED");
@@ -4091,7 +4182,7 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
     {
         gameSpeed.SetSpeed(5);
         gameSpeed.SetPaused(!activateMeasuredActors);
-        Time.timeScale = activateMeasuredActors ? VerificationTimeScale : 0f;
+        timeScaleController.Scale = activateMeasuredActors ? VerificationTimeScale : 0f;
         debugMode.SetCheat(DungeonDebugCheat.FreezeNeeds, true);
         debugMode.SetCheat(DungeonDebugCheat.FriendlyInvincible, true);
         debugMode.SetCheat(DungeonDebugCheat.PauseWildlifeAi, true);
@@ -4517,8 +4608,9 @@ public sealed class V27PairedClutterPlayModeRunner : MonoBehaviour
     {
         if (gameSpeed?.IsPaused == true)
             gameSpeed.SetPaused(false);
-        if (Time.timeScale < VerificationTimeScale)
-            Time.timeScale = VerificationTimeScale;
+        // Use the game's coupled scaled/fixed clock even after a restore or
+        // pause. Writing timeScale alone leaves physics at the previous speed.
+        timeScaleController.Scale = VerificationTimeScale;
     }
 
     private static bool IsAffectedActorStream(

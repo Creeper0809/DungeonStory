@@ -18,6 +18,7 @@ public static class V27OutputCapacityEvidenceDebugScenarios
         "docs/implementation-reports/crop-plot-runtime-latest.txt";
     private const string AggregatorSourcePath =
         "Assets/Scripts/Services/Economy/Editor/V27OutputCapacityEvidenceDebugScenarios.cs";
+    private static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
     private static readonly string[] WorldResourceSourcePaths =
     {
@@ -55,14 +56,21 @@ public static class V27OutputCapacityEvidenceDebugScenarios
 
     public static string RunAll()
     {
-        string worldMarker = RequireFreshMarker(
+        CaptureCurrentRunIdentity(
+            out string currentSourceDigest,
+            out string gameplaySceneSha256);
+        string worldMarker = RequireCurrentMarker(
             WorldResourceReportPath,
-            LatestSourceWriteTime(WorldResourceSourcePaths),
-            "PASS WORLD_RESOURCE_EXACT_SOURCE_ATOMIC_PUBLICATION ");
-        string cropMarker = RequireFreshMarker(
+            currentSourceDigest,
+            gameplaySceneSha256,
+            "PASS WORLD_RESOURCE_EXACT_SOURCE_ATOMIC_PUBLICATION ",
+            out string worldResourceReportSha256);
+        string cropMarker = RequireCurrentMarker(
             CropPlotReportPath,
-            LatestSourceWriteTime(CropPlotSourcePaths),
-            "PASS CROP_OUTPUT_FACILITY_BUFFER_WAIT_RESTORE_RETRY_EXACT_ONCE ");
+            currentSourceDigest,
+            gameplaySceneSha256,
+            "PASS CROP_OUTPUT_FACILITY_BUFFER_WAIT_RESTORE_RETRY_EXACT_ONCE ",
+            out string cropPlotReportSha256);
         if (!worldMarker.Contains("conserved=true", StringComparison.Ordinal)
             || !cropMarker.Contains("capacityWait=true", StringComparison.Ordinal)
             || !cropMarker.Contains("frozenRestore=true", StringComparison.Ordinal)
@@ -74,8 +82,16 @@ public static class V27OutputCapacityEvidenceDebugScenarios
             throw new InvalidOperationException(
                 "Output-capacity PlayMode evidence lacks exact conservation markers.");
         }
+        string evidenceSourceDigest = ComputeEvidenceSourceDigest();
+        RequireUnchangedRunIdentity(currentSourceDigest, gameplaySceneSha256);
         return "RESULT=PASS; checks=2; failures=0\n"
-            + "sourceDigest=" + ComputeEvidenceSourceDigest() + "\n"
+            + "sourceDigest=" + evidenceSourceDigest + "\n"
+            + "currentSourceDigest=" + currentSourceDigest + "\n"
+            + "gameplaySceneSha256=" + gameplaySceneSha256 + "\n"
+            + "worldResourceReportPath=" + WorldResourceReportPath + "\n"
+            + "worldResourceReportSha256=" + worldResourceReportSha256 + "\n"
+            + "cropPlotReportPath=" + CropPlotReportPath + "\n"
+            + "cropPlotReportSha256=" + cropPlotReportSha256 + "\n"
             + "PASS WORLD_RESOURCE_EXACT_SOURCE_ATOMIC_PUBLICATION "
             + "exactSource=true;sourceDebitExact=true;"
             + "frozenOutcome=true;conserved=true\n"
@@ -91,13 +107,61 @@ public static class V27OutputCapacityEvidenceDebugScenarios
         foreach (string path in EvidenceSourcePaths)
         {
             builder.Append(path).Append('\t')
-                .Append(V27BalanceArtifactWriter.ComputeSha256(path))
+                .Append(V27CurrentSourceEvidenceDigest.ComputeSourceFileDigest(path))
                 .Append('\n');
         }
 
+        return ComputeSha256(StrictUtf8.GetBytes(builder.ToString()));
+    }
+
+    internal static void CaptureCurrentRunIdentity(
+        out string currentSourceDigest,
+        out string gameplaySceneSha256)
+    {
+        currentSourceDigest = V27CurrentSourceEvidenceDigest
+            .ComputeAllScriptsDigest();
+        gameplaySceneSha256 = V27CurrentSourceEvidenceDigest
+            .ComputeGameplaySceneDigest();
+        if (!string.Equals(
+                gameplaySceneSha256,
+                V27CurrentSourceEvidenceDigest.OfficialGameplaySceneSha256,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "OUTPUT_CAPACITY_OFFICIAL_GAMEPLAY_SCENE_DIGEST_MISMATCH:"
+                + gameplaySceneSha256);
+        }
+    }
+
+    internal static void RequireUnchangedRunIdentity(
+        string expectedSourceDigest,
+        string expectedSceneDigest)
+    {
+        CaptureCurrentRunIdentity(
+            out string currentSourceDigest,
+            out string gameplaySceneSha256);
+        if (!string.Equals(
+                currentSourceDigest,
+                expectedSourceDigest,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                gameplaySceneSha256,
+                expectedSceneDigest,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "OUTPUT_CAPACITY_RUN_IDENTITY_CHANGED:"
+                + $"expectedSource={expectedSourceDigest};"
+                + $"currentSource={currentSourceDigest};"
+                + $"expectedScene={expectedSceneDigest};"
+                + $"currentScene={gameplaySceneSha256}");
+        }
+    }
+
+    private static string ComputeSha256(byte[] bytes)
+    {
         using SHA256 sha = SHA256.Create();
-        byte[] digest = sha.ComputeHash(
-            new UTF8Encoding(false, true).GetBytes(builder.ToString()));
+        byte[] digest = sha.ComputeHash(bytes);
         const string hex = "0123456789abcdef";
         char[] result = new char[digest.Length * 2];
         for (int index = 0; index < digest.Length; index++)
@@ -108,41 +172,66 @@ public static class V27OutputCapacityEvidenceDebugScenarios
         return new string(result);
     }
 
-    private static DateTime LatestSourceWriteTime(
-        IEnumerable<string> sourcePaths) => sourcePaths
-        .Select(Path.GetFullPath)
-        .Select(path => File.Exists(path)
-            ? File.GetLastWriteTimeUtc(path)
-            : throw new FileNotFoundException(
-                "V27 output-capacity evidence source is missing.",
-                path))
-        .Max();
-
-    private static string RequireFreshMarker(
+    private static string RequireCurrentMarker(
         string relativePath,
-        DateTime latestSource,
-        string markerPrefix)
+        string expectedSourceDigest,
+        string expectedSceneDigest,
+        string markerPrefix,
+        out string reportSha256)
     {
         string path = Path.GetFullPath(relativePath);
-        if (!File.Exists(path) || File.GetLastWriteTimeUtc(path) < latestSource)
+        if (!File.Exists(path))
         {
             throw new InvalidOperationException(
-                "Output-capacity PlayMode evidence is missing or stale: "
+                "Output-capacity PlayMode evidence is missing: "
                 + relativePath);
         }
 
-        string[] lines = File.ReadAllLines(path, Encoding.UTF8);
-        if (!lines.Contains("valid=true", StringComparer.Ordinal))
-        {
-            throw new InvalidOperationException(
-                "Output-capacity PlayMode evidence did not finish successfully: "
-                + relativePath);
-        }
+        byte[] bytes = File.ReadAllBytes(path);
+        reportSha256 = ComputeSha256(bytes);
+        string[] lines = StrictUtf8.GetString(bytes)
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n')
+            .Split('\n');
+        RequireSingleField(lines, "valid", "true", relativePath);
+        RequireSingleField(
+            lines,
+            "currentSourceDigest",
+            expectedSourceDigest,
+            relativePath);
+        RequireSingleField(
+            lines,
+            "gameplaySceneSha256",
+            expectedSceneDigest,
+            relativePath);
         return lines.FirstOrDefault(line => line.StartsWith(
                    markerPrefix,
                    StringComparison.Ordinal))
                ?? throw new InvalidOperationException(
                    "Output-capacity PlayMode marker is missing: " + markerPrefix);
+    }
+
+    private static void RequireSingleField(
+        IEnumerable<string> lines,
+        string key,
+        string expectedValue,
+        string relativePath)
+    {
+        string prefix = key + "=";
+        string[] matches = lines.Where(line => line.StartsWith(
+                prefix,
+                StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1
+            || !string.Equals(
+                matches[0],
+                prefix + expectedValue,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Output-capacity PlayMode evidence identity is stale or ambiguous: "
+                + $"path={relativePath};key={key};count={matches.Length}.");
+        }
     }
 }
 #endif

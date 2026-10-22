@@ -1,14 +1,14 @@
 {
   "artifact_kind": "dungeonstory-content-database",
   "generator": "tools/Documentation/generate_content_database.py",
-  "output_digest": "19f263a68eedbbe220363282789b6a9df0d291c78aaf2984884b7260e9480cd7",
+  "output_digest": "aba15e6585aa033d27a0beb6d18816dc75cf4d49aad00afa167b2250793b2d75",
   "output_file_count": 491,
-  "output_files_manifest_sha256": "7beada596c1ab01b326abac890304d78a1d8edf735e861f732b626bbbeb7546f",
+  "output_files_manifest_sha256": "f49e8783cdd9d62bf9fa9289c2fe3d5f58158441929ad12a7018e84fb2694552",
   "output_root": "docs_final/content-db",
   "schema_version": 1,
-  "source_digest": "58bb6025f9f799f7db3691877816504cd2873cdf11d61317a3dc711a8c18908c",
-  "source_file_count": 19580,
-  "source_files_manifest_sha256": "414fa97de55f26ff42a1dd6a699f8c9e5f2af25c51029e5925315ee2a860c9e2",
+  "source_digest": "3ea2a4be557fef3364ed474277ad7451bf7ac6b14f81781389ec5d17660a1a10",
+  "source_file_count": 19582,
+  "source_files_manifest_sha256": "1e7dcd1ed7f35c92cabde4a253f8edfa3ef1525656f459bd7b189ed0b756afcd",
   "source_specs": [
     {
       "name": "unity-authored-assets",

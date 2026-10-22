@@ -521,6 +521,8 @@ public static class CropPhysicalTransactionFixture
 
         WorkCompletionIdentityDeliveryCursorSaveData duplicate =
             ToCompletionCursor(second);
+        // Establish that this is a valid observed cursor before testing duplication.
+        restored.Restore(new[] { duplicate });
         try
         {
             restored.Restore(new[] { duplicate, duplicate.Clone() });
@@ -528,7 +530,9 @@ public static class CropPhysicalTransactionFixture
         }
         catch (InvalidOperationException)
         {
-            return true;
+            return restored.Capture().Count == 1
+                && restored.Capture().Single().payloadFingerprint
+                    == second.PayloadFingerprint;
         }
     }
 
@@ -1228,7 +1232,13 @@ public static class CropPhysicalTransactionFixture
             deliveryId = request.DeliveryId,
             payloadFingerprint = request.PayloadFingerprint,
             disposition = WorkCompletionIdentityDeliveryDisposition
-                .EffectsAppliedWithOutcome
+                .EffectsAppliedWithOutcome,
+            observation = new WorkIdentityAppliedFact(
+                request, "QA harvester", requiresTerminalDelivery: true).Snapshot(),
+            publicationKey = WorkCompletionIdentityOutcomeIds.ResultKey(request).ToString(),
+            publicationId = "gameplay-outcome:qa:work-identity:"
+                + request.OperationSequence,
+            publicationFingerprint = new string('d', 64)
         };
 
     private static void ValidateCompletionJoin(
@@ -2289,6 +2299,12 @@ public static class CropPhysicalTransactionFixture
             outputPublished = true,
             admissionCommitted = true,
             outputAcknowledged = true,
+            observationExpected = true,
+            observationOwnerRevision = 1L,
+            observationKey = "domain-fact:certified-seed:qa:owner:1",
+            observationId = "gameplay-outcome:certified-seed:qa:owner:1",
+            observationFingerprint = new string('d', 64),
+            observationDelivered = true,
             stacks = new List<ProductionDomainPublishedStackSaveData>
             {
                 new()
@@ -2296,11 +2312,19 @@ public static class CropPhysicalTransactionFixture
                     outputLineId = CertifiedSeedOutputCapability.OutputLineId,
                     itemId = SeedItemId,
                     stackId = "world-item-stack:qa-certified-output",
+                    displayText = "QA certified seed",
                     quantity = 1,
                     massGrams = grams
                 }
             }
         };
+        // This checkpoint has already published and observed its physical output.
+        // Its immutable completion fact must survive even if the facility is gone.
+        order.completionFact = new CertifiedSeedCompletedFact(
+            new CertifiedSeedPlanExecutionReceipt(order),
+            "QA greenhouse", "QA crop", SeedItemId, "QA certified seed",
+            1, grams, order.outputPublication.outcomeFingerprint,
+            restored.lastProcessedOperatingDay, 1L).Snapshot();
         CertifiedSeedRuntime runtime = new(
             Proxy<IFacilityCapabilityQuery>(),
             Proxy<IBuildingWorldQuery>(),
@@ -2316,10 +2340,33 @@ public static class CropPhysicalTransactionFixture
             new DungeonRuntimeAggregateRootStore(),
             new ProductionFacilityMutationEpochRuntime(),
             Proxy<ICertifiedSeedInputOwnerRuntime>());
+        string beforeRestore = JsonUtility.ToJson(runtime.Capture());
+        foreach (bool missingObservation in new[] { true, false })
+        {
+            CertifiedSeedWorldSaveData invalid = JsonUtility.FromJson<
+                CertifiedSeedWorldSaveData>(JsonUtility.ToJson(restored));
+            if (missingObservation)
+                invalid.orders[0].outputPublication.observationExpected = false;
+            else
+                invalid.orders[0].completionFact.outputQuantity++;
+            try
+            {
+                runtime.BuildRestore(invalid);
+                return false;
+            }
+            catch (InvalidOperationException)
+            {
+                if (JsonUtility.ToJson(runtime.Capture()) != beforeRestore
+                    || !gateway.HasPending(order.pendingInput.operationId))
+                    return false;
+            }
+        }
         CertifiedSeedRestoreCandidate candidate = runtime.BuildRestore(restored);
         runtime.Restore(candidate);
         return runtime.CompleteDeliveredPlans(
                    restored.lastProcessedOperatingDay + 1) == 1
+            && runtime.CompleteDeliveredPlans(
+                   restored.lastProcessedOperatingDay + 1) == 0
             && runtime.Capture().orders.Count == 0
             && !gateway.HasPending(order.pendingInput.operationId);
     }

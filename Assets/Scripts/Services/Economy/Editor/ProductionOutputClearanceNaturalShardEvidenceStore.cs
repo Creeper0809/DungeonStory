@@ -13,7 +13,7 @@ public sealed class ProductionOutputClearanceNaturalRunIdentity
     public const string BootstrapProfileMode = "bootstrap";
     public const string StrictProfileMode = "strict";
     public const string OfficialGameplaySceneSha256 =
-        "6c35a17693d3cedca2c85b89b22a8bff9b5bae6de88c01b255481c058d2aee40";
+        V27CurrentSourceEvidenceDigest.OfficialGameplaySceneSha256;
 
     internal ProductionOutputClearanceNaturalRunIdentity(
         string currentSourceDigest,

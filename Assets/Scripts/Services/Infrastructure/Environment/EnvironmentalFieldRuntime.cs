@@ -380,22 +380,13 @@ public sealed class EnvironmentalFieldRuntimeApplicationAdapter :
 
         result.width = grid.width;
         result.height = grid.height;
-        float outdoorTemperature = GetOutdoorTemperature();
-        float exteriorAmbientLight = GetExteriorAmbientLight();
         int count = grid.width * grid.height;
         for (int index = 0; index < count; index++)
         {
             Vector2Int position = grid.GetPositionFromCellIndex(index);
-            float baseLight = GetBaseLight(
-                exterior[index],
-                exteriorAmbientLight);
-            if (Mathf.Abs(temperature[index] - outdoorTemperature) < 0.05f
-                && Mathf.Abs(air[index] - 100f) < 0.05f
-                && Mathf.Abs(light[index] - baseLight) < 0.05f)
-            {
-                continue;
-            }
-
+            // Ambient weather and daylight can differ while the world is being
+            // restored. Persist every cell so omitted defaults cannot silently
+            // replace the saved field with the restore-time environment.
             result.cells.Add(new EnvironmentalCellSaveData
             {
                 x = position.x,

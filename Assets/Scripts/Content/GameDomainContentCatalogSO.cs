@@ -13,6 +13,7 @@ using UnityEngine.Scripting.APIUpdating;
 public sealed class GameDomainContentCatalogSO : ScriptableObject
 {
     [SerializeField] private List<ScriptableObject> definitions = new();
+    [NonSerialized] private Dictionary<Type, object> typedDefinitionViews = new();
     [SerializeField] private List<AuthoredMetaUpgradeRecord> metaUpgrades = new();
     [SerializeField] private List<AuthoredRunVariableRecord> runVariables = new();
     [SerializeField] private List<AuthoredOwnerDoctrineRecord> ownerDoctrines = new();
@@ -34,11 +35,28 @@ public sealed class GameDomainContentCatalogSO : ScriptableObject
 
     public IReadOnlyList<T> GetAll<T>() where T : ScriptableObject
     {
-        return definitions
+        typedDefinitionViews ??= new Dictionary<Type, object>();
+        if (typedDefinitionViews.TryGetValue(typeof(T), out object cached))
+        {
+            return (IReadOnlyList<T>)cached;
+        }
+
+        IReadOnlyList<T> view = Array.AsReadOnly(definitions
             .OfType<T>()
             .Where(value => value != null)
             .Distinct()
-            .ToArray();
+            .ToArray());
+        typedDefinitionViews.Add(typeof(T), view);
+        return view;
+    }
+
+    private void OnEnable() => InvalidateTypedDefinitionViews();
+
+    private void OnValidate() => InvalidateTypedDefinitionViews();
+
+    private void InvalidateTypedDefinitionViews()
+    {
+        typedDefinitionViews?.Clear();
     }
 
     public IReadOnlyList<string> ValidateCatalog()
@@ -154,6 +172,7 @@ public sealed class GameDomainContentCatalogSO : ScriptableObject
             .OrderBy(value => value.GetType().FullName, StringComparer.Ordinal)
             .ThenBy(value => value.name, StringComparer.Ordinal)
             .ToList();
+        InvalidateTypedDefinitionViews();
     }
 #endif
 }

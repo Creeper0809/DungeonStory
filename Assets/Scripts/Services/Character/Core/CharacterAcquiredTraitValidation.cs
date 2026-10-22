@@ -367,9 +367,38 @@ public static class CharacterAcquiredTraitStateValidator
             CharacterNarrativeLedger ledger,
             CharacterAcquiredTraitSettingsSO settings,
             IEnumerable<CharacterAcquiredTraitModuleSO> moduleDefinitions)
+        => ValidateWithDefinitionsCore(state, ledger, settings, moduleDefinitions,
+            ValidatePersistentState(state, ledger));
+
+    internal static IReadOnlyList<CharacterAcquiredTraitValidationIssue>
+        ValidateForEffectProjection(
+            CharacterAcquiredTraitAggregateState state,
+            CharacterNarrativeLedger ledger,
+            CharacterAcquiredTraitSettingsSO settings,
+            IEnumerable<CharacterAcquiredTraitModuleSO> moduleDefinitions,
+            out CharacterAcquiredTraitModuleSO[] modules)
+    {
+        // Preserve the projection's structural-first failure contract, but do
+        // not run the same frozen request/ledger validation a second time.
+        var structural = ValidatePersistentState(state, ledger);
+        modules = null;
+        if (structural.Count > 0) return structural;
+        modules = (moduleDefinitions ?? Array.Empty<CharacterAcquiredTraitModuleSO>())
+            .ToArray();
+        return ValidateWithDefinitionsCore(state, ledger, settings,
+            modules, structural);
+    }
+
+    private static IReadOnlyList<CharacterAcquiredTraitValidationIssue>
+        ValidateWithDefinitionsCore(
+            CharacterAcquiredTraitAggregateState state,
+            CharacterNarrativeLedger ledger,
+            CharacterAcquiredTraitSettingsSO settings,
+            IEnumerable<CharacterAcquiredTraitModuleSO> moduleDefinitions,
+            IReadOnlyList<CharacterAcquiredTraitValidationIssue> structural)
     {
         List<CharacterAcquiredTraitValidationIssue> issues =
-            ValidatePersistentState(state, ledger).ToList();
+            structural.ToList();
         if (state == null)
             return issues;
         if (settings == null)

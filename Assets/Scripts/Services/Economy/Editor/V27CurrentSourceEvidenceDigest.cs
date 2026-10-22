@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using DungeonStory.Balance;
 using UnityEngine;
 
 /// <summary>
@@ -15,8 +16,10 @@ using UnityEngine;
 public static class V27CurrentSourceEvidenceDigest
 {
     public const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
+    // Reviewed main scene. Rebinding this pin requires fresh execution evidence;
+    // each long-running producer also checks its captured identity at completion.
     public const string OfficialGameplaySceneSha256 =
-        "e1181c098cb05dc0cd87cf47861831835f95bd4740026cc0c50d9e34288ad10f";
+        "a698948004fd2a1db71ef1bebf5ab4d4c5d62caf85fed1ea5af2bb3972c30341";
 
     public static string ComputeAllScriptsDigest()
         => Capture().Digest;
@@ -33,11 +36,7 @@ public static class V27CurrentSourceEvidenceDigest
         using SHA256 pathSha = SHA256.Create();
         foreach (SourceInput input in inputs)
         {
-            byte[] raw = File.ReadAllBytes(input.Absolute);
-            int offset = HasUtf8Bom(raw) ? 3 : 0;
-            string source = StrictUtf8.GetString(raw, offset, raw.Length - offset)
-                .Replace("\r\n", "\n")
-                .Replace('\r', '\n');
+            string source = ReadCanonicalSourceText(input.Absolute);
             byte[] bytes = StrictUtf8.GetBytes(
                 input.Relative + "\n" + source + "\n");
             sha.TransformBlock(bytes, 0, bytes.Length, null, 0);
@@ -66,6 +65,25 @@ public static class V27CurrentSourceEvidenceDigest
         using SHA256 sha = SHA256.Create();
         using FileStream stream = File.OpenRead(absolute);
         return Hex(sha.ComputeHash(stream));
+    }
+
+    public static string ComputeSourceFileDigest(string projectRelativePath)
+    {
+        string canonical = BalanceCanonicalText.ProjectRelativePath(projectRelativePath);
+        if (Path.GetExtension(canonical) != ".cs")
+            throw new ArgumentException("Expected a C# source authority.", nameof(projectRelativePath));
+        string absolute = Path.Combine(ProjectRoot(), canonical.Replace('/', Path.DirectorySeparatorChar));
+        using SHA256 sha = SHA256.Create();
+        return Hex(sha.ComputeHash(StrictUtf8.GetBytes(ReadCanonicalSourceText(absolute))));
+    }
+
+    private static string ReadCanonicalSourceText(string absolute)
+    {
+        byte[] raw = File.ReadAllBytes(absolute);
+        int offset = HasUtf8Bom(raw) ? 3 : 0;
+        return StrictUtf8.GetString(raw, offset, raw.Length - offset)
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n');
     }
 
     private static string ProjectRoot() =>

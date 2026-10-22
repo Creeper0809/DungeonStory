@@ -1,5 +1,53 @@
 # DungeonStory Current Task Plan
 
+## 현재 작업 — 변경 영향 범위 CI 정리 및 main 통합 (2026-10-22)
+
+Status: implementation_verified; remote integration is determined by the merged PR and main CI.
+
+최신 사용자 요청이 아래 V27 전수 재인증 계획을 대체한다. 불필요한 bootstrap92×32/프로필 승격/strict92×32/paired512 필수 병합 계획은 중단한다. 저장·복원·중복 방지의 핵심 불변식과 실패·변조 거절은 유지한다. 단순 기준 완화 대신 실제 변경 입력·의존 범위에 맞는 빠른 병합 검사와 별도 전체 출시 검증을 분리한다. 기존 코드 수정의 필요한 표적 실행 검증을 마친 뒤 commit/push/PR attach/GitHub CI/main 병합/병합 후 CI를 완료한다. 원본 Documents checkout 사용자 변경은 보존한다.
+
+1. 소유 전수 실행만 중단·증거 보존하고 현재 Unity0/lock을 확인한다.
+2. CI의 전역 source-hash 결합과 실제 artifact 무결성/게임 계약 검사를 분류하고 변경 영향·의존 경계, 미분류 변경의 보수적 처리, 필수 표적 실행 증거 계약을 정한다.
+3. 변경 영향 CI와 양성/변조·누락·오분류 거절 검사를 구현한다. 저장·복원·취소/재시도·중복 방지 표적 검증과 현재 소스 컴파일을 실제 수행한다. 불필요한 전체 밸런스/시드 재생성은 재개하지 않는다.
+4. 필요한 문서/인덱스/증거만 마감하고 push/PR/CI/main 및 병합 후 CI까지 완료한다.
+
+같은 대화 heartbeat v27-ci-main은 최신 범위로 갱신했다. 기존 전수 실행 지시를 다시 수행하지 않는다. 메인이 복잡한 CI 계약/구현·Unity 검증·최종 통합을 소유한다. 아래는 이전 단계 기록이다.
+
+현재 source batch r67의 필요한 실행5개를 완료했다(core250s/character150s/effects150s/world240s/crop180s, 모두 exit0/C#0/stop없음/drift0/console0). 실제 world104-section JSON/후속 처리/baseline 복원과 crop actual Play 수확/복원/재시도를 포함한다. READY/FROZEN, SOURCE_EDIT/UNITY_VERIFY CLOSED, Unity0/lock exclusive. Python25/25·analyzer DSB001–008·인덱스 재생성/validation/freshness PASS. 현재 증거는 Artifacts/QA/ImpactCI/verification.json이며 r65/r66과 과거/중단 전수 실행은 포함하지 않는다. portable CI end-to-end는74개 변경→필요5그룹/전체 balance 재인증 불필요로 분류했고 archive bytes 및 현재 source/config 실행 결합 PASS다. 원격 통합의 최종 권위는 codex/fix-v27-ci PR의 merged 상태와 main push CI다. 최종 연결 결과는 외부 C:/Users/vulpo/Documents/Codex/2026-10-22/v27-ci/integration-final.json에 회수한다. 장기 balance 전수 재인증은 사용자 범위에 따라 중단한 상태다.
+
+## 현재 작업 — V27 CI 복구 (2026-10-22)
+
+Status: in_progress
+
+최신 r64: r63 bootstrap은7726초/exit1/C#0/drift0, 13계획×32=416개 실제 생산·AI 입고·공식 복원 뒤 증류기 첫 시드에서 production-completion-line-invalid로 실패했다. 완전 수용이 아니다. terminal/Unity0/operation.lock exclusive 확인 후 메인 SOURCE_EDIT. 합성된 물리 lineCommitId가 공통 관측 ID192자 제한을 넘는 결함을 고친다(원본 builder 재현200자). 물리 owner/저장 원본과 공통 validator를 보존하고 native→fact 경계의 긴 commit만 결정적 SHA256 관측 ID로 연결한다. 짧은 기존 ID는 동일하며 preflight는 물리 원본의 canonical ID 및 투영을 대조한다. 표적 ACK 소실 전·후/JSON 분리 복원/재시도와 전체 natural 새 source 실행 뒤 profile·strict·paired·CI/main을 계속한다. 이전416개를 새 source 증거로 재사용하지 않는다.
+
+r64 독립 읽기 검토 완료: 테스트의 physical line 선택을 fact outputLineId로 고쳐 비물리 행 순서 의존을 제거했다. 4파일/21615입력 동결 및 원격 전체 SHA drift0, READY/FROZEN / SOURCE_EDIT CLOSED. r64-production-commit-identity native190초/exit0/C#0/drift0, sawmill/distillery ACK 전·후 fresh JSON 복원/단일 재시도4회 및 exact/호환/변조 거절 PASS다. 메인 단독 cuha headless r64-v27-bootstrap은 기존 focus selector로 distillery 계획을 첫 순서에 놓되 전체92×32를 유지해 새로 실행한다. 전체 관측은 아직 PASS가 아니다.
+
+현재 r64-v27-bootstrap은6496초/exit0/C#0/drift0이나 stop_reason=supervisor-error-BrokenPipeError로 안전 종료됐다. 로컬 PowerShell 메모리/CLR 오류와 연결 중단으로 supervisor 출력 pipe가 끊겼으며 성공 판정이 아니다. source188786dcdedca5d6f9854f4860817694b45ca855ef881715897da4d8f6450a78의 bootstrap raw387개/12개 완성 shard가 보존됐다. Unity0/operation.lock exclusive 확인, 소스/에셋 동결 유지. 메인이 원격 supervisor를 로컬 연결에서 분리하는 transport를 시험하고 같은 source/mode의 원본 SHA를 검증해 기존 resume 경로로 이어 실행한다. 전체 분모·게임 판정·자원·cleanup gate는 유지한다.
+
+detached transport 실제 SSH 강제 단절 probe 및 raw SHA/current byte 비교 PASS. resume1은50초/exit1/C#0/drift0으로, marker 없는 QA 임시 씬을 Play 전에 거절했다. Unity0/lock 확인 후 원본 scene/meta/buildsettings 해시 일치와 정확한 임시 복사본3파일을 확인하여 실행 증거 폴더에 이동 보존했다. 현재 launch label은 r64-v27-bootstrap-resume2/session22380이며 launch_natural_detached.py LABEL bootstrap r64-v27-bootstrap --focus-first natural-output-clearance-shard:building:1086:workstation:distillery를 사용한다. 이 wrapper는 기존 full-budget runner 본문을 변경하지 않고 원격 detached-supervisors/LABEL.py와 regular log로 실행한다. 중복 label/request가 있으면 다시 launch하지 않고 receipt/proc/status부터 확인한다. C# parser가 동일 source/mode의 raw 행을 검증한 뒤에만 resume를 수용한다. 전체92×32는 유지한다. 로컬 메모리 부담을 줄여 cmd/python 한 개로 순차 조회한다.
+
+현재 실행 순서: r43 효과 입력 회귀 PASS → paired 첫 시드16 windows/복구 확인(진단 중단, 전체 수용 아님) → 자연 bootstrap92×32 → 검증된 profile 승격 → strict natural 및 최종 paired32/512 windows → source-bound children/원장/CI. 실제 CI/Unity 호출 경로는32를 요구하며64는 호출하지 않는 과거 F/G parent 계약이다. profile 갱신 전에 장시간 전체 paired를 완료했다가 무효화하지 않도록 순서를 조정했다. 원 테스트의 시드 수·시간·복구·무변경 기준은 유지한다.
+
+1. 현재 main과 CI의 첫 실패 및 뒤따르는 증거 의존 관계를 재현·분류한다.
+2. 원래 검증 계약을 유지하며 잘못된 생성/검증 경로를 수정하고 필요한 증거를 실제 재생성한다. 과거 승인·실행 결과를 임의로 현재 PASS로 바꾸지 않는다.
+3. 현재 산출물과 변조·누락 실패 경계를 검증하고 GitHub CI를 통과시킨 뒤 push·PR·main 병합을 마친다.
+
+기존 격리 worktree를 codex/fix-v27-ci에서 재사용하며 원래 checkout은 보존한다. 메인이 설계·검증·통합을 담당한다. r31 crop/world/output/spatial, r32 random, r33 WorkRate23/23은 실제 PASS했다. Paired의 저장/복원과 clean8 windows 뒤 픽업 준비15초 watchdog은 r38까지 실패했다. r40~r42 실제 CPU 계측으로 후천 특성 상태 검증 중복과 유형별 콘텐츠 반복 조회를 확인했다. r43은 중복 검증만 제거하고 불변 정의 목록의 조회 결과를 재사용한다. 임시 계측은 제거했으며 실패 우선순위·무변경 거절·목록 갱신 회귀와 full paired를 다음 실제 검증으로 실행한다. READY/FROZEN·SOURCE_EDIT CLOSED, 메인 단독 cuha headless UNITY_VERIFY. 남은 natural/profile·최종 source-bound child 및 원장 재생성 뒤 GitHub CI·main까지 통합한다. 승인·값·시드·성공 기준은 유지한다.
+
+### r63 이후 실행 순서
+
+현재 실행 권위는 r64-v27-bootstrap-resume2/Unity1425848/supervisor1424365/source188786dcdedca5d6f9854f4860817694b45ca855ef881715897da4d8f6450a78이다.841초 시점 distillery32/forge13 새 관측. 원본323행은 향후 C# 수용 전 입력이며 raw 수는 staged 입력을 포함한다. Unity Temp 초기화 뒤 post-start atomic 입력 전달을 수행했고 소스·에셋은 편집하지 않았다. C# final resumed/executed·전체2944·console-zero·no-op 수용을 따르며 현재 검증과 편집을 겹치지 않는다. 아래 strict/paired 장시간 실행은 각각 launch_natural_detached.py LABEL strict 및 launch_paired_detached.py LABEL로 시작한다. 두 wrapper는 원 full-budget/native/cleanup gate를 변경하지 않고 원격 별도 session에서 실행한다. 로컬 메모리 부담을 줄여 cmd/python 한 개로 순차 조회한다.
+
+- 같은 대화의 후속 자동 실행 `v27-ci-main`은 ACTIVE/15분 간격이다. 최신 실행 label/source는 위 현재 단계와 progress를 따른다. 기존 native 결과를 확인하고 필요한 후속 작업을 계속하며, main 통합·병합 후 CI까지 끝난 뒤 중지한다. 같은 자동 실행을 중복 생성하지 않는다.
+- 작업 경로는 `C:/Users/vulpo/.codex/worktrees/editmode-regressions/DungeonStory`, branch `codex/fix-v27-ci`다. 원본 checkout은 사용자가 수정 중이다. cuha의 기존 Unity/operation.lock/실행 status부터 확인하며 활성 검증과 소스 편집을 겹치지 않는다.
+- 외부 실행기 폴더는 `C:/Users/vulpo/Documents/Codex/2026-10-22/v27-ci`다. 최신 소스의 bootstrap이 실제92×32·전체 console0·공식 복원·현재 소스/씬·두 번째 쓰기 무변경을 모두 통과한 뒤에만 profile candidate를 검토한다. 실행 전 생성된 구형 보고서는 수용하지 않는다.
+- native candidate는 `fetch_changed_artifacts.py`로 외부 staging에 SHA 검증하여 회수한다(설치 기능 없음). baseline M06의 용량/역압 기준 및 generation report의92/32/2944/critical0을 확인하고 에셋 영향 안내 후 기존 promotion 명령을 실행한다. 준비된 `launch_profile_promotion.py`는 아직 실행 전이며, 정확한 Resources profile1파일의 candidate 일치 변경만 허용한다. 원 drift를 보존하고 native0/C#0/stop 없음/예상 밖 drift0/marker1/candidate 불변/resource 완전 일치를 함께 요구한다. 독립 생성본 AST·실패 gate 검토 완료.
+- 승격 후 검증된 실제 resource bytes를 로컬에 회수하고 다음 raw source manifest를 만든다. `launch_natural_full_budget.py LABEL strict`로 원92×32 strict natural을 새로 실행한다. bootstrap 상태를 strict로 바꾸거나 재결합하지 않는다. `launch_paired_full_budget.py LABEL`은 최종32 seeds/512 windows를 그대로 실행한다(미호출 historical64/1024로 확대하지 않음).
+- 최종 profile/source에서 world·crop(`V27CiEvidenceBatch.RunWorldResources/RunCrops`), output aggregate(`V27OutputCapacityEvidenceDebugScenarios.RunFromMenu`), spatial3보고서(`V27AssetBackedSpatialCapacityDebugScenarios.RunBatchModeAndExit`, quit 없는 mode), physical mass(`V27PhysicalMassCouplingAuditDebugScenarios.RunFromMenu`)의 필요한 현재 증거를 재생성한다. 짧은 실행에는 `launch_native_safe.py`를 사용한다. r32 random은 관련 scan 입력이 그대로일 때 재사용한다.
+- 원장 승인 갱신은 기존 `RevalidateSemanticallyUnchangedAppliedApprovalsFromMenu`만 사용하고 새 값을 임의 승인하지 않는다. ValidateMarketReviewDecisions 후 pending promotion0의 실제 두 번째 Apply no-op 영수증, economy256(`V27BalanceEconomySimulationDebugScenarios.RunFromMenu`), 마지막 `V27BalanceAuditNoOpReceipt.GenerateTwiceAndVerifyNoOp`를 실행한다. 두 번째 원장 생성의 bytes/length/mtime 불변을 유지한다.
+- 최종 non-Unity CI 입력도 idle 프로젝트에 동기화한 뒤 전체 Python verifier·변조 거절 회귀·고정 analyzer·깨끗한 checkout 바이트 검사를 수행한다. 관련 KB는 코드 배치 마감에 한 번 갱신하고 최종 증거를 검토한 뒤 commit/push/PR(attach 필수)/CI PASS/main merge/병합 후 CI를 완료한다. 현재는 어느 단계도 완료로 바꾸지 않는다.
+
 ## 현재 작업 — EditMode 회귀 수정·실행 완료 (2026-10-22)
 
 Status: implementation_verified. codex/fix-editmode-regressions에서 소스 수정과 필수 실행을 완료했다. GitHub main 통합 여부의 권위는 이 변경을 포함한 PR의 merged 상태와 원격 main 커밋이다.

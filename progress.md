@@ -1,5 +1,116 @@
 # DungeonStory Current Progress
 
+## 2026-10-22 변경 영향 CI 전환 / 전수 실행 종료
+
+최신 사용자 지시로 소유 r64-v27-bootstrap-resume2 supervisor/Unity만 중단했다. native1517초/exit0/C#0/drift0/stop_reason=supervisor-signal-15이며 의도적 중단이지 전체 PASS가 아니다. terminal/Unity0/operation.lock exclusive EDIT_READY를 확인했다. 원본 scene/meta/build settings와 임시 QA 파일을 SHA로 대조한 뒤 정확한 임시 folder/meta/lease만 같은 실행 증거 폴더에 이동 보존했다. 증거는 외부 `C:/Users/vulpo/Documents/Codex/2026-10-21/task/results/editmode-repairs-20261021/r64-v27-bootstrap-resume2`와 cuha 같은 label에 보존한다.
+
+일반 PR/명시적 출시 인증 분리, 영향 선택과 실행 증거 누락·변조·중단 거절을 구현했다. 독립 검토에서 JSON/바이너리 입력, 실행기/asmdef meta 선택, PR diff tree, 파생 예외 검사와 공식 scene pin을 보완했다. Python25/25, analyzer DSB001–008, archive byte integrity PASS. 최종 r67 전체21615 입력은 remote pre/post SHA drift0이며 source ab263e9ccc34ae5ac041cdc9e367a9b8005ee0144591f9352590c8fa51acae29, config d55e7469fcd02ef6865fb1bda489adc9b57ccf56373cda167311492cb81363c7이다. core250초·character150초·effects150초·actual world240초·crop180초는 모두 native0/C#0/stop없음/drift0/console0으로 완료했다. world는 실제104/104 section JSON round trip·후속 처리·canonical baseline 복원 PASS, consoleWarnings/Errors0이다. crop은 실제 Play 수확/복원/재시도와 완전한 cleanup을 확인했다. 현재 source-bound 로그/summary5개를 Artifacts/QA/ImpactCI/verification.json에 결합했고 서로 같은 source/config인 것을 검사했다. main 단독 cuha headless 검증은 모두 terminal, SOURCE_EDIT/UNITY_VERIFY CLOSED, Unity0/lock exclusive다. 코드 배치 인덱스를 한 번 재생성하고 validation/freshness2개 모두 failure0을 확인했다. 최종 portable CI CLI도74개 변경/필요5그룹/전수재인증false를 선택해 archive bytes 및 current-input execution PASS로 종료했다. 원격 push/PR/CI/main 통합 상태는 GitHub 기록과 외부 integration-final.json 회수 결과를 권위로 삼는다.
+
+## 2026-10-22 V27 resume1 임시 씬 거절 / resume2 실행 준비
+
+현재 실제 실행은 r64-v27-bootstrap-resume2, detached supervisor1424365/SHAf23965600f9611d3c9cc4e335aa31ceb0ac4b0c576c0f1d36323fa513d5445ae, owned Unity1425848이다. source188786dcdedca5d6f9854f4860817694b45ca855ef881715897da4d8f6450a78/bootstrap 동일.841초/여유 RAM6.37GB/새 오류 없음, distillery32개와 forge-basic13개를 새로 실행했다. raw 전체368/13shard·complete11은 사전 적재 입력을 포함한 저장 수이며 C# 수용·완료 수가 아니다.
+
+Unity 시작 뒤 Temp 체크포인트가 사라져 사전 복사만으로 resume를 수용하지 않았다. 소스·에셋 편집 없이 현재 실행이 직접 쓴 shard의15개 header/경로를 원본과 대조한 뒤 아직 파일이 없던12경로에 원본 SHA/bytes/header/source/mode를 검증한355행을 atomic create(no overwrite)로 전달했다. source 원본은 불변이다. post-start-raw-inputs.json은 acceptancePass=false다. 이미 메모리에 빈 progress가 로드된 forge는 새 기록으로 진행되어 old32행을 재사용하지 않았으므로 수용 수에 더하지 않는다. 나머지10개 complete shard320행+tannery3행은 기존 C# Parse/receipt/seed/no-op 검사에서 수용돼야만 재사용으로 센다. 최종 resumed/executed/full acceptance가 권위이며 raw counter는 이 경고를 표시한다.
+
+중단 r64 원 로그 전체를 스트리밍 검사한 error CS/Exception/LogError/[FAIL]/console-not-clean 지표0, SHA3e414492ef71cd4ea7caf8cbdff958ab9c46aef3e4f2c76e0692ae8d8be35ae6. 이는 과거 부분 로그 검사이며 전체 console-zero PASS가 아니다. r64/resume1 native summary·diagnostics·log·command·status·raw manifest·cleanup·archive, resume2 resume/input/budget receipt를 외부 각 실행 폴더에 회수했다. 게임 소스/에셋은 r64 동결 유지, 이후 strict는 launch_natural_detached.py, paired는 launch_paired_detached.py를 쓴다.
+
+실제 detached supervisor PID1372088/SHA917e0e28937134e6c4b9455d6dbd2ea4aa08351437a13f8a930118ebdb78b25e로 resume1을 시작했으나 native50초/exit1/C#0/drift0, EDITOR_BOOT_PREPARE_FAILED로 중단됐다. 복구 marker 없이 Assets/__V27SyntheticPreparedOutputCanary가 남아 있었다. terminal/Unity0/lock exclusive 재확인 후 exact generated 파일 집합2개+folder meta를 확인했고, 원본 GameplayScene(a6989480…)/meta(0c7f1e7d…)/EditorBuildSettings(8ee44400…)가 r64 manifest와 동일하며 임시 씬도 원본과 완전히 같은 복사본이었다. 사용자에게 영향 안내 후 해당 생성 폴더/meta만 r64-v27-bootstrap-resume1/orphaned-canary-archive로 이동 보존했다. intent/후속 receipt는 원본3개 SHA 보존·보관 파일 SHA 일치를 확인했다. C# fail-closed lease validator와 원본 씬은 변경하지 않았다.
+
+동일 r64 source/387 raw를 anchor로 resume2 detached 실행기 session22380을 시작했다(처음 current_source_snapshot 계산). 게임 소스/에셋 동결, 현재 source parser 검증과 실제 후속 관측은 아직 확인 전이다. resume1 실패·보관 receipt는 외부 회수 후 이 실행의 과거 증거로만 유지한다.
+
+## 2026-10-22 V27 r64 제어 연결 중단 / 동일 소스 재개 준비
+
+분리 transport 실제 disconnect probe r2 PASS: 자신이 연 SSH client만 강제 종료한 뒤 원격 child PID/session1334662 일치, stdin=/dev/null, stdout/stderr=동일 원격 regular log,8초 뒤 실제 출력·완료 proof를 확인했다. Unity 실행 시험은 아니다. r1 probe harness는 Windows communicate timeout의 partial output=None을 잘못 가정해 실패했고, r2는 bounded readline handshake와 finally-owned-client cleanup으로 수정했다. 기존 native runner 본문은 바꾸지 않고 source SHA를 고정한 파일을 새 session/close_fds로 실행한다. check_resume_raw.py는13shard387행의 SHA/길이/current Temp byte 및 source188786dcdedca5d6f9854f4860817694b45ca855ef881715897da4d8f6450a78/bootstrap 일치를 확인했다. 수용 PASS가 아니며 기존 C# parser 검증이 여전히 필요하다.
+
+r64-v27-bootstrap terminal6496초/exit0/stop_reason=supervisor-error-BrokenPipeError/C#0/drift0, raw387개·완성12shard·13번째tannery3개. 종료 후 Unity0/operation.lock exclusive EDIT_READY를 새로 확인했다. 로컬 메모리 오류 뒤 연결이 끊긴 결과이며 전체 수용이 아니다. 원격 hardened cleanup으로 자식은 종료됐다. 게임 소스/에셋은 바꾸지 않고 detached supervisor transport와 기존 exact source/mode/SHA resume를 준비한다. 중단 시 final natural-runner 보고서는 아직 없어 preserve_terminal_natural.py가 명시적으로 실패했으며, raw state manifest/원 native 로그·summary를 증거로 보존한다. cmd Python -c quoting과 cp949 출력 오류는 외부 file helper 및 -X utf8로 해소했다.
+
+## 2026-10-22 V27 r64 표적 회귀 PASS / 전체 natural 실행
+
+r64-v27-bootstrap은 UTC00:43:25/main Unity PID3742658/session10237로 실제 실행 중이다. source188786dcdedca5d6f9854f4860817694b45ca855ef881715897da4d8f6450a78/bootstrap,90초 시점에 distillery 첫 시드의 실제 생산·AI 입고·공식 전체 복원1개가 보존 raw state에 완료됐다. 이전 실패 경계를 실제로 통과했으며 전체2944개 수용은 아니다. source/에셋 동결 유지, 새 실패/terminal에서만 후속 조치한다. 이후 단계는 task_plan의 r63 이후 실행 순서 그대로다.
+
+r64-v27-bootstrap 전체 실행기 session10237을 시작했다(처음은 current_source_snapshot 계산). 기존 정확한 focus selector로 natural-output-clearance-shard:building:1086:workstation:distillery를 먼저 놓고 전체92계획×32시드2944개는 유지한다. 실행기 생성 AST에서 전체 분모·source binding·headless·cleanup/resource guards 보존을 확인했다. SOURCE_EDIT CLOSED/READY-FROZEN, Unity 담당 main 한 명. 이전 r63 raw416개는 재사용하지 않는다.
+
+r64-production-commit-identity: native190초/exit0/C#오류0/drift0, 현재 script compile134.991667초. 실제 sawmill/distillery 각각 ACK 소실 전·후4회 모두 owner/ledger JSON 분리 복원·retry exactly once·physical 원본/ledger identity 유지 PASS. Exact unit line/slice 투영 일치와 원본 보존, 기존 short/192자 ID 동일,193자 경계·결정성·내용 변경·malformed 거절·physical/fact 변조 거절도 PASS. 전체 로그에서 error CS/Exception/LogError/[FAIL] 없음. 독립 검토 후 수정한 physical line 선택 포함 최종4파일/21615입력 동결·원격 SHA drift0. 증거는 외부 results/editmode-repairs-20261021/r64-production-commit-identity에 보존했다. native 종료/Unity0/lock exclusive 확인 후 이번 실행의 소유 VBCS PID3686212/startTicks1336881311만 명령줄/cwd를 재대조해 정리한다.
+
+r63-v27-bootstrap은7726초/exit1/C#오류0/source drift0으로 종료했다. 13개 계획×32=416개 실제 생산·AI 운반·공식 전체 복원 뒤 증류기 첫 seed157181의 완료 관측 준비가 production-completion-line-invalid를 거절했다. 전체2944 수용은 아니다. terminal runner1,707,368바이트/SHA622195a7881b5fb5e372e1a3578e0f3ca95933acc1e16357ff706d606f971483 및 native summary/diagnostics/log/command/status/preserved-natural-shards manifest를 외부 results/editmode-repairs-20261021/r63-v27-bootstrap에 보존했다. 없는 natural-progress-manifest.json 회수 시도는 실패했고 실제 preserved-natural-shards.json으로 바로잡았다.
+
+cuha Unity0/operation.lock exclusive EDIT_READY에서 r64 production 관측 매핑·preflight·기존 ACK recovery fixture·batch 진입점4파일을 수정했다. 외부 원본 C#/.NET 최소 재현은 긴 commit만 동일 오류를 재현했다. 다음은 현재 source 컴파일과 valid/malformed/호환·실제 sawmill/distillery ACK 소실 전·후 JSON fresh owner/재시도 검증이다. 독립 읽기 검토 중이며 아직 실행 PASS가 아니다.
+
+## 2026-10-22 V27 r63 실행 경계 확인
+
+r63은2191초 시점에 실제 관측80개, 완성 계획2개(각32시드)를 완료하고 brewery 계획16/32를 실행 중이다. 소유 Unity PID1819440 및 원격 supervisor가 살아 있음을 다시 확인했다. source/에셋 동결, 최신 diff check PASS. 같은 대화의 후속 자동 실행 v27-ci-main을 ACTIVE/15분으로 생성했고, 실제 결과에 따라 잔여 검증·push·main 통합을 계속한다. 읽기 모니터 cell1688만 종료했으며 native session16260/Unity는 중단하지 않았다.
+
+r63-v27-bootstrap은 source09e2f11489731750ee9b2ecee0f8c51e5f314a4176b4ab851bb151943068e360으로 실행 중이다. 710초 시점에 실제 생산·AI 입고·공식 전체 복원19개가 완료됐고, 이전 relay 오류 발생 시각을 지나서도 relay event/실행 오류가 없다. opt-in SuppressAutoStart 호출 marker를 확인했다. 이는 진행 관측이며 전체2944개 수용이 아니다. SOURCE/UNITY 동결과 후속 strict/profile/paired/CI/main 잔여는 유지한다.
+
+## 2026-10-22 V27 r62 환경 오류 진단 / r63 동결
+
+r62-v27-bootstrap은7개 실제 생산·운반·공식 복원을 완료했으나, Assistant RelayService LogError를 확인해 소유 Unity PID1686406의 명령줄/실행 경로를 검증하고 진단 종료했다. native320초/exit0/C#0/drift0는 정상 종료 결과이며 전체 수용 PASS가 아니다. intentional-stop.json과 raw progress manifest 및 redacted log를 외부 같은 실행 폴더에 회수했다. terminal/Unity0/operation.lock exclusive 확인 후 r63 Editor bootstrap1파일만 수정·21615입력으로 동결했다. 독립 읽기 검토 READY/FROZEN. 새 source identity로 전체 bootstrap을 새로 시작하며 이전7개를 재사용하지 않는다.
+
+## 2026-10-22 V27 r62 재시도 계약 PASS / 전체 natural 실행
+
+r62-skill-restore-retry: native180초/exit0/C#오류0/source drift0. 실제 5회 timeout 후 JSON/분리 복원·반복 world-resume에서 snapshot 무변경/미제출, 명시적 retry의 동일 context·실패 예산 초기화·단일 transport 제출 PASS. 정상 pending 복원과 empty world no-op도 통과했다. 독립 읽기 검토에서 계약 결함 없음. 원 증거는 외부 results/editmode-repairs-20261021/r62-skill-restore-retry에 보존했다.
+
+r62-v27-bootstrap은 같은 동결 소스로 전체92×32를 새로 실행한다. r61의 다른 소스 표본18개는 재사용하지 않는다. 측정 근거를 둔 전체 프로세스 budget110000초와 실패 시 owned process 정리 실행기를 사용하며, 개별 표본·게임시간·시드·복원·물량 기준은 유지한다. 전체 수용과 후속 strict/CI/main은 미완료다.
+
+## 2026-10-22 V27 natural r61 실패와 r62 표적 회귀
+
+r61-v27-bootstrap: native740초/exit1/C#오류0/source drift0. 실제 생산·AI 입고·공식 전체 복원을18개 표본에서 완료했고, 19번째의 저장 비교가 requestSubmitted 변경을 거절했다. 시간 scope는 종료 시 scale1/fixed0.0199999865/capture0으로 복원됐다. runner·summary·redacted log·raw state manifest는 외부 `results/editmode-repairs-20261021/r61-v27-bootstrap`에 보존했다. 전체2,944개 수용은 아니다.
+
+별도 로그 도착 시각 관측에서 같은 단계 간28.3~29.8초를 측정했다. 전체 실행기 budget은 이 측정과92×32를 근거로110000초를 준비했으나 아직 실행하지 않았다. gameplay 제한은 그대로다. 외부 supervisor의 signal/I/O/종료 지연 시 owned Unity 정리와 실패 exit 전파를 보강했고 5개 모의 경계 PASS; 실제 Unity 검증과 구분한다. r62는 실제 timeout→저장/분리 복원→명시적 재시도 표적 검증을 수행한다.
+
+## 2026-10-22 V27 natural 연속 복원과 시간 회귀
+
+- r59는 정식 save service를 통해 실제 생산·AI 입고·전체 복원을 3회 연속 완료했다. 시간 제어 수정 전에 의도적으로 종료했으며 2,944개 전체 수용은 아니다. SIGTERM 후 Unity ILPP 종료 중 native signal 11/exit -11이 발생한 로그도 보존했다.
+- r60-natural-time-contracts: native exit0/130초/C# 오류0/source drift0. 정식 물리 timestep, 일시정지·재개, 중첩·잘못된 입력 거절, 정상·예외 시 정확한 세 시간 설정 복원과 중복 dispose PASS.
+- 증거: `C:/Users/vulpo/Documents/Codex/2026-10-21/task/results/editmode-repairs-20261021/r59-v27-bootstrap` 및 `r60-natural-time-contracts`. r61은 Play 종료 순서의 중복 복원 호출을 제거하고 natural 전체 실행을 이어간다.
+
+## 2026-10-22 V27 복원 회귀 완료 / 소스 신원 이식성 검증
+
+r57 source-identity90초/exit1은 빠진 namespace 참조1건(C#진단3회)이었다. r58-source-identity130초/exit0/C#오류0/drift0, V27_SOURCE_IDENTITY_CONTRACTS=PASS를 회수했다. r58-bootstrap150초/exit1/C#오류0/drift0: 첫 자연 표본1건 실제 생산/입고/복원 완료, 두 번째 입고 뒤 하위 registry의 완료 hook 누락으로 invasion activation pending 거절. summary/diagnostics/runner 및 native shard1개 원본 보존(전체 수용 아님). r59는 두 natural host의 정식 save service 연결만 수정해 동결했다.
+
+r55-natural-restore-contracts180초/exit1/C#오류0/drift0: 기존 atomic restore fixture가 전체 저장된 (0,0)을 중복 추가해 정확히 거절됐다. r56은 기존 칸만 수정하고 invalid candidate 거절을 유지했다. r56-natural-restore-contracts120초/exit0/C#오류0/drift0: 환경 전체 셀·thermostat·sequence의 ambient 독립 복원, sparse v3 호환, exact epoch+1/변조 거절, 실제 ledger candidate lifetime/rollback/retry PASS. 원 로그와 summary는 외부 results/editmode-repairs-20261021/r55-natural-restore-contracts 및 r56-natural-restore-contracts에 보존했다. r57은 source identity5파일 수정·21615입력 동결이며 메인 단독 cuha 검증을 진행한다. 자연 전체 관측·최종 CI/main은 미완료다.
+
+## 2026-10-22 V27 r42 진단 마감 / r43 검증 준비
+
+r54-bootstrap은130초/메모리guard SIGTERM(-15)/C#오류0/drift0로 실행 전 중단됐다. 소유 PID/시작시각/명령줄/cwd를 확인한 잔류 compiler3개만 정리하고 같은 소스 r54-bootstrap-cached130초/exit1/C#오류0/drift0를 회수했다. 생산/AI 입고 PASS와 restoreCall=true/reportSuccess=true/fixture leak0, 두 저장 섹션 차이를 원 로그에 보존했다. r55 SOURCE_EDIT에서 환경 저장/정확한 epoch 기대값 및 표적 회귀를 구현 중이며 full natural/CI/main은 미완료다.
+
+r53-bootstrap190초/exit1/C#오류0/drift0: hallway59개 정상 배치, 실제 reachable113/expanded13>=12, 첫 powered-harness 생산물1개/18000g 자연 AI 입고 exact PASS. 다음 표본을 위한 official checkpoint 복원/fixture release에서 실패하여 완성 관측0이다. 원본 runner/로그 보존. r54는 기존 canonical failure token을 유지하면서 버려지던 host 상세 실패를 로그로 보존해 실제 복원 차이를 진단한다. 판정식/복원 단언 변경 없음.
+
+r52-bootstrap170초/exit1/C#오류0/drift0: 이전 벽 가정은 해소됐으나 마지막103열의 정상 sidePadding=1 검증에서 거절됐다. 독립 리뷰도 동일 경계 오류를 지적했다. Unity0/lock 확인 후 r53은 layout.EndExclusiveX와 grid.width-1 중 작은 끝을 사용한다. 정상 배치 규칙과 최소12 확장 도달 조건은 유지한다.
+
+r51-v27-bootstrap80초/exit1/C#오류0/drift0: 실제 준비 UI/유효응답8회/스킬 확정/Start/Gameplay와 87열 연구 확장 PASS. hallway fixture의 obsolete boundary-wall 가정에서 실패했고 자연 관측은 아직0이다. summary/diagnostics/natural-runner 회수, 원 autosave 보존. Unity0/lock 확인 후 r52 hallway fixture1파일 수정, source 동결 뒤 같은 bootstrap을 다시 실행한다.
+
+r50-preparation-skills180초/exit1/C#오류0/drift0: 새로운 경계 검사는 지났으나 ActorFixture의 기존 legacy passive가 남아 정확한1개 기대에 실패했다. r51은 실제 ApplyPreparedIdentity(ensureInitialDrafts=false)로 시험 시작 상태를 초기화한다. r51-preparation-skills140초/exit0/C#오류0/drift0 및 V27_PREPARATION_SKILLS=PASS를 회수했다: 미준비 거절/무변경, world 재구성 권한 초기화·발행기 누락 거절, active/passive 선택·local evidence·중복 no-op, 기존 획득 원장 rollback/save/retry PASS. source r51 그대로 메인 단독 자연 bootstrap 진행 중이다.
+
+r49-bootstrap120초/exit1/C#오류0/drift0: 준비 요청의 정확한 owner 연결은 통과했고 production CommitAutomaticPassive가 미구성 world observation을 거절했다. 원본 summary/diagnostics/runner 보존. r50은 preview/world 권한 분리와 표적 회귀3파일 변경/21615입력 동결이며, 독립 읽기 검토 READY/FROZEN 뒤 실행 검증을 준비한다.
+
+r46은 새 transport의 성공 enum 이름 오기로90초/exit1/C#진단3회(동일 오류1건)였다. r47~r48은 C#오류0/150초/exit1로 준비 미리보기의 global scene 검색 실패를 거절했다. 모두 입력 drift0이며 summary·실패 runner를 외부 각 r46~r48 결과에 보존했다. r49는 준비 서비스 Roster의 current/prefetch progression을 직접 조회하고 동일 transport key/context 검증을 유지한다. full21615 입력 동결/서버일치, 메인 단독 bootstrap 재실행 중; 아직 자연 관측 PASS가 아니다.
+
+r43-bootstrap50초/exit1은 player snapshot 경로를 거절했고, r44-bootstrap170초/exit1 및 r45-bootstrap140초/exit1은 실제 준비 UI에서 Linux model runtime 미지원으로 중단됐다. 모두 C#오류0/21615입력 drift0. r45는 4096turn 동안13.713실초, 직원2명 각각 pending2를 진단했다. Unity0/operation.lock 확인 후 r46 preparation transport fixture를 SOURCE_EDIT 중이며 아직 실행 PASS가 아니다.
+
+r43-effect-inputs는190초/exit0/C#오류0/21615입력 drift0로 catalog 갱신·read-only·기존 additive/실제 enemy/incident 및 acquired 효과/변조 거절·milestone/formula 회귀 PASS했다. r43-paired는 이전 r38의 첫 픽업 실패를 해소해 seed1의16 windows+복구를 지나 seed2/window1(누적17, failures0)까지 실제 실행했다. 32개 전체 PASS는 아니다. 후속 profile 승격이 capacity authority를 바꾸면 무효가 되므로 전체 증거는 승격 이후 재생성하도록 순서를 조정했고, own PID4136683만 SIGTERM으로 종료했다(Unity의 graceful exit0는 수용 PASS가 아님).520초/drift0 및 intentional-stop.json/first-seed-progress.txt를 외부 결과에 보존했다. 다음은 r43-bootstrap 자연92×32 프로필 관측이며 source는 계속 동결이다.
+
+r42-v27-paired-profile-cached2:150초·diagnostic exit2·C#오류0·source drift0. frame-profile.txt와 run-summary.json, 첫 실행의 owned-compiler-cleanup.json을 외부 results/editmode-repairs-20261021 하위에 회수했다. r43은12개 입력 변경/전체21615개 manifest로 동결했다. 수정 검증과 full paired는 아직 미실행이며 GitHub push/main 미완료다.
+
+2026-10-22 r40 한정 프로파일 native280초/exit2(의도한 진단 종료), compiler errors0/21615입력 drift0. 6개 CPU frame을 외부 `results/editmode-repairs-20261021/r40-v27-paired-profile/frame-profile.txt`에 보존했다. 결과는 수용 PASS가 아니다. Unity0/operation.lock 확인 뒤 r41은 효과 입력 수집의 하위 계측만 추가·동결했고 현재 메인 단일 headless 진단 실행 중이다. 기존 픽업15초 제한·32/64seed·게임 판정 유지, CI 복구와 push/main은 미완료다.
+
+2026-10-22 r38 paired: r37 동일 소스/ac8a7e75…·CPU4/nice0·400s·exit1·C#오류0·전체21615입력drift0. clean8windows/10floorRows 뒤 픽업 준비15초에서 실제 이동 중 실패했다. native summary·command·실패 보고서·두CSV는 외부 `results/editmode-repairs-20261021/r38-v27-paired`에 보존했다. Unity0/operation lock 확보 후 r39 diagnostic1파일만 편집·동결/전체해시검증했고 메인 단일 headless profiling 실행 중이다. 검사 조건 변경 및 push/main 통합은 아직 없다.
+
+## V27 CI 복구 — 실행 중 (2026-10-22)
+
+- r37 paired native500초/exit1/current compile98.325초/errors0/drift0, scale32/fixed0.6399996/capture0.09375 적용 및 종료 시0/0.01999999/0 정확 복원 확인. clean8windows 뒤 같은15초 pickup 제한 실패(실제 경로32,1까지 진행), 따라서 시간 제어 수정만으로 해결됐다고 세지 않는다. source r37 동결을 유지하고 r38은 동일 코드·검사·메모리/디스크/1800초 보호에서 외부 런처의2CPU/nice10을 서버가 허용한4CPU/일반우선순위로 실행한다. 자체 자원 제한의 영향 분리를 위해 process/main CPU 누적 시간도 관측한다. r37 report/CSV/summary는 외부 결과에 보존했고 bootstrap은 미실행이다.
+- r35 paired native470초/exit1/current compile71.365초/errors0/drift0. 공식 common/seed checkpoint·두 clean arm8windows 통과 후 faultControl 실제 pickup 준비의15초 realtime watchdog에서 이동 중 실패(23단계 경로 중35,1·raw-path·carried0). 원본 report/paired/floor CSV는 `r35-v27-paired/` 보존. 메인 Unity0 확인 후 r36은 기존 game time-scale controller를 사용해 scaled/fixed clock을 함께 조정하고 실제 설정값 검증·원상복구를 추가했다. 게임시간·realtime 예산·시드/측정 기준은 유지하며 원인 가설은 native 재실행으로 확인한다.
+- r34 paired native220초/exit1/current compile94.327초/errors0/drift0. 단일 접근 fixture/probe 통과 후 공식 save preflight에서 연구 완료 부모 누락을 거절했고 seed0이다. 원본 `r34-v27-paired/paired-report.txt` 보존. Unity0/EDIT_READY 확인 후 r35 fixture 명령 경로만 수정·FROZEN, 다음 paired 실행.
+- r33 WorkRate native140초/exit0/current compile69.874139초/errors0/drift0, 23/23 PASS(358 canonical·42 archetype·290 assignment/candidate, gap0). paired는 native120초/exit1/errors0/drift0, fixture criticalAccess=0 때문에 seed0에서 중단. 원본 `r33-v27-paired/paired-report.txt` 보존. Unity0 확인 후 r34에서 실제 authored 서비스의 합법적 단일 접근 배치와 별도 critical/egress 양성 검사를 준비했으며, 기존 32→64 확대 계약을 batch 종료 검사에 반영했다. 기준·표본·시간 제한은 유지한다.
+- r32 random native130초/exit0/compile errors0/drift0, isolation10 및 외부 CharacterId 계약 PASS. WorkRate native70초/exit1/compile errors0/drift0: 의미적 gate15 PASS, 과거 콘텐츠 count8 FAIL. 원본 보고서는 `r32-v27-workrate/workrate-report.txt`로 별도 보존. 메인 EDIT_READY/Unity0에서 exact authored keyset 비교로 수정·독립 검토 보완 후 r33 FROZEN/SOURCE_EDIT CLOSED, 후속 WorkRate/Paired 실행.
+- r31 random은 current compile/drift0 뒤 native exit1: `CharacterDeprivationAuthorityDebugScenarios`의 오래된 V6 상수 단언이 현재 V7 DTO를 거절했다. native 종료/Unity0 확인 후 r32에서 V7 JSON shape 정상 수용 및 V6/V8 정확 오류·payload 무변경 거절을 검사한다. production version/validator는 유지, SOURCE_EDIT CLOSED/READY-FROZEN. 먼저 random/workrate/paired 후속을 실행하고 전체 source-binding이 바뀐 child 증거는 최종 소스에서 재생성한다.
+- r31 crop/world/output/spatial 모두 native exit0, compile errors0/source drift0. 수확 workerless 무변경 거절·frozen restore/retry·valid-worker replayDelta0, 채집 물량 보존, child receipt 집계2/2 PASS. 공간6단계×256=1536 PASS, solver287157ms로 기존300000ms 이내. Python 회귀10/10 및 고정 Balance analyzer DSB001~008 재빌드/양·음성 검사 PASS. 외부 결과는 같은 디렉터리 r31-v27-*이며 후속 생산/운반·원장·GitHub 통합은 진행 중이다.
+- 씬 신원 및 runtime child receipt 누락·변조·새 mtime의 과거 source 거절 Python 회귀 10개 PASS. PowerShell shard worker/staging의 명시적 SHA 인자 AST·필수 바인딩 검사 PASS.
+- cuha r25 AuditOnly: 현재 source compile error 0, drift 0, native exit 1. `SPATIAL_CAPACITY_ARTIFACT_STALE` 실제 거절로 원장 미생성. 증거: 외부 `C:/Users/vulpo/Documents/Codex/2026-10-21/task/results/editmode-repairs-20261021/r25-v27-audit/`.
+- r26 spatial은 import와 겹쳐 기존 300초 solver budget을 초과해 FAIL. timeout은 유지하고 동기 import 완료 후 시작하는 배치 진입점을 추가했다.
+- r27 stale output receipt는 실제 거절(exit1), world resource는 Play PASS(exit0). crop은 인증 종자 관측 필드 누락으로 FAIL. r28에서 인증 종자 정상 복원/변조 거절/중복 완료 차단은 지나갔고 다음 work-identity fixture의 빈 관측 데이터로 FAIL. 모두 compile errors0/source drift0. 실패 증거는 위 외부 결과 디렉터리의 각 r27/r28 하위 폴더에 보존한다. 후속 수정/재실행 및 push·main 통합은 미완료.
+- r29 crop은 기존 physical fixture를 지나 실제 frozen crop restore에서 빈 harvesterId를 거절(exit1). r30 새 명령 guard 포함 compile187.433101초/errors0/drift0, actual은 시작 파티 미준비로 active worker 필수 조건에서 중단(exit1). 모두 정상 종료를 확인하고 다음 수정 창을 열었다. 최종 crop PASS로 세지 않는다.
+
 ## EditMode repair — 최종 실행 완료 (2026-10-22)
 
 - 불필요 분리 5개 원복, Medical 공용 형식 소유권 및 시간/콘텐츠 주입 수정, 수술 null 접근·포로 신원 초기화·회복/사망 복원 용량 결함 수정. 경비 이동은 캐릭터 활성화 완료 뒤 재개하며 이전 교전 퇴역이 새 체력 원장을 오염시키지 않게 했다. 복원 후보의 breach 초기화도 현재 작전의 공유 정보를 변경하지 않게 했다. 크기만으로 실패시키는 검사를 책임·의존·저장 계약 중심으로 재검토했다.

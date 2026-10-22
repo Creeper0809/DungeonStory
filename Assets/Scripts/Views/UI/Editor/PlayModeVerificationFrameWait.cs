@@ -131,7 +131,7 @@ public static class StartPartyPlayModeTestDriver
         yield return new WaitForSecondsRealtime(0.5f);
     }
 
-    private static string DescribePreparationState()
+    internal static string DescribePreparationState()
     {
         try
         {

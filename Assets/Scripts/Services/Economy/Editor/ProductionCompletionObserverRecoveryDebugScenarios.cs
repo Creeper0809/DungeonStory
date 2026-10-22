@@ -12,18 +12,68 @@ public static partial class ProductionPreparedOutputFullPersistenceDebugScenario
     {
         VerifyProductionCompletedOutcomeFromRuntime();
         Debug.Log("B125_PRODUCTION_COMPLETION_OWNER=PASS");
-        foreach (bool committed in new[] { false, true }) VerifyCompletionAckRecovery(committed);
+        RunCompletionCommitIdentityContractsForBatch();
         MigratedProducerCharacterSurvivalEntryE2EDebugScenarios.VerifyProductionLossObserverFocused();
         Require(RunCausalProductionOwnerFamily(), "Production owner-family causal restore failed.");
         Debug.Log("B125_PRODUCTION_COMPLETION_CAUSAL_RESTORE=PASS");
         Debug.Log("B125_PRODUCTION_COMPLETION_OBSERVERS=PASS");
     }
 
-    private static void VerifyCompletionAckRecovery(bool committed)
+    public static void RunCompletionCommitIdentityContractsForBatch()
+    {
+        const string shortId = "production-output:bill:1:00000001:output:main:item:1:00000000";
+        Require(ProductionCycleFactCapture.CommitIdentity(shortId) == shortId, "An existing short commit identity changed.");
+        string longId = shortId + new string('a', 200);
+        string projected = ProductionCycleFactCapture.CommitIdentity(longId);
+        Require(DomainFactValueSyntax.IsIdentity(projected) && projected.Length == "production-commit-digest:".Length + 64
+            && ProductionCycleFactCapture.CommitIdentity(longId) == projected
+            && ProductionCycleFactCapture.CommitIdentity(longId + "b") != projected,
+            "Long physical commits do not have bounded, deterministic, content-bound observation identities.");
+        foreach (string invalid in new[] { "", null, longId + " ", longId + "\n", longId + "한", longId + "\ud800" })
+            CommandMustThrow(() => ProductionCycleFactCapture.CommitIdentity(invalid));
+        CommandMustThrow(() => ProductionCycleFactCapture.PreparedCommitIdentity("batch:1", "output:main", "commit:wrong"));
+        Require(ProductionCycleFactCapture.CommitIdentity(new string('a', 192)) == new string('a', 192)
+            && DomainFactValueSyntax.IsIdentity(ProductionCycleFactCapture.CommitIdentity(new string('a', 193))),
+            "Commit identity projection does not preserve the exact portable identity boundary.");
+        VerifyExactCompletionCommitIdentity();
+        ScenarioConfig distillery = new("distillery", "recipe:hallucinogenic-distillate", "drug:hallucinogenic-distillate",
+            "building:qa:distillery", "character:qa:distillery", "Assets/Resources/SO/Building/Modular/P14_증류기.asset",
+            expectedOutputQuantity: 2, expectedBatchMassGrams: 1800, expectedCapacityGrams: 7200, expectedInitialFreshnessSeconds: null);
+        foreach (bool committed in new[] { false, true })
+        {
+            VerifyCompletionAckRecovery(committed, SawmillScenario);
+            VerifyCompletionAckRecovery(committed, distillery, requireLongCommit: true);
+        }
+        Debug.Log("B125_COMPLETION_COMMIT_IDENTITIES=PASS; bounded observation; unchanged physical keys; malformed rejection; sawmill/distillery ACK before/after; JSON fresh owner/retry exactly once");
+    }
+
+    private static void VerifyExactCompletionCommitIdentity()
+    {
+        const string lineId = "output:recipe:hallucinogenic-distillate/000/main/drug:hallucinogenic-distillate";
+        const string itemId = "drug:hallucinogenic-distillate";
+        string fingerprint = new('a', 64);
+        ProductionRecipeExecutionCorrelation correlation = new(new ProductionBillId("production-bill:exact-completion-identity-contract"),
+            1, "recipe:hallucinogenic-distillate", new BuildingInstanceId("building:qa:distillery"));
+        string commit = ProductionOutputCommitIdentity.Format(correlation.BillId, 1, lineId, itemId, 0);
+        Require(commit.Length > 192, "Exact completion fixture did not exercise a compound unit commit.");
+        ProductionRecipeExecutionReceipt receipt = new("action:exact-completion-identity", correlation, "", 0, 0,
+            ProductionRecipeExecutionPublicationKind.ExactCapabilityUnits, "production-output-batch-exact:" + fingerprint,
+            new[] { commit }, fingerprint, fingerprint,
+            new[] { new ProductionRecipeExecutionOutputLineReceipt(lineId, itemId, 1, 900, fingerprint, new[] { commit }) },
+            new[] { new ProductionRecipeExecutionPhysicalSliceReceipt(lineId, itemId, "stack:qa:distillery", 1, 900, commit) });
+        var fact = ProductionCycleFactCapture.Exact(receipt, "Distillery", "character:qa:distillery", "Worker", 137, 0, 0).Snapshot();
+        Require(receipt.Outputs.Single().CommitIds.Single() == commit && receipt.PhysicalSlices.Single().CommitId == commit
+            && fact.lines.Single().commitIds.Single() == ProductionCycleFactCapture.CommitIdentity(commit)
+            && fact.stacks.Single().sourceCommitId == fact.lines.Single().commitIds.Single(),
+            "Exact completion lost its physical authority or projected its line/slice inconsistently.");
+        _ = ProductionCompletionFactObservation.Capture(new ProductionCycleCompletedFact(fact));
+    }
+
+    private static void VerifyCompletionAckRecovery(bool committed, ScenarioConfig config, bool requireLongCommit = false)
     {
         string json, physicalBefore;
         using (var probe = new CompletionObserverProbe(committed))
-        using (var source = new RuntimeGraph("completion-ack-source", 7210, SawmillScenario,
+        using (var source = new RuntimeGraph("completion-ack-source", 7210, config,
                    completionObservations: probe.Transport, completionRecovery: probe.Transport))
         {
             source.SeedOwnedCurrentFormatBill();
@@ -54,6 +104,17 @@ public static partial class ProductionPreparedOutputFullPersistenceDebugScenario
                 + ";day=" + pending.fact.absoluteDay + ";worker=" + pending.fact.workerDisplayName
                 + ";facility=" + pending.fact.facilityDisplayName);
             ProductionCompletionFactPreflight.Validate(owner, ledger);
+            foreach (var line in pending.fact.lines)
+            {
+                var physical = record.preparedOutput.lines.Single(value => value.outputLineId == line.outputLineId);
+                string originalKey = ProductionPreparedOutputIdentity.BuildLineCommitId(record.preparedOutput.batchCommitId, line.outputLineId);
+                Require(physical.lineCommitId == originalKey && line.commitIds.Single() == ProductionCycleFactCapture.CommitIdentity(originalKey),
+                    "Completion observation changed or lost its exact physical commit authority.");
+                if (requireLongCommit)
+                    Require(!DomainFactValueSyntax.IsIdentity(originalKey) && originalKey.Length > 192
+                        && DomainFactValueSyntax.IsIdentity(line.commitIds.Single()) && line.commitIds.Single() != originalKey,
+                        "Distillery fixture did not exercise the overlength physical commit boundary.");
+            }
             physicalBefore = CompletionPhysicalSignature(source);
             var raw = JObject.Parse(JsonUtility.ToJson(owner));
             ((JObject)raw["bills"][0]["completionObservations"][0]["fact"]).Remove("absoluteDay");
@@ -61,6 +122,13 @@ public static partial class ProductionPreparedOutputFullPersistenceDebugScenario
             var tampered = JsonUtility.FromJson<DungeonProductionBillSaveData>(JsonUtility.ToJson(owner));
             tampered.bills[0].completionObservations[0].fact.lines[0].quantity++;
             CommandMustThrow(() => ProductionCompletionFactPreflight.Validate(tampered, ledger));
+            tampered = JsonUtility.FromJson<DungeonProductionBillSaveData>(JsonUtility.ToJson(owner));
+            tampered.bills[0].completionObservations[0].fact.lines[0].commitIds[0] = "commit:wrong";
+            CommandMustThrow(() => ProductionCompletionFactPreflight.Validate(tampered, ledger));
+            tampered = JsonUtility.FromJson<DungeonProductionBillSaveData>(JsonUtility.ToJson(owner));
+            tampered.bills[0].preparedOutput.lines.Single(value => value.outputLineId == pending.fact.lines[0].outputLineId).lineCommitId += "a";
+            CommandMustThrow(() => ProductionCompletionFactPreflight.Validate(tampered, ledger));
+            ProductionCompletionFactPreflight.Validate(owner, ledger);
             if (committed)
             {
                 tampered = JsonUtility.FromJson<DungeonProductionBillSaveData>(JsonUtility.ToJson(owner));
@@ -75,7 +143,7 @@ public static partial class ProductionPreparedOutputFullPersistenceDebugScenario
             { sections = source.Registry.CaptureAll().Select(CloneEnvelope).ToList(), ledger = ledger, owner = owner });
         }
         using (var probe = new CompletionObserverProbe(null))
-        using (var target = new RuntimeGraph("completion-ack-restored", 7211, SawmillScenario,
+        using (var target = new RuntimeGraph("completion-ack-restored", 7211, config,
                    completionObservations: probe.Transport, completionRecovery: probe.Transport))
         {
             var checkpoint = JsonUtility.FromJson<CommandCheckpoint>(json);
@@ -112,7 +180,7 @@ public static partial class ProductionPreparedOutputFullPersistenceDebugScenario
                 && probe.Ledger.CaptureGameplayOutcomes().nextSequence == ledger.nextSequence,
                 "Completed cycle replay duplicated its physical output or observation.");
         }
-        Debug.Log("B125_COMPLETION_ACK_" + (committed ? "AFTER" : "BEFORE") + "_JSON_FRESH_OWNER=PASS");
+        Debug.Log("B125_COMPLETION_ACK_" + (committed ? "AFTER" : "BEFORE") + "_JSON_FRESH_OWNER=PASS; recipe=" + config.RecipeId);
     }
 
     private static string CompletionPhysicalSignature(RuntimeGraph graph) => string.Join("|", graph.WorldItems.GetAllStacks()

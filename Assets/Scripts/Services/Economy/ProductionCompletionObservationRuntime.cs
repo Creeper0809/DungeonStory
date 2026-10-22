@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using DungeonStory.Foundation.Facts;
 
 // Coordinates a production owner's frozen fact with the generic publication boundary.
@@ -75,6 +77,28 @@ public sealed class ProductionCompletionObservationRuntime
 
 public static class ProductionCycleFactCapture
 {
+    // Physical owners retain their full compound keys. Only the observation
+    // projection is bounded; existing short keys retain their published identity.
+    public static string CommitIdentity(string physicalCommitId)
+    {
+        if (DomainFactValueSyntax.IsIdentity(physicalCommitId)) return physicalCommitId;
+        if (string.IsNullOrEmpty(physicalCommitId))
+            throw new InvalidOperationException("production-completion-commit-identity-invalid");
+        for (int offset = 0; offset < physicalCommitId.Length; offset += 192)
+            if (!DomainFactValueSyntax.IsIdentity(physicalCommitId.Substring(offset, Math.Min(192, physicalCommitId.Length - offset))))
+                throw new InvalidOperationException("production-completion-commit-identity-invalid");
+        using SHA256 sha = SHA256.Create();
+        return "production-commit-digest:" + string.Concat(sha.ComputeHash(new UTF8Encoding(false, true).GetBytes(physicalCommitId))
+            .Select(value => value.ToString("x2")));
+    }
+
+    public static string PreparedCommitIdentity(string batchCommitId, string outputLineId, string physicalCommitId)
+    {
+        if (physicalCommitId != ProductionPreparedOutputIdentity.BuildLineCommitId(batchCommitId, outputLineId))
+            throw new InvalidOperationException("production-completion-physical-commit-conflict");
+        return CommitIdentity(physicalCommitId);
+    }
+
     public static ProductionCycleCompletedFact Prepared(ProductionBillRecord record, ProductionFacilityHandle facility,
         ProductionWorkerHandle worker, FacilityBufferPlannedOutputPublicationReceipt publication, int absoluteDay)
     {
@@ -95,7 +119,8 @@ public static class ProductionCycleFactCapture
             declaredLossMassGrams = batch.totalDeclaredLossMassGrams, declaredExternalInputMassGrams = batch.totalDeclaredExternalInputMassGrams,
             lines = batch.lines.Where(value => value != null && ProductionOutputRoleRules.IsPhysical(value.role)
                 && value.rollSucceeded && value.quantity > 0 && value.exactMassGrams > 0).Select(value => new ProductionCompletedLineData
-                { outputLineId = value.outputLineId, commitIds = new() { value.lineCommitId }, itemId = value.itemId,
+                { outputLineId = value.outputLineId,
+                    commitIds = new() { PreparedCommitIdentity(batch.batchCommitId, value.outputLineId, value.lineCommitId) }, itemId = value.itemId,
                     quantity = value.quantity, massGrams = value.exactMassGrams, capabilityFingerprint = value.outputCapabilityFingerprint }).ToList(),
             stacks = publication.Stacks.Select(value => new ProductionCompletedStackData
                 { stackId = value.StackId, outputLineId = value.OutputLineId, itemId = value.ItemDefinitionId.Value,
@@ -117,11 +142,12 @@ public static class ProductionCycleFactCapture
             wipInputCommitId = receipt.WipInputCommitId, wipInputQuantity = receipt.WipInputQuantity, wipInputMassGrams = receipt.WipInputMassGrams,
             processCleanWaterMassGrams = cleanWaterMassGrams, processWastewaterMassGrams = wastewaterMassGrams,
             lines = receipt.Outputs.Select(value => new ProductionCompletedLineData
-                { outputLineId = value.OutputLineId, commitIds = value.CommitIds.ToList(), itemId = value.ItemId,
+                { outputLineId = value.OutputLineId, commitIds = value.CommitIds.Select(CommitIdentity).ToList(), itemId = value.ItemId,
                     quantity = value.Quantity, massGrams = value.MassGrams, capabilityFingerprint = value.CapabilityFingerprint }).ToList(),
             stacks = receipt.PhysicalSlices.Select(value => new ProductionCompletedStackData
                 { stackId = value.StackId, outputLineId = value.OutputLineId, itemId = value.ItemId, quantity = value.Quantity,
-                    massGrams = value.MassGrams, itemInstanceId = value.ItemInstanceId ?? "", sourceCommitId = value.CommitId ?? "",
+                    massGrams = value.MassGrams, itemInstanceId = value.ItemInstanceId ?? "",
+                    sourceCommitId = string.IsNullOrEmpty(value.CommitId) ? "" : CommitIdentity(value.CommitId),
                     componentSignature = value.ComponentSignature ?? "" }).ToList()
         });
     }
