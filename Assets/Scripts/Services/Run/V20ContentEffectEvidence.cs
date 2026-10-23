@@ -45,8 +45,10 @@ internal static class V20ContentEffectEvidence
             IReadOnlyList<V20ResolvedEventResult> resolutions,
             V20ContentEffectOwnerSnapshot before,
             V20ContentEffectOwnerSnapshot after,
-            V20ContentEffectCommitReferences childCommits)
+            V20ContentEffectCommitReferences childCommits,
+            V21ContentEffectExecutionRegistry handlers = null)
     {
+        handlers ??= V21ContentEffectExecutionRegistry.Default;
         if (before == null) throw new ArgumentNullException(nameof(before));
         if (after == null) throw new ArgumentNullException(nameof(after));
         return (resolutions ?? Array.Empty<V20ResolvedEventResult>())
@@ -55,353 +57,76 @@ internal static class V20ContentEffectEvidence
                     resolution,
                     before,
                     after,
-                    childCommits)))
+                    childCommits, handlers)))
             .ToArray();
     }
 
-    private static IReadOnlyList<V20EffectApplicationEvidence>
-        CreateApplicationEvidence(
-            V20ResolvedEventResult resolution,
-            V20ContentEffectOwnerSnapshot before,
-            V20ContentEffectOwnerSnapshot after,
-            V20ContentEffectCommitReferences childCommits)
+    private static IReadOnlyList<V20EffectApplicationEvidence> CreateApplicationEvidence(
+        V20ResolvedEventResult resolution, V20ContentEffectOwnerSnapshot before,
+        V20ContentEffectOwnerSnapshot after, V20ContentEffectCommitReferences childCommits,
+        V21ContentEffectExecutionRegistry handlers)
     {
         var result = new List<V20EffectApplicationEvidence>();
         string[] participants = resolution.ParticipantCharacterIds
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .Distinct(StringComparer.Ordinal)
-            .ToArray();
-        for (int effectIndex = 0;
-             effectIndex < resolution.Effects.Count;
-             effectIndex++)
+            .Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.Ordinal).ToArray();
+        for (int index = 0; index < resolution.Effects.Count; index++)
         {
-            V20ContentEffect effect = resolution.Effects[effectIndex];
-            if (effect == null || !effect.IsValid)
-                continue;
-            string childCommitId = childCommits?.ChildCommitId(effect.kind)
-                ?? string.Empty;
-            if (RequiresCharacter(effect.kind)
-                || effect.kind == V20ContentEffectKind.RetirementSchedule)
+            V20ContentEffect effect = resolution.Effects[index];
+            if (effect == null || !effect.IsValid) continue;
+            V20ContentEffectHandler handler = handlers.Require(effect.kind);
+            string target = string.IsNullOrWhiteSpace(effect.targetId) ? "content-resolution" : effect.targetId;
+            if (!handler.ParticipantTargeted && handler.ResolveTarget != null)
+                target = handler.ResolveTarget(new(before, resolution, effect, target, participants),
+                    new(after, resolution, effect, target, participants));
+            foreach (string actualTarget in handler.ParticipantTargeted ? participants : new[] { target })
             {
-                foreach (string participantId in participants)
+                var beforeContext = new V20ContentEffectObservation(before, resolution, effect, actualTarget, participants);
+                var afterContext = new V20ContentEffectObservation(after, resolution, effect, actualTarget, participants);
+                bool beforeExists = !handler.ParticipantTargeted || HasCharacterOwner(before, actualTarget)
+                    || handler.Stage == V20ContentEffectStage.Retirement && HasCareer(before, actualTarget);
+                bool afterExists = !handler.ParticipantTargeted || HasCharacterOwner(after, actualTarget)
+                    || handler.Stage == V20ContentEffectStage.Retirement && HasCareer(after, actualTarget);
+                string beforeValue = beforeExists ? handler.Observe(beforeContext) : "unavailable";
+                string afterValue = afterExists ? handler.Observe(afterContext) : "unavailable";
+                float amount = handler.AppliedAmount(beforeContext, afterContext);
+                bool changed = !string.Equals(beforeValue, afterValue, StringComparison.Ordinal);
+                V20EffectApplicationStatus status = changed ? V20EffectApplicationStatus.Applied : V20EffectApplicationStatus.NoOp;
+                if (handler.ParticipantTargeted)
+                    status = !beforeExists || handler.SkipUnchanged && !changed ? V20EffectApplicationStatus.Skipped
+                        : !Mathf.Approximately(amount, handler.ExpectedAmount(effect)) ? V20EffectApplicationStatus.Clamped : status;
+                result.Add(new V20EffectApplicationEvidence
                 {
-                    bool targetExists = HasCharacterOwner(before, participantId)
-                        || effect.kind == V20ContentEffectKind.RetirementSchedule
-                            && HasCareer(before, participantId);
-                    string beforeValue = CharacterEffectValue(
-                        before,
-                        resolution,
-                        effect,
-                        participantId,
-                        participants);
-                    string afterValue = CharacterEffectValue(
-                        after,
-                        resolution,
-                        effect,
-                        participantId,
-                        participants);
-                    float appliedAmount = ResolveCharacterAppliedAmount(
-                        effect,
-                        before,
-                        after,
-                        participantId,
-                        beforeValue,
-                        afterValue);
-                    result.Add(new V20EffectApplicationEvidence
-                    {
-                        effectIndex = effectIndex,
-                        targetId = participantId,
-                        status = ResolveCharacterApplicationStatus(
-                            effect,
-                            targetExists,
-                            appliedAmount,
-                            beforeValue,
-                            afterValue),
-                        requestedAmount = effect.amount,
-                        appliedAmount = appliedAmount,
-                        beforeValue = beforeValue,
-                        afterValue = afterValue,
-                        semantic = EffectSemantic(effect.kind),
-                        childCommitId = childCommitId
-                    });
-                }
-                continue;
+                    effectIndex = index, targetId = actualTarget, status = status,
+                    requestedAmount = effect.amount, appliedAmount = amount,
+                    beforeValue = beforeValue, afterValue = afterValue, semantic = handler.Semantic,
+                    childCommitId = childCommits?.ChildCommitId(effect.kind) ?? string.Empty
+                });
             }
-
-            string actualTarget = ResolveGlobalEffectTarget(
-                resolution,
-                effect,
-                before,
-                after);
-            string globalBefore = GlobalEffectValue(
-                resolution,
-                effect,
-                actualTarget,
-                before);
-            string globalAfter = GlobalEffectValue(
-                resolution,
-                effect,
-                actualTarget,
-                after);
-            float globalApplied = ResolveGlobalAppliedAmount(
-                effect,
-                globalBefore,
-                globalAfter);
-            result.Add(new V20EffectApplicationEvidence
-            {
-                effectIndex = effectIndex,
-                targetId = actualTarget,
-                status = string.Equals(
-                        globalBefore,
-                        globalAfter,
-                        StringComparison.Ordinal)
-                    ? V20EffectApplicationStatus.NoOp
-                    : V20EffectApplicationStatus.Applied,
-                requestedAmount = effect.amount,
-                appliedAmount = globalApplied,
-                beforeValue = globalBefore,
-                afterValue = globalAfter,
-                semantic = EffectSemantic(effect.kind),
-                childCommitId = childCommitId
-            });
         }
         return result.AsReadOnly();
     }
 
-    private static V20EffectApplicationStatus ResolveCharacterApplicationStatus(
-        V20ContentEffect effect,
-        bool targetExists,
-        float appliedAmount,
-        string beforeValue,
-        string afterValue)
+    internal static string ResolveFactionEffectTarget(V20ResolvedEventResult resolution,
+        V20ContentEffect effect, V20ContentEffectOwnerSnapshot before, V20ContentEffectOwnerSnapshot after)
     {
-        if (!targetExists)
-            return V20EffectApplicationStatus.Skipped;
-        bool changed = !string.Equals(
-            beforeValue,
-            afterValue,
-            StringComparison.Ordinal);
-        if (effect.kind == V20ContentEffectKind.DiseaseExposure && !changed)
-            return V20EffectApplicationStatus.Skipped;
-        float expected = effect.kind switch
-        {
-            V20ContentEffectKind.SkillExperience =>
-                Math.Max(0, Mathf.RoundToInt(effect.amount)),
-            V20ContentEffectKind.Relationship =>
-                Mathf.Clamp(effect.amount / 10f, -1f, 1f),
-            V20ContentEffectKind.DiseaseExposure =>
-                Math.Max(0.1f, Math.Abs(effect.amount)),
-            V20ContentEffectKind.AmbitionProgress =>
-                Mathf.RoundToInt(effect.amount),
-            V20ContentEffectKind.RetirementSchedule => effect.durationDays,
-            _ => effect.amount
-        };
-        if (!Mathf.Approximately(appliedAmount, expected))
-            return V20EffectApplicationStatus.Clamped;
-        return changed
-            ? V20EffectApplicationStatus.Applied
-            : V20EffectApplicationStatus.NoOp;
+        string changed = (after.Factions?.factions ?? new List<FactionCampaignStateSaveData>())
+            .Where(candidate => candidate != null).Select(candidate => candidate.factionId)
+            .FirstOrDefault(id => !string.Equals(FactionValue(before, id, effect.kind),
+                FactionValue(after, id, effect.kind), StringComparison.Ordinal));
+        if (!string.IsNullOrWhiteSpace(changed)) return changed;
+        if (!string.IsNullOrWhiteSpace(effect.targetId)) return effect.targetId;
+        return string.IsNullOrWhiteSpace(resolution.ContextFactionId) ? "content-resolution" : resolution.ContextFactionId;
     }
 
-    private static float ResolveCharacterAppliedAmount(
-        V20ContentEffect effect,
-        V20ContentEffectOwnerSnapshot before,
-        V20ContentEffectOwnerSnapshot after,
-        string participantId,
-        string beforeValue,
-        string afterValue)
+    internal static string ResolveWorkDelayTarget(V20ResolvedEventResult resolution,
+        V20ContentEffect effect, V20ContentEffectOwnerSnapshot before, V20ContentEffectOwnerSnapshot after)
     {
-        switch (effect.kind)
-        {
-            case V20ContentEffectKind.Mood:
-                return MoodFactorValue(after, participantId, effect)
-                    - MoodFactorValue(before, participantId, effect);
-            case V20ContentEffectKind.Trauma:
-                return TraumaValue(after, participantId)
-                    - TraumaValue(before, participantId);
-            case V20ContentEffectKind.SkillExperience:
-                return string.Equals(beforeValue, afterValue, StringComparison.Ordinal)
-                    ? 0f
-                    : Math.Max(0, Mathf.RoundToInt(effect.amount));
-            case V20ContentEffectKind.Health:
-                return HealthValue(after, participantId)
-                    - HealthValue(before, participantId);
-            case V20ContentEffectKind.Relationship:
-                return string.Equals(beforeValue, afterValue, StringComparison.Ordinal)
-                    ? 0f
-                    : Mathf.Clamp(effect.amount / 10f, -1f, 1f);
-            case V20ContentEffectKind.DiseaseExposure:
-                return ExposureValue(after, participantId, effect.targetId)
-                    - ExposureValue(before, participantId, effect.targetId);
-            case V20ContentEffectKind.AmbitionProgress:
-                return AmbitionProgress(after, participantId)
-                    - AmbitionProgress(before, participantId);
-            case V20ContentEffectKind.RetirementSchedule:
-                return string.Equals(beforeValue, afterValue, StringComparison.Ordinal)
-                    ? 0f
-                    : effect.durationDays;
-            default:
-                return 0f;
-        }
+        string changed = (after.Society?.workDelays ?? new List<V20WorkDelaySaveData>())
+            .Where(value => value != null).Select(value => value.scopeId)
+            .FirstOrDefault(scope => !string.Equals(WorkDelayValue(before, scope), WorkDelayValue(after, scope), StringComparison.Ordinal));
+        return !string.IsNullOrWhiteSpace(changed) ? changed
+            : string.IsNullOrWhiteSpace(effect.targetId) ? "content-resolution" : effect.targetId;
     }
-
-    private static string CharacterEffectValue(
-        V20ContentEffectOwnerSnapshot snapshot,
-        V20ResolvedEventResult resolution,
-        V20ContentEffect effect,
-        string participantId,
-        IReadOnlyList<string> participants)
-    {
-        if (!HasCharacterOwner(snapshot, participantId)
-            && effect.kind != V20ContentEffectKind.RetirementSchedule)
-            return "unavailable";
-        return effect.kind switch
-        {
-            V20ContentEffectKind.Mood =>
-                FormatFloat(MoodFactorValue(snapshot, participantId, effect)),
-            V20ContentEffectKind.Trauma =>
-                FormatFloat(TraumaValue(snapshot, participantId)),
-            V20ContentEffectKind.SkillExperience =>
-                ProgressionValue(snapshot, participantId),
-            V20ContentEffectKind.Health =>
-                FormatFloat(HealthValue(snapshot, participantId)),
-            V20ContentEffectKind.Relationship =>
-                RelationshipValue(snapshot, participantId, participants),
-            V20ContentEffectKind.DiseaseExposure =>
-                DiseaseExposureValue(
-                    snapshot,
-                    participantId,
-                    effect.targetId),
-            V20ContentEffectKind.AmbitionProgress =>
-                AmbitionValue(snapshot, participantId),
-            V20ContentEffectKind.RetirementSchedule =>
-                RetirementValue(snapshot, participantId),
-            _ => "unavailable"
-        };
-    }
-
-    private static string ResolveGlobalEffectTarget(
-        V20ResolvedEventResult resolution,
-        V20ContentEffect effect,
-        V20ContentEffectOwnerSnapshot before,
-        V20ContentEffectOwnerSnapshot after)
-    {
-        if (effect.kind == V20ContentEffectKind.Money)
-            return "treasury";
-        if (effect.kind is V20ContentEffectKind.FactionRapport
-            or V20ContentEffectKind.FactionGrievance
-            or V20ContentEffectKind.FactionObligation)
-        {
-            string changed = (after.Factions?.factions
-                    ?? new List<FactionCampaignStateSaveData>())
-                .Where(candidate => candidate != null)
-                .Select(candidate => candidate.factionId)
-                .FirstOrDefault(factionId => !string.Equals(
-                    FactionValue(before, factionId, effect.kind),
-                    FactionValue(after, factionId, effect.kind),
-                    StringComparison.Ordinal));
-            if (!string.IsNullOrWhiteSpace(changed))
-                return changed;
-            if (!string.IsNullOrWhiteSpace(effect.targetId))
-                return effect.targetId;
-            if (!string.IsNullOrWhiteSpace(resolution.ContextFactionId))
-                return resolution.ContextFactionId;
-        }
-        if (effect.kind == V20ContentEffectKind.WorkDelayDays)
-        {
-            string changed = (after.Society?.workDelays
-                    ?? new List<V20WorkDelaySaveData>())
-                .Where(value => value != null)
-                .Select(value => value.scopeId)
-                .FirstOrDefault(scope => !string.Equals(
-                    WorkDelayValue(before, scope),
-                    WorkDelayValue(after, scope),
-                    StringComparison.Ordinal));
-            if (!string.IsNullOrWhiteSpace(changed))
-                return changed;
-        }
-        return string.IsNullOrWhiteSpace(effect.targetId)
-            ? "content-resolution"
-            : effect.targetId;
-    }
-
-    private static string GlobalEffectValue(
-        V20ResolvedEventResult resolution,
-        V20ContentEffect effect,
-        string targetId,
-        V20ContentEffectOwnerSnapshot snapshot) => effect.kind switch
-    {
-        V20ContentEffectKind.FactionRapport
-            or V20ContentEffectKind.FactionGrievance
-            or V20ContentEffectKind.FactionObligation =>
-            FactionValue(snapshot, targetId, effect.kind),
-        V20ContentEffectKind.Money => snapshot.MoneyBalance.ToString(
-            System.Globalization.CultureInfo.InvariantCulture),
-        V20ContentEffectKind.ItemGrant
-            or V20ContentEffectKind.ItemConsume =>
-            ItemQuantity(snapshot, targetId).ToString(
-                System.Globalization.CultureInfo.InvariantCulture),
-        V20ContentEffectKind.WorldFlag =>
-            BoolValue(snapshot.Milestones?.worldFlags?.Contains(
-                targetId,
-                StringComparer.Ordinal) == true),
-        V20ContentEffectKind.WorkDelayDays => WorkDelayValue(snapshot, targetId),
-        V20ContentEffectKind.Threat
-            or V20ContentEffectKind.MilestonePressure =>
-            BoolValue(snapshot.Milestones?.activePressureIds?.Contains(
-                targetId,
-                StringComparer.Ordinal) == true),
-        _ => "unavailable"
-    };
-
-    private static float ResolveGlobalAppliedAmount(
-        V20ContentEffect effect,
-        string beforeValue,
-        string afterValue)
-    {
-        if (effect.kind is V20ContentEffectKind.WorldFlag
-            or V20ContentEffectKind.Threat
-            or V20ContentEffectKind.MilestonePressure)
-            return string.Equals(beforeValue, afterValue, StringComparison.Ordinal)
-                ? 0f
-                : 1f;
-        if (effect.kind == V20ContentEffectKind.ItemConsume)
-            return Mathf.RoundToInt(effect.amount);
-        if (effect.kind is V20ContentEffectKind.ItemGrant
-            or V20ContentEffectKind.Money
-            or V20ContentEffectKind.FactionRapport
-            or V20ContentEffectKind.FactionGrievance
-            or V20ContentEffectKind.FactionObligation
-            or V20ContentEffectKind.WorkDelayDays)
-            return Mathf.RoundToInt(effect.amount);
-        return effect.amount;
-    }
-
-    private static string EffectSemantic(V20ContentEffectKind kind) => kind switch
-    {
-        V20ContentEffectKind.Mood => "mood-factor",
-        V20ContentEffectKind.Trauma => "trauma",
-        V20ContentEffectKind.SkillExperience => "skill-experience",
-        V20ContentEffectKind.Health => "health-change-not-pressure",
-        V20ContentEffectKind.Relationship => "relationship-sentiment",
-        V20ContentEffectKind.FactionRapport => "faction-rapport",
-        V20ContentEffectKind.FactionGrievance => "faction-grievance",
-        V20ContentEffectKind.FactionObligation => "faction-obligation",
-        V20ContentEffectKind.Money => "treasury-balance",
-        V20ContentEffectKind.ItemGrant => "item-grant",
-        V20ContentEffectKind.ItemConsume => "item-consumption",
-        V20ContentEffectKind.WorldFlag => "world-flag",
-        V20ContentEffectKind.WorkDelayDays => "work-delay",
-        V20ContentEffectKind.Threat => "pressure-activated-not-health-damage",
-        V20ContentEffectKind.DiseaseExposure =>
-            "exposure-pending-not-infection",
-        V20ContentEffectKind.AmbitionProgress => "ambition-progress",
-        V20ContentEffectKind.MilestonePressure =>
-            "pressure-activated-not-health-damage",
-        V20ContentEffectKind.RetirementSchedule =>
-            "retirement-scheduled-not-character-exit",
-        _ => "unsupported"
-    };
 
     private static bool HasCharacterOwner(
         V20ContentEffectOwnerSnapshot snapshot,
@@ -429,7 +154,7 @@ internal static class V20ContentEffectEvidence
             characterId,
             StringComparison.Ordinal));
 
-    private static float MoodFactorValue(
+    internal static float MoodFactorValue(
         V20ContentEffectOwnerSnapshot snapshot,
         string characterId,
         V20ContentEffect effect)
@@ -442,7 +167,7 @@ internal static class V20ContentEffectEvidence
         return factor?.TotalValue ?? 0f;
     }
 
-    private static float HealthValue(
+    internal static float HealthValue(
         V20ContentEffectOwnerSnapshot snapshot,
         string characterId) => snapshot?.BodyHealth?.characters
         ?.FirstOrDefault(value => value != null && string.Equals(
@@ -450,7 +175,7 @@ internal static class V20ContentEffectEvidence
             characterId,
             StringComparison.Ordinal))?.currentHealth ?? 0f;
 
-    private static float TraumaValue(
+    internal static float TraumaValue(
         V20ContentEffectOwnerSnapshot snapshot,
         string characterId) => snapshot?.Psychosocial?.characters
         ?.FirstOrDefault(value => value != null && string.Equals(
@@ -458,7 +183,7 @@ internal static class V20ContentEffectEvidence
             characterId,
             StringComparison.Ordinal))?.trauma ?? 0f;
 
-    private static string ProgressionValue(
+    internal static string ProgressionValue(
         V20ContentEffectOwnerSnapshot snapshot,
         string characterId)
     {
@@ -469,7 +194,7 @@ internal static class V20ContentEffectEvidence
             : "level=" + value.Level + ",xp=" + value.CurrentExperience;
     }
 
-    private static string RelationshipValue(
+    internal static string RelationshipValue(
         V20ContentEffectOwnerSnapshot snapshot,
         string characterId,
         IReadOnlyList<string> participants)
@@ -492,7 +217,7 @@ internal static class V20ContentEffectEvidence
                         StringComparison.Ordinal))?.value ?? 0f)));
     }
 
-    private static float ExposureValue(
+    internal static float ExposureValue(
         V20ContentEffectOwnerSnapshot snapshot,
         string characterId,
         string diseaseId) => snapshot?.PopulationHealth?.pendingExposures
@@ -501,7 +226,7 @@ internal static class V20ContentEffectEvidence
             && string.Equals(value.diseaseId, diseaseId, StringComparison.Ordinal))
         ?.weightedExposureHours ?? 0f;
 
-    private static string DiseaseExposureValue(
+    internal static string DiseaseExposureValue(
         V20ContentEffectOwnerSnapshot snapshot,
         string characterId,
         string diseaseId)
@@ -520,7 +245,7 @@ internal static class V20ContentEffectEvidence
             + ",infected=" + BoolValue(infected);
     }
 
-    private static int AmbitionProgress(
+    internal static int AmbitionProgress(
         V20ContentEffectOwnerSnapshot snapshot,
         string characterId) => snapshot?.Narrative?.characters
         ?.FirstOrDefault(value => value != null && string.Equals(
@@ -528,7 +253,7 @@ internal static class V20ContentEffectEvidence
             characterId,
             StringComparison.Ordinal))?.ambitionProgress ?? 0;
 
-    private static string AmbitionValue(
+    internal static string AmbitionValue(
         V20ContentEffectOwnerSnapshot snapshot,
         string characterId)
     {
@@ -544,7 +269,7 @@ internal static class V20ContentEffectEvidence
                 + ",progress=" + value.ambitionProgress;
     }
 
-    private static string RetirementValue(
+    internal static string RetirementValue(
         V20ContentEffectOwnerSnapshot snapshot,
         string characterId)
     {
@@ -561,7 +286,7 @@ internal static class V20ContentEffectEvidence
                 + ",retired=" + BoolValue(value.retired);
     }
 
-    private static string FactionValue(
+    internal static string FactionValue(
         V20ContentEffectOwnerSnapshot snapshot,
         string factionId,
         V20ContentEffectKind kind)
@@ -582,7 +307,7 @@ internal static class V20ContentEffectEvidence
         }).ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
-    private static int ItemQuantity(
+    internal static int ItemQuantity(
         V20ContentEffectOwnerSnapshot snapshot,
         string itemId) => snapshot?.Items?.stacks?
         .Where(value => value != null && string.Equals(
@@ -591,7 +316,7 @@ internal static class V20ContentEffectEvidence
             StringComparison.Ordinal))
         .Sum(value => Math.Max(0, value.quantity)) ?? 0;
 
-    private static string WorkDelayValue(
+    internal static string WorkDelayValue(
         V20ContentEffectOwnerSnapshot snapshot,
         string scopeId) => (snapshot?.Society?.workDelays
             ?.FirstOrDefault(value => value != null && string.Equals(
@@ -600,18 +325,10 @@ internal static class V20ContentEffectEvidence
                 StringComparison.Ordinal))?.untilAbsoluteDayExclusive ?? 0)
             .ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-    private static string FormatFloat(float value) => value.ToString(
+    internal static string FormatFloat(float value) => value.ToString(
         "R",
         System.Globalization.CultureInfo.InvariantCulture);
 
-    private static string BoolValue(bool value) => value ? "true" : "false";
+    internal static string BoolValue(bool value) => value ? "true" : "false";
 
-    internal static bool RequiresCharacter(V20ContentEffectKind kind) =>
-        kind is V20ContentEffectKind.Mood
-            or V20ContentEffectKind.Trauma
-            or V20ContentEffectKind.SkillExperience
-            or V20ContentEffectKind.Health
-            or V20ContentEffectKind.Relationship
-            or V20ContentEffectKind.DiseaseExposure
-            or V20ContentEffectKind.AmbitionProgress;
 }

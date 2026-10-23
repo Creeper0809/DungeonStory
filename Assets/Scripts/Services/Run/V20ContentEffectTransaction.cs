@@ -9,8 +9,6 @@ using static V20ContentEffectEvidence;
 
 internal sealed class V20ContentEffectTransaction
 {
-    private readonly ICharacterWorldQuery characters;
-    private readonly IDiseaseDefinitionCatalog diseases;
     private readonly IWorldDropZoneQuery dropZones;
     private readonly IWorldItemStackRuntime items;
     private readonly IGameMoneyAccount money;
@@ -21,8 +19,6 @@ internal sealed class V20ContentEffectTransaction
     private readonly V20ContentTypedEffectRuntime typedEffects;
 
     internal V20ContentEffectTransaction(
-        ICharacterWorldQuery characters,
-        IDiseaseDefinitionCatalog diseases,
         IWorldDropZoneQuery dropZones,
         IWorldItemStackRuntime items,
         IGameMoneyAccount money,
@@ -32,8 +28,6 @@ internal sealed class V20ContentEffectTransaction
         IPhysicalItemExactSourcePublicationService exactSources,
         V20ContentTypedEffectRuntime typedEffects)
     {
-        this.characters = characters;
-        this.diseases = diseases;
         this.dropZones = dropZones;
         this.items = items;
         this.money = money;
@@ -44,6 +38,8 @@ internal sealed class V20ContentEffectTransaction
         this.typedEffects = typedEffects;
     }
 
+    internal V21ContentEffectExecutionRegistry Handlers => typedEffects.Handlers;
+
     internal bool TryPreflightEffects(
         ContentResolutionRequest request,
         IReadOnlyList<V20ResolvedEventResult> resolutions,
@@ -52,6 +48,15 @@ internal sealed class V20ContentEffectTransaction
     {
         plan = new EffectCommitPlan(request.ActionId);
         failure = DomainFailure.None;
+        foreach (V20ContentEffect effect in resolutions.SelectMany(value => value.Effects))
+        {
+            if (effect == null || !effect.IsValid) continue;
+            if (!Handlers.TryGet(effect.kind, out _))
+            {
+                failure = new DomainFailure(FailureCode.ServiceFeatureMissing, $"content-effect-handler:{effect?.kind}");
+                return false;
+            }
+        }
         V20ContentEffect[] effects = resolutions.SelectMany(value => value.Effects)
             .Where(value => value != null && value.IsValid)
             .ToArray();
@@ -125,42 +130,10 @@ internal sealed class V20ContentEffectTransaction
         }
         plan.Dropoff = grantDropoff;
 
-        Dictionary<string, CharacterActor> actors = characters.Characters
-            .Where(value => value != null && value.Identity != null)
-            .GroupBy(value => value.Identity.PersistentId, StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-        foreach (V20ResolvedEventResult resolution in resolutions)
+        if (!typedEffects.TryPreflight(request.AbsoluteDay, resolutions, out failure))
         {
-            string[] targets = resolution.ParticipantCharacterIds
-                .Where(actors.ContainsKey)
-                .Distinct(StringComparer.Ordinal)
-                .ToArray();
-            foreach (V20ContentEffect effect in resolution.Effects.Where(value =>
-                         value != null && value.IsValid))
-            {
-                if (RequiresCharacter(effect.kind) && targets.Length == 0)
-                {
-                    plan.Release(reservations);
-                    failure = new DomainFailure(FailureCode.CharacterMedicalPatientUnavailable);
-                    return false;
-                }
-                if (effect.kind == V20ContentEffectKind.Relationship && targets.Length < 2)
-                {
-                    plan.Release(reservations);
-                    failure = new DomainFailure(FailureCode.ExternalInfluenceUnavailable);
-                    return false;
-                }
-                if (effect.kind == V20ContentEffectKind.DiseaseExposure
-                    && diseases.Definitions.All(value => !string.Equals(
-                        value.Id,
-                        effect.targetId,
-                        StringComparison.Ordinal)))
-                {
-                    plan.Release(reservations);
-                    failure = new DomainFailure(FailureCode.VaccineDefinitionMissing);
-                    return false;
-                }
-            }
+            plan.Release(reservations);
+            return false;
         }
         return true;
     }
@@ -314,8 +287,10 @@ internal sealed class V20ContentEffectTransaction
 
     internal static bool RequiresForwardRecovery(
         EffectCommitPlan plan,
-        IReadOnlyList<V20ResolvedEventResult> resolutions)
+        IReadOnlyList<V20ResolvedEventResult> resolutions,
+        V21ContentEffectExecutionRegistry handlers = null)
     {
+        handlers ??= V21ContentEffectExecutionRegistry.Default;
         if (plan == null)
             throw new ArgumentNullException(nameof(plan));
         if (plan.MoneyDelta != 0
@@ -327,11 +302,7 @@ internal sealed class V20ContentEffectTransaction
 
         return (resolutions ?? Array.Empty<V20ResolvedEventResult>())
             .SelectMany(value => value.Effects)
-            .Any(effect => effect != null && effect.kind is
-                V20ContentEffectKind.Health
-                or V20ContentEffectKind.Trauma
-                or V20ContentEffectKind.DiseaseExposure
-                or V20ContentEffectKind.AmbitionProgress);
+            .Any(effect => effect != null && effect.IsValid && handlers.Require(effect.kind).RequiresForwardRecovery);
     }
 
     private void RollbackPreparedGrantsOrThrow(

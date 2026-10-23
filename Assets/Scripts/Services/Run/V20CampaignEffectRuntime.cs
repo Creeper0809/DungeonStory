@@ -8,7 +8,7 @@ internal sealed class V20CampaignEffectRuntime : IContentWorkDelayQuery, IConten
 {
     private readonly DungeonRuntimeAggregateRootStore rootStore;
     private readonly V20SocietyEventStateStore societyState;
-    private readonly V20MilestoneRuntime milestoneRuntime;
+    internal readonly V20MilestoneRuntime milestoneRuntime;
     private int evaluationAbsoluteDay = -1;
 
     internal V20CampaignEffectRuntime(
@@ -106,6 +106,9 @@ internal sealed class V20CampaignEffectRuntime : IContentWorkDelayQuery, IConten
             5);
     }
 
+    internal int EffectAbsoluteDay => evaluationAbsoluteDay >= 0 ? evaluationAbsoluteDay
+        : Math.Max(0, Society.Data.lastEvaluationAbsoluteDay);
+
     internal void ApplyInternalEffects(
         IEnumerable<V20ContentEffect> source,
         string contextFactionId = "")
@@ -113,48 +116,9 @@ internal sealed class V20CampaignEffectRuntime : IContentWorkDelayQuery, IConten
         foreach (V20ContentEffect effect in source ?? Array.Empty<V20ContentEffect>())
         {
             if (effect == null || !effect.IsValid) continue;
-            int amount = (int)Math.Round(effect.amount);
-            switch (effect.kind)
-            {
-                case V20ContentEffectKind.FactionRapport:
-                    ApplyFactionChange(
-                        ResolveFactionTarget(effect.targetId, contextFactionId),
-                        amount,
-                        0,
-                        0);
-                    break;
-                case V20ContentEffectKind.FactionGrievance:
-                    ApplyFactionChange(
-                        ResolveFactionTarget(effect.targetId, contextFactionId),
-                        0,
-                        amount,
-                        0);
-                    break;
-                case V20ContentEffectKind.FactionObligation:
-                    ApplyFactionChange(
-                        ResolveFactionTarget(effect.targetId, contextFactionId),
-                        0,
-                        0,
-                        amount);
-                    break;
-                case V20ContentEffectKind.WorldFlag:
-                    milestoneRuntime.AddWorldFlag(effect.targetId);
-                    break;
-                case V20ContentEffectKind.MilestonePressure:
-                case V20ContentEffectKind.Threat:
-                    milestoneRuntime.AddPressure(effect.targetId);
-                    break;
-                case V20ContentEffectKind.WorkDelayDays:
-                    ApplyWorkDelayAt(
-                        effect.targetId,
-                        amount,
-                        evaluationAbsoluteDay >= 0
-                            ? evaluationAbsoluteDay
-                            : Math.Max(
-                                0,
-                                Society.Data.lastEvaluationAbsoluteDay));
-                    break;
-            }
+            V20ContentEffectHandler handler = V21ContentEffectExecutionRegistry.Default.Require(effect.kind);
+            if (handler.Stage == V20ContentEffectStage.Campaign)
+                handler.ApplyCampaign(this, effect, contextFactionId);
         }
     }
 
@@ -229,7 +193,7 @@ internal sealed class V20CampaignEffectRuntime : IContentWorkDelayQuery, IConten
     =>
         fragments.Any(fragment => value.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0);
 
-    private string ResolveFactionTarget(
+    internal string ResolveFactionTarget(
         string authoredTargetId,
         string contextFactionId)
     {

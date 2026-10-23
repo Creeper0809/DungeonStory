@@ -103,6 +103,7 @@ public static class DungeonCharacterRegistration
             .As<ISocietyVenueQuery>();
         builder.Register<ContentRequirementEvaluator>(Lifetime.Singleton)
             .As<IContentRequirementEvaluator>();
+        builder.RegisterInstance(V21ContentEffectExecutionRegistry.Default);
         builder.Register<V20ContentResolutionService>(Lifetime.Singleton)
             .AsSelf()
             .As<IContentResolutionService>()

@@ -70,7 +70,8 @@ public sealed class V20ContentResolutionService :
         IPhysicalFacilityItemBatchTransferGateway factionContractTransfers,
         IEconomyProjectInputOwnerPort factionContractInputOwners,
         RunAdministrativeSealDurableEquipmentRuntime administrativeSealEquipment,
-        ISocialRitualFactPublisher factPublisher)
+        ISocialRitualFactPublisher factPublisher,
+        V21ContentEffectExecutionRegistry effectHandlers = null)
     {
         this.live = live ?? throw new ArgumentNullException(nameof(live));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -122,12 +123,12 @@ public sealed class V20ContentResolutionService :
             this.live, this.catalog, this.items, facilities, dropZones);
         var typedEffects = new V20ContentTypedEffectRuntime(
             characters, bodyHealth, grief, populationHealth,
-            narrative, narrativeCatalog, narrativeQuery);
+            narrative, narrativeCatalog, narrativeQuery, diseases, effectHandlers);
         effectRollback = new V20ContentEffectRollback(
             this.live, characters, this.careers, bodyHealth, grief,
-            populationHealth, narrative, this.items, money);
+            populationHealth, narrative, this.items, money, typedEffects.Handlers);
         effectTransaction = new V20ContentEffectTransaction(
-            characters, diseases, dropZones, this.items, money,
+            dropZones, this.items, money,
             this.reservations, stock, atomicItems, exactSources, typedEffects);
         retirementPlanner = new V20RetirementSchedulePlanner(this.requirements, this.careers);
         journal = new V20ContentResolutionJournal(
@@ -159,7 +160,8 @@ public sealed class V20ContentResolutionService :
         ICareerService careerQuery = null,
         IPopulationHealthService populationHealth = null,
         IDiseaseDefinitionCatalog diseases = null,
-        IGriefTraumaService grief = null)
+        IGriefTraumaService grief = null,
+        V21ContentEffectExecutionRegistry effectHandlers = null)
     {
         this.live = live ?? throw new ArgumentNullException(nameof(live));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -191,12 +193,12 @@ public sealed class V20ContentResolutionService :
             this.live, this.catalog, this.items, facilities, dropZones);
         var typedEffects = new V20ContentTypedEffectRuntime(
             characters, bodyHealth, grief, populationHealth,
-            narrative, narrativeCatalog, narrativeQuery);
+            narrative, narrativeCatalog, narrativeQuery, diseases, effectHandlers);
         effectRollback = new V20ContentEffectRollback(
             this.live, characters, this.careers, bodyHealth, grief,
-            populationHealth, narrative, this.items, money);
+            populationHealth, narrative, this.items, money, typedEffects.Handlers);
         effectTransaction = new V20ContentEffectTransaction(
-            characters, diseases, dropZones, this.items, money,
+            dropZones, this.items, money,
             this.reservations, stock, atomicItems, exactSources, typedEffects);
         retirementPlanner = new V20RetirementSchedulePlanner(this.requirements, this.careers);
         journal = new V20ContentResolutionJournal(
@@ -460,7 +462,7 @@ public sealed class V20ContentResolutionService :
             CaptureEffectOwnerFingerprint(ownersBefore);
         string stateAfterFingerprint = string.Empty;
 
-        bool requiresForwardRecovery = RequiresForwardRecovery(plan, resolved);
+        bool requiresForwardRecovery = RequiresForwardRecovery(plan, resolved, effectTransaction.Handlers);
         DomainFailure effectFailure = DomainFailure.None;
         V20ContentResolutionRecoveryPhase effectPhase =
             V20ContentResolutionRecoveryPhase.Prepared;
@@ -518,7 +520,7 @@ public sealed class V20ContentResolutionService :
                     resolved,
                     ownersBefore,
                     ownersAfter,
-                    childCommits);
+                    childCommits, effectTransaction.Handlers);
                 stateAfterFingerprint = CaptureEffectOwnerFingerprint(
                     ownersAfter);
 
