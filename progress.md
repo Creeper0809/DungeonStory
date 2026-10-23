@@ -1,5 +1,17 @@
 # DungeonStory Current Progress
 
+## 2026-10-23 사건 효과 우선 결함 수정 — 로컬 필수 실행 PASS
+
+현재 r87ee의 최종 로컬 effects63초/core62초/character56초/world-retry2 97초/crop72초가 모두 native0/C#0/consoleErrors0/stop없음/drift0으로 완료됐다. 실행별 OS 비대화형 station/desktop 창 생성·종료 probe와 소스21617개 pre/post SHA 검사도 PASS다. world는104개 섹션 전체 capture/공식 복원·실제 자동 저장·fresh published owner/pending binding·canonical baseline 복원을 확인했고 crop은 실제 Play 수확·복원·재시도를 확인했다. 5개 결과는 source319b8d3f248d5d18af84c41e67fd723f4df2789b81d3937c6e8ffc9040a9976f/count4740/config5e9d75eb67068d16b2271966e0064c64c24bb2818be300bc3f762f6e88ee08aa로 동일하다. 현재 증거는 Artifacts/QA/ImpactCI에, 원본과 실패는 커밋에 포함하지 않는 Artifacts/QA/r87ee-local-* 및 외부 event-effect-repairs에 보존한다. crop 고정 역사 보고서는 실행 전 bytes로 복구했다. Unity0/편집·검증 창 CLOSED 확인, 인덱스 재생성/내용·링크·최신성2개 검사와 최종 diff 검사 모두 failure0이다. GitHub 통합의 완료 권위는 PR merged 상태와 main push CI이며 결과는 외부 event-effect-repairs/integration-final.json에 회수한다. 일반 플레이 전체 사건/UI 또는 장기 전수 조합을 검증한 것은 아니다.
+
+r87ee 로컬 priority 회귀 본문은466초/exit0/C#0/drift0으로 PASS했으나 최초 import의 외부 BGDatabase AssemblyUpdater 진단을 별도로 보존했다. 이어 정식 effects63초/core62초/character56초는 현재 source319b8d3f248d5d18af84c41e67fd723f4df2789b81d3937c6e8ffc9040a9976f와 config5e9d75eb67068d16b2271966e0064c64c24bb2818be300bc3f762f6e88ee08aa에서 native0/consoleErrors0/시작 예외 없음/drift0으로 PASS했다. world 첫 요청은 PS allowlist 누락으로 Unity 전 거절돼 exact 허용 조건을 보완했다. world-retry1은52초에서 Play 진입 중 import worker8개의 메모리 증가로 보호 종료됐다(최저 여유894140416bytes, 기준1GiB 유지). Unity0 확인 후 기존 직렬 런처에 해당 세션만의 desiredWorkerCount1/standbyWorkerCount0을 추가했다. 공식 Unity6000.3 CLI 문서의 별도 import-process 옵션을 사용하며 사용자 Editor/자동 import 설정·메모리 보호선을 바꾸지 않는다. 같은 Unity 입력으로 world-retry2 실행 중, 앞3개 검증은 재실행하지 않는다.
+
+r86ee-priority는140초/exit1/C#0/drift0/stop없음이다. 소비 거절 후 원장과 수량은 복구되지만 재시도에서 ProductionMaterialsMissing:component:mana-shield-plate가 발생했다. 원본 로그를 외부 task/results의 동일 label로 회수했다. 실제 원인은 물리 snapshot 복원으로 재발급된 lease를 ItemReservationService의 이전 임시 ID 캐시로 해제하던 경계다. 현재 owner/stack 예약 권위로 해제하도록 수정하고 실패 직후 AvailableQuantity=1 단언을 추가했다. cuha Unity0/lock exclusive 및 로컬 Unity0 확인 후 SOURCE_EDIT. 사용자의 최신 허가에 따라 이후 검증은 로컬 비대화형 station/desktop 격리로 전환하며 기존 실패 증거는 유지한다.
+
+r83ee 21617 입력의 실제 컴파일은 C# 오류0/drift0으로 완료했다. effects native260초/exit1/stop없음에서 새 소비 거절 회귀의 잔액+ledger rollback은 통과했지만 같은 runtime 재시도 조건이 실패했다. 실패 증거는 외부 2026-10-21/task/results/editmode-repairs-20261021/r83ee-impact-effects에 보존했다. 뒤 그룹은 시작하지 않았다. Unity0/operation.lock exclusive 확인 후 다음 편집 창에서 재시도의 반환값·실패 이유·원장/물리 상태 진단을 추가했다. Python CI25/25와 분석기 DSB001–008은 PASS이며 Unity 완료를 대신하지 않는다.
+
+r84ee는 같은21617 입력 중 진단2파일만 변경했다. C# 컴파일139초/오류0·domain reload 완료 후 native201초에서 memory guard로 중단됐다(exit-15/drift0). 종료/lock 확인과 PID/startTicks/명령줄/cwd를 대조해 자신이 시작한 VBCSCompiler 2157721/2251010만 정리했다. 소스 수정 없이 r84ee-impact-effects-retry를 동일 보호 기준으로 실행 중이다. 상세 실패 원인은 아직 확인 중이며 기존 r83/r84 실패를 PASS로 대체하지 않는다.
+
 ## 2026-10-23 사건 효과 등록 확장 — 필요한 실행 검증 PASS
 
 기존 typed/campaign switch, 대상 조건·forward/rollback 요구·application 관측과 fact 단위/참여자 분기를 하나의 불변 등록 계약에 연결했다. 기본 효과는 새 파일 하나에 함께 등록하며 기존 enum/DTO/owner snapshot/fingerprint/물리 거래·복구 단계는 유지한다. 생산 DI 명시 등록, null/무효 effect의 기존 필터와 실패 우선순위를 보존했다. 기존 fixture에 등록 누락/중복/불완전·preflight 거절, Health owner 부분 적용 후 실패/원복→pending JSON fresh owner 복원→1회 재시도→완료 JSON replay 무변경 회귀를 추가했다.

@@ -41,6 +41,10 @@ public enum V20EffectApplicationStatus
 [Serializable]
 public sealed class V20EffectApplicationEvidence
 {
+    public int projectionVersion;
+    public string targetKindId = string.Empty;
+    public string targetRoleId = string.Empty;
+    public string metricUnitId = string.Empty;
     public int effectIndex;
     public string targetId = string.Empty;
     public V20EffectApplicationStatus status;
@@ -53,6 +57,10 @@ public sealed class V20EffectApplicationEvidence
 
     public V20EffectApplicationEvidence Clone() => new()
     {
+        projectionVersion = projectionVersion,
+        targetKindId = targetKindId ?? string.Empty,
+        targetRoleId = targetRoleId ?? string.Empty,
+        metricUnitId = metricUnitId ?? string.Empty,
         effectIndex = effectIndex,
         targetId = targetId ?? string.Empty,
         status = status,
@@ -63,6 +71,12 @@ public sealed class V20EffectApplicationEvidence
         semantic = semantic ?? string.Empty,
         childCommitId = childCommitId ?? string.Empty
     };
+
+    public bool HasValidProjection => projectionVersion == 0
+        || projectionVersion == 1
+            && GameplayOutcomeStableIdSyntax.IsValid(targetKindId)
+            && GameplayOutcomeStableIdSyntax.IsValid(targetRoleId)
+            && GameplayOutcomeStableIdSyntax.IsValid(metricUnitId);
 }
 
 [Serializable]

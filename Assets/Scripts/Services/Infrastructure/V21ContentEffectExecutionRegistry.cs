@@ -31,13 +31,20 @@ public sealed class V21ContentEffectExecutionRegistry
     internal V20ContentEffectHandler Require(V20ContentEffectKind kind) =>
         handlers.TryGetValue(kind, out V20ContentEffectHandler handler)
             ? handler
-            : throw new InvalidOperationException($"Content effect '{kind}' has no registered handler.");
+            : throw new ContentEffectHandlerMissingException(kind);
 
     public static bool HasExecutionOwner(V20ContentEffectKind kind) =>
         Default.TryGet(kind, out _);
 
     public static string DescribeOwner(V20ContentEffectKind kind) =>
         Default.TryGet(kind, out V20ContentEffectHandler handler) ? handler.Owner : string.Empty;
+}
+
+internal sealed class ContentEffectHandlerMissingException : InvalidOperationException
+{
+    internal ContentEffectHandlerMissingException(V20ContentEffectKind kind)
+        : base($"Content effect '{kind}' has no registered handler.") { Kind = kind; }
+    internal V20ContentEffectKind Kind { get; }
 }
 
 internal enum V20ContentEffectStage { Typed, Campaign, Physical, Retirement }
@@ -61,13 +68,16 @@ internal sealed class V20ContentEffectHandler
         Func<V20ContentTypedEffectRuntime, V20ContentEffectInvocation, DomainFailure> preflight = null,
         Func<V20ContentEffect, float> expectedAmount = null, bool skipUnchanged = false,
         Func<V20ContentEffectObservation, V20ContentEffectObservation, string> resolveTarget = null,
-        GameplayMetricUnitId? metricUnit = null)
+        GameplayMetricUnitId? metricUnit = null,
+        GameplayEntityKindId? targetKind = null, GameplayRoleId? targetRole = null)
     {
         if (kind == V20ContentEffectKind.None || !Enum.IsDefined(typeof(V20ContentEffectKind), kind)
             || string.IsNullOrWhiteSpace(owner) || string.IsNullOrWhiteSpace(semantic)
             || !Enum.IsDefined(typeof(V20ContentEffectStage), stage)
             || minimumParticipants < 0 || minimumParticipants > 0 && !participantTargeted
             || metricUnit.HasValue && !metricUnit.Value.IsValid
+            || targetKind.HasValue && !targetKind.Value.IsValid
+            || targetRole.HasValue && !targetRole.Value.IsValid
             || (persistenceOwners & ~(V20ContentEffectPersistenceOwners.BodyHealth
                 | V20ContentEffectPersistenceOwners.Psychosocial | V20ContentEffectPersistenceOwners.PopulationHealth
                 | V20ContentEffectPersistenceOwners.Narrative)) != 0
@@ -93,6 +103,10 @@ internal sealed class V20ContentEffectHandler
         SkipUnchanged = skipUnchanged;
         ResolveTarget = resolveTarget;
         MetricUnit = metricUnit ?? MigratedProducerOutcomeIds.PointUnit;
+        TargetKind = participantTargeted ? MigratedProducerOutcomeIds.CharacterKind
+            : targetKind ?? MigratedProducerOutcomeIds.OperationKind;
+        TargetRole = targetRole ?? (participantTargeted ? MigratedProducerOutcomeIds.ActorRole
+            : MigratedProducerOutcomeIds.TargetRole);
     }
 
     internal V20ContentEffectKind Kind { get; }
@@ -111,6 +125,8 @@ internal sealed class V20ContentEffectHandler
     internal Func<V20ContentEffect, float> ExpectedAmount { get; }
     internal bool SkipUnchanged { get; }
     internal GameplayMetricUnitId MetricUnit { get; }
+    internal GameplayEntityKindId TargetKind { get; }
+    internal GameplayRoleId TargetRole { get; }
     internal Func<V20ContentEffectObservation, V20ContentEffectObservation, string> ResolveTarget { get; }
 }
 

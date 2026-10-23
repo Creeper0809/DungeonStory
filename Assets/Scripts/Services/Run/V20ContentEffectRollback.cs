@@ -99,6 +99,8 @@ internal sealed class V20ContentEffectRollback
             Milestones = live.CaptureMilestones(),
             Items = items?.Capture(),
             MoneyBalance = money?.Balance ?? 0,
+            RestoreMoney = money is IGameMoneyTransactionCheckpoint checkpoint
+                ? checkpoint.CaptureRollback() : null,
             Careers = careers?.Capture(),
             BodyHealth = bodyPersistence?.Capture(),
             Psychosocial = psychosocialPersistence?.Capture(),
@@ -116,7 +118,9 @@ internal sealed class V20ContentEffectRollback
             ?? throw new ArgumentNullException(nameof(snapshot));
         if (snapshot.Items != null)
             items.Restore(snapshot.Items);
-        if (money != null)
+        if (snapshot.RestoreMoney != null)
+            snapshot.RestoreMoney();
+        else if (money != null && money.Balance != snapshot.MoneyBalance)
         {
             money.SetBalance(
                 snapshot.MoneyBalance,

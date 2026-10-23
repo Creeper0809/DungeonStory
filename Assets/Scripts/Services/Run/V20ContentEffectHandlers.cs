@@ -110,17 +110,22 @@ internal static class V20ContentEffectHandlers
             o => BoolValue(o.Snapshot.Milestones?.worldFlags?.Contains(o.TargetId, StringComparer.Ordinal) == true),
             (b, a) => (b.Snapshot.Milestones?.worldFlags?.Contains(b.TargetId, StringComparer.Ordinal) == true)
                 == (a.Snapshot.Milestones?.worldFlags?.Contains(a.TargetId, StringComparer.Ordinal) == true) ? 0f : 1f,
+            expectedAmount: _ => 1f,
             applyCampaign: (r, e, _) => r.milestoneRuntime.AddWorldFlag(e.targetId));
         yield return new(Kind.WorkDelayDays, "campaign work-delay command / society.events", "work-delay", Stage.Campaign,
-            o => WorkDelayValue(o.Snapshot, o.TargetId), RequestedInteger,
+            o => WorkDelayValue(o.Snapshot, o.TargetId),
+            (b, a) => Math.Max(a.Snapshot.EffectAbsoluteDay, int.Parse(WorkDelayValue(a.Snapshot, a.TargetId), System.Globalization.CultureInfo.InvariantCulture))
+                - Math.Max(b.Snapshot.EffectAbsoluteDay, int.Parse(WorkDelayValue(b.Snapshot, b.TargetId), System.Globalization.CultureInfo.InvariantCulture)),
             applyCampaign: (r, e, _) => r.ApplyWorkDelay(e.targetId, (int)Math.Round(e.amount), r.EffectAbsoluteDay),
             resolveTarget: (b, a) => ResolveWorkDelayTarget(b.Resolution, b.Effect, b.Snapshot, a.Snapshot),
+            expectedAmount: e => Mathf.RoundToInt(e.amount),
             metricUnit: MigratedProducerOutcomeIds.DayUnit);
         foreach (Kind kind in new[] { Kind.Threat, Kind.MilestonePressure })
             yield return new(kind, "milestone pressure command / run.milestones", "pressure-activated-not-health-damage", Stage.Campaign,
                 o => BoolValue(o.Snapshot.Milestones?.activePressureIds?.Contains(o.TargetId, StringComparer.Ordinal) == true),
                 (b, a) => (b.Snapshot.Milestones?.activePressureIds?.Contains(b.TargetId, StringComparer.Ordinal) == true)
                     == (a.Snapshot.Milestones?.activePressureIds?.Contains(a.TargetId, StringComparer.Ordinal) == true) ? 0f : 1f,
+                expectedAmount: _ => 1f,
                 applyCampaign: (r, e, _) => r.milestoneRuntime.AddPressure(e.targetId));
         yield return new(Kind.Money, "money account command / session", "treasury-balance", Stage.Physical,
             o => o.Snapshot.MoneyBalance.ToString(System.Globalization.CultureInfo.InvariantCulture), RequestedInteger,
@@ -129,7 +134,9 @@ internal static class V20ContentEffectHandlers
             yield return new(kind, kind == Kind.ItemGrant ? "physical item command / items.world-stacks" : "atomic item consumption / items.world-stacks",
                 kind == Kind.ItemGrant ? "item-grant" : "item-consumption", Stage.Physical,
                 o => ItemQuantity(o.Snapshot, o.TargetId).ToString(System.Globalization.CultureInfo.InvariantCulture), RequestedInteger,
-                metricUnit: MigratedProducerOutcomeIds.CountUnit);
+                metricUnit: MigratedProducerOutcomeIds.CountUnit,
+                targetKind: MigratedProducerOutcomeIds.ItemDefinitionKind,
+                targetRole: kind == Kind.ItemGrant ? MigratedProducerOutcomeIds.RewardRole : MigratedProducerOutcomeIds.SourceRole);
         yield return new(Kind.RetirementSchedule, "career retirement schedule / characters.career", "retirement-scheduled-not-character-exit", Stage.Retirement,
             o => RetirementValue(o.Snapshot, o.TargetId),
             (b, a) => Changed(RetirementValue(b.Snapshot, b.TargetId), RetirementValue(a.Snapshot, a.TargetId)) ? b.Effect.durationDays : 0f,
@@ -139,9 +146,13 @@ internal static class V20ContentEffectHandlers
     private static V20ContentEffectHandler Faction(Kind kind, string semantic,
         Action<V20CampaignEffectRuntime, string, int> apply) => new(kind,
         "faction campaign command / factions.campaign", semantic, Stage.Campaign,
-        o => FactionValue(o.Snapshot, o.TargetId, kind), RequestedInteger,
+        o => FactionValue(o.Snapshot, o.TargetId, kind),
+        (b, a) => int.Parse(FactionValue(a.Snapshot, a.TargetId, kind), System.Globalization.CultureInfo.InvariantCulture)
+            - int.Parse(FactionValue(b.Snapshot, b.TargetId, kind), System.Globalization.CultureInfo.InvariantCulture),
         applyCampaign: (r, e, faction) => apply(r, r.ResolveFactionTarget(e.targetId, faction), (int)Math.Round(e.amount)),
-        resolveTarget: (b, a) => ResolveFactionEffectTarget(b.Resolution, b.Effect, b.Snapshot, a.Snapshot));
+        expectedAmount: e => Mathf.RoundToInt(e.amount),
+        resolveTarget: (b, a) => ResolveFactionEffectTarget(b.Resolution, b.Effect, b.Snapshot, a.Snapshot),
+        targetKind: MigratedProducerOutcomeIds.FactionKind, targetRole: MigratedProducerOutcomeIds.FactionRole);
 
     private static bool Changed(string before, string after) => !string.Equals(before, after, StringComparison.Ordinal);
     private static float RequestedInteger(V20ContentEffectObservation before, V20ContentEffectObservation after) =>

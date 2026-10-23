@@ -160,12 +160,20 @@ public sealed class ItemReservationService : IItemReservationService
 
         string owner = persistentId?.Trim() ?? string.Empty;
         string key = LegacyKey(owner, record.stackId);
-        if (!leaseByOwnerAndStack.Remove(key, out string leaseId))
+        leaseByOwnerAndStack.Remove(key);
+        // Restore recreates transient lease IDs. The owner/stack authority, not
+        // this convenience cache, determines which current leases can be released.
+        bool released = false;
+        foreach (ItemQuantityLease lease in quantityReservations
+                     .GetLeasesForStack(new ItemStackId(record.stackId))
+                     .Where(value => string.Equals(value.ownerOperationId, owner,
+                         StringComparison.Ordinal)))
         {
-            return;
+            released |= quantityReservations.Release(
+                lease.leaseId, ItemReservationReleaseReason.Cancelled);
         }
-        quantityReservations.Release(leaseId, ItemReservationReleaseReason.Cancelled);
-        ClearReservation(record);
+        if (released)
+            ClearReservation(record);
     }
 
     public bool TryClear(string stackId)

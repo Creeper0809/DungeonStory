@@ -61,6 +61,11 @@ public interface IGameMoneyTransactionQuery
         out EconomyTransactionRecord record);
 }
 
+public interface IGameMoneyTransactionCheckpoint
+{
+    Action CaptureRollback();
+}
+
 public interface IGameMoneyTransactionAttemptQuery
 {
     bool TryGetLatestTransaction(
@@ -184,6 +189,7 @@ public sealed class ScopedGameSessionStateStore :
 
 public sealed class GameMoneyAccount :
     IIdempotentGameMoneyAccount,
+    IGameMoneyTransactionCheckpoint,
     IGameMoneyTransactionQuery,
     IGameMoneyTransactionAttemptQuery
 {
@@ -203,6 +209,20 @@ public sealed class GameMoneyAccount :
     public int Balance => TryGetMoney(out Data<int> money)
         ? Mathf.Max(0, money.Value)
         : 0;
+
+    public Action CaptureRollback()
+    {
+        if (!TryGetMoney(out Data<int> current)
+            || transactionLedger is not IEconomyTransactionLedgerCheckpoint ledger)
+            throw new InvalidOperationException("Money rollback requires the balance and ledger owners.");
+        int balance = current.Value;
+        Action restoreLedger = ledger.CaptureRollback();
+        return () =>
+        {
+            try { current.Value = balance; }
+            finally { restoreLedger(); }
+        };
+    }
 
     public bool CanSpend(int amount)
     {

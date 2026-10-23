@@ -164,7 +164,195 @@ public static class V20ContentResolutionRecoveryDebugScenarios
                 "Completed JSON restore replay duplicated a registered effect or its receipts.");
         }
         _ = RunG04Scenario();
+        RunPrioritizedEffectBoundaries();
         Debug.Log("REGISTERED_CONTENT_EFFECTS=PASS; duplicate/missing/incomplete rejection; actual owner rollback; pending/completed JSON restore; exact-once retry; custom receipt; built-in health/exposure/pressure/retirement");
+    }
+
+    public static void RunPrioritizedEffectBoundaries()
+    {
+        foreach (int delta in new[] { MoneyReward, -MoneyReward })
+        {
+            using var content = new FixtureContent(configureEffects: effects =>
+                effects.Single(value => value.kind == V20ContentEffectKind.Money).amount = delta);
+            RecoverySaveBundle rejectedSave;
+            RecoverySaveBundle completed;
+            var grants = new SharedGrantState { FailNextCommit = false };
+            int rejections = 0;
+            using (var first = new Fixture(content, grants, failConsumption: true, consumptionProbe: money =>
+            {
+                rejections++;
+                Require(money.Balance == StartingMoney + delta
+                        && ((IGameMoneyTransactionQuery)money).TryGetSuccessfulTransaction(
+                            delta > 0 ? EconomyTransactionKind.ContractIncome : EconomyTransactionKind.LegacyExpense,
+                            "content:" + ActionId, out EconomyTransactionRecord receipt) && receipt.amount == delta,
+                    "Consumption fault was not injected after the actual money/ledger commit.");
+            }))
+            {
+                string ledger = JsonUtility.ToJson(first.Economy.Capture());
+                Require(!first.Service.TryExecute(CreateRequest(), out _, out DomainFailure failure)
+                        && failure.Code == FailureCode.ItemTransferConsumptionFailed && rejections == 1
+                        && first.Money.Balance == StartingMoney
+                        && ledger == JsonUtility.ToJson(first.Economy.Capture())
+                        && first.Stock.GetGlobalQuantity(ConsumedItemId) == 1
+                        && first.Stock.GetAllStacks().Where(value => value.ItemId == ConsumedItemId)
+                            .Sum(value => value.AvailableQuantity) == 1
+                        && first.Campaign.CaptureMilestones().pendingContentResolutions.Count == 0,
+                    "Consumption rejection did not restore both money and its exact ledger checkpoint.");
+                rejectedSave = first.CaptureRoundTrip();
+                bool retried = first.Service.TryExecute(CreateRequest(), out _, out DomainFailure retryFailure);
+                Require(retried
+                        && first.Money.Balance == StartingMoney + delta
+                        && first.Stock.GetGlobalQuantity(ConsumedItemId) == 0
+                        && grants.SuccessfulCommits == 1,
+                    $"Same-instance money retry failed: delta={delta}; success={retried}; failure={retryFailure.Code}:{string.Join(";", retryFailure.Parameters.ToArray())}; balance={first.Money.Balance}; cost={first.Stock.GetGlobalQuantity(ConsumedItemId)}; grants={grants.SuccessfulCommits}; pending={first.Campaign.CaptureMilestones().pendingContentResolutions.Count}.");
+                completed = first.CaptureRoundTrip();
+            }
+            using (var restored = new Fixture(content, grants, completed))
+            {
+                string before = JsonUtility.ToJson(restored.CaptureRoundTrip());
+                _ = restored.Service.TryExecute(CreateRequest(), out _, out _);
+                Require(before == JsonUtility.ToJson(restored.CaptureRoundTrip()) && grants.SuccessfulCommits == 1,
+                    "Completed money JSON restore/retry duplicated a child.");
+            }
+            var freshGrants = new SharedGrantState { FailNextCommit = false };
+            using (var restored = new Fixture(content, freshGrants, rejectedSave))
+                Require(restored.Service.TryExecute(CreateRequest(), out _, out _)
+                        && restored.Money.Balance == StartingMoney + delta && freshGrants.SuccessfulCommits == 1,
+                    "Rejected money checkpoint could not retry after JSON/fresh-owner restore.");
+        }
+
+        V21ContentEffectExecutionRegistry defaults = V21ContentEffectExecutionRegistry.Default;
+        V20ContentEffectHandler flag = defaults.Require(V20ContentEffectKind.WorldFlag);
+        int campaignCalls = 0;
+        var registered = new V20ContentEffectHandler(flag.Kind, flag.Owner, "registered-campaign-boundary", flag.Stage,
+            flag.Observe, flag.AppliedAmount,
+            applyCampaign: (runtime, effect, faction) => { campaignCalls++; flag.ApplyCampaign(runtime, effect, faction); },
+            resolveTarget: flag.ResolveTarget, metricUnit: MigratedProducerOutcomeIds.DayUnit,
+            targetKind: MigratedProducerOutcomeIds.OperationKind, targetRole: MigratedProducerOutcomeIds.RewardRole);
+        var registry = new V21ContentEffectExecutionRegistry(defaults.Handlers.Where(value => value.Kind != flag.Kind).Append(registered));
+        using (var content = new FixtureContent(configureEffects: effects =>
+        {
+            effects.RemoveAll(value => value.kind == V20ContentEffectKind.Health);
+            foreach (float amount in new[] { 2f, 3f })
+                effects.Add(new V20ContentEffect { kind = V20ContentEffectKind.Health, amount = amount });
+            for (int index = 0; index < 2; index++)
+                effects.Add(new V20ContentEffect { kind = flag.Kind, targetId = "flag:effect-boundary", amount = 1f });
+        }))
+        {
+            var grants = new SharedGrantState();
+            RecoverySaveBundle pending;
+            using (var first = new Fixture(content, grants, effectHandlers: registry))
+            {
+                try { first.Service.TryExecute(CreateRequest(), out _, out _); }
+                catch (InvalidOperationException error) when (error.Message.Contains("injected-g08-grant-publication-failure")) { }
+                _ = RequirePending(first, V20ContentResolutionRecoveryPhase.ItemCostsCommitted);
+                Require(campaignCalls == 2 && first.Campaign.WorldFlags.Contains("flag:effect-boundary"),
+                    "Candidate bypassed the configured campaign handler.");
+                pending = first.CaptureRoundTrip();
+            }
+            RecoverySaveBundle completed;
+            using (var restored = new Fixture(content, grants, pending, effectHandlers: registry))
+            {
+                Require(restored.Service.TryExecute(CreateRequest(), out ContentResolutionResult result, out _),
+                    "Composed effects did not recover through the production journal.");
+                V20ResolvedEventResult resolution = result.Resolutions.Single();
+                var health = resolution.Applications.Where(value => resolution.Effects[value.effectIndex].kind == V20ContentEffectKind.Health).ToArray();
+                var flags = resolution.Applications.Where(value => resolution.Effects[value.effectIndex].kind == flag.Kind).ToArray();
+                Require(campaignCalls == 2 && Mathf.Approximately(restored.Health.GetVitals(restored.Actor).CurrentHealth, 95f)
+                        && health.Length == 2 && health[0].beforeValue == "90" && health[0].afterValue == "92"
+                        && health[1].beforeValue == "92" && health[1].afterValue == "95"
+                        && Mathf.Approximately(health[0].appliedAmount, 2f) && Mathf.Approximately(health[1].appliedAmount, 3f)
+                        && health.All(value => value.status == V20EffectApplicationStatus.Applied)
+                        && flags.Length == 2 && flags[0].beforeValue == "false" && flags[0].afterValue == "true"
+                        && flags[1].beforeValue == "true" && flags[1].afterValue == "true"
+                        && flags[0].status == V20EffectApplicationStatus.Applied && flags[1].status == V20EffectApplicationStatus.NoOp
+                        && flags.All(value => value.projectionVersion == 1 && value.metricUnitId == MigratedProducerOutcomeIds.DayUnit.Value),
+                    "Per-effect observations were replaced by the batch delta or replayed a committed campaign command.");
+                var identity = MigratedProducerOutcomeE2EAssertions.RequireExact(restored.Outcomes,
+                    MigratedProducerOutcomeKind.V20ResolvedEventResult, restored.Probe);
+                Require(restored.Outcomes.Ledger.TryGetExact(identity.OutcomeId, out GameplayOutcomeSnapshot outcome)
+                        && outcome.metrics.Count(value => value.referenceId == "flag:effect-boundary") == 2
+                        && outcome.metrics.Where(value => value.referenceId == "flag:effect-boundary")
+                            .All(value => value.unitId == MigratedProducerOutcomeIds.DayUnit.Value)
+                        && ApplicationFact(outcome).Contains("semantic=registered-campaign-boundary"),
+                    "The frozen campaign registration was reinterpreted by the default fact mapper.");
+                completed = restored.CaptureRoundTrip();
+            }
+            using (var restored = new Fixture(content, grants, completed, effectHandlers: registry))
+            {
+                string before = JsonUtility.ToJson(restored.CaptureRoundTrip());
+                _ = restored.Service.TryExecute(CreateRequest(), out _, out _);
+                Require(before == JsonUtility.ToJson(restored.CaptureRoundTrip()) && campaignCalls == 2,
+                    "Completed composed-effect JSON restore replayed campaign or typed changes.");
+            }
+        }
+        RunFactionAliasBoundary();
+        Debug.Log("CONTENT_EFFECT_PRIORITY_BOUNDARIES=PASS; debit/credit consumption rejection; same/fresh-owner retry; per-effect health/campaign receipts; frozen registry projection; faction alias");
+    }
+
+    private static void RunFactionAliasBoundary()
+    {
+        using var content = new FixtureContent();
+        RecoverySaveBundle save;
+        ContentResolutionRequest request;
+        using (var fixture = new Fixture(content, new SharedGrantState { FailNextCommit = false }))
+        {
+            LifeEventDefinitionSO definition = content.StoryCatalog.LifeEvents.Single(value => value.StableId == "life-event:inherited-debt");
+            Require(definition.choices.Single(value => value.choiceId == "second").effects.Single().targetId == "affected-faction",
+                "Faction boundary fixture no longer exercises the authored alias.");
+            string faction = content.StoryCatalog.Arcs.First().factionId;
+            const string instance = "society-event:effect-alias-boundary";
+            var society = fixture.Campaign.CaptureSociety();
+            society.activeEvents.Add(new V20ActiveEventSaveData
+            {
+                instanceId = instance, definitionId = definition.StableId, startedAbsoluteDay = AbsoluteDay,
+                deadlineAbsoluteDay = AbsoluteDay + 3, generation = 1, deterministicRoll = 404u,
+                contextFactionId = faction, participantCharacterIds = new List<string> { ActorId },
+                riskTier = definition.riskTier, riskReason = definition.riskReason
+            });
+            fixture.Campaign.PublishSociety(fixture.Campaign.PrepareSociety(society));
+            request = new ContentResolutionRequest
+            {
+                ActionId = V21ContentAlertActionIds.Society(instance, "second"), InstanceId = instance, ChoiceId = "second",
+                Kind = ContentResolutionRequestKind.SocietyChoice, AbsoluteDay = AbsoluteDay,
+                Requirements = new RunMilestoneEvaluationSnapshot { AbsoluteDay = AbsoluteDay }
+            };
+            Require(fixture.Service.TryExecute(request, out ContentResolutionResult result, out _)
+                    && result.Resolutions.Single().Applications.Single().targetId == faction,
+                "Faction alias did not resolve to its executing campaign authority.");
+            var identity = MigratedProducerOutcomeE2EAssertions.RequireExact(fixture.Outcomes,
+                MigratedProducerOutcomeKind.V20ResolvedEventResult, fixture.Probe);
+            Require(fixture.Outcomes.Ledger.TryGetExact(identity.OutcomeId, out GameplayOutcomeSnapshot outcome)
+                    && outcome.metrics.Single().referenceId == faction
+                    && outcome.metrics.Single().referenceKindId == MigratedProducerOutcomeIds.FactionKind.Value
+                    && outcome.subjects.Any(value => value.entityKindId == MigratedProducerOutcomeIds.FactionKind.Value && value.entityId == faction)
+                    && outcome.subjects.All(value => value.entityId != "affected-faction"),
+                "Faction outcome still references an authored alias instead of the actual faction.");
+            save = fixture.CaptureRoundTrip();
+        }
+        using var restored = new Fixture(content, new SharedGrantState { FailNextCommit = false }, save);
+        string before = JsonUtility.ToJson(restored.CaptureRoundTrip());
+        _ = restored.Service.TryExecute(request, out _, out _);
+        Require(before == JsonUtility.ToJson(restored.CaptureRoundTrip()), "Faction alias terminal JSON retry changed state.");
+    }
+
+    private sealed class RejectConsumptionOnce : IIdempotentAtomicItemConsumptionService
+    {
+        private readonly IIdempotentAtomicItemConsumptionService inner;
+        private readonly Action beforeRejection;
+        private bool reject = true;
+        internal RejectConsumptionOnce(IIdempotentAtomicItemConsumptionService inner, Action beforeRejection)
+        { this.inner = inner; this.beforeRejection = beforeRejection; }
+        public bool TryConsumeReservedOnce(IReadOnlyList<ReservedItemConsumption> consumptions, string owner,
+            out PhysicalEffectReceiptSaveData receipt, out DomainFailure failure)
+        {
+            if (!reject) return inner.TryConsumeReservedOnce(consumptions, owner, out receipt, out failure);
+            beforeRejection?.Invoke();
+            reject = false;
+            receipt = null;
+            failure = new DomainFailure(FailureCode.ItemTransferConsumptionFailed, "injected-consumption-rejection");
+            return false;
+        }
     }
 
     private static void RunDurableReceiptBoundaries()
@@ -1274,7 +1462,9 @@ public static class V20ContentResolutionRecoveryDebugScenarios
             RecoverySaveBundle restore = null,
             MigratedProducerOutcomeFaultMode parentFault =
                 MigratedProducerOutcomeFaultMode.None,
-            V21ContentEffectExecutionRegistry effectHandlers = null)
+            V21ContentEffectExecutionRegistry effectHandlers = null,
+            bool failConsumption = false,
+            Action<IGameMoneyAccount> consumptionProbe = null)
         {
             Content = content ?? throw new ArgumentNullException(nameof(content));
             Root = new DungeonRuntimeAggregateRootStore();
@@ -1376,7 +1566,7 @@ public static class V20ContentResolutionRecoveryDebugScenarios
                 Root,
                 content.StoryCatalog,
                 null,
-                EmptySeasonalFeedTargetQuery.Instance);
+                EmptySeasonalFeedTargetQuery.Instance, null, null, null, effectHandlers);
 
             if (restore == null)
             {
@@ -1417,7 +1607,7 @@ public static class V20ContentResolutionRecoveryDebugScenarios
                     : AlwaysSatisfiedRequirements.Instance,
                 Characters,
                 Stock,
-                AtomicItems,
+                failConsumption ? new RejectConsumptionOnce(AtomicItems, () => consumptionProbe?.Invoke(Money)) : AtomicItems,
                 Journal,
                 Narrative,
                 ExactSources,
@@ -1564,7 +1754,8 @@ public static class V20ContentResolutionRecoveryDebugScenarios
     {
         private readonly CulturalPracticeDefinitionSO clonedPractice;
 
-        internal FixtureContent(bool includeG04Effects = false)
+        internal FixtureContent(bool includeG04Effects = false,
+            Action<List<V20ContentEffect>> configureEffects = null)
         {
             IncludeG04Effects = includeG04Effects;
             Base = new ResourceGameContentCatalog(
@@ -1609,6 +1800,7 @@ public static class V20ContentResolutionRecoveryDebugScenarios
                     amount = 1f
                 });
             }
+            configureEffects?.Invoke(clonedPractice.successEffects);
             Source = new CloneDefinitionSource(
                 Base,
                 authored,

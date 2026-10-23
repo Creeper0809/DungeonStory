@@ -45,7 +45,10 @@ C9 특수 능력 경계는 `-Mode edit -ExecuteMethod ArchitectureRefactorVerifi
 
 ### 포커스를 빼앗지 않는 실행
 
+- 사건 효과 표적 회귀와 변경 영향 CI도 같은 격리 런처에서 실행한다. `-SerializedStartup`과 함께 `V20ContentResolutionRecoveryDebugScenarios.RunPrioritizedEffectBoundaries`, `V27CiEvidenceBatch.RunImpactEffectContracts`·`RunImpactCoreContracts`·`RunImpactCharacterContracts`는 `-Mode edit`, `RunImpactWorldRestore`·`RunImpactCrops`는 `-Mode play`를 사용한다. 여섯 정확한 진입점은 추가 selector/resume을 받지 않으며 edit 실행도 전용 persistence 경로를 사용한다. 해당 자식 프로세스에만 headless relay 억제 환경을 설정하고 기존 OS 격리 probe·메모리·시간 제한을 유지한다. `RunImpactCrops`는 기존 고정 crop 보고서를 재작성하므로 실행 전 보존하고 실제 결과를 별도 증거로 회수한 후 역사적 보고서 원본을 복구한다.
+
 - 필수 경계는 **사용자 입력 데스크톱과 Unity 실행 데스크톱의 분리**다. 숨김 창 옵션은 보조 수단이며 그 자체를 안전 증거로 삼지 않는다.
+- 직렬 시작은 job thread와 import process를 별도로 제한한다. `-job-worker-count 1`과 함께 `-desiredWorkerCount 1 -standbyWorkerCount 0`을 사용한다. in-process 초기 refresh 이후 Play 진입에서 import worker가 생성될 수 있으므로 초기 refresh 옵션만으로 프로세스 수 제한을 주장하지 않는다. 이 옵션은 해당 세션에만 적용된다([Unity 6000.3 CLI](https://docs.unity3d.com/6000.3/Documentation/Manual/EditorCommandLineArguments.html#asset-import-arguments)).
 - 제공 런처 `Tools/QA/IsolatedUnityLauncher.cs`는 별도 비대화형 window station과 desktop을 만들고 `CreateProcessW`의 `STARTUPINFO.lpDesktop`에 그 대상을 명시한다. Unity를 정지 상태로 생성해 UI 제한·kill-on-close job에 넣은 뒤 실행하며, 자식 프로세스까지 함께 관리한다. `SwitchDesktop`이나 사용자 창 활성화 API를 호출하지 않는다. Windows 작업 보기의 가상 데스크톱 전환으로 대체하지 않는다.
 - 별도 데스크톱을 쓸 수 없으면 이미 허용·구성된 비대화형 세션 또는 VM을 사용한다. 계정·서비스·원격 환경을 임의로 새로 만들거나 현재 사용자 데스크톱 실행으로 폴백하지 않는다.
 - 격리 환경에서도 `-batchmode -nographics`, 명시적 프로젝트/로그 경로, 단일 실행, 격리 저장 경로를 유지한다. 창 숨김 설정은 계속 사용하되 포커스 안전성의 근거로 내세우지 않는다.

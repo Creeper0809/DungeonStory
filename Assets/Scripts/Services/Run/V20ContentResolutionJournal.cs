@@ -76,7 +76,7 @@ internal sealed class V20ContentResolutionJournal
             ?? string.Empty,
         durableEquipmentContext = childCommits?.DurableEquipmentContext
             ?? string.Empty,
-        outcomeEvidenceVersion = 1,
+        outcomeEvidenceVersion = 2,
         stateBeforeFingerprint = stateBeforeFingerprint ?? string.Empty,
         stateAfterFingerprint = stateAfterFingerprint ?? string.Empty,
         resolutions = (resolutions ?? Array.Empty<V20ResolvedEventResult>())
@@ -158,7 +158,8 @@ internal sealed class V20ContentResolutionJournal
     }
 
     internal bool TryRecoverPendingContentResolutions(
-        out DomainFailure failure)
+        out DomainFailure failure,
+        Action<string, IReadOnlyList<V20ResolvedEventResult>> recovered = null)
     {
         failure = DomainFailure.None;
         RunMilestoneAggregateState milestones = live.PrepareMilestones(
@@ -233,9 +234,10 @@ internal sealed class V20ContentResolutionJournal
 
             if (current.phase == V20ContentResolutionRecoveryPhase.ItemGrantsCommitted)
             {
+                bool legacyObservations = current.outcomeEvidenceVersion < 2;
                 V20ContentEffectOwnerSnapshot before = effectRollback.CaptureEffectOwners(resolved);
                 string recoveryBeforeFingerprint =
-                    current.outcomeEvidenceVersion == 1
+                    current.outcomeEvidenceVersion >= 1
                     && !string.IsNullOrWhiteSpace(
                         current.stateBeforeFingerprint)
                         ? current.stateBeforeFingerprint
@@ -258,7 +260,8 @@ internal sealed class V20ContentResolutionJournal
                         failure = retirementFailure;
                         return false;
                     }
-                    typedEffects.ApplyTypedDomainEffects(current.absoluteDay, resolved);
+                    resolved = typedEffects.ApplyTypedDomainEffects(current.absoluteDay, resolved,
+                        effectRollback.CaptureEffectOwners).ToArray();
                     if (retirementPlan.IsRequired)
                     {
                         latestCareer = careers.PrepareRestore(careers.Capture());
@@ -289,7 +292,7 @@ internal sealed class V20ContentResolutionJournal
                 }
                 current.phase =
                     V20ContentResolutionRecoveryPhase.TypedEffectsApplied;
-                current.outcomeEvidenceVersion = 1;
+                current.outcomeEvidenceVersion = legacyObservations ? 1 : 2;
                 current.stateBeforeFingerprint = recoveryBeforeFingerprint;
                 V20ContentEffectOwnerSnapshot after = effectRollback.CaptureEffectOwners(resolved);
                 after.Milestones = milestones.Data;
@@ -299,7 +302,7 @@ internal sealed class V20ContentResolutionJournal
                     resolved,
                     before,
                     after,
-                    childCommits, typedEffects.Handlers).ToArray();
+                    childCommits, typedEffects.Handlers, allowLegacyObservations: legacyObservations).ToArray();
                 current.resolutions = resolved.Select(ToRecovery).ToList();
                 current.stateAfterFingerprint =
                     CaptureEffectOwnerFingerprint(after);
@@ -364,6 +367,7 @@ internal sealed class V20ContentResolutionJournal
             if (current.phase == V20ContentResolutionRecoveryPhase.OutcomesCommitted)
             {
                 RemoveContentResolutionRecovery(current.actionId);
+                recovered?.Invoke(current.actionId, resolved);
                 milestones = live.PrepareMilestones(live.CaptureMilestones());
             }
         }

@@ -1,5 +1,15 @@
 # DungeonStory Current Task Plan
 
+## 현재 작업 — 사건 효과 재시도·관측·등록 일관성 (2026-10-23)
+
+Status: implementation_verified; GitHub 통합 진행. Branch: codex/fix-event-effect-recovery, main fac451f4 기준. 원본 Documents checkout은 보존한다. r87ee 입력21617개를 동결한 로컬 비대화형 station/desktop에서 priority 회귀와 필수 영향5개(effects/core/character/world/crop)를 완료했다. 최종 실행5개 모두 native0/C#0/consoleErrors0/drift0이며 현재 소스/구성 결합은 Artifacts/QA/ImpactCI/verification.json에 기록했다. 실제 world104/104 섹션 저장·공식 복원·자동저장과 기준 상태 복구, crop 실행·복원·재시도 PASS. Unity0 확인 후 편집/검증 창을 닫았고 문서/인덱스 검사를 마쳤다. push/PR/CI/main/병합 후 CI가 남았으며 최종 권위는 GitHub merged 상태와 main CI다. 연결 결과는 외부 C:/Users/vulpo/Documents/Codex/2026-10-23/event-effect-repairs/integration-final.json에 회수한다. 전수 인증은 재개하지 않는다.
+
+1. 돈/원장 rollback을 하나의 owner checkpoint로 복구해 소비 실패 뒤 같은 action ID 재시도를 보존한다.
+2. 효과 실행 직전/직후의 관측을 효과별로 동결하고 pending 저장·복원에서 이미 실행한 단계의 증거를 유지한다.
+3. 원장 대상/단위는 실제 실행한 handler와 동결된 실제 대상에서 투영한다. campaign candidate/typed/preflight/evidence에 같은 registry를 사용한다.
+4. 표적 실패·JSON fresh-owner 복원·재시도와 영향 CI의 짧은 필수 경로를 현재 소스에서 실행한다. 전수 seed/밸런스 인증과 불필요한 클래스 분리는 하지 않는다.
+5. 관련 인덱스/문서/증거를 마감하고 commit/push/PR attach/CI/main 병합 및 병합 후 CI를 완료한다.
+
 ## 현재 작업 — 사건 효과 등록 확장 (2026-10-23)
 
 Status: implementation_verified. Branch: codex/modular-event-effects (origin/main 85b34b89bcf0 기준). 원본 Documents checkout은 보존한다. 구현/필수 검증은 완료했고 원격 통합의 최종 권위는 해당 PR merged 상태와 main push CI다. 최종 연결 영수증은 외부 C:/Users/vulpo/Documents/Codex/2026-10-23/event-effects/integration-final.json에 회수한다.

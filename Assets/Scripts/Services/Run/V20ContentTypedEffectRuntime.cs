@@ -77,27 +77,37 @@ internal sealed class V20ContentTypedEffectRuntime
         return true;
     }
 
-    internal void ApplyTypedDomainEffects(
+    internal IReadOnlyList<V20ResolvedEventResult> ApplyTypedDomainEffects(
         int requestedAbsoluteDay,
-        IReadOnlyList<V20ResolvedEventResult> resolutions)
+        IReadOnlyList<V20ResolvedEventResult> resolutions,
+        Func<IReadOnlyList<V20ResolvedEventResult>, V20ContentEffectOwnerSnapshot> capture)
     {
         int absoluteDay = Math.Max(1, requestedAbsoluteDay);
         Dictionary<string, CharacterActor> actors = characters.Characters
             .Where(value => value != null && value.Identity != null)
             .GroupBy(value => value.Identity.PersistentId, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        var applied = new List<V20ResolvedEventResult>();
         foreach (V20ResolvedEventResult resolution in resolutions)
         {
+            var applications = resolution.Applications.Select(value => value.Clone()).ToList();
             CharacterActor[] participants = resolution.ParticipantCharacterIds
                 .Where(actors.ContainsKey)
                 .Distinct(StringComparer.Ordinal)
                 .Select(value => actors[value])
                 .ToArray();
-            foreach (V20ContentEffect effect in resolution.Effects.Where(value => value != null && value.IsValid))
+            for (int index = 0; index < resolution.Effects.Count; index++)
             {
+                V20ContentEffect effect = resolution.Effects[index];
+                if (effect == null || !effect.IsValid) continue;
                 V20ContentEffectHandler handler = Handlers.Require(effect.kind);
                 if (handler.Stage == V20ContentEffectStage.Typed)
+                {
+                    V20ContentEffectOwnerSnapshot before = capture(new[] { resolution });
                     handler.Apply(this, new V20ContentEffectInvocation(absoluteDay, resolution, effect, participants));
+                    applications.AddRange(V20ContentEffectEvidence.ObserveEffect(resolution, index,
+                        before, capture(new[] { resolution }), handler));
+                }
             }
             if (resolution.DefinitionId.StartsWith("life-event:", StringComparison.Ordinal))
             {
@@ -145,6 +155,8 @@ internal sealed class V20ContentTypedEffectRuntime
                     }
                 }
             }
+            applied.Add(resolution.WithApplications(applications));
         }
+        return applied;
     }
 }

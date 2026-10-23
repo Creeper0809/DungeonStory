@@ -41,6 +41,14 @@ public sealed class V20ContentResolutionService :
     private readonly V20ContentResolutionJournal journal;
     private readonly V20ObservedLifeEventCommands observedLifeEvents;
 
+    private static V21ContentEffectExecutionRegistry RequireRegistry(V20CampaignRuntime live,
+        V21ContentEffectExecutionRegistry configured)
+    {
+        if (configured != null && !ReferenceEquals(configured, live.EffectHandlers))
+            throw new ArgumentException("Campaign and content resolution must share the same effect registry.");
+        return live.EffectHandlers;
+    }
+
     public V20ContentResolutionService(
         V20CampaignRuntime live,
         V20StoryContentCatalog catalog,
@@ -123,13 +131,13 @@ public sealed class V20ContentResolutionService :
             this.live, this.catalog, this.items, facilities, dropZones);
         var typedEffects = new V20ContentTypedEffectRuntime(
             characters, bodyHealth, grief, populationHealth,
-            narrative, narrativeCatalog, narrativeQuery, diseases, effectHandlers);
+            narrative, narrativeCatalog, narrativeQuery, diseases, RequireRegistry(this.live, effectHandlers));
         effectRollback = new V20ContentEffectRollback(
             this.live, characters, this.careers, bodyHealth, grief,
             populationHealth, narrative, this.items, money, typedEffects.Handlers);
         effectTransaction = new V20ContentEffectTransaction(
             dropZones, this.items, money,
-            this.reservations, stock, atomicItems, exactSources, typedEffects);
+            this.reservations, stock, atomicItems, exactSources, typedEffects, effectRollback);
         retirementPlanner = new V20RetirementSchedulePlanner(this.requirements, this.careers);
         journal = new V20ContentResolutionJournal(
             this.live, this.careers, exactSources, this.items, money,
@@ -193,13 +201,13 @@ public sealed class V20ContentResolutionService :
             this.live, this.catalog, this.items, facilities, dropZones);
         var typedEffects = new V20ContentTypedEffectRuntime(
             characters, bodyHealth, grief, populationHealth,
-            narrative, narrativeCatalog, narrativeQuery, diseases, effectHandlers);
+            narrative, narrativeCatalog, narrativeQuery, diseases, RequireRegistry(this.live, effectHandlers));
         effectRollback = new V20ContentEffectRollback(
             this.live, characters, this.careers, bodyHealth, grief,
             populationHealth, narrative, this.items, money, typedEffects.Handlers);
         effectTransaction = new V20ContentEffectTransaction(
             dropZones, this.items, money,
-            this.reservations, stock, atomicItems, exactSources, typedEffects);
+            this.reservations, stock, atomicItems, exactSources, typedEffects, effectRollback);
         retirementPlanner = new V20RetirementSchedulePlanner(this.requirements, this.careers);
         journal = new V20ContentResolutionJournal(
             this.live, this.careers, exactSources, this.items, money,
@@ -290,7 +298,9 @@ public sealed class V20ContentResolutionService :
                         value.actionId,
                         requestedActionId,
                         StringComparison.Ordinal));
-        if (!journal.TryRecoverPendingContentResolutions(out failure))
+        IReadOnlyList<V20ResolvedEventResult> recoveredResults = null;
+        if (!journal.TryRecoverPendingContentResolutions(out failure,
+                (actionId, values) => { if (actionId == requestedActionId) recoveredResults = values; }))
         {
             return false;
         }
@@ -301,10 +311,8 @@ public sealed class V20ContentResolutionService :
         }
         if (requestedRecovery != null)
         {
-            V20ResolvedEventResult[] recoveredResolutions = requestedRecovery
-                .resolutions
-                .Select(FromRecovery)
-                .ToArray();
+            V20ResolvedEventResult[] recoveredResolutions = (recoveredResults
+                ?? throw new InvalidOperationException("Completed recovery did not return its frozen resolutions.")).ToArray();
             ContentResolutionRequest recoveredRequest = new()
             {
                 ActionId = requestedRecovery.actionId,
@@ -353,16 +361,22 @@ public sealed class V20ContentResolutionService :
         }
 
         V20CampaignRuntime candidate = live.CreateContentResolutionCandidate(physicalDispositions);
-        if (!requestPlanner.TryResolveCandidate(
-                candidate,
-                request,
-                out IReadOnlyList<V20ResolvedEventResult> resolved,
-                out failure))
+        var campaignObservations = new List<(V20ContentEffect, V20ContentEffectOwnerSnapshot, V20ContentEffectOwnerSnapshot)>();
+        candidate.ObserveCampaignEffects((effect, before, after) => campaignObservations.Add((effect, before, after)));
+        IReadOnlyList<V20ResolvedEventResult> resolved;
+        try
         {
+            if (!requestPlanner.TryResolveCandidate(candidate, request, out resolved, out failure))
+                return false;
+            RecordCommittedChoice(candidate, request, resolved);
+            resolved = requestPlanner.ExpandAmbitionCompletionRewards(candidate, resolved);
+            resolved = CaptureCampaignApplications(resolved, campaignObservations, effectTransaction.Handlers);
+        }
+        catch (ContentEffectHandlerMissingException exception)
+        {
+            failure = new DomainFailure(FailureCode.ServiceFeatureMissing, "content-effect-handler:" + exception.Kind);
             return false;
         }
-        RecordCommittedChoice(candidate, request, resolved);
-        resolved = requestPlanner.ExpandAmbitionCompletionRewards(candidate, resolved);
         foreach (V20ResolvedEventResult resolution in resolved)
         {
             if (!requirements.TryEvaluate(
@@ -486,6 +500,7 @@ public sealed class V20ContentResolutionService :
                     return false;
                 }
                 childCommits.SetDurableEquipment(administrativeEquipment);
+                resolved = childCommits.AppliedResolutions;
 
                 CharacterCareerAggregate latestCareer = null;
                 if (retirementPlan.IsRequired)
@@ -583,6 +598,9 @@ public sealed class V20ContentResolutionService :
                             >= V20ContentResolutionRecoveryPhase.ItemGrantsCommitted)
                         {
                             effectRollback.RestoreTypedEffectOwners(ownersBefore);
+                            resolved = resolved.Select(value => value.WithApplications(value.Applications
+                                .Where(application => effectTransaction.Handlers.Require(value.Effects[application.effectIndex].kind).Stage
+                                    is not (V20ContentEffectStage.Typed or V20ContentEffectStage.Retirement)).ToArray())).ToArray();
                             effectPhase = V20ContentResolutionRecoveryPhase
                                 .ItemGrantsCommitted;
                         }
