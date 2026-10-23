@@ -1,5 +1,11 @@
 # DungeonStory Current Progress
 
+## 2026-10-23 사건 효과 등록 확장 — 필요한 실행 검증 PASS
+
+기존 typed/campaign switch, 대상 조건·forward/rollback 요구·application 관측과 fact 단위/참여자 분기를 하나의 불변 등록 계약에 연결했다. 기본 효과는 새 파일 하나에 함께 등록하며 기존 enum/DTO/owner snapshot/fingerprint/물리 거래·복구 단계는 유지한다. 생산 DI 명시 등록, null/무효 effect의 기존 필터와 실패 우선순위를 보존했다. 기존 fixture에 등록 누락/중복/불완전·preflight 거절, Health owner 부분 적용 후 실패/원복→pending JSON fresh owner 복원→1회 재시도→완료 JSON replay 무변경 회귀를 추가했다.
+
+r82의 21617개 입력은 완전 pre/post SHA drift0이다. actual compiled effects360초(core observer/ACK before·after/신규 등록/실제 owner rollback·JSON/G04), core160초, character150초, actual world240초, crop190초가 모두 native0/C#0/stop없음/drift0/console0으로 완료됐다. world104/104-section JSON/공식 복원·canonical baseline 복구 및 consoleErrors/Warnings0, crop 실제 수확·복원·재시도를 확인했다. 같은 source bfbdf79281cb1290eb1871fdb02644af20a9ac0a0d11ace795e0084ef004fd10/count4740/paths ca1498ba1f72fef5434b986cf3db42e7722e89d2d8eae21c8fb94644610281de와 config90c7932d2082563b6ea8c279bcbc4929ec51ef82a40ab16dd2448087f39a61d6에 5개 실행 증거가 결합된다. Artifacts/QA/ImpactCI/verification.json 및 실행별 원본은 외부 2026-10-21/task/results/editmode-repairs-20261021/r82-impact-*에 보존했다. Python25/25·분석기 DSB001–008·생성 인덱스 parse/validation/links/freshness failure0도 완료했다. Unity0/operation.lock exclusive 재확인 후 편집/검증 창을 닫았다. 전수 콘텐츠·시드 인증이나 자연 사건 발동·UI 조작 전체를 주장하지 않으며 GitHub 통합 완료는 해당 PR/main CI와 외부 integration-final.json으로 확인한다.
+
 ## 2026-10-22 실제 플레이 진행 점검 시작
 
 r81 최종 짧은 계약5개(core160초/character150초/effects150초/world240초/crop190초)는 모두 exit0/C#0/stop없음/drift0/console0이다. source e66d9bc942104c06ee90ed583818aeafc8207e4f9ec89aeba0f7fa154a8dd6a9 및 configuration50162526d9c417248bffd7176c4c22064e89e82badaa6becb3adc1a6e027d726로 단일 결합했다. actual world는104/104 sections JSON·공식 복원·canonical baseline 복구, crop은 실제 수확/복원/재시도·cleanup PASS다. Python25/25, query5/5, 콘텐츠/지식 인덱스 재생성·내용/링크검사 및 freshness2개 모두failure0이다. Unity0/operation.lock exclusive 확인, source/verify 창 닫힘. 최종 diff 마감 뒤 원격 통합 결과를 GitHub PR/main CI와 외부 play-progression-integration-final.json으로 확인한다.

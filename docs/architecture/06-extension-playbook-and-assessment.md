@@ -90,7 +90,9 @@ worker loop나 캐릭터 AI의 중앙 분기에 작업별 코드를 추가하는
 
 ### 새 효과 종류인 경우
 
-현재 구조에서는 `V20ContentResolutionService`의 preflight, commit과 typed effect switch를 함께 수정해야 한다. 이는 국소 확장이 아니다. 같은 효과가 두 개 이상의 사건에서 사용될 예정이면 다음 계약을 가진 handler 모듈로 먼저 승격하는 편이 맞다.
+기존 상태 소유자를 사용하는 효과는 `V20ContentEffectHandlers.Create()`에 등록한다. 실행·대상 조건·rollback owner 요구·forward recovery·실제 before/after 관측·적용량·결과 단위를 한 등록으로 선언하므로 공통 dispatcher, preflight, 영수증의 효과 종류 분기를 추가하지 않는다. 기존 `V20ContentEffectKind`의 숫자와 저장 DTO는 보존하고 새 wire ID는 enum 끝에 추가한다. 중복·미등록·실행/관측 누락 등록은 거절한다. 기존 효과는 한 파일에 모으며 효과마다 클래스를 만들 필요는 없다.
+
+Typed 등록은 실제 owner 명령을 실행하고 Campaign 등록은 준비된 campaign state에 적용한다. 돈·물리 아이템·은퇴는 기존 전용 거래 단계를 사용한다. 새 물리 거래나 새로운 상태 소유자·저장 스키마는 stage 이름만 등록해서 구현할 수 없으며 별도 계약과 snapshot/저장 연결이 필요하다. 등록할 계약은 다음과 같다.
 
 - 정의 검증
 - 대상과 권위 조회
@@ -153,7 +155,7 @@ flowchart LR
 
 기존 돈, 아이템, 관계, 건강과 진행 효과의 조합이라면 사건 정의만 추가한다. 새로운 상태 권위를 바꾸는 효과라면 데이터 행만 늘려서는 실행되지 않는다.
 
-현재 코드는 중앙 resolution service 수정이 필요하다. 같은 새 효과를 여러 사건에서 사용할 가능성이 있다면 먼저 effect handler로 분리하는 편이 낫다. 초기 구현 파일은 늘어나지만 이후 사건은 handler를 재사용하고 중앙 switch 수정에서 벗어난다.
+기존 상태 소유자를 사용하는 새 효과라면 handler 등록에 실행·검증·실제 결과 관측을 함께 작성한다. 이후 사건은 같은 등록을 재사용한다. 새로운 상태 소유자가 필요하면 그 소유자의 snapshot·저장·복원 계약도 구현해야 한다. handler의 존재만으로 UI/AI 소비자와 저장 연결이 완료되는 것은 아니다.
 
 ### 사례 E. 생산과 물리 아이템 사이의 장기 거래
 
@@ -187,7 +189,7 @@ flowchart LR
 | 작업 실행 | 높음 | 실행, 후보, 긴급도와 stat policy 등록 | ID catalog, 직업/UI/저장 연결은 수동 |
 | 생산 상태 | 중상 | guarded transition과 물리 거래 재사용 | aggregate 규모와 단계 증가 비용 |
 | 사건 데이터 | 중상 | 기존 requirement/effect 조합 | 새 request kind와 장기 workflow |
-| 사건 효과 실행 | 보통 | 기존 effect 재사용과 거래 preflight | 새 effect가 중앙 service switch를 수정 |
+| 사건 효과 실행 | 중상 | 등록된 실행·사전 검증·rollback 요구·실제 결과 관측과 거래 재사용 | 새 상태 소유자·물리 거래는 별도 저장/복원 계약 필요 |
 | 프레젠테이션 | 중상 | presenter registry와 query/command 분리 | 대형 registration과 context 결합 |
 | 저장과 복원 | 높음 | 새 section과 participant 등록 | 모든 새 authority가 엄격 계약을 수동 이행 |
 | 중복 실행 방지 | 높음 | outbox, fingerprint, receipt와 checkpoint GC | 도메인마다 같은 수준의 원장이 적용됐는지 감사 필요 |

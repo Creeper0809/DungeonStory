@@ -309,17 +309,7 @@ internal static class ContentResolutionFactMapping
     }
 
     private static GameplayMetricUnitId EffectUnit(
-        V20ContentEffectKind kind) => kind switch
-    {
-        V20ContentEffectKind.Money =>
-            MigratedProducerOutcomeIds.CurrencyUnit,
-        V20ContentEffectKind.ItemGrant
-            or V20ContentEffectKind.ItemConsume =>
-            MigratedProducerOutcomeIds.CountUnit,
-        V20ContentEffectKind.WorkDelayDays =>
-            MigratedProducerOutcomeIds.DayUnit,
-        _ => MigratedProducerOutcomeIds.PointUnit
-    };
+        V20ContentEffectKind kind) => V21ContentEffectExecutionRegistry.Default.Require(kind).MetricUnit;
 
     private static void AddSubject(
         ICollection<MigratedProducerOutcomeSubject> subjects,
@@ -344,13 +334,7 @@ internal static class ContentResolutionFactMapping
     }
 
     private static bool RequiresCharacter(V20ContentEffectKind kind) =>
-        kind is V20ContentEffectKind.Mood
-            or V20ContentEffectKind.Trauma
-            or V20ContentEffectKind.SkillExperience
-            or V20ContentEffectKind.Health
-            or V20ContentEffectKind.Relationship
-            or V20ContentEffectKind.DiseaseExposure
-            or V20ContentEffectKind.AmbitionProgress;
+        V21ContentEffectExecutionRegistry.Default.Require(kind).MinimumParticipants > 0;
 
     private static string FormatFloat(float value) => value.ToString(
         "R",

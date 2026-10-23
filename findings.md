@@ -1,5 +1,13 @@
 # DungeonStory Current Findings
 
+## 2026-10-23 사건 효과 등록 확장
+
+기존 V21ContentEffectExecutionRegistry는 실행 owner 설명만 담고 실제 typed 실행, 대상 조건, forward recovery, rollback owner 요구와 application evidence는 별도 kind 분기였다. 기존 wire enum/DTO/캡처 fingerprint와 물리 돈·아이템 거래 단계는 보존한다. 하나의 불변 등록에 실행 단계, 대상 수, persistence owner 요구, preflight, 실행과 실제 before/after 관측을 함께 둔다. 공통 실행·트랜잭션·영수증 코드는 등록을 사용하며 미등록/중복/불완전 등록을 거절한다. 새 상태 권위/저장 스키마 도입까지 자동화하는 범위는 아니다. 새 효과는 기존 안정 enum ID를 append하고 등록하며, 기존 상태 소유자 명령과 snapshot 투영을 재사용한다. 효과마다 클래스를 만들지 않고 기본 등록을 묶는다.
+
+Unity 담당 main, cuha headless Unity0/operation.lock exclusive EDIT_READY에서 SOURCE_EDIT를 열었다. 씬·프리팹·에셋·게임 수치·사용자 Inspector 연결 변경은 계획하지 않는다. 새 등록의 실제 사건 실행·부분 실패·JSON fresh-owner 복원/재시도와 기존 campaign/effects 및 짧은 영향 CI만 검증한다.
+
+표적 등록 회귀는 새 게임 효과나 wire ID를 임의로 만들지 않고 기존 Health ID에 별도 처리기/관측을 주입하여 공통 코드가 실제 등록을 사용하는지 확인한다. production은 명시 등록한 같은 불변 Default registry를 사용한다. handler가 소유 상태를 별도로 저장하지 않으며 기존 Health 등 snapshot owner가 계속 rollback/저장 권위를 가진다. 기존 typed/campaign 실행, G04 상태·클램프·누락 대상 관측, 물리 child/ACK/parent 재시도를 함께 실행해 단순 dictionary 조회 검증과 구분했다.
+
 ## 2026-10-22 실제 플레이 진행 점검 — 범위와 관측 권위
 
 현재 main에서 기존 primitive 실제 GameplayScene/brain/behavior-tree 검증을 먼저 실행했다. 다음은 기존 FirstRunObjective verifier의 상점 구매→물리 설계도→보관대 운반→연구 예약→실제 AI 작업·완료 경로를 재사용한다. 독립적인 새 감사 프레임워크나 구조 분리는 추가하지 않는다. 서버용 진입점은 기존 빠른 파티 준비의 통제 기술을 사용하며 실제 모델 추론/Title→준비 완료와 픽셀 렌더링을 PASS로 주장하지 않는다. screenshot yield는 명시 NOT_RUN, 장치 polling 대신 실제 가시성/raycast를 거친 pointer callback이며 게임 연결 assertion은 유지한다. 검증 본문 예외/중도 종료는 completed=false로 실패시킨다. 수동 실행의 기존 persistence snapshot은 유지하고 격리 batch에서는 보호 guard에 따라 사용자 persistence를 읽지 않는다.

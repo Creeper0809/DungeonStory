@@ -1,5 +1,16 @@
 # DungeonStory Current Task Plan
 
+## 현재 작업 — 사건 효과 등록 확장 (2026-10-23)
+
+Status: implementation_verified. Branch: codex/modular-event-effects (origin/main 85b34b89bcf0 기준). 원본 Documents checkout은 보존한다. 구현/필수 검증은 완료했고 원격 통합의 최종 권위는 해당 PR merged 상태와 main push CI다. 최종 연결 영수증은 외부 C:/Users/vulpo/Documents/Codex/2026-10-23/event-effects/integration-final.json에 회수한다.
+
+현재 r82의 21617 입력은 동결했고 메인 단독 cuha headless에서 effects360초/core160초/character150초/actual world240초/crop190초 모두 native0/C#0/stop없음/drift0/console0으로 완료했다. 등록 metadata는 결과 단위/참여자 참조에도 연결했고 production DI에는 같은 불변 registry instance를 명시 등록했다. 기존 null/무효 effect 필터와 정상 사전 검증 실패 우선순위를 보존했다. Python25/25·분석기8개 규칙·생성 인덱스 validation/freshness2개 PASS. 마지막 Unity0/lock exclusive 확인, SOURCE_EDIT/UNITY_VERIFY CLOSED다. 증거는 Artifacts/QA/ImpactCI/verification.json이다. 전수 콘텐츠/시드 검증은 실행하지 않았다.
+
+1. 사건 효과의 정의→검증→commit/rollback→영수증→저장/복원 경로와 기존 registry를 확인하고 실제 공통 분기 변경 경계를 확정한다.
+2. 기존 효과 의미·식별자·저장 형식·재시도 원자성을 보존하며 등록형 확장으로 연결한다. 효과마다 파일을 나누거나 미래용 상태/추상화를 만들지 않는다.
+3. 현재 소스 컴파일, 기존 효과와 추가 등록 효과의 실행·실패·저장/복원·무중복 재시도 및 변경 영향 CI의 짧은 필수 경로를 검증한다. 전수 콘텐츠/시드 인증은 실행하지 않는다.
+4. 관련 인덱스·증거·문서를 마감하고 commit/push/PR attach/CI/main 병합 및 병합 후 CI를 완료한다.
+
 ## 현재 작업 — 실제 플레이 진행·기능 연결 점검 (2026-10-22)
 
 Status: implementation_verified. Branch: codex/fix-play-progression (origin/main 694c559dda1e에서 시작). 원격 통합의 완료 권위는 해당 PR의 merged 상태와 main push CI이며 최종 연결 결과는 외부 play-progression-integration-final.json에 회수한다. 원본 Documents checkout은 보존한다.

@@ -32,6 +32,7 @@ public static class V20ContentResolutionRecoveryDebugScenarios
     {
         Require(Application.isBatchMode, "Receipt contract verification requires isolated batch execution.");
         RunObserverBatch();
+        RunRegisteredHandlerContracts();
         PhysicalItemExactSourcePublicationDebugScenarios.RunAll();
         DurableFacilityEquipmentSaveDebugScenarios.RunAll();
         DurableFacilityEquipmentSlotCheckpointGcDebugScenarios.RunAll();
@@ -50,6 +51,120 @@ public static class V20ContentResolutionRecoveryDebugScenarios
         RunObservationRecovery(beforeCommit: false);
         RunObservedFuneralBatch();
         Debug.Log("B112_CONTENT_OBSERVERS=PASS");
+    }
+
+    public static void RunRegisteredHandlerContracts()
+    {
+        V21ContentEffectExecutionRegistry defaults = V21ContentEffectExecutionRegistry.Default;
+        V20ContentEffectHandler health = defaults.Require(V20ContentEffectKind.Health);
+        bool duplicateRejected = false;
+        try { _ = new V21ContentEffectExecutionRegistry(defaults.Handlers.Append(health)); }
+        catch (InvalidOperationException) { duplicateRejected = true; }
+        Require(duplicateRejected, "Duplicate registered effect silently replaced an owner.");
+        bool incompleteRejected = false;
+        try
+        {
+            _ = new V20ContentEffectHandler(health.Kind, health.Owner, health.Semantic,
+                V20ContentEffectStage.Typed, health.Observe, health.AppliedAmount);
+        }
+        catch (ArgumentException) { incompleteRejected = true; }
+        Require(incompleteRejected, "Typed effect without execution was accepted.");
+
+        using var content = new FixtureContent();
+        var missing = new V21ContentEffectExecutionRegistry(defaults.Handlers.Where(value => value.Kind != health.Kind));
+        using (var fixture = new Fixture(content, new SharedGrantState { FailNextCommit = false }, effectHandlers: missing))
+        {
+            string before = JsonUtility.ToJson(fixture.CaptureRoundTrip());
+            Require(!fixture.Service.TryExecute(CreateRequest(), out _, out DomainFailure failure)
+                    && failure.Code == FailureCode.ServiceFeatureMissing
+                    && before == JsonUtility.ToJson(fixture.CaptureRoundTrip()),
+                "Unregistered effect changed owners, physical receipts or pending state before rejection.");
+        }
+        var rejected = new V20ContentEffectHandler(health.Kind, health.Owner, health.Semantic, health.Stage,
+            health.Observe, health.AppliedAmount, minimumParticipants: health.MinimumParticipants,
+            participantTargeted: health.ParticipantTargeted, forwardRecovery: health.RequiresForwardRecovery,
+            persistenceOwners: health.PersistenceOwners, apply: (_, _) => throw new InvalidOperationException("Rejected effect executed."),
+            preflight: (_, _) => new DomainFailure(FailureCode.ExternalInfluenceUnavailable, "registered-preflight-rejected"));
+        var rejectingRegistry = new V21ContentEffectExecutionRegistry(defaults.Handlers
+            .Where(value => value.Kind != health.Kind).Append(rejected));
+        using (var fixture = new Fixture(content, new SharedGrantState { FailNextCommit = false }, effectHandlers: rejectingRegistry))
+        {
+            string before = JsonUtility.ToJson(fixture.CaptureRoundTrip());
+            Require(!fixture.Service.TryExecute(CreateRequest(), out _, out DomainFailure failure)
+                    && failure.Code == FailureCode.ExternalInfluenceUnavailable
+                    && before == JsonUtility.ToJson(fixture.CaptureRoundTrip()),
+                "Registered preflight rejection was ignored or changed an owner.");
+        }
+
+        // Register a different handler under an existing wire ID: the common
+        // dispatcher, save schema and owner implementations are not modified.
+        int attempts = 0;
+        bool failNext = true;
+        var registered = new V20ContentEffectHandler(health.Kind, health.Owner, "registered-health-probe",
+            health.Stage, health.Observe, health.AppliedAmount,
+            minimumParticipants: health.MinimumParticipants, participantTargeted: health.ParticipantTargeted,
+            forwardRecovery: health.RequiresForwardRecovery, persistenceOwners: health.PersistenceOwners,
+            apply: (runtime, invocation) =>
+            {
+                health.Apply(runtime, invocation);
+                attempts++;
+                if (failNext)
+                {
+                    failNext = false;
+                    throw new InvalidOperationException("injected-registered-effect-after-mutation");
+                }
+            });
+        var registry = new V21ContentEffectExecutionRegistry(defaults.Handlers
+            .Where(value => value.Kind != health.Kind).Append(registered));
+        var grants = new SharedGrantState { FailNextCommit = false };
+        RecoverySaveBundle pending;
+        using (var first = new Fixture(content, grants, effectHandlers: registry))
+        {
+            string before = JsonUtility.ToJson(first.Health.Capture());
+            bool surfaced = false;
+            try { first.Service.TryExecute(CreateRequest(), out _, out _); }
+            catch (InvalidOperationException ex) { surfaced = ex.Message.Contains("injected-registered-effect-after-mutation"); }
+            Require(surfaced && attempts == 1 && before == JsonUtility.ToJson(first.Health.Capture()),
+                "Registered effect partial mutation was not rolled back to the original authority.");
+            _ = RequirePending(first, V20ContentResolutionRecoveryPhase.ItemGrantsCommitted);
+            Require(first.Money.Balance == StartingMoney + MoneyReward && grants.SuccessfulCommits == 1
+                    && first.Probe.CommitCount(MigratedProducerOutcomeKind.V20ResolvedEventResult) == 0,
+                "Registered effect failure lost committed physical children or published a false parent success.");
+            pending = first.CaptureRoundTrip();
+        }
+
+        RecoverySaveBundle completed;
+        using (var restored = new Fixture(content, grants, pending, effectHandlers: registry))
+        {
+            Require(restored.Service.TryExecute(CreateRequest(), out _, out DomainFailure failure) && !failure.IsFailure,
+                "Registered effect did not resume through the saved production journal: " + failure);
+            Require(attempts == 2 && Mathf.Approximately(restored.Health.GetVitals(restored.Actor).CurrentHealth, 90f + HealthReward)
+                    && grants.SuccessfulCommits == 1 && restored.Money.Balance == StartingMoney + MoneyReward
+                    && restored.Stock.GetGlobalQuantity(ConsumedItemId) == 0
+                    && restored.Stock.GetGlobalQuantity(GrantedItemId) == 1
+                    && restored.Campaign.CaptureMilestones().pendingContentResolutions.Count == 0,
+                "Registered effect recovery duplicated a child or did not apply exactly one health change.");
+            var identity = MigratedProducerOutcomeE2EAssertions.RequireExact(restored.Outcomes,
+                MigratedProducerOutcomeKind.V20ResolvedEventResult, restored.Probe);
+            Require(restored.Outcomes.Ledger.TryGetExact(identity.OutcomeId, out GameplayOutcomeSnapshot outcome)
+                    && ApplicationFact(outcome).Contains("semantic=registered-health-probe", StringComparison.Ordinal),
+                "Registered observation did not reach the authoritative parent receipt.");
+            string beforeReplay = JsonUtility.ToJson(restored.CaptureRoundTrip());
+            _ = restored.Service.TryExecute(CreateRequest(), out _, out _);
+            Require(attempts == 2 && beforeReplay == JsonUtility.ToJson(restored.CaptureRoundTrip()),
+                "Completed registered effect replay changed a state owner.");
+            completed = restored.CaptureRoundTrip();
+        }
+        using (var restored = new Fixture(content, grants, completed, effectHandlers: registry))
+        {
+            string before = JsonUtility.ToJson(restored.CaptureRoundTrip());
+            _ = restored.Service.TryExecute(CreateRequest(), out _, out _);
+            Require(attempts == 2 && grants.SuccessfulCommits == 1
+                    && before == JsonUtility.ToJson(restored.CaptureRoundTrip()),
+                "Completed JSON restore replay duplicated a registered effect or its receipts.");
+        }
+        _ = RunG04Scenario();
+        Debug.Log("REGISTERED_CONTENT_EFFECTS=PASS; duplicate/missing/incomplete rejection; actual owner rollback; pending/completed JSON restore; exact-once retry; custom receipt; built-in health/exposure/pressure/retirement");
     }
 
     private static void RunDurableReceiptBoundaries()
@@ -1158,7 +1273,8 @@ public static class V20ContentResolutionRecoveryDebugScenarios
             SharedGrantState grantState,
             RecoverySaveBundle restore = null,
             MigratedProducerOutcomeFaultMode parentFault =
-                MigratedProducerOutcomeFaultMode.None)
+                MigratedProducerOutcomeFaultMode.None,
+            V21ContentEffectExecutionRegistry effectHandlers = null)
         {
             Content = content ?? throw new ArgumentNullException(nameof(content));
             Root = new DungeonRuntimeAggregateRootStore();
@@ -1315,7 +1431,8 @@ public static class V20ContentResolutionRecoveryDebugScenarios
                 Careers,
                 PopulationHealth,
                 Diseases,
-                Grief);
+                Grief,
+                effectHandlers);
         }
 
         internal FixtureContent Content { get; }

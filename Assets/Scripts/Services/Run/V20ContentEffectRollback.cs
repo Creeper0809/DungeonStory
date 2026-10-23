@@ -17,6 +17,7 @@ internal sealed class V20ContentEffectRollback
     private readonly ICharacterNarrativeCommand narrative;
     private readonly IWorldItemStackRuntime items;
     private readonly IGameMoneyAccount money;
+    private readonly V21ContentEffectExecutionRegistry handlers;
 
     internal V20ContentEffectRollback(
         V20CampaignRuntime live,
@@ -27,8 +28,10 @@ internal sealed class V20ContentEffectRollback
         IPopulationHealthService populationHealth,
         ICharacterNarrativeCommand narrative,
         IWorldItemStackRuntime items,
-        IGameMoneyAccount money)
+        IGameMoneyAccount money,
+        V21ContentEffectExecutionRegistry handlers = null)
     {
+        this.handlers = handlers ?? V21ContentEffectExecutionRegistry.Default;
         this.live = live;
         this.characters = characters;
         this.careers = careers;
@@ -57,8 +60,10 @@ internal sealed class V20ContentEffectRollback
             .Select(group => new V20CharacterEffectOwnerSnapshot(group.First()))
             .ToArray();
 
-        bool HasEffect(V20ContentEffectKind kind) => concrete.Any(value =>
-            value.Effects.Any(effect => effect?.kind == kind));
+        V20ContentEffectPersistenceOwners requiredOwners = concrete.SelectMany(value => value.Effects)
+            .Where(effect => effect != null && effect.IsValid).Select(effect => handlers.Require(effect.kind).PersistenceOwners)
+            .Aggregate(V20ContentEffectPersistenceOwners.None, (all, owners) => all | owners);
+        bool Requires(V20ContentEffectPersistenceOwners owners) => (requiredOwners & owners) != 0;
         ICharacterBodyHealthPersistence bodyPersistence =
             bodyHealth as ICharacterBodyHealthPersistence;
         IPsychosocialPersistence psychosocialPersistence =
@@ -67,7 +72,7 @@ internal sealed class V20ContentEffectRollback
             populationHealth as IPopulationHealthPersistence;
         ICharacterNarrativePersistence narrativePersistence =
             narrative as ICharacterNarrativePersistence;
-        bool requiresNarrative = HasEffect(V20ContentEffectKind.AmbitionProgress)
+        bool requiresNarrative = Requires(V20ContentEffectPersistenceOwners.Narrative)
             || concrete.Any(value =>
                 value.DefinitionId.StartsWith(
                     "life-event:",
@@ -75,10 +80,10 @@ internal sealed class V20ContentEffectRollback
                 || value.DefinitionId.StartsWith(
                     "practice:",
                     StringComparison.Ordinal));
-        if (HasEffect(V20ContentEffectKind.Health) && bodyPersistence == null
-            || HasEffect(V20ContentEffectKind.Trauma)
+        if (Requires(V20ContentEffectPersistenceOwners.BodyHealth) && bodyPersistence == null
+            || Requires(V20ContentEffectPersistenceOwners.Psychosocial)
                 && psychosocialPersistence == null
-            || HasEffect(V20ContentEffectKind.DiseaseExposure)
+            || Requires(V20ContentEffectPersistenceOwners.PopulationHealth)
                 && populationPersistence == null
             || requiresNarrative && narrativePersistence == null)
         {

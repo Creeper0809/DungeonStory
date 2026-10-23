@@ -299,7 +299,7 @@ internal sealed class V20ContentResolutionJournal
                     resolved,
                     before,
                     after,
-                    childCommits).ToArray();
+                    childCommits, typedEffects.Handlers).ToArray();
                 current.resolutions = resolved.Select(ToRecovery).ToList();
                 current.stateAfterFingerprint =
                     CaptureEffectOwnerFingerprint(after);

@@ -537,7 +537,7 @@ internal sealed class V20ObservedLifeEventCommands : IObservedCareerLifeEventCom
         // Monetary/physical commits still retain the existing forward-only boundary.
         bool requiresForwardRecovery = RequiresForwardRecovery(
             plan,
-            resolutions) && (sourceFact == null || plan.MoneyDelta != 0
+            resolutions, effectTransaction.Handlers) && (sourceFact == null || plan.MoneyDelta != 0
                 || plan.ItemCosts.Count > 0 || plan.Grants.Count > 0);
         V20ContentResolutionRecoveryPhase effectPhase =
             V20ContentResolutionRecoveryPhase.Prepared;

@@ -363,6 +363,8 @@ public static class V27CiEvidenceBatch
         try
         {
             Debug.Log(ScriptableObjectModularityDebugScenarios.RunCatalogExtensionsForBatch());
+            V20ContentResolutionRecoveryDebugScenarios.RunObserverBatch();
+            V20ContentResolutionRecoveryDebugScenarios.RunRegisteredHandlerContracts();
             if (!CharacterProgressionDebugScenarios.RunAcquiredTraitEffectProjectionScenario()
                 || !CharacterProgressionDebugScenarios.RunAcquiredTraitMilestoneLifecycleScenario()
                 || !CharacterProgressionDebugScenarios.RunAcquiredTraitFormulaV2CompositionScenario()
