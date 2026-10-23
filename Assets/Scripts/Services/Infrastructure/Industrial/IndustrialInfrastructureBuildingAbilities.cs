@@ -29,6 +29,7 @@ public sealed class BuildingPowerProducerAbility : BuildingAbility
     public bool requiresFuel;
 
     [InspectorName("연료 아이템 ID")]
+    [ContentReference(ContentReferenceKind.Item)]
     public string fuelItemId = "material:low-fuel";
 
     [Min(0f), InspectorName("연료당 가동 시간")]
@@ -153,6 +154,7 @@ public sealed class BuildingWaterFixtureAbility : BuildingAbility
     public bool allowsDryFallback;
 
     [InspectorName("수동 폐기물 아이템 ID")]
+    [ContentReference(ContentReferenceKind.Item)]
     public string manualWasteItemId = string.Empty;
 }
 
@@ -218,6 +220,7 @@ public sealed class BuildingWastewaterProcessorAbility : BuildingAbility
     public bool requiresPower = true;
 
     [InspectorName("슬러지 아이템 ID")]
+    [ContentReference(ContentReferenceKind.Item)]
     public string sludgeItemId = "industrial:sludge";
 
     [Min(0), InspectorName("슬러지 출력")]
@@ -244,6 +247,7 @@ public sealed class BuildingConveyorSegmentAbility : BuildingAbility
     public bool requiresPower = true;
 
     [InspectorName("필터 아이템 ID")]
+    [ContentReference(ContentReferenceKind.Item)]
     public string[] allowedItemIds = Array.Empty<string>();
 
     [InspectorName("필터 재고 분류")]
@@ -251,6 +255,7 @@ public sealed class BuildingConveyorSegmentAbility : BuildingAbility
         Array.Empty<StockCategory>();
 
     [InspectorName("필터 재질 ID")]
+    [ContentReference("CraftMaterialDefinitionSO", "MaterialId")]
     public string[] allowedMaterialIds = Array.Empty<string>();
 
     [InspectorName("품질 필터")]

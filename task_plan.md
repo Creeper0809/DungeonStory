@@ -1,5 +1,22 @@
 # DungeonStory Current Task Plan
 
+## 현재 작업 — 전체 SO 관계 무결성 보완 (2026-10-23)
+
+Status: implementation_verified / GitHub integration in_progress. 사용자 요청에 따라 모든 게임 SO 142종·에셋3538개와 중첩 ID 관계149개 선언을 조사하고 필요한 선택·교차 검증·identity 보호를 완료했다. 작업 worktree so-reference-authoring, branch codex/so-reference-integrity, base main4fa97c17. r101si 입력21630개에서 CUHA effects/core/character/world/crop 모두 native0/C#0/consoleErrors0/drift0. Unity0/operation.lock free 확인 후 검증 창을 닫았다. 인덱스·증거를 마감하고 commit/push/PR/CI/main/병합 후 CI를 완료한다. 원본 Documents checkout과 이전 worktree 변경은 보존했다. 초기 실패·중단은 현재 PASS 증거에 포함하지 않는다.
+
+1. 전체 게임 SO 타입/중첩 필드/에셋 목록에서 SO 관계·자기 identity·의미 키·직접 객체 참조를 분류해 누락 없는 조사 범위를 정한다.
+2. 진행·해금/실행 실패부터 관계 선택·등록 검증을 보완한다. 기존 runtime/DTO ID·GUID·저장 버전은 유지한다. 운영 stable ID 변경은 저장 호환성을 깨뜨리는 변경이므로 임의 rename 전파 대신 기존 ID 보존/변경 차단과 명시적 오류로 보호한다. 새 정의의 ID 작성은 허용한다.
+3. 선택·등록 누락/오타/변경·삭제 거절과 실제 실행·저장·복원·재시도의 대표 위험 경계를 검증한다. 전수 시드/장기 밸런스는 제외한다. 검증 중 작성자를 동결한다. 로컬 RAM 부족 시 CUHA를 사용한다.
+4. 관련 인덱스/증거 마감, commit/push/PR attach/CI 성공, main 병합 및 병합 후 CI를 완료한다.
+
+## 현재 작업 — PR15 이후 SO 관계 잔여 위험 감사 (2026-10-23)
+
+Status: completed (읽기 전용 코드/에셋 감사). main4fa97c17과 작업 HEAD960eeb3c의 tree가 같다. fresh KB와 실제 선언/등록/소비/표적 asset 대조로 남은 수기 관계 및 교차 검증 누락을 확인하고 findings.md에 우선순위를 기록했다. PR15와 main CI39956464868 성공을 확인했다. 원본 checkout/기존 변경을 보존했다. 이번 조사에서는 게임 소스/에셋 수정·Unity 실행·push를 하지 않았다.
+
+1. 현재 KB 조회 후 SO 관계 선택기와 남은 수기 필드를 원본으로 확인한다.
+2. 대상 ID 변경·삭제·등록 누락 시 실제 소비자의 거절/무시/예외를 추적한다. 현행 에셋 결함과 잠재 위험을 구분한다.
+3. 근거와 우선순위를 findings.md에 기록하고 결과를 보고한다. 게임 코드 수정·Unity 실행·전수 재검증·push는 하지 않는다.
+
 ## 현재 작업 — SO 관계 선택과 끊어진 참조 복구 (2026-10-23)
 
 Status: implementation_verified / GitHub integration in_progress. so-reference-authoring / codex/so-reference-authoring, origin/main4d72be82. r95so 최종5개 effects-retry1/core/character/world/crop 모두 native0/C#0/consoleErrors0/drift0, 현재 source/config 결합 확인. Unity0 및 검증 창 CLOSED. 콘텐츠/KB 생성 및 내용·링크·최신성 검사 PASS. commit/push/PR/CI/main/병합 후 CI를 이어서 완료한다. 원본 Documents와 이전 worktree 변경은 보존했다. 메모리가 다시 부족하면 사용자 지시에 따라 CUHA를 사용한다.

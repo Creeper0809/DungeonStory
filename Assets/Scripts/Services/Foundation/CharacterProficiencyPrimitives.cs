@@ -82,7 +82,9 @@ public enum ProficiencyCombinationMode
 [Serializable]
 public sealed class ProficiencyWorkProfileAuthoring
 {
+    [ContentReference(ContentReferenceKind.Proficiency)]
     [SerializeField] private string primaryProficiencyId = string.Empty;
+    [ContentReference(ContentReferenceKind.Proficiency)]
     [SerializeField] private string secondaryProficiencyId = string.Empty;
     [Range(0f, 1f), SerializeField] private float primaryWeight = 1f;
     [SerializeField] private ProficiencyCombinationMode combinationMode;

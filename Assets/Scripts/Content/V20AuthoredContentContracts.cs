@@ -5,7 +5,7 @@ using UnityEngine;
 
 public abstract class V20AuthoredContentSO : ScriptableObject
 {
-    [SerializeField] private string stableId = string.Empty;
+    [ContentIdentity, SerializeField] private string stableId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [SerializeField, TextArea] private string description = string.Empty;
     [SerializeField, Min(1)] private int authoringRevision = 1;
@@ -71,7 +71,9 @@ public sealed class V20CharacterRequirement
 {
     public CharacterLifeStage minimumLifeStage = CharacterLifeStage.Infant;
     public CharacterLifeStage maximumLifeStage = CharacterLifeStage.Elder;
+    [ContentReference("CharacterTraitSO", "DefinitionId")]
     public string requiredTraitId = string.Empty;
+    [ContentReference("CharacterTraitSO", "DefinitionId")]
     public string excludedTraitId = string.Empty;
     [Range(0, 100)] public int minimumHealth;
 }

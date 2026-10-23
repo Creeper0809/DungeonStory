@@ -53,6 +53,7 @@ public enum WildlifeIntent
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class WildlifeButcherYield
 {
+    [ContentReference(ContentReferenceKind.Item)]
     public string itemId = string.Empty;
     [Min(0)] public int amount;
 }

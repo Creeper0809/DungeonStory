@@ -24,6 +24,7 @@ public static class ContentReferenceSelectionDebugScenarios
             VerifyAnatomyNodeEntries();
             VerifySelectionsAndPersistence(temporaryObjects, sourceSnapshots);
             VerifySemanticKinds(temporaryObjects, sourceSnapshots);
+            VerifyMixedContext(temporaryObjects);
             VerifySourceAssetsUnchanged(sourceSnapshots);
             Debug.Log("CONTENT_REFERENCE_AUTHORING=PASS");
         }
@@ -43,7 +44,8 @@ public static class ContentReferenceSelectionDebugScenarios
                  (ContentReferenceKind[])Enum.GetValues(typeof(ContentReferenceKind)))
         {
             if (kind is ContentReferenceKind.EffectTarget
-                or ContentReferenceKind.WeightedTarget)
+                or ContentReferenceKind.WeightedTarget or ContentReferenceKind.Definition or ContentReferenceKind.NarrativeTarget
+                or ContentReferenceKind.ExpeditionChoice)
             {
                 continue;
             }
@@ -452,8 +454,40 @@ public static class ContentReferenceSelectionDebugScenarios
                 targetProperty) == expected,
             $"{effectKind} resolved to the wrong target kind.");
         Require(
+            ContentReferenceSelection.ResolveReference(
+                new ContentReferenceAttribute(ContentReferenceKind.EffectTarget), targetProperty)?.Kind == expected,
+            $"{effectKind} drawer ignored the pending serialized kind.");
+        Require(
             targetProperty.stringValue == semanticTarget,
             $"{effectKind} target semantics were mutated during resolution.");
+    }
+
+    private static void VerifyMixedContext(List<Object> temporaryObjects)
+    {
+        var left = Create<CharacterBackgroundDefinitionSO>(temporaryObjects);
+        var right = Create<CharacterBackgroundDefinitionSO>(temporaryObjects);
+        foreach (var value in new[] { left, right })
+        {
+            using var serialized = new SerializedObject(value);
+            EnsureArrayChild(serialized, "startingEffects", "kind").intValue =
+                (int)(value == left ? V20ContentEffectKind.ItemGrant : V20ContentEffectKind.DiseaseExposure);
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+        using var mixed = new SerializedObject(new Object[] { left, right });
+        var target = mixed.FindProperty("startingEffects.Array.data[0].targetId");
+        var reference = new ContentReferenceAttribute(ContentReferenceKind.EffectTarget);
+        Require(ContentReferenceSelection.HasMixedContext(reference, target)
+            && ContentReferenceSelection.ResolveReference(reference, target) == null,
+            "Mixed effect kinds must not share a target selector.");
+
+        var narrative = Create<InGameNarrativeTextCatalogSO>(temporaryObjects);
+        using var text = new SerializedObject(narrative);
+        var kind = EnsureArrayChild(text, "entries", "kind");
+        var id = text.FindProperty("entries.Array.data[0].stableId");
+        kind.intValue = (int)InGameNarrativeTextKind.Facility;
+        Require(ContentReferenceSelection.ResolveReference(
+            new ContentReferenceAttribute(ContentReferenceKind.NarrativeTarget), id)?.Kind == ContentReferenceKind.Building,
+            "Narrative drawer ignored the pending serialized kind.");
     }
 
     private static void VerifySourceAssetsUnchanged(List<AssetSnapshot> snapshots)

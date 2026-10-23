@@ -8,7 +8,7 @@ using UnityEngine;
     menuName = "DungeonStory/Character/Starting Origin")]
 public sealed class CharacterStartingOriginSO : ScriptableObject
 {
-    public string originId = string.Empty;
+    [ContentIdentity] public string originId = string.Empty;
     public string displayName = string.Empty;
     [TextArea] public string description = string.Empty;
     public List<CharacterStartingProficiencyBonus> proficiencyBonuses = new();

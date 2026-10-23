@@ -358,12 +358,10 @@ GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circ
 GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,authoringRevision,1,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,sourceNote,V20 hand-authored faction/service manifest.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,kind,3,GuestRequestKind,Spectacle,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,retirementReason,Removed from the active WIM-037 manifest; circus venue was never published. Retained for GUID and stable ID compatibility.,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,deadlineDays,6,,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.items,[],,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.facilities.0.buildingDefinitionId,building:circus-arena,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.facilities.0.capabilityId,,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.facilities.0.minimumCount,1,,,explicit-serialized
-GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.facilities.0.mustBeOperational,1,,,explicit-serialized
+GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.facilities,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.research,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.characters,[],,,explicit-serialized
 GuestRequestDefinitionSO|guest-request:monster-circus,guest-request:monster-circus,serviceRequirements.factions,[],,,explicit-serialized

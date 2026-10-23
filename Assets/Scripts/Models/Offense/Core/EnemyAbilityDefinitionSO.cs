@@ -28,6 +28,7 @@ public sealed class EnemyAbilityEffectRecord
 [CreateAssetMenu(fileName = "EnemyAbility", menuName = "DungeonStory/V20/Enemy Ability")]
 public sealed class EnemyAbilityDefinitionSO : ScriptableObject
 {
+    [ContentIdentity]
     public string stableId = string.Empty;
     public string displayName = string.Empty;
     [TextArea] public string description = string.Empty;

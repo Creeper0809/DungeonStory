@@ -30,7 +30,6 @@
 | `CharacterAcquiredTraitSettingsSO` | `drawbackCapabilities.7.formula.appliedParameterIds` | 1 | magnitude | 대상 콘텐츠 미해소 |
 | `CharacterAcquiredTraitSettingsSO` | `drawbackCapabilities.8.formula.appliedParameterIds` | 1 | magnitude | 대상 콘텐츠 미해소 |
 | `CharacterAcquiredTraitSettingsSO` | `drawbackCapabilities.9.formula.appliedParameterIds` | 1 | magnitude | 대상 콘텐츠 미해소 |
-| `GuestRequestDefinitionSO` | `serviceRequirements.facilities.0.buildingDefinitionId` | 1 | building:circus-arena | 요구 시설 ID가 현행 BuildingSO 안정 ID와 일치하지 않음 |
 | `LifeEventDefinitionSO` | `automaticEffects.0.targetId` | 1 | life-event:tool-inheritance | 효과 종류가 요구하는 대상 유형과 targetId가 일치하지 않음 |
 
 전체 행과 출발 자산 경로는 [unresolved-references.csv](unresolved-references.csv)에 보존한다.

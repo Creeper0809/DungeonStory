@@ -6,7 +6,7 @@ using UnityEngine;
     menuName = "DungeonStory/World/Weather Front")]
 public sealed class WeatherFrontDefinitionSO : ScriptableObject
 {
-    public string stableId = string.Empty;
+    [ContentIdentity] public string stableId = string.Empty;
     public string displayName = string.Empty;
     public WeatherFrontKind kind;
     [Min(1)] public int minimumDurationDays = 1;

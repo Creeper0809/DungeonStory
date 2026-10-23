@@ -224,7 +224,9 @@ public sealed class ApparelInstanceState
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class ApparelDefinitionSO : DataScriptableObject
 {
+    [ContentIdentity]
     [SerializeField] private string apparelId = string.Empty;
+    [ContentReference(ContentReferenceKind.Item)]
     [SerializeField] private string physicalItemId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [TextArea, SerializeField] private string description = string.Empty;
@@ -241,6 +243,7 @@ public sealed class ApparelDefinitionSO : DataScriptableObject
     [Min(0.05f), SerializeField] private float tailoringCoefficient = 1f;
     [Min(0.01f), SerializeField] private float baseWeight = 0.5f;
     [SerializeField] private bool allowMythicInspiration = true;
+    [ContentReference(ContentReferenceKind.Research)]
     [SerializeField] private string requiredResearchId = string.Empty;
     [SerializeField] private Sprite sprite;
     [SerializeField] private ProficiencyWorkProfileAuthoring proficiency = new();

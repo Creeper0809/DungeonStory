@@ -12,6 +12,7 @@ public sealed class BuildingServiceHubAbility : BuildingAbility
     public string serviceHubTag = string.Empty;
 
     [InspectorName("지원 공정 ID")]
+    [ContentReference("ServiceProcessSO", "ProcessId")]
     public string[] supportedProcessIds = Array.Empty<string>();
 
     [Min(1), InspectorName("기본 용량")]

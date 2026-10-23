@@ -39,8 +39,9 @@ public sealed class DungeonFactionDefinitionSO : ScriptableObject
 {
     public const string ResourcePath = "SO/Factions/Dungeons";
 
-    public string factionId = string.Empty;
+    [ContentIdentity] public string factionId = string.Empty;
     public string displayName = string.Empty;
+    [ContentReference(ContentReferenceKind.Species)]
     public string speciesTag = string.Empty;
     [TextArea] public string description = string.Empty;
     public string[] relationTags = Array.Empty<string>();

@@ -27,6 +27,7 @@ namespace DungeonStory.Content.CoreSession
     {
         [Min(0)] public int serviceCategory;
         [Min(0)] public int operationMode;
+        [ContentReference(ContentReferenceKind.Research)]
         public string researchId = string.Empty;
     }
 

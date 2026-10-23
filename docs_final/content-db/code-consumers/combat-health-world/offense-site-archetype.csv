@@ -1,5 +1,7 @@
 ﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+OffenseSiteArchetypeSO,content-type,,type-reference,content,content-loading,structural-type-consumer,Assets/Scripts/Content/SeasonalWorldEventDefinitionSO.cs
 OffenseSiteArchetypeSO,content-type,,type-reference,models:offense,runtime,structural-type-consumer,Assets/Scripts/Models/Offense/Core/OffenseAuthoredContentPort.cs
+OffenseSiteArchetypeSO,content-type,,type-reference,services:items,content-loading,structural-type-consumer,Assets/Scripts/Services/Items/ContentReferenceCatalog.cs
 OffenseSiteArchetypeSO,content-type,,type-reference,services:items,content-loading,structural-type-consumer,Assets/Scripts/Services/Items/GameContentCatalog.cs
 OffenseSiteArchetypeSO,content-type,,type-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/OffenseStrategicExpeditionServices.cs
 OffenseSiteArchetypeSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/Strategic/OffenseHexWorldSimulation.cs

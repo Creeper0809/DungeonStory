@@ -8,7 +8,9 @@ using UnityEngine.Scripting.APIUpdating;
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class TextileMaterialDefinitionSO : DataScriptableObject
 {
+    [ContentIdentity]
     [SerializeField] private string materialId = string.Empty;
+    [ContentReference(ContentReferenceKind.Item)]
     [SerializeField] private string physicalItemId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [TextArea, SerializeField] private string description = string.Empty;
@@ -21,6 +23,7 @@ public sealed class TextileMaterialDefinitionSO : DataScriptableObject
     [Min(1f), SerializeField] private float durability = 60f;
     [Min(0.01f), SerializeField] private float weightMultiplier = 1f;
     [Range(0.05f, 2f), SerializeField] private float dryingRate = 1f;
+    [ContentReference(ContentReferenceKind.Research)]
     [SerializeField] private string requiredResearchId = string.Empty;
 
     public string MaterialId => materialId?.Trim() ?? string.Empty;

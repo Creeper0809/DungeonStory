@@ -6,7 +6,7 @@ using UnityEngine;
     menuName = "DungeonStory/Population/Disease")]
 public sealed class DiseaseDefinitionSO : ScriptableObject
 {
-    public string stableId = string.Empty;
+    [ContentIdentity] public string stableId = string.Empty;
     public string displayName = string.Empty;
     public DiseaseTransmissionRoute routes;
     [Min(0)] public int incubationDays;

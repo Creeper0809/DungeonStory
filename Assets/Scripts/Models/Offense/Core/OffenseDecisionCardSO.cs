@@ -8,6 +8,7 @@ using UnityEngine.Scripting.APIUpdating;
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class OffenseDecisionCardSO : DataScriptableObject
 {
+    [ContentIdentity]
     public string cardId = "card";
     public OffenseDecisionStage stage;
     public string title = "사건";

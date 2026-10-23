@@ -6,7 +6,7 @@ using UnityEngine;
     menuName = "DungeonStory/World/Climate Zone")]
 public sealed class ClimateZoneDefinitionSO : ScriptableObject
 {
-    public string stableId = string.Empty;
+    [ContentIdentity] public string stableId = string.Empty;
     public string displayName = string.Empty;
     public float meanTemperatureC = 14f;
     [Min(0f)] public float annualAmplitudeC = 14f;

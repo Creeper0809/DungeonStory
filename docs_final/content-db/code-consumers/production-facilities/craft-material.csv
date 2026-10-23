@@ -22,6 +22,7 @@ CraftMaterialDefinitionSO,content-type,,type-reference,services:economy,content-
 CraftMaterialDefinitionSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V23EmbeddedWorkValueCalculator.cs
 CraftMaterialDefinitionSO,content-type,,type-reference,services:economy,runtime,structural-type-consumer,Assets/Scripts/Services/Economy/V27EmbeddedWorkValueCalculator.cs
 CraftMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputRestoreCapabilityValidatorDebugScenarios.cs
+CraftMaterialDefinitionSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureBuildingAbilities.cs
 CraftMaterialDefinitionSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ResearchRewardCatalogAdapter.cs
 CraftMaterialDefinitionSO,content-type,,type-reference; save-restore-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Buildings/UI/EquipmentCraftingPanelPresenter.cs
 CraftMaterialDefinitionSO,stable-id,material:blacksteel-ingot,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/GrandProjectRuntime.cs

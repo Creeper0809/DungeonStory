@@ -30,6 +30,7 @@ public static class AuthoredFactionContractBalanceRules
 public sealed class FactionContractDefinitionSO : V20AuthoredContentSO
 {
     [ContentReference(ContentReferenceKind.Faction)] public string factionId = string.Empty;
+    [ContentReference("SeasonalWorldEventDefinitionSO", "StableId")]
     public string seasonalEventId = string.Empty;
     public V20FactionContractKind kind;
     [Min(1)] public int deadlineDays = 10;

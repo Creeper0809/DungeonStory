@@ -26,6 +26,7 @@ public sealed class ServiceModeProcessContract
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class ServiceProcessSO : ScriptableObject
 {
+    [ContentIdentity]
     [SerializeField] private string processId = string.Empty;
     [SerializeField] private ServiceCategory serviceCategory;
     [SerializeField] private string ownerHubTag = string.Empty;

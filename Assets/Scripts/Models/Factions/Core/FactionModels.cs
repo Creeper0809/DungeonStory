@@ -126,6 +126,7 @@ public sealed class FactionRouteEconomicPolicyDescriptor
 [Serializable]
 public sealed class FactionCargoLine
 {
+    [ContentReference(ContentReferenceKind.Item)]
     public string itemId = string.Empty;
     public int amount = 1;
 

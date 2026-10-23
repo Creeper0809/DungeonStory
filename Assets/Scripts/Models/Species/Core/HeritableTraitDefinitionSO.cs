@@ -8,7 +8,7 @@ using UnityEngine;
     menuName = "DungeonStory/Population/Heritable Trait")]
 public sealed class HeritableTraitDefinitionSO : ScriptableObject
 {
-    public string traitId = string.Empty;
+    [ContentIdentity] public string traitId = string.Empty;
     public string displayName = string.Empty;
     [TextArea] public string description = string.Empty;
     [Min(1)] public int authoringRevision = 1;
@@ -16,6 +16,7 @@ public sealed class HeritableTraitDefinitionSO : ScriptableObject
     public HeritableTraitCategory category;
     public string incompatibilityGroup = string.Empty;
     [Range(-100, 100)] public int aptitudeModifier;
+    [ContentReference(ContentReferenceKind.Species)]
     public List<string> compatibleSpeciesTags = new();
     public List<HeritableTraitConsequence> consequences = new();
 

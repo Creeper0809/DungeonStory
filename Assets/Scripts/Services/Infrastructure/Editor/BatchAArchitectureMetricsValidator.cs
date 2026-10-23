@@ -303,13 +303,15 @@ public static class BatchAArchitectureMetricsValidator
         };
     }
 
-    private static string[] FindBrokenScriptableObjectReferences(
-        ScriptableObject root)
+    private static string[] FindBrokenScriptableObjectReferences(ScriptableObject root) =>
+        FindBrokenScriptableObjectReferences(new[] { root });
+
+    public static string[] FindBrokenScriptableObjectReferences(IEnumerable<ScriptableObject> roots)
     {
         Queue<ScriptableObject> pending = new();
         HashSet<int> visited = new();
         List<string> broken = new();
-        pending.Enqueue(root);
+        foreach (var root in roots) pending.Enqueue(root);
         while (pending.Count > 0)
         {
             ScriptableObject current = pending.Dequeue();
@@ -331,10 +333,9 @@ public static class BatchAArchitectureMetricsValidator
             }
 
             SerializedProperty property = serialized.GetIterator();
-            bool enterChildren = true;
-            while (property.NextVisible(enterChildren))
+            // Nested arrays/records also own object references. ObjectReference is a leaf.
+            while (property.Next(true))
             {
-                enterChildren = false;
                 if (property.propertyType != SerializedPropertyType.ObjectReference)
                 {
                     continue;

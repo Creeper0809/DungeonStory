@@ -74,6 +74,10 @@ public sealed class GameDomainContentCatalogSO : ScriptableObject
                 errors.Add(
                     $"Domain content reference '{definitions[index].name}' is duplicated.");
             }
+            else if (definitions[index] is GuestRequestDefinitionSO guest && guest.IsRetired)
+            {
+                errors.Add($"Retired guest request '{guest.StableId}' cannot be published: {guest.retirementReason}");
+            }
             else if (string.Equals(
                          definitions[index].GetType().Name,
                          "SubstanceDefinitionSO",
@@ -208,6 +212,7 @@ public sealed class AuthoredRunVariableRecord
 public sealed class AuthoredOwnerDoctrineRecord
 {
     public string id = string.Empty;
+    [ContentReference(ContentReferenceKind.Species)]
     public string speciesTag = string.Empty;
     public string title = string.Empty;
     public string benefit = string.Empty;
@@ -266,6 +271,7 @@ public sealed class AuthoredStockCategoryRecord
     public string shortName = string.Empty;
     public int sortOrder;
     public float seedWeight;
+    [ContentReference(ContentReferenceKind.Item)]
     public string deliveryItemId = string.Empty;
     public int dailyBaseAmount;
     public float dailyUnitCost;

@@ -8,7 +8,7 @@ using UnityEngine;
     menuName = "DungeonStory/Character/Starting History")]
 public sealed class CharacterStartingHistorySO : ScriptableObject
 {
-    public string historyId = string.Empty;
+    [ContentIdentity] public string historyId = string.Empty;
     public string displayName = string.Empty;
     [TextArea] public string description = string.Empty;
     [ContentReference(ContentReferenceKind.Proficiency)]

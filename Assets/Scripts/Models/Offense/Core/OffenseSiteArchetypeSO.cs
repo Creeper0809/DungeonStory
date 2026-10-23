@@ -8,6 +8,7 @@ using UnityEngine.Scripting.APIUpdating;
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class OffenseSiteArchetypeSO : DataScriptableObject
 {
+    [ContentIdentity]
     public string siteTypeId = "site";
     public string displayName = "거점";
     [TextArea] public string description;

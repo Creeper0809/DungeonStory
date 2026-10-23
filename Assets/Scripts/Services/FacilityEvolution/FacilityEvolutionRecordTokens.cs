@@ -28,6 +28,7 @@ public enum FacilityEvolutionRecordTokenGenerationTrigger
 [CreateAssetMenu(menuName = "DungeonStory/Facility Evolution/Record Token Definition", order = 1)]
 public class FacilityEvolutionRecordTokenDefinitionSO : DataScriptableObject
 {
+    [ContentIdentity]
     public string tokenId;
     public string displayName;
     [TextArea] public string description;

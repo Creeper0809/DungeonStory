@@ -57,6 +57,7 @@ public sealed class EnemyIndividualGenerationProfile
     [Range(0f, 100f)] public float maximumLoyalty = 75f;
     public bool recruitable = true;
     public string militaryTrainingId = string.Empty;
+    [ContentReference("CharacterBackgroundDefinitionSO", "StableId")]
     public List<string> allowedBackgroundIds = new();
 
     public bool IsValid => minimumGeneralTraits >= 0
@@ -77,13 +78,14 @@ public sealed class EnemyIndividualGenerationProfile
 [CreateAssetMenu(fileName = "EnemyArchetype", menuName = "DungeonStory/V20/Enemy Archetype")]
 public sealed class EnemyArchetypeDefinitionSO : ScriptableObject
 {
+    [ContentIdentity]
     public string stableId = string.Empty;
     public string displayName = string.Empty;
     [TextArea] public string description = string.Empty;
     [Min(1)] public int authoringRevision = 1;
     [TextArea] public string sourceNote = string.Empty;
     public string factionId = string.Empty;
-    [ContentReference(ContentReferenceKind.Species)]
+    [ContentReference(ContentReferenceKind.Species, Aliases = "Truth|Construct")]
     public string speciesTag = string.Empty;
     public EnemyCombatRole role;
     [Min(1f)] public float maxHealth = 80f;
@@ -111,12 +113,58 @@ public sealed class EnemyArchetypeDefinitionSO : ScriptableObject
             errors.Add($"'{stableId}' requires faction and species.");
         if (abilityIds == null || abilityIds.Count < 1 || abilityIds.Count > 3 || abilityIds.Any(string.IsNullOrWhiteSpace))
             errors.Add($"'{stableId}' requires one to three ability ids.");
+        else if (abilityIds.Count != abilityIds.Distinct(System.StringComparer.Ordinal).Count())
+            errors.Add($"'{stableId}' requires unique ability ids.");
         if (tacticalProfile == null || !tacticalProfile.IsValid)
             errors.Add($"'{stableId}' requires a valid tactical profile.");
         if (counterTags == null || counterTags.Count == 0 || counterTags.Any(string.IsNullOrWhiteSpace))
             errors.Add($"'{stableId}' requires counter tags.");
         if (individualGeneration == null || !individualGeneration.IsValid)
             errors.Add($"'{stableId}' requires a valid individual-generation profile.");
+        if (bossPhases == null)
+        {
+            errors.Add($"'{stableId}' requires a boss phase list.");
+        }
+        else
+        {
+            HashSet<string> ownedAbilityIds = new(
+                abilityIds?.Where(value => !string.IsNullOrWhiteSpace(value))
+                    ?? Enumerable.Empty<string>(),
+                System.StringComparer.Ordinal);
+            for (int index = 0; index < bossPhases.Count; index++)
+            {
+                EnemyBossPhaseRecord phase = bossPhases[index];
+                if (phase == null)
+                {
+                    errors.Add($"'{stableId}' boss phase {index} is missing.");
+                    continue;
+                }
+
+                List<string> phaseAbilityIds = phase.abilityIds;
+                if (phaseAbilityIds == null
+                    || phaseAbilityIds.Count == 0
+                    || phaseAbilityIds.Any(string.IsNullOrWhiteSpace))
+                {
+                    errors.Add($"'{stableId}' boss phase {index} requires ability ids.");
+                    continue;
+                }
+                if (phaseAbilityIds.Count
+                    != phaseAbilityIds.Distinct(System.StringComparer.Ordinal).Count())
+                {
+                    errors.Add($"'{stableId}' boss phase {index} requires unique ability ids.");
+                }
+                foreach (string abilityId in phaseAbilityIds
+                             .Distinct(System.StringComparer.Ordinal))
+                {
+                    if (!ownedAbilityIds.Contains(abilityId))
+                    {
+                        errors.Add(
+                            $"'{stableId}' boss phase {index} ability '{abilityId}' "
+                            + "is not owned by the archetype.");
+                    }
+                }
+            }
+        }
         return errors;
     }
 }

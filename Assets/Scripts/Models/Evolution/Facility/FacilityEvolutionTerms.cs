@@ -242,6 +242,7 @@ public struct FacilityEvolutionMetricRequirement
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public struct FacilityEvolutionTokenRequirement
 {
+    [ContentReference("FacilityEvolutionRecordTokenDefinitionSO", "EffectiveId")]
     public string key;
     [Min(1)] public int minCount;
 

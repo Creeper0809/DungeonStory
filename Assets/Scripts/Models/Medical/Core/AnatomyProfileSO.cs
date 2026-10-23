@@ -12,10 +12,10 @@ public sealed class AnatomyProfileSO : ScriptableObject
 {
     public const string ResourcePath = "SO/Medical/Anatomy";
 
-    [SerializeField] private string profileId = string.Empty;
+    [ContentIdentity, SerializeField] private string profileId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [SerializeField] private string anatomyFamily = "humanoid";
-    [ContentReference(ContentReferenceKind.Species), SerializeField]
+    [ContentReference(ContentReferenceKind.AnatomySpecies, Aliases = "Goblin|LegacyHumanoid", IgnoreCase = true), SerializeField]
     private List<string> speciesIds = new List<string>();
     [SerializeField] private List<AnatomyNodeDefinition> nodes =
         new List<AnatomyNodeDefinition>();
@@ -97,6 +97,7 @@ public enum AnatomyApparelAttachmentMode { RemoveWhenMissing, AddWhenPresent }
 [Serializable]
 public sealed class AnatomyApparelAttachment
 {
+    [ContentReference(ContentReferenceKind.AnatomyNode)]
     public string nodeId;
     public AnatomyAttachmentPoint points;
     public AnatomyApparelAttachmentMode mode;

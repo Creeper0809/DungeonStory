@@ -25,6 +25,7 @@ public sealed class ProductionRecipeSO : DataScriptableObject
 {
     public const string ResourcePath = "SO/Economy/Recipes";
 
+    [ContentIdentity]
     [SerializeField] private string recipeId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [TextArea, SerializeField] private string description = string.Empty;
@@ -51,6 +52,7 @@ public sealed class ProductionRecipeSO : DataScriptableObject
     [Min(0f), SerializeField] private float wastewaterPerCycle;
     [SerializeField] private ProcessWastewaterComposition wastewaterComposition;
     [SerializeField] private bool allowsManualWaterFallback;
+    [ContentReference(ContentReferenceKind.Item)]
     [SerializeField] private string spoilageItemId = string.Empty;
     [SerializeField] private ProductionMassExplanationAuthoring
         massExplanation;

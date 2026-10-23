@@ -6,6 +6,7 @@ public enum BattlefieldModifierKind { Terrain, Objective, Hazard }
 [CreateAssetMenu(fileName = "BattlefieldModifier", menuName = "DungeonStory/V20/Battlefield Modifier")]
 public sealed class BattlefieldModifierDefinitionSO : ScriptableObject
 {
+    [ContentIdentity]
     public string stableId = string.Empty;
     public string displayName = string.Empty;
     [TextArea] public string description = string.Empty;

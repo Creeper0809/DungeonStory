@@ -1,13 +1,13 @@
 {
   "generated_from": "Assets/**/*.asset",
   "row_count": 3477,
-  "relation_count": 6581,
+  "relation_count": 6579,
   "content_csv_count": 75,
   "relation_csv_count": 75,
   "field_csv_count": 75,
   "incoming_csv_count": 75,
   "code_consumer_csv_count": 75,
-  "code_consumer_row_count": 1394,
+  "code_consumer_row_count": 1434,
   "parse_error_count": 0,
   "excluded_asset_type_count": 67,
   "duplicate_typed_id_groups": 10,
@@ -112,9 +112,9 @@
     "legacy-authoring-review": 5
   },
   "relation_status_counts": {
-    "non-content-protocol": 1771,
+    "non-content-protocol": 1770,
     "resolved-content": 4686,
-    "unresolved-content-reference": 37,
+    "unresolved-content-reference": 36,
     "unresolved-runtime-domain-id": 87
   }
 }

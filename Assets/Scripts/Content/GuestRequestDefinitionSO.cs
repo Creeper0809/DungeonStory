@@ -8,6 +8,9 @@ public enum GuestRequestKind { LuxuryMeal, Medical, Trade, Spectacle, Refuge, Re
 [CreateAssetMenu(fileName = "GuestRequest", menuName = "DungeonStory/V20/Guest Request")]
 public sealed class GuestRequestDefinitionSO : V20AuthoredContentSO
 {
+    [TextArea, Tooltip("Retained compatibility asset; a reason prevents publication in the active catalog.")]
+    public string retirementReason = string.Empty;
+    public bool IsRetired => !string.IsNullOrWhiteSpace(retirementReason);
     public GuestRequestKind kind;
     public ExperienceEventRiskTier riskTier;
     [TextArea] public string riskReason = string.Empty;
@@ -20,6 +23,7 @@ public sealed class GuestRequestDefinitionSO : V20AuthoredContentSO
     public override IReadOnlyList<string> ValidateDefinition()
     {
         List<string> errors = base.ValidateDefinition().ToList();
+        if (IsRetired) errors.Add($"'{StableId}' is retired: {retirementReason}");
         errors.AddRange(SocietyEventRiskContract.Validate(
             StableId,
             riskTier,

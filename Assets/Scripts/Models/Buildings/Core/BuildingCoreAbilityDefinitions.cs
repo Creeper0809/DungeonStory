@@ -155,6 +155,7 @@ public sealed class BuildingEquipmentMaintenanceAbility : BuildingAbility
 {
     [Min(0.1f)] public float workSpeedMultiplier = 1f;
     [Min(1)] public int simultaneousRepairSlots = 1;
+    [ContentReference(ContentReferenceKind.Item)]
     [SerializeField] private string repairSupplyItemId = string.Empty;
     [Min(1), SerializeField] private int repairSupplyPerQuarterDurability = 1;
 

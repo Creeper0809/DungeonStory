@@ -383,6 +383,7 @@ public static class V27CiEvidenceBatch
         Application.logMessageReceived += Observe;
         try
         {
+            ContentReferenceIntegrityDebugScenarios.RunAll();
             Debug.Log(ScriptableObjectModularityDebugScenarios.RunCatalogExtensionsForBatch());
             V20ContentResolutionRecoveryDebugScenarios.RunAuthoredReferenceBoundaries();
             V20ContentResolutionRecoveryDebugScenarios.RunObserverBatch();

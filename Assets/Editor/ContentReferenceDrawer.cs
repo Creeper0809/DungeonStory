@@ -10,15 +10,27 @@ using UnityEngine;
 public sealed class ContentReferenceDrawer : PropertyDrawer
 {
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label) =>
-        ContentReferenceSelection.ResolveKind(((ContentReferenceAttribute)attribute).Kind, property) == null
+        ContentReferenceSelection.ResolveReference((ContentReferenceAttribute)attribute, property) == null
             ? EditorGUIUtility.singleLineHeight
             : EditorGUIUtility.singleLineHeight * 2 + 2;
 
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
         var reference = (ContentReferenceAttribute)attribute;
+        if (ContentReferenceSelection.HasMixedContext(reference, property))
+        {
+            EditorGUI.LabelField(position, label.text, "서로 다른 대상 종류 — 개별 선택 필요");
+            return;
+        }
+        if (property.name == "homeFactionId" && property.serializedObject.targetObject is CharacterSpeciesDefinitionSO species
+            && species.ownerSelectable)
+        {
+            EditorGUI.LabelField(position, label.text, "플레이어가 선택하는 세력 (기존 ID 보존)");
+            return;
+        }
         ContentReferenceKind requested = reference.Kind;
-        ContentReferenceKind? kind = ContentReferenceSelection.ResolveKind(requested, property);
+        var resolved = ContentReferenceSelection.ResolveReference(reference, property);
+        ContentReferenceKind? kind = resolved?.Kind;
         if (kind == null)
         {
             // Free-form effect labels and non-SO faction reaction keys are not references.
@@ -30,15 +42,16 @@ public sealed class ContentReferenceDrawer : PropertyDrawer
         EditorGUI.showMixedValue = property.hasMultipleDifferentValues;
         try
         {
-            var entries = ContentReferenceSelection.Entries(kind.Value);
+            var entries = ContentReferenceSelection.Entries(resolved, property);
+            var aliases = (reference.Aliases ?? string.Empty).Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
             string current = ContentReferenceSelection.ReadId(property, kind.Value, reference.EmptyNumericId);
-            var matches = entries.Where(value => value.Id == current).ToArray();
+            var matches = entries.Where(value => ContentReferenceCatalog.Matches(resolved, value.Id, current)).ToArray();
             bool contextual = requested == ContentReferenceKind.EffectTarget && kind == ContentReferenceKind.Faction;
             bool contextId = contextual && (current == "affected-faction" || current == "requesting-faction");
-            bool valid = current.Length == 0 || contextId || matches.Length == 1
+            bool valid = current.Length == 0 || contextId || aliases.Any(value => ContentReferenceCatalog.Matches(resolved, value, current)) || matches.Length == 1
                 || kind == ContentReferenceKind.AnatomyNode && matches.Length > 0;
             Rect line = new(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
-            if (kind == ContentReferenceKind.AnatomyNode || contextual)
+            if (kind == ContentReferenceKind.AnatomyNode || kind == ContentReferenceKind.ExpeditionChoice || contextual || aliases.Length > 0)
             {
                 var options = new List<(string Id, string Label)> { ("", "None") };
                 if (contextual)
@@ -46,8 +59,9 @@ public sealed class ContentReferenceDrawer : PropertyDrawer
                     options.Add(("affected-faction", "발생한 사건의 세력 (affected-faction)"));
                     options.Add(("requesting-faction", "요청한 세력 (requesting-faction)"));
                 }
+                options.AddRange(aliases.Select(value => (value, "호환/문맥 키: " + value)));
                 options.AddRange(entries.Select(value => (value.Id, value.Asset.name + " / " + value.Id)));
-                int selected = options.FindIndex(value => value.Id == current);
+                int selected = options.FindIndex(value => ContentReferenceCatalog.Matches(resolved, value.Id, current));
                 if (selected < 0)
                 {
                     options.Insert(0, (current, "끊어진 참조: " + current));
@@ -62,10 +76,10 @@ public sealed class ContentReferenceDrawer : PropertyDrawer
                 ScriptableObject selected = matches.Length == 1 ? matches[0].Asset : null;
                 EditorGUI.BeginChangeCheck();
                 var next = EditorGUI.ObjectField(line, label, selected,
-                    ContentReferenceSelection.AssetType(kind.Value), false) as ScriptableObject;
+                    ContentReferenceSelection.AssetType(resolved), false) as ScriptableObject;
                 if (EditorGUI.EndChangeCheck())
                 {
-                    if (!ContentReferenceSelection.TryAssign(property, kind.Value, next, out string error, reference.EmptyNumericId))
+                    if (!ContentReferenceSelection.TryAssign(property, resolved, next, out string error))
                         Debug.LogWarning(error, property.serializedObject.targetObject);
                 }
             }
@@ -83,16 +97,31 @@ public sealed class ContentReferenceDrawer : PropertyDrawer
     }
 }
 
+[InitializeOnLoad]
 public static class ContentReferenceSelection
 {
+    private static ContentReferenceCatalog catalog;
+    private static readonly Dictionary<string, Entry[]> entries = new(StringComparer.Ordinal);
+
+    static ContentReferenceSelection()
+    {
+        EditorApplication.projectChanged += Invalidate;
+        Undo.undoRedoPerformed += Invalidate;
+        Undo.postprocessModifications += modifications => { Invalidate(); return modifications; };
+    }
+
+    public static void Invalidate()
+    {
+        catalog = null;
+        entries.Clear();
+    }
+
     public readonly struct Entry
     {
         public readonly ScriptableObject Asset;
         public readonly string Id;
         public Entry(ScriptableObject asset, string id) { Asset = asset; Id = id; }
     }
-    private static readonly Dictionary<ContentReferenceKind, Entry[]> cache = new();
-    static ContentReferenceSelection() => EditorApplication.projectChanged += cache.Clear;
 
     public static ContentReferenceKind? ResolveKind(ContentReferenceKind kind, SerializedProperty property)
     {
@@ -116,85 +145,83 @@ public static class ContentReferenceSelection
         };
     }
 
-    public static Type AssetType(ContentReferenceKind kind) => kind switch
+    public static object Owner(SerializedProperty property)
     {
-        ContentReferenceKind.Item or ContentReferenceKind.Ammunition => typeof(ItemDefinitionSO),
-        ContentReferenceKind.Weapon => typeof(CombatWeaponSO),
-        ContentReferenceKind.Armor => typeof(CombatArmorSO),
-        ContentReferenceKind.Shield => typeof(CombatShieldSO),
-        ContentReferenceKind.Building or ContentReferenceKind.BuildingNumeric => typeof(BuildingSO),
-        ContentReferenceKind.Research or ContentReferenceKind.ResearchNumeric => typeof(ResearchProjectSO),
-        ContentReferenceKind.Recipe => typeof(ScriptableObject),
-        ContentReferenceKind.Species => typeof(CharacterSpeciesDefinitionSO),
-        ContentReferenceKind.AnatomyProfile or ContentReferenceKind.AnatomyNode => typeof(AnatomyProfileSO),
-        ContentReferenceKind.Proficiency => typeof(ProficiencyDefinitionSO),
-        ContentReferenceKind.Culture => typeof(SpeciesCultureDefinitionSO),
-        ContentReferenceKind.Practice => typeof(CulturalPracticeDefinitionSO),
-        ContentReferenceKind.Ambition => typeof(CharacterAmbitionDefinitionSO),
-        ContentReferenceKind.LifeEvent => typeof(LifeEventDefinitionSO),
-        ContentReferenceKind.Faction => typeof(DungeonFactionDefinitionSO),
-        ContentReferenceKind.FactionChapter => typeof(FactionChapterDefinitionSO),
-        ContentReferenceKind.FactionContract => typeof(FactionContractDefinitionSO),
-        ContentReferenceKind.EnemyAbility => typeof(EnemyAbilityDefinitionSO),
-        ContentReferenceKind.EnemyArchetype => typeof(EnemyArchetypeDefinitionSO),
-        ContentReferenceKind.BattlefieldModifier => typeof(BattlefieldModifierDefinitionSO),
-        ContentReferenceKind.Disease => typeof(DiseaseDefinitionSO),
-        _ => throw new ArgumentOutOfRangeException(nameof(kind))
-    };
-
-    public static IReadOnlyList<Entry> Entries(ContentReferenceKind kind)
-    {
-        if (cache.TryGetValue(kind, out Entry[] found)) return found;
-        var root = AssetDatabase.LoadAssetAtPath<GameContentCatalogSO>("Assets/Resources/SO/GameContentCatalog.asset");
-        if (root == null) return Array.Empty<Entry>();
-        var items = root.GetItemDefinitions<ItemDefinitionCatalogSO>();
-        IEnumerable<ScriptableObject> assets = root.DomainCatalogs.OfType<GameDomainContentCatalogSO>()
-            .SelectMany(value => value.Definitions).Concat(items != null
-                ? items.Definitions.Cast<ScriptableObject>() : Array.Empty<ScriptableObject>());
-        var result = new List<Entry>();
-        foreach (ScriptableObject asset in assets.Where(value => value != null).Distinct())
+        object current = property.serializedObject.targetObject;
+        string[] segments = property.propertyPath.Replace(".Array.data[", "[").Split('.');
+        foreach (string segment in segments.Take(segments.Length - 1))
         {
-            if (kind == ContentReferenceKind.Recipe)
-            {
-                if (asset is ProductionRecipeSO production) result.Add(new Entry(asset, production.RecipeId));
-                else if (asset is FacilitySynthesisRecipeSO synthesis) result.Add(new Entry(asset, synthesis.recipeId));
-                continue;
-            }
-            if (!AssetType(kind).IsInstanceOfType(asset)) continue;
-            if (kind == ContentReferenceKind.AnatomyNode)
-            {
-                foreach (var node in ((AnatomyProfileSO)asset).Nodes) result.Add(new Entry(asset, node.NodeId));
-                continue;
-            }
-            if (kind == ContentReferenceKind.Ammunition && asset is ItemDefinitionSO item
-                && !item.TryGetFeature<AmmunitionItemFeature>(out _)) continue;
-            if (kind == ContentReferenceKind.Building)
-            {
-                var building = (BuildingSO)asset;
-                result.Add(new Entry(asset, string.IsNullOrWhiteSpace(building.ContentDefinitionId)
-                    ? $"building:{building.id}" : building.ContentDefinitionId));
-                continue;
-            }
-            if (kind == ContentReferenceKind.BuildingNumeric && ((BuildingSO)asset).id < 0) continue;
-            string field = kind switch
-            {
-                ContentReferenceKind.Item or ContentReferenceKind.Ammunition => "itemId",
-                ContentReferenceKind.Weapon or ContentReferenceKind.Armor or ContentReferenceKind.Shield => "equipmentId",
-                ContentReferenceKind.BuildingNumeric or ContentReferenceKind.ResearchNumeric => "id",
-                ContentReferenceKind.Research => "projectId",
-                ContentReferenceKind.Species => "speciesTag",
-                ContentReferenceKind.AnatomyProfile => "profileId",
-                ContentReferenceKind.Faction => "factionId",
-                _ => "stableId"
-            };
-            using var serialized = new SerializedObject(asset);
-            var id = serialized.FindProperty(field);
-            if (id == null) throw new InvalidOperationException($"{asset.GetType().Name} has no serialized {field}.");
-            result.Add(new Entry(asset, id.propertyType == SerializedPropertyType.Integer
-                ? id.intValue.ToString(CultureInfo.InvariantCulture) : id.stringValue));
+            int bracket = segment.IndexOf('[');
+            string fieldName = bracket < 0 ? segment : segment.Substring(0, bracket);
+            var field = ContentReferenceCatalog.SerializedFields(current.GetType()).FirstOrDefault(value => value.Name == fieldName);
+            if (field == null) return null;
+            current = field.GetValue(current);
+            if (bracket >= 0 && current is System.Collections.IList list)
+                current = list[int.Parse(segment.Substring(bracket + 1, segment.Length - bracket - 2))];
+            if (current == null) return null;
         }
-        return cache[kind] = result.Where(value => !string.IsNullOrWhiteSpace(value.Id))
-            .OrderBy(value => value.Asset.name, StringComparer.Ordinal).ToArray();
+        return current;
+    }
+
+    public static ContentReferenceAttribute ResolveReference(ContentReferenceAttribute reference, SerializedProperty property)
+    {
+        if (reference.Kind == ContentReferenceKind.EffectTarget)
+        {
+            var kind = ResolveKind(reference.Kind, property);
+            return kind == null ? null : new ContentReferenceAttribute(kind.Value, reference.EmptyNumericId)
+                { Aliases = reference.Aliases, IgnoreCase = reference.IgnoreCase };
+        }
+        if (reference.Kind == ContentReferenceKind.NarrativeTarget)
+        {
+            var kind = ContextKind(property);
+            if (kind == null || kind.hasMultipleDifferentValues) return null;
+            var entry = new InGameNarrativeTextEntry();
+            entry.Configure((InGameNarrativeTextKind)kind.intValue, string.Empty, string.Empty);
+            return ContentReferenceCatalog.ResolveReference(reference, property.propertyPath, entry);
+        }
+        // A list element carries its containing field's metadata.
+        return ContentReferenceCatalog.ResolveReference(reference, property.propertyPath, Owner(property));
+    }
+
+    private static SerializedProperty ContextKind(SerializedProperty property)
+    {
+        int dot = property.propertyPath.LastIndexOf('.');
+        return property.serializedObject.FindProperty(property.propertyPath.Substring(0, dot + 1) + "kind");
+    }
+
+    public static bool HasMixedContext(ContentReferenceAttribute reference, SerializedProperty property) =>
+        reference.Kind is ContentReferenceKind.EffectTarget or ContentReferenceKind.NarrativeTarget
+            && ContextKind(property)?.hasMultipleDifferentValues == true;
+
+    public static IReadOnlyList<Entry> Entries(ContentReferenceAttribute reference, SerializedProperty property)
+    {
+        var all = Entries(reference);
+        if (reference.Kind == ContentReferenceKind.AnatomyNode
+            && property.serializedObject.targetObject is AnatomyProfileSO profile)
+            return profile.Nodes.Where(node => node != null)
+                .Select(node => new Entry(profile, node.NodeId)).ToArray();
+        if (reference.Kind == ContentReferenceKind.EnemyAbility && property.propertyPath.Contains("bossPhases.")
+            && property.serializedObject.targetObject is EnemyArchetypeDefinitionSO enemy)
+            return all.Where(value => enemy.abilityIds.Contains(value.Id)).ToArray();
+        return all;
+    }
+
+    public static Type AssetType(ContentReferenceKind kind) => ContentReferenceCatalog.AssetType(kind);
+    public static Type AssetType(ContentReferenceAttribute reference) => reference.Kind == ContentReferenceKind.Definition
+        ? ContentReferenceCatalog.ResolveType(reference.DefinitionTypeName) : AssetType(reference.Kind);
+
+    public static IReadOnlyList<Entry> Entries(ContentReferenceKind kind) => Entries(new ContentReferenceAttribute(kind));
+    public static IReadOnlyList<Entry> Entries(ContentReferenceAttribute reference)
+    {
+        string key = $"{reference.Kind}:{reference.DefinitionTypeName}:{reference.IdMemberName}";
+        if (entries.TryGetValue(key, out var found)) return found;
+        if (catalog == null)
+        {
+            var root = AssetDatabase.LoadAssetAtPath<GameContentCatalogSO>("Assets/Resources/SO/GameContentCatalog.asset");
+            if (root == null) return Array.Empty<Entry>();
+            catalog = ContentReferenceCatalog.FromRoot(root);
+        }
+        return entries[key] = catalog.Entries(reference).Select(value => new Entry(value.Asset, value.Id)).ToArray();
     }
 
     public static string ReadId(SerializedProperty property, ContentReferenceKind kind, int emptyNumericId = -1)
@@ -215,11 +242,17 @@ public static class ContentReferenceSelection
 
     public static bool TryAssign(SerializedProperty property, ContentReferenceKind kind,
         ScriptableObject asset, out string error, int emptyNumericId = -1)
+        => TryAssign(property, new ContentReferenceAttribute(kind, emptyNumericId), asset, out error);
+
+    public static bool TryAssign(SerializedProperty property, ContentReferenceAttribute reference,
+        ScriptableObject asset, out string error)
     {
+        ContentReferenceKind kind = reference.Kind;
+        int emptyNumericId = reference.EmptyNumericId;
         error = string.Empty;
         if (asset == null) { WriteId(property, kind, string.Empty, emptyNumericId); return true; }
-        Entry[] entries = Entries(kind).Where(value => value.Asset == asset).ToArray();
-        if (entries.Length != 1 || Entries(kind).Count(value => value.Id == entries[0].Id) != 1)
+        Entry[] entries = Entries(reference, property).Where(value => value.Asset == asset).ToArray();
+        if (entries.Length != 1 || Entries(reference).Count(value => ContentReferenceCatalog.Matches(reference, value.Id, entries[0].Id)) != 1)
         {
             error = $"'{asset.name}' is not a uniquely registered {kind} definition. Existing ID preserved.";
             return false;

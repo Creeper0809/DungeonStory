@@ -6,7 +6,8 @@ using UnityEngine;
     menuName = "DungeonStory/Population/Funeral Culture")]
 public sealed class FuneralCultureSO : ScriptableObject
 {
-    public string cultureId = string.Empty;
+    [ContentIdentity] public string cultureId = string.Empty;
+    [ContentReference(ContentReferenceKind.Species)]
     public string speciesTag = string.Empty;
     public string ritualName = string.Empty;
     public string requiredFacilityTag = string.Empty;

@@ -25,7 +25,7 @@ MonoBehaviour:
   speciesTag: Adventurer
   displayName: "\uC6D0\uC815\uC790"
   ownerSelectionPolicy: 1
-  homeFactionId: faction:adventurer
+  homeFactionId:
   anatomyProfileId: anatomy:humanoid
   needs:
     hungerRateMultiplier: 1

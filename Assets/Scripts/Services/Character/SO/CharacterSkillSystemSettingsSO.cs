@@ -475,7 +475,9 @@ public sealed class CharacterManagementSkillModuleRule : CharacterSkillModuleRul
 [Serializable]
 public sealed class CharacterTraitConflictRule
 {
+    [ContentReference("CharacterTraitSO", "id", emptyNumericId: 0)]
     public int firstTraitId;
+    [ContentReference("CharacterTraitSO", "id", emptyNumericId: 0)]
     public int secondTraitId;
 }
 

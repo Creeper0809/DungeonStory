@@ -10,6 +10,7 @@ using UnityEngine.Scripting.APIUpdating;
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class MaterialEconomicProfileSO : DataScriptableObject
 {
+    [ContentReference(ContentReferenceKind.Item)]
     [SerializeField] private string physicalItemId = string.Empty;
     [Min(0f), SerializeField] private float intrinsicValue = 1f;
     [Min(0f), SerializeField] private float handlingDifficulty = 0.5f;
