@@ -46,7 +46,8 @@ internal static class V20ContentEffectEvidence
             V20ContentEffectOwnerSnapshot before,
             V20ContentEffectOwnerSnapshot after,
             V20ContentEffectCommitReferences childCommits,
-            V21ContentEffectExecutionRegistry handlers = null)
+            V21ContentEffectExecutionRegistry handlers = null,
+            bool allowLegacyObservations = false)
     {
         handlers ??= V21ContentEffectExecutionRegistry.Default;
         if (before == null) throw new ArgumentNullException(nameof(before));
@@ -57,75 +58,115 @@ internal static class V20ContentEffectEvidence
                     resolution,
                     before,
                     after,
-                    childCommits, handlers)))
+                    childCommits, handlers, allowLegacyObservations)))
             .ToArray();
     }
 
     private static IReadOnlyList<V20EffectApplicationEvidence> CreateApplicationEvidence(
         V20ResolvedEventResult resolution, V20ContentEffectOwnerSnapshot before,
         V20ContentEffectOwnerSnapshot after, V20ContentEffectCommitReferences childCommits,
-        V21ContentEffectExecutionRegistry handlers)
+        V21ContentEffectExecutionRegistry handlers, bool allowLegacyObservations)
     {
         var result = new List<V20EffectApplicationEvidence>();
-        string[] participants = resolution.ParticipantCharacterIds
-            .Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.Ordinal).ToArray();
         for (int index = 0; index < resolution.Effects.Count; index++)
         {
             V20ContentEffect effect = resolution.Effects[index];
             if (effect == null || !effect.IsValid) continue;
             V20ContentEffectHandler handler = handlers.Require(effect.kind);
-            string target = string.IsNullOrWhiteSpace(effect.targetId) ? "content-resolution" : effect.targetId;
-            if (!handler.ParticipantTargeted && handler.ResolveTarget != null)
-                target = handler.ResolveTarget(new(before, resolution, effect, target, participants),
-                    new(after, resolution, effect, target, participants));
-            foreach (string actualTarget in handler.ParticipantTargeted ? participants : new[] { target })
-            {
-                var beforeContext = new V20ContentEffectObservation(before, resolution, effect, actualTarget, participants);
-                var afterContext = new V20ContentEffectObservation(after, resolution, effect, actualTarget, participants);
-                bool beforeExists = !handler.ParticipantTargeted || HasCharacterOwner(before, actualTarget)
-                    || handler.Stage == V20ContentEffectStage.Retirement && HasCareer(before, actualTarget);
-                bool afterExists = !handler.ParticipantTargeted || HasCharacterOwner(after, actualTarget)
-                    || handler.Stage == V20ContentEffectStage.Retirement && HasCareer(after, actualTarget);
-                string beforeValue = beforeExists ? handler.Observe(beforeContext) : "unavailable";
-                string afterValue = afterExists ? handler.Observe(afterContext) : "unavailable";
-                float amount = handler.AppliedAmount(beforeContext, afterContext);
-                bool changed = !string.Equals(beforeValue, afterValue, StringComparison.Ordinal);
-                V20EffectApplicationStatus status = changed ? V20EffectApplicationStatus.Applied : V20EffectApplicationStatus.NoOp;
-                if (handler.ParticipantTargeted)
-                    status = !beforeExists || handler.SkipUnchanged && !changed ? V20EffectApplicationStatus.Skipped
-                        : !Mathf.Approximately(amount, handler.ExpectedAmount(effect)) ? V20EffectApplicationStatus.Clamped : status;
-                result.Add(new V20EffectApplicationEvidence
-                {
-                    effectIndex = index, targetId = actualTarget, status = status,
-                    requestedAmount = effect.amount, appliedAmount = amount,
-                    beforeValue = beforeValue, afterValue = afterValue, semantic = handler.Semantic,
-                    childCommitId = childCommits?.ChildCommitId(effect.kind) ?? string.Empty
-                });
-            }
+            V20EffectApplicationEvidence[] frozen = resolution.Applications
+                .Where(value => value.effectIndex == index).Select(value => value.Clone()).ToArray();
+            if (frozen.Length > 0)
+                result.AddRange(frozen);
+            else if (handler.Stage is V20ContentEffectStage.Physical or V20ContentEffectStage.Retirement
+                || allowLegacyObservations)
+                result.AddRange(ObserveEffect(resolution, index, before, after, handler));
+            else if (!handler.ParticipantTargeted || resolution.ParticipantCharacterIds.Count > 0)
+                throw new InvalidOperationException("Missing execution-time effect observation: " + effect.kind);
         }
+        foreach (V20EffectApplicationEvidence application in result)
+            application.childCommitId = childCommits?.ChildCommitId(
+                resolution.Effects[application.effectIndex].kind) ?? string.Empty;
         return result.AsReadOnly();
+    }
+
+    internal static IReadOnlyList<V20ResolvedEventResult> CaptureCampaignApplications(
+        IReadOnlyList<V20ResolvedEventResult> resolutions,
+        List<(V20ContentEffect Effect, V20ContentEffectOwnerSnapshot Before, V20ContentEffectOwnerSnapshot After)> observations,
+        V21ContentEffectExecutionRegistry handlers)
+    {
+        return resolutions.Select(resolution =>
+        {
+            var applications = resolution.Applications.Select(value => value.Clone()).ToList();
+            for (int index = 0; index < resolution.Effects.Count; index++)
+            {
+                V20ContentEffect effect = resolution.Effects[index];
+                if (effect == null || !effect.IsValid) continue;
+                V20ContentEffectHandler handler = handlers.Require(effect.kind);
+                if (handler.Stage != V20ContentEffectStage.Campaign) continue;
+                int observed = observations.FindIndex(value => ReferenceEquals(value.Effect, effect));
+                if (observed < 0) throw new InvalidOperationException("Campaign effect was not observed at execution.");
+                var pair = observations[observed];
+                observations.RemoveAt(observed);
+                applications.AddRange(ObserveEffect(resolution, index, pair.Before, pair.After, handler));
+            }
+            return resolution.WithApplications(applications);
+        }).ToArray();
+    }
+
+    internal static IEnumerable<V20EffectApplicationEvidence> ObserveEffect(
+        V20ResolvedEventResult resolution, int index, V20ContentEffectOwnerSnapshot before,
+        V20ContentEffectOwnerSnapshot after, V20ContentEffectHandler handler)
+    {
+        V20ContentEffect effect = resolution.Effects[index];
+        string[] participants = resolution.ParticipantCharacterIds
+            .Where(value => !string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.Ordinal).ToArray();
+        string target = string.IsNullOrWhiteSpace(effect.targetId) ? "content-resolution" : effect.targetId;
+        if (!handler.ParticipantTargeted && handler.ResolveTarget != null)
+            target = handler.ResolveTarget(new(before, resolution, effect, target, participants),
+                new(after, resolution, effect, target, participants));
+        foreach (string actualTarget in handler.ParticipantTargeted ? participants : new[] { target })
+        {
+            var beforeContext = new V20ContentEffectObservation(before, resolution, effect, actualTarget, participants);
+            var afterContext = new V20ContentEffectObservation(after, resolution, effect, actualTarget, participants);
+            bool beforeExists = !handler.ParticipantTargeted || HasCharacterOwner(before, actualTarget)
+                || handler.Stage == V20ContentEffectStage.Retirement && HasCareer(before, actualTarget);
+            bool afterExists = !handler.ParticipantTargeted || HasCharacterOwner(after, actualTarget)
+                || handler.Stage == V20ContentEffectStage.Retirement && HasCareer(after, actualTarget);
+            string beforeValue = beforeExists ? handler.Observe(beforeContext) : "unavailable";
+            string afterValue = afterExists ? handler.Observe(afterContext) : "unavailable";
+            float amount = handler.AppliedAmount(beforeContext, afterContext);
+            bool changed = !string.Equals(beforeValue, afterValue, StringComparison.Ordinal);
+            V20EffectApplicationStatus status = changed ? V20EffectApplicationStatus.Applied : V20EffectApplicationStatus.NoOp;
+            if (handler.ParticipantTargeted)
+                status = !beforeExists || handler.SkipUnchanged && !changed ? V20EffectApplicationStatus.Skipped
+                    : !Mathf.Approximately(amount, handler.ExpectedAmount(effect)) ? V20EffectApplicationStatus.Clamped : status;
+            else if (changed && handler.Stage == V20ContentEffectStage.Campaign
+                && !Mathf.Approximately(amount, handler.ExpectedAmount(effect)))
+                status = V20EffectApplicationStatus.Clamped;
+            yield return new V20EffectApplicationEvidence
+            {
+                projectionVersion = 1, targetKindId = handler.TargetKind.Value,
+                targetRoleId = handler.TargetRole.Value, metricUnitId = handler.MetricUnit.Value,
+                effectIndex = index, targetId = actualTarget, status = status,
+                requestedAmount = effect.amount, appliedAmount = amount,
+                beforeValue = beforeValue, afterValue = afterValue, semantic = handler.Semantic,
+                childCommitId = string.Empty
+            };
+        }
     }
 
     internal static string ResolveFactionEffectTarget(V20ResolvedEventResult resolution,
         V20ContentEffect effect, V20ContentEffectOwnerSnapshot before, V20ContentEffectOwnerSnapshot after)
     {
-        string changed = (after.Factions?.factions ?? new List<FactionCampaignStateSaveData>())
-            .Where(candidate => candidate != null).Select(candidate => candidate.factionId)
-            .FirstOrDefault(id => !string.Equals(FactionValue(before, id, effect.kind),
-                FactionValue(after, id, effect.kind), StringComparison.Ordinal));
-        if (!string.IsNullOrWhiteSpace(changed)) return changed;
-        if (!string.IsNullOrWhiteSpace(effect.targetId)) return effect.targetId;
-        return string.IsNullOrWhiteSpace(resolution.ContextFactionId) ? "content-resolution" : resolution.ContextFactionId;
+        string target = effect.targetId?.Trim() ?? string.Empty;
+        return target is "requesting-faction" or "affected-faction"
+            ? resolution.ContextFactionId : target;
     }
 
     internal static string ResolveWorkDelayTarget(V20ResolvedEventResult resolution,
         V20ContentEffect effect, V20ContentEffectOwnerSnapshot before, V20ContentEffectOwnerSnapshot after)
     {
-        string changed = (after.Society?.workDelays ?? new List<V20WorkDelaySaveData>())
-            .Where(value => value != null).Select(value => value.scopeId)
-            .FirstOrDefault(scope => !string.Equals(WorkDelayValue(before, scope), WorkDelayValue(after, scope), StringComparison.Ordinal));
-        return !string.IsNullOrWhiteSpace(changed) ? changed
-            : string.IsNullOrWhiteSpace(effect.targetId) ? "content-resolution" : effect.targetId;
+        return string.IsNullOrWhiteSpace(effect.targetId) ? "global" : effect.targetId.Trim();
     }
 
     private static bool HasCharacterOwner(

@@ -9,16 +9,23 @@ internal sealed class V20CampaignEffectRuntime : IContentWorkDelayQuery, IConten
     private readonly DungeonRuntimeAggregateRootStore rootStore;
     private readonly V20SocietyEventStateStore societyState;
     internal readonly V20MilestoneRuntime milestoneRuntime;
+    private readonly V21ContentEffectExecutionRegistry handlers;
+    private readonly Func<V20ContentEffectOwnerSnapshot> capture;
+    internal Action<V20ContentEffect, V20ContentEffectOwnerSnapshot, V20ContentEffectOwnerSnapshot> Observer;
     private int evaluationAbsoluteDay = -1;
 
     internal V20CampaignEffectRuntime(
         DungeonRuntimeAggregateRootStore rootStore,
         V20SocietyEventStateStore societyState,
-        V20MilestoneRuntime milestoneRuntime)
+        V20MilestoneRuntime milestoneRuntime,
+        V21ContentEffectExecutionRegistry handlers,
+        Func<V20ContentEffectOwnerSnapshot> capture)
     {
         this.rootStore = rootStore;
         this.societyState = societyState;
         this.milestoneRuntime = milestoneRuntime;
+        this.handlers = handlers;
+        this.capture = capture;
     }
 
     private SocietyEventAggregateState Society => societyState.Current;
@@ -116,9 +123,19 @@ internal sealed class V20CampaignEffectRuntime : IContentWorkDelayQuery, IConten
         foreach (V20ContentEffect effect in source ?? Array.Empty<V20ContentEffect>())
         {
             if (effect == null || !effect.IsValid) continue;
-            V20ContentEffectHandler handler = V21ContentEffectExecutionRegistry.Default.Require(effect.kind);
+            V20ContentEffectHandler handler = handlers.Require(effect.kind);
             if (handler.Stage == V20ContentEffectStage.Campaign)
+            {
+                V20ContentEffectOwnerSnapshot before = Observer == null ? null : capture();
+                if (before != null) before.EffectAbsoluteDay = EffectAbsoluteDay;
                 handler.ApplyCampaign(this, effect, contextFactionId);
+                if (Observer != null)
+                {
+                    V20ContentEffectOwnerSnapshot after = capture();
+                    after.EffectAbsoluteDay = EffectAbsoluteDay;
+                    Observer(effect, before, after);
+                }
+            }
         }
     }
 

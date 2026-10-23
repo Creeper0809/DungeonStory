@@ -28,6 +28,7 @@ internal sealed class V20ContentEffectCommitReferences
     };
 
     internal string MoneyTransactionId { get; set; } = string.Empty;
+    internal IReadOnlyList<V20ResolvedEventResult> AppliedResolutions { get; set; }
     internal string ItemConsumptionOperationId { get; set; } = string.Empty;
     internal string ItemGrantBatchCommitId { get; set; } = string.Empty;
     internal string ItemConsumptionCommitId { get; set; } = string.Empty;

@@ -17,6 +17,7 @@ internal sealed class V20ContentEffectTransaction
     private readonly IIdempotentAtomicItemConsumptionService atomicItems;
     private readonly IPhysicalItemExactSourcePublicationService exactSources;
     private readonly V20ContentTypedEffectRuntime typedEffects;
+    private readonly V20ContentEffectRollback effectRollback;
 
     internal V20ContentEffectTransaction(
         IWorldDropZoneQuery dropZones,
@@ -26,7 +27,8 @@ internal sealed class V20ContentEffectTransaction
         IStockQuery stock,
         IIdempotentAtomicItemConsumptionService atomicItems,
         IPhysicalItemExactSourcePublicationService exactSources,
-        V20ContentTypedEffectRuntime typedEffects)
+        V20ContentTypedEffectRuntime typedEffects,
+        V20ContentEffectRollback effectRollback)
     {
         this.dropZones = dropZones;
         this.items = items;
@@ -36,6 +38,7 @@ internal sealed class V20ContentEffectTransaction
         this.atomicItems = atomicItems;
         this.exactSources = exactSources;
         this.typedEffects = typedEffects;
+        this.effectRollback = effectRollback;
     }
 
     internal V21ContentEffectExecutionRegistry Handlers => typedEffects.Handlers;
@@ -76,7 +79,8 @@ internal sealed class V20ContentEffectTransaction
             .Sum(value => Mathf.RoundToInt(value.amount));
         if (plan.MoneyDelta != 0
             && (money is not IIdempotentGameMoneyAccount
-                || money is not IGameMoneyTransactionQuery))
+                || money is not IGameMoneyTransactionQuery
+                || money is not IGameMoneyTransactionCheckpoint))
         {
             failure = new DomainFailure(
                 FailureCode.ServiceFeatureMissing,
@@ -163,10 +167,10 @@ internal sealed class V20ContentEffectTransaction
             && !exactSources.TryPrepare(
                 plan.CreateGrantPublicationPlan(),
                 out grantTransaction,
-                out _))
+                out string grantPrepareFailure))
         {
             plan.Release(reservations);
-            failure = new DomainFailure(FailureCode.ProductionOutputUnavailable);
+            failure = new DomainFailure(FailureCode.ProductionOutputUnavailable, grantPrepareFailure);
             return false;
         }
         if (hasPreparedGrants
@@ -234,14 +238,8 @@ internal sealed class V20ContentEffectTransaction
                 out consumptionReceipt,
                 out failure))
         {
-            if (plan.MoneyDelta > 0)
-            {
-                money.TrySpend(plan.MoneyDelta, transaction, out _);
-            }
-            else if (plan.MoneyDelta < 0)
-            {
-                money.Add(-plan.MoneyDelta, transaction);
-            }
+            // The caller restores balance and ledger from the same checkpoint.
+            // A compensating entry under this source would poison the next Once call.
             RollbackPreparedGrantsOrThrow(
                 grantTransaction,
                 hasPreparedGrants,
@@ -280,7 +278,8 @@ internal sealed class V20ContentEffectTransaction
         }
         childCommits.ItemGrantReceiptId = grantReceipt.RecoveryCommitId ?? string.Empty;
         recoveryPhase = V20ContentResolutionRecoveryPhase.ItemGrantsCommitted;
-        typedEffects.ApplyTypedDomainEffects(request.AbsoluteDay, resolutions);
+        childCommits.AppliedResolutions = typedEffects.ApplyTypedDomainEffects(
+            request.AbsoluteDay, resolutions, effectRollback.CaptureEffectOwners);
         recoveryPhase = V20ContentResolutionRecoveryPhase.TypedEffectsApplied;
         return true;
     }

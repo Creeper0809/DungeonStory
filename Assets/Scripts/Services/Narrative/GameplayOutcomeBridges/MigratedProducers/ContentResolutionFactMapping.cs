@@ -62,9 +62,21 @@ internal static class ContentResolutionFactMapping
                 resolution.ContextFactionId,
                 MigratedProducerOutcomeIds.FactionRole);
         }
-        foreach (V20ContentEffect effect in resolution.Effects
-                     .Where(value => value != null && value.IsValid))
+        for (int index = 0; index < resolution.Effects.Count; index++)
         {
+            V20ContentEffect effect = resolution.Effects[index];
+            if (effect == null || !effect.IsValid) continue;
+            V20EffectApplicationEvidence[] projections = resolution.Applications
+                .Where(value => value.effectIndex == index && value.projectionVersion == 1).ToArray();
+            if (projections.Length > 0)
+            {
+                foreach (V20EffectApplicationEvidence projection in projections)
+                    AddSubject(subjects, new GameplayEntityKindId(projection.targetKindId),
+                        projection.targetId, projection.targetId, new GameplayRoleId(projection.targetRoleId));
+                continue;
+            }
+            // Explicit compatibility for facts written before projectionVersion 1.
+            // New receipts carry their executing handler's frozen identity and unit.
             if (string.IsNullOrWhiteSpace(effect.targetId))
                 continue;
             GameplayEntityKindId kind = effect.kind switch
@@ -153,14 +165,15 @@ internal static class ContentResolutionFactMapping
                     "V20 transactional effect is missing its exact child commit identity: "
                     + effect.kind + ".");
             }
-            GameplayEntityId reference = ResolveEffectReference(
-                subjects,
-                resolution,
-                effect);
+            V20EffectApplicationEvidence projection = resolution.Applications.FirstOrDefault(
+                value => value.effectIndex == effectIndex && value.projectionVersion == 1);
+            GameplayEntityId reference = projection != null
+                ? new GameplayEntityId(new GameplayEntityKindId(projection.targetKindId), projection.targetId)
+                : ResolveEffectReference(subjects, resolution, effect);
             metrics.Add(new GameplayOutcomeMetric(
                 MigratedProducerOutcomeIds.AmountMetric,
-                effect.amount,
-                EffectUnit(effect.kind),
+                projection?.appliedAmount ?? effect.amount,
+                projection != null ? new GameplayMetricUnitId(projection.metricUnitId) : EffectUnit(effect.kind),
                 reference));
             facts.Add(new GameplayOutcomeFact(
                 MigratedProducerOutcomeIds.EffectFact,

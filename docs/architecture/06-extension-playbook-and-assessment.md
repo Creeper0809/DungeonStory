@@ -92,7 +92,7 @@ worker loop나 캐릭터 AI의 중앙 분기에 작업별 코드를 추가하는
 
 기존 상태 소유자를 사용하는 효과는 `V20ContentEffectHandlers.Create()`에 등록한다. 실행·대상 조건·rollback owner 요구·forward recovery·실제 before/after 관측·적용량·결과 단위를 한 등록으로 선언하므로 공통 dispatcher, preflight, 영수증의 효과 종류 분기를 추가하지 않는다. 기존 `V20ContentEffectKind`의 숫자와 저장 DTO는 보존하고 새 wire ID는 enum 끝에 추가한다. 중복·미등록·실행/관측 누락 등록은 거절한다. 기존 효과는 한 파일에 모으며 효과마다 클래스를 만들 필요는 없다.
 
-Typed 등록은 실제 owner 명령을 실행하고 Campaign 등록은 준비된 campaign state에 적용한다. 돈·물리 아이템·은퇴는 기존 전용 거래 단계를 사용한다. 새 물리 거래나 새로운 상태 소유자·저장 스키마는 stage 이름만 등록해서 구현할 수 없으며 별도 계약과 snapshot/저장 연결이 필요하다. 등록할 계약은 다음과 같다.
+Typed 등록은 실제 owner 명령을 실행하고 Campaign 등록은 준비된 campaign state에 적용한다. 효과별 실행 직전/직후 관측과 실제 대상·역할·결과 단위를 영수증에 고정한다. pending 복원은 이미 실행한 campaign 관측을 보존하고 typed 효과만 재시도한다. projectionVersion 0의 과거 사실만 기존 매핑으로 해석하며, 새 version 1 영수증은 현재 Default 등록으로 다시 해석하지 않는다. 소비 실패 전의 돈 변경은 잔액과 거래 원장 checkpoint를 함께 되돌린다. 돈·물리 아이템·은퇴는 기존 전용 거래 단계를 사용한다. 새 물리 거래나 새로운 상태 소유자·저장 스키마는 stage 이름만 등록해서 구현할 수 없으며 별도 계약과 snapshot/저장 연결이 필요하다. 등록할 계약은 다음과 같다.
 
 - 정의 검증
 - 대상과 권위 조회
@@ -198,7 +198,7 @@ flowchart LR
 
 ### 1. 사건 효과 실행을 handler registry로 분리
 
-현재 가장 분명한 확장성 병목이다. owner 설명 dictionary를 실제 실행 handler registry로 바꾸고, preflight와 commit 책임을 effect별로 이동해야 한다. `V20ContentResolutionService`는 handler들을 조율하는 pipeline에 집중한다.
+등록형 전환은 완료했다. campaign candidate와 typed 실행은 같은 불변 registry를 사용한다. 새 효과 작업에서는 handler의 실제 owner 명령·효과별 관측·실패/복원 계약이 연결되는지 확인한다. `V20ContentResolutionService`는 기존 거래 단계를 조율한다.
 
 ### 2. 대형 응용 서비스의 변경 이유를 분리
 

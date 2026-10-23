@@ -27,6 +27,12 @@ public interface IEconomyTransactionLedger
     EconomyTransactionLedgerSaveData Capture();
 }
 
+// Synchronous command rollback only. Save/restore continues to use the DTO owner.
+public interface IEconomyTransactionLedgerCheckpoint
+{
+    Action CaptureRollback();
+}
+
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class EconomyTransactionLedgerState
 {
@@ -156,6 +162,7 @@ public sealed class TreasuryEconomyAggregateStateStore
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class EconomyTransactionLedgerRuntime :
     IEconomyTransactionLedger,
+    IEconomyTransactionLedgerCheckpoint,
     IStartable
 {
     private const int MaxRecordCount = 256;
@@ -178,6 +185,12 @@ public sealed class EconomyTransactionLedgerRuntime :
     }
 
     public IReadOnlyList<EconomyTransactionRecord> Records => records;
+
+    public Action CaptureRollback()
+    {
+        EconomyTransactionLedgerSaveData checkpoint = Capture();
+        return () => PopulateRestoreState(stateStore.Current, checkpoint);
+    }
 
     public void Start()
     {

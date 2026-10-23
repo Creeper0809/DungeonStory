@@ -52,10 +52,10 @@ public static class V20ContentRecoveryEvidence
                         || !row.durableEquipmentContext.StartsWith(
                             "semantics=wear;",
                             StringComparison.Ordinal))
-                || row.outcomeEvidenceVersion is < 0 or > 1
+                || row.outcomeEvidenceVersion is < 0 or > 2
                 || row.stateBeforeFingerprint == null
                 || row.stateAfterFingerprint == null
-                || row.outcomeEvidenceVersion == 1
+                || row.outcomeEvidenceVersion >= 1
                     && (!IsSha256(row.stateBeforeFingerprint)
                         || row.phase
                                 >= V20ContentResolutionRecoveryPhase
@@ -77,6 +77,8 @@ public static class V20ContentRecoveryEvidence
                         application == null
                         || application.effectIndex < 0
                         || application.effectIndex >= value.effects.Count
+                        || !application.HasValidProjection
+                        || row.outcomeEvidenceVersion == 2 && application.projectionVersion != 1
                         || string.IsNullOrWhiteSpace(application.targetId)
                         || !Enum.IsDefined(
                             typeof(V20EffectApplicationStatus),

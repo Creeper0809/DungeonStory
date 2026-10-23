@@ -38,6 +38,7 @@ public sealed class ContentResolutionFact
             || source.resolution.applications.Any(value => value == null || value.effectIndex < 0
                 || value.effectIndex >= source.resolution.effects.Count
                 || !Enum.IsDefined(typeof(V20EffectApplicationStatus), value.status)
+                || !value.HasValidProjection
                 || !float.IsFinite(value.requestedAmount) || !float.IsFinite(value.appliedAmount)))
             throw new InvalidOperationException("content-resolution-fact-invalid");
         foreach (string value in new[] { source.moneyTransactionId, source.itemConsumptionOperationId,

@@ -31,6 +31,8 @@ internal sealed class V20ContentEffectOwnerSnapshot
     internal RunMilestoneWorldSaveData Milestones;
     internal DungeonPhysicalItemSaveData Items;
     internal int MoneyBalance;
+    internal Action RestoreMoney;
+    internal int EffectAbsoluteDay;
     internal CharacterCareerWorldSaveData Careers;
     internal DungeonCharacterBodyHealthSaveData BodyHealth;
     internal CharacterPsychosocialWorldSaveData Psychosocial;

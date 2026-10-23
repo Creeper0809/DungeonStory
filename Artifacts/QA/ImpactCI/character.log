@@ -1,46 +1,38 @@
-Unity Editor version:    6000.3.8f1 (1c7db571dde0)
-Branch:                  6000.3/staging
-Build type:              Release
-Batch mode:              YES
-System name:             Linux
-Distro version:          #111-Ubuntu SMP PREEMPT_DYNAMIC Sat Apr 11 23:16:02 UTC 2026
-Kernel version:          6.8.0-111-generic
-Architecture:            x86_64
-Available memory:        15719 MB
-Date:                    2026-10-23T06:38:15Z
 [Licensing::Module] Trying to connect to existing licensing client channel...
-Initialize udev device monitor.
-[Licensing::IpcConnector] Channel LicenseClient-vulpo doesn't exist
-[Licensing::Module] Successfully launched the LicensingClient (PId: 1130230)
+Built from '6000.3/staging' branch; Version is '6000.3.8f1 (1c7db571dde0) revision 1867189'; Using compiler version '194234433'; Build Type 'Release'
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo" at "2026-10-23T08:48:08.452031Z"
+OS: 'Windows 11  (10.0.22631) Core' Language: 'ko' Physical Memory: 32491 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+System  architecture: x64
+Process architecture: x64
+Date: 2026-10-23T08:48:08Z
 
 COMMAND LINE ARGUMENTS:
-/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Unity
+C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Unity.exe
 -batchmode
 -nographics
 -projectPath
-/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs
--logFile
-/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r82-impact-character/unity.log
--job-worker-count
-1
--gc-helper-count
-1
--refreshImportMode
-InProcess
+C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory
 -executeMethod
 V27CiEvidenceBatch.RunImpactCharacterContracts
+-logFile
+C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Artifacts\QA\r87ee-local-character\unity.log
 -quit
-Successfully changed project path to: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs
-/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs
+-refreshImportMode
+InProcess
+-job-worker-count
+1
+Successfully changed project path to: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory
+C:/Users/vulpo/.codex/worktrees/editmode-regressions/DungeonStory
 [UnityMemory] Configuration Parameters - Can be set up in boot.config
+    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+    "memorysetup-temp-allocator-size-audio-worker=65536"
+    "memorysetup-temp-allocator-size-gfx=262144"
     "memorysetup-allocator-temp-initial-block-size-main=262144"
     "memorysetup-allocator-temp-initial-block-size-worker=262144"
     "memorysetup-temp-allocator-size-background-worker=32768"
     "memorysetup-temp-allocator-size-job-worker=262144"
     "memorysetup-temp-allocator-size-preload-manager=33554432"
-    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
-    "memorysetup-temp-allocator-size-audio-worker=65536"
-    "memorysetup-temp-allocator-size-cloud-worker=32768"
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
     "memorysetup-temp-allocator-size-gi-baking-worker=262144"
@@ -66,59 +58,49 @@ Successfully changed project path to: /home/vulpo/codex-unity-validation-2026102
     "memorysetup-job-temp-allocator-block-size=2097152"
     "memorysetup-job-temp-allocator-block-size-background=1048576"
     "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
-    "memorysetup-temp-allocator-size-gfx=262144"
-Player connection [123164859755328]  Target information:
+    "memorysetup-temp-allocator-size-cloud-worker=32768"
+Player connection [235280]  Target information:
 
 [redacted player-connection network identifiers]
 
 [redacted player-connection network identifiers]
 
-[redacted player-connection network identifiers]
-
-[redacted player-connection network identifiers]
-
-[redacted player-connection network identifiers]
-
-[redacted player-connection network identifiers]
-
-[redacted player-connection network identifiers]
-
-[redacted player-connection network identifiers]
-
-[redacted player-connection network identifiers]
-
-[redacted player-connection network identifiers]
-
-Player connection [123164859755328] Host joined multi-casting on [225.0.0.222:54997]...
-Player connection [123164859755328] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Player connection [235280] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [235280] Host joined alternative multi-casting on [225.0.0.222:34997]...
 JobSystem: Creating JobQueue using job-worker-count value 1
 Input System module state changed to: Initialized.
 [Physics::Module] Initialized fallback backend.
 [Physics::Module] Id: 0xdecafbad
-[Package Manager] Connected to IPC stream "Upm-1130178" after 0.7 seconds.
+[Licensing::Client] Error: HandshakeResponse reported an error:
+	ResponseCode: 505
+	ResponseStatus: Unsupported protocol version '1.17.4'.
+[Licensing::Module] Error: Failed to handshake to channel: "LicenseClient-vulpo"
+[Licensing::IpcConnector] LicenseClient-vulpo channel disconnected successfully.
+[Licensing::IpcConnector] Channel LicenseClient-vulpo-6000.3.8 doesn't exist
+[Licensing::Module] Successfully launched the LicensingClient (PId: 164992)
+[Package Manager] Connected to IPC stream "Upm-229848" after 0.2 seconds.
 [Licensing::Module] Licensing is not yet initialized.
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo" at "2026-10-23T06:38:16.312328Z"
-[SignatureVerifier] Application signature verification not supported on this platform.
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-6000.3.8" at "2026-10-23T08:48:09.5555983Z"
 [Licensing::Client] Handshaking with LicensingClient:
   Version:                 1.17.4+4293ba1
-[redacted credential or identifier-related line]
-  Correlation Id:          a2839f908e8d2b19355f2953032b537d
-  External correlation Id: 2893751090495493144
-[redacted credential or identifier-related line]
-[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-vulpo" (connect: 0.86s, validation: 0.30s, handshake: 0.00s)
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-notifications" at "2026-10-23T06:38:16.609901Z"
-[Licensing::Module] Connected to LicensingClient (PId: 1130230, launch time: 0.00, total connection time: 1.16s)
-[redacted credential or identifier-related line]
+  Session Id:              [redacted]
+  Correlation Id:          [redacted]
+  External correlation Id: [redacted]
+  Machine Id:              [redacted]
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-vulpo-6000.3.8" (connect: 0.37s, validation: 0.04s, handshake: 0.74s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-6000.3.8-notifications" at "2026-10-23T08:48:10.3338722Z"
+[Licensing::Module] Connected to LicensingClient (PId: 164992, launch time: 0.00, total connection time: 1.15s)
+[Licensing::Module] Error: Access token is unavailable; failed to update
 [Licensing::Client] Successfully resolved entitlement details
 [Licensing::Module] License group:
   Id: 14569812099951-UnityPersXXXX
   Product: Unity Personal
   Type: Assigned
   Expiration: Unlimited
-[Licensing::Client] Successfully updated license, isAsync: True, time: 0.06
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.01
 [Licensing::Client] Successfully resolved entitlement details
-[Licensing::Module] Licensing Background thread has ended after 1.41s
-[Licensing::Module] Licensing is initialized (took 0.62s).
+[Licensing::Module] Licensing Background thread has ended after 1.90s
+[Licensing::Module] Licensing is initialized (took 1.11s).
 [Licensing::Client] Successfully resolved entitlement details
 Library Redirect Path: Library/
 [Physics::Module] Selected backend.
@@ -127,11 +109,11 @@ Library Redirect Path: Library/
 [Physics::Module] SDK Version: 4.1.2
 [Physics::Module] Integration Version: 1.0.0
 [Physics::Module] Threading Mode: Multi-Threaded
-Refreshing native plugins compatible for Editor in 5.24 ms, found 0 plugins.
+Refreshing native plugins compatible for Editor in 0.31 ms, found 0 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Initialize engine version: 6000.3.8f1 (1c7db571dde0)
-[Subsystems] Discovering subsystems at path /home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/Resources/UnitySubsystems
-[Subsystems] Discovering subsystems at path /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Assets
+[Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/Resources/UnitySubsystems
+[Subsystems] Discovering subsystems at path C:/Users/vulpo/.codex/worktrees/editmode-regressions/DungeonStory/Assets
 Forcing GfxDevice: Null
 GfxDevice: creating device client; kGfxThreadingModeNonThreaded
 NullGfxDevice:
@@ -139,194 +121,168 @@ NullGfxDevice:
     Renderer: Null Device
     Vendor:   Unity Technologies
 Initialize mono
-Mono path[0] = '/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/Managed'
-Mono path[1] = '/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-linux'
-Mono config path = '/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56178
+Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/Managed'
+Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
+Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/MonoBleedingEdge/etc'
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56848
 Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
 Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
 ImportWorker Server TCP listen port: 0
 AcceleratorClientConnectionCallback - disconnected - :0
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
-Register platform support module: /home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/PlaybackEngines/LinuxStandaloneSupport/UnityEditor.LinuxStandalone.Extensions.dll
-Registered in 0.006987 seconds.
-- Loaded All Assemblies, in  0.909 seconds
-Native extension for LinuxStandalone target not found
-Package Manager log level set to [2]
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
 [Licensing::Client] Successfully resolved entitlement details
-ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll
+[Licensing::Client] Successfully resolved entitlement details
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/PlaybackEngines/iOSSupport/UnityEditor.iOS.Extensions.dll
+Registered in 0.006291 seconds.
+- Loaded All Assemblies, in  0.316 seconds
+Native extension for iOS target not found
+Native extension for Android target not found
+Android Extension - Scanning For ADB Devices 2220 ms
+Native extension for WindowsStandalone target not found
+ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:False
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in  5.514 seconds
-Domain Reload Profiling: 6423ms
-	BeginReloadAssembly (283ms)
+- Finished resetting the current domain, in  2.514 seconds
+Domain Reload Profiling: 2828ms
+	BeginReloadAssembly (110ms)
 		ExecutionOrderSort (0ms)
 		DisableScriptedObjects (0ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (22ms)
-	RebuildCommonClasses (102ms)
-	RebuildNativeTypeToScriptingClass (21ms)
-	initialDomainReloadingComplete (124ms)
-	LoadAllAssembliesAndSetupDomain (377ms)
-		LoadAssemblies (264ms)
+		CreateAndSetChildDomain (5ms)
+	RebuildCommonClasses (29ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (41ms)
+	LoadAllAssembliesAndSetupDomain (125ms)
+		LoadAssemblies (104ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (368ms)
-			TypeCache.Refresh (366ms)
-				TypeCache.ScanAssembly (337ms)
+		AnalyzeDomain (122ms)
+			TypeCache.Refresh (121ms)
+				TypeCache.ScanAssembly (111ms)
 			BuildScriptInfoCaches (0ms)
-			ResolveRequiredComponents (1ms)
-	FinalizeReload (5515ms)
+			ResolveRequiredComponents (0ms)
+	FinalizeReload (2514ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (5402ms)
+		SetupLoadedEditorAssemblies (2489ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (93ms)
-			SetLoadedEditorAssemblies (12ms)
-			BeforeProcessingInitializeOnLoad (199ms)
-			ProcessInitializeOnLoadAttributes (376ms)
-			ProcessInitializeOnLoadMethodAttributes (4722ms)
+			InitializePlatformSupportModulesInManaged (2284ms)
+			SetLoadedEditorAssemblies (3ms)
+			BeforeProcessingInitializeOnLoad (55ms)
+			ProcessInitializeOnLoadAttributes (96ms)
+			ProcessInitializeOnLoadMethodAttributes (51ms)
 			AfterProcessingInitializeOnLoad (0ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
 		AwakeInstancesAfterBackupRestoration (0ms)
 [Licensing::Client] Successfully resolved entitlement details
 Application.AssetDatabase Initial Refresh Start
+Package Manager log level set to [2]
 [Package Manager] Restoring resolved packages state from cache
+[Licensing::Client] Successfully resolved entitlement details
 [Package Manager] Registered 78 packages:
   Packages from [https://packages.unity.com]:
-    com.unity.ai.assistant@2.13.0-pre.2 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.ai.assistant@6fee27370e6a)
-    com.unity.cinemachine@2.10.5 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.cinemachine@f26b20ca78a2)
-    com.unity.ide.rider@3.0.39 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.ide.rider@4504839d03f7)
-    com.unity.ide.visualstudio@2.0.26 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.ide.visualstudio@a99d56dec63f)
-    com.unity.inputsystem@1.18.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.inputsystem@57d0e36f6123)
-    com.unity.localization@1.5.9 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.localization@62db12c43c5c)
-    com.unity.sdk.linux-x86_64@1.1.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.sdk.linux-x86_64@6d12be270055)
-    com.unity.timeline@1.8.10 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.timeline@7f8b2fb101b6)
-    com.unity.toolchain.linux-x86_64-linux@1.1.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.toolchain.linux-x86_64-linux@d0308bf9d559)
-    com.unity.visualscripting@1.9.9 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.visualscripting@191c0d7e3b69)
-    com.unity.pipeline@0.6.0-exp.1 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.pipeline@9bb4172c603c)
-    com.unity.nuget.mono-cecil@1.11.6 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.nuget.mono-cecil@ecb9724e46ff)
-    com.unity.nuget.newtonsoft-json@3.2.2 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.nuget.newtonsoft-json@4dfd81071c64)
-    com.unity.sysroot.base@1.1.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.sysroot.base@3559fe1aa613)
-    com.unity.addressables@2.8.1 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.addressables@2dc42e61a5f5)
-    com.unity.2d.animation@13.0.4 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.2d.animation@7396d8477ca9)
-    com.unity.2d.pixel-perfect@5.1.1 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.2d.pixel-perfect@09d99455b901)
-    com.unity.2d.psdimporter@12.0.1 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.2d.psdimporter@9abe0f7cac7e)
-    com.unity.2d.spriteshape@13.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.2d.spriteshape@0738bab11647)
-    com.unity.2d.tilemap.extras@6.0.1 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.2d.tilemap.extras@3dde84bf3867)
-    com.unity.2d.aseprite@3.0.1 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.2d.aseprite@809e3a168ff7)
-    com.unity.2d.tooling@1.0.4 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.2d.tooling@04422e023209)
-    com.unity.mathematics@1.3.3 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.mathematics@19a9377c4ffa)
-    com.unity.searcher@4.9.4 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.searcher@d45a78918735)
-    com.unity.burst@1.8.27 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.burst@973857688024)
-    com.unity.collections@2.6.2 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.collections@aea9d3bd5e19)
-    com.unity.profiling.core@1.0.3 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.profiling.core@8a49f7027d06)
-    com.unity.scriptablebuildpipeline@2.5.2 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.scriptablebuildpipeline@418957ab75a6)
-    com.unity.2d.common@12.0.4 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.2d.common@3e42aeccb30d)
-    com.unity.test-framework.performance@3.2.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.test-framework.performance@0840f58e4562)
+    com.unity.ai.assistant@2.13.0-pre.2 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.ai.assistant@6fee27370e6a)
+    com.unity.cinemachine@2.10.5 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.cinemachine@f26b20ca78a2)
+    com.unity.ide.rider@3.0.39 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.ide.rider@4504839d03f7)
+    com.unity.ide.visualstudio@2.0.26 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.ide.visualstudio@a99d56dec63f)
+    com.unity.inputsystem@1.18.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.inputsystem@57d0e36f6123)
+    com.unity.localization@1.5.9 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.localization@62db12c43c5c)
+    com.unity.sdk.linux-x86_64@1.1.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.sdk.linux-x86_64@6d12be270055)
+    com.unity.timeline@1.8.10 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.timeline@7f8b2fb101b6)
+    com.unity.toolchain.linux-x86_64-linux@1.1.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.toolchain.linux-x86_64-linux@d0308bf9d559)
+    com.unity.visualscripting@1.9.9 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.visualscripting@191c0d7e3b69)
+    com.unity.pipeline@0.6.0-exp.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.pipeline@9bb4172c603c)
+    com.unity.nuget.mono-cecil@1.11.6 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff)
+    com.unity.nuget.newtonsoft-json@3.2.2 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.nuget.newtonsoft-json@4dfd81071c64)
+    com.unity.sysroot.base@1.1.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.sysroot.base@3559fe1aa613)
+    com.unity.addressables@2.8.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.addressables@2dc42e61a5f5)
+    com.unity.2d.animation@13.0.4 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.animation@7396d8477ca9)
+    com.unity.2d.pixel-perfect@5.1.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.pixel-perfect@09d99455b901)
+    com.unity.2d.psdimporter@12.0.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.psdimporter@9abe0f7cac7e)
+    com.unity.2d.spriteshape@13.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.spriteshape@0738bab11647)
+    com.unity.2d.tilemap.extras@6.0.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.tilemap.extras@3dde84bf3867)
+    com.unity.2d.aseprite@3.0.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.aseprite@809e3a168ff7)
+    com.unity.2d.tooling@1.0.4 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.tooling@04422e023209)
+    com.unity.mathematics@1.3.3 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.mathematics@19a9377c4ffa)
+    com.unity.searcher@4.9.4 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.searcher@d45a78918735)
+    com.unity.burst@1.8.27 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.burst@973857688024)
+    com.unity.collections@2.6.2 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.collections@aea9d3bd5e19)
+    com.unity.profiling.core@1.0.3 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.profiling.core@8a49f7027d06)
+    com.unity.scriptablebuildpipeline@2.5.2 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.scriptablebuildpipeline@418957ab75a6)
+    com.unity.2d.common@12.0.4 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.common@3e42aeccb30d)
+    com.unity.test-framework.performance@3.2.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.test-framework.performance@0840f58e4562)
   Built-in packages:
-    com.unity.feature.2d@2.0.2 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.feature.2d@0309d34ea7f2)
-    com.unity.multiplayer.center@1.0.1 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.multiplayer.center@53ad5a5c2bfb)
-    com.unity.render-pipelines.universal@17.3.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.render-pipelines.universal@d3e85a370c01)
-    com.unity.test-framework@1.6.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.test-framework@353f8d76a670)
-    com.unity.ugui@2.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.ugui@1c24c7141828)
-    com.unity.modules.accessibility@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.accessibility)
-    com.unity.modules.adaptiveperformance@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.adaptiveperformance)
-    com.unity.modules.ai@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.ai)
-    com.unity.modules.androidjni@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.androidjni)
-    com.unity.modules.animation@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.animation)
-    com.unity.modules.assetbundle@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.assetbundle)
-    com.unity.modules.audio@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.audio)
-    com.unity.modules.cloth@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.cloth)
-    com.unity.modules.director@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.director)
-    com.unity.modules.imageconversion@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.imageconversion)
-    com.unity.modules.imgui@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.imgui)
-    com.unity.modules.jsonserialize@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.jsonserialize)
-    com.unity.modules.particlesystem@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.particlesystem)
-    com.unity.modules.physics@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.physics)
-    com.unity.modules.physics2d@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.physics2d)
-    com.unity.modules.screencapture@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.screencapture)
-    com.unity.modules.terrain@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.terrain)
-    com.unity.modules.terrainphysics@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.terrainphysics)
-    com.unity.modules.tilemap@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.tilemap)
-    com.unity.modules.ui@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.ui)
-    com.unity.modules.uielements@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.uielements)
-    com.unity.modules.umbra@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.umbra)
-    com.unity.modules.unityanalytics@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.unityanalytics)
-    com.unity.modules.unitywebrequest@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.unitywebrequest)
-    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.unitywebrequestassetbundle)
-    com.unity.modules.unitywebrequestaudio@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.unitywebrequestaudio)
-    com.unity.modules.unitywebrequesttexture@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.unitywebrequesttexture)
-    com.unity.modules.unitywebrequestwww@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.unitywebrequestwww)
-    com.unity.modules.vectorgraphics@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.vectorgraphics)
-    com.unity.modules.vehicles@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.vehicles)
-    com.unity.modules.video@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.video)
-    com.unity.modules.vr@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.vr)
-    com.unity.modules.wind@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.wind)
-    com.unity.modules.xr@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.xr)
-    com.unity.modules.subsystems@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.subsystems)
-    com.unity.modules.hierarchycore@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.modules.hierarchycore)
-    com.unity.ext.nunit@2.0.5 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.ext.nunit@ec2d0043d6fc)
-    com.unity.render-pipelines.core@17.3.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.render-pipelines.core@27dd7aff58bb)
-    com.unity.shadergraph@17.3.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.shadergraph@36acaebe35c0)
-    com.unity.render-pipelines.universal-config@17.0.3 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.render-pipelines.universal-config@dbe3fd082d8f)
-    com.unity.2d.sprite@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.2d.sprite@3b0da6d457e9)
-    com.unity.2d.tilemap@1.0.0 (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Library/PackageCache/com.unity.2d.tilemap@58a846f16329)
+    com.unity.feature.2d@2.0.2 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.feature.2d@0309d34ea7f2)
+    com.unity.multiplayer.center@1.0.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.multiplayer.center@f01f4ba8d00a)
+    com.unity.render-pipelines.universal@17.3.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.render-pipelines.universal@a6e30d1f59f5)
+    com.unity.test-framework@1.6.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.test-framework@0b7a23ab2e1d)
+    com.unity.ugui@2.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.ugui@bb329a87fcdc)
+    com.unity.modules.accessibility@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.accessibility)
+    com.unity.modules.adaptiveperformance@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.adaptiveperformance)
+    com.unity.modules.ai@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.ai)
+    com.unity.modules.androidjni@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.audio)
+    com.unity.modules.cloth@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.cloth)
+    com.unity.modules.director@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.director)
+    com.unity.modules.imageconversion@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.physics)
+    com.unity.modules.physics2d@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.physics2d)
+    com.unity.modules.screencapture@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.screencapture)
+    com.unity.modules.terrain@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.terrain)
+    com.unity.modules.terrainphysics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.terrainphysics)
+    com.unity.modules.tilemap@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.tilemap)
+    com.unity.modules.ui@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.uielements)
+    com.unity.modules.umbra@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.umbra)
+    com.unity.modules.unityanalytics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unityanalytics)
+    com.unity.modules.unitywebrequest@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestassetbundle)
+    com.unity.modules.unitywebrequestaudio@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestaudio)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.unitywebrequestwww@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestwww)
+    com.unity.modules.vectorgraphics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.vectorgraphics)
+    com.unity.modules.vehicles@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.vehicles)
+    com.unity.modules.video@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.video)
+    com.unity.modules.vr@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.vr)
+    com.unity.modules.wind@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.wind)
+    com.unity.modules.xr@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.hierarchycore)
+    com.unity.ext.nunit@2.0.5 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.ext.nunit@d8c07649098d)
+    com.unity.render-pipelines.core@17.3.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.render-pipelines.core@d6dfd1e235d5)
+    com.unity.shadergraph@17.3.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.shadergraph@d44b48771ebb)
+    com.unity.render-pipelines.universal-config@17.0.3 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.render-pipelines.universal-config@8dc1aab4af1d)
+    com.unity.2d.sprite@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.sprite@08e067ec1643)
+    com.unity.2d.tilemap@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.tilemap@2394479dc113)
   Embedded packages:
-    jp.hadashikick.vcontainer@file:/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Packages/jp.hadashikick.vcontainer (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Packages/jp.hadashikick.vcontainer)
+    jp.hadashikick.vcontainer@file:C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Packages\jp.hadashikick.vcontainer (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Packages\jp.hadashikick.vcontainer)
 [Subsystems] No new subsystems found in resolved package list.
 [Package Manager] Done registering packages in 0.01 seconds
-[redacted credential or identifier-related line]
-      Now listening on: http://unix:/tmp/ilpp.sock-760793a74df69600e387fca7b7e4ed0f
-[40m[32minfo[39m[22m[49m: Microsoft.Hosting.Lifetime[0]
-      Application started. Press Ctrl+C to shut down.
-[40m[32minfo[39m[22m[49m: Microsoft.Hosting.Lifetime[0]
-      Hosting environment: Production
-[40m[32minfo[39m[22m[49m: Microsoft.Hosting.Lifetime[0]
-      Content root path: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/
-[40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[1]
-      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping application/grpc -
-[40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
-      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/Ping'
-[40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
-      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/Ping'
-[40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[2]
-      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping application/grpc - - 200 - application/grpc 105.5462ms
-Refreshing native plugins compatible for Editor in 2.50 ms, found 1 plugins.
-Starting: /home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/Tools/BuildPipeline/bee_backend --ipc --defer-dag-verification --dagfile="Library/Bee/2400b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
-WorkingDir: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs
-[40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[1]
-      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/ConfigurePostProcessors application/grpc -
-[40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
-      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/ConfigurePostProcessors'
-[40m[1m[33mwarn[39m[22m[49m: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
-      Assembly system.runtime.interopservices.windowsruntime has duplicate hint path. Ignoring "/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/NetStandard/Extensions/2.0.0/System.Runtime.InteropServices.WindowsRuntime.dll" in favor of "/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/UnityReferenceAssemblies/unity-4.8-api/Facades/System.Runtime.InteropServices.WindowsRuntime.dll"
-[40m[1m[33mwarn[39m[22m[49m: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
-      Assembly system.componentmodel.composition has duplicate hint path. Ignoring "/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/NetStandard/compat/2.1.0/shims/netfx/System.ComponentModel.Composition.dll" in favor of "/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/UnityReferenceAssemblies/unity-4.8-api/System.ComponentModel.Composition.dll"
-[40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
-[redacted credential or identifier-related line]
-[40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
-[redacted credential or identifier-related line]
-[40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
-      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/ConfigurePostProcessors'
-[40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[2]
-      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/ConfigurePostProcessors application/grpc - - 200 - application/grpc 73.4138ms
+Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected, using 'Packages/com.unity.collections/Unity.Collections.Tests/System.Runtime.CompilerServices.Unsafe/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a' and ignoring 'Packages/com.unity.pipeline/Runtime/Plugins/CodeAnalysis/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.Refreshing native plugins compatible for Editor in 1.58 ms, found 2 plugins.
+Starting: C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Data\Tools\BuildPipeline\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
+WorkingDir: C:/Users/vulpo/.codex/worktrees/editmode-regressions/DungeonStory
 DisplayProgressbar: Compiling Scripts
-ExitCode: 0 Duration: 0s869ms
-[1456/2018  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
-*** Tundra build success (0.81 seconds), 1 items updated, 2018 evaluated
-AssetDatabase: script compilation time: 2.278099s
-Total cache size 98222776
-Total cache size after purge 98222776, took 00:00:00.1292754
+ExitCode: 0 Duration: 1s45ms
+[ 465/2213  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
+*** Tundra build success (1.02 seconds), 1 items updated, 2213 evaluated
+AssetDatabase: script compilation time: 1.424451s
 Begin MonoManager ReloadAssembly
-[redacted credential or identifier-related line]
-- Loaded All Assemblies, in  3.408 seconds
-Refreshing native plugins compatible for Editor in 2.07 ms, found 1 plugins.
-Native extension for LinuxStandalone target not found
-[redacted credential or identifier-related line]
+Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected, using 'Packages/com.unity.collections/Unity.Collections.Tests/System.Runtime.CompilerServices.Unsafe/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a' and ignoring 'Packages/com.unity.pipeline/Runtime/Plugins/CodeAnalysis/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.- Loaded All Assemblies, in  1.341 seconds
+Refreshing native plugins compatible for Editor in 1.16 ms, found 2 plugins.
+Native extension for iOS target not found
+Native extension for Android target not found
+Native extension for WindowsStandalone target not found
+Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected, using 'Packages/com.unity.collections/Unity.Collections.Tests/System.Runtime.CompilerServices.Unsafe/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a' and ignoring 'Packages/com.unity.pipeline/Runtime/Plugins/CodeAnalysis/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.V27_HEADLESS_EDITOR_RELAY_AUTOSTART=SUPPRESSED; package bootstrap API; actual Assistant use retains lazy initialization
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
-UnityEngine.StackTraceUtility:ExtractStackTrace () (at /home/bokken/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:35)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
 UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
 UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
@@ -334,146 +290,98 @@ UnityEngine.Debug:Log (object)
 V27CiEvidenceBatch:SuppressUnusedHeadlessEditorRelay () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:52)
 V27CiEvidenceBatch:.cctor () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:27)
 System.Runtime.CompilerServices.RuntimeHelpers:RunClassConstructor (System.RuntimeTypeHandle)
-UnityEditor.EditorAssemblies:ProcessInitializeOnLoadAttributes (System.Type[]) (at /home/bokken/build/output/unity/unity/Editor/Mono/EditorAssemblies.cs:124)
+UnityEditor.EditorAssemblies:ProcessInitializeOnLoadAttributes (System.Type[])
 
 (Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 52)
 
-[redacted credential or identifier-related line]
-Start HTTP server: port:7800
+Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected, using 'Packages/com.unity.collections/Unity.Collections.Tests/System.Runtime.CompilerServices.Unsafe/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a' and ignoring 'Packages/com.unity.pipeline/Runtime/Plugins/CodeAnalysis/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.Start HTTP server: port:7800
 [Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
 [Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
 [Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
 ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in 12.051 seconds
-Domain Reload Profiling: 15450ms
-	BeginReloadAssembly (255ms)
+- Finished resetting the current domain, in  5.562 seconds
+Domain Reload Profiling: 6894ms
+	BeginReloadAssembly (252ms)
 		ExecutionOrderSort (0ms)
-		DisableScriptedObjects (13ms)
+		DisableScriptedObjects (8ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (73ms)
-	RebuildCommonClasses (105ms)
-	RebuildNativeTypeToScriptingClass (24ms)
-	initialDomainReloadingComplete (128ms)
-	LoadAllAssembliesAndSetupDomain (2885ms)
-		LoadAssemblies (1322ms)
+		CreateAndSetChildDomain (144ms)
+	RebuildCommonClasses (26ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (43ms)
+	LoadAllAssembliesAndSetupDomain (1001ms)
+		LoadAssemblies (531ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (1687ms)
-			TypeCache.Refresh (1311ms)
-				TypeCache.ScanAssembly (1268ms)
-			BuildScriptInfoCaches (328ms)
-			ResolveRequiredComponents (36ms)
-	FinalizeReload (12053ms)
+		AnalyzeDomain (548ms)
+			TypeCache.Refresh (434ms)
+				TypeCache.ScanAssembly (413ms)
+			BuildScriptInfoCaches (99ms)
+			ResolveRequiredComponents (10ms)
+	FinalizeReload (5562ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (11299ms)
+		SetupLoadedEditorAssemblies (5426ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (46ms)
-			SetLoadedEditorAssemblies (17ms)
-			BeforeProcessingInitializeOnLoad (612ms)
-			ProcessInitializeOnLoadAttributes (9524ms)
-			ProcessInitializeOnLoadMethodAttributes (1080ms)
-			AfterProcessingInitializeOnLoad (15ms)
-			EditorAssembliesLoaded (5ms)
+			InitializePlatformSupportModulesInManaged (28ms)
+			SetLoadedEditorAssemblies (6ms)
+			BeforeProcessingInitializeOnLoad (181ms)
+			ProcessInitializeOnLoadAttributes (4787ms)
+			ProcessInitializeOnLoadMethodAttributes (417ms)
+			AfterProcessingInitializeOnLoad (6ms)
+			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (70ms)
-Asset Pipeline Refresh (id=2152137869376e933a5873a0f1df3377): Total: 22.422 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+		AwakeInstancesAfterBackupRestoration (8ms)
+Asset Pipeline Refresh (id=02b9f492ae89fbb4d87811d0d7cc4b13): Total: 9.269 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
 	Summary:
 		Imports: total=0 (actual=0, local cache=0, cache server=0)
-		Asset DB Process Time: managed=0 ms, native=16440 ms
-		Asset DB Callback time: managed=99 ms, native=20 ms
-		Scripting: domain reloads=1, domain reload time=3409 ms, compile time=2281 ms, other=169 ms
+		Asset DB Process Time: managed=0 ms, native=6353 ms
+		Asset DB Callback time: managed=37 ms, native=17 ms
+		Scripting: domain reloads=1, domain reload time=1341 ms, compile time=1426 ms, other=93 ms
 		Project Asset Count: scripts=3042, non-scripts=9595
 		Asset File Changes: new=0, changed=0, moved=0, deleted=0
-		Scan Filter Count: 1
-	InvokeCustomDependenciesCallbacks: 0.007ms
-	InvokePackagesCallback: 23.813ms
-	ApplyChangesToAssetFolders: 0.958ms
-	Scan: 3038.177ms
-	OnSourceAssetsModified: 0.002ms
-	CategorizeAssetsWithTransientArtifact: 214.529ms
-	ProcessAssetsWithTransientArtifactChanges: 346.135ms
-	CategorizeAssets: 299.030ms
-	ImportOutOfDateAssets: 12112.046ms (9814.619ms without children)
-		CompileScripts: 2280.998ms
-		ReloadNativeAssets: 0.098ms
-		UnloadImportedAssets: 6.221ms
-		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 6.316ms
-		InitializingProgressBar: 0.001ms
-		PostProcessAllAssetNotificationsAddChangedAssets: 0.001ms
-		OnDemandSchedulerStart: 3.793ms
-	PostProcessAllAssets: 99.437ms
+		Scan Filter Count: 0
+	InvokeCustomDependenciesCallbacks: 0.001ms
+	InvokePackagesCallback: 19.562ms
+	ApplyChangesToAssetFolders: 0.855ms
+	Scan: 295.729ms
+	OnSourceAssetsModified: 0.003ms
+	CategorizeAssetsWithTransientArtifact: 75.707ms
+	ProcessAssetsWithTransientArtifactChanges: 117.291ms
+	CategorizeAssets: 93.295ms
+	ImportOutOfDateAssets: 5577.346ms (4146.627ms without children)
+		CompileScripts: 1425.566ms
+		ReloadNativeAssets: 0.040ms
+		UnloadImportedAssets: 1.838ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 1.453ms
+		InitializingProgressBar: 0.000ms
+		PostProcessAllAssetNotificationsAddChangedAssets: 0.000ms
+		OnDemandSchedulerStart: 1.823ms
+	PostProcessAllAssets: 37.603ms
 	GatherAllCurrentPrimaryArtifactRevisions: 0.001ms
-	UnloadStreamsBegin: 8.484ms
-	PersistCurrentRevisions: 1.498ms
-	UnloadStreamsEnd: 0.002ms
-	GenerateScriptTypeHashes: 12.906ms
-	Untracked: 6277.618ms
+	UnloadStreamsBegin: 0.925ms
+	PersistCurrentRevisions: 0.395ms
+	UnloadStreamsEnd: 0.001ms
+	GenerateScriptTypeHashes: 4.125ms
+	Untracked: 3050.769ms
 
 Application.AssetDatabase Initial Refresh End
-Scanning for USB devices : 5.413ms
+Scanning for USB devices : 2.361ms
 Initializing Unity extensions:
-UpdateMenuTitleForLanguage: 10
 [MODES] ModeService[none].Initialize
 [MODES] ModeService[none].LoadModes
 [MODES] Loading mode Default (0) for mode-current-id-DungeonStory
-Unloading 21 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 14663 unused Assets / (9.6 MB). Loaded Objects now: 15568.
-Memory consumption went from 274.7 MB to 265.1 MB.
-Total: 65.450988 ms (FindLiveObjects: 3.479103 ms CreateObjectMapping: 4.958138 ms MarkObjects: 37.056171 ms  DeleteObjects: 19.955639 ms)
+Unloading 90 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 14734 unused Assets / (15.4 MB). Loaded Objects now: 15499.
+Memory consumption went from 315.2 MB to 299.8 MB.
+Total: 20.930200 ms (FindLiveObjects: 0.890500 ms CreateObjectMapping: 0.906600 ms MarkObjects: 13.020400 ms  DeleteObjects: 6.112000 ms)
 
-Asset Pipeline Refresh (id=e9e7e74c9405ad3578740d3385614ff3): Total: 1.788 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
-	Summary:
-		Imports: total=0 (actual=0, local cache=0, cache server=0)
-		Asset DB Process Time: managed=0 ms, native=1788 ms
-		Asset DB Callback time: managed=0 ms, native=0 ms
-		Scripting: domain reloads=0, domain reload time=0 ms, compile time=0 ms, other=0 ms
-		Project Asset Count: scripts=3042, non-scripts=9595
-		Asset File Changes: new=0, changed=0, moved=0, deleted=0
-		Scan Filter Count: 1
-	InvokeCustomDependenciesCallbacks: 0.001ms
-	InvokePackagesCallback: 0.001ms
-	ApplyChangesToAssetFolders: 0.401ms
-	Scan: 1567.829ms
-	OnSourceAssetsModified: 0.001ms
-	CategorizeAssetsWithTransientArtifact: 0.004ms
-	ProcessAssetsWithTransientArtifactChanges: 0.604ms
-	CategorizeAssets: 184.039ms
-	ImportOutOfDateAssets: 8.397ms (2.035ms without children)
-		ReloadNativeAssets: 0.089ms
-		UnloadImportedAssets: 0.202ms
-		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 4.350ms
-		InitializingProgressBar: 0.001ms
-		PostProcessAllAssetNotificationsAddChangedAssets: 0.001ms
-		OnDemandSchedulerStart: 1.720ms
-	GatherAllCurrentPrimaryArtifactRevisions: 0.927ms
-	UnloadStreamsBegin: 0.104ms
-	PersistCurrentRevisions: 1.219ms
-	UnloadStreamsEnd: 0.002ms
-	Untracked: 24.874ms
-
-Asset Pipeline Refresh (id=2e389d4570bb1258a80f96c6923b6aab): Total: 0.498 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
-	Summary:
-		Imports: total=0 (actual=0, local cache=0, cache server=0)
-		Asset DB Process Time: managed=0 ms, native=498 ms
-		Asset DB Callback time: managed=0 ms, native=0 ms
-		Scripting: domain reloads=0, domain reload time=0 ms, compile time=0 ms, other=0 ms
-		Project Asset Count: scripts=3042, non-scripts=9595
-		Asset File Changes: new=0, changed=0, moved=0, deleted=0
-		Scan Filter Count: 1
-	InvokeCustomDependenciesCallbacks: 0.001ms
-	InvokePackagesCallback: 0.000ms
-	ApplyChangesToAssetFolders: 0.189ms
-	Scan: 495.893ms
-	GatherAllCurrentPrimaryArtifactRevisions: 0.974ms
-	UnloadStreamsBegin: 0.002ms
-	UnloadStreamsEnd: 0.166ms
-	Untracked: 0.802ms
-
+Asset Pipeline Refresh (id=e7175388331ddea4587a1183d781f71b): Total: 0.071 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=2de251a930c1a924ea3adc99470ae10b): Total: 0.004 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
 V27_PREPARATION_SKILLS=PASS; prepared selection; local evidence; duplicate no-op; world publication rejection/rollback/save/retry
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
-UnityEngine.StackTraceUtility:ExtractStackTrace () (at /home/bokken/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:35)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
 UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
 UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
@@ -484,9 +392,9 @@ V27CiEvidenceBatch:RunImpactCharacterContracts () (at Assets/Scripts/Services/Ec
 
 (Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 348)
 
-IMPACT_CI_PASS group=character;source=bfbdf79281cb1290eb1871fdb02644af20a9ac0a0d11ace795e0084ef004fd10;config=90c7932d2082563b6ea8c279bcbc4929ec51ef82a40ab16dd2448087f39a61d6;consoleErrors=0
+IMPACT_CI_PASS group=character;source=319b8d3f248d5d18af84c41e67fd723f4df2789b81d3937c6e8ffc9040a9976f;config=5e9d75eb67068d16b2271966e0064c64c24bb2818be300bc3f762f6e88ee08aa;consoleErrors=0
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
-UnityEngine.StackTraceUtility:ExtractStackTrace () (at /home/bokken/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:35)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
 UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
 UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
@@ -499,18 +407,15 @@ V27CiEvidenceBatch:RunImpactCharacterContracts () (at Assets/Scripts/Services/Ec
 
 Batchmode quit successfully invoked - shutting down!
 Pipeline Server stopped
+Killing ADB server in 0.0386101 seconds.
 [Physics::Module] Cleanup current backend.
 [Physics::Module] Id: 0xf2b8ea05
 Input System module state changed to: ShutdownInProgress.
 Input System polling thread exited.
 Input System module state changed to: Shutdown.
-[Licensing::IpcConnector] LicenseClient-vulpo-notifications channel disconnected successfully.
-[Licensing::IpcConnector] LicenseClient-vulpo channel disconnected successfully.
+[Licensing::IpcConnector] LicenseClient-vulpo-6000.3.8-notifications channel disconnected successfully.
+[Licensing::IpcConnector] LicenseClient-vulpo-6000.3.8 channel disconnected successfully.
 AcceleratorClientConnectionCallback - disconnected - :0
-[40m[32minfo[39m[22m[49m: Microsoft.Hosting.Lifetime[0]
-      Application is shutting down...
-[40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
-      ALC ILPP context 1 is unloading
 Cleanup mono
-debugger-agent: Unable to listen on 43
 Exiting batchmode successfully now!
+Exiting without the bug reporter. Application will terminate with return code 0

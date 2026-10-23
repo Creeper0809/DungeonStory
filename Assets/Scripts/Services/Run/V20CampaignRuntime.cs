@@ -39,6 +39,7 @@ public sealed class V20CampaignRuntime :
         seasonalFeedSelfHeatingTargets;
     private readonly V20SocietyEventStateStore societyState;
     private readonly V20CampaignEffectRuntime campaignEffects;
+    internal V21ContentEffectExecutionRegistry EffectHandlers { get; }
     private readonly V20ObservedIncidentRuntime observedIncidents;
     private readonly V20SocietyEventRuntime societyEvents;
     private SeasonalEventAggregateState preparedSeasonalRestore;
@@ -67,10 +68,12 @@ public sealed class V20CampaignRuntime :
         ISeasonalFeedSelfHeatingTargetQuery seasonalFeedSelfHeatingTargets,
         ISocialRitualFactPublisher incidentFacts,
         IDomainFactPublisher terminalObservations = null,
-        IDomainFactRecoveryPublisher terminalRecovery = null)
+        IDomainFactRecoveryPublisher terminalRecovery = null,
+        V21ContentEffectExecutionRegistry effectHandlers = null)
     {
         this.rootStore = rootStore ?? throw new ArgumentNullException(nameof(rootStore));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        EffectHandlers = effectHandlers ?? V21ContentEffectExecutionRegistry.Default;
         V20EventSaveValidation eventSaveValidation = new(this.catalog);
         saveCodec = new V20CampaignSaveCodec(this.catalog, eventSaveValidation);
         milestoneRuntime = new V20MilestoneRuntime(this.rootStore, this.catalog, saveCodec, physicalDispositions);
@@ -78,7 +81,12 @@ public sealed class V20CampaignRuntime :
         this.seasonalFeedSelfHeatingTargets =
             seasonalFeedSelfHeatingTargets;
         societyState = new V20SocietyEventStateStore(this.rootStore, eventSaveValidation);
-        campaignEffects = new V20CampaignEffectRuntime(this.rootStore, societyState, milestoneRuntime);
+        campaignEffects = new V20CampaignEffectRuntime(this.rootStore, societyState, milestoneRuntime, EffectHandlers,
+            () => new V20ContentEffectOwnerSnapshot
+            {
+                Seasonal = CaptureSeasonal(), Society = CaptureSociety(),
+                Factions = CaptureFactions(), Milestones = CaptureMilestones()
+            });
         observedIncidents = new V20ObservedIncidentRuntime(societyState, campaignEffects, this.catalog, eventSaveValidation, incidentFacts);
         societyEvents = new V20SocietyEventRuntime(societyState, campaignEffects, observedIncidents, this.catalog);
         EnsureFactionStates();
@@ -1501,11 +1509,15 @@ public sealed class V20CampaignRuntime :
             new DungeonRuntimeAggregateRootStore(),
             catalog,
             physicalDispositions,
-            this.SeasonalFeedSelfHeatingTargets);
+            this.SeasonalFeedSelfHeatingTargets,
+            null, null, null, EffectHandlers);
         candidate.PublishSeasonal(candidate.PrepareSeasonal(this.CaptureSeasonal()));
         candidate.PublishSociety(candidate.PrepareSociety(this.CaptureSociety()));
         candidate.PublishFactions(candidate.PrepareFactions(this.CaptureFactions()));
         candidate.PublishMilestones(candidate.PrepareMilestones(this.CaptureMilestones()));
         return candidate;
     }
+
+    internal void ObserveCampaignEffects(Action<V20ContentEffect, V20ContentEffectOwnerSnapshot,
+        V20ContentEffectOwnerSnapshot> observer) => campaignEffects.Observer = observer;
 }

@@ -75,11 +75,18 @@ internal static class IsolatedUnityLauncher
                 WriteNew(Path.Combine(output, "launcher-context.txt"), "station=" + isolated.StationName + "\ndesktop=" + isolated.DesktopName
                     + "\nvisible=false\njobUiRestrictions=255\nkillChildrenOnClose=true\ninteractiveFallback=false\nstartupResourceProfile="
                     + (startupProfile ?? "default") + "\nbeeBuildThreads="
-                    + (Environment.GetEnvironmentVariable("BEE_BUILD_THREADS") ?? "default") + "\n");
+                    + (Environment.GetEnvironmentVariable("BEE_BUILD_THREADS") ?? "default")
+                    + "\ndesiredImportWorkerCount=" + (startupProfile == null ? "default" : "1")
+                    + "\nstandbyImportWorkerCount=" + (startupProfile == null ? "default" : "0") + "\n");
                 if (probeOnly) return 0;
                 string unityEvidence = Path.Combine(output, "unity-evidence");
                 Environment.SetEnvironmentVariable("DUNGEONSTORY_AUDIT_REMEDIATION_OUTPUT", unityEvidence);
-                Environment.SetEnvironmentVariable("DUNGEONSTORY_QA_PERSISTENCE_ROOT", mode == "edit" ? null : Path.Combine(unityEvidence, "persistent-data"));
+                Environment.SetEnvironmentVariable("DUNGEONSTORY_QA_PERSISTENCE_ROOT",
+                    RequiresIsolatedPersistence(method, mode)
+                        ? Path.Combine(unityEvidence, "persistent-data")
+                        : null);
+                if (IsFocusedRegressionEntry(method))
+                    Environment.SetEnvironmentVariable("DUNGEONSTORY_V27_HEADLESS_EVIDENCE", "1");
                 Environment.SetEnvironmentVariable("DUNGEONSTORY_LIVE_NARRATIVE_CAPTURE", mode == "campaign" ? "1" : null);
                 bool fullSkillReplay = mode == "campaign"
                     && method == "DungeonFullWorldRoundTripPlayModeFacade.RequestIsolatedBatch"
@@ -271,6 +278,7 @@ internal static class IsolatedUnityLauncher
     private static bool IsOwnedPlayEntry(string method)
     {
         return method == "DungeonFullWorldRoundTripPlayModeFacade.RequestIsolatedBatch"
+            || IsFocusedRegressionPlayEntry(method)
             || method == "ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatch"
             || method == "GameWorldLineageDebugScenarios.RequestActualContainerForBatch"
             || method == "GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatch"
@@ -303,6 +311,26 @@ internal static class IsolatedUnityLauncher
             || method == "Wim029CompanionRoleOutcomePlayModeVerifier.RunHaulBatch"
             || method == "InfrastructureCommandOutcomePlayModeFacade.RequestRunFromMenu"
             || method == "DefenseEngagementPlayModeVerifier.StartWim048Batch";
+    }
+    private static bool IsFocusedRegressionEditEntry(string method)
+    {
+        return method == "V20ContentResolutionRecoveryDebugScenarios.RunPrioritizedEffectBoundaries"
+            || method == "V27CiEvidenceBatch.RunImpactEffectContracts"
+            || method == "V27CiEvidenceBatch.RunImpactCoreContracts"
+            || method == "V27CiEvidenceBatch.RunImpactCharacterContracts";
+    }
+    private static bool IsFocusedRegressionPlayEntry(string method)
+    {
+        return method == "V27CiEvidenceBatch.RunImpactWorldRestore"
+            || method == "V27CiEvidenceBatch.RunImpactCrops";
+    }
+    private static bool IsFocusedRegressionEntry(string method)
+    {
+        return IsFocusedRegressionEditEntry(method) || IsFocusedRegressionPlayEntry(method);
+    }
+    private static bool RequiresIsolatedPersistence(string method, string mode)
+    {
+        return mode != "edit" || IsFocusedRegressionEntry(method);
     }
     private static bool FullCaptureReportBindingIsValid(string mode, string configuredReport, string evidenceRoot)
     {
@@ -343,6 +371,10 @@ internal static class IsolatedUnityLauncher
             "Physical destructive drain requires its dedicated PlayMode entry.");
         Require(method != "NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch" || mode == "play",
             "Narrative context lifetime requires its dedicated PlayMode entry.");
+        Require(!IsFocusedRegressionEditEntry(method) || mode == "edit",
+            "Focused EditMode regression requires its dedicated edit-mode entry.");
+        Require(!IsFocusedRegressionPlayEntry(method) || mode == "play",
+            "Focused PlayMode regression requires its dedicated play-mode entry.");
         Require((method != "ArchitectureRefactorVerificationBatch.RunCore"
                 && method != "ArchitectureRefactorVerificationBatch.RunCampaign"
                 && method != "ArchitectureRefactorVerificationBatch.RunProductionBills"
@@ -378,7 +410,8 @@ internal static class IsolatedUnityLauncher
                 || method == "ArchitectureRefactorVerificationBatch.RunConsumablePolicies"
                 || method == "ArchitectureRefactorVerificationBatch.RunConsumableExecution"
                 || method == "V25NarrativeInferenceDebugScenarios.RunSkillNarrativeEvidenceBatch"
-                || method == "MigratedProducerEconomyServiceEntryE2EDebugScenarios.RunFacilityUseObserverBatch"))
+                || method == "MigratedProducerEconomyServiceEntryE2EDebugScenarios.RunFacilityUseObserverBatch"
+                || IsFocusedRegressionEditEntry(method)))
                 || (mode == "play" && (method == "DungeonFullWorldRoundTripPlayModeFacade.RequestIsolatedBatch"
                     || method == "ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatch"
                     || method == "GameWorldLineageDebugScenarios.RequestActualContainerForBatch"
@@ -394,7 +427,8 @@ internal static class IsolatedUnityLauncher
                     || method == "MovementOwnershipDebugScenarios.RequestFactionReinforcementForBatch"
                     || method == "MovementOwnershipDebugScenarios.RequestSkillTargetingForBatch"
                     || method == "PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatch"
-                    || method == "NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch")),
+                    || method == "NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch"
+                    || IsFocusedRegressionPlayEntry(method))),
                 "Serialized startup requires a dedicated supported edit or owned whole-world PlayMode entry.");
         var arguments = new System.Collections.Generic.List<string>
         {
@@ -409,7 +443,9 @@ internal static class IsolatedUnityLauncher
         }
         if (mode == "edit") arguments.Add("-quit");
         if (startupProfile != null)
-            arguments.AddRange(new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" });
+            // Job threads and import processes have separate limits. PlayMode
+            // can request import workers even after an in-process initial refresh.
+            arguments.AddRange(new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" });
         return arguments.ToArray();
     }
     private static int SelfTest()
@@ -459,6 +495,23 @@ internal static class IsolatedUnityLauncher
         Require(IsOwnedPlayEntry("NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch"), "Narrative context lifetime PlayMode entry rejected.");
         Require(!IsOwnedPlayEntry("NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatchUnexpected"), "Prefixed narrative context lifetime entry accepted.");
         Require(!IsOwnedPlayEntry("Wim029CompanionRoleOutcomePlayModeVerifier.RunHaulBatchUnexpected"), "Prefixed PlayMode entry accepted.");
+        Require(IsOwnedPlayEntry("V27CiEvidenceBatch.RunImpactWorldRestore"), "Impact world PlayMode entry rejected.");
+        Require(IsOwnedPlayEntry("V27CiEvidenceBatch.RunImpactCrops"), "Impact crop PlayMode entry rejected.");
+        Require(!IsOwnedPlayEntry("V27CiEvidenceBatch.RunImpactWorldRestoreUnexpected"), "Prefixed impact world entry accepted.");
+        Require(!IsOwnedPlayEntry("V27CiEvidenceBatch.RunImpactCropsUnexpected"), "Prefixed impact crop entry accepted.");
+        Require(IsFocusedRegressionEntry("V20ContentResolutionRecoveryDebugScenarios.RunPrioritizedEffectBoundaries"),
+            "Prioritized effect boundary was not recognized as a focused regression.");
+        Require(IsFocusedRegressionEntry("V27CiEvidenceBatch.RunImpactCoreContracts"),
+            "V27 impact entry was not recognized as a focused regression.");
+        Require(!IsFocusedRegressionEntry("V27CiEvidenceBatch.RunImpactCoreContractsUnexpected"),
+            "Prefixed focused regression entry accepted.");
+        Require(RequiresIsolatedPersistence(
+                "V20ContentResolutionRecoveryDebugScenarios.RunPrioritizedEffectBoundaries", "edit"),
+            "Focused EditMode regression lost isolated persistence.");
+        Require(RequiresIsolatedPersistence("V27CiEvidenceBatch.RunImpactWorldRestore", "play"),
+            "Focused PlayMode regression lost isolated persistence.");
+        Require(!RequiresIsolatedPersistence("Unknown.EditBatch", "edit"),
+            "Unrelated EditMode entry unexpectedly changed persistence behavior.");
         const string captureRoot = @"C:\DungeonStory-QA";
         string captureReport = Path.Combine(captureRoot, "captivity-wildlife-lifecycle-report.txt");
         Require(FullCaptureReportBindingIsValid("play", captureReport, captureRoot), "Full capture report binding rejected.");
@@ -493,73 +546,81 @@ internal static class IsolatedUnityLauncher
             "ArchitectureRefactorVerificationBatch.RunConsumablePolicies",
             "ArchitectureRefactorVerificationBatch.RunConsumableExecution",
             "MigratedProducerEconomyServiceEntryE2EDebugScenarios.RunFacilityUseObserverBatch",
-            "V25NarrativeInferenceDebugScenarios.RunSkillNarrativeEvidenceBatch" })
+            "V25NarrativeInferenceDebugScenarios.RunSkillNarrativeEvidenceBatch",
+            "V20ContentResolutionRecoveryDebugScenarios.RunPrioritizedEffectBoundaries",
+            "V27CiEvidenceBatch.RunImpactEffectContracts",
+            "V27CiEvidenceBatch.RunImpactCoreContracts",
+            "V27CiEvidenceBatch.RunImpactCharacterContracts" })
             Require(BuildUnityArguments(captureRoot, entry, captureRoot, "edit", "serial-import-job1")
-                .Skip(9).SequenceEqual(new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+                .Skip(9).SequenceEqual(new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
                 "Serialized startup arguments differ.");
+        foreach (string entry in new[] { "V27CiEvidenceBatch.RunImpactWorldRestore", "V27CiEvidenceBatch.RunImpactCrops" })
+            Require(BuildUnityArguments(captureRoot, entry, captureRoot, "play", "serial-import-job1")
+                .Skip(8).SequenceEqual(new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
+                "Serialized focused PlayMode startup arguments differ.");
         Require(BuildUnityArguments(captureRoot, "DungeonFullWorldRoundTripPlayModeFacade.RequestIsolatedBatch",
             captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
-                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
             "Serialized PlayMode startup arguments differ.");
         Require(BuildUnityArguments(captureRoot, "ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatch",
             captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
-                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
             "Serialized composition PlayMode arguments differ.");
         Require(BuildUnityArguments(captureRoot, "GameWorldLineageDebugScenarios.RequestActualContainerForBatch",
             captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
-                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
             "Serialized game-world lineage PlayMode arguments differ.");
         Require(BuildUnityArguments(captureRoot, "GameWorldLineageDebugScenarios.RequestCharacterRestoreLifetimeForBatch",
             captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
-                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
             "Serialized character restore lifetime PlayMode arguments differ.");
         Require(BuildUnityArguments(captureRoot, "GameWorldLineageDebugScenarios.RequestRestoreOutcomeForBatch",
             captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
-                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
             "Serialized restore outcome PlayMode arguments differ.");
         Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestActualContainerForBatch",
             captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
-                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
             "Serialized movement ownership PlayMode arguments differ.");
         Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestDestinationlessForBatch",
             captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
-                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
             "Serialized destinationless movement PlayMode arguments differ.");
         Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestDeprivationForBatch",
             captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
-                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
             "Serialized deprivation movement PlayMode arguments differ.");
         Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestPrimitiveForBatch",
             captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
-                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
             "Serialized primitive movement PlayMode arguments differ.");
         Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestRestockForBatch",
             captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
-                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
             "Serialized restock movement PlayMode arguments differ.");
         Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestMedicalTransferForBatch",
             captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
-                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
             "Serialized medical transfer movement PlayMode arguments differ.");
         Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestWorkAccidentForBatch",
             captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
-                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
             "Serialized work accident movement PlayMode arguments differ.");
         Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestFactionReinforcementForBatch",
             captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
-                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
             "Serialized faction reinforcement movement PlayMode arguments differ.");
         Require(BuildUnityArguments(captureRoot, "MovementOwnershipDebugScenarios.RequestSkillTargetingForBatch",
             captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
-                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
             "Serialized skill targeting movement PlayMode arguments differ.");
         Require(BuildUnityArguments(captureRoot, "PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatch",
             captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
-                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
             "Serialized physical destructive-drain PlayMode arguments differ.");
         Require(BuildUnityArguments(captureRoot, "NarrativeContextLifetimeDebugScenarios.RequestActualContainerForBatch",
             captureRoot, "play", "serial-import-job1").Skip(8).SequenceEqual(
-                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1" }),
+                new[] { "-refreshImportMode", "InProcess", "-job-worker-count", "1", "-desiredWorkerCount", "1", "-standbyWorkerCount", "0" }),
             "Serialized narrative context lifetime PlayMode arguments differ.");
         foreach (string[] invalid in new[]
         {
@@ -596,6 +657,18 @@ internal static class IsolatedUnityLauncher
             new[] { "ArchitectureRefactorVerificationBatch.RunConsumableExecution", "play", null },
             new[] { "ArchitectureRefactorVerificationBatch.RunConsumableExecution", "play", "serial-import-job1" },
             new[] { "ArchitectureRefactorVerificationBatch.RunConsumableExecutionUnexpected", "edit", "serial-import-job1" },
+            new[] { "V20ContentResolutionRecoveryDebugScenarios.RunPrioritizedEffectBoundaries", "play", "serial-import-job1" },
+            new[] { "V20ContentResolutionRecoveryDebugScenarios.RunPrioritizedEffectBoundariesUnexpected", "edit", "serial-import-job1" },
+            new[] { "V27CiEvidenceBatch.RunImpactEffectContracts", "play", "serial-import-job1" },
+            new[] { "V27CiEvidenceBatch.RunImpactEffectContractsUnexpected", "edit", "serial-import-job1" },
+            new[] { "V27CiEvidenceBatch.RunImpactCoreContracts", "play", "serial-import-job1" },
+            new[] { "V27CiEvidenceBatch.RunImpactCoreContractsUnexpected", "edit", "serial-import-job1" },
+            new[] { "V27CiEvidenceBatch.RunImpactCharacterContracts", "play", "serial-import-job1" },
+            new[] { "V27CiEvidenceBatch.RunImpactCharacterContractsUnexpected", "edit", "serial-import-job1" },
+            new[] { "V27CiEvidenceBatch.RunImpactWorldRestore", "edit", "serial-import-job1" },
+            new[] { "V27CiEvidenceBatch.RunImpactWorldRestoreUnexpected", "play", "serial-import-job1" },
+            new[] { "V27CiEvidenceBatch.RunImpactCrops", "edit", "serial-import-job1" },
+            new[] { "V27CiEvidenceBatch.RunImpactCropsUnexpected", "play", "serial-import-job1" },
             new[] { shopEntry, "play", "serial-import-job1" },
             new[] { "Unknown.Run", "edit", "serial-import-job1" },
             new[] { "MigratedProducerEconomyServiceEntryE2EDebugScenarios.RunFacilityUseObserverBatch", "play", "serial-import-job1" },

@@ -1,5 +1,17 @@
 # DungeonStory Current Findings
 
+사건 효과 소비 거절의 같은 runtime 재시도에서는 돈/원장 복구 외에 임시 예약 ID 수명도 문제가 됐다. Items.Restore는 저장된 예약 의도에서 새 lease를 발급하지만 ItemReservationService.Release는 이전 캐시 ID만 사용했다. 해제는 현재 quantity reservation owner의 ownerOperationId/stack 일치 lease로 수행한다. 새 회귀는 실패 직후 잔액/원장/수량뿐 아니라 가용 수량과 같은 runtime·fresh JSON owner 재시도를 확인한다. 실제 mass authority revision은 정의 상수3이며 이번 실패 원인을 mass fingerprint로 추정해 검사를 완화하지 않았다.
+
+## 2026-10-23 사건 효과 우선 결함 4건
+
+돈/경제 원장 owner의 동기 checkpoint를 함께 캡처·rollback한다. 소비 실패에서 같은 거래 ID의 반대 금액 보상 기록을 만들지 않는다. 이 checkpoint는 동기 명령 실패 전용이며 저장 DTO가 아니고, 이미 물리 child를 commit한 forward recovery에서는 사용하지 않는다.
+
+campaign 후보는 live와 같은 registry를 상속하고 서비스의 다른 registry 주입을 거절한다. 후보에서 실행한 각 효과의 전후 snapshot을 원본 effect 인스턴스별 순서로 임시 결합한 뒤 resolved 결과에 관측을 고정한다. typed 효과도 각각 실제 owner snapshot 전후를 관측한다. source effect 참조가 일치하지 않거나 새 실행 관측이 빠지면 명시 실패한다. 효과 파일을 추가 분리하지 않는다.
+
+기존 application DTO에 projectionVersion 1/실제 대상 종류·역할·단위를 추가해 저장된 사실을 재해석하지 않는다. outcomeEvidenceVersion 2는 효과별 관측을 요구한다. 버전 0/1의 과거 pending과 projectionVersion 0의 과거 fact만 명시 호환 해석을 유지한다. 기존 완료 영수증의 의미를 소급 변경하지 않는다. 세력 alias는 실행에 사용한 contextFactionId로 해소하며 다른 변경 세력을 추측하지 않는다. 저장 section 버전·안정 enum·에셋·씬·수치는 변경하지 않는다.
+
+검증은 기존 통제 실제 owner fixture에서 소비 거절(입금/출금)/같은 runtime 및 JSON fresh-owner 재시도, 같은 대상의 Health 2+3, 중복 WorldFlag의 실제 custom Campaign 실행/단위·대상 고정, 실제 authored inherited-debt 세력 alias, pending/completed 복원·무중복을 추가한다. 영향 CI의 짧은 필수 그룹과 공식 실제 월드 복원을 실행하며 전수 seed/장기 밸런스 인증은 포함하지 않는다.
+
 ## 2026-10-23 사건 효과 등록 확장
 
 기존 V21ContentEffectExecutionRegistry는 실행 owner 설명만 담고 실제 typed 실행, 대상 조건, forward recovery, rollback owner 요구와 application evidence는 별도 kind 분기였다. 기존 wire enum/DTO/캡처 fingerprint와 물리 돈·아이템 거래 단계는 보존한다. 하나의 불변 등록에 실행 단계, 대상 수, persistence owner 요구, preflight, 실행과 실제 before/after 관측을 함께 둔다. 공통 실행·트랜잭션·영수증 코드는 등록을 사용하며 미등록/중복/불완전 등록을 거절한다. 새 상태 권위/저장 스키마 도입까지 자동화하는 범위는 아니다. 새 효과는 기존 안정 enum ID를 append하고 등록하며, 기존 상태 소유자 명령과 snapshot 투영을 재사용한다. 효과마다 클래스를 만들지 않고 기본 등록을 묶는다.

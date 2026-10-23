@@ -175,6 +175,22 @@ if ($ExecuteMethod -in @('ArchitectureRefactorVerificationBatch.RunCore', 'Archi
         throw 'Architecture verification requires its dedicated edit-mode entry without selectors or resume inputs.'
     }
 }
+$qaFocusedRegressionEditEntries = @(
+    'V20ContentResolutionRecoveryDebugScenarios.RunPrioritizedEffectBoundaries',
+    'V27CiEvidenceBatch.RunImpactEffectContracts',
+    'V27CiEvidenceBatch.RunImpactCoreContracts',
+    'V27CiEvidenceBatch.RunImpactCharacterContracts')
+$qaFocusedRegressionPlayEntries = @(
+    'V27CiEvidenceBatch.RunImpactWorldRestore',
+    'V27CiEvidenceBatch.RunImpactCrops')
+if ($ExecuteMethod -in @($qaFocusedRegressionEditEntries + $qaFocusedRegressionPlayEntries)) {
+    $qaFocusedRegressionParameters = @('ExecuteMethod','OutputDirectory','Mode','UnityExecutable','SerializedStartup')
+    $qaFocusedRegressionExpectedMode = if ($ExecuteMethod -in $qaFocusedRegressionEditEntries) { 'edit' } else { 'play' }
+    if ($Mode -ne $qaFocusedRegressionExpectedMode -or
+        @($PSBoundParameters.Keys | Where-Object { $_ -notin $qaFocusedRegressionParameters }).Count -ne 0) {
+        throw 'Focused regression verification requires its exact owned mode without selectors or resume inputs.'
+    }
+}
 if ($PSBoundParameters.ContainsKey('SerializedStartup')) {
     $qaSerializedSelectors = @($PSBoundParameters.GetEnumerator() | Where-Object {
         $_.Key -ne 'SerializedStartup' -and
@@ -212,10 +228,14 @@ if ($PSBoundParameters.ContainsKey('SerializedStartup')) {
         $ExecuteMethod -eq 'PhysicalItemLogisticsPlayModeVerifier.RequestDestructiveDrainPreparedOutputForBatch'
     $qaSerializedArchitectureCore = $Mode -eq 'edit' -and $qaSerializedSelectors.Count -eq 0 -and
         $ExecuteMethod -in @('ArchitectureRefactorVerificationBatch.RunCore', 'ArchitectureRefactorVerificationBatch.RunCampaign', 'ArchitectureRefactorVerificationBatch.RunProductionBills', 'ArchitectureRefactorVerificationBatch.RunBuildings', 'ArchitectureRefactorVerificationBatch.RunDefense', 'ArchitectureRefactorVerificationBatch.RunBuildingVisual', 'ArchitectureRefactorVerificationBatch.RunCropPersistence', 'ArchitectureRefactorVerificationBatch.RunCharacterDefinitions', 'ArchitectureRefactorVerificationBatch.RunEquipmentEvolution', 'ArchitectureRefactorVerificationBatch.RunConsumablePolicies', 'ArchitectureRefactorVerificationBatch.RunConsumableExecution')
+    $qaSerializedFocusedRegression = $qaSerializedSelectors.Count -eq 0 -and
+        (($Mode -eq 'edit' -and $ExecuteMethod -in $qaFocusedRegressionEditEntries) -or
+         ($Mode -eq 'play' -and $ExecuteMethod -in $qaFocusedRegressionPlayEntries))
     if (-not $qaSerializedCropEntry -and -not $qaSerializedComposition -and -not $qaSerializedGameWorldLineage -and
         -not $qaSerializedCharacterRestoreLifetime -and
         -not $qaSerializedRestoreOutcome -and
         -not $qaSerializedNarrativeContextLifetime -and -not $qaSerializedMovementOwnership -and -not $qaSerializedArchitectureCore -and
+        -not $qaSerializedFocusedRegression -and
         -not $qaSerializedDestructiveDrain -and
         ((-not $qaSerializedEntry -and -not $qaSerializedObserverEntry) -or $qaSerializedSelectors.Count -ne 1)) {
         throw 'SerializedStartup accepts only explicitly owned serialized verification entries.'
@@ -375,7 +395,7 @@ for ($qaCursor = [IO.DirectoryInfo]::new([IO.Path]::GetDirectoryName($qaOutput))
     }
 }
 if ($ExecuteMethod -notmatch '^[A-Za-z_][A-Za-z0-9_.]+$') { throw 'Invalid execute method.' }
-if ($Mode -ne 'edit' -and $ExecuteMethod -notin @(
+if ($Mode -ne 'edit' -and $ExecuteMethod -notin $qaFocusedRegressionPlayEntries -and $ExecuteMethod -notin @(
         'DungeonFullWorldRoundTripPlayModeFacade.RequestIsolatedBatch',
         'ObserverCompositionClosureDebugScenarios.RequestActualContainerForBatch',
         'GameWorldLineageDebugScenarios.RequestActualContainerForBatch',

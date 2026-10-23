@@ -496,6 +496,8 @@ internal sealed class V20ObservedLifeEventCommands : IObservedCareerLifeEventCom
         DomainFactEmission sourceFact = null)
     {
         V20CampaignRuntime candidate = live.CreateContentResolutionCandidate(physicalDispositions);
+        var campaignObservations = new List<(V20ContentEffect, V20ContentEffectOwnerSnapshot, V20ContentEffectOwnerSnapshot)>();
+        candidate.ObserveCampaignEffects((effect, before, after) => campaignObservations.Add((effect, before, after)));
         IReadOnlyList<ObservedLifeEventCommitResult> observed =
             observe?.Invoke(candidate)
             ?? throw new ArgumentNullException(nameof(observe));
@@ -505,6 +507,7 @@ internal sealed class V20ObservedLifeEventCommands : IObservedCareerLifeEventCom
             .ToArray();
         if (!observed.Any(value => value.StateChanged))
             return resolutions;
+        resolutions = CaptureCampaignApplications(resolutions, campaignObservations, effectTransaction.Handlers).ToArray();
 
         ContentResolutionRequest request = new()
         {
@@ -556,8 +559,15 @@ internal sealed class V20ObservedLifeEventCommands : IObservedCareerLifeEventCom
                 throw new InvalidOperationException(
                     $"Observed life-event effect commit failed: {effectFailure.Code}.");
             }
-            stateAfterFingerprint = CaptureEffectOwnerFingerprint(
-                effectRollback.CaptureEffectOwners(resolutions));
+            resolutions = childCommits.AppliedResolutions.ToArray();
+            V20ContentEffectOwnerSnapshot ownersAfter = effectRollback.CaptureEffectOwners(resolutions);
+            ownersAfter.Seasonal = seasonal.Data;
+            ownersAfter.Society = society.Data;
+            ownersAfter.Factions = factions.Data;
+            ownersAfter.Milestones = milestones.Data;
+            resolutions = AttachApplicationEvidence(resolutions, ownersBefore, ownersAfter,
+                childCommits, effectTransaction.Handlers).ToArray();
+            stateAfterFingerprint = CaptureEffectOwnerFingerprint(ownersAfter);
             if (requiresForwardRecovery)
             {
                 UpsertRecovery(
@@ -599,10 +609,14 @@ internal sealed class V20ObservedLifeEventCommands : IObservedCareerLifeEventCom
                 && effectPhase
                     >= V20ContentResolutionRecoveryPhase.ItemCostsCommitted)
             {
-                if (effectPhase
-                    == V20ContentResolutionRecoveryPhase.ItemGrantsCommitted)
+                if (!recoveryPublished && effectPhase
+                    >= V20ContentResolutionRecoveryPhase.ItemGrantsCommitted)
                 {
                     effectRollback.RestoreTypedEffectOwners(ownersBefore);
+                    resolutions = resolutions.Select(value => value.WithApplications(value.Applications
+                        .Where(application => effectTransaction.Handlers.Require(value.Effects[application.effectIndex].kind).Stage
+                            is not (V20ContentEffectStage.Typed or V20ContentEffectStage.Retirement)).ToArray())).ToArray();
+                    effectPhase = V20ContentResolutionRecoveryPhase.ItemGrantsCommitted;
                 }
                 if (!recoveryPublished)
                 {
