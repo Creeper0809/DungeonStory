@@ -1,5 +1,41 @@
 # DungeonStory Current Progress
 
+## 2026-10-23 SO 관계 선택 — 최종 로컬 검증 PASS
+
+r95so effects-retry1 110.582초/core84.466초/character85.12초/world364.239초/crop183.608초 모두 native0/C#0/consoleErrors0/drift0. source401017f9ec58b1439756f726b4a3980bec16507a21c72cbf66c7547415b25ed7(count4743), config84283c4a0b9cafefd2bf95a137f42654a90ff77e7f1ddbebb2a0379e209cb85b로5개 일치하며 Python 독립 검증도 PASS. SO 선택/기존 숫자·문자열 ID 및 JSON, 야망3·활동7 실행→새 owner 복원→동일 요청 중복 없음, 실제 월드104섹션 공식 복원/기준복구, 실제 작물 수확·저장·복원·재시도를 확인했다. Windows 비대화형 station/desktop probe를 각 실행에 적용했고 사용자 포커스/앱을 조작하지 않았다.
+
+최종 증거는 Artifacts/QA/ImpactCI에, 초기 실패와 원본 로그는 커밋에서 제외한 Artifacts/QA/r89so~r95so 및 외부 so-reference-authoring 폴더에 보존한다. crop 역사 보고서는 실행 전 bytes로 복구했다. r95 최초 시도는 별도 모델 변환 중 RAM 부족으로 중단됐고, 동일 소스 retry1은 메모리 회복 후 통과했다. Python CI25개와 분석기 DSB001–008 PASS, 콘텐츠/KB 생성 파싱0·검증오류0·최신성 failure0. Unity0 확인 후 최종 diff/commit blob 증거검사와 GitHub 통합을 진행한다. 전체 사건 UI나 장기 전수 조합 PASS를 주장하지 않는다.
+
+## 2026-10-23 r94 표적 실행과 r95 후속
+
+r94so-local-effects:208.24초, native1/C#0/drift0, 메모리 보호 중단 없음. CONTENT_REFERENCE_AUTHORING=PASS. 야망3 및 활동5까지 진행 후 vampire-consent-cup의 Relationship(최소2명)에 단일 배우 fixture로 실패했다. 사용자 데이터·handler 조건은 유지하고 해당 authored 활동에만 두 배우 및 기존 social-memory JSON snapshot 복원을 준비했다. r95so21623 입력으로 영향5개 순차 실행(실패 즉시 중단) 중. 콘텐츠 인덱스의 legacy monster-circus는 기존 Wim037 제외 검사로 비등록이 확인되며 운영 콘텐츠로 간주하지 않는다.
+
+## 2026-10-23 r93 종료와 검증기 메모리 수정
+
+r93so-local-effects:116.443초, C#0/drift0, physical516890624bytes로 보호 중단. Unity0 확인 후 기존 configuration hash 함수의 대형 binary 할당을 stream으로 변경했다. r94so 동결 후 같은 effects 표적을 실행하며 최종 CI Python digest와 일치를 검사한다.
+
+## 2026-10-23 r91 메모리 중단과 r93 검증
+
+r91so-local-effects: 157.101초, C#0/drift0, 격리 job이 physical801591296bytes <1GiB 보호 기준으로 중단. 사용자 프로세스/기준 변경 없음. Unity0 후 수술 빈 값·건물 문자열/숫자 선택 계약을 수정하고 r93so21623 입력 동결. 실행 전 free9.6GiB에서 r93 effects를 시작했다. r92는 실행하지 않았다.
+
+## 2026-10-23 r90 실제 실행 결과
+
+r90so-local-effects: 863.909초, C# 오류0, input21623/drift0, native1. cold API Updater BGDatabase 오류와 실제 야망6개 미존재 event 참조로 실패(PASS 아님). 프로세스 종료/Unity0 확인 후 선택 가중치·생산자만 수정, 선택 테스트의 구현 필드맵 복제는 제거하고 실제 선택/직렬화/등록/보존 검사를 유지했다. 다음 r91은 warm import로 실행한다.
+
+## 2026-10-23 SO 관계 선택 — 구현 동결·검증 시작
+
+새 worktree `so-reference-authoring`, branch `codex/so-reference-authoring`에서 공통 Editor 선택기와 기존 ID 필드의 authoring metadata, 문화/활동16개·소망3개 참조 및 생산자를 수정했다. 선택기/JSON/잘못된 선택 보존과 authored 소망3·활동7의 owner 실행·저장·fresh 복원·동일 요청 재시도 회귀를 추가했다. 독립 작성자2명 READY/FROZEN, 메인 단독 검증. 원본 Documents와 이전 worktree의 별도 Transaction 변경은 보존한다.
+
+초기 r89so는 PowerShell 기본 모듈 경로로 인해 Unity 이전 종료했다. 자식 환경만 바로잡은 retry1은 새 worktree의 미복원 LFS 포인터를 확인해 메인 소유 격리 launcher/job만 종료했다(Unity0, 입력 drift0). LFS1307개/1.5GB를 기존 캐시에서 복원했고 분석기 DSB001–008 재빌드 해시/음성 검사가 PASS했다. 그전 analyzer drift는 DLL 대신130bytes LFS pointer를 읽던 것이며 기준을 변경하지 않았다. Python CI25/25 PASS. 현재 r90so21623입력 동결, `r90so-local-effects` 격리 OS probe PASS 후 실제 컴파일 진행 중. Unity 실행 PASS는 아직 아니다. 실행 원본은 `Artifacts/QA/r90so-local-effects`와 외부 `C:/Users/vulpo/Documents/Codex/2026-10-23/so-reference-authoring`에 보존한다.
+
+## 2026-10-23 SO 간 수기 ID 관계 추가 조사 완료
+
+main4d72be82의 정의·카탈로그·소비자 및 에셋을 읽기 전용으로 대조했다. root ItemDefinitionCatalog의1069 GUID/ID를 모두 해소하고 등록된 문화10개/문화 활동20개를 확인했다. 문화의 선호·금기20참조 중13개, 활동 요구20참조 중7개가 아이템 catalog에 없어 각각 무매치/수행 조건 실패로 이어지는 원본 경로를 찾았다. findings.md에 목록·예시·수기 관계별 교차 검증 유무와 실패 행동을 기록했다. 독립 검토의 제작식/연구/건설/적/원정 등은 현행 누락과 오타 입력 시 위험을 구분했으며 Synthesis recipe의 정상 참조를 오탐에서 제외했다. 새 컴파일/Unity 실행·게임 소스/에셋/인덱스 수정·push 없음; 기존 로컬 Transaction 변경과 원본 Documents checkout 보존.
+
+## 2026-10-23 콘텐츠 확장성 후속 감사 완료
+
+PR #14 이후 main 4d72be82 원본에서 사건/소망·생산/아이템·연구/전투의 정의→등록→실행/소비·복구를 읽기 전용으로 추적했다. findings.md에 우선 실행·복구 결함 3건, 후순위 결함 4건, 의도된 확장 제한 2건과 반례·재현 조건을 구분했다. Knowledge-base는 stale여서 원본을 사용했으며 인덱스를 재생성하지 않았다. 8효과×4대상 application의 4925자 계산은 mapper 형식의 정적 산술이고 게임 실행 증거가 아니다. 이번 Unity 컴파일/Play/저장·복원은 NOT_RUN, 코드/에셋 수정·commit/push 없음. 기존 로컬 Transaction 진단 변경과 원본 Documents checkout은 보존했다.
+
 ## 2026-10-23 사건 효과 우선 결함 수정 — 로컬 필수 실행 PASS
 
 PR #14 최초 CI39929649676은 분석기/25개 Python 검사를 통과했으나 실행 요약 bytes 검증에서 실패했다. 로컬 증거 생성기가 CRLF 요약의 SHA를 기록한 뒤 기존 .gitattributes의 LF 규칙으로 Git blob이 변한 것이 원인이다. 요약 값/원본 로그/게임 소스와 무결성 gate를 유지하고 증거 생성 시 LF로 기록하도록 수정했다. 최종 검증에는 작업 파일뿐 아니라 git show로 읽은 커밋 blob10개의 SHA 대조도 포함한다. 최초 실패 로그는 외부 event-effect-repairs/pr14-ci-39929649676-failure.log에 보존했다.

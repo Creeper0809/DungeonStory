@@ -16,14 +16,13 @@ MonoBehaviour:
   displayName: "\uD3EC\uC790 \uADC0\uD658"
   description: "\uC0AC\uB9DD\uC790\uC758 \uBC30\uC591 \uAE30\uB85D\uC744 \uC815\uC6D0
     \uD1A0\uC591\uC5D0 \uB418\uB3CC\uB824 \uACF5\uB3D9 \uAE30\uC5B5\uC73C\uB85C \uB0A8\uAE34\uB2E4."
-  authoringRevision: 1
-  sourceNote: V20 content-density expansion; hand-authored Korean source revision
-    1.
+  authoringRevision: 2
+  sourceNote: "V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item."
   cultureId: culture:myconid-grove
   kind: 6
   requirements:
     items:
-    - itemDefinitionId: resource:compost
+    - itemDefinitionId: material:compost
       amount: 1
       consume: 1
     facilities: []

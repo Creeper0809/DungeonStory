@@ -10,7 +10,8 @@ public sealed class CombatWeaponSO : CombatEquipmentDefinitionSO
     [SerializeReference] private List<CombatAttackVerb> verbs = new List<CombatAttackVerb>();
     [SerializeField] private List<CombatRangeProfile> rangeProfiles = new List<CombatRangeProfile>();
     [Min(1), SerializeField] private int maximumRange = 1;
-    [SerializeField] private List<string> compatibleAmmunitionItemIds = new List<string>();
+    [ContentReference(ContentReferenceKind.Ammunition), SerializeField]
+    private List<string> compatibleAmmunitionItemIds = new List<string>();
     [Min(0), SerializeField] private int magazineCapacity;
     [Min(0f), SerializeField] private float reloadSeconds = 1f;
     [SerializeField] private bool supportsAimed = true;

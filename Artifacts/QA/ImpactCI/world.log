@@ -1,22 +1,22 @@
 [Licensing::Module] Trying to connect to existing licensing client channel...
 Built from '6000.3/staging' branch; Version is '6000.3.8f1 (1c7db571dde0) revision 1867189'; Using compiler version '194234433'; Build Type 'Release'
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo" at "2026-10-23T08:55:22.0121632Z"
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo" at "2026-10-23T12:30:30.5709006Z"
 OS: 'Windows 11  (10.0.22631) Core' Language: 'ko' Physical Memory: 32491 MB
 BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
 System  architecture: x64
 Process architecture: x64
-Date: 2026-10-23T08:55:22Z
+Date: 2026-10-23T12:30:30Z
 
 COMMAND LINE ARGUMENTS:
 C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Unity.exe
 -batchmode
 -nographics
 -projectPath
-C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory
+C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory
 -executeMethod
 V27CiEvidenceBatch.RunImpactWorldRestore
 -logFile
-C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Artifacts\QA\r87ee-local-world-retry2\unity.log
+C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Artifacts\QA\r95so-local-world\unity.log
 -refreshImportMode
 InProcess
 -job-worker-count
@@ -25,12 +25,8 @@ InProcess
 1
 -standbyWorkerCount
 0
-Successfully changed project path to: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory
-C:/Users/vulpo/.codex/worktrees/editmode-regressions/DungeonStory
-DisplayDialog: Recovering Scene Backups Scene backups from a previous Editor session have been detected. Your scene might have been backed up when an Editor instance did not close correctly.
-
-Do you want to copy and preserve these backups in Assets/_Recovery/?
-This should not be called in batch mode.
+Successfully changed project path to: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory
+C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory
 [UnityMemory] Configuration Parameters - Can be set up in boot.config
     "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
     "memorysetup-temp-allocator-size-audio-worker=65536"
@@ -66,37 +62,37 @@ This should not be called in batch mode.
     "memorysetup-job-temp-allocator-block-size-background=1048576"
     "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
     "memorysetup-temp-allocator-size-cloud-worker=32768"
-Player connection [158044]  Target information:
+Player connection [201292]  Target information:
 
 [redacted player-connection network identifiers]
 
 [redacted player-connection network identifiers]
 
-Player connection [158044] Host joined multi-casting on [225.0.0.222:54997]...
-Player connection [158044] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Player connection [201292] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [201292] Host joined alternative multi-casting on [225.0.0.222:34997]...
 JobSystem: Creating JobQueue using job-worker-count value 1
 Input System module state changed to: Initialized.
 [Physics::Module] Initialized fallback backend.
 [Physics::Module] Id: 0xdecafbad
+[Package Manager] Connected to IPC stream "Upm-191532" after 0.3 seconds.
+[Licensing::Module] Licensing is not yet initialized.
 [Licensing::Client] Error: HandshakeResponse reported an error:
 	ResponseCode: 505
 	ResponseStatus: Unsupported protocol version '1.17.4'.
 [Licensing::Module] Error: Failed to handshake to channel: "LicenseClient-vulpo"
 [Licensing::IpcConnector] LicenseClient-vulpo channel disconnected successfully.
 [Licensing::IpcConnector] Channel LicenseClient-vulpo-6000.3.8 doesn't exist
-[Licensing::Module] Successfully launched the LicensingClient (PId: 115236)
-[Package Manager] Connected to IPC stream "Upm-187844" after 0.8 seconds.
-[Licensing::Module] Licensing is not yet initialized.
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-6000.3.8" at "2026-10-23T08:55:23.3806719Z"
+[Licensing::Module] Successfully launched the LicensingClient (PId: 178472)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-6000.3.8" at "2026-10-23T12:30:32.1517279Z"
 [Licensing::Client] Handshaking with LicensingClient:
   Version:                 1.17.4+4293ba1
   Session Id:              [redacted]
   Correlation Id:          [redacted]
   External correlation Id: [redacted]
   Machine Id:              [redacted]
-[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-vulpo-6000.3.8" (connect: 0.57s, validation: 0.04s, handshake: 0.81s)
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-6000.3.8-notifications" at "2026-10-23T08:55:24.2238995Z"
-[Licensing::Module] Connected to LicensingClient (PId: 115236, launch time: 0.01, total connection time: 1.41s)
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-vulpo-6000.3.8" (connect: 0.57s, validation: 0.04s, handshake: 0.94s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-6000.3.8-notifications" at "2026-10-23T12:30:33.1325529Z"
+[Licensing::Module] Connected to LicensingClient (PId: 178472, launch time: 0.01, total connection time: 1.55s)
 [Licensing::Module] Error: Access token is unavailable; failed to update
 [Licensing::Client] Successfully resolved entitlement details
 [Licensing::Module] License group:
@@ -106,8 +102,8 @@ Input System module state changed to: Initialized.
   Expiration: Unlimited
 [Licensing::Client] Successfully updated license, isAsync: True, time: 0.01
 [Licensing::Client] Successfully resolved entitlement details
-[Licensing::Module] Licensing Background thread has ended after 2.23s
-[Licensing::Module] Licensing is initialized (took 0.89s).
+[Licensing::Module] Licensing Background thread has ended after 2.59s
+[Licensing::Module] Licensing is initialized (took 1.60s).
 [Licensing::Client] Successfully resolved entitlement details
 Library Redirect Path: Library/
 [Physics::Module] Selected backend.
@@ -116,11 +112,11 @@ Library Redirect Path: Library/
 [Physics::Module] SDK Version: 4.1.2
 [Physics::Module] Integration Version: 1.0.0
 [Physics::Module] Threading Mode: Multi-Threaded
-Refreshing native plugins compatible for Editor in 0.29 ms, found 0 plugins.
+Refreshing native plugins compatible for Editor in 9.56 ms, found 0 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Initialize engine version: 6000.3.8f1 (1c7db571dde0)
 [Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/Resources/UnitySubsystems
-[Subsystems] Discovering subsystems at path C:/Users/vulpo/.codex/worktrees/editmode-regressions/DungeonStory/Assets
+[Subsystems] Discovering subsystems at path C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets
 Forcing GfxDevice: Null
 GfxDevice: creating device client; kGfxThreadingModeNonThreaded
 NullGfxDevice:
@@ -131,7 +127,7 @@ Initialize mono
 Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/Managed'
 Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
 Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56844
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56532
 Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
 Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
 ImportWorker Server TCP listen port: 0
@@ -143,43 +139,43 @@ Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.8f1/E
 Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll
 [Licensing::Client] Successfully resolved entitlement details
 Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/PlaybackEngines/iOSSupport/UnityEditor.iOS.Extensions.dll
-Registered in 0.009568 seconds.
-- Loaded All Assemblies, in  0.411 seconds
+Registered in 0.006325 seconds.
+- Loaded All Assemblies, in  0.406 seconds
 Native extension for iOS target not found
 Native extension for Android target not found
-Android Extension - Scanning For ADB Devices 2263 ms
+Android Extension - Scanning For ADB Devices 2223 ms
 Native extension for WindowsStandalone target not found
-ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
+ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:False
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in  2.568 seconds
-Domain Reload Profiling: 2976ms
-	BeginReloadAssembly (177ms)
+- Finished resetting the current domain, in  2.577 seconds
+Domain Reload Profiling: 2980ms
+	BeginReloadAssembly (154ms)
 		ExecutionOrderSort (0ms)
 		DisableScriptedObjects (0ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (16ms)
-	RebuildCommonClasses (29ms)
-	RebuildNativeTypeToScriptingClass (8ms)
-	initialDomainReloadingComplete (42ms)
-	LoadAllAssembliesAndSetupDomain (152ms)
-		LoadAssemblies (161ms)
+		CreateAndSetChildDomain (8ms)
+	RebuildCommonClasses (36ms)
+	RebuildNativeTypeToScriptingClass (11ms)
+	initialDomainReloadingComplete (47ms)
+	LoadAllAssembliesAndSetupDomain (154ms)
+		LoadAssemblies (143ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (148ms)
-			TypeCache.Refresh (147ms)
-				TypeCache.ScanAssembly (134ms)
+		AnalyzeDomain (151ms)
+			TypeCache.Refresh (149ms)
+				TypeCache.ScanAssembly (137ms)
 			BuildScriptInfoCaches (0ms)
 			ResolveRequiredComponents (0ms)
-	FinalizeReload (2568ms)
+	FinalizeReload (2577ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (2546ms)
+		SetupLoadedEditorAssemblies (2548ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (2332ms)
-			SetLoadedEditorAssemblies (2ms)
-			BeforeProcessingInitializeOnLoad (51ms)
-			ProcessInitializeOnLoadAttributes (95ms)
-			ProcessInitializeOnLoadMethodAttributes (65ms)
+			InitializePlatformSupportModulesInManaged (2301ms)
+			SetLoadedEditorAssemblies (3ms)
+			BeforeProcessingInitializeOnLoad (64ms)
+			ProcessInitializeOnLoadAttributes (117ms)
+			ProcessInitializeOnLoadMethodAttributes (64ms)
 			AfterProcessingInitializeOnLoad (0ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
@@ -191,99 +187,99 @@ Package Manager log level set to [2]
 [Licensing::Client] Successfully resolved entitlement details
 [Package Manager] Registered 78 packages:
   Packages from [https://packages.unity.com]:
-    com.unity.ai.assistant@2.13.0-pre.2 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.ai.assistant@6fee27370e6a)
-    com.unity.cinemachine@2.10.5 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.cinemachine@f26b20ca78a2)
-    com.unity.ide.rider@3.0.39 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.ide.rider@4504839d03f7)
-    com.unity.ide.visualstudio@2.0.26 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.ide.visualstudio@a99d56dec63f)
-    com.unity.inputsystem@1.18.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.inputsystem@57d0e36f6123)
-    com.unity.localization@1.5.9 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.localization@62db12c43c5c)
-    com.unity.sdk.linux-x86_64@1.1.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.sdk.linux-x86_64@6d12be270055)
-    com.unity.timeline@1.8.10 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.timeline@7f8b2fb101b6)
-    com.unity.toolchain.linux-x86_64-linux@1.1.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.toolchain.linux-x86_64-linux@d0308bf9d559)
-    com.unity.visualscripting@1.9.9 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.visualscripting@191c0d7e3b69)
-    com.unity.pipeline@0.6.0-exp.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.pipeline@9bb4172c603c)
-    com.unity.nuget.mono-cecil@1.11.6 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff)
-    com.unity.nuget.newtonsoft-json@3.2.2 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.nuget.newtonsoft-json@4dfd81071c64)
-    com.unity.sysroot.base@1.1.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.sysroot.base@3559fe1aa613)
-    com.unity.addressables@2.8.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.addressables@2dc42e61a5f5)
-    com.unity.2d.animation@13.0.4 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.animation@7396d8477ca9)
-    com.unity.2d.pixel-perfect@5.1.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.pixel-perfect@09d99455b901)
-    com.unity.2d.psdimporter@12.0.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.psdimporter@9abe0f7cac7e)
-    com.unity.2d.spriteshape@13.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.spriteshape@0738bab11647)
-    com.unity.2d.tilemap.extras@6.0.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.tilemap.extras@3dde84bf3867)
-    com.unity.2d.aseprite@3.0.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.aseprite@809e3a168ff7)
-    com.unity.2d.tooling@1.0.4 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.tooling@04422e023209)
-    com.unity.mathematics@1.3.3 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.mathematics@19a9377c4ffa)
-    com.unity.searcher@4.9.4 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.searcher@d45a78918735)
-    com.unity.burst@1.8.27 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.burst@973857688024)
-    com.unity.collections@2.6.2 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.collections@aea9d3bd5e19)
-    com.unity.profiling.core@1.0.3 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.profiling.core@8a49f7027d06)
-    com.unity.scriptablebuildpipeline@2.5.2 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.scriptablebuildpipeline@418957ab75a6)
-    com.unity.2d.common@12.0.4 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.common@3e42aeccb30d)
-    com.unity.test-framework.performance@3.2.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.test-framework.performance@0840f58e4562)
+    com.unity.ai.assistant@2.13.0-pre.2 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.ai.assistant@6fee27370e6a)
+    com.unity.cinemachine@2.10.5 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.cinemachine@f26b20ca78a2)
+    com.unity.ide.rider@3.0.39 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.ide.rider@4504839d03f7)
+    com.unity.ide.visualstudio@2.0.26 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.ide.visualstudio@a99d56dec63f)
+    com.unity.inputsystem@1.18.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.inputsystem@57d0e36f6123)
+    com.unity.localization@1.5.9 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.localization@62db12c43c5c)
+    com.unity.sdk.linux-x86_64@1.1.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.sdk.linux-x86_64@6d12be270055)
+    com.unity.timeline@1.8.10 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.timeline@7f8b2fb101b6)
+    com.unity.toolchain.linux-x86_64-linux@1.1.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.toolchain.linux-x86_64-linux@d0308bf9d559)
+    com.unity.visualscripting@1.9.9 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.visualscripting@191c0d7e3b69)
+    com.unity.pipeline@0.6.0-exp.1 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.pipeline@9bb4172c603c)
+    com.unity.nuget.mono-cecil@1.11.6 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff)
+    com.unity.nuget.newtonsoft-json@3.2.2 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.nuget.newtonsoft-json@4dfd81071c64)
+    com.unity.sysroot.base@1.1.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.sysroot.base@3559fe1aa613)
+    com.unity.addressables@2.8.1 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.addressables@2dc42e61a5f5)
+    com.unity.2d.animation@13.0.4 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.animation@7396d8477ca9)
+    com.unity.2d.pixel-perfect@5.1.1 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.pixel-perfect@09d99455b901)
+    com.unity.2d.psdimporter@12.0.1 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.psdimporter@9abe0f7cac7e)
+    com.unity.2d.spriteshape@13.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.spriteshape@0738bab11647)
+    com.unity.2d.tilemap.extras@6.0.1 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.tilemap.extras@3dde84bf3867)
+    com.unity.2d.aseprite@3.0.1 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.aseprite@809e3a168ff7)
+    com.unity.2d.tooling@1.0.4 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.tooling@04422e023209)
+    com.unity.mathematics@1.3.3 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.mathematics@19a9377c4ffa)
+    com.unity.searcher@4.9.4 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.searcher@d45a78918735)
+    com.unity.burst@1.8.27 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.burst@973857688024)
+    com.unity.collections@2.6.2 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.collections@aea9d3bd5e19)
+    com.unity.profiling.core@1.0.3 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.profiling.core@8a49f7027d06)
+    com.unity.scriptablebuildpipeline@2.5.2 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.scriptablebuildpipeline@418957ab75a6)
+    com.unity.2d.common@12.0.4 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.common@3e42aeccb30d)
+    com.unity.test-framework.performance@3.2.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.test-framework.performance@0840f58e4562)
   Built-in packages:
-    com.unity.feature.2d@2.0.2 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.feature.2d@0309d34ea7f2)
-    com.unity.multiplayer.center@1.0.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.multiplayer.center@f01f4ba8d00a)
-    com.unity.render-pipelines.universal@17.3.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.render-pipelines.universal@a6e30d1f59f5)
-    com.unity.test-framework@1.6.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.test-framework@0b7a23ab2e1d)
-    com.unity.ugui@2.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.ugui@bb329a87fcdc)
-    com.unity.modules.accessibility@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.accessibility)
-    com.unity.modules.adaptiveperformance@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.adaptiveperformance)
-    com.unity.modules.ai@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.ai)
-    com.unity.modules.androidjni@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.androidjni)
-    com.unity.modules.animation@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.animation)
-    com.unity.modules.assetbundle@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.assetbundle)
-    com.unity.modules.audio@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.audio)
-    com.unity.modules.cloth@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.cloth)
-    com.unity.modules.director@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.director)
-    com.unity.modules.imageconversion@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.imageconversion)
-    com.unity.modules.imgui@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.imgui)
-    com.unity.modules.jsonserialize@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.jsonserialize)
-    com.unity.modules.particlesystem@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.particlesystem)
-    com.unity.modules.physics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.physics)
-    com.unity.modules.physics2d@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.physics2d)
-    com.unity.modules.screencapture@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.screencapture)
-    com.unity.modules.terrain@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.terrain)
-    com.unity.modules.terrainphysics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.terrainphysics)
-    com.unity.modules.tilemap@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.tilemap)
-    com.unity.modules.ui@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.ui)
-    com.unity.modules.uielements@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.uielements)
-    com.unity.modules.umbra@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.umbra)
-    com.unity.modules.unityanalytics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unityanalytics)
-    com.unity.modules.unitywebrequest@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequest)
-    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestassetbundle)
-    com.unity.modules.unitywebrequestaudio@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestaudio)
-    com.unity.modules.unitywebrequesttexture@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequesttexture)
-    com.unity.modules.unitywebrequestwww@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestwww)
-    com.unity.modules.vectorgraphics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.vectorgraphics)
-    com.unity.modules.vehicles@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.vehicles)
-    com.unity.modules.video@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.video)
-    com.unity.modules.vr@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.vr)
-    com.unity.modules.wind@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.wind)
-    com.unity.modules.xr@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.xr)
-    com.unity.modules.subsystems@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.subsystems)
-    com.unity.modules.hierarchycore@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.hierarchycore)
-    com.unity.ext.nunit@2.0.5 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.ext.nunit@d8c07649098d)
-    com.unity.render-pipelines.core@17.3.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.render-pipelines.core@d6dfd1e235d5)
-    com.unity.shadergraph@17.3.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.shadergraph@d44b48771ebb)
-    com.unity.render-pipelines.universal-config@17.0.3 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.render-pipelines.universal-config@8dc1aab4af1d)
-    com.unity.2d.sprite@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.sprite@08e067ec1643)
-    com.unity.2d.tilemap@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.tilemap@2394479dc113)
+    com.unity.feature.2d@2.0.2 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.feature.2d@0309d34ea7f2)
+    com.unity.multiplayer.center@1.0.1 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.multiplayer.center@f01f4ba8d00a)
+    com.unity.render-pipelines.universal@17.3.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.render-pipelines.universal@a6e30d1f59f5)
+    com.unity.test-framework@1.6.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.test-framework@0b7a23ab2e1d)
+    com.unity.ugui@2.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.ugui@bb329a87fcdc)
+    com.unity.modules.accessibility@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.accessibility)
+    com.unity.modules.adaptiveperformance@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.adaptiveperformance)
+    com.unity.modules.ai@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.ai)
+    com.unity.modules.androidjni@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.audio)
+    com.unity.modules.cloth@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.cloth)
+    com.unity.modules.director@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.director)
+    com.unity.modules.imageconversion@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.physics)
+    com.unity.modules.physics2d@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.physics2d)
+    com.unity.modules.screencapture@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.screencapture)
+    com.unity.modules.terrain@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.terrain)
+    com.unity.modules.terrainphysics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.terrainphysics)
+    com.unity.modules.tilemap@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.tilemap)
+    com.unity.modules.ui@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.uielements)
+    com.unity.modules.umbra@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.umbra)
+    com.unity.modules.unityanalytics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.unityanalytics)
+    com.unity.modules.unitywebrequest@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestassetbundle)
+    com.unity.modules.unitywebrequestaudio@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestaudio)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.unitywebrequestwww@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestwww)
+    com.unity.modules.vectorgraphics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.vectorgraphics)
+    com.unity.modules.vehicles@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.vehicles)
+    com.unity.modules.video@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.video)
+    com.unity.modules.vr@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.vr)
+    com.unity.modules.wind@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.wind)
+    com.unity.modules.xr@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.hierarchycore)
+    com.unity.ext.nunit@2.0.5 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.ext.nunit@d8c07649098d)
+    com.unity.render-pipelines.core@17.3.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.render-pipelines.core@d6dfd1e235d5)
+    com.unity.shadergraph@17.3.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.shadergraph@d44b48771ebb)
+    com.unity.render-pipelines.universal-config@17.0.3 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.render-pipelines.universal-config@8dc1aab4af1d)
+    com.unity.2d.sprite@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.sprite@08e067ec1643)
+    com.unity.2d.tilemap@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.tilemap@2394479dc113)
   Embedded packages:
-    jp.hadashikick.vcontainer@file:C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Packages\jp.hadashikick.vcontainer (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Packages\jp.hadashikick.vcontainer)
+    jp.hadashikick.vcontainer@file:C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Packages\jp.hadashikick.vcontainer (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Packages\jp.hadashikick.vcontainer)
 [Subsystems] No new subsystems found in resolved package list.
-[Package Manager] Done registering packages in 0.01 seconds
-Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected, using 'Packages/com.unity.collections/Unity.Collections.Tests/System.Runtime.CompilerServices.Unsafe/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a' and ignoring 'Packages/com.unity.pipeline/Runtime/Plugins/CodeAnalysis/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.Refreshing native plugins compatible for Editor in 3.65 ms, found 2 plugins.
+[Package Manager] Done registering packages in 0.02 seconds
+Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected, using 'Packages/com.unity.collections/Unity.Collections.Tests/System.Runtime.CompilerServices.Unsafe/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a' and ignoring 'Packages/com.unity.pipeline/Runtime/Plugins/CodeAnalysis/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.Refreshing native plugins compatible for Editor in 9.11 ms, found 2 plugins.
 Starting: C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Data\Tools\BuildPipeline\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
-WorkingDir: C:/Users/vulpo/.codex/worktrees/editmode-regressions/DungeonStory
+WorkingDir: C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory
 DisplayProgressbar: Compiling Scripts
-ExitCode: 0 Duration: 1s774ms
+ExitCode: 0 Duration: 1s290ms
 [ 465/2213  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
-*** Tundra build success (1.73 seconds), 1 items updated, 2213 evaluated
-AssetDatabase: script compilation time: 2.207953s
+*** Tundra build success (1.25 seconds), 1 items updated, 2213 evaluated
+AssetDatabase: script compilation time: 1.785931s
 Begin MonoManager ReloadAssembly
-Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected, using 'Packages/com.unity.collections/Unity.Collections.Tests/System.Runtime.CompilerServices.Unsafe/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a' and ignoring 'Packages/com.unity.pipeline/Runtime/Plugins/CodeAnalysis/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.- Loaded All Assemblies, in  5.153 seconds
-Refreshing native plugins compatible for Editor in 1.26 ms, found 2 plugins.
+Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected, using 'Packages/com.unity.collections/Unity.Collections.Tests/System.Runtime.CompilerServices.Unsafe/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a' and ignoring 'Packages/com.unity.pipeline/Runtime/Plugins/CodeAnalysis/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.- Loaded All Assemblies, in  1.721 seconds
+Refreshing native plugins compatible for Editor in 5.56 ms, found 2 plugins.
 Native extension for iOS target not found
 Native extension for Android target not found
 Native extension for WindowsStandalone target not found
@@ -307,84 +303,84 @@ Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different v
 [Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
 ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in  7.222 seconds
-Domain Reload Profiling: 12367ms
-	BeginReloadAssembly (235ms)
+- Finished resetting the current domain, in  6.451 seconds
+Domain Reload Profiling: 8160ms
+	BeginReloadAssembly (281ms)
 		ExecutionOrderSort (0ms)
-		DisableScriptedObjects (7ms)
+		DisableScriptedObjects (9ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (136ms)
-	RebuildCommonClasses (24ms)
-	RebuildNativeTypeToScriptingClass (9ms)
-	initialDomainReloadingComplete (44ms)
-	LoadAllAssembliesAndSetupDomain (4833ms)
-		LoadAssemblies (4357ms)
+		CreateAndSetChildDomain (146ms)
+	RebuildCommonClasses (34ms)
+	RebuildNativeTypeToScriptingClass (11ms)
+	initialDomainReloadingComplete (62ms)
+	LoadAllAssembliesAndSetupDomain (1320ms)
+		LoadAssemblies (665ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (547ms)
-			TypeCache.Refresh (437ms)
-				TypeCache.ScanAssembly (415ms)
-			BuildScriptInfoCaches (95ms)
-			ResolveRequiredComponents (9ms)
-	FinalizeReload (7222ms)
+		AnalyzeDomain (753ms)
+			TypeCache.Refresh (601ms)
+				TypeCache.ScanAssembly (577ms)
+			BuildScriptInfoCaches (132ms)
+			ResolveRequiredComponents (14ms)
+	FinalizeReload (6452ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (6177ms)
+		SetupLoadedEditorAssemblies (6254ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (41ms)
-			SetLoadedEditorAssemblies (7ms)
-			BeforeProcessingInitializeOnLoad (172ms)
-			ProcessInitializeOnLoadAttributes (4443ms)
-			ProcessInitializeOnLoadMethodAttributes (1507ms)
-			AfterProcessingInitializeOnLoad (6ms)
-			EditorAssembliesLoaded (1ms)
+			InitializePlatformSupportModulesInManaged (37ms)
+			SetLoadedEditorAssemblies (8ms)
+			BeforeProcessingInitializeOnLoad (261ms)
+			ProcessInitializeOnLoadAttributes (5462ms)
+			ProcessInitializeOnLoadMethodAttributes (479ms)
+			AfterProcessingInitializeOnLoad (7ms)
+			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (9ms)
-Asset Pipeline Refresh (id=9a97ef78aa9c38841951522b7b04090d): Total: 15.991 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+		AwakeInstancesAfterBackupRestoration (12ms)
+Asset Pipeline Refresh (id=438e2a43cb267f949bb315fe3d2051b1): Total: 11.119 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
 	Summary:
 		Imports: total=0 (actual=0, local cache=0, cache server=0)
-		Asset DB Process Time: managed=0 ms, native=8297 ms
-		Asset DB Callback time: managed=182 ms, native=57 ms
-		Scripting: domain reloads=1, domain reload time=5153 ms, compile time=2209 ms, other=89 ms
+		Asset DB Process Time: managed=0 ms, native=7442 ms
+		Asset DB Callback time: managed=37 ms, native=23 ms
+		Scripting: domain reloads=1, domain reload time=1721 ms, compile time=1787 ms, other=106 ms
 		Project Asset Count: scripts=3042, non-scripts=9595
 		Asset File Changes: new=0, changed=0, moved=0, deleted=0
 		Scan Filter Count: 0
 	InvokeCustomDependenciesCallbacks: 0.001ms
-	InvokePackagesCallback: 59.925ms
-	ApplyChangesToAssetFolders: 0.874ms
-	Scan: 488.155ms
+	InvokePackagesCallback: 26.279ms
+	ApplyChangesToAssetFolders: 1.064ms
+	Scan: 352.152ms
 	OnSourceAssetsModified: 0.003ms
-	CategorizeAssetsWithTransientArtifact: 113.151ms
-	ProcessAssetsWithTransientArtifactChanges: 116.118ms
-	CategorizeAssets: 96.194ms
-	ImportOutOfDateAssets: 7262.540ms (5048.088ms without children)
-		CompileScripts: 2209.040ms
-		ReloadNativeAssets: 0.051ms
-		UnloadImportedAssets: 2.111ms
-		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 1.612ms
+	CategorizeAssetsWithTransientArtifact: 83.741ms
+	ProcessAssetsWithTransientArtifactChanges: 184.365ms
+	CategorizeAssets: 114.237ms
+	ImportOutOfDateAssets: 6476.075ms (4683.010ms without children)
+		CompileScripts: 1787.354ms
+		ReloadNativeAssets: 0.059ms
+		UnloadImportedAssets: 2.062ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 2.240ms
 		InitializingProgressBar: 0.000ms
-		PostProcessAllAssetNotificationsAddChangedAssets: 0.000ms
-		OnDemandSchedulerStart: 1.637ms
-	PostProcessAllAssets: 182.780ms
-	GatherAllCurrentPrimaryArtifactRevisions: 0.001ms
-	UnloadStreamsBegin: 0.863ms
-	PersistCurrentRevisions: 0.405ms
-	UnloadStreamsEnd: 0.001ms
-	GenerateScriptTypeHashes: 6.745ms
-	Untracked: 7669.552ms
+		PostProcessAllAssetNotificationsAddChangedAssets: 0.001ms
+		OnDemandSchedulerStart: 1.349ms
+	PostProcessAllAssets: 37.443ms
+	GatherAllCurrentPrimaryArtifactRevisions: 0.002ms
+	UnloadStreamsBegin: 1.166ms
+	PersistCurrentRevisions: 0.776ms
+	UnloadStreamsEnd: 0.002ms
+	GenerateScriptTypeHashes: 4.748ms
+	Untracked: 3841.442ms
 
 Application.AssetDatabase Initial Refresh End
-Scanning for USB devices : 2.655ms
+Scanning for USB devices : 3.017ms
 Initializing Unity extensions:
 [MODES] ModeService[none].Initialize
 [MODES] ModeService[none].LoadModes
 [MODES] Loading mode Default (0) for mode-current-id-DungeonStory
 Unloading 90 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 14734 unused Assets / (16.5 MB). Loaded Objects now: 15499.
-Memory consumption went from 319.0 MB to 302.4 MB.
-Total: 20.704800 ms (FindLiveObjects: 0.658500 ms CreateObjectMapping: 0.886400 ms MarkObjects: 12.691900 ms  DeleteObjects: 6.467400 ms)
+Unloading 14737 unused Assets / (17.1 MB). Loaded Objects now: 15502.
+Memory consumption went from 315.2 MB to 298.1 MB.
+Total: 26.091300 ms (FindLiveObjects: 0.815300 ms CreateObjectMapping: 1.073200 ms MarkObjects: 15.898200 ms  DeleteObjects: 8.303600 ms)
 
-Asset Pipeline Refresh (id=0313cf6f16556f342abb273db6c11c9c): Total: 0.066 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=26222484fe33d9e439346d4154c9959f): Total: 0.089 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
 Isolated full-world verification queued; player persistence is excluded.
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
 UnityEngine.StackTraceUtility:ExtractStackTrace ()
@@ -398,46 +394,46 @@ V27CiEvidenceBatch:RunImpactWorldRestore () (at Assets/Scripts/Services/Economy/
 (Filename: Assets/Scripts/Services/Infrastructure/Editor/DungeonFullWorldRoundTripPlayModeFacade.cs Line: 83)
 
 Microsoft Media Foundation video decoding to texture disabled: graphics device is Null, only Direct3D 11 and Direct3D 12 (only on desktop) are supported for hardware-accelerated video decoding.
-[Project] Loading completed in 43.616 seconds
-	Project init time: 				24.001 seconds
+[Project] Loading completed in 45.233 seconds
+	Project init time: 				17.353 seconds
 		Template init time: 		0.000 seconds
-		Package Manager init time: 		1.674 seconds
-		Asset Database init time: 		0.362 seconds
-		Global illumination init time: 	0.007 seconds
-		Assemblies load time: 			2.996 seconds
-		Unity extensions init time: 	0.016 seconds
-		Asset Database refresh time: 	15.991 seconds
-	Scene opening time: 			19.058 seconds
-##utp:{"type":"ProjectInfo","version":2,"phase":"Immediate","time":1792745765587,"processId":187844,"projectLoad":43.6158237,"projectInit":24.0011162,"templateInit":0.0,"packageManagerInit":1.6740798,"assetDatabaseInit":0.3624315,"globalIlluminationInit":0.0070771,"assembliesLoad":2.9963211,"unityExtensionsInit":0.0156752,"assetDatabaseRefresh":15.9906698,"sceneOpening":19.0579518}
-##utp:{"type":"EditorInfo","version":2,"phase":"Immediate","time":1792745765587,"processId":187844,"editorVersion":"6000.3.8f1 (1c7db571dde0)","branch":"6000.3/staging","buildType":"Release","platform":"Windows"}
+		Package Manager init time: 		1.875 seconds
+		Asset Database init time: 		0.252 seconds
+		Global illumination init time: 	0.009 seconds
+		Assemblies load time: 			3.005 seconds
+		Unity extensions init time: 	0.019 seconds
+		Asset Database refresh time: 	11.119 seconds
+	Scene opening time: 			27.183 seconds
+##utp:{"type":"ProjectInfo","version":2,"phase":"Immediate","time":1792758675777,"processId":191532,"projectLoad":45.2330275,"projectInit":17.3532433,"templateInit":0.0,"packageManagerInit":1.8752326,"assetDatabaseInit":0.2521791,"globalIlluminationInit":0.008799,"assembliesLoad":3.0048835,"unityExtensionsInit":0.0189833,"assetDatabaseRefresh":11.1188541,"sceneOpening":27.1828531}
+##utp:{"type":"EditorInfo","version":2,"phase":"Immediate","time":1792758675778,"processId":191532,"editorVersion":"6000.3.8f1 (1c7db571dde0)","branch":"6000.3/staging","buildType":"Release","platform":"Windows"}
 [Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
 [Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
-Asset Pipeline Refresh (id=16db296e627d3104d9d1b139b0f9a50a): Total: 0.058 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=58455234a6ecf0b4a909b6e3daee14fa): Total: 0.070 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
 Opening scene 'Assets/Scenes/GameplayScene.unity'
 Unloading 144 Unused Serialized files (Serialized files now loaded: 0)
 Loaded scene 'Assets/Scenes/GameplayScene.unity'
-	Deserialize:            272.639 ms
-	Integration:            335.246 ms
-	Integration of assets:  6.659 ms
-	Thread Wait Time:       -0.018 ms
-	Total Operation Time:   614.525 ms
-Unloading 4 unused Assets / (20.9 KB). Loaded Objects now: 16479.
-Memory consumption went from 282.1 MB to 282.1 MB.
-Total: 14.365600 ms (FindLiveObjects: 0.516400 ms CreateObjectMapping: 0.402200 ms MarkObjects: 13.397300 ms  DeleteObjects: 0.049000 ms)
+	Deserialize:            387.814 ms
+	Integration:            590.068 ms
+	Integration of assets:  20.234 ms
+	Thread Wait Time:       -0.047 ms
+	Total Operation Time:   998.069 ms
+Unloading 4 unused Assets / (19.3 KB). Loaded Objects now: 16482.
+Memory consumption went from 284.1 MB to 284.1 MB.
+Total: 18.131900 ms (FindLiveObjects: 0.698200 ms CreateObjectMapping: 0.509500 ms MarkObjects: 16.861900 ms  DeleteObjects: 0.061200 ms)
 
 Start Indexing on Editor startup
 [Indexing] Starting Initial Indexing for Assets
 [UnityConnectServicesConfig] config is NOT valid, switching to default
-Created GICache directory at C:/Users/vulpo/AppData/LocalLow/Unity/Caches/GiCache. Took: 0.014s, timestamps: [43.622 - 43.636]
-SpriteAtlasPacking completed in 0.017269 sec
+Created GICache directory at C:/Users/vulpo/AppData/LocalLow/Unity/Caches/GiCache. Took: 0.023s, timestamps: [45.243 - 45.266]
+SpriteAtlasPacking completed in 0.020993 sec
 Entering Playmode with Reload Domain disabled.
 If you experience any issues, please disable "Enter Play Mode Options" in Editor Settings
 Loaded scene 'Temp/__Backupscenes/0.backup'
-	Deserialize:            6.606 ms
-	Integration:            1982.316 ms
-	Integration of assets:  0.004 ms
-	Thread Wait Time:       0.015 ms
-	Total Operation Time:   1988.942 ms
+	Deserialize:            10.490 ms
+	Integration:            2504.317 ms
+	Integration of assets:  0.010 ms
+	Thread Wait Time:       0.000 ms
+	Total Operation Time:   2514.818 ms
 Legacy persistence import excluded for isolated batch verification.
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
 UnityEngine.StackTraceUtility:ExtractStackTrace ()
@@ -451,309 +447,309 @@ VContainer.Unity.PlayerLoopRunner:Run () (at ./Packages/jp.hadashikick.vcontaine
 
 (Filename: Assets/Scripts/Services/Infrastructure/Core/DungeonLegacyPersistenceMigration.cs Line: 16)
 
-Starting new worker id: 0 with log in C:/Users/vulpo/.codex/worktrees/editmode-regressions/DungeonStory/Logs/AssetImportWorker0.log
+Starting new worker id: 0 with log in C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Logs/AssetImportWorker0.log
 Worker ready: AssetImportWorker0 0
 [Worker0] Start importing Assets/DefaultVolumeProfile.asset using Guid(b33c5ce48e898d828a5dd5e9ef6ef94b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'a2308dc18311ea82861f861dc60feb75') in 0.0590734 seconds
+[Worker0]  -> (artifact id: '15c31e3fc32e483745a803694f7beac9') in 0.1164479 seconds
 [Worker0] Start importing Assets/Localization/CharacterSummaryUI_ko.asset using Guid(3656bafaa16ced048ac918a814187bb6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '75b8eea4faac244ed2553d1428387187') in 0.025313 seconds
+[Worker0]  -> (artifact id: '72c97696fd0b765271ca406623240797') in 0.0488079 seconds
 [Worker0] Start importing Assets/Localization/ProductionUI_ko.asset using Guid(90af0bfcbd5cdaa49ba094f29f4cf857) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '708323ca4de77760d63b0cba1950e442') in 0.0192527 seconds
+[Worker0]  -> (artifact id: 'e65fd79d3e6712b83f82fb7feaebad8a') in 0.0163652 seconds
 [Worker0] Start importing Assets/Localization/CharacterNarrative_ko.asset using Guid(9c9badfcf67ad5145a2fb1cef952395f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'a15635fe1262ff845cea3dbe6e6875dc') in 0.0135428 seconds
+[Worker0]  -> (artifact id: '6bd6bef0a7c1aeca686022ef8e68ffb6') in 0.0204789 seconds
 [Worker0] Start importing Assets/Localization/CharacterSummaryUI.asset using Guid(566c4e569d665674c96c2a88b776e9e2) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'a5be302d62a914cd7ae1f0e04e40072e') in 0.0125034 seconds
+[Worker0]  -> (artifact id: '37a6e872f347213534e01f4a1b658e5c') in 0.0282201 seconds
 [Worker0] Start importing Assets/Prefabs/CharacterPrefab.prefab using Guid(eb0f86a24c65be04a8059751ede38ea9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '5479c2546a942c4759c231faeb0de4f2') in 0.1818678 seconds
+[Worker0]  -> (artifact id: 'f64e718ef9d4c988fa9283eb77b2c171') in 0.4911789 seconds
 [Worker0] Start importing Assets/Settings/Lit2DSceneTemplate.scenetemplate using Guid(d03ed43fc9d8a4f2e9fa70c1c7916eb9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'e14992cad0a2be09a7a1fc6bfeb36298') in 0.0382701 seconds
+[Worker0]  -> (artifact id: '92b8e707e41f457f1a3bc923037e5d4a') in 0.0789486 seconds
 [Worker0] Start importing Assets/Localization/ProductionUI_en.asset using Guid(eb009b5f95446be40af1a62309f450fb) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'f37b2128bc304732bcb9b5576d779a0e') in 0.0092278 seconds
+[Worker0]  -> (artifact id: 'de9ddfc5fcddfa7facad8e26ffa25571') in 0.0150248 seconds
 [Worker0] Start importing Assets/Localization/CharacterCombatUI_en.asset using Guid(2fb06533cb3a38e42a6b6841d41240a7) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'd6dc1513182ee732b8e993eea16f9733') in 0.0184303 seconds
+[Worker0]  -> (artifact id: '7c928326324768c56ed04473f215de3a') in 0.0195377 seconds
 [Worker0] Start importing Assets/Localization/DefenseUI Shared Data.asset using Guid(08de28fcb12537e409afdaebf897ac17) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '3835031f3e5f71aa5b43cb348a4e8a9c') in 0.0584026 seconds
+[Worker0]  -> (artifact id: '84edf221848f69fe3aaf3b9ffd81bc37') in 0.1003058 seconds
 [Worker0] Start importing Assets/_Recovery/0 (14).unity using Guid(498cfba02d3a0704982092568f23657a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'a2a6e52e8e3ae68a5f12e5fc247ac44e') in 0.012913 seconds
+[Worker0]  -> (artifact id: 'f2320819f2180c20a17285f41daaf16c') in 0.030044 seconds
 [Worker0] Start importing Assets/Localization/CharacterSummaryUI Shared Data.asset using Guid(8ee74922f4e118c4c8b5d143c7333c84) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '2cc7b70d8c9e3d72ef1b312a934a838f') in 0.014733 seconds
+[Worker0]  -> (artifact id: '3077bbbcb76857373fb50b80195d3b5e') in 0.0192342 seconds
 [Worker0] Start importing Assets/Scenes/GameplayScene.unity using Guid(d9e43c9312d0f124684901ff04d9c130) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '637008a827772bea91e83f2f6a9451cc') in 0.0205039 seconds
+[Worker0]  -> (artifact id: '5f51c93c569f3a430c73c6241e1f71d2') in 0.027413 seconds
 [Worker0] Start importing Assets/Images/sprite5.png using Guid(0b1e61942d5699f48a83de17cbfbe560) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'e11e4e10e944a07003c6ee16c2f65e89') in 0.0543604 seconds
+[Worker0]  -> (artifact id: '00075fedecfc40b3d6b33add36facf7e') in 0.1135966 seconds
 [Worker0] Start importing Assets/Localization/CharacterAI_ko.asset using Guid(1d20252e947fe1d41bcdd22b8f5be9e1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'bc82dc5b753c6eb720ee5fe8bd4d5952') in 0.0089454 seconds
+[Worker0]  -> (artifact id: '9bea278d56bc5571b3976bc5531369e0') in 0.0253227 seconds
 [Worker0] Start importing Assets/Localization/BuildingSummaryUI_en.asset using Guid(a0d154d1b8c43714686e1aa30b7fd33e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '6051b3c3fc95d45c7d2ba9bb2f9568ee') in 0.0094178 seconds
+[Worker0]  -> (artifact id: 'f0632f9a68217f970570c9191092469f') in 0.0204413 seconds
 [Worker0] Start importing Assets/Localization/LocalizationSettings.asset using Guid(6b2f6a0ba87e06d4db62ab86127ff54b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'bdad91154767c16e5b9745cd493d7592') in 0.0165191 seconds
+[Worker0]  -> (artifact id: '4802cea6b0e3751781252e8d102981d7') in 0.0360957 seconds
 [Worker0] Start importing Assets/Localization/CharacterAI_en.asset using Guid(d10d47423dd268340b91dd7ab67d46b2) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '8a0a9b14635ee81aea1a8b20faa7bf19') in 0.0185355 seconds
+[Worker0]  -> (artifact id: '69c7e5424d676c3e7c1aad3e8c8fb373') in 0.0216323 seconds
 [Worker0] Start importing Assets/Localization/WildlifeUI Shared Data.asset using Guid(f683cb54b490e074eab3b569c34ddd0a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '2332d343c3a9b8b2385beb4afa909d9d') in 0.0162606 seconds
+[Worker0]  -> (artifact id: '62734373d5754ceed52a48fd93f98281') in 0.0182733 seconds
 [Worker0] Start importing Assets/Scenes/CharacterAiTestScene.unity using Guid(83a1c0205965ba54182420af4c0c2fbb) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'd7a7b44da4a163aec65f291b44408249') in 0.0158721 seconds
+[Worker0]  -> (artifact id: '4c3d7bb40265f39407ab82e14cd45ef0') in 0.0285351 seconds
 [Worker0] Start importing Assets/_Recovery/0 (18).unity using Guid(52eb5ce0e1f1fa84988a50ad5fe6ed7c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '76686b7f4535d26494842bd68f35d1f2') in 0.0074813 seconds
+[Worker0]  -> (artifact id: '9f9ada5fc5e0c17bf6ce47630886ad9a') in 0.0163355 seconds
 [Worker0] Start importing Assets/Architecture/runtime-architecture-metrics-baseline.json using Guid(f39f526b25511d343bef57745f9f2ddf) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '77e87e03bee003161f2116cbf6d588f2') in 0.0296563 seconds
+[Worker0]  -> (artifact id: '2bb446f62f70d89e19a4f69bb3c7c570') in 0.0313458 seconds
 [Worker0] Start importing Assets/bansheegz_database_settings.json using Guid(9ee9ebee4a02f0842801aba063755cd4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'd0f47bce6f6084e585dd18f72e1d6344') in 0.0232901 seconds
+[Worker0]  -> (artifact id: '8f364e7f92f43e1b7fa0d339ba3c5e02') in 0.0259094 seconds
 [Worker0] Start importing Assets/char_41.png using Guid(0d8098dbf751029488f8f1140b183039) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'd8950a07bdab406aec05361363b11b3a') in 0.0242383 seconds
+[Worker0]  -> (artifact id: 'e36345b6ffa9c984f66b899f385bc815') in 0.0362264 seconds
 [Worker0] Start importing Assets/Localization/WildlifeUI_en.asset using Guid(d2bdfb3a1a62c9046a777ae2eb1b0080) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'f58884101f7bfefa3f8067ef3962e96a') in 0.0091541 seconds
+[Worker0]  -> (artifact id: '3dff4a7aa9978d1ab6abe4d2704bca95') in 0.0191266 seconds
 [Worker0] Start importing Assets/Localization/Locale_ko.asset using Guid(87400b7f5f3109a47b295483382d438d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '12379350d28e0fcc372ec9fc03f4d99e') in 0.0082492 seconds
-[Worker0] Start importing Assets/_Recovery/0 (20).unity using Guid(e959ad3f84523f14393589501ca86580) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
-[Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '2036dd77ace5040b6757f323c335a098') in 0.0151555 seconds
+[Worker0]  -> (artifact id: '5c70dcdc2bfe0e74825708aa9f873382') in 0.0182335 seconds
 [Worker0] Start importing Assets/___www.unityassetcollection.com___.txt using Guid(c1b0e9b1f04ac4f438cc70399790d144) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '13b2df8bfd4c05574668666032d3ed9e') in 0.0280678 seconds
+[Worker0]  -> (artifact id: 'b562db3afeaa9ea83e80fa424d233907') in 0.0260881 seconds
 [Worker0] Start importing Assets/Localization/CharacterSummaryUI_en.asset using Guid(a7d6879bd3b2dcb40955a61203e53b9a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '41c55ea23b54d3158ac123cf1feba42a') in 0.0137641 seconds
+[Worker0]  -> (artifact id: 'acf9b46f9eaad60b1ff52507688f5830') in 0.019944 seconds
 [Worker0] Start importing Assets/Architecture/runtime-architecture-metrics-current.json using Guid(9863cbc88b092344d93acde16b1f3019) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'eefed3475621cfce74582d03f69f9c2c') in 0.0222456 seconds
+[Worker0]  -> (artifact id: '69603736089dfcce03b3df0762b38260') in 0.0363256 seconds
 [Worker0] Start importing Assets/Images/Sprite-0002.png using Guid(c54e760d158e5fc4987460a72c6f4301) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'd6d65f5fc43be1d727fb8ddc31e34773') in 0.0288293 seconds
+[Worker0]  -> (artifact id: 'f63d694289ae31b8e73fdf07f79313fc') in 0.035904 seconds
 [Worker0] Start importing Assets/Architecture/runtime-architecture-unity-baseline.json using Guid(d271a115c9711e145905e5cc9dfd37c7) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '0544b23631bb78ef0a4778e8cbf6f861') in 0.0196486 seconds
+[Worker0]  -> (artifact id: 'ef7a531296313acd4db0cdd1c4c2c2b1') in 0.0274274 seconds
 [Worker0] Start importing Assets/Font/Maplestory Light.ttf using Guid(cdf934ee48436774fba79fa7907113d8) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '243c7f1b60ea09a4e826d27860b733c9') in 0.0375473 seconds
+[Worker0]  -> (artifact id: 'a4bdfe593f806865a589bd5f1d744063') in 0.0357682 seconds
 [Worker0] Start importing Assets/Localization/CharacterAI.asset using Guid(71b94d74bf36d3344ad55fda13147f4e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '4acc54cc82c2b1edf05bcd8fe3ccda88') in 0.0158121 seconds
+[Worker0]  -> (artifact id: 'ea91aa02b14395790969a7c3694310be') in 0.0173145 seconds
 [Worker0] Start importing Assets/Architecture/runtime-architecture-baseline.json using Guid(0d32ee9010778ec4eb71de1a37056481) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '05de49679500a6f841e8a0900b4be595') in 0.027927 seconds
+[Worker0]  -> (artifact id: 'c5acf45170ee14f5ae06d3c7f6690b7f') in 0.0312161 seconds
 [Worker0] Start importing Assets/Images/1x1.png using Guid(aa780d1dd8a968848999e2cefe26762b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'e9504571ea12cf38cba682f9374822f9') in 0.0128894 seconds
+[Worker0]  -> (artifact id: 'affe636a358187b8e4b6c85900033082') in 0.0255468 seconds
 [Worker0] Start importing Assets/_Recovery/0 (11).unity using Guid(2eddc9f1acfa2ab499d8e035e34c6f29) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'ca707b2fa24ae84bca6fa0120692d63f') in 0.0202489 seconds
+[Worker0]  -> (artifact id: '05043a02fd60ad912b625b6c301bcb1e') in 0.0320169 seconds
 [Worker0] Start importing Assets/_Recovery/0 (13).unity using Guid(e6758dbb21d050b4db7a00e044a216fe) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '5e81558fb093001fd786024bef88b250') in 0.0219057 seconds
+[Worker0]  -> (artifact id: 'a4bceeb6581d70229d14aaacde2f05d1') in 0.0269668 seconds
 [Worker0] Start importing Assets/Font/Silver.ttf using Guid(ed066beb6c3b10b43b1e932dd6f9aca1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'f4329304cff0d3e8628dbf1e51a54549') in 0.0235492 seconds
+[Worker0]  -> (artifact id: '7138de80857f6832d64c3425886b2408') in 0.0221333 seconds
 [Worker0] Start importing Assets/Localization/ProductionUI Shared Data.asset using Guid(9309e0b7c9ed87b45869e6a8fcadf303) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'af618e84117582b1a3744b127f06f822') in 0.00925 seconds
+[Worker0]  -> (artifact id: 'aff020897c85668e6a2f03130a7199f4') in 0.0192353 seconds
+[Worker0] Start importing Assets/Editor/ContentReferenceSelectionDebugScenarios.cs using Guid(7d627981b68144b4ba2a18a9817e981f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: '09a77ec31eaa20d35fe6b2b709d5656f') in 0.0196946 seconds
 [Worker0] Start importing Assets/Resources/DOTweenSettings.asset using Guid(831833f580847224f94d49a2127c2376) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '16145a40eefd9b0667e3c67ffe1c814a') in 0.0119857 seconds
+[Worker0]  -> (artifact id: '05afc595eaf4cf1947b1fb7697fc94c1') in 0.0208466 seconds
 [Worker0] Start importing Assets/Settings/Renderer2D.asset using Guid(424799608f7334c24bf367e4bbfa7f9a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '14727519ac4b1d72b44bfe4f893473e7') in 0.0177917 seconds
+[Worker0]  -> (artifact id: 'fbcc2e05a182d12570a4534bd9f48e25') in 0.035357 seconds
 [Worker0] Start importing Assets/Localization/DefenseUI.asset using Guid(caa12e16e22b8274a9fac62e435cf9b7) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'd378447b83ef70822ca10ba63de05223') in 0.0099831 seconds
+[Worker0]  -> (artifact id: '2ce7c17b1b7b9d55551546c170b24f6a') in 0.0185684 seconds
 [Worker0] Start importing Assets/Localization/CharacterCombatUI_ko.asset using Guid(e6381c5cddd55a542b8eca8ede3414a6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '36d042d9df8b240a0a1dc8e584720ba0') in 0.0087263 seconds
+[Worker0]  -> (artifact id: '052b973a5cd244c2c9e7e024e7ff664c') in 0.0181428 seconds
 [Worker0] Start importing Assets/Localization/CharacterNarrative Shared Data.asset using Guid(a95f6af38b4589d4484ce059bdfbae3b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'ca3541550414e0d85e43e38138948137') in 0.0074458 seconds
+[Worker0]  -> (artifact id: 'ab28c2ec6d7ff0046bed1696a7ac6d93') in 0.0138077 seconds
+[Worker0] Start importing Assets/Editor/ContentReferenceDrawer.cs using Guid(0e0d8a0eb53b481b8537fa3b61871c39) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'ed0a45d5ef2ca0ab245b1dfdb9178b54') in 0.0159359 seconds
 [Worker0] Start importing Assets/Architecture/runtime-architecture-unity-current.json using Guid(16ea7bbcdbb79dc469fe13024e59f957) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '6dbd3d05968e12b76d545df27fdce1bc') in 0.0236667 seconds
+[Worker0]  -> (artifact id: '00911b2db2bb7cf2b707ee4358a1fa9d') in 0.0265331 seconds
 [Worker0] Start importing Assets/Localization/DomainFailures_ko.asset using Guid(6182a5d0ae436d245b53a1fbae254092) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '1a54bb2cce08f26b71dee152085e40f1') in 0.0138446 seconds
+[Worker0]  -> (artifact id: '9c1684eca0f4c46366bb85ed7a6565a2') in 0.0258137 seconds
 [Worker0] Start importing Assets/Localization/DomainFailures.asset using Guid(eb378d806d8393d4bb4df2a8b4d64425) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'ef03ff560f597c0eedf1bd4c5b8725d1') in 0.0188358 seconds
+[Worker0]  -> (artifact id: '599a509c98298991dc573743196606ae') in 0.0225636 seconds
 [Worker0] Start importing Assets/Scenes/StartPreparationScene.unity using Guid(29f6b95760d1419fb9a7be6544812b0c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '19ffaa23a3823fb82d96039a4b158ec0') in 0.0177731 seconds
+[Worker0]  -> (artifact id: '509c34062fa64bf3419e29da9d9a2e88') in 0.0164052 seconds
 [Worker0] Start importing Assets/Images/White Box Rounded.png using Guid(3bf2dce37a5f85d40937a6bd53027416) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '3875c387eb0b35c9653d50d4b996dab5') in 0.031983 seconds
+[Worker0]  -> (artifact id: 'bc77cfdcd333c90438bacea95cfdcb88') in 0.0400257 seconds
 [Worker0] Start importing Assets/Editor/PlayRefreshEditor.cs using Guid(6218b3511fa2cf240aae12f2af7a43d4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '32dfb79b21e41c982f74fdcf48cac6d9') in 0.0118439 seconds
+[Worker0]  -> (artifact id: 'e044da42df38b3ea0ef773676ec5d902') in 0.0120244 seconds
 [Worker0] Start importing Assets/Images/Square.png using Guid(4dd68c4deb1a4d845b61ac27cf781c15) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'af8708c9581f0b228f73c0b005c4b36f') in 0.0249123 seconds
+[Worker0]  -> (artifact id: 'c1bdc997cf8493bc2c6609c068fbad81') in 0.0343749 seconds
 [Worker0] Start importing Assets/Localization/CharacterAI Shared Data.asset using Guid(9fafb9d788be072478e8f067ae3ca8f4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '6b2097a9814212a7a831236b6e72a384') in 0.0204459 seconds
+[Worker0]  -> (artifact id: 'ea52630b57ecd963aa06689d5d04f5fc') in 0.0191709 seconds
 [Worker0] Start importing Assets/Prefabs/CharacterPrefab 1.prefab using Guid(44fc1753d909bf0429b1ccfb8598cf22) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '8e27f08c60d833ebd5d05f5bc2be212f') in 0.0688108 seconds
+[Worker0]  -> (artifact id: 'db9ea44005010af3d8d2cfa9f68e45d7') in 0.0811449 seconds
 [Worker0] Start importing Assets/_Recovery/0 (1).unity using Guid(c26a8b697830f4d48a2a99382aaf16aa) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'c3ee0fd2fb68fe00a28b91601d6dfee3') in 0.026837 seconds
+[Worker0]  -> (artifact id: '3c184e875a6bbfafffb1b3c239b9f871') in 0.0216151 seconds
 [Worker0] Start importing Assets/Localization/ProductionUI.asset using Guid(e601a502e7bff1f4ab6bea4494fdffe8) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '8b4aa1f7aafb5b80cfaeec3f142aad74') in 0.015587 seconds
+[Worker0]  -> (artifact id: '5aa46b9b590ecce74f4e116b059a4250') in 0.0214947 seconds
 [Worker0] Start importing Assets/UniversalRenderPipelineGlobalSettings.asset using Guid(93b439a37f63240aca3dd4e01d978a9f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '0ad69fef6b21c969169e20ff4bdb5349') in 0.0234685 seconds
+[Worker0]  -> (artifact id: '5e54ddba6a40547447ec7a5e1aeeb937') in 0.0522934 seconds
 [Worker0] Start importing Assets/Localization/CharacterNarrative_en.asset using Guid(5f0a0f6b6dc95da4fbc5799a5a9f7f09) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '870fe603b2d3635132e0ae72b3832f97') in 0.0200188 seconds
+[Worker0]  -> (artifact id: 'a24c70dc3d4447b8c391f4b8a155e7bd') in 0.022956 seconds
 [Worker0] Start importing Assets/Analyzers/DungeonStory.BalanceAnalyzers.dll using Guid(81ae939d6fe54f15a19a4902f946c908) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'd0c6577eb14c9e53c9e6caaae718cfa1') in 0.0107501 seconds
+[Worker0]  -> (artifact id: 'a9b7f055bf917c6c01baebddca62f7ba') in 0.0171773 seconds
 [Worker0] Start importing Assets/Localization/BuildingSummaryUI Shared Data.asset using Guid(873f4fcf510db81469f0d0d07d1c8aac) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '909f093ca6f579409f4fa0fc07b30c0f') in 0.0152888 seconds
+[Worker0]  -> (artifact id: 'fd721d5e77be668a14c05c6532ba4bbd') in 0.013292 seconds
 [Worker0] Start importing Assets/Resources/bansheegz_database.bytes using Guid(e0439af5aa310ae45b37bc8b725df11d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '7a2bb312bcbfa9981fdbbd8a126b2eca') in 0.0095083 seconds
+[Worker0]  -> (artifact id: 'cff26cb2a07fdb6f81c85f491e916c80') in 0.0172218 seconds
 [Worker0] Start importing Assets/Localization/Locale_en.asset using Guid(04c051f17494eb84aa5c45cd656d9fd8) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '844da5fe8f58ef62689d16ab8ce27d87') in 0.015782 seconds
+[Worker0]  -> (artifact id: '7d7af9f32a1f8583d3f195a56b1f00a7') in 0.0132812 seconds
 [Worker0] Start importing Assets/Scenes/SampleScene.unity using Guid(8c9cfa26abfee488c85f1582747f6a02) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '6bf78b0a794e7a9b2fd8e95f9bfa7d4f') in 0.0259211 seconds
+[Worker0]  -> (artifact id: '359ab9479c6e2a88328b75d798441853') in 0.02593 seconds
 [Worker0] Start importing Assets/Localization/CharacterCombatUI Shared Data.asset using Guid(854daafba8151e54fa44d3d508f9496d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'e1c22bcb03898179c3fe5a1463e04032') in 0.0135497 seconds
+[Worker0]  -> (artifact id: 'e4adceaf5f549891f96e32aae497abac') in 0.0178795 seconds
 [Worker0] Start importing Assets/Settings/UniversalRP.asset using Guid(681886c5eb7344803b6206f758bf0b1c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'cf678a250171b7b23aadf4d72867d9a7') in 0.032656 seconds
+[Worker0]  -> (artifact id: '4280ba2c1a1a8f11f7541159ec92fa34') in 0.0586275 seconds
 [Worker0] Start importing Assets/Gizmos/Behavior Designer Scene Icon.png using Guid(5b5f458971c6fd5459c51a7b8079bc3b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'e4469fae0e1b3b5c0711504d5587cd8f') in 0.0298598 seconds
+[Worker0]  -> (artifact id: 'ebe6bcbeb50c644d7c581a29659d0e3a') in 0.0364459 seconds
 [Worker0] Start importing Assets/Localization/DomainFailures Shared Data.asset using Guid(e35a33f9183c68c4186aeb6d15ce08e8) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '41015c7e52f3682656ea35b8457124f3') in 0.0124672 seconds
+[Worker0]  -> (artifact id: '95d9220edf03b1f011a3f402b92a7b4f') in 0.0221516 seconds
 [Worker0] Start importing Assets/Gizmos/Behavior Designer Hier Icon.png using Guid(f011c2328e41d994b83d3c757e68904c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '78064328cc6b045f6e9600baafba74fd') in 0.0165929 seconds
+[Worker0]  -> (artifact id: 'd87951f6c41436f7466cfbb67ded273e') in 0.020295 seconds
 [Worker0] Start importing Assets/Images/Sprite-0002 1.png using Guid(ce7cea9e150730c49810660b4c44720c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '42d49c886247044f1ec53e8fb3e58f20') in 0.0304549 seconds
+[Worker0]  -> (artifact id: 'c87413b196d035b364c9d3f76f558aa3') in 0.0460979 seconds
 [Worker0] Start importing Assets/AddressableAssetsData/DefaultObject.asset using Guid(e07fb62078b4ee64c83e66efa37b3150) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '772ff992e6d4cdfb94b29d60d9d5e758') in 0.0122351 seconds
+[Worker0]  -> (artifact id: '901453dabe2ec9c336d09e17ce623bd8') in 0.0180872 seconds
 [Worker0] Start importing Assets/Images/Sprite-0003.png using Guid(7786d52a7db50254c8fa1eb1acb38d68) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '4ed149053b7d2480f4e24f1e4553dee9') in 0.0246928 seconds
+[Worker0]  -> (artifact id: '52d19ae063b84ddd135f2abd77c7007b') in 0.0352636 seconds
 [Worker0] Start importing Assets/Localization/BuildingSummaryUI_ko.asset using Guid(d2376b9aa4bbb5e438c40a27833c025d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '0c54020fcd2662e066744107368d71a0') in 0.0152032 seconds
+[Worker0]  -> (artifact id: '15bcdc80bcbf8cf03652a59316b2357d') in 0.0221463 seconds
 [Worker0] Start importing Assets/Behavior Designer/Runtime Source Code Location.pdf using Guid(f76522f0ea27769479b1c38979bac10a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '1d3778162df2a576d586f19b8ff96c9b') in 0.0142573 seconds
+[Worker0]  -> (artifact id: 'ce984972e3f3b41a4a4b5376740e16ac') in 0.0223513 seconds
 [Worker0] Start importing Assets/Images/char_41.png using Guid(6cbca2ba6892b4446bad5d09eb483d77) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'ff4ee83b770360644620173278ff24d4') in 0.0265342 seconds
+[Worker0]  -> (artifact id: 'eb18ca6328837fb2075babf45041c981') in 0.0379909 seconds
 [Worker0] Start importing Assets/Behavior Designer/Documentation.pdf using Guid(4646946da2762db46a08e76a6c42f832) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '7a6ef9c7ea8bef02aab92435699eb800') in 0.0166171 seconds
+[Worker0]  -> (artifact id: 'bb4cb9cf9520e56f1620e17699260504') in 0.0160175 seconds
 [Worker0] Start importing Assets/Images/Sprite-0001.png using Guid(27e596c59c23e634bb123273db5dee5f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '13b15d15bda1ef8b7866925a4eb8e959') in 0.0328564 seconds
+[Worker0]  -> (artifact id: '4d9f48c9947ca203932949d53cc515c1') in 0.0356612 seconds
 [Worker0] Start importing Assets/_Recovery/0 (16).unity using Guid(2307573b7de17c342a385871ac5a4e55) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'daa7b2fb060dc05e08fcf9e4cc0b1b13') in 0.0195165 seconds
+[Worker0]  -> (artifact id: '71383e383053a6c1799e14570ed3cfcf') in 0.0278231 seconds
 [Worker0] Start importing Assets/_Recovery/0 (17).unity using Guid(7728747c8c71ebf4b9669fe366a59f0a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '937de2ae0233dfc5e593fb37e2e508c8') in 0.0198492 seconds
+[Worker0]  -> (artifact id: '2e163621eec03d9d2239c4fee216cabe') in 0.0311165 seconds
 [Worker0] Start importing Assets/Localization/CharacterNarrative.asset using Guid(83dcbc4da0a77034cbbbd70061e243c5) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '7f41aabbec616168e75d116eccc32f98') in 0.0205595 seconds
+[Worker0]  -> (artifact id: 'baad04d7b9cb58a22511f004356c7064') in 0.0239796 seconds
 [Worker0] Start importing Assets/Font/Silver.asset using Guid(68222096ea8dd4542a5b9eb8ff114fa6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '1924e4cb43e5a284ed3f39b95bf12f4f') in 0.1600766 seconds
+[Worker0]  -> (artifact id: '1c14a2f25ffe85be646fa885869ebb9f') in 0.2623091 seconds
 [Worker0] Start importing Assets/Localization/DomainFailures_en.asset using Guid(09851c8d51b2686428b6746bf4470223) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '581c8905e513c058a25112bae5b9bf23') in 0.0184002 seconds
+[Worker0]  -> (artifact id: '3cc73d4d6dcfb8c84214033d8f329bfa') in 0.0213355 seconds
 [Worker0] Start importing Assets/Localization/WildlifeUI_ko.asset using Guid(7947af0826191214b8ec44678cd7cc05) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'ab9157b06b7121fec29fac3fb8d9c0e8') in 0.0188367 seconds
+[Worker0]  -> (artifact id: 'f68a46a163afc199b2740fac08ab1099') in 0.0193549 seconds
 [Worker0] Start importing Assets/Localization/DefenseUI_en.asset using Guid(65f5a06032c921a4b9930f1046669ea2) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '33bf11ecb9979a6d5a6426c7d699371d') in 0.0102837 seconds
+[Worker0]  -> (artifact id: '3a91a382527d9a9d4336ff1656e67a39') in 0.0211283 seconds
 [Worker0] Start importing Assets/Localization/CharacterCombatUI.asset using Guid(12abc9178b2b81c4fa4d766be0f0ade3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '7f67e27073d49e6715d92c45252156a3') in 0.0133059 seconds
+[Worker0]  -> (artifact id: '58a0b9d4206f781626f9d6dadea276ba') in 0.0187709 seconds
 [Worker0] Start importing Assets/_Recovery/0 (2).unity using Guid(3068b4c1f545bbf43aeea3b3fe563167) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '336165c4590a9e3aaec4af8d5a669488') in 0.0194668 seconds
-[Worker0] Start importing Assets/_Recovery/0 (21).unity using Guid(df643652ee60195439b93b7ed5605c1d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
-[Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '7355c70611f391909dc17b9b99786560') in 0.0159106 seconds
+[Worker0]  -> (artifact id: 'b5affee51496b064a361946e5070848f') in 0.0253795 seconds
 [Worker0] Start importing Assets/Images/Stair.png using Guid(b22604868de8216408e92c4cabc133f3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '19943967171abf5419b3f9a4bbfae8ff') in 0.0115481 seconds
+[Worker0]  -> (artifact id: 'dab74a9949b5df76bc96ad4707953277') in 0.0257798 seconds
 [Worker0] Start importing Assets/Font/Maplestory Light SDF.asset using Guid(eb7dd2a908a53db4fb349b9fa2f3505c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '8235a1aaac319bc0fbfa2d814ade0d28') in 0.1852793 seconds
+[Worker0]  -> (artifact id: '492c70bde1702090c285a24dfc1ac9c7') in 0.3220605 seconds
 [Worker0] Start importing Assets/Localization/DefenseUI_ko.asset using Guid(548fbe03f26add54d9e2c4f524b73317) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '13ee8c7fbf353dc814781e5ea424b664') in 0.0168879 seconds
+[Worker0]  -> (artifact id: '8b99ed06c3d065a1c8697a6e7ba6e23d') in 0.0206515 seconds
 [Worker0] Start importing Assets/Localization/BuildingSummaryUI.asset using Guid(58bc5560b477a9d4e9031ddedc417103) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '6d61af10d572259a2d5fa7cc1e504f5c') in 0.0144455 seconds
+[Worker0]  -> (artifact id: '6f3f5bee4c64c1ccf71a6cf2e1c693c3') in 0.0189086 seconds
 [Worker0] Start importing Assets/Localization/WildlifeUI.asset using Guid(2070859ea7ca7684fb6eb9e66bbf045a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '9286cd4f6a29b1563b2e69fc3f357507') in 0.0087135 seconds
+[Worker0]  -> (artifact id: '4990282072823bfb5a18203015c9d516') in 0.0360998 seconds
 [Worker0] Start importing Assets/AddressableAssetsData/ProfileDataSourceSettings.asset using Guid(797f01e05455b404f86bd72602f7ef94) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '599f79b9f7b7f9aaca54fb6e1347ef8b') in 0.0127824 seconds
+[Worker0]  -> (artifact id: '1f4b4a2bf9b98a41ad231d67d371e03d') in 0.0394515 seconds
 [Worker0] Start importing Assets/AddressableAssetsData/AddressableAssetSettings.asset using Guid(4e9c14b0d9289aa41bb3eb0b41bd1700) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'cbe6b7dd612760857f5bd51dd36215d8') in 0.0177523 seconds
+[Worker0]  -> (artifact id: 'ee5956b6a236db83d855bc284e5647d0') in 0.0304066 seconds
 [Worker0] Start importing Assets/Images/2x2.png using Guid(7c634e1dba65d7e42b03006638d1f55e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'd1b588bf0761ba39642d7171d017f754') in 0.0323429 seconds
+[Worker0]  -> (artifact id: '130ef7de3b55bc7b81d7d567fccf29a4') in 0.0347609 seconds
 [Worker0] Start importing Assets/Scenes/TitleScene.unity using Guid(011094f3e534f9d439a4f07286ebd313) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '7290ad2342e3519bbb2abc476a280f0f') in 0.0133792 seconds
+[Worker0]  -> (artifact id: '87de2829955955b8662471259da5fe7f') in 0.0197793 seconds
 [Worker0] Start importing Assets/Images/5.png using Guid(c6f9d2f764dd7d946ac73c9dc5a31f37) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '6f95d6b8e27ea648153c4416615060c1') in 0.0118739 seconds
+[Worker0]  -> (artifact id: 'ed0b2911acae3f914c266ee39ae1c6bf') in 0.0197391 seconds
 [Worker0] Start importing Assets/_Recovery/0 (10).unity using Guid(464d543b0738c824896ed3df05102553) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'ce63307d4d0416afc598cb75fe3ed5bc') in 0.0135908 seconds
+[Worker0]  -> (artifact id: '9ba4851ef6670f274775e89949ed03f7') in 0.0258114 seconds
 [Worker0] Start importing Assets/_Recovery/0 (15).unity using Guid(df74652f9326f1e4ebbd3b149c592f31) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '257686ce56299170ca71cf96e9a8373d') in 0.0126193 seconds
+[Worker0]  -> (artifact id: 'f9a6b5466cd6b062498bb07d4ac0812d') in 0.0195702 seconds
 [Worker0] Start importing Assets/_Recovery/0 (19).unity using Guid(560425ee855e5fe41aa40b1d3d4fc0d3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '8b056bb2680b73f340f6e08687765708') in 0.021165 seconds
+[Worker0]  -> (artifact id: 'd4c3dc774e6ed793608ebb399612b2c5') in 0.0275981 seconds
 [Worker0] Start importing Assets/_Recovery/0 (12).unity using Guid(790a6e878ac508447a1116dbb96c47cb) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '6933b498b577ef5a853503c7b47a2635') in 0.019492 seconds
-SAVE_ROUND_TRIP PASS jsonBytes=2103685 buildings=138 characters=3 expeditions=1 intruders=1 knowledgeContinuation=PASS defenseGuardActivation=PASS invasionRollbackRetry=PASS warnings=0
+[Worker0]  -> (artifact id: '3abca538a08264f4a1fb6d0e99f2f1b3') in 0.0225556 seconds
+SAVE_ROUND_TRIP PASS jsonBytes=2103996 buildings=138 characters=3 expeditions=1 intruders=1 knowledgeContinuation=PASS defenseGuardActivation=PASS invasionRollbackRetry=PASS warnings=0
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
 UnityEngine.StackTraceUtility:ExtractStackTrace ()
 UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
@@ -766,7 +762,7 @@ UnityEngine.SetupCoroutine:InvokeMoveNext (System.Collections.IEnumerator,intptr
 
 (Filename: Assets/Scripts/Services/Infrastructure/Editor/DungeonGameSaveDebugScenarios.cs Line: 1373)
 
-RESULT=PASS; report=C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Artifacts\QA\r87ee-local-world-retry2\unity-evidence\full-world-report.txt
+RESULT=PASS; report=C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Artifacts\QA\r95so-local-world\unity-evidence\full-world-report.txt
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
 UnityEngine.StackTraceUtility:ExtractStackTrace ()
 UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
@@ -781,320 +777,320 @@ UnityEngine.SetupCoroutine:InvokeMoveNext (System.Collections.IEnumerator,intptr
 
 Unloading 3712 Unused Serialized files (Serialized files now loaded: 0)
 Loaded scene 'Temp/__Backupscenes/0.backup'
-	Deserialize:            5.255 ms
-	Integration:            310.051 ms
-	Integration of assets:  0.008 ms
-	Thread Wait Time:       0.045 ms
-	Total Operation Time:   315.359 ms
-Unloading 20 unused Assets / (20.0 KB). Loaded Objects now: 20173.
-Memory consumption went from 366.6 MB to 366.6 MB.
-Total: 134.474400 ms (FindLiveObjects: 0.702000 ms CreateObjectMapping: 0.616000 ms MarkObjects: 133.097500 ms  DeleteObjects: 0.057800 ms)
+	Deserialize:            11.362 ms
+	Integration:            586.032 ms
+	Integration of assets:  0.007 ms
+	Thread Wait Time:       0.002 ms
+	Total Operation Time:   597.403 ms
+Unloading 20 unused Assets / (17.1 KB). Loaded Objects now: 20175.
+Memory consumption went from 368.7 MB to 368.7 MB.
+Total: 161.406300 ms (FindLiveObjects: 0.738500 ms CreateObjectMapping: 0.669000 ms MarkObjects: 159.910900 ms  DeleteObjects: 0.086400 ms)
 
 [Licensing::Client] Successfully resolved entitlement details
 [Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
 [Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
 [Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
-[Worker0] Start importing Assets/_Recovery/0 (22).unity using Guid(22eb687f9124e4a4e8e52d0405511d73) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+[Worker0] Start importing Assets/_Recovery/0 (20).unity using Guid(e959ad3f84523f14393589501ca86580) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '6b2791306c2a8aeb6ffd89c14ac4f5b7') in 0.0187202 seconds
+[Worker0]  -> (artifact id: '52345c807f4268c75755dc0feef1f455') in 0.029128 seconds
 [Worker0] Start importing Assets/_Recovery/0 (26).unity using Guid(24597c7867e16ef4881ffb582d28811b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'e6703cb065f979e2d8d32da008f12afd') in 0.0119395 seconds
+[Worker0]  -> (artifact id: '64442d0fce03623d051ea5becb22d2ad') in 0.0284143 seconds
 [Worker0] Start importing Assets/Behavior Designer/Runtime/BehaviorDesigner.Runtime.dll using Guid(da41a8dd3b5ec434a802d9b5a2a0a777) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'b9a0fa0a641c0cc132d72b00fe611b84') in 0.0225669 seconds
+[Worker0]  -> (artifact id: '9adfa72d04c43bdb62667b11c146c95a') in 0.0237691 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_19.asset using Guid(0f1d856e25c225b4c83fc46f48337c2a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '7c0c7366d02ef0aafbb627c482662ada') in 0.0325292 seconds
+[Worker0]  -> (artifact id: '4f84e5e51576c43283c8002e62920222') in 0.0527615 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/A01.png using Guid(3b24415b7ed59304599c74cc6b842fa1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'e92274320c8efb65b66bdaeb685e760e') in 0.0094589 seconds
+[Worker0]  -> (artifact id: '03541685b1b7a65466cd1f0c17cd747e') in 0.023886 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_29.asset using Guid(95be5c77f6644c2479a8f3cde2d6ad87) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '69933558eef9cb38927b03e89275887e') in 0.0182984 seconds
+[Worker0]  -> (artifact id: 'e7c4f73446485e600d6392e702023e64') in 0.0293731 seconds
 [Worker0] Start importing Assets/_Recovery/0 (7).unity using Guid(ece2cadd9fac97e4d98dca9fcbb18feb) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'e91cff0333585f17626d140814c69f28') in 0.0199319 seconds
+[Worker0]  -> (artifact id: '3be06292a01a67452827b789c558b721') in 0.0259854 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_12.asset using Guid(b78820df8fe525c40a910b1f34a9c311) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '01242a791c1419a7c77f0606fd3fc4a4') in 0.0082271 seconds
+[Worker0]  -> (artifact id: '005c4d3f6c79353d29dbc45324e4507c') in 0.0361567 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_15.asset using Guid(3212e69ed8dccfe41808c9dbda7629f3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '5799aadf3383f114b52d61eb12a2a305') in 0.0190289 seconds
+[Worker0]  -> (artifact id: 'd1c568f405e30ed709fbe2dd4bc252a0') in 0.0347104 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_21.asset using Guid(a129f7479e16cd246b25d3e8dee5112a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '5f39c9d54424f0117ac77157d40b4d40') in 0.0153174 seconds
+[Worker0]  -> (artifact id: '6116e8c9bad6dd43151c59d13c5dff0a') in 0.025913 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_33.asset using Guid(852caceb025943b40925d29a2843bc0f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '3e52bdc42a07dcdfe2afd82887f9c13c') in 0.0140923 seconds
+[Worker0]  -> (artifact id: '9bdfba31bfe4225b0164b8b00013e4ba') in 0.0303226 seconds
 [Worker0] Start importing Assets/AddressableAssetsData/DataBuilders/BuildScriptFastMode.asset using Guid(74c6f9e48e22ea743abcf01f01d5dbb1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '7e718046498f591491357ff9f4594903') in 0.0151891 seconds
+[Worker0]  -> (artifact id: 'eee156293c487d41e804b7e8e45f0920') in 0.0160156 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/I05.png using Guid(3c3dffa54a186c949a291c9ef3a0aba1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '28eaf02623c0629869a9a77366740d8b') in 0.0100559 seconds
+[Worker0]  -> (artifact id: '490d2ef2090498df07a8a6eee3cbbec3') in 0.0230539 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_8.asset using Guid(ac1ba0f440b50d84eba289dedeeed716) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'cd82eb58a858c2b1a47ec27c7d131881') in 0.0083636 seconds
+[Worker0]  -> (artifact id: 'cd1ef996ff6e6722f7c55887102823b4') in 0.0372335 seconds
 [Worker0] Start importing Assets/Behavior Designer/Editor/BehaviorTreeInspector.cs using Guid(94693c6931cea70439c26417a1fc0d33) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '4c28996ff23bb44020bf8f9afd9dc4fc') in 0.0160485 seconds
+[Worker0]  -> (artifact id: 'de1c779f5420778dfa5fd7eaa7ce972a') in 0.0173165 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_30.asset using Guid(aafab6be1a17c2c449a1121a119010f6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '516b0a6c32282ac5d3c2116e0473b1e6') in 0.0081164 seconds
+[Worker0]  -> (artifact id: '9c3f9b89640e1e1144c40351d6e3ce20') in 0.0324773 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/C01R.png using Guid(05b95ba044085b148a2e3cb7191afbcd) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'd782380366fed1b3b453c8805dedebe1') in 0.0198419 seconds
+[Worker0]  -> (artifact id: '14d8d31e25f4fbf83bc1f9ab69f87d1d') in 0.0192316 seconds
 [Worker0] Start importing Assets/_Recovery/0.unity using Guid(fe3f8637a8f5234468f482e29917cff9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '4df2b1bfad88a6b93753d81f46685e48') in 0.0216797 seconds
+[Worker0]  -> (artifact id: '7675ea0eaa9c28183356c0900ff965ec') in 0.0308138 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_26.asset using Guid(89b8bc5510a4a044481bf46045e7ffdc) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '1d1e3871712fc8c519270cb496bc45a7') in 0.0076953 seconds
+[Worker0]  -> (artifact id: '7d2658b31815bdc864be37e348f5df19') in 0.0345641 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/C08.png using Guid(17cca54ca06975444b3b7f1bbceef15a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '139f05155d4c8e91c8fab1e7d58876d4') in 0.0191143 seconds
+[Worker0]  -> (artifact id: '271417b7bec771e7bd3a169917b8d89c') in 0.0207552 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_28.asset using Guid(2bdc549fab7ce304f87847c54b6f0c66) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'f54335bb26cf03729e0d1d6c0400755e') in 0.0209178 seconds
+[Worker0]  -> (artifact id: '890eb976fde323da318a9b0dff16279c') in 0.0350276 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_13.asset using Guid(3280c4c158c9fdf4cbbb5138989dc66f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '856c50f9bd8ab7e4cdfa3f796cd98bbe') in 0.0173472 seconds
+[Worker0]  -> (artifact id: '30886555d9f9115f2631553f77327bd4') in 0.0302906 seconds
 [Worker0] Start importing Assets/_Recovery/0 (9).unity using Guid(8961ca3f34af0594ea1be9ac81888235) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'bb996216aa8a926c73d828b28eef3643') in 0.0132106 seconds
+[Worker0]  -> (artifact id: 'ae6971146caebeffd8425046a5ec09ce') in 0.0247227 seconds
 [Worker0] Start importing Assets/_Recovery/1 (3).unity using Guid(1e924495ac123564496d1d5407484546) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'df50ee3063620db03fb656df7213d88c') in 0.0145667 seconds
+[Worker0]  -> (artifact id: '7b19fa4fdc0ef10252188be58df59d8b') in 0.0221768 seconds
 [Worker0] Start importing Assets/Behavior Designer/Integrations/Readme.pdf using Guid(a43abd9ecc0166043973a4ba6da07bf1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'f5324518791d7894e01c699907a01b20') in 0.0105247 seconds
-[Worker0] Start importing Assets/Images/IndustrialInfrastructure/I07.png using Guid(6dd836c1bfd0ecc48adc7badc1d5b481) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
-[Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '9295207dcc2c238239b2570f9a605dc6') in 0.0174286 seconds
+[Worker0]  -> (artifact id: '4762c117978ab1c766a7b6ab88c526ae') in 0.0182569 seconds
 [Worker0] Start importing Assets/BansheeGz/BGDatabase/readme.txt using Guid(6f0ef40f5202d0549a5dae3f6bb0c05f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'b69c35fd301c1180f4c557a7efce8e88') in 0.0286028 seconds
+[Worker0]  -> (artifact id: '8fcbdc16943fa5498bd8ca52178c09f1') in 0.0218725 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/C07.png using Guid(17f13b37d24a3e6489de80b3e9a3c96f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '55dd6b0b04e12b6afc2f612fae233a58') in 0.014869 seconds
+[Worker0]  -> (artifact id: '3f8ab28db01f46becf4cbcf923b0317b') in 0.0168003 seconds
 [Worker0] Start importing Assets/_Recovery/0 (6).unity using Guid(98d4d2bebb841b74698dd094e4f29703) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'feaf544edd866b145c5ac09d4cfd94df') in 0.0224623 seconds
+[Worker0]  -> (artifact id: '4223f7b099caf2b32597db91fb713c38') in 0.0194182 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_31.asset using Guid(f11f41af64d63094d840a335fd7ddf09) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'd0b5a8c4c6f00050551b8487bdba70dc') in 0.0166204 seconds
+[Worker0]  -> (artifact id: '7f8961cf773c2a1f9a113ef090c1d8d1') in 0.0315866 seconds
 [Worker0] Start importing Assets/AddressableAssetsData/AssetGroups/Localization-String-Tables-English.asset using Guid(5c56031c3293e6a4a8412f52e62ff3db) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '4c5dc66de9c9994730dbed71124255f6') in 0.0176129 seconds
+[Worker0]  -> (artifact id: 'a35683aad5605724a483a86df130374e') in 0.0172859 seconds
 [Worker0] Start importing Assets/_Recovery/1 (1).unity using Guid(ca0d20edddf37db4fa9e35b9d1c427e9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'b4ef831e4fad03bcdbda6a04f8e0018f') in 0.0220887 seconds
+[Worker0]  -> (artifact id: 'c5321e3d9504d2db4b067c21003abff2') in 0.0238837 seconds
 [Worker0] Start importing Assets/AddressableAssetsData/AssetGroupTemplates/Packed Assets.asset using Guid(a289aa964fee5424aae8810e542af31c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '69c489140d3eeea5bd7eff2e6ce82122') in 0.0155924 seconds
+[Worker0]  -> (artifact id: 'bc92ded43515a95878545eb6d3a891db') in 0.0171012 seconds
 [Worker0] Start importing Assets/Animations/Human/ID93Walk.anim using Guid(a666a507088247445ae20a45c3b86cfd) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '65e7ecb518bc646e6347c40d97cea247') in 0.0367812 seconds
+[Worker0]  -> (artifact id: 'a95e25049a75456dc3d23756526dd673') in 0.0511556 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/I03.png using Guid(e3a26ee5ebc5d2f47bf68a58f86c41f9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '0d56d4506cb5274b56f44c3e09d33089') in 0.0113091 seconds
+[Worker0]  -> (artifact id: 'e59295bf4fb8b3a2c4f7e972c493478a') in 0.0216118 seconds
 [Worker0] Start importing Assets/Behavior Designer/Editor/BehaviorDesigner.Editor.dll using Guid(af72b091e5876924c9ab327b2d8de270) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'aa34ac169e067535b3db2ff137412b9c') in 0.0179276 seconds
+[Worker0]  -> (artifact id: 'b64592dbeaef4af73e989e44990315b9') in 0.0222013 seconds
 [Worker0] Start importing Assets/_Recovery/0 (8).unity using Guid(36338f2e6ae24144a9daeed10ac9cfd7) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'c0da379355ad29e08c2de2cb919b7103') in 0.0175183 seconds
+[Worker0]  -> (artifact id: '62309b6e99ca9902ac15b91ffbf01b61') in 0.029257 seconds
 [Worker0] Start importing Assets/AddressableAssetsData/AssetGroups/Localization-Assets-Shared.asset using Guid(7be75c6e2cf231b48a41a6d8a4e3caf5) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '7e0b4f0c03687968a9a841ebb2542b12') in 0.0203959 seconds
+[Worker0]  -> (artifact id: 'fa2ae68e18ea2062f3abe03d82f730e0') in 0.0185233 seconds
 [Worker0] Start importing Assets/_Recovery/0 (24).unity using Guid(46af136fca02a8d4eaf1e7fc020d0746) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '14ca875012e3428a7b62060cbac4197a') in 0.0183473 seconds
+[Worker0]  -> (artifact id: 'bb09db09ab7209d979b27f274d54967d') in 0.0256038 seconds
 [Worker0] Start importing Assets/_Recovery/1.unity using Guid(a243be0c0f45c084f9beeeb80ff99ab2) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '9f6d2f1c1a8eaabdf64df2d633a09aab') in 0.0160991 seconds
+[Worker0]  -> (artifact id: '79f5cfb4cfaee48ed1fd0b7462ad8653') in 0.0233254 seconds
 [Worker0] Start importing Assets/_Recovery/0 (23).unity using Guid(1a22e01192ff29949b008dbefd46d540) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '4750c337b075a7344c08373a8f089297') in 0.0134149 seconds
+[Worker0]  -> (artifact id: '82bebb6de4a458b71bf9103ca5ffa23d') in 0.020896 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_18.asset using Guid(f0cf8ae1b735ac948833afe2be12c46e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'eacf5146eafe284ee7213298ab14d1f8') in 0.016891 seconds
+[Worker0]  -> (artifact id: '2e5c187b92a5e1ed2f2d65e8f814617c') in 0.0345453 seconds
 [Worker0] Start importing Assets/_Recovery/0 (5).unity using Guid(867a183634d357c4397c176458cf6b77) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'e2318aa63a47936c2d1f507a6b5a356d') in 0.0144597 seconds
+[Worker0]  -> (artifact id: '9c1491cd1b520a3654c47a7b01e653e8') in 0.0241902 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/I02.png using Guid(8fb79c822605a7044b46d768718cf47b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '833cd97b3e099c4b68471e2b92e2009d') in 0.0163956 seconds
+[Worker0]  -> (artifact id: '0ce2c8f71f69f76d4c8d1c488e2f4a17') in 0.024019 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_6.asset using Guid(6df1823af8237b54db6a81c32c9e6782) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '28b24db33d58bdc7abe69a1a6a780c10') in 0.0125654 seconds
+[Worker0]  -> (artifact id: '4ea81350c24d7c8a2cf4b2a003a967c7') in 0.0353643 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_9.asset using Guid(372e2eb3d34483645b5c11e9b910fa1d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '88784ab740ebcf14c33216b9360c8e15') in 0.0147474 seconds
+[Worker0]  -> (artifact id: '8a14a76c664191da5b61ef9fde0ada0d') in 0.0291412 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/I01.png using Guid(0107bb4c08c9c5a4089e868d3318599b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'aed826f33e915f88ec305fe3ada4e6dc') in 0.0107911 seconds
+[Worker0]  -> (artifact id: '6339b2b5e7d09e673f051a6dcf5db212') in 0.0177468 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_17.asset using Guid(9ae9a358b3aff6d43b903c3ec4f3ba87) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '830b2390f7287e1014a0105bd3ae0b28') in 0.0103383 seconds
+[Worker0]  -> (artifact id: '573466549e46ec0a2ba2ff67f75dcc18') in 0.029196 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/C06.png using Guid(b875d69ecca16ae4da7bf0b15e6c225c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '84f3fe61c3bde67656d9acbeef2cfa5d') in 0.0171894 seconds
+[Worker0]  -> (artifact id: '53792c765e2cb9c3919d571575bd9deb') in 0.029033 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_32.asset using Guid(c8d5fe695dd341d40bfe554d2abde979) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '5cdb662ba217baa1d71a97837acb7289') in 0.0163792 seconds
+[Worker0]  -> (artifact id: 'b05a34afe41220c7753ba8bea15a316e') in 0.0260545 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_1.asset using Guid(55dac4daa6f09f04692cf3ff00cab815) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '5ed2c59460b4a6cee33142c8d00722cf') in 0.0181392 seconds
+[Worker0]  -> (artifact id: 'efb767ec70e0a22064d8c1e07a1615d9') in 0.0171303 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_16.asset using Guid(a059fbc38ffb9e44b9c801ff25891a5c) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'e92aed7a894850178d4c0ac9411e1870') in 0.0105036 seconds
+[Worker0]  -> (artifact id: '897ff57ba1f8a61684ca960b28b9c526') in 0.0313866 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_11.asset using Guid(e188cefb3dac57548920a675f2d218f1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '2b9210b6e209a16cacc490db9cf832a3') in 0.0077328 seconds
+[Worker0]  -> (artifact id: 'a57e6c7e81c962d53f1e6da5ba6bf6bd') in 0.0269767 seconds
 [Worker0] Start importing Assets/_Recovery/1 (2).unity using Guid(2ad47f99159c12445ba1fc15a52f666f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'b3aea8fc9de889e702142bc868e41f2b') in 0.0124071 seconds
+[Worker0]  -> (artifact id: '73272e6fc7fecd28fe1e895ff163fb2a') in 0.0304629 seconds
 [Worker0] Start importing Assets/Behavior Designer/Resources/BehaviorDesignerGlobalVariables.asset using Guid(7b258c5428b302442ba095eeb2575cce) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'e797a434d852121014f317e727fa06fa') in 0.0145366 seconds
+[Worker0]  -> (artifact id: '0e10464b66831e94408854a8b2555703') in 0.0319275 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_22.asset using Guid(ab392a9ed9e654c498c73051dcac280b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '97da892a48cf4aa2ea4c6b35204c728c') in 0.0083543 seconds
+[Worker0]  -> (artifact id: 'bfeaff3c6fbba41b51af011950c48b97') in 0.0405922 seconds
 [Worker0] Start importing Assets/_Recovery/0 (25).unity using Guid(6c64856115c17fb48801d8de8954cc4a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '6db278868b51cad72edd0dc5d7c2a970') in 0.0192749 seconds
+[Worker0]  -> (artifact id: 'b56b3384141fd22985492cd814aed5a4') in 0.0239028 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_10.asset using Guid(975c2c6e43e003a4fa4aaf2c86388a45) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '121ca10fb8cda930400fadc4577ac449') in 0.0174172 seconds
+[Worker0]  -> (artifact id: 'd3a3f834129b583e3fbeb6d10f81d471') in 0.0346332 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_4.asset using Guid(eced85f6d788d8e44824f4c26b37e55f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '1f90cf58fdbac377f551023145ea6cdd') in 0.0101667 seconds
+[Worker0]  -> (artifact id: '4d6cef5d696b67f09eb39a6e5503fb6d') in 0.0284856 seconds
 [Worker0] Start importing Assets/AddressableAssetsData/DataBuilders/BuildScriptPackedMode.asset using Guid(bef8611bc301f8e4989859475d056377) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'fc1ff64c2c34fb9fad72cacbb19afc7e') in 0.0131071 seconds
+[Worker0]  -> (artifact id: 'e2e2030ed6b1f754c4a53d931497774d') in 0.0194805 seconds
 [Worker0] Start importing Assets/Behavior Designer/Editor/ExternalBehaviorTreeInspector.cs using Guid(1f0cb79f53e760c4d950b8c6ade6a242) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'faacb0a33e0484ac47d2d98060a4125e') in 0.0081779 seconds
+[Worker0]  -> (artifact id: '4c1b5b5c7235322aabc6c0d533f3bc56') in 0.0157141 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/C04.png using Guid(00c6045995f6cb04eaa11184711241f6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '55deda596dfa6c5efa30f4169df14cb0') in 0.0178842 seconds
+[Worker0]  -> (artifact id: '49009827ba09f88f520361096d19f623') in 0.0238312 seconds
 [Worker0] Start importing Assets/AddressableAssetsData/DataBuilders/BuildScriptPackedPlayMode.asset using Guid(c2344f06f4868014e952f04a4fceb0ad) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'ea016d08aa0b000040e3cf8090d31074') in 0.0117328 seconds
+[Worker0]  -> (artifact id: 'df459270d180564a785dbd36caf1176e') in 0.0159768 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_0.asset using Guid(500687a93d4fff84f8dbcf310a68af32) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '24fdb7cd5570983212c19dee21718c91') in 0.0092342 seconds
+[Worker0]  -> (artifact id: '65b0ee2ed0879e2e6421bdc8cd07a96c') in 0.0363746 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_20.asset using Guid(459facc964ce34d4587decb755722cd0) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '9464892483aad9c34b0f734fb6565e97') in 0.0090388 seconds
+[Worker0]  -> (artifact id: 'c1b9e33819d0c0606c98bcb24cfa91ba') in 0.0322815 seconds
 [Worker0] Start importing Assets/Animations/Human/char_093_walk-Sheet_0.controller using Guid(ca7bfab5d5ae02d418a6ad6965145bae) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'a261e957dfb9aa2456f5c02850b17a1d') in 0.0187544 seconds
+[Worker0]  -> (artifact id: '071cb74a8937828bc8d60d25cc9aec1b') in 0.0482779 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/C02.png using Guid(a669a988c4a63ab4196be1255a47e64d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'c0ba496e3d07e7787dbc6dc91adb310b') in 0.0096738 seconds
+[Worker0]  -> (artifact id: '31be421fba6d2274438b3cd46af06c2e') in 0.0211149 seconds
 [Worker0] Start importing Assets/Behavior Designer/Editor/GridShader.shader using Guid(afbd9f0fb1c22d1409403fdef158479f) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '46b54978f6e2b4f762fa93133135c19d') in 0.0101362 seconds
+[Worker0]  -> (artifact id: 'd4da8072e9621f1358e39ed7aff92277') in 0.0228298 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_3.asset using Guid(eaa1f33d9a26c9e49962e7499542872b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '10aecfbebdfde207151b44ebb15f6ddc') in 0.0084436 seconds
+[Worker0]  -> (artifact id: '9cd75dab444e82fbfa371b351cc082a3') in 0.0342939 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/I06.png using Guid(8b202d633d0a1fe4f969c0a07255f57e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'eff5bbffe0d6b790e4d5f4f8ae2fb1e2') in 0.0188393 seconds
+[Worker0]  -> (artifact id: 'f013b1af16e474f95021d28927c9afb5') in 0.0260455 seconds
 [Worker0] Start importing Assets/_Recovery/0 (4).unity using Guid(75c7eb4ab2bca1340b1a6f91fd03b6f9) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'fbcbd86194fade8b971eb3a5044ce4bc') in 0.0193204 seconds
+[Worker0]  -> (artifact id: '562ec51c172f257611e7cffb75cda75a') in 0.02148 seconds
+[Worker0] Start importing Assets/_Recovery/0 (22).unity using Guid(22eb687f9124e4a4e8e52d0405511d73) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'fbfe0a7b0774f39df8d4da32aa4eb31b') in 0.0257421 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_5.asset using Guid(7b9c13382ff5cca459988613502eea97) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '382f74d07a76fe781da59415012449e9') in 0.0109734 seconds
+[Worker0]  -> (artifact id: '58b8923c63d4191402b57be78cc1721b') in 0.0300752 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_24.asset using Guid(87f3b963aee235241b8698c04a7e6393) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'cad3525a33957a56cc8f7b555a0a5fde') in 0.0094414 seconds
+[Worker0]  -> (artifact id: 'bc1a5c1b80b5c0a177c0f8415059f3ff') in 0.0236495 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/C05.png using Guid(e779268b7725af840adc71968fb4cf53) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'a348bfa4098eb9dae7aafe78ee2febb6') in 0.0127146 seconds
+[Worker0]  -> (artifact id: '8d5ccf7cb38930ee9178e38b992965ee') in 0.0232331 seconds
 [Worker0] Start importing Assets/Images/ase/Sprite-0005.ase using Guid(167faf35052208e4ea850c726c27e061) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '62f49ccf96624fc4d825807047311cf5') in 0.0538264 seconds
+[Worker0]  -> (artifact id: '646bd26b3a3536c8020ef1c4ca3e8658') in 0.0909386 seconds
 [Worker0] Start importing Assets/Behavior Designer/External Behaviors/CharacterAIExternalBehavior.asset using Guid(5ca7280068555f246b5c33db28a1d1e3) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '150df14a86133fbf551784ada3c41b70') in 0.016191 seconds
+[Worker0]  -> (artifact id: 'd89f8205c3852823d22eed9d1b97f3cf') in 0.0177711 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_27.asset using Guid(9150337fa97caf4419de6c57f737f390) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'd6e7017080aa74a7c37d3d7b2566fd7b') in 0.0087765 seconds
+[Worker0]  -> (artifact id: '7bebc00e051081408b653c8c198bf78a') in 0.0310156 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_34.asset using Guid(bc97c996981d87c459ff7749bb9f559d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '7b1d7d3aac6795b5b2467198e63066eb') in 0.0080964 seconds
+[Worker0]  -> (artifact id: 'b0cbe202dc8a7b2f818a753f2691e43a') in 0.0269003 seconds
 [Worker0] Start importing Assets/BansheeGz/BGDatabase/Third-Party Notices.txt using Guid(0ab8dce2690dc1441bb58f97aa3a9981) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '6c70f7e3c7855118e43de4675a078f71') in 0.0160015 seconds
+[Worker0]  -> (artifact id: 'c8bc20c25627a92f6c2b284fad8d1fbf') in 0.0320103 seconds
 [Worker0] Start importing Assets/Behavior Designer/Runtime/ExternalBehaviorTree.cs using Guid(b23f08d2ae4cba14087c1ed36193d82b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '9e55508fcf6b531cc53ade684ee3b239') in 0.007312 seconds
+[Worker0]  -> (artifact id: '4fc382fb98fda090fc2f73e314d57854') in 0.0211055 seconds
 [Worker0] Start importing Assets/AddressableAssetsData/AssetGroups/Localization-String-Tables-Korean.asset using Guid(9cb871f6f840c0c4499bd66c8eb4d26b) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '7080c89b8ad542d173a5500844bcd4d6') in 0.0091807 seconds
+[Worker0]  -> (artifact id: 'fedd259f8bbc666115cb4557e6305e59') in 0.0196702 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/C10.png using Guid(7a4ac4a39fccb7140944b5daea058151) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'f60630026a5d8d0bde57e70b4401aad5') in 0.0124241 seconds
+[Worker0]  -> (artifact id: '3f9f78c9b08d3ff4042e4d5ece118025') in 0.0208297 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/I04.png using Guid(ab6e8ba1770ca824a9d756f6d45470dc) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'cb394666a74577dff9203d3cc780e4b5') in 0.0093247 seconds
+[Worker0]  -> (artifact id: '79eebfc51af91cd2d529bf5c1d9a73bb') in 0.0169389 seconds
 [Worker0] Start importing Assets/AddressableAssetsData/AssetGroups/Default Local Group.asset using Guid(6854041c5a098154e9256434b10ed8c5) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'f76b1ac329d22cf27706b051995f0df4') in 0.0082146 seconds
+[Worker0]  -> (artifact id: 'd82d342003eec2bc7698f79318f8ff03') in 0.0202887 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/C01L.png using Guid(d18a954e96fdde44fa85c871f2b56cf6) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '3311a32f15f09218fdfd04419400ebc6') in 0.0169727 seconds
+[Worker0]  -> (artifact id: '4da7c35dcc09482947945558f52f498d') in 0.0157324 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_14.asset using Guid(1fa402490eb2b7d4f997e1a3dd85893a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '7bacaeb48a75c154fb35926830f0fb41') in 0.0083468 seconds
+[Worker0]  -> (artifact id: '502c8ecd5a197cfca5680b143e145f4e') in 0.0290561 seconds
+[Worker0] Start importing Assets/_Recovery/0 (21).unity using Guid(df643652ee60195439b93b7ed5605c1d) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
+[Worker0] (ScriptedImporter)
+[Worker0]  -> (artifact id: 'be4d959969f31f068ada9a4d94156ea5') in 0.0318278 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/C09.png using Guid(6ec8bd6197e435143930223d379356f5) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '13957b0968139eed338be27f43dc9e0d') in 0.0195355 seconds
+[Worker0]  -> (artifact id: '479728f1752b7ac72ddb1b638147d683') in 0.0192479 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/C03.png using Guid(e15d313087fd8474896d8153cba71cf0) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '3619b3c23b67491923bf079814347922') in 0.0101515 seconds
+[Worker0]  -> (artifact id: '35c306c2bbd36d4c1760b3c8366cd00e') in 0.0146847 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_23.asset using Guid(c1d69d40dbd2adc4bafa34612e2d33d4) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '0d30123fc4f5907f66be891f22eca24d') in 0.015976 seconds
+[Worker0]  -> (artifact id: '71967d38d3c8bed30cfffee0945e0c19') in 0.0191076 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/C01U.png using Guid(6193fe68036ac954d820429c49f3da91) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '7bc440320168e4c90acd16743e6f9f22') in 0.011208 seconds
+[Worker0]  -> (artifact id: '1468c607fd4d6769083d881bb9db6af5') in 0.0202232 seconds
 [Worker0] Start importing Assets/AddressableAssetsData/AssetGroups/Localization-Locales.asset using Guid(44f39aec44c048547a619869db202c84) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'c200878096ca5e3387aea2e7813954fc') in 0.0098858 seconds
+[Worker0]  -> (artifact id: 'c12ebc40abb9b350a61d20e89c0fa965') in 0.0161452 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_7.asset using Guid(9d643b3a02bb8c64c9b1e2bb20464605) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '5a4759c04a812f50400c3d23094aa565') in 0.0144966 seconds
+[Worker0]  -> (artifact id: 'ea54d0cc54aeeea981f835a6aa42ddf8') in 0.0361739 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_25.asset using Guid(2f79e7a89d50a244aa5b6b5a2d8c32aa) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '94bc3433d855f265f731c83e05af4d3d') in 0.0098734 seconds
+[Worker0]  -> (artifact id: 'b2b58343fbb256ee6814c2a8e7b03649') in 0.0327821 seconds
 [Worker0] Start importing Assets/_Recovery/0 (3).unity using Guid(51f3b8d7db84b884fb4c3236079e85c1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '11c7727e15b99057163f81ac261746a1') in 0.0128036 seconds
+[Worker0]  -> (artifact id: '830615f9a6447387b0180858b73b3ff2') in 0.0260447 seconds
 [Worker0] Start importing Assets/Images/dungeon2/sprite5 1_2.asset using Guid(2f25d8af07dfb7748a5245704967975e) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'be3a17f212f2586f3dae5442178d4dba') in 0.0079879 seconds
+[Worker0]  -> (artifact id: 'bed46c593bc908d613493bb5d4b07843') in 0.0313161 seconds
 [Worker0] Start importing Assets/Images/DUNGEON/Tilesetv3.png using Guid(db68b5d172b5c8542bd0f99790deebb1) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '3958cc33d56a4733c0ab971ec53d2141') in 0.3114518 seconds
+[Worker0]  -> (artifact id: 'ef818fd90c6965ebc1dd752d9d1873a8') in 0.5882381 seconds
 [Worker0] Start importing Assets/Images/IndustrialInfrastructure/C01D.png using Guid(d1e860d0981cf6548bb05fadbc1184cc) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '02e2d1cd1cecce59c3d5b578da719198') in 0.0198518 seconds
+[Worker0]  -> (artifact id: '87e7a29e56da8950b994d386281b8e00') in 0.0277275 seconds
 [Worker0] Start importing Assets/Images/dungeon2/dungeon2.prefab using Guid(0732b3ef9b294414082ffcce349fe6cd) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '06f03c9b8c576be103a526e33415d8c2') in 0.0318153 seconds
-[Worker0] Start importing Assets/Images/IndustrialInfrastructure/I08.png using Guid(a2cdaf639ef974541beaa0d56ca8603a) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
-[Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: 'a7bf9334824cea2517092197ef95158b') in 0.0205678 seconds
+[Worker0]  -> (artifact id: 'b1f82bebbe8eede50d3e487e4dddde34') in 0.0387972 seconds
 [Worker0] Start importing Assets/Behavior Designer/Runtime/BehaviorTree.cs using Guid(8d7b55c7ecdb49a4a89fa5e6f9022861) Importer(2089858483,b0f066a214c2f5e87bad3c948f4d605d)
 [Worker0] (ScriptedImporter)
-[Worker0]  -> (artifact id: '301e0f6faaa0a9eea0b3f17c427136ef') in 0.0162542 seconds
-IMPACT_CI_PASS group=world;source=319b8d3f248d5d18af84c41e67fd723f4df2789b81d3937c6e8ffc9040a9976f;config=5e9d75eb67068d16b2271966e0064c64c24bb2818be300bc3f762f6e88ee08aa;consoleErrors=0
+[Worker0]  -> (artifact id: 'c0f1a01bb710a8a8a82a3b4bb8f72c8e') in 0.0222065 seconds
+IMPACT_CI_PASS group=world;source=401017f9ec58b1439756f726b4a3980bec16507a21c72cbf66c7547415b25ed7;config=84283c4a0b9cafefd2bf95a137f42654a90ff77e7f1ddbebb2a0379e209cb85b;consoleErrors=0
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
 UnityEngine.StackTraceUtility:ExtractStackTrace ()
 UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
@@ -1109,7 +1105,7 @@ UnityEditor.EditorApplication:Internal_CallDelayFunctions ()
 (Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 139)
 
 Pipeline Server stopped
-Killing ADB server in 0.0475202 seconds.
+Killing ADB server in 0.081085 seconds.
 [Physics::Module] Cleanup current backend.
 [Physics::Module] Id: 0xf2b8ea05
 Input System module state changed to: ShutdownInProgress.
@@ -1122,4 +1118,4 @@ Cleanup mono
 Checking for leaked weakptr:
   Found no leaked weakptrs.
 [Package Manager] Server process was shutdown
-##utp:{"type":"MemoryLeaks","version":2,"phase":"Immediate","time":1792745816725,"processId":187844,"allocatedMemory":31758489,"memoryLabels":[{"Default":29313},{"Permanent":15236},{"NewDelete":68891},{"Thread":4230344},{"Manager":79477},{"VertexData":8},{"Geometry":816},{"Texture":296},{"Shader":79379},{"Material":24},{"GfxDevice":55257},{"Animation":392},{"Audio":2664},{"FreeType":8},{"FontEngine":736},{"Physics":2090},{"Physics2D":16},{"Input":14984},{"JobScheduler":33024},{"TextLib":216},{"Mono":32},{"MonoCode":123840},{"ScriptingNativeRuntime":155060},{"BaseObject":1625904},{"Resource":1336},{"Renderer":3000},{"Transform":4685},{"File":3945},{"WebCam":616},{"Culling":32},{"Terrain":11394},{"Wind":24},{"STL":40},{"String":27434},{"DynamicArray":148330},{"HashMap":4100894},{"Utility":2662854},{"Curl":2559},{"PoolAlloc":2152},{"AI":80},{"TypeTree":5341},{"ScriptManager":512},{"RuntimeInitializeOnLoadManager":64},{"SpriteAtlas":112},{"GI":7792},{"Director":8240},{"CloudService":10800},{"WebRequest":808},{"VR":47994},{"SceneManager":504},{"Video":64},{"LazyScriptCache":32},{"Camera":17},{"Secure":2113},{"SerializationCache":1576},{"APIUpdating":10320},{"Subsystems":336},{"VirtualTexturing":57888},{"StaticSafetyDebugInfo":278528},{"Analytics":384},{"Hierarchy":608},{"CoreStats":13032},{"Identifiers":12960},{"Gui":96},{"EditorUtility":177975},{"VersionControl":4},{"Undo":947},{"AssetDatabase":17710259},{"EditorGi":328},{"UnityConnect":29232},{"Upm":1896},{"AssetCompliance":64},{"DrivenProperties":72},{"LocalIPC":211},{"ProfilerEditor":9746},{"CoreBusinessMetrics":2876},{"Licensing":664},{"AssetReference":32},{"IPCStream":32}]}
+##utp:{"type":"MemoryLeaks","version":2,"phase":"Immediate","time":1792758992559,"processId":191532,"allocatedMemory":31707393,"memoryLabels":[{"Default":29313},{"Permanent":15236},{"NewDelete":68955},{"Thread":4230424},{"Manager":39741},{"VertexData":8},{"Geometry":816},{"Texture":296},{"Shader":79379},{"Material":24},{"GfxDevice":55257},{"Animation":392},{"Audio":2664},{"FreeType":8},{"FontEngine":736},{"Physics":2090},{"Physics2D":16},{"Input":14984},{"JobScheduler":33024},{"TextLib":216},{"Mono":32},{"MonoCode":123840},{"ScriptingNativeRuntime":155060},{"BaseObject":1625904},{"Resource":1336},{"Renderer":3000},{"Transform":4685},{"File":3945},{"WebCam":616},{"Culling":32},{"Terrain":11394},{"Wind":24},{"STL":40},{"String":14227},{"DynamicArray":148330},{"HashMap":4101050},{"Utility":2662854},{"Curl":2559},{"PoolAlloc":2152},{"AI":80},{"TypeTree":5341},{"ScriptManager":512},{"RuntimeInitializeOnLoadManager":64},{"SpriteAtlas":112},{"GI":7792},{"Director":8240},{"CloudService":6624},{"WebRequest":6531},{"VR":47994},{"SceneManager":504},{"Video":64},{"LazyScriptCache":32},{"Camera":17},{"Secure":2113},{"SerializationCache":1576},{"APIUpdating":10320},{"Subsystems":336},{"VirtualTexturing":57888},{"StaticSafetyDebugInfo":278528},{"Analytics":384},{"Hierarchy":608},{"CoreStats":13032},{"Identifiers":12960},{"Gui":96},{"EditorUtility":177975},{"VersionControl":4},{"Undo":947},{"AssetDatabase":17710259},{"EditorGi":328},{"UnityConnect":29232},{"Upm":1896},{"AssetCompliance":64},{"DrivenProperties":72},{"LocalIPC":211},{"ProfilerEditor":9746},{"CoreBusinessMetrics":2876},{"Licensing":664},{"AssetReference":32},{"IPCStream":32}]}

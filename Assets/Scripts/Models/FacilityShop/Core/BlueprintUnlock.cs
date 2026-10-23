@@ -135,7 +135,8 @@ public readonly struct BlueprintUnlockRecord
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class BlueprintBuildingUnlock : BlueprintUnlock, IBlueprintBuildingUnlock
 {
-    [Min(0), InspectorName("시설 ID")] public int buildingId;
+    [ContentReference(ContentReferenceKind.BuildingNumeric)]
+    [InspectorName("시설 ID")] public int buildingId;
 
     public override string UnlockTypeId => BlueprintUnlockTypeIds.Building;
     public override bool IsConfigured => buildingId >= 0;
@@ -152,7 +153,8 @@ public sealed class BlueprintBuildingUnlock : BlueprintUnlock, IBlueprintBuildin
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class BlueprintBasicPurchaseUnlock : BlueprintUnlock, IBlueprintBuildingUnlock
 {
-    [Min(0), InspectorName("시설 ID")] public int buildingId;
+    [ContentReference(ContentReferenceKind.BuildingNumeric)]
+    [InspectorName("시설 ID")] public int buildingId;
 
     public override string UnlockTypeId => BlueprintUnlockTypeIds.BasicPurchase;
     public override bool IsConfigured => buildingId >= 0;
@@ -169,6 +171,7 @@ public sealed class BlueprintBasicPurchaseUnlock : BlueprintUnlock, IBlueprintBu
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class BlueprintRecipeUnlock : BlueprintUnlock
 {
+    [ContentReference(ContentReferenceKind.Recipe)]
     [InspectorName("조합식 ID")] public string recipeId;
 
     public override string UnlockTypeId => BlueprintUnlockTypeIds.Recipe;

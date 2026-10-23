@@ -242,6 +242,7 @@ public abstract class CharacterSpeciesDefinitionSO : SerializedScriptableObject
     public string displayName;
     public SpeciesOwnerSelectionPolicy ownerSelectionPolicy;
     public string homeFactionId;
+    [ContentReference(ContentReferenceKind.AnatomyProfile)]
     public string anatomyProfileId = "anatomy:humanoid";
     public SpeciesNeedProfile needs = new();
     public SpeciesEnvironmentProfile environment = new();

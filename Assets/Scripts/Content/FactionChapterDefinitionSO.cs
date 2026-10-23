@@ -7,10 +7,10 @@ public enum FactionChapterKind { FirstContact, InternalProblem, RivalConflict, I
 [CreateAssetMenu(fileName = "FactionChapter", menuName = "DungeonStory/V20/Faction Chapter")]
 public sealed class FactionChapterDefinitionSO : V20AuthoredContentSO
 {
-    public string factionId = string.Empty;
+    [ContentReference(ContentReferenceKind.Faction)] public string factionId = string.Empty;
     [Range(1, 6)] public int chapterNumber = 1;
     public FactionChapterKind kind;
-    public string crossFactionId = string.Empty;
+    [ContentReference(ContentReferenceKind.Faction)] public string crossFactionId = string.Empty;
     public V20ContentRequirementSet triggerRequirements = new();
     public List<V20ChoiceDefinition> choices = new();
 

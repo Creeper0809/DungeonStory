@@ -15,7 +15,8 @@ public sealed class AnatomyProfileSO : ScriptableObject
     [SerializeField] private string profileId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [SerializeField] private string anatomyFamily = "humanoid";
-    [SerializeField] private List<string> speciesIds = new List<string>();
+    [ContentReference(ContentReferenceKind.Species), SerializeField]
+    private List<string> speciesIds = new List<string>();
     [SerializeField] private List<AnatomyNodeDefinition> nodes =
         new List<AnatomyNodeDefinition>();
     [SerializeField] private List<AnatomyFunctionalCapacityNotApplicable> notApplicableCapacities =

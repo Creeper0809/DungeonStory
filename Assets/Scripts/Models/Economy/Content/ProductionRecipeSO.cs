@@ -39,7 +39,8 @@ public sealed class ProductionRecipeSO : DataScriptableObject
     [SerializeField] private bool processClassAuthored;
     [SerializeField] private string workTypeId = "work:craft";
     [SerializeField] private ProficiencyWorkProfileAuthoring proficiency = new();
-    [SerializeField] private string requiredResearchId = string.Empty;
+    [ContentReference(ContentReferenceKind.Research), SerializeField]
+    private string requiredResearchId = string.Empty;
     [Min(0.1f), SerializeField] private float requiredWork = 10f;
     [Min(0f), SerializeField] private float preparationWork;
     [Min(0f), SerializeField] private float finishingWork;

@@ -11,6 +11,7 @@ public sealed class AgeConditionDefinitionSO : ScriptableObject
     public string conditionId = string.Empty;
     public string displayName = string.Empty;
     public bool constructCondition;
+    [ContentReference(ContentReferenceKind.AnatomyNode)]
     public List<string> affectedAnatomyNodeIds = new();
 
     public IReadOnlyList<string> ValidateDefinition()

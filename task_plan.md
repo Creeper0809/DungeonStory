@@ -1,5 +1,27 @@
 # DungeonStory Current Task Plan
 
+## 현재 작업 — SO 관계 선택과 끊어진 참조 복구 (2026-10-23)
+
+Status: implementation_verified / GitHub integration in_progress. so-reference-authoring / codex/so-reference-authoring, origin/main4d72be82. r95so 최종5개 effects-retry1/core/character/world/crop 모두 native0/C#0/consoleErrors0/drift0, 현재 source/config 결합 확인. Unity0 및 검증 창 CLOSED. 콘텐츠/KB 생성 및 내용·링크·최신성 검사 PASS. commit/push/PR/CI/main/병합 후 CI를 이어서 완료한다. 원본 Documents와 이전 worktree 변경은 보존했다. 메모리가 다시 부족하면 사용자 지시에 따라 CUHA를 사용한다.
+
+1. 실제 끊어진 문화/활동 아이템과 소망 세력 참조의 의미를 확정하고 에셋·생산자를 함께 고친다.
+2. 확인한 SO 관계 필드는 공통 Editor 선택기로 연결한다. 런타임/저장 stable ID와 기존 직렬화 필드·GUID는 유지한다. 내부 노드/문맥 별칭은 의미를 구별하며 임의 폴백하지 않는다.
+3. 현재 소스 컴파일·관계 작성 회귀·수정된 실행 경로 및 필요한 저장/복원/재시도를 격리 Unity에서 검증한다. 전수 seed/구조 분리는 제외한다.
+4. 관련 인덱스/증거 마감, commit/push/PR attach, CI 성공, main 병합과 병합 후 CI까지 완료한다.
+
+
+## 현재 작업 — SO 간 수기 ID 관계 추가 조사 (2026-10-23)
+
+Status: completed (읽기 전용 조사). 기존 main 4d72be82 원본에서 SO의 자기 식별자·태그·런타임 ID를 제외하고 타 정의를 문자열/숫자로 참조하는 필드와 실제 에셋을 조사했다. 관계별 Inspector 입력 보조, 등록 시 교차 검증, 실제 소비·실패 행동은 findings.md에 기록했다. root 아이템1069개와 등록 문화10개/활동20개를 대조하여 선호·금기13참조 및 활동 요구7참조의 현행 누락을 확인했다. 나머지 대표 관계는 수기 입력과 검증 누락/검증 존재를 구분했다. 같은 소스의 KB stale 결과를 재사용했다. 코드/에셋 변경·Unity 실행·push 없음.
+
+## 현재 작업 — 콘텐츠 확장성 후속 코드 감사 (2026-10-23)
+
+Status: completed (코드 감사만). 기준은 PR #14 병합 후 origin/main 4d72be82이며, 로컬 V20ContentEffectTransaction.cs의 미커밋 진단 변경은 보존하고 평가에 섞지 않았다. 이전 수정은 main CI39931420146까지 성공했다. 정의→등록→실행/소비→복구 원본 추적을 마쳤고 우선 결함 3건, 후순위 결함 4건, 의도된 확장 제한 2건을 findings.md에 구분했다. 이번 요청에서 게임 소스 수정·Unity 실행·전수 인증·push는 하지 않았다. 기존 PASS를 새 경계의 실행 증거로 사용하지 않는다.
+
+1. 기존 지식베이스를 탐색 단서로 사용하고 원본의 정의→등록→실행/소비→저장 경로를 확인한다.
+2. 메인은 사건 효과·실패/복구 경계를, 독립 읽기 담당은 건물/아이템과 연구/전투 소비 경계를 검토한다.
+3. 재현 조건과 원본 근거가 있는 확장 장애를 우선순위로 기록한다. 정상적인 새 의미 구현 비용과 단순 크기/enum 존재는 결함으로 세지 않는다.
+
 ## 현재 작업 — 사건 효과 재시도·관측·등록 일관성 (2026-10-23)
 
 Status: implementation_verified; GitHub 통합 진행. Branch: codex/fix-event-effect-recovery, main fac451f4 기준. 원본 Documents checkout은 보존한다. r87ee 입력21617개를 동결한 로컬 비대화형 station/desktop에서 priority 회귀와 필수 영향5개(effects/core/character/world/crop)를 완료했다. 최종 실행5개 모두 native0/C#0/consoleErrors0/drift0이며 현재 소스/구성 결합은 Artifacts/QA/ImpactCI/verification.json에 기록했다. 실제 world104/104 섹션 저장·공식 복원·자동저장과 기준 상태 복구, crop 실행·복원·재시도 PASS. Unity0 확인 후 편집/검증 창을 닫았고 문서/인덱스 검사를 마쳤다. push/PR/CI/main/병합 후 CI가 남았으며 최종 권위는 GitHub merged 상태와 main CI다. 연결 결과는 외부 C:/Users/vulpo/Documents/Codex/2026-10-23/event-effect-repairs/integration-final.json에 회수한다. 전수 인증은 재개하지 않는다.

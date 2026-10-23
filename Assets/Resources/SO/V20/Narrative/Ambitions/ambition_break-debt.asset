@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: "\uBB3C\uB824\uBC1B\uC740 \uBE5A \uCCAD\uC0B0"
   description: "\uAC00\uAD6C\uB97C \uC62D\uC544\uB9E8 \uC624\uB798\uB41C \uC138\uB825
     \uC758\uBB34\uB97C \uB05D\uB0B4\uB824 \uD55C\uB2E4."
-  authoringRevision: 1
+  authoringRevision: 2
   sourceNote: V20 content-density expansion; hand-authored Korean source revision
     1.
   category: 4
@@ -46,7 +46,7 @@ MonoBehaviour:
     excludedFlags: []
   completionRewards:
   - kind: 7
-    targetId: faction:creditor
+    targetId: affected-faction
     amount: 1
     durationDays: 0
   relatedEventWeights:

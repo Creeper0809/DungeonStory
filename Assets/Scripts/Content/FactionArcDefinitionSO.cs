@@ -5,10 +5,10 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "FactionArc", menuName = "DungeonStory/V20/Faction Arc")]
 public sealed class FactionArcDefinitionSO : V20AuthoredContentSO
 {
-    public string factionId = string.Empty;
-    public List<string> chapterIds = new();
-    public List<string> contractIds = new();
-    public List<string> relicItemIds = new();
+    [ContentReference(ContentReferenceKind.Faction)] public string factionId = string.Empty;
+    [ContentReference(ContentReferenceKind.FactionChapter)] public List<string> chapterIds = new();
+    [ContentReference(ContentReferenceKind.FactionContract)] public List<string> contractIds = new();
+    [ContentReference(ContentReferenceKind.Item)] public List<string> relicItemIds = new();
 
     public override IReadOnlyList<string> ValidateDefinition()
     {

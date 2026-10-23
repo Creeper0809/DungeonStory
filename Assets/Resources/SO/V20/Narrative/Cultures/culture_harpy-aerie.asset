@@ -16,14 +16,12 @@ MonoBehaviour:
   displayName: "\uB192\uC740 \uB465\uC9C0 \uBB38\uD654"
   description: "\uB192\uC740 \uACF5\uAC04\uACFC \uBC14\uB78C\uAE38\uC744 \uC120\uD638\uD558\uBA70
     \uC18C\uC2DD\uACFC \uB178\uB798\uB97C \uACF5\uB3D9 \uC790\uC0B0\uC73C\uB85C \uC5EC\uAE34\uB2E4."
-  authoringRevision: 1
-  sourceNote: V20 content-density expansion; hand-authored Korean source revision
-    1.
+  authoringRevision: 2
+  sourceNote: "V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item."
   defaultSpeciesId: Harpy
   preferredItemIds:
-  - food:dried-fruit
-  forbiddenItemIds:
-  - food:heavy-oil-stew
+  - food:grape-syrup
+  forbiddenItemIds: []
   preferredFacilityIds: []
   environmentalPreferences:
   - high airy rooms
@@ -40,6 +38,7 @@ MonoBehaviour:
   etiquetteRules:
   - "\uB178\uB798 \uC911\uAC04\uC5D0 \uB9D0\uC744 \uB04A\uB294 \uAC83\uC740 \uACF5\uAC1C\uC801\uC778
     \uB3C4\uC804\uC774\uB2E4."
+  - "\ube44\ud589 \uc804 \uc9c0\ub098\uce58\uac8c \uae30\ub984\uc9c4 \uc2dd\uc0ac\ub97c \ud53c\ud55c\ub2e4."
   ceremonyIds:
   - practice:harpy-dawn-chorus
   - practice:harpy-first-flight

@@ -16,9 +16,8 @@ MonoBehaviour:
   displayName: "\uC2EC\uCE35\uC758 \uB05D"
   description: "\uC544\uC9C1 \uB204\uAD6C\uB3C4 \uB3CC\uC544\uC624\uC9C0 \uBABB\uD55C
     \uC2EC\uCE35 \uACBD\uB85C\uB97C \uAE30\uB85D\uD558\uB824 \uD55C\uB2E4."
-  authoringRevision: 1
-  sourceNote: V20 content-density expansion; hand-authored Korean source revision
-    1.
+  authoringRevision: 2
+  sourceNote: "V20 reference repair: remove unresolved optional event weights; preserve ambition and saved IDs."
   category: 5
   targetProgress: 340
   activationRequirements:
@@ -49,8 +48,6 @@ MonoBehaviour:
     targetId: flag:depths-mapped
     amount: 1
     durationDays: 0
-  relatedEventWeights:
-  - id: life-event:uncharted-passage
-    weight: 2
+  relatedEventWeights: []
   cooperationAmbitionIds: []
   conflictAmbitionIds: []

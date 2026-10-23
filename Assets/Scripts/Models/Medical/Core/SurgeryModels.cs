@@ -354,6 +354,7 @@ public enum SurgeryFailureSeverity
 [Serializable]
 public sealed class SurgicalMaterialRequirement
 {
+    [ContentReference(ContentReferenceKind.Item)]
     public string itemId = string.Empty;
     public int quantity = 1;
     public bool optional;
@@ -436,6 +437,7 @@ public sealed class RemoveSurgicalNodeEffect : SurgicalProcedureEffect
 public sealed class InstallSurgicalPartEffect : SurgicalProcedureEffect
 {
     public SurgicalPartKind partKind = SurgicalPartKind.NaturalOrgan;
+    [ContentReference(ContentReferenceKind.Item)]
     public string requiredItemDefinitionId = string.Empty;
     [Range(0.1f, 1.75f)] public float efficiency = 1f;
 }

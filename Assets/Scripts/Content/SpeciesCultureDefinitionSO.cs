@@ -29,14 +29,14 @@ public sealed class CultureRoomPreferenceDefinition
 [CreateAssetMenu(fileName = "SpeciesCulture", menuName = "DungeonStory/V20/Species Culture")]
 public sealed class SpeciesCultureDefinitionSO : V20AuthoredContentSO
 {
-    public string defaultSpeciesId = string.Empty;
-    public List<string> preferredItemIds = new();
-    public List<string> forbiddenItemIds = new();
-    public List<string> preferredFacilityIds = new();
+    [ContentReference(ContentReferenceKind.Species)] public string defaultSpeciesId = string.Empty;
+    [ContentReference(ContentReferenceKind.Item)] public List<string> preferredItemIds = new();
+    [ContentReference(ContentReferenceKind.Item)] public List<string> forbiddenItemIds = new();
+    [ContentReference(ContentReferenceKind.Building)] public List<string> preferredFacilityIds = new();
     public List<string> environmentalPreferences = new();
     public CultureRoomPreferenceDefinition roomPreference = new();
     public List<string> etiquetteRules = new();
-    public List<string> ceremonyIds = new();
+    [ContentReference(ContentReferenceKind.Practice)] public List<string> ceremonyIds = new();
     public List<V20WeightedId> otherCultureAttitudes = new();
     [Min(1)] public int assimilationDays = 120;
 

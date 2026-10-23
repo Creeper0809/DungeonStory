@@ -75,7 +75,7 @@ CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,m_Name,amb
 CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,stableId,ambition:break-debt,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,displayName,물려받은 빚 청산,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,description,가구를 옭아맨 오래된 세력 의무를 끝내려 한다.,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,authoringRevision,1,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,authoringRevision,2,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,category,4,CharacterAmbitionCategory,Faction,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,targetProgress,260,,,explicit-serialized
@@ -100,7 +100,7 @@ CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,failureCon
 CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,failureConditions.requiredFlags,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,failureConditions.excludedFlags,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,completionRewards.0.kind,7,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,completionRewards.0.targetId,faction:creditor,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,completionRewards.0.targetId,affected-faction,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,completionRewards.0.amount,1,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,completionRewards.0.durationDays,0,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:break-debt,ambition:break-debt,relatedEventWeights.0.id,life-event:inherited-debt,,,explicit-serialized
@@ -183,8 +183,8 @@ CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,m_Name,amb
 CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,stableId,ambition:end-hunger,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,displayName,빈 식탁 없는 겨울,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,description,한겨울에도 모든 가구가 충분히 먹는 생산망을 만들려 한다.,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,authoringRevision,1,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,authoringRevision,2,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,sourceNote,V20 reference repair: remove unresolved optional event weights; preserve ambition and saved IDs.,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,category,3,CharacterAmbitionCategory,Community,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,targetProgress,260,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,activationRequirements.items,[],,,explicit-serialized
@@ -211,16 +211,15 @@ CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,completion
 CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,completionRewards.0.targetId,flag:winter-fed,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,completionRewards.0.amount,1,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,completionRewards.0.durationDays,0,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,relatedEventWeights.0.id,life-event:winter-pantry,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,relatedEventWeights.0.weight,2,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,relatedEventWeights,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,cooperationAmbitionIds,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:end-hunger,ambition:end-hunger,conflictAmbitionIds,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,m_Name,ambition_faction-champion,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,stableId,ambition:faction-champion,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,displayName,동맹의 방패,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,description,선택한 세력의 위기를 막아 신뢰받는 투사가 되려 한다.,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,authoringRevision,1,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,authoringRevision,2,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,sourceNote,V20 reference repair: remove unresolved optional event weights; preserve ambition and saved IDs.,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,category,4,CharacterAmbitionCategory,Faction,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,targetProgress,300,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,activationRequirements.items,[],,,explicit-serialized
@@ -244,19 +243,18 @@ CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champio
 CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,failureConditions.requiredFlags,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,failureConditions.excludedFlags,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,completionRewards.0.kind,8,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,completionRewards.0.targetId,faction:protected,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,completionRewards.0.targetId,affected-faction,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,completionRewards.0.amount,1,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,completionRewards.0.durationDays,0,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,relatedEventWeights.0.id,life-event:allied-distress,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,relatedEventWeights.0.weight,2,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,relatedEventWeights,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,cooperationAmbitionIds,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-champion,ambition:faction-champion,conflictAmbitionIds,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,m_Name,ambition_faction-peacemaker,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,stableId,ambition:faction-peacemaker,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,displayName,두 깃발의 중재자,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,description,적대 세력 사이에 지속 가능한 계약을 성립시키려 한다.,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,authoringRevision,1,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,authoringRevision,2,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,sourceNote,V20 reference repair: remove unresolved optional event weights; preserve ambition and saved IDs.,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,category,4,CharacterAmbitionCategory,Faction,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,targetProgress,320,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,activationRequirements.items,[],,,explicit-serialized
@@ -280,11 +278,10 @@ CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peace
 CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,failureConditions.requiredFlags,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,failureConditions.excludedFlags,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,completionRewards.0.kind,6,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,completionRewards.0.targetId,faction:negotiated,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,completionRewards.0.targetId,affected-faction,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,completionRewards.0.amount,1,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,completionRewards.0.durationDays,0,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,relatedEventWeights.0.id,life-event:envoy-appeal,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,relatedEventWeights.0.weight,2,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,relatedEventWeights,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,cooperationAmbitionIds,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:faction-peacemaker,ambition:faction-peacemaker,conflictAmbitionIds,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:field-scholar,ambition:field-scholar,m_Name,ambition_field-scholar,,,explicit-serialized
@@ -327,8 +324,8 @@ CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,m_Name,a
 CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,stableId,ambition:find-origin,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,displayName,기원의 흔적,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,description,자신의 출생과 관련된 기록·실험·유적의 진실을 찾으려 한다.,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,authoringRevision,1,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,authoringRevision,2,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,sourceNote,V20 reference repair: remove unresolved optional event weights; preserve ambition and saved IDs.,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,category,5,CharacterAmbitionCategory,Vengeance Or Discovery,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,targetProgress,300,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,activationRequirements.items,[],,,explicit-serialized
@@ -355,8 +352,7 @@ CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,completi
 CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,completionRewards.0.targetId,flag:origin-known,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,completionRewards.0.amount,1,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,completionRewards.0.durationDays,0,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,relatedEventWeights.0.id,life-event:origin-clue,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,relatedEventWeights.0.weight,2,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,relatedEventWeights,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,cooperationAmbitionIds,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:find-origin,ambition:find-origin,conflictAmbitionIds,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:guard-captain,ambition:guard-captain,m_Name,ambition_guard-captain,,,explicit-serialized
@@ -399,8 +395,8 @@ CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,m_Name,amb
 CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,stableId,ambition:map-depths,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,displayName,심층의 끝,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,description,아직 누구도 돌아오지 못한 심층 경로를 기록하려 한다.,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,authoringRevision,1,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,authoringRevision,2,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,sourceNote,V20 reference repair: remove unresolved optional event weights; preserve ambition and saved IDs.,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,category,5,CharacterAmbitionCategory,Vengeance Or Discovery,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,targetProgress,340,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,activationRequirements.items,[],,,explicit-serialized
@@ -427,16 +423,15 @@ CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,completion
 CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,completionRewards.0.targetId,flag:depths-mapped,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,completionRewards.0.amount,1,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,completionRewards.0.durationDays,0,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,relatedEventWeights.0.id,life-event:uncharted-passage,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,relatedEventWeights.0.weight,2,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,relatedEventWeights,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,cooperationAmbitionIds,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:map-depths,ambition:map-depths,conflictAmbitionIds,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,m_Name,ambition_master-healer,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,stableId,ambition:master-healer,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,displayName,죽음을 늦추는 손,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,description,치료 불가능하다고 여긴 환자를 회복시키려 한다.,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,authoringRevision,1,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,authoringRevision,2,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,sourceNote,V20 reference repair: remove unresolved optional event weights; preserve ambition and saved IDs.,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,category,0,CharacterAmbitionCategory,Mastery,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,targetProgress,260,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,activationRequirements.items,[],,,explicit-serialized
@@ -463,8 +458,7 @@ CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,comp
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,completionRewards.0.targetId,proficiency:medicine,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,completionRewards.0.amount,100,,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,completionRewards.0.durationDays,0,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,relatedEventWeights.0.id,life-event:impossible-patient,,,explicit-serialized
-CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,relatedEventWeights.0.weight,2,,,explicit-serialized
+CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,relatedEventWeights,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,cooperationAmbitionIds,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-healer,ambition:master-healer,conflictAmbitionIds,[],,,explicit-serialized
 CharacterAmbitionDefinitionSO|ambition:master-smith,ambition:master-smith,m_Name,ambition_master-smith,,,explicit-serialized

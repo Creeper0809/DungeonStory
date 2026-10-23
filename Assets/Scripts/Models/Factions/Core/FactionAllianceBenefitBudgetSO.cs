@@ -6,6 +6,7 @@ using UnityEngine;
 [Serializable]
 public sealed class FactionAllianceBenefitRouteCostRecord
 {
+    [ContentReference(ContentReferenceKind.Faction)]
     public string factionId = string.Empty;
     public int cooldownDays;
     public string supplyQuoteSourceDigest = string.Empty;

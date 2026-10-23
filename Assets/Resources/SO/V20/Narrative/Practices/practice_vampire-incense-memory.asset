@@ -16,14 +16,13 @@ MonoBehaviour:
   displayName: "\uD608\uD5A5 \uCD1B\uBD88"
   description: "\uC0AC\uB9DD\uC790\uC758 \uAE30\uC5B5\uC744 \uC0C1\uC9D5\uD558\uB294
     \uD5A5\uCD08\uB97C 3\uC77C\uAC04 \uAC1C\uC778\uC2E4 \uC55E\uC5D0 \uBC1D\uD78C\uB2E4."
-  authoringRevision: 1
-  sourceNote: V20 content-density expansion; hand-authored Korean source revision
-    1.
+  authoringRevision: 2
+  sourceNote: "V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item."
   cultureId: culture:vampire-nightcourt
   kind: 6
   requirements:
     items:
-    - itemDefinitionId: item:candle
+    - itemDefinitionId: craft:candle
       amount: 1
       consume: 1
     facilities: []

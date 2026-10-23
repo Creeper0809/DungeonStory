@@ -1,5 +1,92 @@
 # DungeonStory Current Findings
 
+## 격리 실행의 메모리 차단 원인
+
+r91/r93은 테스트 진입 전 ComputeImpactConfigurationDigest에서 중단됐다. 입력에 1,282,439,264byte GGUF가 있으며 기존 File.ReadAllBytes가 바이너리 전체를 managed heap에 할당했다. 동일 함수에서64KiB NUL scan→바이너리 stream SHA256으로 변경한다. .bytes/비UTF8/exact binary 및 UTF8 BOM·newline 정규화 계약, 파일 포함 범위/순서/CI 독립 digest 비교는 유지한다. 메모리/console/포커스 기준은 변경하지 않는다.
+
+## 선택기의 기존 ID 계약 경계
+
+수술 primaryFacilityDefinitionId=0은 제한없음이므로 필드 metadata로 빈 값을0에 고정한다. 설치키트/해금은-1, 연구 숫자는0으로 각각 유지한다. competing Min drawer는 제거한다. 건물 문자열은 실제 소비자의 ContentDefinitionId(빈 정의만 기존 building:numeric 계약), 숫자 관계는 id>=0만 선택한다. 원본 ID를 숫자 접두사로 임의 변환하지 않는다. landmark와 수술 빈 값에 실제 선택·JSON 검증을 둔다.
+
+## SO 참조 실행에서 발견한 선택 가중치 누락
+
+r90 최초 실행은 실제 root의 야망6개가 존재하지 않는 사건(winter-pantry/allied-distress/envoy-appeal/origin-clue/uncharted-passage/impossible-patient)을 참조해 거절됐다. 이전에는 가중치 사전의 미사용 key여서 동작에 적용되지 않았다. 이를 임의 사건으로 대체하거나 새 사건을 만들지 않고 선택 가중치를 비운다. 야망 stableId, 목표/보상/저장 표현은 유지하며 생산자도 빈 선택 목록을 생성한다. 런타임 검사를 완화하지 않는다.
+
+## 2026-10-23 SO 관계 선택 구현 계약
+
+기존 serialized string/int field와 SO GUID/stableId/저장 DTO 버전을 보존한다. Foundation의 authoring attribute와 공통 Editor drawer가 등록된 SO를 선택해 기존 ID만 기록한다. 다른 assembly 의존 참조는 추가하지 않는다. 미등록/중복 SO 선택은 기존 값을 보존하고 거절하며, 기존 잘못된 ID는 표시한다. Effect target 중 Item/Faction/Disease만 관계로 처리한다. SkillExperience는 현재 총 경험치이고 target은 label이므로 Proficiency 관계로 오해하지 않는다. 문화 태도/관련 사건의 weighted ID는 각 타입으로 선택하고 인간 세력 반응 semantic key는 보존한다. Anatomy는 profile 내 node 선택으로 기존 공통 node ID를 기록한다.
+
+문화9/활동7 에셋의 깨진 아이템을 수정한다. cloth/compost/candle/salt/blood/raw meat는 실제 catalog ID, 코볼드 버섯식은 mushroom-soup, 데몬 선호는 root-stew, 하피 간식은 grape-syrup으로 명시 작성한다. 존재하지 않는 향수/서약/오염물/기름진식사/깨진도구/적은배식/마늘음료 금기7개는 가짜 아이템 연결을 제거하고 예절 설명에 보존한다. 교대 세 번 확인은 매번 존재하지 않는 종을 소비하지 않게 한다. 음식/수치/새 아이템 정의를 추가하는 작업은 아니다. 보상3개(creditor/negotiated/protected)는 이미 저장하는 사건 context의 affected-faction으로 연결한다. 임의 첫 세력 fallback이나 저장 재작성은 없다. 실제 catalog 시작 시 문화/활동 item 및 관련 사건 참조를 검사하고 기존 story validator가 소망/문화 활동 faction 효과도 검사한다.
+
+실행 계획: Editor 선택/JSON/오류보존 및 authored 소망3/활동7의 실제 owner 실행·fresh JSON 복원·동일 request 재시도, 기존 영향5그룹(짧은 contracts/world/crop)만. 원본 .asset bytes 변화와 컴파일/console 오류를 별도로 검사한다. 사용자 Editor/포커스/원본 checkout은 건드리지 않는다.
+
+## 2026-10-23 SO 간 수기 ID 관계 조사 — 원본 검토 완료
+
+기준 main4d72be82. 자기 stableId·runtime instance/DTO ID·분류 태그는 제외하고 다른 정의를 연결하는 authored string/int 필드를 추적한다. 조사 범위의 SO/중첩 record에 ID selector attribute가 없고 Assets의 CustomEditor/CustomPropertyDrawer 검색에서도 해당 관계의 전용 picker를 찾지 못했다. 값은 Inspector/에셋 생성 코드의 문자열·숫자 리터럴이다. 저장용 안정 ID 필요성과 콘텐츠 작성 시 수기 입력 필요성은 별개다.
+
+새로 확인한 실제 누락: root GameContentCatalog → ItemDefinitionCatalog의 GUID1069개를 asset.meta로 해소했고 unresolved0, itemId1069개를 대조했다. 문화10개의 preferredItemIds/forbiddenItemIds20개 중13개가 현재 등록 아이템에 없다. 문화 활동20개의 requirement itemDefinitionId20개 중7개가 없다. 이 문화10개/활동20개가 GameDomainContentCatalog에 모두 등록된 것도 GUID로 확인했다. 이는 현재 에셋 정적 대조이며 Unity 실행 PASS가 아니다. 문자열 전체 검색 횟수나 생성 인덱스의 과거 결과를 결함 개수로 사용하지 않았다.
+
+- 문화 누락13개: `food:raw-monster-meat`, `medicine:strong-perfume`, `food:spiced-stew`, `item:unsealed-oath`, `resource:corrosive-slurry`, `food:dried-fruit`, `food:heavy-oil-stew`, `food:mushroom-stew`, `item:broken-tool`, `food:tiny-portion`, `resource:salt`, `food:blood-reserve`, `food:garlic-tonic`. `SpeciesCultureDefinitionSO.cs:32-40,43-50`/`CharacterNarrativeCatalog.cs:48-70`는 해당 아이템 존재를 대조하지 않는다. 실제 식사 선호 소비는 `CharacterConsumablesApplicationAdapters.cs:174-184`의 정확 ID 비교이므로 없는 ID의 선호/금기는 매치되지 않는다. 다른 문화 태도 ID는 같은 catalog에서 실재 여부를 검사하므로 구별한다.
+- 문화 활동 누락7개: `practice:beastkin-scent-vigil→textile:cloth`, `practice:demon-third-bell→item:bell`, `practice:harpy-dawn-chorus→food:dried-fruit`, `practice:kobold-bench-feast→food:mushroom-stew`, `practice:myconid-spore-return→resource:compost`, `practice:vampire-consent-cup→food:blood-reserve`, `practice:vampire-incense-memory→item:candle`. `V20AuthoredContentContracts.cs:128-131`은 비어있지 않은 문자열·양수만 검사한다. 수행 요청은 `V20ContentResolutionRequestPlanner.cs:351-353`의 requirements와 `ContentRequirementEvaluator.cs:51-61`의 실제 재고 키 비교를 거쳐 거절된다. 임의 유사 아이템 자동 치환은 하지 않았다.
+
+추가 확인한 대표 관계는 아래와 같다. '오타 시 행동'은 실제 호출 경로의 코드 판정이며 오타 에셋을 주입해 실행한 테스트가 아니다. 존재 검사 없음과 실제 현행 에셋 누락은 구별한다.
+
+| SO / 수기 관계 필드 | 실제 값의 예 | 검증·소비·잘못된 ID의 결과 |
+|---|---|---|
+| SpeciesCultureDefinitionSO.preferredItemIds / forbiddenItemIds (`:33-34`) → ItemDefinitionSO | demon 문화의 `food:spiced-stew` / `item:unsealed-oath` | 위 실제 누락. 식사 소비자는 문자열 정확 비교라 선호/금기가 매치되지 않는다. |
+| CulturalPracticeDefinitionSO.cultureId (`:10`) / requirements.items[].itemDefinitionId (`V20AuthoredContentContracts.cs:49`) → 문화/아이템 | 동의의 잔의 `culture:vampire-nightcourt` / `food:blood-reserve` | cultureId는 비공백 검사, 참여 기록 시 catalog.Require로 실재 확인(`CharacterNarrativeRuntime.cs:771-784`). 요구 아이템은 위 실제 누락7개로 정상 재고에서 수행 불가. |
+| CharacterAmbitionDefinitionSO.relatedEventWeights[].id (`:16`, V20WeightedId) → LifeEventDefinitionSO | break-debt의 `life-event:inherited-debt` | 해당 관계의 대상 실재 검사가 없다. `V20CampaignApplicationAdapter.cs:658-665`는 raw key의 가중치 사전만 만들므로 오타는 원래 사건의 가중치를 바꾸지 못한다. 이번에 이 필드의 현행 오타를 발견했다는 뜻은 아니다. |
+| ProductionRecipeSO.inputs[].itemId / outputs[].itemId (`:58-60`, `ProductionPrimitives.cs:164-174,211-233`) → 아이템 | recipe_v22_apparel_gloves의 `material:cloth` → `apparel:gloves` | 별도 `ResourceUsageIndex.ValidateContentGraph()`는 있지만 runtime catalog/recipe reindex의 기본 경로는 호출하지 않는다. input 오타는 AddBill의 물리 질량 조회에서 KeyNotFoundException(`ProductionInputLogisticsService.cs:228-254`, `PhysicalItemMassQuery.cs:102-109`); output 오타는 capability capture에서 예외(`ProductionOutputHandlerRegistry.cs:156-173`). |
+| ProductionRecipeSO.requiredResearchId (`:42,80`) → ResearchProjectSO | `research:textile:tailoring` | 연구 존재 교차 검증 없이 완료 집합과 비교한다. 오타면 `ProductionInputLogisticsService.cs:330-357`에서 계속 ProductionResearchLocked. |
+| BuildingSO의 BuildingWorkAmountAbility.constructionMaterials[].itemId (`BuildingAbility.cs:153-169`) → 아이템 | `SO/Building/Industrial/A01_자동화_제어반.asset:111-117` | validator에 존재 확인 callback이 있지만 runtime `BuildingAbilityContracts.cs:182-185`는 생략한다. 잘못된 아이템은 건설 준비의 질량 조회에서 예외가 전파될 수 있다(`WorkConstructionInputOwnerRuntime.cs:343-379`). 능력 subtype 선택 drawer는 있어도 item picker는 아니다. |
+| ResearchProjectSO.unlocks의 BlueprintBuildingUnlock.buildingId / BlueprintBasicPurchaseUnlock.buildingId / BlueprintRecipeUnlock.recipeId (`BlueprintUnlock.cs:138,155,172`) → 건물/제작·합성식 | commerce_logistics의 `8806`, `recipe:v22:apparel:hauling-harness` | target 존재를 검사하지 않는다. 없는 건물은 default 결과로 미적용(`BlueprintResearchContracts.cs:710-723`), 없는 recipe 문자열은 해금 집합에만 들어간다(`:757-770`). recipe namespace에는 Synthesis도 포함되므로 생산 카탈로그만 보고 누락 판정하면 안 된다. |
+| SurgicalProcedureSO.allowedSpeciesIds / requiredResearchId / primaryFacilityDefinitionId / materials[].itemId (`:24,27,29,39`, `SurgeryModels.cs:357`) → 종족/연구/건물/아이템 | 혈액 회춘의 `research:medical:blood-rejuvenation`, `8869`, `medical:rejuvenation-serum` | `SurgicalProcedureCatalog.cs:38-100`은 필드 형태/효과/수량 등을 검사하며 이 target들의 실재를 일괄 대조하지 않는다. 종족은 실제 환자와 비교해 거절(`SurgeryOrderPlanningService.cs:141-150`), 연구는 완료 조회 후 Incomplete(`:336-364`), 건물은 실제 building.id와 비교해 차단(`SurgicalFacilityQuery.cs:99-111`). 현행 의료 에셋이 틀렸다고 확정한 것은 아니다. |
+| EnemyArchetypeDefinitionSO.abilityIds / bossPhases[].abilityIds (`:90,37`) → EnemyAbilityDefinitionSO | crown-marshal의 rally / armor-break | 상위 능력은 `EnemyIndividualRuntime.cs:124-137`에서 catalog 교차 검증한다. 보스 phase의 목록은 이 검사에서 빠지며 이미 생성한 후보의 선호 ID로만 비교(`EnemyTacticalDecisionService.cs:132-136`)하므로 오타는 선호 효과가 없다. |
+| EnemyArchetypeDefinitionSO.equipment의 weaponDefinitionId / armorDefinitionId / shieldDefinitionId / ammunitionItemId (`:27-30`) → 장비/탄약 | crown-marshal의 `weapon:longsword`, `armor:breastplate` | 수기 입력이지만 등록 시 구체 장비 타입/탄약 호환성을 검증(`EnemyIndividualRuntime.cs:58-121`). 기본 관계 검사로 보호되는 사례다. |
+| OffenseEncounterSO.enemies[].enemyArchetypeId / battlefieldModifierIds (`:11,47,50-51`) → 적/전장 modifier | encounter_01의 crown-levy, tower-guard, narrow-bridge | `EnemyIndividualRuntime.cs:126-137`에서 모두 교차 검증하고 없는 target이면 등록 거절. |
+| FactionArcDefinitionSO.chapterIds / contractIds (`:9-10`) → 장/계약 | 세력 arc 에셋의 chapter/contract 목록 | `V20StoryContentCatalog.cs:68-77`에서 target 정의를 대조해 등록 거절. 수기이지만 검증이 존재한다. |
+| FactionAllianceBenefitBudgetSO.routeCosts[].factionId (`:9,29`) → DungeonFactionDefinitionSO | `faction:dungeon:beastkin` 등6개 | 형식/중복/정렬/합계만 확인하며 세력 catalog 실재를 대조하지 않는다. 잘못된 canonical ID는 사용되지 않는 예산 행으로 남고, 실제 세력의 행이 빠지면 보급 경로 생성 실패(`FactionRuntime.cs:1637-1651`), 해당 경로 복원은 예외(`:1207-1233`). |
+| AgeConditionDefinitionSO.affectedAnatomyNodeIds (`:14`) → AnatomyProfileSO 안의 노드 | 심장 퇴행의 `heart`, `core` | 내부 노드 키로 여러 해부학 프로필에 걸친 관계다. 등록은 비공백만 검사하고 실행은 현재 프로필에 있는 노드만 필터링(`AgeConditionAnatomyProjectionRuntime.cs:94-102`). 모두 없으면 실패, 일부 오타면 그 부분만 무시된다. 모든 프로필에 모든 키가 있어야 한다는 뜻은 아니다. |
+| CharacterStartingHistorySO.primaryProficiencyId / secondaryProficiencyId / proficiencyBonuses[].proficiencyId (`:14-18`) → 숙련도 | cook의 `proficiency:food-production`, `proficiency:fieldwork` | 수기 입력이지만 built-in 숙련도 집합/서로 다른 두 값/중복을 검사(`:23-41`, `CharacterStartingOriginSO.cs:28-44`). 별도 등록 교차 검증이 없는 사례와 구분한다. |
+| EndingDefinitionSO.completionRequirements.research[].researchNumericId (`V20AuthoredContentContracts.cs:66`) → ResearchProjectSO의 숫자 id | 비전 승천의 `7238` | 필드 검사는 양수 여부만 확인. `V20MilestoneWorldSnapshotProjector.cs:210-218`가 완료된 ProjectSO.id를 수집하고 `V20ContentDefinitionRules.cs:16`가 포함 여부로 판정하므로 틀린 양수면 조건을 달성할 수 없다. 현행 숫자 ID 오타를 발견한 것은 아니다. |
+| ItemDefinitionSO의 InstallationItemFeature.buildingDefinitionId (`:468-484`) → BuildingSO | facility_kit_1000의 `1000` | 음수만 거절. 실제 건설 kit ID는 building에서 파생하고 해당 feature 값은 usage link에 사용돼 두 표현이 분리돼 있다. 현재 builder가 BuildingSO.id로 생성(`GameContentCatalogAssetBuilder.cs:1140-1164`)하므로 정상 생성 경로의 수기 오류 위험은 낮다. |
+
+독립 담당의 원본/표적 에셋 대조에서는 제작식·건설 재료·연구 해금·설치 kit, 기본 적 능력·장비·원정 적/전장·세력 예산·연령 조건 노드에서 현행 누락을 발견하지 못했다. 이 결과는 새 입력의 검증 완전성이나 실행 PASS가 아니다. 생산 카탈로그에 없던 해금 recipe3개는 Synthesis SO에 존재하는 정상 참조로 제외했다. 종족 부모→생애/번식/장례는 이미 typed SO 참조이며 중복 speciesTag 일치도 등록 시 검사하므로 수기 관계 전환 대상에 포함하지 않는다.
+
+정리 우선순위: 현재 끊어진 문화 활동 요구/소망 보상 → 실제 기능을 잃는 문화 음식 선호 → 연구 해금/생산/건설/의료의 target 교차 검증 → 보스 phase/세력 예산 같은 부분 누락. 같은 프로젝트의 정적 SO 관계는 typed SO 선택 또는 타입 제한 ID picker로 작성하고, 런타임·저장에서는 기존 안정 ID를 유지하는 방향이 적합하다. 기존 영수증/세이브 ID를 일괄 교체하거나 모든 관계마다 새 클래스를 만드는 작업은 수행하지 않았다.
+
+## 2026-10-23 콘텐츠 확장성 후속 감사 — 원본 검토 완료
+
+평가 기준은 origin/main 4d72be82다. Knowledge-base 조회는 stale/failures4로 끝났으며 읽기 전용 조사이므로 재생성하지 않는다. 원본 코드와 authored asset을 직접 대조한다. 로컬 미커밋 V20ContentEffectTransaction 진단2줄 변경은 보존하고 해당 파일은 main blob으로 읽었다.
+
+읽기 전용 원본 추적 결과다. 아래 입력 예는 코드 경로에서 도출한 재현 조건이며 이번 Unity 실행 결과가 아니다. 기존 콘텐츠의 잘못된 참조, 새 조합에서 발생하는 결함, 의도된 미지원 조합을 구분한다. 단순 enum/클래스 크기와 새 상태 의미를 구현하는 정상 비용은 결함으로 세지 않았다.
+
+### 우선 수정할 실행·복구 결함
+
+1. **P1 — 등록된 소망 완료 보상에 해석할 수 없는 세력 ID가 있다.** `ambition_break-debt.asset:47-50`은 `faction:creditor`, `ambition_faction-peacemaker.asset:47-50`은 `faction:negotiated`를 사용한다. 전자는 GameDomainContentCatalog의 ambition GUID 등록도 확인했다. 실제 세력 정의는 `faction:dungeon:*`이며 두 ID는 없다. `CharacterAmbitionDefinitionSO.ValidateDefinition`/`CharacterNarrativeCatalog`는 효과의 IsValid까지만 확인하고, `V20StoryContentCatalog.ValidateFactionEffectTargets`의 검사 대상에서 소망은 빠진다. 완료 preview가 보상 원문을 반환하고 `V20ContentResolutionRequestPlanner.cs:265-280`이 이를 적용하면 `V20CampaignEffectRuntime.cs:213-226`의 실제 세력 또는 requesting-faction/affected-faction 해석에 실패한다. service의 해당 catch는 handler 누락 예외만 처리한다(`V20ContentResolutionService.cs:367-379`). 기존 콘텐츠의 소망 완료를 포함한 사건 처리가 막힐 수 있다. 수정은 보상 의도에 맞는 대상 연결과 같은 참조 검증을 생산자에 적용해야 하며 임의 세력 폴백은 부적절하다.
+
+2. **P1 — 금액 0/상쇄 효과의 실행과 영수증 계약이 모순된다.** `V20ContentEffectTransaction.cs:77-79,193-232`는 전체 Money 합계가 0이면 돈 거래와 child ID를 만들지 않는다. 복구 검증도 합계가 0이면 ID가 없어야 한다(`V20ContentRecoveryEvidence.cs:99-121`). 그러나 `ContentResolutionFactMapping.cs:154-166`은 모든 Money 효과에 금액과 무관하게 child ID를 요구한다. 새 선택지에 Money -20/+20과 ItemGrant 1을 조합하면 아이템 적용 뒤 결과 기록이 거절될 수 있다. TypedEffectsApplied pending은 같은 기록을 다시 시도하므로 재시도가 해결하지 못하며 service는 새 요청 전 모든 pending을 복구한다(`V20ContentResolutionJournal.cs:330-354`, `V20ContentResolutionService.cs:301-305`). 수량 0으로 정규화되는 물리 효과도 같은 계약 경계를 확인해야 한다. 가짜 거래 ID를 채우거나 복구 검사를 약화할 문제가 아니다.
+
+3. **P1 — 결과 기록 용량을 실제 효과 적용 뒤에 검사한다.** `ContentResolutionFactMapping.cs:195-245`는 효과별/대상별 기록을 각각 한 문자열에 합쳐 4096 UTF-16자를 제한하고, :247은 metrics/subjects 등 개수도 제한한다. 정의 단계에 이에 대응하는 조합 검증/예약이 없다. service는 실제 commit과 live/pending 공개 이후 `PublishResolvedFacts`를 호출한다(`V20ContentResolutionService.cs:492-503,542-579`). 초과하면 이미 적용한 효과의 pending을 남기고 같은 동결 결과를 재기록하므로 반복 실패한다. 기존 UI가 지원하는 4명 문화 활동에 8개 Health 효과를 붙이는 경계의 mapper 문자열 산술은 32개 application, 짧은 character:0~3 ID/100→100 기준 4925자다. 이는 정적 형식 계산이며 Unity 테스트가 아니다. 고정 용량 자체보다 commit 전 예약/실패 원자성과 확장 가능한 기록 배치가 빠진 점이 문제다.
+
+### 콘텐츠를 추가할 때 드러나는 후순위 결함
+
+4. **P2 — 생산 capability 충돌이 콘텐츠 검증을 통과한다.** Food 범주에 Production+Food(freshnessSeconds=300)+Ammunition feature를 가진 정식 아이템을 작성하면 개별 feature 검증은 통과하지만 두 자동 capability가 동시에 선택된다(`ItemDefinitionSO.cs:589-616`, `DomainProductionOutputCapabilities.cs:103-114,147-164`). `ProductionOutputHandlerRegistry.cs:282-303`는 두 번째 match에서 예외를 던지고 실제 recipe의 첫 descriptor 캡처가 실패한다(`ProductionOutputExecutionService.cs:90-110`). 일반 Food+Market/Research 조합은 standard fallback이므로 해당하지 않는다. 금지 조합이면 작성 단계에서 명시 거절해야 하고, 허용 조합이면 recipe가 명시 route를 선택하거나 필요한 상태를 함께 구성할 계약이 필요하다. 현재 registry의 declared API는 일반 recipe 출력 데이터와 연결되지 않았다.
+
+5. **P2 — 연구 효과의 검증과 보상 UI가 실행 경로를 따라가지 못한다.** `ResearchProjectSO.cs:130-191`은 effect binding의 IsValidFor를 검사하지 않는다. 실제 완료 연구는 `CharacterDerivedStatsSnapshot.cs:614-622`를 통해 효과를 적용하지만 잘못된 binding은 `CharacterGameplayEffectProjector.cs:44-48`에서 억제된다. 유효한 스탯 효과만 주는 연구도 `ResearchRewardCatalogAdapter.cs:23-94,137-142`에서 보상이 없는 것으로 분류하고 `ResearchTreePresentationRules.cs:70-108`/`ResearchTreeWindow.cs:699,711`에는 해금 없음으로 표시된다. 현재 연구 에셋에는 해당 binding이 없어 새 연구 유형을 추가할 때 드러나는 누락이다. 기존 source 허용/조건 규칙을 약화할 문제가 아니다.
+
+6. **P2 — 적 AI가 이미 있는 기술의 강도와 대상 의미를 충분히 평가하지 않는다.** `OffenseBattleSessionRules.cs:182-200`은 Damage의 magnitude/flat/hitCount와 무관하게 1.1, DOT/Vulnerability는 0.3을 더한다. 실제 실행은 magnitude를 피해 multiplier로 사용한다. 같은 조건의 magnitude 0.2/4.0 능력은 동점이 되고 `EnemyTacticalDecisionService.cs:108-142`의 ID 정렬과 엄격한 큰 값 비교 때문에 ID가 앞선 약한 능력이 남을 수 있다. 아군 대상은 모든 효과에서 최저 HP 우선(:219-236), Dispel 가치는 모든 status 개수(:272-273)인 반면 실제 Cleanse는 부정 상태만 제거한다(`OffenseBattleModel.cs:889-897`). 새 적의 수치/지원 기술을 작성해도 의도대로 선택·타기팅되지 않는 소비자 결함이다. 별도 고급 AI 시스템 도입이 아니라 기존 효과 의미와 평가를 맞출 범위다.
+
+7. **P2 — 전역 작업 지연 해제의 실제 변화가 NoOp으로 기록될 수 있다.** global 행 없이 road 지연만 있는 상태에서 global -1은 모든 scope의 지연을 줄인다(`V20CampaignEffectRuntime.cs:142-176`). 관측은 global 행 하나만 읽으므로 전후 0/0이다(`V20ContentEffectEvidence.cs:360-367`, `V20ContentEffectHandlers.cs:115-121`). 예: day10, road 만료13→12인데 applied=0/NoOp. 새 지연 해제 콘텐츠를 추가할 때 실제 상태와 서사 기록이 어긋난다. 현재 authored global 음수 사례를 실행 재현한 것은 아니다.
+
+### 즉시 버그와 구분할 의도된 확장 제한
+
+8. **적 능력 데이터가 기존 전투 모듈 일부를 표현하지 못한다.** `EnemyAbilityDefinitionSO.cs:5-25`와 `EnemyEncounterFactory.cs:547-580`에는 이미 플레이어 경로와 실행기에 있는 AttackModifier/ConditionalAmplify/CooldownAdjust/MultiTarget가 없다. 기존 모듈 조합으로 적 지휘관/연쇄 공격을 만들려 해도 적 adapter/enum 수정이 필요하다. 이 조합을 적에게 허용할 콘텐츠 계획이 있을 때 해소할 제한이며, 모든 전투 모듈을 무조건 공통화할 근거는 아니다.
+
+9. **일부 생산품에 일반 물리 부산물을 섞는 조합은 명시적으로 미지원이다.** 현 `recipe:v22:apparel:gloves`의 exact workwear 출력에 standard prepared `material:mending-scrap`을 넣으면 `ProductionPreparedOutputExecutionPort.cs:67-124`가 혼합 route를 거절한다. 이는 원자적 거래 권위를 위해 코드에 명시한 제한이며 해당 검사를 제거하면 안 된다. 그러나 작성 시에는 통과하고 bill 조회/실행 route에서 실패하므로 제한 안내/검증이 부족하다. 조합을 지원하려면 기존 workwear 출력의 prepared 참여 계약부터 맞춰야 한다. 단일 장갑 출력과 모두 standard인 다중 생산품은 이 문제에 해당하지 않는다.
+
+건물은 검토한 카탈로그→기존 ability factory→상태 module 저장 경로에서 확정된 새 병목을 찾지 못했다. 콘텐츠 확장성 전체가 완성됐다는 의미는 아니다. 상세 본문 경로는 Assets/Scripts 하위 원본 파일명 기준이며, 이번에는 게임 코드·에셋·인덱스를 변경하지 않았다.
+
 사건 효과 소비 거절의 같은 runtime 재시도에서는 돈/원장 복구 외에 임시 예약 ID 수명도 문제가 됐다. Items.Restore는 저장된 예약 의도에서 새 lease를 발급하지만 ItemReservationService.Release는 이전 캐시 ID만 사용했다. 해제는 현재 quantity reservation owner의 ownerOperationId/stack 일치 lease로 수행한다. 새 회귀는 실패 직후 잔액/원장/수량뿐 아니라 가용 수량과 같은 runtime·fresh JSON owner 재시도를 확인한다. 실제 mass authority revision은 정의 상수3이며 이번 실패 원인을 mass fingerprint로 추정해 검사를 완화하지 않았다.
 
 ## 2026-10-23 사건 효과 우선 결함 4건

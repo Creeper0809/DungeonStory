@@ -63,6 +63,7 @@ public sealed class ResourceGameContentCatalog :
         }
 
         CoreSessionRules = Domain.CoreSessionRules.CreateRuntimeDefinition();
+        ValidateNarrativeReferences();
     }
 
     public GameContentCatalogSO Root { get; }
@@ -72,6 +73,43 @@ public sealed class ResourceGameContentCatalog :
     public GameMediaCatalogSO Media { get; }
     public GameDomainContentCatalogSO Domain { get; }
     public CoreSessionRulesDefinition CoreSessionRules { get; }
+
+    // Validate these authored relations before a player can start an impossible
+    // ritual or finish an ambition whose reward cannot resolve its target.
+    public void ValidateNarrativeReferences()
+    {
+        var items = Items.Definitions.Select(value => value.ItemId).ToHashSet(StringComparer.Ordinal);
+        var cultures = GetAll<SpeciesCultureDefinitionSO>().ToDictionary(value => value.StableId, StringComparer.Ordinal);
+        var practices = GetAll<CulturalPracticeDefinitionSO>().ToDictionary(value => value.StableId, StringComparer.Ordinal);
+        var ambitions = GetAll<CharacterAmbitionDefinitionSO>().ToDictionary(value => value.StableId, StringComparer.Ordinal);
+        var events = GetAll<LifeEventDefinitionSO>().Select(value => value.StableId).ToHashSet(StringComparer.Ordinal);
+        foreach (var culture in cultures.Values)
+        {
+            foreach (string id in culture.preferredItemIds.Concat(culture.forbiddenItemIds))
+                RequireReference(items.Contains(id), culture.StableId, "item", id);
+            foreach (string id in culture.ceremonyIds)
+                RequireReference(practices.TryGetValue(id, out var practice) && practice.cultureId == culture.StableId,
+                    culture.StableId, "cultural practice", id);
+        }
+        foreach (var practice in practices.Values)
+        {
+            RequireReference(cultures.ContainsKey(practice.cultureId), practice.StableId, "culture", practice.cultureId);
+            foreach (var item in practice.requirements.items)
+                RequireReference(item != null && items.Contains(item.itemDefinitionId), practice.StableId, "item", item?.itemDefinitionId);
+        }
+        foreach (var ambition in ambitions.Values)
+        {
+            foreach (var weighted in ambition.relatedEventWeights)
+                RequireReference(weighted != null && events.Contains(weighted.id), ambition.StableId, "life event", weighted?.id);
+            foreach (string id in ambition.cooperationAmbitionIds.Concat(ambition.conflictAmbitionIds))
+                RequireReference(ambitions.ContainsKey(id), ambition.StableId, "ambition", id);
+        }
+    }
+
+    private static void RequireReference(bool valid, string owner, string kind, string id)
+    {
+        if (!valid) throw new InvalidOperationException($"Content '{owner}' has an unknown {kind} reference '{id}'.");
+    }
     public IReadOnlyList<ServiceProcessSO> ServiceProcesses =>
         Domain.GetAll<ServiceProcessSO>();
     public RoomEnvironmentSettingsSO RoomEnvironmentSettings =>

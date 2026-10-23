@@ -1,22 +1,22 @@
 [Licensing::Module] Trying to connect to existing licensing client channel...
 Built from '6000.3/staging' branch; Version is '6000.3.8f1 (1c7db571dde0) revision 1867189'; Using compiler version '194234433'; Build Type 'Release'
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo" at "2026-10-23T08:57:04.1558667Z"
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo" at "2026-10-23T12:39:11.8942426Z"
 OS: 'Windows 11  (10.0.22631) Core' Language: 'ko' Physical Memory: 32491 MB
 BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
 System  architecture: x64
 Process architecture: x64
-Date: 2026-10-23T08:57:04Z
+Date: 2026-10-23T12:39:11Z
 
 COMMAND LINE ARGUMENTS:
 C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Unity.exe
 -batchmode
 -nographics
 -projectPath
-C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory
+C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory
 -executeMethod
 V27CiEvidenceBatch.RunImpactCrops
 -logFile
-C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Artifacts\QA\r87ee-local-crop\unity.log
+C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Artifacts\QA\r95so-local-crop\unity.log
 -refreshImportMode
 InProcess
 -job-worker-count
@@ -25,8 +25,8 @@ InProcess
 1
 -standbyWorkerCount
 0
-Successfully changed project path to: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory
-C:/Users/vulpo/.codex/worktrees/editmode-regressions/DungeonStory
+Successfully changed project path to: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory
+C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory
 [UnityMemory] Configuration Parameters - Can be set up in boot.config
     "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
     "memorysetup-temp-allocator-size-audio-worker=65536"
@@ -62,14 +62,14 @@ C:/Users/vulpo/.codex/worktrees/editmode-regressions/DungeonStory
     "memorysetup-job-temp-allocator-block-size-background=1048576"
     "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
     "memorysetup-temp-allocator-size-cloud-worker=32768"
-Player connection [114828]  Target information:
+Player connection [164116]  Target information:
 
 [redacted player-connection network identifiers]
 
 [redacted player-connection network identifiers]
 
-Player connection [114828] Host joined multi-casting on [225.0.0.222:54997]...
-Player connection [114828] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Player connection [164116] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [164116] Host joined alternative multi-casting on [225.0.0.222:34997]...
 JobSystem: Creating JobQueue using job-worker-count value 1
 Input System module state changed to: Initialized.
 [Physics::Module] Initialized fallback backend.
@@ -80,19 +80,19 @@ Input System module state changed to: Initialized.
 [Licensing::Module] Error: Failed to handshake to channel: "LicenseClient-vulpo"
 [Licensing::IpcConnector] LicenseClient-vulpo channel disconnected successfully.
 [Licensing::IpcConnector] Channel LicenseClient-vulpo-6000.3.8 doesn't exist
-[Licensing::Module] Successfully launched the LicensingClient (PId: 247020)
-[Package Manager] Connected to IPC stream "Upm-248356" after 0.2 seconds.
+[Licensing::Module] Successfully launched the LicensingClient (PId: 188020)
+[Package Manager] Connected to IPC stream "Upm-41584" after 0.9 seconds.
 [Licensing::Module] Licensing is not yet initialized.
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-6000.3.8" at "2026-10-23T08:57:05.2830941Z"
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-6000.3.8" at "2026-10-23T12:39:13.7307717Z"
 [Licensing::Client] Handshaking with LicensingClient:
   Version:                 1.17.4+4293ba1
   Session Id:              [redacted]
   Correlation Id:          [redacted]
   External correlation Id: [redacted]
   Machine Id:              [redacted]
-[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-vulpo-6000.3.8" (connect: 0.37s, validation: 0.03s, handshake: 0.72s)
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-6000.3.8-notifications" at "2026-10-23T08:57:06.0400982Z"
-[Licensing::Module] Connected to LicensingClient (PId: 247020, launch time: 0.01, total connection time: 1.13s)
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-vulpo-6000.3.8" (connect: 0.56s, validation: 0.04s, handshake: 1.00s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-6000.3.8-notifications" at "2026-10-23T12:39:14.7752275Z"
+[Licensing::Module] Connected to LicensingClient (PId: 188020, launch time: 0.01, total connection time: 1.61s)
 [Licensing::Module] Error: Access token is unavailable; failed to update
 [Licensing::Client] Successfully resolved entitlement details
 [Licensing::Module] License group:
@@ -102,8 +102,8 @@ Input System module state changed to: Initialized.
   Expiration: Unlimited
 [Licensing::Client] Successfully updated license, isAsync: True, time: 0.01
 [Licensing::Client] Successfully resolved entitlement details
-[Licensing::Module] Licensing Background thread has ended after 1.90s
-[Licensing::Module] Licensing is initialized (took 1.12s).
+[Licensing::Module] Licensing Background thread has ended after 2.90s
+[Licensing::Module] Licensing is initialized (took 1.36s).
 [Licensing::Client] Successfully resolved entitlement details
 Library Redirect Path: Library/
 [Physics::Module] Selected backend.
@@ -112,11 +112,11 @@ Library Redirect Path: Library/
 [Physics::Module] SDK Version: 4.1.2
 [Physics::Module] Integration Version: 1.0.0
 [Physics::Module] Threading Mode: Multi-Threaded
-Refreshing native plugins compatible for Editor in 0.29 ms, found 0 plugins.
+Refreshing native plugins compatible for Editor in 9.35 ms, found 0 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Initialize engine version: 6000.3.8f1 (1c7db571dde0)
 [Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/Resources/UnitySubsystems
-[Subsystems] Discovering subsystems at path C:/Users/vulpo/.codex/worktrees/editmode-regressions/DungeonStory/Assets
+[Subsystems] Discovering subsystems at path C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory/Assets
 Forcing GfxDevice: Null
 GfxDevice: creating device client; kGfxThreadingModeNonThreaded
 NullGfxDevice:
@@ -127,7 +127,7 @@ Initialize mono
 Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/Managed'
 Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
 Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56356
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56584
 Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
 Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
 ImportWorker Server TCP listen port: 0
@@ -139,43 +139,43 @@ Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.8f1/E
 Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll
 [Licensing::Client] Successfully resolved entitlement details
 Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.3.8f1/Editor/Data/PlaybackEngines/iOSSupport/UnityEditor.iOS.Extensions.dll
-Registered in 0.006984 seconds.
-- Loaded All Assemblies, in  0.297 seconds
+Registered in 0.857665 seconds.
+- Loaded All Assemblies, in 19.394 seconds
 Native extension for iOS target not found
 Native extension for Android target not found
-Android Extension - Scanning For ADB Devices 2218 ms
+Android Extension - Scanning For ADB Devices 2271 ms
 Native extension for WindowsStandalone target not found
 ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in  2.501 seconds
-Domain Reload Profiling: 2796ms
-	BeginReloadAssembly (106ms)
+- Finished resetting the current domain, in  2.927 seconds
+Domain Reload Profiling: 22318ms
+	BeginReloadAssembly (16576ms)
 		ExecutionOrderSort (0ms)
 		DisableScriptedObjects (0ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (9ms)
-	RebuildCommonClasses (24ms)
-	RebuildNativeTypeToScriptingClass (8ms)
-	initialDomainReloadingComplete (38ms)
-	LoadAllAssembliesAndSetupDomain (118ms)
-		LoadAssemblies (95ms)
+		CreateAndSetChildDomain (8ms)
+	RebuildCommonClasses (35ms)
+	RebuildNativeTypeToScriptingClass (11ms)
+	initialDomainReloadingComplete (903ms)
+	LoadAllAssembliesAndSetupDomain (1865ms)
+		LoadAssemblies (16593ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (116ms)
-			TypeCache.Refresh (115ms)
-				TypeCache.ScanAssembly (105ms)
+		AnalyzeDomain (1835ms)
+			TypeCache.Refresh (1834ms)
+				TypeCache.ScanAssembly (1821ms)
 			BuildScriptInfoCaches (0ms)
 			ResolveRequiredComponents (0ms)
-	FinalizeReload (2501ms)
+	FinalizeReload (2928ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (2478ms)
+		SetupLoadedEditorAssemblies (2899ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (2283ms)
+			InitializePlatformSupportModulesInManaged (2606ms)
 			SetLoadedEditorAssemblies (3ms)
-			BeforeProcessingInitializeOnLoad (51ms)
-			ProcessInitializeOnLoadAttributes (93ms)
-			ProcessInitializeOnLoadMethodAttributes (48ms)
+			BeforeProcessingInitializeOnLoad (66ms)
+			ProcessInitializeOnLoadAttributes (131ms)
+			ProcessInitializeOnLoadMethodAttributes (93ms)
 			AfterProcessingInitializeOnLoad (0ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
@@ -187,102 +187,103 @@ Package Manager log level set to [2]
 [Licensing::Client] Successfully resolved entitlement details
 [Package Manager] Registered 78 packages:
   Packages from [https://packages.unity.com]:
-    com.unity.ai.assistant@2.13.0-pre.2 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.ai.assistant@6fee27370e6a)
-    com.unity.cinemachine@2.10.5 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.cinemachine@f26b20ca78a2)
-    com.unity.ide.rider@3.0.39 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.ide.rider@4504839d03f7)
-    com.unity.ide.visualstudio@2.0.26 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.ide.visualstudio@a99d56dec63f)
-    com.unity.inputsystem@1.18.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.inputsystem@57d0e36f6123)
-    com.unity.localization@1.5.9 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.localization@62db12c43c5c)
-    com.unity.sdk.linux-x86_64@1.1.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.sdk.linux-x86_64@6d12be270055)
-    com.unity.timeline@1.8.10 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.timeline@7f8b2fb101b6)
-    com.unity.toolchain.linux-x86_64-linux@1.1.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.toolchain.linux-x86_64-linux@d0308bf9d559)
-    com.unity.visualscripting@1.9.9 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.visualscripting@191c0d7e3b69)
-    com.unity.pipeline@0.6.0-exp.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.pipeline@9bb4172c603c)
-    com.unity.nuget.mono-cecil@1.11.6 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff)
-    com.unity.nuget.newtonsoft-json@3.2.2 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.nuget.newtonsoft-json@4dfd81071c64)
-    com.unity.sysroot.base@1.1.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.sysroot.base@3559fe1aa613)
-    com.unity.addressables@2.8.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.addressables@2dc42e61a5f5)
-    com.unity.2d.animation@13.0.4 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.animation@7396d8477ca9)
-    com.unity.2d.pixel-perfect@5.1.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.pixel-perfect@09d99455b901)
-    com.unity.2d.psdimporter@12.0.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.psdimporter@9abe0f7cac7e)
-    com.unity.2d.spriteshape@13.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.spriteshape@0738bab11647)
-    com.unity.2d.tilemap.extras@6.0.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.tilemap.extras@3dde84bf3867)
-    com.unity.2d.aseprite@3.0.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.aseprite@809e3a168ff7)
-    com.unity.2d.tooling@1.0.4 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.tooling@04422e023209)
-    com.unity.mathematics@1.3.3 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.mathematics@19a9377c4ffa)
-    com.unity.searcher@4.9.4 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.searcher@d45a78918735)
-    com.unity.burst@1.8.27 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.burst@973857688024)
-    com.unity.collections@2.6.2 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.collections@aea9d3bd5e19)
-    com.unity.profiling.core@1.0.3 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.profiling.core@8a49f7027d06)
-    com.unity.scriptablebuildpipeline@2.5.2 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.scriptablebuildpipeline@418957ab75a6)
-    com.unity.2d.common@12.0.4 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.common@3e42aeccb30d)
-    com.unity.test-framework.performance@3.2.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.test-framework.performance@0840f58e4562)
+    com.unity.ai.assistant@2.13.0-pre.2 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.ai.assistant@6fee27370e6a)
+    com.unity.cinemachine@2.10.5 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.cinemachine@f26b20ca78a2)
+    com.unity.ide.rider@3.0.39 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.ide.rider@4504839d03f7)
+    com.unity.ide.visualstudio@2.0.26 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.ide.visualstudio@a99d56dec63f)
+    com.unity.inputsystem@1.18.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.inputsystem@57d0e36f6123)
+    com.unity.localization@1.5.9 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.localization@62db12c43c5c)
+    com.unity.sdk.linux-x86_64@1.1.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.sdk.linux-x86_64@6d12be270055)
+    com.unity.timeline@1.8.10 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.timeline@7f8b2fb101b6)
+    com.unity.toolchain.linux-x86_64-linux@1.1.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.toolchain.linux-x86_64-linux@d0308bf9d559)
+    com.unity.visualscripting@1.9.9 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.visualscripting@191c0d7e3b69)
+    com.unity.pipeline@0.6.0-exp.1 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.pipeline@9bb4172c603c)
+    com.unity.nuget.mono-cecil@1.11.6 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff)
+    com.unity.nuget.newtonsoft-json@3.2.2 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.nuget.newtonsoft-json@4dfd81071c64)
+    com.unity.sysroot.base@1.1.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.sysroot.base@3559fe1aa613)
+    com.unity.addressables@2.8.1 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.addressables@2dc42e61a5f5)
+    com.unity.2d.animation@13.0.4 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.animation@7396d8477ca9)
+    com.unity.2d.pixel-perfect@5.1.1 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.pixel-perfect@09d99455b901)
+    com.unity.2d.psdimporter@12.0.1 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.psdimporter@9abe0f7cac7e)
+    com.unity.2d.spriteshape@13.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.spriteshape@0738bab11647)
+    com.unity.2d.tilemap.extras@6.0.1 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.tilemap.extras@3dde84bf3867)
+    com.unity.2d.aseprite@3.0.1 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.aseprite@809e3a168ff7)
+    com.unity.2d.tooling@1.0.4 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.tooling@04422e023209)
+    com.unity.mathematics@1.3.3 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.mathematics@19a9377c4ffa)
+    com.unity.searcher@4.9.4 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.searcher@d45a78918735)
+    com.unity.burst@1.8.27 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.burst@973857688024)
+    com.unity.collections@2.6.2 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.collections@aea9d3bd5e19)
+    com.unity.profiling.core@1.0.3 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.profiling.core@8a49f7027d06)
+    com.unity.scriptablebuildpipeline@2.5.2 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.scriptablebuildpipeline@418957ab75a6)
+    com.unity.2d.common@12.0.4 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.common@3e42aeccb30d)
+    com.unity.test-framework.performance@3.2.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.test-framework.performance@0840f58e4562)
   Built-in packages:
-    com.unity.feature.2d@2.0.2 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.feature.2d@0309d34ea7f2)
-    com.unity.multiplayer.center@1.0.1 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.multiplayer.center@f01f4ba8d00a)
-    com.unity.render-pipelines.universal@17.3.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.render-pipelines.universal@a6e30d1f59f5)
-    com.unity.test-framework@1.6.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.test-framework@0b7a23ab2e1d)
-    com.unity.ugui@2.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.ugui@bb329a87fcdc)
-    com.unity.modules.accessibility@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.accessibility)
-    com.unity.modules.adaptiveperformance@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.adaptiveperformance)
-    com.unity.modules.ai@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.ai)
-    com.unity.modules.androidjni@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.androidjni)
-    com.unity.modules.animation@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.animation)
-    com.unity.modules.assetbundle@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.assetbundle)
-    com.unity.modules.audio@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.audio)
-    com.unity.modules.cloth@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.cloth)
-    com.unity.modules.director@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.director)
-    com.unity.modules.imageconversion@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.imageconversion)
-    com.unity.modules.imgui@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.imgui)
-    com.unity.modules.jsonserialize@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.jsonserialize)
-    com.unity.modules.particlesystem@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.particlesystem)
-    com.unity.modules.physics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.physics)
-    com.unity.modules.physics2d@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.physics2d)
-    com.unity.modules.screencapture@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.screencapture)
-    com.unity.modules.terrain@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.terrain)
-    com.unity.modules.terrainphysics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.terrainphysics)
-    com.unity.modules.tilemap@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.tilemap)
-    com.unity.modules.ui@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.ui)
-    com.unity.modules.uielements@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.uielements)
-    com.unity.modules.umbra@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.umbra)
-    com.unity.modules.unityanalytics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unityanalytics)
-    com.unity.modules.unitywebrequest@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequest)
-    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestassetbundle)
-    com.unity.modules.unitywebrequestaudio@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestaudio)
-    com.unity.modules.unitywebrequesttexture@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequesttexture)
-    com.unity.modules.unitywebrequestwww@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestwww)
-    com.unity.modules.vectorgraphics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.vectorgraphics)
-    com.unity.modules.vehicles@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.vehicles)
-    com.unity.modules.video@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.video)
-    com.unity.modules.vr@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.vr)
-    com.unity.modules.wind@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.wind)
-    com.unity.modules.xr@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.xr)
-    com.unity.modules.subsystems@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.subsystems)
-    com.unity.modules.hierarchycore@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.modules.hierarchycore)
-    com.unity.ext.nunit@2.0.5 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.ext.nunit@d8c07649098d)
-    com.unity.render-pipelines.core@17.3.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.render-pipelines.core@d6dfd1e235d5)
-    com.unity.shadergraph@17.3.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.shadergraph@d44b48771ebb)
-    com.unity.render-pipelines.universal-config@17.0.3 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.render-pipelines.universal-config@8dc1aab4af1d)
-    com.unity.2d.sprite@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.sprite@08e067ec1643)
-    com.unity.2d.tilemap@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Library\PackageCache\com.unity.2d.tilemap@2394479dc113)
+    com.unity.feature.2d@2.0.2 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.feature.2d@0309d34ea7f2)
+    com.unity.multiplayer.center@1.0.1 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.multiplayer.center@f01f4ba8d00a)
+    com.unity.render-pipelines.universal@17.3.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.render-pipelines.universal@a6e30d1f59f5)
+    com.unity.test-framework@1.6.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.test-framework@0b7a23ab2e1d)
+    com.unity.ugui@2.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.ugui@bb329a87fcdc)
+    com.unity.modules.accessibility@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.accessibility)
+    com.unity.modules.adaptiveperformance@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.adaptiveperformance)
+    com.unity.modules.ai@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.ai)
+    com.unity.modules.androidjni@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.audio)
+    com.unity.modules.cloth@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.cloth)
+    com.unity.modules.director@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.director)
+    com.unity.modules.imageconversion@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.physics)
+    com.unity.modules.physics2d@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.physics2d)
+    com.unity.modules.screencapture@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.screencapture)
+    com.unity.modules.terrain@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.terrain)
+    com.unity.modules.terrainphysics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.terrainphysics)
+    com.unity.modules.tilemap@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.tilemap)
+    com.unity.modules.ui@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.uielements)
+    com.unity.modules.umbra@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.umbra)
+    com.unity.modules.unityanalytics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.unityanalytics)
+    com.unity.modules.unitywebrequest@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestassetbundle)
+    com.unity.modules.unitywebrequestaudio@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestaudio)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.unitywebrequestwww@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.unitywebrequestwww)
+    com.unity.modules.vectorgraphics@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.vectorgraphics)
+    com.unity.modules.vehicles@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.vehicles)
+    com.unity.modules.video@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.video)
+    com.unity.modules.vr@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.vr)
+    com.unity.modules.wind@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.wind)
+    com.unity.modules.xr@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.modules.hierarchycore)
+    com.unity.ext.nunit@2.0.5 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.ext.nunit@d8c07649098d)
+    com.unity.render-pipelines.core@17.3.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.render-pipelines.core@d6dfd1e235d5)
+    com.unity.shadergraph@17.3.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.shadergraph@d44b48771ebb)
+    com.unity.render-pipelines.universal-config@17.0.3 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.render-pipelines.universal-config@8dc1aab4af1d)
+    com.unity.2d.sprite@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.sprite@08e067ec1643)
+    com.unity.2d.tilemap@1.0.0 (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Library\PackageCache\com.unity.2d.tilemap@2394479dc113)
   Embedded packages:
-    jp.hadashikick.vcontainer@file:C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Packages\jp.hadashikick.vcontainer (location: C:\Users\vulpo\.codex\worktrees\editmode-regressions\DungeonStory\Packages\jp.hadashikick.vcontainer)
+    jp.hadashikick.vcontainer@file:C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Packages\jp.hadashikick.vcontainer (location: C:\Users\vulpo\.codex\worktrees\so-reference-authoring\DungeonStory\Packages\jp.hadashikick.vcontainer)
 [Subsystems] No new subsystems found in resolved package list.
-[Package Manager] Done registering packages in 0.01 seconds
-Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected, using 'Packages/com.unity.collections/Unity.Collections.Tests/System.Runtime.CompilerServices.Unsafe/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a' and ignoring 'Packages/com.unity.pipeline/Runtime/Plugins/CodeAnalysis/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.Refreshing native plugins compatible for Editor in 1.52 ms, found 2 plugins.
+[Package Manager] Done registering packages in 0.03 seconds
+Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected, using 'Packages/com.unity.collections/Unity.Collections.Tests/System.Runtime.CompilerServices.Unsafe/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a' and ignoring 'Packages/com.unity.pipeline/Runtime/Plugins/CodeAnalysis/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.Refreshing native plugins compatible for Editor in 117.76 ms, found 2 plugins.
 Starting: C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Data\Tools\BuildPipeline\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
-WorkingDir: C:/Users/vulpo/.codex/worktrees/editmode-regressions/DungeonStory
+WorkingDir: C:/Users/vulpo/.codex/worktrees/so-reference-authoring/DungeonStory
 DisplayProgressbar: Compiling Scripts
-ExitCode: 0 Duration: 1s19ms
+ExitCode: 0 Duration: 2s650ms
 [ 465/2213  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
-*** Tundra build success (0.99 seconds), 1 items updated, 2213 evaluated
-AssetDatabase: script compilation time: 1.395574s
+*** Tundra build success (2.59 seconds), 1 items updated, 2213 evaluated
+AssetDatabase: script compilation time: 3.336222s
 Begin MonoManager ReloadAssembly
-Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected, using 'Packages/com.unity.collections/Unity.Collections.Tests/System.Runtime.CompilerServices.Unsafe/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a' and ignoring 'Packages/com.unity.pipeline/Runtime/Plugins/CodeAnalysis/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.- Loaded All Assemblies, in  1.332 seconds
-Refreshing native plugins compatible for Editor in 1.18 ms, found 2 plugins.
+Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected, using 'Packages/com.unity.collections/Unity.Collections.Tests/System.Runtime.CompilerServices.Unsafe/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a' and ignoring 'Packages/com.unity.pipeline/Runtime/Plugins/CodeAnalysis/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.- Loaded All Assemblies, in 45.560 seconds
+Refreshing native plugins compatible for Editor in 4.89 ms, found 2 plugins.
 Native extension for iOS target not found
 Native extension for Android target not found
 Native extension for WindowsStandalone target not found
+[Licensing::Client] Successfully resolved entitlement details
 Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different versions detected, using 'Packages/com.unity.collections/Unity.Collections.Tests/System.Runtime.CompilerServices.Unsafe/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a' and ignoring 'Packages/com.unity.pipeline/Runtime/Plugins/CodeAnalysis/System.Runtime.CompilerServices.Unsafe.dll, AssemblyName=System.Runtime.CompilerServices.Unsafe, Version=4.0.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'.V27_HEADLESS_EDITOR_RELAY_AUTOSTART=SUPPRESSED; package bootstrap API; actual Assistant use retains lazy initialization
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
 UnityEngine.StackTraceUtility:ExtractStackTrace ()
@@ -303,118 +304,121 @@ Duplicate assembly 'System.Runtime.CompilerServices.Unsafe.dll' with different v
 [Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
 ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in  5.052 seconds
-Domain Reload Profiling: 6375ms
-	BeginReloadAssembly (258ms)
+- Finished resetting the current domain, in  9.136 seconds
+Domain Reload Profiling: 54682ms
+	BeginReloadAssembly (286ms)
 		ExecutionOrderSort (0ms)
-		DisableScriptedObjects (8ms)
+		DisableScriptedObjects (10ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (156ms)
-	RebuildCommonClasses (24ms)
-	RebuildNativeTypeToScriptingClass (8ms)
-	initialDomainReloadingComplete (43ms)
-	LoadAllAssembliesAndSetupDomain (990ms)
-		LoadAssemblies (512ms)
+		CreateAndSetChildDomain (150ms)
+	RebuildCommonClasses (30ms)
+	RebuildNativeTypeToScriptingClass (11ms)
+	initialDomainReloadingComplete (59ms)
+	LoadAllAssembliesAndSetupDomain (45160ms)
+		LoadAssemblies (44530ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (551ms)
-			TypeCache.Refresh (432ms)
-				TypeCache.ScanAssembly (410ms)
-			BuildScriptInfoCaches (102ms)
-			ResolveRequiredComponents (10ms)
-	FinalizeReload (5052ms)
+		AnalyzeDomain (726ms)
+			TypeCache.Refresh (562ms)
+				TypeCache.ScanAssembly (537ms)
+			BuildScriptInfoCaches (142ms)
+			ResolveRequiredComponents (14ms)
+	FinalizeReload (9136ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (4916ms)
+		SetupLoadedEditorAssemblies (8051ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (28ms)
-			SetLoadedEditorAssemblies (6ms)
-			BeforeProcessingInitializeOnLoad (174ms)
-			ProcessInitializeOnLoadAttributes (4331ms)
-			ProcessInitializeOnLoadMethodAttributes (371ms)
-			AfterProcessingInitializeOnLoad (6ms)
-			EditorAssembliesLoaded (0ms)
+			InitializePlatformSupportModulesInManaged (44ms)
+			SetLoadedEditorAssemblies (9ms)
+			BeforeProcessingInitializeOnLoad (264ms)
+			ProcessInitializeOnLoadAttributes (6088ms)
+			ProcessInitializeOnLoadMethodAttributes (1637ms)
+			AfterProcessingInitializeOnLoad (8ms)
+			EditorAssembliesLoaded (1ms)
 		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (9ms)
-Asset Pipeline Refresh (id=4cf1eab2b6ff0624aaaa18758b743fa4): Total: 8.688 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+		AwakeInstancesAfterBackupRestoration (11ms)
+Asset Pipeline Refresh (id=3738d64276a22384a9a3aea530af0529): Total: 68.767 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
 	Summary:
 		Imports: total=0 (actual=0, local cache=0, cache server=0)
-		Asset DB Process Time: managed=0 ms, native=5823 ms
-		Asset DB Callback time: managed=29 ms, native=17 ms
-		Scripting: domain reloads=1, domain reload time=1332 ms, compile time=1397 ms, other=88 ms
+		Asset DB Process Time: managed=0 ms, native=19593 ms
+		Asset DB Callback time: managed=77 ms, native=76 ms
+		Scripting: domain reloads=1, domain reload time=45560 ms, compile time=3338 ms, other=121 ms
 		Project Asset Count: scripts=3042, non-scripts=9595
 		Asset File Changes: new=0, changed=0, moved=0, deleted=0
 		Scan Filter Count: 0
 	InvokeCustomDependenciesCallbacks: 0.001ms
-	InvokePackagesCallback: 19.296ms
-	ApplyChangesToAssetFolders: 0.773ms
-	Scan: 273.733ms
-	OnSourceAssetsModified: 0.002ms
-	CategorizeAssetsWithTransientArtifact: 73.367ms
-	ProcessAssetsWithTransientArtifactChanges: 120.909ms
-	CategorizeAssets: 97.638ms
-	ImportOutOfDateAssets: 5066.248ms (3665.180ms without children)
-		CompileScripts: 1397.056ms
-		ReloadNativeAssets: 0.041ms
-		UnloadImportedAssets: 1.675ms
-		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 1.442ms
+	InvokePackagesCallback: 79.909ms
+	ApplyChangesToAssetFolders: 0.657ms
+	Scan: 836.556ms
+	OnSourceAssetsModified: 0.003ms
+	CategorizeAssetsWithTransientArtifact: 5915.006ms
+	ProcessAssetsWithTransientArtifactChanges: 157.963ms
+	CategorizeAssets: 112.608ms
+	ImportOutOfDateAssets: 9184.627ms (5841.617ms without children)
+		CompileScripts: 3337.545ms
+		ReloadNativeAssets: 0.053ms
+		UnloadImportedAssets: 2.095ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 2.182ms
 		InitializingProgressBar: 0.000ms
-		PostProcessAllAssetNotificationsAddChangedAssets: 0.000ms
-		OnDemandSchedulerStart: 0.854ms
-	PostProcessAllAssets: 29.612ms
+		PostProcessAllAssetNotificationsAddChangedAssets: 0.001ms
+		OnDemandSchedulerStart: 1.134ms
+	PostProcessAllAssets: 77.062ms
 	GatherAllCurrentPrimaryArtifactRevisions: 0.001ms
-	UnloadStreamsBegin: 0.955ms
-	PersistCurrentRevisions: 0.360ms
+	UnloadStreamsBegin: 1.086ms
+	PersistCurrentRevisions: 0.418ms
 	UnloadStreamsEnd: 0.001ms
-	GenerateScriptTypeHashes: 4.304ms
-	Untracked: 3004.905ms
+	GenerateScriptTypeHashes: 5.385ms
+	Untracked: 52400.765ms
 
 Application.AssetDatabase Initial Refresh End
-Scanning for USB devices : 2.306ms
+Scanning for USB devices : 4.657ms
 Initializing Unity extensions:
 [MODES] ModeService[none].Initialize
 [MODES] ModeService[none].LoadModes
 [MODES] Loading mode Default (0) for mode-current-id-DungeonStory
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Client] Successfully resolved entitlement details
 Unloading 90 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 14734 unused Assets / (15.3 MB). Loaded Objects now: 15499.
-Memory consumption went from 315.2 MB to 299.9 MB.
-Total: 21.422000 ms (FindLiveObjects: 0.747400 ms CreateObjectMapping: 0.855100 ms MarkObjects: 13.178100 ms  DeleteObjects: 6.639700 ms)
+Unloading 14737 unused Assets / (16.2 MB). Loaded Objects now: 15502.
+Memory consumption went from 319.0 MB to 302.7 MB.
+Total: 24.899900 ms (FindLiveObjects: 0.828900 ms CreateObjectMapping: 0.907700 ms MarkObjects: 15.703300 ms  DeleteObjects: 7.459100 ms)
 
-Asset Pipeline Refresh (id=a14d24ed32e446c4a8fce3e92f88bcfb): Total: 0.071 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=e90fbeb5f9fd27a41b5a12189327a216): Total: 0.091 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
 Opening scene 'Assets/Scenes/GameplayScene.unity'
+[Licensing::Client] Successfully resolved entitlement details
 Unloading 144 Unused Serialized files (Serialized files now loaded: 0)
 Loaded scene 'Assets/Scenes/GameplayScene.unity'
-	Deserialize:            292.533 ms
-	Integration:            331.063 ms
-	Integration of assets:  5.852 ms
-	Thread Wait Time:       21.508 ms
-	Total Operation Time:   650.955 ms
-Unloading 4 unused Assets / (5.5 KB). Loaded Objects now: 16453.
+	Deserialize:            752.692 ms
+	Integration:            632.364 ms
+	Integration of assets:  34.722 ms
+	Thread Wait Time:       -0.165 ms
+	Total Operation Time:   1419.613 ms
+Unloading 4 unused Assets / (5.5 KB). Loaded Objects now: 16456.
 Memory consumption went from 286.3 MB to 286.3 MB.
-Total: 13.407500 ms (FindLiveObjects: 0.488500 ms CreateObjectMapping: 0.421300 ms MarkObjects: 12.452800 ms  DeleteObjects: 0.044300 ms)
+Total: 17.478400 ms (FindLiveObjects: 0.579200 ms CreateObjectMapping: 0.453900 ms MarkObjects: 16.377400 ms  DeleteObjects: 0.066700 ms)
 
 Microsoft Media Foundation video decoding to texture disabled: graphics device is Null, only Direct3D 11 and Direct3D 12 (only on desktop) are supported for hardware-accelerated video decoding.
-[Project] Loading completed in 34.503 seconds
-	Project init time: 				14.082 seconds
+[Project] Loading completed in 129.188 seconds
+	Project init time: 				97.968 seconds
 		Template init time: 		0.000 seconds
-		Package Manager init time: 		1.331 seconds
-		Asset Database init time: 		0.193 seconds
-		Global illumination init time: 	0.005 seconds
-		Assemblies load time: 			2.813 seconds
-		Unity extensions init time: 	0.028 seconds
-		Asset Database refresh time: 	8.688 seconds
-	Scene opening time: 			19.850 seconds
-##utp:{"type":"ProjectInfo","version":2,"phase":"Immediate","time":1792745858625,"processId":248356,"projectLoad":34.5033853,"projectInit":14.0824322,"templateInit":0.0,"packageManagerInit":1.3313879,"assetDatabaseInit":0.1931544,"globalIlluminationInit":0.0052193,"assembliesLoad":2.8129269,"unityExtensionsInit":0.0284202,"assetDatabaseRefresh":8.6879007,"sceneOpening":19.8497365}
-##utp:{"type":"EditorInfo","version":2,"phase":"Immediate","time":1792745858625,"processId":248356,"editorVersion":"6000.3.8f1 (1c7db571dde0)","branch":"6000.3/staging","buildType":"Release","platform":"Windows"}
-SpriteAtlasPacking completed in 0.016072 sec
+		Package Manager init time: 		2.222 seconds
+		Asset Database init time: 		0.462 seconds
+		Global illumination init time: 	0.010 seconds
+		Assemblies load time: 			22.387 seconds
+		Unity extensions init time: 	0.024 seconds
+		Asset Database refresh time: 	68.767 seconds
+	Scene opening time: 			30.564 seconds
+##utp:{"type":"ProjectInfo","version":2,"phase":"Immediate","time":1792759281063,"processId":41584,"projectLoad":129.1884474,"projectInit":97.9680603,"templateInit":0.0,"packageManagerInit":2.2218962,"assetDatabaseInit":0.4622781,"globalIlluminationInit":0.0100791,"assembliesLoad":22.3874072,"unityExtensionsInit":0.0236623,"assetDatabaseRefresh":68.7671106,"sceneOpening":30.5642521}
+##utp:{"type":"EditorInfo","version":2,"phase":"Immediate","time":1792759281063,"processId":41584,"editorVersion":"6000.3.8f1 (1c7db571dde0)","branch":"6000.3/staging","buildType":"Release","platform":"Windows"}
+SpriteAtlasPacking completed in 0.020871 sec
 Entering Playmode with Reload Domain disabled.
 If you experience any issues, please disable "Enter Play Mode Options" in Editor Settings
 Loaded scene 'Temp/__Backupscenes/0.backup'
-	Deserialize:            7.949 ms
-	Integration:            1853.915 ms
+	Deserialize:            8.621 ms
+	Integration:            4817.504 ms
 	Integration of assets:  0.008 ms
-	Thread Wait Time:       0.011 ms
-	Total Operation Time:   1861.883 ms
+	Thread Wait Time:       0.005 ms
+	Total Operation Time:   4826.138 ms
 Legacy persistence import excluded for isolated batch verification.
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
 UnityEngine.StackTraceUtility:ExtractStackTrace ()
@@ -430,29 +434,30 @@ VContainer.Unity.PlayerLoopRunner:Run () (at ./Packages/jp.hadashikick.vcontaine
 
 [Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
 [Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
-Asset Pipeline Refresh (id=c7fe3fdbe8263eb4cadaa2a61a119998): Total: 0.077 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=edfb0c4f4faeeed4e91fa24402825f90): Total: 0.110 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
+[Licensing::Client] Successfully resolved entitlement details
 Start Indexing on Editor startup
 [Indexing] Starting Initial Indexing for Assets
-Created GICache directory at C:/Users/vulpo/AppData/LocalLow/Unity/Caches/GiCache. Took: 0.014s, timestamps: [37.911 - 37.925]
+Created GICache directory at C:/Users/vulpo/AppData/LocalLow/Unity/Caches/GiCache. Took: 0.027s, timestamps: [136.194 - 136.221]
 # Crop Plot Runtime Verification
-utc=2026-10-23T08:57:43.2122320Z
+utc=2026-10-23T12:41:29.9466030Z
 playMode=True
 PASS CROP_ACTUAL_CELL_TEMPERATURE_GATE range=2..33;unobserved=waiting;outdoorFactorsOnce=true;indoorFactorsOnce=true
-PASS CROP_OUTPUT_FACILITY_BUFFER_WAIT_RESTORE_RETRY_EXACT_ONCE plot=building:c919e68275d64de089863915571b17b1;harvest=0->3;capacityWait=true;frozenRestore=true;replayDelta=0;executionReceipt=true;physicalBatchJoin=true;terminalRestore=true;ackRetention=true;workerlessRejected=true
-plot=building:c919e68275d64de089863915571b17b1
+PASS CROP_OUTPUT_FACILITY_BUFFER_WAIT_RESTORE_RETRY_EXACT_ONCE plot=building:103686875e7c4601880d601632810286;harvest=0->3;capacityWait=true;frozenRestore=true;replayDelta=0;executionReceipt=true;physicalBatchJoin=true;terminalRestore=true;ackRetention=true;workerlessRejected=true
+plot=building:103686875e7c4601880d601632810286
 crop=crop:twilight-grain
 materials=resource:clean-waterx1,seed-lot:twilight-grainx1,supply:nitrate-fertilizerx1
 harvest=0->3
 outdoorCycleWater=supplied:1;tickDelta=0
-indoorPlot=building:6aa0d71b83f4482eb2929653be6cef67
+indoorPlot=building:8d3ee4b281f64be38ec2780cb5c260ad
 indoorMaterials=craft:candlex1,material:compostx1,resource:clean-waterx1,seed-lot:cave-mushroomx1,supply:mushroom-substratex1,supply:nitrate-fertilizerx1
 indoorPhase=Growing
 indoorCycleWater=supplied:1;tickDelta=0
-fungalPlot=building:aa9c5321df9c415f92be5205209fecd6
+fungalPlot=building:8d9473d74cc944c08e8d8f1012cbc2f1
 fungalMaterials=material:compostx1,resource:clean-waterx1,seed-lot:cave-mushroomx1,supply:inoculated-logx1
 inoculatedLog=700g;consumed=1
 fungalPhase=Growing
-currentSourceDigest=319b8d3f248d5d18af84c41e67fd723f4df2789b81d3937c6e8ffc9040a9976f
+currentSourceDigest=401017f9ec58b1439756f726b4a3980bec16507a21c72cbf66c7547415b25ed7
 gameplaySceneSha256=a698948004fd2a1db71ef1bebf5ab4d4c5d62caf85fed1ea5af2bb3972c30341
 valid=true
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
@@ -462,7 +467,7 @@ UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,st
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 CropPlotDebugScenarios:VerifyRuntimeFromMenu () (at Assets/Scripts/Services/Economy/Editor/CropPlotDebugScenarios.cs:1256)
-V27CiEvidenceBatch:Update () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:478)
+V27CiEvidenceBatch:Update () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:500)
 UnityEditor.EditorApplication:Internal_CallUpdateFunctions ()
 
 (Filename: Assets/Scripts/Services/Economy/Editor/CropPlotDebugScenarios.cs Line: 1256)
@@ -479,19 +484,20 @@ UnityEngine.Application:Internal_ApplicationQuit ()
 
 (Filename: Assets/Scripts/Services/Infrastructure/DungeonAutosaveService.cs Line: 140)
 
-Unloading 2 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
 Loaded scene 'Temp/__Backupscenes/0.backup'
-	Deserialize:            6.595 ms
-	Integration:            323.401 ms
+	Deserialize:            7.079 ms
+	Integration:            401.821 ms
 	Integration of assets:  0.006 ms
-	Thread Wait Time:       0.015 ms
-	Total Operation Time:   330.017 ms
-Unloading 22 unused Assets / (22.6 KB). Loaded Objects now: 20168.
-Memory consumption went from 305.5 MB to 305.5 MB.
-Total: 207.399700 ms (FindLiveObjects: 0.758800 ms CreateObjectMapping: 0.576700 ms MarkObjects: 205.987700 ms  DeleteObjects: 0.075500 ms)
+	Thread Wait Time:       0.001 ms
+	Total Operation Time:   408.906 ms
+Unloading 22 unused Assets / (20.6 KB). Loaded Objects now: 20172.
+Memory consumption went from 305.9 MB to 305.9 MB.
+Total: 261.915500 ms (FindLiveObjects: 0.685100 ms CreateObjectMapping: 0.612400 ms MarkObjects: 260.545400 ms  DeleteObjects: 0.071700 ms)
 
+[Licensing::Client] Successfully resolved entitlement details
 [UnityConnectServicesConfig] config is NOT valid, switching to default
-IMPACT_CI_PASS group=crop;source=319b8d3f248d5d18af84c41e67fd723f4df2789b81d3937c6e8ffc9040a9976f;config=5e9d75eb67068d16b2271966e0064c64c24bb2818be300bc3f762f6e88ee08aa;consoleErrors=0
+IMPACT_CI_PASS group=crop;source=401017f9ec58b1439756f726b4a3980bec16507a21c72cbf66c7547415b25ed7;config=84283c4a0b9cafefd2bf95a137f42654a90ff77e7f1ddbebb2a0379e209cb85b;consoleErrors=0
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
 UnityEngine.StackTraceUtility:ExtractStackTrace ()
 UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
@@ -499,7 +505,7 @@ UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,st
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 V27CiEvidenceBatch:CompleteImpact (string,string,string,bool) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:139)
-V27CiEvidenceBatch:Complete () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:515)
+V27CiEvidenceBatch:Complete () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:537)
 UnityEditor.EditorApplication:Internal_CallDelayFunctions ()
 
 (Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 139)
@@ -511,13 +517,13 @@ UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOpt
 UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
-V27CiEvidenceBatch:Complete () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:518)
+V27CiEvidenceBatch:Complete () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:540)
 UnityEditor.EditorApplication:Internal_CallDelayFunctions ()
 
-(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 518)
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 540)
 
 Pipeline Server stopped
-Killing ADB server in 0.0490134 seconds.
+Killing ADB server in 0.0707727 seconds.
 [Physics::Module] Cleanup current backend.
 [Physics::Module] Id: 0xf2b8ea05
 Input System module state changed to: ShutdownInProgress.
@@ -530,4 +536,4 @@ Cleanup mono
 Checking for leaked weakptr:
   Found no leaked weakptrs.
 [Package Manager] Server process was shutdown
-##utp:{"type":"MemoryLeaks","version":2,"phase":"Immediate","time":1792745893866,"processId":248356,"allocatedMemory":31727892,"memoryLabels":[{"Default":29313},{"Permanent":15236},{"NewDelete":68933},{"Thread":4230344},{"Manager":39741},{"VertexData":8},{"Geometry":816},{"Texture":296},{"Shader":79379},{"Material":24},{"GfxDevice":55257},{"Animation":392},{"Audio":2664},{"FreeType":8},{"FontEngine":736},{"Physics":2090},{"Physics2D":16},{"Input":14984},{"JobScheduler":33024},{"TextLib":216},{"Mono":32},{"MonoCode":123840},{"ScriptingNativeRuntime":155060},{"BaseObject":1626368},{"Resource":1336},{"Renderer":3000},{"Transform":4685},{"File":3945},{"WebCam":616},{"Culling":32},{"Terrain":11394},{"Wind":24},{"STL":40},{"String":30658},{"DynamicArray":148330},{"HashMap":4100894},{"Utility":2662854},{"Curl":4238},{"PoolAlloc":2152},{"AI":80},{"TypeTree":5341},{"ScriptManager":512},{"RuntimeInitializeOnLoadManager":64},{"SpriteAtlas":112},{"GI":7792},{"Director":8240},{"CloudService":10800},{"WebRequest":4762},{"VR":47994},{"SceneManager":504},{"Video":64},{"LazyScriptCache":32},{"Camera":17},{"Secure":2113},{"SerializationCache":1576},{"APIUpdating":10320},{"Subsystems":336},{"VirtualTexturing":57888},{"StaticSafetyDebugInfo":278528},{"Analytics":384},{"Hierarchy":608},{"CoreStats":13032},{"Identifiers":12960},{"Gui":96},{"EditorUtility":177751},{"VersionControl":4},{"Undo":947},{"AssetDatabase":17710259},{"EditorGi":328},{"UnityConnect":29232},{"Upm":1896},{"AssetCompliance":64},{"DrivenProperties":72},{"LocalIPC":211},{"ProfilerEditor":9746},{"CoreBusinessMetrics":2876},{"Licensing":664},{"AssetReference":32},{"IPCStream":32}]}
+##utp:{"type":"MemoryLeaks","version":2,"phase":"Immediate","time":1792759333207,"processId":41584,"allocatedMemory":31733524,"memoryLabels":[{"Default":29313},{"Permanent":15236},{"NewDelete":68933},{"Thread":4230344},{"Manager":39741},{"VertexData":8},{"Geometry":816},{"Texture":296},{"Shader":79379},{"Material":24},{"GfxDevice":55257},{"Animation":392},{"Audio":2664},{"FreeType":8},{"FontEngine":736},{"Physics":2090},{"Physics2D":16},{"Input":14984},{"JobScheduler":33024},{"TextLib":216},{"Mono":32},{"MonoCode":123840},{"ScriptingNativeRuntime":155060},{"BaseObject":1626368},{"Resource":1336},{"Renderer":3000},{"Transform":4685},{"File":3945},{"WebCam":616},{"Culling":32},{"Terrain":11394},{"Wind":24},{"STL":40},{"String":30240},{"DynamicArray":148330},{"HashMap":4101050},{"Utility":2662854},{"Curl":4238},{"PoolAlloc":2152},{"AI":80},{"TypeTree":5341},{"ScriptManager":512},{"RuntimeInitializeOnLoadManager":64},{"SpriteAtlas":112},{"GI":7792},{"Director":8240},{"CloudService":10368},{"WebRequest":11088},{"VR":47994},{"SceneManager":504},{"Video":64},{"LazyScriptCache":32},{"Camera":17},{"Secure":2113},{"SerializationCache":1576},{"APIUpdating":10320},{"Subsystems":336},{"VirtualTexturing":57888},{"StaticSafetyDebugInfo":278528},{"Analytics":384},{"Hierarchy":608},{"CoreStats":13032},{"Identifiers":12960},{"Gui":96},{"EditorUtility":177751},{"VersionControl":4},{"Undo":947},{"AssetDatabase":17710259},{"EditorGi":328},{"UnityConnect":29232},{"Upm":1896},{"AssetCompliance":64},{"DrivenProperties":72},{"LocalIPC":211},{"ProfilerEditor":9746},{"CoreBusinessMetrics":2876},{"Licensing":664},{"AssetReference":32},{"IPCStream":32}]}
