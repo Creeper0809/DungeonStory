@@ -1,4 +1,180 @@
 ﻿record_key,stable_id,field_path,raw_value,enum_type,enum_label,value_origin
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,m_Name,anatomy_arachnid,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,profileId,anatomy:arachnid,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,displayName,거미형,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,anatomyFamily,arachnid,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,speciesIds.0,silk_spider,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,legacySpeciesIds,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.0.displayName,머리,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.0.parentNodeId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.0.kind,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.0.functions,6,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.0.maxHealth,11,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.0.capacityWeight,0.35,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.0.vital,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.0.removable,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.0.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.0.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.0.mapsToLegacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.1.nodeId,brain,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.1.displayName,신경절,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.1.parentNodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.1.kind,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.1.functions,2,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.1.maxHealth,7,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.1.capacityWeight,0.65,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.1.vital,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.1.removable,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.1.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.1.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.1.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.2.nodeId,eye:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.2.displayName,왼쪽 겹눈,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.2.parentNodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.2.kind,2,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.2.functions,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.2.maxHealth,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.2.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.2.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.2.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.2.pairedGroupId,eyes,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.2.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.2.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.3.nodeId,eye:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.3.displayName,오른쪽 겹눈,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.3.parentNodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.3.kind,2,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.3.functions,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.3.maxHealth,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.3.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.3.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.3.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.3.pairedGroupId,eyes,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.3.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.3.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.4.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.4.displayName,몸통,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.4.parentNodeId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.4.kind,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.4.functions,9337,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.4.maxHealth,28,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.4.capacityWeight,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.4.vital,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.4.removable,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.4.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.4.legacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.4.mapsToLegacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.5.nodeId,leg:first:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.5.displayName,왼쪽 첫째다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.5.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.5.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.5.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.5.maxHealth,7,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.5.capacityWeight,0.125,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.5.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.5.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.5.pairedGroupId,legs:first,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.5.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.5.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.6.nodeId,leg:first:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.6.displayName,오른쪽 첫째다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.6.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.6.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.6.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.6.maxHealth,7,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.6.capacityWeight,0.125,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.6.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.6.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.6.pairedGroupId,legs:first,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.6.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.6.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.7.nodeId,leg:second:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.7.displayName,왼쪽 둘째다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.7.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.7.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.7.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.7.maxHealth,7,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.7.capacityWeight,0.125,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.7.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.7.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.7.pairedGroupId,legs:second,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.7.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.7.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.8.nodeId,leg:second:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.8.displayName,오른쪽 둘째다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.8.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.8.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.8.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.8.maxHealth,7,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.8.capacityWeight,0.125,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.8.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.8.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.8.pairedGroupId,legs:second,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.8.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.8.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.9.nodeId,leg:third:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.9.displayName,왼쪽 셋째다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.9.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.9.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.9.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.9.maxHealth,7,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.9.capacityWeight,0.125,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.9.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.9.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.9.pairedGroupId,legs:third,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.9.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.9.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.10.nodeId,leg:third:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.10.displayName,오른쪽 셋째다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.10.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.10.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.10.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.10.maxHealth,7,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.10.capacityWeight,0.125,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.10.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.10.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.10.pairedGroupId,legs:third,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.10.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.10.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.11.nodeId,leg:fourth:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.11.displayName,왼쪽 넷째다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.11.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.11.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.11.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.11.maxHealth,7,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.11.capacityWeight,0.125,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.11.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.11.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.11.pairedGroupId,legs:fourth,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.11.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.11.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.12.nodeId,leg:fourth:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.12.displayName,오른쪽 넷째다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.12.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.12.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.12.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.12.maxHealth,7,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.12.capacityWeight,0.125,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.12.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.12.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.12.pairedGroupId,legs:fourth,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.12.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,nodes.12.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,apparelBodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,apparelSize,0,ApparelSizeClass,Small,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,apparelAttachments.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,apparelAttachments.0.points,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,apparelAttachments.0.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,apparelAttachments.1.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,apparelAttachments.1.points,8216,AnatomyAttachmentPoint,알 수 없음 (8216),explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,apparelAttachments.1.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:arachnid,anatomy:arachnid,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
 AnatomyProfileSO|anatomy:avian,anatomy:avian,m_Name,anatomy_avian,,,explicit-serialized
 AnatomyProfileSO|anatomy:avian,anatomy:avian,profileId,anatomy:avian,,,explicit-serialized
 AnatomyProfileSO|anatomy:avian,anatomy:avian,displayName,조류형,,,explicit-serialized
@@ -690,6 +866,268 @@ AnatomyProfileSO|anatomy:demon,anatomy:demon,CapacityId,0,CharacterFunctionalCap
 AnatomyProfileSO|anatomy:demon,anatomy:demon,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
 AnatomyProfileSO|anatomy:demon,anatomy:demon,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
 AnatomyProfileSO|anatomy:demon,anatomy:demon,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
+AnatomyProfileSO|anatomy:drake,anatomy:drake,m_Name,anatomy_drake,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,profileId,anatomy:drake,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,displayName,비룡형,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,anatomyFamily,drake,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,speciesIds.0,carrion_drake,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,legacySpeciesIds,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.0.displayName,머리,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.0.parentNodeId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.0.kind,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.0.functions,6,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.0.maxHealth,15,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.0.capacityWeight,0.35,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.0.vital,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.0.removable,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.0.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.0.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.0.mapsToLegacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.1.nodeId,brain,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.1.displayName,뇌,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.1.parentNodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.1.kind,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.1.functions,2,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.1.maxHealth,9,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.1.capacityWeight,0.65,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.1.vital,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.1.removable,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.1.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.1.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.1.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.2.nodeId,eye:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.2.displayName,왼쪽 눈,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.2.parentNodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.2.kind,2,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.2.functions,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.2.maxHealth,5,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.2.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.2.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.2.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.2.pairedGroupId,eyes,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.2.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.2.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.3.nodeId,eye:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.3.displayName,오른쪽 눈,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.3.parentNodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.3.kind,2,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.3.functions,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.3.maxHealth,5,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.3.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.3.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.3.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.3.pairedGroupId,eyes,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.3.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.3.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.4.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.4.displayName,몸통,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.4.parentNodeId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.4.kind,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.4.functions,9281,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.4.maxHealth,38,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.4.capacityWeight,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.4.vital,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.4.removable,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.4.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.4.legacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.4.mapsToLegacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.5.nodeId,heart,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.5.displayName,심장,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.5.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.5.kind,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.5.functions,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.5.maxHealth,12,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.5.capacityWeight,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.5.vital,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.5.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.5.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.5.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.5.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.6.nodeId,lung:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.6.displayName,왼쪽 폐,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.6.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.6.kind,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.6.functions,8,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.6.maxHealth,10,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.6.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.6.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.6.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.6.pairedGroupId,lungs,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.6.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.6.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.7.nodeId,lung:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.7.displayName,오른쪽 폐,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.7.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.7.kind,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.7.functions,8,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.7.maxHealth,10,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.7.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.7.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.7.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.7.pairedGroupId,lungs,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.7.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.7.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.8.nodeId,liver,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.8.displayName,간,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.8.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.8.kind,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.8.functions,48,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.8.maxHealth,13,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.8.capacityWeight,0.6,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.8.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.8.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.8.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.8.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.8.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.9.nodeId,kidney:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.9.displayName,왼쪽 신장,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.9.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.9.kind,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.9.functions,32,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.9.maxHealth,8,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.9.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.9.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.9.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.9.pairedGroupId,kidneys,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.9.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.9.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.10.nodeId,kidney:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.10.displayName,오른쪽 신장,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.10.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.10.kind,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.10.functions,32,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.10.maxHealth,8,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.10.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.10.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.10.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.10.pairedGroupId,kidneys,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.10.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.10.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.11.nodeId,stomach,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.11.displayName,위,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.11.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.11.kind,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.11.functions,16,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.11.maxHealth,12,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.11.capacityWeight,0.4,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.11.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.11.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.11.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.11.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.11.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.12.nodeId,forelegs,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.12.displayName,앞다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.12.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.12.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.12.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.12.maxHealth,20,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.12.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.12.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.12.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.12.pairedGroupId,legs,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.12.legacyBodyPart,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.12.mapsToLegacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.13.nodeId,hindlegs,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.13.displayName,뒷다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.13.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.13.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.13.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.13.maxHealth,22,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.13.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.13.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.13.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.13.pairedGroupId,legs,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.13.legacyBodyPart,5,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.13.mapsToLegacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.14.nodeId,wing:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.14.displayName,왼날개,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.14.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.14.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.14.functions,192,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.14.maxHealth,24,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.14.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.14.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.14.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.14.pairedGroupId,wings,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.14.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.14.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.15.nodeId,wing:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.15.displayName,오른날개,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.15.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.15.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.15.functions,192,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.15.maxHealth,24,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.15.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.15.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.15.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.15.pairedGroupId,wings,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.15.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,nodes.15.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,apparelBodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,apparelSize,1,ApparelSizeClass,Medium,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,apparelAttachments.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,apparelAttachments.0.points,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,apparelAttachments.0.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,apparelAttachments.1.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,apparelAttachments.1.points,8216,AnatomyAttachmentPoint,알 수 없음 (8216),explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,apparelAttachments.1.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,apparelAttachments.2.nodeId,wing:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,apparelAttachments.2.points,32768,AnatomyAttachmentPoint,알 수 없음 (32768),explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,apparelAttachments.2.mode,1,AnatomyApparelAttachmentMode,Add When Present,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,apparelAttachments.3.nodeId,wing:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,apparelAttachments.3.points,65536,AnatomyAttachmentPoint,알 수 없음 (65536),explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,apparelAttachments.3.mode,1,AnatomyApparelAttachmentMode,Add When Present,explicit-serialized
+AnatomyProfileSO|anatomy:drake,anatomy:drake,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:drake,anatomy:drake,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:drake,anatomy:drake,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:drake,anatomy:drake,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,m_Name,anatomy_ethereal,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,profileId,anatomy:ethereal,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,displayName,에테르형,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,anatomyFamily,ethereal,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,speciesIds.0,mana_wisp,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,legacySpeciesIds,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.0.nodeId,mana-envelope,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.0.displayName,마나 외피,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.0.parentNodeId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.0.kind,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.0.functions,388,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.0.maxHealth,35,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.0.capacityWeight,0.8,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.0.vital,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.0.removable,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.0.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.0.legacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.0.mapsToLegacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.1.nodeId,mana-core,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.1.displayName,마나 핵,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.1.parentNodeId,mana-envelope,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.1.kind,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.1.functions,13947,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.1.maxHealth,20,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.1.capacityWeight,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.1.vital,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.1.removable,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.1.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.1.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,nodes.1.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,apparelBodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,apparelSize,0,ApparelSizeClass,Small,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,apparelAttachments.0.nodeId,mana-core,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,apparelAttachments.0.points,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,apparelAttachments.0.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,apparelAttachments.1.nodeId,mana-envelope,,,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,apparelAttachments.1.points,8216,AnatomyAttachmentPoint,알 수 없음 (8216),explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,apparelAttachments.1.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:ethereal,anatomy:ethereal,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
 AnatomyProfileSO|anatomy:fungal,anatomy:fungal,m_Name,anatomy_fungal,,,explicit-serialized
 AnatomyProfileSO|anatomy:fungal,anatomy:fungal,profileId,anatomy:fungal,,,explicit-serialized
 AnatomyProfileSO|anatomy:fungal,anatomy:fungal,displayName,균사 군체 구조,,,explicit-serialized
@@ -1046,6 +1484,20 @@ AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,displayName,인간형,,,expli
 AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,anatomyFamily,humanoid,,,explicit-serialized
 AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,speciesIds.0,Goblin,,,explicit-serialized
 AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,speciesIds.1,LegacyHumanoid,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,speciesIds.2,Adventurer,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,legacySpeciesIds.0,ash_crawler,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,legacySpeciesIds.1,carrion_drake,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,legacySpeciesIds.2,cave_hound,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,legacySpeciesIds.3,crystal_beetle,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,legacySpeciesIds.4,deep_goat,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,legacySpeciesIds.5,ember_lizard,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,legacySpeciesIds.6,frost_ram,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,legacySpeciesIds.7,glow_moth,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,legacySpeciesIds.8,mana_wisp,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,legacySpeciesIds.9,mire_leech,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,legacySpeciesIds.10,silk_spider,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,legacySpeciesIds.11,spore_elk,,,explicit-serialized
+AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,legacySpeciesIds.12,tunnel_mole,,,explicit-serialized
 AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,nodes.0.nodeId,head,,,explicit-serialized
 AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,nodes.0.displayName,머리,,,explicit-serialized
 AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,nodes.0.parentNodeId,,,,explicit-serialized
@@ -1264,6 +1716,158 @@ AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,CapacityId,0,CharacterFunctio
 AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
 AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
 AnatomyProfileSO|anatomy:humanoid,anatomy:humanoid,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
+AnatomyProfileSO|anatomy:insect,anatomy:insect,m_Name,anatomy_insect,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,profileId,anatomy:insect,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,displayName,곤충형,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,anatomyFamily,insect,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,speciesIds.0,crystal_beetle,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,legacySpeciesIds,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.0.displayName,머리,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.0.parentNodeId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.0.kind,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.0.functions,6,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.0.maxHealth,12,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.0.capacityWeight,0.35,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.0.vital,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.0.removable,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.0.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.0.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.0.mapsToLegacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.1.nodeId,brain,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.1.displayName,신경절,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.1.parentNodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.1.kind,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.1.functions,2,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.1.maxHealth,8,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.1.capacityWeight,0.65,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.1.vital,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.1.removable,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.1.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.1.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.1.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.2.nodeId,eye:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.2.displayName,왼쪽 겹눈,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.2.parentNodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.2.kind,2,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.2.functions,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.2.maxHealth,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.2.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.2.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.2.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.2.pairedGroupId,eyes,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.2.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.2.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.3.nodeId,eye:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.3.displayName,오른쪽 겹눈,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.3.parentNodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.3.kind,2,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.3.functions,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.3.maxHealth,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.3.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.3.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.3.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.3.pairedGroupId,eyes,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.3.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.3.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.4.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.4.displayName,몸통,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.4.parentNodeId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.4.kind,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.4.functions,9337,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.4.maxHealth,32,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.4.capacityWeight,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.4.vital,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.4.removable,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.4.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.4.legacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.4.mapsToLegacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.5.nodeId,leg:front:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.5.displayName,왼쪽 앞다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.5.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.5.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.5.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.5.maxHealth,8,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.5.capacityWeight,0.166667,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.5.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.5.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.5.pairedGroupId,legs:front,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.5.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.5.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.6.nodeId,leg:front:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.6.displayName,오른쪽 앞다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.6.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.6.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.6.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.6.maxHealth,8,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.6.capacityWeight,0.166667,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.6.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.6.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.6.pairedGroupId,legs:front,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.6.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.6.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.7.nodeId,leg:middle:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.7.displayName,왼쪽 가운데다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.7.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.7.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.7.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.7.maxHealth,8,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.7.capacityWeight,0.166667,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.7.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.7.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.7.pairedGroupId,legs:middle,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.7.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.7.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.8.nodeId,leg:middle:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.8.displayName,오른쪽 가운데다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.8.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.8.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.8.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.8.maxHealth,8,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.8.capacityWeight,0.166667,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.8.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.8.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.8.pairedGroupId,legs:middle,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.8.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.8.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.9.nodeId,leg:rear:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.9.displayName,왼쪽 뒤다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.9.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.9.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.9.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.9.maxHealth,8,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.9.capacityWeight,0.166667,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.9.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.9.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.9.pairedGroupId,legs:rear,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.9.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.9.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.10.nodeId,leg:rear:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.10.displayName,오른쪽 뒤다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.10.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.10.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.10.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.10.maxHealth,8,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.10.capacityWeight,0.166667,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.10.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.10.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.10.pairedGroupId,legs:rear,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.10.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,nodes.10.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,apparelBodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,apparelSize,0,ApparelSizeClass,Small,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,apparelAttachments.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,apparelAttachments.0.points,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,apparelAttachments.0.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,apparelAttachments.1.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,apparelAttachments.1.points,8216,AnatomyAttachmentPoint,알 수 없음 (8216),explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,apparelAttachments.1.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:insect,anatomy:insect,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:insect,anatomy:insect,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:insect,anatomy:insect,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:insect,anatomy:insect,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
 AnatomyProfileSO|anatomy:kobold,anatomy:kobold,m_Name,anatomy_kobold,,,explicit-serialized
 AnatomyProfileSO|anatomy:kobold,anatomy:kobold,profileId,anatomy:kobold,,,explicit-serialized
 AnatomyProfileSO|anatomy:kobold,anatomy:kobold,displayName,코볼트 해부 구조,,,explicit-serialized
@@ -1668,6 +2272,13 @@ AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,speciesIds.1,shadow_hare,,,
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,speciesIds.2,moss_boar,,,explicit-serialized
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,speciesIds.3,rune_deer,,,explicit-serialized
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,speciesIds.4,shadow_wolf,,,explicit-serialized
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,speciesIds.5,cave_hound,,,explicit-serialized
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,speciesIds.6,deep_goat,,,explicit-serialized
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,speciesIds.7,ember_lizard,,,explicit-serialized
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,speciesIds.8,frost_ram,,,explicit-serialized
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,speciesIds.9,spore_elk,,,explicit-serialized
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,speciesIds.10,tunnel_mole,,,explicit-serialized
+AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,legacySpeciesIds,[],,,explicit-serialized
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,nodes.0.nodeId,head,,,explicit-serialized
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,nodes.0.displayName,머리,,,explicit-serialized
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,nodes.0.parentNodeId,,,,explicit-serialized
@@ -2135,3 +2746,242 @@ AnatomyProfileSO|anatomy:vampire,anatomy:vampire,CapacityId,0,CharacterFunctiona
 AnatomyProfileSO|anatomy:vampire,anatomy:vampire,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
 AnatomyProfileSO|anatomy:vampire,anatomy:vampire,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
 AnatomyProfileSO|anatomy:vampire,anatomy:vampire,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,m_Name,anatomy_vermiform,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,profileId,anatomy:vermiform,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,displayName,연체 벌레형,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,anatomyFamily,vermiform,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,speciesIds.0,ash_crawler,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,speciesIds.1,mire_leech,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,legacySpeciesIds,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.0.nodeId,sensory-head,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.0.displayName,감각 머리,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.0.parentNodeId,body,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.0.kind,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.0.functions,6,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.0.maxHealth,10,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.0.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.0.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.0.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.0.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.0.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.0.mapsToLegacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.1.nodeId,body,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.1.displayName,유연한 몸통,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.1.parentNodeId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.1.kind,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.1.functions,9945,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.1.maxHealth,32,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.1.capacityWeight,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.1.vital,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.1.removable,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.1.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.1.legacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.1.mapsToLegacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.2.nodeId,gut,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.2.displayName,소화관,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.2.parentNodeId,body,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.2.kind,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.2.functions,48,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.2.maxHealth,10,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.2.capacityWeight,0.8,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.2.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.2.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.2.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.2.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,nodes.2.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,apparelBodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,apparelSize,0,ApparelSizeClass,Small,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,apparelAttachments.0.nodeId,sensory-head,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,apparelAttachments.0.points,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,apparelAttachments.0.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,apparelAttachments.1.nodeId,body,,,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,apparelAttachments.1.points,8216,AnatomyAttachmentPoint,알 수 없음 (8216),explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,apparelAttachments.1.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:vermiform,anatomy:vermiform,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,m_Name,anatomy_winged-insect,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,profileId,anatomy:winged-insect,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,displayName,비행 곤충형,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,anatomyFamily,winged-insect,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,speciesIds.0,glow_moth,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,legacySpeciesIds,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.0.displayName,머리,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.0.parentNodeId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.0.kind,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.0.functions,6,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.0.maxHealth,10,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.0.capacityWeight,0.35,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.0.vital,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.0.removable,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.0.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.0.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.0.mapsToLegacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.1.nodeId,brain,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.1.displayName,신경절,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.1.parentNodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.1.kind,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.1.functions,2,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.1.maxHealth,7,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.1.capacityWeight,0.65,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.1.vital,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.1.removable,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.1.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.1.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.1.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.2.nodeId,eye:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.2.displayName,왼쪽 겹눈,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.2.parentNodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.2.kind,2,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.2.functions,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.2.maxHealth,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.2.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.2.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.2.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.2.pairedGroupId,eyes,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.2.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.2.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.3.nodeId,eye:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.3.displayName,오른쪽 겹눈,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.3.parentNodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.3.kind,2,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.3.functions,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.3.maxHealth,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.3.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.3.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.3.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.3.pairedGroupId,eyes,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.3.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.3.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.4.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.4.displayName,몸통,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.4.parentNodeId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.4.kind,4,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.4.functions,9273,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.4.maxHealth,24,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.4.capacityWeight,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.4.vital,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.4.removable,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.4.pairedGroupId,,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.4.legacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.4.mapsToLegacyBodyPart,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.5.nodeId,leg:front:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.5.displayName,왼쪽 앞다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.5.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.5.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.5.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.5.maxHealth,6,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.5.capacityWeight,0.166667,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.5.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.5.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.5.pairedGroupId,legs:front,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.5.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.5.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.6.nodeId,leg:front:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.6.displayName,오른쪽 앞다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.6.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.6.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.6.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.6.maxHealth,6,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.6.capacityWeight,0.166667,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.6.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.6.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.6.pairedGroupId,legs:front,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.6.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.6.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.7.nodeId,leg:middle:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.7.displayName,왼쪽 가운데다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.7.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.7.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.7.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.7.maxHealth,6,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.7.capacityWeight,0.166667,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.7.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.7.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.7.pairedGroupId,legs:middle,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.7.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.7.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.8.nodeId,leg:middle:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.8.displayName,오른쪽 가운데다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.8.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.8.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.8.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.8.maxHealth,6,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.8.capacityWeight,0.166667,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.8.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.8.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.8.pairedGroupId,legs:middle,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.8.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.8.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.9.nodeId,leg:rear:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.9.displayName,왼쪽 뒤다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.9.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.9.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.9.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.9.maxHealth,6,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.9.capacityWeight,0.166667,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.9.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.9.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.9.pairedGroupId,legs:rear,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.9.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.9.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.10.nodeId,leg:rear:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.10.displayName,오른쪽 뒤다리,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.10.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.10.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.10.functions,128,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.10.maxHealth,6,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.10.capacityWeight,0.166667,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.10.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.10.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.10.pairedGroupId,legs:rear,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.10.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.10.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.11.nodeId,wing:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.11.displayName,왼날개,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.11.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.11.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.11.functions,192,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.11.maxHealth,8,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.11.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.11.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.11.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.11.pairedGroupId,wings,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.11.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.11.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.12.nodeId,wing:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.12.displayName,오른날개,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.12.parentNodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.12.kind,3,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.12.functions,192,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.12.maxHealth,8,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.12.capacityWeight,0.5,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.12.vital,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.12.removable,1,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.12.pairedGroupId,wings,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.12.legacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,nodes.12.mapsToLegacyBodyPart,0,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,notApplicableCapacities,[],,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,apparelBodyForm,0,ApparelBodyForm,Humanoid,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,apparelSize,0,ApparelSizeClass,Small,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,apparelBasePoints,16383,AnatomyAttachmentPoint,알 수 없음 (16383),explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,apparelAttachments.0.nodeId,head,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,apparelAttachments.0.points,3,AnatomyAttachmentPoint,Neck,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,apparelAttachments.0.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,apparelAttachments.1.nodeId,torso,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,apparelAttachments.1.points,8216,AnatomyAttachmentPoint,알 수 없음 (8216),explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,apparelAttachments.1.mode,0,AnatomyApparelAttachmentMode,Remove When Missing,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,apparelAttachments.2.nodeId,wing:left,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,apparelAttachments.2.points,32768,AnatomyAttachmentPoint,알 수 없음 (32768),explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,apparelAttachments.2.mode,1,AnatomyApparelAttachmentMode,Add When Present,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,apparelAttachments.3.nodeId,wing:right,,,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,apparelAttachments.3.points,65536,AnatomyAttachmentPoint,알 수 없음 (65536),explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,apparelAttachments.3.mode,1,AnatomyApparelAttachmentMode,Add When Present,explicit-serialized
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,CapacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,capacityId,0,CharacterFunctionalCapacityId,Mental Maintenance,implicit-csharp-default
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,mode,0,AnatomyApparelAttachmentMode,Remove When Missing,implicit-csharp-default
+AnatomyProfileSO|anatomy:winged-insect,anatomy:winged-insect,points,0,AnatomyAttachmentPoint,None,implicit-csharp-default

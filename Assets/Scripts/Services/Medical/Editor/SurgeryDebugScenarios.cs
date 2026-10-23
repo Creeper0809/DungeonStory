@@ -152,6 +152,7 @@ public static class SurgeryDebugScenarios
 
         Run("specialized_facilities", VerifySpecializedFacilities, lines, errors);
         Run("procedure_catalog", VerifyProcedureCatalog, lines, errors);
+        Run("operator_score_threshold", VerifyOperatorScoreThreshold, lines, errors);
         Run("anatomy_profiles", VerifyAnatomyProfiles, lines, errors);
         Run("research_branch", VerifyResearchBranch, lines, errors);
         Run("prosthetic_recipes", VerifyProstheticRecipes, lines, errors);
@@ -600,13 +601,88 @@ public static class SurgeryDebugScenarios
         return "47 procedures require work, facilities, hauled materials, and valid effects";
     }
 
-    private static string VerifyAnatomyProfiles()
+    public static string VerifyOperatorScoreThreshold()
+    {
+        ProcedureOperatorRequirement zero =
+            JsonUtility.FromJson<ProcedureOperatorRequirement>(
+                "{\"minimumWeightedScore\":0}");
+        ProcedureOperatorRequirement three =
+            JsonUtility.FromJson<ProcedureOperatorRequirement>(
+                "{\"minimumWeightedScore\":3}");
+        ProcedureOperatorRequirement four =
+            JsonUtility.FromJson<ProcedureOperatorRequirement>(
+                "{\"minimumWeightedScore\":4}");
+        Require(!zero.IsConfigured
+            && three.IsConfigured
+            && four.IsConfigured,
+            "operator weighted-score authoring did not preserve zero/default and positive thresholds");
+
+        ICharacterPerformanceQuery performance =
+            CreateReplacementProxy<ICharacterPerformanceQuery>((method, _) =>
+                string.Equals(method.Name, "Evaluate", StringComparison.Ordinal)
+                    ? new CharacterPerformanceSnapshot
+                    {
+                        FormulaId = CharacterPerformanceFormulaIds.SurgerySuccess,
+                        DisplayName = "surgery threshold fixture",
+                        Value = 0.7f,
+                        IsApplicable = true,
+                        Contributions = Array.Empty<
+                            CharacterPerformanceContributionTrace>()
+                    }
+                    : DefaultReplacementValue(method.ReturnType));
+        GameObject actorObject = CharacterAiPlanDebugFixtures.CreateActorObject(
+            "Surgery Operator Score Threshold Fixture");
+        try
+        {
+            CharacterActor actor = actorObject.GetComponent<CharacterActor>();
+            Require(
+                zero.IsQualified(
+                    actor,
+                    MedicalProcedureFamily.Biological,
+                    performance,
+                    out float zeroScore,
+                    out DomainFailure zeroFailure)
+                && !zeroFailure.IsFailure
+                && Mathf.Approximately(zeroScore, 3.5f),
+                "zero threshold did not preserve the default required score of 3");
+            Require(
+                three.IsQualified(
+                    actor,
+                    MedicalProcedureFamily.Biological,
+                    performance,
+                    out float threeScore,
+                    out DomainFailure threeFailure)
+                && !threeFailure.IsFailure
+                && Mathf.Approximately(threeScore, 3.5f),
+                "explicit score 3 rejected a 3.5 operator");
+            Require(
+                !four.IsQualified(
+                    actor,
+                    MedicalProcedureFamily.Biological,
+                    performance,
+                    out float fourScore,
+                    out DomainFailure fourFailure)
+                && fourFailure.Code
+                    == FailureCode.SurgeryOperatorSkillInsufficient
+                && Mathf.Approximately(fourScore, 3.5f),
+                "explicit score 4 did not reject a 3.5 operator");
+        }
+        finally
+        {
+            CharacterAiPlanDebugFixtures.DestroyProbeObject(actorObject);
+        }
+
+        return "operator threshold 0 uses default 3; explicit 3 accepts and 4 rejects score 3.5";
+    }
+
+    public static string VerifyAnatomyProfiles()
     {
         AnatomyProfileSO[] profiles = LoadAssets<AnatomyProfileSO>(
             "Assets/Resources/SO/Medical/Anatomy");
         ResourceAnatomyProfileCatalog catalog =
             new ResourceAnatomyProfileCatalog(profiles);
-        Require(profiles.Length == 12, $"expected 12 anatomy profiles, got {profiles.Length}");
+        string[] requiredProfiles = { "anatomy:humanoid", "anatomy:quadruped", "anatomy:slime", "anatomy:human", "anatomy:orc", "anatomy:vampire", "anatomy:beastkin", "anatomy:demon", "anatomy:kobold", "anatomy:fungal", "anatomy:avian", "anatomy:construct", "anatomy:insect", "anatomy:winged-insect", "anatomy:arachnid", "anatomy:vermiform", "anatomy:ethereal", "anatomy:drake" };
+        Require(requiredProfiles.All(id => catalog.TryGet(id, out _)), "Required authored anatomy profile is missing.");
         Require(catalog.Validate().Count == 0, string.Join(" | ", catalog.Validate()));
 
         AnatomyProfileDefinition humanoid = catalog.GetDefaultHumanoid();
@@ -655,7 +731,7 @@ public static class SurgeryDebugScenarios
         RequireNode(catalog.GetForSpecies("Beastkin"), "balance-tail", vital: false);
         RequireNode(catalog.GetForSpecies("Demon"), "mana-core", vital: true);
         RequireNode(catalog.GetForSpecies("Kobold"), "hand:left", vital: false);
-        return "12 anatomy assets provide nine independent species profiles plus legacy and wildlife contracts";
+        return "Required authored profiles preserve nine species identities and explicit wildlife/legacy mappings";
     }
 
     private static string VerifyResearchBranch()

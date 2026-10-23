@@ -123,10 +123,6 @@ MonoBehaviour:
           baseJamChance: 0.01
           baseMisfireChance: 0.02
           facilityFamilyId: defense:blast-trap
-          affinityTags:
-          - defense:blast
-          - species:kobold
-          - species:demon
           growth:
             capacityLevel: 0
             resetSpeedLevel: 0

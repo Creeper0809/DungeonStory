@@ -125,10 +125,6 @@ MonoBehaviour:
           baseJamChance: 0.01
           baseMisfireChance: 0.005
           facilityFamilyId: defense:control
-          affinityTags:
-          - defense:identification
-          - species:demon
-          - species:golem
           growth:
             capacityLevel: 0
             resetSpeedLevel: 0

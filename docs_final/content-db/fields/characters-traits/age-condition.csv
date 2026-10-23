@@ -5,6 +5,10 @@ AgeConditionDefinitionSO|condition:age-cardiac-degeneration,condition:age-cardia
 AgeConditionDefinitionSO|condition:age-cardiac-degeneration,condition:age-cardiac-degeneration,constructCondition,0,,,explicit-serialized
 AgeConditionDefinitionSO|condition:age-cardiac-degeneration,condition:age-cardiac-degeneration,affectedAnatomyNodeIds.0,heart,,,explicit-serialized
 AgeConditionDefinitionSO|condition:age-cardiac-degeneration,condition:age-cardiac-degeneration,affectedAnatomyNodeIds.1,core,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-cardiac-degeneration,condition:age-cardiac-degeneration,anatomyTargets.0.anatomyProfileId,anatomy:demon,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-cardiac-degeneration,condition:age-cardiac-degeneration,anatomyTargets.0.nodeIds.0,mana-core,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-cardiac-degeneration,condition:age-cardiac-degeneration,anatomyTargets.1.anatomyProfileId,anatomy:fungal,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-cardiac-degeneration,condition:age-cardiac-degeneration,anatomyTargets.1.nodeIds.0,hypha-core,,,explicit-serialized
 AgeConditionDefinitionSO|condition:age-neural-degeneration,condition:age-neural-degeneration,m_Name,AgeCondition_age-neural-degeneration,,,explicit-serialized
 AgeConditionDefinitionSO|condition:age-neural-degeneration,condition:age-neural-degeneration,conditionId,condition:age-neural-degeneration,,,explicit-serialized
 AgeConditionDefinitionSO|condition:age-neural-degeneration,condition:age-neural-degeneration,displayName,신경 기능 퇴행,,,explicit-serialized
@@ -21,6 +25,16 @@ AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibros
 AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,affectedAnatomyNodeIds.1,kidney:left,,,explicit-serialized
 AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,affectedAnatomyNodeIds.2,kidney:right,,,explicit-serialized
 AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,affectedAnatomyNodeIds.3,spore-sac,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,anatomyTargets.0.anatomyProfileId,anatomy:beastkin,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,anatomyTargets.0.nodeIds.0,torso,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,anatomyTargets.1.anatomyProfileId,anatomy:demon,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,anatomyTargets.1.nodeIds.0,heat-sac,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,anatomyTargets.2.anatomyProfileId,anatomy:avian,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,anatomyTargets.2.nodeIds.0,torso,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,anatomyTargets.3.anatomyProfileId,anatomy:kobold,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,anatomyTargets.3.nodeIds.0,torso,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,anatomyTargets.4.anatomyProfileId,anatomy:slime,,,explicit-serialized
+AgeConditionDefinitionSO|condition:age-organ-fibrosis,condition:age-organ-fibrosis,anatomyTargets.4.nodeIds.0,core,,,explicit-serialized
 AgeConditionDefinitionSO|condition:core-corrosion,condition:core-corrosion,m_Name,AgeCondition_core-corrosion,,,explicit-serialized
 AgeConditionDefinitionSO|condition:core-corrosion,condition:core-corrosion,conditionId,condition:core-corrosion,,,explicit-serialized
 AgeConditionDefinitionSO|condition:core-corrosion,condition:core-corrosion,displayName,핵 부식,,,explicit-serialized

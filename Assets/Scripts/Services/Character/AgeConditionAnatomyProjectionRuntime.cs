@@ -93,7 +93,7 @@ public sealed class AgeConditionAnatomyProjectionRuntime :
                 if (actor.IsDead) return Fail(projection, "age-condition-actor-dead", out failureCode);
                 var definition = definitions.RequireAgeCondition(projection.conditionId);
                 var snapshot = anatomy.GetAnatomySnapshot(actor);
-                string[] nodes = definition.AffectedAnatomyNodeIds.Where(id =>
+                string[] nodes = definition.GetAffectedAnatomyNodeIds(snapshot.ProfileId).Where(id =>
                     snapshot.Nodes.Any(node => node != null && !node.missing && node.nodeId == id))
                     .Distinct(StringComparer.Ordinal).ToArray();
                 if (nodes.Length == 0) return Fail(projection, "age-condition-anatomy-node-unavailable", out failureCode);

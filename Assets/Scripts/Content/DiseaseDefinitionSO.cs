@@ -15,6 +15,8 @@ public sealed class DiseaseDefinitionSO : ScriptableObject
     [Range(0f, 100f)] public float baseSeverity;
     public DiseaseTargetSystem targetSystem;
     public bool vaccineAllowed = true;
+    [ContentReference(ContentReferenceKind.Item)]
+    public string vaccineItemId = string.Empty;
     [Tooltip("Persistent non-contagious condition removed only by an explicit treatment command.")]
     public bool chronic;
     [TextArea] public string description = string.Empty;
@@ -35,7 +37,8 @@ public sealed class DiseaseDefinitionSO : ScriptableObject
         vaccineAllowed,
         chronic,
         symptomProfileId,
-        fieldResponseIds);
+        fieldResponseIds,
+        vaccineItemId);
 
     public IReadOnlyList<string> ValidateDefinition()
     {
@@ -47,6 +50,19 @@ public sealed class DiseaseDefinitionSO : ScriptableObject
         if (fieldResponseIds == null || fieldResponseIds.Count == 0
             || fieldResponseIds.Exists(string.IsNullOrWhiteSpace))
             errors.Add($"'{stableId}' requires at least one field response.");
+        string expectedVaccineResponse = "response:vaccine:"
+            + (stableId?.Trim() ?? string.Empty);
+        bool hasVaccineResponse = fieldResponseIds != null
+            && fieldResponseIds.Exists(value => string.Equals(
+                value?.Trim(),
+                expectedVaccineResponse,
+                System.StringComparison.Ordinal));
+        if (hasVaccineResponse && !vaccineAllowed)
+            errors.Add($"'{stableId}' cannot author a vaccine response while vaccination is disabled.");
+        if (hasVaccineResponse && string.IsNullOrWhiteSpace(vaccineItemId))
+            errors.Add($"'{stableId}' vaccine response requires an explicit vaccine item.");
+        if (!hasVaccineResponse && !string.IsNullOrWhiteSpace(vaccineItemId))
+            errors.Add($"'{stableId}' authors a vaccine item without its scoped vaccine response.");
         return errors;
     }
 }

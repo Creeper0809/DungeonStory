@@ -3,4 +3,5 @@ HeritableTraitDefinitionSO,content-type,,type-reference,services:character,conte
 HeritableTraitDefinitionSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterNarrativeContracts.cs
 HeritableTraitDefinitionSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterNarrativeRuntime.cs
 HeritableTraitDefinitionSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/HeritableTraitRuntimeEffects.cs
+HeritableTraitDefinitionSO,content-type,,type-reference; save-restore-reference,services:items,content-loading,structural-type-consumer,Assets/Scripts/Services/Items/ContentReferenceCatalog.cs
 HeritableTraitDefinitionSO,content-type,,type-reference; save-restore-reference,services:offense,runtime,structural-type-consumer,Assets/Scripts/Services/Offense/EnemyIndividualRuntime.cs

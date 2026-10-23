@@ -531,6 +531,14 @@ public sealed class OffenseBattleCombatant
     public float CoverBlockChance { get; private set; }
     public CombatFireMode FireMode { get; private set; } = CombatFireMode.Aimed;
     public float ArcanePowerMultiplier { get; private set; } = 1f;
+    public float BluntDamageMultiplier { get; private set; } = 1f;
+
+    public void SetBluntDamageMultiplier(float multiplier)
+    {
+        if (!float.IsFinite(multiplier) || multiplier <= 0f)
+            throw new ArgumentOutOfRangeException(nameof(multiplier));
+        BluntDamageMultiplier = multiplier;
+    }
 
     public void SetCombatEquipment(
         CombatWeaponSnapshot weapon,
@@ -1050,6 +1058,9 @@ public sealed class OffenseBattleCombatantPersistenceState
     public CombatFireMode fireMode = CombatFireMode.Aimed;
     public float arcanePowerMultiplier = 1f;
     public bool hasArcanePowerMultiplier;
+    // Older detached battles predate this projection and used neutral body damage.
+    public float bluntDamageMultiplier = 1f;
+    public bool hasBluntDamageMultiplier;
     public List<CharacterBodyPartHealthState> bodyParts = new List<CharacterBodyPartHealthState>();
     public List<OffenseBattleCooldownPersistenceState> cooldowns =
         new List<OffenseBattleCooldownPersistenceState>();

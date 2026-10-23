@@ -23,7 +23,6 @@ MonoBehaviour:
   allowedAnatomyFamilies: []
   allowedSpeciesIds: []
   operatorRequirement:
-    stats: []
     minimumWeightedScore: 3
   targetNodeId: 
   requiredResearchId: research:medical:temporal-stasis

@@ -6,6 +6,11 @@
 |---|---|---:|---|---|
 | `CharacterAcquiredTraitModuleSO` | `formula.appliedParameterIds` | 8 | magnitude | 대상 콘텐츠 미해소 |
 | `LifeEventDefinitionSO` | `choices.0.effects.0.targetId` | 3 | life-event:captains-test, life-event:killer-sighted, life-event:masterpiece-commission | 효과 종류가 요구하는 대상 유형과 targetId가 일치하지 않음 |
+| `AgeConditionDefinitionSO` | `anatomyTargets.0.nodeIds` | 2 | mana-core, torso | 대상 콘텐츠 미해소 |
+| `AgeConditionDefinitionSO` | `anatomyTargets.1.nodeIds` | 2 | heat-sac, hypha-core | 대상 콘텐츠 미해소 |
+| `AgeConditionDefinitionSO` | `anatomyTargets.2.nodeIds` | 1 | torso | 대상 콘텐츠 미해소 |
+| `AgeConditionDefinitionSO` | `anatomyTargets.3.nodeIds` | 1 | torso | 대상 콘텐츠 미해소 |
+| `AgeConditionDefinitionSO` | `anatomyTargets.4.nodeIds` | 1 | core | 대상 콘텐츠 미해소 |
 | `CharacterAcquiredTraitModuleSO` | `drawbackBindingIds` | 1 | acquired-trait:module:night-vigil:effect:1 | 대상 콘텐츠 미해소 |
 | `CharacterAcquiredTraitSettingsSO` | `drawbackCapabilities.0.formula.appliedParameterIds` | 1 | magnitude | 대상 콘텐츠 미해소 |
 | `CharacterAcquiredTraitSettingsSO` | `drawbackCapabilities.1.formula.appliedParameterIds` | 1 | magnitude | 대상 콘텐츠 미해소 |

@@ -121,10 +121,6 @@ MonoBehaviour:
           baseJamChance: 0.01
           baseMisfireChance: 0.005
           facilityFamilyId: defense:elemental
-          affinityTags:
-          - defense:ice
-          - species:slime
-          - species:vampire
           growth:
             capacityLevel: 0
             resetSpeedLevel: 0

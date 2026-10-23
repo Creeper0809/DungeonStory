@@ -134,10 +134,6 @@ MonoBehaviour:
           baseJamChance: 0.01
           baseMisfireChance: 0.005
           facilityFamilyId: defense:supply
-          affinityTags:
-          - defense:reload
-          - species:beastkin
-          - species:kobold
           growth:
             capacityLevel: 0
             resetSpeedLevel: 0

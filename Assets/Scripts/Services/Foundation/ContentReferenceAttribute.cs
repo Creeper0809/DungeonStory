@@ -8,7 +8,9 @@ public enum ContentReferenceKind
     Recipe, Species, AnatomyProfile, AnatomyNode, Proficiency, Culture, Practice,
     Ambition, LifeEvent, Faction, FactionChapter, FactionContract, EnemyAbility,
     EnemyArchetype, BattlefieldModifier, Disease, EffectTarget, WeightedTarget,
-    Definition, SpeciesOrAnatomy, NarrativeTarget, ExpeditionChoice, ExpeditionSite, AnatomySpecies
+    Definition, SpeciesOrAnatomy, NarrativeTarget, ExpeditionChoice, ExpeditionSite, AnatomySpecies,
+    AuthoredEffectText, InvasionPattern, EncounterTarget, Equipment,
+    WorkerTrait, WorkType, GameplayValueTarget, SkillCapability
 }
 
 [AttributeUsage(AttributeTargets.Field)]

@@ -11,16 +11,20 @@ public static class DiseaseFieldResponseOutboxDebugScenarios
     private const string Character = "character:qa:field-response";
     private const string Disease = "disease:qa:field-response";
     private const string Response = "response:wet-cleaning";
-    private const string Facility = "facility:qa:field-response";
+    private const string VaccineResponse = "response:vaccine:" + Disease;
+    private const string UnknownResponse = "response:qa:unregistered";
+    private const string Facility = "building:qa:field-response";
     private const string Item = "resource:clean-water";
+    private const string VaccineItem = "medicine:vaccine:qa:field-response";
 
     [MenuItem("Dungeon Story/QA/V27/Disease Field Response Outbox")]
     public static void RunFromMenu()
     {
         VerifyCommittedSinkRecoversExactlyOnce();
         VerifyUncommittedIntentClearsWithoutAdvancingSequence();
+        VerifyVaccineSelectionAndInvalidAuthoringRejection();
         Debug.Log(
-            "[V27][PASS] Disease field-response physical Sink, durable outcome publication, acknowledgement and replay gates are exact.");
+            "[V27][PASS] Disease field-response physical Sink, explicit vaccine selection, registered response rejection, durable outcome publication, acknowledgement and replay gates are exact.");
     }
 
     private static void VerifyCommittedSinkRecoversExactlyOnce()
@@ -147,6 +151,171 @@ public static class DiseaseFieldResponseOutboxDebugScenarios
             "Uncommitted intent advanced sequence or mutated health.");
     }
 
+    private static void VerifyVaccineSelectionAndInvalidAuthoringRejection()
+    {
+        ResourceItemDefinitionSO vaccine = CreateVaccine();
+        GameObject facilityObject = new("QA Disease Field Response Facility");
+        facilityObject.SetActive(false);
+        BuildableObject facility = facilityObject.AddComponent<BuildableObject>();
+        try
+        {
+            facility.RestorePersistentIdentity((BuildingInstanceId)Facility);
+            FixedFacilityQuery facilities = new(facility);
+            RecordingVaccinationService vaccinations = new();
+            RecordingSinkGateway physicalItems = new();
+            FixedItemDefinitionCatalog itemCatalog = new(vaccine);
+
+            SingleDiseaseCatalog validDiseases = new(CreateDisease(
+                VaccineResponse,
+                VaccineItem));
+            TestPopulationHealthPersistence validPersistence = new(
+                CreateHealthPayload(withIntent: false),
+                validDiseases);
+            DiseaseFieldResponseRuntime validRuntime = CreateRuntime(
+                validDiseases,
+                validPersistence,
+                facilities,
+                itemCatalog,
+                physicalItems,
+                vaccinations);
+            Require(
+                validRuntime.TryApply(
+                    new CharacterId(Character),
+                    Disease,
+                    VaccineResponse,
+                    Facility,
+                    out DomainFailure failure)
+                && vaccinations.CallCount == 1
+                && string.Equals(
+                    vaccinations.LastVaccineItemId,
+                    VaccineItem,
+                    StringComparison.Ordinal),
+                "Field-response vaccination did not use the explicitly authored item: "
+                + failure);
+
+            SingleDiseaseCatalog emptyVaccineDiseases = new(CreateDisease(
+                VaccineResponse,
+                string.Empty));
+            TestPopulationHealthPersistence emptyVaccinePersistence = new(
+                CreateHealthPayload(withIntent: false),
+                emptyVaccineDiseases);
+            Require(
+                !CreateRuntime(
+                        emptyVaccineDiseases,
+                        emptyVaccinePersistence,
+                        facilities,
+                        itemCatalog,
+                        physicalItems,
+                        vaccinations)
+                    .TryApply(
+                        new CharacterId(Character),
+                        Disease,
+                        VaccineResponse,
+                        Facility,
+                        out failure)
+                && failure.Code == FailureCode.VaccineDefinitionMissing
+                && vaccinations.CallCount == 1,
+                "An empty authored vaccine item reached the vaccination service.");
+
+            SingleDiseaseCatalog missingVaccineDiseases = new(CreateDisease(
+                VaccineResponse,
+                "medicine:vaccine:qa:missing"));
+            TestPopulationHealthPersistence missingVaccinePersistence = new(
+                CreateHealthPayload(withIntent: false),
+                missingVaccineDiseases);
+            Require(
+                !CreateRuntime(
+                        missingVaccineDiseases,
+                        missingVaccinePersistence,
+                        facilities,
+                        itemCatalog,
+                        physicalItems,
+                        vaccinations)
+                    .TryApply(
+                        new CharacterId(Character),
+                        Disease,
+                        VaccineResponse,
+                        Facility,
+                        out failure)
+                && failure.Code == FailureCode.VaccineDefinitionMissing
+                && vaccinations.CallCount == 1,
+                "An unregistered authored vaccine item reached the vaccination service.");
+
+            SingleDiseaseCatalog unknownResponseDiseases = new(CreateDisease(
+                UnknownResponse,
+                string.Empty,
+                vaccineAllowed: false));
+            TestPopulationHealthPersistence unknownResponsePersistence = new(
+                CreateHealthPayload(withIntent: false),
+                unknownResponseDiseases);
+            string saveBefore = JsonUtility.ToJson(
+                unknownResponsePersistence.Capture());
+            Require(
+                !CreateRuntime(
+                        unknownResponseDiseases,
+                        unknownResponsePersistence,
+                        facilities,
+                        itemCatalog,
+                        physicalItems,
+                        vaccinations)
+                    .TryApply(
+                        new CharacterId(Character),
+                        Disease,
+                        UnknownResponse,
+                        Facility,
+                        out failure)
+                && failure.Code == FailureCode.VaccineDiseaseMismatch
+                && physicalItems.CommitCalls == 0
+                && vaccinations.CallCount == 1
+                && string.Equals(
+                    saveBefore,
+                    JsonUtility.ToJson(unknownResponsePersistence.Capture()),
+                    StringComparison.Ordinal),
+                "An unregistered authored response consumed stock or changed save state.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(vaccine);
+            UnityEngine.Object.DestroyImmediate(facilityObject);
+        }
+    }
+
+    private static DiseaseDefinition CreateDisease(
+        string responseId,
+        string vaccineItemId,
+        bool vaccineAllowed = true) => new(
+        Disease,
+        "QA disease",
+        DiseaseTransmissionRoute.Contact,
+        0,
+        1,
+        0.1f,
+        50f,
+        DiseaseTargetSystem.Core,
+        vaccineAllowed,
+        symptomProfileId: "symptom:qa",
+        fieldResponseIds: new[] { responseId },
+        vaccineItemId: vaccineItemId);
+
+    private static ResourceItemDefinitionSO CreateVaccine()
+    {
+        ResourceItemDefinitionSO vaccine =
+            ScriptableObject.CreateInstance<ResourceItemDefinitionSO>();
+        vaccine.Configure(
+            VaccineItem,
+            "QA field-response vaccine",
+            "Verifies explicit authored field-response vaccine selection.",
+            StockCategory.Medicine,
+            ResourceItemKind.Medicine,
+            ResourceIngredientTag.None,
+            1,
+            0.4f,
+            50,
+            string.Empty);
+        vaccine.ConfigureVaccine(Disease, 1);
+        return vaccine;
+    }
+
     private static DiseaseFieldResponseRuntime CreateRuntime(
         IDiseaseDefinitionCatalog diseases,
         TestPopulationHealthPersistence persistence,
@@ -160,6 +329,23 @@ public static class DiseaseFieldResponseOutboxDebugScenarios
         gateway,
         packagedTare,
         new RejectingVaccinationService(),
+        new NeutralDiseaseModifiers());
+
+    private static DiseaseFieldResponseRuntime CreateRuntime(
+        IDiseaseDefinitionCatalog diseases,
+        TestPopulationHealthPersistence persistence,
+        IFacilityCapabilityQuery facilities,
+        IItemDefinitionCatalog items,
+        IPhysicalFacilityItemSinkGateway gateway,
+        IPhysicalVaccinationService vaccination) => new(
+        diseases,
+        persistence,
+        persistence,
+        facilities,
+        items,
+        gateway,
+        new RecordingPackageTareDisposition(),
+        vaccination,
         new NeutralDiseaseModifiers());
 
     private static PopulationHealthWorldSaveData CreateHealthPayload(
@@ -242,6 +428,19 @@ public static class DiseaseFieldResponseOutboxDebugScenarios
         public IReadOnlyList<DiseaseDefinition> Definitions =>
             new[] { definition };
 
+        public DiseaseDefinition Require(string diseaseId) =>
+            string.Equals(diseaseId, definition.Id, StringComparison.Ordinal)
+                ? definition
+                : throw new KeyNotFoundException(diseaseId);
+    }
+
+    private sealed class SingleDiseaseCatalog : IDiseaseDefinitionCatalog
+    {
+        private readonly DiseaseDefinition definition;
+        public SingleDiseaseCatalog(DiseaseDefinition definition) =>
+            this.definition = definition;
+        public IReadOnlyList<DiseaseDefinition> Definitions =>
+            new[] { definition };
         public DiseaseDefinition Require(string diseaseId) =>
             string.Equals(diseaseId, definition.Id, StringComparison.Ordinal)
                 ? definition
@@ -332,6 +531,22 @@ public static class DiseaseFieldResponseOutboxDebugScenarios
             ResearchFacilityCommandKind command) => Array.Empty<BuildableObject>();
     }
 
+    private sealed class FixedFacilityQuery : IFacilityCapabilityQuery
+    {
+        private readonly BuildableObject facility;
+        public FixedFacilityQuery(BuildableObject facility) =>
+            this.facility = facility;
+        public IReadOnlyList<BuildableObject> FindOperational(
+            FacilityCapabilityKind capability,
+            string buildingDefinitionId = "") =>
+            capability == FacilityCapabilityKind.Medical
+                ? new[] { facility }
+                : Array.Empty<BuildableObject>();
+        public IReadOnlyList<BuildableObject> FindOperational(
+            ResearchFacilityCommandKind command) =>
+            Array.Empty<BuildableObject>();
+    }
+
     private sealed class EmptyItemDefinitionCatalog : IItemDefinitionCatalog
     {
         public IReadOnlyList<ItemDefinitionSO> All => Array.Empty<ItemDefinitionSO>();
@@ -343,6 +558,82 @@ public static class DiseaseFieldResponseOutboxDebugScenarios
         public ItemDefinitionSO GetRequired(ItemDefinitionId itemId) =>
             throw new KeyNotFoundException(itemId.Value);
         public IReadOnlyList<string> Validate() => Array.Empty<string>();
+    }
+
+    private sealed class FixedItemDefinitionCatalog : IItemDefinitionCatalog
+    {
+        private readonly ItemDefinitionSO item;
+        public FixedItemDefinitionCatalog(ItemDefinitionSO item) =>
+            this.item = item;
+        public IReadOnlyList<ItemDefinitionSO> All => new[] { item };
+        public bool TryGet(
+            ItemDefinitionId itemId,
+            out ItemDefinitionSO definition)
+        {
+            definition = string.Equals(
+                    itemId.Value,
+                    item.ItemId,
+                    StringComparison.Ordinal)
+                ? item
+                : null;
+            return definition != null;
+        }
+        public ItemDefinitionSO GetRequired(ItemDefinitionId itemId) =>
+            TryGet(itemId, out ItemDefinitionSO definition)
+                ? definition
+                : throw new KeyNotFoundException(itemId.Value);
+        public IReadOnlyList<string> Validate() => Array.Empty<string>();
+    }
+
+    private sealed class RecordingSinkGateway :
+        IPhysicalFacilityItemSinkGateway
+    {
+        public int CommitCalls { get; private set; }
+        public bool TryCommitSinkPending(
+            string destinationId,
+            string itemId,
+            int quantity,
+            string operationId,
+            string reasonCode,
+            out PhysicalItemBatchDispositionReceipt receipt,
+            out string failureReason)
+        {
+            CommitCalls++;
+            receipt = default;
+            failureReason = "unexpected field-response stock consumption";
+            return false;
+        }
+        public bool TryGetPending(
+            string operationId,
+            out PhysicalItemBatchDispositionReceipt receipt)
+        {
+            receipt = default;
+            return false;
+        }
+        public bool Acknowledge(string commitId, out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+    }
+
+    private sealed class RecordingVaccinationService :
+        IPhysicalVaccinationService
+    {
+        public int CallCount { get; private set; }
+        public string LastVaccineItemId { get; private set; } = string.Empty;
+        public bool TryVaccinate(
+            CharacterId characterId,
+            string medicalFacilityDestinationId,
+            Vector2Int outputPosition,
+            string vaccineItemId,
+            out DomainFailure failure)
+        {
+            CallCount++;
+            LastVaccineItemId = vaccineItemId ?? string.Empty;
+            failure = DomainFailure.None;
+            return true;
+        }
     }
 
     private sealed class RejectingVaccinationService : IPhysicalVaccinationService

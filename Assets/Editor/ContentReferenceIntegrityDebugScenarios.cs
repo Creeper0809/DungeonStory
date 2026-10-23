@@ -120,6 +120,93 @@ public static class ContentReferenceIntegrityDebugScenarios
         Require(ContentIdentityProtection.Validate(snapshot, changed).Count > 0, "Published asset deletion was accepted.");
         var restored = JsonUtility.FromJson<ContentIdentityProtection.Snapshot>(json);
         RequireClean(ContentIdentityProtection.Validate(snapshot, restored), "Identity JSON restore and retry");
+        VerifyNestedIdentityEdits(snapshot);
+        VerifyNewPublication(snapshot);
+        foreach (string prefix in new[] { "@registration:", "@resource-path" })
+        {
+            changed = JsonUtility.FromJson<ContentIdentityProtection.Snapshot>(json);
+            var owner = changed.assets.First(asset => asset.fields.Any(field => field.path.StartsWith(prefix, StringComparison.Ordinal)));
+            owner.fields.RemoveAll(field => field.path.StartsWith(prefix, StringComparison.Ordinal));
+            Require(ContentIdentityProtection.Validate(snapshot, changed).Count > 0,
+                "Published registry/path protection was removed: " + prefix);
+        }
+        Require(ContentIdentityProtection.IsRootMove("Assets/Resources/SO", "Assets/Elsewhere")
+            && ContentIdentityProtection.IsRootMove(ContentIdentityProtection.RootAssetPath,
+                "Assets/Resources/SO/Renamed.asset")
+            && !ContentIdentityProtection.IsRootMove("Assets/Resources/SO/Medical", "Assets/Medical"),
+            "Startup catalog move boundary is incorrect.");
+    }
+
+    private static void VerifyNestedIdentityEdits(ContentIdentityProtection.Snapshot snapshot)
+    {
+        foreach (var spec in new[]
+                 {
+                     ("AnatomyProfileSO", "nodes", "nodeId"),
+                     ("OffenseDecisionCardSO", "choices", "choiceId"),
+                     ("ProductionRecipeSO", "outputs", "outputLineId"),
+                     ("CharacterSkillSystemSettingsSO", "modules", "id"),
+                     ("CharacterAcquiredTraitSettingsSO", "drawbackCapabilities", "drawbackId"),
+                     ("EquipmentEvolutionFormulaCatalogSO", "capabilities", "capabilityId")
+                 })
+        {
+            var published = snapshot.assets.First(asset => asset.typeName == spec.Item1
+                && asset.fields.Any(field => field.path.StartsWith("@nested:", StringComparison.Ordinal)));
+            var source = AssetDatabase.LoadAssetAtPath<ScriptableObject>(AssetDatabase.GUIDToAssetPath(published.guid));
+            var clone = Object.Instantiate(source);
+            try
+            {
+                var baseline = new ContentIdentityProtection.Snapshot { assets = new() { published } };
+                using var serialized = new SerializedObject(clone);
+                var list = serialized.FindProperty(spec.Item2);
+                Require(list.arraySize > 0, "Missing nested identity test input.");
+                if (list.arraySize > 1)
+                {
+                    list.MoveArrayElement(0, list.arraySize - 1);
+                    serialized.ApplyModifiedPropertiesWithoutUndo();
+                    RequireClean(ContentIdentityProtection.Validate(baseline, new ContentIdentityProtection.Snapshot
+                        { assets = new() { ContentIdentityProtection.CaptureAsset(published.guid, clone) } }),
+                        "Nested identity reorder " + spec.Item1);
+                }
+                serialized.Update();
+                list = serialized.FindProperty(spec.Item2);
+                list.GetArrayElementAtIndex(0).FindPropertyRelative(spec.Item3).stringValue += ":changed";
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                Require(ContentIdentityProtection.Validate(baseline, new ContentIdentityProtection.Snapshot
+                    { assets = new() { ContentIdentityProtection.CaptureAsset(published.guid, clone) } }).Count > 0,
+                    "Nested saved identity rename accepted: " + spec.Item1);
+                EditorJsonUtility.FromJsonOverwrite(EditorJsonUtility.ToJson(source), clone);
+                RequireClean(ContentIdentityProtection.Validate(baseline, new ContentIdentityProtection.Snapshot
+                    { assets = new() { ContentIdentityProtection.CaptureAsset(published.guid, clone) } }),
+                    "Nested identity JSON restore/retry " + spec.Item1);
+            }
+            finally { Object.DestroyImmediate(clone); }
+        }
+    }
+
+    private static void VerifyNewPublication(ContentIdentityProtection.Snapshot snapshot)
+    {
+        string json = ContentIdentityProtection.ToJson(snapshot);
+        var candidate = snapshot.assets.First(asset => asset.typeName == nameof(AnatomyProfileSO)
+            && asset.fields.Any(field => field.path == "profileId" && !string.IsNullOrWhiteSpace(field.value)));
+        var beforePublication = JsonUtility.FromJson<ContentIdentityProtection.Snapshot>(json);
+        beforePublication.assets.RemoveAll(asset => asset.guid == candidate.guid);
+        RequireClean(ContentIdentityProtection.ValidateNewPublication(beforePublication, snapshot),
+            "Registered new definition publication");
+
+        var draft = JsonUtility.FromJson<ContentIdentityProtection.Snapshot>(json);
+        foreach (var asset in draft.assets)
+            asset.fields.RemoveAll(field => field.path.StartsWith("@registration:", StringComparison.Ordinal)
+                && field.value == candidate.guid);
+        Require(ContentIdentityProtection.ValidateNewPublication(beforePublication, draft)
+            .Any(error => error.Contains("Unregistered draft")), "Unregistered draft publication accepted.");
+
+        var blank = JsonUtility.FromJson<ContentIdentityProtection.Snapshot>(json);
+        blank.assets.Single(asset => asset.guid == candidate.guid).fields
+            .Single(field => field.path == "profileId").value = string.Empty;
+        Require(ContentIdentityProtection.ValidateNewPublication(beforePublication, blank)
+            .Any(error => error.Contains("cannot be empty")), "Blank new identity publication accepted.");
+        RequireClean(ContentIdentityProtection.ValidateNewPublication(beforePublication,
+            JsonUtility.FromJson<ContentIdentityProtection.Snapshot>(json)), "Publication repair and retry");
     }
 
     private static void VerifyInvalidAndRestore(ContentReferenceCatalog catalog, ScriptableObject source, string path, string invalid)

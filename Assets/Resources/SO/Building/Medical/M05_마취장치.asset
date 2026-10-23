@@ -137,7 +137,6 @@ MonoBehaviour:
       data:
         abilityId: BuildingAnesthesiaAbility
         stabilityBonus: 0.35
-        anesthesiaItemId: medicine:anesthetic
         anesthesiaCost: 1
     - rid: 7737211857806557889
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}

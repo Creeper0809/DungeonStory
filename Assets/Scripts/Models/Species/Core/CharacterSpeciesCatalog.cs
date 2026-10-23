@@ -180,12 +180,6 @@ public sealed class ResourceCharacterSpeciesCatalog :
                 "The root catalog contains an invalid age-condition definition.");
         }
 
-        return new AgeConditionDefinition(
-            source.conditionId,
-            source.constructCondition,
-            source.affectedAnatomyNodeIds
-                .Select(value => value.Trim())
-                .Distinct(StringComparer.Ordinal)
-                .ToArray());
+        return source.ToDefinition();
     }
 }

@@ -98,7 +98,7 @@ public static class AgeConditionAnatomyProjectionDebugScenarios
         }
     }
 
-    public static bool RunAll(bool logSuccess = false)
+    public static bool RunAll(bool logSuccess = false, bool profileTargets = false)
     {
         GameObject host = new("Age Condition Anatomy Projection QA");
         try
@@ -108,7 +108,7 @@ public static class AgeConditionAnatomyProjectionDebugScenarios
             actor.EnsureRuntimeState();
             actor.Identity.SetPersistentId("character:qa:age-condition-anatomy");
 
-            var catalog = new Catalog();
+            var catalog = new Catalog(profileTargets);
             using var outcome = new OutcomeFixture();
             var body = new BodyFixture(actor.BuildingCharacterId, "node:a", "node:b");
             var anatomy = new AnatomyFixture(body);
@@ -286,6 +286,8 @@ public static class AgeConditionAnatomyProjectionDebugScenarios
     {
         Require(RunAll(logSuccess: false),
             "Age-condition anatomy core observer scenarios failed.");
+        Require(RunAll(logSuccess: false, profileTargets: true),
+            "Profile-specific anatomy projection/save retry failed.");
         _ = VerifyProductionBodyLifecycle();
         Require(CharacterLifeCausalProductionEntryDebugScenarios
                 .RunCausalOwnerFamily(log: false),
@@ -293,6 +295,190 @@ public static class AgeConditionAnatomyProjectionDebugScenarios
         CharacterLifeCausalProductionEntryDebugScenarios
             .VerifyAmbiguousObservationRecovery();
         VerifyCommittedAmbiguityRecovery();
+    }
+
+    public static void VerifyAuthoredProfileTargetProjectionFocused()
+    {
+        Require(RunAll(logSuccess: false, profileTargets: true),
+            "Profile-specific anatomy projection/save retry failed.");
+        VerifyAuthoredProfileTargetProjection();
+    }
+
+    private static void VerifyAuthoredProfileTargetProjection()
+    {
+        AuthoredProfileTargetCase[] cases =
+        {
+            new("condition:age-organ-fibrosis", "Beastkin", "anatomy:beastkin", "torso"),
+            new("condition:age-organ-fibrosis", "Demon", "anatomy:demon", "heat-sac"),
+            new("condition:age-organ-fibrosis", "Harpy", "anatomy:avian", "torso"),
+            new("condition:age-organ-fibrosis", "Kobold", "anatomy:kobold", "torso"),
+            new("condition:age-organ-fibrosis", "Slime", "anatomy:slime", "core"),
+            new("condition:age-cardiac-degeneration", "Demon", "anatomy:demon", "mana-core"),
+            new("condition:age-cardiac-degeneration", "Myconid", "anatomy:fungal", "hypha-core")
+        };
+        var actorObjects = new List<GameObject>();
+        var actorData = new List<CharacterSO>();
+        var registeredActors = new List<CharacterActor>();
+        var actors = new List<CharacterActor>();
+        ICharacterAiWorldRegistry worldRegistry =
+            CharacterAiEditorTestDependencies.WorldRegistry;
+        try
+        {
+            IGameContentCatalog content = new ResourceGameContentCatalog(
+                new UnityGameContentRootLoader());
+            var lifeCatalog = new ResourceCharacterSpeciesCatalog(content);
+            var anatomyCatalog = new ResourceAnatomyProfileCatalog(content);
+
+            Require(ResourceAnatomyProfileCatalog
+                    .ValidateAgeConditionTargets(content).Count == 0,
+                "The production age-condition anatomy catalog is invalid.");
+
+            var clock = new UnityGameClock();
+            var events = new GameEventBus();
+            using var vitalsActivities = new CharacterVitalsActivityObserver(
+                events,
+                worldRegistry);
+            vitalsActivities.Initialize();
+            var body = new CharacterBodyHealthRuntime(
+                new DungeonStory.Foundation.UnityRealtimeClock(),
+                worldRegistry,
+                clock,
+                events,
+                new DynamicFrameWorkBudget(clock, new UnityUiClock()),
+                anatomyCatalog,
+                new DungeonRuntimeAggregateRootStore(),
+                CharacterAiEditorTestDependencies.GameCalendar);
+            var deathFactory = new CharacterDeathEventFactory(
+                worldRegistry,
+                CharacterAiEditorTestDependencies.GameCalendar);
+
+            for (int index = 0; index < cases.Length; index++)
+            {
+                AuthoredProfileTargetCase profileTarget = cases[index];
+                GameObject actorObject = new(
+                    $"R18 {profileTarget.SpeciesTag} {profileTarget.NodeId}");
+                actorObjects.Add(actorObject);
+                actorObject.AddComponent<SpriteRenderer>();
+                CharacterActor actor = actorObject.AddComponent<CharacterActor>();
+                CharacterAiEditorTestDependencies.Inject(actorObject);
+                actor.EnsureRuntimeState();
+                CharacterSO data = CharacterAiEditorTestDependencies
+                    .CreateCharacterFixtureData(
+                        CharacterType.NPC,
+                        $"R18 {profileTarget.SpeciesTag}",
+                        profileTarget.SpeciesTag);
+                actorData.Add(data);
+                actor.Identity.SetPersistentId(
+                    $"character:qa:r18:{index}:{profileTarget.SpeciesTag.ToLowerInvariant()}");
+                actor.Stats.ConstructCharacterVitals(
+                    new CharacterStatsVitalsService(
+                        body,
+                        body,
+                        events,
+                        deathFactory,
+                        new NoOwnerDeathLifecycle()));
+                actor.Initialize(data);
+                actor.SetLifecycleState(CharacterLifecycleState.Active);
+                worldRegistry.RegisterCharacter(actor);
+                registeredActors.Add(actor);
+                worldRegistry.RegisterCharacterLifetime(actor);
+                actors.Add(actor);
+                body.ConfigureVitals(actor, 100f, resetCurrentHealth: true);
+            }
+
+            using var outcome = new OutcomeFixture();
+            body.ConfigureFactPublication(outcome.Facts, outcome.Facts);
+            CharacterLifeRuntime life = CreateLife(lifeCatalog);
+            using var runtime = new AgeConditionAnatomyProjectionRuntime(
+                life,
+                lifeCatalog,
+                new World(actors.ToArray()),
+                body,
+                body,
+                outcome.Facts,
+                outcome.Facts,
+                events);
+
+            for (int index = 0; index < cases.Length; index++)
+            {
+                AuthoredProfileTargetCase profileTarget = cases[index];
+                CharacterActor actor = actors[index];
+                AgeConditionDefinition definition = lifeCatalog
+                    .RequireAgeCondition(profileTarget.ConditionId);
+                string[] authoredTargets = definition
+                    .GetAffectedAnatomyNodeIds(profileTarget.ProfileId)
+                    .ToArray();
+                Require(authoredTargets.Length == 1
+                        && string.Equals(
+                            authoredTargets[0],
+                            profileTarget.NodeId,
+                            StringComparison.Ordinal),
+                    $"{profileTarget.ConditionId} did not resolve the exact authored target for {profileTarget.ProfileId}.");
+
+                AnatomyHealthSnapshot before = body.GetAnatomySnapshot(actor);
+                Require(string.Equals(
+                            before.ProfileId,
+                            profileTarget.ProfileId,
+                            StringComparison.Ordinal)
+                        && before.Nodes.Any(node => string.Equals(
+                            node.nodeId,
+                            profileTarget.NodeId,
+                            StringComparison.Ordinal)),
+                    $"{profileTarget.SpeciesTag} did not create the expected production anatomy profile/node.");
+                Dictionary<string, float> healthBefore = before.Nodes
+                    .ToDictionary(
+                        node => node.nodeId,
+                        node => node.currentHealth,
+                        StringComparer.Ordinal);
+                var change = new AgeConditionChange(
+                    actor.BuildingCharacterId,
+                    profileTarget.ConditionId,
+                    AgeConditionSeverity.Mild,
+                    AgeConditionSeverity.Moderate,
+                    newlyDiagnosed: false);
+                int absoluteDay = 40 + index;
+                DomainFactDelivery parent = outcome.Parent(change, absoluteDay);
+                string operation = runtime.Enqueue(change, absoluteDay, parent);
+
+                Require(runtime.TryResume(operation, out string failure), failure);
+                AnatomyHealthSnapshot after = body.GetAnatomySnapshot(actor);
+                Require(after.Nodes.Count == healthBefore.Count
+                        && life.PendingAgeConditionAnatomyProjections.Count == 0,
+                    $"{profileTarget.SpeciesTag} projection changed anatomy shape or remained pending.");
+                foreach (AnatomyNodeHealthState node in after.Nodes)
+                {
+                    float previous = healthBefore[node.nodeId];
+                    bool isTarget = string.Equals(
+                        node.nodeId,
+                        profileTarget.NodeId,
+                        StringComparison.Ordinal);
+                    Require(isTarget
+                            ? node.currentHealth < previous
+                                && node.currentHealth > 0f
+                            : Math.Abs(node.currentHealth - previous) < 0.001f,
+                        $"{profileTarget.ConditionId} changed an unexpected node for {profileTarget.SpeciesTag}: {node.nodeId}.");
+                }
+                RequireChild(outcome.Ledger, change, absoluteDay, parent);
+            }
+        }
+        finally
+        {
+            foreach (CharacterActor actor in registeredActors)
+            {
+                worldRegistry.UnregisterCharacter(actor);
+                worldRegistry.UnregisterCharacterLifetime(actor);
+            }
+            foreach (GameObject actorObject in actorObjects)
+            {
+                if (actorObject != null)
+                    UnityEngine.Object.DestroyImmediate(actorObject);
+            }
+            foreach (CharacterSO data in actorData)
+            {
+                if (data != null)
+                    UnityEngine.Object.DestroyImmediate(data);
+            }
+        }
     }
 
     private static void VerifyCommittedAmbiguityRecovery()
@@ -789,6 +975,26 @@ public static class AgeConditionAnatomyProjectionDebugScenarios
         }
     }
 
+    private readonly struct AuthoredProfileTargetCase
+    {
+        internal AuthoredProfileTargetCase(
+            string conditionId,
+            string speciesTag,
+            string profileId,
+            string nodeId)
+        {
+            ConditionId = conditionId;
+            SpeciesTag = speciesTag;
+            ProfileId = profileId;
+            NodeId = nodeId;
+        }
+
+        internal string ConditionId { get; }
+        internal string SpeciesTag { get; }
+        internal string ProfileId { get; }
+        internal string NodeId { get; }
+    }
+
     private sealed class ProductionLifeCatalog : ICharacterLifeDefinitionCatalog
     {
         internal const string NonlethalConditionId =
@@ -798,11 +1004,19 @@ public static class AgeConditionAnatomyProjectionDebugScenarios
         private static readonly AgeConditionDefinition Nonlethal = new(
             NonlethalConditionId,
             false,
-            new[] { ProductionAnatomyCatalog.NonvitalNodeId });
+            new[] { "node:other-profile-only" },
+            new Dictionary<string, IReadOnlyList<string>>
+            {
+                [ProductionAnatomyCatalog.ProfileId] = new[] { ProductionAnatomyCatalog.NonvitalNodeId }
+            });
         private static readonly AgeConditionDefinition Lethal = new(
             LethalConditionId,
             false,
-            new[] { ProductionAnatomyCatalog.VitalNodeId });
+            new[] { "node:other-profile-only" },
+            new Dictionary<string, IReadOnlyList<string>>
+            {
+                [ProductionAnatomyCatalog.ProfileId] = new[] { ProductionAnatomyCatalog.VitalNodeId }
+            });
 
         public SpeciesLifeHistoryDefinition RequireLifeHistory(
             CharacterSpeciesId speciesId) => new(
@@ -883,10 +1097,16 @@ public static class AgeConditionAnatomyProjectionDebugScenarios
     private sealed class Catalog : ICharacterLifeDefinitionCatalog
     {
         internal const string ConditionId = "condition:qa-age-anatomy";
-        private static readonly AgeConditionDefinition Condition = new(
-            ConditionId,
-            false,
-            new[] { "node:a", "node:b" });
+        private readonly AgeConditionDefinition Condition;
+        internal Catalog(bool profileTargets = false)
+        {
+            Condition = new AgeConditionDefinition(ConditionId, false,
+                profileTargets ? new[] { "node:other-profile-only" } : new[] { "node:a", "node:b" },
+                profileTargets ? new Dictionary<string, IReadOnlyList<string>>
+                {
+                    ["profile:qa-age-anatomy"] = new[] { "node:a", "node:b" }
+                } : null);
+        }
         public SpeciesLifeHistoryDefinition RequireLifeHistory(
             CharacterSpeciesId speciesId) => new(
             speciesId,

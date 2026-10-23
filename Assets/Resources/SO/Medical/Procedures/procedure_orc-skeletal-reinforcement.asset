@@ -24,7 +24,6 @@ MonoBehaviour:
   allowedSpeciesIds:
   - orc
   operatorRequirement:
-    stats: []
     minimumWeightedScore: 3
   targetNodeId: torso
   requiredResearchId: research:medical:surgery

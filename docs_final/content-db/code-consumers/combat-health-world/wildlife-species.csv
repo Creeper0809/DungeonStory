@@ -1,11 +1,22 @@
 ﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
 WildlifeSpeciesSO,content-type,,type-reference,content,content-loading,structural-type-consumer,Assets/Scripts/Content/SeasonalWorldEventDefinitionSO.cs
-WildlifeSpeciesSO,content-type,,type-reference,services:items,content-loading,structural-type-consumer,Assets/Scripts/Services/Items/ContentReferenceCatalog.cs
+WildlifeSpeciesSO,content-type,,type-reference; save-restore-reference,services:items,content-loading,structural-type-consumer,Assets/Scripts/Services/Items/ContentReferenceCatalog.cs
+WildlifeSpeciesSO,content-type,,type-reference,services:medical,content-loading,structural-type-consumer,Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs
 WildlifeSpeciesSO,content-type,,type-reference,services:run,content-loading,structural-type-consumer,Assets/Scripts/Services/Run/V20StoryContentCatalog.cs
 WildlifeSpeciesSO,content-type,,type-reference; save-restore-reference,services:wildlife,runtime,structural-type-consumer,Assets/Scripts/Services/Wildlife/WildlifeModels.cs
+WildlifeSpeciesSO,stable-id,ash_crawler,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs
+WildlifeSpeciesSO,stable-id,carrion_drake,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs
+WildlifeSpeciesSO,stable-id,cave_hound,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs
 WildlifeSpeciesSO,stable-id,cave_rat,stable-id-literal,services:economy,persistence,exact-literal-consumer,Assets/Scripts/Services/Economy/Husbandry/AnimalHusbandrySaveSection.cs
 WildlifeSpeciesSO,stable-id,cave_rat,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs
 WildlifeSpeciesSO,stable-id,cave_rat,stable-id-literal,services:wildlife,runtime,exact-literal-consumer,Assets/Scripts/Services/Wildlife/WildlifeModels.cs
+WildlifeSpeciesSO,stable-id,crystal_beetle,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs
+WildlifeSpeciesSO,stable-id,deep_goat,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs
+WildlifeSpeciesSO,stable-id,ember_lizard,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs
+WildlifeSpeciesSO,stable-id,frost_ram,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs
+WildlifeSpeciesSO,stable-id,glow_moth,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs
+WildlifeSpeciesSO,stable-id,mana_wisp,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs
+WildlifeSpeciesSO,stable-id,mire_leech,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs
 WildlifeSpeciesSO,stable-id,moss_boar,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs
 WildlifeSpeciesSO,stable-id,moss_boar,stable-id-literal,services:medical,runtime,exact-literal-consumer,Assets/Scripts/Services/Medical/SurgicalPartRuntime.cs
 WildlifeSpeciesSO,stable-id,moss_boar,stable-id-literal,services:wildlife,runtime,exact-literal-consumer,Assets/Scripts/Services/Wildlife/WildlifeModels.cs
@@ -20,3 +31,6 @@ WildlifeSpeciesSO,stable-id,shadow_wolf,stable-id-literal,services:medical,conte
 WildlifeSpeciesSO,stable-id,shadow_wolf,stable-id-literal,services:medical,runtime,exact-literal-consumer,Assets/Scripts/Services/Medical/SurgicalPartRuntime.cs
 WildlifeSpeciesSO,stable-id,shadow_wolf,stable-id-literal,services:wildlife,runtime,exact-literal-consumer,Assets/Scripts/Services/Wildlife/WildlifeBehaviorRuntime.cs
 WildlifeSpeciesSO,stable-id,shadow_wolf,stable-id-literal,services:wildlife,runtime,exact-literal-consumer,Assets/Scripts/Services/Wildlife/WildlifeModels.cs
+WildlifeSpeciesSO,stable-id,silk_spider,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs
+WildlifeSpeciesSO,stable-id,spore_elk,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs
+WildlifeSpeciesSO,stable-id,tunnel_mole,stable-id-literal,services:medical,content-loading,exact-literal-consumer,Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs

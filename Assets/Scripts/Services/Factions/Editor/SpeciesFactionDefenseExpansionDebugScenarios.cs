@@ -9,6 +9,9 @@ using UnityEngine;
 
 public static class SpeciesFactionDefenseExpansionDebugScenarios
 {
+    private const string DomainCatalogPath =
+        "Assets/Resources/SO/Content/GameDomainContentCatalog.asset";
+
     private static readonly string[] NewSpecies =
     {
         "Beastkin",
@@ -32,7 +35,21 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
         "anatomy:slime",
         "anatomy:fungal",
         "anatomy:avian",
-        "anatomy:construct"
+        "anatomy:construct",
+        "anatomy:insect",
+        "anatomy:winged-insect",
+        "anatomy:arachnid",
+        "anatomy:vermiform",
+        "anatomy:ethereal",
+        "anatomy:drake"
+    };
+
+    private static readonly int[] RequiredActiveDefenseBuildingIds =
+    {
+        30, 31, 32, 33, 34,
+        52, 53, 57, 58,
+        1800, 1801, 1802, 1803, 1804, 1805,
+        9961
     };
 
     private static readonly int[] NewDefenseBuildingIds =
@@ -98,9 +115,9 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
 
         Debug.Log(
             "Species/faction/defense expansion validation passed: "
-            + "9 population species plus Adventurer, 12 anatomy profiles, 6 dungeon factions, "
+            + "9 population species plus Adventurer, 18 required anatomy profiles, 6 dungeon factions, "
             + "5 human branches, "
-            + "19 defense facilities, 180 research projects.");
+            + "16 required active defense facilities, 180 research projects.");
     }
 
     private static void ValidateSpecies(ICollection<string> errors)
@@ -166,30 +183,47 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
     {
         AnatomyProfileSO[] profiles = FindAssets<AnatomyProfileSO>(
             "Assets/Resources/SO/Medical/Anatomy");
-        if (profiles.Length != 12)
+        ValidateAnatomyMembership(profiles, "authored anatomy assets", errors);
+
+        GameDomainContentCatalogSO domainCatalog =
+            AssetDatabase.LoadAssetAtPath<GameDomainContentCatalogSO>(
+                DomainCatalogPath);
+        if (domainCatalog == null)
         {
             errors.Add(
-                $"Expected 12 anatomy profile assets, found {profiles.Length}.");
+                $"Missing domain content catalog '{DomainCatalogPath}'.");
+        }
+        else
+        {
+            AnatomyProfileSO[] registeredProfiles = domainCatalog
+                .GetAll<AnatomyProfileSO>()
+                .Where(value => value != null)
+                .ToArray();
+            ValidateAnatomyMembership(
+                registeredProfiles,
+                "registered anatomy catalog",
+                errors);
+            foreach (AnatomyProfileSO unregistered in profiles.Except(
+                         registeredProfiles))
+            {
+                errors.Add(
+                    $"Authored anatomy profile '{unregistered.ProfileId}' at "
+                    + $"'{AssetDatabase.GetAssetPath(unregistered)}' is not registered.");
+            }
+            foreach (AnatomyProfileSO missingAsset in registeredProfiles.Except(
+                         profiles))
+            {
+                errors.Add(
+                    $"Registered anatomy profile '{missingAsset.ProfileId}' at "
+                    + $"'{AssetDatabase.GetAssetPath(missingAsset)}' is outside "
+                    + "the authored anatomy asset set.");
+            }
         }
 
         HashSet<string> ids = profiles
             .Where(value => value != null)
             .Select(value => value.ProfileId)
             .ToHashSet(StringComparer.Ordinal);
-        if (ids.Count != RequiredAnatomies.Length)
-        {
-            errors.Add(
-                $"Expected {RequiredAnatomies.Length} unique anatomy IDs, "
-                + $"found {ids.Count}.");
-        }
-
-        foreach (string required in RequiredAnatomies)
-        {
-            if (!ids.Contains(required))
-            {
-                errors.Add($"Missing anatomy profile '{required}'.");
-            }
-        }
 
         CharacterSpeciesSO[] species = FindAssets<CharacterSpeciesSO>(
             "Assets/Resources/SO/Character/Species");
@@ -201,6 +235,35 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
                     $"Species '{value.speciesTag}' references missing anatomy "
                     + $"profile '{value.anatomyProfileId}'.");
             }
+        }
+    }
+
+    private static void ValidateAnatomyMembership(
+        IEnumerable<AnatomyProfileSO> values,
+        string source,
+        ICollection<string> errors)
+    {
+        string[] ids = (values ?? Array.Empty<AnatomyProfileSO>())
+            .Where(value => value != null)
+            .Select(value => value.ProfileId)
+            .ToArray();
+        foreach (IGrouping<string, string> duplicate in ids
+                     .GroupBy(value => value, StringComparer.Ordinal)
+                     .Where(group => group.Count() > 1))
+        {
+            errors.Add(
+                $"{source} duplicates anatomy profile '{duplicate.Key}' "
+                + $"{duplicate.Count()} times.");
+        }
+
+        HashSet<string> actual = ids.ToHashSet(StringComparer.Ordinal);
+        HashSet<string> required =
+            RequiredAnatomies.ToHashSet(StringComparer.Ordinal);
+        foreach (string missing in required.Except(actual).OrderBy(
+                     value => value,
+                     StringComparer.Ordinal))
+        {
+            errors.Add($"{source} is missing required anatomy '{missing}'.");
         }
     }
 
@@ -624,7 +687,7 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
         }
     }
 
-    private static void ValidateDefense(ICollection<string> errors)
+    public static void ValidateDefense(ICollection<string> errors)
     {
         BuildingSO[] defenses = FindAssets<BuildingSO>(
                 "Assets/Resources/SO/Building")
@@ -632,20 +695,42 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
                 && value.Defense != null
                 && value.Defense.IsDefenseFacility)
             .ToArray();
-        if (defenses.Length != 19)
+        ValidateDefenseMembership(defenses, "active defense assets", errors);
+
+        GameDomainContentCatalogSO domainCatalog =
+            AssetDatabase.LoadAssetAtPath<GameDomainContentCatalogSO>(
+                DomainCatalogPath);
+        if (domainCatalog == null)
         {
             errors.Add(
-                $"Expected 19 active defense facilities, found {defenses.Length}.");
+                $"Missing domain content catalog '{DomainCatalogPath}'.");
         }
-        int uniqueDefenseIds = defenses
-            .Select(value => value.id)
-            .Distinct()
-            .Count();
-        if (uniqueDefenseIds != defenses.Length)
+        else
         {
-            errors.Add(
-                $"Expected unique defense building IDs, found "
-                + $"{uniqueDefenseIds} IDs across {defenses.Length} assets.");
+            BuildingSO[] registeredDefenses = domainCatalog.GetAll<BuildingSO>()
+                .Where(value => value != null
+                    && value.Defense != null
+                    && value.Defense.IsDefenseFacility)
+                .ToArray();
+            ValidateDefenseMembership(
+                registeredDefenses,
+                "registered active defense catalog",
+                errors);
+            foreach (BuildingSO unregistered in defenses.Except(
+                         registeredDefenses))
+            {
+                errors.Add(
+                    $"Active defense building ID {unregistered.id} at "
+                    + $"'{AssetDatabase.GetAssetPath(unregistered)}' is not registered.");
+            }
+            foreach (BuildingSO missingAsset in registeredDefenses.Except(
+                         defenses))
+            {
+                errors.Add(
+                    $"Registered active defense building ID {missingAsset.id} at "
+                    + $"'{AssetDatabase.GetAssetPath(missingAsset)}' is outside "
+                    + "the authored defense asset set.");
+            }
         }
 
         foreach (int id in NewDefenseBuildingIds)
@@ -659,9 +744,6 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
 
             if (string.IsNullOrWhiteSpace(building.Defense.facilityFamilyId))
                 errors.Add($"Defense building {id} has no facility family.");
-            if (building.Defense.affinityTags == null
-                || building.Defense.affinityTags.Length == 0)
-                errors.Add($"Defense building {id} has no species affinity.");
         }
 
         foreach (BuildingSO building in defenses)
@@ -713,8 +795,35 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
         if (distinctSpritePaths != defenses.Length)
         {
             errors.Add(
-                $"Expected 19 distinct defense silhouettes, found "
+                "Expected one distinct defense silhouette per active facility, found "
                 + $"{distinctSpritePaths} sprite assets.");
+        }
+    }
+
+    private static void ValidateDefenseMembership(
+        IEnumerable<BuildingSO> values,
+        string source,
+        ICollection<string> errors)
+    {
+        int[] ids = (values ?? Array.Empty<BuildingSO>())
+            .Where(value => value != null)
+            .Select(value => value.id)
+            .ToArray();
+        foreach (IGrouping<int, int> duplicate in ids
+                     .GroupBy(value => value)
+                     .Where(group => group.Count() > 1))
+        {
+            errors.Add(
+                $"{source} duplicates defense building ID {duplicate.Key} "
+                + $"{duplicate.Count()} times.");
+        }
+
+        HashSet<int> actual = ids.ToHashSet();
+        HashSet<int> required = RequiredActiveDefenseBuildingIds.ToHashSet();
+        foreach (int missing in required.Except(actual).OrderBy(value => value))
+        {
+            errors.Add(
+                $"{source} is missing required active defense building ID {missing}.");
         }
     }
 

@@ -121,10 +121,6 @@ MonoBehaviour:
           baseJamChance: 0.01
           baseMisfireChance: 0.005
           facilityFamilyId: defense:toxin
-          affinityTags:
-          - defense:poison
-          - species:vampire
-          - species:myconid
           growth:
             capacityLevel: 0
             resetSpeedLevel: 0

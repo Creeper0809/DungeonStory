@@ -17,11 +17,12 @@ public static class V19DiseaseContentAssetBuilder
         public Manifest(
             string id, string name, DiseaseTransmissionRoute routes,
             int incubation, int contagious, float infection, float severity,
-            DiseaseTargetSystem target, bool vaccine, bool chronic = false)
+            DiseaseTargetSystem target, bool vaccine, string vaccineItemId = "",
+            bool chronic = false)
         {
             Id = id; Name = name; Routes = routes; Incubation = incubation;
             Contagious = contagious; Infection = infection; Severity = severity;
-            Target = target; Vaccine = vaccine;
+            Target = target; Vaccine = vaccine; VaccineItemId = vaccineItemId;
             Chronic = chronic;
         }
         public string Id { get; }
@@ -33,25 +34,33 @@ public static class V19DiseaseContentAssetBuilder
         public float Severity { get; }
         public DiseaseTargetSystem Target { get; }
         public bool Vaccine { get; }
+        public string VaccineItemId { get; }
         public bool Chronic { get; }
     }
 
     private static readonly Manifest[] Diseases =
     {
         new("disease:cave-flu", "동굴 독감", DiseaseTransmissionRoute.Air,
-            2, 6, 0.18f, 25f, DiseaseTargetSystem.Breathing, true),
+            2, 6, 0.18f, 25f, DiseaseTargetSystem.Breathing, true,
+            "medicine:vaccine:cave-flu"),
         new("disease:red-fever", "적열병", DiseaseTransmissionRoute.Droplet | DiseaseTransmissionRoute.Blood,
-            3, 10, 0.10f, 55f, DiseaseTargetSystem.Filtration, true),
+            3, 10, 0.10f, 55f, DiseaseTargetSystem.Filtration, true,
+            "medicine:vaccine:red-fever"),
         new("disease:gut-rot", "장부패증", DiseaseTransmissionRoute.Food | DiseaseTransmissionRoute.Water,
-            1, 5, 0.25f, 45f, DiseaseTargetSystem.Digestion, true),
+            1, 5, 0.25f, 45f, DiseaseTargetSystem.Digestion, true,
+            "medicine:vaccine:gut-rot"),
         new("disease:spore-lung", "포자폐증", DiseaseTransmissionRoute.Air,
-            4, 12, 0.12f, 50f, DiseaseTargetSystem.Breathing, true),
+            4, 12, 0.12f, 50f, DiseaseTargetSystem.Breathing, true,
+            "medicine:vaccine:spore-lung"),
         new("disease:mana-pox", "마나두창", DiseaseTransmissionRoute.ManaExposure,
-            5, 10, 0.08f, 60f, DiseaseTargetSystem.Core, true),
+            5, 10, 0.08f, 60f, DiseaseTargetSystem.Core, true,
+            "medicine:vaccine:mana-pox"),
         new("disease:blood-wasting", "혈액소모병", DiseaseTransmissionRoute.Blood,
-            7, 20, 0.20f, 70f, DiseaseTargetSystem.Filtration, true),
+            7, 20, 0.20f, 70f, DiseaseTargetSystem.Filtration, true,
+            "medicine:vaccine:blood-wasting"),
         new("disease:slime-blight", "점액역병", DiseaseTransmissionRoute.Contact | DiseaseTransmissionRoute.Water,
-            2, 10, 0.15f, 65f, DiseaseTargetSystem.Core, true),
+            2, 10, 0.15f, 65f, DiseaseTargetSystem.Core, true,
+            "medicine:vaccine:slime-blight"),
         new("condition:core-corrosion", "핵 부식", DiseaseTransmissionRoute.Environment,
             0, 0, 0f, 60f, DiseaseTargetSystem.Core, false, chronic: true)
     };
@@ -79,6 +88,7 @@ public static class V19DiseaseContentAssetBuilder
             asset.baseSeverity = manifest.Severity;
             asset.targetSystem = manifest.Target;
             asset.vaccineAllowed = manifest.Vaccine;
+            asset.vaccineItemId = manifest.VaccineItemId;
             asset.chronic = manifest.Chronic;
             IReadOnlyList<string> errors = asset.ValidateDefinition();
             if (errors.Count > 0)

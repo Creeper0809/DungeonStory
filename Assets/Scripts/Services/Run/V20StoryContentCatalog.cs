@@ -65,17 +65,7 @@ public sealed class V20StoryContentCatalog :
             .Concat(GuestRequests).Concat(ServiceIncidents).Concat(Arcs).Concat(Chapters)
             .Concat(Contracts).Concat(SeasonalEvents).Concat(All).ToArray();
         byId = definitions.ToDictionary(value => value.StableId, StringComparer.Ordinal);
-        HashSet<string> chapterIds = Chapters.Select(value => value.StableId)
-            .ToHashSet(StringComparer.Ordinal);
-        HashSet<string> contractIds = Contracts.Select(value => value.StableId)
-            .ToHashSet(StringComparer.Ordinal);
-        foreach (FactionArcDefinitionSO arc in Arcs)
-        {
-            if (arc.chapterIds.Any(id => !chapterIds.Contains(id))
-                || arc.contractIds.Any(id => !contractIds.Contains(id)))
-                throw new InvalidOperationException(
-                    $"Faction arc '{arc.StableId}' has a broken chapter or contract reference.");
-        }
+        ValidateFactionArcMembership(Arcs, Chapters, Contracts);
         ValidateSeasonalContracts(Contracts, SeasonalEvents, Arcs);
         ValidateSeasonalWeatherFrontRequirements(
             SeasonalEvents,
@@ -148,6 +138,80 @@ public sealed class V20StoryContentCatalog :
                 && !contextualTargets.Contains(effect.targetId))
                 throw new InvalidOperationException(
                     $"V20 definition '{ownerId}' references unknown faction effect target '{effect.targetId}'.");
+        }
+    }
+
+    private static void ValidateFactionArcMembership(
+        IEnumerable<FactionArcDefinitionSO> arcs,
+        IEnumerable<FactionChapterDefinitionSO> chapters,
+        IEnumerable<FactionContractDefinitionSO> contracts)
+    {
+        FactionChapterDefinitionSO[] allChapters = chapters.ToArray();
+        Dictionary<string, FactionChapterDefinitionSO> chaptersById =
+            allChapters.ToDictionary(value => value.StableId, StringComparer.Ordinal);
+        Dictionary<string, FactionContractDefinitionSO> contractsById = contracts
+            .ToDictionary(value => value.StableId, StringComparer.Ordinal);
+        HashSet<int> requiredChapterNumbers = Enumerable.Range(1, 6).ToHashSet();
+
+        foreach (FactionArcDefinitionSO arc in arcs)
+        {
+            string[] arcChapterIds = (arc.chapterIds ?? new List<string>()).ToArray();
+            string[] arcContractIds = (arc.contractIds ?? new List<string>()).ToArray();
+            if (arcChapterIds.Distinct(StringComparer.Ordinal).Count()
+                != arcChapterIds.Length)
+                throw new InvalidOperationException(
+                    $"Faction arc '{arc.StableId}' has duplicate chapter references.");
+            if (arcContractIds.Distinct(StringComparer.Ordinal).Count()
+                != arcContractIds.Length)
+                throw new InvalidOperationException(
+                    $"Faction arc '{arc.StableId}' has duplicate contract references.");
+
+            List<FactionChapterDefinitionSO> listedChapters = new();
+            foreach (string chapterId in arcChapterIds)
+            {
+                if (!chaptersById.TryGetValue(chapterId, out FactionChapterDefinitionSO chapter))
+                    throw new InvalidOperationException(
+                        $"Faction arc '{arc.StableId}' has broken chapter reference '{chapterId}'.");
+                if (!string.Equals(chapter.factionId, arc.factionId, StringComparison.Ordinal))
+                    throw new InvalidOperationException(
+                        $"Faction arc '{arc.StableId}' lists chapter '{chapter.StableId}' "
+                        + $"owned by faction '{chapter.factionId}'.");
+                listedChapters.Add(chapter);
+            }
+
+            foreach (string contractId in arcContractIds)
+            {
+                if (!contractsById.TryGetValue(contractId, out FactionContractDefinitionSO contract))
+                    throw new InvalidOperationException(
+                        $"Faction arc '{arc.StableId}' has broken contract reference '{contractId}'.");
+                if (!string.Equals(contract.factionId, arc.factionId, StringComparison.Ordinal))
+                    throw new InvalidOperationException(
+                        $"Faction arc '{arc.StableId}' lists contract '{contract.StableId}' "
+                        + $"owned by faction '{contract.factionId}'.");
+            }
+
+            FactionChapterDefinitionSO[] consumerChapters = allChapters
+                .Where(value => string.Equals(
+                    value.factionId,
+                    arc.factionId,
+                    StringComparison.Ordinal))
+                .ToArray();
+            IGrouping<int, FactionChapterDefinitionSO>[] chaptersByNumber =
+                consumerChapters.GroupBy(value => value.chapterNumber).ToArray();
+            if (chaptersByNumber.Any(group => group.Count() != 1)
+                || !chaptersByNumber.Select(group => group.Key)
+                    .ToHashSet().SetEquals(requiredChapterNumbers))
+                throw new InvalidOperationException(
+                    $"Faction '{arc.factionId}' must define exactly one chapter "
+                    + "for every chapter number from 1 through 6.");
+
+            if (listedChapters.Count != consumerChapters.Length
+                || !listedChapters.Select(value => value.StableId)
+                    .ToHashSet(StringComparer.Ordinal)
+                    .SetEquals(consumerChapters.Select(value => value.StableId)))
+                throw new InvalidOperationException(
+                    $"Faction arc '{arc.StableId}' chapter list does not match "
+                    + $"the chapters consumed for faction '{arc.factionId}'.");
         }
     }
 

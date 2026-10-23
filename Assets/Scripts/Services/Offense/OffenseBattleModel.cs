@@ -196,6 +196,8 @@ public sealed class OffenseBattleSession
                 fireMode = combatant.FireMode,
                 arcanePowerMultiplier = combatant.ArcanePowerMultiplier,
                 hasArcanePowerMultiplier = true,
+                bluntDamageMultiplier = combatant.BluntDamageMultiplier,
+                hasBluntDamageMultiplier = true,
                 bodyParts = combatant.BodyParts
                     .Select(part => new CharacterBodyPartHealthState
                     {
@@ -281,6 +283,8 @@ public sealed class OffenseBattleSession
                 saved.hasArcanePowerMultiplier
                     ? saved.arcanePowerMultiplier
                     : combatant.ArcanePowerMultiplier);
+            combatant.SetBluntDamageMultiplier(saved.hasBluntDamageMultiplier
+                ? saved.bluntDamageMultiplier : 1f);
             if (saved.bodyParts != null && saved.bodyParts.Count > 0)
             {
                 combatant.ApplyBodyHealth(new CharacterBodyHealthSnapshot(

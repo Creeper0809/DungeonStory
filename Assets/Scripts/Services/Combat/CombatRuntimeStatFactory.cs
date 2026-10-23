@@ -63,7 +63,8 @@ public static class CombatRuntimeStatFactory
             5f * defense,
             5f * Mathf.Max(meleeHit, rangedHit),
             healthEfficiency,
-            evasionChanceBonus: evasionChanceBonus);
+            evasionChanceBonus: evasionChanceBonus,
+            bluntDamageMultiplier: actor.Stats.ProjectDetailedStat(GameplayEffectTargetIds.BluntDamageReceived, 1f).Value);
     }
 
     public static CombatStatSnapshot Create(WildlifeActor actor)

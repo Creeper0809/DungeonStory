@@ -120,10 +120,6 @@ MonoBehaviour:
           baseJamChance: 0.01
           baseMisfireChance: 0.005
           facilityFamilyId: defense:scatter-trap
-          affinityTags:
-          - defense:scatter
-          - species:kobold
-          - species:orc
           growth:
             capacityLevel: 0
             resetSpeedLevel: 0

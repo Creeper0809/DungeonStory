@@ -1,8 +1,37 @@
 # DungeonStory Current Task Plan
 
+## 현재 Goal — SO 감사 30항목 수정·실행·main 통합 (2026-10-24)
+
+Status: implementation_verified / GitHub integration in_progress. Goal ACTIVE. `codex/so-audit-remediation`, base main5476a748e. 원본 Documents checkout과 기존 QA 증거를 보존했다. 최종 통합의 권위는 PR merged 상태와 해당 main commit의 GitHub CI다.
+
+1. 완료: R01–R24, U01–U05, I01 수정과30행 마감표. 기존3538개 GUID/type/script 및5857 보호 필드의 변경/누락0. 현재3544개 SO/10607필드를 검증했고 기존 DTO 저장 버전을 유지했다.
+2. 완료: core190초, character160초, effects650초, crop190초, world250초, so-authoring170초, so-runtime270초, so-inspector150초. 모두 native0/C#0/consoleErrors0/drift0. SO3개는 r112 입력의 실제 실행을 보존하고, 최종 영향5개는 r113sa의 실제 실행이다. 두 입력은 별도 Editor 확장 fixture 한 파일만 다르며 재사용의 전체 SHA 비교를 SO 영수증에 기록했다.
+3. 완료: 실제 Inspector5문맥(private authenticated Xvfb), 월드104섹션 저장/공식복원/원래 상태 복구, 작물 실제 실행·복원·무중복 재시도. 전수 seed·장기 밸런스 인증은 하지 않았다.
+4. 완료: Python67/67, 게시 값 보존/등록 자체 row 누락 거절, 동일 analyzer 검증, 생성 인덱스1회 및 내용/링크/최신성 검사. 감사 문서의 생성 색인 한계도 분리했다. 검증 중 코드 편집은 없었다.
+5. 진행: commit/push → PR 생성·attach/CI 성공 → main 병합/main CI. 이 단계가 확인돼야 Goal complete다. 최종 원격 연결 결과는 외부 `C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/integration-final.json`에 회수한다.
+
+실행 증거: [영향 CI](Artifacts/QA/ImpactCI/verification.json), [SO 실행](Artifacts/QA/ImpactCI/so-verification.json), [30항목 마감](SO_REFERENCE_FULL_AUDIT.md). 이전 실패·부분·다른 입력 결과를 현재 소스의 실행으로 바꾸지 않는다.
+
+## 현재 작업 — 전체 SO 관계 독립 목록 기반 전수 감사 보고서 (2026-10-24)
+
+Status: completed (읽기 전용 전수 감사·보고서). [SO_REFERENCE_FULL_AUDIT.md](SO_REFERENCE_FULL_AUDIT.md)에 전체142종/2462필드/3538에셋 목록과24개 보완 묶음, 미연결 작성 필드5종, Inspector 미실행 경계1종을 통합했다. 관계 후보880개 중 미할당0. 이전 표식 목록149개만으로 모든 관계가 안전하다고 한 판단을 정정한다. 게임 코드/에셋 수정·Unity 실행·push는 하지 않았다.
+
+1. 완료: Assets C#를 Roslyn editor/player로 구문 분석(errors0), 게임 SO142종을 기존 native 목록과 대조했다(추가 vendor1종 별도). 상속/중첩/SerializeReference 도달 필드2462개·넓은 후보880개·기존 참조표식149개, 미해결 필드타입0이다. 목록은 외부 2026-10-24/so-full-audit/inventory.json에 보존한다.
+2. 완료: building276 + character371 - 중복5 + main238 = 후보880개 판정. 메인이 실제 노화/해부/포식 분기와 현재 데이터, 조건부 문자열 관계, 저장 키와 선택기 경계를 재검토했다.
+3. 완료: 단일 보고서에 현재 결함/향후 편집 위험/정상 의미 키/미연결 소비를 구분하고 필요한 수정과 표적 검증을 기록했다.
+4. 완료: 원본 링크와 행, 타입/필드/에셋 행수, 후보 미할당0을 대조했다. 게임 소스·에셋 diff는 없으며 이전 사용자/QA 변경을 보존했다.
+
+## 현재 작업 — PR16 이후 SO 참조 보호 재감사 (2026-10-24)
+
+Status: completed (읽기 전용 원본 감사). main5476a748e와 HEAD22d77a6e8의 tree e7d00d62가 동일함을 확인했다. 실제 소비되는 수기 관계 3개, 중첩 저장 ID·카탈로그 등록·신규 게시 보호 누락과 의료 선택 문맥 불일치를 원본으로 확인했다. 조건부 Inspector 예외 경로는 실제 UI 실행 미확인으로 구분했다. 결과는 findings.md에 기록했으며 게임 코드·에셋 수정, Unity 실행, 인덱스 재생성, push는 하지 않았다.
+
+1. 현재 KB와 실제 정의·카탈로그·Inspector·저장/CI 경로를 대조한다.
+2. 메인은 선택/검증 경계, 독립 읽기 담당은 미주석 관계와 identity 보호를 확인한다. 실제 결함·잠재 위험·정상 의미 키를 구분한다.
+3. 재현 조건과 원본 위치가 확인된 결과를 findings.md에 기록하고, 이번에 확인한 범위와 한계를 보고한다.
+
 ## 현재 작업 — 전체 SO 관계 무결성 보완 (2026-10-23)
 
-Status: implementation_verified / GitHub integration in_progress. 사용자 요청에 따라 모든 게임 SO 142종·에셋3538개와 중첩 ID 관계149개 선언을 조사하고 필요한 선택·교차 검증·identity 보호를 완료했다. 작업 worktree so-reference-authoring, branch codex/so-reference-integrity, base main4fa97c17. r101si 입력21630개에서 CUHA effects/core/character/world/crop 모두 native0/C#0/consoleErrors0/drift0. Unity0/operation.lock free 확인 후 검증 창을 닫았다. 인덱스·증거를 마감하고 commit/push/PR/CI/main/병합 후 CI를 완료한다. 원본 Documents checkout과 이전 worktree 변경은 보존했다. 초기 실패·중단은 현재 PASS 증거에 포함하지 않는다.
+Status: completed (구현·GitHub 통합). 게임 SO 142종·에셋3538개와 당시 확인한 ID 관계149개 선언의 선택·교차 검증·identity 보호를 반영했다. 작업 worktree so-reference-authoring, branch codex/so-reference-integrity, base main4fa97c17. r101si 입력21630개에서 CUHA effects/core/character/world/crop 모두 native0/C#0/consoleErrors0/drift0. 커밋22d77a6e8, PR16 병합 main5476a748e 및 PR CI39977222419/main CI39977966733 성공을 확인했다. 원본 Documents checkout과 이전 worktree 변경은 보존했다. 초기 실패·중단은 현재 PASS 증거에 포함하지 않으며, 후속 재감사에서 확인된 보호 누락은 위 현재 작업과 findings.md에 구분했다.
 
 1. 전체 게임 SO 타입/중첩 필드/에셋 목록에서 SO 관계·자기 identity·의미 키·직접 객체 참조를 분류해 누락 없는 조사 범위를 정한다.
 2. 진행·해금/실행 실패부터 관계 선택·등록 검증을 보완한다. 기존 runtime/DTO ID·GUID·저장 버전은 유지한다. 운영 stable ID 변경은 저장 호환성을 깨뜨리는 변경이므로 임의 rename 전파 대신 기존 ID 보존/변경 차단과 명시적 오류로 보호한다. 새 정의의 ID 작성은 허용한다.

@@ -555,7 +555,7 @@ public sealed class SurgeryRestoreCoordinator :
         ValidateParts(candidate, characters, wildlife, buildings, report);
         ValidateStorage(candidate, buildings, report);
         ValidatePolicies(candidate, characters, wildlife, report);
-        ValidateWildlifeAnatomy(candidate, wildlife, report);
+        ValidateWildlifeAnatomy(content.AnatomyProfiles, candidate, wildlife, report);
     }
 
     private void ValidateOrders(
@@ -818,7 +818,8 @@ public sealed class SurgeryRestoreCoordinator :
         }
     }
 
-    private void ValidateWildlifeAnatomy(
+    public static void ValidateWildlifeAnatomy(
+        IAnatomyProfileCatalog anatomyProfiles,
         SurgeryAggregateState candidate,
         IReadOnlyDictionary<string, WildlifeActor> wildlife,
         DungeonGameRestoreReport report)
@@ -834,11 +835,13 @@ public sealed class SurgeryRestoreCoordinator :
                 continue;
             }
             AnatomyProfileDefinition expected =
-                content.AnatomyProfiles.GetForSpecies(actor.SpeciesId);
+                anatomyProfiles.GetForSpecies(actor.SpeciesId);
             if (!string.Equals(
                     expected.ProfileId,
                     state.profileId,
-                    StringComparison.Ordinal))
+                    StringComparison.Ordinal)
+                && !(anatomyProfiles.TryGet(state.profileId, out var historicalProfile)
+                    && historicalProfile.LegacySpeciesIds.Contains(actor.SpeciesId, StringComparer.OrdinalIgnoreCase)))
             {
                 report.AddError(
                     $"Wildlife anatomy '{state.wildlifeId}' profile '{state.profileId}' does not match species '{actor.SpeciesId}'.");

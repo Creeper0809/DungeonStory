@@ -82,7 +82,6 @@ public sealed class BuildingAnesthesiaAbility :
     ISurgicalFacilityAbility
 {
     [Range(0f, 1f)] public float stabilityBonus = 0.3f;
-    public string anesthesiaItemId = "medicine:anesthetic";
     [Min(1)] public int anesthesiaCost = 1;
     public SurgeryFacilityTag FacilityTags => SurgeryFacilityTag.Anesthesia;
     public bool IsPrimaryOperatingFacility => false;

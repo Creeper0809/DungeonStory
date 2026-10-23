@@ -1,0 +1,164 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eca03f3b76dbff642938e073fdc5188b, type: 3}
+  m_Name: anatomy_insect
+  m_EditorClassIdentifier: DungeonStory.Medical::AnatomyProfileSO
+  profileId: anatomy:insect
+  displayName: "\uace4\ucda9\ud615"
+  anatomyFamily: insect
+  speciesIds:
+  - crystal_beetle
+  legacySpeciesIds: []
+  nodes:
+  - nodeId: head
+    displayName: "\uba38\ub9ac"
+    parentNodeId: 
+    kind: 0
+    functions: 6
+    maxHealth: 12
+    capacityWeight: 0.35
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 1
+  - nodeId: brain
+    displayName: "\uc2e0\uacbd\uc808"
+    parentNodeId: head
+    kind: 1
+    functions: 2
+    maxHealth: 8
+    capacityWeight: 0.65
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: eye:left
+    displayName: "\uc67c\ucabd \uacb9\ub208"
+    parentNodeId: head
+    kind: 2
+    functions: 4
+    maxHealth: 4
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: eyes
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: eye:right
+    displayName: "\uc624\ub978\ucabd \uacb9\ub208"
+    parentNodeId: head
+    kind: 2
+    functions: 4
+    maxHealth: 4
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: eyes
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: torso
+    displayName: "\ubab8\ud1b5"
+    parentNodeId: 
+    kind: 4
+    functions: 9337
+    maxHealth: 32
+    capacityWeight: 1
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 1
+    mapsToLegacyBodyPart: 1
+  - nodeId: leg:front:left
+    displayName: "\uc67c\ucabd \uc55e\ub2e4\ub9ac"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 8
+    capacityWeight: 0.1666667
+    vital: 0
+    removable: 1
+    pairedGroupId: legs:front
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: leg:front:right
+    displayName: "\uc624\ub978\ucabd \uc55e\ub2e4\ub9ac"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 8
+    capacityWeight: 0.1666667
+    vital: 0
+    removable: 1
+    pairedGroupId: legs:front
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: leg:middle:left
+    displayName: "\uc67c\ucabd \uac00\uc6b4\ub370\ub2e4\ub9ac"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 8
+    capacityWeight: 0.1666667
+    vital: 0
+    removable: 1
+    pairedGroupId: legs:middle
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: leg:middle:right
+    displayName: "\uc624\ub978\ucabd \uac00\uc6b4\ub370\ub2e4\ub9ac"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 8
+    capacityWeight: 0.1666667
+    vital: 0
+    removable: 1
+    pairedGroupId: legs:middle
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: leg:rear:left
+    displayName: "\uc67c\ucabd \ub4a4\ub2e4\ub9ac"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 8
+    capacityWeight: 0.1666667
+    vital: 0
+    removable: 1
+    pairedGroupId: legs:rear
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: leg:rear:right
+    displayName: "\uc624\ub978\ucabd \ub4a4\ub2e4\ub9ac"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 8
+    capacityWeight: 0.1666667
+    vital: 0
+    removable: 1
+    pairedGroupId: legs:rear
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  notApplicableCapacities: []
+  apparelBodyForm: 0
+  apparelSize: 0
+  apparelBasePoints: 16383
+  apparelAttachments:
+  - nodeId: head
+    points: 3
+    mode: 0
+  - nodeId: torso
+    points: 8216
+    mode: 0

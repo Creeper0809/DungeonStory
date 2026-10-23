@@ -23,6 +23,8 @@ MonoBehaviour:
     SerializationNodes: []
   id: 222
   traitName: "\uACFC\uBB35\uD568"
+  legacyPolicyNames:
+  - "\uACFC\uBB35\uD568"
   description: "\uD63C\uC790 \uC26C\uB294 \uC2DC\uAC04\uC744 \uC911\uC2DC\uD558\uACE0
     \uACF5\uAC1C\uC801\uC778 \uC9C8\uBB38\uC744 \uBD80\uB2F4\uC2A4\uB7EC\uC6CC\uD55C\uB2E4."
   modifiers:

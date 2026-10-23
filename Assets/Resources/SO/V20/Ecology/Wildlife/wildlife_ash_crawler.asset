@@ -46,9 +46,6 @@ MonoBehaviour:
   husbandryProducts: []
   authoringRevision: 1
   preySpeciesIds: []
-  predatorSpeciesIds:
-  - ember_lizard
-  - cave_hound
   nestTag: nest:ash-vent
   breedingSeason: 1
   migrationPatternId: migration:heat-duct

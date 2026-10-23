@@ -18,6 +18,21 @@ MonoBehaviour:
   speciesIds:
   - Goblin
   - LegacyHumanoid
+  - Adventurer
+  legacySpeciesIds:
+  - ash_crawler
+  - carrion_drake
+  - cave_hound
+  - crystal_beetle
+  - deep_goat
+  - ember_lizard
+  - frost_ram
+  - glow_moth
+  - mana_wisp
+  - mire_leech
+  - silk_spider
+  - spore_elk
+  - tunnel_mole
   nodes:
   - nodeId: head
     displayName: "\uBA38\uB9AC"

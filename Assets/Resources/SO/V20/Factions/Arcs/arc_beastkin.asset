@@ -31,7 +31,3 @@ MonoBehaviour:
   - faction-contract:beastkin:supply
   - faction-contract:beastkin:crisis
   - faction-contract:beastkin:strategic
-  relicItemIds:
-  - relic:faction:beastkin:1
-  - relic:faction:beastkin:2
-  - relic:faction:beastkin:3

@@ -63,8 +63,32 @@ public sealed class HeritableTraitConsequence
     public HeritableTraitConsequenceKind kind;
     public string targetId = string.Empty;
     [Range(-1f, 1f)] public float multiplierDelta;
-    public bool IsValid => kind != HeritableTraitConsequenceKind.None
-        && Mathf.Abs(multiplierDelta) > 0.0001f;
+    public bool IsValid => float.IsFinite(multiplierDelta)
+        && Mathf.Abs(multiplierDelta) > 0.0001f && Mathf.Abs(multiplierDelta) <= 1f
+        && TargetsFor(kind).Contains(targetId, StringComparer.Ordinal);
+
+    // Semantic consumer keys, not free-form SO identities.
+    private static readonly IReadOnlyDictionary<HeritableTraitConsequenceKind, IReadOnlyList<string>> targets =
+        Enum.GetValues(typeof(HeritableTraitConsequenceKind)).Cast<HeritableTraitConsequenceKind>()
+            .ToDictionary(kind => kind, kind => (IReadOnlyList<string>)Array.AsReadOnly(CreateTargets(kind)));
+
+    public static IReadOnlyList<string> TargetsFor(HeritableTraitConsequenceKind kind) =>
+        targets.TryGetValue(kind, out var values) ? values : Array.Empty<string>();
+
+    private static string[] CreateTargets(HeritableTraitConsequenceKind kind) => kind switch
+    {
+        HeritableTraitConsequenceKind.Aptitude => new[] { "rune-tuning", "work-burst" },
+        HeritableTraitConsequenceKind.EnvironmentalTolerance => new[] { "cold", "dryness", "heat", "low-oxygen", "nutrition" },
+        HeritableTraitConsequenceKind.DiseaseResistance => new[] { "all", "memory", "recovery", "toxin" },
+        HeritableTraitConsequenceKind.Fertility => new[] { "cross-lineage", "gestation-stability", "offspring-stability", "success-rate" },
+        HeritableTraitConsequenceKind.AgingRate => new[] { "biological-age" },
+        HeritableTraitConsequenceKind.AnatomyCapacity => new[] { "bone-density", "dexterity", "joints", "mobility", "regeneration" },
+        HeritableTraitConsequenceKind.ManaAffinity => new[] { "capacity", "dream", "stability" },
+        HeritableTraitConsequenceKind.NeedRate => new[] { "hunger", "reproduction-hunger", "sleep" },
+        HeritableTraitConsequenceKind.Movement => new[] { "move-speed" },
+        HeritableTraitConsequenceKind.ManaOverloadDamage => new[] { "mana-exposure" },
+        _ => Array.Empty<string>()
+    };
 }
 
 public static class HeritableTraitModifierResolver

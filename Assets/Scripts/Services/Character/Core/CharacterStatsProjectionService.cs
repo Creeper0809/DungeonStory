@@ -314,6 +314,14 @@ public sealed class CharacterStatsProjectionService
                 baseValue,
                 Array.Empty<GameplayEffectContribution>());
 
+        if (targetId is GameplayEffectTargetIds.MaximumMana or GameplayEffectTargetIds.BluntDamageReceived
+            or GameplayEffectTargetIds.AirExposure or GameplayEffectTargetIds.RuneTuningSpeed)
+        {
+            if (RequirePerformance() is not ICharacterGameplayEffectValueQuery inheritedEffects)
+                throw new InvalidOperationException("Hereditary detailed stats require the production performance projection.");
+            return inheritedEffects.ProjectGameplayEffectValue(context.Actor, targetId, baseValue,
+                BuildCharacterEffectContext(context, activeConditionIds));
+        }
         return sharedEffects.ProjectValue(
             context.Actor,
             targetId,

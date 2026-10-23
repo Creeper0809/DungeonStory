@@ -1052,9 +1052,6 @@ public sealed partial class WildlifeEcosystemRuntime :
                 || !prey.IsAlive
                 || prey.Species == null
                 || !predator.Species.Hunts(prey.SpeciesId)
-                || prey.Species.PredatorSpeciesIds.Count > 0
-                    && !prey.Species.PredatorSpeciesIds.Contains(
-                        predator.SpeciesId)
                 || prey.Species.Diet == WildlifeDietType.Carnivore
                 || prey.MaxHealth > predator.MaxHealth + 10
                 || !TryFindAdjacentOpenCell(grid, predator, prey.GridPosition, out Vector2Int stand))

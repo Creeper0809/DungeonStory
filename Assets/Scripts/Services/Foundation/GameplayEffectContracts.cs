@@ -77,6 +77,45 @@ public static class GameplayEffectTargetIds
     public const string FoodPoisoningChance = "character:food-poisoning-chance";
     public const string RelationshipRecovery = "character:relationship-recovery";
     public const string NegativeMoodDuration = "character:negative-mood-duration";
+    public const string HarvestYield = "harvest:yield";
+    public const string MaximumMana = "character:maximum-mana";
+    public const string BluntDamageReceived = "combat:blunt-damage-received";
+    public const string AirExposure = "character:air-exposure";
+    public const string RuneTuningSpeed = "work:rune-tuning-speed";
+
+    private static readonly string[] CharacterPerformanceFormulaTargetValues =
+    {
+        AccidentChance,
+        ColdExposure,
+        CombatPower,
+        Consumption,
+        CrowdSensitivity,
+        DiseaseRecoverySpeed,
+        DiseaseResistance,
+        FatigueRate,
+        FoodPoisoningChance,
+        HeatExposure,
+        ImmunityGain,
+        ImmunityRetention,
+        MoveSpeed,
+        NegativeMoodDuration,
+        RecoverySpeed,
+        RelationshipRecovery,
+        Spending,
+        WaitPatience,
+        WorkSpeed,
+        CraftQualityScore,
+        HarvestYield,
+        HaulCapacity
+    };
+
+    public static IReadOnlyList<string> CharacterPerformanceFormulaTargets { get; } =
+        Array.AsReadOnly(CharacterPerformanceFormulaTargetValues);
+
+    public static bool IsCharacterPerformanceFormulaTarget(string targetId) =>
+        CharacterPerformanceFormulaTargetValues.Contains(
+            targetId?.Trim() ?? string.Empty,
+            StringComparer.Ordinal);
 
     public static string StartingProficiencyExperience(string proficiencyId) =>
         $"proficiency:{NormalizeProficiencyId(proficiencyId)}:starting-xp";

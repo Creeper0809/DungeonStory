@@ -21,6 +21,7 @@ MonoBehaviour:
   baseSeverity: 25
   targetSystem: 2
   vaccineAllowed: 1
+  vaccineItemId: medicine:vaccine:cave-flu
   chronic: 0
   description: "\uB3D9\uAD74 \uB3C5\uAC10\uC758 \uACE0\uC720 \uC804\uD30C\uC640 \uAE30\uAD00
     \uC99D\uC0C1."

@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eca03f3b76dbff642938e073fdc5188b, type: 3}
+  m_Name: anatomy_ethereal
+  m_EditorClassIdentifier: DungeonStory.Medical::AnatomyProfileSO
+  profileId: anatomy:ethereal
+  displayName: "\uc5d0\ud14c\ub974\ud615"
+  anatomyFamily: ethereal
+  speciesIds:
+  - mana_wisp
+  legacySpeciesIds: []
+  nodes:
+  - nodeId: mana-envelope
+    displayName: "\ub9c8\ub098 \uc678\ud53c"
+    parentNodeId: 
+    kind: 0
+    functions: 388
+    maxHealth: 35
+    capacityWeight: 0.8
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 1
+    mapsToLegacyBodyPart: 1
+  - nodeId: mana-core
+    displayName: "\ub9c8\ub098 \ud575"
+    parentNodeId: mana-envelope
+    kind: 4
+    functions: 13947
+    maxHealth: 20
+    capacityWeight: 1
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  notApplicableCapacities: []
+  apparelBodyForm: 0
+  apparelSize: 0
+  apparelBasePoints: 16383
+  apparelAttachments:
+  - nodeId: mana-core
+    points: 3
+    mode: 0
+  - nodeId: mana-envelope
+    points: 8216
+    mode: 0

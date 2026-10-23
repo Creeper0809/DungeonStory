@@ -35,6 +35,7 @@
 | `item:8:ProductionItemFeature` | 20 |
 | `item:1:no-feature` | 19 |
 | `recipe:cookbench:food` | 19 |
+| `AnatomyProfileSO` | 18 |
 | `EnemyAbilityDefinitionSO` | 18 |
 | `WildlifeSpeciesSO` | 18 |
 | `item:0:MarketItemFeature+ProductionItemFeature+ResearchGateItemFeature` | 18 |
@@ -50,7 +51,6 @@
 | `building:7` | 13 |
 | `research-field:2` | 13 |
 | `trait:aptitude-tradeoff` | 13 |
-| `AnatomyProfileSO` | 12 |
 | `CharacterBackgroundDefinitionSO` | 12 |
 | `CraftMaterialDefinitionSO` | 12 |
 | `CropDefinitionSO` | 12 |

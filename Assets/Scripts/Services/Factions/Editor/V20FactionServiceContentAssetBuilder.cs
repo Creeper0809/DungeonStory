@@ -149,7 +149,7 @@ public static class V20FactionServiceContentAssetBuilder
             FactionContractDefinitionSO winterFuelContract =
                 CreateWinterFuelDemandContract(faction);
             List<ItemDefinitionSO> factionRelics = Enumerable.Range(0,3).Select(index => CreateRelic(faction,index)).ToList();
-            authored.AddRange(chapters); authored.AddRange(contracts); authored.Add(winterFuelContract); authored.Add(CreateArc(faction,chapters,contracts,factionRelics)); relics.AddRange(factionRelics);
+            authored.AddRange(chapters); authored.AddRange(contracts); authored.Add(winterFuelContract); authored.Add(CreateArc(faction,chapters,contracts)); relics.AddRange(factionRelics);
         }
         authored.AddRange(Requests.Select(spec => CreateRequest(spec, items)));
         authored.AddRange(CreateIncidents());
@@ -255,10 +255,10 @@ public static class V20FactionServiceContentAssetBuilder
         Debug.Log($"WIM039_SERVICE_EXPERIENCE_RISKS=PASS; targets={targets.Count}; changed={changes.Count}; saved={changes.Count}");
     }
 
-    private static FactionArcDefinitionSO CreateArc(FactionSpec spec,IReadOnlyList<FactionChapterDefinitionSO> chapters,IReadOnlyList<FactionContractDefinitionSO> contracts,IReadOnlyList<ItemDefinitionSO> relics)
+    private static FactionArcDefinitionSO CreateArc(FactionSpec spec,IReadOnlyList<FactionChapterDefinitionSO> chapters,IReadOnlyList<FactionContractDefinitionSO> contracts)
     {
         FactionArcDefinitionSO value=Asset<FactionArcDefinitionSO>($"{Root}/Arcs/arc_{spec.Key}.asset");Meta(value,$"faction-arc:{spec.Key}",spec.Name,spec.Description);
-        value.factionId=spec.Id;value.chapterIds=chapters.Select(x=>x.StableId).ToList();value.contractIds=contracts.Select(x=>x.StableId).ToList();value.relicItemIds=relics.Select(x=>x.ItemId).ToList();Dirty(value);return value;
+        value.factionId=spec.Id;value.chapterIds=chapters.Select(x=>x.StableId).ToList();value.contractIds=contracts.Select(x=>x.StableId).ToList();Dirty(value);return value;
     }
 
     private static FactionChapterDefinitionSO CreateChapter(FactionSpec spec,int number)

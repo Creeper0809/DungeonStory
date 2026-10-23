@@ -56,7 +56,7 @@ ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputRestoreCapabilityValidator.cs
 ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:infrastructure,persistence,structural-type-consumer,Assets/Scripts/Services/Infrastructure/Environment/EnvironmentalWorkwearProductionOutputRestoreCapabilityValidatorDebugScenarios.cs
 ProductionRecipeSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ResearchRewardCatalogAdapter.cs
-ProductionRecipeSO,content-type,,type-reference,services:items,content-loading,structural-type-consumer,Assets/Scripts/Services/Items/ContentReferenceCatalog.cs
+ProductionRecipeSO,content-type,,type-reference; save-restore-reference,services:items,content-loading,structural-type-consumer,Assets/Scripts/Services/Items/ContentReferenceCatalog.cs
 ProductionRecipeSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/Buildings/UI/ProductionBuildingPanelPresenter.cs
 ProductionRecipeSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/UI/Core/ProductionRoutePanelPresenter.cs
 ProductionRecipeSO,stable-id,source:grass,stable-id-literal,models:economy,content-loading,exact-literal-consumer,Assets/Scripts/Models/Economy/Content/WorldResourceOutputContracts.cs

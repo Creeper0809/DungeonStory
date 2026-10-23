@@ -40,7 +40,8 @@ public readonly struct DiseaseDefinition
         bool vaccineAllowed,
         bool chronic = false,
         string symptomProfileId = "",
-        IEnumerable<string> fieldResponseIds = null)
+        IEnumerable<string> fieldResponseIds = null,
+        string vaccineItemId = "")
     {
         Id = id?.Trim() ?? string.Empty;
         DisplayName = displayName?.Trim() ?? string.Empty;
@@ -53,6 +54,7 @@ public readonly struct DiseaseDefinition
         VaccineAllowed = vaccineAllowed;
         Chronic = chronic;
         SymptomProfileId = symptomProfileId?.Trim() ?? string.Empty;
+        VaccineItemId = vaccineItemId?.Trim() ?? string.Empty;
         FieldResponseIds = (fieldResponseIds ?? Array.Empty<string>())
             .Select(value => value?.Trim() ?? string.Empty)
             .Where(value => value.Length > 0)
@@ -72,6 +74,7 @@ public readonly struct DiseaseDefinition
     public bool VaccineAllowed { get; }
     public bool Chronic { get; }
     public string SymptomProfileId { get; }
+    public string VaccineItemId { get; }
     public IReadOnlyList<string> FieldResponseIds { get; }
     public bool Contagious => ContagiousDays > 0
         && (Routes & ~DiseaseTransmissionRoute.Environment) != 0;

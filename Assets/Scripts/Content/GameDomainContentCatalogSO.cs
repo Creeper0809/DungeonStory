@@ -314,6 +314,7 @@ public sealed class AuthoredGameplayEffectRecord
 {
     public AuthoredGameplayEffectKind kind;
     public string id = string.Empty;
+    [ContentReference(ContentReferenceKind.AuthoredEffectText)]
     public string textValue = string.Empty;
     public float numberValue = 1f;
     public StockCategory stockCategory;

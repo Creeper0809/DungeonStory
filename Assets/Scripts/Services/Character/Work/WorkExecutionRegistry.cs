@@ -1036,7 +1036,8 @@ public sealed class WorkAmountCalculator : IWorkAmountCalculator
                 performanceContext.BuildEvaluationContext(
                     profile,
                     actor.Stats.BuildWorkEffectContext(definition.WorkTypeId),
-                    actor.GetWorkContextMultiplier(definition.WorkTypeId)));
+                    actor.GetWorkContextMultiplier(definition.WorkTypeId)
+                    * CharacterWorkPerformanceContextResolver.GetSpecializedWorkSpeed(actor, target, definition.WorkTypeId)));
             if (!snapshot.IsApplicable)
                 throw new InvalidOperationException(
                     snapshot.Failure?.Message

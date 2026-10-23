@@ -207,6 +207,8 @@ public enum ResearchPrerequisiteKind
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class ResearchPrerequisiteLink
 {
+    // Serialized compatibility identity; authored from the prerequisite object by the Editor drawer.
+    [HideInInspector]
     [ContentReference(ContentReferenceKind.Research)]
     [SerializeField] private string prerequisiteId = string.Empty;
     [SerializeField] private ResearchProjectSO prerequisite;

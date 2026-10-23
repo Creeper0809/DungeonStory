@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: condition_slime
   m_EditorClassIdentifier: DungeonStory.Medical::AnatomyConditionLexiconSO
   lexiconId: condition:slime
-  anatomyFamily: slime
+  anatomyFamily: aberrant
   speciesIds:
   - slime
   entries:

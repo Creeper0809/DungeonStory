@@ -39,10 +39,13 @@ public sealed class WorkerSelectionPolicySaveData
     public WorkerCandidateSortMode sortMode = WorkerCandidateSortMode.Fastest;
     public List<string> specificCharacterIds = new();
     public List<string> excludedCharacterIds = new();
+    [ContentReference(ContentReferenceKind.Proficiency)]
     public string minimumSkillId = string.Empty;
     [Min(0)] public int minimumSkillExperience;
     [Min(0)] public int minimumCareerRank;
+    [ContentReference(ContentReferenceKind.WorkerTrait)]
     public List<string> requiredTraitIds = new();
+    [ContentReference(ContentReferenceKind.WorkerTrait)]
     public List<string> excludedTraitIds = new();
 
     public static WorkerSelectionPolicySaveData Anyone(

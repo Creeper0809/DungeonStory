@@ -125,10 +125,6 @@ MonoBehaviour:
           baseJamChance: 0.01
           baseMisfireChance: 0.005
           facilityFamilyId: defense:detection
-          affinityTags:
-          - defense:alarm
-          - species:beastkin
-          - species:harpy
           growth:
             capacityLevel: 0
             resetSpeedLevel: 0

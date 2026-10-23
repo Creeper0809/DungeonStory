@@ -69,7 +69,8 @@ public static class V27CharacterPerformanceDebugScenarios
         double expectedProficiency =
             ProficiencyProgressionRules.ResolveEffects(
                 ProficiencyProgressionRules.MasterCurrentCap).QualityScore / 58d;
-        double expectedEffect = effects.RequireFiniteMaximum("harvest:yield");
+        double expectedEffect = effects.RequireFiniteMaximum(
+            GameplayEffectTargetIds.HarvestYield);
         double expectedHarvest = expectedCapacity
             * expectedProficiency
             * expectedEffect;
@@ -148,6 +149,26 @@ public static class V27CharacterPerformanceDebugScenarios
         CharacterPerformanceFormulaDefinitionSO[] formulas = catalog
             .GetAll<CharacterPerformanceFormulaDefinitionSO>()
             .ToArray();
+        _ = new CharacterPerformanceFormulaCatalog(new ReferenceValidationContentSource(catalog.Definitions.ToArray()));
+        ValidateFormulaReferenceGuards();
+        string[] formulaEffectTargets = formulas
+            .Select(value => value.GameplayEffectTargetId)
+            .Where(value => value.Length > 0)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] registeredFormulaEffectTargets = GameplayEffectTargetIds
+            .CharacterPerformanceFormulaTargets
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        Require(formulas.Length == 107,
+            $"Expected 107 performance formulas, found {formulas.Length}.");
+        Require(formulaEffectTargets.Length == 22,
+            $"Expected 22 performance effect targets, found {formulaEffectTargets.Length}.");
+        Require(formulaEffectTargets.SequenceEqual(
+                registeredFormulaEffectTargets,
+                StringComparer.Ordinal),
+            "Authored performance effect targets differ from the registered consumer set.");
         Require(capacities.Length == 14,
             $"Expected 14 capacities, found {capacities.Length}.");
         Require(capacities.Select(value => value.StableId).Distinct().Count() == 14,
@@ -266,6 +287,125 @@ public static class V27CharacterPerformanceDebugScenarios
             "V27_CHARACTER_PERFORMANCE_STRUCTURAL_AUDIT=PASS; capacities=14; "
             + $"formulas={formulas.Length}; characterSpecies=10; "
             + $"characterAnatomyProfiles={characterProfiles.Length}; superhuman={value.Value:0.0}");
+    }
+
+    public static void ValidateFormulaReferenceGuards()
+    {
+        GameplayEffectDefinitionSO effect = ScriptableObject
+            .CreateInstance<GameplayEffectDefinitionSO>();
+        GameplayEffectDefinitionSO typoEffect = ScriptableObject
+            .CreateInstance<GameplayEffectDefinitionSO>();
+        CharacterPerformanceFormulaDefinitionSO valid =
+            CreateReferenceValidationFormula(
+                "performance:qa:reference-valid",
+                BuiltInWorkTypeIds.Craft.Value,
+                GameplayEffectTargetIds.WorkSpeed);
+        CharacterPerformanceFormulaDefinitionSO unknownWork =
+            CreateReferenceValidationFormula(
+                "performance:qa:reference-unknown-work",
+                "work:carft",
+                GameplayEffectTargetIds.WorkSpeed);
+        CharacterPerformanceFormulaDefinitionSO unknownEffect =
+            CreateReferenceValidationFormula(
+                "performance:qa:reference-unknown-effect",
+                BuiltInWorkTypeIds.Craft.Value,
+                "character:work-speeed");
+        try
+        {
+            effect.name = "effect_qa_reference_work_speed";
+            effect.Configure(
+                990001,
+                "effect:qa:reference-work-speed",
+                GameplayEffectTargetIds.WorkSpeed,
+                GameplayEffectOperation.Multiply,
+                GameplayEffectProjectionPhase.Multiplicative,
+                GameplayEffectSourceKind.Trait,
+                GameplayEffectStackingPolicy.StackAll,
+                0f,
+                2f);
+            typoEffect.name = "effect_qa_reference_work_speed_typo";
+            typoEffect.Configure(
+                990002,
+                "effect:qa:reference-work-speed-typo",
+                "character:work-speeed",
+                GameplayEffectOperation.Multiply,
+                GameplayEffectProjectionPhase.Multiplicative,
+                GameplayEffectSourceKind.Trait,
+                GameplayEffectStackingPolicy.StackAll,
+                0f,
+                2f);
+            _ = new CharacterPerformanceFormulaCatalog(
+                new ReferenceValidationContentSource(valid, effect));
+            RequireFormulaCatalogRejection(
+                unknownWork,
+                effect,
+                "work:carft");
+            RequireFormulaCatalogRejection(
+                unknownEffect,
+                typoEffect,
+                "character:work-speeed");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(valid);
+            UnityEngine.Object.DestroyImmediate(unknownWork);
+            UnityEngine.Object.DestroyImmediate(unknownEffect);
+            UnityEngine.Object.DestroyImmediate(effect);
+            UnityEngine.Object.DestroyImmediate(typoEffect);
+        }
+    }
+
+    private static CharacterPerformanceFormulaDefinitionSO
+        CreateReferenceValidationFormula(
+            string formulaId,
+            string executionWorkTypeId,
+            string gameplayEffectTargetId)
+    {
+        CharacterPerformanceFormulaDefinitionSO formula = ScriptableObject
+            .CreateInstance<CharacterPerformanceFormulaDefinitionSO>();
+        formula.name = formulaId.Replace(':', '_');
+        formula.Configure(
+            formulaId,
+            "QA formula reference validation",
+            CharacterPerformanceFormulaDomain.Work,
+            CharacterPerformanceResultChannel.Speed,
+            1f,
+            new[]
+            {
+                new CharacterPerformanceCapacityInput(
+                    CharacterFunctionalCapacityId.PrecisionManipulation,
+                    1f,
+                    CharacterPerformanceInputRole.Contribution)
+            },
+            string.Empty,
+            string.Empty,
+            0f,
+            gameplayEffectTargetId,
+            executionWorkTypeId);
+        return formula;
+    }
+
+    private static void RequireFormulaCatalogRejection(
+        CharacterPerformanceFormulaDefinitionSO formula,
+        GameplayEffectDefinitionSO effect,
+        string expectedReference)
+    {
+        try
+        {
+            _ = new CharacterPerformanceFormulaCatalog(
+                new ReferenceValidationContentSource(formula, effect));
+        }
+        catch (InvalidOperationException exception)
+        {
+            Require(
+                exception.Message.Contains(
+                    expectedReference,
+                    StringComparison.Ordinal),
+                $"Formula reference rejection did not identify '{expectedReference}'.");
+            return;
+        }
+        throw new InvalidOperationException(
+            $"Formula reference '{expectedReference}' was not rejected.");
     }
 
     private static void ValidateSpeciesCapacityBalance(
@@ -2873,6 +3013,22 @@ public static class V27CharacterPerformanceDebugScenarios
                     value => AssetDatabase.GetAssetPath(value),
                     StringComparer.Ordinal)
                 .ToArray();
+
+        public T RequireSingle<T>() where T : ScriptableObject =>
+            GetAll<T>().Single();
+    }
+
+    private sealed class ReferenceValidationContentSource :
+        IGameContentDefinitionSource
+    {
+        private readonly ScriptableObject[] values;
+
+        internal ReferenceValidationContentSource(
+            params ScriptableObject[] values) =>
+            this.values = values ?? Array.Empty<ScriptableObject>();
+
+        public IReadOnlyList<T> GetAll<T>() where T : ScriptableObject =>
+            values.OfType<T>().ToArray();
 
         public T RequireSingle<T>() where T : ScriptableObject =>
             GetAll<T>().Single();

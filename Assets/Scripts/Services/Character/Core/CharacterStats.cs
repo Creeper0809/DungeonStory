@@ -1010,7 +1010,8 @@ public class CharacterStats :
             workPerformanceContext.BuildEvaluationContext(
                 profile,
                 BuildWorkEffectContext(workTypeId),
-                GetWorkContextMultiplier(workTypeId)));
+                GetWorkContextMultiplier(workTypeId)
+                * CharacterWorkPerformanceContextResolver.GetSpecializedWorkSpeed(actor, target, workTypeId)));
         if (!snapshot.IsApplicable)
             throw new InvalidOperationException(
                 snapshot.Failure?.Message

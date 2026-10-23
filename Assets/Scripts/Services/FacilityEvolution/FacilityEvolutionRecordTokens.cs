@@ -47,8 +47,16 @@ public class FacilityEvolutionRecordTokenDefinitionSO : DataScriptableObject
     public string[] recipeTags = Array.Empty<string>();
     [TextArea] public string uiHint;
 
-    public string EffectiveId => !string.IsNullOrWhiteSpace(tokenId) ? tokenId : name;
+    public string TokenId => tokenId?.Trim() ?? string.Empty;
+    public string EffectiveId => TokenId;
     public string DisplayName => !string.IsNullOrWhiteSpace(displayName) ? displayName : EffectiveId;
+
+    public IReadOnlyList<string> ValidateDefinition()
+    {
+        return string.IsNullOrWhiteSpace(TokenId)
+            ? new[] { "Facility evolution record token ID is required." }
+            : Array.Empty<string>();
+    }
 }
 
 public interface IFacilityEvolutionRecordTokenDefinitionProvider

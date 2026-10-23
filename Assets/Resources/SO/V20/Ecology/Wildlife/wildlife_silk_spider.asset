@@ -55,8 +55,6 @@ MonoBehaviour:
   preySpeciesIds:
   - glow_moth
   - cave_rat
-  predatorSpeciesIds:
-  - cave_hound
   nestTag: nest:silk-web
   breedingSeason: 2
   migrationPatternId: migration:insect-swarm

@@ -114,7 +114,8 @@ public sealed class OffenseSpecialBlueprintRewardSpec : OffenseBlueprintRewardSp
 [Serializable]
 public sealed class OffenseSpecificBlueprintRewardSpec : OffenseBlueprintRewardSpec
 {
-    [SerializeField] private int blueprintId;
+    [ContentReference("FacilityBlueprintSO", "id", emptyNumericId: -1)]
+    [SerializeField] private int blueprintId = -1;
 
     public OffenseSpecificBlueprintRewardSpec()
     {

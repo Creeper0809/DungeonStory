@@ -48,9 +48,6 @@ MonoBehaviour:
   husbandryProducts: []
   authoringRevision: 1
   preySpeciesIds: []
-  predatorSpeciesIds:
-  - cave_hound
-  - shadow_wolf
   nestTag: nest:root-burrow
   breedingSeason: 0
   migrationPatternId: migration:soft-soil

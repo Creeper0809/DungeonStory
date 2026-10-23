@@ -23,6 +23,8 @@ public static partial class FacilityEvolutionDebugScenarios
             FacilityEvolutionActivationProjectionDebugScenarios.RunAll(), errors);
         RunScenario("Engine constructor facade stays bounded and guarded", FacilityEvolutionConstructorFacadeDebugScenarios.Verify, errors);
         RunScenario("Modular strategy evolution assets are generated and loadable", VerifyP1EvolutionAssets, errors);
+        RunScenario("Authored recipe and record-token identities do not follow asset names",
+            VerifyAuthoredIdentityDoesNotFollowAssetName, errors);
         RunScenario("Room profile separates crowded and fine dining", VerifyDiningProfilesSeparateCrowdedAndFineDining, errors);
         RunScenario("Record metrics cannot override room-owned metrics", VerifyRecordMetricsCannotOverrideRoomOwnedMetrics, errors);
         RunScenario("Profile and record views reject external mutation", VerifyProfileAndRecordViewsRejectExternalMutation, errors);
@@ -75,6 +77,58 @@ public static partial class FacilityEvolutionDebugScenarios
         }
 
         return true;
+    }
+
+    public static bool VerifyAuthoredIdentityDoesNotFollowAssetName()
+    {
+        FacilityEvolutionRecipeSO recipe =
+            ScriptableObject.CreateInstance<FacilityEvolutionRecipeSO>();
+        FacilityEvolutionRecordTokenDefinitionSO token =
+            ScriptableObject.CreateInstance<FacilityEvolutionRecordTokenDefinitionSO>();
+        BuildingSO result = ScriptableObject.CreateInstance<BuildingSO>();
+        try
+        {
+            recipe.resultBuilding = result;
+            recipe.fromLineageTags = new[] { "fixture:source" };
+            recipe.name = "RecipeAssetName";
+            recipe.evolutionId = "   ";
+            token.name = "TokenAssetName";
+            token.tokenId = "   ";
+            Require(recipe.RecipeId.Length == 0
+                    && recipe.EffectiveId.Length == 0
+                    && !recipe.HasValidData
+                    && recipe.ValidateDefinition().Count > 0,
+                "A blank facility recipe ID must not fall back to the asset name.");
+            Require(token.TokenId.Length == 0
+                    && token.EffectiveId.Length == 0
+                    && token.ValidateDefinition().Count > 0,
+                "A blank facility record-token ID must not fall back to the asset name.");
+            recipe.name = "RenamedBlankRecipeAsset";
+            token.name = "RenamedBlankTokenAsset";
+            Require(recipe.RecipeId.Length == 0 && token.TokenId.Length == 0,
+                "Renaming facility assets must not manufacture IDs for blank definitions.");
+
+            recipe.evolutionId = " fixture:recipe ";
+            token.tokenId = " fixture:token ";
+            recipe.name = "RenamedRecipeAsset";
+            token.name = "RenamedTokenAsset";
+            Require(recipe.RecipeId == "fixture:recipe"
+                    && recipe.EffectiveId == "fixture:recipe"
+                    && recipe.HasValidData
+                    && recipe.ValidateDefinition().Count == 0,
+                "An explicit facility recipe ID must remain stable across asset renames.");
+            Require(token.TokenId == "fixture:token"
+                    && token.EffectiveId == "fixture:token"
+                    && token.ValidateDefinition().Count == 0,
+                "An explicit facility record-token ID must remain stable across asset renames.");
+            return true;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(recipe);
+            UnityEngine.Object.DestroyImmediate(token);
+            UnityEngine.Object.DestroyImmediate(result);
+        }
     }
 
     public static void RunObserverFocusedForBatchMode()

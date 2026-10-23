@@ -445,6 +445,17 @@ public static class ScriptableObjectModularityDebugScenarios
         {
             T clone = Own(Object.Instantiate(Baseline.GetAll<T>().First(value => predicate == null || predicate(value))));
             if (clone is DataScriptableObject data) data.id = 1_800_000_000 + owned.Count;
+            if (clone is CharacterTraitSO workerTrait)
+            {
+                // This fixture creates a new definition, not another owner of
+                // the original definition's current name or saved policy aliases.
+                workerTrait.traitName += "-qa-so-extension-" + workerTrait.id;
+                using var serialized = new SerializedObject(workerTrait);
+                serialized.FindProperty("legacyPolicyNames").ClearArray();
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                Require(workerTrait.LegacyPolicyNames.Count == 0,
+                    "The new trait fixture retained another definition's saved aliases.");
+            }
             extras.Add(clone);
             return clone;
         }

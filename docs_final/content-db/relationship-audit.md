@@ -4,9 +4,9 @@
 
 | 해석 상태 | 관계 |
 |---|---:|
-| `non-content-protocol` | 1,770 |
-| `resolved-content` | 4,686 |
-| `unresolved-content-reference` | 36 |
+| `non-content-protocol` | 1,784 |
+| `resolved-content` | 4,658 |
+| `unresolved-content-reference` | 43 |
 | `unresolved-runtime-domain-id` | 87 |
 
 - [해결되지 않은 콘텐츠 참조](unresolved-references.csv)

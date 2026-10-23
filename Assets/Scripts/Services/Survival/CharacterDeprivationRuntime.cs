@@ -1302,6 +1302,11 @@ public sealed class CharacterDeprivationRuntime :
                     HeritableTraitConsequenceKind.NeedRate,
                     "sleep");
             }
+            else if (kind == DeprivationKind.Thirst)
+            {
+                delta /= heritableTraits.GetMultiplier(characterId,
+                    HeritableTraitConsequenceKind.EnvironmentalTolerance, "dryness");
+            }
         }
         if (delta > 0f)
         {

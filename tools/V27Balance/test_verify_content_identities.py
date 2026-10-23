@@ -12,6 +12,15 @@ SECOND_SCRIPT_GUID = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 ASSET_GUID = "11111111111111111111111111111111"
 SECOND_ASSET_GUID = "22222222222222222222222222222222"
 CHANGED_ASSET_GUID = "33333333333333333333333333333333"
+ROOT_ASSET_GUID = "44444444444444444444444444444444"
+ITEM_CATALOG_GUID = "55555555555555555555555555555555"
+DOMAIN_CATALOG_GUID = "66666666666666666666666666666666"
+UNPUBLISHED_ASSET_GUID = "77777777777777777777777777777777"
+VENDOR_ASSET_GUID = "88888888888888888888888888888888"
+VENDOR_SCRIPT_GUID = "ffffffffffffffffffffffffffffffff"
+ROOT_SCRIPT_GUID = "cccccccccccccccccccccccccccccccc"
+ITEM_CATALOG_SCRIPT_GUID = "dddddddddddddddddddddddddddddddd"
+DOMAIN_CATALOG_SCRIPT_GUID = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
 
 
 class GitIdentityFixture(unittest.TestCase):
@@ -112,6 +121,140 @@ class GitIdentityFixture(unittest.TestCase):
     def publish_default(self) -> str:
         self.write_baseline([self.asset_row()])
         return self.commit("publish identity")
+
+    @staticmethod
+    def registration_field(member: str, guid: str) -> tuple[str, str]:
+        return (f"@registration:{member}:{guid}", guid)
+
+    def write_registry_fixture(self) -> None:
+        self.write_script("GameContentCatalogSO", ROOT_SCRIPT_GUID)
+        self.write_script("ItemDefinitionCatalogSO", ITEM_CATALOG_SCRIPT_GUID)
+        self.write_script("GameDomainContentCatalogSO", DOMAIN_CATALOG_SCRIPT_GUID)
+        self.write_asset(
+            "Assets/Data/Second.asset",
+            asset_guid=SECOND_ASSET_GUID,
+            fields=("identity: item:beta",),
+        )
+        self.write_asset(
+            "Assets/Data/Third.asset",
+            asset_guid=CHANGED_ASSET_GUID,
+            fields=("identity: item:gamma",),
+        )
+        self.write_asset(
+            verifier.ROOT_ASSET_PATH,
+            asset_guid=ROOT_ASSET_GUID,
+            script_guid=ROOT_SCRIPT_GUID,
+            fields=(
+                "itemDefinitions: {fileID: 11400000, guid: "
+                f"{ITEM_CATALOG_GUID}, type: 2}}",
+                "worldPresentation: {fileID: 11400000, guid: "
+                f"{ASSET_GUID}, type: 2}}",
+                "characterSkillSettings: {fileID: 11400000, guid: "
+                f"{SECOND_ASSET_GUID}, type: 2}}",
+                "media: {fileID: 11400000, guid: "
+                f"{CHANGED_ASSET_GUID}, type: 2}}",
+                "domainCatalogs:",
+                "- {fileID: 11400000, guid: "
+                f"{DOMAIN_CATALOG_GUID}, type: 2}}",
+            ),
+        )
+        self.write_asset(
+            "Assets/Data/ItemDefinitionCatalog.asset",
+            asset_guid=ITEM_CATALOG_GUID,
+            script_guid=ITEM_CATALOG_SCRIPT_GUID,
+            fields=(
+                "definitions:",
+                f"- {{fileID: 11400000, guid: {ASSET_GUID}, type: 2}}",
+                f"- {{fileID: 11400000, guid: {SECOND_ASSET_GUID}, type: 2}}",
+            ),
+        )
+        self.write_asset(
+            "Assets/Data/GameDomainContentCatalog.asset",
+            asset_guid=DOMAIN_CATALOG_GUID,
+            script_guid=DOMAIN_CATALOG_SCRIPT_GUID,
+            fields=(
+                "definitions:",
+                f"- {{fileID: 11400000, guid: {SECOND_ASSET_GUID}, type: 2}}",
+                f"- {{fileID: 11400000, guid: {CHANGED_ASSET_GUID}, type: 2}}",
+                "metaUpgrades: []",
+                "runVariables: []",
+                "ownerDoctrines: []",
+                "invasionPatterns: []",
+            ),
+        )
+
+    def registry_rows(self) -> list[dict[str, object]]:
+        return [
+            self.asset_row(
+                ROOT_ASSET_GUID,
+                (
+                    ("@resource-path", verifier.ROOT_ASSET_PATH),
+                    self.registration_field("itemDefinitions", ITEM_CATALOG_GUID),
+                    self.registration_field("worldPresentation", ASSET_GUID),
+                    self.registration_field("characterSkillSettings", SECOND_ASSET_GUID),
+                    self.registration_field("media", CHANGED_ASSET_GUID),
+                    self.registration_field("domainCatalogs", DOMAIN_CATALOG_GUID),
+                ),
+                "GameContentCatalogSO",
+                ROOT_SCRIPT_GUID,
+            ),
+            self.asset_row(
+                ITEM_CATALOG_GUID,
+                (
+                    self.registration_field("definitions", ASSET_GUID),
+                    self.registration_field("definitions", SECOND_ASSET_GUID),
+                ),
+                "ItemDefinitionCatalogSO",
+                ITEM_CATALOG_SCRIPT_GUID,
+            ),
+            self.asset_row(
+                DOMAIN_CATALOG_GUID,
+                (
+                    self.registration_field("definitions", SECOND_ASSET_GUID),
+                    self.registration_field("definitions", CHANGED_ASSET_GUID),
+                ),
+                "GameDomainContentCatalogSO",
+                DOMAIN_CATALOG_SCRIPT_GUID,
+            ),
+            self.asset_row(),
+            self.asset_row(
+                SECOND_ASSET_GUID,
+                (("identity", "item:beta"),),
+            ),
+            self.asset_row(
+                CHANGED_ASSET_GUID,
+                (("identity", "item:gamma"),),
+            ),
+        ]
+
+    def append_domain_registration(self, guid: str) -> None:
+        catalog = self.root / "Assets/Data/GameDomainContentCatalog.asset"
+        marker = "  metaUpgrades: []\n"
+        text = catalog.read_text(encoding="utf-8")
+        self.assertIn(marker, text)
+        catalog.write_text(
+            text.replace(
+                marker,
+                f"  - {{fileID: 11400000, guid: {guid}, type: 2}}\n" + marker,
+                1,
+            ),
+            encoding="utf-8",
+        )
+
+    def registry_rows_with_domain_registration(self, guid: str) -> list[dict[str, object]]:
+        rows = self.registry_rows()
+        rows[2]["fields"].append(
+            {
+                "path": f"@registration:definitions:{guid}",
+                "value": guid,
+            }
+        )
+        return rows
+
+    def publish_registry_fixture(self) -> str:
+        self.write_registry_fixture()
+        self.write_baseline(self.registry_rows())
+        return self.commit("publish catalog registration identities")
 
 
 class RevisionVerificationTests(GitIdentityFixture):
@@ -341,6 +484,467 @@ class RevisionVerificationTests(GitIdentityFixture):
         result = verifier.verify_revisions(self.initial, base, self.root)
 
         self.assertEqual(1, result["assetsChecked"])
+
+    def test_catalog_virtual_fields_match_current_yaml_and_ignore_array_order(self):
+        base = self.publish_registry_fixture()
+        item_catalog = self.root / "Assets/Data/ItemDefinitionCatalog.asset"
+        text = item_catalog.read_text(encoding="utf-8")
+        first = f"  - {{fileID: 11400000, guid: {ASSET_GUID}, type: 2}}"
+        second = f"  - {{fileID: 11400000, guid: {SECOND_ASSET_GUID}, type: 2}}"
+        item_catalog.write_text(
+            text.replace(first + "\n" + second, second + "\n" + first),
+            encoding="utf-8",
+        )
+        head = self.commit("reorder catalog definitions")
+
+        result = verifier.verify_revisions(base, head, self.root)
+
+        self.assertEqual(6, result["assetsChecked"])
+        self.assertEqual(13, result["fieldsChecked"])
+
+    def test_registered_target_move_with_preserved_meta_guid_is_allowed(self):
+        base = self.publish_registry_fixture()
+        destination = self.root / "Assets/Moved/GameDomainContentCatalog.asset"
+        destination.parent.mkdir(parents=True)
+        (self.root / "Assets/Data/GameDomainContentCatalog.asset").rename(destination)
+        (self.root / "Assets/Data/GameDomainContentCatalog.asset.meta").rename(
+            Path(str(destination) + ".meta")
+        )
+        head = self.commit("move registered target with its meta")
+
+        result = verifier.verify_revisions(base, head, self.root)
+
+        self.assertEqual(6, result["assetsChecked"])
+
+    def test_registered_game_asset_requires_its_own_baseline_row(self):
+        base = self.publish_registry_fixture()
+        self.write_asset(
+            "Assets/Data/Unpublished.asset",
+            asset_guid=UNPUBLISHED_ASSET_GUID,
+            fields=("identity: item:unpublished",),
+        )
+        self.append_domain_registration(UNPUBLISHED_ASSET_GUID)
+        self.write_baseline(
+            self.registry_rows_with_domain_registration(UNPUBLISHED_ASSET_GUID)
+        )
+        head = self.commit("register game asset without publishing its identity")
+
+        with self.assertRaisesRegex(
+            verifier.VerificationError,
+            "registered eligible game ScriptableObject is missing from identity baseline",
+        ):
+            verifier.verify_revisions(base, head, self.root)
+
+    def test_registered_vendor_asset_does_not_require_a_baseline_row(self):
+        base = self.publish_registry_fixture()
+        vendor_script = self.root / "Assets/Plugins/Demigiant/DOTween.dll"
+        vendor_script.parent.mkdir(parents=True, exist_ok=True)
+        vendor_script.write_bytes(b"vendor fixture")
+        Path(str(vendor_script) + ".meta").write_text(
+            f"fileFormatVersion: 2\nguid: {VENDOR_SCRIPT_GUID}\n",
+            encoding="utf-8",
+        )
+        self.write_asset(
+            "Assets/Data/VendorSettings.asset",
+            asset_guid=VENDOR_ASSET_GUID,
+            script_guid=VENDOR_SCRIPT_GUID,
+            fields=("setting: enabled",),
+        )
+        self.append_domain_registration(VENDOR_ASSET_GUID)
+        self.write_baseline(
+            self.registry_rows_with_domain_registration(VENDOR_ASSET_GUID)
+        )
+        head = self.commit("register vendor settings without publishing an identity")
+
+        result = verifier.verify_revisions(base, head, self.root)
+
+        self.assertEqual(6, result["assetsChecked"])
+        self.assertEqual(14, result["fieldsChecked"])
+
+    def test_registered_target_script_guid_must_resolve(self):
+        base = self.publish_registry_fixture()
+        self.write_asset(
+            "Assets/Data/BrokenSettings.asset",
+            asset_guid=UNPUBLISHED_ASSET_GUID,
+            script_guid=VENDOR_SCRIPT_GUID,
+            fields=("setting: enabled",),
+        )
+        self.append_domain_registration(UNPUBLISHED_ASSET_GUID)
+        self.write_baseline(
+            self.registry_rows_with_domain_registration(UNPUBLISHED_ASSET_GUID)
+        )
+        head = self.commit("register target with an unresolved script guid")
+
+        with self.assertRaisesRegex(
+            verifier.VerificationError,
+            "registered target m_Script GUID does not resolve",
+        ):
+            verifier.verify_revisions(base, head, self.root)
+
+    def test_registered_target_script_binding_must_be_unambiguous(self):
+        base = self.publish_registry_fixture()
+        self.write_asset(
+            "Assets/Data/AmbiguousSettings.asset",
+            asset_guid=UNPUBLISHED_ASSET_GUID,
+            fields=(
+                "m_Script: {fileID: 11500000, guid: "
+                f"{SECOND_SCRIPT_GUID}, type: 3}}",
+                "setting: enabled",
+            ),
+        )
+        self.append_domain_registration(UNPUBLISHED_ASSET_GUID)
+        self.write_baseline(
+            self.registry_rows_with_domain_registration(UNPUBLISHED_ASSET_GUID)
+        )
+        head = self.commit("register target with ambiguous script bindings")
+
+        with self.assertRaisesRegex(
+            verifier.VerificationError,
+            "registered target m_Script binding is ambiguous",
+        ):
+            verifier.verify_revisions(base, head, self.root)
+
+    def test_startup_catalog_move_is_rejected_even_when_guid_is_preserved(self):
+        base = self.publish_registry_fixture()
+        source = self.root / verifier.ROOT_ASSET_PATH
+        destination = source.with_name("MovedGameContentCatalog.asset")
+        source.rename(destination)
+        Path(str(source) + ".meta").rename(Path(str(destination) + ".meta"))
+        head = self.commit("move startup catalog with its meta")
+
+        with self.assertRaisesRegex(
+            verifier.VerificationError, "startup content catalog must remain"
+        ):
+            verifier.verify_revisions(base, head, self.root)
+
+    def test_domain_registration_removal_is_rejected_while_target_remains(self):
+        base = self.publish_registry_fixture()
+        catalog = self.root / "Assets/Data/GameDomainContentCatalog.asset"
+        removed = (
+            f"  - {{fileID: 11400000, guid: {CHANGED_ASSET_GUID}, type: 2}}\n"
+        )
+        catalog.write_text(
+            catalog.read_text(encoding="utf-8").replace(removed, ""),
+            encoding="utf-8",
+        )
+        head = self.commit("remove domain registration but retain target")
+
+        with self.assertRaisesRegex(
+            verifier.VerificationError, "catalog registrations do not match"
+        ):
+            verifier.verify_revisions(base, head, self.root)
+
+    def test_item_registration_removal_is_rejected_while_target_remains(self):
+        base = self.publish_registry_fixture()
+        catalog = self.root / "Assets/Data/ItemDefinitionCatalog.asset"
+        removed = (
+            f"  - {{fileID: 11400000, guid: {SECOND_ASSET_GUID}, type: 2}}\n"
+        )
+        catalog.write_text(
+            catalog.read_text(encoding="utf-8").replace(removed, ""),
+            encoding="utf-8",
+        )
+        head = self.commit("remove item registration but retain target")
+
+        with self.assertRaisesRegex(
+            verifier.VerificationError, "catalog registrations do not match"
+        ):
+            verifier.verify_revisions(base, head, self.root)
+
+    def test_malformed_registration_reference_is_rejected(self):
+        base = self.publish_registry_fixture()
+        catalog = self.root / "Assets/Data/ItemDefinitionCatalog.asset"
+        catalog.write_text(
+            catalog.read_text(encoding="utf-8").replace(
+                f"guid: {SECOND_ASSET_GUID}, type: 2",
+                f"guid: {SECOND_ASSET_GUID}, type: 3",
+            ),
+            encoding="utf-8",
+        )
+        head = self.commit("malform item registration reference")
+
+        with self.assertRaisesRegex(
+            verifier.VerificationError, "registration array has invalid element"
+        ):
+            verifier.verify_revisions(base, head, self.root)
+
+    def test_virtual_registration_path_syntax_is_strict(self):
+        self.write_registry_fixture()
+        rows = self.registry_rows()
+        rows[1]["fields"][0]["path"] = "@registration:definitions:not-a-guid"
+        self.write_baseline(rows)
+        head = self.commit("write malformed virtual registration path")
+
+        with self.assertRaisesRegex(verifier.VerificationError, "invalid virtual identity path"):
+            verifier.verify_revisions(self.initial, head, self.root)
+
+    def test_virtual_registration_member_is_restricted_by_catalog_type(self):
+        self.write_registry_fixture()
+        rows = self.registry_rows()
+        rows[1]["fields"][0] = {
+            "path": f"@registration:domainCatalogs:{ASSET_GUID}",
+            "value": ASSET_GUID,
+        }
+        self.write_baseline(rows)
+        head = self.commit("write wrong-kind virtual registration")
+
+        with self.assertRaisesRegex(verifier.VerificationError, "is invalid for"):
+            verifier.verify_revisions(self.initial, head, self.root)
+
+    def test_nested_identity_reorder_is_allowed_but_rename_is_rejected(self):
+        source = self.root / "Assets/Scripts/TestSO.cs"
+        source.write_text("public sealed class AnatomyProfileSO {}\n", encoding="utf-8")
+        self.write_asset(fields=("nodes:", "- nodeId: left-arm", "- nodeId: right-arm"))
+        fields = (
+            ("@nested:nodes[nodeId=left-arm].nodeId", "left-arm"),
+            ("@nested:nodes[nodeId=right-arm].nodeId", "right-arm"),
+        )
+        self.write_baseline([self.asset_row(fields=fields, type_name="AnatomyProfileSO")])
+        base = self.commit("publish nested anatomy identities")
+
+        self.write_asset(fields=("nodes:", "- nodeId: right-arm", "- nodeId: left-arm"))
+        reordered = self.commit("reorder anatomy nodes")
+        result = verifier.verify_revisions(base, reordered, self.root)
+        self.assertEqual(2, result["fieldsChecked"])
+
+        self.write_asset(fields=("nodes:", "- nodeId: right-arm", "- nodeId: left-hand"))
+        renamed = self.commit("rename anatomy node")
+        with self.assertRaisesRegex(verifier.VerificationError, "nested identities do not match"):
+            verifier.verify_revisions(base, renamed, self.root)
+
+    def test_trait_display_rename_is_allowed_but_legacy_alias_removal_is_rejected(self):
+        source = self.root / "Assets/Scripts/TestSO.cs"
+        source.write_text("public sealed class CharacterTraitSO {}\n", encoding="utf-8")
+        self.write_asset(fields=("traitName: Old Name", "legacyPolicyNames:", "- Old Name"))
+        fields = (("@legacy-trait-name:Old%20Name", "Old Name"),)
+        self.write_baseline([self.asset_row(fields=fields, type_name="CharacterTraitSO")])
+        base = self.commit("publish frozen trait policy alias")
+
+        self.write_asset(fields=("traitName: New Name", "legacyPolicyNames:", "- Old Name"))
+        renamed = self.commit("rename trait display name")
+        result = verifier.verify_revisions(base, renamed, self.root)
+        self.assertEqual(1, result["fieldsChecked"])
+
+        self.write_asset(fields=("traitName: New Name", "legacyPolicyNames: []"))
+        removed = self.commit("remove frozen trait policy alias")
+        with self.assertRaisesRegex(verifier.VerificationError, "nested identities do not match"):
+            verifier.verify_revisions(base, removed, self.root)
+
+
+class NestedIdentityExtractionTests(unittest.TestCase):
+    @staticmethod
+    def record(type_name: str) -> verifier.PublishedAsset:
+        return verifier.PublishedAsset(ASSET_GUID, type_name, SCRIPT_GUID, ())
+
+    @staticmethod
+    def document(body: str) -> str:
+        return (
+            "--- !u!114 &11400000\n"
+            "MonoBehaviour:\n"
+            "  m_Script: {fileID: 11500000, guid: " + SCRIPT_GUID + ", type: 3}\n"
+            + body
+        )
+
+    def extract(self, type_name: str, body: str) -> dict[str, str]:
+        return verifier._actual_nested_fields(
+            self.document(body), self.record(type_name), "fixture.asset"
+        )
+
+    def test_old_schema_one_root_row_without_virtual_fields_still_loads(self):
+        document = {
+            "schemaVersion": 1,
+            "assets": [
+                {
+                    "guid": ROOT_ASSET_GUID,
+                    "typeName": "GameContentCatalogSO",
+                    "scriptGuid": ROOT_SCRIPT_GUID,
+                    "fields": [{"path": "catalogId", "value": "root"}],
+                }
+            ],
+        }
+        loaded = verifier.load_baseline(
+            (json.dumps(document) + "\n").encode("utf-8"), "old-schema-one"
+        )
+        self.assertEqual(1, len(loaded.assets))
+
+    def test_managed_reference_routes_resolve_rids_and_preserve_parent_scope(self):
+        body = (
+            "  modules:\n"
+            "  - rid: 20\n"
+            "  - rid: 10\n"
+            "  drawbackCapabilities: []\n"
+            "  references:\n"
+            "    version: 2\n"
+            "    RefIds:\n"
+            "    - rid: 10\n"
+            "      type: {class: SkillRule, ns: '', asm: Assembly-CSharp}\n"
+            "      data:\n"
+            "        id: attack\n"
+            "        capabilityId: attack-capability\n"
+            "        variants:\n"
+            "        - id: small\n"
+            "    - rid: 20\n"
+            "      type: {class: SkillRule, ns: '', asm: Assembly-CSharp}\n"
+            "      data:\n"
+            "        id: defense\n"
+            "        capabilityId: defense-capability\n"
+            "        variants: []\n"
+        )
+
+        actual = self.extract("CharacterSkillSystemSettingsSO", body)
+
+        self.assertEqual("attack", actual["@nested:modules[id=attack].id"])
+        self.assertEqual(
+            "attack-capability",
+            actual["@nested:modules[id=attack].capabilityId"],
+        )
+        self.assertEqual(
+            "small",
+            actual["@nested:modules[id=attack].variants[id=small].id"],
+        )
+        self.assertEqual("defense", actual["@nested:modules[id=defense].id"])
+
+    def test_duplicate_blank_and_missing_nested_selectors_are_rejected(self):
+        duplicate = "  nodes:\n  - nodeId: arm\n  - nodeId: arm\n"
+        blank = "  nodes:\n  - nodeId: ' '\n"
+        missing = "  nodes:\n  - displayName: arm\n"
+        cases = (
+            (duplicate, "duplicate nested identity selector"),
+            (blank, "blank or not trimmed"),
+            (missing, "nested Unity field is missing"),
+        )
+        for body, message in cases:
+            with self.subTest(message=message), self.assertRaisesRegex(
+                verifier.VerificationError, message
+            ):
+                self.extract("AnatomyProfileSO", body)
+
+    def test_ambiguous_managed_rid_is_rejected(self):
+        body = (
+            "  modules:\n"
+            "  - rid: 10\n"
+            "  drawbackCapabilities: []\n"
+            "  references:\n"
+            "    RefIds:\n"
+            "    - rid: 10\n"
+            "      type: {class: SkillRule, ns: '', asm: Assembly-CSharp}\n"
+            "      data: {id: attack, capabilityId: attack, variants: []}\n"
+            "    - rid: 10\n"
+            "      type: {class: SkillRule, ns: '', asm: Assembly-CSharp}\n"
+            "      data: {id: attack, capabilityId: attack, variants: []}\n"
+        )
+        with self.assertRaisesRegex(verifier.VerificationError, "rid is ambiguous"):
+            self.extract("CharacterSkillSystemSettingsSO", body)
+
+    def test_managed_type_filter_is_part_of_building_identity(self):
+        body = (
+            "  abilityModules:\n"
+            "    items:\n"
+            "    - rid: 10\n"
+            "    - rid: 20\n"
+            "  references:\n"
+            "    RefIds:\n"
+            "    - rid: 10\n"
+            "      type: {class: BuildingProductionAbility, ns: '', asm: Assembly-CSharp}\n"
+            "      data: {abilityId: BuildingProductionAbility}\n"
+            "    - rid: 20\n"
+            "      type: {class: BuildingCookingAbility, ns: '', asm: Assembly-CSharp}\n"
+            "      data: {abilityId: BuildingCookingAbility}\n"
+        )
+        actual = self.extract("BuildingSO", body)
+        self.assertEqual(
+            {
+                "@nested:abilityModules.items[abilityId=BuildingProductionAbility;"
+                "type=BuildingProductionAbility].abilityId": "BuildingProductionAbility"
+            },
+            actual,
+        )
+
+    def test_child_move_changes_the_scoped_identity_path(self):
+        before = self.extract(
+            "CharacterAcquiredTraitSettingsSO",
+            "  drawbackCapabilities:\n"
+            "  - drawbackId: first\n"
+            "    capabilityId: first-capability\n"
+            "    effects:\n"
+            "    - bindingId: moved\n"
+            "  - drawbackId: second\n"
+            "    capabilityId: second-capability\n"
+            "    effects: []\n",
+        )
+        after = self.extract(
+            "CharacterAcquiredTraitSettingsSO",
+            "  drawbackCapabilities:\n"
+            "  - drawbackId: first\n"
+            "    capabilityId: first-capability\n"
+            "    effects: []\n"
+            "  - drawbackId: second\n"
+            "    capabilityId: second-capability\n"
+            "    effects:\n"
+            "    - bindingId: moved\n",
+        )
+        self.assertIn(
+            "@nested:drawbackCapabilities[drawbackId=first].effects[bindingId=moved].bindingId",
+            before,
+        )
+        self.assertNotEqual(before, after)
+
+    def test_nested_selector_escape_must_be_canonical(self):
+        with self.assertRaisesRegex(verifier.VerificationError, "canonically escaped"):
+            verifier._parse_nested_identity_path(
+                "AnatomyProfileSO",
+                "@nested:nodes[nodeId=left%2farm].nodeId",
+                "baseline",
+            )
+        verifier._parse_nested_identity_path(
+            "AnatomyProfileSO",
+            "@nested:nodes[nodeId=left%2Farm].nodeId",
+            "baseline",
+        )
+
+    def test_yaml_duplicate_keys_aliases_and_duplicate_legacy_names_are_rejected(self):
+        duplicate_key = "  nodes:\n  - nodeId: arm\n    nodeId: leg\n"
+        alias = "  nodes: &nodes\n  - nodeId: arm\n  copied: *nodes\n"
+        for body, message in (
+            (duplicate_key, "duplicate Unity YAML mapping key"),
+            (alias, "aliases and anchors are unsupported"),
+        ):
+            with self.subTest(message=message), self.assertRaisesRegex(
+                verifier.VerificationError, message
+            ):
+                self.extract("AnatomyProfileSO", body)
+
+        record = self.record("CharacterTraitSO")
+        document = self.document("  legacyPolicyNames:\n  - Old Name\n  - Old Name\n")
+        with self.assertRaisesRegex(verifier.VerificationError, "duplicate legacy trait name"):
+            verifier._actual_legacy_trait_fields(document, record, "fixture.asset")
+
+
+class GameAssetEligibilityTests(unittest.TestCase):
+    def test_path_rules_match_editor_case_semantics(self):
+        self.assertTrue(
+            verifier._is_eligible_game_asset_path(
+                "Assets/Data/Game.asset", "Assets/Scripts/Models/GameSO.cs"
+            )
+        )
+        self.assertFalse(
+            verifier._is_eligible_game_asset_path(
+                "assets/Data/Game.asset", "Assets/Scripts/Models/GameSO.cs"
+            )
+        )
+        self.assertFalse(
+            verifier._is_eligible_game_asset_path(
+                "Assets/Data/Game.asset", "Assets/scripts/Models/GameSO.cs"
+            )
+        )
+        for excluded in ("Editor", "vEnDoR", "THIRDPARTY", "pLuGiNs"):
+            with self.subTest(excluded=excluded):
+                self.assertFalse(
+                    verifier._is_eligible_game_asset_path(
+                        "Assets/Data/Game.asset",
+                        f"Assets/Scripts/{excluded}/GameSO.cs",
+                    )
+                )
 
 
 class ScalarDecodingTests(unittest.TestCase):

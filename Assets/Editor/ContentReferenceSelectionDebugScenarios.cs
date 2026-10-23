@@ -1,12 +1,307 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
 public static class ContentReferenceSelectionDebugScenarios
 {
+    private const string AddressableSettingsPath =
+        "Assets/AddressableAssetsData/AddressableAssetSettings.asset";
+    private const string AddressableCurrentHashField = "m_currentHash";
+
+    public static void RunWithUndoIsolation(Action action)
+    {
+        if (action == null) throw new ArgumentNullException(nameof(action));
+        Object settings = AssetDatabase.LoadMainAssetAtPath(AddressableSettingsPath);
+        Require(settings != null,
+            $"Addressables settings are missing at '{AddressableSettingsPath}'.");
+        FieldInfo hashField = RequireAddressableCurrentHashField(settings);
+        Hash128 beforeHash = (Hash128)hashField.GetValue(settings);
+        string beforeJson = EditorJsonUtility.ToJson(settings);
+        bool beforeDirty = EditorUtility.IsDirty(settings);
+        JObject before = ParseAddressableSettings(beforeJson);
+
+        try
+        {
+            action();
+        }
+        finally
+        {
+            settings = AssetDatabase.LoadMainAssetAtPath(AddressableSettingsPath);
+            Require(settings != null,
+                $"Addressables settings disappeared from '{AddressableSettingsPath}'.");
+            hashField = RequireAddressableCurrentHashField(settings);
+            Hash128 afterHash = (Hash128)hashField.GetValue(settings);
+            bool afterDirty = EditorUtility.IsDirty(settings);
+            bool hashChanged = !beforeHash.Equals(afterHash);
+            if (hashChanged)
+                hashField.SetValue(settings, beforeHash);
+
+            // Editor JSON may wrap serialized fields in a MonoBehaviour object.
+            // Restore only the known derived cache before comparing the complete
+            // JSON; do not filter fields or discard any other settings change.
+            JObject after = ParseAddressableSettings(EditorJsonUtility.ToJson(settings));
+            if (!JToken.DeepEquals(before, after))
+            {
+                string changed = string.Join(", ", ChangedTopLevelFields(before, after));
+                throw new InvalidOperationException(
+                    "Undo changed serialized Addressables settings outside its derived current-hash cache: "
+                    + changed);
+            }
+
+            if (!hashChanged && beforeDirty != afterDirty)
+                throw new InvalidOperationException(
+                    "Undo changed the Addressables settings dirty state without changing its current-hash cache.");
+
+            if (beforeDirty) EditorUtility.SetDirty(settings);
+            else EditorUtility.ClearDirty(settings);
+
+            Hash128 restoredHash = (Hash128)RequireAddressableCurrentHashField(settings)
+                .GetValue(settings);
+            JObject restored = ParseAddressableSettings(
+                EditorJsonUtility.ToJson(settings));
+            Require(restoredHash.Equals(beforeHash),
+                "Addressables current-hash cache did not restore to its original value.");
+            Require(JToken.DeepEquals(before, restored),
+                "Addressables settings JSON changed during current-hash restoration.");
+            Require(EditorUtility.IsDirty(settings) == beforeDirty,
+                "Addressables settings dirty state did not restore to its original value.");
+        }
+    }
+
+    private static FieldInfo RequireAddressableCurrentHashField(Object settings)
+    {
+        FieldInfo field = settings.GetType().GetField(
+            AddressableCurrentHashField,
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Require(field != null && field.FieldType == typeof(Hash128),
+            $"Addressables settings have no private Hash128 field '{AddressableCurrentHashField}'.");
+        return field;
+    }
+
+    private static JObject ParseAddressableSettings(string json) =>
+        JObject.Parse(json ?? string.Empty);
+
+    private static IEnumerable<string> ChangedTopLevelFields(
+        JObject before,
+        JObject after)
+    {
+        return before.Properties().Select(property => property.Name)
+            .Concat(after.Properties().Select(property => property.Name))
+            .Distinct(StringComparer.Ordinal)
+            .Where(name => !JToken.DeepEquals(before[name], after[name]))
+            .OrderBy(name => name, StringComparer.Ordinal);
+    }
+
+    public static void VerifyHeritableTraitConsequenceAuthoring()
+    {
+        var first = ScriptableObject.CreateInstance<HeritableTraitDefinitionSO>();
+        var second = ScriptableObject.CreateInstance<HeritableTraitDefinitionSO>();
+        first.hideFlags = HideFlags.HideAndDontSave;
+        second.hideFlags = HideFlags.HideAndDontSave;
+        first.consequences.Add(new HeritableTraitConsequence
+        {
+            kind = HeritableTraitConsequenceKind.Aptitude,
+            targetId = string.Empty,
+            multiplierDelta = 0.1f
+        });
+        second.consequences.Add(new HeritableTraitConsequence
+        {
+            kind = HeritableTraitConsequenceKind.EnvironmentalTolerance,
+            targetId = "unknown-existing-target",
+            multiplierDelta = 0.1f
+        });
+        try
+        {
+            Undo.ClearUndo(first);
+            Undo.ClearUndo(second);
+            using (var serialized = new SerializedObject(first))
+            {
+                SerializedProperty consequence = serialized.FindProperty(
+                    "consequences.Array.data[0]");
+                SerializedProperty kind = consequence.FindPropertyRelative("kind");
+                SerializedProperty target = consequence.FindPropertyRelative("targetId");
+                Undo.IncrementCurrentGroup();
+                int undoGroup = Undo.GetCurrentGroup();
+                Undo.SetCurrentGroupName("Heritable trait target selection probe");
+                kind.intValue = (int)HeritableTraitConsequenceKind.Movement;
+                Require(target.stringValue.Length == 0,
+                    "A pending kind change replaced the blank target automatically.");
+                Require(!HeritableTraitConsequenceDrawer.TryAssignTarget(
+                        consequence, "unknown-target", out _)
+                    && target.stringValue.Length == 0,
+                    "An unknown target was accepted or replaced the existing value.");
+                Require(HeritableTraitConsequenceDrawer.TryAssignTarget(
+                        consequence, "move-speed", out string selectionError),
+                    "The pending Movement kind did not expose move-speed: "
+                    + selectionError);
+
+                Require(serialized.ApplyModifiedProperties(),
+                    "The selected consequence was not applied.");
+                Undo.CollapseUndoOperations(undoGroup);
+                Require(first.consequences[0].kind
+                        == HeritableTraitConsequenceKind.Movement
+                    && first.consequences[0].targetId == "move-speed",
+                    "The selected consequence did not reach the serialized fixture.");
+                Undo.FlushUndoRecordObjects();
+                Undo.PerformUndo();
+                serialized.Update();
+                Require(first.consequences[0].kind
+                        == HeritableTraitConsequenceKind.Aptitude
+                    && first.consequences[0].targetId.Length == 0,
+                    "Undo did not restore the original consequence kind and target.");
+            }
+
+            using (var mixedKinds = new SerializedObject(
+                       new Object[] { first, second }))
+            {
+                SerializedProperty consequence = mixedKinds.FindProperty(
+                    "consequences.Array.data[0]");
+                Require(consequence.FindPropertyRelative("kind")
+                        .hasMultipleDifferentValues,
+                    "The mixed-kind fixture did not expose a mixed kind.");
+                Require(!HeritableTraitConsequenceDrawer.TryAssignTarget(
+                        consequence, "rune-tuning", out _),
+                    "A target was assigned across mixed consequence kinds.");
+                Require(first.consequences[0].targetId.Length == 0
+                    && second.consequences[0].targetId
+                        == "unknown-existing-target",
+                    "The mixed-kind rejection changed an existing target.");
+            }
+
+            first.consequences[0].kind = HeritableTraitConsequenceKind.Aptitude;
+            first.consequences[0].targetId = "rune-tuning";
+            second.consequences[0].kind = HeritableTraitConsequenceKind.Aptitude;
+            second.consequences[0].targetId = "work-burst";
+            using (var mixedTargets = new SerializedObject(
+                       new Object[] { first, second }))
+            {
+                SerializedProperty consequence = mixedTargets.FindProperty(
+                    "consequences.Array.data[0]");
+                Require(consequence.FindPropertyRelative("targetId")
+                        .hasMultipleDifferentValues,
+                    "The mixed-target fixture did not expose mixed values.");
+                Require(HeritableTraitConsequenceDrawer.TryAssignTarget(
+                        consequence, "work-burst", out string mixedError),
+                    "A valid shared target could not be selected: " + mixedError);
+                mixedTargets.ApplyModifiedProperties();
+                Require(first.consequences[0].targetId == "work-burst"
+                    && second.consequences[0].targetId == "work-burst",
+                    "The shared target was not applied to every selected object.");
+            }
+
+            Debug.Log("HERITABLE_TRAIT_CONSEQUENCE_AUTHORING=PASS; pending-kind; explicit-target; undo; mixed-kind; mixed-target");
+        }
+        finally
+        {
+            Undo.ClearUndo(first);
+            Undo.ClearUndo(second);
+            Object.DestroyImmediate(first);
+            Object.DestroyImmediate(second);
+        }
+    }
+
+    // Runs a real IMGUI property draw. Invoke only inside the isolated validation
+    // desktop/server: no window is opened in the user's interactive Editor.
+    public static void VerifyInspectorGUI()
+    {
+        if (!Application.isBatchMode)
+            throw new InvalidOperationException("Inspector verification requires isolated batch mode.");
+        var first = ScriptableObject.CreateInstance<ContentReferenceInspectorProbeData>();
+        var second = ScriptableObject.CreateInstance<ContentReferenceInspectorProbeData>();
+        var recipe = ScriptableObject.CreateInstance<ProductionRecipeSO>();
+        var window = ScriptableObject.CreateInstance<ContentReferenceInspectorProbeWindow>();
+        try
+        {
+            window.position = new Rect(0, 0, 620, 160);
+            window.ShowUtility();
+
+            recipe.hideFlags = HideFlags.HideAndDontSave;
+            using (var recipeSerialized = new SerializedObject(recipe))
+            {
+                var inputs = recipeSerialized.FindProperty("inputs");
+                Require(inputs != null && inputs.isArray && recipe.Inputs.Count == 0,
+                    "The production recipe pending-list fixture is invalid.");
+                inputs.arraySize = 1;
+                var itemId = inputs.GetArrayElementAtIndex(0)
+                    .FindPropertyRelative("itemId");
+                Require(itemId != null && itemId.stringValue.Length == 0,
+                    "The pending production input did not start with a blank item ID.");
+                DrawProbe(window, itemId, "pending production item list element");
+                Require(recipe.Inputs.Count == 0,
+                    "Inspector drawing applied the pending production input early.");
+                Require(itemId.stringValue.Length == 0,
+                    "Inspector drawing changed the pending production item ID.");
+                recipeSerialized.ApplyModifiedProperties();
+                Require(recipe.Inputs.Count == 1
+                        && string.IsNullOrEmpty(recipe.Inputs[0].ItemId),
+                    "Applying the pending production input changed its blank item ID or count.");
+            }
+
+            using var serialized = new SerializedObject(first);
+            var list = serialized.FindProperty("effects");
+            list.arraySize = 1;
+            var effect = list.GetArrayElementAtIndex(0);
+            effect.FindPropertyRelative("kind").intValue = (int)AuthoredGameplayEffectKind.GuestDemandMultiplier;
+            var target = effect.FindPropertyRelative("textValue");
+            Require(first.effects.Count == 0, "The new-list fixture was already applied.");
+            var reference = new ContentReferenceAttribute(ContentReferenceKind.AuthoredEffectText);
+            Require(ContentReferenceSelection.ResolveReference(reference, target)?.Kind == ContentReferenceKind.Species,
+                "Pending list element ignored its serialized kind.");
+            DrawProbe(window, target, "pending new list element");
+            Require(first.effects.Count == 0, "Inspector drawing unexpectedly applied the pending list.");
+            serialized.ApplyModifiedProperties();
+
+            Undo.IncrementCurrentGroup();
+            first.managed = new AuthoredGameplayEffectRecord { kind = AuthoredGameplayEffectKind.GuestDemandMultiplier };
+            serialized.Update();
+            serialized.FindProperty("managed").managedReferenceValue = new AuthoredGameplayEffectRecord
+                { kind = AuthoredGameplayEffectKind.IntruderPattern };
+            target = serialized.FindProperty("managed.textValue");
+            Require(ContentReferenceSelection.ResolveReference(reference, target)?.Kind == ContentReferenceKind.InvasionPattern,
+                "Pending managed-reference replacement used the old owner.");
+            DrawProbe(window, target, "pending managed-reference replacement");
+            serialized.ApplyModifiedProperties();
+            Undo.FlushUndoRecordObjects();
+            Undo.PerformUndo();
+            serialized.Update();
+            target = serialized.FindProperty("managed.textValue");
+            Require(ContentReferenceSelection.ResolveReference(reference, target)?.Kind == ContentReferenceKind.Species,
+                "Undo did not restore the reference context.");
+            DrawProbe(window, target, "undo restored context");
+
+            second.effects.Add(new AuthoredGameplayEffectRecord { kind = AuthoredGameplayEffectKind.IntruderPattern });
+            using var mixed = new SerializedObject(new Object[] { first, second });
+            var mixedTarget = mixed.FindProperty("effects.Array.data[0].textValue");
+            Require(ContentReferenceSelection.HasMixedContext(reference, mixedTarget), "Mixed kinds were not detected.");
+            DrawProbe(window, mixedTarget, "multi-object mixed context");
+            Require(window.DrawCount >= 5, "No actual Inspector property GUI events executed.");
+            Debug.Log("CONTENT_REFERENCE_INSPECTOR_GUI=PASS; item-unapplied-list; contextual-unapplied-list; managed-reference; undo; multi-object");
+        }
+        finally
+        {
+            window.Property = null;
+            window.Close();
+            Undo.ClearUndo(first);
+            Object.DestroyImmediate(first);
+            Object.DestroyImmediate(second);
+            Object.DestroyImmediate(recipe);
+        }
+    }
+
+    private static void DrawProbe(ContentReferenceInspectorProbeWindow window, SerializedProperty property, string context)
+    {
+        window.Property = property;
+        int previous = window.DrawCount;
+        window.SendEvent(new Event { type = EventType.Layout });
+        window.SendEvent(new Event { type = EventType.Repaint });
+        if (window.Failure != null) throw new InvalidOperationException(context, window.Failure);
+        Require(window.DrawCount > previous, "Inspector GUI did not execute: " + context);
+    }
     private sealed class AssetSnapshot
     {
         public Object Asset;
@@ -45,7 +340,7 @@ public static class ContentReferenceSelectionDebugScenarios
         {
             if (kind is ContentReferenceKind.EffectTarget
                 or ContentReferenceKind.WeightedTarget or ContentReferenceKind.Definition or ContentReferenceKind.NarrativeTarget
-                or ContentReferenceKind.ExpeditionChoice)
+                or ContentReferenceKind.ExpeditionChoice or ContentReferenceKind.AuthoredEffectText or ContentReferenceKind.EncounterTarget)
             {
                 continue;
             }
@@ -53,6 +348,12 @@ public static class ContentReferenceSelectionDebugScenarios
             IReadOnlyList<ContentReferenceSelection.Entry> entries =
                 ContentReferenceSelection.Entries(kind);
             Require(entries.Count > 0, $"{kind} has no catalog entries.");
+            if (kind == ContentReferenceKind.WorkType)
+            {
+                Require(entries.Select(value => value.Id).SequenceEqual(BuiltInWorkTypeIds.All.Select(value => value.Value)),
+                    "Work choices differ from the production work-type registry.");
+                continue;
+            }
             Type expectedType = ContentReferenceSelection.AssetType(kind);
             foreach (ContentReferenceSelection.Entry entry in entries)
             {
@@ -76,16 +377,15 @@ public static class ContentReferenceSelectionDebugScenarios
             Require(
                 distinctPairs == entries.Count,
                 $"{kind} contains duplicate asset/ID entries.");
-            if (kind != ContentReferenceKind.AnatomyNode)
+            if (kind is not (ContentReferenceKind.AnatomyNode or ContentReferenceKind.GameplayValueTarget))
             {
                 Require(
                     entries.Select(entry => entry.Id)
                         .Distinct(StringComparer.Ordinal).Count() == entries.Count,
                     $"{kind} contains duplicate IDs.");
-                Require(
-                    entries.Select(entry => entry.Asset)
-                        .Distinct().Count() == entries.Count,
-                    $"{kind} contains more than one ID for an asset.");
+                if (kind is not (ContentReferenceKind.InvasionPattern or ContentReferenceKind.SkillCapability))
+                    Require(entries.Select(entry => entry.Asset).Distinct().Count() == entries.Count,
+                        $"{kind} contains more than one ID for an asset.");
             }
         }
     }
@@ -622,5 +922,28 @@ public static class ContentReferenceSelectionDebugScenarios
     {
         if (!condition)
             throw new InvalidOperationException(message);
+    }
+}
+
+public sealed class ContentReferenceInspectorProbeData : ScriptableObject
+{
+    public List<AuthoredGameplayEffectRecord> effects = new();
+    [SerializeReference] public AuthoredGameplayEffectRecord managed;
+}
+
+public sealed class ContentReferenceInspectorProbeWindow : EditorWindow
+{
+    internal SerializedProperty Property;
+    internal int DrawCount;
+    internal Exception Failure;
+    private void OnGUI()
+    {
+        if (Property == null || Failure != null) return;
+        try
+        {
+            EditorGUI.PropertyField(new Rect(8, 8, 600, EditorGUI.GetPropertyHeight(Property)), Property, true);
+            DrawCount++;
+        }
+        catch (Exception exception) { Failure = exception; }
     }
 }

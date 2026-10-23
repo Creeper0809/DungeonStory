@@ -30,7 +30,3 @@ MonoBehaviour:
   - faction-contract:golem:supply
   - faction-contract:golem:crisis
   - faction-contract:golem:strategic
-  relicItemIds:
-  - relic:faction:golem:1
-  - relic:faction:golem:2
-  - relic:faction:golem:3

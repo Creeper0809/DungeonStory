@@ -53,8 +53,6 @@ MonoBehaviour:
     adultOnly: 1
   authoringRevision: 1
   preySpeciesIds: []
-  predatorSpeciesIds:
-  - shadow_wolf
   nestTag: nest:frost-alcove
   breedingSeason: 3
   migrationPatternId: migration:cold-front

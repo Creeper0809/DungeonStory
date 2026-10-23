@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
 
@@ -24,9 +25,107 @@ public static class V23CraftingDebugScenarios
         Debug.Log("V23 typed runtime consumer contracts passed: links=61.");
     }
 
+    [MenuItem("DungeonStory/Debug/Economy/Verify Worker Policy Trait References (R13)")]
+    public static void ValidateWorkerPolicyTraitReferencesForR13()
+    {
+        ResourceGameContentCatalog content = new(
+            new UnityGameContentRootLoader());
+        CharacterTraitSO trait = content.GetAll<CharacterTraitSO>()
+            .Where(value => value != null && value.LegacyPolicyNames.Count > 0)
+            .OrderBy(value => value.DefinitionId.Value, StringComparer.Ordinal)
+            .First();
+        string legacyName = trait.LegacyPolicyNames[0];
+        string originalName = trait.traitName;
+        string renamed = originalName + " (R13 renamed probe)";
+        CharacterSO workerData = null;
+        GameObject workerObject = null;
+        try
+        {
+            trait.traitName = renamed;
+            workerData = CharacterAiEditorTestDependencies
+                .CreateCharacterFixtureData(
+                    CharacterType.NPC,
+                    "R13 worker policy probe",
+                    "human");
+            workerData.traits = new[] { trait };
+            workerObject = new GameObject("R13 worker policy probe");
+            CharacterActor worker = workerObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(workerObject);
+            worker.Initialization(workerData);
+            const string workerId = "character:r13:worker-policy";
+            worker.Identity.SetPersistentId(workerId);
+
+            WorkerNarrativeQualificationQuery qualifications = new(
+                new EmptyNarrativeQuery(),
+                new FixedCharacterWorld(worker));
+            Require(qualifications.HasTrait(workerId, trait.DefinitionId.Value),
+                "Worker trait stable ID was not recognized after display-name rename.");
+            Require(qualifications.HasTrait(workerId, legacyName),
+                "Saved worker trait display-name alias was not recognized after rename.");
+            Require(qualifications.HasTrait(workerId, renamed),
+                "Current trait display-name lookup compatibility was not preserved.");
+
+            WorkerSelectionPolicySaveData stablePolicy = RoundTripPolicy(new()
+            {
+                mode = WorkerSelectionMode.RuleSet,
+                requiredTraitIds = new List<string>
+                {
+                    trait.DefinitionId.Value
+                }
+            });
+            Require(WorkerSelectionPolicyRules.IsEligible(
+                    stablePolicy,
+                    worker,
+                    qualifications,
+                    out _),
+                "JSON-restored stable-ID worker policy rejected its matching worker.");
+
+            WorkerSelectionPolicySaveData legacyPolicy = RoundTripPolicy(new()
+            {
+                mode = WorkerSelectionMode.RuleSet,
+                requiredTraitIds = new List<string> { legacyName }
+            });
+            Require(WorkerSelectionPolicyRules.IsEligible(
+                    legacyPolicy,
+                    worker,
+                    qualifications,
+                    out _),
+                "JSON-restored legacy-name worker policy rejected its matching worker.");
+
+            WorkerSelectionPolicySaveData excludedPolicy = RoundTripPolicy(new()
+            {
+                mode = WorkerSelectionMode.RuleSet,
+                excludedTraitIds = new List<string> { legacyName }
+            });
+            Require(!WorkerSelectionPolicyRules.IsEligible(
+                    excludedPolicy,
+                    worker,
+                    qualifications,
+                    out _),
+                "JSON-restored excluded legacy trait did not reject its matching worker.");
+        }
+        finally
+        {
+            trait.traitName = originalName;
+            if (workerObject != null)
+            {
+                UnityEngine.Object.DestroyImmediate(workerObject);
+            }
+            if (workerData != null)
+            {
+                UnityEngine.Object.DestroyImmediate(workerData);
+            }
+        }
+
+        Debug.Log(
+            "R13 worker policy trait references passed: stable ID, frozen legacy name, "
+            + "current display name, JSON restore, and excluded-trait filtering.");
+    }
+
     public static void RunAll()
     {
         ValidateWorkerPolicyNormalization();
+        ValidateWorkerPolicyTraitReferencesForR13();
         ValidateDeterministicQualityAndDistribution();
         ValidateMaterialStateHasNoQuality();
         ValidateTypedOperationalConsumers();
@@ -325,6 +424,62 @@ public static class V23CraftingDebugScenarios
         && left.randomA == right.randomA
         && left.randomB == right.randomB
         && left.randomC == right.randomC;
+
+    private static WorkerSelectionPolicySaveData RoundTripPolicy(
+        WorkerSelectionPolicySaveData source)
+    {
+        string json = JsonUtility.ToJson(source);
+        WorkerSelectionPolicySaveData restored =
+            JsonUtility.FromJson<WorkerSelectionPolicySaveData>(json);
+        return restored ?? throw new InvalidOperationException(
+            "Worker policy JSON restore returned null.");
+    }
+
+    private sealed class FixedCharacterWorld : ICharacterWorldQuery
+    {
+        public FixedCharacterWorld(CharacterActor actor) =>
+            Characters = new[]
+            {
+                actor ?? throw new ArgumentNullException(nameof(actor))
+            };
+
+        public int CharacterVersion => 1;
+        public IReadOnlyList<CharacterActor> Characters { get; }
+    }
+
+    private sealed class EmptyNarrativeQuery : ICharacterNarrativeQuery
+    {
+        public int Version => 1;
+        public IReadOnlyCollection<CharacterNarrativeSnapshot> All =>
+            Array.Empty<CharacterNarrativeSnapshot>();
+
+        public bool TryGet(
+            CharacterId characterId,
+            out CharacterNarrativeSnapshot snapshot)
+        {
+            snapshot = null;
+            return false;
+        }
+
+        public bool CanPerformPractice(
+            CharacterId characterId,
+            string practiceId,
+            int absoluteDay,
+            out int nextAllowedAbsoluteDay)
+        {
+            nextAllowedAbsoluteDay = absoluteDay;
+            return false;
+        }
+
+        public bool TryPreviewAmbitionProgress(
+            CharacterId characterId,
+            int amount,
+            out AmbitionProgressPreview preview)
+        {
+            preview = default;
+            return false;
+        }
+    }
 
     private static void Require(bool condition, string message)
     {

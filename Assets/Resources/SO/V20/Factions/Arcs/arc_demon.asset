@@ -30,7 +30,3 @@ MonoBehaviour:
   - faction-contract:demon:supply
   - faction-contract:demon:crisis
   - faction-contract:demon:strategic
-  relicItemIds:
-  - relic:faction:demon:1
-  - relic:faction:demon:2
-  - relic:faction:demon:3

@@ -499,7 +499,8 @@ public readonly struct CombatStatSnapshot
         float healthMultiplier = 1f,
         float arcanePowerMultiplier = 1f,
         bool hasArcanePowerMultiplier = false,
-        float evasionChanceBonus = 0f)
+        float evasionChanceBonus = 0f,
+        float bluntDamageMultiplier = 1f)
     {
         Melee = Mathf.Max(0f, melee);
         Shooting = Mathf.Max(0f, shooting);
@@ -512,6 +513,9 @@ public readonly struct CombatStatSnapshot
         ArcanePowerMultiplier = Mathf.Max(0f, arcanePowerMultiplier);
         HasArcanePowerMultiplier = hasArcanePowerMultiplier;
         EvasionChanceBonus = Mathf.Clamp(evasionChanceBonus, 0f, 0.35f);
+        if (!float.IsFinite(bluntDamageMultiplier) || bluntDamageMultiplier <= 0f)
+            throw new System.ArgumentOutOfRangeException(nameof(bluntDamageMultiplier));
+        this.bluntDamageMultiplier = bluntDamageMultiplier;
     }
 
     public float Melee { get; }
@@ -530,6 +534,8 @@ public readonly struct CombatStatSnapshot
     public bool HasArcanePowerMultiplier { get; }
     public float ArcanePowerMultiplier { get; }
     public float EvasionChanceBonus { get; }
+    private readonly float bluntDamageMultiplier;
+    public float BluntDamageMultiplier => bluntDamageMultiplier == 0f ? 1f : bluntDamageMultiplier;
 }
 
 public readonly struct CombatCoverSnapshot

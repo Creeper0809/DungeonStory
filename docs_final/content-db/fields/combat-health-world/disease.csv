@@ -43,6 +43,7 @@ DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,baseInfectionPro
 DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,baseSeverity,70,,,explicit-serialized
 DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,targetSystem,4,DiseaseTargetSystem,Filtration,explicit-serialized
 DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,vaccineItemId,medicine:vaccine:blood-wasting,,,explicit-serialized
 DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,chronic,0,,,explicit-serialized
 DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,description,혈액소모병의 고유 전파와 기관 증상.,,,explicit-serialized
 DiseaseDefinitionSO|disease:blood-wasting,disease:blood-wasting,authoringRevision,1,,,explicit-serialized
@@ -60,6 +61,7 @@ DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,baseInfectionProbability,0
 DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,baseSeverity,25,,,explicit-serialized
 DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,targetSystem,2,DiseaseTargetSystem,Breathing,explicit-serialized
 DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,vaccineItemId,medicine:vaccine:cave-flu,,,explicit-serialized
 DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,chronic,0,,,explicit-serialized
 DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,description,동굴 독감의 고유 전파와 기관 증상.,,,explicit-serialized
 DiseaseDefinitionSO|disease:cave-flu,disease:cave-flu,authoringRevision,1,,,explicit-serialized
@@ -162,6 +164,7 @@ DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,baseInfectionProbability,0.2
 DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,baseSeverity,45,,,explicit-serialized
 DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,targetSystem,3,DiseaseTargetSystem,Digestion,explicit-serialized
 DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,vaccineItemId,medicine:vaccine:gut-rot,,,explicit-serialized
 DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,chronic,0,,,explicit-serialized
 DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,description,장부패증의 고유 전파와 기관 증상.,,,explicit-serialized
 DiseaseDefinitionSO|disease:gut-rot,disease:gut-rot,authoringRevision,1,,,explicit-serialized
@@ -179,6 +182,7 @@ DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,baseInfectionProbability,0
 DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,baseSeverity,60,,,explicit-serialized
 DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,targetSystem,0,DiseaseTargetSystem,Core,explicit-serialized
 DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,vaccineItemId,medicine:vaccine:mana-pox,,,explicit-serialized
 DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,chronic,0,,,explicit-serialized
 DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,description,마나두창의 고유 전파와 기관 증상.,,,explicit-serialized
 DiseaseDefinitionSO|disease:mana-pox,disease:mana-pox,authoringRevision,1,,,explicit-serialized
@@ -213,6 +217,7 @@ DiseaseDefinitionSO|disease:red-fever,disease:red-fever,baseInfectionProbability
 DiseaseDefinitionSO|disease:red-fever,disease:red-fever,baseSeverity,55,,,explicit-serialized
 DiseaseDefinitionSO|disease:red-fever,disease:red-fever,targetSystem,4,DiseaseTargetSystem,Filtration,explicit-serialized
 DiseaseDefinitionSO|disease:red-fever,disease:red-fever,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:red-fever,disease:red-fever,vaccineItemId,medicine:vaccine:red-fever,,,explicit-serialized
 DiseaseDefinitionSO|disease:red-fever,disease:red-fever,chronic,0,,,explicit-serialized
 DiseaseDefinitionSO|disease:red-fever,disease:red-fever,description,적열병의 고유 전파와 기관 증상.,,,explicit-serialized
 DiseaseDefinitionSO|disease:red-fever,disease:red-fever,authoringRevision,1,,,explicit-serialized
@@ -230,6 +235,7 @@ DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,baseInfectionProba
 DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,baseSeverity,65,,,explicit-serialized
 DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,targetSystem,0,DiseaseTargetSystem,Core,explicit-serialized
 DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,vaccineItemId,medicine:vaccine:slime-blight,,,explicit-serialized
 DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,chronic,0,,,explicit-serialized
 DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,description,점액역병의 고유 전파와 기관 증상.,,,explicit-serialized
 DiseaseDefinitionSO|disease:slime-blight,disease:slime-blight,authoringRevision,1,,,explicit-serialized
@@ -247,6 +253,7 @@ DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,baseInfectionProbabili
 DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,baseSeverity,50,,,explicit-serialized
 DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,targetSystem,2,DiseaseTargetSystem,Breathing,explicit-serialized
 DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,vaccineAllowed,1,,,explicit-serialized
+DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,vaccineItemId,medicine:vaccine:spore-lung,,,explicit-serialized
 DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,chronic,0,,,explicit-serialized
 DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,description,포자폐증의 고유 전파와 기관 증상.,,,explicit-serialized
 DiseaseDefinitionSO|disease:spore-lung,disease:spore-lung,authoringRevision,1,,,explicit-serialized

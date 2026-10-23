@@ -21,6 +21,7 @@ MonoBehaviour:
   baseSeverity: 45
   targetSystem: 3
   vaccineAllowed: 1
+  vaccineItemId: medicine:vaccine:gut-rot
   chronic: 0
   description: "\uC7A5\uBD80\uD328\uC99D\uC758 \uACE0\uC720 \uC804\uD30C\uC640 \uAE30\uAD00
     \uC99D\uC0C1."

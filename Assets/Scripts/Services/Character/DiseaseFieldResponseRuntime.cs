@@ -147,11 +147,35 @@ public sealed class DiseaseFieldResponseRuntime :
             return false;
         }
 
-        string preferredFacility = response.StartsWith(
-                "response:vaccine:",
-                StringComparison.Ordinal)
+        bool isVaccineResponse = string.Equals(
+            response,
+            "response:vaccine:" + disease.Id,
+            StringComparison.Ordinal);
+        ResponseRule rule = default;
+        if (!isVaccineResponse
+            && !TryResolveRule(disease, response, out rule))
+        {
+            failure = new DomainFailure(
+                FailureCode.VaccineDiseaseMismatch,
+                disease.Id,
+                response,
+                "field-response-rule-unregistered");
+            return false;
+        }
+
+        string vaccineItemId = string.Empty;
+        if (isVaccineResponse
+            && !TryResolveVaccineItem(disease, out vaccineItemId, out failure))
+        {
+            return false;
+        }
+
+        string preferredFacility = isVaccineResponse
             ? "building:8876"
-            : response.StartsWith("response:isolate:", StringComparison.Ordinal)
+            : string.Equals(
+                response,
+                "response:isolate:" + disease.Id,
+                StringComparison.Ordinal)
                 ? "building:8874"
                 : "building:8873";
         BuildableObject facility = ResolveFacility(
@@ -165,13 +189,13 @@ public sealed class DiseaseFieldResponseRuntime :
             return false;
         }
 
-        if (response.StartsWith("response:vaccine:", StringComparison.Ordinal))
+        if (isVaccineResponse)
         {
             return vaccination.TryVaccinate(
                 characterId,
                 destination,
                 facility.centerPos,
-                "medicine:vaccine:" + disease.Id.Substring("disease:".Length),
+                vaccineItemId,
                 out failure);
         }
 
@@ -186,7 +210,6 @@ public sealed class DiseaseFieldResponseRuntime :
             return false;
         }
 
-        ResponseRule rule = ResolveRule(response);
         if (rule.ItemId.Length > 0
             && (!items.TryGet((ItemDefinitionId)rule.ItemId, out _)))
         {
@@ -466,14 +489,63 @@ public sealed class DiseaseFieldResponseRuntime :
         return selected;
     }
 
-    private static ResponseRule ResolveRule(string response)
+    private bool TryResolveVaccineItem(
+        DiseaseDefinition disease,
+        out string vaccineItemId,
+        out DomainFailure failure)
     {
-        if (Rules.TryGetValue(response, out ResponseRule rule)) return rule;
-        if (response.StartsWith("response:isolate:", StringComparison.Ordinal))
-            return new ResponseRule("medical:isolation-care-kit", 1, 16f);
-        if (response.StartsWith("response:environment:", StringComparison.Ordinal))
-            return new ResponseRule("medical:isolation-care-kit", 1, 20f);
-        return new ResponseRule("medical:isolation-care-kit", 1, 12f);
+        vaccineItemId = disease.VaccineItemId;
+        ItemDefinitionId itemId = (ItemDefinitionId)vaccineItemId;
+        if (!disease.VaccineAllowed
+            || !itemId.IsValid
+            || !items.TryGet(itemId, out ItemDefinitionSO definition)
+            || definition is not ResourceItemDefinitionSO vaccine
+            || vaccine.VaccineDoses != 1)
+        {
+            failure = new DomainFailure(
+                FailureCode.VaccineDefinitionMissing,
+                vaccineItemId);
+            return false;
+        }
+        if (!string.Equals(
+                vaccine.VaccineDiseaseId,
+                disease.Id,
+                StringComparison.Ordinal))
+        {
+            failure = new DomainFailure(
+                FailureCode.VaccineDiseaseMismatch,
+                vaccineItemId,
+                disease.Id);
+            return false;
+        }
+        failure = DomainFailure.None;
+        return true;
+    }
+
+    private static bool TryResolveRule(
+        DiseaseDefinition disease,
+        string response,
+        out ResponseRule rule)
+    {
+        if (Rules.TryGetValue(response, out rule)) return true;
+        if (string.Equals(
+                response,
+                "response:isolate:" + disease.Id,
+                StringComparison.Ordinal))
+        {
+            rule = new ResponseRule("medical:isolation-care-kit", 1, 16f);
+            return true;
+        }
+        if (string.Equals(
+                response,
+                "response:environment:" + disease.Id,
+                StringComparison.Ordinal))
+        {
+            rule = new ResponseRule("medical:isolation-care-kit", 1, 20f);
+            return true;
+        }
+        rule = default;
+        return false;
     }
 }
 

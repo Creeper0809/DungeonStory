@@ -48,7 +48,6 @@ MonoBehaviour:
   preySpeciesIds:
   - cave_rat
   - shadow_hare
-  predatorSpeciesIds: []
   nestTag: nest:high-bone-pile
   breedingSeason: 2
   migrationPatternId: migration:battlefield-scent

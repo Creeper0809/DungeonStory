@@ -171,6 +171,7 @@ public sealed class OffenseAggregateAuthoredReferenceValidator
             Require(decisionCards.TryGetValue(decision.cardId,
                     out OffenseDecisionCardSO card),
                 $"Decision '{decision.expeditionId}' references unknown card '{decision.cardId}'.");
+            OffenseDecisionRuntime.ValidatePresentationTags(decision, card);
             if (decision.resolved)
             {
                 Require(card.choices.Any(choice => choice != null
@@ -886,7 +887,9 @@ public static class OffenseAggregateSaveValidation
                     && combatant.coverBlockChance is >= 0f and <= 1f
                     && combatant.turnsStarted >= 0
                     && combatant.suppression >= 0f
-                    && combatant.bloodLoss >= 0f,
+                    && combatant.bloodLoss >= 0f
+                    && (!combatant.hasBluntDamageMultiplier
+                        || (float.IsFinite(combatant.bluntDamageMultiplier) && combatant.bluntDamageMultiplier > 0f)),
                 $"Battle combatant '{combatant.persistentId}' has invalid persisted stats.");
             RequireUnique(combatant.bodyParts, value => value.bodyPart,
                 $"battle combatant '{combatant.persistentId}' body part");
@@ -1064,6 +1067,7 @@ public static class OffenseAggregateSaveValidation
         {
             RequireId(decision.cardId,
                 $"decision '{decision.expeditionId}' card ID");
+            OffenseDecisionRuntime.ValidatePresentationTags(decision);
             Require(decision.sequence >= 0,
                 $"Decision '{decision.expeditionId}' has a negative sequence.");
             Require(expeditionIds.Contains(decision.expeditionId),

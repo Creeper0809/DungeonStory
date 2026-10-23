@@ -93,6 +93,7 @@ public sealed class CharacterSkillFormulaAxisDefinition
 [Serializable]
 public sealed class CharacterSkillPairSynergyCostDefinition
 {
+    [ContentReference(ContentReferenceKind.SkillCapability)]
     public string otherCapabilityId = string.Empty;
     [Min(0)] public int cost;
 }
@@ -116,6 +117,7 @@ public sealed class CharacterSkillCapabilityFormulaDefinition
     [Min(0f)] public float narrativeAffinity = 1f;
     public List<string> affinityKeys = new List<string>();
     public List<string> conflictGroups = new List<string>();
+    [ContentReference(ContentReferenceKind.SkillCapability)]
     public List<string> forbiddenSynergies = new List<string>();
     public string formatterId = string.Empty;
     public string applicatorId = string.Empty;
@@ -640,7 +642,74 @@ public sealed class CharacterSkillSystemSettingsSO : ScriptableObject
                 != authored.Length)
             throw new InvalidOperationException(
                 "CharacterSkill formula catalog requires distinct authored module IDs.");
-        return authored.Select(RequireFormulaDescriptor).ToArray();
+        NarrativeFormulaCapabilityDescriptor[] descriptors = authored
+            .Select(RequireFormulaDescriptor)
+            .ToArray();
+        RequireFormulaCapabilityRelations(descriptors);
+        return descriptors;
+    }
+
+    private static void RequireFormulaCapabilityRelations(
+        IReadOnlyList<NarrativeFormulaCapabilityDescriptor> descriptors)
+    {
+        HashSet<string> capabilityIds = descriptors
+            .Select(value => value.CapabilityId)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (NarrativeFormulaCapabilityDescriptor descriptor in descriptors)
+        {
+            foreach (NarrativeFormulaPairSynergyCost pair in descriptor.PairSynergyCosts)
+            {
+                if (!capabilityIds.Contains(pair.OtherCapabilityId))
+                {
+                    throw new InvalidOperationException(
+                        $"Capability '{descriptor.CapabilityId}' names an unknown pair-synergy capability '{pair.OtherCapabilityId}'.");
+                }
+            }
+            foreach (string forbidden in descriptor.ForbiddenSynergies)
+            {
+                if (!capabilityIds.Contains(forbidden))
+                {
+                    throw new InvalidOperationException(
+                        $"Capability '{descriptor.CapabilityId}' names an unknown forbidden synergy '{forbidden}'.");
+                }
+            }
+        }
+        foreach (NarrativeFormulaCapabilityDescriptor descriptor in descriptors)
+        {
+            foreach (NarrativeFormulaPairSynergyCost pair in descriptor.PairSynergyCosts)
+            {
+                NarrativeFormulaCapabilityDescriptor other = descriptors.Single(value =>
+                    string.Equals(
+                        value.CapabilityId,
+                        pair.OtherCapabilityId,
+                        StringComparison.Ordinal));
+                NarrativeFormulaPairSynergyCost reverse = other.PairSynergyCosts
+                    .SingleOrDefault(value => string.Equals(
+                        value.OtherCapabilityId,
+                        descriptor.CapabilityId,
+                        StringComparison.Ordinal));
+                if (reverse == null || reverse.Cost != pair.Cost)
+                {
+                    throw new InvalidOperationException(
+                        $"Pair cost '{descriptor.CapabilityId}/{pair.OtherCapabilityId}' is not symmetric.");
+                }
+            }
+            foreach (string forbidden in descriptor.ForbiddenSynergies)
+            {
+                NarrativeFormulaCapabilityDescriptor other = descriptors.Single(value =>
+                    string.Equals(
+                        value.CapabilityId,
+                        forbidden,
+                        StringComparison.Ordinal));
+                if (!other.ForbiddenSynergies.Contains(
+                        descriptor.CapabilityId,
+                        StringComparer.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Forbidden synergy '{descriptor.CapabilityId}/{forbidden}' is not symmetric.");
+                }
+            }
+        }
     }
 
     public void EnsureDefaults()

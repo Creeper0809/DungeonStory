@@ -50,8 +50,6 @@ MonoBehaviour:
   preySpeciesIds:
   - ash_crawler
   - crystal_beetle
-  predatorSpeciesIds:
-  - cave_hound
   nestTag: nest:warm-pipe
   breedingSeason: 1
   migrationPatternId: migration:heat-source

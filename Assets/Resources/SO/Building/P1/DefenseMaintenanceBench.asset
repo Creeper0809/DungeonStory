@@ -134,10 +134,6 @@ MonoBehaviour:
           baseJamChance: 0.01
           baseMisfireChance: 0.005
           facilityFamilyId: defense:maintenance
-          affinityTags:
-          - defense:repair
-          - species:kobold
-          - species:golem
           growth:
             capacityLevel: 0
             resetSpeedLevel: 0

@@ -24,7 +24,6 @@ MonoBehaviour:
   allowedSpeciesIds:
   - harpy
   operatorRequirement:
-    stats: []
     minimumWeightedScore: 3
   targetNodeId: wing:left
   requiredResearchId: research:medical:avian-prosthetics

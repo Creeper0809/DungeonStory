@@ -204,7 +204,7 @@ AnatomyConditionLexiconSO|condition:myconid,condition:myconid,entries.6.vfxId,me
 AnatomyConditionLexiconSO|condition:myconid,condition:myconid,condition,0,AnatomyConditionKind,Fluid Loss,implicit-csharp-default
 AnatomyConditionLexiconSO|condition:slime,condition:slime,m_Name,condition_slime,,,explicit-serialized
 AnatomyConditionLexiconSO|condition:slime,condition:slime,lexiconId,condition:slime,,,explicit-serialized
-AnatomyConditionLexiconSO|condition:slime,condition:slime,anatomyFamily,slime,,,explicit-serialized
+AnatomyConditionLexiconSO|condition:slime,condition:slime,anatomyFamily,aberrant,,,explicit-serialized
 AnatomyConditionLexiconSO|condition:slime,condition:slime,speciesIds.0,slime,,,explicit-serialized
 AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.0.condition,0,AnatomyConditionKind,Fluid Loss,explicit-serialized
 AnatomyConditionLexiconSO|condition:slime,condition:slime,entries.0.label,점액 누출,,,explicit-serialized

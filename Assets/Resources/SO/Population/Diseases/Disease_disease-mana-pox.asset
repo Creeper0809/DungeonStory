@@ -21,6 +21,7 @@ MonoBehaviour:
   baseSeverity: 60
   targetSystem: 0
   vaccineAllowed: 1
+  vaccineItemId: medicine:vaccine:mana-pox
   chronic: 0
   description: "\uB9C8\uB098\uB450\uCC3D\uC758 \uACE0\uC720 \uC804\uD30C\uC640 \uAE30\uAD00
     \uC99D\uC0C1."

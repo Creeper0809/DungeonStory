@@ -9,6 +9,7 @@ public sealed class CharacterRuntimeProfile
     private readonly IReadOnlyList<string> expressedTraitIds;
     private readonly IReadOnlyList<string> latentTraitIds;
     private readonly IReadOnlyList<string> traitDisplayNames;
+    private readonly IReadOnlyList<string> legacyTraitPolicyNames;
     private readonly IReadOnlyList<CharacterCombatAbilityDefinition> speciesCombatAbilities;
     private readonly IReadOnlyDictionary<string, float> behaviorUtilityDeltas;
     private readonly IReadOnlyDictionary<string, float> eventWeightMultipliers;
@@ -41,15 +42,21 @@ public sealed class CharacterRuntimeProfile
         latentTraitIds = request.LatentTraitIds
             .Select(value => value.Value)
             .ToArray();
-        traitDisplayNames = (expressedTraits ?? Array.Empty<CharacterTraitSO>())
-            .Select(value => value?.traitName?.Trim() ?? string.Empty)
-            .ToArray();
-        behaviorUtilityDeltas = BuildBehaviorUtilityDeltas(expressedTraits);
-        eventWeightMultipliers = BuildEventWeightMultipliers(expressedTraits);
         CharacterTraitSO[] authoredTraits = (expressedTraits
                 ?? Array.Empty<CharacterTraitSO>())
             .Where(value => value != null)
             .ToArray();
+        traitDisplayNames = authoredTraits
+            .Select(value => value?.traitName?.Trim() ?? string.Empty)
+            .ToArray();
+        legacyTraitPolicyNames = authoredTraits
+            .SelectMany(value => value.LegacyPolicyNames)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        behaviorUtilityDeltas = BuildBehaviorUtilityDeltas(authoredTraits);
+        eventWeightMultipliers = BuildEventWeightMultipliers(authoredTraits);
         float legacyExperience = authoredTraits
             .Where(value => !HasEffectTarget(
                 value,
@@ -312,7 +319,8 @@ public sealed class CharacterRuntimeProfile
 
         string normalized = traitName.Trim();
         return expressedTraitIds.Contains(normalized, StringComparer.Ordinal)
-            || traitDisplayNames.Contains(normalized, StringComparer.Ordinal);
+            || traitDisplayNames.Contains(normalized, StringComparer.Ordinal)
+            || legacyTraitPolicyNames.Contains(normalized, StringComparer.Ordinal);
     }
 
     private static CharacterModelModifiers BuildFinalModifiers(

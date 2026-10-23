@@ -339,7 +339,6 @@ public static class OffenseStrategicContentBuilder
         gold.bribe = new BribeOffer
         {
             offerId = "bribe:gate-captain:passage",
-            factionId = "human",
             price = price,
             outcome = BribeOutcomeKind.Passage,
             acceptancePercent = 85,

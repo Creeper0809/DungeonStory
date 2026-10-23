@@ -30,7 +30,3 @@ MonoBehaviour:
   - faction-contract:kobold:supply
   - faction-contract:kobold:crisis
   - faction-contract:kobold:strategic
-  relicItemIds:
-  - relic:faction:kobold:1
-  - relic:faction:kobold:2
-  - relic:faction:kobold:3

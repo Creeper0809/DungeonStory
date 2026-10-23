@@ -11,6 +11,85 @@ using VContainer;
 
 public static class WildlifeDebugScenarios
 {
+    public static void VerifyAuthoredAnatomyAndLegacyRestore()
+    {
+        var content = new ResourceGameContentCatalog(new UnityGameContentRootLoader());
+        var profiles = new ResourceAnatomyProfileCatalog(content);
+        var species = new ResourceWildlifeSpeciesCatalogProvider(content, new ResourceItemDefinitionCatalog(content));
+        var state = new SurgeryAggregateStateStore(new DungeonRuntimeAggregateRootStore());
+        var actors = new List<WildlifeActor>();
+        var world = new AnatomyFixtureWorld(actors);
+        var runtime = new WildlifeAnatomyHealthRuntime(profiles, world, new UnityGameClock(), state);
+        var expected = new Dictionary<string, string>
+        {
+            ["cave_hound"] = "anatomy:quadruped", ["deep_goat"] = "anatomy:quadruped",
+            ["ember_lizard"] = "anatomy:quadruped", ["frost_ram"] = "anatomy:quadruped",
+            ["spore_elk"] = "anatomy:quadruped", ["tunnel_mole"] = "anatomy:quadruped",
+            ["crystal_beetle"] = "anatomy:insect", ["glow_moth"] = "anatomy:winged-insect",
+            ["silk_spider"] = "anatomy:arachnid", ["ash_crawler"] = "anatomy:vermiform",
+            ["mire_leech"] = "anatomy:vermiform", ["mana_wisp"] = "anatomy:ethereal",
+            ["carrion_drake"] = "anatomy:drake"
+        };
+        try
+        {
+            foreach (var pair in expected)
+            {
+                Require(species.TryGetSpecies(pair.Key, out var definition), "Missing authored wildlife: " + pair.Key);
+                var actor = new GameObject("R17 " + pair.Key).AddComponent<WildlifeActor>();
+                actors.Add(actor);
+                ConfigureActor(actor, 17001 + actors.Count);
+                actor.Initialize(new Grid(2, 1), definition, "wildlife:r17:" + pair.Key, Vector2Int.zero);
+                Require(runtime.GetAnatomySnapshot(actor).ProfileId == pair.Value, "Fresh wildlife has incorrect anatomy: " + pair.Key);
+            }
+            var legacy = actors.Single(value => value.SpeciesId == "silk_spider");
+            var humanoid = profiles.GetDefaultHumanoid();
+            state.State.WildlifeAnatomy[legacy.WildlifeId] = new WildlifeAnatomyState
+            {
+                wildlifeId = legacy.WildlifeId, profileId = humanoid.ProfileId,
+                nodes = humanoid.Nodes.Select(node => new AnatomyNodeHealthState
+                { nodeId = node.NodeId, maxHealth = node.MaxHealth, currentHealth = node.MaxHealth }).ToList()
+            };
+            var injured = state.State.WildlifeAnatomy[legacy.WildlifeId].nodes.Single(node => node.nodeId == "heart");
+            injured.currentHealth *= .5f;
+            injured.infection = 17f;
+            string json = JsonUtility.ToJson(new SurgeryPersistence(state).Capture());
+            var saved = JsonUtility.FromJson<DungeonSurgerySaveData>(json);
+            var report = new DungeonGameRestoreReport();
+            SurgerySaveValidation.Validate(saved, new ResourceSurgicalProcedureCatalog(content), profiles, report);
+            var candidate = SurgerySaveValidation.CreateState(saved);
+            var index = actors.ToDictionary(value => value.WildlifeId, StringComparer.Ordinal);
+            SurgeryRestoreCoordinator.ValidateWildlifeAnatomy(profiles, candidate, index, report);
+            Require(report.Success, "Legacy anatomy rejected: " + string.Join(" | ", report.Errors));
+            state.Replace(candidate);
+            var restored = new WildlifeAnatomyHealthRuntime(profiles, world, new UnityGameClock(), state);
+            Require(restored.GetAnatomySnapshot(legacy).ProfileId == humanoid.ProfileId
+                && JsonUtility.ToJson(new SurgeryPersistence(state).Capture()) == json,
+                "Restore reinterpreted existing wildlife anatomy or injuries.");
+            var bad = SurgerySaveValidation.CreateState(saved);
+            bad.WildlifeAnatomy[legacy.WildlifeId].profileId = "anatomy:human";
+            var badReport = new DungeonGameRestoreReport();
+            SurgeryRestoreCoordinator.ValidateWildlifeAnatomy(profiles, bad, index, badReport);
+            Require(!badReport.Success && JsonUtility.ToJson(new SurgeryPersistence(state).Capture()) == json,
+                "Invalid anatomy join mutated the live owner.");
+            Require(restored.TryHealNode(legacy, "heart", 1f, 2f), "Legacy saved node cannot receive actual surgery healing.");
+            var healed = state.State.WildlifeAnatomy[legacy.WildlifeId].nodes.Single(node => node.nodeId == "heart");
+            Require(Mathf.Abs(healed.currentHealth - injured.currentHealth - 1f) < .0001f && healed.infection == 15f,
+                "Restored legacy anatomy healed the wrong node or reset damage.");
+            bool rejected = false;
+            try { profiles.GetForSpecies("wildlife:unknown:r17"); } catch (KeyNotFoundException) { rejected = true; }
+            Require(rejected, "Unknown wildlife silently selected a humanoid profile.");
+            Debug.Log("SO_R17_ANATOMY_PASS; 13 authored species; legacy JSON injury preservation; wrong join rejected unchanged; actual healed saved heart");
+        }
+        finally { foreach (var actor in actors) if (actor != null) UnityEngine.Object.DestroyImmediate(actor.gameObject); }
+    }
+
+    private sealed class AnatomyFixtureWorld : IWildlifeWorldQuery
+    {
+        public AnatomyFixtureWorld(IReadOnlyList<WildlifeActor> wildlife) { Wildlife = wildlife; }
+        public int WildlifeVersion => 1;
+        public IReadOnlyList<WildlifeActor> Wildlife { get; }
+    }
+
     private const string ReportPath = "Temp/wildlife-contracts.tsv";
 
     public static void RunCarcassCandidateBatch()
@@ -119,6 +198,13 @@ public static class WildlifeDebugScenarios
         }
     }
 
+    [MenuItem("DungeonStory/Debug/Wildlife/Verify Predation Authority (R19)")]
+    public static void VerifyPredationAuthorityFromMenu()
+    {
+        Debug.Log("Wildlife predation authority PASS. "
+            + VerifyPredationAuthority());
+    }
+
     public static bool RunAll(bool logSuccess)
     {
         Directory.CreateDirectory("Temp");
@@ -127,6 +213,7 @@ public static class WildlifeDebugScenarios
 
         Run("grid_layer_and_priority", VerifyGridLayerAndPriority, lines, errors);
         Run("species_catalog", VerifySpeciesCatalog, lines, errors);
+        Run("predation_authority", VerifyPredationAuthority, lines, errors);
         Run("wildlife_item_definitions", VerifyWildlifeItemDefinitions, lines, errors);
         Run("hunt_and_butcher_work_types", VerifyWorkTypes, lines, errors);
         Run("save_v10_wildlife_contract", VerifySaveV10WildlifeContract, lines, errors);
@@ -282,6 +369,157 @@ public static class WildlifeDebugScenarios
             "rune deer should produce rune dust");
         return $"species={species.Count}; wolf={wolf.DisplayName}; deer={deer.DisplayName}";
     }
+
+    public static string VerifyPredationAuthority()
+    {
+        ResourceGameContentCatalog content =
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader());
+        ResourceWildlifeSpeciesCatalogProvider catalog =
+            new ResourceWildlifeSpeciesCatalogProvider(
+                content,
+                new ResourceItemDefinitionCatalog(content));
+        IReadOnlyList<WildlifeSpeciesDefinition> species = catalog.All;
+
+        foreach (WildlifeSpeciesDefinition prey in species)
+        {
+            string[] expectedPredators = species
+                .Where(predator => predator.Hunts(prey.SpeciesId))
+                .Select(predator => predator.SpeciesId)
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray();
+            Require(
+                prey.PredatorSpeciesIds.SequenceEqual(expectedPredators),
+                $"Derived predators for '{prey.SpeciesId}' did not match Hunts. "
+                + $"expected={string.Join(",", expectedPredators)}; "
+                + $"actual={string.Join(",", prey.PredatorSpeciesIds)}");
+        }
+
+        WildlifeSpeciesDefinition caveHound = RequireSpecies(catalog, "cave_hound");
+        WildlifeSpeciesDefinition silkSpider = RequireSpecies(catalog, "silk_spider");
+        WildlifeSpeciesDefinition caveRat = RequireSpecies(catalog, "cave_rat");
+        WildlifeSpeciesDefinition glowMoth = RequireSpecies(catalog, "glow_moth");
+
+        Require(caveHound.Hunts(caveRat.SpeciesId),
+            "Cave hound lost its authored cave-rat prey relation.");
+        Require(silkSpider.Hunts(caveRat.SpeciesId),
+            "Silk spider lost its authored cave-rat prey relation.");
+        Require(!caveHound.Hunts(glowMoth.SpeciesId),
+            "Glow moth is no longer an unlisted cave-hound candidate.");
+        Require(ChoosesHunt(caveHound, caveRat, sameWildlifeId: false, seed: 1901),
+            "Cave hound did not select authored cave-rat prey.");
+        Require(ChoosesHunt(silkSpider, caveRat, sameWildlifeId: false, seed: 1902),
+            "Silk spider did not select authored cave-rat prey.");
+        Require(!ChoosesHunt(caveHound, glowMoth, sameWildlifeId: false, seed: 1903),
+            "Cave hound selected an unlisted glow-moth prey candidate.");
+        Require(!ChoosesHunt(caveHound, caveRat, sameWildlifeId: true, seed: 1904),
+            "Cave hound selected a candidate with its own wildlife ID.");
+
+        WildlifeSpeciesDefinition oversizedRat = CopyWithMaxHealth(
+            caveRat,
+            caveHound.MaxHealth + 11);
+        Require(!ChoosesHunt(caveHound, oversizedRat, sameWildlifeId: false, seed: 1905),
+            "Cave hound selected prey above the health threshold.");
+
+        return $"species={species.Count}; forward={species.Sum(value => value.PreySpeciesIds.Count)}; "
+            + "cave_hound->cave_rat=accepted; silk_spider->cave_rat=accepted; "
+            + "unlisted/same-id/oversized=rejected";
+    }
+
+    private static WildlifeSpeciesDefinition RequireSpecies(
+        IWildlifeSpeciesDefinitionCatalog catalog,
+        string speciesId)
+    {
+        if (catalog == null
+            || !catalog.TryGetSpecies(speciesId, out WildlifeSpeciesDefinition species))
+        {
+            throw new InvalidOperationException(
+                $"Required wildlife species '{speciesId}' is missing.");
+        }
+
+        return species;
+    }
+
+    private static bool ChoosesHunt(
+        WildlifeSpeciesDefinition predatorSpecies,
+        WildlifeSpeciesDefinition preySpecies,
+        bool sameWildlifeId,
+        int seed)
+    {
+        Grid grid = CreateExteriorGrid(16);
+        using WildlifeEcosystemApplicationAdapter ecosystem =
+            CreateEcosystemForTest(seed);
+        ecosystem.EnsureInitialized(grid);
+        GameObject predatorObject = new GameObject("R19 Predation Authority Predator");
+        GameObject preyObject = new GameObject("R19 Predation Authority Prey");
+        try
+        {
+            WildlifeActor predator = predatorObject.AddComponent<WildlifeActor>();
+            WildlifeActor prey = preyObject.AddComponent<WildlifeActor>();
+            ConfigureActor(predator, seed * 10 + 1);
+            ConfigureActor(prey, seed * 10 + 2);
+            string predatorId = $"wildlife:r19:{seed}:predator";
+            predator.Initialize(grid, predatorSpecies, predatorId, new Vector2Int(2, 0));
+            prey.Initialize(
+                grid,
+                preySpecies,
+                sameWildlifeId ? predatorId : $"wildlife:r19:{seed}:prey",
+                new Vector2Int(6, 0));
+            predator.ChangeHunger(1f);
+
+            bool selected = ecosystem.TryChooseEcologyTarget(
+                predator,
+                grid,
+                new[] { predator, prey },
+                Array.Empty<WorldItemStackSnapshot>(),
+                out _,
+                out WildlifeIntent intent,
+                out _);
+            return selected && intent == WildlifeIntent.HuntPrey;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(preyObject);
+            UnityEngine.Object.DestroyImmediate(predatorObject);
+        }
+    }
+
+    private static WildlifeSpeciesDefinition CopyWithMaxHealth(
+        WildlifeSpeciesDefinition source,
+        int maxHealth) =>
+        new WildlifeSpeciesDefinition(
+            source.SpeciesId,
+            source.DisplayName,
+            source.Description,
+            source.Sprite,
+            maxHealth,
+            source.MoveSpeed,
+            source.FearSensitivity,
+            source.Aggression,
+            source.RetaliationDamage,
+            source.SpawnWeight,
+            source.HerdSize,
+            source.CanEnterDungeon,
+            source.CarcassWeight,
+            source.ButcherYields,
+            source.Diet,
+            source.PreferredHabitats,
+            source.TerritoryRadius,
+            source.DailyFoodNeed,
+            source.DailyWaterNeed,
+            source.RestPreference,
+            source.PredationDrive,
+            source.FleePreference,
+            source.Husbandry,
+            source.PreySpeciesIds,
+            source.PredatorSpeciesIds,
+            source.NestTag,
+            source.BreedingSeason,
+            source.MigrationPatternId,
+            source.DiseaseVectorIds,
+            source.ActiveSeasons,
+            source.MigrationProfile,
+            source.CompanionRoleProfile,
+            source.HaulRoleProfile);
 
     private static string VerifyWildlifeItemDefinitions()
     {

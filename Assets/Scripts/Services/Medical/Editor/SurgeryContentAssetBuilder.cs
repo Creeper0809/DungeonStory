@@ -504,7 +504,7 @@ public static class SurgeryContentAssetBuilder
             "혈액 고갈", "부패 감염", "혈류 쇼크", "골절·파열", "혈액낭 정지", "혈핵 거부", "혈술 처치 필요", "혈술 처치");
         CreateConditionLexicon("condition:demon", "humanoid", new[] { "demon" },
             "마력 누출", "룬 오염", "룬 붕괴", "각질 균열", "마핵 정지", "룬 비호환", "마핵 시술 필요", "룬 봉합");
-        CreateConditionLexicon("condition:slime", "slime", new[] { "slime" },
+        CreateConditionLexicon("condition:slime", "aberrant", new[] { "slime" },
             "점액 누출", "점액 오염", "응집 불안정", "외피 찢김", "핵 손상", "이질 점액 거부", "안정화·재성형", "재성형");
         CreateConditionLexicon("condition:myconid", "fungal", new[] { "myconid" },
             "수액·포자 누출", "부패·포자 오염", "군체 불안정", "균사 절단", "균핵 괴사", "접목 불화", "균사 처치", "접목");
@@ -1253,7 +1253,6 @@ public static class SurgeryContentAssetBuilder
                 new BuildingAnesthesiaAbility
                 {
                     stabilityBonus = 0.35f,
-                    anesthesiaItemId = SurgeryItemDefinitions.AnestheticId,
                     anesthesiaCost = 1
                 }, FacilityWorkType.None),
             Facility("M06", 9506, "보철 조립대", 2, 165, 64, new Color32(178, 139, 72, 255),
@@ -1373,6 +1372,11 @@ public static class SurgeryContentAssetBuilder
     {
         BuildAnatomyAsset(AnatomyProfileDefaults.CreateHumanoid());
         BuildAnatomyAsset(AnatomyProfileDefaults.CreateQuadruped());
+        foreach (AnatomyProfileDefinition definition in
+                 AnatomyProfileDefaults.CreateAdditionalWildlifeProfiles())
+        {
+            BuildAnatomyAsset(definition);
+        }
         BuildAnatomyAsset(AnatomyProfileDefaults.CreateSlime());
         BuildAnatomyAsset(AnatomyProfileDefaults.CreateFungal());
         BuildAnatomyAsset(AnatomyProfileDefaults.CreateAvian());
@@ -1402,7 +1406,8 @@ public static class SurgeryContentAssetBuilder
             definition.DisplayName,
             definition.AnatomyFamily,
             definition.SpeciesIds,
-            definition.Nodes);
+            definition.Nodes,
+            legacySpecies: definition.LegacySpeciesIds);
         // These are the authored baseline profiles, not runtime species rules.
         var apparelBindings = new Dictionary<string, (AnatomyAttachmentPoint points, AnatomyApparelAttachmentMode mode)>
         {
@@ -1420,22 +1425,33 @@ public static class SurgeryContentAssetBuilder
             ["horn:right"] = ((AnatomyAttachmentPoint)131072, AnatomyApparelAttachmentMode.AddWhenPresent),
             ["horn-set"] = ((AnatomyAttachmentPoint)131072, AnatomyApparelAttachmentMode.AddWhenPresent),
         };
-        asset.ConfigureApparelFit(
-            definition.ProfileId == "anatomy:construct" ? ApparelBodyForm.Construct : ApparelBodyForm.Humanoid,
-            definition.ProfileId switch
-            {
-                "anatomy:construct" or "anatomy:orc" => ApparelSizeClass.Large,
-                "anatomy:kobold" => ApparelSizeClass.Small,
-                _ => ApparelSizeClass.Medium
-            },
-            (AnatomyAttachmentPoint)16383,
-            definition.Nodes.Where(node => apparelBindings.ContainsKey(node.NodeId)).Select(node =>
-                new AnatomyApparelAttachment
+        if (definition.ApparelAttachments.Count > 0)
+        {
+            asset.ConfigureApparelFit(
+                definition.ApparelBodyForm,
+                definition.ApparelSize,
+                definition.ApparelBasePoints,
+                definition.ApparelAttachments);
+        }
+        else
+        {
+            asset.ConfigureApparelFit(
+                definition.ProfileId == "anatomy:construct" ? ApparelBodyForm.Construct : ApparelBodyForm.Humanoid,
+                definition.ProfileId switch
                 {
-                    nodeId = node.NodeId,
-                    points = apparelBindings[node.NodeId].points,
-                    mode = apparelBindings[node.NodeId].mode
-                }));
+                    "anatomy:construct" or "anatomy:orc" => ApparelSizeClass.Large,
+                    "anatomy:kobold" => ApparelSizeClass.Small,
+                    _ => ApparelSizeClass.Medium
+                },
+                (AnatomyAttachmentPoint)16383,
+                definition.Nodes.Where(node => apparelBindings.ContainsKey(node.NodeId)).Select(node =>
+                    new AnatomyApparelAttachment
+                    {
+                        nodeId = node.NodeId,
+                        points = apparelBindings[node.NodeId].points,
+                        mode = apparelBindings[node.NodeId].mode
+                    }));
+        }
         asset.ConfigureNotApplicableCapacities(
             Array.Empty<AnatomyFunctionalCapacityNotApplicable>());
         EditorUtility.SetDirty(asset);
@@ -1777,17 +1793,17 @@ public static class SurgeryContentAssetBuilder
         return new[]
         {
             SpeciesProcedure("slime-replenishment", "점액 보충", MedicalProcedureFamily.Slime,
-                "research:medical:slime-bioengineering", "slime", new[] { "slime" },
+                "research:medical:slime-bioengineering", "aberrant", new[] { "slime" },
                 new HealSurgicalNodeEffect { health = 18f, infectionReduction = 6f }, medicine),
             SpeciesProcedure("slime-membrane-suture", "외피 봉합", MedicalProcedureFamily.Slime,
-                "research:medical:slime-bioengineering", "slime", new[] { "slime" },
+                "research:medical:slime-bioengineering", "aberrant", new[] { "slime" },
                 new HealSurgicalNodeEffect { health = 26f, infectionReduction = 14f }, biological),
             SpeciesProcedure("slime-core-stabilization", "응집핵 안정화", MedicalProcedureFamily.Slime,
-                "research:medical:slime-bioengineering", "slime", new[] { "slime" },
+                "research:medical:slime-bioengineering", "aberrant", new[] { "slime" },
                 new HealSurgicalNodeEffect { health = 22f, infectionReduction = 18f },
                 "medical:slime-coagulation-frame"),
             SpeciesProcedure("slime-pseudopod-reshape", "위족 재성형", MedicalProcedureFamily.Slime,
-                "research:medical:slime-bioengineering", "slime", new[] { "slime" },
+                "research:medical:slime-bioengineering", "aberrant", new[] { "slime" },
                 InstallPart("pseudopods", "surgery:prosthetic:pseudopods"), biological,
                 SurgicalProcedureKind.InstallProsthetic, "pseudopods"),
 

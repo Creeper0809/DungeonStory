@@ -73,6 +73,7 @@ public static class OffenseStrategicDebugScenarios
         Run("현행 카드 정의와 명시적 무변화 선택", VerifyContentCatalog, passed);
         Run("날씨 구간 동결 및 실제 서비스 복원", VerifyTravelSegmentClock, passed);
         Run("날씨 전용 후보와 선택 단일 확정", VerifyWeatherDecisionEligibility, passed);
+        Run("원정 도구 태그와 결정 표시 동결", VerifyDecisionPresentationTagSnapshot, passed);
         return "WIM017 focused service scenarios passed (" + passed.Count
             + "): " + string.Join(", ", passed)
             + "; scope=authored assets and production services; not live UI or whole-save";
@@ -90,6 +91,36 @@ public static class OffenseStrategicDebugScenarios
         Require(domains.Length == 1,
             "루트 카탈로그에 단일 도메인 콘텐츠 카탈로그가 없습니다.");
         GameDomainContentCatalogSO domain = domains[0];
+
+        System.Reflection.FieldInfo requiredWorldTagsField =
+            typeof(OffenseDecisionCardSO).GetField("requiredWorldTags");
+        ContentReferenceAttribute weatherReference = requiredWorldTagsField?
+            .GetCustomAttributes(typeof(ContentReferenceAttribute), inherit: false)
+            .OfType<ContentReferenceAttribute>()
+            .SingleOrDefault();
+        Require(weatherReference != null
+            && string.Equals(
+                weatherReference.DefinitionTypeName,
+                nameof(WeatherFrontDefinitionSO),
+                StringComparison.Ordinal)
+            && string.Equals(
+                weatherReference.IdMemberName,
+                nameof(WeatherFrontDefinitionSO.stableId),
+                StringComparison.Ordinal),
+            "사건 카드 날씨 태그의 WeatherFront 선택 메타데이터가 없습니다.");
+        Dictionary<string, int> registeredWeatherIds = domain.Definitions
+            .OfType<WeatherFrontDefinitionSO>()
+            .GroupBy(front => front.stableId, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Count(),
+                StringComparer.Ordinal);
+        foreach (string weatherId in AuthoredWeatherCards
+                     .Select(value => value.WeatherId)
+                     .Distinct(StringComparer.Ordinal))
+        {
+            Require(registeredWeatherIds.TryGetValue(weatherId, out int count)
+                && count == 1,
+                "날씨 사건 태그가 루트에 유일 등록되지 않았습니다: " + weatherId);
+        }
 
         OffenseDecisionCardSO[] weatherCards = domain.Definitions
             .OfType<OffenseDecisionCardSO>()
@@ -178,6 +209,216 @@ public static class OffenseStrategicDebugScenarios
                     out _, out _), "같은 선택을 중복 확정함: " + cardId);
             }
         }
+    }
+
+    private static void VerifyDecisionPresentationTagSnapshot()
+    {
+        EditorContentCatalog catalog = LoadCatalog();
+        OffenseDecisionCardSO card = catalog.DecisionCards.Single(candidate =>
+            string.Equals(
+                candidate.cardId,
+                "travel_broken_bridge",
+                StringComparison.Ordinal));
+        var isolated = new EditorContentCatalog(
+            catalog.SiteArchetypes,
+            catalog.UrgentSites,
+            new[] { card },
+            catalog.Encounters);
+        OffenseHexWorldSimulation world = CreateWorld(catalog, 170351);
+        OffenseReturnSafetyRuntime safety = new OffenseReturnSafetyRuntime(world);
+        OffenseDecisionRuntime decisions = new OffenseDecisionRuntime(isolated, safety);
+
+        OffenseExpeditionRun withoutTools = CreateDecisionTagExpedition(
+            "decision-tag:no-tools",
+            toolAmount: 0);
+        HashSet<string> withoutToolTags = CreateDecisionTagsForScenario(
+            withoutTools,
+            "weather:clear");
+        Require(!withoutToolTags.Contains("tools"),
+            "도구가 없는 원정에 tools 결정 태그가 생성됐습니다.");
+        Require(
+            decisions.TryCreateDecision(
+                new OffenseDecisionContext
+                {
+                    expeditionId = withoutTools.ExpeditionId,
+                    sequence = 1,
+                    stage = OffenseDecisionStage.Travel,
+                    tags = withoutToolTags
+                },
+                out OffenseDecisionView withoutToolsView,
+                out string reason),
+            reason);
+        Require(!withoutToolsView.choices.Single(choice =>
+                choice.ChoiceId == "left").Transformed,
+            "도구가 없는 원정에서 조건부 선택 표시가 변환됐습니다.");
+        Require(
+            decisions.TryGetActiveDecision(
+                withoutTools.ExpeditionId,
+                out OffenseDecisionView withoutToolsActiveView)
+            && !withoutToolsActiveView.choices.Single(choice =>
+                choice.ChoiceId == "left").Transformed,
+            "도구가 없는 원정의 재조회 표시가 변환됐습니다.");
+
+        OffenseExpeditionRun withTools = CreateDecisionTagExpedition(
+            "decision-tag:with-tools",
+            toolAmount: 1);
+        HashSet<string> withToolTags = CreateDecisionTagsForScenario(
+            withTools,
+            "weather:clear");
+        Require(withToolTags.Contains("tools"),
+            "잔여 도구가 있는 원정에서 tools 결정 태그가 생성되지 않았습니다.");
+        Require(
+            decisions.TryCreateDecision(
+                new OffenseDecisionContext
+                {
+                    expeditionId = withTools.ExpeditionId,
+                    sequence = 1,
+                    stage = OffenseDecisionStage.Travel,
+                    tags = withToolTags
+                },
+                out OffenseDecisionView createdView,
+                out reason),
+            reason);
+        OffenseDecisionChoiceView createdChoice = createdView.choices.Single(choice =>
+            choice.ChoiceId == "left");
+        Require(createdChoice.Transformed
+            && string.Equals(
+                createdChoice.Label,
+                card.choices.Single(choice => choice.choiceId == "left")
+                    .transformedLabel,
+                StringComparison.Ordinal),
+            "도구 태그가 최초 선택 표시에 적용되지 않았습니다.");
+
+        Require(withTools.TryConsumeSupply(OffenseSupplyType.Tools, 1),
+            "결정 생성 뒤 도구 제거 fixture를 만들지 못했습니다.");
+        withToolTags.Clear();
+        Require(
+            decisions.TryGetActiveDecision(
+                withTools.ExpeditionId,
+                out OffenseDecisionView activeView)
+            && activeView.choices.Single(choice => choice.ChoiceId == "left")
+                .Transformed,
+            "생성된 결정 표시가 이후 원정 보급/컨텍스트 변경으로 재계산됐습니다.");
+
+        OffenseDecisionStateData sourceState = decisions.Capture().Single(state =>
+            string.Equals(
+                state.expeditionId,
+                withTools.ExpeditionId,
+                StringComparison.Ordinal));
+        System.Reflection.FieldInfo presentationTagsField =
+            typeof(OffenseDecisionStateData).GetField("presentationTags");
+        Require(presentationTagsField != null,
+            "결정 생성 시점 표시 태그를 저장하는 presentationTags가 없습니다.");
+        var sourceTags = presentationTagsField.GetValue(sourceState)
+            as IEnumerable<string>;
+        Require(sourceTags != null && sourceTags.Contains("tools"),
+            "결정 상태가 생성 시점 tools 표시 태그를 캡처하지 않았습니다.");
+
+        string stateJson = JsonUtility.ToJson(sourceState);
+        OffenseDecisionStateData restoredState =
+            JsonUtility.FromJson<OffenseDecisionStateData>(stateJson);
+        OffenseDecisionRuntime restored = new OffenseDecisionRuntime(isolated, safety);
+        RestoreDecisionStateForScenario(restored, restoredState);
+        Require(
+            restored.TryGetActiveDecision(
+                withTools.ExpeditionId,
+                out OffenseDecisionView restoredView)
+            && restoredView.choices.Single(choice => choice.ChoiceId == "left")
+                .Transformed,
+            "JSON 복원 뒤 결정의 tools 조건부 표시가 유지되지 않았습니다.");
+
+        string beforeInvalid = JsonUtility.ToJson(restored.Capture().Single());
+        foreach (var invalidTags in new[]
+                 { new[] { "tools", "tools" }, new[] { "" }, new[] { "forged" } })
+        {
+            var invalid = JsonUtility.FromJson<OffenseDecisionStateData>(stateJson);
+            invalid.presentationTags = invalidTags.ToList();
+            bool rejected = false;
+            try { RestoreDecisionStateForScenario(restored, invalid); }
+            catch (System.Reflection.TargetInvocationException exception)
+                when (exception.InnerException is InvalidOperationException)
+            { rejected = true; }
+            Require(rejected && JsonUtility.ToJson(restored.Capture().Single())
+                == beforeInvalid, "잘못된 표시 snapshot이 수용되거나 복원 상태를 부분 변경했습니다.");
+        }
+        RestoreDecisionStateForScenario(restored,
+            JsonUtility.FromJson<OffenseDecisionStateData>(stateJson));
+        Require(restored.TryResolve(withTools.ExpeditionId, "left", out _, out reason), reason);
+        Require(!restored.TryResolve(withTools.ExpeditionId, "left", out _, out _),
+            "복원된 선택을 두 번 확정했습니다.");
+
+        string legacyJson = stateJson.Replace(
+            "\"presentationTags\":[\"tools\"]", "\"legacyUnused\":[]");
+        Require(legacyJson != stateJson, "legacy missing-field fixture 생성 실패");
+        var legacy = JsonUtility.FromJson<OffenseDecisionStateData>(legacyJson);
+        RestoreDecisionStateForScenario(restored, legacy);
+        Require(restored.TryGetActiveDecision(withTools.ExpeditionId, out var legacyView)
+            && !legacyView.choices.Single(choice => choice.ChoiceId == "left").Transformed,
+            "표시 snapshot이 없던 기존 저장을 현재 보급에서 다시 추론했습니다.");
+    }
+
+    private static OffenseExpeditionRun CreateDecisionTagExpedition(
+        string expeditionId,
+        int toolAmount)
+    {
+        var values = new Dictionary<OffenseSupplyType, int>();
+        if (toolAmount > 0)
+        {
+            values[OffenseSupplyType.Tools] = toolAmount;
+        }
+
+        return new OffenseExpeditionRun(
+            expeditionId,
+            new OffenseTargetDefinition
+            {
+                id = expeditionId + ":target",
+                title = "결정 태그 검증 대상",
+                durationSeconds = 10f,
+                campaignOrder = 1
+            },
+            Array.Empty<CharacterActor>(),
+            0f,
+            10f,
+            null,
+            new OffenseSupplyLoadout(values),
+            null);
+    }
+
+    private static HashSet<string> CreateDecisionTagsForScenario(
+        OffenseExpeditionRun expedition,
+        string weatherFrontId)
+    {
+        System.Reflection.MethodInfo method =
+            typeof(OffenseStrategicTravelEventHandler).GetMethod(
+                "CreateDecisionTags",
+                System.Reflection.BindingFlags.Static
+                | System.Reflection.BindingFlags.NonPublic);
+        Require(method != null, "결정 컨텍스트 태그 생성기를 찾을 수 없습니다.");
+        return (HashSet<string>)method.Invoke(
+            null,
+            new object[] { expedition, weatherFrontId });
+    }
+
+    private static void RestoreDecisionStateForScenario(
+        OffenseDecisionRuntime decisions,
+        OffenseDecisionStateData state)
+    {
+        System.Reflection.MethodInfo prepare = typeof(OffenseDecisionRuntime)
+            .GetMethod(
+                "PrepareRestore",
+                System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.NonPublic);
+        System.Reflection.MethodInfo publish = typeof(OffenseDecisionRuntime)
+            .GetMethod(
+                "PublishRestore",
+                System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.NonPublic);
+        Require(prepare != null && publish != null,
+            "결정 복원 경계를 찾을 수 없습니다.");
+        object candidate = prepare.Invoke(
+            decisions,
+            new object[] { new[] { state } });
+        publish.Invoke(decisions, new[] { candidate });
     }
 
     private static void VerifyContentCatalog()

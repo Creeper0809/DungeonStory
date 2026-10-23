@@ -1,5 +1,73 @@
 # DungeonStory Current Progress
 
+## 2026-10-24 SO 보완 실행 마감·GitHub 통합
+
+core190초, character160초, effects650초, crop190초, world250초, so-authoring170초, so-runtime270초, so-inspector150초 완료. native0/C#0/consoleErrors0/drift0. 최종 영향 입력 r113sa source `d9dff3485fe467653d986d00edefd3320544903da16585425ed9ab31bd47ec55`, config `6bacd40070886ee1391aa41a9f7e180e61ef163e87ac44ba73af996ca865d737`. SO3개는 별도 Editor 확장 fixture 수정 전의 r112 입력을 유지하고, 실제 게임/에셋·SO 시나리오가 동일한 바이트임을21648입력 비교로 확인해 재사용했다. 원래 로그·요약의 source label/hash를 변경하지 않았다. effects의 신규 특성 복제 fixture 충돌은 고유 이름/빈 legacy alias로 바로잡았으며 중복 보호 검사는 유지했다.
+
+Python67/67, 현재3544개 SO/10607필드 및 기존3538개/5857필드 보존, source/analyzer 검사, 생성 인덱스 내용·링크·최신성 failure0. 실제 Play 월드104/104섹션 복원·baseline 복구, 작물 버퍼 대기/복원/재시도와 replayDelta0, 실제 Inspector5문맥까지 완료했다. 감사 문서는30행 코드·검증 경계와 영수증을 연결했고 역사적 발견 본문은 보존했다. 생성 색인의 프로필 내부 노드7개 미해소 후보는 native R18 검증과 구분해 설명했다.
+
+commit/push/PR attach/PR CI/main merge/main CI를 이어서 확인한다. 최종 권위는 GitHub PR/정확한 main SHA의 CI이며 결과는 외부 so-full-audit/integration-final.json에 저장한다. 원본 Documents와 이전 QA 증거는 보존한다.
+
+## 2026-10-24 SO r112sa 완료 경계와 effects fixture 정정
+
+r112sa runtime270초/Inspector150초/authoring170초가 모두 native0/C#0/consoleErrors0/drift0. 실제 world250초에서104/104 저장 섹션·공식 복원·원래 상태 복구, crop190초에서 실제 온도/작업자·생산 버퍼 대기·복원·재시도·중복0을 확인했다. effects120초/native1은 기존 확장 fixture가 새 CharacterTraitSO에 원본의 표시명과 legacyPolicyNames를 함께 복제해 중복 보호에 걸린 실패다. 보호 검사는 유지하고 `ScriptableObjectModularityDebugScenarios.ContentFixture.AddClone`이 새 특성에는 고유 이름과 빈 호환 별칭을 사용하도록 수정했다. 실제 게임 코드/에셋 변경은 없다.
+
+r113sa 전체21648입력의 r112 대비 차이는 이 Editor fixture 한 파일이고 전송/소스검사 drift0 후 영향5개를 시작했다. SO3개에는 이 fixture가 호출되지 않으므로 r112 실행의 원래 source/config를 보존하고 명시적 파일 SHA 차이로 재사용한다. 최종 영향 영수증은 r113 실제 실행만 사용한다. 게시 검사 신규 own-row 누락 회귀를 포함한 Python67/67, 현재3544개 SO/10607필드 및 기존 값 보존 검사가 통과했다.
+
+## 2026-10-24 SO r110–r111 runtime·실제 Inspector 확인
+
+r110 runtime240초와 r111 runtime270초에서 weather/해부 legacy JSON/7노화 매핑/포식/백신 physical sink exact-once/유전16효과 실제 소비/마나 저장·복원·실패·재시도/둔기 신체 피해/원정 전투 snapshot 복원을 완료했다. native0/C#0/consoleErrors0/drift0. r109의 craft fixture 실패는 production 평가와 달리 secondary proficiency를 누락한 검증 입력 문제였으며 동일 문맥과 IsApplicable 확인을 보완했다.
+
+r110 nographics Inspector는 OnGUI 미실행으로 실패했다. r111 non-batch GUI는 새 이용약관 창에서 멈춰 동의하지 않고 소유 프로세스를 종료했다. r111sa-impact-so-inspector-bg는 인증된 전용 Xvfb :90/TCP 차단/창 생성 probe 뒤 batchmode+graphics로 실제 item 미적용 목록·조건부 미적용 목록·managed reference 교체·Undo·다중 선택5문맥을160초/native0/C#0/consoleErrors0/drift0으로 검증했다. 사용자 X0/X1에는 접속하지 않았다. 최종 코드는 불필요한 non-batch GUI 지원을 제거하고 기존 격리 batch 저장 계약을 유지했다. r112sa 입력21648개의 전송 완료/drift0 후 최종 실행을 시작했다.
+
+최종 독립 검토에서 현재3538개 기존 GUID/metadata 및5857필드의 누락/변경0을 확인했다. 새6해부 SO도 자체 게시 row/노드58/등록이 일치한다. 향후 신규 등록 SO의 자체 게시 row를 빠뜨릴 수 있는 Python 검사 경계는 별도 보완 중이며 현재 에셋 결함으로 세지 않는다.
+
+## 2026-10-24 SO r109sa 작성 보호 PASS
+
+r107은 남은 자체 VBCSCompiler들로 free RAM이1GiB 아래로 내려가131초/native-15/resource-limit으로 중단됐다. Unity0/lock exclusive에서 PID1742549/1881011/1933272의 startTicks·실행경로·cwd를 확인해 정리, free10.2GiB 회복. 검사 임계값은 유지했다. r108은 소스 전송 종료 확인 전 launch한 실수로 기존r107 소스에서 시작했고, 배타 잠금이 sync를 거절했다. 해당 owned Unity만 중단(native-15/60초/drift0); 현재 증거로 사용하지 않는다. 외부 runner에도 요청 source label/verified/drift0 preflight를 추가했다.
+
+필수 ID 누락/중복 검사를 유지하며 신규 anatomy/defense 정의를 허용하고, 원본 에셋↔카탈로그 실제 객체의 양방향 불일치를 검사하도록 보완했다. r109sa21648입력의 전송 종료와 전체SHA/drift0 확인 후 실행. authoring260초/native0/C#0/consoleErrors0/drift0로 identity/선택/등록/신규게시/연구/worker alias/CharacterSO/유전 키/수식 관계 검사 완료. 증거는 Artifacts/QA/r109sa-impact-so-authoring. runtime·Inspector 및 최종 영향5개는 아직 진행 전/중이다.
+
+## 2026-10-24 SO r105sa 실패와 batch D
+
+r105 authoring240초/native1/C#0/drift0: EditorJsonUtility의 최상위에 Hash128 필드가 있다는 가정 때문에 hash 보존 helper가 중단됐다. runtime110초/native1/C#0/drift0: weather/해부/operator/야생동물 legacy 복원/노화/포식까지 부분 완료 후 신규 백신 fixture의 facility: ID가 BuildingInstanceId 규칙을 위반했다. R22와 Inspector 전체 실행은 미완료다. 실제 실패 로그는 외부 so-full-audit/r105sa-impact-so-authoring 및 r105sa-impact-so-runtime에 보존했다.
+
+Unity0/lock exclusive/free7.8GiB 재확인 후 SOURCE_EDIT batch D에서 private Hash128을 Reflection으로 별도 보존하고 전체 JSON·hash·dirty 복구 검사는 유지했다. 백신 fixture는 정상 building: ID와 실패 시 정리 범위를 사용한다. source2개 변경/21648입력 r106sa를 동결·전송해 drift0 확인 후 작성 보호→runtime→Inspector 검증을 순차 재개했다. 운영 ID 허용 규칙과 입력 drift 거절은 변경하지 않았다.
+
+r106 authoring190초/native0/C#0이나 finally의 JSON 비교가 MonoBehaviour 래퍼 내부 hash 차이를 검출했고 source drift1이라 FAIL이다. 사전 본문은 identity/선택/연구/캐릭터/유전/수식 관계까지 실행했다. Unity0/lock exclusive를 다시 확인하고 파생 hash만 먼저 정확히 복구한 뒤 전체 JSON을 비교하도록 순서를 수정했다. 필드를 제외하거나 drift 기준을 완화하지 않았다. r107sa는 원본 Addressables 설정 복구를 포함해 동결했다.
+
+## 2026-10-24 SO r104sa 실패와 batch C
+
+r104sa-authoring190초/C#0이나 작성 검증은 옛 방어시설 count19(실제 활성16) assert에서 중단되어 FAIL이다. Unity가 예외 뒤 exit0을 반환했어도 PASS marker가 없고 AddressableAssetSettings.asset drift1이라 수용하지 않았다. 앞선 identity/선택/root/R06/research 소검사만 부분 완료이며 전체 PASS가 아니다. 실패 로그/변경 후 Addressables 파일은 외부 r104sa-impact-so-authoring에 보존했다.
+
+Unity0/lock exclusive 확인 뒤 batch C에서 R01 골렘 충전 material 선택 누락, R22 원정 방어자 배율 고정·저장/구버전 중립 복원, 실제 소비3개 관측 누락, I01 일반 itemId 새 목록 draw를 보완했다. 방어/해부 검사에 현재 필수 원본·등록 membership 검증을 사용했다. Undo의 Addressables ResetHashes 부작용은 hash 외 모든 값 불변을 확인하고 hash/dirty만 정확히 복구한다. 입력 drift를 예외 처리하지 않는다. r105sa21648입력/변경13개를 동결하고 네이티브 검증 재개. 별도 Python working-tree 검사에서3544SO/10607필드의 기존 보존·실제 YAML 일치 PASS. 새 runtime/Inspector와 최종5개 영향 검증은 아직 미완료다.
+
+## 2026-10-24 SO r103sa 컴파일·게시 후보 수용
+
+CUHA r103sa-publication310초/native0/C#0/consoleErrors0/drift0. ResourceGameContentCatalog 생성 및 게시 후보 캡처 성공, 외부 `so-full-audit/r103sa-publication`에 로그/summary/candidate 회수. 기존3538개 SO·5857개 필드 값과 GUID/script/type 보존, 새6개 AnatomyProfileSO 및 보호 필드4750개 추가만 확인했다. 후보 총3544개/10607필드; 추가1116중첩/3519등록/100이전특성이름/1루트경로/14identity. `publication-review.json`에 비교 증거. Unity0/lock exclusive/RAM7.9GiB 확인 후 baseline 반영 및 신규 게시 실패 경계 테스트 추가, r104sa 입력21648개/변경2개를 동결해 검증 중이다.
+
+Python CI62/62, analyzer DSB001–008 PASS. 아직 authoring/runtime/Inspector 및 최종5개 영향 실행과 GitHub 통합은 완료하지 않았다.
+
+## 2026-10-24 SO 검증 r102sa 첫 컴파일
+
+입력21648개/변경317개 source r102sa를 CUHA에 동결 전송했다. publication 실행150초/native1, unique C# 오류1건(로그3회): V27CharacterPerformanceDebugScenarios:152의 domain SO→IGameContentDefinitionSource 타입 불일치. 실행 시나리오/게시 후보 캡처 전 종료, source drift0. Python identity37/37와 diff-check PASS. 외부 `so-full-audit/r102sa-publication`에 실패 증거 회수. Unity0/lock exclusive 확인 후 batch B로 진입하여 해당 adapter와 unknown-species 테스트 예외 타입을 수정했다. 같은 배치에서 현재 표시명 alias 충돌 검사와 유전 키 목록의 프레임당 배열 할당을 정리했다. 자신이 시작한 고아 compiler PID1424058/startTicks1351823678/정확한 경로를 확인해 종료했다. 현재 소스 native PASS0, main 통합 미완료.
+
+## 2026-10-24 SO 감사 수정 진행 — 아직 SOURCE_EDIT
+
+Goal ACTIVE, `codex/so-audit-remediation` 구현 중. 로컬/CUHA Unity0 및 서버 lock available 확인 후 batch A를 열었으며 Unity/import/compile은 시작하지 않았다. 외부 `C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/remediation-leaf-*.md`에 leaf별 소유 파일/정적 결과/미실행 경계를 기록했다. R17 새6프로필 manifest와 factory의 노드58개, 기존13종 명시 호환, R19 forward16관계 유지, R18 eligible33조합 무노드0은 정적 대조 결과이며 실행 PASS가 아니다. R04/05/10/11 및 R22, 실제 Inspector/저장/복원/재시도와 GitHub 통합은 계속 남아 있다.
+
+## 2026-10-24 전체 SO 전수 감사 Markdown 완료
+
+[SO_REFERENCE_FULL_AUDIT.md](SO_REFERENCE_FULL_AUDIT.md) 작성.142종·2462개 필드·3538개 에셋을 문서에 전부 수록하고 관계 후보880개는 미할당0으로 대조했다. Assets .asset.meta4509개에서 게시 밖의 추가 게임 SO0개. 직접 GUID 토큰8950개와 .asset fileID4725개 대상은 정상이며, 실제 관계·편집·저장 계약의24개 보완 묶음은 별도로 남겼다.
+
+문서 원본 링크/시작 행, 고유 이슈24/타입142/필드2462/자산3538 행수와 누락0을 검사했다. 증거는 외부 `2026-10-24/so-full-audit/report-coverage.json`, `report-consistency.json`, `report-link-check.json`, `main-checks.json`, 각 도메인 판정 JSON이다. diff 확인에서 게임 소스·에셋 수정0, 기존 사용자/QA 변경 보존. 이번 작업은 보고서와 기록만 변경했고 Unity·전체CI·인덱스 재생성·commit/push는 실행하지 않았다.
+
+## 2026-10-24 PR16 이후 SO 참조 재감사 완료
+
+origin/main5476a748e와 HEAD22d77a6e8의 tree 일치 및 ContentReference KB fresh를 확인하고 실제 선언·소비자·YAML·보호 검사를 대조했다. 실제 사용되는 수기 관계 3개는 현재 값이 유효하나 선택·교차 검증에서 빠져 있다. 중첩 저장 ID와 카탈로그 등록 제외는 공식 Python 검증기에 한정된 메모리상 변경 3개를 넣어도 허용되는 반례를 확인했다. 이는 게임 실행 성공이 아니라 보호 검사가 해당 변경을 놓친다는 증거다. 신규 게시와 의료 문맥의 추가 누락, 실제 Inspector 실행이 필요한 조건부 경로는 findings.md에 구분했다.
+
+이번 변경은 감사 기록 3개뿐이며 게임 소스·에셋·생성 인덱스를 수정하거나 Unity 실행·commit/push하지 않았다. 이전 통합 증거는 외부 C:/Users/vulpo/Documents/Codex/2026-10-23/so-reference-integrity/integration-final.json에 있으며 PR16/main 병합 및 두 CI 성공을 확인했다. 기존 실행 PASS를 이번에 발견한 경계의 실행 증거로 확대하지 않는다.
+
 ## 2026-10-24 전체 SO 관계 — 최종 실행 검증 완료
 
 r101si21630입력으로 CUHA effects670초/core190초/character160초/world250초/crop190초 모두 native0/C#0/consoleErrors0/stop없음/drift0. 전체3538 SO 객체·ID 참조, identity5857필드의 변경/삭제 거절·JSON 복원과 선택기 pending/mixed 문맥 검사를 통과했다. 실제 야망/문화 활동 owner 실행·저장·fresh 복원·동일 요청 재시도, 월드104/104섹션 공식 roundtrip·canonical baseline 복원, 작물 수확·buffer 대기·복원·재시도 무중복을 확인했다. 초기 r96~r100 실패·중단은 전체 PASS로 간주하지 않는다.

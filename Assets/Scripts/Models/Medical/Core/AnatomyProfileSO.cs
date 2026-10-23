@@ -17,6 +17,10 @@ public sealed class AnatomyProfileSO : ScriptableObject
     [SerializeField] private string anatomyFamily = "humanoid";
     [ContentReference(ContentReferenceKind.AnatomySpecies, Aliases = "Goblin|LegacyHumanoid", IgnoreCase = true), SerializeField]
     private List<string> speciesIds = new List<string>();
+    // Historical bodies retain their injuries/installed parts. This list only
+    // authorizes loading that old shape; it is never used for new bodies.
+    [ContentReference(ContentReferenceKind.AnatomySpecies), SerializeField]
+    private List<string> legacySpeciesIds = new();
     [SerializeField] private List<AnatomyNodeDefinition> nodes =
         new List<AnatomyNodeDefinition>();
     [SerializeField] private List<AnatomyFunctionalCapacityNotApplicable> notApplicableCapacities =
@@ -26,9 +30,7 @@ public sealed class AnatomyProfileSO : ScriptableObject
     [SerializeField] private AnatomyAttachmentPoint apparelBasePoints = (AnatomyAttachmentPoint)16383;
     [SerializeField] private List<AnatomyApparelAttachment> apparelAttachments = new();
 
-    public string ProfileId => string.IsNullOrWhiteSpace(profileId)
-        ? name
-        : profileId.Trim();
+    public string ProfileId => profileId?.Trim() ?? string.Empty;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName)
         ? ProfileId
         : displayName.Trim();
@@ -36,6 +38,7 @@ public sealed class AnatomyProfileSO : ScriptableObject
         ? ProfileId
         : anatomyFamily.Trim();
     public IReadOnlyList<string> SpeciesIds => speciesIds;
+    public IReadOnlyList<string> LegacySpeciesIds => legacySpeciesIds;
     public IReadOnlyList<AnatomyNodeDefinition> Nodes => nodes;
     public IReadOnlyList<AnatomyFunctionalCapacityNotApplicable> NotApplicableCapacities =>
         notApplicableCapacities;
@@ -43,6 +46,13 @@ public sealed class AnatomyProfileSO : ScriptableObject
     public ApparelSizeClass ApparelSize => apparelSize;
     public AnatomyAttachmentPoint ApparelBasePoints => apparelBasePoints;
     public IReadOnlyList<AnatomyApparelAttachment> ApparelAttachments => apparelAttachments;
+
+    public IReadOnlyList<string> ValidateDefinition()
+    {
+        return string.IsNullOrWhiteSpace(ProfileId)
+            ? new[] { "Anatomy profile ID is required." }
+            : Array.Empty<string>();
+    }
 
 #if UNITY_EDITOR
     public void ConfigureApparelFit(ApparelBodyForm form, ApparelSizeClass size,
@@ -60,7 +70,8 @@ public sealed class AnatomyProfileSO : ScriptableObject
         string family,
         IEnumerable<string> species,
         IEnumerable<AnatomyNodeDefinition> anatomyNodes,
-        IEnumerable<AnatomyFunctionalCapacityNotApplicable> authoredNotApplicable = null)
+        IEnumerable<AnatomyFunctionalCapacityNotApplicable> authoredNotApplicable = null,
+        IEnumerable<string> legacySpecies = null)
     {
         profileId = id?.Trim() ?? string.Empty;
         displayName = label?.Trim() ?? string.Empty;
@@ -70,6 +81,8 @@ public sealed class AnatomyProfileSO : ScriptableObject
             .Select(value => value.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+        legacySpeciesIds = (legacySpecies ?? Array.Empty<string>())
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         nodes = (anatomyNodes ?? Array.Empty<AnatomyNodeDefinition>())
             .Where(node => node != null)
             .ToList();

@@ -1510,7 +1510,14 @@ public sealed class OffenseDecisionRuntime : IOffenseDecisionRuntime,
             sequence = context.sequence,
             stage = context.stage,
             deterministicRoll = unchecked((int)hash),
-            resolved = false
+            resolved = false,
+            presentationTags = selected.choices
+                .Select(choice => choice.requiredTag)
+                .Where(tag => !string.IsNullOrWhiteSpace(tag)
+                    && context.tags.Contains(tag))
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(tag => tag, StringComparer.Ordinal)
+                .ToList()
         };
         decision = new OffenseDecisionView
         {
@@ -1519,7 +1526,8 @@ public sealed class OffenseDecisionRuntime : IOffenseDecisionRuntime,
             situation = selected.situation,
             stage = selected.stage,
             choices = selected.choices
-                .Select(choice => CreateChoiceView(choice, context.tags))
+                .Select(choice => CreateChoiceView(choice,
+                    active[context.expeditionId].presentationTags))
                 .ToArray()
         };
         reason = string.Empty;
@@ -1647,13 +1655,7 @@ public sealed class OffenseDecisionRuntime : IOffenseDecisionRuntime,
             situation = card.situation,
             stage = state.stage,
             choices = card.choices.Select(choice =>
-                new OffenseDecisionChoiceView(
-                    choice.choiceId,
-                    choice.label,
-                    choice.description,
-                    choice.directionLabel,
-                    choice.severity,
-                    transformed: false)).ToArray()
+                CreateChoiceView(choice, state.presentationTags)).ToArray()
         };
         return true;
     }
@@ -1688,6 +1690,8 @@ public sealed class OffenseDecisionRuntime : IOffenseDecisionRuntime,
                     $"Invalid or duplicate offense decision '{source?.expeditionId ?? "null"}'.");
             }
 
+            ValidatePresentationTags(source, content.DecisionCards.First(
+                card => card != null && card.cardId == source.cardId));
             candidate.Add(source.expeditionId, Clone(source));
         }
 
@@ -1751,10 +1755,10 @@ public sealed class OffenseDecisionRuntime : IOffenseDecisionRuntime,
 
     private static OffenseDecisionChoiceView CreateChoiceView(
         OffenseDecisionChoiceDefinition choice,
-        ISet<string> tags)
+        IReadOnlyCollection<string> tags)
     {
         bool transformed = !string.IsNullOrWhiteSpace(choice.requiredTag)
-            && tags.Contains(choice.requiredTag);
+            && tags != null && tags.Contains(choice.requiredTag);
         return new OffenseDecisionChoiceView(
             choice.choiceId,
             transformed && !string.IsNullOrWhiteSpace(choice.transformedLabel)
@@ -1778,7 +1782,26 @@ public sealed class OffenseDecisionRuntime : IOffenseDecisionRuntime,
             stage = source.stage,
             deterministicRoll = source.deterministicRoll,
             resolved = source.resolved,
-            selectedChoiceId = source.selectedChoiceId
+            selectedChoiceId = source.selectedChoiceId,
+            presentationTags = source.presentationTags == null
+                ? new List<string>() : new List<string>(source.presentationTags)
         };
+    }
+
+    internal static void ValidatePresentationTags(
+        OffenseDecisionStateData state, OffenseDecisionCardSO card = null)
+    {
+        // Older saves contain no presentation snapshot. Do not infer it from
+        // current supplies: doing so would change the already-presented choice.
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string tag in state.presentationTags ?? new List<string>())
+        {
+            if (string.IsNullOrWhiteSpace(tag) || !seen.Add(tag)
+                || (card != null && !card.choices.Any(choice =>
+                    choice != null && string.Equals(choice.requiredTag, tag,
+                        StringComparison.Ordinal))))
+                throw new InvalidOperationException(
+                    $"Decision '{state.expeditionId}' has invalid presentation tag '{tag}'.");
+        }
     }
 }
