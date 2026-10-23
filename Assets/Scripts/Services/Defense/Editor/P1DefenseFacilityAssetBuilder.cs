@@ -459,8 +459,6 @@ public static class P1DefenseFacilityAssetBuilder
                 StockCategory.General,
                 0);
             defense.facilityFamilyId = "defense:launcher";
-            defense.affinityTags =
-                new[] { "defense:ranged", "species:harpy", "species:kobold" };
             return;
         }
 
@@ -474,8 +472,6 @@ public static class P1DefenseFacilityAssetBuilder
                     StockCategory.Ammunition,
                     6);
                 defense.facilityFamilyId = "defense:scatter-trap";
-                defense.affinityTags =
-                    new[] { "defense:scatter", "species:kobold", "species:orc" };
                 defense.conditionLossPerActivation = 1f;
                 return;
             case 58:
@@ -486,8 +482,6 @@ public static class P1DefenseFacilityAssetBuilder
                     StockCategory.Ammunition,
                     4);
                 defense.facilityFamilyId = "defense:blast-trap";
-                defense.affinityTags =
-                    new[] { "defense:blast", "species:kobold", "species:demon" };
                 defense.conditionLossPerActivation = 1.4f;
                 defense.baseMisfireChance = 0.02f;
                 return;
@@ -500,8 +494,6 @@ public static class P1DefenseFacilityAssetBuilder
                     0);
                 defense.range = Mathf.Max(5, defense.range);
                 defense.facilityFamilyId = "defense:detection";
-                defense.affinityTags =
-                    new[] { "defense:alarm", "species:beastkin", "species:harpy" };
                 defense.conditionLossPerActivation = 0.2f;
                 return;
             case 1801:
@@ -515,8 +507,6 @@ public static class P1DefenseFacilityAssetBuilder
                 defense.powerDemand = 2f;
                 defense.range = Mathf.Max(6, defense.range);
                 defense.facilityFamilyId = "defense:control";
-                defense.affinityTags =
-                    new[] { "defense:identification", "species:demon", "species:golem" };
                 defense.conditionLossPerActivation = 0.1f;
                 return;
             case 1802:
@@ -527,8 +517,6 @@ public static class P1DefenseFacilityAssetBuilder
                     StockCategory.Ammunition,
                     0);
                 defense.facilityFamilyId = "defense:supply";
-                defense.affinityTags =
-                    new[] { "defense:reload", "species:beastkin", "species:kobold" };
                 defense.conditionLossPerActivation = 0f;
                 return;
             case 1803:
@@ -539,8 +527,6 @@ public static class P1DefenseFacilityAssetBuilder
                     StockCategory.General,
                     0);
                 defense.facilityFamilyId = "defense:maintenance";
-                defense.affinityTags =
-                    new[] { "defense:repair", "species:kobold", "species:golem" };
                 defense.conditionLossPerActivation = 0f;
                 return;
             case 1804:
@@ -551,8 +537,6 @@ public static class P1DefenseFacilityAssetBuilder
                     StockCategory.General,
                     3);
                 defense.facilityFamilyId = "defense:barrier";
-                defense.affinityTags =
-                    new[] { "defense:wall", "species:orc", "species:golem" };
                 defense.conditionLossPerActivation = 2f;
                 defense.baseJamChance = 0.025f;
                 return;
@@ -564,8 +548,6 @@ public static class P1DefenseFacilityAssetBuilder
                     StockCategory.Ammunition,
                     8);
                 defense.facilityFamilyId = "defense:launcher";
-                defense.affinityTags =
-                    new[] { "defense:ranged", "species:harpy", "species:kobold" };
                 defense.conditionLossPerActivation = 0.8f;
                 return;
         }
@@ -580,8 +562,6 @@ public static class P1DefenseFacilityAssetBuilder
                     StockCategory.Biological,
                     4);
                 defense.facilityFamilyId = "defense:toxin";
-                defense.affinityTags =
-                    new[] { "defense:poison", "species:vampire", "species:myconid" };
                 break;
             case DefenseAttackConcept.Fire:
                 SetSupply(
@@ -591,22 +571,12 @@ public static class P1DefenseFacilityAssetBuilder
                     StockCategory.Fuel,
                     4);
                 defense.facilityFamilyId = "defense:elemental";
-                defense.affinityTags =
-                    new[] { "defense:fire", "species:orc", "species:demon" };
                 break;
             case DefenseAttackConcept.Lightning:
-                SetPoweredElemental(
-                    defense,
-                    "defense:lightning",
-                    "species:beastkin",
-                    "species:demon");
+                SetPoweredElemental(defense);
                 break;
             case DefenseAttackConcept.Ice:
-                SetPoweredElemental(
-                    defense,
-                    "defense:ice",
-                    "species:slime",
-                    "species:vampire");
+                SetPoweredElemental(defense);
                 break;
             case DefenseAttackConcept.Guard:
                 SetSupply(
@@ -616,8 +586,6 @@ public static class P1DefenseFacilityAssetBuilder
                     StockCategory.General,
                     3);
                 defense.facilityFamilyId = "defense:guard-post";
-                defense.affinityTags =
-                    new[] { "defense:blocking", "species:orc", "species:golem" };
                 defense.conditionLossPerActivation = 0.5f;
                 break;
             default:
@@ -638,18 +606,11 @@ public static class P1DefenseFacilityAssetBuilder
                     launcher ? 8 : 3);
                 defense.facilityFamilyId =
                     launcher ? "defense:launcher" : "defense:mechanical-trap";
-                defense.affinityTags = launcher
-                    ? new[] { "defense:ranged", "species:harpy", "species:kobold" }
-                    : new[] { "defense:mechanical", "species:kobold", "species:orc" };
                 break;
         }
     }
 
-    private static void SetPoweredElemental(
-        DefenseFacilityData defense,
-        string affinity,
-        string firstSpecies,
-        string secondSpecies)
+    private static void SetPoweredElemental(DefenseFacilityData defense)
     {
         SetSupply(
             defense,
@@ -660,8 +621,6 @@ public static class P1DefenseFacilityAssetBuilder
         defense.requiresPower = true;
         defense.powerDemand = 3f;
         defense.facilityFamilyId = "defense:elemental";
-        defense.affinityTags =
-            new[] { affinity, firstSpecies, secondSpecies };
     }
 
     private static void SetSupply(

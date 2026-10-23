@@ -56,8 +56,6 @@ MonoBehaviour:
   authoringRevision: 1
   preySpeciesIds:
   - shadow_hare
-  predatorSpeciesIds:
-  - carrion_drake
   nestTag: nest:shadow_wolf
   breedingSeason: 0
   migrationPatternId: migration:shadow_wolf

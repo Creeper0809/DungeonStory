@@ -1,0 +1,230 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eca03f3b76dbff642938e073fdc5188b, type: 3}
+  m_Name: anatomy_drake
+  m_EditorClassIdentifier: DungeonStory.Medical::AnatomyProfileSO
+  profileId: anatomy:drake
+  displayName: "\ube44\ub8e1\ud615"
+  anatomyFamily: drake
+  speciesIds:
+  - carrion_drake
+  legacySpeciesIds: []
+  nodes:
+  - nodeId: head
+    displayName: "\uba38\ub9ac"
+    parentNodeId: 
+    kind: 0
+    functions: 6
+    maxHealth: 15
+    capacityWeight: 0.35
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 1
+  - nodeId: brain
+    displayName: "\ub1cc"
+    parentNodeId: head
+    kind: 1
+    functions: 2
+    maxHealth: 9
+    capacityWeight: 0.65
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: eye:left
+    displayName: "\uc67c\ucabd \ub208"
+    parentNodeId: head
+    kind: 2
+    functions: 4
+    maxHealth: 5
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: eyes
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: eye:right
+    displayName: "\uc624\ub978\ucabd \ub208"
+    parentNodeId: head
+    kind: 2
+    functions: 4
+    maxHealth: 5
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: eyes
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: torso
+    displayName: "\ubab8\ud1b5"
+    parentNodeId: 
+    kind: 4
+    functions: 9281
+    maxHealth: 38
+    capacityWeight: 1
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 1
+    mapsToLegacyBodyPart: 1
+  - nodeId: heart
+    displayName: "\uc2ec\uc7a5"
+    parentNodeId: torso
+    kind: 1
+    functions: 1
+    maxHealth: 12
+    capacityWeight: 1
+    vital: 1
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: lung:left
+    displayName: "\uc67c\ucabd \ud3d0"
+    parentNodeId: torso
+    kind: 1
+    functions: 8
+    maxHealth: 10
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: lungs
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: lung:right
+    displayName: "\uc624\ub978\ucabd \ud3d0"
+    parentNodeId: torso
+    kind: 1
+    functions: 8
+    maxHealth: 10
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: lungs
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: liver
+    displayName: "\uac04"
+    parentNodeId: torso
+    kind: 1
+    functions: 48
+    maxHealth: 13
+    capacityWeight: 0.6
+    vital: 0
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: kidney:left
+    displayName: "\uc67c\ucabd \uc2e0\uc7a5"
+    parentNodeId: torso
+    kind: 1
+    functions: 32
+    maxHealth: 8
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: kidneys
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: kidney:right
+    displayName: "\uc624\ub978\ucabd \uc2e0\uc7a5"
+    parentNodeId: torso
+    kind: 1
+    functions: 32
+    maxHealth: 8
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: kidneys
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: stomach
+    displayName: "\uc704"
+    parentNodeId: torso
+    kind: 1
+    functions: 16
+    maxHealth: 12
+    capacityWeight: 0.4
+    vital: 0
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: forelegs
+    displayName: "\uc55e\ub2e4\ub9ac"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 20
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: legs
+    legacyBodyPart: 4
+    mapsToLegacyBodyPart: 1
+  - nodeId: hindlegs
+    displayName: "\ub4b7\ub2e4\ub9ac"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 22
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: legs
+    legacyBodyPart: 5
+    mapsToLegacyBodyPart: 1
+  - nodeId: wing:left
+    displayName: "\uc67c\ub0a0\uac1c"
+    parentNodeId: torso
+    kind: 3
+    functions: 192
+    maxHealth: 24
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: wings
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: wing:right
+    displayName: "\uc624\ub978\ub0a0\uac1c"
+    parentNodeId: torso
+    kind: 3
+    functions: 192
+    maxHealth: 24
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: wings
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  notApplicableCapacities: []
+  apparelBodyForm: 0
+  apparelSize: 1
+  apparelBasePoints: 16383
+  apparelAttachments:
+  - nodeId: head
+    points: 3
+    mode: 0
+  - nodeId: torso
+    points: 8216
+    mode: 0
+  - nodeId: wing:left
+    points: 32768
+    mode: 1
+  - nodeId: wing:right
+    points: 65536
+    mode: 1

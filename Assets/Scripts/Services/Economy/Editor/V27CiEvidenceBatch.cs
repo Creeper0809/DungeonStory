@@ -80,6 +80,49 @@ public static class V27CiEvidenceBatch
 
     public static void RunImpactCharacterContracts() => RunImpact("character", RunPreparationSkills);
     public static void RunImpactEffectContracts() => RunImpact("effects", RunEffectInputs);
+    public static void RunSoAuthoringContracts() => RunImpact("so-authoring", () => ContentReferenceSelectionDebugScenarios.RunWithUndoIsolation(() =>
+    {
+        ContentReferenceIntegrityDebugScenarios.RunAll();
+        ContentReferenceSelectionDebugScenarios.RunAll();
+        SoReferenceRemediationLeafADebugScenarios.ValidateOrThrow();
+        V20CampaignDebugScenarios.ValidateFactionArcMembershipForR06();
+        Debug.Log(ResearchPrerequisiteLinkDrawerDebugScenarios.RunOrThrow());
+        var errors = new List<string>();
+        CharacterAnatomyMedicalIntegrationDebugScenarios.CheckAuthoredIdentityDoesNotFollowAssetName(errors);
+        SpeciesFactionDefenseExpansionDebugScenarios.ValidateDefense(errors);
+        if (errors.Count != 0) throw new InvalidOperationException(string.Join(" | ", errors));
+        if (!FacilityEvolutionDebugScenarios.VerifyAuthoredIdentityDoesNotFollowAssetName())
+            throw new InvalidOperationException("Facility identities changed with asset names.");
+        V23CraftingDebugScenarios.ValidateWorkerPolicyTraitReferencesForR13();
+        CharacterSOEditor.RunAuthoringAudit();
+        ContentReferenceSelectionDebugScenarios.VerifyHeritableTraitConsequenceAuthoring();
+        if (!CharacterSkillCapabilityDebugScenarios.RunFormulaCatalogRelationScenario())
+            throw new InvalidOperationException("Skill relation contracts failed.");
+        V27CharacterPerformanceDebugScenarios.ValidateFormulaReferenceGuards();
+    }));
+    public static void RunSoRuntimeContracts() => RunImpact("so-runtime", () =>
+    {
+        Debug.Log(OffenseStrategicDebugScenarios.RunWeatherTravelFocused());
+        Debug.Log(SurgeryDebugScenarios.VerifyAnatomyProfiles());
+        Debug.Log(SurgeryDebugScenarios.VerifyOperatorScoreThreshold());
+        WildlifeDebugScenarios.VerifyAuthoredAnatomyAndLegacyRestore();
+        AgeConditionAnatomyProjectionDebugScenarios.VerifyAuthoredProfileTargetProjectionFocused();
+        Debug.Log(WildlifeDebugScenarios.VerifyPredationAuthority());
+        DiseaseFieldResponseOutboxDebugScenarios.RunFromMenu();
+        RitualFastingA08DebugScenarios.RunHeritableProjectionContracts();
+        CombatSystemDebugScenarios.VerifyHeritableBluntDamage();
+        OffenseRewardDebugScenarios.RunPersistentBattleSnapshotRestoreRegression();
+    });
+    public static void RunSoInspectorContracts() => RunImpact("so-inspector", () =>
+        ContentReferenceSelectionDebugScenarios.RunWithUndoIsolation(ContentReferenceSelectionDebugScenarios.VerifyInspectorGUI));
+    public static void CaptureContentPublication() => RunImpact("content-publication", () =>
+    {
+        Directory.CreateDirectory("Artifacts/QA/ContentReferenceIntegrity");
+        File.WriteAllText("Artifacts/QA/ContentReferenceIntegrity/identities-candidate.json",
+            ContentIdentityProtection.CapturePublicationCandidateJson());
+        _ = new ResourceGameContentCatalog(new UnityGameContentRootLoader());
+        Debug.Log("SO_PUBLICATION_CANDIDATE_CAPTURED; no authored input files written");
+    });
     public static void RunImpactCrops() => Begin("crop", "crop");
 
     public static void RunImpactWorldRestore()

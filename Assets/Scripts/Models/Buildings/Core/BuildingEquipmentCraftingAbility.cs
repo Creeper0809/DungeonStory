@@ -13,6 +13,7 @@ public sealed class BuildingEquipmentCraftingAbility :
     IBuildingEquipmentCraftingDefinition
 {
     [InspectorName("제작 가능한 장비 ID")]
+    [ContentReference(ContentReferenceKind.Equipment, Aliases = "craft:ammo:arrow|craft:ammo:bolt")]
     public string[] craftableEquipmentIds = Array.Empty<string>();
 
     [Min(0.1f), InspectorName("제작 작업량")]

@@ -11,7 +11,7 @@ ResearchProjectSO,content-type,,type-reference,services:infrastructure,runtime,s
 ResearchProjectSO,content-type,,type-reference,services:infrastructure,runtime,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ResearchGraphLayoutService.cs
 ResearchProjectSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ResearchProjectCatalogAdapter.cs
 ResearchProjectSO,content-type,,type-reference,services:infrastructure,content-loading,structural-type-consumer,Assets/Scripts/Services/Infrastructure/ResearchRewardCatalogAdapter.cs
-ResearchProjectSO,content-type,,type-reference,services:items,content-loading,structural-type-consumer,Assets/Scripts/Services/Items/ContentReferenceCatalog.cs
+ResearchProjectSO,content-type,,type-reference; save-restore-reference,services:items,content-loading,structural-type-consumer,Assets/Scripts/Services/Items/ContentReferenceCatalog.cs
 ResearchProjectSO,content-type,,type-reference; save-restore-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/FirstRunObjectiveRuntime.cs
 ResearchProjectSO,content-type,,type-reference; save-restore-reference,services:run,persistence,structural-type-consumer,Assets/Scripts/Services/Run/V20MilestoneWorldSnapshotProjector.cs
 ResearchProjectSO,content-type,,type-reference,views,player-observation,structural-type-consumer,Assets/Scripts/Views/UI/ResearchTreePresentationRules.cs

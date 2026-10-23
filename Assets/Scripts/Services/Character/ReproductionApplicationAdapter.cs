@@ -163,7 +163,12 @@ public sealed class ReproductionApplicationAdapter : IStartable, IDisposable
                 HeritableTraitConsequenceKind.Fertility,
                 "success-rate"));
         return ReproductionRules.ApplyFertilityTreatmentToCoefficient(
-            Mathf.Min(first, second) * inherited,
+            Mathf.Min(first, second) * inherited * (process.CrossLineageIncubatorUsed
+                ? Mathf.Min(
+                    heritableTraits.GetMultiplier(process.FirstParentId,
+                        HeritableTraitConsequenceKind.Fertility, "cross-lineage"),
+                    heritableTraits.GetMultiplier(process.SecondParentId,
+                        HeritableTraitConsequenceKind.Fertility, "cross-lineage")) : 1f),
             process.FertilityTreatmentUsed);
     }
 

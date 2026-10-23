@@ -21,6 +21,7 @@ MonoBehaviour:
   baseSeverity: 70
   targetSystem: 4
   vaccineAllowed: 1
+  vaccineItemId: medicine:vaccine:blood-wasting
   chronic: 0
   description: "\uD608\uC561\uC18C\uBAA8\uBCD1\uC758 \uACE0\uC720 \uC804\uD30C\uC640
     \uAE30\uAD00 \uC99D\uC0C1."

@@ -24,7 +24,6 @@ MonoBehaviour:
   allowedSpeciesIds:
   - demon
   operatorRequirement:
-    stats: []
     minimumWeightedScore: 3
   targetNodeId: 
   requiredResearchId: research:medical:mana-core-engineering

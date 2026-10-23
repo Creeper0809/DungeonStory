@@ -54,8 +54,10 @@ public sealed class CharacterPerformanceFormulaDefinitionSO : ScriptableObject
         Aliases = "selector:active-combat|selector:facility-secondary|selector:higher-combat|selector:rune-scholarship"), SerializeField]
     private string secondaryProficiencyId = string.Empty;
     [SerializeField, Range(0f, 0.2f)] private float secondaryProficiencyWeight;
-    [SerializeField] private string gameplayEffectTargetId = string.Empty;
-    [SerializeField] private string executionWorkTypeId = string.Empty;
+    [ContentReference(ContentReferenceKind.GameplayValueTarget), SerializeField]
+    private string gameplayEffectTargetId = string.Empty;
+    [ContentReference(ContentReferenceKind.WorkType), SerializeField]
+    private string executionWorkTypeId = string.Empty;
 
     public string FormulaId => formulaId?.Trim() ?? string.Empty;
     public string DisplayName => displayName?.Trim() ?? string.Empty;

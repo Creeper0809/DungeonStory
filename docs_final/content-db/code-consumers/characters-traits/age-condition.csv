@@ -3,6 +3,7 @@ AgeConditionDefinitionSO,content-type,,type-reference,models:species,content-loa
 AgeConditionDefinitionSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/CharacterPopulationService.cs
 AgeConditionDefinitionSO,content-type,,type-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/StartPartyCandidateLivingSummaryProjector.cs
 AgeConditionDefinitionSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/Core/StartPartyPreparationService.cs
+AgeConditionDefinitionSO,content-type,,type-reference,services:medical,content-loading,structural-type-consumer,Assets/Scripts/Services/Medical/AnatomyProfileCatalog.cs
 AgeConditionDefinitionSO,stable-id,condition:age-cardiac-degeneration,stable-id-literal,views,player-observation,exact-literal-consumer,Assets/Scripts/Views/UI/CharacterSummaryPopulationPresenter.cs
 AgeConditionDefinitionSO,stable-id,condition:age-neural-degeneration,stable-id-literal,views,player-observation,exact-literal-consumer,Assets/Scripts/Views/UI/CharacterSummaryPopulationPresenter.cs
 AgeConditionDefinitionSO,stable-id,condition:age-organ-fibrosis,stable-id-literal,views,player-observation,exact-literal-consumer,Assets/Scripts/Views/UI/CharacterSummaryPopulationPresenter.cs

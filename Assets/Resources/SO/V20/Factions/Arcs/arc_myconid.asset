@@ -30,7 +30,3 @@ MonoBehaviour:
   - faction-contract:myconid:supply
   - faction-contract:myconid:crisis
   - faction-contract:myconid:strategic
-  relicItemIds:
-  - relic:faction:myconid:1
-  - relic:faction:myconid:2
-  - relic:faction:myconid:3

@@ -359,7 +359,8 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
         float airRate =
             DungeonStory.Environment.CharacterEnvironmentRules
                 .CalculateAirExposureRate(
-                environment.AirQuality);
+                environment.AirQuality)
+                * actor.Stats.ProjectDetailedStat(GameplayEffectTargetIds.AirExposure, 1f).Value;
         float projected = Mathf.Clamp(
             currentExposure
             + Mathf.Max(thermalRate, airRate)
@@ -801,7 +802,8 @@ public sealed class EnvironmentWorkPolicyUnityAdapter : IEnvironmentWorkPolicy
             out heatRate,
             out bool lethalTemperature);
         airRate = DungeonStory.Environment.CharacterEnvironmentRules
-            .CalculateAirExposureRate(cell.AirQuality);
+            .CalculateAirExposureRate(cell.AirQuality)
+            * actor.Stats.ProjectDetailedStat(GameplayEffectTargetIds.AirExposure, 1f).Value;
         visualRate = !lightAdaptation.Enabled
             && (workKind is EnvironmentalWorkKind.Precision
                 or EnvironmentalWorkKind.Surgery

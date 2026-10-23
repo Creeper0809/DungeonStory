@@ -17,6 +17,7 @@ public static class ContentIdentityProtection
 {
     public const int CurrentSchemaVersion = 1;
     public const string BaselinePath = "ProjectSettings/PublishedContentIdentities.json";
+    public const string RootAssetPath = "Assets/Resources/SO/GameContentCatalog.asset";
 
     [Serializable]
     public sealed class Snapshot
@@ -92,6 +93,17 @@ public static class ContentIdentityProtection
 
     /// <summary>Returns a deterministic JSON representation without writing the baseline.</summary>
     public static string CaptureCurrentJson() => ToJson(CaptureCurrent());
+
+    public static string CapturePublicationCandidateJson()
+    {
+        if (!TryLoadBaseline(out Snapshot baseline, out string error))
+            throw new InvalidOperationException(error);
+        Snapshot current = CaptureCurrent();
+        var errors = ValidatePreservedBaseline(baseline, current);
+        errors.AddRange(ValidateNewPublication(baseline, current));
+        if (errors.Count != 0) throw new InvalidOperationException(string.Join("\n", errors));
+        return ToJson(current);
+    }
 
     public static string ToJson(Snapshot snapshot)
     {
@@ -314,6 +326,7 @@ public static class ContentIdentityProtection
         }
 
         List<string> immutableErrors = ValidatePreservedBaseline(baseline, current);
+        immutableErrors.AddRange(ValidateNewPublication(baseline, current));
         if (immutableErrors.Count > 0)
         {
             Debug.LogError(
@@ -391,6 +404,33 @@ public static class ContentIdentityProtection
             errors.AddRange(ValidatePreservedRecord(published, currentAsset));
         }
 
+        return errors;
+    }
+
+    internal static List<string> ValidateNewPublication(Snapshot baseline, Snapshot current)
+    {
+        var errors = new List<string>();
+        var published = UniqueAssets(baseline);
+        var registered = current.assets.SelectMany(asset => asset.fields)
+            .Where(field => field.path.StartsWith("@registration:", StringComparison.Ordinal))
+            .Select(field => field.value).ToHashSet(StringComparer.Ordinal);
+        foreach (AssetRecord record in current.assets)
+        {
+            string assetPath = AssetDatabase.GUIDToAssetPath(record.guid);
+            if (record.typeName == nameof(GameContentCatalogSO) && assetPath != RootAssetPath)
+                errors.Add("The startup content catalog must remain at " + RootAssetPath);
+            if (published.ContainsKey(record.guid)) continue;
+            if (!registered.Contains(record.guid))
+                errors.Add($"Unregistered draft '{assetPath}' cannot be published.");
+            foreach (FieldRecord field in record.fields)
+                if (string.IsNullOrWhiteSpace(field.value))
+                    errors.Add($"New identity '{assetPath}.{field.path}' cannot be empty.");
+            ScriptableObject asset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(assetPath);
+            MethodInfo validate = asset.GetType().GetMethod("ValidateDefinition",
+                BindingFlags.Instance | BindingFlags.Public, null, Type.EmptyTypes, null);
+            if (validate?.Invoke(asset, null) is IEnumerable<string> definitionErrors)
+                errors.AddRange(definitionErrors.Select(value => assetPath + ": " + value));
+        }
         return errors;
     }
 
@@ -540,7 +580,7 @@ public static class ContentIdentityProtection
         return result;
     }
 
-    private static AssetRecord CaptureAsset(string guid, ScriptableObject asset)
+    internal static AssetRecord CaptureAsset(string guid, ScriptableObject asset)
     {
         Type type = asset.GetType();
         MonoScript script = MonoScript.FromScriptableObject(asset);
@@ -587,9 +627,122 @@ public static class ContentIdentityProtection
                 value = ReadIdentityValue(field, property)
             });
         }
+        if (asset is GameContentCatalogSO)
+        {
+            record.fields.Add(new FieldRecord { path = "@resource-path",
+                value = NormalizePath(AssetDatabase.GetAssetPath(asset)) });
+            foreach (string member in new[] { "itemDefinitions", "worldPresentation",
+                         "characterSkillSettings", "media", "domainCatalogs" })
+                CaptureRegistrations(serialized.FindProperty(member), member, record);
+        }
+        else if (asset is GameDomainContentCatalogSO || asset is ItemDefinitionCatalogSO)
+            CaptureRegistrations(serialized.FindProperty("definitions"), "definitions", record);
+        CaptureNestedIdentities(serialized, record);
         record.fields.Sort((left, right) =>
             string.Compare(left.path, right.path, StringComparison.Ordinal));
         return record;
+    }
+
+    private static void CaptureRegistrations(SerializedProperty property, string member,
+        AssetRecord record)
+    {
+        if (property == null) throw new InvalidOperationException(
+            $"Missing content registry field '{record.typeName}.{member}'.");
+        if (property.isArray)
+        {
+            for (int i = 0; i < property.arraySize; i++)
+                CaptureRegistrations(property.GetArrayElementAtIndex(i), member, record);
+            return;
+        }
+        if (property.propertyType != SerializedPropertyType.ObjectReference
+            || property.objectReferenceValue == null)
+            throw new InvalidOperationException($"Missing registered definition '{member}'.");
+        string guid = AssetDatabase.AssetPathToGUID(
+            AssetDatabase.GetAssetPath(property.objectReferenceValue));
+        if (!IsGuid(guid)) throw new InvalidOperationException(
+            $"Registered definition '{member}' is not a persistent asset.");
+        string path = "@registration:" + member + ":" + guid;
+        if (record.fields.Any(field => field.path == path))
+            throw new InvalidOperationException($"Duplicate content registration '{path}'.");
+        record.fields.Add(new FieldRecord { path = path, value = guid });
+    }
+
+    private static void CaptureNestedIdentities(SerializedObject source, AssetRecord record)
+    {
+        if (source.targetObject is CharacterTraitSO trait)
+            foreach (string alias in trait.LegacyPolicyNames)
+                record.fields.Add(new FieldRecord { path = "@legacy-trait-name:" + Uri.EscapeDataString(alias), value = alias });
+        void List(string path, string key, string[] leaves = null,
+            string child = null, string childKey = null, string[] types = null) =>
+            CaptureNestedList(source.FindProperty(path), path, key,
+                leaves ?? new[] { key }, record, child, childKey, types);
+        switch (record.typeName)
+        {
+            case nameof(AnatomyProfileSO): List("nodes", "nodeId"); break;
+            case nameof(OffenseDecisionCardSO):
+            case nameof(FactionChapterDefinitionSO):
+            case nameof(LifeEventDefinitionSO): List("choices", "choiceId"); break;
+            case nameof(ServiceIncidentDefinitionSO): List("responses", "choiceId"); break;
+            case nameof(OffenseCampaignCatalogSO): List("targets", "id"); break;
+            case nameof(ProductionRecipeSO): List("outputs", "outputLineId"); break;
+            case nameof(CharacterSkillSystemSettingsSO):
+                List("modules", "id", new[] { "id", "capabilityId" }, "variants", "id");
+                List("drawbackCapabilities", "drawbackId", new[] { "drawbackId", "capabilityId" });
+                break;
+            case nameof(CharacterAcquiredTraitSettingsSO):
+                List("drawbackCapabilities", "drawbackId", new[] { "drawbackId", "capabilityId" },
+                    "effects", "bindingId"); break;
+            case nameof(CharacterAcquiredTraitModuleSO):
+                record.fields.Add(new FieldRecord { path = "capabilityId",
+                    value = source.FindProperty("capabilityId").stringValue });
+                List("effects", "bindingId"); List("specialReactions", "reactionId"); break;
+            case nameof(BuildingSO):
+                List("abilityModules.items", "abilityId", types: new[]
+                    { "BuildingProductionAbility", "BuildingSecurityAbility" }); break;
+            case nameof(GameDomainContentCatalogSO):
+                foreach (string path in new[] { "metaUpgrades", "runVariables", "ownerDoctrines", "invasionPatterns" })
+                    List(path, "id"); break;
+            case nameof(EquipmentEvolutionFormulaCatalogSO): List("capabilities", "capabilityId"); break;
+        }
+    }
+
+    private static void CaptureNestedList(SerializedProperty list, string path, string key,
+        string[] leaves, AssetRecord record, string child = null, string childKey = null,
+        string[] types = null)
+    {
+        if (list == null || !list.isArray)
+            throw new InvalidOperationException($"Missing nested identity collection '{record.typeName}.{path}'.");
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < list.arraySize; i++)
+        {
+            SerializedProperty element = list.GetArrayElementAtIndex(i);
+            string type = element.propertyType == SerializedPropertyType.ManagedReference
+                ? element.managedReferenceFullTypename.Split(' ').Last().Split('.').Last() : string.Empty;
+            if (types != null && !types.Contains(type, StringComparer.Ordinal)) continue;
+            string id = element.FindPropertyRelative(key)?.stringValue;
+            if (string.IsNullOrWhiteSpace(id) || id != id.Trim() || !seen.Add(id))
+                throw new InvalidOperationException($"Blank, noncanonical or duplicate nested identity '{path}.{key}': '{id}'.");
+            string scope = path + "[" + key + "=" + Uri.EscapeDataString(id)
+                + (types == null ? "" : ";type=" + type) + "]";
+            foreach (string leaf in leaves)
+            {
+                string value = element.FindPropertyRelative(leaf)?.stringValue;
+                if (string.IsNullOrWhiteSpace(value) || value != value.Trim())
+                    throw new InvalidOperationException($"Invalid nested saved identity '{scope}.{leaf}'.");
+                record.fields.Add(new FieldRecord { path = "@nested:" + scope + "." + leaf, value = value });
+            }
+            if (child != null)
+                CaptureNestedList(element.FindPropertyRelative(child), scope + "." + child,
+                    childKey, new[] { childKey }, record);
+        }
+    }
+
+    internal static bool IsRootMove(string source, string destination)
+    {
+        source = NormalizePath(source).TrimEnd('/');
+        destination = NormalizePath(destination).TrimEnd('/');
+        return source != destination && (source == RootAssetPath
+            || RootAssetPath.StartsWith(source + "/", StringComparison.Ordinal));
     }
 
     private static IEnumerable<FieldInfo> IdentityFields(Type type)
@@ -811,6 +964,15 @@ public sealed class ContentIdentityBuildPreprocessor : IPreprocessBuildWithRepor
 
 public sealed class ContentIdentityAssetModificationProcessor : AssetModificationProcessor
 {
+    private static AssetMoveResult OnWillMoveAsset(string source, string destination)
+    {
+        if (!ContentIdentityProtection.IsRootMove(source, destination))
+            return AssetMoveResult.DidNotMove;
+        Debug.LogError("Moving the startup content catalog or its parent folder is blocked: "
+            + ContentIdentityProtection.RootAssetPath);
+        return AssetMoveResult.FailedMove;
+    }
+
     private static string[] OnWillSaveAssets(string[] paths)
     {
         if (paths == null || paths.Length == 0)

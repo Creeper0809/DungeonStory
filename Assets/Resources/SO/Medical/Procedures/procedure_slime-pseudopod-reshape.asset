@@ -20,11 +20,10 @@ MonoBehaviour:
   family: 1
   urgency: 2
   allowedAnatomyFamilies:
-  - slime
+  - aberrant
   allowedSpeciesIds:
   - slime
   operatorRequirement:
-    stats: []
     minimumWeightedScore: 3
   targetNodeId: pseudopods
   requiredResearchId: research:medical:slime-bioengineering

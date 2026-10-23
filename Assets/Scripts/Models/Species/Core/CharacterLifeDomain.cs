@@ -87,16 +87,23 @@ public readonly struct AgeConditionDefinition
     public AgeConditionDefinition(
         string conditionId,
         bool constructCondition,
-        IReadOnlyList<string> affectedAnatomyNodeIds)
+        IReadOnlyList<string> affectedAnatomyNodeIds,
+        IReadOnlyDictionary<string, IReadOnlyList<string>> anatomyTargets = null)
     {
         ConditionId = conditionId?.Trim() ?? string.Empty;
         ConstructCondition = constructCondition;
-        AffectedAnatomyNodeIds = affectedAnatomyNodeIds ?? Array.Empty<string>();
+        AffectedAnatomyNodeIds = (affectedAnatomyNodeIds ?? Array.Empty<string>()).ToArray();
+        this.anatomyTargets = anatomyTargets?.ToDictionary(pair => pair.Key,
+            pair => (IReadOnlyList<string>)pair.Value.ToArray(), StringComparer.Ordinal);
     }
 
     public string ConditionId { get; }
     public bool ConstructCondition { get; }
     public IReadOnlyList<string> AffectedAnatomyNodeIds { get; }
+    private readonly IReadOnlyDictionary<string, IReadOnlyList<string>> anatomyTargets;
+    public IReadOnlyList<string> GetAffectedAnatomyNodeIds(string profileId) =>
+        anatomyTargets != null && anatomyTargets.TryGetValue(profileId ?? string.Empty, out var nodes)
+            ? nodes : AffectedAnatomyNodeIds;
     public bool IsValid => ConditionId.Length > 0 && AffectedAnatomyNodeIds.Count > 0;
 }
 

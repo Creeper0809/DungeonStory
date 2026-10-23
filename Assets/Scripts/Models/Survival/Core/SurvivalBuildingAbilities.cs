@@ -65,6 +65,7 @@ public sealed class BuildingFuelConsumerAbility :
     BuildingAbility,
     IBuildingWorkCompletionAbility
 {
+    [ContentReference(ContentReferenceKind.Item)]
     [InspectorName("연료 아이템 ID")]
     public string fuelItemId = "resource:log";
     [Min(1), InspectorName("보충당 연료")]
@@ -86,6 +87,8 @@ public sealed class BuildingGolemRechargeAbility :
     BuildingAbility,
     IBuildingWorkCompletionAbility
 {
+    [ContentReference(ContentReferenceKind.Item)]
+    [InspectorName("충전 재료 아이템 ID")]
     public string materialItemId = "resource:mana-crystal";
     [Min(1)] public int materialQuantity = 1;
     [Min(0.1f)] public float requiredWork = 100f;

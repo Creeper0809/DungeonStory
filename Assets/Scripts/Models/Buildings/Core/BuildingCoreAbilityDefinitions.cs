@@ -50,8 +50,10 @@ public sealed class BuildingSelfContainedRoomAbility : BuildingAbility { }
 [BuildingAbilityDisplayName("종족 선호")]
 public sealed class BuildingSpeciesAffinityAbility : BuildingAbility
 {
+    [ContentReference(ContentReferenceKind.Species, IgnoreCase = true)]
     [InspectorName("선호 종족 태그")]
     public string[] preferredTags = Array.Empty<string>();
+    [ContentReference(ContentReferenceKind.Species, IgnoreCase = true)]
     [InspectorName("기피 종족 태그")]
     public string[] dislikedTags = Array.Empty<string>();
 

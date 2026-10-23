@@ -1154,6 +1154,95 @@ public static class V20CampaignDebugScenarios
         Debug.Log("ARCHITECTURE_V20_STATE_OWNERSHIP=PASS; milestones=9; modifiers; crisis; factions; save/restore; candidate-failure-retry");
     }
 
+    [MenuItem("DungeonStory/QA/V20 Validate Faction Arc Membership (R06)")]
+    public static void ValidateFactionArcMembershipForR06()
+    {
+        ResourceGameContentCatalog content = new(
+            new UnityGameContentRootLoader());
+        V20StoryContentCatalog valid = new(content);
+        FactionArcDefinitionSO arc = valid.Arcs
+            .OrderBy(value => value.StableId, StringComparer.Ordinal)
+            .First();
+        FactionArcDefinitionSO otherArc = valid.Arcs.First(value =>
+            !string.Equals(value.factionId, arc.factionId, StringComparison.Ordinal));
+        List<ScriptableObject> clones = new();
+        try
+        {
+            FactionArcDefinitionSO foreignChapterArc = UnityEngine.Object.Instantiate(arc);
+            clones.Add(foreignChapterArc);
+            foreignChapterArc.chapterIds = arc.chapterIds.ToList();
+            foreignChapterArc.chapterIds[0] = otherArc.chapterIds[0];
+            RequireArcCatalogRejected(
+                new ReplacedDefinitionSource(content, arc, foreignChapterArc),
+                "owned by faction",
+                "Faction arc accepted a chapter owned by another faction.");
+
+            FactionArcDefinitionSO foreignContractArc = UnityEngine.Object.Instantiate(arc);
+            clones.Add(foreignContractArc);
+            foreignContractArc.contractIds = arc.contractIds.ToList();
+            foreignContractArc.contractIds[0] = otherArc.contractIds[0];
+            RequireArcCatalogRejected(
+                new ReplacedDefinitionSource(content, arc, foreignContractArc),
+                "owned by faction",
+                "Faction arc accepted a contract owned by another faction.");
+
+            FactionArcDefinitionSO duplicateChapterArc = UnityEngine.Object.Instantiate(arc);
+            clones.Add(duplicateChapterArc);
+            duplicateChapterArc.chapterIds = arc.chapterIds.ToList();
+            duplicateChapterArc.chapterIds[1] = duplicateChapterArc.chapterIds[0];
+            RequireArcCatalogRejected(
+                new ReplacedDefinitionSource(content, arc, duplicateChapterArc),
+                "duplicate chapter references",
+                "Faction arc accepted duplicate chapter references.");
+
+            FactionArcDefinitionSO duplicateContractArc = UnityEngine.Object.Instantiate(arc);
+            clones.Add(duplicateContractArc);
+            duplicateContractArc.contractIds = arc.contractIds.ToList();
+            duplicateContractArc.contractIds[1] = duplicateContractArc.contractIds[0];
+            RequireArcCatalogRejected(
+                new ReplacedDefinitionSource(content, arc, duplicateContractArc),
+                "duplicate contract references",
+                "Faction arc accepted duplicate contract references.");
+
+            FactionChapterDefinitionSO finalChapter = valid.Chapters.Single(value =>
+                string.Equals(value.factionId, arc.factionId, StringComparison.Ordinal)
+                && value.chapterNumber == 6);
+            FactionChapterDefinitionSO duplicateNumberChapter =
+                UnityEngine.Object.Instantiate(finalChapter);
+            clones.Add(duplicateNumberChapter);
+            duplicateNumberChapter.chapterNumber = 5;
+            RequireArcCatalogRejected(
+                new ReplacedDefinitionSource(
+                    content,
+                    finalChapter,
+                    duplicateNumberChapter),
+                "exactly one chapter",
+                "Faction story accepted duplicate chapter 5 with missing chapter 6.");
+
+            FactionChapterDefinitionSO outOfRangeChapter =
+                UnityEngine.Object.Instantiate(finalChapter);
+            clones.Add(outOfRangeChapter);
+            outOfRangeChapter.chapterNumber = 7;
+            RequireArcCatalogRejected(
+                new ReplacedDefinitionSource(
+                    content,
+                    finalChapter,
+                    outOfRangeChapter),
+                "exactly one chapter",
+                "Faction story accepted chapter 7 with missing chapter 6.");
+        }
+        finally
+        {
+            foreach (ScriptableObject clone in clones)
+                UnityEngine.Object.DestroyImmediate(clone);
+        }
+
+        Debug.Log(
+            "R06 faction arc membership PASS: current catalog accepted; "
+            + "foreign owners, duplicate references, duplicate chapter numbers, "
+            + "and missing 1-6 coverage rejected.");
+    }
+
     [MenuItem("DungeonStory/QA/V20 Campaign And Endless Rules")]
     public static void Run()
     {
@@ -1980,6 +2069,65 @@ public static class V20CampaignDebugScenarios
                 };
         }
         return snapshot;
+    }
+
+    private static void RequireArcCatalogRejected(
+        IGameContentDefinitionSource content,
+        string expectedMessage,
+        string failureMessage)
+    {
+        try
+        {
+            _ = new V20StoryContentCatalog(content);
+        }
+        catch (InvalidOperationException error)
+        {
+            Require(error.Message.Contains(expectedMessage, StringComparison.Ordinal),
+                failureMessage + " Unexpected error: " + error.Message);
+            return;
+        }
+
+        throw new InvalidOperationException(failureMessage);
+    }
+
+    private sealed class ReplacedDefinitionSource : IGameContentDefinitionSource
+    {
+        private readonly IGameContentDefinitionSource inner;
+        private readonly ScriptableObject original;
+        private readonly ScriptableObject replacement;
+
+        public ReplacedDefinitionSource(
+            IGameContentDefinitionSource inner,
+            ScriptableObject original,
+            ScriptableObject replacement)
+        {
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
+            this.original = original ?? throw new ArgumentNullException(nameof(original));
+            this.replacement = replacement
+                ?? throw new ArgumentNullException(nameof(replacement));
+            if (original.GetType() != replacement.GetType())
+                throw new ArgumentException(
+                    "Replacement content definition type must match the original.",
+                    nameof(replacement));
+        }
+
+        public IReadOnlyList<T> GetAll<T>() where T : ScriptableObject
+        {
+            return inner.GetAll<T>()
+                .Select(value => ReferenceEquals(value, original)
+                    ? (T)(ScriptableObject)replacement
+                    : value)
+                .ToArray();
+        }
+
+        public T RequireSingle<T>() where T : ScriptableObject
+        {
+            IReadOnlyList<T> values = GetAll<T>();
+            return values.Count == 1
+                ? values[0]
+                : throw new InvalidOperationException(
+                    $"Expected one {typeof(T).Name}, found {values.Count}.");
+        }
     }
 
     private static void Require(bool condition, string message)

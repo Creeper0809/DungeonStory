@@ -1,0 +1,57 @@
+{
+  "schema": "so-audit-remediation-v1",
+  "source": {
+    "digest": "9dfd54afcfbdc2be85b6387a731486772f245fc80862e22e6469fa62e2dbb090",
+    "count": 4749,
+    "pathsDigest": "5983904fd31fdd6a7198518b3707abd3bbedc3db4b3fa4d1a9f5e30971b0ef54"
+  },
+  "configurationDigest": "b69164db4c5717978928ce2ed7b52e7657b93a140e179eab22ccd8d092a4a7e6",
+  "scope": "R01-R24/U01-U05/I01 bounded authoring, controlled runtime, and actual IMGUI draw; not exhaustive gameplay",
+  "sourceManifest": "r112sa; 21648 input files; complete pre/post SHA verification",
+  "platform": "CUHA Linux; authoring/runtime headless; Inspector uses private Xvfb graphics",
+  "checks": [
+    {
+      "group": "so-authoring",
+      "method": "V27CiEvidenceBatch.RunSoAuthoringContracts",
+      "log": "Artifacts/QA/ImpactCI/so-authoring.log",
+      "logSha256": "323f3eca382fda862d642950e597e573ec4a4e21a4b44848e471f24def597f63",
+      "summary": "Artifacts/QA/ImpactCI/so-authoring-summary.json",
+      "summarySha256": "2d0777ae0c636813c315936e722f460bc8b4338aecd64d5e2da829a4da5e4937"
+    },
+    {
+      "group": "so-runtime",
+      "method": "V27CiEvidenceBatch.RunSoRuntimeContracts",
+      "log": "Artifacts/QA/ImpactCI/so-runtime.log",
+      "logSha256": "fd814f196d04ddaf1787b9c4a19cf85dd8d0d5e63a4f7606376f4d1354e062bb",
+      "summary": "Artifacts/QA/ImpactCI/so-runtime-summary.json",
+      "summarySha256": "130df645e856a55a7794e86228d81d2ecf680245b03cb3e466a3ddc71be38a7c"
+    },
+    {
+      "group": "so-inspector",
+      "method": "V27CiEvidenceBatch.RunSoInspectorContracts",
+      "isolation": "Artifacts/QA/ImpactCI/so-inspector-isolation.json",
+      "isolationSha256": "7e52fa0db6a2d474d5d984c443fb3dc2e2013ec6a8d99314a43231502ce2b122",
+      "platform": "CUHA Linux batchmode with graphics on authenticated private Xvfb; no user display",
+      "log": "Artifacts/QA/ImpactCI/so-inspector.log",
+      "logSha256": "07e7cee9acb80d7702922a628f9f6e1412794ce149ca9d7cfb7a88390c65aa91",
+      "summary": "Artifacts/QA/ImpactCI/so-inspector-summary.json",
+      "summarySha256": "d8a8bdc9fe50e22f2cced9a5d3720ac50aaa2c52a1b88f0c84ea1e0a39d5efdd"
+    }
+  ],
+  "acceptedForFinalSource": {
+    "digest": "d9dff3485fe467653d986d00edefd3320544903da16585425ed9ab31bd47ec55",
+    "count": 4749,
+    "pathsDigest": "5983904fd31fdd6a7198518b3707abd3bbedc3db4b3fa4d1a9f5e30971b0ef54"
+  },
+  "acceptedForFinalConfigurationDigest": "6bacd40070886ee1391aa41a9f7e180e61ef163e87ac44ba73af996ca865d737",
+  "reuse": {
+    "reason": "Only the unrelated catalog-extension Editor fixture changed to give its new trait a distinct name and no inherited legacy aliases. Production code/assets and all three SO entrypoints and their scenarios are byte-identical. The changed fixture is exercised by final effects; older runs retain their own source identity.",
+    "differences": [
+      {
+        "path": "Assets/Scripts/Services/Infrastructure/Editor/ScriptableObjectModularityDebugScenarios.cs",
+        "beforeSha256": "d6893f826c1301006c834c7f4f44b400e907d2914fb29fe0d2e06c38954d8001",
+        "afterSha256": "8b23d77e6bf693a637dfdc6cf616a15aa67a79bb987dff5b3a03783bea2aec06"
+      }
+    ]
+  }
+}

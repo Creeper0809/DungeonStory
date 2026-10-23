@@ -180,7 +180,8 @@ public sealed class AnatomyProfileDefinition
             source?.ApparelBodyForm ?? ApparelBodyForm.Humanoid,
             source?.ApparelSize ?? ApparelSizeClass.Medium,
             source?.ApparelBasePoints ?? (AnatomyAttachmentPoint)16383,
-            source?.ApparelAttachments)
+            source?.ApparelAttachments,
+            source?.LegacySpeciesIds)
     {
     }
 
@@ -194,7 +195,8 @@ public sealed class AnatomyProfileDefinition
         ApparelBodyForm apparelBodyForm = ApparelBodyForm.Humanoid,
         ApparelSizeClass apparelSize = ApparelSizeClass.Medium,
         AnatomyAttachmentPoint apparelBasePoints = (AnatomyAttachmentPoint)16383,
-        IEnumerable<AnatomyApparelAttachment> apparelAttachments = null)
+        IEnumerable<AnatomyApparelAttachment> apparelAttachments = null,
+        IEnumerable<string> legacySpeciesIds = null)
     {
         ProfileId = profileId?.Trim() ?? string.Empty;
         DisplayName = string.IsNullOrWhiteSpace(displayName)
@@ -208,6 +210,8 @@ public sealed class AnatomyProfileDefinition
             .Select(value => value.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
+        LegacySpeciesIds = (legacySpeciesIds ?? Array.Empty<string>())
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         Nodes = (nodes ?? Array.Empty<AnatomyNodeDefinition>())
             .Where(node => node != null && !string.IsNullOrWhiteSpace(node.NodeId))
             .ToArray();
@@ -242,6 +246,7 @@ public sealed class AnatomyProfileDefinition
     public string DisplayName { get; }
     public string AnatomyFamily { get; }
     public IReadOnlyList<string> SpeciesIds { get; }
+    public IReadOnlyList<string> LegacySpeciesIds { get; }
     public IReadOnlyList<AnatomyNodeDefinition> Nodes { get; }
     public ApparelBodyForm ApparelBodyForm { get; }
     public ApparelSizeClass ApparelSize { get; }

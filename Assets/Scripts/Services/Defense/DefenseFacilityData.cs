@@ -39,7 +39,6 @@ public class DefenseFacilityData
     [Range(0f, 1f)] public float baseJamChance;
     [Range(0f, 1f)] public float baseMisfireChance;
     public string facilityFamilyId = "defense:general";
-    public string[] affinityTags = Array.Empty<string>();
     public DefenseFacilityGrowthData growth = new DefenseFacilityGrowthData();
 
     public bool IsDefenseFacility => enabled && concept != DefenseAttackConcept.None;

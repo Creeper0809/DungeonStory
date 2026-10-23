@@ -8,7 +8,6 @@ public sealed class FactionArcDefinitionSO : V20AuthoredContentSO
     [ContentReference(ContentReferenceKind.Faction)] public string factionId = string.Empty;
     [ContentReference(ContentReferenceKind.FactionChapter)] public List<string> chapterIds = new();
     [ContentReference(ContentReferenceKind.FactionContract)] public List<string> contractIds = new();
-    [ContentReference(ContentReferenceKind.Item)] public List<string> relicItemIds = new();
 
     public override IReadOnlyList<string> ValidateDefinition()
     {
@@ -16,7 +15,6 @@ public sealed class FactionArcDefinitionSO : V20AuthoredContentSO
         if (string.IsNullOrWhiteSpace(factionId)) errors.Add($"'{StableId}' requires a faction id.");
         if ((chapterIds ?? new()).Count != 6) errors.Add($"'{StableId}' requires exactly six chapters.");
         if ((contractIds ?? new()).Count != 3) errors.Add($"'{StableId}' requires exactly three contracts.");
-        if ((relicItemIds ?? new()).Count != 3) errors.Add($"'{StableId}' requires exactly three relics.");
         return errors;
     }
 }

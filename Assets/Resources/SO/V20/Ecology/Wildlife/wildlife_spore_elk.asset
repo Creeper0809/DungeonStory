@@ -48,9 +48,6 @@ MonoBehaviour:
   husbandryProducts: []
   authoringRevision: 1
   preySpeciesIds: []
-  predatorSpeciesIds:
-  - shadow_wolf
-  - mire_leech
   nestTag: nest:mycelial-grove
   breedingSeason: 2
   migrationPatternId: migration:spore-bloom

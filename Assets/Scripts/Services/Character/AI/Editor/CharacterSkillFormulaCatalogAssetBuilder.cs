@@ -177,7 +177,9 @@ public static class CharacterSkillFormulaCatalogAssetBuilder
                 }
             }
         }
-        NarrativeFormulaCapabilityDescriptor[] descriptors = modules.Select(settings.RequireFormulaDescriptor).ToArray();
+        NarrativeFormulaCapabilityDescriptor[] descriptors = settings
+            .RequireFormulaCatalog()
+            .ToArray();
         HashSet<string> capabilityIds = new HashSet<string>(
             descriptors.Select(value => value.CapabilityId),
             StringComparer.Ordinal);
@@ -192,28 +194,6 @@ public static class CharacterSkillFormulaCatalogAssetBuilder
             if (!descriptor.AppliedParameterIds.SequenceEqual(expectedApplied, StringComparer.Ordinal))
                 throw new InvalidOperationException(
                     $"Capability '{descriptor.CapabilityId}' applied-axis registration is stale.");
-            if (descriptor.ForbiddenSynergies.Any(value => !capabilityIds.Contains(value)))
-                throw new InvalidOperationException(
-                    $"Capability '{descriptor.CapabilityId}' names an unknown forbidden synergy.");
-            foreach (string forbidden in descriptor.ForbiddenSynergies)
-            {
-                NarrativeFormulaCapabilityDescriptor other = descriptors.Single(value =>
-                    string.Equals(value.CapabilityId, forbidden, StringComparison.Ordinal));
-                if (!other.ForbiddenSynergies.Contains(
-                        descriptor.CapabilityId, StringComparer.Ordinal))
-                    throw new InvalidOperationException(
-                        $"Forbidden synergy '{descriptor.CapabilityId}/{forbidden}' is not symmetric.");
-            }
-            foreach (NarrativeFormulaPairSynergyCost pair in descriptor.PairSynergyCosts)
-            {
-                NarrativeFormulaCapabilityDescriptor other = descriptors.SingleOrDefault(value =>
-                    string.Equals(value.CapabilityId, pair.OtherCapabilityId, StringComparison.Ordinal));
-                NarrativeFormulaPairSynergyCost reverse = other?.PairSynergyCosts.SingleOrDefault(value =>
-                    string.Equals(value.OtherCapabilityId, descriptor.CapabilityId, StringComparison.Ordinal));
-                if (reverse == null || reverse.Cost != pair.Cost)
-                    throw new InvalidOperationException(
-                        $"Pair cost '{descriptor.CapabilityId}/{pair.OtherCapabilityId}' is not symmetric.");
-            }
         }
         foreach (CharacterSkillDrawbackCapabilityDefinition drawback in
                  settings.RequireDrawbackCatalog())

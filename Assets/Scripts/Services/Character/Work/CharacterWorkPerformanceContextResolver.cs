@@ -150,6 +150,16 @@ public sealed class CharacterWorkPerformanceContextResolver
             : profile.Primary.Value
     };
 
+    public static float GetSpecializedWorkSpeed(CharacterActor actor, BuildableObject target, WorkTypeId workType)
+    {
+        // Resonance tuning has a real worker/timed operation. The separate instant
+        // module-tuning command has no worker and must not invent one for this trait.
+        if (workType != BuiltInWorkTypeIds.Operate
+            || target?.BuildingData?.ResearchFacilityCommand != ResearchFacilityCommandKind.ResonanceTuning)
+            return 1f;
+        return actor.Stats.ProjectDetailedStat(GameplayEffectTargetIds.RuneTuningSpeed, 1f).Value;
+    }
+
     public WorkAccidentRiskContext ResolveAccidentRiskContext(
         CharacterActor actor,
         WorkTypeId assignedWorkTypeId,

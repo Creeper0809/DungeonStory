@@ -22276,9 +22276,6 @@ BuildingSO|building:1800,building:1800,references.RefIds.3.data.settings.conditi
 BuildingSO|building:1800,building:1800,references.RefIds.3.data.settings.baseJamChance,0.01,,,explicit-serialized
 BuildingSO|building:1800,building:1800,references.RefIds.3.data.settings.baseMisfireChance,0.005,,,explicit-serialized
 BuildingSO|building:1800,building:1800,references.RefIds.3.data.settings.facilityFamilyId,defense:detection,,,explicit-serialized
-BuildingSO|building:1800,building:1800,references.RefIds.3.data.settings.affinityTags.0,defense:alarm,,,explicit-serialized
-BuildingSO|building:1800,building:1800,references.RefIds.3.data.settings.affinityTags.1,species:beastkin,,,explicit-serialized
-BuildingSO|building:1800,building:1800,references.RefIds.3.data.settings.affinityTags.2,species:harpy,,,explicit-serialized
 BuildingSO|building:1800,building:1800,references.RefIds.3.data.settings.growth.capacityLevel,0,,,explicit-serialized
 BuildingSO|building:1800,building:1800,references.RefIds.3.data.settings.growth.resetSpeedLevel,0,,,explicit-serialized
 BuildingSO|building:1800,building:1800,references.RefIds.3.data.settings.growth.effectStrengthLevel,0,,,explicit-serialized
@@ -22413,9 +22410,6 @@ BuildingSO|building:1801,building:1801,references.RefIds.3.data.settings.conditi
 BuildingSO|building:1801,building:1801,references.RefIds.3.data.settings.baseJamChance,0.01,,,explicit-serialized
 BuildingSO|building:1801,building:1801,references.RefIds.3.data.settings.baseMisfireChance,0.005,,,explicit-serialized
 BuildingSO|building:1801,building:1801,references.RefIds.3.data.settings.facilityFamilyId,defense:control,,,explicit-serialized
-BuildingSO|building:1801,building:1801,references.RefIds.3.data.settings.affinityTags.0,defense:identification,,,explicit-serialized
-BuildingSO|building:1801,building:1801,references.RefIds.3.data.settings.affinityTags.1,species:demon,,,explicit-serialized
-BuildingSO|building:1801,building:1801,references.RefIds.3.data.settings.affinityTags.2,species:golem,,,explicit-serialized
 BuildingSO|building:1801,building:1801,references.RefIds.3.data.settings.growth.capacityLevel,0,,,explicit-serialized
 BuildingSO|building:1801,building:1801,references.RefIds.3.data.settings.growth.resetSpeedLevel,0,,,explicit-serialized
 BuildingSO|building:1801,building:1801,references.RefIds.3.data.settings.growth.effectStrengthLevel,0,,,explicit-serialized
@@ -22560,9 +22554,6 @@ BuildingSO|building:1802,building:1802,references.RefIds.4.data.settings.conditi
 BuildingSO|building:1802,building:1802,references.RefIds.4.data.settings.baseJamChance,0.01,,,explicit-serialized
 BuildingSO|building:1802,building:1802,references.RefIds.4.data.settings.baseMisfireChance,0.005,,,explicit-serialized
 BuildingSO|building:1802,building:1802,references.RefIds.4.data.settings.facilityFamilyId,defense:supply,,,explicit-serialized
-BuildingSO|building:1802,building:1802,references.RefIds.4.data.settings.affinityTags.0,defense:reload,,,explicit-serialized
-BuildingSO|building:1802,building:1802,references.RefIds.4.data.settings.affinityTags.1,species:beastkin,,,explicit-serialized
-BuildingSO|building:1802,building:1802,references.RefIds.4.data.settings.affinityTags.2,species:kobold,,,explicit-serialized
 BuildingSO|building:1802,building:1802,references.RefIds.4.data.settings.growth.capacityLevel,0,,,explicit-serialized
 BuildingSO|building:1802,building:1802,references.RefIds.4.data.settings.growth.resetSpeedLevel,0,,,explicit-serialized
 BuildingSO|building:1802,building:1802,references.RefIds.4.data.settings.growth.effectStrengthLevel,0,,,explicit-serialized
@@ -22707,9 +22698,6 @@ BuildingSO|building:1803,building:1803,references.RefIds.4.data.settings.conditi
 BuildingSO|building:1803,building:1803,references.RefIds.4.data.settings.baseJamChance,0.01,,,explicit-serialized
 BuildingSO|building:1803,building:1803,references.RefIds.4.data.settings.baseMisfireChance,0.005,,,explicit-serialized
 BuildingSO|building:1803,building:1803,references.RefIds.4.data.settings.facilityFamilyId,defense:maintenance,,,explicit-serialized
-BuildingSO|building:1803,building:1803,references.RefIds.4.data.settings.affinityTags.0,defense:repair,,,explicit-serialized
-BuildingSO|building:1803,building:1803,references.RefIds.4.data.settings.affinityTags.1,species:kobold,,,explicit-serialized
-BuildingSO|building:1803,building:1803,references.RefIds.4.data.settings.affinityTags.2,species:golem,,,explicit-serialized
 BuildingSO|building:1803,building:1803,references.RefIds.4.data.settings.growth.capacityLevel,0,,,explicit-serialized
 BuildingSO|building:1803,building:1803,references.RefIds.4.data.settings.growth.resetSpeedLevel,0,,,explicit-serialized
 BuildingSO|building:1803,building:1803,references.RefIds.4.data.settings.growth.effectStrengthLevel,0,,,explicit-serialized
@@ -22859,9 +22847,6 @@ BuildingSO|building:1804,building:1804,references.RefIds.4.data.settings.conditi
 BuildingSO|building:1804,building:1804,references.RefIds.4.data.settings.baseJamChance,0.025,,,explicit-serialized
 BuildingSO|building:1804,building:1804,references.RefIds.4.data.settings.baseMisfireChance,0.005,,,explicit-serialized
 BuildingSO|building:1804,building:1804,references.RefIds.4.data.settings.facilityFamilyId,defense:barrier,,,explicit-serialized
-BuildingSO|building:1804,building:1804,references.RefIds.4.data.settings.affinityTags.0,defense:wall,,,explicit-serialized
-BuildingSO|building:1804,building:1804,references.RefIds.4.data.settings.affinityTags.1,species:orc,,,explicit-serialized
-BuildingSO|building:1804,building:1804,references.RefIds.4.data.settings.affinityTags.2,species:golem,,,explicit-serialized
 BuildingSO|building:1804,building:1804,references.RefIds.4.data.settings.growth.capacityLevel,0,,,explicit-serialized
 BuildingSO|building:1804,building:1804,references.RefIds.4.data.settings.growth.resetSpeedLevel,0,,,explicit-serialized
 BuildingSO|building:1804,building:1804,references.RefIds.4.data.settings.growth.effectStrengthLevel,0,,,explicit-serialized
@@ -23000,9 +22985,6 @@ BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.conditi
 BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.baseJamChance,0.01,,,explicit-serialized
 BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.baseMisfireChance,0.005,,,explicit-serialized
 BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.facilityFamilyId,defense:launcher,,,explicit-serialized
-BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.affinityTags.0,defense:ranged,,,explicit-serialized
-BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.affinityTags.1,species:harpy,,,explicit-serialized
-BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.affinityTags.2,species:kobold,,,explicit-serialized
 BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.growth.capacityLevel,0,,,explicit-serialized
 BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.growth.resetSpeedLevel,0,,,explicit-serialized
 BuildingSO|building:1805,building:1805,references.RefIds.3.data.settings.growth.effectStrengthLevel,0,,,explicit-serialized
@@ -23200,9 +23182,6 @@ BuildingSO|building:30,building:30,references.RefIds.2.data.settings.conditionLo
 BuildingSO|building:30,building:30,references.RefIds.2.data.settings.baseJamChance,0.01,,,explicit-serialized
 BuildingSO|building:30,building:30,references.RefIds.2.data.settings.baseMisfireChance,0.005,,,explicit-serialized
 BuildingSO|building:30,building:30,references.RefIds.2.data.settings.facilityFamilyId,defense:scatter-trap,,,explicit-serialized
-BuildingSO|building:30,building:30,references.RefIds.2.data.settings.affinityTags.0,defense:scatter,,,explicit-serialized
-BuildingSO|building:30,building:30,references.RefIds.2.data.settings.affinityTags.1,species:kobold,,,explicit-serialized
-BuildingSO|building:30,building:30,references.RefIds.2.data.settings.affinityTags.2,species:orc,,,explicit-serialized
 BuildingSO|building:30,building:30,references.RefIds.2.data.settings.growth.capacityLevel,0,,,explicit-serialized
 BuildingSO|building:30,building:30,references.RefIds.2.data.settings.growth.resetSpeedLevel,0,,,explicit-serialized
 BuildingSO|building:30,building:30,references.RefIds.2.data.settings.growth.effectStrengthLevel,0,,,explicit-serialized
@@ -23335,9 +23314,6 @@ BuildingSO|building:31,building:31,references.RefIds.2.data.settings.conditionLo
 BuildingSO|building:31,building:31,references.RefIds.2.data.settings.baseJamChance,0.01,,,explicit-serialized
 BuildingSO|building:31,building:31,references.RefIds.2.data.settings.baseMisfireChance,0.005,,,explicit-serialized
 BuildingSO|building:31,building:31,references.RefIds.2.data.settings.facilityFamilyId,defense:toxin,,,explicit-serialized
-BuildingSO|building:31,building:31,references.RefIds.2.data.settings.affinityTags.0,defense:poison,,,explicit-serialized
-BuildingSO|building:31,building:31,references.RefIds.2.data.settings.affinityTags.1,species:vampire,,,explicit-serialized
-BuildingSO|building:31,building:31,references.RefIds.2.data.settings.affinityTags.2,species:myconid,,,explicit-serialized
 BuildingSO|building:31,building:31,references.RefIds.2.data.settings.growth.capacityLevel,0,,,explicit-serialized
 BuildingSO|building:31,building:31,references.RefIds.2.data.settings.growth.resetSpeedLevel,0,,,explicit-serialized
 BuildingSO|building:31,building:31,references.RefIds.2.data.settings.growth.effectStrengthLevel,0,,,explicit-serialized
@@ -23473,9 +23449,6 @@ BuildingSO|building:32,building:32,references.RefIds.2.data.settings.conditionLo
 BuildingSO|building:32,building:32,references.RefIds.2.data.settings.baseJamChance,0.01,,,explicit-serialized
 BuildingSO|building:32,building:32,references.RefIds.2.data.settings.baseMisfireChance,0.005,,,explicit-serialized
 BuildingSO|building:32,building:32,references.RefIds.2.data.settings.facilityFamilyId,defense:elemental,,,explicit-serialized
-BuildingSO|building:32,building:32,references.RefIds.2.data.settings.affinityTags.0,defense:fire,,,explicit-serialized
-BuildingSO|building:32,building:32,references.RefIds.2.data.settings.affinityTags.1,species:orc,,,explicit-serialized
-BuildingSO|building:32,building:32,references.RefIds.2.data.settings.affinityTags.2,species:demon,,,explicit-serialized
 BuildingSO|building:32,building:32,references.RefIds.2.data.settings.growth.capacityLevel,0,,,explicit-serialized
 BuildingSO|building:32,building:32,references.RefIds.2.data.settings.growth.resetSpeedLevel,0,,,explicit-serialized
 BuildingSO|building:32,building:32,references.RefIds.2.data.settings.growth.effectStrengthLevel,0,,,explicit-serialized
@@ -23628,9 +23601,6 @@ BuildingSO|building:33,building:33,references.RefIds.2.data.settings.conditionLo
 BuildingSO|building:33,building:33,references.RefIds.2.data.settings.baseJamChance,0.01,,,explicit-serialized
 BuildingSO|building:33,building:33,references.RefIds.2.data.settings.baseMisfireChance,0.005,,,explicit-serialized
 BuildingSO|building:33,building:33,references.RefIds.2.data.settings.facilityFamilyId,defense:elemental,,,explicit-serialized
-BuildingSO|building:33,building:33,references.RefIds.2.data.settings.affinityTags.0,defense:lightning,,,explicit-serialized
-BuildingSO|building:33,building:33,references.RefIds.2.data.settings.affinityTags.1,species:beastkin,,,explicit-serialized
-BuildingSO|building:33,building:33,references.RefIds.2.data.settings.affinityTags.2,species:demon,,,explicit-serialized
 BuildingSO|building:33,building:33,references.RefIds.2.data.settings.growth.capacityLevel,0,,,explicit-serialized
 BuildingSO|building:33,building:33,references.RefIds.2.data.settings.growth.resetSpeedLevel,0,,,explicit-serialized
 BuildingSO|building:33,building:33,references.RefIds.2.data.settings.growth.effectStrengthLevel,0,,,explicit-serialized
@@ -23765,9 +23735,6 @@ BuildingSO|building:34,building:34,references.RefIds.2.data.settings.conditionLo
 BuildingSO|building:34,building:34,references.RefIds.2.data.settings.baseJamChance,0.01,,,explicit-serialized
 BuildingSO|building:34,building:34,references.RefIds.2.data.settings.baseMisfireChance,0.005,,,explicit-serialized
 BuildingSO|building:34,building:34,references.RefIds.2.data.settings.facilityFamilyId,defense:elemental,,,explicit-serialized
-BuildingSO|building:34,building:34,references.RefIds.2.data.settings.affinityTags.0,defense:ice,,,explicit-serialized
-BuildingSO|building:34,building:34,references.RefIds.2.data.settings.affinityTags.1,species:slime,,,explicit-serialized
-BuildingSO|building:34,building:34,references.RefIds.2.data.settings.affinityTags.2,species:vampire,,,explicit-serialized
 BuildingSO|building:34,building:34,references.RefIds.2.data.settings.growth.capacityLevel,0,,,explicit-serialized
 BuildingSO|building:34,building:34,references.RefIds.2.data.settings.growth.resetSpeedLevel,0,,,explicit-serialized
 BuildingSO|building:34,building:34,references.RefIds.2.data.settings.growth.effectStrengthLevel,0,,,explicit-serialized
@@ -23968,9 +23935,6 @@ BuildingSO|building:52,building:52,references.RefIds.2.data.settings.conditionLo
 BuildingSO|building:52,building:52,references.RefIds.2.data.settings.baseJamChance,0.01,,,explicit-serialized
 BuildingSO|building:52,building:52,references.RefIds.2.data.settings.baseMisfireChance,0.005,,,explicit-serialized
 BuildingSO|building:52,building:52,references.RefIds.2.data.settings.facilityFamilyId,defense:toxin,,,explicit-serialized
-BuildingSO|building:52,building:52,references.RefIds.2.data.settings.affinityTags.0,defense:poison,,,explicit-serialized
-BuildingSO|building:52,building:52,references.RefIds.2.data.settings.affinityTags.1,species:vampire,,,explicit-serialized
-BuildingSO|building:52,building:52,references.RefIds.2.data.settings.affinityTags.2,species:myconid,,,explicit-serialized
 BuildingSO|building:52,building:52,references.RefIds.2.data.settings.growth.capacityLevel,0,,,explicit-serialized
 BuildingSO|building:52,building:52,references.RefIds.2.data.settings.growth.resetSpeedLevel,0,,,explicit-serialized
 BuildingSO|building:52,building:52,references.RefIds.2.data.settings.growth.effectStrengthLevel,0,,,explicit-serialized
@@ -24108,9 +24072,6 @@ BuildingSO|building:53,building:53,references.RefIds.2.data.settings.conditionLo
 BuildingSO|building:53,building:53,references.RefIds.2.data.settings.baseJamChance,0.01,,,explicit-serialized
 BuildingSO|building:53,building:53,references.RefIds.2.data.settings.baseMisfireChance,0.005,,,explicit-serialized
 BuildingSO|building:53,building:53,references.RefIds.2.data.settings.facilityFamilyId,defense:elemental,,,explicit-serialized
-BuildingSO|building:53,building:53,references.RefIds.2.data.settings.affinityTags.0,defense:lightning,,,explicit-serialized
-BuildingSO|building:53,building:53,references.RefIds.2.data.settings.affinityTags.1,species:beastkin,,,explicit-serialized
-BuildingSO|building:53,building:53,references.RefIds.2.data.settings.affinityTags.2,species:demon,,,explicit-serialized
 BuildingSO|building:53,building:53,references.RefIds.2.data.settings.growth.capacityLevel,0,,,explicit-serialized
 BuildingSO|building:53,building:53,references.RefIds.2.data.settings.growth.resetSpeedLevel,0,,,explicit-serialized
 BuildingSO|building:53,building:53,references.RefIds.2.data.settings.growth.effectStrengthLevel,0,,,explicit-serialized
@@ -24250,9 +24211,6 @@ BuildingSO|building:57,building:57,references.RefIds.2.data.settings.conditionLo
 BuildingSO|building:57,building:57,references.RefIds.2.data.settings.baseJamChance,0.01,,,explicit-serialized
 BuildingSO|building:57,building:57,references.RefIds.2.data.settings.baseMisfireChance,0.005,,,explicit-serialized
 BuildingSO|building:57,building:57,references.RefIds.2.data.settings.facilityFamilyId,defense:elemental,,,explicit-serialized
-BuildingSO|building:57,building:57,references.RefIds.2.data.settings.affinityTags.0,defense:ice,,,explicit-serialized
-BuildingSO|building:57,building:57,references.RefIds.2.data.settings.affinityTags.1,species:slime,,,explicit-serialized
-BuildingSO|building:57,building:57,references.RefIds.2.data.settings.affinityTags.2,species:vampire,,,explicit-serialized
 BuildingSO|building:57,building:57,references.RefIds.2.data.settings.growth.capacityLevel,0,,,explicit-serialized
 BuildingSO|building:57,building:57,references.RefIds.2.data.settings.growth.resetSpeedLevel,0,,,explicit-serialized
 BuildingSO|building:57,building:57,references.RefIds.2.data.settings.growth.effectStrengthLevel,0,,,explicit-serialized
@@ -24395,9 +24353,6 @@ BuildingSO|building:58,building:58,references.RefIds.2.data.settings.conditionLo
 BuildingSO|building:58,building:58,references.RefIds.2.data.settings.baseJamChance,0.01,,,explicit-serialized
 BuildingSO|building:58,building:58,references.RefIds.2.data.settings.baseMisfireChance,0.02,,,explicit-serialized
 BuildingSO|building:58,building:58,references.RefIds.2.data.settings.facilityFamilyId,defense:blast-trap,,,explicit-serialized
-BuildingSO|building:58,building:58,references.RefIds.2.data.settings.affinityTags.0,defense:blast,,,explicit-serialized
-BuildingSO|building:58,building:58,references.RefIds.2.data.settings.affinityTags.1,species:kobold,,,explicit-serialized
-BuildingSO|building:58,building:58,references.RefIds.2.data.settings.affinityTags.2,species:demon,,,explicit-serialized
 BuildingSO|building:58,building:58,references.RefIds.2.data.settings.growth.capacityLevel,0,,,explicit-serialized
 BuildingSO|building:58,building:58,references.RefIds.2.data.settings.growth.resetSpeedLevel,0,,,explicit-serialized
 BuildingSO|building:58,building:58,references.RefIds.2.data.settings.growth.effectStrengthLevel,0,,,explicit-serialized
@@ -41495,7 +41450,6 @@ BuildingSO|building:9505,building:9505,references.RefIds.7.type.ns,,,,explicit-s
 BuildingSO|building:9505,building:9505,references.RefIds.7.type.asm,DungeonStory.Medical,,,explicit-serialized
 BuildingSO|building:9505,building:9505,references.RefIds.7.data.abilityId,BuildingAnesthesiaAbility,,,explicit-serialized
 BuildingSO|building:9505,building:9505,references.RefIds.7.data.stabilityBonus,0.35,,,explicit-serialized
-BuildingSO|building:9505,building:9505,references.RefIds.7.data.anesthesiaItemId,medicine:anesthetic,,,explicit-serialized
 BuildingSO|building:9505,building:9505,references.RefIds.7.data.anesthesiaCost,1,,,explicit-serialized
 BuildingSO|building:9505,building:9505,references.RefIds.8.rid,7737211857806557889,,,explicit-serialized
 BuildingSO|building:9505,building:9505,references.RefIds.8.type.class,BuildingWorkAmountAbility,,,explicit-serialized
@@ -48190,9 +48144,6 @@ BuildingSO|building:9961,building:9961,references.RefIds.5.data.settings.conditi
 BuildingSO|building:9961,building:9961,references.RefIds.5.data.settings.baseJamChance,0.01,,,explicit-serialized
 BuildingSO|building:9961,building:9961,references.RefIds.5.data.settings.baseMisfireChance,0.005,,,explicit-serialized
 BuildingSO|building:9961,building:9961,references.RefIds.5.data.settings.facilityFamilyId,defense:launcher,,,explicit-serialized
-BuildingSO|building:9961,building:9961,references.RefIds.5.data.settings.affinityTags.0,defense:ranged,,,explicit-serialized
-BuildingSO|building:9961,building:9961,references.RefIds.5.data.settings.affinityTags.1,species:harpy,,,explicit-serialized
-BuildingSO|building:9961,building:9961,references.RefIds.5.data.settings.affinityTags.2,species:kobold,,,explicit-serialized
 BuildingSO|building:9961,building:9961,references.RefIds.5.data.settings.growth.capacityLevel,0,,,explicit-serialized
 BuildingSO|building:9961,building:9961,references.RefIds.5.data.settings.growth.resetSpeedLevel,0,,,explicit-serialized
 BuildingSO|building:9961,building:9961,references.RefIds.5.data.settings.growth.effectStrengthLevel,0,,,explicit-serialized

@@ -19,7 +19,8 @@ public static class OffenseBattleSessionRules
             combatant.Stats.Strength * manipulation,
             combatant.Stats.Toughness,
             combatant.Stats.Dexterity * manipulation,
-            Mathf.Min(combatant.HealthRatio, combatant.Consciousness));
+            Mathf.Min(combatant.HealthRatio, combatant.Consciousness),
+            bluntDamageMultiplier: combatant.BluntDamageMultiplier);
     }
 
     public static CombatStatSnapshot CreateModifiedCombatStats(
@@ -49,7 +50,8 @@ public static class OffenseBattleSessionRules
             value.Dexterity * accuracy * activity,
             value.HealthMultiplier,
             combatant.ArcanePowerMultiplier,
-            hasArcanePowerMultiplier: true);
+            hasArcanePowerMultiplier: true,
+            bluntDamageMultiplier: value.BluntDamageMultiplier);
     }
 
     public static CombatStatSnapshot CreateAttackStats(
@@ -89,7 +91,9 @@ public static class OffenseBattleSessionRules
             value.Dexterity / resistance,
             value.HealthMultiplier,
             value.ArcanePowerMultiplier,
-            value.HasArcanePowerMultiplier);
+            value.HasArcanePowerMultiplier,
+            value.EvasionChanceBonus,
+            value.BluntDamageMultiplier);
     }
 
     public static CombatCoverSnapshot CreateEffectiveCover(

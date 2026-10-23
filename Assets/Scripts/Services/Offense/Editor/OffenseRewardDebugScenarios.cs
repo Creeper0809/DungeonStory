@@ -152,6 +152,8 @@ public static class OffenseRewardDebugScenarios
         savedAlly.participatesInInitiative = false;
         savedAlly.arcanePowerMultiplier = 1.75f;
         savedAlly.hasArcanePowerMultiplier = true;
+        savedAlly.bluntDamageMultiplier = 1f / 1.15f;
+        savedAlly.hasBluntDamageMultiplier = true;
         detachedSavedBattle.initiativeOrder.RemoveAll(value => string.Equals(
             value,
             actorId,
@@ -266,6 +268,28 @@ public static class OffenseRewardDebugScenarios
             && string.Equals(value.persistentId, actorId, StringComparison.Ordinal)).persistentId =
             actorId + ":mismatch";
         RequireMalformedSnapshotRejected(mismatchedId, "Mismatched saved ally ID");
+        foreach (float invalid in new[] { 0f, -1f, float.NaN, float.PositiveInfinity })
+        {
+            var malformed = JsonUtility.FromJson<OffenseBattlePersistenceState>(savedBattleJson);
+            malformed.combatants.Single(value => value.persistentId == actorId).bluntDamageMultiplier = invalid;
+            RequireMalformedSnapshotRejected(malformed, "Invalid saved blunt damage projection " + invalid);
+        }
+        // Repair and retry uses the saved frozen projection, never current narrative state.
+        battle.PublishPersistentRestore(battle.PreparePersistentRestore(expedition,
+            JsonUtility.FromJson<OffenseBattlePersistenceState>(savedBattleJson), null));
+        Require(JsonUtility.ToJson(battle.CapturePersistentState()) == savedBattleJson,
+            "Blunt projection repair/retry lost the exact saved battle.");
+        var legacyJson = Newtonsoft.Json.Linq.JObject.Parse(savedBattleJson);
+        foreach (var row in legacyJson["combatants"].OfType<Newtonsoft.Json.Linq.JObject>())
+        {
+            row.Remove("bluntDamageMultiplier");
+            row.Remove("hasBluntDamageMultiplier");
+        }
+        battle.PublishPersistentRestore(battle.PreparePersistentRestore(expedition,
+            JsonUtility.FromJson<OffenseBattlePersistenceState>(legacyJson.ToString()), null));
+        Require(battle.Session.Combatants.All(value => value.BluntDamageMultiplier == 1f)
+            && scenario.BattlePerformanceEvaluationCount == 0,
+            "Old battle JSON must preserve its neutral damage contract without live recomputation.");
         return true;
     }
 

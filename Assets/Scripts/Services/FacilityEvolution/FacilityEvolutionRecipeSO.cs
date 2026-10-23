@@ -49,13 +49,22 @@ public class FacilityEvolutionRecipeSO : DataScriptableObject
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? name : displayName;
     public bool IsSpecial => !publicByDefault || !string.IsNullOrWhiteSpace(requiredResearchRecipeId);
 
+    public string RecipeId => evolutionId?.Trim() ?? string.Empty;
+
     public bool HasValidData => resultBuilding != null
-        && (!string.IsNullOrWhiteSpace(evolutionId) || !string.IsNullOrWhiteSpace(name))
+        && !string.IsNullOrWhiteSpace(RecipeId)
         && (fromFacilities == null || fromFacilities.All((building) => building != null))
         && (fromFacilities != null && fromFacilities.Length > 0
             || fromLineageTags != null && fromLineageTags.Length > 0);
 
-    public string EffectiveId => !string.IsNullOrWhiteSpace(evolutionId) ? evolutionId : name;
+    public string EffectiveId => RecipeId;
+
+    public IReadOnlyList<string> ValidateDefinition()
+    {
+        return string.IsNullOrWhiteSpace(RecipeId)
+            ? new[] { "Facility evolution recipe ID is required." }
+            : Array.Empty<string>();
+    }
 
     public NarrativeFormulaStrengthPolicy RequireFormulaPolicy()
     {

@@ -1022,8 +1022,12 @@ internal static class CharacterAiEditorTestDependencies
     }
 
     private sealed class EditorNeutralCharacterPerformanceQuery :
-        ICharacterPerformanceQuery
+        ICharacterPerformanceQuery, ICharacterGameplayEffectValueQuery
     {
+        public GameplayEffectProjectionResult ProjectGameplayEffectValue(
+            CharacterActor actor, string targetId, float baseValue, GameplayEffectContext context = null) =>
+            new(baseValue, Array.Empty<GameplayEffectContribution>());
+
         public CharacterFunctionalCapacitySnapshot GetFunctionalCapacities(
             CharacterActor actor) => new(
             Enum.GetValues(typeof(CharacterFunctionalCapacityId))

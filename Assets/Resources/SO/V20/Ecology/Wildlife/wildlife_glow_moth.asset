@@ -46,9 +46,6 @@ MonoBehaviour:
   husbandryProducts: []
   authoringRevision: 1
   preySpeciesIds: []
-  predatorSpeciesIds:
-  - cave_rat
-  - silk_spider
   nestTag: nest:ceiling-cocoon
   breedingSeason: 0
   migrationPatternId: migration:mana-lamp

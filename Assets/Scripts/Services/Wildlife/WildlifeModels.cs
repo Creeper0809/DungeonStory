@@ -89,8 +89,14 @@ public sealed class ResourceWildlifeSpeciesCatalogProvider : IWildlifeSpeciesCat
             }
         }
 
-        species = authored
+        WildlifeSpeciesDefinition[] huntingDefinitions = authored
             .Select(asset => asset.ToDefinition())
+            .ToArray();
+        species = authored
+            .Select(asset => asset.ToDefinition(
+                huntingDefinitions
+                    .Where(predator => predator.Hunts(asset.SpeciesId))
+                    .Select(predator => predator.SpeciesId)))
             .OrderBy(definition => definition.SpeciesId, StringComparer.Ordinal)
             .ToArray();
         speciesById = species.ToDictionary(

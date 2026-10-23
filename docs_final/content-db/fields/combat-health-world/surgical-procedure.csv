@@ -8,7 +8,6 @@ SurgicalProcedureSO|procedure:amputation,procedure:amputation,family,0,MedicalPr
 SurgicalProcedureSO|procedure:amputation,procedure:amputation,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:amputation,procedure:amputation,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:amputation,procedure:amputation,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:amputation,procedure:amputation,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:amputation,procedure:amputation,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:amputation,procedure:amputation,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:amputation,procedure:amputation,requiredResearchId,research:medical:surgery,,,explicit-serialized
@@ -42,7 +41,6 @@ SurgicalProcedureSO|procedure:arcane-modification,procedure:arcane-modification,
 SurgicalProcedureSO|procedure:arcane-modification,procedure:arcane-modification,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:arcane-modification,procedure:arcane-modification,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:arcane-modification,procedure:arcane-modification,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:arcane-modification,procedure:arcane-modification,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:arcane-modification,procedure:arcane-modification,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:arcane-modification,procedure:arcane-modification,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:arcane-modification,procedure:arcane-modification,requiredResearchId,research:medical:aberrant-augmentation,,,explicit-serialized
@@ -89,7 +87,6 @@ SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-jo
 SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,allowedSpeciesIds.0,beastkin,,,explicit-serialized
-SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,targetNodeId,leg:left,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-sprint-joint,procedure:beastkin-sprint-joint,requiredResearchId,research:medical:prosthetics,,,explicit-serialized
@@ -125,7 +122,6 @@ SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-ta
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,allowedSpeciesIds.0,beastkin,,,explicit-serialized
-SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,targetNodeId,balance-tail,,,explicit-serialized
 SurgicalProcedureSO|procedure:beastkin-tail-reconstruction,procedure:beastkin-tail-reconstruction,requiredResearchId,research:medical:prosthetics,,,explicit-serialized
@@ -161,7 +157,6 @@ SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,fa
 SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-rejuvenation,procedure:blood-rejuvenation,requiredResearchId,research:medical:blood-rejuvenation,,,explicit-serialized
@@ -196,7 +191,6 @@ SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,fami
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:blood-transfusion,procedure:blood-transfusion,requiredResearchId,research:survival:medical,,,explicit-serialized
@@ -238,7 +232,6 @@ SurgicalProcedureSO|procedure:corpse-organ-extraction,procedure:corpse-organ-ext
 SurgicalProcedureSO|procedure:corpse-organ-extraction,procedure:corpse-organ-extraction,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:corpse-organ-extraction,procedure:corpse-organ-extraction,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:corpse-organ-extraction,procedure:corpse-organ-extraction,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:corpse-organ-extraction,procedure:corpse-organ-extraction,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:corpse-organ-extraction,procedure:corpse-organ-extraction,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:corpse-organ-extraction,procedure:corpse-organ-extraction,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:corpse-organ-extraction,procedure:corpse-organ-extraction,requiredResearchId,research:medical:anatomy,,,explicit-serialized
@@ -272,7 +265,6 @@ SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,family,6,M
 SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,allowedSpeciesIds.0,demon,,,explicit-serialized
-SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,targetNodeId,heat-sac,,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-heat-sac,procedure:demon-heat-sac,requiredResearchId,research:medical:mana-core-engineering,,,explicit-serialized
@@ -308,7 +300,6 @@ SurgicalProcedureSO|procedure:demon-mana-core-suture,procedure:demon-mana-core-s
 SurgicalProcedureSO|procedure:demon-mana-core-suture,procedure:demon-mana-core-suture,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:demon-mana-core-suture,procedure:demon-mana-core-suture,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-mana-core-suture,procedure:demon-mana-core-suture,allowedSpeciesIds.0,demon,,,explicit-serialized
-SurgicalProcedureSO|procedure:demon-mana-core-suture,procedure:demon-mana-core-suture,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-mana-core-suture,procedure:demon-mana-core-suture,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-mana-core-suture,procedure:demon-mana-core-suture,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:demon-mana-core-suture,procedure:demon-mana-core-suture,requiredResearchId,research:medical:mana-core-engineering,,,explicit-serialized
@@ -343,7 +334,6 @@ SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,family
 SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:emergency-suture,procedure:emergency-suture,requiredResearchId,research:survival:medical,,,explicit-serialized
@@ -384,7 +374,6 @@ SurgicalProcedureSO|procedure:foreign-body-removal,procedure:foreign-body-remova
 SurgicalProcedureSO|procedure:foreign-body-removal,procedure:foreign-body-removal,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:foreign-body-removal,procedure:foreign-body-removal,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:foreign-body-removal,procedure:foreign-body-removal,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:foreign-body-removal,procedure:foreign-body-removal,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:foreign-body-removal,procedure:foreign-body-removal,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:foreign-body-removal,procedure:foreign-body-removal,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:foreign-body-removal,procedure:foreign-body-removal,requiredResearchId,research:survival:medical,,,explicit-serialized
@@ -419,7 +408,6 @@ SurgicalProcedureSO|procedure:golem-body-recast,procedure:golem-body-recast,fami
 SurgicalProcedureSO|procedure:golem-body-recast,procedure:golem-body-recast,urgency,0,MedicalProcedureUrgency,Maintenance,explicit-serialized
 SurgicalProcedureSO|procedure:golem-body-recast,procedure:golem-body-recast,allowedAnatomyFamilies.0,construct,,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-body-recast,procedure:golem-body-recast,allowedSpeciesIds.0,golem,,,explicit-serialized
-SurgicalProcedureSO|procedure:golem-body-recast,procedure:golem-body-recast,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-body-recast,procedure:golem-body-recast,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-body-recast,procedure:golem-body-recast,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-body-recast,procedure:golem-body-recast,requiredResearchId,research:medical:construct-core-maintenance,,,explicit-serialized
@@ -454,7 +442,6 @@ SurgicalProcedureSO|procedure:golem-coolant-refill,procedure:golem-coolant-refil
 SurgicalProcedureSO|procedure:golem-coolant-refill,procedure:golem-coolant-refill,urgency,0,MedicalProcedureUrgency,Maintenance,explicit-serialized
 SurgicalProcedureSO|procedure:golem-coolant-refill,procedure:golem-coolant-refill,allowedAnatomyFamilies.0,construct,,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-coolant-refill,procedure:golem-coolant-refill,allowedSpeciesIds.0,golem,,,explicit-serialized
-SurgicalProcedureSO|procedure:golem-coolant-refill,procedure:golem-coolant-refill,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-coolant-refill,procedure:golem-coolant-refill,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-coolant-refill,procedure:golem-coolant-refill,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-coolant-refill,procedure:golem-coolant-refill,requiredResearchId,research:medical:construct-core-maintenance,,,explicit-serialized
@@ -489,7 +476,6 @@ SurgicalProcedureSO|procedure:golem-power-core,procedure:golem-power-core,family
 SurgicalProcedureSO|procedure:golem-power-core,procedure:golem-power-core,urgency,0,MedicalProcedureUrgency,Maintenance,explicit-serialized
 SurgicalProcedureSO|procedure:golem-power-core,procedure:golem-power-core,allowedAnatomyFamilies.0,construct,,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-power-core,procedure:golem-power-core,allowedSpeciesIds.0,golem,,,explicit-serialized
-SurgicalProcedureSO|procedure:golem-power-core,procedure:golem-power-core,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-power-core,procedure:golem-power-core,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-power-core,procedure:golem-power-core,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-power-core,procedure:golem-power-core,requiredResearchId,research:medical:construct-core-maintenance,,,explicit-serialized
@@ -524,7 +510,6 @@ SurgicalProcedureSO|procedure:golem-sensor-core,procedure:golem-sensor-core,fami
 SurgicalProcedureSO|procedure:golem-sensor-core,procedure:golem-sensor-core,urgency,0,MedicalProcedureUrgency,Maintenance,explicit-serialized
 SurgicalProcedureSO|procedure:golem-sensor-core,procedure:golem-sensor-core,allowedAnatomyFamilies.0,construct,,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-sensor-core,procedure:golem-sensor-core,allowedSpeciesIds.0,golem,,,explicit-serialized
-SurgicalProcedureSO|procedure:golem-sensor-core,procedure:golem-sensor-core,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-sensor-core,procedure:golem-sensor-core,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-sensor-core,procedure:golem-sensor-core,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-sensor-core,procedure:golem-sensor-core,requiredResearchId,research:medical:construct-core-maintenance,,,explicit-serialized
@@ -559,7 +544,6 @@ SurgicalProcedureSO|procedure:golem-servo-alignment,procedure:golem-servo-alignm
 SurgicalProcedureSO|procedure:golem-servo-alignment,procedure:golem-servo-alignment,urgency,0,MedicalProcedureUrgency,Maintenance,explicit-serialized
 SurgicalProcedureSO|procedure:golem-servo-alignment,procedure:golem-servo-alignment,allowedAnatomyFamilies.0,construct,,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-servo-alignment,procedure:golem-servo-alignment,allowedSpeciesIds.0,golem,,,explicit-serialized
-SurgicalProcedureSO|procedure:golem-servo-alignment,procedure:golem-servo-alignment,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-servo-alignment,procedure:golem-servo-alignment,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-servo-alignment,procedure:golem-servo-alignment,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:golem-servo-alignment,procedure:golem-servo-alignment,requiredResearchId,research:medical:construct-core-maintenance,,,explicit-serialized
@@ -594,7 +578,6 @@ SurgicalProcedureSO|procedure:harpy-air-sac-suture,procedure:harpy-air-sac-sutur
 SurgicalProcedureSO|procedure:harpy-air-sac-suture,procedure:harpy-air-sac-suture,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-air-sac-suture,procedure:harpy-air-sac-suture,allowedAnatomyFamilies.0,avian,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-air-sac-suture,procedure:harpy-air-sac-suture,allowedSpeciesIds.0,harpy,,,explicit-serialized
-SurgicalProcedureSO|procedure:harpy-air-sac-suture,procedure:harpy-air-sac-suture,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-air-sac-suture,procedure:harpy-air-sac-suture,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-air-sac-suture,procedure:harpy-air-sac-suture,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-air-sac-suture,procedure:harpy-air-sac-suture,requiredResearchId,research:medical:avian-prosthetics,,,explicit-serialized
@@ -629,7 +612,6 @@ SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-reg
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,allowedAnatomyFamilies.0,avian,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,allowedSpeciesIds.0,harpy,,,explicit-serialized
-SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,targetNodeId,wing:left,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-feather-regrowth,procedure:harpy-feather-regrowth,requiredResearchId,research:medical:avian-prosthetics,,,explicit-serialized
@@ -665,7 +647,6 @@ SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,family
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,allowedAnatomyFamilies.0,avian,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,allowedSpeciesIds.0,harpy,,,explicit-serialized
-SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,targetNodeId,balance-tail,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-tail-graft,procedure:harpy-tail-graft,requiredResearchId,research:medical:avian-prosthetics,,,explicit-serialized
@@ -701,7 +682,6 @@ SurgicalProcedureSO|procedure:harpy-wing-fixation,procedure:harpy-wing-fixation,
 SurgicalProcedureSO|procedure:harpy-wing-fixation,procedure:harpy-wing-fixation,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-wing-fixation,procedure:harpy-wing-fixation,allowedAnatomyFamilies.0,avian,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-wing-fixation,procedure:harpy-wing-fixation,allowedSpeciesIds.0,harpy,,,explicit-serialized
-SurgicalProcedureSO|procedure:harpy-wing-fixation,procedure:harpy-wing-fixation,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-wing-fixation,procedure:harpy-wing-fixation,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-wing-fixation,procedure:harpy-wing-fixation,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:harpy-wing-fixation,procedure:harpy-wing-fixation,requiredResearchId,research:medical:avian-prosthetics,,,explicit-serialized
@@ -736,7 +716,6 @@ SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,
 SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,allowedSpeciesIds.0,human,,,explicit-serialized
-SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,targetNodeId,brain,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-neural-assist,procedure:human-neural-assist,requiredResearchId,research:medical:prosthetics,,,explicit-serialized
@@ -772,7 +751,6 @@ SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precisi
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,allowedSpeciesIds.0,human,,,explicit-serialized
-SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,targetNodeId,arm:left,,,explicit-serialized
 SurgicalProcedureSO|procedure:human-precision-prosthetic,procedure:human-precision-prosthetic,requiredResearchId,research:medical:prosthetics,,,explicit-serialized
@@ -808,7 +786,6 @@ SurgicalProcedureSO|procedure:implant-installation,procedure:implant-installatio
 SurgicalProcedureSO|procedure:implant-installation,procedure:implant-installation,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:implant-installation,procedure:implant-installation,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:implant-installation,procedure:implant-installation,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:implant-installation,procedure:implant-installation,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:implant-installation,procedure:implant-installation,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:implant-installation,procedure:implant-installation,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:implant-installation,procedure:implant-installation,requiredResearchId,research:medical:prosthetics,,,explicit-serialized
@@ -846,7 +823,6 @@ SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-h
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,allowedSpeciesIds.0,kobold,,,explicit-serialized
-SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,targetNodeId,hand:left,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-precision-hand,procedure:kobold-precision-hand,requiredResearchId,research:medical:prosthetics,,,explicit-serialized
@@ -882,7 +858,6 @@ SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,allowedSpeciesIds.0,kobold,,,explicit-serialized
-SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,targetNodeId,balance-tail,,,explicit-serialized
 SurgicalProcedureSO|procedure:kobold-tail-balance,procedure:kobold-tail-balance,requiredResearchId,research:medical:prosthetics,,,explicit-serialized
@@ -918,7 +893,6 @@ SurgicalProcedureSO|procedure:live-organ-extraction,procedure:live-organ-extract
 SurgicalProcedureSO|procedure:live-organ-extraction,procedure:live-organ-extraction,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:live-organ-extraction,procedure:live-organ-extraction,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:live-organ-extraction,procedure:live-organ-extraction,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:live-organ-extraction,procedure:live-organ-extraction,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:live-organ-extraction,procedure:live-organ-extraction,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:live-organ-extraction,procedure:live-organ-extraction,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:live-organ-extraction,procedure:live-organ-extraction,requiredResearchId,research:medical:surgery,,,explicit-serialized
@@ -955,7 +929,6 @@ SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,fa
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,allowedAnatomyFamilies.0,fungal,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,allowedSpeciesIds.0,myconid,,,explicit-serialized
-SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,targetNodeId,hypha-core,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-core-graft,procedure:myconid-core-graft,requiredResearchId,research:medical:mycelial-grafting,,,explicit-serialized
@@ -991,7 +964,6 @@ SurgicalProcedureSO|procedure:myconid-hypha-binding,procedure:myconid-hypha-bind
 SurgicalProcedureSO|procedure:myconid-hypha-binding,procedure:myconid-hypha-binding,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-hypha-binding,procedure:myconid-hypha-binding,allowedAnatomyFamilies.0,fungal,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-hypha-binding,procedure:myconid-hypha-binding,allowedSpeciesIds.0,myconid,,,explicit-serialized
-SurgicalProcedureSO|procedure:myconid-hypha-binding,procedure:myconid-hypha-binding,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-hypha-binding,procedure:myconid-hypha-binding,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-hypha-binding,procedure:myconid-hypha-binding,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-hypha-binding,procedure:myconid-hypha-binding,requiredResearchId,research:medical:mycelial-grafting,,,explicit-serialized
@@ -1026,7 +998,6 @@ SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,family
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,allowedAnatomyFamilies.0,fungal,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,allowedSpeciesIds.0,myconid,,,explicit-serialized
-SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,targetNodeId,arm:left,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-regrowth,procedure:myconid-regrowth,requiredResearchId,research:medical:mycelial-grafting,,,explicit-serialized
@@ -1062,7 +1033,6 @@ SurgicalProcedureSO|procedure:myconid-spore-cleaning,procedure:myconid-spore-cle
 SurgicalProcedureSO|procedure:myconid-spore-cleaning,procedure:myconid-spore-cleaning,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-spore-cleaning,procedure:myconid-spore-cleaning,allowedAnatomyFamilies.0,fungal,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-spore-cleaning,procedure:myconid-spore-cleaning,allowedSpeciesIds.0,myconid,,,explicit-serialized
-SurgicalProcedureSO|procedure:myconid-spore-cleaning,procedure:myconid-spore-cleaning,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-spore-cleaning,procedure:myconid-spore-cleaning,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-spore-cleaning,procedure:myconid-spore-cleaning,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:myconid-spore-cleaning,procedure:myconid-spore-cleaning,requiredResearchId,research:medical:mycelial-grafting,,,explicit-serialized
@@ -1097,7 +1067,6 @@ SurgicalProcedureSO|procedure:natural-organ-transplant,procedure:natural-organ-t
 SurgicalProcedureSO|procedure:natural-organ-transplant,procedure:natural-organ-transplant,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:natural-organ-transplant,procedure:natural-organ-transplant,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:natural-organ-transplant,procedure:natural-organ-transplant,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:natural-organ-transplant,procedure:natural-organ-transplant,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:natural-organ-transplant,procedure:natural-organ-transplant,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:natural-organ-transplant,procedure:natural-organ-transplant,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:natural-organ-transplant,procedure:natural-organ-transplant,requiredResearchId,research:medical:xenotransplant,,,explicit-serialized
@@ -1144,7 +1113,6 @@ SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,family
 SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,allowedSpeciesIds.0,orc,,,explicit-serialized
-SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,targetNodeId,heart,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-combat-heart,procedure:orc-combat-heart,requiredResearchId,research:medical:surgery,,,explicit-serialized
@@ -1180,7 +1148,6 @@ SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,allowedSpeciesIds.0,orc,,,explicit-serialized
-SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,targetNodeId,torso,,,explicit-serialized
 SurgicalProcedureSO|procedure:orc-skeletal-reinforcement,procedure:orc-skeletal-reinforcement,requiredResearchId,research:medical:surgery,,,explicit-serialized
@@ -1216,7 +1183,6 @@ SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,fa
 SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:organ-regeneration,procedure:organ-regeneration,requiredResearchId,research:medical:organ-regeneration,,,explicit-serialized
@@ -1254,7 +1220,6 @@ SurgicalProcedureSO|procedure:organ-repair,procedure:organ-repair,family,0,Medic
 SurgicalProcedureSO|procedure:organ-repair,procedure:organ-repair,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:organ-repair,procedure:organ-repair,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:organ-repair,procedure:organ-repair,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:organ-repair,procedure:organ-repair,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:organ-repair,procedure:organ-repair,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:organ-repair,procedure:organ-repair,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:organ-repair,procedure:organ-repair,requiredResearchId,research:medical:surgery,,,explicit-serialized
@@ -1292,7 +1257,6 @@ SurgicalProcedureSO|procedure:prosthetic-installation,procedure:prosthetic-insta
 SurgicalProcedureSO|procedure:prosthetic-installation,procedure:prosthetic-installation,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:prosthetic-installation,procedure:prosthetic-installation,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:prosthetic-installation,procedure:prosthetic-installation,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:prosthetic-installation,procedure:prosthetic-installation,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:prosthetic-installation,procedure:prosthetic-installation,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:prosthetic-installation,procedure:prosthetic-installation,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:prosthetic-installation,procedure:prosthetic-installation,requiredResearchId,research:medical:prosthetics,,,explicit-serialized
@@ -1327,7 +1291,6 @@ SurgicalProcedureSO|procedure:rehabilitation,procedure:rehabilitation,family,0,M
 SurgicalProcedureSO|procedure:rehabilitation,procedure:rehabilitation,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:rehabilitation,procedure:rehabilitation,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:rehabilitation,procedure:rehabilitation,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:rehabilitation,procedure:rehabilitation,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:rehabilitation,procedure:rehabilitation,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:rehabilitation,procedure:rehabilitation,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:rehabilitation,procedure:rehabilitation,requiredResearchId,research:medical:prosthetics,,,explicit-serialized
@@ -1371,7 +1334,6 @@ SurgicalProcedureSO|procedure:rune-hibernation,procedure:rune-hibernation,family
 SurgicalProcedureSO|procedure:rune-hibernation,procedure:rune-hibernation,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:rune-hibernation,procedure:rune-hibernation,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:rune-hibernation,procedure:rune-hibernation,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:rune-hibernation,procedure:rune-hibernation,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:rune-hibernation,procedure:rune-hibernation,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:rune-hibernation,procedure:rune-hibernation,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:rune-hibernation,procedure:rune-hibernation,requiredResearchId,research:medical:rune-hibernation,,,explicit-serialized
@@ -1404,9 +1366,8 @@ SurgicalProcedureSO|procedure:slime-core-stabilization,procedure:slime-core-stab
 SurgicalProcedureSO|procedure:slime-core-stabilization,procedure:slime-core-stabilization,kind,12,SurgicalProcedureKind,Species Stabilization,explicit-serialized
 SurgicalProcedureSO|procedure:slime-core-stabilization,procedure:slime-core-stabilization,family,1,MedicalProcedureFamily,Slime,explicit-serialized
 SurgicalProcedureSO|procedure:slime-core-stabilization,procedure:slime-core-stabilization,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
-SurgicalProcedureSO|procedure:slime-core-stabilization,procedure:slime-core-stabilization,allowedAnatomyFamilies.0,slime,,,explicit-serialized
+SurgicalProcedureSO|procedure:slime-core-stabilization,procedure:slime-core-stabilization,allowedAnatomyFamilies.0,aberrant,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-core-stabilization,procedure:slime-core-stabilization,allowedSpeciesIds.0,slime,,,explicit-serialized
-SurgicalProcedureSO|procedure:slime-core-stabilization,procedure:slime-core-stabilization,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-core-stabilization,procedure:slime-core-stabilization,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-core-stabilization,procedure:slime-core-stabilization,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-core-stabilization,procedure:slime-core-stabilization,requiredResearchId,research:medical:slime-bioengineering,,,explicit-serialized
@@ -1439,9 +1400,8 @@ SurgicalProcedureSO|procedure:slime-membrane-suture,procedure:slime-membrane-sut
 SurgicalProcedureSO|procedure:slime-membrane-suture,procedure:slime-membrane-suture,kind,12,SurgicalProcedureKind,Species Stabilization,explicit-serialized
 SurgicalProcedureSO|procedure:slime-membrane-suture,procedure:slime-membrane-suture,family,1,MedicalProcedureFamily,Slime,explicit-serialized
 SurgicalProcedureSO|procedure:slime-membrane-suture,procedure:slime-membrane-suture,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
-SurgicalProcedureSO|procedure:slime-membrane-suture,procedure:slime-membrane-suture,allowedAnatomyFamilies.0,slime,,,explicit-serialized
+SurgicalProcedureSO|procedure:slime-membrane-suture,procedure:slime-membrane-suture,allowedAnatomyFamilies.0,aberrant,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-membrane-suture,procedure:slime-membrane-suture,allowedSpeciesIds.0,slime,,,explicit-serialized
-SurgicalProcedureSO|procedure:slime-membrane-suture,procedure:slime-membrane-suture,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-membrane-suture,procedure:slime-membrane-suture,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-membrane-suture,procedure:slime-membrane-suture,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-membrane-suture,procedure:slime-membrane-suture,requiredResearchId,research:medical:slime-bioengineering,,,explicit-serialized
@@ -1474,9 +1434,8 @@ SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,kind,7,SurgicalProcedureKind,Install Prosthetic,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,family,1,MedicalProcedureFamily,Slime,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
-SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,allowedAnatomyFamilies.0,slime,,,explicit-serialized
+SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,allowedAnatomyFamilies.0,aberrant,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,allowedSpeciesIds.0,slime,,,explicit-serialized
-SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,targetNodeId,pseudopods,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-pseudopod-reshape,procedure:slime-pseudopod-reshape,requiredResearchId,research:medical:slime-bioengineering,,,explicit-serialized
@@ -1510,9 +1469,8 @@ SurgicalProcedureSO|procedure:slime-replenishment,procedure:slime-replenishment,
 SurgicalProcedureSO|procedure:slime-replenishment,procedure:slime-replenishment,kind,12,SurgicalProcedureKind,Species Stabilization,explicit-serialized
 SurgicalProcedureSO|procedure:slime-replenishment,procedure:slime-replenishment,family,1,MedicalProcedureFamily,Slime,explicit-serialized
 SurgicalProcedureSO|procedure:slime-replenishment,procedure:slime-replenishment,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
-SurgicalProcedureSO|procedure:slime-replenishment,procedure:slime-replenishment,allowedAnatomyFamilies.0,slime,,,explicit-serialized
+SurgicalProcedureSO|procedure:slime-replenishment,procedure:slime-replenishment,allowedAnatomyFamilies.0,aberrant,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-replenishment,procedure:slime-replenishment,allowedSpeciesIds.0,slime,,,explicit-serialized
-SurgicalProcedureSO|procedure:slime-replenishment,procedure:slime-replenishment,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-replenishment,procedure:slime-replenishment,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-replenishment,procedure:slime-replenishment,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:slime-replenishment,procedure:slime-replenishment,requiredResearchId,research:medical:slime-bioengineering,,,explicit-serialized
@@ -1547,7 +1505,6 @@ SurgicalProcedureSO|procedure:temporal-stasis,procedure:temporal-stasis,family,7
 SurgicalProcedureSO|procedure:temporal-stasis,procedure:temporal-stasis,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:temporal-stasis,procedure:temporal-stasis,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:temporal-stasis,procedure:temporal-stasis,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:temporal-stasis,procedure:temporal-stasis,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:temporal-stasis,procedure:temporal-stasis,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:temporal-stasis,procedure:temporal-stasis,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:temporal-stasis,procedure:temporal-stasis,requiredResearchId,research:medical:temporal-stasis,,,explicit-serialized
@@ -1582,7 +1539,6 @@ SurgicalProcedureSO|procedure:vampire-blood-sac,procedure:vampire-blood-sac,fami
 SurgicalProcedureSO|procedure:vampire-blood-sac,procedure:vampire-blood-sac,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-blood-sac,procedure:vampire-blood-sac,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-blood-sac,procedure:vampire-blood-sac,allowedSpeciesIds.0,vampire,,,explicit-serialized
-SurgicalProcedureSO|procedure:vampire-blood-sac,procedure:vampire-blood-sac,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-blood-sac,procedure:vampire-blood-sac,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-blood-sac,procedure:vampire-blood-sac,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-blood-sac,procedure:vampire-blood-sac,requiredResearchId,research:medical:bloodcraft-augmentation,,,explicit-serialized
@@ -1617,7 +1573,6 @@ SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,fami
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,allowedAnatomyFamilies.0,humanoid,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,allowedSpeciesIds.0,vampire,,,explicit-serialized
-SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,targetNodeId,night-eye:left,,,explicit-serialized
 SurgicalProcedureSO|procedure:vampire-night-eye,procedure:vampire-night-eye,requiredResearchId,research:medical:bloodcraft-augmentation,,,explicit-serialized
@@ -1653,7 +1608,6 @@ SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regen
 SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regeneration,urgency,1,MedicalProcedureUrgency,Elective,explicit-serialized
 SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regeneration,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regeneration,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regeneration,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regeneration,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regeneration,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:whole-body-regeneration,procedure:whole-body-regeneration,requiredResearchId,research:medical:whole-body-regeneration,,,explicit-serialized
@@ -1688,7 +1642,6 @@ SurgicalProcedureSO|procedure:xenograft,procedure:xenograft,family,0,MedicalProc
 SurgicalProcedureSO|procedure:xenograft,procedure:xenograft,urgency,2,MedicalProcedureUrgency,Required,explicit-serialized
 SurgicalProcedureSO|procedure:xenograft,procedure:xenograft,allowedAnatomyFamilies,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:xenograft,procedure:xenograft,allowedSpeciesIds,[],,,explicit-serialized
-SurgicalProcedureSO|procedure:xenograft,procedure:xenograft,operatorRequirement.stats,[],,,explicit-serialized
 SurgicalProcedureSO|procedure:xenograft,procedure:xenograft,operatorRequirement.minimumWeightedScore,3,,,explicit-serialized
 SurgicalProcedureSO|procedure:xenograft,procedure:xenograft,targetNodeId,,,,explicit-serialized
 SurgicalProcedureSO|procedure:xenograft,procedure:xenograft,requiredResearchId,research:medical:xenotransplant,,,explicit-serialized

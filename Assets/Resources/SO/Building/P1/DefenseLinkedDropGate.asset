@@ -136,10 +136,6 @@ MonoBehaviour:
           baseJamChance: 0.025
           baseMisfireChance: 0.005
           facilityFamilyId: defense:barrier
-          affinityTags:
-          - defense:wall
-          - species:orc
-          - species:golem
           growth:
             capacityLevel: 0
             resetSpeedLevel: 0

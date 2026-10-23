@@ -230,12 +230,13 @@ public sealed class CharacterBodyHealthRuntime :
                             + delta
                             * BaseManaRecoveryPerGameHour
                             / secondsPerGameHour
-                            * Mathf.Max(0f, manaRecoveryMultiplier));
+                            * Mathf.Max(0f, manaRecoveryMultiplier)
+                            / ManaCapacityMultiplier(actor));
                     CharacterPerformanceExecutionTrace.Record(
                         CharacterPerformanceFormulaIds.ManaRecovery,
                         "CharacterBodyHealthRuntime.Tick",
                         delta,
-                        state.currentMana - manaBeforeRecovery,
+                        (state.currentMana - manaBeforeRecovery) * ManaCapacityMultiplier(actor),
                         id.Value);
                 }
             }
@@ -291,12 +292,23 @@ public sealed class CharacterBodyHealthRuntime :
     public CharacterManaSnapshot GetMana(CharacterActor actor)
     {
         CharacterBodyHealthState state = GetForQuery(actor);
+        float capacity = state == null ? 1f : ManaCapacityMultiplier(actor);
         return state == null
             ? new CharacterManaSnapshot(0f, 100f, recoveryBlocked: false)
             : new CharacterManaSnapshot(
-                state.currentMana,
-                state.maxMana,
+                state.currentMana * capacity,
+                state.maxMana * capacity,
                 state.manaBlockedRemainingSeconds > 0f);
+    }
+
+    // Persist base mana units so a trait is applied once, including after restore.
+    // Commands and UI use effective units; changing capacity preserves the filled fraction.
+    private static float ManaCapacityMultiplier(CharacterActor actor)
+    {
+        float value = actor?.Stats?.ProjectDetailedStat(GameplayEffectTargetIds.MaximumMana, 1f).Value ?? 1f;
+        if (!float.IsFinite(value) || value <= 0f)
+            throw new InvalidOperationException("Mana capacity must be finite and positive.");
+        return value;
     }
 
     public bool CanSpendMana(
@@ -312,9 +324,10 @@ public sealed class CharacterBodyHealthRuntime :
             return false;
         }
         CharacterBodyHealthState state = GetForQuery(actor);
-        if (state == null || state.currentMana + 0.0001f < amount)
+        float available = state == null ? 0f : state.currentMana * ManaCapacityMultiplier(actor);
+        if (state == null || available + 0.0001f < amount)
         {
-            failureReason = $"마나 부족: {state?.currentMana ?? 0f:0.#}/{amount:0.#}";
+            failureReason = $"마나 부족: {available:0.#}/{amount:0.#}";
             return false;
         }
         return true;
@@ -331,7 +344,7 @@ public sealed class CharacterBodyHealthRuntime :
         if (!CanSpendMana(actor, amount, out failureReason))
             return false;
         CharacterBodyHealthState state = GetOrCreate(actor);
-        state.currentMana = Mathf.Max(0f, state.currentMana - amount);
+        state.currentMana = Mathf.Max(0f, state.currentMana - amount / ManaCapacityMultiplier(actor));
         return true;
     }
 
@@ -345,7 +358,7 @@ public sealed class CharacterBodyHealthRuntime :
         CharacterBodyHealthState state = GetOrCreate(actor);
         state.currentMana = Mathf.Min(
             Mathf.Max(1f, state.maxMana),
-            state.currentMana + amount);
+            state.currentMana + amount / ManaCapacityMultiplier(actor));
     }
 
     public void ConfigureVitals(

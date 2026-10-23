@@ -18,7 +18,7 @@ public sealed class EnvironmentalWorkwearSO : DataScriptableObject
     [SerializeField] private string itemDefinitionId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [TextArea, SerializeField] private string description = string.Empty;
-    [ContentReference(ContentReferenceKind.Species)]
+    [ContentReference(ContentReferenceKind.Species, IgnoreCase = true)]
     [SerializeField] private string[] allowedSpecies = Array.Empty<string>();
     [SerializeField] private ThermalProtectionProfile protection =
         new ThermalProtectionProfile();

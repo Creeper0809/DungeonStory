@@ -21,6 +21,7 @@ MonoBehaviour:
   baseSeverity: 55
   targetSystem: 4
   vaccineAllowed: 1
+  vaccineItemId: medicine:vaccine:red-fever
   chronic: 0
   description: "\uC801\uC5F4\uBCD1\uC758 \uACE0\uC720 \uC804\uD30C\uC640 \uAE30\uAD00
     \uC99D\uC0C1."

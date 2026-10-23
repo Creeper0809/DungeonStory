@@ -46,8 +46,6 @@ MonoBehaviour:
   husbandryProducts: []
   authoringRevision: 1
   preySpeciesIds: []
-  predatorSpeciesIds:
-  - rune_deer
   nestTag: nest:rune-node
   breedingSeason: 3
   migrationPatternId: migration:power-flux

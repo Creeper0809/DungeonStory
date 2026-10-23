@@ -35,6 +35,8 @@ public sealed class HeritableTraitEffectQuery : IHeritableTraitEffectQuery
         HeritableTraitConsequenceKind kind,
         string targetId)
     {
+        if (!HeritableTraitConsequence.TargetsFor(kind).Contains(targetId, StringComparer.Ordinal))
+            throw new ArgumentException($"Unknown hereditary consumer '{kind}:{targetId}'.", nameof(targetId));
         if (!characterId.IsValid
             || !narratives.TryGet(characterId, out CharacterNarrativeSnapshot narrative))
             return 1f;

@@ -572,7 +572,8 @@ public sealed class RoomEnvironmentExperienceService :
             heritableTraits.GetMultiplier(
                 characterId,
                 HeritableTraitConsequenceKind.ManaOverloadDamage,
-                "mana-exposure"),
+                "mana-exposure") / heritableTraits.GetMultiplier(characterId,
+                    HeritableTraitConsequenceKind.ManaAffinity, "stability"),
             sourceKind: "room-mana-exposure",
             sourceId: eventType.Facility.RequirePersistentInstanceId().Value));
     }

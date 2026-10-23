@@ -8,6 +8,39 @@ using UnityEngine;
 
 public static class CombatSystemDebugScenarios
 {
+    public static void VerifyHeritableBluntDamage()
+    {
+        foreach (CombatDamageType kind in new[] { CombatDamageType.Blunt, CombatDamageType.Slash })
+        foreach (bool armored in new[] { false, true })
+        {
+            var weapon = new CombatWeaponSnapshot("weapon:r22", "weapon-instance:r22", CombatEquipmentKind.MeleeWeapon,
+                new MeleeStrikeVerb { attackTime = 1f, baseDamage = 10f, penetration = 7f, damageType = kind, tracking = .08f },
+                new[] { new CombatRangeProfile { band = CombatRangeBand.Contact, accuracyMultiplier = 1f, damageMultiplier = 1f } },
+                1, CombatEquipmentQuality.Normal, string.Empty, 0, 0, 0f, true, false, false);
+            CombatAttackResult Resolve(float bodyFactor)
+            {
+                var service = new CombatResolutionService(new SequenceRandom(0f, .99f, .2f), null, null, null,
+                    NoEnvironmentalFieldQuery.Instance, null, NoOpCharacterEnvironmentExposureCommand.Instance);
+                var request = new CombatAttackRequest("r22:blunt", "attacker", "defender",
+                    new CombatStatSnapshot(10f, 5f, 5f, 5f, 8f, 5f, 8f),
+                    new CombatStatSnapshot(5f, 5f, 5f, 5f, 5f, 8f, 5f, bluntDamageMultiplier: bodyFactor),
+                    weapon, 1, CombatFireMode.Aimed, default, defenderMeleeLocked: true,
+                    defenderArmor: armored ? new[] { new CombatArmorSnapshot("armor:r22", CombatBodyPart.Torso,
+                        CombatArmorLayer.Plate, CombatEquipmentQuality.Normal, 1f, 24f, 22f, 14f) } : null);
+                return service.Resolve(request);
+            }
+            var baseline = Resolve(1f);
+            var denseBone = Resolve(1f / 1.15f);
+            float expected = kind == CombatDamageType.Blunt ? 1f / 1.15f : 1f;
+            if (!baseline.Executed || !denseBone.Executed || !baseline.Hit || !denseBone.Hit
+                || baseline.AppliedDamage <= 0f
+                || Mathf.Abs(denseBone.AppliedDamage / baseline.AppliedDamage - expected) > .0001f
+                || baseline.ArmorDurabilityDamage != denseBone.ArmorDurabilityDamage)
+                throw new InvalidOperationException($"R22 bone-density result diverged: {kind}, armored={armored}.");
+        }
+        Debug.Log("SO_R22_BLUNT_PASS; actual combat result with/without armor; slash unchanged; armor wear unchanged");
+    }
+
     [MenuItem("DungeonStory/Debug/Combat/Run V14 Combat Scenarios")]
     public static void RunFromMenu()
     {

@@ -1227,7 +1227,9 @@ public sealed class CombatResolutionService :
         out string armorInstanceId,
         out IReadOnlyList<CombatArmorDurabilityHit> durabilityHits)
     {
-        appliedDamage = Mathf.Max(0f, incomingDamage);
+        float bodyMultiplier = verb.damageType == CombatDamageType.Blunt
+            ? request.Defender.BluntDamageMultiplier : 1f;
+        appliedDamage = Mathf.Max(0f, incomingDamage) * bodyMultiplier;
         durabilityDamage = 0f;
         armorInstanceId = string.Empty;
         durabilityHits = Array.Empty<CombatArmorDurabilityHit>();
@@ -1305,7 +1307,7 @@ public sealed class CombatResolutionService :
         }
 
         durabilityHits = hits;
-        appliedDamage = Mathf.Max(0.5f, remainingDamage);
+        appliedDamage = Mathf.Max(0.5f, remainingDamage) * bodyMultiplier;
     }
 
     private static float ResolveShieldBlockChance(

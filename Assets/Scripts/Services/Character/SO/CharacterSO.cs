@@ -87,6 +87,14 @@ public class CharacterSO : ScriptableObject
             : variantId.Trim();
     }
 
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        if (species == null) return;
+        speciesTag = species.speciesTag?.Trim() ?? string.Empty;
+    }
+#endif
+
     public TimeOfDay leavingTime
     {
         get

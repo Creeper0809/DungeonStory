@@ -2,12 +2,12 @@
 
 현재 Unity 작성 자산을 유형별로 나눈 영역 색인이다. 개별 항목은 유형 문서와 CSV에서 확인한다.
 
-총 359개 항목이다.
+총 365개 항목이다.
 
 | 유형 | 항목 | 런타임 확인 | 수동 검토 | 문서 | 작성 필드 | 관계 | 역참조 |
 |---|---:|---:|---:|---|---|---|---|
 | `AnatomyConditionLexiconSO` | 7 | 7 | 0 | [열기](types/combat-health-world/anatomy-condition-lexicon/README.md) | [CSV](fields/combat-health-world/anatomy-condition-lexicon.csv) | [CSV](relations/combat-health-world/anatomy-condition-lexicon.csv) | [CSV](incoming/combat-health-world/anatomy-condition-lexicon.csv) |
-| `AnatomyProfileSO` | 12 | 12 | 0 | [열기](types/combat-health-world/anatomy-profile/README.md) | [CSV](fields/combat-health-world/anatomy-profile.csv) | [CSV](relations/combat-health-world/anatomy-profile.csv) | [CSV](incoming/combat-health-world/anatomy-profile.csv) |
+| `AnatomyProfileSO` | 18 | 18 | 0 | [열기](types/combat-health-world/anatomy-profile/README.md) | [CSV](fields/combat-health-world/anatomy-profile.csv) | [CSV](relations/combat-health-world/anatomy-profile.csv) | [CSV](incoming/combat-health-world/anatomy-profile.csv) |
 | `BattlefieldModifierDefinitionSO` | 12 | 12 | 0 | [열기](types/combat-health-world/battlefield-modifier/README.md) | [CSV](fields/combat-health-world/battlefield-modifier.csv) | [CSV](relations/combat-health-world/battlefield-modifier.csv) | [CSV](incoming/combat-health-world/battlefield-modifier.csv) |
 | `CombatArmorSO` | 21 | 21 | 0 | [열기](types/combat-health-world/combat-armor/README.md) | [CSV](fields/combat-health-world/combat-armor.csv) | [CSV](relations/combat-health-world/combat-armor.csv) | [CSV](incoming/combat-health-world/combat-armor.csv) |
 | `CombatShieldSO` | 9 | 9 | 0 | [열기](types/combat-health-world/combat-shield/README.md) | [CSV](fields/combat-health-world/combat-shield.csv) | [CSV](relations/combat-health-world/combat-shield.csv) | [CSV](incoming/combat-health-world/combat-shield.csv) |

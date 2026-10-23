@@ -18,3 +18,10 @@ MonoBehaviour:
   affectedAnatomyNodeIds:
   - heart
   - core
+  anatomyTargets:
+  - anatomyProfileId: anatomy:demon
+    nodeIds:
+    - mana-core
+  - anatomyProfileId: anatomy:fungal
+    nodeIds:
+    - hypha-core

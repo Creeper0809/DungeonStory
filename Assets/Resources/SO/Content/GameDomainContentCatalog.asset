@@ -13,6 +13,12 @@ MonoBehaviour:
   m_Name: GameDomainContentCatalog
   m_EditorClassIdentifier: Assembly-CSharp::GameDomainContentCatalogSO
   definitions:
+  - {fileID: 11400000, guid: e9430f30eaaa46e18c56a1372d25df8b, type: 2}
+  - {fileID: 11400000, guid: 5aab69dbd4bb471b902944c9ef10e8eb, type: 2}
+  - {fileID: 11400000, guid: 9dd506fec83642899bb9d48868ba93d0, type: 2}
+  - {fileID: 11400000, guid: 3c5ecefc2e5e43ccb6efc5a24f9e0e9c, type: 2}
+  - {fileID: 11400000, guid: 01f0a0505f4944118eb8efc7e4c22cbe, type: 2}
+  - {fileID: 11400000, guid: 789fe4e6e6e44b698e055f0a0a167cda, type: 2}
   - {fileID: 11400000, guid: b871db888e09a6b48bdfa9a9c6768a8d, type: 2}
   - {fileID: 11400000, guid: 7135b8e3960399447af8f4e294df54af, type: 2}
   - {fileID: 11400000, guid: 7348bf09bed06514db1a42e5fa42af95, type: 2}

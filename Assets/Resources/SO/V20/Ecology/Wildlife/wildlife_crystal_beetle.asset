@@ -50,9 +50,6 @@ MonoBehaviour:
   husbandryProducts: []
   authoringRevision: 1
   preySpeciesIds: []
-  predatorSpeciesIds:
-  - moss_boar
-  - ember_lizard
   nestTag: nest:crystal-crevice
   breedingSeason: 3
   migrationPatternId: migration:mana-vein

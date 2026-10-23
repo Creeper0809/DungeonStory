@@ -6,12 +6,29 @@ using UnityEngine;
 
 public static class CharacterSkillCapabilityDebugScenarios
 {
+    public static bool RunFormulaCatalogRelationScenario()
+    {
+        CharacterSkillSystemSettingsSO settings =
+            EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
+        try
+        {
+            VerifyFormulaCatalogRelations(settings);
+            Debug.Log("CharacterSkill formula catalog relation scenario passed.");
+            return true;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(settings);
+        }
+    }
+
     public static bool RunAll()
     {
         CharacterSkillSystemSettingsSO settings =
             EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
         try
         {
+            VerifyFormulaCatalogRelations(settings);
             CharacterSkillCombinationSemanticsFactory.ValidateSettingsCoverage(settings);
             CharacterSkillModuleCapabilityDescriptor multiTarget =
                 CharacterSkillModuleCapabilityRegistry.Require(settings.FindModule("multi_target"));
@@ -164,6 +181,91 @@ public static class CharacterSkillCapabilityDebugScenarios
         finally
         {
             UnityEngine.Object.DestroyImmediate(settings);
+        }
+    }
+
+    private static void VerifyFormulaCatalogRelations(
+        CharacterSkillSystemSettingsSO settings)
+    {
+        Require(
+            settings.RequireFormulaCatalog().Count
+                == CharacterSkillFormulaCatalogAssetBuilder.ExpectedModuleCount,
+            "Current CharacterSkill formula catalog did not pass runtime relation validation.");
+
+        CharacterSkillModuleRule damage = settings.FindModule("damage")
+            ?? throw new InvalidOperationException("The damage module is missing.");
+        CharacterSkillModuleRule conditionalAmplify = settings.FindModule("conditional_amplify")
+            ?? throw new InvalidOperationException("The conditional-amplify module is missing.");
+        CharacterSkillPairSynergyCostDefinition damagePair = damage.formula
+            .pairSynergyCosts.Single(value => string.Equals(
+                value.otherCapabilityId,
+                "conditional_amplify",
+                StringComparison.Ordinal));
+        CharacterSkillPairSynergyCostDefinition reversePair = conditionalAmplify.formula
+            .pairSynergyCosts.Single(value => string.Equals(
+                value.otherCapabilityId,
+                "damage",
+                StringComparison.Ordinal));
+        string originalPairCapabilityId = damagePair.otherCapabilityId;
+        try
+        {
+            damagePair.otherCapabilityId = "qa:unknown-pair-capability";
+            RequireThrows(
+                () => settings.RequireFormulaCatalog(),
+                "an unknown pair-synergy capability 'qa:unknown-pair-capability'");
+        }
+        finally
+        {
+            damagePair.otherCapabilityId = originalPairCapabilityId;
+        }
+        int originalReverseCost = reversePair.cost;
+        try
+        {
+            reversePair.cost = checked(originalReverseCost + 1);
+            RequireThrows(
+                () => settings.RequireFormulaCatalog(),
+                "Pair cost 'damage/conditional_amplify' is not symmetric");
+        }
+        finally
+        {
+            reversePair.cost = originalReverseCost;
+        }
+
+        CharacterSkillModuleRule guard = settings.FindModule("guard")
+            ?? throw new InvalidOperationException("The guard module is missing.");
+        CharacterSkillModuleRule protect = settings.FindModule("protect")
+            ?? throw new InvalidOperationException("The protect module is missing.");
+        int guardForbiddenIndex = guard.formula.forbiddenSynergies.FindIndex(value =>
+            string.Equals(value, "protect", StringComparison.Ordinal));
+        int protectForbiddenIndex = protect.formula.forbiddenSynergies.FindIndex(value =>
+            string.Equals(value, "guard", StringComparison.Ordinal));
+        Require(guardForbiddenIndex >= 0 && protectForbiddenIndex >= 0,
+            "Current guard/protect forbidden synergy is missing.");
+        string originalForbidden = guard.formula.forbiddenSynergies[guardForbiddenIndex];
+        try
+        {
+            guard.formula.forbiddenSynergies[guardForbiddenIndex] =
+                "qa:unknown-forbidden-capability";
+            RequireThrows(
+                () => settings.RequireFormulaCatalog(),
+                "an unknown forbidden synergy 'qa:unknown-forbidden-capability'");
+        }
+        finally
+        {
+            guard.formula.forbiddenSynergies[guardForbiddenIndex] = originalForbidden;
+        }
+        protect.formula.forbiddenSynergies.RemoveAt(protectForbiddenIndex);
+        try
+        {
+            RequireThrows(
+                () => settings.RequireFormulaCatalog(),
+                "Forbidden synergy 'guard/protect' is not symmetric");
+        }
+        finally
+        {
+            protect.formula.forbiddenSynergies.Insert(
+                protectForbiddenIndex,
+                "guard");
         }
     }
 

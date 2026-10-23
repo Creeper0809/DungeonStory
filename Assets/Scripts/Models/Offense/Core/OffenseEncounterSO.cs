@@ -45,6 +45,7 @@ public sealed class OffenseEncounterSO : DataScriptableObject
     [Range(0.1f, 4f)] public float objectiveControlResistanceMultiplier = 1f;
     public OffenseEncounterObjective objective;
     [Min(0)] public int objectiveRoundLimit;
+    [ContentReference(ContentReferenceKind.EncounterTarget)]
     public string objectiveTargetId = string.Empty;
     [ContentReference(ContentReferenceKind.BattlefieldModifier)]
     public List<string> battlefieldModifierIds = new();

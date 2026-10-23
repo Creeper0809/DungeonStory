@@ -51,8 +51,6 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
     [SerializeField, Min(1)] private int authoringRevision = 1;
     [ContentReference("WildlifeSpeciesSO", "SpeciesId"), SerializeField]
     private List<string> preySpeciesIds = new();
-    [ContentReference("WildlifeSpeciesSO", "SpeciesId"), SerializeField]
-    private List<string> predatorSpeciesIds = new();
     [SerializeField] private string nestTag = string.Empty;
     [SerializeField] private Season breedingSeason;
     [SerializeField] private string migrationPatternId = string.Empty;
@@ -104,7 +102,6 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
     public float ProductComfortMaximumTemperatureC =>
         productComfortMaximumTemperatureC;
     public IReadOnlyList<string> PreySpeciesIds => preySpeciesIds;
-    public IReadOnlyList<string> PredatorSpeciesIds => predatorSpeciesIds;
     public string NestTag => nestTag?.Trim() ?? string.Empty;
     public Season BreedingSeason => breedingSeason;
     public string MigrationPatternId => migrationPatternId?.Trim() ?? string.Empty;
@@ -151,7 +148,7 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
             }
         }
         int relationshipGroups = 0;
-        if ((preySpeciesIds ?? new()).Count > 0 || (predatorSpeciesIds ?? new()).Count > 0) relationshipGroups++;
+        if ((preySpeciesIds ?? new()).Count > 0) relationshipGroups++;
         if (!string.IsNullOrWhiteSpace(nestTag)) relationshipGroups++;
         if (!string.IsNullOrWhiteSpace(migrationPatternId)) relationshipGroups++;
         if ((diseaseVectorIds ?? new()).Count > 0) relationshipGroups++;
@@ -161,7 +158,8 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
         return errors;
     }
 
-    public WildlifeSpeciesDefinition ToDefinition()
+    public WildlifeSpeciesDefinition ToDefinition(
+        IEnumerable<string> derivedPredatorSpeciesIds = null)
     {
         return new WildlifeSpeciesDefinition(
             SpeciesId,
@@ -188,7 +186,7 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
             FleePreference,
             Husbandry,
             PreySpeciesIds,
-            PredatorSpeciesIds,
+            derivedPredatorSpeciesIds,
             NestTag,
             BreedingSeason,
             MigrationPatternId,
@@ -289,7 +287,6 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
         float authoredAggression,
         bool authoredDomesticable,
         IReadOnlyList<string> prey,
-        IReadOnlyList<string> predators,
         string authoredNestTag,
         Season authoredBreedingSeason,
         string authoredMigrationPatternId,
@@ -305,7 +302,6 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
         predationDrive = Mathf.Clamp01(authoredAggression);
         domesticable = authoredDomesticable;
         preySpeciesIds = (prey ?? new List<string>()).Where(value => !string.IsNullOrWhiteSpace(value)).Distinct().ToList();
-        predatorSpeciesIds = (predators ?? new List<string>()).Where(value => !string.IsNullOrWhiteSpace(value)).Distinct().ToList();
         nestTag = authoredNestTag?.Trim() ?? string.Empty;
         breedingSeason = authoredBreedingSeason;
         migrationPatternId = authoredMigrationPatternId?.Trim() ?? string.Empty;

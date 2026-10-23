@@ -71,7 +71,6 @@ public enum BribeOutcomeKind
 public sealed class BribeOffer
 {
     public string offerId = string.Empty;
-    public string factionId = string.Empty;
     public int price;
     public BribeOutcomeKind outcome;
     [Range(0, 100)] public int acceptancePercent = 100;

@@ -12,6 +12,13 @@ using UnityEngine;
 
 public static class RitualFastingA08DebugScenarios
 {
+    public static void RunHeritableProjectionContracts()
+    {
+        using var fixture = new Fixture("Human");
+        fixture.VerifyHeritableConsumers();
+        Debug.Log("SO_R22_HERITABLE_PASS; authored effects; real capacities/formulas/mana; saved expression and mana restore; rejected spend and retry");
+    }
+
     private const string ActorId = "character:qa-b0-con";
     // CharacterStats.GetConditionMaximum permits hunger above the routine 100.
     private const float HungerMaximum = 115f;
@@ -472,13 +479,13 @@ public static class RitualFastingA08DebugScenarios
         private string MealOutcomeType => MigratedProducerOutcomeCatalog.Get(MigratedProducerOutcomeKind.CharacterConsumablesMealResult).OutcomeTypeId.Value;
         internal int ParentCount => outcomes.Ledger.CaptureGameplayOutcomes().exactOutcomes.Count(value => value.outcomeTypeId == MealOutcomeType);
 
-        internal Fixture()
+        internal Fixture(string speciesId = "Slime")
         {
             GameObject host = new("A08 Ritual Fasting Audit");
             host.AddComponent<SpriteRenderer>();
             Actor = host.AddComponent<CharacterActor>();
             CharacterAiEditorTestDependencies.Inject(host);
-            actorData = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(CharacterType.NPC, "A08 Ritual Fasting", "Slime");
+            actorData = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(CharacterType.NPC, "A08 Ritual Fasting", speciesId);
             Actor.Initialization(actorData);
             Actor.Identity.SetPersistentId(ActorId);
             Actor.SetLifecycleState(CharacterLifecycleState.Active);
@@ -530,6 +537,170 @@ public static class RitualFastingA08DebugScenarios
         private CharacterNarrativeRuntime NewNarrative(DungeonRuntimeAggregateRootStore ownerRoot, CharacterIdentityStateStore store) =>
             new(ownerRoot, new CharacterNarrativeCatalog(content), store, content);
 
+        internal void VerifyHeritableConsumers()
+        {
+            void Express(string trait)
+            {
+                var saved = JsonConvert.DeserializeObject<CharacterNarrativeWorldSaveData>(JsonConvert.SerializeObject(narrative.Capture()));
+                saved.characters.Single().expressedHeritableTraitIds = string.IsNullOrEmpty(trait)
+                    ? new List<string>() : new List<string> { trait };
+                saved.characters.Single().latentHeritableTraitIds.Clear();
+                narrative.PublishRestore(narrative.PrepareRestore(saved));
+            }
+            void Check(string trait, Func<float> read, float expectedRatio)
+            {
+                Express(null);
+                float baseline = read();
+                Express(trait);
+                float changed = read();
+                Require(baseline > 0f && Mathf.Abs(changed / baseline - expectedRatio) < .0002f,
+                    $"Heritable consumer {trait}: {baseline} -> {changed}, expected ratio {expectedRatio}.");
+            }
+            float Capacity(CharacterFunctionalCapacityId id) => performance.GetFunctionalCapacities(Actor).Get(id).Value;
+            float Formula(string id)
+            {
+                var value = performance.Evaluate(Actor, id);
+                Require(value.IsApplicable, $"Heritable formula unavailable: {id}: {value.Failure?.Message}");
+                return value.Value;
+            }
+            Check("heritable:reinforced-joints", () => Capacity(CharacterFunctionalCapacityId.PhysicalPower), 1.12f);
+            Check("heritable:flexible-joints", () => Capacity(CharacterFunctionalCapacityId.PrecisionManipulation), 1.12f);
+            Check("heritable:hollow-bone", () => Capacity(CharacterFunctionalCapacityId.PhysicalMobility), 1.12f);
+            Check("heritable:regrowing-tissue", () => Formula("performance:medical:wound-recovery"), 1.1f);
+            Check("heritable:efficient-digestion", () => Formula(CharacterPerformanceFormulaIds.NutritionEfficiency), 1.12f);
+            Check("heritable:cold-blood-adaptation", () => Formula("performance:survival:cold-exposure"), 1f / 1.15f);
+            Check("heritable:heat-shedding", () => Formula("performance:survival:heat-exposure"), 1f / 1.15f);
+            Check("heritable:dream-reception", () => Formula(CharacterPerformanceFormulaIds.RiskDetection), 1.1f);
+            Check("heritable:rapid-burn", () =>
+            {
+                var value = performance.EvaluateWork(Actor, BuiltInWorkTypeIds.Craft,
+                    CharacterPerformanceResultChannel.Speed, new CharacterPerformanceEvaluationContext
+                    {
+                        PrimaryProficiencyOverride = BuiltInCharacterProficiencyIds.Crafting.Value,
+                        // Ordinary crafting uses its primary proficiency for the
+                        // optional rune selector, as BuildEvaluationContext does.
+                        SecondaryProficiencyOverride = BuiltInCharacterProficiencyIds.Crafting.Value
+                    });
+                Require(value.IsApplicable,
+                    $"Heritable crafting formula unavailable: {value.Failure?.Message}");
+                return value.Value;
+            }, 1.1f);
+            Check("heritable:expanded-lung", () => Actor.Stats.ProjectDetailedStat(GameplayEffectTargetIds.AirExposure, 1f).Value, 1f / 1.15f);
+            Check("heritable:dense-bone", () => CombatRuntimeStatFactory.Create(Actor,
+                CharacterAiEditorTestDependencies.BodyHealthRuntime.GetSnapshot(Actor), performance).BluntDamageMultiplier, 1f / 1.15f);
+            Check("heritable:dense-bone", () => OffenseBattleSessionRules.CreateModifiedCombatStats(
+                new OffenseBattleEncounterRules(OffenseEncounterObjective.DefeatAll, 0, "", "", null),
+                OffenseEncounterCatalog.CreateAlly(Actor, ActorId, performance),
+                attacking: false).BluntDamageMultiplier, 1f / 1.15f);
+            var effects = new HeritableTraitEffectQuery(narrative, content);
+            // Component probes invoke the exact production consumer with only its read dependencies.
+            // Full owner construction and world restore run separately in the impact Play checks.
+            var dehydration = Consumer<CharacterDeprivationRuntime>(
+                ("heritableTraits", effects), ("needBalanceRuntime", DefaultCharacterNeedBalanceRuntime.Instance));
+            Check("heritable:water-retention", () =>
+            {
+                var state = new CharacterDeprivationState { characterId = ActorId };
+                InvokeConsumer(dehydration, "UpdateBurden", Actor, state, DeprivationKind.Thirst, 0f, 1f, 1f);
+                return state.burdens.Single(value => value.kind == DeprivationKind.Thirst).burden;
+            }, 1f / 1.14f);
+            var roomConsumer = Consumer<RoomEnvironmentExperienceService>(("heritableTraits", effects), ("events", events));
+            buildingData.Facility.roles |= FacilityRole.Mana;
+            var building = new SerializedObject(buildingData);
+            Check("heritable:mana-grounding", () =>
+            {
+                float coefficient = -1f;
+                using var subscription = events.Subscribe<PopulationDiseaseRouteExposureEvent>(value =>
+                {
+                    Require(value.CharacterId.Value == ActorId && value.DiseaseId == "disease:mana-pox"
+                        && value.SourceId == Facility.RequirePersistentInstanceId().Value,
+                        "Mana stability changed the exposure identity.");
+                    coefficient = value.EnvironmentCoefficient;
+                });
+                InvokeConsumer(roomConsumer, "PublishManaExposure",
+                    new RoomEnvironmentExperienceEvent(Actor, Facility, RoomExperienceActivity.Work));
+                return coefficient;
+            }, 1f / 1.15f);
+            VerifyCrossLineageConsumer();
+            building.FindProperty("researchFacilityCommand").intValue = (int)ResearchFacilityCommandKind.ResonanceTuning;
+            building.ApplyModifiedPropertiesWithoutUndo();
+            Check("heritable:rune-sight", () => CharacterWorkPerformanceContextResolver.GetSpecializedWorkSpeed(
+                Actor, Facility, BuiltInWorkTypeIds.Operate), 1.12f);
+            Require(CharacterWorkPerformanceContextResolver.GetSpecializedWorkSpeed(Actor, Facility, BuiltInWorkTypeIds.Construct) == 1f,
+                "Rune tuning leaked into construction.");
+
+            var body = CharacterAiEditorTestDependencies.BodyHealthRuntime;
+            var originalBody = body.CaptureCombatMutation(Actor);
+            try
+            {
+                Check("heritable:mana-reservoir", () => body.GetMana(Actor).Maximum, 1.15f);
+                float available = body.GetMana(Actor).Current;
+                Require(body.TrySpendMana(Actor, 20f, out _), "Effective mana spend failed.");
+                Require(Mathf.Abs(body.GetMana(Actor).Current - (available - 20f)) < .0001f, "Mana spend used base rather than effective units.");
+                var manaSave = JsonUtility.FromJson<DungeonCharacterBodyHealthSaveData>(JsonUtility.ToJson(body.Capture()));
+                var narrativeSave = JsonConvert.DeserializeObject<CharacterNarrativeWorldSaveData>(JsonConvert.SerializeObject(narrative.Capture()));
+                narrative.PublishRestore(narrative.PrepareRestore(narrativeSave));
+                body.PublishRestore(body.PrepareRestore(manaSave));
+                Require(Mathf.Abs(body.GetMana(Actor).Current - (available - 20f)) < .0001f
+                    && Mathf.Abs(body.GetMana(Actor).Maximum - 115f) < .0001f, "Mana capacity compounded or was lost after JSON restore.");
+                string beforeFailure = JsonUtility.ToJson(body.Capture());
+                Require(!body.TrySpendMana(Actor, 999f, out _)
+                    && beforeFailure == JsonUtility.ToJson(body.Capture()), "Rejected mana spend mutated saved state.");
+                Require(body.TrySpendMana(Actor, 5f, out _), "Valid retry after rejected spend failed.");
+                body.RefundFailedManaSpend(Actor, 5f);
+                Require(beforeFailure == JsonUtility.ToJson(body.Capture()), "Immediate failed-command compensation changed base mana state.");
+            }
+            finally { body.RestoreCombatMutation(Actor, originalBody, "R22 fixture cleanup"); }
+        }
+
+        private void VerifyCrossLineageConsumer()
+        {
+            var definitions = new ResourceCharacterSpeciesCatalog(content);
+            var species = new CharacterSpeciesId("Human");
+            var history = definitions.RequireLifeHistory(species);
+            var life = new CharacterLifeRuntime(new DungeonRuntimeAggregateRootStore(), definitions, new RandomStreamProvider(1122));
+            var source = new CharacterNarrativeRuntime(new DungeonRuntimeAggregateRootStore(), new CharacterNarrativeCatalog(content));
+            var first = new CharacterId("character:r22:first");
+            var second = new CharacterId("character:r22:second");
+            int age = (int)((history.AdultAgeYears + history.ElderAgeYears) * .5 * GameCalendarRules.DaysPerYear);
+            foreach (var id in new[] { first, second })
+            {
+                life.Register(id, species, age, age, 1);
+                source.Register(id, species, new[] { "heritable:cross-lineage-tolerance" }, Array.Empty<string>());
+            }
+            var consumer = Consumer<ReproductionApplicationAdapter>(("heritableTraits", new HeritableTraitEffectQuery(source, content)),
+                ("life", life), ("lifeDefinitions", definitions));
+            ReproductionProcess Process(bool cross) => new("reproduction:r22:" + cross, first, second, first, species,
+                definitions.RequireReproduction(species), 1, cross, "facility:r22:incubator",
+                Array.Empty<string>(), Array.Empty<string>(), Array.Empty<InnateAptitudeSaveData>());
+            float Read(bool cross) => (float)InvokeConsumer(consumer, "ResolveFertilityCoefficient", Process(cross));
+            float normal = Read(false);
+            float crossLineage = Read(true);
+            Require(normal > 0f && Mathf.Abs(crossLineage / normal - 1.15f) < .0002f,
+                "Cross-lineage tolerance did not reach the reproduction daily coefficient.");
+            var saved = JsonConvert.DeserializeObject<CharacterNarrativeWorldSaveData>(JsonConvert.SerializeObject(source.Capture()));
+            source.PublishRestore(source.PrepareRestore(saved));
+            Require(Read(false) == normal && Read(true) == crossLineage,
+                "Cross-lineage coefficient changed after narrative JSON restore/retry.");
+        }
+
+        private static T Consumer<T>(params (string name, object value)[] fields)
+        {
+            var instance = (T)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(typeof(T));
+            foreach (var field in fields)
+                (typeof(T).GetField(field.name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    ?? throw new InvalidOperationException("Unknown consumer dependency: " + field.name)).SetValue(instance, field.value);
+            return instance;
+        }
+
+        private static object InvokeConsumer(object instance, string name, params object[] arguments)
+        {
+            var method = instance.GetType().GetMethod(name,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null,
+                arguments.Select(value => value.GetType()).ToArray(), null)
+                ?? throw new InvalidOperationException("Unknown consumer: " + name);
+            return method.Invoke(instance, arguments);
+        }
+
         private void BindConsumers(DungeonCharacterConsumablesSaveData saved)
         {
             consumptionFacts?.Dispose();
@@ -543,7 +714,7 @@ public static class RitualFastingA08DebugScenarios
                 new ExtremeTraitRuntime(Store), clock);
             performance = new CharacterPerformanceQuery(CharacterAiEditorTestDependencies.BodyHealthRuntime,
                 new ResourceAnatomyProfileCatalog(content), narrative, Calendar, shared,
-                new CharacterPerformanceFormulaCatalog(content));
+                new CharacterPerformanceFormulaCatalog(content), new HeritableTraitEffectQuery(narrative, content));
             var projection = new CharacterStatsProjectionService(new NoStaffDiscontent(), new NoMetaProgression(),
                 NoCharacterDeprivationBoundary.Instance, NeutralCharacterSubstanceRuntime.Instance,
                 NeutralCharacterEnvironmentStatusQuery.Instance, NeutralExternalCombatInfluenceQuery.Instance,

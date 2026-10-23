@@ -20,3 +20,19 @@ MonoBehaviour:
   - kidney:left
   - kidney:right
   - spore-sac
+  anatomyTargets:
+  - anatomyProfileId: anatomy:beastkin
+    nodeIds:
+    - torso
+  - anatomyProfileId: anatomy:demon
+    nodeIds:
+    - heat-sac
+  - anatomyProfileId: anatomy:avian
+    nodeIds:
+    - torso
+  - anatomyProfileId: anatomy:kobold
+    nodeIds:
+    - torso
+  - anatomyProfileId: anatomy:slime
+    nodeIds:
+    - core

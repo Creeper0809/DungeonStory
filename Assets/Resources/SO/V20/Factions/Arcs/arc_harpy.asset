@@ -30,7 +30,3 @@ MonoBehaviour:
   - faction-contract:harpy:supply
   - faction-contract:harpy:crisis
   - faction-contract:harpy:strategic
-  relicItemIds:
-  - relic:faction:harpy:1
-  - relic:faction:harpy:2
-  - relic:faction:harpy:3

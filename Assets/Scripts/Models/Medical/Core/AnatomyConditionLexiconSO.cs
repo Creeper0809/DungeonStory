@@ -40,12 +40,17 @@ public sealed class AnatomyConditionLexiconSO : ScriptableObject
     private List<string> speciesIds = new();
     [SerializeField] private List<AnatomyConditionLexiconEntry> entries = new();
 
-    public string LexiconId => string.IsNullOrWhiteSpace(lexiconId)
-        ? name
-        : lexiconId.Trim();
+    public string LexiconId => lexiconId?.Trim() ?? string.Empty;
     public string AnatomyFamily => anatomyFamily?.Trim() ?? string.Empty;
     public IReadOnlyList<string> SpeciesIds => speciesIds;
     public IReadOnlyList<AnatomyConditionLexiconEntry> Entries => entries;
+
+    public IReadOnlyList<string> ValidateDefinition()
+    {
+        return string.IsNullOrWhiteSpace(LexiconId)
+            ? new[] { "Anatomy condition lexicon ID is required." }
+            : Array.Empty<string>();
+    }
 
 #if UNITY_EDITOR
     public void Configure(

@@ -121,10 +121,6 @@ MonoBehaviour:
           baseJamChance: 0.01
           baseMisfireChance: 0.005
           facilityFamilyId: defense:elemental
-          affinityTags:
-          - defense:lightning
-          - species:beastkin
-          - species:demon
           growth:
             capacityLevel: 0
             resetSpeedLevel: 0

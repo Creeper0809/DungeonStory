@@ -170,10 +170,6 @@ MonoBehaviour:
           baseJamChance: 0.01
           baseMisfireChance: 0.005
           facilityFamilyId: defense:launcher
-          affinityTags:
-          - defense:ranged
-          - species:harpy
-          - species:kobold
           growth:
             capacityLevel: 0
             resetSpeedLevel: 0

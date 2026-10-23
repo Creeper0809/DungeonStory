@@ -671,7 +671,8 @@ public sealed class CharacterEnvironmentUnityAdapter :
                 out bool lethalTemperature);
 
             float airRate = CalculateAirExposureRate(
-                environment.AirQuality);
+                environment.AirQuality)
+                * actor.Stats.ProjectDetailedStat(GameplayEffectTargetIds.AirExposure, 1f).Value;
             bool precisionContext = workContexts.TryGetValue(
                     characterId,
                     out EnvironmentalWorkKind workKind)

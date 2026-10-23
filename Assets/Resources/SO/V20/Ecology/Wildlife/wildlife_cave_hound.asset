@@ -52,8 +52,6 @@ MonoBehaviour:
   - cave_rat
   - shadow_hare
   - tunnel_mole
-  predatorSpeciesIds:
-  - carrion_drake
   nestTag: nest:pack-den
   breedingSeason: 0
   migrationPatternId: migration:prey-trail

@@ -174,10 +174,55 @@ public static class CharacterAnatomyMedicalIntegrationDebugScenarios
     {
         List<string> errors = new();
         CheckAdvancedPartMath(errors);
+        CheckAuthoredIdentityDoesNotFollowAssetName(errors);
         CheckPredictivePrefetch(errors);
         CheckPhysicalFieldMedicalSupplies(errors);
         CheckFieldMedicalAndRescue(errors);
         return errors;
+    }
+
+    public static void CheckAuthoredIdentityDoesNotFollowAssetName(List<string> errors)
+    {
+        AnatomyProfileSO profile = ScriptableObject.CreateInstance<AnatomyProfileSO>();
+        AnatomyConditionLexiconSO lexicon =
+            ScriptableObject.CreateInstance<AnatomyConditionLexiconSO>();
+        try
+        {
+            profile.name = "ProfileAssetName";
+            profile.Configure("   ", "Fixture", "fixture", Array.Empty<string>(),
+                Array.Empty<AnatomyNodeDefinition>());
+            lexicon.name = "LexiconAssetName";
+            lexicon.Configure("   ", "fixture", Array.Empty<string>(),
+                Array.Empty<AnatomyConditionLexiconEntry>());
+            Require(profile.ProfileId.Length == 0
+                    && profile.ValidateDefinition().Count > 0,
+                "A blank anatomy profile ID must not fall back to the asset name.", errors);
+            Require(lexicon.LexiconId.Length == 0
+                    && lexicon.ValidateDefinition().Count > 0,
+                "A blank anatomy lexicon ID must not fall back to the asset name.", errors);
+            profile.name = "RenamedBlankProfileAsset";
+            lexicon.name = "RenamedBlankLexiconAsset";
+            Require(profile.ProfileId.Length == 0 && lexicon.LexiconId.Length == 0,
+                "Renaming anatomy assets must not manufacture IDs for blank definitions.", errors);
+
+            profile.Configure(" anatomy:fixture ", "Fixture", "fixture",
+                Array.Empty<string>(), Array.Empty<AnatomyNodeDefinition>());
+            lexicon.Configure(" condition:fixture ", "fixture",
+                Array.Empty<string>(), Array.Empty<AnatomyConditionLexiconEntry>());
+            profile.name = "RenamedProfileAsset";
+            lexicon.name = "RenamedLexiconAsset";
+            Require(profile.ProfileId == "anatomy:fixture"
+                    && profile.ValidateDefinition().Count == 0,
+                "An explicit anatomy profile ID must remain stable across asset renames.", errors);
+            Require(lexicon.LexiconId == "condition:fixture"
+                    && lexicon.ValidateDefinition().Count == 0,
+                "An explicit anatomy lexicon ID must remain stable across asset renames.", errors);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(profile);
+            UnityEngine.Object.DestroyImmediate(lexicon);
+        }
     }
 
     private static void CheckAdvancedPartMath(List<string> errors)

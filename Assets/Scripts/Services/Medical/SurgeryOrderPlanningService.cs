@@ -75,7 +75,15 @@ internal sealed class SurgeryOrderPlanningService
         string target = string.IsNullOrWhiteSpace(targetNodeId)
             ? procedure.TargetNodeId
             : targetNodeId.Trim();
-        AnatomyProfileDefinition recipient = content.AnatomyProfiles.GetForSpecies(subject?.speciesId);
+        if (subject == null)
+        {
+            failure = new DomainFailure(FailureCode.SurgerySubjectKindUnsupported);
+            return false;
+        }
+        if (!TryResolveSubjectProfile(subject,
+                subject.kind is SurgicalSubjectKind.HumanoidCorpse or SurgicalSubjectKind.WildlifeCorpse,
+                out _, out var recipient, out failure))
+            return false;
         if (SurgicalPartAnatomyCompatibility.IsCompatible(
                 recipient,
                 part.nodeId,
@@ -470,13 +478,18 @@ internal sealed class SurgeryOrderPlanningService
             return 0f;
         }
 
-        AnatomyProfileDefinition recipient = content.AnatomyProfiles.GetForSpecies(order.subject?.speciesId);
+        if (order.subject == null)
+            throw new InvalidOperationException("Cannot resolve transplant recipient without a subject.");
+        if (!TryResolveSubjectProfile(order.subject,
+                order.subject.kind is SurgicalSubjectKind.HumanoidCorpse or SurgicalSubjectKind.WildlifeCorpse,
+                out _, out var recipient, out var failure))
+            throw new InvalidOperationException($"Cannot resolve transplant recipient anatomy: {failure}");
         float compatibility = string.Equals(
             part.anatomyFamily,
             recipient.AnatomyFamily,
             StringComparison.OrdinalIgnoreCase)
                 ? 0.75f
-                : string.Equals(recipient.AnatomyFamily, "slime", StringComparison.OrdinalIgnoreCase)
+                : string.Equals(recipient.AnatomyFamily, "aberrant", StringComparison.OrdinalIgnoreCase)
                     ? 0.2f
                     : 0.45f;
         return (1f - compatibility) * 0.35f;

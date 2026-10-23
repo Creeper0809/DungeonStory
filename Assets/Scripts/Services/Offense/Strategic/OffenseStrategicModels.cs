@@ -252,6 +252,8 @@ public sealed class OffenseDecisionStateData
     public int deterministicRoll;
     public bool resolved;
     public string selectedChoiceId;
+    // Creation-time choice presentation; absent in legacy saves means untransformed.
+    public List<string> presentationTags = new List<string>();
 }
 
 [Serializable]

@@ -560,13 +560,9 @@ public sealed class OffenseStrategicTravelEventHandler :
                     stage = expedition.WorldObjectiveCompleted
                         ? OffenseDecisionStage.Return
                         : OffenseDecisionStage.Travel,
-                    tags = string.IsNullOrWhiteSpace(
-                            completedSegmentWeatherFrontId)
-                        ? new HashSet<string>(StringComparer.Ordinal)
-                        : new HashSet<string>(StringComparer.Ordinal)
-                        {
-                            completedSegmentWeatherFrontId
-                        },
+                    tags = CreateDecisionTags(
+                        expedition,
+                        completedSegmentWeatherFrontId),
                     protectedMovement = safety.IsProtected,
                     forceNonCombat = returnSafety.MustUseNonCombatCard(expeditionId),
                     canGenerateForcedCombat = returnSafety.CanGenerateForcedCombat(
@@ -585,6 +581,25 @@ public sealed class OffenseStrategicTravelEventHandler :
             EventAlertImportance.Medium,
             "offense");
         host.NotifyStateChanged();
+    }
+
+    private static HashSet<string> CreateDecisionTags(
+        OffenseExpeditionRun expedition,
+        string completedSegmentWeatherFrontId)
+    {
+        HashSet<string> tags = string.IsNullOrWhiteSpace(
+                completedSegmentWeatherFrontId)
+            ? new HashSet<string>(StringComparer.Ordinal)
+            : new HashSet<string>(StringComparer.Ordinal)
+            {
+                completedSegmentWeatherFrontId
+            };
+        if (expedition.Supplies.Get(OffenseSupplyType.Tools) > 0)
+        {
+            tags.Add("tools");
+        }
+
+        return tags;
     }
 
     public void HandleSiteReached(

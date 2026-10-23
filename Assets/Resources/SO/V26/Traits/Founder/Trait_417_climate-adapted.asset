@@ -23,6 +23,8 @@ MonoBehaviour:
     SerializationNodes: []
   id: 417
   traitName: "\uAE30\uD6C4 \uC801\uC751"
+  legacyPolicyNames:
+  - "\uAE30\uD6C4 \uC801\uC751"
   description: "\uB0C9\uAE30\uC640 \uC5F4\uAE30 \uB178\uCD9C\uC774 \uB35C \uC313\uC778\uB2E4."
   modifiers:
     preferredFacilityRoles: 0

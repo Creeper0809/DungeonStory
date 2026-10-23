@@ -21,6 +21,7 @@ MonoBehaviour:
   baseSeverity: 65
   targetSystem: 0
   vaccineAllowed: 1
+  vaccineItemId: medicine:vaccine:slime-blight
   chronic: 0
   description: "\uC810\uC561\uC5ED\uBCD1\uC758 \uACE0\uC720 \uC804\uD30C\uC640 \uAE30\uAD00
     \uC99D\uC0C1."

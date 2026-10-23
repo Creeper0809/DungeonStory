@@ -24,7 +24,6 @@ MonoBehaviour:
   allowedSpeciesIds:
   - vampire
   operatorRequirement:
-    stats: []
     minimumWeightedScore: 3
   targetNodeId: night-eye:left
   requiredResearchId: research:medical:bloodcraft-augmentation

@@ -13,6 +13,7 @@ public sealed class OffenseDecisionCardSO : DataScriptableObject
     public OffenseDecisionStage stage;
     public string title = "사건";
     [TextArea] public string situation;
+    [ContentReference("WeatherFrontDefinitionSO", "stableId")]
     public List<string> requiredWorldTags = new List<string>();
     public List<OffenseDecisionChoiceDefinition> choices =
         new List<OffenseDecisionChoiceDefinition>

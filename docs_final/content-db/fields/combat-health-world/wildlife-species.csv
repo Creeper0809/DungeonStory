@@ -33,8 +33,6 @@ WildlifeSpeciesSO|ash_crawler,ash_crawler,manureIntervalDays,2,,,explicit-serial
 WildlifeSpeciesSO|ash_crawler,ash_crawler,husbandryProducts,[],,,explicit-serialized
 WildlifeSpeciesSO|ash_crawler,ash_crawler,authoringRevision,1,,,explicit-serialized
 WildlifeSpeciesSO|ash_crawler,ash_crawler,preySpeciesIds,[],,,explicit-serialized
-WildlifeSpeciesSO|ash_crawler,ash_crawler,predatorSpeciesIds.0,ember_lizard,,,explicit-serialized
-WildlifeSpeciesSO|ash_crawler,ash_crawler,predatorSpeciesIds.1,cave_hound,,,explicit-serialized
 WildlifeSpeciesSO|ash_crawler,ash_crawler,nestTag,nest:ash-vent,,,explicit-serialized
 WildlifeSpeciesSO|ash_crawler,ash_crawler,breedingSeason,1,Season,Summer,explicit-serialized
 WildlifeSpeciesSO|ash_crawler,ash_crawler,migrationPatternId,migration:heat-duct,,,explicit-serialized
@@ -82,7 +80,6 @@ WildlifeSpeciesSO|carrion_drake,carrion_drake,husbandryProducts,[],,,explicit-se
 WildlifeSpeciesSO|carrion_drake,carrion_drake,authoringRevision,1,,,explicit-serialized
 WildlifeSpeciesSO|carrion_drake,carrion_drake,preySpeciesIds.0,cave_rat,,,explicit-serialized
 WildlifeSpeciesSO|carrion_drake,carrion_drake,preySpeciesIds.1,shadow_hare,,,explicit-serialized
-WildlifeSpeciesSO|carrion_drake,carrion_drake,predatorSpeciesIds,[],,,explicit-serialized
 WildlifeSpeciesSO|carrion_drake,carrion_drake,nestTag,nest:high-bone-pile,,,explicit-serialized
 WildlifeSpeciesSO|carrion_drake,carrion_drake,breedingSeason,2,Season,Autumn,explicit-serialized
 WildlifeSpeciesSO|carrion_drake,carrion_drake,migrationPatternId,migration:battlefield-scent,,,explicit-serialized
@@ -133,7 +130,6 @@ WildlifeSpeciesSO|cave_hound,cave_hound,authoringRevision,1,,,explicit-serialize
 WildlifeSpeciesSO|cave_hound,cave_hound,preySpeciesIds.0,cave_rat,,,explicit-serialized
 WildlifeSpeciesSO|cave_hound,cave_hound,preySpeciesIds.1,shadow_hare,,,explicit-serialized
 WildlifeSpeciesSO|cave_hound,cave_hound,preySpeciesIds.2,tunnel_mole,,,explicit-serialized
-WildlifeSpeciesSO|cave_hound,cave_hound,predatorSpeciesIds.0,carrion_drake,,,explicit-serialized
 WildlifeSpeciesSO|cave_hound,cave_hound,nestTag,nest:pack-den,,,explicit-serialized
 WildlifeSpeciesSO|cave_hound,cave_hound,breedingSeason,0,Season,Spring,explicit-serialized
 WildlifeSpeciesSO|cave_hound,cave_hound,migrationPatternId,migration:prey-trail,,,explicit-serialized
@@ -194,7 +190,6 @@ WildlifeSpeciesSO|cave_rat,cave_rat,productComfortMaximumTemperatureC,30,,,expli
 WildlifeSpeciesSO|cave_rat,cave_rat,husbandryProducts,[],,,explicit-serialized
 WildlifeSpeciesSO|cave_rat,cave_rat,authoringRevision,1,,,explicit-serialized
 WildlifeSpeciesSO|cave_rat,cave_rat,preySpeciesIds.0,cave_rat,,,explicit-serialized
-WildlifeSpeciesSO|cave_rat,cave_rat,predatorSpeciesIds.0,shadow_wolf,,,explicit-serialized
 WildlifeSpeciesSO|cave_rat,cave_rat,nestTag,nest:cave_rat,,,explicit-serialized
 WildlifeSpeciesSO|cave_rat,cave_rat,breedingSeason,0,Season,Spring,explicit-serialized
 WildlifeSpeciesSO|cave_rat,cave_rat,migrationPatternId,migration:cave_rat,,,explicit-serialized
@@ -244,8 +239,6 @@ WildlifeSpeciesSO|crystal_beetle,crystal_beetle,productComfortMaximumTemperature
 WildlifeSpeciesSO|crystal_beetle,crystal_beetle,husbandryProducts,[],,,explicit-serialized
 WildlifeSpeciesSO|crystal_beetle,crystal_beetle,authoringRevision,1,,,explicit-serialized
 WildlifeSpeciesSO|crystal_beetle,crystal_beetle,preySpeciesIds,[],,,explicit-serialized
-WildlifeSpeciesSO|crystal_beetle,crystal_beetle,predatorSpeciesIds.0,moss_boar,,,explicit-serialized
-WildlifeSpeciesSO|crystal_beetle,crystal_beetle,predatorSpeciesIds.1,ember_lizard,,,explicit-serialized
 WildlifeSpeciesSO|crystal_beetle,crystal_beetle,nestTag,nest:crystal-crevice,,,explicit-serialized
 WildlifeSpeciesSO|crystal_beetle,crystal_beetle,breedingSeason,3,Season,Winter,explicit-serialized
 WildlifeSpeciesSO|crystal_beetle,crystal_beetle,migrationPatternId,migration:mana-vein,,,explicit-serialized
@@ -298,8 +291,6 @@ WildlifeSpeciesSO|deep_goat,deep_goat,husbandryProducts.0.femaleOnly,0,,,explici
 WildlifeSpeciesSO|deep_goat,deep_goat,husbandryProducts.0.adultOnly,1,,,explicit-serialized
 WildlifeSpeciesSO|deep_goat,deep_goat,authoringRevision,1,,,explicit-serialized
 WildlifeSpeciesSO|deep_goat,deep_goat,preySpeciesIds,[],,,explicit-serialized
-WildlifeSpeciesSO|deep_goat,deep_goat,predatorSpeciesIds.0,shadow_wolf,,,explicit-serialized
-WildlifeSpeciesSO|deep_goat,deep_goat,predatorSpeciesIds.1,cave_hound,,,explicit-serialized
 WildlifeSpeciesSO|deep_goat,deep_goat,nestTag,nest:stone-ledge,,,explicit-serialized
 WildlifeSpeciesSO|deep_goat,deep_goat,breedingSeason,0,Season,Spring,explicit-serialized
 WildlifeSpeciesSO|deep_goat,deep_goat,migrationPatternId,migration:vertical-graze,,,explicit-serialized
@@ -353,7 +344,6 @@ WildlifeSpeciesSO|ember_lizard,ember_lizard,husbandryProducts,[],,,explicit-seri
 WildlifeSpeciesSO|ember_lizard,ember_lizard,authoringRevision,1,,,explicit-serialized
 WildlifeSpeciesSO|ember_lizard,ember_lizard,preySpeciesIds.0,ash_crawler,,,explicit-serialized
 WildlifeSpeciesSO|ember_lizard,ember_lizard,preySpeciesIds.1,crystal_beetle,,,explicit-serialized
-WildlifeSpeciesSO|ember_lizard,ember_lizard,predatorSpeciesIds.0,cave_hound,,,explicit-serialized
 WildlifeSpeciesSO|ember_lizard,ember_lizard,nestTag,nest:warm-pipe,,,explicit-serialized
 WildlifeSpeciesSO|ember_lizard,ember_lizard,breedingSeason,1,Season,Summer,explicit-serialized
 WildlifeSpeciesSO|ember_lizard,ember_lizard,migrationPatternId,migration:heat-source,,,explicit-serialized
@@ -406,7 +396,6 @@ WildlifeSpeciesSO|frost_ram,frost_ram,husbandryProducts.0.femaleOnly,0,,,explici
 WildlifeSpeciesSO|frost_ram,frost_ram,husbandryProducts.0.adultOnly,1,,,explicit-serialized
 WildlifeSpeciesSO|frost_ram,frost_ram,authoringRevision,1,,,explicit-serialized
 WildlifeSpeciesSO|frost_ram,frost_ram,preySpeciesIds,[],,,explicit-serialized
-WildlifeSpeciesSO|frost_ram,frost_ram,predatorSpeciesIds.0,shadow_wolf,,,explicit-serialized
 WildlifeSpeciesSO|frost_ram,frost_ram,nestTag,nest:frost-alcove,,,explicit-serialized
 WildlifeSpeciesSO|frost_ram,frost_ram,breedingSeason,3,Season,Winter,explicit-serialized
 WildlifeSpeciesSO|frost_ram,frost_ram,migrationPatternId,migration:cold-front,,,explicit-serialized
@@ -457,8 +446,6 @@ WildlifeSpeciesSO|glow_moth,glow_moth,manureIntervalDays,2,,,explicit-serialized
 WildlifeSpeciesSO|glow_moth,glow_moth,husbandryProducts,[],,,explicit-serialized
 WildlifeSpeciesSO|glow_moth,glow_moth,authoringRevision,1,,,explicit-serialized
 WildlifeSpeciesSO|glow_moth,glow_moth,preySpeciesIds,[],,,explicit-serialized
-WildlifeSpeciesSO|glow_moth,glow_moth,predatorSpeciesIds.0,cave_rat,,,explicit-serialized
-WildlifeSpeciesSO|glow_moth,glow_moth,predatorSpeciesIds.1,silk_spider,,,explicit-serialized
 WildlifeSpeciesSO|glow_moth,glow_moth,nestTag,nest:ceiling-cocoon,,,explicit-serialized
 WildlifeSpeciesSO|glow_moth,glow_moth,breedingSeason,0,Season,Spring,explicit-serialized
 WildlifeSpeciesSO|glow_moth,glow_moth,migrationPatternId,migration:mana-lamp,,,explicit-serialized
@@ -505,7 +492,6 @@ WildlifeSpeciesSO|mana_wisp,mana_wisp,manureIntervalDays,2,,,explicit-serialized
 WildlifeSpeciesSO|mana_wisp,mana_wisp,husbandryProducts,[],,,explicit-serialized
 WildlifeSpeciesSO|mana_wisp,mana_wisp,authoringRevision,1,,,explicit-serialized
 WildlifeSpeciesSO|mana_wisp,mana_wisp,preySpeciesIds,[],,,explicit-serialized
-WildlifeSpeciesSO|mana_wisp,mana_wisp,predatorSpeciesIds.0,rune_deer,,,explicit-serialized
 WildlifeSpeciesSO|mana_wisp,mana_wisp,nestTag,nest:rune-node,,,explicit-serialized
 WildlifeSpeciesSO|mana_wisp,mana_wisp,breedingSeason,3,Season,Winter,explicit-serialized
 WildlifeSpeciesSO|mana_wisp,mana_wisp,migrationPatternId,migration:power-flux,,,explicit-serialized
@@ -553,7 +539,6 @@ WildlifeSpeciesSO|mire_leech,mire_leech,husbandryProducts,[],,,explicit-serializ
 WildlifeSpeciesSO|mire_leech,mire_leech,authoringRevision,1,,,explicit-serialized
 WildlifeSpeciesSO|mire_leech,mire_leech,preySpeciesIds.0,rune_deer,,,explicit-serialized
 WildlifeSpeciesSO|mire_leech,mire_leech,preySpeciesIds.1,deep_goat,,,explicit-serialized
-WildlifeSpeciesSO|mire_leech,mire_leech,predatorSpeciesIds.0,spore_elk,,,explicit-serialized
 WildlifeSpeciesSO|mire_leech,mire_leech,nestTag,nest:mud-clutch,,,explicit-serialized
 WildlifeSpeciesSO|mire_leech,mire_leech,breedingSeason,1,Season,Summer,explicit-serialized
 WildlifeSpeciesSO|mire_leech,mire_leech,migrationPatternId,migration:flood-channel,,,explicit-serialized
@@ -607,7 +592,6 @@ WildlifeSpeciesSO|moss_boar,moss_boar,productComfortMaximumTemperatureC,30,,,exp
 WildlifeSpeciesSO|moss_boar,moss_boar,husbandryProducts,[],,,explicit-serialized
 WildlifeSpeciesSO|moss_boar,moss_boar,authoringRevision,1,,,explicit-serialized
 WildlifeSpeciesSO|moss_boar,moss_boar,preySpeciesIds.0,cave_rat,,,explicit-serialized
-WildlifeSpeciesSO|moss_boar,moss_boar,predatorSpeciesIds.0,shadow_wolf,,,explicit-serialized
 WildlifeSpeciesSO|moss_boar,moss_boar,nestTag,nest:moss_boar,,,explicit-serialized
 WildlifeSpeciesSO|moss_boar,moss_boar,breedingSeason,0,Season,Spring,explicit-serialized
 WildlifeSpeciesSO|moss_boar,moss_boar,migrationPatternId,migration:moss_boar,,,explicit-serialized
@@ -661,7 +645,6 @@ WildlifeSpeciesSO|rune_deer,rune_deer,productComfortMaximumTemperatureC,30,,,exp
 WildlifeSpeciesSO|rune_deer,rune_deer,husbandryProducts,[],,,explicit-serialized
 WildlifeSpeciesSO|rune_deer,rune_deer,authoringRevision,1,,,explicit-serialized
 WildlifeSpeciesSO|rune_deer,rune_deer,preySpeciesIds.0,cave_rat,,,explicit-serialized
-WildlifeSpeciesSO|rune_deer,rune_deer,predatorSpeciesIds.0,shadow_wolf,,,explicit-serialized
 WildlifeSpeciesSO|rune_deer,rune_deer,nestTag,nest:rune_deer,,,explicit-serialized
 WildlifeSpeciesSO|rune_deer,rune_deer,breedingSeason,0,Season,Spring,explicit-serialized
 WildlifeSpeciesSO|rune_deer,rune_deer,migrationPatternId,migration:rune_deer,,,explicit-serialized
@@ -713,7 +696,6 @@ WildlifeSpeciesSO|shadow_hare,shadow_hare,productComfortMaximumTemperatureC,30,,
 WildlifeSpeciesSO|shadow_hare,shadow_hare,husbandryProducts,[],,,explicit-serialized
 WildlifeSpeciesSO|shadow_hare,shadow_hare,authoringRevision,1,,,explicit-serialized
 WildlifeSpeciesSO|shadow_hare,shadow_hare,preySpeciesIds.0,cave_rat,,,explicit-serialized
-WildlifeSpeciesSO|shadow_hare,shadow_hare,predatorSpeciesIds.0,shadow_wolf,,,explicit-serialized
 WildlifeSpeciesSO|shadow_hare,shadow_hare,nestTag,nest:shadow_hare,,,explicit-serialized
 WildlifeSpeciesSO|shadow_hare,shadow_hare,breedingSeason,0,Season,Spring,explicit-serialized
 WildlifeSpeciesSO|shadow_hare,shadow_hare,migrationPatternId,migration:shadow_hare,,,explicit-serialized
@@ -769,7 +751,6 @@ WildlifeSpeciesSO|shadow_wolf,shadow_wolf,productComfortMaximumTemperatureC,30,,
 WildlifeSpeciesSO|shadow_wolf,shadow_wolf,husbandryProducts,[],,,explicit-serialized
 WildlifeSpeciesSO|shadow_wolf,shadow_wolf,authoringRevision,1,,,explicit-serialized
 WildlifeSpeciesSO|shadow_wolf,shadow_wolf,preySpeciesIds.0,shadow_hare,,,explicit-serialized
-WildlifeSpeciesSO|shadow_wolf,shadow_wolf,predatorSpeciesIds.0,carrion_drake,,,explicit-serialized
 WildlifeSpeciesSO|shadow_wolf,shadow_wolf,nestTag,nest:shadow_wolf,,,explicit-serialized
 WildlifeSpeciesSO|shadow_wolf,shadow_wolf,breedingSeason,0,Season,Spring,explicit-serialized
 WildlifeSpeciesSO|shadow_wolf,shadow_wolf,migrationPatternId,migration:shadow_wolf,,,explicit-serialized
@@ -823,7 +804,6 @@ WildlifeSpeciesSO|silk_spider,silk_spider,husbandryProducts.0.adultOnly,1,,,expl
 WildlifeSpeciesSO|silk_spider,silk_spider,authoringRevision,1,,,explicit-serialized
 WildlifeSpeciesSO|silk_spider,silk_spider,preySpeciesIds.0,glow_moth,,,explicit-serialized
 WildlifeSpeciesSO|silk_spider,silk_spider,preySpeciesIds.1,cave_rat,,,explicit-serialized
-WildlifeSpeciesSO|silk_spider,silk_spider,predatorSpeciesIds.0,cave_hound,,,explicit-serialized
 WildlifeSpeciesSO|silk_spider,silk_spider,nestTag,nest:silk-web,,,explicit-serialized
 WildlifeSpeciesSO|silk_spider,silk_spider,breedingSeason,2,Season,Autumn,explicit-serialized
 WildlifeSpeciesSO|silk_spider,silk_spider,migrationPatternId,migration:insect-swarm,,,explicit-serialized
@@ -872,8 +852,6 @@ WildlifeSpeciesSO|spore_elk,spore_elk,productComfortMaximumTemperatureC,30,,,exp
 WildlifeSpeciesSO|spore_elk,spore_elk,husbandryProducts,[],,,explicit-serialized
 WildlifeSpeciesSO|spore_elk,spore_elk,authoringRevision,1,,,explicit-serialized
 WildlifeSpeciesSO|spore_elk,spore_elk,preySpeciesIds,[],,,explicit-serialized
-WildlifeSpeciesSO|spore_elk,spore_elk,predatorSpeciesIds.0,shadow_wolf,,,explicit-serialized
-WildlifeSpeciesSO|spore_elk,spore_elk,predatorSpeciesIds.1,mire_leech,,,explicit-serialized
 WildlifeSpeciesSO|spore_elk,spore_elk,nestTag,nest:mycelial-grove,,,explicit-serialized
 WildlifeSpeciesSO|spore_elk,spore_elk,breedingSeason,2,Season,Autumn,explicit-serialized
 WildlifeSpeciesSO|spore_elk,spore_elk,migrationPatternId,migration:spore-bloom,,,explicit-serialized
@@ -922,8 +900,6 @@ WildlifeSpeciesSO|tunnel_mole,tunnel_mole,productComfortMaximumTemperatureC,30,,
 WildlifeSpeciesSO|tunnel_mole,tunnel_mole,husbandryProducts,[],,,explicit-serialized
 WildlifeSpeciesSO|tunnel_mole,tunnel_mole,authoringRevision,1,,,explicit-serialized
 WildlifeSpeciesSO|tunnel_mole,tunnel_mole,preySpeciesIds,[],,,explicit-serialized
-WildlifeSpeciesSO|tunnel_mole,tunnel_mole,predatorSpeciesIds.0,cave_hound,,,explicit-serialized
-WildlifeSpeciesSO|tunnel_mole,tunnel_mole,predatorSpeciesIds.1,shadow_wolf,,,explicit-serialized
 WildlifeSpeciesSO|tunnel_mole,tunnel_mole,nestTag,nest:root-burrow,,,explicit-serialized
 WildlifeSpeciesSO|tunnel_mole,tunnel_mole,breedingSeason,0,Season,Spring,explicit-serialized
 WildlifeSpeciesSO|tunnel_mole,tunnel_mole,migrationPatternId,migration:soft-soil,,,explicit-serialized

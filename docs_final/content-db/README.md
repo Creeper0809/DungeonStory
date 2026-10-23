@@ -35,13 +35,13 @@
 
 ## 현재 스냅샷
 
-- 전체 콘텐츠 행: 3,477
-- 관계 행: 6,579
+- 전체 콘텐츠 행: 3,483
+- 관계 행: 6,572
 - 콘텐츠 유형별 CSV: 75개
 - 관계 유형별 CSV: 75개
-- 코드 소비처 근거: 1,434건
-- 런타임 정적 근거 확인: 3,277
-- 근거 확인: 3,432
+- 코드 소비처 근거: 1,468건
+- 런타임 정적 근거 확인: 3,283
+- 근거 확인: 3,438
 - 수동 검토 필요: 45
 - 동일 유형·안정 ID 중복 그룹: 10
 - 파싱 오류: 0
@@ -53,7 +53,7 @@
 | 인물·특성 | 302 |
 | 사건·캠페인 | 200 |
 | 연구·효과 | 591 |
-| 전투·건강·세계 | 359 |
+| 전투·건강·세계 | 365 |
 
 ## 유형별 CSV
 
@@ -61,7 +61,7 @@
 |---|---|---:|---|---|---|---|---|
 | 인물·특성 | `AgeConditionDefinitionSO` | 6 | [열기](types/characters-traits/age-condition/README.md) | [CSV](fields/characters-traits/age-condition.csv) | [CSV](relations/characters-traits/age-condition.csv) | [CSV](incoming/characters-traits/age-condition.csv) | [CSV](code-consumers/characters-traits/age-condition.csv) |
 | 전투·건강·세계 | `AnatomyConditionLexiconSO` | 7 | [열기](types/combat-health-world/anatomy-condition-lexicon/README.md) | [CSV](fields/combat-health-world/anatomy-condition-lexicon.csv) | [CSV](relations/combat-health-world/anatomy-condition-lexicon.csv) | [CSV](incoming/combat-health-world/anatomy-condition-lexicon.csv) | [CSV](code-consumers/combat-health-world/anatomy-condition-lexicon.csv) |
-| 전투·건강·세계 | `AnatomyProfileSO` | 12 | [열기](types/combat-health-world/anatomy-profile/README.md) | [CSV](fields/combat-health-world/anatomy-profile.csv) | [CSV](relations/combat-health-world/anatomy-profile.csv) | [CSV](incoming/combat-health-world/anatomy-profile.csv) | [CSV](code-consumers/combat-health-world/anatomy-profile.csv) |
+| 전투·건강·세계 | `AnatomyProfileSO` | 18 | [열기](types/combat-health-world/anatomy-profile/README.md) | [CSV](fields/combat-health-world/anatomy-profile.csv) | [CSV](relations/combat-health-world/anatomy-profile.csv) | [CSV](incoming/combat-health-world/anatomy-profile.csv) | [CSV](code-consumers/combat-health-world/anatomy-profile.csv) |
 | 생산·시설 | `ApparelDefinitionSO` | 56 | [열기](types/production-facilities/apparel/README.md) | [CSV](fields/production-facilities/apparel.csv) | [CSV](relations/production-facilities/apparel.csv) | [CSV](incoming/production-facilities/apparel.csv) | [CSV](code-consumers/production-facilities/apparel.csv) |
 | 전투·건강·세계 | `BattlefieldModifierDefinitionSO` | 12 | [열기](types/combat-health-world/battlefield-modifier/README.md) | [CSV](fields/combat-health-world/battlefield-modifier.csv) | [CSV](relations/combat-health-world/battlefield-modifier.csv) | [CSV](incoming/combat-health-world/battlefield-modifier.csv) | [CSV](code-consumers/combat-health-world/battlefield-modifier.csv) |
 | 생산·시설 | `BuildingSO` | 400 | [열기](types/production-facilities/building/README.md) | [CSV](fields/production-facilities/building.csv) | [CSV](relations/production-facilities/building.csv) | [CSV](incoming/production-facilities/building.csv) | [CSV](code-consumers/production-facilities/building.csv) |

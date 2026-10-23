@@ -24,7 +24,6 @@ MonoBehaviour:
   allowedSpeciesIds:
   - beastkin
   operatorRequirement:
-    stats: []
     minimumWeightedScore: 3
   targetNodeId: leg:left
   requiredResearchId: research:medical:prosthetics

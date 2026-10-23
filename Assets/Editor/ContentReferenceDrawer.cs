@@ -49,9 +49,12 @@ public sealed class ContentReferenceDrawer : PropertyDrawer
             bool contextual = requested == ContentReferenceKind.EffectTarget && kind == ContentReferenceKind.Faction;
             bool contextId = contextual && (current == "affected-faction" || current == "requesting-faction");
             bool valid = current.Length == 0 || contextId || aliases.Any(value => ContentReferenceCatalog.Matches(resolved, value, current)) || matches.Length == 1
-                || kind == ContentReferenceKind.AnatomyNode && matches.Length > 0;
+                || kind is ContentReferenceKind.AnatomyNode or ContentReferenceKind.GameplayValueTarget && matches.Length > 0;
             Rect line = new(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
-            if (kind == ContentReferenceKind.AnatomyNode || kind == ContentReferenceKind.ExpeditionChoice || contextual || aliases.Length > 0)
+            if (kind == ContentReferenceKind.AnatomyNode || kind == ContentReferenceKind.ExpeditionChoice
+                || kind is ContentReferenceKind.InvasionPattern or ContentReferenceKind.SkillCapability
+                    or ContentReferenceKind.GameplayValueTarget or ContentReferenceKind.WorkType
+                || contextual || aliases.Length > 0)
             {
                 var options = new List<(string Id, string Label)> { ("", "None") };
                 if (contextual)
@@ -60,7 +63,7 @@ public sealed class ContentReferenceDrawer : PropertyDrawer
                     options.Add(("requesting-faction", "요청한 세력 (requesting-faction)"));
                 }
                 options.AddRange(aliases.Select(value => (value, "호환/문맥 키: " + value)));
-                options.AddRange(entries.Select(value => (value.Id, value.Asset.name + " / " + value.Id)));
+                options.AddRange(entries.Select(value => (value.Id, (value.Asset != null ? value.Asset.name : "코드 정의") + " / " + value.Id)));
                 int selected = options.FindIndex(value => ContentReferenceCatalog.Matches(resolved, value.Id, current));
                 if (selected < 0)
                 {
@@ -145,26 +148,22 @@ public static class ContentReferenceSelection
         };
     }
 
-    public static object Owner(SerializedProperty property)
-    {
-        object current = property.serializedObject.targetObject;
-        string[] segments = property.propertyPath.Replace(".Array.data[", "[").Split('.');
-        foreach (string segment in segments.Take(segments.Length - 1))
-        {
-            int bracket = segment.IndexOf('[');
-            string fieldName = bracket < 0 ? segment : segment.Substring(0, bracket);
-            var field = ContentReferenceCatalog.SerializedFields(current.GetType()).FirstOrDefault(value => value.Name == fieldName);
-            if (field == null) return null;
-            current = field.GetValue(current);
-            if (bracket >= 0 && current is System.Collections.IList list)
-                current = list[int.Parse(segment.Substring(bracket + 1, segment.Length - bracket - 2))];
-            if (current == null) return null;
-        }
-        return current;
-    }
-
     public static ContentReferenceAttribute ResolveReference(ContentReferenceAttribute reference, SerializedProperty property)
     {
+        if (reference.Kind == ContentReferenceKind.EncounterTarget)
+        {
+            var objective = property.serializedObject.FindProperty("objective");
+            return objective == null || objective.hasMultipleDifferentValues
+                || (OffenseEncounterObjective)objective.intValue != OffenseEncounterObjective.CaptureLeader
+                ? null : new ContentReferenceAttribute(ContentReferenceKind.EnemyArchetype);
+        }
+        if (reference.Kind == ContentReferenceKind.AuthoredEffectText)
+        {
+            var kind = ContextKind(property);
+            if (kind == null || kind.hasMultipleDifferentValues) return null;
+            return ContentReferenceCatalog.ResolveReference(reference, property.propertyPath,
+                new AuthoredGameplayEffectRecord { kind = (AuthoredGameplayEffectKind)kind.intValue });
+        }
         if (reference.Kind == ContentReferenceKind.EffectTarget)
         {
             var kind = ResolveKind(reference.Kind, property);
@@ -179,8 +178,10 @@ public static class ContentReferenceSelection
             entry.Configure((InGameNarrativeTextKind)kind.intValue, string.Empty, string.Empty);
             return ContentReferenceCatalog.ResolveReference(reference, property.propertyPath, entry);
         }
-        // A list element carries its containing field's metadata.
-        return ContentReferenceCatalog.ResolveReference(reference, property.propertyPath, Owner(property));
+        // Read pending SerializedProperty values above. The CLR object graph can
+        // still contain the old list/managed reference until ApplyModifiedProperties.
+        // Non-contextual references never need that graph, including new list elements.
+        return ContentReferenceCatalog.ResolveReference(reference, property.propertyPath, null);
     }
 
     private static SerializedProperty ContextKind(SerializedProperty property)
@@ -190,12 +191,39 @@ public static class ContentReferenceSelection
     }
 
     public static bool HasMixedContext(ContentReferenceAttribute reference, SerializedProperty property) =>
-        reference.Kind is ContentReferenceKind.EffectTarget or ContentReferenceKind.NarrativeTarget
-            && ContextKind(property)?.hasMultipleDifferentValues == true;
+        reference.Kind == ContentReferenceKind.EncounterTarget
+            ? property.serializedObject.FindProperty("objective")?.hasMultipleDifferentValues == true
+            : reference.Kind is ContentReferenceKind.EffectTarget or ContentReferenceKind.NarrativeTarget or ContentReferenceKind.AuthoredEffectText
+                && ContextKind(property)?.hasMultipleDifferentValues == true;
 
     public static IReadOnlyList<Entry> Entries(ContentReferenceAttribute reference, SerializedProperty property)
     {
         var all = Entries(reference);
+        if (catalog == null) return all;
+        if (reference.Kind == ContentReferenceKind.AnatomyNode
+            && property.serializedObject.targetObject is SurgicalProcedureSO)
+        {
+            var source = property.serializedObject;
+            if (source.FindProperty("family").hasMultipleDifferentValues
+                || source.FindProperty("allowsWildlife").hasMultipleDifferentValues
+                || source.FindProperty("allowedAnatomyFamilies").hasMultipleDifferentValues
+                || source.FindProperty("allowedSpeciesIds").hasMultipleDifferentValues)
+                return Array.Empty<Entry>();
+            return catalog.AnatomyNodesFor((MedicalProcedureFamily)source.FindProperty("family").intValue,
+                source.FindProperty("allowsWildlife").boolValue,
+                ReadStrings(source.FindProperty("allowedAnatomyFamilies")),
+                ReadStrings(source.FindProperty("allowedSpeciesIds")))
+                .Select(entry => new Entry(entry.Asset, entry.Id)).ToArray();
+        }
+        if (reference.Kind == ContentReferenceKind.AnatomyNode
+            && property.serializedObject.targetObject is AgeConditionDefinitionSO
+            && property.propertyPath.StartsWith("anatomyTargets.Array.data[", StringComparison.Ordinal))
+        {
+            int end = property.propertyPath.IndexOf("].", StringComparison.Ordinal);
+            var profileId = property.serializedObject.FindProperty(property.propertyPath.Substring(0, end + 2) + "anatomyProfileId");
+            if (profileId == null || profileId.hasMultipleDifferentValues) return Array.Empty<Entry>();
+            return all.Where(entry => ((AnatomyProfileSO)entry.Asset).ProfileId == profileId.stringValue).ToArray();
+        }
         if (reference.Kind == ContentReferenceKind.AnatomyNode
             && property.serializedObject.targetObject is AnatomyProfileSO profile)
             return profile.Nodes.Where(node => node != null)
@@ -203,8 +231,22 @@ public static class ContentReferenceSelection
         if (reference.Kind == ContentReferenceKind.EnemyAbility && property.propertyPath.Contains("bossPhases.")
             && property.serializedObject.targetObject is EnemyArchetypeDefinitionSO enemy)
             return all.Where(value => enemy.abilityIds.Contains(value.Id)).ToArray();
+        if (reference.Kind == ContentReferenceKind.EnemyArchetype && property.name == "objectiveTargetId"
+            && property.serializedObject.targetObject is OffenseEncounterSO)
+        {
+            SerializedProperty enemies = property.serializedObject.FindProperty("enemies");
+            if (enemies == null || enemies.hasMultipleDifferentValues) return Array.Empty<Entry>();
+            var selected = Enumerable.Range(0, enemies.arraySize)
+                .Select(index => enemies.GetArrayElementAtIndex(index)
+                    .FindPropertyRelative("enemyArchetypeId")?.stringValue)
+                .Where(id => !string.IsNullOrEmpty(id)).ToHashSet(StringComparer.Ordinal);
+            return all.Where(value => selected.Contains(value.Id)).ToArray();
+        }
         return all;
     }
+
+    private static string[] ReadStrings(SerializedProperty list) =>
+        Enumerable.Range(0, list.arraySize).Select(index => list.GetArrayElementAtIndex(index).stringValue).ToArray();
 
     public static Type AssetType(ContentReferenceKind kind) => ContentReferenceCatalog.AssetType(kind);
     public static Type AssetType(ContentReferenceAttribute reference) => reference.Kind == ContentReferenceKind.Definition
@@ -265,5 +307,153 @@ public static class ContentReferenceSelection
         }
         WriteId(property, kind, entries[0].Id, emptyNumericId);
         return true;
+    }
+}
+
+[CustomPropertyDrawer(typeof(HeritableTraitConsequence))]
+public sealed class HeritableTraitConsequenceDrawer : PropertyDrawer
+{
+    private const float Spacing = 2f;
+
+    public override float GetPropertyHeight(
+        SerializedProperty property,
+        GUIContent label) =>
+        EditorGUIUtility.singleLineHeight * 3f + Spacing * 2f;
+
+    public override void OnGUI(
+        Rect position,
+        SerializedProperty property,
+        GUIContent label)
+    {
+        SerializedProperty kind = property.FindPropertyRelative("kind");
+        SerializedProperty target = property.FindPropertyRelative("targetId");
+        SerializedProperty multiplier = property.FindPropertyRelative("multiplierDelta");
+        if (kind == null || target == null || multiplier == null)
+        {
+            EditorGUI.LabelField(position, label, new GUIContent("상속 특성 결과 필드가 없습니다."));
+            return;
+        }
+
+        EditorGUI.BeginProperty(position, label, property);
+        try
+        {
+            Rect line = new(position.x, position.y, position.width,
+                EditorGUIUtility.singleLineHeight);
+            EditorGUI.PropertyField(line, kind,
+                new GUIContent(label.text + " / 종류"));
+
+            line.y += EditorGUIUtility.singleLineHeight + Spacing;
+            DrawTarget(line, property, kind, target);
+
+            line.y += EditorGUIUtility.singleLineHeight + Spacing;
+            EditorGUI.PropertyField(line, multiplier, new GUIContent("배율 변화"));
+        }
+        finally
+        {
+            EditorGUI.EndProperty();
+        }
+    }
+
+    internal static bool TryAssignTarget(
+        SerializedProperty property,
+        string nextTargetId,
+        out string error)
+    {
+        error = string.Empty;
+        SerializedProperty kind = property?.FindPropertyRelative("kind");
+        SerializedProperty target = property?.FindPropertyRelative("targetId");
+        if (kind == null || target == null)
+        {
+            error = "상속 특성 결과의 종류 또는 대상 필드가 없습니다.";
+            return false;
+        }
+        if (kind.hasMultipleDifferentValues)
+        {
+            error = "서로 다른 결과 종류에는 하나의 대상을 함께 지정할 수 없습니다.";
+            return false;
+        }
+
+        HeritableTraitConsequenceKind pendingKind =
+            (HeritableTraitConsequenceKind)kind.intValue;
+        if (!HeritableTraitConsequence.TargetsFor(pendingKind)
+                .Contains(nextTargetId, StringComparer.Ordinal))
+        {
+            error = $"'{nextTargetId ?? string.Empty}'은(는) {pendingKind}의 등록 대상이 아닙니다.";
+            return false;
+        }
+
+        target.stringValue = nextTargetId;
+        return true;
+    }
+
+    private static void DrawTarget(
+        Rect position,
+        SerializedProperty property,
+        SerializedProperty kind,
+        SerializedProperty target)
+    {
+        if (kind.hasMultipleDifferentValues)
+        {
+            EditorGUI.LabelField(position, "대상",
+                "서로 다른 종류 — 종류를 맞춘 뒤 선택");
+            return;
+        }
+
+        HeritableTraitConsequenceKind pendingKind =
+            (HeritableTraitConsequenceKind)kind.intValue;
+        string[] targets = HeritableTraitConsequence.TargetsFor(pendingKind)
+            .ToArray();
+        string current = target.stringValue ?? string.Empty;
+        bool mixedTargets = target.hasMultipleDifferentValues;
+        int currentIndex = Array.FindIndex(targets,
+            value => string.Equals(value, current, StringComparison.Ordinal));
+        bool preserveExisting = mixedTargets || currentIndex < 0;
+
+        var labels = new List<string>();
+        var values = new List<string>();
+        if (preserveExisting)
+        {
+            labels.Add(mixedTargets
+                ? "서로 다른 값 — 선택 시 모두 변경"
+                : current.Length == 0
+                    ? "미지정 — 대상 선택 필요"
+                    : "알 수 없는 기존 값: " + current + " — 기존 값 보존");
+            values.Add(null);
+        }
+        labels.AddRange(targets);
+        values.AddRange(targets);
+
+        if (labels.Count == 0)
+        {
+            EditorGUI.LabelField(position, "대상",
+                "선택 가능한 대상 없음 — 기존 값 보존");
+            return;
+        }
+
+        int selected = preserveExisting ? 0 : currentIndex;
+        bool previousMixed = EditorGUI.showMixedValue;
+        EditorGUI.showMixedValue = mixedTargets;
+        try
+        {
+            using (new EditorGUI.DisabledScope(targets.Length == 0))
+            {
+                EditorGUI.BeginChangeCheck();
+                int next = EditorGUI.Popup(position, "대상", selected,
+                    labels.ToArray());
+                if (EditorGUI.EndChangeCheck()
+                    && next >= 0
+                    && next < values.Count
+                    && values[next] != null
+                    && !TryAssignTarget(property, values[next], out string error))
+                {
+                    Debug.LogWarning(error,
+                        property.serializedObject.targetObject);
+                }
+            }
+        }
+        finally
+        {
+            EditorGUI.showMixedValue = previousMixed;
+        }
     }
 }

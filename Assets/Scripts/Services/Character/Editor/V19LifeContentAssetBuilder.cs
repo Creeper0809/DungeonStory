@@ -349,9 +349,26 @@ public static class V19LifeContentAssetBuilder
         condition.displayName = displayName;
         condition.constructCondition = construct;
         condition.affectedAnatomyNodeIds = nodes.ToList();
+        condition.anatomyTargets = suffix switch
+        {
+            "age-organ-fibrosis" => new List<AgeConditionAnatomyTarget>
+            {
+                Target("anatomy:beastkin", "torso"), Target("anatomy:demon", "heat-sac"),
+                Target("anatomy:avian", "torso"), Target("anatomy:kobold", "torso"),
+                Target("anatomy:slime", "core")
+            },
+            "age-cardiac-degeneration" => new List<AgeConditionAnatomyTarget>
+            {
+                Target("anatomy:demon", "mana-core"), Target("anatomy:fungal", "hypha-core")
+            },
+            _ => new List<AgeConditionAnatomyTarget>()
+        };
         EditorUtility.SetDirty(condition);
         return condition;
     }
+
+    private static AgeConditionAnatomyTarget Target(string profileId, params string[] nodes) =>
+        new() { anatomyProfileId = profileId, nodeIds = nodes.ToList() };
 
     private static SpeciesManifest New(
         string tag,

@@ -663,7 +663,7 @@ public static class V27CharacterPerformanceContentAssetBuilder
                     spec.Primary,
                     spec.Secondary,
                     spec.SecondaryWeight,
-                    "harvest:yield");
+                    GameplayEffectTargetIds.HarvestYield);
             }
         }
     }

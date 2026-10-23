@@ -31,14 +31,16 @@ public sealed class ContentReferenceCatalog
         if (root == null) throw new ArgumentNullException(nameof(root));
         var items = root.GetItemDefinitions<ItemDefinitionCatalogSO>();
         return new ContentReferenceCatalog(root.DomainCatalogs.OfType<GameDomainContentCatalogSO>()
-            .SelectMany(value => value.Definitions).Concat(items != null
-                ? items.Definitions.Cast<ScriptableObject>() : Array.Empty<ScriptableObject>()));
+            .SelectMany(value => value.Definitions.Concat(new ScriptableObject[] { value })).Concat(items != null
+                ? items.Definitions.Cast<ScriptableObject>() : Array.Empty<ScriptableObject>())
+            .Concat(new ScriptableObject[] { root.GetCharacterSkillSettings<CharacterSkillSystemSettingsSO>() }));
     }
 
     public static Type AssetType(ContentReferenceKind kind) => kind switch
     {
         ContentReferenceKind.Item or ContentReferenceKind.Ammunition => typeof(ItemDefinitionSO),
         ContentReferenceKind.Weapon => typeof(CombatWeaponSO),
+        ContentReferenceKind.Equipment => typeof(CombatEquipmentDefinitionSO),
         ContentReferenceKind.Armor => typeof(CombatArmorSO),
         ContentReferenceKind.Shield => typeof(CombatShieldSO),
         ContentReferenceKind.Building or ContentReferenceKind.BuildingNumeric => typeof(BuildingSO),
@@ -59,6 +61,10 @@ public sealed class ContentReferenceCatalog
         ContentReferenceKind.EnemyArchetype => typeof(EnemyArchetypeDefinitionSO),
         ContentReferenceKind.BattlefieldModifier => typeof(BattlefieldModifierDefinitionSO),
         ContentReferenceKind.Disease => typeof(DiseaseDefinitionSO),
+        ContentReferenceKind.InvasionPattern => typeof(GameDomainContentCatalogSO),
+        ContentReferenceKind.WorkerTrait or ContentReferenceKind.WorkType => typeof(ScriptableObject),
+        ContentReferenceKind.SkillCapability => typeof(CharacterSkillSystemSettingsSO),
+        ContentReferenceKind.GameplayValueTarget => typeof(GameplayEffectDefinitionSO),
         _ => throw new ArgumentOutOfRangeException(nameof(kind))
     };
 
@@ -88,14 +94,57 @@ public sealed class ContentReferenceCatalog
         return found;
     }
 
+    public IReadOnlyList<Entry> AnatomyNodesFor(MedicalProcedureFamily family, bool allowsWildlife,
+        IReadOnlyList<string> allowedFamilies, IReadOnlyList<string> allowedSpecies)
+    {
+        var characterProfiles = assets.OfType<CharacterSpeciesDefinitionSO>()
+            .Select(value => value.anatomyProfileId).ToHashSet(StringComparer.Ordinal);
+        return assets.OfType<AnatomyProfileSO>().Where(profile =>
+                (allowsWildlife || characterProfiles.Contains(profile.ProfileId))
+                && (profile.AnatomyFamily.Equals("construct", StringComparison.OrdinalIgnoreCase)
+                    == (family == MedicalProcedureFamily.Construct))
+                && (allowedFamilies.Count == 0 || allowedFamilies.Contains(profile.AnatomyFamily, StringComparer.OrdinalIgnoreCase))
+                && (allowedSpecies.Count == 0 || profile.SpeciesIds.Any(id => allowedSpecies.Contains(id, StringComparer.OrdinalIgnoreCase))))
+            .SelectMany(profile => profile.Nodes.Select(node => new Entry(profile, node.NodeId))).ToArray();
+    }
+
     private Entry[] BuildEntries(ContentReferenceAttribute reference)
     {
         ContentReferenceKind kind = reference.Kind;
         Type targetType = kind == ContentReferenceKind.Definition
             ? ResolveType(reference.DefinitionTypeName) : AssetType(kind);
         var result = new List<Entry>();
+        if (kind == ContentReferenceKind.WorkType)
+            return BuiltInWorkTypeIds.All.Select(value => new Entry(null, value.Value)).ToArray();
         foreach (ScriptableObject asset in assets.Where(value => value != null).Distinct())
         {
+            if (kind == ContentReferenceKind.WorkerTrait)
+            {
+                if (asset is CharacterTraitSO trait) result.Add(new Entry(asset, trait.DefinitionId.Value));
+                else if (asset is HeritableTraitDefinitionSO heritable) result.Add(new Entry(asset, heritable.traitId));
+                continue;
+            }
+            if (kind == ContentReferenceKind.SkillCapability)
+            {
+                if (asset is CharacterSkillSystemSettingsSO settings)
+                    foreach (var module in settings.Modules.Where(value => value != null))
+                        result.Add(new Entry(asset, CharacterSkillModuleCapabilityRegistry.Require(module).CapabilityId));
+                continue;
+            }
+            if (kind == ContentReferenceKind.GameplayValueTarget)
+            {
+                if (asset is GameplayEffectDefinitionSO effect
+                    && GameplayEffectTargetIds.IsCharacterPerformanceFormulaTarget(effect.TargetId))
+                    result.Add(new Entry(asset, effect.TargetId));
+                continue;
+            }
+            if (kind == ContentReferenceKind.InvasionPattern)
+            {
+                if (asset is GameDomainContentCatalogSO domain)
+                    foreach (var pattern in domain.InvasionPatterns)
+                        result.Add(new Entry(asset, pattern.id));
+                continue;
+            }
             if (kind == ContentReferenceKind.ExpeditionSite)
             {
                 if (asset is OffenseSiteArchetypeSO site) result.Add(new Entry(asset, site.siteTypeId));
@@ -151,7 +200,7 @@ public sealed class ContentReferenceCatalog
             string field = kind switch
             {
                 ContentReferenceKind.Item or ContentReferenceKind.Ammunition => "itemId",
-                ContentReferenceKind.Weapon or ContentReferenceKind.Armor or ContentReferenceKind.Shield => "equipmentId",
+                ContentReferenceKind.Weapon or ContentReferenceKind.Armor or ContentReferenceKind.Shield or ContentReferenceKind.Equipment => "equipmentId",
                 ContentReferenceKind.BuildingNumeric or ContentReferenceKind.ResearchNumeric => "id",
                 ContentReferenceKind.Research => "projectId",
                 ContentReferenceKind.Species => "speciesTag",
@@ -180,6 +229,16 @@ public sealed class ContentReferenceCatalog
 
     public static ContentReferenceKind? ResolveKind(ContentReferenceKind kind, string path, object owner)
     {
+        if (kind == ContentReferenceKind.AuthoredEffectText)
+            return owner is AuthoredGameplayEffectRecord authored ? authored.kind switch
+            {
+                AuthoredGameplayEffectKind.GuestDemandMultiplier => ContentReferenceKind.Species,
+                AuthoredGameplayEffectKind.IntruderPattern => ContentReferenceKind.InvasionPattern,
+                _ => null
+            } : null;
+        if (kind == ContentReferenceKind.EncounterTarget)
+            return owner is OffenseEncounterSO encounter && encounter.objective == OffenseEncounterObjective.CaptureLeader
+                ? ContentReferenceKind.EnemyArchetype : null;
         if (kind == ContentReferenceKind.WeightedTarget)
             return path.Contains("relatedEventWeights.") ? ContentReferenceKind.LifeEvent
                 : path.Contains("otherCultureAttitudes.") ? ContentReferenceKind.Culture : null;
@@ -216,6 +275,16 @@ public sealed class ContentReferenceCatalog
     public IReadOnlyList<string> Validate(IEnumerable<ScriptableObject> roots)
     {
         var errors = new List<string>();
+        var traitKeys = new Dictionary<string, ScriptableObject>(StringComparer.Ordinal);
+        foreach (var trait in assets.OfType<CharacterTraitSO>())
+            foreach (string key in new[] { trait.DefinitionId.Value, trait.traitName }.Concat(trait.LegacyPolicyNames)
+                         .Where(key => !string.IsNullOrWhiteSpace(key)).Distinct(StringComparer.Ordinal))
+                if (traitKeys.TryGetValue(key, out var previous) && previous != trait)
+                    errors.Add($"Worker trait identity/legacy alias '{key}' belongs to both '{previous.name}' and '{trait.name}'.");
+                else traitKeys[key] = trait;
+        foreach (var trait in assets.OfType<HeritableTraitDefinitionSO>())
+            if (traitKeys.ContainsKey(trait.traitId))
+                errors.Add($"Heritable trait '{trait.traitId}' conflicts with a worker trait identity/legacy alias.");
         var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
         foreach (var root in roots.Where(value => value != null)) Visit(root, root.name, root, visited, errors);
         return errors;
@@ -238,6 +307,30 @@ public sealed class ContentReferenceCatalog
         }
         if (value is EnemyArchetypeDefinitionSO enemy)
             errors.AddRange(enemy.ValidateDefinition().Select(error => path + ": " + error));
+        if (value is HeritableTraitDefinitionSO heritable)
+            errors.AddRange(heritable.ValidateDefinition().Select(error => path + ": " + error));
+        if (value is CharacterSO character && character.species != null)
+        {
+            if (!Entries(new ContentReferenceAttribute(ContentReferenceKind.Species)).Any(entry => entry.Asset == character.species)
+                || !string.Equals(character.speciesTag, character.species.speciesTag, StringComparison.Ordinal))
+                errors.Add($"{path}: character species object is unregistered or disagrees with its legacy species ID.");
+        }
+        if (value is SurgicalProcedureSO procedure)
+        {
+            var available = AnatomyNodesFor(procedure.Family, procedure.AllowsWildlife,
+                procedure.AllowedAnatomyFamilies, procedure.AllowedSpeciesIds);
+            if (!procedure.AllowsWildlife && assets.OfType<WildlifeSpeciesSO>().Any(species =>
+                    procedure.AllowedSpeciesIds.Contains(species.SpeciesId, StringComparer.OrdinalIgnoreCase)))
+                errors.Add($"{path}: wildlife species require a procedure that allows wildlife.");
+            // An empty default is intentional for procedures whose node is
+            // selected when ordering surgery. Only authored defaults are fixed.
+            if (procedure.TargetNodeId.Length > 0 && !available.Any(entry => entry.Id == procedure.TargetNodeId))
+                errors.Add($"{path}: target node '{procedure.TargetNodeId}' is unavailable in the procedure's eligible anatomy profiles.");
+            foreach (string speciesId in procedure.AllowedSpeciesIds)
+                if (!available.Any(entry => ((AnatomyProfileSO)entry.Asset).SpeciesIds.Contains(speciesId, StringComparer.OrdinalIgnoreCase)
+                    && (procedure.TargetNodeId.Length == 0 || entry.Id == procedure.TargetNodeId)))
+                    errors.Add($"{path}: selected species '{speciesId}' cannot use the procedure's target/anatomy family.");
+        }
         if (value is AnatomyProfileSO anatomy)
         {
             var nodeIds = anatomy.Nodes.Where(node => node != null).Select(node => node.NodeId).ToHashSet(StringComparer.Ordinal);
@@ -281,6 +374,11 @@ public sealed class ContentReferenceCatalog
         string path, List<string> errors)
     {
         string id = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        if (requested == ContentReferenceKind.AuthoredEffectText && string.IsNullOrWhiteSpace(id))
+        {
+            errors.Add($"{path}: {reference.Kind} effect requires a selected definition.");
+            return;
+        }
         if (id.Length == 0 || value is int number && number ==
             (reference.Kind == ContentReferenceKind.ResearchNumeric ? 0 : reference.EmptyNumericId)) return;
         if ((reference.Aliases ?? string.Empty).Split('|').Any(alias => Matches(reference, alias, id))) return;
@@ -295,7 +393,7 @@ public sealed class ContentReferenceCatalog
             matchCounts[key] = counts;
         }
         counts.TryGetValue(id, out int count);
-        if (count != 1 && !(reference.Kind == ContentReferenceKind.AnatomyNode && count > 0))
+        if (count != 1 && !(reference.Kind is ContentReferenceKind.AnatomyNode or ContentReferenceKind.GameplayValueTarget && count > 0))
             errors.Add($"{path}: unknown or ambiguous {reference.Kind} reference '{id}'.");
     }
 

@@ -24,7 +24,6 @@ MonoBehaviour:
   allowedSpeciesIds:
   - myconid
   operatorRequirement:
-    stats: []
     minimumWeightedScore: 3
   targetNodeId: hypha-core
   requiredResearchId: research:medical:mycelial-grafting

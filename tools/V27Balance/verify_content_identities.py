@@ -2,7 +2,8 @@
 
 The Unity editor owns creation of ProjectSettings/PublishedContentIdentities.json.
 This gate only compares committed snapshots and checks every head row against the
-committed Unity asset, meta GUID, script binding, and top-level scalar fields.
+committed Unity asset, meta GUID, script binding, top-level scalar fields, and
+the catalog registrations emitted as schema-1 virtual fields.
 """
 from __future__ import annotations
 
@@ -14,18 +15,45 @@ import re
 import subprocess
 import sys
 from typing import Iterable
+from urllib.parse import quote, unquote_to_bytes
+
+import yaml
 
 
 ROOT = Path(__file__).resolve().parents[2]
 BASELINE_PATH = "ProjectSettings/PublishedContentIdentities.json"
+ROOT_ASSET_PATH = "Assets/Resources/SO/GameContentCatalog.asset"
 GUID_RE = re.compile(r"[0-9a-f]{32}")
 IDENTIFIER_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+RESOURCE_PATH_FIELD = "@resource-path"
+REGISTRATION_FIELD_RE = re.compile(
+    r"@registration:(?P<member>[A-Za-z_][A-Za-z0-9_]*):"
+    r"(?P<guid>[0-9a-f]{32})"
+)
+ROOT_SCALAR_REGISTRATIONS = frozenset(
+    {"itemDefinitions", "worldPresentation", "characterSkillSettings", "media"}
+)
+ROOT_ARRAY_REGISTRATIONS = frozenset({"domainCatalogs"})
+REGISTRY_ARRAY_MEMBERS = {
+    "GameDomainContentCatalogSO": frozenset({"definitions"}),
+    "ItemDefinitionCatalogSO": frozenset({"definitions"}),
+}
+NESTED_FIELD_PREFIX = "@nested:"
+LEGACY_TRAIT_NAME_PREFIX = "@legacy-trait-name:"
 TOP_LEVEL_SCALAR_RE = re.compile(
     r"^  (?P<name>[A-Za-z_][A-Za-z0-9_]*):(?P<value>.*)$"
 )
 SCRIPT_BINDING_RE = re.compile(
     r"^  m_Script:\s*\{[^}]*\bguid:\s*(?P<guid>[0-9a-f]{32})\b[^}]*\}\s*$",
     re.MULTILINE,
+)
+INLINE_ASSET_REFERENCE_RE = re.compile(
+    r"^\{fileID: (?P<file_id>-?[0-9]+), guid: "
+    r"(?P<guid>[0-9a-f]{32}), type: 2\}$"
+)
+ARRAY_ASSET_REFERENCE_RE = re.compile(
+    r"^  - (?P<reference>\{fileID: -?[0-9]+, guid: "
+    r"[0-9a-f]{32}, type: 2\})$"
 )
 
 
@@ -56,6 +84,77 @@ class IdentityBaseline:
 
     def assets_by_guid(self) -> dict[str, PublishedAsset]:
         return {asset.guid: asset for asset in self.assets}
+
+
+@dataclass(frozen=True)
+class NestedRoute:
+    path: str
+    selector: str
+    leaves: tuple[str, ...]
+    children: tuple["NestedRoute", ...] = ()
+    managed_reference: bool = False
+    managed_types: tuple[str, ...] = ()
+
+
+NESTED_ROUTES: dict[str, tuple[NestedRoute, ...]] = {
+    "AnatomyProfileSO": (NestedRoute("nodes", "nodeId", ("nodeId",)),),
+    "OffenseDecisionCardSO": (NestedRoute("choices", "choiceId", ("choiceId",)),),
+    "FactionChapterDefinitionSO": (
+        NestedRoute("choices", "choiceId", ("choiceId",)),
+    ),
+    "LifeEventDefinitionSO": (NestedRoute("choices", "choiceId", ("choiceId",)),),
+    "ServiceIncidentDefinitionSO": (
+        NestedRoute("responses", "choiceId", ("choiceId",)),
+    ),
+    "OffenseCampaignCatalogSO": (NestedRoute("targets", "id", ("id",)),),
+    "ProductionRecipeSO": (
+        NestedRoute("outputs", "outputLineId", ("outputLineId",)),
+    ),
+    "CharacterSkillSystemSettingsSO": (
+        NestedRoute(
+            "modules",
+            "id",
+            ("id", "capabilityId"),
+            (NestedRoute("variants", "id", ("id",)),),
+            managed_reference=True,
+        ),
+        NestedRoute(
+            "drawbackCapabilities",
+            "drawbackId",
+            ("drawbackId", "capabilityId"),
+        ),
+    ),
+    "CharacterAcquiredTraitSettingsSO": (
+        NestedRoute(
+            "drawbackCapabilities",
+            "drawbackId",
+            ("drawbackId", "capabilityId"),
+            (NestedRoute("effects", "bindingId", ("bindingId",)),),
+        ),
+    ),
+    "CharacterAcquiredTraitModuleSO": (
+        NestedRoute("effects", "bindingId", ("bindingId",)),
+        NestedRoute("specialReactions", "reactionId", ("reactionId",)),
+    ),
+    "BuildingSO": (
+        NestedRoute(
+            "abilityModules.items",
+            "abilityId",
+            ("abilityId",),
+            managed_reference=True,
+            managed_types=("BuildingProductionAbility", "BuildingSecurityAbility"),
+        ),
+    ),
+    "GameDomainContentCatalogSO": (
+        NestedRoute("metaUpgrades", "id", ("id",)),
+        NestedRoute("runVariables", "id", ("id",)),
+        NestedRoute("ownerDoctrines", "id", ("id",)),
+        NestedRoute("invasionPatterns", "id", ("id",)),
+    ),
+    "EquipmentEvolutionFormulaCatalogSO": (
+        NestedRoute("capabilities", "capabilityId", ("capabilityId",)),
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -196,6 +295,156 @@ def _strict_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
     return result
 
 
+def _registration_member(type_name: str, path: str, location: str) -> str | None:
+    if path == RESOURCE_PATH_FIELD:
+        if type_name != "GameContentCatalogSO":
+            raise VerificationError(
+                f"resource-path virtual field is invalid for {type_name} at {location}"
+            )
+        return None
+    match = REGISTRATION_FIELD_RE.fullmatch(path)
+    if match is None:
+        raise VerificationError(f"invalid virtual identity path at {location}: {path}")
+    member = match.group("member")
+    if type_name == "GameContentCatalogSO":
+        allowed = ROOT_SCALAR_REGISTRATIONS | ROOT_ARRAY_REGISTRATIONS
+    else:
+        allowed = REGISTRY_ARRAY_MEMBERS.get(type_name, frozenset())
+    if member not in allowed:
+        raise VerificationError(
+            f"registration member {member!r} is invalid for {type_name} at {location}"
+        )
+    return member
+
+
+def _decode_selector(value: str, location: str) -> str:
+    if not value:
+        raise VerificationError(f"nested identity selector is empty at {location}")
+    if re.fullmatch(r"(?:[A-Za-z0-9._~-]|%[0-9A-F]{2})+", value) is None:
+        raise VerificationError(
+            f"nested identity selector is not canonically escaped at {location}: {value}"
+        )
+    try:
+        decoded = unquote_to_bytes(value).decode("utf-8", errors="strict")
+    except UnicodeDecodeError as error:
+        raise VerificationError(
+            f"nested identity selector is not canonical UTF-8 at {location}: {value}"
+        ) from error
+    if not decoded or decoded != decoded.strip() or quote(decoded, safe="-._~") != value:
+        raise VerificationError(
+            f"nested identity selector is not canonically escaped at {location}: {value}"
+        )
+    return decoded
+
+
+def _parse_nested_route_path(
+    route: NestedRoute,
+    text: str,
+    location: str,
+) -> tuple[NestedRoute, str] | None:
+    prefix = f"{route.path}[{route.selector}="
+    if not text.startswith(prefix):
+        return None
+    close = text.find("]", len(prefix))
+    if close < 0:
+        raise VerificationError(f"unterminated nested identity selector at {location}")
+    selector_and_type = text[len(prefix):close]
+    if ";type=" in selector_and_type:
+        encoded, managed_type = selector_and_type.split(";type=", 1)
+        if not route.managed_types or managed_type not in route.managed_types:
+            raise VerificationError(
+                f"nested identity managed type is invalid at {location}: {managed_type}"
+            )
+    else:
+        encoded = selector_and_type
+        managed_type = ""
+        if route.managed_types:
+            raise VerificationError(f"nested identity managed type is missing at {location}")
+    if ";" in encoded:
+        raise VerificationError(f"nested identity selector is malformed at {location}")
+    _decode_selector(encoded, location)
+    remainder = text[close + 1:]
+    if not remainder.startswith("."):
+        raise VerificationError(f"nested identity leaf is missing at {location}")
+    tail = remainder[1:]
+    if tail in route.leaves:
+        return route, tail
+    for child in route.children:
+        parsed = _parse_nested_route_path(child, tail, location)
+        if parsed is not None:
+            return parsed
+    raise VerificationError(f"nested identity leaf is invalid at {location}: {tail}")
+
+
+def _parse_nested_identity_path(type_name: str, path: str, location: str) -> None:
+    if not path.startswith(NESTED_FIELD_PREFIX):
+        raise VerificationError(f"invalid nested identity path at {location}: {path}")
+    text = path[len(NESTED_FIELD_PREFIX):]
+    for route in NESTED_ROUTES.get(type_name, ()):
+        if _parse_nested_route_path(route, text, location) is not None:
+            return
+    raise VerificationError(
+        f"nested identity route is invalid for {type_name} at {location}: {path}"
+    )
+
+
+def _validate_virtual_fields(
+    type_name: str,
+    fields: list[IdentityField],
+    location: str,
+) -> None:
+    virtual = [field for field in fields if field.path.startswith("@")]
+    for field in virtual:
+        if field.path.startswith(NESTED_FIELD_PREFIX):
+            _parse_nested_identity_path(type_name, field.path, location)
+            if not field.value or field.value != field.value.strip():
+                raise VerificationError(
+                    f"nested identity value is blank or not trimmed at {location}: {field.path}"
+                )
+            continue
+        if field.path.startswith(LEGACY_TRAIT_NAME_PREFIX):
+            if type_name != "CharacterTraitSO":
+                raise VerificationError(
+                    f"legacy trait name is invalid for {type_name} at {location}"
+                )
+            alias = _decode_selector(
+                field.path[len(LEGACY_TRAIT_NAME_PREFIX):], location
+            )
+            if field.value != alias:
+                raise VerificationError(
+                    f"legacy trait name value must equal its path alias at {location}"
+                )
+            continue
+        member = _registration_member(type_name, field.path, location)
+        if member is None:
+            if field.value != ROOT_ASSET_PATH:
+                raise VerificationError(
+                    f"startup catalog path must be {ROOT_ASSET_PATH} at {location}"
+                )
+            continue
+        match = REGISTRATION_FIELD_RE.fullmatch(field.path)
+        assert match is not None
+        if field.value != match.group("guid"):
+            raise VerificationError(
+                f"registration value must equal its path GUID at {location}: {field.path}"
+            )
+    if type_name == "GameContentCatalogSO" and virtual:
+        resource_paths = [field for field in virtual if field.path == RESOURCE_PATH_FIELD]
+        if len(resource_paths) != 1:
+            raise VerificationError(
+                f"GameContentCatalogSO requires one {RESOURCE_PATH_FIELD} at {location}"
+            )
+        for member in ROOT_SCALAR_REGISTRATIONS:
+            count = sum(
+                1 for field in virtual
+                if field.path.startswith(f"@registration:{member}:")
+            )
+            if count != 1:
+                raise VerificationError(
+                    f"GameContentCatalogSO requires one {member} registration at {location}"
+                )
+
+
 def load_baseline(raw: bytes, label: str) -> IdentityBaseline:
     try:
         text = raw.decode("utf-8-sig", errors="strict")
@@ -254,9 +503,11 @@ def load_baseline(raw: bytes, label: str) -> IdentityBaseline:
                 )
             path = field["path"]
             value = field["value"]
-            if not isinstance(path, str) or IDENTIFIER_RE.fullmatch(path) is None:
+            if not isinstance(path, str) or (
+                IDENTIFIER_RE.fullmatch(path) is None and not path.startswith("@")
+            ):
                 raise VerificationError(
-                    f"identity path must be one top-level serialized field at {field_location}"
+                    f"identity path must be a top-level field or known virtual field at {field_location}"
                 )
             if path in seen_paths:
                 raise VerificationError(
@@ -272,6 +523,7 @@ def load_baseline(raw: bytes, label: str) -> IdentityBaseline:
                     f"identity string is not a top-level scalar at {field_location}"
                 )
             fields.append(IdentityField(path, value))
+        _validate_virtual_fields(type_name, fields, location)
         assets.append(PublishedAsset(guid, type_name, script_guid, tuple(fields)))
     return IdentityBaseline(tuple(assets))
 
@@ -430,11 +682,11 @@ def _script_declares_type(raw: bytes, path: str, type_name: str) -> None:
         )
 
 
-def _top_level_scalars(
+def _scripted_document(
     raw: bytes,
     path: str,
     expected_script_guid: str,
-) -> tuple[dict[str, str], str]:
+) -> tuple[str, str]:
     try:
         text = raw.decode("utf-8-sig", errors="strict")
     except UnicodeDecodeError as error:
@@ -458,19 +710,434 @@ def _top_level_scalars(
         raise VerificationError(
             f"published asset has ambiguous scripted subassets for {expected_script_guid}: {path}"
         )
-    document, script_guid = matching[0]
-    fields: dict[str, str] = {}
+    return matching[0]
+
+
+class _StrictUnityLoader(yaml.SafeLoader):
+    """Safe Unity-YAML subset: no aliases/anchors and no duplicate mapping keys."""
+
+    def compose_node(self, parent, index):  # type: ignore[no-untyped-def]
+        event = self.peek_event()
+        if isinstance(event, yaml.AliasEvent) or getattr(event, "anchor", None) is not None:
+            raise VerificationError("Unity identity YAML aliases and anchors are unsupported")
+        return super().compose_node(parent, index)
+
+    def construct_mapping(self, node, deep=False):  # type: ignore[no-untyped-def]
+        if not isinstance(node, yaml.MappingNode):
+            raise VerificationError("Unity identity YAML mapping node is malformed")
+        result: dict[object, object] = {}
+        for key_node, value_node in node.value:
+            key = self.construct_object(key_node, deep=deep)
+            try:
+                duplicate = key in result
+            except TypeError as error:
+                raise VerificationError(
+                    "Unity identity YAML mapping key is not a scalar"
+                ) from error
+            if duplicate:
+                raise VerificationError(f"duplicate Unity YAML mapping key: {key}")
+            result[key] = self.construct_object(value_node, deep=deep)
+        return result
+
+
+# Unity string fields may look like YAML booleans, numbers, nulls, or timestamps.
+# Keep every scalar as authored text; managed-reference rids are validated below.
+_StrictUnityLoader.yaml_implicit_resolvers = {}
+
+
+def _load_scripted_yaml(document: str, path: str) -> dict[str, object]:
+    marker, separator, body = document.partition("\n")
+    if not separator or re.fullmatch(r"--- !u!\d+ &[+-]?\d+", marker) is None:
+        raise VerificationError(f"Unity scripted document marker is malformed: {path}")
+    try:
+        loaded = yaml.load(body, Loader=_StrictUnityLoader)
+    except VerificationError as error:
+        raise VerificationError(f"invalid Unity identity YAML at {path}: {error}") from error
+    except yaml.YAMLError as error:
+        raise VerificationError(f"invalid Unity identity YAML at {path}: {error}") from error
+    if not isinstance(loaded, dict) or set(loaded) != {"MonoBehaviour"}:
+        raise VerificationError(f"Unity scripted document root is malformed: {path}")
+    root = loaded["MonoBehaviour"]
+    if not isinstance(root, dict):
+        raise VerificationError(f"Unity MonoBehaviour payload is not a mapping: {path}")
+    return root
+
+
+def _mapping_value(mapping: dict[object, object], key: str, location: str) -> object:
+    if key not in mapping:
+        raise VerificationError(f"nested Unity field is missing at {location}: {key}")
+    return mapping[key]
+
+
+def _sequence_at(
+    root: dict[object, object],
+    path: str,
+    location: str,
+) -> list[object]:
+    value: object = root
+    for part in path.split("."):
+        if not isinstance(value, dict):
+            raise VerificationError(f"nested Unity parent is not a mapping at {location}.{part}")
+        value = _mapping_value(value, part, location)
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise VerificationError(f"nested Unity field is not an array at {location}.{path}")
+    return value
+
+
+def _identity_string(mapping: dict[object, object], key: str, location: str) -> str:
+    value = _mapping_value(mapping, key, location)
+    if not isinstance(value, str):
+        raise VerificationError(f"nested identity is not a scalar string at {location}.{key}")
+    if not value or value != value.strip():
+        raise VerificationError(f"nested identity is blank or not trimmed at {location}.{key}")
+    return value
+
+
+def _managed_reference_table(
+    root: dict[object, object],
+    location: str,
+) -> dict[str, list[tuple[str, dict[object, object]]]]:
+    references = _mapping_value(root, "references", location)
+    if not isinstance(references, dict):
+        raise VerificationError(f"managed references are not a mapping at {location}")
+    rows = _mapping_value(references, "RefIds", f"{location}.references")
+    if rows is None:
+        rows = []
+    if not isinstance(rows, list):
+        raise VerificationError(f"managed reference table is not an array at {location}")
+    result: dict[str, list[tuple[str, dict[object, object]]]] = {}
+    for index, row in enumerate(rows):
+        row_location = f"{location}.references.RefIds[{index}]"
+        if not isinstance(row, dict):
+            raise VerificationError(f"managed reference row is not a mapping at {row_location}")
+        rid = _mapping_value(row, "rid", row_location)
+        if not isinstance(rid, str) or re.fullmatch(r"-?[0-9]+", rid) is None:
+            raise VerificationError(f"managed reference rid is invalid at {row_location}")
+        type_record = _mapping_value(row, "type", row_location)
+        if not isinstance(type_record, dict):
+            raise VerificationError(f"managed reference type is invalid at {row_location}")
+        class_name = _mapping_value(type_record, "class", f"{row_location}.type")
+        if not isinstance(class_name, str) or IDENTIFIER_RE.fullmatch(class_name) is None:
+            raise VerificationError(f"managed reference class is invalid at {row_location}")
+        data = _mapping_value(row, "data", row_location)
+        if not isinstance(data, dict):
+            raise VerificationError(f"managed reference data is invalid at {row_location}")
+        result.setdefault(rid, []).append((class_name, data))
+    return result
+
+
+def _managed_element(
+    item: object,
+    references: dict[str, list[tuple[str, dict[object, object]]]],
+    location: str,
+) -> tuple[str, dict[object, object]]:
+    if not isinstance(item, dict):
+        raise VerificationError(f"managed reference item is not a mapping at {location}")
+    rid = _mapping_value(item, "rid", location)
+    if not isinstance(rid, str) or re.fullmatch(r"-?[0-9]+", rid) is None:
+        raise VerificationError(f"managed reference item rid is invalid at {location}")
+    matches = references.get(rid, [])
+    if len(matches) != 1:
+        reason = "missing" if not matches else "ambiguous"
+        raise VerificationError(f"managed reference rid is {reason} at {location}: {rid}")
+    return matches[0]
+
+
+def _capture_nested_route(
+    items: list[object],
+    route: NestedRoute,
+    location: str,
+    result: dict[str, str],
+    *,
+    scope_prefix: str = "",
+    references: dict[str, list[tuple[str, dict[object, object]]]] | None = None,
+) -> None:
+    seen: set[str] = set()
+    for index, item in enumerate(items):
+        item_location = f"{location}[{index}]"
+        managed_type = ""
+        if route.managed_reference:
+            if references is None:
+                raise VerificationError(f"managed reference table is missing at {location}")
+            managed_type, element = _managed_element(item, references, item_location)
+            if route.managed_types and managed_type not in route.managed_types:
+                continue
+        else:
+            if not isinstance(item, dict):
+                raise VerificationError(f"nested array element is not a mapping at {item_location}")
+            element = item
+        selector = _identity_string(element, route.selector, item_location)
+        if selector in seen:
+            raise VerificationError(
+                f"duplicate nested identity selector at {location}: {route.selector}={selector}"
+            )
+        seen.add(selector)
+        encoded = quote(selector, safe="-._~")
+        scope = f"{route.path}[{route.selector}={encoded}"
+        if route.managed_types:
+            scope += f";type={managed_type}"
+        scope += "]"
+        if scope_prefix:
+            scope = f"{scope_prefix}.{scope}"
+        for leaf in route.leaves:
+            value = _identity_string(element, leaf, item_location)
+            virtual_path = f"{NESTED_FIELD_PREFIX}{scope}.{leaf}"
+            if virtual_path in result:
+                raise VerificationError(f"duplicate nested identity path at {location}: {virtual_path}")
+            result[virtual_path] = value
+        for child in route.children:
+            child_items = _sequence_at(element, child.path, item_location)
+            _capture_nested_route(
+                child_items,
+                child,
+                f"{item_location}.{child.path}",
+                result,
+                scope_prefix=scope,
+                references=references,
+            )
+
+
+def _actual_nested_fields(
+    document: str,
+    record: PublishedAsset,
+    asset_path: str,
+) -> dict[str, str]:
+    routes = NESTED_ROUTES.get(record.type_name, ())
+    if not routes:
+        return {}
+    root = _load_scripted_yaml(document, asset_path)
+    references = (
+        _managed_reference_table(root, asset_path)
+        if any(route.managed_reference for route in routes)
+        else None
+    )
+    result: dict[str, str] = {}
+    for route in routes:
+        items = _sequence_at(root, route.path, asset_path)
+        _capture_nested_route(
+            items,
+            route,
+            f"{asset_path}.{route.path}",
+            result,
+            references=references,
+        )
+    return result
+
+
+def _actual_legacy_trait_fields(
+    document: str,
+    record: PublishedAsset,
+    asset_path: str,
+) -> dict[str, str]:
+    if record.type_name != "CharacterTraitSO":
+        return {}
+    root = _load_scripted_yaml(document, asset_path)
+    aliases = root.get("legacyPolicyNames", [])
+    if aliases is None:
+        aliases = []
+    if not isinstance(aliases, list):
+        raise VerificationError(
+            f"legacyPolicyNames is not an array at {asset_path}"
+        )
+    result: dict[str, str] = {}
+    for index, alias in enumerate(aliases):
+        location = f"{asset_path}.legacyPolicyNames[{index}]"
+        if not isinstance(alias, str) or not alias or alias != alias.strip():
+            raise VerificationError(f"legacy trait name is blank or not trimmed at {location}")
+        path = f"{LEGACY_TRAIT_NAME_PREFIX}{quote(alias, safe='-._~')}"
+        if path in result:
+            raise VerificationError(f"duplicate legacy trait name at {location}: {alias}")
+        result[path] = alias
+    return result
+
+
+def _top_level_field_blocks(
+    document: str,
+    path: str,
+) -> dict[str, tuple[str, tuple[str, ...]]]:
+    values: dict[str, str] = {}
+    continuations: dict[str, list[str]] = {}
+    current: str | None = None
     for line in document.splitlines():
         match = TOP_LEVEL_SCALAR_RE.match(line)
-        if match is None:
+        if match is not None:
+            name = match.group("name")
+            suffix = match.group("value")
+            value = suffix[1:] if suffix.startswith(" ") else suffix
+            if name in values:
+                raise VerificationError(f"duplicate top-level Unity field at {path}: {name}")
+            values[name] = value
+            continuations[name] = []
+            current = name
             continue
-        name = match.group("name")
-        suffix = match.group("value")
-        value = suffix[1:] if suffix.startswith(" ") else suffix
-        if name in fields:
-            raise VerificationError(f"duplicate top-level Unity field at {path}: {name}")
-        fields[name] = value
-    return fields, script_guid
+        if current is not None:
+            continuations[current].append(line)
+    return {
+        name: (value, tuple(continuations[name]))
+        for name, value in values.items()
+    }
+
+
+def _top_level_scalars(
+    raw: bytes,
+    path: str,
+    expected_script_guid: str,
+) -> tuple[dict[str, str], str, dict[str, tuple[str, tuple[str, ...]]], str]:
+    document, script_guid = _scripted_document(raw, path, expected_script_guid)
+    blocks = _top_level_field_blocks(document, path)
+    return {name: block[0] for name, block in blocks.items()}, script_guid, blocks, document
+
+
+def _inline_asset_reference_guid(reference: str, location: str) -> str:
+    match = INLINE_ASSET_REFERENCE_RE.fullmatch(reference)
+    if match is None or int(match.group("file_id")) == 0:
+        raise VerificationError(f"registered definition is not an asset reference at {location}")
+    return match.group("guid")
+
+
+def _registration_guids(
+    block: tuple[str, tuple[str, ...]],
+    location: str,
+    *,
+    is_array: bool,
+) -> tuple[str, ...]:
+    value, continuation = block
+    if not is_array:
+        if continuation:
+            raise VerificationError(f"scalar registration has nested YAML at {location}")
+        return (_inline_asset_reference_guid(value, location),)
+    if value != "":
+        raise VerificationError(f"registration array must use a YAML field block at {location}")
+    result: list[str] = []
+    for index, line in enumerate(continuation):
+        match = ARRAY_ASSET_REFERENCE_RE.fullmatch(line)
+        if match is None:
+            raise VerificationError(
+                f"registration array has invalid element {index} at {location}"
+            )
+        result.append(
+            _inline_asset_reference_guid(
+                match.group("reference"), f"{location}[{index}]"
+            )
+        )
+    if len(set(result)) != len(result):
+        raise VerificationError(f"registration array contains duplicate GUIDs at {location}")
+    return tuple(result)
+
+
+def _registered_target_script_path(
+    snapshot: GitSnapshot,
+    target_path: str,
+    script_meta_by_guid: dict[str, list[str]],
+) -> str:
+    raw = snapshot.read_blob(target_path)
+    if raw is None:
+        raise VerificationError(
+            f"registered target asset is missing beside its meta: {target_path}"
+        )
+    try:
+        text = raw.decode("utf-8-sig", errors="strict")
+    except UnicodeDecodeError as error:
+        raise VerificationError(
+            f"registered target asset is not UTF-8: {target_path}"
+        ) from error
+    script_guids = SCRIPT_BINDING_RE.findall(text)
+    if len(script_guids) != 1:
+        reason = "missing" if not script_guids else "ambiguous"
+        raise VerificationError(
+            f"registered target m_Script binding is {reason} at {target_path}"
+        )
+    script_guid = script_guids[0]
+    script_meta_paths = script_meta_by_guid.get(script_guid, [])
+    if len(script_meta_paths) != 1:
+        reason = "does not resolve" if not script_meta_paths else "resolves more than once"
+        raise VerificationError(
+            f"registered target m_Script GUID {reason} at {snapshot.commit}: "
+            f"{script_guid} ({target_path})"
+        )
+    script_path = script_meta_paths[0][:-5]
+    if not snapshot.has_path(script_path):
+        raise VerificationError(
+            f"registered target script is missing beside its meta: {script_path}"
+        )
+    return script_path
+
+
+def _is_eligible_game_asset_path(asset_path: str, script_path: str) -> bool:
+    normalized_asset_path = asset_path.replace("\\", "/")
+    normalized_script_path = script_path.replace("\\", "/")
+    excluded = normalized_script_path.casefold()
+    return (
+        normalized_asset_path.startswith("Assets/")
+        and normalized_script_path.startswith("Assets/Scripts/")
+        and all(
+            segment not in excluded
+            for segment in ("/editor/", "/vendor/", "/thirdparty/", "/plugins/")
+        )
+    )
+
+
+def _actual_catalog_fields(
+    snapshot: GitSnapshot,
+    record: PublishedAsset,
+    asset_path: str,
+    blocks: dict[str, tuple[str, tuple[str, ...]]],
+    asset_meta_by_guid: dict[str, list[str]],
+    script_meta_by_guid: dict[str, list[str]],
+    published_guids: set[str],
+) -> dict[str, str]:
+    if record.type_name == "GameContentCatalogSO":
+        if asset_path != ROOT_ASSET_PATH:
+            raise VerificationError(
+                f"startup content catalog must remain at {ROOT_ASSET_PATH}: {asset_path}"
+            )
+        members = {
+            member: False for member in ROOT_SCALAR_REGISTRATIONS
+        } | {
+            member: True for member in ROOT_ARRAY_REGISTRATIONS
+        }
+        result = {RESOURCE_PATH_FIELD: asset_path}
+    elif record.type_name in REGISTRY_ARRAY_MEMBERS:
+        members = {member: True for member in REGISTRY_ARRAY_MEMBERS[record.type_name]}
+        result = {}
+    else:
+        return {}
+    for member, is_array in members.items():
+        block = blocks.get(member)
+        if block is None:
+            raise VerificationError(
+                f"registered definition field is missing from {asset_path}: {member}"
+            )
+        for guid in _registration_guids(
+            block, f"{asset_path}.{member}", is_array=is_array
+        ):
+            meta_paths = asset_meta_by_guid.get(guid, [])
+            if len(meta_paths) != 1:
+                reason = "does not resolve" if not meta_paths else "resolves more than once"
+                raise VerificationError(
+                    f"registered target GUID {reason} at {snapshot.commit}: {guid}"
+                )
+            target_path = meta_paths[0][:-5]
+            if not snapshot.has_path(target_path):
+                raise VerificationError(
+                    f"registered target asset is missing beside its meta: {target_path}"
+                )
+            script_path = _registered_target_script_path(
+                snapshot, target_path, script_meta_by_guid
+            )
+            if (
+                _is_eligible_game_asset_path(target_path, script_path)
+                and guid not in published_guids
+            ):
+                raise VerificationError(
+                    "registered eligible game ScriptableObject is missing from identity "
+                    f"baseline: {guid} ({target_path}, script {script_path})"
+                )
+            virtual_path = f"@registration:{member}:{guid}"
+            result[virtual_path] = guid
+    return result
 
 
 def _guid_paths(snapshot: GitSnapshot, suffix: str) -> dict[str, list[str]]:
@@ -486,6 +1153,12 @@ def _guid_paths(snapshot: GitSnapshot, suffix: str) -> dict[str, list[str]]:
 def verify_head_assets(snapshot: GitSnapshot, baseline: IdentityBaseline) -> tuple[int, int]:
     asset_meta_by_guid = _guid_paths(snapshot, ".asset.meta")
     script_meta_by_guid = _guid_paths(snapshot, ".cs.meta")
+    registered_script_meta_by_guid = {
+        guid: list(paths) for guid, paths in script_meta_by_guid.items()
+    }
+    for guid, paths in _guid_paths(snapshot, ".dll.meta").items():
+        registered_script_meta_by_guid.setdefault(guid, []).extend(paths)
+    published_guids = set(baseline.assets_by_guid())
     assets_checked = 0
     fields_checked = 0
     for record in baseline.assets:
@@ -502,7 +1175,7 @@ def verify_head_assets(snapshot: GitSnapshot, baseline: IdentityBaseline) -> tup
             raise VerificationError(
                 f"published asset is missing beside its meta at {snapshot.commit}: {asset_path}"
             )
-        scalar_tokens, script_guid = _top_level_scalars(
+        scalar_tokens, script_guid, field_blocks, scripted_document = _top_level_scalars(
             raw, asset_path, record.script_guid
         )
         if script_guid != record.script_guid:
@@ -523,7 +1196,48 @@ def verify_head_assets(snapshot: GitSnapshot, baseline: IdentityBaseline) -> tup
                 f"C# source is missing beside its meta for {asset_path}: {script_path}"
             )
         _script_declares_type(script_raw, script_path, record.type_name)
+        expected_virtual = {
+            field.path: field.value
+            for field in record.fields
+            if field.path.startswith("@")
+        }
+        actual_virtual = _actual_catalog_fields(
+            snapshot,
+            record,
+            asset_path,
+            field_blocks,
+            asset_meta_by_guid,
+            registered_script_meta_by_guid,
+            published_guids,
+        )
+        actual_virtual.update(
+            _actual_nested_fields(scripted_document, record, asset_path)
+        )
+        actual_virtual.update(
+            _actual_legacy_trait_fields(scripted_document, record, asset_path)
+        )
+        if expected_virtual != actual_virtual:
+            missing = sorted(set(expected_virtual) - set(actual_virtual))
+            unexpected = sorted(set(actual_virtual) - set(expected_virtual))
+            changed = sorted(
+                path for path in set(expected_virtual) & set(actual_virtual)
+                if expected_virtual[path] != actual_virtual[path]
+            )
+            mismatch_paths = missing + unexpected + changed
+            subject = (
+                "nested identities"
+                if any(path.startswith((NESTED_FIELD_PREFIX, LEGACY_TRAIT_NAME_PREFIX))
+                       for path in mismatch_paths)
+                else "catalog registrations"
+            )
+            raise VerificationError(
+                f"published {subject} do not match {asset_path}: "
+                f"missing={missing}, unexpected={unexpected}, changed={changed}"
+            )
+        fields_checked += len(expected_virtual)
         for field in record.fields:
+            if field.path.startswith("@"):
+                continue
             if field.path not in scalar_tokens:
                 if field.value == "":
                     # Unity omits newly added serialized string fields while their

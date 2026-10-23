@@ -52,8 +52,6 @@ MonoBehaviour:
   authoringRevision: 1
   preySpeciesIds:
   - cave_rat
-  predatorSpeciesIds:
-  - shadow_wolf
   nestTag: nest:cave_rat
   breedingSeason: 0
   migrationPatternId: migration:cave_rat

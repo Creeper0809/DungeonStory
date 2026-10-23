@@ -24,7 +24,6 @@ MonoBehaviour:
   allowedSpeciesIds:
   - human
   operatorRequirement:
-    stats: []
     minimumWeightedScore: 3
   targetNodeId: arm:left
   requiredResearchId: research:medical:prosthetics

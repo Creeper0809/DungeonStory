@@ -54,8 +54,6 @@ MonoBehaviour:
   authoringRevision: 1
   preySpeciesIds:
   - cave_rat
-  predatorSpeciesIds:
-  - shadow_wolf
   nestTag: nest:rune_deer
   breedingSeason: 0
   migrationPatternId: migration:rune_deer

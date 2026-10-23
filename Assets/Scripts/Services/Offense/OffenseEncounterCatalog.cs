@@ -24,7 +24,7 @@ public static class OffenseEncounterCatalog
             0.65f,
             Mathf.Clamp01(stress / 100f));
         float maxHealth = Mathf.Max(1f, actor.MaxHealth);
-        return new OffenseBattleCombatant(
+        var combatant = new OffenseBattleCombatant(
             persistentId,
             identity != null ? identity.DisplayName : actor.name,
             identity != null ? identity.SpeciesTag : string.Empty,
@@ -49,6 +49,9 @@ public static class OffenseEncounterCatalog
             CharacterCombatAbilityCatalog.GetAbilities(actor),
             identity?.Data != null ? identity.Data.id : -1,
             formation);
+        combatant.SetBluntDamageMultiplier(actor.Stats.ProjectDetailedStat(
+            GameplayEffectTargetIds.BluntDamageReceived, 1f).Value);
+        return combatant;
     }
 
     public static OffenseBattleCombatant RestoreAlly(
@@ -71,7 +74,9 @@ public static class OffenseEncounterCatalog
             || !IsFiniteNonNegative(saved.currentHealth)
             || saved.currentHealth > saved.maxHealth
             || !saved.hasArcanePowerMultiplier
-            || !IsFiniteNonNegative(saved.arcanePowerMultiplier))
+            || !IsFiniteNonNegative(saved.arcanePowerMultiplier)
+            || (saved.hasBluntDamageMultiplier && (!float.IsFinite(saved.bluntDamageMultiplier)
+                || saved.bluntDamageMultiplier <= 0f)))
         {
             throw new InvalidOperationException(
                 $"Battle ally '{persistentId}' has no exact valid persisted projection.");
@@ -96,6 +101,7 @@ public static class OffenseEncounterCatalog
             saved.formation,
             saved.participatesInInitiative);
         combatant.SetArcanePowerMultiplier(saved.arcanePowerMultiplier);
+        combatant.SetBluntDamageMultiplier(saved.hasBluntDamageMultiplier ? saved.bluntDamageMultiplier : 1f);
         return combatant;
     }
 

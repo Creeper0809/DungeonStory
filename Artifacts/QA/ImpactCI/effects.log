@@ -7,11 +7,11 @@ Distro version:          #111-Ubuntu SMP PREEMPT_DYNAMIC Sat Apr 11 23:16:02 UTC
 Kernel version:          6.8.0-111-generic
 Architecture:            x86_64
 Available memory:        15719 MB
-Date:                    2026-10-23T14:37:41Z
+Date:                    2026-10-23T19:58:36Z
 [Licensing::Module] Trying to connect to existing licensing client channel...
-Initialize udev device monitor.
 [Licensing::IpcConnector] Channel LicenseClient-vulpo doesn't exist
-[Licensing::Module] Successfully launched the LicensingClient (PId: 2960003)
+[Licensing::Module] Successfully launched the LicensingClient (PId: 2746811)
+Initialize udev device monitor.
 
 COMMAND LINE ARGUMENTS:
 /home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Unity
@@ -20,7 +20,7 @@ COMMAND LINE ARGUMENTS:
 -projectPath
 /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs
 -logFile
-/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r101si-impact-effects/unity.log
+/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r113sa-impact-effects/unity.log
 -job-worker-count
 1
 -gc-helper-count
@@ -67,7 +67,7 @@ Successfully changed project path to: /home/vulpo/codex-unity-validation-2026102
     "memorysetup-job-temp-allocator-block-size-background=1048576"
     "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
     "memorysetup-temp-allocator-size-gfx=262144"
-Player connection [123230884813632]  Target information:
+Player connection [133461861518144]  Target information:
 
 [redacted player-connection network identifiers]
 
@@ -89,25 +89,25 @@ Player connection [123230884813632]  Target information:
 
 [redacted player-connection network identifiers]
 
-Player connection [123230884813632] Host joined multi-casting on [225.0.0.222:54997]...
-Player connection [123230884813632] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Player connection [133461861518144] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [133461861518144] Host joined alternative multi-casting on [225.0.0.222:34997]...
 JobSystem: Creating JobQueue using job-worker-count value 1
 Input System module state changed to: Initialized.
 [Physics::Module] Initialized fallback backend.
 [Physics::Module] Id: 0xdecafbad
-[Package Manager] Connected to IPC stream "Upm-2959991" after 0.4 seconds.
-[Licensing::Module] Licensing is not yet initialized.
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo" at "2026-10-23T14:37:42.416163Z"
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo" at "2026-10-23T19:58:37.757328Z"
 [SignatureVerifier] Application signature verification not supported on this platform.
+[Package Manager] Connected to IPC stream "Upm-2746779" after 1.0 seconds.
+[Licensing::Module] Licensing is not yet initialized.
 [Licensing::Client] Handshaking with LicensingClient:
   Version:                 1.17.4+4293ba1
 [redacted credential or identifier-related line]
   Correlation Id:          [redacted]
   External correlation Id: [redacted]
 [redacted credential or identifier-related line]
-[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-vulpo" (connect: 0.57s, validation: 0.17s, handshake: 0.00s)
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-notifications" at "2026-10-23T14:37:42.582909Z"
-[Licensing::Module] Connected to LicensingClient (PId: 2960003, launch time: 0.00, total connection time: 0.74s)
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-vulpo" (connect: 0.86s, validation: 0.34s, handshake: 0.00s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-notifications" at "2026-10-23T19:58:38.099738Z"
+[Licensing::Module] Connected to LicensingClient (PId: 2746811, launch time: 0.00, total connection time: 1.21s)
 [redacted credential or identifier-related line]
 [Licensing::Client] Successfully resolved entitlement details
 [Licensing::Module] License group:
@@ -115,10 +115,10 @@ Input System module state changed to: Initialized.
   Product: Unity Personal
   Type: Assigned
   Expiration: Unlimited
-[Licensing::Client] Successfully updated license, isAsync: True, time: 0.05
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.10
 [Licensing::Client] Successfully resolved entitlement details
-[Licensing::Module] Licensing Background thread has ended after 0.95s
-[Licensing::Module] Licensing is initialized (took 0.40s).
+[Licensing::Module] Licensing Background thread has ended after 1.42s
+[Licensing::Module] Licensing is initialized (took 0.25s).
 [Licensing::Client] Successfully resolved entitlement details
 Library Redirect Path: Library/
 [Physics::Module] Selected backend.
@@ -127,8 +127,7 @@ Library Redirect Path: Library/
 [Physics::Module] SDK Version: 4.1.2
 [Physics::Module] Integration Version: 1.0.0
 [Physics::Module] Threading Mode: Multi-Threaded
-Artifact Garbage Collection - Removed 3 unused hashed content files
-Refreshing native plugins compatible for Editor in 5.36 ms, found 0 plugins.
+Refreshing native plugins compatible for Editor in 4.88 ms, found 0 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Initialize engine version: 6000.3.8f1 (1c7db571dde0)
 [Subsystems] Discovering subsystems at path /home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/Resources/UnitySubsystems
@@ -143,7 +142,7 @@ Initialize mono
 Mono path[0] = '/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/Managed'
 Mono path[1] = '/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-linux'
 Mono config path = '/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56991
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56779
 Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
 Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
 ImportWorker Server TCP listen port: 0
@@ -151,42 +150,42 @@ AcceleratorClientConnectionCallback - disconnected - :0
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
 Register platform support module: /home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/PlaybackEngines/LinuxStandaloneSupport/UnityEditor.LinuxStandalone.Extensions.dll
-Registered in 0.002765 seconds.
-- Loaded All Assemblies, in  0.653 seconds
+Registered in 0.003520 seconds.
+- Loaded All Assemblies, in  0.703 seconds
 Native extension for LinuxStandalone target not found
 Package Manager log level set to [2]
 [Licensing::Client] Successfully resolved entitlement details
 ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in  5.387 seconds
-Domain Reload Profiling: 6040ms
-	BeginReloadAssembly (180ms)
+- Finished resetting the current domain, in  6.464 seconds
+Domain Reload Profiling: 7167ms
+	BeginReloadAssembly (148ms)
 		ExecutionOrderSort (0ms)
 		DisableScriptedObjects (0ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (2ms)
-	RebuildCommonClasses (89ms)
-	RebuildNativeTypeToScriptingClass (26ms)
-	initialDomainReloadingComplete (105ms)
-	LoadAllAssembliesAndSetupDomain (252ms)
-		LoadAssemblies (179ms)
+		CreateAndSetChildDomain (16ms)
+	RebuildCommonClasses (77ms)
+	RebuildNativeTypeToScriptingClass (15ms)
+	initialDomainReloadingComplete (124ms)
+	LoadAllAssembliesAndSetupDomain (338ms)
+		LoadAssemblies (132ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (248ms)
-			TypeCache.Refresh (244ms)
-				TypeCache.ScanAssembly (218ms)
+		AnalyzeDomain (333ms)
+			TypeCache.Refresh (330ms)
+				TypeCache.ScanAssembly (309ms)
 			BuildScriptInfoCaches (0ms)
 			ResolveRequiredComponents (1ms)
-	FinalizeReload (5387ms)
+	FinalizeReload (6465ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (5277ms)
+		SetupLoadedEditorAssemblies (6383ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (111ms)
-			SetLoadedEditorAssemblies (14ms)
-			BeforeProcessingInitializeOnLoad (178ms)
-			ProcessInitializeOnLoadAttributes (349ms)
-			ProcessInitializeOnLoadMethodAttributes (4625ms)
+			InitializePlatformSupportModulesInManaged (101ms)
+			SetLoadedEditorAssemblies (16ms)
+			BeforeProcessingInitializeOnLoad (220ms)
+			ProcessInitializeOnLoadAttributes (328ms)
+			ProcessInitializeOnLoadMethodAttributes (5719ms)
 			AfterProcessingInitializeOnLoad (0ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
@@ -277,7 +276,7 @@ Application.AssetDatabase Initial Refresh Start
   Embedded packages:
     jp.hadashikick.vcontainer@file:/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Packages/jp.hadashikick.vcontainer (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Packages/jp.hadashikick.vcontainer)
 [Subsystems] No new subsystems found in resolved package list.
-[Package Manager] Done registering packages in 0.00 seconds
+[Package Manager] Done registering packages in 0.01 seconds
 [ScriptCompilation] Requested script compilation because: Assetdatabase observed changes in script compilation related files
 [redacted credential or identifier-related line]
       Now listening on: http://unix:/tmp/ilpp.sock-760793a74df69600e387fca7b7e4ed0f
@@ -294,8 +293,8 @@ Application.AssetDatabase Initial Refresh Start
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
       Executed endpoint 'gRPC - /UnityILPP.PostProcessing/Ping'
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[2]
-      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping application/grpc - - 200 - application/grpc 112.0398ms
-Refreshing native plugins compatible for Editor in 2.22 ms, found 1 plugins.
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping application/grpc - - 200 - application/grpc 95.5484ms
+Refreshing native plugins compatible for Editor in 2.83 ms, found 1 plugins.
 Starting: /home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/Tools/BuildPipeline/bee_backend --ipc --defer-dag-verification --dagfile="Library/Bee/2400b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
 WorkingDir: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[1]
@@ -313,34 +312,8 @@ WorkingDir: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
       Executed endpoint 'gRPC - /UnityILPP.PostProcessing/ConfigurePostProcessors'
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[2]
-      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/ConfigurePostProcessors application/grpc - - 200 - application/grpc 77.1683ms
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/ConfigurePostProcessors application/grpc - - 200 - application/grpc 46.6354ms
 DisplayProgressbar: Compiling Scripts
-[40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[1]
-      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc -
-[40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
-      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
-[40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingPipeline[0]
-      Processing assembly Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp.dll, with 136 defines and 420 references
-[40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingPipeline[0]
-      processors: Unity.Jobs.CodeGen.JobsILPostProcessor, Unity.Pipeline.CodeGen.HotReloadInPlaceILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
-[40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingPipeline[0]
-      running Unity.Jobs.CodeGen.JobsILPostProcessor
-[40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
-[redacted credential or identifier-related line]
-[40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
-[redacted credential or identifier-related line]
-[40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
-[redacted credential or identifier-related line]
-[40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingPipeline[0]
-      running Unity.Pipeline.CodeGen.HotReloadInPlaceILPostProcessor
-[40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingPipeline[0]
-      running zzzUnity.Burst.CodeGen.BurstILPostProcessor
-[40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
-[redacted credential or identifier-related line]
-[40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
-      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
-[40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[2]
-      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc - - 200 - application/grpc 16486.2177ms
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[1]
       Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc -
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
@@ -351,44 +324,33 @@ DisplayProgressbar: Compiling Scripts
       processors: Unity.Jobs.CodeGen.JobsILPostProcessor, Unity.Pipeline.CodeGen.HotReloadInPlaceILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
 [40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingPipeline[0]
       running Unity.Jobs.CodeGen.JobsILPostProcessor
+[40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+[redacted credential or identifier-related line]
+[40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+[redacted credential or identifier-related line]
+[40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+[redacted credential or identifier-related line]
 [40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingPipeline[0]
       running Unity.Pipeline.CodeGen.HotReloadInPlaceILPostProcessor
 [40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingPipeline[0]
       running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[40m[32minfo[39m[22m[49m: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+[redacted credential or identifier-related line]
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
       Executed endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[2]
-      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc - - 200 - application/grpc 5978.0657ms
-ExitCode: 0 Duration: 2m:11s
-[1454/2018  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
-[BUSY       6s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp.dll (+2 others)
-[BUSY      16s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp.dll (+2 others)
-[BUSY      26s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp.dll (+2 others)
-[BUSY      36s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp.dll (+2 others)
-[BUSY      46s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp.dll (+2 others)
-[BUSY      56s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp.dll (+2 others)
-[BUSY      66s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp.dll (+2 others)
-[2010/2018 69s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp.dll (+2 others)
-Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitInferenceService.cs(2553,9): warning CS0162: Unreachable code detected
-Assets/Scripts/Services/Character/Core/GameplayNarrativeSourceCatalog.cs(647,58): warning CS0618: 'OffenseWorldMapService.CreateDefaultTargets()' is obsolete: 'Editor-only migration seed. Runtime campaign content must come from OffenseCampaignCatalogSO.'
-Assets/Scripts/Services/Economy/ProductionPreparedOutputExecutionAdapter.cs(868,20): warning CS0618: 'ProductionPreparedOutputExecutionAdapter.TryPublishOrJoinDetachedEditorFixture(ProductionBillRecord, out DomainFailure)' is obsolete: 'Detached physical-publication fixtures do not stand in for the mandatory runtime gameplay-outcome transaction.'
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc - - 200 - application/grpc 7285.8953ms
+ExitCode: 0 Duration: 1m:26s
+[1455/2018  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
 [BUSY       6s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
-[BUSY      11s] ILPostProcess Library/Bee/artifacts/2400b0aE.dag/post-processed/Assembly-CSharp.dll (+pdb)
-[2011/2018 16s] ILPostProcess Library/Bee/artifacts/2400b0aE.dag/post-processed/Assembly-CSharp.dll (+pdb)
-Processing assembly Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp.dll, with 136 defines and 420 references
-processors: Unity.Jobs.CodeGen.JobsILPostProcessor, Unity.Pipeline.CodeGen.HotReloadInPlaceILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
-running Unity.Jobs.CodeGen.JobsILPostProcessor
-running Unity.Pipeline.CodeGen.HotReloadInPlaceILPostProcessor
-running zzzUnity.Burst.CodeGen.BurstILPostProcessor
-[2012/2018  0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp.pdb
-[2013/2018  0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp.dll
-[BUSY      22s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
-[BUSY      32s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
-[BUSY      42s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
-[BUSY      52s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
-[2014/2018 54s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
-Assets/Scripts/Services/Character/Editor/AgeConditionAnatomyProjectionDebugScenarios.cs(927,53): warning CS0618: 'AnatomyHealthSnapshot.AnatomyHealthSnapshot(string, IReadOnlyList<AnatomyNodeHealthState>, float, float, float, float, float, float, float)' is obsolete: 'Use the 14-capacity constructor.'
-Assets/Scripts/Services/Character/Editor/DiseaseAnatomyBurdenProjectionDebugScenarios.cs(937,53): warning CS0618: 'AnatomyHealthSnapshot.AnatomyHealthSnapshot(string, IReadOnlyList<AnatomyNodeHealthState>, float, float, float, float, float, float, float)' is obsolete: 'Use the 14-capacity constructor.'
+[BUSY      16s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
+[BUSY      26s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
+[BUSY      36s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
+[BUSY      46s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
+[BUSY      56s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
+[BUSY      66s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
+[BUSY      76s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
+[2014/2018 78s] Csc Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
 Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6244,36): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
 Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6250,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
 Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6261,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
@@ -404,13 +366,16 @@ Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.c
 Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6345,50): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
 Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6378,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
 Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6379,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(7413,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
 Assets/Scripts/Services/Character/AI/Editor/FormulaPresentationPilotExporter.cs(1543,58): warning CS0618: 'OffenseWorldMapService.CreateDefaultTargets()' is obsolete: 'Editor-only migration seed. Runtime campaign content must come from OffenseCampaignCatalogSO.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(7413,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
 Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(7929,17): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
 Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(8021,21): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/Editor/AgeConditionAnatomyProjectionDebugScenarios.cs(1147,53): warning CS0618: 'AnatomyHealthSnapshot.AnatomyHealthSnapshot(string, IReadOnlyList<AnatomyNodeHealthState>, float, float, float, float, float, float, float)' is obsolete: 'Use the 14-capacity constructor.'
 Assets/Scripts/Services/Medical/Editor/SurgeryOutcomeProductionEntryDebugScenarios.cs(670,32): warning CS0618: 'AnatomyHealthSnapshot.AnatomyHealthSnapshot(string, IReadOnlyList<AnatomyNodeHealthState>, float, float, float, float, float, float, float)' is obsolete: 'Use the 14-capacity constructor.'
 Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerEconomyEntryExtendedE2EDebugScenarios.cs(317,43): warning CS0219: The variable 'Kind' is assigned but its value is never used
-[2015/2018  6s] ILPostProcess Library/Bee/artifacts/2400b0aE.dag/post-processed/Assembly-CSharp-Editor.dll (+pdb)
+Assets/Scripts/Services/Character/Editor/DiseaseAnatomyBurdenProjectionDebugScenarios.cs(937,53): warning CS0618: 'AnatomyHealthSnapshot.AnatomyHealthSnapshot(string, IReadOnlyList<AnatomyNodeHealthState>, float, float, float, float, float, float, float)' is obsolete: 'Use the 14-capacity constructor.'
+[BUSY       6s] ILPostProcess Library/Bee/artifacts/2400b0aE.dag/post-processed/Assembly-CSharp-Editor.dll (+pdb)
+[2015/2018  7s] ILPostProcess Library/Bee/artifacts/2400b0aE.dag/post-processed/Assembly-CSharp-Editor.dll (+pdb)
 Processing assembly Library/Bee/artifacts/2400b0aE.dag/Assembly-CSharp-Editor.dll, with 134 defines and 444 references
 processors: Unity.Jobs.CodeGen.JobsILPostProcessor, Unity.Pipeline.CodeGen.HotReloadInPlaceILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
 running Unity.Jobs.CodeGen.JobsILPostProcessor
@@ -418,14 +383,30 @@ running Unity.Pipeline.CodeGen.HotReloadInPlaceILPostProcessor
 running zzzUnity.Burst.CodeGen.BurstILPostProcessor
 [2016/2018  0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp-Editor.pdb
 [2017/2018  0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp-Editor.dll
-*** Tundra build success (131.71 seconds - 0:02:11), 9 items updated, 2018 evaluated
-Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitInferenceService.cs(2553,9): warning CS0162: Unreachable code detected
-Assets/Scripts/Services/Character/Core/GameplayNarrativeSourceCatalog.cs(647,58): warning CS0618: 'OffenseWorldMapService.CreateDefaultTargets()' is obsolete: 'Editor-only migration seed. Runtime campaign content must come from OffenseCampaignCatalogSO.'
-Assets/Scripts/Services/Economy/ProductionPreparedOutputExecutionAdapter.cs(868,20): warning CS0618: 'ProductionPreparedOutputExecutionAdapter.TryPublishOrJoinDetachedEditorFixture(ProductionBillRecord, out DomainFailure)' is obsolete: 'Detached physical-publication fixtures do not stand in for the mandatory runtime gameplay-outcome transaction.'
-Assets/Scripts/Services/Character/Editor/AgeConditionAnatomyProjectionDebugScenarios.cs(927,53): warning CS0618: 'AnatomyHealthSnapshot.AnatomyHealthSnapshot(string, IReadOnlyList<AnatomyNodeHealthState>, float, float, float, float, float, float, float)' is obsolete: 'Use the 14-capacity constructor.'
+*** Tundra build success (86.42 seconds - 0:01:26), 5 items updated, 2018 evaluated
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6244,36): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6250,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6261,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6261,44): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6306,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6316,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6325,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6330,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6330,55): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6335,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6336,23): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6345,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6345,50): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6378,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6379,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/AI/Editor/FormulaPresentationPilotExporter.cs(1543,58): warning CS0618: 'OffenseWorldMapService.CreateDefaultTargets()' is obsolete: 'Editor-only migration seed. Runtime campaign content must come from OffenseCampaignCatalogSO.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(7413,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(7929,17): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(8021,21): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/Editor/AgeConditionAnatomyProjectionDebugScenarios.cs(1147,53): warning CS0618: 'AnatomyHealthSnapshot.AnatomyHealthSnapshot(string, IReadOnlyList<AnatomyNodeHealthState>, float, float, float, float, float, float, float)' is obsolete: 'Use the 14-capacity constructor.'
+Assets/Scripts/Services/Medical/Editor/SurgeryOutcomeProductionEntryDebugScenarios.cs(670,32): warning CS0618: 'AnatomyHealthSnapshot.AnatomyHealthSnapshot(string, IReadOnlyList<AnatomyNodeHealthState>, float, float, float, float, float, float, float)' is obsolete: 'Use the 14-capacity constructor.'
+Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerEconomyEntryExtendedE2EDebugScenarios.cs(317,43): warning CS0219: The variable 'Kind' is assigned but its value is never used
 Assets/Scripts/Services/Character/Editor/DiseaseAnatomyBurdenProjectionDebugScenarios.cs(937,53): warning CS0618: 'AnatomyHealthSnapshot.AnatomyHealthSnapshot(string, IReadOnlyList<AnatomyNodeHealthState>, float, float, float, float, float, float, float)' is obsolete: 'Use the 14-capacity constructor.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6244,36): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6250,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
 Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6261,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
 Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6261,44): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
 Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6306,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
@@ -439,41 +420,22 @@ Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.c
 Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6345,50): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
 Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6378,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
 Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6379,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(7413,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
 Assets/Scripts/Services/Character/AI/Editor/FormulaPresentationPilotExporter.cs(1543,58): warning CS0618: 'OffenseWorldMapService.CreateDefaultTargets()' is obsolete: 'Editor-only migration seed. Runtime campaign content must come from OffenseCampaignCatalogSO.'
+Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(7413,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
 Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(7929,17): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
 Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(8021,21): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
+Assets/Scripts/Services/Character/Editor/AgeConditionAnatomyProjectionDebugScenarios.cs(1147,53): warning CS0618: 'AnatomyHealthSnapshot.AnatomyHealthSnapshot(string, IReadOnlyList<AnatomyNodeHealthState>, float, float, float, float, float, float, float)' is obsolete: 'Use the 14-capacity constructor.'
 Assets/Scripts/Services/Medical/Editor/SurgeryOutcomeProductionEntryDebugScenarios.cs(670,32): warning CS0618: 'AnatomyHealthSnapshot.AnatomyHealthSnapshot(string, IReadOnlyList<AnatomyNodeHealthState>, float, float, float, float, float, float, float)' is obsolete: 'Use the 14-capacity constructor.'
 Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerEconomyEntryExtendedE2EDebugScenarios.cs(317,43): warning CS0219: The variable 'Kind' is assigned but its value is never used
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6244,36): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6250,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6261,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6261,44): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6306,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6316,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6325,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6330,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6330,55): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6335,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6336,23): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6345,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6345,50): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6378,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(6379,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(7413,13): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/FormulaPresentationPilotExporter.cs(1543,58): warning CS0618: 'OffenseWorldMapService.CreateDefaultTargets()' is obsolete: 'Editor-only migration seed. Runtime campaign content must come from OffenseCampaignCatalogSO.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(7929,17): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Character/AI/Editor/CharacterProgressionDebugScenarios.cs(8021,21): warning CS0618: 'CharacterSkillGenerationResponseDto.candidates' is obsolete: 'Legacy replay only. The CharacterSkill profile exact-key gate rejects this field.'
-Assets/Scripts/Services/Medical/Editor/SurgeryOutcomeProductionEntryDebugScenarios.cs(670,32): warning CS0618: 'AnatomyHealthSnapshot.AnatomyHealthSnapshot(string, IReadOnlyList<AnatomyNodeHealthState>, float, float, float, float, float, float, float)' is obsolete: 'Use the 14-capacity constructor.'
-Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/MigratedProducers/Editor/MigratedProducerEconomyEntryExtendedE2EDebugScenarios.cs(317,43): warning CS0219: The variable 'Kind' is assigned but its value is never used
-AssetDatabase: script compilation time: 133.036784s
+Assets/Scripts/Services/Character/Editor/DiseaseAnatomyBurdenProjectionDebugScenarios.cs(937,53): warning CS0618: 'AnatomyHealthSnapshot.AnatomyHealthSnapshot(string, IReadOnlyList<AnatomyNodeHealthState>, float, float, float, float, float, float, float)' is obsolete: 'Use the 14-capacity constructor.'
+AssetDatabase: script compilation time: 87.636698s
 Total cache size 98222776
-Total cache size after purge 98222776, took 00:00:00.1501035
+Total cache size after purge 98222776, took 00:00:00.0896333
 Begin MonoManager ReloadAssembly
 [Licensing::Client] Successfully resolved entitlement details
 [redacted credential or identifier-related line]
-- Loaded All Assemblies, in  3.115 seconds
-Refreshing native plugins compatible for Editor in 3.28 ms, found 1 plugins.
+- Loaded All Assemblies, in  3.012 seconds
+Refreshing native plugins compatible for Editor in 2.96 ms, found 1 plugins.
 Native extension for LinuxStandalone target not found
 [redacted credential or identifier-related line]
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
@@ -496,136 +458,136 @@ Start HTTP server: port:7800
 [Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
 ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in 13.808 seconds
-Domain Reload Profiling: 16912ms
-	BeginReloadAssembly (331ms)
+- Finished resetting the current domain, in 12.001 seconds
+Domain Reload Profiling: 15005ms
+	BeginReloadAssembly (353ms)
 		ExecutionOrderSort (0ms)
-		DisableScriptedObjects (14ms)
+		DisableScriptedObjects (21ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (105ms)
-	RebuildCommonClasses (105ms)
-	RebuildNativeTypeToScriptingClass (28ms)
-	initialDomainReloadingComplete (89ms)
-	LoadAllAssembliesAndSetupDomain (2550ms)
-		LoadAssemblies (1000ms)
+		CreateAndSetChildDomain (121ms)
+	RebuildCommonClasses (87ms)
+	RebuildNativeTypeToScriptingClass (25ms)
+	initialDomainReloadingComplete (93ms)
+	LoadAllAssembliesAndSetupDomain (2443ms)
+		LoadAssemblies (856ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (1709ms)
-			TypeCache.Refresh (1459ms)
-				TypeCache.ScanAssembly (1402ms)
-			BuildScriptInfoCaches (216ms)
-			ResolveRequiredComponents (24ms)
-	FinalizeReload (13809ms)
+		AnalyzeDomain (1708ms)
+			TypeCache.Refresh (1404ms)
+				TypeCache.ScanAssembly (1359ms)
+			BuildScriptInfoCaches (249ms)
+			ResolveRequiredComponents (37ms)
+	FinalizeReload (12004ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (13420ms)
+		SetupLoadedEditorAssemblies (11535ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (56ms)
-			SetLoadedEditorAssemblies (26ms)
-			BeforeProcessingInitializeOnLoad (555ms)
-			ProcessInitializeOnLoadAttributes (10826ms)
-			ProcessInitializeOnLoadMethodAttributes (1947ms)
-			AfterProcessingInitializeOnLoad (10ms)
-			EditorAssembliesLoaded (1ms)
+			InitializePlatformSupportModulesInManaged (46ms)
+			SetLoadedEditorAssemblies (23ms)
+			BeforeProcessingInitializeOnLoad (561ms)
+			ProcessInitializeOnLoadAttributes (9205ms)
+			ProcessInitializeOnLoadMethodAttributes (1589ms)
+			AfterProcessingInitializeOnLoad (17ms)
+			EditorAssembliesLoaded (94ms)
 		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (12ms)
-Refreshing native plugins compatible for Editor in 4.73 ms, found 1 plugins.
+		AwakeInstancesAfterBackupRestoration (38ms)
+Refreshing native plugins compatible for Editor in 3.44 ms, found 1 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
-Asset Pipeline Refresh (id=e2dd2683b7ad24597a68569ac7093dc7): Total: 156.264 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+Asset Pipeline Refresh (id=2eb4d08627746f3fa9da8222a236e978): Total: 109.412 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
 	Summary:
 		Imports: total=0 (actual=0, local cache=0, cache server=0)
-		Asset DB Process Time: managed=0 ms, native=17936 ms
-		Asset DB Callback time: managed=1924 ms, native=49 ms
-		Scripting: domain reloads=1, domain reload time=3116 ms, compile time=133040 ms, other=196 ms
-		Project Asset Count: scripts=3042, non-scripts=9595
-		Asset File Changes: new=0, changed=2, moved=0, deleted=0
+		Asset DB Process Time: managed=0 ms, native=16404 ms
+		Asset DB Callback time: managed=2102 ms, native=46 ms
+		Scripting: domain reloads=1, domain reload time=3013 ms, compile time=87639 ms, other=205 ms
+		Project Asset Count: scripts=3042, non-scripts=9601
+		Asset File Changes: new=0, changed=1, moved=0, deleted=0
 		Scan Filter Count: 1
-	InvokeCustomDependenciesCallbacks: 0.005ms
-	InvokePackagesCallback: 14.896ms
-	ApplyChangesToAssetFolders: 0.916ms
-	Scan: 2817.297ms
-	OnSourceAssetsModified: 1.027ms
-	CategorizeAssetsWithTransientArtifact: 244.357ms
-	ProcessAssetsWithTransientArtifactChanges: 333.175ms
-	CategorizeAssets: 306.365ms
-	ImportOutOfDateAssets: 13859.494ms (-119201.906ms without children)
-		CompileScripts: 133039.995ms
+	InvokeCustomDependenciesCallbacks: 0.007ms
+	InvokePackagesCallback: 13.891ms
+	ApplyChangesToAssetFolders: 0.985ms
+	Scan: 3121.883ms
+	OnSourceAssetsModified: 1.237ms
+	CategorizeAssetsWithTransientArtifact: 123.994ms
+	ProcessAssetsWithTransientArtifactChanges: 282.609ms
+	CategorizeAssets: 384.676ms
+	ImportOutOfDateAssets: 12066.715ms (-75598.746ms without children)
+		CompileScripts: 87639.444ms
 		ReloadNativeAssets: 0.094ms
-		UnloadImportedAssets: 7.867ms
-		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 8.583ms
+		UnloadImportedAssets: 8.430ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 8.744ms
 		InitializingProgressBar: 0.001ms
 		PostProcessAllAssetNotificationsAddChangedAssets: 0.001ms
-		OnDemandSchedulerStart: 4.859ms
-	PostProcessAllAssets: 1937.679ms
-	Hotreload: 21.196ms
+		OnDemandSchedulerStart: 8.745ms
+	PostProcessAllAssets: 2118.805ms
+	Hotreload: 16.394ms
 	GatherAllCurrentPrimaryArtifactRevisions: 0.001ms
-	UnloadStreamsBegin: 5.266ms
-	PersistCurrentRevisions: 1.104ms
+	UnloadStreamsBegin: 5.337ms
+	PersistCurrentRevisions: 2.377ms
 	UnloadStreamsEnd: 0.002ms
-	GenerateScriptTypeHashes: 12.046ms
-	Untracked: 136721.179ms
+	GenerateScriptTypeHashes: 12.493ms
+	Untracked: 91272.999ms
 
 Application.AssetDatabase Initial Refresh End
-Scanning for USB devices : 7.050ms
+Scanning for USB devices : 12.911ms
 Initializing Unity extensions:
 UpdateMenuTitleForLanguage: 10
 [MODES] ModeService[none].Initialize
 [MODES] ModeService[none].LoadModes
 [MODES] Loading mode Default (0) for mode-current-id-DungeonStory
 Unloading 21 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 14669 unused Assets / (10.8 MB). Loaded Objects now: 15589.
-Memory consumption went from 285.0 MB to 274.2 MB.
-Total: 76.782295 ms (FindLiveObjects: 2.242735 ms CreateObjectMapping: 4.674465 ms MarkObjects: 50.992053 ms  DeleteObjects: 18.870663 ms)
+Unloading 14672 unused Assets / (4.1 MB). Loaded Objects now: 15599.
+Memory consumption went from 285.4 MB to 281.3 MB.
+Total: 64.133776 ms (FindLiveObjects: 1.811775 ms CreateObjectMapping: 5.473763 ms MarkObjects: 37.981935 ms  DeleteObjects: 18.863957 ms)
 
-Asset Pipeline Refresh (id=65dad9e4040178485a5ddb8a2e12979d): Total: 1.858 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=6bad313f19bdbfcf8969a0cdc27dd759): Total: 1.889 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
 	Summary:
 		Imports: total=0 (actual=0, local cache=0, cache server=0)
-		Asset DB Process Time: managed=0 ms, native=1857 ms
+		Asset DB Process Time: managed=0 ms, native=1888 ms
 		Asset DB Callback time: managed=0 ms, native=0 ms
 		Scripting: domain reloads=0, domain reload time=0 ms, compile time=0 ms, other=0 ms
-		Project Asset Count: scripts=3042, non-scripts=9595
+		Project Asset Count: scripts=3042, non-scripts=9601
 		Asset File Changes: new=0, changed=0, moved=0, deleted=0
 		Scan Filter Count: 1
 	InvokeCustomDependenciesCallbacks: 0.001ms
 	InvokePackagesCallback: 0.001ms
-	ApplyChangesToAssetFolders: 0.451ms
-	Scan: 1585.444ms
+	ApplyChangesToAssetFolders: 0.383ms
+	Scan: 1726.922ms
 	OnSourceAssetsModified: 0.002ms
 	CategorizeAssetsWithTransientArtifact: 0.004ms
-	ProcessAssetsWithTransientArtifactChanges: 0.460ms
-	CategorizeAssets: 233.923ms
-	ImportOutOfDateAssets: 7.372ms (1.763ms without children)
-		ReloadNativeAssets: 0.075ms
-		UnloadImportedAssets: 0.154ms
-		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 4.036ms
+	ProcessAssetsWithTransientArtifactChanges: 0.503ms
+	CategorizeAssets: 120.721ms
+	ImportOutOfDateAssets: 10.533ms (2.482ms without children)
+		ReloadNativeAssets: 0.102ms
+		UnloadImportedAssets: 0.260ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 5.205ms
 		InitializingProgressBar: 0.001ms
 		PostProcessAllAssetNotificationsAddChangedAssets: 0.001ms
-		OnDemandSchedulerStart: 1.343ms
-	GatherAllCurrentPrimaryArtifactRevisions: 1.466ms
+		OnDemandSchedulerStart: 2.482ms
+	GatherAllCurrentPrimaryArtifactRevisions: 1.618ms
 	UnloadStreamsBegin: 0.129ms
-	PersistCurrentRevisions: 1.445ms
+	PersistCurrentRevisions: 1.170ms
 	UnloadStreamsEnd: 0.002ms
-	Untracked: 26.867ms
+	Untracked: 26.995ms
 
-Asset Pipeline Refresh (id=903e02652b569c6d1a54f5c05b0bf143): Total: 0.587 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=854ec78af8370988f84821a8a58bc5b5): Total: 0.494 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
 	Summary:
 		Imports: total=0 (actual=0, local cache=0, cache server=0)
-		Asset DB Process Time: managed=0 ms, native=587 ms
+		Asset DB Process Time: managed=0 ms, native=493 ms
 		Asset DB Callback time: managed=0 ms, native=0 ms
 		Scripting: domain reloads=0, domain reload time=0 ms, compile time=0 ms, other=0 ms
-		Project Asset Count: scripts=3042, non-scripts=9595
+		Project Asset Count: scripts=3042, non-scripts=9601
 		Asset File Changes: new=0, changed=0, moved=0, deleted=0
 		Scan Filter Count: 1
-	InvokeCustomDependenciesCallbacks: 0.001ms
-	InvokePackagesCallback: 0.001ms
-	ApplyChangesToAssetFolders: 0.369ms
-	Scan: 584.043ms
-	GatherAllCurrentPrimaryArtifactRevisions: 1.539ms
+	InvokeCustomDependenciesCallbacks: 0.000ms
+	InvokePackagesCallback: 0.000ms
+	ApplyChangesToAssetFolders: 0.181ms
+	Scan: 491.800ms
+	GatherAllCurrentPrimaryArtifactRevisions: 0.874ms
 	UnloadStreamsBegin: 0.003ms
-	UnloadStreamsEnd: 0.160ms
-	Untracked: 1.374ms
+	UnloadStreamsEnd: 0.153ms
+	Untracked: 0.831ms
 
-SO_REFERENCE_ROOT_VALIDATION_MS=1284
+SO_REFERENCE_ROOT_VALIDATION_MS=1199
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
 UnityEngine.StackTraceUtility:ExtractStackTrace () (at /home/bokken/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:35)
 UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
@@ -633,13 +595,13 @@ UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,st
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 ContentReferenceIntegrityDebugScenarios:RunAll () (at Assets/Editor/ContentReferenceIntegrityDebugScenarios.cs:37)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:386)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:429)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
 (Filename: Assets/Editor/ContentReferenceIntegrityDebugScenarios.cs Line: 37)
 
-CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=143; publishedAssets=3538; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection
+CONTENT_REFERENCE_INTEGRITY=PASS; runtimeSoTypes=143; publishedAssets=3544; invalid-target-before-play; JSON-restore; retry; immutable-ID/delete rejection
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
 UnityEngine.StackTraceUtility:ExtractStackTrace () (at /home/bokken/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:35)
 UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
@@ -647,8 +609,8 @@ UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,st
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 ContentReferenceIntegrityDebugScenarios:RunAll () (at Assets/Editor/ContentReferenceIntegrityDebugScenarios.cs:61)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:386)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:429)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
 (Filename: Assets/Editor/ContentReferenceIntegrityDebugScenarios.cs Line: 61)
@@ -662,8 +624,8 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 ScriptableObjectModularityDebugScenarios:VerifyCatalogExtensions () (at Assets/Scripts/Services/Infrastructure/Editor/ScriptableObjectModularityDebugScenarios.cs:114)
 ScriptableObjectModularityDebugScenarios:RunCatalogExtensionsForBatch () (at Assets/Scripts/Services/Infrastructure/Editor/ScriptableObjectModularityDebugScenarios.cs:16)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:387)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:430)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
 (Filename: Assets/Scripts/Services/Infrastructure/Editor/ScriptableObjectModularityDebugScenarios.cs Line: 114)
@@ -677,8 +639,8 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 ScriptableObjectModularityDebugScenarios:VerifyCatalogExtensions () (at Assets/Scripts/Services/Infrastructure/Editor/ScriptableObjectModularityDebugScenarios.cs:116)
 ScriptableObjectModularityDebugScenarios:RunCatalogExtensionsForBatch () (at Assets/Scripts/Services/Infrastructure/Editor/ScriptableObjectModularityDebugScenarios.cs:16)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:387)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:430)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
 (Filename: Assets/Scripts/Services/Infrastructure/Editor/ScriptableObjectModularityDebugScenarios.cs Line: 116)
@@ -692,8 +654,8 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 ScriptableObjectModularityDebugScenarios:VerifyCatalogExtensions () (at Assets/Scripts/Services/Infrastructure/Editor/ScriptableObjectModularityDebugScenarios.cs:125)
 ScriptableObjectModularityDebugScenarios:RunCatalogExtensionsForBatch () (at Assets/Scripts/Services/Infrastructure/Editor/ScriptableObjectModularityDebugScenarios.cs:16)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:387)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:430)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
 (Filename: Assets/Scripts/Services/Infrastructure/Editor/ScriptableObjectModularityDebugScenarios.cs Line: 125)
@@ -705,11 +667,11 @@ UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOpt
 UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:387)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:430)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
-(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 387)
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 430)
 
 CONTENT_REFERENCE_AUTHORING=PASS
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
@@ -718,13 +680,13 @@ UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOpt
 UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
-ContentReferenceSelectionDebugScenarios:RunAll () (at Assets/Editor/ContentReferenceSelectionDebugScenarios.cs:29)
+ContentReferenceSelectionDebugScenarios:RunAll () (at Assets/Editor/ContentReferenceSelectionDebugScenarios.cs:324)
 V20ContentResolutionRecoveryDebugScenarios:RunAuthoredReferenceBoundaries () (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:1457)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:388)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:431)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
-(Filename: Assets/Editor/ContentReferenceSelectionDebugScenarios.cs Line: 29)
+(Filename: Assets/Editor/ContentReferenceSelectionDebugScenarios.cs Line: 324)
 
 CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
@@ -734,8 +696,8 @@ UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,st
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 V20ContentResolutionRecoveryDebugScenarios:RunAuthoredReferenceBoundaries () (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:1553)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:388)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:431)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
 (Filename: Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs Line: 1553)
@@ -749,8 +711,8 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 V20ContentResolutionRecoveryDebugScenarios:RunDurableReceiptBoundaries () (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:473)
 V20ContentResolutionRecoveryDebugScenarios:RunObserverBatch () (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:46)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:389)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:432)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
 (Filename: Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs Line: 473)
@@ -764,8 +726,8 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 V20ContentResolutionRecoveryDebugScenarios:RunReleasedVectorRetry () (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:511)
 V20ContentResolutionRecoveryDebugScenarios:RunObserverBatch () (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:47)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:389)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:432)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
 (Filename: Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs Line: 511)
@@ -779,8 +741,8 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 V20ContentResolutionRecoveryDebugScenarios:RunReceiptCapacityBoundary () (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:545)
 V20ContentResolutionRecoveryDebugScenarios:RunObserverBatch () (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:48)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:389)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:432)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
 (Filename: Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs Line: 545)
@@ -793,8 +755,8 @@ UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,st
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 V20ContentResolutionRecoveryDebugScenarios:RunObserverBatch () (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:49)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:389)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:432)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
 (Filename: Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs Line: 49)
@@ -808,8 +770,8 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 V20ContentResolutionRecoveryDebugScenarios:RunObservationRecovery (bool) (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:631)
 V20ContentResolutionRecoveryDebugScenarios:RunObserverBatch () (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:50)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:389)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:432)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
 (Filename: Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs Line: 631)
@@ -823,8 +785,8 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 V20ContentResolutionRecoveryDebugScenarios:RunObservationRecovery (bool) (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:631)
 V20ContentResolutionRecoveryDebugScenarios:RunObserverBatch () (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:51)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:389)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:432)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
 (Filename: Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs Line: 631)
@@ -838,8 +800,8 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 V20ContentResolutionRecoveryDebugScenarios:RunObservedFuneralBatch () (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:589)
 V20ContentResolutionRecoveryDebugScenarios:RunObserverBatch () (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:52)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:389)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:432)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
 (Filename: Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs Line: 589)
@@ -852,8 +814,8 @@ UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,st
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 V20ContentResolutionRecoveryDebugScenarios:RunObserverBatch () (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:53)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:389)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:432)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
 (Filename: Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs Line: 53)
@@ -867,8 +829,8 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 V20ContentResolutionRecoveryDebugScenarios:RunPrioritizedEffectBoundaries () (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:290)
 V20ContentResolutionRecoveryDebugScenarios:RunRegisteredHandlerContracts () (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:167)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:390)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:433)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
 (Filename: Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs Line: 290)
@@ -881,8 +843,8 @@ UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,st
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 V20ContentResolutionRecoveryDebugScenarios:RunRegisteredHandlerContracts () (at Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs:168)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:390)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:433)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
 (Filename: Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs Line: 168)
@@ -894,24 +856,24 @@ UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOpt
 UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
-V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:396)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:128)
+V27CiEvidenceBatch:RunEffectInputs () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:439)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
-(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 396)
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 439)
 
-IMPACT_CI_PASS group=effects;source=eb5cddce215eb1150b05f882d7e5642cee5b82b12cfff6b661633b5f803d03fc;config=335174a99791533be9b7dbb5faddeafad5ca41d0f3517a874a983f97c1963827;consoleErrors=0
+IMPACT_CI_PASS group=effects;source=d9dff3485fe467653d986d00edefd3320544903da16585425ed9ab31bd47ec55;config=6bacd40070886ee1391aa41a9f7e180e61ef163e87ac44ba73af996ca865d737;consoleErrors=0
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
 UnityEngine.StackTraceUtility:ExtractStackTrace () (at /home/bokken/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:35)
 UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
 UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
-V27CiEvidenceBatch:CompleteImpact (string,string,string,bool) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:139)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:129)
+V27CiEvidenceBatch:CompleteImpact (string,string,string,bool) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:182)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:172)
 V27CiEvidenceBatch:RunImpactEffectContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:82)
 
-(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 139)
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 182)
 
 Batchmode quit successfully invoked - shutting down!
 Pipeline Server stopped

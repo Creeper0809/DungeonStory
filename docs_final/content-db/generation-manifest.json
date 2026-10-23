@@ -1,14 +1,14 @@
 {
   "artifact_kind": "dungeonstory-content-database",
   "generator": "tools/Documentation/generate_content_database.py",
-  "output_digest": "aece5bf233f8eedcc865bdcdba8db557f4b3921c070e83c61134292d40295c4f",
+  "output_digest": "6424cdcaf25b319c9b88ab79377a43199269d3561450d463aad3bee87c989834",
   "output_file_count": 491,
-  "output_files_manifest_sha256": "9691d20c5766bde542f6f3d5b93967ab294757679d6c8ddcddf5ae28823e3e00",
+  "output_files_manifest_sha256": "207c8ea00f0a5e20b0bc7f937fa0b42380a2ac25bdba81fa72b7f5bcb3f3068d",
   "output_root": "docs_final/content-db",
   "schema_version": 1,
-  "source_digest": "bd02c25828291e86833a430c1e9560e4494f58eddd27befbbab82f10484b0d98",
-  "source_file_count": 19592,
-  "source_files_manifest_sha256": "915b8f39513e373f38632ac7a1ee3da657ba6e804d8fdf8255a427562d6dd2a8",
+  "source_digest": "130e08ec985a5e92b1be5c4523051053862a1c7b66b8df53ffae3185143b0b0f",
+  "source_file_count": 19608,
+  "source_files_manifest_sha256": "f7a008846d477710d1beae36824d81dc3a098692e915d9a079557a78eab343aa",
   "source_specs": [
     {
       "name": "unity-authored-assets",
@@ -42,7 +42,7 @@
   ],
   "statistics": {
     "code_consumer_csv_count": 75,
-    "code_consumer_row_count": 1434,
+    "code_consumer_row_count": 1468,
     "content_csv_count": 75,
     "duplicate_typed_id_groups": 10,
     "excluded_asset_type_count": 67,
@@ -50,7 +50,7 @@
     "generated_from": "Assets/**/*.asset",
     "group_counts": {
       "characters-traits": 302,
-      "combat-health-world": 359,
+      "combat-health-world": 365,
       "events-campaign": 200,
       "items": 1074,
       "production-facilities": 951,
@@ -58,26 +58,26 @@
     },
     "incoming_csv_count": 75,
     "lifecycle_counts": {
-      "active-authored": 3452,
+      "active-authored": 3458,
       "duplicate-authority-review": 20,
       "legacy-authoring-review": 5
     },
     "parse_error_count": 0,
-    "relation_count": 6579,
+    "relation_count": 6572,
     "relation_csv_count": 75,
     "relation_status_counts": {
-      "non-content-protocol": 1770,
-      "resolved-content": 4686,
-      "unresolved-content-reference": 36,
+      "non-content-protocol": 1784,
+      "resolved-content": 4658,
+      "unresolved-content-reference": 43,
       "unresolved-runtime-domain-id": 87
     },
     "review_counts": {
-      "근거 확인": 3432,
+      "근거 확인": 3438,
       "수동 검토 필요": 45
     },
-    "row_count": 3477,
+    "row_count": 3483,
     "runtime_counts": {
-      "catalog-registered-static-consumer": 3234,
+      "catalog-registered-static-consumer": 3240,
       "resources-authored-consumer-unverified": 181,
       "stable-id-literal-consumer": 43,
       "type-consumer-registration-unverified": 19
@@ -85,7 +85,7 @@
     "type_counts": {
       "AgeConditionDefinitionSO": 6,
       "AnatomyConditionLexiconSO": 7,
-      "AnatomyProfileSO": 12,
+      "AnatomyProfileSO": 18,
       "ApparelDefinitionSO": 56,
       "BattlefieldModifierDefinitionSO": 12,
       "BuildingSO": 400,

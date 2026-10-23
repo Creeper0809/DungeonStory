@@ -1,5 +1,85 @@
 # DungeonStory Current Findings
 
+## 2026-10-24 SO 보완 최종 계약
+
+- R10 CI는 등록 GUID의 에셋 존재뿐 아니라 실제 m_Script 연결과 게임 소유 여부를 확인한다. C# 게시 도구와 같은 `Assets/Scripts/`/제외 경로 규칙에 해당하면 자체 게시 row가 필수다. Plugins DLL의 vendor 설정은 게임 identity 목록에 억지로 편입하지 않으며, script 연결 누락·모호성은 거절한다. 기존 게시 row·필드는 계속 불변이다.
+- I01은 실제 EditorGUI 이벤트가 발생해야 완료다. `-nographics`에서는 호출만 하고 GUI가 돌지 않았으므로 실패로 남겼다. 전용 인증 Xvfb/TCP 차단/창 생성 probe를 거친 `-batchmode -force-glcore`가 실제5문맥을 실행하며 기존 QA 저장 루트와 console-zero/source-drift 검사를 유지한다. 불필요한 non-batch Editor 지원은 제거했다. 사용자 display, 약관 동의, 원본 설정 복사는 필요 없다.
+- R22 마나 저장은 기준 단위, 조회/명령은 실효 단위를 유지한다. 실제 JSON fresh-owner 복원·초과 소모 무변경·재시도·환불, 원정의 동결 둔기 배율 복원/옛 JSON 중립값/무효 값 거절을 표적 검증한다. 정상 Save DTO와 게시 stable ID의 이름/값은 변경하지 않는다.
+- 과거 감사 본문은 수정 전 기록으로 남기고, 30항목 마감표와 현재 입력에 결합된 실행 영수증을 상단에 분리한다. 작성/등록 검사, 통제 production 서비스, 실제 Inspector GUI, 실제 Play 저장·복원을 서로 다른 증거로 표시한다. 전수 seed/장기 밸런스 인증은 범위에 포함하지 않는다.
+
+## 2026-10-24 SO 보완 batch A 마감 결정
+
+- R04 최초 감사의 1157에는 Anatomy apparel attachment의 node 참조66개와 저장 identity가 아닌 domain record25개가 섞였다. baseline 보호 대상은1066, 새6해부 프로필 노드58개 추가 후1124다(nested1116 + acquired top capabilityId8). 참조값을 identity로 동결하지 않는다. 등록 membership와 root 고정경로, 기존 정책 표시명 별칭100개도 별도 경로로 보호한다.
+- R22 기존16개 미소비 키를 기존 소유자에 연결했다. joints/dexterity/mobility는 기능 능력, regeneration/nutrition/cold/heat/dream/work-burst는 실제 수행 수식, dryness는 갈증 누적, low-oxygen은 실제/예측 공기 노출, stability는 마나 노출, cross-lineage는 해당 배양의 생식 계수다. bone-density는 갑옷 계산 후 둔기 신체 피해에만, rune-tuning은 작업자가 있는 ResonanceTuning 작업에 적용한다. 작업자 없는 즉시 모듈 명령에는 임의 작업자를 만들지 않는다.
+- 마나 DTO maxMana/currentMana는 기존 기준 단위를 보존한다. 유전 capacity를 조회 때 적용하고 소모/회복/환불 명령은 실효 단위↔기준 단위를 변환한다. 저장/복원 시 배율을 중복 적용하지 않으며 충전 비율을 보존한다. 실제 저장/복원/실패 후 재시도 검증 전이다.
+- R17 과거13종 야생동물의 humanoid 저장은 명시적 legacySpeciesIds로만 허용한다. 기존 노드/손상/장기는 재해석하지 않는다. 알 수 없는 저장 프로필의 quadruped 폴백은 제거했다. R09 슬라임의 실제 anatomyFamily aberrant를 시술/문구/이식 계산이 동일하게 사용한다.
+
+## 2026-10-24 SO 감사 수정 batch A — 계약 결정
+
+현재 작업 branch `codex/so-audit-remediation`, 원본 main5476a748e. 원정 선택지의 조건부 표시는 생성 시점 해당 카드의 requiredTag만 DTO presentationTags에 복사한다. 기존 저장의 누락/null은 기존 미변환 표시를 유지하고 현재 보급에서 추론하지 않는다. blank/중복/카드 외 tag는 복원 prepare 단계에서 거절한다.
+
+야생동물은 forward prey 목록+기존 Hunts가 단일 작성 권위이며 reverse 목록은 파생한다. 기존16 forward 관계/수치와 Carnivore 빈목록 의미를 유지했다. 새 해부6종과 quadruped6종 연결로 미매핑13종을 보완하며, 과거 humanoid 저장은 명시적 LegacySpeciesIds13종에 한해 원래 노드/부품을 유지한다. 노화 조건은 프로필별 override로 실제7개 무노드 조합을 수정한다.
+
+R09 재검토에서 감사의 '현재47개 수술 정상' 범위 누락을 발견했다. slime 수술4개 allowedAnatomyFamilies=slime은 실제 profile family=aberrant와 다르고 주문이 거절된다. 정의/저장 ID를 유지해 수술4개와 builder의 허용 family만 aberrant로 수정했다. condition lexicon의 family-only 조회와 transplant rejection의 slime 특례에도 같은 문자열 차이가 있으므로 후속 검토 대상이다.
+
+U01 수술 stat 목록은 47개 모두 빈 미사용 작성면이므로 제거했다. minimumWeightedScore는 양수일 때 사용하고 0/null은 기존3을 유지한다. U02 마취 item, U03 방어 affinity, U04 arc relic, U05 bribe faction 중복/무소비 작성면은 실제 비용/보너스/보상/결과와 저장 DTO를 유지하며 제거했다. 일반 특성의 기존 표시명100개는 legacyPolicyNames로 보존하고 새 선택은 stable ID를 쓴다. 신규 legacy alias 충돌 검사를 추가했다.
+
+게시 보호는 기존 baseline/GUID 보존에 operational catalog 등록과 startup resource 경로를 추가하는 중이다. 중첩 배열 순서는 identity가 아니며 저장 join 키의 소유 범위를 유지해 보호한다. 원본 audit 문서는 발견 당시 사실을 보존하고 최종30항목 상태/증거를 별도 덧붙일 예정이다. 아직 현재 소스 Unity 실행 증거는 없다.
+
+## 2026-10-24 전체 SO 관계 감사 보고서 — 이전 전체 완료 판단 정정
+
+조사 결과의 단일 문서는 [SO_REFERENCE_FULL_AUDIT.md](SO_REFERENCE_FULL_AUDIT.md)다. 기존149개 표식만으로 모집단을 정하지 않고 Roslyn에서142개 게임 SO와 상속/중첩/다형성2462개 선언을 추출했다.880개 후보를 분류하고 현재3538개 에셋, 실제 소비와 게시/저장 경계를 대조했다.24개 보완 묶음과 미연결5종, Inspector 실행 미확인1종을 구분했다. 발견을 일률적인 SO 클래스 추가나 전수 seed 실행 요구로 바꾸지 않았다.
+
+현재 데이터의 노화 무노드7조합, 야생동물13종 해부 매핑 누락, 명시 포식11관계의 역목록 불일치, 유전 효과31행 중16행의 소비 부재를 코드 분기와 에셋으로 확인했다. 실제 Play 재현은 하지 않았다. 자체키 보호뿐 아니라 등록 유지·루트 경로·중첩 저장키·두 입력의 불일치가 별도 계약임을 확인했다. 이전 raw fuelItemId37건을 모두 누락으로 센 수치는 미표식 FuelConsumer6건 + 이미 표식이 있는 생산지원28/전력3건으로 정정한다. BuildingSO 전체는400개이며349개는 빈 contentDefinitionId 형식의 부분집합이다.
+
+조사 도구/세부 판정/정적 반례 증거는 외부 `C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit`에 보존했다. 이번에는 게임 코드·에셋을 고치지 않았으며 이전 실행 PASS를 새 발견의 검증으로 사용하지 않는다.
+
+## 2026-10-24 PR16 이후 엄격 재감사 — 남은 SO 관계·게시 경계
+
+기준 main5476a748e / HEAD22d77a6e8, 동일 tree e7d00d62cd55a163e66f6b6551aa48716a66fc48. ContentReference KB 조회는 fresh였고 실제 선언·소비자·YAML·검증기를 대조했다. 앞선142종/3538asset/149leaf 조사와 r101 실행 통과는 해당 검사 범위의 사실이며, 모든 authored 관계와 미래 편집 경계가 보호된다는 증명은 아니었다. 이번에는 게임 소스·에셋을 수정하거나 Unity 실행·인덱스 재생성·push하지 않았다.
+
+### P1 — 실제 소비되는 수기 SO 관계 3개 누락
+
+- `BuildingFuelConsumerAbility.fuelItemId` — `Assets/Scripts/Models/Survival/Core/SurvivalBuildingAbilities.cs:69`. ItemDefinitionSO 관계이나 ContentReference가 없다. `SurvivalFoodStockRuntime.cs:133`의 물리 스택 선택과 `:459`의 정의 질량 조회가 이를 소비한다. 현재 건물37개는 resource:log34/material:low-fuel2/resource:mana-crystal1로 대상이 유효하다. 오타는 root의 metadata 관계 검사와 BuildingAbilityCollection의 타입/자체ID 검사에서 빠져 연료 공급·질량 조회에서 실패할 수 있다.
+- `BuildingGolemRechargeAbility.materialItemId` — 같은 파일`:89`. `SpeciesRuntime.cs:542-550` 및`:591-598`의 충전 재료 선택에 쓰이지만 관계 metadata가 없다. 현재 M02 마력저장조의 resource:mana-crystal은 유효하다. 미등록 값은 작성/등록 단계에서 검출되지 않고 충전 재료 없음으로 이어진다.
+- `OffenseSpecificBlueprintRewardSpec.blueprintId` — `Assets/Scripts/Services/Offense/OffenseWorldMapModel.cs:117`. SerializeReference 보상 하위의 FacilityBlueprintSO 숫자 참조다. 같은 파일`:130-135`, `OffenseRewardContextResolver.cs:196-205`가 실제 설계도 후보를 선택한다. 현재 OffenseCampaignCatalog의6191/6192/6193은 유효하다. `OffenseCampaignCatalogSO.cs:30-113`은 대상/선행관계 형상만 검사하고 설계도 존재를 검사하지 않아 잘못된 번호는 보상 후보0개가 된다.
+
+이3개는 자체ID·런타임ID·의미태그가 아닌 실제 타SO 조회다. `ContentReferenceCatalog.cs:254-270`은 표식이 있는 필드만 검사하므로 누락된 표식은 전체 SO 순회를 해도 발견하지 못한다.
+
+### P1 — 중첩 저장 참조 키의 변경 보호 누락
+
+`ContentIdentityProtection.cs:595-619`는 SO/기반SO에 직접 선언된 ContentIdentity 필드만 캡처한다. `verify_content_identities.py:257`도 단일 top-level 필드 경로만 허용한다. 실제 anatomy_human baseline에는 profileId만, OffenseDecisionCard에는 cardId/id만 있다.
+
+- `AnatomyModels.cs:77`의 nodeId는 여전히 직접 수정 가능하다. 기존 body-health DTO는 nodeId를 보존하며 `CharacterBodyHealthStateRules.cs:949` 및`:1147`은 현재 프로필에 없는 노드의 복원을 거절한다.
+- `OffenseDecisionDefinitions.cs:22`의 choiceId도 보호되지 않는다. `OffenseTravelAndDecisionRuntime.cs:1546`이 선택 키를 저장하고 `OffenseAggregateSaveValidation.cs:169-180`이 현행 카드에 없는 selectedChoiceId의 복원을 거절한다.
+
+독립 검토에서 공식 Python GitSnapshot의 메모리 blob만 변경해 anatomy_human의 nodeId와06_travel_abandoned_cart의 choiceId를 바꾸고 실제 baseline의 해당 행으로 verify_head_assets를 실행했으나 통과했다. 디스크 에셋과 저장 파일은 변경하지 않았다. 현재 저장이 이미 손상됐다는 주장이 아니라, 정상 Inspector 편집으로 기존 저장을 끊을 수 있는 보호 누락이다.
+
+### P1 — 카탈로그 등록 해제가 게시 호환성 계약 밖에 있음
+
+`ContentIdentityProtection.cs:59`는 Assets 전체를 수집하고 baseline은 GUID/타입/자체ID만 기록한다. `GameDomainContentCatalogSO.definitions`에서 정의를 빼도 파일이 남으면 그 정의의 게시 identity는 그대로다. 해당 카탈로그 baseline fields는 빈 목록이며, 목록의 한 항목을 메모리 blob에서 제거해도 공식 identity verifier가 통과했다(중첩ID2건과 합계 assets3/fields3 통과). `GameDomainContentCatalogSO.cs:36`의 실제 GetAll은 현재 definitions만 읽고, `CharacterProgressionProfileProjector.cs:79-83` 등은 과거 상태가 참조하는 정의를 찾지 못하면 실패한다.
+
+현재 다른 SO에서 ID로 참조하는 정의는 공통 관계 검사가 잡을 수 있다. 그러나 과거 저장에서만 필요한 정의의 등록 유지·명시적 폐기/이관은 이 baseline이 검증하지 않는다. 모든 등록 해제가 모든 CI 검사를 통과한다고 단정하지 않으며, 현재 카탈로그에 실제 누락이 있다는 결과도 아니다.
+
+### P2 — 새 게시의 유효성 검사와 초안 구분 부족
+
+`ContentIdentityProtection.cs:294-336`의 Append 메뉴는 기존 행 불변만 확인한 뒤 새 SO를 모두 추가한다. 새 own ID의 의미상 유효성, ValidateDefinition, 운영 등록 여부는 검사하지 않는다. 미게시 SO는 build에서 차단되지만 빈ID/고아 상태를 Append하면 그 자체가 변경 불가 계약으로 굳는다. 빈ID의 name fallback을 사용하는 AnatomyProfile/AnatomyConditionLexicon은 이후 rename으로 실효ID가 바뀔 수도 있다. 현재 이 두 타입의 baseline19개는 모두 명시적 nonblank ID여서 이 rename 경계의 현행 결함은 아니다.
+
+현행 예외는 `Assets/Scripts/Services/Character/SO/TestCharacter.asset`(GUID e61f47e09c6cd9449aeeee72493b9fdc)의 빈 archetypeId가 이미 게시 baseline에 고정된 것이다. `CharacterSO.cs:42` 및 `CharacterSpawnRequest.cs:18-22,60-75`의 현대 spawn 계약에서는 유효하지 않다. Gameplay/CharacterAiTest/Sample 씬의 legacy spawner 참조는 있으나 그 경로는 숫자id를 쓰므로 즉시 플레이 실패라고 보고하지 않는다. 신규 정의의 게시와 기존 legacy 호환 자산 보호를 같은 유효성 기준 없이 묶은 문제다.
+
+### P2 — 의료 선택·검증의 실제 대상 문맥 불일치
+
+- `SurgicalProcedureSO.cs:24-25`의 allowedSpeciesIds는 Species(캐릭터종족만) 선택/검증이다. 그러나 `SurgeryOrderPlanningService.cs:141-149,246-279`는 실제 WildlifeActor.SpeciesId도 지원한다. allowsWildlife=true에서 등록된 moss_boar 전용 수술을 작성하려 하면 선택이 불가능하고 수기로 넣어도 공통 검증이 미등록 Species로 거절한다. 현행 야생동물 허용 수술은 특정 야생종 제한을 사용하지 않아 기존47개 에셋 검사에서는 드러나지 않는다.
+- SurgicalProcedure.targetNodeId는 전체 AnatomyProfile의 노드 합집합을 사용한다(`ContentReferenceDrawer.cs:196-206`, `ContentReferenceCatalog.cs:136-139,298`). Human 전용 수술에 construct의 power-core를 선택할 수 있고 전역 존재 검사는 통과한다. Human 프로필에는 해당 노드가 없어 실제 `SurgeryOrderPlanningService.cs:517-540`에서는 거절된다. 현재 human-neural-assist의 brain은 정상이다. 같은 이름의 노드가 여러 프로필에 존재한다는 사실만으로 대상 종족과의 연결을 보장할 수 없다.
+
+### 실행 재현 필요 — 신규 nested list 편집의 Inspector 경계
+
+`ContentReferenceDrawer.cs:148-160,183`은 pending SerializedProperty의 경로를 반영 전 실제 IList에 바로 적용한다. 예를 들어 빈 ProductionRecipe.inputs의 serialized arraySize를1로 늘리고 Apply 전 inputs.Array.data[0].itemId의 ResolveReference/GetPropertyHeight를 호출하면 이전 IList[0] 접근이 범위를 벗어난다. 일반 Item 관계에도 Owner를 계산하므로 이 경로에 도달한다. 기존 테스트의 새 list 항목은 TryAssign을 직접 호출하거나 effect/narrative 전용 분기로 우회해 이 경계를 다루지 않는다. 코드상 조건부 예외 경로를 확인했으며, 이번 감사에서는 실제 Inspector의 자동 Apply 시점까지 실행 재현하지 않았다.
+
+### 오탐 제외와 이번 결과의 한계
+
+BuildingAnesthesiaAbility.anesthesiaItemId는 작성 필드/에셋은 있으나 런타임 소비가 선언 외0건이라 확정된 타SO 관계 누락과 분리했다. associatedId(Grid occupant), paid-facility contractId, 하드코드 condition:no-safe-alternative, StockCategory persistence key는 SO 관계가 아니다. 기존 typed 명시ID의 물리 삭제/GUID/최상위ID 변경 보호는 정상적으로 존재한다. 전체 플레이·기존 사용자 저장의 실패를 새로 재현한 것은 아니며, 확인된 것은 위 수기 관계 누락·보호/검증 경계 및 한정된 공식 Python 검증기의 허용 반례다.
+
 ## 2026-10-23 전체 SO 관계의 작성·검증·identity 계약
 
 모든 게임 SO의 원본 조사 범위는 142 unique runtime types(143 선언행, partial 1중복)이며 native TypeCache143개 중 추가1개는 vendor BehaviorDesigner.Runtime.ExternalBehaviorTree다. Editor fixture20과 Models/AI 이름 충돌 plain class14는 runtime SO에서 제외했다. 기존/신규 ID 관계149개 고유 leaf 선언을 원본까지 대조하고 추가 문맥 union을 반영했다. 원본/등록/소비/정적 에셋 감사 JSON은 외부 so-reference-integrity에, 최종 native 타입/ID 증거는 후속 실제 실행 결과에 보존한다.

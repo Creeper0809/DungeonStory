@@ -58,6 +58,35 @@ public sealed class CharacterPerformanceFormulaCatalog
             .SelectMany(value => value.ValidateDefinition()
                 .Select(error => $"{value.name}: {error}"))
             .ToList();
+        HashSet<string> knownWorkTypeIds = BuiltInWorkTypeIds.All
+            .Select(value => value.Value)
+            .ToHashSet(StringComparer.Ordinal);
+        errors.AddRange(authored
+            .Where(value => value.ExecutionWorkTypeId.Length > 0
+                && !knownWorkTypeIds.Contains(value.ExecutionWorkTypeId))
+            .Select(value =>
+                $"{value.name}: Formula '{value.FormulaId}' references unknown "
+                + $"execution work type '{value.ExecutionWorkTypeId}'."));
+        HashSet<string> authoredGameplayEffectTargetIds = content
+            .GetAll<GameplayEffectDefinitionSO>()
+            .Where(value => value != null && value.TargetId.Length > 0)
+            .Select(value => value.TargetId)
+            .ToHashSet(StringComparer.Ordinal);
+        errors.AddRange(authored
+            .Where(value => value.GameplayEffectTargetId.Length > 0
+                && !authoredGameplayEffectTargetIds.Contains(
+                    value.GameplayEffectTargetId))
+            .Select(value =>
+                $"{value.name}: Formula '{value.FormulaId}' references unknown "
+                + $"gameplay-effect target '{value.GameplayEffectTargetId}'."));
+        errors.AddRange(authored
+            .Where(value => value.GameplayEffectTargetId.Length > 0
+                && !GameplayEffectTargetIds.IsCharacterPerformanceFormulaTarget(
+                    value.GameplayEffectTargetId))
+            .Select(value =>
+                $"{value.name}: Formula '{value.FormulaId}' references "
+                + $"gameplay-effect target '{value.GameplayEffectTargetId}' "
+                + "without a registered performance consumer."));
         IGrouping<string, CharacterPerformanceFormulaDefinitionSO>[] duplicates = authored
             .GroupBy(value => value.FormulaId, StringComparer.Ordinal)
             .Where(group => group.Count() > 1)
@@ -138,6 +167,7 @@ public sealed class CharacterPerformanceQuery :
     private readonly IGameCalendar calendar;
     private readonly CharacterDerivedStatsSnapshotProjector gameplayEffects;
     private readonly CharacterPerformanceFormulaCatalog formulas;
+    private readonly IHeritableTraitEffectQuery heritableTraits;
 
     public CharacterPerformanceQuery(
         IAnatomyHealthRuntime anatomy,
@@ -145,7 +175,8 @@ public sealed class CharacterPerformanceQuery :
         ICharacterProficiencyQuery proficiencies,
         IGameCalendar calendar,
         CharacterDerivedStatsSnapshotProjector gameplayEffects,
-        CharacterPerformanceFormulaCatalog formulas)
+        CharacterPerformanceFormulaCatalog formulas,
+        IHeritableTraitEffectQuery heritableTraits)
     {
         this.anatomy = anatomy ?? throw new ArgumentNullException(nameof(anatomy));
         this.anatomyProfiles = anatomyProfiles
@@ -156,6 +187,7 @@ public sealed class CharacterPerformanceQuery :
         this.gameplayEffects = gameplayEffects
             ?? throw new ArgumentNullException(nameof(gameplayEffects));
         this.formulas = formulas ?? throw new ArgumentNullException(nameof(formulas));
+        this.heritableTraits = heritableTraits ?? throw new ArgumentNullException(nameof(heritableTraits));
     }
 
     public CharacterFunctionalCapacitySnapshot GetFunctionalCapacities(
@@ -262,6 +294,25 @@ public sealed class CharacterPerformanceQuery :
         {
             string targetId = CharacterFunctionalCapacityIds.GetStableId(capacity.Id);
             float value = projection.Values[targetId];
+            string hereditaryCapacity = capacity.Id switch
+            {
+                CharacterFunctionalCapacityId.PhysicalPower => "joints",
+                CharacterFunctionalCapacityId.PrecisionManipulation => "dexterity",
+                CharacterFunctionalCapacityId.PhysicalMobility => "mobility",
+                _ => null
+            };
+            if (hereditaryCapacity != null)
+            {
+                float multiplier = HeritableMultiplier(actor, HeritableTraitConsequenceKind.AnatomyCapacity,
+                    hereditaryCapacity);
+                value *= multiplier;
+                capacity.Trace.Add(new CharacterPerformanceContributionTrace
+                {
+                    SourceKind = "heritable-trait", SourceId = hereditaryCapacity,
+                    TargetId = targetId, AuthoredValue = multiplier, AppliedValue = multiplier,
+                    Detail = "expressed hereditary capacity; capped modifier"
+                });
+            }
             if (float.IsNaN(value) || float.IsInfinity(value) || value < 0f)
                 throw new InvalidOperationException(
                     $"Capacity projection '{targetId}' produced invalid value {value} "
@@ -416,10 +467,19 @@ public sealed class CharacterPerformanceQuery :
                         : value.EffectId
                 }));
         }
+        float inheritedFactor = ResolveHeritablePerformance(actor, formula);
+        if (inheritedFactor != 1f)
+            trace.Add(new CharacterPerformanceContributionTrace
+            {
+                SourceKind = "heritable-trait", SourceId = "expressed-traits",
+                TargetId = formula.FormulaId, AuthoredValue = inheritedFactor,
+                AppliedValue = inheritedFactor, Detail = "hereditary performance multiplier"
+            });
         float finalValue = formula.BaseValue
             * capacityFactor
             * proficiencyFactor
             * effectFactor
+            * inheritedFactor
             * contextFactor;
         return new CharacterPerformanceSnapshot
         {
@@ -451,6 +511,29 @@ public sealed class CharacterPerformanceQuery :
         return Evaluate(actor, formula.FormulaId, context);
     }
 
+    private float HeritableMultiplier(CharacterActor actor, HeritableTraitConsequenceKind kind, string target) =>
+        CharacterPersistentIdentity.TryGet(actor, out var id)
+            ? heritableTraits.GetMultiplier(id, kind, target) : 1f;
+
+    private float ResolveHeritablePerformance(CharacterActor actor, CharacterPerformanceFormulaDefinitionSO formula)
+    {
+        if (formula.FormulaId == CharacterPerformanceFormulaIds.NutritionEfficiency)
+            return HeritableMultiplier(actor, HeritableTraitConsequenceKind.EnvironmentalTolerance, "nutrition");
+        if (formula.FormulaId == "performance:survival:cold-exposure")
+            return 1f / HeritableMultiplier(actor, HeritableTraitConsequenceKind.EnvironmentalTolerance, "cold");
+        if (formula.FormulaId == "performance:survival:heat-exposure")
+            return 1f / HeritableMultiplier(actor, HeritableTraitConsequenceKind.EnvironmentalTolerance, "heat");
+        if (formula.FormulaId == "performance:medical:wound-recovery"
+            || formula.FormulaId == "performance:work:rest:wound-recovery")
+            return HeritableMultiplier(actor, HeritableTraitConsequenceKind.AnatomyCapacity, "regeneration");
+        if (formula.FormulaId == CharacterPerformanceFormulaIds.RiskDetection)
+            return HeritableMultiplier(actor, HeritableTraitConsequenceKind.ManaAffinity, "dream");
+        if (formula.ResultChannel == CharacterPerformanceResultChannel.Speed
+            && !string.IsNullOrWhiteSpace(formula.ExecutionWorkTypeId))
+            return HeritableMultiplier(actor, HeritableTraitConsequenceKind.Aptitude, "work-burst");
+        return 1f;
+    }
+
     public IReadOnlyList<CharacterPerformanceSnapshot> EvaluateDomain(
         CharacterActor actor,
         CharacterPerformanceFormulaDomain domain) => formulas.All
@@ -471,7 +554,21 @@ public sealed class CharacterPerformanceQuery :
                 nameof(targetId));
         if (float.IsNaN(baseValue) || float.IsInfinity(baseValue))
             throw new ArgumentOutOfRangeException(nameof(baseValue));
-        return gameplayEffects.ProjectValue(actor, targetId.Trim(), baseValue, context);
+        string target = targetId.Trim();
+        var projected = gameplayEffects.ProjectValue(actor, target, baseValue, context);
+        float multiplier = target switch
+        {
+            GameplayEffectTargetIds.MaximumMana =>
+                HeritableMultiplier(actor, HeritableTraitConsequenceKind.ManaAffinity, "capacity"),
+            GameplayEffectTargetIds.BluntDamageReceived =>
+                1f / HeritableMultiplier(actor, HeritableTraitConsequenceKind.AnatomyCapacity, "bone-density"),
+            GameplayEffectTargetIds.AirExposure =>
+                1f / HeritableMultiplier(actor, HeritableTraitConsequenceKind.EnvironmentalTolerance, "low-oxygen"),
+            GameplayEffectTargetIds.RuneTuningSpeed =>
+                HeritableMultiplier(actor, HeritableTraitConsequenceKind.Aptitude, "rune-tuning"),
+            _ => 1f
+        };
+        return new GameplayEffectProjectionResult(projected.Value * multiplier, projected.Contributions);
     }
 
     private bool TryResolveProficiencyFactor(

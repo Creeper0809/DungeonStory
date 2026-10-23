@@ -311,12 +311,7 @@ public sealed class WildlifeAnatomyHealthRuntime :
     {
         return profiles.TryGet(profileId, out AnatomyProfileDefinition profile)
             ? profile
-            : profiles.Profiles.FirstOrDefault(candidate =>
-                string.Equals(
-                    candidate.AnatomyFamily,
-                    "quadruped",
-                    StringComparison.OrdinalIgnoreCase))
-                ?? profiles.GetDefaultHumanoid();
+            : throw new InvalidOperationException($"Unknown saved wildlife anatomy profile '{profileId}'.");
     }
 
     private static void EnsureNodes(

@@ -25,6 +25,8 @@ public enum CharacterTraitPolarity
 public class CharacterTraitSO : DataScriptableObject, IGameplayEffectSource
 {
     public string traitName;
+    [SerializeField, HideInInspector]
+    private List<string> legacyPolicyNames = new();
     [TextArea] public string description;
     public CharacterModelModifiers modifiers = new CharacterModelModifiers();
     public CharacterCombatAbilityCollection combatAbilities = new CharacterCombatAbilityCollection();
@@ -45,6 +47,13 @@ public class CharacterTraitSO : DataScriptableObject, IGameplayEffectSource
 
     public CharacterTraitId DefinitionId =>
         new($"character-trait:{id}");
+
+    public IReadOnlyList<string> LegacyPolicyNames =>
+        (legacyPolicyNames ?? new List<string>())
+        .Where(value => !string.IsNullOrWhiteSpace(value))
+        .Select(value => value.Trim())
+        .Distinct(System.StringComparer.Ordinal)
+        .ToArray();
 
     public GameplayEffectSourceRef SourceRef =>
         new(GameplayEffectSourceKind.Trait, DefinitionId.Value);

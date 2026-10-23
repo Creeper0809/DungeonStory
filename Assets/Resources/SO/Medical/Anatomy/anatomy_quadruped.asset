@@ -21,6 +21,13 @@ MonoBehaviour:
   - moss_boar
   - rune_deer
   - shadow_wolf
+  - cave_hound
+  - deep_goat
+  - ember_lizard
+  - frost_ram
+  - spore_elk
+  - tunnel_mole
+  legacySpeciesIds: []
   nodes:
   - nodeId: head
     displayName: "\uBA38\uB9AC"

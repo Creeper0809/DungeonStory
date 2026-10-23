@@ -194,24 +194,12 @@ public static class SurgeryEmergencyCauseRules
 }
 
 [Serializable]
-public sealed class ProcedureOperatorStatRequirement
-{
-    public string statId = "stat:medical";
-    [Min(0f)] public float weight = 1f;
-    [Min(0)] public int minimumValue;
-}
-
-[Serializable]
 public sealed class ProcedureOperatorRequirement
 {
-    [SerializeField] private List<ProcedureOperatorStatRequirement> stats = new();
     [SerializeField, Min(0f)] private float minimumWeightedScore = 3f;
 
-    public IReadOnlyList<ProcedureOperatorStatRequirement> Stats => stats;
     public float MinimumWeightedScore => Mathf.Max(0f, minimumWeightedScore);
-
-    public bool IsConfigured => stats != null && stats.Any(item =>
-        item != null && !string.IsNullOrWhiteSpace(item.statId) && item.weight > 0f);
+    public bool IsConfigured => minimumWeightedScore > 0f;
 }
 
 public enum SurgeryOrderState

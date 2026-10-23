@@ -24,7 +24,6 @@ MonoBehaviour:
   allowedSpeciesIds:
   - kobold
   operatorRequirement:
-    stats: []
     minimumWeightedScore: 3
   targetNodeId: hand:left
   requiredResearchId: research:medical:prosthetics

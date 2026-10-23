@@ -48,8 +48,6 @@ MonoBehaviour:
   preySpeciesIds:
   - rune_deer
   - deep_goat
-  predatorSpeciesIds:
-  - spore_elk
   nestTag: nest:mud-clutch
   breedingSeason: 1
   migrationPatternId: migration:flood-channel

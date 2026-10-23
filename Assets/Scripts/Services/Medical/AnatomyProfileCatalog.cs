@@ -12,6 +12,14 @@ public sealed class ResourceAnatomyProfileCatalog : IAnatomyProfileCatalog
         : this((content ?? throw new ArgumentNullException(nameof(content)))
             .GetAll<AnatomyProfileSO>())
     {
+        foreach (var species in content.GetAll<CharacterSpeciesSO>())
+        {
+            var mapped = GetForSpecies(species.speciesTag);
+            if (mapped.ProfileId != species.anatomyProfileId)
+                throw new InvalidOperationException($"Species '{species.speciesTag}' anatomy '{species.anatomyProfileId}' conflicts with profile membership '{mapped.ProfileId}'.");
+        }
+        foreach (var species in content.GetAll<WildlifeSpeciesSO>())
+            _ = GetForSpecies(species.SpeciesId);
     }
 
     public ResourceAnatomyProfileCatalog(IEnumerable<AnatomyProfileSO> assets)
@@ -35,7 +43,8 @@ public sealed class ResourceAnatomyProfileCatalog : IAnatomyProfileCatalog
         {
             foreach (string speciesId in profile.SpeciesIds)
             {
-                species.TryAdd(speciesId, profile);
+                if (!species.TryAdd(speciesId, profile))
+                    throw new InvalidOperationException($"Species '{speciesId}' belongs to more than one anatomy profile.");
             }
         }
 
@@ -43,6 +52,44 @@ public sealed class ResourceAnatomyProfileCatalog : IAnatomyProfileCatalog
     }
 
     public IReadOnlyList<AnatomyProfileDefinition> Profiles => profiles;
+
+    public static IReadOnlyList<string> ValidateAgeConditionTargets(IGameContentDefinitionSource content)
+    {
+        if (content == null) throw new ArgumentNullException(nameof(content));
+        var errors = new List<string>();
+        var anatomy = content.GetAll<AnatomyProfileSO>()
+            .Select(value => new AnatomyProfileDefinition(value))
+            .ToDictionary(value => value.ProfileId, StringComparer.Ordinal);
+        var species = content.GetAll<CharacterSpeciesSO>();
+        foreach (var asset in content.GetAll<AgeConditionDefinitionSO>())
+        {
+            var localErrors = asset.ValidateDefinition();
+            if (localErrors.Count > 0)
+            {
+                errors.AddRange(localErrors.Select(error => $"{asset.conditionId}: {error}"));
+                continue;
+            }
+            var definition = asset.ToDefinition();
+            foreach (var target in asset.anatomyTargets ?? new())
+            {
+                if (!anatomy.TryGetValue(target.anatomyProfileId, out var profile))
+                    errors.Add($"{asset.conditionId}: unknown anatomy profile '{target.anatomyProfileId}'.");
+                else foreach (string id in target.nodeIds)
+                    if (!profile.Nodes.Any(node => node.NodeId == id))
+                        errors.Add($"{asset.conditionId}: '{id}' does not belong to '{profile.ProfileId}'.");
+            }
+            foreach (var owner in species)
+            {
+                if (owner.lifeHistory == null || owner.lifeHistory.construct != asset.constructCondition)
+                    continue;
+                if (!anatomy.TryGetValue(owner.anatomyProfileId, out var profile)
+                    || !profile.Nodes.Any(node => definition.GetAffectedAnatomyNodeIds(profile.ProfileId)
+                        .Contains(node.NodeId, StringComparer.Ordinal)))
+                    errors.Add($"{asset.conditionId}: eligible species '{owner.speciesTag}' has no affected anatomy node.");
+            }
+        }
+        return errors;
+    }
 
     public AnatomyProfileDefinition GetDefaultHumanoid()
     {
@@ -72,7 +119,7 @@ public sealed class ResourceAnatomyProfileCatalog : IAnatomyProfileCatalog
             return profile;
         }
 
-        return GetDefaultHumanoid();
+        throw new KeyNotFoundException($"No authored anatomy profile for species '{speciesId}'.");
     }
 
     public bool TryGet(string profileId, out AnatomyProfileDefinition profile)
@@ -124,7 +171,7 @@ public static class AnatomyProfileDefaults
             "anatomy:humanoid",
             "인간형",
             "humanoid",
-            new[] { "Goblin", "LegacyHumanoid" },
+            new[] { "Goblin", "LegacyHumanoid", "Adventurer" },
             new[]
             {
                 Node("head", "머리", "", AnatomyNodeKind.BodyPart,
@@ -166,6 +213,22 @@ public static class AnatomyProfileDefaults
                 Node("leg:right", "오른다리", "torso", AnatomyNodeKind.Limb,
                     AnatomyFunction.Mobility, 26f, 0.5f, false, true, "legs",
                     CombatBodyPart.RightLeg)
+            },
+            legacySpeciesIds: new[]
+            {
+                "ash_crawler",
+                "carrion_drake",
+                "cave_hound",
+                "crystal_beetle",
+                "deep_goat",
+                "ember_lizard",
+                "frost_ram",
+                "glow_moth",
+                "mana_wisp",
+                "mire_leech",
+                "silk_spider",
+                "spore_elk",
+                "tunnel_mole"
             });
     }
 
@@ -426,7 +489,13 @@ public static class AnatomyProfileDefaults
                 "shadow_hare",
                 "moss_boar",
                 "rune_deer",
-                "shadow_wolf"
+                "shadow_wolf",
+                "cave_hound",
+                "deep_goat",
+                "ember_lizard",
+                "frost_ram",
+                "spore_elk",
+                "tunnel_mole"
             },
             new[]
             {
@@ -466,6 +535,252 @@ public static class AnatomyProfileDefaults
             });
     }
 
+    public static IReadOnlyList<AnatomyProfileDefinition> CreateAdditionalWildlifeProfiles()
+    {
+        // These final masks intentionally match the published assets. The editor
+        // coverage pass therefore validates them without adding another function.
+        return new[]
+        {
+            new AnatomyProfileDefinition(
+                "anatomy:insect",
+                "곤충형",
+                "insect",
+                new[] { "crystal_beetle" },
+                new[]
+                {
+                    Node("head", "머리", "", AnatomyNodeKind.BodyPart, (AnatomyFunction)6, 12f, 0.35f, true, false, "", CombatBodyPart.Head),
+                    Node("brain", "신경절", "head", AnatomyNodeKind.Organ, (AnatomyFunction)2, 8f, 0.65f, true, false),
+                    Node("eye:left", "왼쪽 겹눈", "head", AnatomyNodeKind.SensoryOrgan, (AnatomyFunction)4, 4f, 0.5f, false, true, "eyes"),
+                    Node("eye:right", "오른쪽 겹눈", "head", AnatomyNodeKind.SensoryOrgan, (AnatomyFunction)4, 4f, 0.5f, false, true, "eyes"),
+                    Node("torso", "몸통", "", AnatomyNodeKind.Core, (AnatomyFunction)9337, 32f, 1.0f, true, false, "", CombatBodyPart.Torso),
+                    Node("leg:front:left", "왼쪽 앞다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 8f, 0.1666667f, false, true, "legs:front"),
+                    Node("leg:front:right", "오른쪽 앞다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 8f, 0.1666667f, false, true, "legs:front"),
+                    Node("leg:middle:left", "왼쪽 가운데다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 8f, 0.1666667f, false, true, "legs:middle"),
+                    Node("leg:middle:right", "오른쪽 가운데다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 8f, 0.1666667f, false, true, "legs:middle"),
+                    Node("leg:rear:left", "왼쪽 뒤다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 8f, 0.1666667f, false, true, "legs:rear"),
+                    Node("leg:rear:right", "오른쪽 뒤다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 8f, 0.1666667f, false, true, "legs:rear")
+                },
+                apparelBodyForm: ApparelBodyForm.Humanoid,
+                apparelSize: ApparelSizeClass.Small,
+                apparelBasePoints: (AnatomyAttachmentPoint)16383,
+                apparelAttachments: new[]
+                {
+                    new AnatomyApparelAttachment
+                    {
+                        nodeId = "head",
+                        points = (AnatomyAttachmentPoint)3,
+                        mode = AnatomyApparelAttachmentMode.RemoveWhenMissing
+                    },
+                    new AnatomyApparelAttachment
+                    {
+                        nodeId = "torso",
+                        points = (AnatomyAttachmentPoint)8216,
+                        mode = AnatomyApparelAttachmentMode.RemoveWhenMissing
+                    }
+                }),
+            new AnatomyProfileDefinition(
+                "anatomy:winged-insect",
+                "비행 곤충형",
+                "winged-insect",
+                new[] { "glow_moth" },
+                new[]
+                {
+                    Node("head", "머리", "", AnatomyNodeKind.BodyPart, (AnatomyFunction)6, 10f, 0.35f, true, false, "", CombatBodyPart.Head),
+                    Node("brain", "신경절", "head", AnatomyNodeKind.Organ, (AnatomyFunction)2, 7f, 0.65f, true, false),
+                    Node("eye:left", "왼쪽 겹눈", "head", AnatomyNodeKind.SensoryOrgan, (AnatomyFunction)4, 4f, 0.5f, false, true, "eyes"),
+                    Node("eye:right", "오른쪽 겹눈", "head", AnatomyNodeKind.SensoryOrgan, (AnatomyFunction)4, 4f, 0.5f, false, true, "eyes"),
+                    Node("torso", "몸통", "", AnatomyNodeKind.Core, (AnatomyFunction)9273, 24f, 1.0f, true, false, "", CombatBodyPart.Torso),
+                    Node("leg:front:left", "왼쪽 앞다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 6f, 0.1666667f, false, true, "legs:front"),
+                    Node("leg:front:right", "오른쪽 앞다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 6f, 0.1666667f, false, true, "legs:front"),
+                    Node("leg:middle:left", "왼쪽 가운데다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 6f, 0.1666667f, false, true, "legs:middle"),
+                    Node("leg:middle:right", "오른쪽 가운데다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 6f, 0.1666667f, false, true, "legs:middle"),
+                    Node("leg:rear:left", "왼쪽 뒤다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 6f, 0.1666667f, false, true, "legs:rear"),
+                    Node("leg:rear:right", "오른쪽 뒤다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 6f, 0.1666667f, false, true, "legs:rear"),
+                    Node("wing:left", "왼날개", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)192, 8f, 0.5f, false, true, "wings"),
+                    Node("wing:right", "오른날개", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)192, 8f, 0.5f, false, true, "wings")
+                },
+                apparelBodyForm: ApparelBodyForm.Humanoid,
+                apparelSize: ApparelSizeClass.Small,
+                apparelBasePoints: (AnatomyAttachmentPoint)16383,
+                apparelAttachments: new[]
+                {
+                    new AnatomyApparelAttachment
+                    {
+                        nodeId = "head",
+                        points = (AnatomyAttachmentPoint)3,
+                        mode = AnatomyApparelAttachmentMode.RemoveWhenMissing
+                    },
+                    new AnatomyApparelAttachment
+                    {
+                        nodeId = "torso",
+                        points = (AnatomyAttachmentPoint)8216,
+                        mode = AnatomyApparelAttachmentMode.RemoveWhenMissing
+                    },
+                    new AnatomyApparelAttachment
+                    {
+                        nodeId = "wing:left",
+                        points = (AnatomyAttachmentPoint)32768,
+                        mode = AnatomyApparelAttachmentMode.AddWhenPresent
+                    },
+                    new AnatomyApparelAttachment
+                    {
+                        nodeId = "wing:right",
+                        points = (AnatomyAttachmentPoint)65536,
+                        mode = AnatomyApparelAttachmentMode.AddWhenPresent
+                    }
+                }),
+            new AnatomyProfileDefinition(
+                "anatomy:arachnid",
+                "거미형",
+                "arachnid",
+                new[] { "silk_spider" },
+                new[]
+                {
+                    Node("head", "머리", "", AnatomyNodeKind.BodyPart, (AnatomyFunction)6, 11f, 0.35f, true, false, "", CombatBodyPart.Head),
+                    Node("brain", "신경절", "head", AnatomyNodeKind.Organ, (AnatomyFunction)2, 7f, 0.65f, true, false),
+                    Node("eye:left", "왼쪽 겹눈", "head", AnatomyNodeKind.SensoryOrgan, (AnatomyFunction)4, 4f, 0.5f, false, true, "eyes"),
+                    Node("eye:right", "오른쪽 겹눈", "head", AnatomyNodeKind.SensoryOrgan, (AnatomyFunction)4, 4f, 0.5f, false, true, "eyes"),
+                    Node("torso", "몸통", "", AnatomyNodeKind.Core, (AnatomyFunction)9337, 28f, 1.0f, true, false, "", CombatBodyPart.Torso),
+                    Node("leg:first:left", "왼쪽 첫째다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 7f, 0.125f, false, true, "legs:first"),
+                    Node("leg:first:right", "오른쪽 첫째다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 7f, 0.125f, false, true, "legs:first"),
+                    Node("leg:second:left", "왼쪽 둘째다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 7f, 0.125f, false, true, "legs:second"),
+                    Node("leg:second:right", "오른쪽 둘째다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 7f, 0.125f, false, true, "legs:second"),
+                    Node("leg:third:left", "왼쪽 셋째다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 7f, 0.125f, false, true, "legs:third"),
+                    Node("leg:third:right", "오른쪽 셋째다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 7f, 0.125f, false, true, "legs:third"),
+                    Node("leg:fourth:left", "왼쪽 넷째다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 7f, 0.125f, false, true, "legs:fourth"),
+                    Node("leg:fourth:right", "오른쪽 넷째다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 7f, 0.125f, false, true, "legs:fourth")
+                },
+                apparelBodyForm: ApparelBodyForm.Humanoid,
+                apparelSize: ApparelSizeClass.Small,
+                apparelBasePoints: (AnatomyAttachmentPoint)16383,
+                apparelAttachments: new[]
+                {
+                    new AnatomyApparelAttachment
+                    {
+                        nodeId = "head",
+                        points = (AnatomyAttachmentPoint)3,
+                        mode = AnatomyApparelAttachmentMode.RemoveWhenMissing
+                    },
+                    new AnatomyApparelAttachment
+                    {
+                        nodeId = "torso",
+                        points = (AnatomyAttachmentPoint)8216,
+                        mode = AnatomyApparelAttachmentMode.RemoveWhenMissing
+                    }
+                }),
+            new AnatomyProfileDefinition(
+                "anatomy:vermiform",
+                "연체 벌레형",
+                "vermiform",
+                new[] { "ash_crawler", "mire_leech" },
+                new[]
+                {
+                    Node("sensory-head", "감각 머리", "body", AnatomyNodeKind.BodyPart, (AnatomyFunction)6, 10f, 0.5f, false, true, "", CombatBodyPart.Head, mapsToLegacy: true),
+                    Node("body", "유연한 몸통", "", AnatomyNodeKind.Core, (AnatomyFunction)9945, 32f, 1.0f, true, false, "", CombatBodyPart.Torso, mapsToLegacy: true),
+                    Node("gut", "소화관", "body", AnatomyNodeKind.Organ, (AnatomyFunction)48, 10f, 0.8f, false, true)
+                },
+                apparelBodyForm: ApparelBodyForm.Humanoid,
+                apparelSize: ApparelSizeClass.Small,
+                apparelBasePoints: (AnatomyAttachmentPoint)16383,
+                apparelAttachments: new[]
+                {
+                    new AnatomyApparelAttachment
+                    {
+                        nodeId = "sensory-head",
+                        points = (AnatomyAttachmentPoint)3,
+                        mode = AnatomyApparelAttachmentMode.RemoveWhenMissing
+                    },
+                    new AnatomyApparelAttachment
+                    {
+                        nodeId = "body",
+                        points = (AnatomyAttachmentPoint)8216,
+                        mode = AnatomyApparelAttachmentMode.RemoveWhenMissing
+                    }
+                }),
+            new AnatomyProfileDefinition(
+                "anatomy:ethereal",
+                "에테르형",
+                "ethereal",
+                new[] { "mana_wisp" },
+                new[]
+                {
+                    Node("mana-envelope", "마나 외피", "", AnatomyNodeKind.BodyPart, (AnatomyFunction)388, 35f, 0.8f, true, false, "", CombatBodyPart.Torso, mapsToLegacy: true),
+                    Node("mana-core", "마나 핵", "mana-envelope", AnatomyNodeKind.Core, (AnatomyFunction)13947, 20f, 1.0f, true, false)
+                },
+                apparelBodyForm: ApparelBodyForm.Humanoid,
+                apparelSize: ApparelSizeClass.Small,
+                apparelBasePoints: (AnatomyAttachmentPoint)16383,
+                apparelAttachments: new[]
+                {
+                    new AnatomyApparelAttachment
+                    {
+                        nodeId = "mana-core",
+                        points = (AnatomyAttachmentPoint)3,
+                        mode = AnatomyApparelAttachmentMode.RemoveWhenMissing
+                    },
+                    new AnatomyApparelAttachment
+                    {
+                        nodeId = "mana-envelope",
+                        points = (AnatomyAttachmentPoint)8216,
+                        mode = AnatomyApparelAttachmentMode.RemoveWhenMissing
+                    }
+                }),
+            new AnatomyProfileDefinition(
+                "anatomy:drake",
+                "비룡형",
+                "drake",
+                new[] { "carrion_drake" },
+                new[]
+                {
+                    Node("head", "머리", "", AnatomyNodeKind.BodyPart, (AnatomyFunction)6, 15f, 0.35f, true, false, "", CombatBodyPart.Head),
+                    Node("brain", "뇌", "head", AnatomyNodeKind.Organ, (AnatomyFunction)2, 9f, 0.65f, true, false),
+                    Node("eye:left", "왼쪽 눈", "head", AnatomyNodeKind.SensoryOrgan, (AnatomyFunction)4, 5f, 0.5f, false, true, "eyes"),
+                    Node("eye:right", "오른쪽 눈", "head", AnatomyNodeKind.SensoryOrgan, (AnatomyFunction)4, 5f, 0.5f, false, true, "eyes"),
+                    Node("torso", "몸통", "", AnatomyNodeKind.Core, (AnatomyFunction)9281, 38f, 1.0f, true, false, "", CombatBodyPart.Torso),
+                    Node("heart", "심장", "torso", AnatomyNodeKind.Organ, (AnatomyFunction)1, 12f, 1.0f, true, true),
+                    Node("lung:left", "왼쪽 폐", "torso", AnatomyNodeKind.Organ, (AnatomyFunction)8, 10f, 0.5f, false, true, "lungs"),
+                    Node("lung:right", "오른쪽 폐", "torso", AnatomyNodeKind.Organ, (AnatomyFunction)8, 10f, 0.5f, false, true, "lungs"),
+                    Node("liver", "간", "torso", AnatomyNodeKind.Organ, (AnatomyFunction)48, 13f, 0.6f, false, true),
+                    Node("kidney:left", "왼쪽 신장", "torso", AnatomyNodeKind.Organ, (AnatomyFunction)32, 8f, 0.5f, false, true, "kidneys"),
+                    Node("kidney:right", "오른쪽 신장", "torso", AnatomyNodeKind.Organ, (AnatomyFunction)32, 8f, 0.5f, false, true, "kidneys"),
+                    Node("stomach", "위", "torso", AnatomyNodeKind.Organ, (AnatomyFunction)16, 12f, 0.4f, false, true),
+                    Node("forelegs", "앞다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 20f, 0.5f, false, true, "legs", CombatBodyPart.LeftLeg),
+                    Node("hindlegs", "뒷다리", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)128, 22f, 0.5f, false, true, "legs", CombatBodyPart.RightLeg),
+                    Node("wing:left", "왼날개", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)192, 24f, 0.5f, false, true, "wings"),
+                    Node("wing:right", "오른날개", "torso", AnatomyNodeKind.Limb, (AnatomyFunction)192, 24f, 0.5f, false, true, "wings")
+                },
+                apparelBodyForm: ApparelBodyForm.Humanoid,
+                apparelSize: ApparelSizeClass.Medium,
+                apparelBasePoints: (AnatomyAttachmentPoint)16383,
+                apparelAttachments: new[]
+                {
+                    new AnatomyApparelAttachment
+                    {
+                        nodeId = "head",
+                        points = (AnatomyAttachmentPoint)3,
+                        mode = AnatomyApparelAttachmentMode.RemoveWhenMissing
+                    },
+                    new AnatomyApparelAttachment
+                    {
+                        nodeId = "torso",
+                        points = (AnatomyAttachmentPoint)8216,
+                        mode = AnatomyApparelAttachmentMode.RemoveWhenMissing
+                    },
+                    new AnatomyApparelAttachment
+                    {
+                        nodeId = "wing:left",
+                        points = (AnatomyAttachmentPoint)32768,
+                        mode = AnatomyApparelAttachmentMode.AddWhenPresent
+                    },
+                    new AnatomyApparelAttachment
+                    {
+                        nodeId = "wing:right",
+                        points = (AnatomyAttachmentPoint)65536,
+                        mode = AnatomyApparelAttachmentMode.AddWhenPresent
+                    }
+                })
+        };
+    }
     public static AnatomyProfileDefinition CreateSlime()
     {
         return new AnatomyProfileDefinition(
@@ -614,9 +929,10 @@ public static class AnatomyProfileDefaults
         bool vital,
         bool removable,
         string pair = "",
-        CombatBodyPart legacy = default)
+        CombatBodyPart legacy = default,
+        bool? mapsToLegacy = null)
     {
-        bool mapsToLegacy = id is "head"
+        bool shouldMapToLegacy = mapsToLegacy ?? id is "head"
             or "torso"
             or "membrane"
             or "arm:left"
@@ -637,6 +953,6 @@ public static class AnatomyProfileDefaults
             removable,
             pair,
             legacy,
-            mapsToLegacy);
+            shouldMapToLegacy);
     }
 }

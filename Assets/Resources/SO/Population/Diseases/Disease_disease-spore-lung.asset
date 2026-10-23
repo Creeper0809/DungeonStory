@@ -21,6 +21,7 @@ MonoBehaviour:
   baseSeverity: 50
   targetSystem: 2
   vaccineAllowed: 1
+  vaccineItemId: medicine:vaccine:spore-lung
   chronic: 0
   description: "\uD3EC\uC790\uD3D0\uC99D\uC758 \uACE0\uC720 \uC804\uD30C\uC640 \uAE30\uAD00
     \uC99D\uC0C1."

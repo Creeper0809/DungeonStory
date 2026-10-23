@@ -67,6 +67,10 @@ public sealed class ResourceGameContentCatalog :
         if (relationErrors.Count > 0)
             throw new InvalidOperationException("Game content references are invalid:\n" + string.Join("\n", relationErrors));
         ValidateNarrativeReferences();
+        _ = new ResourceAnatomyProfileCatalog(this);
+        var ageAnatomyErrors = ResourceAnatomyProfileCatalog.ValidateAgeConditionTargets(this);
+        if (ageAnatomyErrors.Count > 0)
+            throw new InvalidOperationException("Age-condition anatomy references are invalid:\n" + string.Join("\n", ageAnatomyErrors));
     }
 
     public GameContentCatalogSO Root { get; }

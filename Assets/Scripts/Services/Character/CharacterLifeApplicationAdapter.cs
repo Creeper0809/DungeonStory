@@ -290,7 +290,7 @@ public sealed class CharacterAgeConditionBodyHealthAdapter : IStartable, IDispos
         Dictionary<string, AnatomyNodeHealthState> nodes = snapshot.Nodes
             .Where(node => node != null)
             .ToDictionary(node => node.nodeId, StringComparer.Ordinal);
-        AnatomyNodeHealthState[] affected = definition.AffectedAnatomyNodeIds
+        AnatomyNodeHealthState[] affected = definition.GetAffectedAnatomyNodeIds(snapshot.ProfileId)
             .Where(nodes.ContainsKey)
             .Select(nodeId => nodes[nodeId])
             .Where(node => !node.missing)
