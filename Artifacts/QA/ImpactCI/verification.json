@@ -2,55 +2,55 @@
   "schema": "impact-ci-v1",
   "scope": "targeted-contracts-not-full-balance-certification",
   "source": {
-    "digest": "319b8d3f248d5d18af84c41e67fd723f4df2789b81d3937c6e8ffc9040a9976f",
-    "count": 4740,
-    "pathsDigest": "ca1498ba1f72fef5434b986cf3db42e7722e89d2d8eae21c8fb94644610281de"
+    "digest": "401017f9ec58b1439756f726b4a3980bec16507a21c72cbf66c7547415b25ed7",
+    "count": 4743,
+    "pathsDigest": "251829a47a04be48d0b9546bc508bd35711aaebb1616de6ab9282450f04318f4"
   },
-  "configurationDigest": "5e9d75eb67068d16b2271966e0064c64c24bb2818be300bc3f762f6e88ee08aa",
+  "configurationDigest": "84283c4a0b9cafefd2bf95a137f42654a90ff77e7f1ddbebb2a0379e209cb85b",
   "unity": "6000.3.8f1",
   "platform": "local Windows; isolated noninteractive station/desktop; per-run window probe and job containment",
-  "sourceManifest": "r87ee; 21617 input files; complete pre/post SHA verification",
+  "sourceManifest": "r95so; 21623 input files; complete pre/post SHA verification",
   "redaction": "Native outcome/error lines retained; license and player-connection identifiers omitted; trailing whitespace normalized; summary JSON uses repository LF line endings without changing values; originals preserved in local run directories outside the commit.",
   "checks": [
     {
       "group": "core",
       "method": "V27CiEvidenceBatch.RunImpactCoreContracts",
       "log": "Artifacts/QA/ImpactCI/core.log",
-      "logSha256": "7cb9744e90c16ba36386587ee01e98e478ff448114a7d9c2380428067e2a64be",
+      "logSha256": "edd6fc3bf799b3dda08baa5059409dd90a628402aa760784f038d3d32c0532c2",
       "summary": "Artifacts/QA/ImpactCI/core-summary.json",
-      "summarySha256": "0f5c729d6c7ea5b73a9ec6a22c883f0b8ef8a7ebe49b243c7fb547dae9ef8612"
+      "summarySha256": "eda0cf8c00fb6d61d60d50b96229f3190350e7a645f03eeab0b31434dddcc3d5"
     },
     {
       "group": "character",
       "method": "V27CiEvidenceBatch.RunImpactCharacterContracts",
       "log": "Artifacts/QA/ImpactCI/character.log",
-      "logSha256": "37fa049ac882215fd08043272c1b2dda25140d820c70b97b78bfb0033181772c",
+      "logSha256": "34e1b0ba1e23ea156aa74df4a5d12d815091da68afec87e986dbe51cb7122d1a",
       "summary": "Artifacts/QA/ImpactCI/character-summary.json",
-      "summarySha256": "3f3b2f874f8740a78b005869e3608bb3af55e02271f3a623372cb0257e35d433"
+      "summarySha256": "d3aff78eaff90c29e5a1fe35f74e66bf2913da816d095cd97d0810c6a7aa0e4c"
     },
     {
       "group": "effects",
       "method": "V27CiEvidenceBatch.RunImpactEffectContracts",
       "log": "Artifacts/QA/ImpactCI/effects.log",
-      "logSha256": "ab9ec7b62f2219fcb6d9c2fa486e9b3e223f9929328afaeb19840c4d4dff8b6a",
+      "logSha256": "6d166a17b97d2e73ad04d9f0b3ffb5c4bf89bb544e35858af84bd2f2d861f1be",
       "summary": "Artifacts/QA/ImpactCI/effects-summary.json",
-      "summarySha256": "49bbc5a12fedb1ac58f2ca913cf885101e58472840320ca9da84daa160869130"
+      "summarySha256": "6f4189c77351e51824bd3e71e4932b92964afd85c9a73b0959a9691c3033ac16"
     },
     {
       "group": "crop",
       "method": "V27CiEvidenceBatch.RunImpactCrops",
       "log": "Artifacts/QA/ImpactCI/crop.log",
-      "logSha256": "83eb8aae8b5c8e53bb2d9763e7ce73c3ee31b5e74604abd59e3add7ec2be2c2a",
+      "logSha256": "0d9ac7fd490059e9f31b71b1b67250a4613305f217c25f6507b8e0149e47aaa5",
       "summary": "Artifacts/QA/ImpactCI/crop-summary.json",
-      "summarySha256": "e338e52b28ce41d9fd58172670361274eadcc7e9b15ee6ff84f22b89babefb27"
+      "summarySha256": "43f8c8849f61038f0cb2910d3650d8c88886dc444963e3868ff5b0513a2f100a"
     },
     {
       "group": "world",
       "method": "V27CiEvidenceBatch.RunImpactWorldRestore",
       "log": "Artifacts/QA/ImpactCI/world.log",
-      "logSha256": "d9b0cd3d59c72298737007c6b5f35ad3cd6901832cea161a782a7d29d005c0a5",
+      "logSha256": "e441612492ed65a0310031cbc6b970fd862ec3f8aba72840b3513b3fc5537b34",
       "summary": "Artifacts/QA/ImpactCI/world-summary.json",
-      "summarySha256": "2e7a8128baf39c23c6874f3ed42aebafe4d0fff36ae0a3e2d4599533f7532ea2"
+      "summarySha256": "cb78846870836535d9347cbb40da57db31d44ec87a8a63a8967459a1b3101a12"
     }
   ]
 }

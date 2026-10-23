@@ -17,14 +17,12 @@ MonoBehaviour:
   description: "\uC798 \uAD00\uB9AC\uB41C \uB3C4\uAD6C\uB97C \uAC00\uACC4\uC758 \uC99D\uAC70\uB85C
     \uC5EC\uAE30\uBA70 \uC791\uC740 \uC131\uCDE8\uB3C4 \uC528\uC871 \uC55E\uC5D0\uC11C
     \uAE30\uB85D\uD55C\uB2E4."
-  authoringRevision: 1
-  sourceNote: V20 content-density expansion; hand-authored Korean source revision
-    1.
+  authoringRevision: 2
+  sourceNote: "V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item."
   defaultSpeciesId: Kobold
   preferredItemIds:
-  - food:mushroom-stew
-  forbiddenItemIds:
-  - item:broken-tool
+  - food:mushroom-soup
+  forbiddenItemIds: []
   preferredFacilityIds: []
   environmentalPreferences:
   - compact warm workshops
@@ -41,6 +39,7 @@ MonoBehaviour:
   etiquetteRules:
   - "\uB3C4\uAD6C\uB97C \uBE4C\uB9B4 \uB54C\uB294 \uB3CC\uB824\uC904 \uC0C1\uD0DC\uB97C
     \uBA3C\uC800 \uC57D\uC18D\uD55C\uB2E4."
+  - "\ub9dd\uac00\uc9c4 \ub3c4\uad6c\ub294 \uc218\ub9ac\ud55c \ub4a4 \ub3cc\ub824\uc900\ub2e4."
   ceremonyIds:
   - practice:kobold-tool-naming
   - practice:kobold-bench-feast

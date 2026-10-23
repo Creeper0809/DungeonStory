@@ -7,7 +7,7 @@ public enum CulturalPracticeKind { DailyRoutine, Food, Room, Social, ComingOfAge
 [CreateAssetMenu(fileName = "CulturalPractice", menuName = "DungeonStory/V20/Cultural Practice")]
 public sealed class CulturalPracticeDefinitionSO : V20AuthoredContentSO
 {
-    public string cultureId = string.Empty;
+    [ContentReference(ContentReferenceKind.Culture)] public string cultureId = string.Empty;
     public CulturalPracticeKind kind;
     public V20ContentRequirementSet requirements = new();
     public List<V20ContentEffect> successEffects = new();

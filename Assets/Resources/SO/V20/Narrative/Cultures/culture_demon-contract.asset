@@ -16,14 +16,12 @@ MonoBehaviour:
   displayName: "\uC7AC\uC758 \uACC4\uC57D \uBB38\uD654"
   description: "\uB9D0\uBCF4\uB2E4 \uAE30\uB85D\uB41C \uC57D\uC18D\uC744 \uC911\uC2DC\uD558\uACE0
     \uACB0\uC5F0\uACFC \uC7A5\uB840\uC5D0 \uACC4\uC57D \uC18C\uAC01\uC744 \uC4F4\uB2E4."
-  authoringRevision: 1
-  sourceNote: V20 content-density expansion; hand-authored Korean source revision
-    1.
+  authoringRevision: 2
+  sourceNote: "V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item."
   defaultSpeciesId: Demon
   preferredItemIds:
-  - food:spiced-stew
-  forbiddenItemIds:
-  - item:unsealed-oath
+  - food:root-stew
+  forbiddenItemIds: []
   preferredFacilityIds: []
   environmentalPreferences:
   - warm dry rooms
@@ -40,6 +38,7 @@ MonoBehaviour:
   etiquetteRules:
   - "\uC138 \uBC88 \uD655\uC778\uD55C \uC57D\uC18D\uC740 \uACF5\uAC1C\uC801\uC73C\uB85C
     \uBC88\uBCF5\uD558\uC9C0 \uC54A\uB294\uB2E4."
+  - "\ubd09\uc778\ud558\uc9c0 \uc54a\uc740 \uc11c\uc57d\uc744 \uc644\uacb0\ub41c \uacc4\uc57d\uc73c\ub85c \uc5ec\uae30\uc9c0 \uc54a\ub294\ub2e4."
   ceremonyIds:
   - practice:demon-oath-embers
   - practice:demon-third-bell

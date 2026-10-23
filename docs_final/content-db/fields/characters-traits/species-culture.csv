@@ -3,11 +3,11 @@ SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-fronti
 SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,stableId,culture:adventurer-frontier,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,displayName,개척자 연맹 문화,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,description,서로 다른 고향의 규칙을 원정대식 실용주의로 엮는다.,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,authoringRevision,1,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,authoringRevision,2,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,sourceNote,V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item.,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,defaultSpeciesId,Human,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,preferredItemIds.0,food:preserved-ration,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,forbiddenItemIds.0,food:raw-monster-meat,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,forbiddenItemIds.0,resource:meat,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,preferredFacilityIds,[],,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,environmentalPreferences.0,lit communal rooms,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:adventurer-frontier,culture:adventurer-frontier,roomPreference.preferredRoles,5,FacilityRole,Meal | Rest,explicit-serialized
@@ -46,11 +46,11 @@ SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,m_Name,cu
 SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,stableId,culture:beastkin-pack,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,displayName,무리의 화로 문화,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,description,식사와 휴식을 무리 단위로 공유하고 홀로 남는 이를 먼저 챙긴다.,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,authoringRevision,1,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,authoringRevision,2,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,sourceNote,V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item.,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,defaultSpeciesId,Beastkin,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,preferredItemIds.0,resource:meat,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,forbiddenItemIds.0,medicine:strong-perfume,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,forbiddenItemIds,[],,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,preferredFacilityIds,[],,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,environmentalPreferences.0,warm shared quarters,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,roomPreference.preferredRoles,5,FacilityRole,Meal | Rest,explicit-serialized
@@ -63,6 +63,7 @@ SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,roomPrefe
 SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,roomPreference.prefersSharedSpace,1,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,roomPreference.prefersPrivateSpace,0,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,etiquetteRules.0,상대의 냄새표식을 허락 없이 지우지 않는다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,etiquetteRules.1,강한 향으로 동료의 냄새표식을 덮지 않는다.,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,ceremonyIds.0,practice:beastkin-pack-meal,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,ceremonyIds.1,practice:beastkin-scent-vigil,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:beastkin-pack,culture:beastkin-pack,otherCultureAttitudes.0.id,culture:adventurer-frontier,,,explicit-serialized
@@ -89,11 +90,11 @@ SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,m_Name,
 SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,stableId,culture:demon-contract,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,displayName,재의 계약 문화,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,description,말보다 기록된 약속을 중시하고 결연과 장례에 계약 소각을 쓴다.,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,authoringRevision,1,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,authoringRevision,2,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,sourceNote,V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item.,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,defaultSpeciesId,Demon,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,preferredItemIds.0,food:spiced-stew,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,forbiddenItemIds.0,item:unsealed-oath,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,preferredItemIds.0,food:root-stew,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,forbiddenItemIds,[],,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,preferredFacilityIds,[],,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,environmentalPreferences.0,warm dry rooms,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,roomPreference.preferredRoles,544,FacilityRole,Mana | Administration,explicit-serialized
@@ -106,6 +107,7 @@ SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,roomPre
 SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,roomPreference.prefersSharedSpace,0,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,roomPreference.prefersPrivateSpace,1,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,etiquetteRules.0,세 번 확인한 약속은 공개적으로 번복하지 않는다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,etiquetteRules.1,봉인하지 않은 서약을 완결된 계약으로 여기지 않는다.,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,ceremonyIds.0,practice:demon-oath-embers,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,ceremonyIds.1,practice:demon-third-bell,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:demon-contract,culture:demon-contract,otherCultureAttitudes.0.id,culture:adventurer-frontier,,,explicit-serialized
@@ -132,11 +134,11 @@ SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,m_Name,culture_
 SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,stableId,culture:golem-core,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,displayName,핵 공명 문화,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,description,침묵의 정비와 기억 기록을 휴식으로 여기며 핵의 이력을 존중한다.,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,authoringRevision,1,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,authoringRevision,2,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,sourceNote,V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item.,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,defaultSpeciesId,Golem,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,preferredItemIds.0,tool:maintenance-kit,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,forbiddenItemIds.0,resource:corrosive-slurry,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,forbiddenItemIds,[],,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,preferredFacilityIds,[],,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,environmentalPreferences.0,dry rune-powered alcoves,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,roomPreference.preferredRoles,96,FacilityRole,Mana | Logistics,explicit-serialized
@@ -149,6 +151,7 @@ SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,roomPreference.
 SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,roomPreference.prefersSharedSpace,0,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,roomPreference.prefersPrivateSpace,1,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,etiquetteRules.0,다른 골렘의 핵각인을 허락 없이 읽지 않는다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,etiquetteRules.1,부식성 오염물을 핵과 외장 가까이 두지 않는다.,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,ceremonyIds.0,practice:golem-core-polish,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,ceremonyIds.1,practice:golem-memory-plaque,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:golem-core,culture:golem-core,otherCultureAttitudes.0.id,culture:adventurer-frontier,,,explicit-serialized
@@ -175,11 +178,11 @@ SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,m_Name,cultur
 SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,stableId,culture:harpy-aerie,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,displayName,높은 둥지 문화,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,description,높은 공간과 바람길을 선호하며 소식과 노래를 공동 자산으로 여긴다.,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,authoringRevision,1,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,authoringRevision,2,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,sourceNote,V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item.,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,defaultSpeciesId,Harpy,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,preferredItemIds.0,food:dried-fruit,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,forbiddenItemIds.0,food:heavy-oil-stew,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,preferredItemIds.0,food:grape-syrup,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,forbiddenItemIds,[],,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,preferredFacilityIds,[],,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,environmentalPreferences.0,high airy rooms,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,roomPreference.preferredRoles,4,FacilityRole,Rest,explicit-serialized
@@ -192,6 +195,7 @@ SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,roomPreferenc
 SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,roomPreference.prefersSharedSpace,1,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,roomPreference.prefersPrivateSpace,0,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,etiquetteRules.0,노래 중간에 말을 끊는 것은 공개적인 도전이다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,etiquetteRules.1,비행 전 지나치게 기름진 식사를 피한다.,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,ceremonyIds.0,practice:harpy-dawn-chorus,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,ceremonyIds.1,practice:harpy-first-flight,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:harpy-aerie,culture:harpy-aerie,otherCultureAttitudes.0.id,culture:adventurer-frontier,,,explicit-serialized
@@ -218,11 +222,11 @@ SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,m_Nam
 SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,stableId,culture:kobold-toolclan,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,displayName,도구씨족 문화,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,description,잘 관리된 도구를 가계의 증거로 여기며 작은 성취도 씨족 앞에서 기록한다.,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,authoringRevision,1,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,authoringRevision,2,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,sourceNote,V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item.,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,defaultSpeciesId,Kobold,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,preferredItemIds.0,food:mushroom-stew,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,forbiddenItemIds.0,item:broken-tool,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,preferredItemIds.0,food:mushroom-soup,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,forbiddenItemIds,[],,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,preferredFacilityIds,[],,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,environmentalPreferences.0,compact warm workshops,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,roomPreference.preferredRoles,72,FacilityRole,Training | Logistics,explicit-serialized
@@ -235,6 +239,7 @@ SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,roomP
 SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,roomPreference.prefersSharedSpace,1,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,roomPreference.prefersPrivateSpace,0,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,etiquetteRules.0,도구를 빌릴 때는 돌려줄 상태를 먼저 약속한다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,etiquetteRules.1,망가진 도구는 수리한 뒤 돌려준다.,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,ceremonyIds.0,practice:kobold-tool-naming,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,ceremonyIds.1,practice:kobold-bench-feast,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:kobold-toolclan,culture:kobold-toolclan,otherCultureAttitudes.0.id,culture:adventurer-frontier,,,explicit-serialized
@@ -304,11 +309,11 @@ SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,m_Name,culture_or
 SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,stableId,culture:orc-vigil,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,displayName,무기 철야 문화,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,description,행동으로 신뢰를 증명하며 잔치와 철야에서 공동체의 빚을 기억한다.,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,authoringRevision,1,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,authoringRevision,2,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,sourceNote,V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item.,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,defaultSpeciesId,Orc,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,preferredItemIds.0,food:salted-meat-stew,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,forbiddenItemIds.0,food:tiny-portion,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,forbiddenItemIds,[],,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,preferredFacilityIds,[],,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,environmentalPreferences.0,robust communal halls,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,roomPreference.preferredRoles,9,FacilityRole,Meal | Training,explicit-serialized
@@ -321,6 +326,7 @@ SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,roomPreference.mi
 SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,roomPreference.prefersSharedSpace,1,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,roomPreference.prefersPrivateSpace,0,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,etiquetteRules.0,무기를 내려놓고 한 약속은 결투로 뒤집지 않는다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,etiquetteRules.1,공동 식사에서 동료의 몫을 의도적으로 줄이지 않는다.,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,ceremonyIds.0,practice:orc-weapon-vigil,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,ceremonyIds.1,practice:orc-shared-cauldron,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:orc-vigil,culture:orc-vigil,otherCultureAttitudes.0.id,culture:adventurer-frontier,,,explicit-serialized
@@ -347,11 +353,11 @@ SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,m_N
 SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,stableId,culture:slime-confluence,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,displayName,합류수 문화,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,description,몸의 일부와 기억을 나누는 것을 친밀함으로 여기되 핵의 경계는 엄격히 지킨다.,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,authoringRevision,1,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,authoringRevision,2,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,sourceNote,V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item.,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,defaultSpeciesId,Slime,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,preferredItemIds.0,resource:clean-water,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,forbiddenItemIds.0,resource:salt,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,forbiddenItemIds.0,resource:saltstone,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,preferredFacilityIds,[],,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,environmentalPreferences.0,clean humid pools,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:slime-confluence,culture:slime-confluence,roomPreference.preferredRoles,260,FacilityRole,Rest | Hygiene,explicit-serialized
@@ -390,11 +396,11 @@ SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt
 SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,stableId,culture:vampire-nightcourt,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,displayName,밤궁정 문화,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,description,절제된 환대와 혈액 제공의 동의를 체면보다 중요한 규칙으로 삼는다.,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,authoringRevision,1,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,authoringRevision,2,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,sourceNote,V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item.,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,defaultSpeciesId,Vampire,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,preferredItemIds.0,food:blood-reserve,,,explicit-serialized
-SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,forbiddenItemIds.0,food:garlic-tonic,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,preferredItemIds.0,resource:blood,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,forbiddenItemIds,[],,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,preferredFacilityIds,[],,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,environmentalPreferences.0,dark private chambers,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,roomPreference.preferredRoles,516,FacilityRole,Rest | Administration,explicit-serialized
@@ -407,6 +413,7 @@ SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt
 SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,roomPreference.prefersSharedSpace,0,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,roomPreference.prefersPrivateSpace,1,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,etiquetteRules.0,혈액과 개인 서사는 명시적 허락 없이 거래하지 않는다.,,,explicit-serialized
+SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,etiquetteRules.1,혈액 제공자의 동의 없이 강한 향료를 섞지 않는다.,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,ceremonyIds.0,practice:vampire-consent-cup,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,ceremonyIds.1,practice:vampire-incense-memory,,,explicit-serialized
 SpeciesCultureDefinitionSO|culture:vampire-nightcourt,culture:vampire-nightcourt,otherCultureAttitudes.0.id,culture:adventurer-frontier,,,explicit-serialized

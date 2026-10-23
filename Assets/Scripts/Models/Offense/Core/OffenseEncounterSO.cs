@@ -8,6 +8,7 @@ using UnityEngine.Scripting.APIUpdating;
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class OffenseEnemyArchetypeEntry
 {
+    [ContentReference(ContentReferenceKind.EnemyArchetype)]
     public string enemyArchetypeId;
     [Min(1)] public int minimumCount = 1;
     [Min(1)] public int maximumCount = 1;
@@ -44,6 +45,7 @@ public sealed class OffenseEncounterSO : DataScriptableObject
     public OffenseEncounterObjective objective;
     [Min(0)] public int objectiveRoundLimit;
     public string objectiveTargetId = string.Empty;
+    [ContentReference(ContentReferenceKind.BattlefieldModifier)]
     public List<string> battlefieldModifierIds = new();
     public List<string> counterTags = new();
     public List<string> rewardItemIds = new();

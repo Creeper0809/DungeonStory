@@ -81,11 +81,11 @@ CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-sce
 CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,stableId,practice:beastkin-scent-vigil,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,displayName,향취 철야,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,description,사망자의 익숙한 향을 천에 남겨 무리가 차례로 작별한다.,,,explicit-serialized
-CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,authoringRevision,1,,,explicit-serialized
-CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,authoringRevision,2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,sourceNote,V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item.,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,cultureId,culture:beastkin-pack,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,kind,6,CulturalPracticeKind,Funeral,explicit-serialized
-CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,requirements.items.0.itemDefinitionId,textile:cloth,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,requirements.items.0.itemDefinitionId,material:cloth,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,requirements.items.0.amount,1,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,requirements.items.0.consume,1,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:beastkin-scent-vigil,practice:beastkin-scent-vigil,requirements.facilities,[],,,explicit-serialized
@@ -133,13 +133,11 @@ CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell
 CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,stableId,practice:demon-third-bell,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,displayName,세 번째 종,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,description,교대 종료를 세 번 확인한 뒤에야 작업장을 떠난다.,,,explicit-serialized
-CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,authoringRevision,1,,,explicit-serialized
-CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,authoringRevision,2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,sourceNote,V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item.,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,cultureId,culture:demon-contract,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,kind,7,CulturalPracticeKind,Work Rest,explicit-serialized
-CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,requirements.items.0.itemDefinitionId,item:bell,,,explicit-serialized
-CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,requirements.items.0.amount,1,,,explicit-serialized
-CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,requirements.items.0.consume,1,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,requirements.items,[],,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,requirements.facilities,[],,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,requirements.research,[],,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:demon-third-bell,practice:demon-third-bell,requirements.characters,[],,,explicit-serialized
@@ -211,11 +209,11 @@ CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chor
 CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,stableId,practice:harpy-dawn-chorus,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,displayName,새벽 합창,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,description,밤 교대가 끝나는 시간에 높은 통로에서 하루의 소식을 노래한다.,,,explicit-serialized
-CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,authoringRevision,1,,,explicit-serialized
-CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,authoringRevision,2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,sourceNote,V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item.,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,cultureId,culture:harpy-aerie,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,kind,0,CulturalPracticeKind,Daily Routine,explicit-serialized
-CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,requirements.items.0.itemDefinitionId,food:dried-fruit,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,requirements.items.0.itemDefinitionId,food:grape-syrup,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,requirements.items.0.amount,1,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,requirements.items.0.consume,1,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:harpy-dawn-chorus,practice:harpy-dawn-chorus,requirements.facilities,[],,,explicit-serialized
@@ -263,11 +261,11 @@ CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-f
 CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,stableId,practice:kobold-bench-feast,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,displayName,작업대 잔치,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,description,큰 공사가 끝나면 작업대를 닦고 작은 버섯 요리를 나눈다.,,,explicit-serialized
-CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,authoringRevision,1,,,explicit-serialized
-CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,authoringRevision,2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,sourceNote,V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item.,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,cultureId,culture:kobold-toolclan,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,kind,7,CulturalPracticeKind,Work Rest,explicit-serialized
-CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,requirements.items.0.itemDefinitionId,food:mushroom-stew,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,requirements.items.0.itemDefinitionId,food:mushroom-soup,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,requirements.items.0.amount,1,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,requirements.items.0.consume,1,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:kobold-bench-feast,practice:kobold-bench-feast,requirements.facilities,[],,,explicit-serialized
@@ -341,11 +339,11 @@ CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spor
 CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,stableId,practice:myconid-spore-return,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,displayName,포자 귀환,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,description,사망자의 배양 기록을 정원 토양에 되돌려 공동 기억으로 남긴다.,,,explicit-serialized
-CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,authoringRevision,1,,,explicit-serialized
-CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,authoringRevision,2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,sourceNote,V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item.,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,cultureId,culture:myconid-grove,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,kind,6,CulturalPracticeKind,Funeral,explicit-serialized
-CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,requirements.items.0.itemDefinitionId,resource:compost,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,requirements.items.0.itemDefinitionId,material:compost,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,requirements.items.0.amount,1,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,requirements.items.0.consume,1,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:myconid-spore-return,practice:myconid-spore-return,requirements.facilities,[],,,explicit-serialized
@@ -471,11 +469,11 @@ CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-conse
 CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,stableId,practice:vampire-consent-cup,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,displayName,동의의 잔,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,description,혈액을 나누기 전 제공자와 수령자가 양과 목적을 함께 선언한다.,,,explicit-serialized
-CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,authoringRevision,1,,,explicit-serialized
-CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,authoringRevision,2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,sourceNote,V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item.,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,cultureId,culture:vampire-nightcourt,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,kind,1,CulturalPracticeKind,Food,explicit-serialized
-CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,requirements.items.0.itemDefinitionId,food:blood-reserve,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,requirements.items.0.itemDefinitionId,resource:blood,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,requirements.items.0.amount,1,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,requirements.items.0.consume,1,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:vampire-consent-cup,practice:vampire-consent-cup,requirements.facilities,[],,,explicit-serialized
@@ -497,11 +495,11 @@ CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-in
 CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,stableId,practice:vampire-incense-memory,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,displayName,혈향 촛불,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,description,사망자의 기억을 상징하는 향초를 3일간 개인실 앞에 밝힌다.,,,explicit-serialized
-CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,authoringRevision,1,,,explicit-serialized
-CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,sourceNote,V20 content-density expansion; hand-authored Korean source revision 1.,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,authoringRevision,2,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,sourceNote,V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item.,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,cultureId,culture:vampire-nightcourt,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,kind,6,CulturalPracticeKind,Funeral,explicit-serialized
-CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,requirements.items.0.itemDefinitionId,item:candle,,,explicit-serialized
+CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,requirements.items.0.itemDefinitionId,craft:candle,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,requirements.items.0.amount,1,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,requirements.items.0.consume,1,,,explicit-serialized
 CulturalPracticeDefinitionSO|practice:vampire-incense-memory,practice:vampire-incense-memory,requirements.facilities,[],,,explicit-serialized

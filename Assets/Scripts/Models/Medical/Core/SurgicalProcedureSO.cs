@@ -21,12 +21,16 @@ public sealed class SurgicalProcedureSO : ScriptableObject
     [SerializeField] private MedicalProcedureUrgency urgency =
         MedicalProcedureUrgency.Required;
     [SerializeField] private List<string> allowedAnatomyFamilies = new();
-    [SerializeField] private List<string> allowedSpeciesIds = new();
+    [ContentReference(ContentReferenceKind.Species), SerializeField]
+    private List<string> allowedSpeciesIds = new();
     [SerializeField] private ProcedureOperatorRequirement operatorRequirement = new();
-    [SerializeField] private string targetNodeId = string.Empty;
-    [SerializeField] private string requiredResearchId = string.Empty;
+    [ContentReference(ContentReferenceKind.AnatomyNode), SerializeField]
+    private string targetNodeId = string.Empty;
+    [ContentReference(ContentReferenceKind.Research), SerializeField]
+    private string requiredResearchId = string.Empty;
     [SerializeField] private SurgeryFacilityTag requiredFacilityTags;
-    [SerializeField, Min(0)] private int primaryFacilityDefinitionId;
+    [ContentReference(ContentReferenceKind.BuildingNumeric, emptyNumericId: 0), SerializeField]
+    private int primaryFacilityDefinitionId;
     [SerializeField, Min(1f)] private float requiredWork = 20f;
     [SerializeField, Range(0f, 0.9f)] private float difficultyPenalty = 0.15f;
     [SerializeField, Range(0f, 1f)] private float baseInfectionRisk = 0.1f;

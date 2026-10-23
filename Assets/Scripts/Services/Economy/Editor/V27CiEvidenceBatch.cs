@@ -162,22 +162,43 @@ public static class V27CiEvidenceBatch
         using SHA256 sha = SHA256.Create();
         using SHA256 fileSha = SHA256.Create();
         var utf8 = new UTF8Encoding(false, true);
+        var scanBuffer = new byte[64 * 1024];
         foreach (var input in inputs)
         {
-            byte[] content = File.ReadAllBytes(input.Value);
-            // Match portable CI for extensionless/case-varied UTF-8 text too.
-            // Opaque .bytes, NUL-containing and non-UTF8 inputs retain exact bytes.
-            if (Path.GetExtension(input.Value) != ".bytes" && Array.IndexOf(content, (byte)0) < 0)
+            // Binary model/asset inputs can be gigabytes. Preserve their exact
+            // digest without allocating the entire file in the Editor heap.
+            bool opaque = Path.GetExtension(input.Value) == ".bytes";
+            using var stream = File.OpenRead(input.Value);
+            if (!opaque)
             {
+                int read;
+                while ((read = stream.Read(scanBuffer, 0, scanBuffer.Length)) != 0)
+                {
+                    if (Array.IndexOf(scanBuffer, (byte)0, 0, read) < 0) continue;
+                    opaque = true;
+                    break;
+                }
+            }
+            byte[] hash;
+            if (opaque)
+            {
+                stream.Position = 0;
+                hash = fileSha.ComputeHash(stream);
+            }
+            else
+            {
+                byte[] content = File.ReadAllBytes(input.Value);
+                // Same portable UTF-8/BOM/newline contract as the CI verifier.
                 try
                 {
                     string text = utf8.GetString(content);
                     if (text.Length != 0 && text[0] == '\ufeff') text = text.Substring(1);
                     content = utf8.GetBytes(text.Replace("\r\n", "\n").Replace('\r', '\n'));
                 }
-                catch (DecoderFallbackException) { /* Hash binary bytes without replacement decoding. */ }
+                catch (DecoderFallbackException) { /* Keep exact non-UTF8 bytes. */ }
+                hash = fileSha.ComputeHash(content);
             }
-            string digest = BitConverter.ToString(fileSha.ComputeHash(content)).Replace("-", "").ToLowerInvariant();
+            string digest = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
             byte[] bytes = utf8.GetBytes(input.Key + "\n" + digest + "\n");
             sha.TransformBlock(bytes, 0, bytes.Length, null, 0);
         }
@@ -363,6 +384,7 @@ public static class V27CiEvidenceBatch
         try
         {
             Debug.Log(ScriptableObjectModularityDebugScenarios.RunCatalogExtensionsForBatch());
+            V20ContentResolutionRecoveryDebugScenarios.RunAuthoredReferenceBoundaries();
             V20ContentResolutionRecoveryDebugScenarios.RunObserverBatch();
             V20ContentResolutionRecoveryDebugScenarios.RunRegisteredHandlerContracts();
             if (!CharacterProgressionDebugScenarios.RunAcquiredTraitEffectProjectionScenario()

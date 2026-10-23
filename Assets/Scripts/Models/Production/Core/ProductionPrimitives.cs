@@ -163,7 +163,8 @@ public static class ProductionDistributionPlanner
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class ItemAmountDefinition
 {
-    [SerializeField] private string itemId = string.Empty;
+    [ContentReference(ContentReferenceKind.Item), SerializeField]
+    private string itemId = string.Empty;
     [Min(1), SerializeField] private int amount = 1;
 
     public string ItemId => itemId?.Trim() ?? string.Empty;
@@ -212,7 +213,8 @@ public sealed class ProductionOutputDefinition
 {
     [SerializeField] private string outputLineId = string.Empty;
     [SerializeField] private ProductionOutputRole role;
-    [SerializeField] private string itemId = string.Empty;
+    [ContentReference(ContentReferenceKind.Item), SerializeField]
+    private string itemId = string.Empty;
     [Min(1), SerializeField] private int amount = 1;
     [Range(0f, 1f), SerializeField] private float probability = 1f;
 

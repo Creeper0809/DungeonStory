@@ -16,16 +16,12 @@ MonoBehaviour:
   displayName: "\uC138 \uBC88\uC9F8 \uC885"
   description: "\uAD50\uB300 \uC885\uB8CC\uB97C \uC138 \uBC88 \uD655\uC778\uD55C
     \uB4A4\uC5D0\uC57C \uC791\uC5C5\uC7A5\uC744 \uB5A0\uB09C\uB2E4."
-  authoringRevision: 1
-  sourceNote: V20 content-density expansion; hand-authored Korean source revision
-    1.
+  authoringRevision: 2
+  sourceNote: "V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item."
   cultureId: culture:demon-contract
   kind: 7
   requirements:
-    items:
-    - itemDefinitionId: item:bell
-      amount: 1
-      consume: 1
+    items: []
     facilities: []
     research: []
     characters: []

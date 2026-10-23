@@ -16,14 +16,13 @@ MonoBehaviour:
   displayName: "\uC791\uC5C5\uB300 \uC794\uCE58"
   description: "\uD070 \uACF5\uC0AC\uAC00 \uB05D\uB098\uBA74 \uC791\uC5C5\uB300\uB97C
     \uB2E6\uACE0 \uC791\uC740 \uBC84\uC12F \uC694\uB9AC\uB97C \uB098\uB208\uB2E4."
-  authoringRevision: 1
-  sourceNote: V20 content-density expansion; hand-authored Korean source revision
-    1.
+  authoringRevision: 2
+  sourceNote: "V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item."
   cultureId: culture:kobold-toolclan
   kind: 7
   requirements:
     items:
-    - itemDefinitionId: food:mushroom-stew
+    - itemDefinitionId: food:mushroom-soup
       amount: 1
       consume: 1
     facilities: []

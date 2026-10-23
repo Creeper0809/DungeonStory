@@ -16,14 +16,13 @@ MonoBehaviour:
   displayName: "\uD5A5\uCDE8 \uCCA0\uC57C"
   description: "\uC0AC\uB9DD\uC790\uC758 \uC775\uC219\uD55C \uD5A5\uC744 \uCC9C\uC5D0
     \uB0A8\uACA8 \uBB34\uB9AC\uAC00 \uCC28\uB840\uB85C \uC791\uBCC4\uD55C\uB2E4."
-  authoringRevision: 1
-  sourceNote: V20 content-density expansion; hand-authored Korean source revision
-    1.
+  authoringRevision: 2
+  sourceNote: "V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item."
   cultureId: culture:beastkin-pack
   kind: 6
   requirements:
     items:
-    - itemDefinitionId: textile:cloth
+    - itemDefinitionId: material:cloth
       amount: 1
       consume: 1
     facilities: []

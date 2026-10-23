@@ -74,7 +74,7 @@ public static class V20NarrativeContentAssetBuilder
     private static readonly AmbitionSpec[] Ambitions =
     {
         A("ambition:master-smith", "대장장이의 대가", "자신의 이름으로 남을 장비 계보를 완성하려 한다.", CharacterAmbitionCategory.Mastery, 300, "life-event:masterpiece-commission", V20ContentEffectKind.SkillExperience, "proficiency:crafting"),
-        A("ambition:master-healer", "죽음을 늦추는 손", "치료 불가능하다고 여긴 환자를 회복시키려 한다.", CharacterAmbitionCategory.Mastery, 260, "life-event:impossible-patient", V20ContentEffectKind.SkillExperience, "proficiency:medicine"),
+        A("ambition:master-healer", "죽음을 늦추는 손", "치료 불가능하다고 여긴 환자를 회복시키려 한다.", CharacterAmbitionCategory.Mastery, 260, "", V20ContentEffectKind.SkillExperience, "proficiency:medicine"),
         A("ambition:field-scholar", "현장 학자의 증명", "원정에서 발견한 사실로 기존 학설을 뒤집으려 한다.", CharacterAmbitionCategory.Mastery, 280, "life-event:disputed-thesis", V20ContentEffectKind.SkillExperience, "proficiency:scholarship"),
         A("ambition:raise-family", "안전한 가족", "가족이 굶거나 피난하지 않아도 되는 집을 만들려 한다.", CharacterAmbitionCategory.Family, 220, "life-event:family-room", V20ContentEffectKind.Relationship, "household"),
         A("ambition:restore-lineage", "끊긴 계보 복원", "잃어버린 가문의 기록과 유산을 다음 세대에 잇고자 한다.", CharacterAmbitionCategory.Family, 260, "life-event:lineage-relic", V20ContentEffectKind.WorldFlag, "flag:lineage-restored"),
@@ -83,14 +83,14 @@ public static class V20NarrativeContentAssetBuilder
         A("ambition:guard-captain", "경비대의 신뢰", "모두를 귀환시키는 지휘관으로 인정받으려 한다.", CharacterAmbitionCategory.Status, 280, "life-event:captains-test", V20ContentEffectKind.Relationship, "guards"),
         A("ambition:cultural-voice", "문화의 대변자", "자신의 관습이 조롱받지 않고 공동체의 규칙에 반영되길 바란다.", CharacterAmbitionCategory.Status, 230, "life-event:cultural-petition", V20ContentEffectKind.Mood, "cultural-pride"),
         A("ambition:build-clinic", "모두를 위한 진료소", "신분과 종족에 관계없이 치료받는 시설을 세우려 한다.", CharacterAmbitionCategory.Community, 280, "life-event:clinic-shortage", V20ContentEffectKind.WorldFlag, "flag:public-clinic"),
-        A("ambition:end-hunger", "빈 식탁 없는 겨울", "한겨울에도 모든 가구가 충분히 먹는 생산망을 만들려 한다.", CharacterAmbitionCategory.Community, 260, "life-event:winter-pantry", V20ContentEffectKind.WorldFlag, "flag:winter-fed"),
+        A("ambition:end-hunger", "빈 식탁 없는 겨울", "한겨울에도 모든 가구가 충분히 먹는 생산망을 만들려 한다.", CharacterAmbitionCategory.Community, 260, "", V20ContentEffectKind.WorldFlag, "flag:winter-fed"),
         A("ambition:mentor-generation", "다음 세대의 스승", "세 명의 도제를 숙련자로 성장시키고 자신의 실패까지 전하려 한다.", CharacterAmbitionCategory.Community, 300, "life-event:apprentice-mistake", V20ContentEffectKind.SkillExperience, "proficiency:social"),
-        A("ambition:faction-peacemaker", "두 깃발의 중재자", "적대 세력 사이에 지속 가능한 계약을 성립시키려 한다.", CharacterAmbitionCategory.Faction, 320, "life-event:envoy-appeal", V20ContentEffectKind.FactionRapport, "faction:negotiated"),
-        A("ambition:faction-champion", "동맹의 방패", "선택한 세력의 위기를 막아 신뢰받는 투사가 되려 한다.", CharacterAmbitionCategory.Faction, 300, "life-event:allied-distress", V20ContentEffectKind.FactionObligation, "faction:protected"),
-        A("ambition:break-debt", "물려받은 빚 청산", "가구를 옭아맨 오래된 세력 의무를 끝내려 한다.", CharacterAmbitionCategory.Faction, 260, "life-event:inherited-debt", V20ContentEffectKind.FactionGrievance, "faction:creditor"),
+        A("ambition:faction-peacemaker", "두 깃발의 중재자", "적대 세력 사이에 지속 가능한 계약을 성립시키려 한다.", CharacterAmbitionCategory.Faction, 320, "", V20ContentEffectKind.FactionRapport, "affected-faction"),
+        A("ambition:faction-champion", "동맹의 방패", "선택한 세력의 위기를 막아 신뢰받는 투사가 되려 한다.", CharacterAmbitionCategory.Faction, 300, "", V20ContentEffectKind.FactionObligation, "affected-faction"),
+        A("ambition:break-debt", "물려받은 빚 청산", "가구를 옭아맨 오래된 세력 의무를 끝내려 한다.", CharacterAmbitionCategory.Faction, 260, "life-event:inherited-debt", V20ContentEffectKind.FactionGrievance, "affected-faction"),
         A("ambition:avenge-fallen", "쓰러진 이의 이름", "가까운 이를 죽인 지휘관을 찾아 생포하거나 쓰러뜨리려 한다.", CharacterAmbitionCategory.VengeanceOrDiscovery, 300, "life-event:killer-sighted", V20ContentEffectKind.Trauma, "vengeance"),
-        A("ambition:find-origin", "기원의 흔적", "자신의 출생과 관련된 기록·실험·유적의 진실을 찾으려 한다.", CharacterAmbitionCategory.VengeanceOrDiscovery, 300, "life-event:origin-clue", V20ContentEffectKind.WorldFlag, "flag:origin-known"),
-        A("ambition:map-depths", "심층의 끝", "아직 누구도 돌아오지 못한 심층 경로를 기록하려 한다.", CharacterAmbitionCategory.VengeanceOrDiscovery, 340, "life-event:uncharted-passage", V20ContentEffectKind.WorldFlag, "flag:depths-mapped")
+        A("ambition:find-origin", "기원의 흔적", "자신의 출생과 관련된 기록·실험·유적의 진실을 찾으려 한다.", CharacterAmbitionCategory.VengeanceOrDiscovery, 300, "", V20ContentEffectKind.WorldFlag, "flag:origin-known"),
+        A("ambition:map-depths", "심층의 끝", "아직 누구도 돌아오지 못한 심층 경로를 기록하려 한다.", CharacterAmbitionCategory.VengeanceOrDiscovery, 340, "", V20ContentEffectKind.WorldFlag, "flag:depths-mapped")
     };
 
     private static readonly EventSpec[] Events =
@@ -168,16 +168,16 @@ public static class V20NarrativeContentAssetBuilder
 
     private static readonly CultureSpec[] Cultures =
     {
-        C("culture:adventurer-frontier", "Human", "개척자 연맹 문화", "서로 다른 고향의 규칙을 원정대식 실용주의로 엮는다.", "food:preserved-ration", "food:raw-monster-meat", "lit communal rooms", "전리품은 귀환자 전원이 확인한 뒤 나눈다."),
-        C("culture:beastkin-pack", "Beastkin", "무리의 화로 문화", "식사와 휴식을 무리 단위로 공유하고 홀로 남는 이를 먼저 챙긴다.", "resource:meat", "medicine:strong-perfume", "warm shared quarters", "상대의 냄새표식을 허락 없이 지우지 않는다."),
-        C("culture:demon-contract", "Demon", "재의 계약 문화", "말보다 기록된 약속을 중시하고 결연과 장례에 계약 소각을 쓴다.", "food:spiced-stew", "item:unsealed-oath", "warm dry rooms", "세 번 확인한 약속은 공개적으로 번복하지 않는다."),
-        C("culture:golem-core", "Golem", "핵 공명 문화", "침묵의 정비와 기억 기록을 휴식으로 여기며 핵의 이력을 존중한다.", "tool:maintenance-kit", "resource:corrosive-slurry", "dry rune-powered alcoves", "다른 골렘의 핵각인을 허락 없이 읽지 않는다."),
-        C("culture:harpy-aerie", "Harpy", "높은 둥지 문화", "높은 공간과 바람길을 선호하며 소식과 노래를 공동 자산으로 여긴다.", "food:dried-fruit", "food:heavy-oil-stew", "high airy rooms", "노래 중간에 말을 끊는 것은 공개적인 도전이다."),
-        C("culture:kobold-toolclan", "Kobold", "도구씨족 문화", "잘 관리된 도구를 가계의 증거로 여기며 작은 성취도 씨족 앞에서 기록한다.", "food:mushroom-stew", "item:broken-tool", "compact warm workshops", "도구를 빌릴 때는 돌려줄 상태를 먼저 약속한다."),
+        C("culture:adventurer-frontier", "Human", "개척자 연맹 문화", "서로 다른 고향의 규칙을 원정대식 실용주의로 엮는다.", "food:preserved-ration", "resource:meat", "lit communal rooms", "전리품은 귀환자 전원이 확인한 뒤 나눈다."),
+        C("culture:beastkin-pack", "Beastkin", "무리의 화로 문화", "식사와 휴식을 무리 단위로 공유하고 홀로 남는 이를 먼저 챙긴다.", "resource:meat", "", "warm shared quarters", "상대의 냄새표식을 허락 없이 지우지 않는다. 강한 향으로 동료의 냄새표식을 덮지 않는다."),
+        C("culture:demon-contract", "Demon", "재의 계약 문화", "말보다 기록된 약속을 중시하고 결연과 장례에 계약 소각을 쓴다.", "food:root-stew", "", "warm dry rooms", "세 번 확인한 약속은 공개적으로 번복하지 않는다. 봉인하지 않은 서약을 완결된 계약으로 여기지 않는다."),
+        C("culture:golem-core", "Golem", "핵 공명 문화", "침묵의 정비와 기억 기록을 휴식으로 여기며 핵의 이력을 존중한다.", "tool:maintenance-kit", "", "dry rune-powered alcoves", "다른 골렘의 핵각인을 허락 없이 읽지 않는다. 부식성 오염물을 핵과 외장 가까이 두지 않는다."),
+        C("culture:harpy-aerie", "Harpy", "높은 둥지 문화", "높은 공간과 바람길을 선호하며 소식과 노래를 공동 자산으로 여긴다.", "food:grape-syrup", "", "high airy rooms", "노래 중간에 말을 끊는 것은 공개적인 도전이다. 비행 전 지나치게 기름진 식사를 피한다."),
+        C("culture:kobold-toolclan", "Kobold", "도구씨족 문화", "잘 관리된 도구를 가계의 증거로 여기며 작은 성취도 씨족 앞에서 기록한다.", "food:mushroom-soup", "", "compact warm workshops", "도구를 빌릴 때는 돌려줄 상태를 먼저 약속한다. 망가진 도구는 수리한 뒤 돌려준다."),
         C("culture:myconid-grove", "Myconid", "포자정원 문화", "대화와 기억을 향과 포자 리듬으로 나누며 습한 공동 정원을 지킨다.", "resource:cave-mushroom", "supply:fungicide", "humid dim gardens", "타인의 포자권에 불꽃을 들이지 않는다."),
-        C("culture:orc-vigil", "Orc", "무기 철야 문화", "행동으로 신뢰를 증명하며 잔치와 철야에서 공동체의 빚을 기억한다.", "food:salted-meat-stew", "food:tiny-portion", "robust communal halls", "무기를 내려놓고 한 약속은 결투로 뒤집지 않는다."),
-        C("culture:slime-confluence", "Slime", "합류수 문화", "몸의 일부와 기억을 나누는 것을 친밀함으로 여기되 핵의 경계는 엄격히 지킨다.", "resource:clean-water", "resource:salt", "clean humid pools", "상대 핵에 닿기 전 반드시 색 변화로 동의를 구한다."),
-        C("culture:vampire-nightcourt", "Vampire", "밤궁정 문화", "절제된 환대와 혈액 제공의 동의를 체면보다 중요한 규칙으로 삼는다.", "food:blood-reserve", "food:garlic-tonic", "dark private chambers", "혈액과 개인 서사는 명시적 허락 없이 거래하지 않는다.")
+        C("culture:orc-vigil", "Orc", "무기 철야 문화", "행동으로 신뢰를 증명하며 잔치와 철야에서 공동체의 빚을 기억한다.", "food:salted-meat-stew", "", "robust communal halls", "무기를 내려놓고 한 약속은 결투로 뒤집지 않는다. 공동 식사에서 동료의 몫을 의도적으로 줄이지 않는다."),
+        C("culture:slime-confluence", "Slime", "합류수 문화", "몸의 일부와 기억을 나누는 것을 친밀함으로 여기되 핵의 경계는 엄격히 지킨다.", "resource:clean-water", "resource:saltstone", "clean humid pools", "상대 핵에 닿기 전 반드시 색 변화로 동의를 구한다."),
+        C("culture:vampire-nightcourt", "Vampire", "밤궁정 문화", "절제된 환대와 혈액 제공의 동의를 체면보다 중요한 규칙으로 삼는다.", "resource:blood", "", "dark private chambers", "혈액과 개인 서사는 명시적 허락 없이 거래하지 않는다. 혈액 제공자의 동의 없이 강한 향료를 섞지 않는다.")
     };
 
     private static readonly PracticeSpec[] Practices =
@@ -185,23 +185,23 @@ public static class V20NarrativeContentAssetBuilder
         P("practice:adventurer-return-table", "culture:adventurer-frontier", "귀환자의 식탁", "원정 귀환자가 같은 배급식을 나누며 미귀환자를 보고한다.", CulturalPracticeKind.DailyRoutine, "food:preserved-ration", V20ContentEffectKind.Relationship),
         P("practice:adventurer-name-token", "culture:adventurer-frontier", "이름패 걸기", "성년자는 첫 독립 임무 뒤 공동 지도에 이름패를 건다.", CulturalPracticeKind.ComingOfAge, "material:paper", V20ContentEffectKind.Mood),
         P("practice:beastkin-pack-meal", "culture:beastkin-pack", "무리 한솥", "가구와 가까운 동료가 큰 고기솥을 함께 비운다.", CulturalPracticeKind.Food, "resource:meat", V20ContentEffectKind.Relationship),
-        P("practice:beastkin-scent-vigil", "culture:beastkin-pack", "향취 철야", "사망자의 익숙한 향을 천에 남겨 무리가 차례로 작별한다.", CulturalPracticeKind.Funeral, "textile:cloth", V20ContentEffectKind.Trauma),
+        P("practice:beastkin-scent-vigil", "culture:beastkin-pack", "향취 철야", "사망자의 익숙한 향을 천에 남겨 무리가 차례로 작별한다.", CulturalPracticeKind.Funeral, "material:cloth", V20ContentEffectKind.Trauma),
         P("practice:demon-oath-embers", "culture:demon-contract", "맹세의 잿불", "중요한 약속을 종이에 쓰고 한쪽 사본만 태운다.", CulturalPracticeKind.Partnership, "material:paper", V20ContentEffectKind.WorldFlag),
-        P("practice:demon-third-bell", "culture:demon-contract", "세 번째 종", "교대 종료를 세 번 확인한 뒤에야 작업장을 떠난다.", CulturalPracticeKind.WorkRest, "item:bell", V20ContentEffectKind.Mood),
+        P("practice:demon-third-bell", "culture:demon-contract", "세 번째 종", "교대 종료를 세 번 확인한 뒤에야 작업장을 떠난다.", CulturalPracticeKind.WorkRest, "", V20ContentEffectKind.Mood),
         P("practice:golem-core-polish", "culture:golem-core", "핵 광택일", "정기 정비 때 서로의 외장만 손질하고 핵은 본인이 점검한다.", CulturalPracticeKind.DailyRoutine, "tool:maintenance-kit", V20ContentEffectKind.Health),
         P("practice:golem-memory-plaque", "culture:golem-core", "기억판 안치", "정지된 골렘의 핵 기록을 금속판에 요약해 보관한다.", CulturalPracticeKind.Funeral, "material:iron-ingot", V20ContentEffectKind.Trauma),
-        P("practice:harpy-dawn-chorus", "culture:harpy-aerie", "새벽 합창", "밤 교대가 끝나는 시간에 높은 통로에서 하루의 소식을 노래한다.", CulturalPracticeKind.DailyRoutine, "food:dried-fruit", V20ContentEffectKind.Mood),
+        P("practice:harpy-dawn-chorus", "culture:harpy-aerie", "새벽 합창", "밤 교대가 끝나는 시간에 높은 통로에서 하루의 소식을 노래한다.", CulturalPracticeKind.DailyRoutine, "food:grape-syrup", V20ContentEffectKind.Mood),
         P("practice:harpy-first-flight", "culture:harpy-aerie", "첫 비행의 깃", "성년식에서 안전줄을 매고 가장 높은 내부 비행로를 완주한다.", CulturalPracticeKind.ComingOfAge, "material:rope", V20ContentEffectKind.SkillExperience),
         P("practice:kobold-tool-naming", "culture:kobold-toolclan", "첫 도구 이름짓기", "도제는 직접 수리한 첫 도구에 이름과 날짜를 새긴다.", CulturalPracticeKind.ComingOfAge, "material:iron-ingot", V20ContentEffectKind.SkillExperience),
-        P("practice:kobold-bench-feast", "culture:kobold-toolclan", "작업대 잔치", "큰 공사가 끝나면 작업대를 닦고 작은 버섯 요리를 나눈다.", CulturalPracticeKind.WorkRest, "food:mushroom-stew", V20ContentEffectKind.Mood),
+        P("practice:kobold-bench-feast", "culture:kobold-toolclan", "작업대 잔치", "큰 공사가 끝나면 작업대를 닦고 작은 버섯 요리를 나눈다.", CulturalPracticeKind.WorkRest, "food:mushroom-soup", V20ContentEffectKind.Mood),
         P("practice:myconid-shared-mist", "culture:myconid-grove", "공유 안개", "휴식 시간에 깨끗한 물을 분무해 포자 리듬을 맞춘다.", CulturalPracticeKind.DailyRoutine, "resource:clean-water", V20ContentEffectKind.Relationship),
-        P("practice:myconid-spore-return", "culture:myconid-grove", "포자 귀환", "사망자의 배양 기록을 정원 토양에 되돌려 공동 기억으로 남긴다.", CulturalPracticeKind.Funeral, "resource:compost", V20ContentEffectKind.Trauma),
+        P("practice:myconid-spore-return", "culture:myconid-grove", "포자 귀환", "사망자의 배양 기록을 정원 토양에 되돌려 공동 기억으로 남긴다.", CulturalPracticeKind.Funeral, "material:compost", V20ContentEffectKind.Trauma),
         P("practice:orc-weapon-vigil", "culture:orc-vigil", "무기 철야", "동료의 무기를 밤새 손질하며 그의 용기와 실수를 함께 말한다.", CulturalPracticeKind.Funeral, "material:charcoal", V20ContentEffectKind.Trauma),
         P("practice:orc-shared-cauldron", "culture:orc-vigil", "큰솥의 몫", "가장 약한 구성원이 먼저 고기 스튜를 받은 뒤 나머지가 먹는다.", CulturalPracticeKind.Food, "food:salted-meat-stew", V20ContentEffectKind.Relationship),
         P("practice:slime-clear-water", "culture:slime-confluence", "맑은물 합류", "서로 다른 가구의 슬라임이 깨끗한 수조 가장자리에서 기억을 나눈다.", CulturalPracticeKind.Social, "resource:clean-water", V20ContentEffectKind.Relationship),
         P("practice:slime-core-ring", "culture:slime-confluence", "핵고리 성년식", "성년이 된 슬라임의 핵 둘레에 손상 없는 보호 고리를 맞춘다.", CulturalPracticeKind.ComingOfAge, "component:mana-shield-plate", V20ContentEffectKind.Health),
-        P("practice:vampire-consent-cup", "culture:vampire-nightcourt", "동의의 잔", "혈액을 나누기 전 제공자와 수령자가 양과 목적을 함께 선언한다.", CulturalPracticeKind.Food, "food:blood-reserve", V20ContentEffectKind.Relationship),
-        P("practice:vampire-incense-memory", "culture:vampire-nightcourt", "혈향 촛불", "사망자의 기억을 상징하는 향초를 3일간 개인실 앞에 밝힌다.", CulturalPracticeKind.Funeral, "item:candle", V20ContentEffectKind.Trauma)
+        P("practice:vampire-consent-cup", "culture:vampire-nightcourt", "동의의 잔", "혈액을 나누기 전 제공자와 수령자가 양과 목적을 함께 선언한다.", CulturalPracticeKind.Food, "resource:blood", V20ContentEffectKind.Relationship),
+        P("practice:vampire-incense-memory", "culture:vampire-nightcourt", "혈향 촛불", "사망자의 기억을 상징하는 향초를 3일간 개인실 앞에 밝힌다.", CulturalPracticeKind.Funeral, "craft:candle", V20ContentEffectKind.Trauma)
     };
 
     [MenuItem("DungeonStory/V20/Build Narrative Content (92)")]
@@ -336,7 +336,9 @@ public static class V20NarrativeContentAssetBuilder
         };
         value.failureConditions = new V20ContentRequirementSet();
         value.completionRewards = new List<V20ContentEffect> { Effect(spec.RewardKind, spec.RewardTarget, spec.RewardKind == V20ContentEffectKind.SkillExperience ? 100 : 1) };
-        value.relatedEventWeights = new List<V20WeightedId> { new() { id = spec.EventId, weight = 2f } };
+        value.relatedEventWeights = string.IsNullOrEmpty(spec.EventId)
+            ? new List<V20WeightedId>()
+            : new List<V20WeightedId> { new() { id = spec.EventId, weight = 2f } };
         value.cooperationAmbitionIds = new List<string>(); value.conflictAmbitionIds = new List<string>();
         Dirty(value); return value;
     }
@@ -407,7 +409,8 @@ public static class V20NarrativeContentAssetBuilder
         Meta(value, spec.Id, spec.Name, spec.Description);
         value.defaultSpeciesId = spec.Species;
         value.preferredItemIds = new List<string> { spec.PreferredItem };
-        value.forbiddenItemIds = new List<string> { spec.ForbiddenItem };
+        value.forbiddenItemIds = string.IsNullOrEmpty(spec.ForbiddenItem)
+            ? new List<string>() : new List<string> { spec.ForbiddenItem };
         value.preferredFacilityIds = new List<string>();
         value.environmentalPreferences = new List<string> { spec.Environment };
         value.roomPreference = CultureRoomPreference(spec.Id);
@@ -464,7 +467,8 @@ public static class V20NarrativeContentAssetBuilder
         value.cultureId = spec.CultureId; value.kind = spec.Kind;
         value.requirements = new V20ContentRequirementSet
         {
-            items = new List<V20ItemAmountRequirement> { new() { itemDefinitionId = spec.RequiredItem, amount = 1, consume = true } }
+            items = string.IsNullOrEmpty(spec.RequiredItem) ? new List<V20ItemAmountRequirement>()
+                : new List<V20ItemAmountRequirement> { new() { itemDefinitionId = spec.RequiredItem, amount = 1, consume = true } }
         };
         value.successEffects = new List<V20ContentEffect> { Effect(spec.Effect, spec.Id, spec.Effect == V20ContentEffectKind.Trauma ? -4 : 3, 5) };
         value.neglectedEffects = new List<V20ContentEffect> { Effect(V20ContentEffectKind.Mood, spec.Id, -2, 3) };
@@ -504,7 +508,13 @@ public static class V20NarrativeContentAssetBuilder
     }
 
     private static string Safe(string value) => string.Concat(value.Select(character => Path.GetInvalidFileNameChars().Contains(character) || character == ':' ? '_' : character));
-    private static void Meta(V20AuthoredContentSO value, string id, string name, string description) => value.ConfigureMetadata(id, name, description, 1, RevisionNote);
+    private static void Meta(V20AuthoredContentSO value, string id, string name, string description)
+    {
+        bool referenceRevision = value is SpeciesCultureDefinitionSO or CulturalPracticeDefinitionSO
+            || value is CharacterAmbitionDefinitionSO && Ambitions.Any(spec => spec.Id == id && (spec.RewardTarget == "affected-faction" || string.IsNullOrEmpty(spec.EventId)));
+        value.ConfigureMetadata(id, name, description, referenceRevision ? 2 : 1,
+            referenceRevision ? "V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item." : RevisionNote);
+    }
     private static RiskProfile Risk(ExperienceEventRiskTier tier,string reason)=>new(){Tier=tier,Reason=reason};
     private static RiskProfile RiskFor(string id)=>ExperienceRisks.TryGetValue(id,out RiskProfile risk)
         ?risk:throw new InvalidOperationException($"WIM-039 risk profile is missing '{id}'.");

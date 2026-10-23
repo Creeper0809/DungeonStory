@@ -2,6 +2,7 @@
 LifeEventDefinitionSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterNarrativeAggregate.cs
 LifeEventDefinitionSO,content-type,,type-reference,services:character,content-loading,structural-type-consumer,Assets/Scripts/Services/Character/CharacterNarrativeCatalog.cs
 LifeEventDefinitionSO,content-type,,type-reference; save-restore-reference,services:character,runtime,structural-type-consumer,Assets/Scripts/Services/Character/CharacterNarrativeContracts.cs
+LifeEventDefinitionSO,content-type,,type-reference,services:items,content-loading,structural-type-consumer,Assets/Scripts/Services/Items/GameContentCatalog.cs
 LifeEventDefinitionSO,content-type,,type-reference,services:narrative,runtime,structural-type-consumer,Assets/Scripts/Services/Narrative/GameplayOutcomeBridges/SocialLife/CampaignPresentationObserver.cs
 LifeEventDefinitionSO,content-type,,type-reference,services:run,persistence,structural-type-consumer,Assets/Scripts/Services/Run/V20CampaignSaveCodec.cs
 LifeEventDefinitionSO,content-type,,type-reference,services:run,runtime,structural-type-consumer,Assets/Scripts/Services/Run/V20ContentDefinitionRules.cs

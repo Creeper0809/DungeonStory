@@ -46,7 +46,7 @@ public abstract class V20AuthoredContentSO : ScriptableObject
 [Serializable]
 public sealed class V20ItemAmountRequirement
 {
-    public string itemDefinitionId = string.Empty;
+    [ContentReference(ContentReferenceKind.Item)] public string itemDefinitionId = string.Empty;
     [Min(1)] public int amount = 1;
     public bool consume;
 }
@@ -54,7 +54,7 @@ public sealed class V20ItemAmountRequirement
 [Serializable]
 public sealed class V20FacilityRequirement
 {
-    public string buildingDefinitionId = string.Empty;
+    [ContentReference(ContentReferenceKind.Building)] public string buildingDefinitionId = string.Empty;
     public string capabilityId = string.Empty;
     [Min(1)] public int minimumCount = 1;
     public bool mustBeOperational = true;
@@ -63,7 +63,7 @@ public sealed class V20FacilityRequirement
 [Serializable]
 public sealed class V20ResearchRequirement
 {
-    [Min(1)] public int researchNumericId;
+    [ContentReference(ContentReferenceKind.ResearchNumeric)] public int researchNumericId;
 }
 
 [Serializable]
@@ -79,7 +79,7 @@ public sealed class V20CharacterRequirement
 [Serializable]
 public sealed class V20FactionRequirement
 {
-    public string factionId = string.Empty;
+    [ContentReference(ContentReferenceKind.Faction)] public string factionId = string.Empty;
     [Range(-100, 100)] public int minimumRapport = -100;
     [Range(0, 100)] public int maximumGrievance = 100;
     [Range(0, 5)] public int minimumObligationTokens;
@@ -181,7 +181,7 @@ public enum V20ContentEffectKind
 public sealed class V20ContentEffect
 {
     public V20ContentEffectKind kind;
-    public string targetId = string.Empty;
+    [ContentReference(ContentReferenceKind.EffectTarget)] public string targetId = string.Empty;
     public float amount;
     [Min(0)] public int durationDays;
 
@@ -216,14 +216,14 @@ public sealed class V20ChoiceDefinition
 [Serializable]
 public sealed class V20WeightedId
 {
-    public string id = string.Empty;
+    [ContentReference(ContentReferenceKind.WeightedTarget)] public string id = string.Empty;
     [Range(0.1f, 10f)] public float weight = 1f;
 }
 
 [Serializable]
 public sealed class V20SkillBonus
 {
-    public string skillId = string.Empty;
+    [ContentReference(ContentReferenceKind.Proficiency)] public string skillId = string.Empty;
     public int experience;
 }
 

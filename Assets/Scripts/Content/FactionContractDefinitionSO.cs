@@ -29,7 +29,7 @@ public static class AuthoredFactionContractBalanceRules
 [CreateAssetMenu(fileName = "FactionContract", menuName = "DungeonStory/V20/Faction Contract")]
 public sealed class FactionContractDefinitionSO : V20AuthoredContentSO
 {
-    public string factionId = string.Empty;
+    [ContentReference(ContentReferenceKind.Faction)] public string factionId = string.Empty;
     public string seasonalEventId = string.Empty;
     public V20FactionContractKind kind;
     [Min(1)] public int deadlineDays = 10;

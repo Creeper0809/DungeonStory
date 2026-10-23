@@ -4,10 +4,7 @@
 
 | 출발 유형 | 필드 | 건수 | 대상 예시 | 판정 |
 |---|---|---:|---|---|
-| `SpeciesCultureDefinitionSO` | `forbiddenItemIds` | 9 | food:garlic-tonic, food:heavy-oil-stew, food:raw-monster-meat, food:tiny-portion, item:broken-tool, item:unsealed-oath | 문화·사건 요구 아이템이 현행 아이템 카탈로그에 없음 |
 | `CharacterAcquiredTraitModuleSO` | `formula.appliedParameterIds` | 8 | magnitude | 대상 콘텐츠 미해소 |
-| `CulturalPracticeDefinitionSO` | `requirements.items.0.itemDefinitionId` | 7 | food:blood-reserve, food:dried-fruit, food:mushroom-stew, item:bell, item:candle, resource:compost | 문화·사건 요구 아이템이 현행 아이템 카탈로그에 없음 |
-| `SpeciesCultureDefinitionSO` | `preferredItemIds` | 4 | food:blood-reserve, food:dried-fruit, food:mushroom-stew, food:spiced-stew | 문화·사건 요구 아이템이 현행 아이템 카탈로그에 없음 |
 | `LifeEventDefinitionSO` | `choices.0.effects.0.targetId` | 3 | life-event:captains-test, life-event:killer-sighted, life-event:masterpiece-commission | 효과 종류가 요구하는 대상 유형과 targetId가 일치하지 않음 |
 | `CharacterAcquiredTraitModuleSO` | `drawbackBindingIds` | 1 | acquired-trait:module:night-vigil:effect:1 | 대상 콘텐츠 미해소 |
 | `CharacterAcquiredTraitSettingsSO` | `drawbackCapabilities.0.formula.appliedParameterIds` | 1 | magnitude | 대상 콘텐츠 미해소 |

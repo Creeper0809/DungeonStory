@@ -54,6 +54,7 @@ public sealed class MarketItemFeature : ItemFeatureDefinition
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class ResearchGateItemFeature : ItemFeatureDefinition
 {
+    [ContentReference(ContentReferenceKind.Research)]
     public string requiredResearchId = string.Empty;
     public override string FeatureId => "research-gate";
     public override bool RequiresProductionOutputInstanceState => false;
@@ -105,6 +106,7 @@ public sealed class PackagedLotItemFeature : ItemFeatureDefinition
     [Min(1)] public int packageTareGrams = 1;
     public PackageTareDisposition tareDisposition =
         PackageTareDisposition.ReusableContainerReturn;
+    [ContentReference(ContentReferenceKind.Item)]
     public string containerItemId = string.Empty;
 
     public override string FeatureId => "packaged-lot";
@@ -175,6 +177,7 @@ public sealed class PackagedLotItemFeature : ItemFeatureDefinition
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class VaccineItemFeature : ItemFeatureDefinition
 {
+    [ContentReference(ContentReferenceKind.Disease)]
     public string diseaseId = string.Empty;
     [Min(1)] public int doses = 1;
 
@@ -198,6 +201,7 @@ public sealed class VaccineItemFeature : ItemFeatureDefinition
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class PathogenSampleItemFeature : ItemFeatureDefinition
 {
+    [ContentReference(ContentReferenceKind.Disease)]
     public string diseaseId = string.Empty;
 
     public override string FeatureId => "pathogen-sample";
@@ -467,6 +471,7 @@ public sealed class AmmunitionItemFeature : ItemFeatureDefinition
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class InstallationItemFeature : ItemFeatureDefinition
 {
+    [ContentReference(ContentReferenceKind.BuildingNumeric)]
     public int buildingDefinitionId = -1;
     public override string FeatureId => "facility-installation";
 
@@ -489,6 +494,7 @@ public sealed class InstallationItemFeature : ItemFeatureDefinition
 public sealed class BlueprintItemFeature : ItemFeatureDefinition
 {
     public int blueprintDefinitionId = -1;
+    [ContentReference(ContentReferenceKind.Research)]
     public string targetResearchId = string.Empty;
     public override string FeatureId => "research-blueprint";
 

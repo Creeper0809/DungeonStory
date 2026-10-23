@@ -16,14 +16,12 @@ MonoBehaviour:
   displayName: "\uD575 \uACF5\uBA85 \uBB38\uD654"
   description: "\uCE68\uBB35\uC758 \uC815\uBE44\uC640 \uAE30\uC5B5 \uAE30\uB85D\uC744
     \uD734\uC2DD\uC73C\uB85C \uC5EC\uAE30\uBA70 \uD575\uC758 \uC774\uB825\uC744 \uC874\uC911\uD55C\uB2E4."
-  authoringRevision: 1
-  sourceNote: V20 content-density expansion; hand-authored Korean source revision
-    1.
+  authoringRevision: 2
+  sourceNote: "V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item."
   defaultSpeciesId: Golem
   preferredItemIds:
   - tool:maintenance-kit
-  forbiddenItemIds:
-  - resource:corrosive-slurry
+  forbiddenItemIds: []
   preferredFacilityIds: []
   environmentalPreferences:
   - dry rune-powered alcoves
@@ -40,6 +38,7 @@ MonoBehaviour:
   etiquetteRules:
   - "\uB2E4\uB978 \uACE8\uB818\uC758 \uD575\uAC01\uC778\uC744 \uD5C8\uB77D \uC5C6\uC774
     \uC77D\uC9C0 \uC54A\uB294\uB2E4."
+  - "\ubd80\uc2dd\uc131 \uc624\uc5fc\ubb3c\uc744 \ud575\uacfc \uc678\uc7a5 \uac00\uae4c\uc774 \ub450\uc9c0 \uc54a\ub294\ub2e4."
   ceremonyIds:
   - practice:golem-core-polish
   - practice:golem-memory-plaque

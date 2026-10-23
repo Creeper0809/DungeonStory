@@ -80,7 +80,8 @@ public sealed class V20StoryContentCatalog :
         ValidateSeasonalWeatherFrontRequirements(
             SeasonalEvents,
             weatherFrontIds);
-        ValidateFactionEffectTargets(definitions, Arcs);
+        ValidateFactionEffectTargets(definitions.Concat(content.GetAll<CharacterAmbitionDefinitionSO>())
+            .Concat(content.GetAll<CulturalPracticeDefinitionSO>()), Arcs);
         ValidateFactionChapterSignatures(Chapters);
     }
 
@@ -269,6 +270,9 @@ public sealed class V20StoryContentCatalog :
                     .Concat(value.endEffects ?? new()),
                 EndingDefinitionSO value => (value.permanentRewards ?? new())
                     .Concat(value.counterPressures ?? new()),
+                CharacterAmbitionDefinitionSO value => value.completionRewards ?? new(),
+                CulturalPracticeDefinitionSO value => (value.successEffects ?? new())
+                    .Concat(value.neglectedEffects ?? new()),
                 _ => Array.Empty<V20ContentEffect>()
             };
             foreach (V20ContentEffect effect in effects)

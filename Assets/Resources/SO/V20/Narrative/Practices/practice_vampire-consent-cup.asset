@@ -16,14 +16,13 @@ MonoBehaviour:
   displayName: "\uB3D9\uC758\uC758 \uC794"
   description: "\uD608\uC561\uC744 \uB098\uB204\uAE30 \uC804 \uC81C\uACF5\uC790\uC640
     \uC218\uB839\uC790\uAC00 \uC591\uACFC \uBAA9\uC801\uC744 \uD568\uAED8 \uC120\uC5B8\uD55C\uB2E4."
-  authoringRevision: 1
-  sourceNote: V20 content-density expansion; hand-authored Korean source revision
-    1.
+  authoringRevision: 2
+  sourceNote: "V20 reference repair: canonical catalog items; abstract customs remain etiquette; shift signal consumes no item."
   cultureId: culture:vampire-nightcourt
   kind: 1
   requirements:
     items:
-    - itemDefinitionId: food:blood-reserve
+    - itemDefinitionId: resource:blood
       amount: 1
       consume: 1
     facilities: []

@@ -1,11 +1,11 @@
 {
   "exit_code": 0,
-  "seconds": 62.389,
+  "seconds": 84.466,
   "stop_reason": null,
-  "source_label": "r87ee",
+  "source_label": "r95so",
   "compiler_error_count": 0,
   "source_drift": [],
   "host": "local Windows noninteractive station/desktop",
   "wrapper_exit": 0,
-  "input_file_count": 21617
+  "input_file_count": 21623
 }

@@ -16,9 +16,8 @@ MonoBehaviour:
   displayName: "\uC8FD\uC74C\uC744 \uB2A6\uCD94\uB294 \uC190"
   description: "\uCE58\uB8CC \uBD88\uAC00\uB2A5\uD558\uB2E4\uACE0 \uC5EC\uAE34 \uD658\uC790\uB97C
     \uD68C\uBCF5\uC2DC\uD0A4\uB824 \uD55C\uB2E4."
-  authoringRevision: 1
-  sourceNote: V20 content-density expansion; hand-authored Korean source revision
-    1.
+  authoringRevision: 2
+  sourceNote: "V20 reference repair: remove unresolved optional event weights; preserve ambition and saved IDs."
   category: 0
   targetProgress: 260
   activationRequirements:
@@ -49,8 +48,6 @@ MonoBehaviour:
     targetId: proficiency:medicine
     amount: 100
     durationDays: 0
-  relatedEventWeights:
-  - id: life-event:impossible-patient
-    weight: 2
+  relatedEventWeights: []
   cooperationAmbitionIds: []
   conflictAmbitionIds: []

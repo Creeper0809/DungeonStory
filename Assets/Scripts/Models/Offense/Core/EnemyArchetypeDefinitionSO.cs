@@ -24,9 +24,13 @@ public sealed class EnemyTacticalProfile
 [System.Serializable]
 public sealed class EnemyEquipmentLoadoutRecord
 {
+    [ContentReference(ContentReferenceKind.Weapon)]
     public string weaponDefinitionId = string.Empty;
+    [ContentReference(ContentReferenceKind.Armor)]
     public string armorDefinitionId = string.Empty;
+    [ContentReference(ContentReferenceKind.Shield)]
     public string shieldDefinitionId = string.Empty;
+    [ContentReference(ContentReferenceKind.Ammunition)]
     public string ammunitionItemId = string.Empty;
 }
 
@@ -34,6 +38,7 @@ public sealed class EnemyEquipmentLoadoutRecord
 public sealed class EnemyBossPhaseRecord
 {
     [Range(0.05f, 1f)] public float healthThreshold = 0.5f;
+    [ContentReference(ContentReferenceKind.EnemyAbility)]
     public List<string> abilityIds = new();
     public string tacticalProfileOverrideTag = string.Empty;
 }
@@ -78,6 +83,7 @@ public sealed class EnemyArchetypeDefinitionSO : ScriptableObject
     [Min(1)] public int authoringRevision = 1;
     [TextArea] public string sourceNote = string.Empty;
     public string factionId = string.Empty;
+    [ContentReference(ContentReferenceKind.Species)]
     public string speciesTag = string.Empty;
     public EnemyCombatRole role;
     [Min(1f)] public float maxHealth = 80f;
@@ -87,9 +93,11 @@ public sealed class EnemyArchetypeDefinitionSO : ScriptableObject
     [Min(0f)] public float dexterity = 5f;
     [Min(0.1f)] public float moveSpeed = 4f;
     public EnemyEquipmentLoadoutRecord equipment = new();
+    [ContentReference(ContentReferenceKind.EnemyAbility)]
     public List<string> abilityIds = new();
     public EnemyTacticalProfile tacticalProfile = new();
     public List<string> counterTags = new();
+    [ContentReference(ContentReferenceKind.Item)]
     public List<string> rewardItemIds = new();
     public List<EnemyBossPhaseRecord> bossPhases = new();
     public EnemyIndividualGenerationProfile individualGeneration = new();

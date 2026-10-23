@@ -1452,9 +1452,112 @@ public static class V20ContentResolutionRecoveryDebugScenarios
             "JSON round-trip returned a null " + typeof(T).Name + ".");
     }
 
+    public static void RunAuthoredReferenceBoundaries()
+    {
+        ContentReferenceSelectionDebugScenarios.RunAll();
+        var catalog = new ResourceGameContentCatalog(new UnityGameContentRootLoader());
+        var culture = catalog.GetAll<SpeciesCultureDefinitionSO>().First();
+        try
+        {
+            culture.preferredItemIds.Add("item:unregistered-reference-probe");
+            bool rejected = false;
+            try { catalog.ValidateNarrativeReferences(); }
+            catch (InvalidOperationException error) { rejected = error.Message.Contains(culture.StableId); }
+            Require(rejected, "Broken culture item reference was accepted.");
+        }
+        finally { culture.preferredItemIds.Remove("item:unregistered-reference-probe"); }
+        var badReward = catalog.GetAll<CharacterAmbitionDefinitionSO>()
+            .Single(value => value.StableId == "ambition:break-debt").completionRewards.Single();
+        string originalTarget = badReward.targetId;
+        try
+        {
+            badReward.targetId = "faction:creditor";
+            bool rejected = false;
+            try { _ = new V20StoryContentCatalog(catalog); }
+            catch (InvalidOperationException error) { rejected = error.Message.Contains("faction:creditor"); }
+            Require(rejected, "Legacy dangling ambition faction target was accepted.");
+        }
+        finally { badReward.targetId = originalTarget; }
+        foreach (string ambitionId in new[] { "ambition:faction-peacemaker", "ambition:faction-champion", "ambition:break-debt" })
+        {
+            using var content = new FixtureContent();
+            RecoverySaveBundle before, after;
+            ContentResolutionRequest request;
+            string faction = content.StoryCatalog.Arcs.Last().factionId;
+            using (var fixture = new Fixture(content, new SharedGrantState { FailNextCommit = false }))
+            {
+                var ambition = content.NarrativeCatalog.Ambitions.Single(value => value.StableId == ambitionId);
+                fixture.Narrative.StartAmbition(new CharacterId(ActorId), new CharacterAmbitionId(ambitionId), AbsoluteDay);
+                fixture.Narrative.AddAmbitionProgress(new CharacterId(ActorId), ambition.targetProgress - 50, AbsoluteDay);
+                var definition = content.StoryCatalog.LifeEvents.Single(value => value.StableId == "life-event:masterpiece-commission");
+                string instance = "society-event:authored-reference:" + ambitionId;
+                var society = fixture.Campaign.CaptureSociety();
+                society.activeEvents.Add(new V20ActiveEventSaveData
+                {
+                    instanceId = instance, definitionId = definition.StableId, startedAbsoluteDay = AbsoluteDay,
+                    deadlineAbsoluteDay = AbsoluteDay + 3, generation = 1, deterministicRoll = 405u,
+                    contextFactionId = faction, participantCharacterIds = new List<string> { ActorId },
+                    riskTier = definition.riskTier, riskReason = definition.riskReason
+                });
+                fixture.Campaign.PublishSociety(fixture.Campaign.PrepareSociety(society));
+                request = new ContentResolutionRequest
+                {
+                    ActionId = V21ContentAlertActionIds.Society(instance, "first"), InstanceId = instance, ChoiceId = "first",
+                    Kind = ContentResolutionRequestKind.SocietyChoice, AbsoluteDay = AbsoluteDay,
+                    Requirements = new RunMilestoneEvaluationSnapshot { AbsoluteDay = AbsoluteDay }
+                };
+                before = fixture.CaptureRoundTrip();
+            }
+            using (var restored = new Fixture(content, new SharedGrantState { FailNextCommit = false }, before))
+            {
+                Require(restored.Service.TryExecute(request, out var result, out var failure), "Authored ambition failed: " + ambitionId + " " + failure);
+                var reward = result.Resolutions.Single(value => value.DefinitionId == "ambition-reward:" + ambitionId);
+                Require(reward.Applications.Single().targetId == faction, "Ambition reward lost saved event faction context.");
+                Require(restored.Narrative.TryGet(new CharacterId(ActorId), out var character)
+                    && character.AmbitionStatus == CharacterAmbitionStatus.Completed, "Ambition did not complete.");
+                after = restored.CaptureRoundTrip();
+            }
+            using (var restored = new Fixture(content, new SharedGrantState { FailNextCommit = false }, after))
+            {
+                string exact = JsonUtility.ToJson(restored.CaptureRoundTrip());
+                _ = restored.Service.TryExecute(request, out _, out _);
+                Require(exact == JsonUtility.ToJson(restored.CaptureRoundTrip()), "Restored ambition retry duplicated reward.");
+            }
+        }
+        foreach (string id in new[] { "beastkin-scent-vigil", "demon-third-bell", "harpy-dawn-chorus", "kobold-bench-feast",
+                     "myconid-spore-return", "vampire-consent-cup", "vampire-incense-memory" })
+        {
+            string practiceId = "practice:" + id;
+            using var content = new FixtureContent(practiceId: practiceId, includeFixtureEffects: false);
+            RecoverySaveBundle before, after;
+            var request = CreateRequest();
+            request.DefinitionId = practiceId;
+            request.ActionId = "content:authored-reference:" + id;
+            if (content.RequiresPracticePartner) request.ParticipantCharacterIds = new[] { ActorId, ActorId + ":partner" };
+            using (var fixture = new Fixture(content, new SharedGrantState { FailNextCommit = false })) before = fixture.CaptureRoundTrip();
+            using (var restored = new Fixture(content, new SharedGrantState { FailNextCommit = false }, before))
+            {
+                Require(restored.Service.TryExecute(request, out var result, out var failure), "Authored practice failed: " + practiceId + " " + failure.Code + " " + string.Join(";", failure.Parameters.ToArray()));
+                Require(result.Resolutions.Any(value => value.DefinitionId == practiceId && value.Applications.Count > 0), "Practice produced no actual effects.");
+                foreach (var item in content.Practice.requirements.items)
+                    Require(restored.Stock.GetGlobalQuantity(item.itemDefinitionId) == 0, "Practice did not consume its authored item once.");
+                after = restored.CaptureRoundTrip();
+            }
+            using (var restored = new Fixture(content, new SharedGrantState { FailNextCommit = false }, after))
+            {
+                string exact = JsonUtility.ToJson(restored.CaptureRoundTrip());
+                _ = restored.Service.TryExecute(request, out _, out _);
+                Require(exact == JsonUtility.ToJson(restored.CaptureRoundTrip()), "Restored practice retry duplicated effects or consumption.");
+            }
+        }
+        Debug.Log("CONTENT_REFERENCE_RUNTIME=PASS; authored ambition3/practice7; legacy string/int IDs; fresh JSON owners; exact duplicate retry");
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly CharacterSO actorData;
+        private readonly CharacterSO partnerData;
+        private CharacterActor Partner { get; }
 
         internal Fixture(
             FixtureContent content,
@@ -1487,14 +1590,27 @@ public static class V20ContentResolutionRecoveryDebugScenarios
             actorData = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
                 CharacterType.NPC,
                 "G08 복구 검증 슬라임",
-                "Slime");
+                content.PracticeSpecies);
             Actor.Initialization(actorData);
             Actor.Identity.SetPersistentId(ActorId);
             CharacterAiEditorTestDependencies.WorldRegistry
                 .RegisterCharacterLifetime(Actor);
             CharacterAiEditorTestDependencies.WorldRegistry.RegisterCharacter(
                 Actor);
-            Characters = new FixtureCharacterWorld(Actor);
+            if (content.RequiresPracticePartner)
+            {
+                var partnerObject = new GameObject("Authored practice partner");
+                partnerObject.AddComponent<SpriteRenderer>();
+                Partner = partnerObject.AddComponent<CharacterActor>();
+                CharacterAiEditorTestDependencies.Inject(partnerObject);
+                partnerData = CharacterAiEditorTestDependencies.CreateCharacterFixtureData(
+                    CharacterType.NPC, "Practice partner", content.PracticeSpecies);
+                Partner.Initialization(partnerData);
+                Partner.Identity.SetPersistentId(ActorId + ":partner");
+                CharacterAiEditorTestDependencies.WorldRegistry.RegisterCharacterLifetime(Partner);
+                CharacterAiEditorTestDependencies.WorldRegistry.RegisterCharacter(Partner);
+            }
+            Characters = new FixtureCharacterWorld(Actor, Partner);
 
             Session = new RestorableSessionProvider(
                 new GameSessionSnapshot(
@@ -1574,6 +1690,8 @@ public static class V20ContentResolutionRecoveryDebugScenarios
                     ConsumedItemId,
                     1,
                     WorldItemStackState.Loose);
+                foreach (var item in content.Practice.requirements.items.Where(value => value.itemDefinitionId != ConsumedItemId))
+                    Repository.AddEditorTestStack(item.itemDefinitionId, item.amount, WorldItemStackState.Loose);
                 Health.ConfigureVitals(Actor, 100f, resetCurrentHealth: true);
                 Health.ApplyLegacyDamage(
                     Actor,
@@ -1582,9 +1700,15 @@ public static class V20ContentResolutionRecoveryDebugScenarios
                     allowDeath: false);
                 Narrative.Register(
                     new CharacterId(ActorId),
-                    new CharacterSpeciesId("Slime"),
+                    new CharacterSpeciesId(content.PracticeSpecies),
                     Array.Empty<string>(),
                     Array.Empty<string>());
+                if (Partner != null)
+                {
+                    Health.ConfigureVitals(Partner, 100f, resetCurrentHealth: true);
+                    Narrative.Register(new CharacterId(ActorId + ":partner"),
+                        new CharacterSpeciesId(content.PracticeSpecies), Array.Empty<string>(), Array.Empty<string>());
+                }
                 if (content.IncludeG04Effects)
                 {
                     Narrative.Register(
@@ -1679,7 +1803,9 @@ public static class V20ContentResolutionRecoveryDebugScenarios
                     Outcomes.Ledger.CaptureGameplayOutcomes()),
                 migratedProducerOutcomes = RoundTrip(
                     Outcomes.Transaction.Capture()),
-                observations = RoundTrip(Journal.Capture())
+                observations = RoundTrip(Journal.Capture()),
+                actorSocial = RoundTrip(Actor.SocialMemory.CaptureSnapshot()),
+                partnerSocial = Partner != null ? RoundTrip(Partner.SocialMemory.CaptureSnapshot()) : null
             };
         }
 
@@ -1730,6 +1856,8 @@ public static class V20ContentResolutionRecoveryDebugScenarios
             Outcomes.Ledger.PublishRestoreCandidate();
             Outcomes.Ledger.CompleteRestoreCandidate();
             Journal.Restore(save.observations);
+            Actor.SocialMemory.RestoreSnapshot(save.actorSocial);
+            if (Partner != null) Partner.SocialMemory.RestoreSnapshot(save.partnerSocial);
         }
 
         public void Dispose()
@@ -1744,6 +1872,13 @@ public static class V20ContentResolutionRecoveryDebugScenarios
                     .UnregisterCharacterLifetime(Actor);
                 UnityEngine.Object.DestroyImmediate(Actor.gameObject);
             }
+            if (Partner != null)
+            {
+                CharacterAiEditorTestDependencies.WorldRegistry.UnregisterCharacter(Partner);
+                CharacterAiEditorTestDependencies.WorldRegistry.UnregisterCharacterLifetime(Partner);
+                UnityEngine.Object.DestroyImmediate(Partner.gameObject);
+            }
+            if (partnerData != null) UnityEngine.Object.DestroyImmediate(partnerData);
             if (actorData != null)
                 UnityEngine.Object.DestroyImmediate(actorData);
             Session.Dispose();
@@ -1753,9 +1888,11 @@ public static class V20ContentResolutionRecoveryDebugScenarios
     private sealed class FixtureContent : IDisposable
     {
         private readonly CulturalPracticeDefinitionSO clonedPractice;
+        internal bool RequiresPracticePartner { get; }
 
         internal FixtureContent(bool includeG04Effects = false,
-            Action<List<V20ContentEffect>> configureEffects = null)
+            Action<List<V20ContentEffect>> configureEffects = null,
+            string practiceId = PracticeId, bool includeFixtureEffects = true)
         {
             IncludeG04Effects = includeG04Effects;
             Base = new ResourceGameContentCatalog(
@@ -1764,7 +1901,7 @@ public static class V20ContentResolutionRecoveryDebugScenarios
                 .GetAll<CulturalPracticeDefinitionSO>()
                 .Single(value => string.Equals(
                     value.StableId,
-                    PracticeId,
+                    practiceId,
                     StringComparison.Ordinal));
             clonedPractice = UnityEngine.Object.Instantiate(authored);
             clonedPractice.successEffects = authored.successEffects
@@ -1786,7 +1923,7 @@ public static class V20ContentResolutionRecoveryDebugScenarios
                     amount = 6f
                 });
             }
-            else
+            else if (includeFixtureEffects)
             {
                 clonedPractice.successEffects.Add(new V20ContentEffect
                 {
@@ -1810,9 +1947,14 @@ public static class V20ContentResolutionRecoveryDebugScenarios
             ItemCatalog = new ResourceDungeonItemCatalogProvider(
                 new ResourceItemDefinitionCatalog(
                     Source.GetAll<ItemDefinitionSO>()));
+            RequiresPracticePartner = !includeFixtureEffects && clonedPractice.successEffects
+                .Any(effect => effect.kind == V20ContentEffectKind.Relationship);
         }
 
         internal ResourceGameContentCatalog Base { get; }
+        internal CulturalPracticeDefinitionSO Practice => clonedPractice;
+        internal string PracticeSpecies => Base.GetAll<SpeciesCultureDefinitionSO>()
+            .Single(value => value.StableId == clonedPractice.cultureId).defaultSpeciesId;
         internal bool IncludeG04Effects { get; }
         internal IGameContentDefinitionSource Source { get; }
         internal V20StoryContentCatalog StoryCatalog { get; }
@@ -1900,14 +2042,11 @@ public static class V20ContentResolutionRecoveryDebugScenarios
 
     private sealed class FixtureCharacterWorld : ICharacterWorldQuery
     {
-        private readonly CharacterActor actor;
-
-        internal FixtureCharacterWorld(CharacterActor actor) => this.actor =
-            actor ?? throw new ArgumentNullException(nameof(actor));
-
+        private readonly CharacterActor[] actors;
+        internal FixtureCharacterWorld(CharacterActor actor, CharacterActor partner = null) =>
+            actors = partner == null ? new[] { actor } : new[] { actor, partner };
         public int CharacterVersion => 1;
-        public IReadOnlyList<CharacterActor> Characters =>
-            new[] { actor };
+        public IReadOnlyList<CharacterActor> Characters => actors;
     }
 
     private sealed class RejectReceiptAcknowledgement : IPhysicalItemDispositionAcknowledgementParticipant
@@ -2135,6 +2274,8 @@ public static class V20ContentResolutionRecoveryDebugScenarios
         public GameplayOutcomeLedgerSaveData gameplayOutcomes;
         public DungeonMigratedProducerOutcomeSaveData migratedProducerOutcomes;
         public SocialRitualFactSaveData observations;
+        public CharacterSocialMemorySnapshot actorSocial;
+        public CharacterSocialMemorySnapshot partnerSocial;
     }
 
     private sealed class ObservationTransport : IDomainFactPublisher, IDomainFactRecoveryPublisher

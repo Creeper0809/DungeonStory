@@ -14,8 +14,8 @@ public sealed class CharacterAmbitionDefinitionSO : V20AuthoredContentSO
     public V20ContentRequirementSet failureConditions = new();
     public List<V20ContentEffect> completionRewards = new();
     public List<V20WeightedId> relatedEventWeights = new();
-    public List<string> cooperationAmbitionIds = new();
-    public List<string> conflictAmbitionIds = new();
+    [ContentReference(ContentReferenceKind.Ambition)] public List<string> cooperationAmbitionIds = new();
+    [ContentReference(ContentReferenceKind.Ambition)] public List<string> conflictAmbitionIds = new();
 
     public override IReadOnlyList<string> ValidateDefinition()
     {
