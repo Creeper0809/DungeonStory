@@ -68,13 +68,25 @@ public static class Wim037GuestRequestCatalogExclusionDebugScenarios
             Resources.LoadAll<GuestRequestDefinitionSO>(ResourcesRequestPath);
 
         Require(circus != null
+            && circus.IsRetired
+            && circus.ValidateDefinition().Any(error => error.Contains("is retired"))
+            && circus.serviceRequirements.facilities.Count == 0
             && circus.StableId == "guest-request:monster-circus"
             && AssetDatabase.AssetPathToGUID(CircusAssetPath) == CircusGuid
             && diskRequests.Length == 14
             && diskRequests.Any(request => request != null
                 && request.StableId == "guest-request:monster-circus"),
-            "Retired circus request must remain intact on disk while excluded from the catalog."
+            "Retired circus request must preserve identity, reject publication, and contain no obsolete facility reference."
         );
+        var catalog = UnityEngine.Object.Instantiate(
+            AssetDatabase.LoadAssetAtPath<GameDomainContentCatalogSO>(CatalogPath));
+        try
+        {
+            catalog.SetDefinitions(catalog.Definitions.Concat(new[] { circus }));
+            Require(catalog.ValidateCatalog().Any(error => error.Contains("Retired guest request")),
+                "Retired request was accepted into the active catalog.");
+        }
+        finally { UnityEngine.Object.DestroyImmediate(catalog); }
     }
 
     private static string[] ReadActiveManifestIds()

@@ -12,13 +12,17 @@ public sealed class EnvironmentalWorkwearSO : DataScriptableObject
 {
     public const string ResourcePath = "SO/Environment/Workwear";
 
+    [ContentIdentity]
     [SerializeField] private string workwearId = string.Empty;
+    [ContentReference(ContentReferenceKind.Item)]
     [SerializeField] private string itemDefinitionId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [TextArea, SerializeField] private string description = string.Empty;
+    [ContentReference(ContentReferenceKind.Species)]
     [SerializeField] private string[] allowedSpecies = Array.Empty<string>();
     [SerializeField] private ThermalProtectionProfile protection =
         new ThermalProtectionProfile();
+    [ContentReference(ContentReferenceKind.Research)]
     [SerializeField] private string requiredResearchId = string.Empty;
 
     public string WorkwearId => workwearId?.Trim() ?? string.Empty;

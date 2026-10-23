@@ -13,6 +13,7 @@ public sealed class ResearchProjectSO : DataScriptableObject,
 {
     public const string ResourcePath = "SO/Research/Projects";
 
+    [ContentIdentity]
     [SerializeField] private string projectId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [TextArea, SerializeField] private string description = string.Empty;
@@ -206,6 +207,7 @@ public enum ResearchPrerequisiteKind
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class ResearchPrerequisiteLink
 {
+    [ContentReference(ContentReferenceKind.Research)]
     [SerializeField] private string prerequisiteId = string.Empty;
     [SerializeField] private ResearchProjectSO prerequisite;
     [SerializeField] private ResearchPrerequisiteKind kind;

@@ -6,7 +6,9 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "DungeonStory/Economy/Crop Genome", order = 3)]
 public sealed class CropGenomeDefinitionSO : DataScriptableObject
 {
+    [ContentIdentity]
     [SerializeField] private string genomeId = string.Empty;
+    [ContentReference("CropDefinitionSO", "CropId")]
     [SerializeField] private string cropId = string.Empty;
     [SerializeField] private string cultivarName = string.Empty;
     [TextArea, SerializeField] private string description = string.Empty;

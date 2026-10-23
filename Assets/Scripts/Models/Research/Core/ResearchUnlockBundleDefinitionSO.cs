@@ -50,6 +50,7 @@ public sealed class ResearchUnlockRewardGroup
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class ResearchUnlockBundleDefinitionSO : DataScriptableObject
 {
+    [ContentReference(ContentReferenceKind.Research)]
     [SerializeField] private string researchId = string.Empty;
     [SerializeField] private ResearchUnlockBundleRole role;
     [TextArea(2, 6), SerializeField] private string designIntent = string.Empty;

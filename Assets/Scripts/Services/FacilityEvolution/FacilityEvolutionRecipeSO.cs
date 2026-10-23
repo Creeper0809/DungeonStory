@@ -6,6 +6,7 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "DungeonStory/Facility Evolution/Recipe", order = 0)]
 public class FacilityEvolutionRecipeSO : DataScriptableObject
 {
+    [ContentIdentity]
     public string evolutionId;
     public string displayName;
     [TextArea] public string description;
@@ -19,6 +20,7 @@ public class FacilityEvolutionRecipeSO : DataScriptableObject
 
     [Header("Visibility")]
     public bool publicByDefault = true;
+    [ContentReference(ContentReferenceKind.Recipe)]
     public string requiredResearchRecipeId;
 
     [Header("Room")]

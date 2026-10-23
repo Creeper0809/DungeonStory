@@ -8,13 +8,13 @@ using UnityEngine;
 [DrawWithUnity]
 public class CharacterSO : ScriptableObject
 {
-    [SerializeField] private string archetypeId;
+    [ContentIdentity, SerializeField] private string archetypeId;
     [SerializeField] private string visualVariantId;
     public CharacterType characterType;
     public CharacterRole role;
-    public int id;
+    [ContentIdentity] public int id;
     public string characterName;
-    public string speciesTag;
+    [ContentReference(ContentReferenceKind.Species)] public string speciesTag;
     public CharacterSpeciesSO species;
     public CharacterTraitSO[] traits = Array.Empty<CharacterTraitSO>();
     public WorkPriorityProfile defaultWorkPriorities = WorkPriorityProfile.CreateDefault();

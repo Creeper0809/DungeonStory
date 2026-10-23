@@ -5,12 +5,14 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "DungeonStory/Facility Synthesis/Recipe", order = 0)]
 public class FacilitySynthesisRecipeSO : DataScriptableObject
 {
+    [ContentIdentity]
     public string recipeId;
     public string displayName;
     [TextArea] public string description;
     public BuildingSO resultBuilding;
     public BuildingSO[] materialBuildings = Array.Empty<BuildingSO>();
     public bool publicByDefault = true;
+    [ContentReference(ContentReferenceKind.Recipe)]
     public string requiredResearchRecipeId;
     [Range(0f, 1f)] public float levelInheritanceRatio = 0.75f;
 

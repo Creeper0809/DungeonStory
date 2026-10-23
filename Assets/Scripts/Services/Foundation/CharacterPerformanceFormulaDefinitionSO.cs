@@ -39,14 +39,20 @@ public sealed class CharacterPerformanceCapacityInput
     order = 31)]
 public sealed class CharacterPerformanceFormulaDefinitionSO : ScriptableObject
 {
-    [SerializeField] private string formulaId = string.Empty;
+    [ContentIdentity, SerializeField] private string formulaId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [SerializeField] private CharacterPerformanceFormulaDomain domain;
     [SerializeField] private CharacterPerformanceResultChannel resultChannel;
     [SerializeField] private float baseValue = 1f;
     [SerializeField] private List<CharacterPerformanceCapacityInput> capacityInputs = new();
-    [SerializeField] private string primaryProficiencyId = string.Empty;
-    [SerializeField] private string secondaryProficiencyId = string.Empty;
+    [ContentReference(
+        ContentReferenceKind.Proficiency,
+        Aliases = "selector:active-combat|selector:facility-primary"), SerializeField]
+    private string primaryProficiencyId = string.Empty;
+    [ContentReference(
+        ContentReferenceKind.Proficiency,
+        Aliases = "selector:active-combat|selector:facility-secondary|selector:higher-combat|selector:rune-scholarship"), SerializeField]
+    private string secondaryProficiencyId = string.Empty;
     [SerializeField, Range(0f, 0.2f)] private float secondaryProficiencyWeight;
     [SerializeField] private string gameplayEffectTargetId = string.Empty;
     [SerializeField] private string executionWorkTypeId = string.Empty;

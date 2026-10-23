@@ -8,6 +8,7 @@ namespace DungeonStory.Buildings
     [Serializable]
     public sealed class FacilityVenueAnchorSelector
     {
+        [ContentReference(ContentReferenceKind.Building)]
         public List<string> exactBuildingDefinitionIds = new();
         public FacilityRole facilityRoles = FacilityRole.None;
 

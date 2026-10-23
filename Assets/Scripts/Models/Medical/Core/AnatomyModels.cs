@@ -76,7 +76,8 @@ public sealed class AnatomyNodeDefinition
 {
     [SerializeField] private string nodeId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
-    [SerializeField] private string parentNodeId = string.Empty;
+    [ContentReference(ContentReferenceKind.AnatomyNode), SerializeField]
+    private string parentNodeId = string.Empty;
     [SerializeField] private AnatomyNodeKind kind;
     [SerializeField] private AnatomyFunction functions;
     [SerializeField, Min(1f)] private float maxHealth = 20f;

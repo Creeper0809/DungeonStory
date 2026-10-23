@@ -174,7 +174,7 @@ CharacterSpeciesSO|characterspecies:10,characterspecies:10,id,10,,,explicit-seri
 CharacterSpeciesSO|characterspecies:10,characterspecies:10,speciesTag,Adventurer,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:10,characterspecies:10,displayName,원정자,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:10,characterspecies:10,ownerSelectionPolicy,1,,,explicit-serialized
-CharacterSpeciesSO|characterspecies:10,characterspecies:10,homeFactionId,faction:adventurer,,,explicit-serialized
+CharacterSpeciesSO|characterspecies:10,characterspecies:10,homeFactionId,,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:10,characterspecies:10,anatomyProfileId,anatomy:humanoid,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:10,characterspecies:10,needs.hungerRateMultiplier,1,,,explicit-serialized
 CharacterSpeciesSO|characterspecies:10,characterspecies:10,needs.thirstRateMultiplier,1,,,explicit-serialized

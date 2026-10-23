@@ -33,6 +33,7 @@ public class CharacterTraitSO : DataScriptableObject, IGameplayEffectSource
     public CharacterTraitSelectionRarity selectionRarity;
     public CharacterTraitPolarity polarity = CharacterTraitPolarity.Tradeoff;
     public string selectionFamilyId = string.Empty;
+    [ContentReference(ContentReferenceKind.Species)]
     public List<string> eligibleSpeciesTags = new();
     [Min(0.1f)] public float earnedWorkExperienceMultiplier = 1f;
     public List<string> incompatibilityGroups = new();

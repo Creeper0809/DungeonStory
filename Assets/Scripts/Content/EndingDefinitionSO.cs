@@ -9,6 +9,7 @@ public sealed class EndingDefinitionSO : V20AuthoredContentSO
 {
     public RunMilestoneTier tier;
     public V20ContentRequirementSet completionRequirements = new();
+    [ContentReference(ContentReferenceKind.Building)]
     public string landmarkBuildingId = string.Empty;
     public List<V20ContentEffect> permanentRewards = new();
     public List<V20ContentEffect> counterPressures = new();

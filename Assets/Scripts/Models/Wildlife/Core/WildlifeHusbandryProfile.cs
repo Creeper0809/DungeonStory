@@ -8,7 +8,8 @@ using UnityEngine.Scripting.APIUpdating;
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class WildlifeHusbandryProductDefinition
 {
-    [SerializeField] private string itemId = string.Empty;
+    [ContentReference(ContentReferenceKind.Item), SerializeField]
+    private string itemId = string.Empty;
     [Min(1), SerializeField] private int amount = 1;
     [Min(0.1f), SerializeField] private float intervalDays = 1f;
     [SerializeField] private bool femaleOnly;

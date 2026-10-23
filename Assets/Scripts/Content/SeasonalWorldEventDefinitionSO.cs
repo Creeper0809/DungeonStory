@@ -12,6 +12,7 @@ public enum SeasonalWildlifeArrivalQualification
 [System.Serializable]
 public sealed class SeasonalWildlifeArrivalProfile
 {
+    [ContentReference("WildlifeSpeciesSO", "SpeciesId")]
     public string speciesId = string.Empty;
     [Min(1)] public int exactCount;
     public string requiredHabitatId = string.Empty;
@@ -58,6 +59,7 @@ public sealed class SeasonalWildlifeArrivalProfile
 [System.Serializable]
 public sealed class SeasonalDriftCargoProfile
 {
+    [ContentReference(ContentReferenceKind.Item)]
     public string itemId = string.Empty;
     [Min(1)] public int exactQuantity;
 
@@ -87,6 +89,7 @@ public sealed class SeasonalDriftCargoProfile
 [System.Serializable]
 public sealed class SeasonalManaLightningProfile
 {
+    [ContentReference(ContentReferenceKind.BuildingNumeric)]
     public List<int> eligibleBuildingDefinitionIds = new();
     [Min(0f)] public float minimumHeat;
     [Min(0f)] public float minimumFault;
@@ -142,6 +145,7 @@ public enum SeasonalSpecialExpeditionPurpose
 [System.Serializable]
 public sealed class SeasonalExpeditionPhysicalRewardProfile
 {
+    [ContentReference(ContentReferenceKind.Item)]
     public string itemId = string.Empty;
     public string displayLabel = string.Empty;
     [Min(1)] public int exactQuantity;
@@ -151,6 +155,7 @@ public sealed class SeasonalExpeditionPhysicalRewardProfile
 public sealed class SeasonalSpecialExpeditionProfile
 {
     public SeasonalSpecialExpeditionPurpose purpose;
+    [ContentReference("OffenseSiteArchetypeSO", "siteTypeId")]
     public string siteArchetypeId = string.Empty;
     public string title = string.Empty;
     [TextArea] public string description = string.Empty;
@@ -161,6 +166,7 @@ public sealed class SeasonalSpecialExpeditionProfile
     [Min(1)] public int requiredMembers = 1;
     [Min(0f)] public float recommendedPower;
     [Range(1, 6)] public int campaignOrder = 1;
+    [ContentReference("OffenseEncounterSO", "encounterId")]
     public string authoredEncounterId = string.Empty;
     [TextArea] public string encounterPreviewText = string.Empty;
     [TextArea] public string encounterRewardPreviewText = string.Empty;
@@ -264,6 +270,7 @@ public sealed class SeasonalWorldEventDefinitionSO : V20AuthoredContentSO
     public float pipedWaterFreezeThresholdC;
     public float pipedWaterRecoveryThresholdC = 2f;
     [Range(0, 10)] public int cropPrimaryBatchLossPercent;
+    [ContentReference("WeatherFrontDefinitionSO", "stableId")]
     public string requiredWeatherFrontId = string.Empty;
     public SeasonalWildlifeArrivalProfile wildlifeArrivalProfile = new();
     public SeasonalDriftCargoProfile driftCargoProfile = new();

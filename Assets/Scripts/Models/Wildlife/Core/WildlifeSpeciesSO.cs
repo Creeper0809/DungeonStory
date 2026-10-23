@@ -7,7 +7,7 @@ using UnityEngine.Scripting.APIUpdating;
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class WildlifeSpeciesSO : ScriptableObject
 {
-    [SerializeField] private string speciesId = string.Empty;
+    [ContentIdentity, SerializeField] private string speciesId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [TextArea, SerializeField] private string description = string.Empty;
     [SerializeField] private Sprite sprite;
@@ -49,8 +49,10 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
         new List<WildlifeHusbandryProductDefinition>();
     [Header("V20 Authored Ecology")]
     [SerializeField, Min(1)] private int authoringRevision = 1;
-    [SerializeField] private List<string> preySpeciesIds = new();
-    [SerializeField] private List<string> predatorSpeciesIds = new();
+    [ContentReference("WildlifeSpeciesSO", "SpeciesId"), SerializeField]
+    private List<string> preySpeciesIds = new();
+    [ContentReference("WildlifeSpeciesSO", "SpeciesId"), SerializeField]
+    private List<string> predatorSpeciesIds = new();
     [SerializeField] private string nestTag = string.Empty;
     [SerializeField] private Season breedingSeason;
     [SerializeField] private string migrationPatternId = string.Empty;
@@ -59,7 +61,8 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
     [SerializeField] private WildlifeCompanionRoleProfile companionRoleProfile;
     [SerializeField] private bool hasHaulRoleProfile;
     [SerializeField] private WildlifeHaulRoleProfile haulRoleProfile;
-    [SerializeField] private List<string> diseaseVectorIds = new();
+    [ContentReference(ContentReferenceKind.Disease), SerializeField]
+    private List<string> diseaseVectorIds = new();
     [SerializeField] private List<Season> activeSeasons = new();
 
     public string SpeciesId => speciesId?.Trim() ?? string.Empty;

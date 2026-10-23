@@ -17,6 +17,7 @@ public enum InGameNarrativeTextKind
 public sealed class InGameNarrativeTextEntry
 {
     [SerializeField] private InGameNarrativeTextKind kind;
+    [ContentReference(ContentReferenceKind.NarrativeTarget)]
     [SerializeField] private string stableId = string.Empty;
     [SerializeField, TextArea(2, 5)] private string inGameDescription = string.Empty;
     [SerializeField] private string worldBranchTag = string.Empty;

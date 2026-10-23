@@ -48,6 +48,7 @@ public sealed class BuildingProductionWorkstationAbility : BuildingAbility
     public string workstationTag = string.Empty;
 
     [InspectorName("재고 감지반 설치품 ID")]
+    [ContentReference(ContentReferenceKind.Item)]
     public string stockSensorInstallationItemId = string.Empty;
 
     [InspectorName("생산 lane 정책")]
@@ -118,6 +119,7 @@ public sealed class BuildingProductionSupportAbility : BuildingAbility
     public bool requiresFuel;
 
     [InspectorName("소비 연료 아이템")]
+    [ContentReference(ContentReferenceKind.Item)]
     public string fuelItemId = "resource:log";
 
     [Min(1), InspectorName("공정당 연료")]
@@ -198,6 +200,7 @@ public sealed class BuildingProductionSupportAbility : BuildingAbility
 [Serializable]
 public sealed class ProductionItemBufferCapacity
 {
+    [ContentReference(ContentReferenceKind.Item)]
     public string itemId = string.Empty;
     [Min(1)] public int capacity = 1;
 }

@@ -148,6 +148,7 @@ public class BuildingSO : DataScriptableObject, IGridBuildAreaCapability
     public Sprite icon;
 
     [Header("Authored Content Identity")]
+    [ContentIdentity]
     [SerializeField] private string contentDefinitionId = string.Empty;
     [SerializeField, Min(1)] private int authoringRevision = 1;
     [SerializeField, TextArea] private string sourceNote = string.Empty;

@@ -91,6 +91,15 @@ jobs:
       - name: Test evidence binding rejection paths
         run: python -m unittest discover -s tools/V27Balance -p "test_*.py"
 
+      - name: Verify published content identities remain compatible
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          COMPARISON_BASE="$(git merge-base "$BASE_SHA" "$HEAD_SHA")"
+          python tools/V27Balance/verify_content_identities.py --base "$COMPARISON_BASE" --head "$HEAD_SHA"
+
       - name: Verify changed-domain execution and archived evidence bytes
         if: github.event_name != 'workflow_dispatch'
         env:

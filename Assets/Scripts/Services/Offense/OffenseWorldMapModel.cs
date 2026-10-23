@@ -32,6 +32,7 @@ public sealed class OffenseStockRewardSpec : OffenseRewardGrantSpec
 [Serializable]
 public sealed class OffensePhysicalItemRewardSpec : OffenseRewardGrantSpec
 {
+    [ContentReference(ContentReferenceKind.Item)]
     [SerializeField] private string itemId = string.Empty;
 
     public OffensePhysicalItemRewardSpec()
@@ -184,6 +185,7 @@ public class OffenseTargetDefinition
     [Min(1)] public int requiredMembers = 1;
     [Min(0f)] public float requiredPower;
     public string seasonalOccurrenceInstanceId;
+    [ContentReference("OffenseEncounterSO", "encounterId")]
     public string authoredEncounterId;
     [TextArea] public string encounterPreviewText;
     [TextArea] public string encounterRewardPreviewText;

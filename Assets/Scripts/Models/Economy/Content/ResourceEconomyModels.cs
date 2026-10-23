@@ -56,8 +56,11 @@ public sealed class FacilitySupplyProfile
     public ResourceIngredientTag requiredTags;
     [Min(0f)] public float minimumValue;
     [Min(1)] public int bufferCapacity = 8;
+    [ContentReference(ContentReferenceKind.Item)]
     public List<string> allowedItemIds = new List<string>();
+    [ContentReference(ContentReferenceKind.Item)]
     public List<string> forbiddenItemIds = new List<string>();
+    [ContentReference(ContentReferenceKind.Item)]
     public List<string> priorityItemIds = new List<string>();
 
     public bool Allows(ResourceItemDefinitionSO item)

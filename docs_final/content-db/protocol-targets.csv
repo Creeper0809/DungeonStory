@@ -36,7 +36,6 @@ AnatomyProfileSO,anatomy:humanoid,AnatomyProfileSO|anatomy:humanoid,references,G
 AnatomyProfileSO,anatomy:humanoid,AnatomyProfileSO|anatomy:humanoid,references,LegacyHumanoid,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_humanoid.asset
 AnatomyProfileSO,anatomy:kobold,AnatomyProfileSO|anatomy:kobold,references,Kobold,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_kobold.asset
 AnatomyProfileSO,anatomy:orc,AnatomyProfileSO|anatomy:orc,references,Orc,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_orc.asset
-AnatomyProfileSO,anatomy:quadruped,AnatomyProfileSO|anatomy:quadruped,references,ash_goat,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_quadruped.asset
 AnatomyProfileSO,anatomy:quadruped,AnatomyProfileSO|anatomy:quadruped,references,cave_rat,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_quadruped.asset
 AnatomyProfileSO,anatomy:quadruped,AnatomyProfileSO|anatomy:quadruped,references,moss_boar,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_quadruped.asset
 AnatomyProfileSO,anatomy:quadruped,AnatomyProfileSO|anatomy:quadruped,references,rune_deer,,,speciesIds,species Ids,protocol-id,non-content-protocol,,Assets/Resources/SO/Medical/Anatomy/anatomy_quadruped.asset

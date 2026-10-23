@@ -7,6 +7,7 @@ using UnityEngine.Scripting.APIUpdating;
 public sealed class EquipmentModuleDefinitionSO : ScriptableObject, IGameplayEffectSource
 {
     public const string ResourcePath = "SO/Combat/EquipmentModules";
+    [ContentIdentity]
     [SerializeField] private string moduleId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [TextArea, SerializeField] private string description = string.Empty;

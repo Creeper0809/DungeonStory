@@ -1668,7 +1668,6 @@ AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,speciesIds.1,shadow_hare,,,
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,speciesIds.2,moss_boar,,,explicit-serialized
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,speciesIds.3,rune_deer,,,explicit-serialized
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,speciesIds.4,shadow_wolf,,,explicit-serialized
-AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,speciesIds.5,ash_goat,,,explicit-serialized
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,nodes.0.nodeId,head,,,explicit-serialized
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,nodes.0.displayName,머리,,,explicit-serialized
 AnatomyProfileSO|anatomy:quadruped,anatomy:quadruped,nodes.0.parentNodeId,,,,explicit-serialized

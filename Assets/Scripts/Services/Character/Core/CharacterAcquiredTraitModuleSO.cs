@@ -8,7 +8,7 @@ using UnityEngine;
     order = 0)]
 public sealed class CharacterAcquiredTraitModuleSO : ScriptableObject
 {
-    [SerializeField] private string moduleId = string.Empty;
+    [ContentIdentity, SerializeField] private string moduleId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [SerializeField, TextArea] private string description = string.Empty;
     [SerializeField, Min(1)] private int cost;

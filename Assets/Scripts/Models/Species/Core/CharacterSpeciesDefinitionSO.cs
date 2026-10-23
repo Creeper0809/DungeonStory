@@ -238,9 +238,10 @@ public static class CharacterSpeciesIncidentIds
 public abstract class CharacterSpeciesDefinitionSO : SerializedScriptableObject
 {
     public int id;
-    public string speciesTag;
+    [ContentIdentity] public string speciesTag;
     public string displayName;
     public SpeciesOwnerSelectionPolicy ownerSelectionPolicy;
+    [ContentReference(ContentReferenceKind.Faction)]
     public string homeFactionId;
     [ContentReference(ContentReferenceKind.AnatomyProfile)]
     public string anatomyProfileId = "anatomy:humanoid";

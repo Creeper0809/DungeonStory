@@ -9,7 +9,7 @@ using UnityEngine;
 public sealed class CharacterFunctionalCapacityDefinitionSO : ScriptableObject
 {
     [SerializeField] private CharacterFunctionalCapacityId capacityId;
-    [SerializeField] private string stableId = string.Empty;
+    [ContentIdentity, SerializeField] private string stableId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [SerializeField, TextArea] private string description = string.Empty;
 

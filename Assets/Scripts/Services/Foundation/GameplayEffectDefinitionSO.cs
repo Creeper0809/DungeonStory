@@ -4,8 +4,8 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "DungeonStory/Effects/Gameplay Effect", order = 0)]
 public sealed class GameplayEffectDefinitionSO : ScriptableObject
 {
-    [SerializeField] private int numericId;
-    [SerializeField] private string effectId = string.Empty;
+    [ContentIdentity, SerializeField] private int numericId;
+    [ContentIdentity, SerializeField] private string effectId = string.Empty;
     [SerializeField] private string targetId = string.Empty;
     [SerializeField] private GameplayEffectOperation operation;
     [SerializeField] private GameplayEffectProjectionPhase projectionPhase;

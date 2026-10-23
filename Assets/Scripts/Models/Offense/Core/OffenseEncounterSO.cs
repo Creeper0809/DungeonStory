@@ -30,6 +30,7 @@ public enum OffenseEncounterObjective
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class OffenseEncounterSO : DataScriptableObject
 {
+    [ContentIdentity]
     public string encounterId = "encounter";
     public string displayName = "교전";
     [Min(1)] public int minimumSiteStrength = 1;
@@ -48,6 +49,7 @@ public sealed class OffenseEncounterSO : DataScriptableObject
     [ContentReference(ContentReferenceKind.BattlefieldModifier)]
     public List<string> battlefieldModifierIds = new();
     public List<string> counterTags = new();
+    [ContentReference(ContentReferenceKind.Item)]
     public List<string> rewardItemIds = new();
     public List<OffenseEnemyArchetypeEntry> enemies =
         new List<OffenseEnemyArchetypeEntry>();

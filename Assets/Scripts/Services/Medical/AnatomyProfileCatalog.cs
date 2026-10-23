@@ -426,8 +426,7 @@ public static class AnatomyProfileDefaults
                 "shadow_hare",
                 "moss_boar",
                 "rune_deer",
-                "shadow_wolf",
-                "ash_goat"
+                "shadow_wolf"
             },
             new[]
             {

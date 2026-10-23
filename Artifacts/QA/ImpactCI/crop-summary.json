@@ -1,11 +1,8 @@
 {
   "exit_code": 0,
-  "seconds": 183.608,
+  "seconds": 190,
   "stop_reason": null,
-  "source_label": "r95so",
+  "source_label": "r101si",
   "compiler_error_count": 0,
-  "source_drift": [],
-  "host": "local Windows noninteractive station/desktop",
-  "wrapper_exit": 0,
-  "input_file_count": 21623
+  "source_drift": []
 }

@@ -63,6 +63,9 @@ public sealed class ResourceGameContentCatalog :
         }
 
         CoreSessionRules = Domain.CoreSessionRules.CreateRuntimeDefinition();
+        var relationErrors = ContentReferenceCatalog.FromRoot(Root).Validate(new ScriptableObject[] { Root });
+        if (relationErrors.Count > 0)
+            throw new InvalidOperationException("Game content references are invalid:\n" + string.Join("\n", relationErrors));
         ValidateNarrativeReferences();
     }
 

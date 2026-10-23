@@ -11,6 +11,7 @@ public class FacilityBlueprintSO : DataScriptableObject
     [Min(0)] public int defaultCost = 120;
     [Min(1f)] public float researchWorkRequired = 20f;
     [Tooltip("이 물리 설계도가 활성화하는 연구 프로젝트의 안정 ID")]
+    [ContentReference(ContentReferenceKind.Research)]
     public string targetResearchProjectId = string.Empty;
     public BlueprintUnlockCollection unlocks = new BlueprintUnlockCollection();
 

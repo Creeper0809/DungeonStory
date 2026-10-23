@@ -13,7 +13,7 @@ public enum CareerPositionScopeKind
     menuName = "DungeonStory/Population/Career Position")]
 public sealed class CareerPositionDefinitionSO : ScriptableObject
 {
-    public string definitionId = string.Empty;
+    [ContentIdentity] public string definitionId = string.Empty;
     public string displayName = string.Empty;
     public CareerPositionKind position;
     public CareerPositionScopeKind scope;

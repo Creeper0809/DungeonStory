@@ -1,4 +1,5 @@
 ﻿content_type,scope,stable_id,evidence_kinds,system,code_role,confidence,source_path
+SurgicalProcedureSO,content-type,,type-reference,models:economy,content-loading,structural-type-consumer,Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs
 SurgicalProcedureSO,content-type,,type-reference; save-restore-reference,models:medical,runtime,structural-type-consumer,Assets/Scripts/Models/Medical/Core/SurgeryContracts.cs
 SurgicalProcedureSO,content-type,,type-reference,models:medical,runtime,structural-type-consumer,Assets/Scripts/Models/Medical/Core/SurgeryModels.cs
 SurgicalProcedureSO,content-type,,type-reference,models:medical,persistence,structural-type-consumer,Assets/Scripts/Models/Medical/Core/SurgerySaveValidation.cs

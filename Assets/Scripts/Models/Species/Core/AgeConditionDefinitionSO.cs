@@ -8,7 +8,7 @@ using UnityEngine;
     menuName = "DungeonStory/Population/Age Condition")]
 public sealed class AgeConditionDefinitionSO : ScriptableObject
 {
-    public string conditionId = string.Empty;
+    [ContentIdentity] public string conditionId = string.Empty;
     public string displayName = string.Empty;
     public bool constructCondition;
     [ContentReference(ContentReferenceKind.AnatomyNode)]

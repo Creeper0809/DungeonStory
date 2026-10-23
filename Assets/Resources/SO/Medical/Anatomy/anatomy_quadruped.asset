@@ -21,7 +21,6 @@ MonoBehaviour:
   - moss_boar
   - rune_deer
   - shadow_wolf
-  - ash_goat
   nodes:
   - nodeId: head
     displayName: "\uBA38\uB9AC"

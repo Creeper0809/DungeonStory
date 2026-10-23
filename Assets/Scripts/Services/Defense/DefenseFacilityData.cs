@@ -27,6 +27,7 @@ public class DefenseFacilityData
     public DefenseEffectSO[] effectAssets = Array.Empty<DefenseEffectSO>();
     [Header("Physical operation")]
     public DefenseSupplyKind supplyKind;
+    [ContentReference(ContentReferenceKind.Item)]
     public string supplyItemId = string.Empty;
     public StockCategory supplyCategory = StockCategory.General;
     [Min(0)] public int supplyCapacity;

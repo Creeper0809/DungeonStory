@@ -18,6 +18,7 @@ public sealed class WasteRecipeBindingRecord
 {
     public WasteOriginKind origin;
     public WasteDispositionKind disposition;
+    [ContentReference(ContentReferenceKind.Recipe)]
     public string recipeId = string.Empty;
 }
 
@@ -33,6 +34,7 @@ public sealed class WasteFeedRuleRecord
 [Serializable]
 public sealed class LegacyWasteItemRuleRecord
 {
+    [ContentReference(ContentReferenceKind.Item)]
     public string itemId = string.Empty;
     public WasteOriginKind origin;
     [Range(0f, 100f)] public float contamination;

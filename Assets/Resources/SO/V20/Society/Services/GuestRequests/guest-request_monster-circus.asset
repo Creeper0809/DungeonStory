@@ -19,14 +19,11 @@ MonoBehaviour:
   authoringRevision: 1
   sourceNote: V20 hand-authored faction/service manifest.
   kind: 3
+  retirementReason: Removed from the active WIM-037 manifest; circus venue was never published. Retained for GUID and stable ID compatibility.
   deadlineDays: 6
   serviceRequirements:
     items: []
-    facilities:
-    - buildingDefinitionId: building:circus-arena
-      capabilityId: 
-      minimumCount: 1
-      mustBeOperational: 1
+    facilities: []
     research: []
     characters: []
     factions: []

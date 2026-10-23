@@ -1,5 +1,38 @@
 # DungeonStory Current Progress
 
+## 2026-10-24 전체 SO 관계 — 최종 실행 검증 완료
+
+r101si21630입력으로 CUHA effects670초/core190초/character160초/world250초/crop190초 모두 native0/C#0/consoleErrors0/stop없음/drift0. 전체3538 SO 객체·ID 참조, identity5857필드의 변경/삭제 거절·JSON 복원과 선택기 pending/mixed 문맥 검사를 통과했다. 실제 야망/문화 활동 owner 실행·저장·fresh 복원·동일 요청 재시도, 월드104/104섹션 공식 roundtrip·canonical baseline 복원, 작물 수확·buffer 대기·복원·재시도 무중복을 확인했다. 초기 r96~r100 실패·중단은 전체 PASS로 간주하지 않는다.
+
+최종 실행5개는 source eb5cddce215eb1150b05f882d7e5642cee5b82b12cfff6b661633b5f803d03fc/count4746/paths121906130003e0a78d265b9193e58a1994139d50fa247124a1c9e2d8146802dd, config335174a99791533be9b7dbb5faddeafad5ca41d0f3517a874a983f97c1963827에 결합된다. 최종 native identity candidate는 게시 baseline3538asset/5857field와 일치하고 runtime TypeCache143종 중 게임 소유142종을 확인했다. Python44개·분석기DSB001–008 PASS, 최종 콘텐츠/KB 생성·파싱·내용·링크·최신성 failure0. Unity0/operation.lock free 확인 후 검증 창 CLOSED.
+
+커밋할 현재 실행 증거는 Artifacts/QA/ImpactCI에, 원본/중간 실패는 커밋 밖 Artifacts/QA/r96si~r101si 및 외부 C:/Users/vulpo/Documents/Codex/2026-10-23/so-reference-integrity에 보존한다. 원본 Documents와 다른 worktree 사용자 변경을 보존했다. 전체 플레이 UI·전수 시드·미래 콘텐츠 모든 조합의 통과를 주장하지 않는다. GitHub 통합 완료의 권위는 실제 PR merged 상태와 main push CI이며 결과를 외부 so-reference-integrity/integration-final.json으로 회수한다.
+
+## 2026-10-23 전체 SO 관계 — 공통 조회 비용 보완 후 r101
+
+r100si에서 CONTENT_REFERENCE_INTEGRITY/CONTENT_REFERENCE_AUTHORING/SO_CATALOG 및 additive 실제 enemy/incident 회귀 PASS. 이후 반복 root 조회의 CPU 비용을 확인해 소유 orchestration PID13708과 CUHA Unity2776089만 종료했다. native-15/620초/C#0/drift0, 전체 effects PASS는 아니며 core 이후는 실행하지 않았다. Unity0/lock free 확인 후 타입 조회·metadata·ID 일치 수 캐시만 수정, r101si21630입력을 동결했다. 최종5개 검증은 r101 소스로 모두 완료해야 한다. r100 인덱스 재생성·내용·freshness 검사는 통과했으나 source 수정으로 최종 인덱스는 r101 배치에서 다시 갱신한다.
+
+
+## 2026-10-23 전체 SO 관계 — 폐기 에셋 보호 후 r99
+
+r98si native1/270초/C#0/drift0: 운영 root 참조는 통과했으며 전체 SO ID 검사에서 폐기된 서커스 의뢰의 미존재 시설 참조1건으로 중단했다. Unity0/lock free 확인 후 GUID·stableId를 보존한 폐기 metadata/재등록 거절과 관련 검사만 보완했다. r99는 전송만 완료했다. 최종 drawer pending/mixed 문맥 수정 후 메인 SOURCE_EDIT 종료, r100si 전체입력 동결 후 effects→core→character→world→crop을 순차 실행한다.
+
+
+## 2026-10-23 전체 SO 관계 — r98 표적 검증
+
+r96/r97은 C#0·입력drift0이나 실제 관계 검증 실패로 native1이다. 문맥 오탐과 실제 미등록 연결은 findings.md의 계약대로 수정했다. 두 실행 종료 후 Unity0/operation.lock free 확인, r98si21630입력 전체 SHA를 동결·전송해 원격 drift0 확인. 현재 CUHA r98si-impact-effects부터 core/character/world/crop을 순차 실행하며 실패 즉시 중단한다. 로컬 RAM 부족으로 사용자 앱을 건드리지 않고 CUHA를 사용한다. Python CI44개 PASS(18.059초), workflow merge-base 비교 문법/현재 조상 관계 PASS.
+
+
+## 2026-10-23 전체 SO 관계 — 첫 구현 동결
+
+새 branch codex/so-reference-integrity는 main4fa97c17에서 시작했다. 전체 선언 inventory177행을 원본으로 구분: runtime SO143개 선언/142개 고유 타입(EquipmentEvolution partial 1개 중복 포함), Editor fixture20, 이름 충돌 plain class14. 실제 고유 타입은 native reflection과 후속 대조한다. Content/Models/Services/Views와 중첩 관계149개 고유 선언을 대조해 누락 선택 metadata·명시적 alias·문맥 union을 연결했다. root 등록 검증과 Inspector는 동일 ID lookup을 사용하며 보스 소유 능력/해부 로컬 노드 검증을 추가했다. 공개 identity 보호는 기존 필드/DTO ID를 유지하고 baseline 기반 Inspector/저장/삭제/빌드 및 Git CI 검사로 구현했다. 첫 native capture 이후 baseline을 검토·게시하고 현재 소스로 재검증한다.
+
+모든 소스 작성자 READY/FROZEN, 메인 SOURCE_EDIT 닫음. 로컬 free4.6GiB라 CUHA 사용; 서버 operation.lock free/Unity0/available 약10GiB 확인. 표적 effects compile/관계 실패/JSON/복구·재시도부터 진행하며 과거 PASS는 새 소스 증거로 사용하지 않는다. 원본 Documents와 다른 worktree 사용자 변경 보존.
+
+## 2026-10-23 PR15 이후 SO 관계 감사
+
+main4fa97c17과 HEAD960eeb3c tree 동일, origin/main 최신 확인. KB ContentReference 조회 fresh. 선택기→저장 ID→정의 등록→실제 해금/생산/성능/생태/전투 소비를 읽기 전용으로 확인했다. 표적 대조의 연구 해금366·제작 input/output1046·보스 phase8·야생동물57·작업 숙련도1195·실패 산출물355 및 Ending/Landmark9쌍에서 새 누락을 확정하지 않았다(각 대조 범위는 findings.md). 남은 수기 필드/늦은 예외/무시되는 관계와 ID 변경 이후 보호 누락을 보고한다. 게임 코드/에셋/생성 인덱스 수정, Unity 실행, commit/push 없음. 감사 기록3개만 갱신했다.
+
 ## 2026-10-23 SO 관계 선택 — 최종 로컬 검증 PASS
 
 r95so effects-retry1 110.582초/core84.466초/character85.12초/world364.239초/crop183.608초 모두 native0/C#0/consoleErrors0/drift0. source401017f9ec58b1439756f726b4a3980bec16507a21c72cbf66c7547415b25ed7(count4743), config84283c4a0b9cafefd2bf95a137f42654a90ff77e7f1ddbebb2a0379e209cb85b로5개 일치하며 Python 독립 검증도 PASS. SO 선택/기존 숫자·문자열 ID 및 JSON, 야망3·활동7 실행→새 owner 복원→동일 요청 중복 없음, 실제 월드104섹션 공식 복원/기준복구, 실제 작물 수확·저장·복원·재시도를 확인했다. Windows 비대화형 station/desktop probe를 각 실행에 적용했고 사용자 포커스/앱을 조작하지 않았다.

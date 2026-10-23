@@ -220,6 +220,7 @@ public sealed class PathogenSampleItemFeature : ItemFeatureDefinition
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class MedicalProcedureSupplyItemFeature : ItemFeatureDefinition
 {
+    [ContentReference("SurgicalProcedureSO", "ProcedureId")]
     public string procedureId = string.Empty;
     public override string FeatureId => "medical-procedure-supply";
     public override bool RequiresProductionOutputInstanceState => false;
@@ -376,6 +377,7 @@ public sealed class FacilitySupplyItemFeature : ItemFeatureDefinition
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class EquipmentItemFeature : ItemFeatureDefinition
 {
+    [ContentReference("CombatEquipmentDefinitionSO", "EquipmentId")]
     public string equipmentDefinitionId = string.Empty;
     public override string FeatureId => "equipment";
 
@@ -493,6 +495,7 @@ public sealed class InstallationItemFeature : ItemFeatureDefinition
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class BlueprintItemFeature : ItemFeatureDefinition
 {
+    [ContentReference("FacilityBlueprintSO", "id", emptyNumericId: -1)]
     public int blueprintDefinitionId = -1;
     [ContentReference(ContentReferenceKind.Research)]
     public string targetResearchId = string.Empty;
@@ -548,6 +551,7 @@ public abstract class ItemDefinitionSO : DataScriptableObject
     public const string UnifiedResourcePath = "SO";
 
     [Header("Identity")]
+    [ContentIdentity]
     [SerializeField] private string itemId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [TextArea, SerializeField] private string description = string.Empty;

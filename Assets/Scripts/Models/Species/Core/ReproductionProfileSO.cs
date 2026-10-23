@@ -8,7 +8,8 @@ using UnityEngine;
     menuName = "DungeonStory/Species/Reproduction Profile")]
 public sealed class ReproductionProfileSO : ScriptableObject
 {
-    public string definitionId = string.Empty;
+    [ContentIdentity] public string definitionId = string.Empty;
+    [ContentReference(ContentReferenceKind.Species)]
     public string speciesTag = string.Empty;
     public ReproductionMode mode;
     [Range(0f, 1f)] public float baseSuccessChance = 0.35f;

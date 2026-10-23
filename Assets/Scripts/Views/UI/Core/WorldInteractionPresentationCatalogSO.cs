@@ -47,6 +47,7 @@ public enum CharacterWorldActionKind
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CharacterPropAttachmentProfile
 {
+    [ContentReference(ContentReferenceKind.SpeciesOrAnatomy, Aliases = "default")]
     public string speciesOrAnatomyId = "default";
     public CharacterCarryVisualKind carryKind;
     public Vector2 rightFacingOffsetPixels = new Vector2(5f, 7f);

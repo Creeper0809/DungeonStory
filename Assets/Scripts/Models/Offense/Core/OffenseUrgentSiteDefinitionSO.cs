@@ -7,6 +7,7 @@ using UnityEngine.Scripting.APIUpdating;
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class OffenseUrgentSiteDefinitionSO : DataScriptableObject
 {
+    [ContentIdentity]
     public string urgentSiteId = "urgent";
     public string displayName = "긴급 거점";
     [TextArea] public string description;
@@ -14,6 +15,7 @@ public sealed class OffenseUrgentSiteDefinitionSO : DataScriptableObject
     [Range(0f, 3f)] public float maximumStrength = 1f;
     [Range(0f, 1f)] public float maximumMitigation = 0.6f;
     public string mitigationWorkTypeId;
+    [ContentReference(ContentReferenceKind.Item)]
     public string mitigationItemId;
     [Min(0)] public int mitigationItemAmount;
     [Min(0f)] public float mitigationWork;

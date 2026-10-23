@@ -9,6 +9,7 @@ using UnityEngine.Scripting.APIUpdating;
 public class SaleItem : DataScriptableObject
 {
     public string itemName;
+    [ContentReference(ContentReferenceKind.Item)]
     [SerializeField] private string itemDefinitionId = string.Empty;
     public StockCategory category;
     public int cost;

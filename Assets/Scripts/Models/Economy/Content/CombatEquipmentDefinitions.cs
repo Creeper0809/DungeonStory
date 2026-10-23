@@ -7,14 +7,17 @@ using UnityEngine.Scripting.APIUpdating;
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public abstract class CombatEquipmentDefinitionSO : ScriptableObject, IGameplayEffectSource
 {
+    [ContentIdentity]
     [SerializeField] private string equipmentId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [TextArea, SerializeField] private string description = string.Empty;
+    [ContentReference(ContentReferenceKind.Item)]
     [SerializeField] private string itemId = string.Empty;
     [Min(0f), SerializeField] private float weight = 1f;
     [Range(0, 2), SerializeField] private int occupiedHands = 1;
     [Min(1f), SerializeField] private float maxDurability = 100f;
     [Min(0.1f), SerializeField] private float requiredCraftWork = 6f;
+    [ContentReference("CraftMaterialDefinitionSO", "MaterialId")]
     [SerializeField] private string defaultMaterialId = string.Empty;
     [Min(1), SerializeField] private int primaryMaterialAmount = 1;
     [SerializeField] private List<CombatMaterialFamily> allowedMaterialFamilies =
@@ -23,6 +26,7 @@ public abstract class CombatEquipmentDefinitionSO : ScriptableObject, IGameplayE
         new List<CombatEquipmentCraftMaterial>();
     [SerializeField] private List<ItemAmountDefinition> requiredComponentInputs =
         new List<ItemAmountDefinition>();
+    [ContentReference(ContentReferenceKind.Research)]
     [SerializeField] private string requiredResearchId = string.Empty;
     [SerializeField] private EquipmentEra era = EquipmentEra.Starting;
     [Min(0), SerializeField] private int tier;

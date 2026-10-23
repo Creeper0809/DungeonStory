@@ -7,7 +7,8 @@ using UnityEngine;
     menuName = "DungeonStory/Species/Life History")]
 public sealed class SpeciesLifeHistorySO : ScriptableObject
 {
-    public string definitionId = string.Empty;
+    [ContentIdentity] public string definitionId = string.Empty;
+    [ContentReference(ContentReferenceKind.Species)]
     public string speciesTag = string.Empty;
     [Tooltip("-1 means this stage does not exist.")]
     public int infantEndAgeYears = 1;

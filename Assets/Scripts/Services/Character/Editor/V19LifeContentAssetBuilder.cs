@@ -422,7 +422,8 @@ public static class V19LifeContentAssetBuilder
         species.speciesTag = "Adventurer";
         species.displayName = "원정자";
         species.ownerSelectionPolicy = SpeciesOwnerSelectionPolicy.NpcOnly;
-        species.homeFactionId = "faction:adventurer";
+        // This phenotype is an intruder, not a faction-recruitable customer.
+        species.homeFactionId = string.Empty;
         species.anatomyProfileId = "anatomy:humanoid";
         species.needs = new SpeciesNeedProfile();
         species.environment = new SpeciesEnvironmentProfile();

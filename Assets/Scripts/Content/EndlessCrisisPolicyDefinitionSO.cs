@@ -63,7 +63,7 @@ public sealed class EndlessCrisisPolicyDefinitionSO : ScriptableObject
     public const string RequiredStableId =
         "policy:endless-crisis:owned-pressure-recovery";
 
-    public string stableId = RequiredStableId;
+    [ContentIdentity] public string stableId = RequiredStableId;
     [Range(0, 100)] public int singleAxisProbabilityPercent = 70;
     [Min(1)] public int pressureDurationDays = 3;
     [Min(5)] public int singleAxisRecoveryDays = 7;

@@ -8,7 +8,7 @@ using UnityEngine;
     menuName = "DungeonStory/Population/Festival")]
 public sealed class FestivalDefinitionSO : ScriptableObject
 {
-    public string festivalId = string.Empty;
+    [ContentIdentity] public string festivalId = string.Empty;
     public string displayName = string.Empty;
     [TextArea] public string description = string.Empty;
     [Min(1)] public int authoringRevision = 1;
@@ -17,6 +17,7 @@ public sealed class FestivalDefinitionSO : ScriptableObject
     [Range(1, GameCalendarRules.DaysPerSeason)]
     public int dayOfSeason = 1;
     public bool convertsActiveGrief;
+    [ContentReference(ContentReferenceKind.Culture)]
     public string cultureId = string.Empty;
     [Tooltip("When false, only the owner, residents, and minions may be assigned to this festival.")]
     public bool allowsVisitors;
@@ -53,6 +54,7 @@ public sealed class FestivalDefinitionSO : ScriptableObject
 [Serializable]
 public sealed class FestivalItemRequirement
 {
+    [ContentReference(ContentReferenceKind.Item)]
     public string itemDefinitionId = string.Empty;
     [Min(1)] public int amount = 1;
     public bool IsValid => !string.IsNullOrWhiteSpace(itemDefinitionId) && amount > 0;

@@ -12,7 +12,7 @@ public sealed class SurgicalProcedureSO : ScriptableObject
 {
     public const string ResourcePath = "SO/Medical/Procedures";
 
-    [SerializeField] private string procedureId = string.Empty;
+    [ContentIdentity, SerializeField] private string procedureId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [SerializeField, TextArea(2, 5)] private string description = string.Empty;
     [SerializeField] private SurgicalProcedureKind kind;
@@ -21,7 +21,7 @@ public sealed class SurgicalProcedureSO : ScriptableObject
     [SerializeField] private MedicalProcedureUrgency urgency =
         MedicalProcedureUrgency.Required;
     [SerializeField] private List<string> allowedAnatomyFamilies = new();
-    [ContentReference(ContentReferenceKind.Species), SerializeField]
+    [ContentReference(ContentReferenceKind.Species, IgnoreCase = true), SerializeField]
     private List<string> allowedSpeciesIds = new();
     [SerializeField] private ProcedureOperatorRequirement operatorRequirement = new();
     [ContentReference(ContentReferenceKind.AnatomyNode), SerializeField]

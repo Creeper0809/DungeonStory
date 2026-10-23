@@ -71,13 +71,17 @@ public sealed class CropDefinitionSO : DataScriptableObject
 {
     public const string ResourcePath = "SO/Economy/Crops";
 
+    [ContentIdentity]
     [SerializeField] private string cropId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
+    [ContentReference(ContentReferenceKind.Item)]
     [SerializeField] private string harvestItemId = string.Empty;
+    [ContentReference(ContentReferenceKind.Item)]
     [SerializeField] private string seedItemId = string.Empty;
     [SerializeField] private CropGenomeDefinitionSO baseGenome;
     [SerializeField] private CropFamilyGroup familyGroup;
     [SerializeField] private CropDiseaseKind endemicDisease;
+    [ContentReference(ContentReferenceKind.Research)]
     [SerializeField] private string requiredResearchId = string.Empty;
     [Min(1f), SerializeField] private float growthHours = 24f;
     [Min(0.1f), SerializeField] private float sowWork = 4f;

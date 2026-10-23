@@ -8,7 +8,7 @@ using UnityEngine;
     order = 0)]
 public sealed class CharacterAcquiredTraitSettingsSO : ScriptableObject
 {
-    [SerializeField] private string settingsId = string.Empty;
+    [ContentIdentity, SerializeField] private string settingsId = string.Empty;
     [SerializeField, Min(1)] private int maximumActiveTraits;
     [SerializeField]
     private List<CharacterAcquiredTraitManifestationGateDefinition>

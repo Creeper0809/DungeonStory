@@ -1,5 +1,44 @@
 # DungeonStory Current Findings
 
+## 2026-10-23 전체 SO 관계의 작성·검증·identity 계약
+
+모든 게임 SO의 원본 조사 범위는 142 unique runtime types(143 선언행, partial 1중복)이며 native TypeCache143개 중 추가1개는 vendor BehaviorDesigner.Runtime.ExternalBehaviorTree다. Editor fixture20과 Models/AI 이름 충돌 plain class14는 runtime SO에서 제외했다. 기존/신규 ID 관계149개 고유 leaf 선언을 원본까지 대조하고 추가 문맥 union을 반영했다. 원본/등록/소비/정적 에셋 감사 JSON은 외부 so-reference-integrity에, 최종 native 타입/ID 증거는 후속 실제 실행 결과에 보존한다.
+
+선택기와 runtime root 검증은 ContentReferenceCatalog의 동일 등록 목록과 metadata를 사용한다. 효과 target/가중치 target/서술 텍스트/종족·야생동물 해부·긴급 원정지 union을 각 실제 소비 계약에 맞췄다. 기존 Anatomy/Surgery의 대소문자 무시와 적 phenotype Truth→Adventurer, Construct→Golem 매핑은 명시적으로 유지한다. 이는 새 폴백 추가가 아니다. body node는 해당 profile, boss phase는 해당 적이 가진 ability 집합으로 제한한다. GameplayEffect 의미 키·WorkType registry·StockCategory·내부 formula key는 SO 관계로 오분류하지 않는다.
+
+r96si 실제 compile0/280초/exit1/drift0로 root 교차 검증에서 문맥 누락을 찾았다. anatomy wildlife/case, surgery case, narrative urgent site union을 실제 소비대로 수정했다. 이 실행에서 확인한 실제 미등록 연결인 Species_Adventurer.homeFactionId=faction:adventurer는 같은 생성기와 함께 비웠다. NpcOnly intruder는 원래 모집 계약이 없어 모집불가였고 빈 homeFaction 역시 모집불가다. 정의 speciesTag/GUID/저장 schema를 변경하지 않는다.
+
+r97si compile0/290초/exit1/drift0에서 의료 표현 사전의 case-insensitive 조회를 추가 반영했다. anatomy:quadruped.speciesIds의 ash_goat는 현재 등록 wildlife 정의가 없으며 Editor fixture에만 남은 종족이었다. 운영 에셋과 동일 생성 원본에서 해당 미사용 매핑을 제거하고 profile ID/GUID/nodes를 유지했다. 기존 등록 동물 매핑과 profile ID JSON 복원을 표적 검사한다. Inspector 목록은 project/Undo 변경 시 무효화되는 cache를 사용해 매 OnGUI마다 전체 정의를 순회하지 않는다. 게임 소유3538개 SO의 객체 참조뿐 아니라 metadata ID 관계도 native 검사한다.
+
+r98si에서는 운영 root ID 관계가 모두 통과했고, 등록 밖 전체3538 SO 검사에서 폐기 의뢰 guest-request:monster-circus의 building:circus-arena 1건이 검출됐다. WIM-037의 기존 GUID/ID 보존·비등록 계약을 유지하면서 retirementReason을 명시하고 폐기 시설 조건을 제거했다. GuestRequest 자체와 domain 등록이 폐기 정의의 운영 재등록을 거절하며 기존13개 active manifest와14개 보존 asset 계약 및 재등록 실패를 표적 회귀로 확인한다. 임의의 대체 건물/새 콘텐츠/검사 예외를 추가하지 않는다.
+
+최종 drawer 검토에서 effect/narrative kind의 미적용 SerializedProperty 값과 다중 선택 문맥을 원본 객체 reflection으로 읽는 문제를 보완했다. 같은 Inspector frame의 pending kind를 읽으며, 서로 다른 종류를 선택한 다중 편집에서는 공통 target 선택을 거절한다. 실제 SerializedObject pending/mixed 회귀를 추가했다. r99는 전송만 했고 실행 증거는 없으며 r100si에서 첫 실행 후 아래 조회 비용을 보완했다. 최종 검증 소스는 r101si다.
+
+r100 실제 실행에서 전체 SO/identity/선택기 및 additive catalog 회귀는 통과했으나 공통 카탈로그 재생성 비용이 커졌다. BuildEntries가 매 에셋마다 Assembly.GetType 탐색을 반복했고 ID별 선형 검색과 field attribute reflection도 반복했다. 정의 타입 조회를 관계 종류당1회로 이동하고 불변 field metadata/해당 catalog의 ID 일치 개수를 캐시했다. 에셋/ID 내용·중복·대소문자·alias 거절 기준은 동일하며 검증 시간 기준을 완화하지 않는다. r101의 최초 root 관계 검증은 CUHA에서1284ms였고 최종 영향5개 실행을 통과했다.
+
+공개 SO identity는 파일 GUID+script GUID+직렬화 ID 필드를 baseline으로 보호한다. r96 native에서3538 game SO/5857own identity필드를 캡처하고 Python으로 현재 실제 YAML 전부와 일치함을 확인한 뒤 ProjectSettings/PublishedContentIdentities.json에 최초 게시했다. 빈 identity 필드 목록인 SO도 GUID 객체 참조를 보호한다. 새 콘텐츠는 explicit append로 등록하며 기존 ID/asset 삭제·재지정은 거절한다. 표시 이름/asset 이동은 허용한다. 저장 DTO alias 재작성/버전 변경은 없다.
+
+## 2026-10-23 PR15 이후 SO 관계 감사 — 완료
+
+기준 main4fa97c17/HEAD960eeb3c 동일 tree f7ad2f02. KB query ContentReference는 fresh이며 인덱스 재생성은 하지 않았다. 코드/에셋은 읽기 전용이다.
+
+- 선택기는 ContentReferenceDrawer.cs:208-214에서 기존 int/string ID를 쓴다. 대상 자체의 itemId(ItemDefinitionSO.cs:551), projectId(ResearchProjectSO.cs:16), stableId(V20AuthoredContentContracts.cs:8)는 직렬화된 편집 가능 필드다. 선택 후 대상 ID를 바꾸어도 참조 필드가 GUID를 추적하지 않으며, 선택기의 경고 표시와 런타임 검증 범위 밖의 참조는 별도 보호가 필요하다. 파일 이름 변경과 stable ID 변경은 구별한다.
+- EndingDefinitionSO.cs:12 landmarkBuildingId는 선택 metadata 없는 수기 문자열이며 :20 검사는 비공백뿐이다. V20MilestoneRuntime.cs:217은 이 문자열을 해금 저장 목록에 넣고, GridConstructTab.cs:482-493 및 FacilityOperationalData.cs:509 이하가 실제 BuildingSO.ContentDefinitionId로 조회한다. 대상 오타/ID 변경 시 실제 건물 해금과 분리될 수 있다. 현행 Ending9개와 Landmark9개 ID 대조는 missing0으로, 현재 에셋이 깨졌다고 주장하지 않는다.
+- SeasonalWorldEventDefinitionSO의 speciesId/requiredHabitatId/itemId/eligibleBuildingDefinitionIds/siteArchetypeId/authoredEncounterId/factionId/requiredWeatherFrontId는 수기 입력이다. 일부는 소비 단계에 명시적 검사(SeasonalArcaneEventApplicationAdapters.cs:354-381, 원정 장소/전투/보상)가 있다. mana-lightning 건물 ID는 :119-121의 실제 건물 ID 필터로 소비되며 형식 검사는 양수·중복 정도다. 현행 seasonal asset의 대상 누락을 확정한 결과는 아니다.
+
+계절 사건의 모든 문자열을 SO 관계로 세지 않는다. specialExpeditionProfile.factionId의 현행 `hostile`은 원정 진영 의미 키이며 DungeonFactionDefinitionSO 선택 대상으로 단정하지 않는다. 날씨는 V20StoryContentCatalog.cs:180-192, 야생종은 :194-215에서 등록 시 교차 검증한다. 표류 화물의 아이템 누락은 SeasonalWildlifeVisitorApplicationAdapter.cs:339-346에서 명시적 실패를 기록하고 생성하지 않는다. 현행 마나 번개 건물9825, 원정 장소ritual_site/archive, 조우encounter:09 등 대표 대상은 실제 에셋에 존재한다. 마나 번개의 잘못된 건물 번호는 등록 시 형식 검사만 통과하면 대상 필터에서 빠질 수 있는 잠재 결함이다.
+
+### 우선순위와 추가 확정 근거
+
+1. P1 연구/랜드마크 해금의 대상 교차 검증. 연구는 ResourceResearchProjectCatalog의 자기 정의/중복/선행 검사(Services/Infrastructure/ResearchProjectCatalogAdapter.cs:51-78) 뒤 BlueprintResearchContracts.cs:649-690에서 완료 처리한다. :710-755의 building/basic-purchase는 대상이 없으면 default로 해금 기록만 빠지고, :757-770의 recipe는 실제 정의 조회 없이 해금 ID를 저장한다. 선택기가 붙어도 대상 ID 변경·등록 제외에 취약하다. 위 Ending.landmarkBuildingId는 선택기도 빠져 있다. 현재 등록된 건물과 Production/FacilitySynthesis recipe 합집합에 대한 연구 해금366개 대조는 누락0이었다.
+2. P1 공용 작업 숙련도 입력. Services/Foundation/CharacterProficiencyPrimitives.cs:82-99의 ProficiencyWorkProfileAuthoring primary/secondary는 수기 문자열이며 prefix-valid만 판단한다. 여러 제작식/건물/의복 SO에 들어간다. Services/Character/Core/CharacterPerformanceQuery.cs:538-555는 실제 숙련도 조회 실패 시 예외, Services/Character/Work/WorkProficiencyProgress.cs:224-238은 보정1f로 처리한다. 현재 의미 selector:*를 제외한1195개 값은 정의 asset ID 집합에 모두 있었지만 새 오타·ID 변경에 대한 조기 교차 검증은 아니다.
+3. P1 생산 input/output 참조의 늦은 실패. Models/Production/Core/ProductionPrimitives.cs:162-175,210-223에 선택기는 있지만 Services/Economy/ResourceEconomyContentCatalog.cs:31-67은 각 정의를 따로 등록한다. ResourceUsageIndex 생성자(:197-210)는 BuildStaticIndex만 호출하고 별도 ValidateContentGraph(:243-279)의 비Editor 실행 호출자는 없다. input 누락은 ProductionInputLogisticsService의 질량 조회를 거쳐 Services/Items/PhysicalItemMassQuery.cs:102-108에서 예외, output 누락은 ProductionOutputHandlerRegistry.cs:156-171에서 예외가 된다. 현재367개 recipe의 input677/output369는1069개 ItemDefinition ID 대조에서 누락0이었다.
+4. P1 야생동물 관계 입력과 소비. Models/Wildlife/Core/WildlifeSpeciesSO.cs:52-53,62의 preySpeciesIds/predatorSpeciesIds/diseaseVectorIds에 선택기와 대상 교차 검증이 없다. WildlifeEcosystemRuntime.cs:1045-1057의 문자열 비교에서 틀린 먹이/포식자는 매치되지 않고, Services/Wildlife/WildlifeDiseaseVectorRuntime.cs:37-54는 실제 근접 노출 시 diseases.Require를 호출하므로 없는 질병은 그 시점에 예외가 된다. 현재57개 관계는 정의 asset ID 집합 대조에서 누락0이었다. Wildlife 종은 CharacterSpecies와 다른 SO이므로 기존 Species kind를 재사용하면 잘못된 선택이다.
+5. P2 보스 phase의 의미 범위. Models/Offense/Core/EnemyArchetypeDefinitionSO.cs:38-43에 selector는 있지만 전체 등록 EnemyAbility를 고를 수 있다. EnemyIndividualRuntime의 등록 검증은 상위 abilityIds만 검사한다. Services/Offense/EnemyEncounterFactory.cs:236-239는 그 상위 목록만 실제 actor.Abilities로 만들고, EnemyTacticalDecisionService.cs:103-143은 실제 후보와 phase ID가 같을 때만 우선도+5를 더한다. 존재하는 SO여도 해당 보스 상위 목록에 없으면 phase 선택이 무효다. 현행8개 phase 참조는18개 정의 집합에 모두 있었다. 보유 목록과의 포함 관계는 선택/등록 경계에서 보장해야 한다.
+6. P2 남은 명시적 선택 UI. 계절 사건의 item/building/site/encounter/weather/wildlife 관계와 ProductionRecipeSO.cs:54 spoilageItemId가 raw다. 실패 산출물은 ResourceEconomyContentCatalog.cs:130-149에서 PassiveBatch 대상 존재를 이미 검사하므로 현재의 핵심 결함은 늦은 실패가 아니라 작성 편의 누락이다. 현행355개 비어 있지 않은 spoilage 값은 정의 asset ID 집합 대조에서 누락0이었다.
+
+현행 데이터 누락과 재발 위험을 혼동하지 않는다. 위 대조는 표적 정적 확인이며 모든 SO/모든 등록 경로의 완전성이나 실행 PASS를 뜻하지 않는다. 이번 조사에서 새로 확정한 운영 에셋의 끊어진 참조는 없다. 하지만 입력 누락, 등록 시 교차 검증 누락, 대상 생명주기 보호 누락은 실제 코드에 남아 있다. 자체 stable ID, choiceId, state flag, 내부 노드/의미 키를 모두 SO 참조로 강제할 이유는 없다. 수정한다면 기존 selector와 각 소유 카탈로그의 검증을 확장하고 변경/제외 영향 검사를 보완하면 되며 클래스 분리는 필요하지 않다.
+
 ## 격리 실행의 메모리 차단 원인
 
 r91/r93은 테스트 진입 전 ComputeImpactConfigurationDigest에서 중단됐다. 입력에 1,282,439,264byte GGUF가 있으며 기존 File.ReadAllBytes가 바이너리 전체를 managed heap에 할당했다. 동일 함수에서64KiB NUL scan→바이너리 stream SHA256으로 변경한다. .bytes/비UTF8/exact binary 및 UTF8 BOM·newline 정규화 계약, 파일 포함 범위/순서/CI 독립 digest 비교는 유지한다. 메모리/console/포커스 기준은 변경하지 않는다.

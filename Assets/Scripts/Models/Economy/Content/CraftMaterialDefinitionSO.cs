@@ -7,7 +7,9 @@ public sealed class CraftMaterialDefinitionSO : DataScriptableObject
 {
     public const string ResourcePath = "SO/Economy/Materials";
 
+    [ContentIdentity]
     [SerializeField] private string materialId = string.Empty;
+    [ContentReference(ContentReferenceKind.Item)]
     [SerializeField] private string itemId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [SerializeField] private CombatMaterialFamily family;
@@ -21,6 +23,7 @@ public sealed class CraftMaterialDefinitionSO : DataScriptableObject
     [Min(0f), SerializeField] private float arcaneResistance;
     [SerializeField] private Color tint = Color.white;
     [SerializeField] private bool rareMaterial;
+    [ContentReference(ContentReferenceKind.Research)]
     [SerializeField] private string requiredResearchId = string.Empty;
 
     public string MaterialId => materialId?.Trim() ?? string.Empty;
