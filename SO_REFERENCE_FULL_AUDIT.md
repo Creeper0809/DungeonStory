@@ -1,5 +1,162 @@
 # SO 관계 전수 감사 — 2026-10-24
 
+## R20-01~16 및 R20-X01 수정과 필요한 실행 검증 완료
+
+수정 전 main104459911에서 분류한 SO 관계16개와 별도 엔진 참조1개를 처리했다. 아래 표는 실제 수정과 실행 진입점을 연결한다. 새 구조 분리나 전수 seed 검증은 추가하지 않았다.
+
+| 감사 | 최종 수정 파일과 심볼 | 검증 진입점 |
+|---|---|---|
+| R20-01 | [Assets/Scripts/Content/V20AuthoredContentContracts.cs:174](Assets/Scripts/Content/V20AuthoredContentContracts.cs#L174) `V20ContentEffectKind`, `:206` `V20ContentEffect.IsValid`; [Assets/Scripts/Services/Run/V20ContentEffectHandlers.cs:50](Assets/Scripts/Services/Run/V20ContentEffectHandlers.cs#L50) 숙련도 경험치 handler; 숙련도 보상 포부 에셋 4개 | `V27CiEvidenceBatch.RunSoRuntimeContracts`에서 `V20ContentResolutionRecoveryDebugScenarios.RunR20ProficiencyRewardContracts`; 작성 검사는 `R20RelationGuardDebugScenarios.RunAll` |
+| R20-02 | [Assets/Scripts/Services/Foundation/CharacterIdentityRules.cs:29](Assets/Scripts/Services/Foundation/CharacterIdentityRules.cs#L29)부터 9개 `IdentityRuleProtocol` 필드와 `:547` `CharacterIdentityRuleProtocols`; [Assets/Scripts/Services/Character/AI/CharacterAlarmResponseRuntime.cs:251](Assets/Scripts/Services/Character/AI/CharacterAlarmResponseRuntime.cs#L251); `Trait_218_grudge-holder.asset`, `Trait_219_forgiving.asset` | `V27CiEvidenceBatch.RunSoAuthoringContracts`에서 `R20IdentityProtocolDebugScenarios.RunAll`; runtime에서 `R20TraitRuntimeDebugScenarios.RunAll` |
+| R20-03 | [Assets/Scripts/Services/Character/PopulationSocialRuntime.cs:623](Assets/Scripts/Services/Character/PopulationSocialRuntime.cs#L623) `CareerRuntime.AssignPosition`; [Assets/Scripts/Models/Species/Core/CareerPositionDefinitionSO.cs:21](Assets/Scripts/Models/Species/Core/CareerPositionDefinitionSO.cs#L21) `requiredFacilityTag` | `V27CiEvidenceBatch.RunSoRuntimeContracts`에서 `R20CareerScopeDebugScenarios.RunAll` |
+| R20-04 | [Assets/Scripts/Models/Species/Core/FuneralCultureSO.cs:13](Assets/Scripts/Models/Species/Core/FuneralCultureSO.cs#L13) `requiredFacilityTag`; [Assets/Scripts/Services/Items/ContentReferenceCatalog.cs:294](Assets/Scripts/Services/Items/ContentReferenceCatalog.cs#L294) 시설 의미 태그 후보와 `:628` 필수값 검사 | `V27CiEvidenceBatch.RunSoAuthoringContracts`에서 `R20RelationGuardDebugScenarios.RunAll`; Inspector 보조 검사는 `R20InspectorDebugScenarios.VerifyInspectorGUI` |
+| R20-05 | [Assets/Scripts/Models/Economy/Content/ProductionRecipeSO.cs:32](Assets/Scripts/Models/Economy/Content/ProductionRecipeSO.cs#L32) `facilityTag`; [Assets/Scripts/Services/Items/ContentReferenceCatalog.cs:295](Assets/Scripts/Services/Items/ContentReferenceCatalog.cs#L295) `ProductionFacilityTag` 후보와 의도된 외부 원천 6개 | `V27CiEvidenceBatch.RunSoAuthoringContracts`에서 `R20RelationGuardDebugScenarios.RunAll`; Inspector 보조 검사는 `R20InspectorDebugScenarios.VerifyInspectorGUI` |
+| R20-06 | [Assets/Scripts/Content/DiseaseDefinitionSO.cs:26](Assets/Scripts/Content/DiseaseDefinitionSO.cs#L26) `fieldResponseIds`; [Assets/Scripts/Services/Items/ContentReferenceCatalog.cs:146](Assets/Scripts/Services/Items/ContentReferenceCatalog.cs#L146) 질병 소유자별 응답 후보 | `V27CiEvidenceBatch.RunSoAuthoringContracts`에서 `R20RelationGuardDebugScenarios.RunAll`; Inspector 보조 검사는 `R20InspectorDebugScenarios.VerifyInspectorGUI` |
+| R20-07 | [Assets/Scripts/Services/Economy/ProductionOutputCostAllocationCapabilityRegistry.cs:88](Assets/Scripts/Services/Economy/ProductionOutputCostAllocationCapabilityRegistry.cs#L88) `ValidateForOutputs`, `:175` `DecodePayload`, `:220` `EncodePayload`; [Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs:53](Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs#L53); [Assets/Editor/R20ProductionOutputCostDrawer.cs:133](Assets/Editor/R20ProductionOutputCostDrawer.cs#L133) `Inspect` | `V27CiEvidenceBatch.RunSoAuthoringContracts`에서 `R20ProductionOutputCostDebugScenarios.RunAll`; Inspector에서 `R20InspectorDebugScenarios.VerifyInspectorGUI` |
+| R20-08 | [Assets/Scripts/Models/Buildings/Core/StatChange.cs:8](Assets/Scripts/Models/Buildings/Core/StatChange.cs#L8) `needId`; [Assets/Scripts/Services/Items/ContentReferenceCatalog.cs:300](Assets/Scripts/Services/Items/ContentReferenceCatalog.cs#L300) 욕구 후보와 `:624` 조기 검사; [Assets/Editor/ContentIdentityProtection.cs:722](Assets/Editor/ContentIdentityProtection.cs#L722) `characterNeeds[id].id` 게시 경로 | `R20RelationGuardDebugScenarios.RunAll`, `R20PublishedProviderDebugScenarios.RunAll`, `V27CiEvidenceBatch.CaptureContentPublication` |
+| R20-09 | [Assets/Editor/ContentIdentityProtection.cs:710](Assets/Editor/ContentIdentityProtection.cs#L710)부터 `BuildingProductionWorkstationAbility.workstationTag`, `BuildingProductionSupportAbility.featureTags`, `BuildingSemanticTagsAbility.tags`, 진화 tag, score, metric의 중첩 게시 경로 | `V27CiEvidenceBatch.RunSoAuthoringContracts`에서 `R20PublishedProviderDebugScenarios.RunAll`; `CaptureContentPublication` |
+| R20-10 | [Assets/Editor/ContentIdentityProtection.cs:714](Assets/Editor/ContentIdentityProtection.cs#L714)부터 `BuildingServiceHubAbility.serviceHubTag`, `BuildingServiceSupportAbility.featureTags`의 중첩 게시 경로 | `V27CiEvidenceBatch.RunSoAuthoringContracts`에서 `R20PublishedProviderDebugScenarios.RunAll`; `CaptureContentPublication` |
+| R20-11 | [Assets/Scripts/Services/Recruitment/SettlementPopulationCapacityRuntime.cs:286](Assets/Scripts/Services/Recruitment/SettlementPopulationCapacityRuntime.cs#L286) `CountSleepingSlots`, 특히 `:298` `BuildingServiceHubAbility`와 `ServiceCategory.Lodging` 권위 | `V27CiEvidenceBatch.RunSoRuntimeContracts`에서 `R20SleepingCapacityDebugScenarios.RunAll` |
+| R20-12 | [Assets/Scripts/Services/Foundation/ContentReferenceAttribute.cs:26](Assets/Scripts/Services/Foundation/ContentReferenceAttribute.cs#L26) 시설 관계 kind; [Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecipeSO.cs:17](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecipeSO.cs#L17), `:31`, `:38`; [Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionService.cs:706](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionService.cs#L706) `ProducedLineageKeys`; [Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionMutations.cs:44](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionMutations.cs#L44) `ExplicitEvidenceTags` | `V27CiEvidenceBatch.RunSoAuthoringContracts`에서 `R20FacilityRelationshipDebugScenarios.RunAll`; Inspector에서 `R20InspectorDebugScenarios.VerifyInspectorGUI` |
+| R20-13 | [Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs:167](Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs#L167) `FacilityEvolutionValue.key`; [Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionIdentity.cs:149](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionIdentity.cs#L149) `PressureKeys`, `:168` `ScoreRecipe`; [Assets/Scripts/Services/Items/ContentReferenceCatalog.cs:303](Assets/Scripts/Services/Items/ContentReferenceCatalog.cs#L303)부터 시설 값 문맥별 후보 | `V27CiEvidenceBatch.RunSoAuthoringContracts`에서 `R20FacilityRelationshipDebugScenarios.RunAll`; Inspector에서 `R20InspectorDebugScenarios.VerifyInspectorGUI` |
+| R20-14 | [Assets/Scripts/Views/UI/Core/WorldInteractionPresentationCatalogSO.cs:143](Assets/Scripts/Views/UI/Core/WorldInteractionPresentationCatalogSO.cs#L143) 호환 overload와 `:153` 종족 우선 resolver; [Assets/Scripts/Views/Character/Presentation/CharacterCarryPresentation.cs:127](Assets/Scripts/Views/Character/Presentation/CharacterCarryPresentation.cs#L127) 실제 종족 및 해부 프로필 전달 | `V27CiEvidenceBatch.RunSoAuthoringContracts`에서 `R20PresentationDebugScenarios.RunAll` |
+| R20-15 | [Assets/Scripts/Services/Items/GameContentCatalog.cs:86](Assets/Scripts/Services/Items/GameContentCatalog.cs#L86) `ValidateNarrativeReferences`, 특히 `:109` 문화가 소유한 의식 역집합 검사 | `V27CiEvidenceBatch.RunSoAuthoringContracts`에서 `R20ReverseMembershipDebugScenarios.RunAll` |
+| R20-16 | [Assets/Scripts/Services/Run/V20StoryContentCatalog.cs:160](Assets/Scripts/Services/Run/V20StoryContentCatalog.cs#L160) arc 계약 목록과 `:217` 비계절 실제 소비 집합의 양방향 일치 검사 | `V27CiEvidenceBatch.RunSoAuthoringContracts`에서 `R20ReverseMembershipDebugScenarios.RunAll` |
+| R20-X01 | [Assets/Scripts/Models/Buildings/Core/BuildingLightingSettingsSO.cs:5](Assets/Scripts/Models/Buildings/Core/BuildingLightingSettingsSO.cs#L5) `RegisteredSortingLayerAttribute`, `:28` `targetSortingLayers`; [Assets/Scripts/Services/Buildings/Abilities/BuildingAbility.cs:126](Assets/Scripts/Services/Buildings/Abilities/BuildingAbility.cs#L126) `GetTargetSortingLayerIds`; `Assets/Editor/R20SortingLayerDrawer.cs` | `R20PresentationDebugScenarios.RunAll`; `V27CiEvidenceBatch.RunSoInspectorContracts`에서 `R20InspectorDebugScenarios.VerifyInspectorGUI` |
+
+검증은 [R20 작성/실행/Inspector 영수증](Artifacts/QA/ImpactCI/r20-verification.json), [현재 변경 영향 실행](Artifacts/QA/ImpactCI/verification.json), [공식 월드 저장/복원](Artifacts/QA/ImpactCI/world-round-trip.txt), [Inspector 격리](Artifacts/QA/ImpactCI/r20-inspector-isolation.json)으로 확인한다. 수용한 각 native 실행은 C# 오류0, consoleErrors0, 입력 drift0이다. 실제 Inspector는 인증된 private Xvfb에서 Layout/Repaint, pending 입력, Apply/Undo와 원본 보존을 확인했다.
+
+SO 작성 검사는 실제 r142st, Inspector는 실제 r145st 입력의 결과를 유지한다. 이후 UI/선택/게시 보호와 작성 정의 및 두 검사의 진입점과 시나리오는 바뀌지 않았다. 차이는 별도 실행 fixture 수정과 신규 숙련도 지급 시각의 복구 metadata 및 내부 전달이다. 전체21700입력의 파일별 SHA 차이, 재사용 범위와 원래 source/configuration을 영수증에 기록했다. 지급 시각, 하루 뒤 JSON 복원/재시도와 손상 metadata 거절은 최종 입력의 SO runtime에서 실행했고 영향5그룹도 최종 입력에서 실행했다. 과거 실패와 부분 실행을 성공 증거로 바꾸지 않았다.
+
+포부4개는 지정 숙련도에 고정100경험치를 지급한다. 새 ProficiencyExperience19를 끝에 추가하고 기존 SkillExperience3의 일반 레벨 경험치 의미와 구형 저장을 보존했다. 실제 포부 완료4개, 구형 일반 경험치, 부분 실패의 권위 롤백, 새 JSON 복원 및 실제 게임 시각을 하루 진행한 재시도에서도 경험치와 승급 영수증이 한 번만 기록됨을 확인했다. 최초 지급 시각은 [기존 복구 원장](Assets/Scripts/Services/Run/V20ContentResolutionJournal.cs#L62)에 보존하며, [선택 저장 metadata](Assets/Scripts/Services/Run/V20ContentResolutionRecoverySaveData.cs#L92)의 누락/음수 시각을 [복원 경계](Assets/Scripts/Services/Run/V20ContentRecoveryEvidence.cs#L101)에서 거절한다. [실행 fixture](Assets/Scripts/Services/Run/Editor/V20ContentResolutionRecoveryDebugScenarios.cs#L1556)가 실제 달력을 다음 날로 진행해 확인한다. 직책은 실제 살아 있는 시설과 요구 태그를 검사하며, 구형 저장의 알 수 없는 시설 범위는 삭제하지 않는다. 특성은 실제 피해/사과 및 Amber 이벤트를 사용하고 진행 중 행동을 강제 취소하지 않는다.
+
+에셋 변경은 포부4개와 특성2개다. 기존 GUID, 게시 ID, 저장 DTO의 기존 필드와 버전은 유지했다. 새 kind19에만 필요한 지급 시각/version metadata 두 필드를 선택 확장했고 구형 kind0~18 저장은 그대로 수용한다. 기존3544에셋/10721게시 필드를 보존하고 기대1180제공자 필드만 추가해 총11901필드를 보호한다. 신규 제공자 ID는 게시 전에 작성할 수 있고 게시 후 변경/삭제는 거절된다. 일반 출처 문자열과 자기 제공자 ID를 외래 참조의 수기 입력과 혼동하지 않는다.
+
+Python CI82개, 고정 분석기와 생성 인덱스/링크 검사는 통과했다. 이 결과는 통제된 실제 명령과 공식 월드 복원에 대한 검증이며 모든 자연 AI 발동과 사람의 전체 UI 조작을 전수 인증한 결과는 아니다. main 통합은 이 작업의 실제 GitHub PR 및 병합 후 CI 상태를 따른다.
+
+최종 영향 실행 source `ca389fb037ee9656a927c49abb9b4bc3fcddf2f79a8c78e5527b99403214ff11`, configuration `aa3cc68111a562a17bf5bb805e46b4f8a823de3c8e26487ae6d59d361bd81ea1`.
+
+---
+
+## 수정 전 main104459911 재감사 — 당시 잔여16묶음
+
+기준은 원격 main `10445991171a8b9e336a70469c28266438b7defa`다. 이전 완료 표시 대신 당시 C# 선언, 선택기, 실제 조회 및 변경 명령, 게시 키 보호와 `.asset` 값을 다시 대조했다. **아래는 수정 전 판정이다.** 아래 항목은 수정 전 발견 목록이며 현재 수정 결과는 위17행과 실행 영수증을 따른다.
+
+현재 동작에서 드러나는 대상 불일치와, 현재 값은 맞지만 새 작성이나 ID 변경을 막지 못하는 공백을 따로 적었다. P1은 현재 잘못 적용되는 효과를 우선 고칠 대상으로, P2는 작성 보호 또는 중복 권위의 보완 대상으로 분류했다. 수기 문자열이 있다는 이유만으로 모든 자기 ID나 자유 태그를 결함으로 세지 않았다.
+
+### 조사 범위와 실제 결과
+
+- 게임 SO 선언 142종, 직렬화 선언 2,458개, 넓은 관계 후보 881개를 다시 추출했다. 참조 표식은 227개지만 표식 개수를 소비 연결의 증거로 쓰지 않았다.
+- 현재 게임 SO 에셋 3,544개, 직접 GUID 참조 8,962개, 에셋 내부 fileID 참조 4,731개를 대조했다. 누락 GUID, 중복 meta, 잘못된 에셋 내부 fileID와 미게시 게임 에셋은 0이다.
+- 문자열 관계는 올바른 대상이 있는지뿐 아니라 실제 소비자가 그 ID를 조회하는지 확인했다. 직접 참조 오류 0과 아래 효과/작성 경계의 잔여는 동시에 성립한다.
+- 이번 검증은 현재 소스와 에셋의 정적 대조 및 좁은 Python 반례다. Roslyn 파싱 오류는 0이지만 Unity 컴파일, Play, 실제 Inspector나 저장/복원을 이번 조사에서 새로 실행한 것은 아니다. 과거 R19 실행 PASS를 이번 감사의 실행 PASS로 바꾸지 않았다.
+- 코드, 에셋, 저장 형식과 생성 인덱스는 수정하지 않았다. 원본 Documents checkout의 사용자 변경과 기존 QA를 보존했다.
+
+### 우선순위별 잔여
+
+| ID | 우선순위 | 남은 부분 | 현재 에셋 대조와 영향 |
+|---|---|---|---|
+| R20-01 | P1 | `SkillExperience.targetId`의 숙련도 관계가 무시됨 | 포부 보상 4개가 실제 숙련도 ID를 지정하지만 일반 캐릭터 경험치로 적용됨 |
+| R20-02 | P1 | 특성 규칙의 이벤트/행동 키가 실제 프로토콜과 불일치 | `alert:minor`는 미생산, 용서 특성의 사과 키는 관계 기억 경로에서 사용되지 않고 배신/폭행 예외로 우회됨 |
+| R20-03 | P2 | 직책 SO의 시설 요구가 실제 임명 경로에 연결되지 않음 | Foreman/Mentor 두 에셋의 시설 태그는 존재하지만 임명은 이 값을 읽지 않음 |
+| R20-04 | P2 | 장례 문화의 필수 시설 태그가 수기 관계 | 현재 11개 에셋/10개 키는 정상, 오타/제공자 변경은 실행 때 시설 없음으로 드러남 |
+| R20-05 | P2 | 생산 레시피 `facilityTag`가 수기 관계 | 367개 중 348개는 실제 시설 태그와 일치, 19개는 의도된 외부/원천 경로 |
+| R20-06 | P2 | 질병 대응 `fieldResponseIds`에 선택/등록 검증 누락 | 현재 16개 질병/32개 대응은 정상, 오타는 사용 시점에 거절됨 |
+| R20-07 | P2 | 생산 원가 배분 문자열 안의 출력 ID가 수기 | 현재 3개 레시피의 2/2/5개 키는 정상, payload 오타는 원가 계산 때 실패 |
+| R20-08 | P2 | 욕구 제공자 ID 변경 보호와 구매 효과의 조기 참조 검사 누락 | 현재 욕구 6개와 구매 효과 1개는 정상, 제공자 ID 변경을 게시 키 수집이 감지하지 못함 |
+| R20-09 | P2 | 작업대/생산 지원 제공자 키의 변경 보호 누락 | 현재 유효한 작업대/지원 관계는 정상, 선택기는 소비자 쪽만 보호 |
+| R20-10 | P2 | 서비스 hub/feature 제공자 키의 변경 보호 누락 | 현재 관계는 정상, 제공자 단독 변경 시 시작 검사가 실패하며 저장 키 파손으로 확인된 것은 아님 |
+| R20-11 | P2 | 침대 수용량이 SO의 수기 시설 코드 3개에 종속 | 현재 R01/R02/R03은 정상, 새 침대나 코드 변경은 수용량으로 인정되지 않음 |
+| R20-12 | P2 | 시설 진화의 계보/방/변이 태그 소비자가 수기 | 현재 계보/방 조건은 비어 있고 변이 태그 12행/9종은 정상 |
+| R20-13 | P2 | `FacilityEvolutionValue.key`의 제공자/소비자 역할이 혼재 | 현재 score/metric/정체성 가중치는 정상, 가중치 오타나 제공자 변경을 문맥별로 막지 못함 |
+| R20-14 | P2 | 운반 표시 선택기가 소비하지 않는 해부 구조 ID를 허용 | 해부 구조 18종을 고를 수 있지만 실제 호출은 종족 태그만 전달, 현재 5개 표시 행은 정상 |
+| R20-15 | P2 | 문화 의식 목록과 의식의 소유 문화가 중복 권위 | 현재 10개 문화/20개 의식은 일치, 목록에서 빠져도 실제 의식은 계속 조회됨 |
+| R20-16 | P2 | 세력 arc 계약 목록과 실제 계약 집합이 중복 권위 | 현재 6개 arc/18개 일반 계약은 일치, 새 일반 계약이 arc 목록 밖에서도 조회될 수 있음 |
+
+### R20-01 숙련도 보상 대상이 일반 경험치로 바뀌는 경로
+
+[현재 handler](Assets/Scripts/Services/Run/V20ContentEffectHandlers.cs#L39)는 `targetId`를 읽지 않고 `actor.Progression.AddExperience`만 호출한다. [일반 경험치 명령](Assets/Scripts/Services/Character/Core/CharacterProgression.cs#L231)은 캐릭터 레벨 경험치를 바꾼다. 숙련도별 명령은 별도의 [AddDirectExperience](Assets/Scripts/Services/Character/CharacterNarrativeRuntime.cs#L188)다. [효과 대상 해석](Assets/Scripts/Services/Items/ContentReferenceCatalog.cs#L477)에도 `SkillExperience`의 숙련도 선택 문맥이 없다.
+
+[현장 학자](Assets/Resources/SO/V20/Narrative/Ambitions/ambition_field-scholar.asset), [치료사](Assets/Resources/SO/V20/Narrative/Ambitions/ambition_master-healer.asset#L48), [대장장이](Assets/Resources/SO/V20/Narrative/Ambitions/ambition_master-smith.asset), [다음 세대의 스승](Assets/Resources/SO/V20/Narrative/Ambitions/ambition_mentor-generation.asset)은 각각 scholarship/medicine/crafting/social 숙련도에 100을 지정한다. 현재 14개 같은 종류 효과 중 나머지 10개는 생활 사건/의식의 출처 문자열을 사용하므로 전체를 무조건 숙련도 관계로 바꾸면 기존 일반 경험치 계약을 깨뜨린다. 일반 경험치와 숙련도 보상을 구분하고 실제 명령, 증거, 저장/재시도까지 연결해야 한다.
+
+### R20-02 특성 규칙은 같은 문자열이어도 같은 소비 경로가 아니다
+
+[규칙 필드](Assets/Scripts/Services/Foundation/CharacterIdentityRules.cs#L27)의 behavior/event/action/condition/incident 키는 규칙 종류별 실제 생산자와의 관계다. 현재 조사한 92개 규칙과 자율 작업 조건을 문맥별로 대조했다. `PersistentNeedRule.satisfiedEventId/deprivedEventId`처럼 규칙 자신이 생산하는 이름과 소비 키는 구별했다.
+
+[얕은 잠 특성](Assets/Resources/SO/V20/Traits/General/Trait_201_light-sleeper.asset#L73)의 `alert:minor`는 실제 AI 행동 태그 생산 경로에 없다. [실제 AI 점수 계산](Assets/Scripts/Services/Character/AI/CharacterAiPersonalityUtility.cs#L49)은 행동이 내는 태그만 전달하므로 이 utility 규칙은 적용되지 않는다.
+
+[용서 특성](Assets/Resources/SO/V20/Traits/General/Trait_219_forgiving.asset#L71)은 관계 기억에 `social:sincere-apology`와 양수 delta 3을 지정한다. 실제 관계 기억 명령은 [원래 conflict ID](Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityDomainAdapters.cs#L1090)를 받으며, [apologyCanClear 예외](Assets/Scripts/Services/Character/Identity/Runtime/CharacterIdentityDomainAdapters.cs#L121)가 작성한 키와 무관하게 `betrayal-or-assault`를 허용한다. 따라서 이 규칙은 미실행이 아니다. 배신/폭행에서 양수 관계 기억과 decay가 적용되고 사과는 해당 기억을 해제한다. `social:sincere-apology`는 별도 mood 규칙만 구동한다. 작성 대상이 실제 관계 명령을 나타내지 않는 것이 문제다.
+
+기존 [Editor 연결 감사](Assets/Scripts/Services/Character/Editor/V26FounderTraitConnectivityManifestScenario.cs#L265)는 서로 다른 규칙 종류의 문자열을 합쳐 검색하므로 mood 생산자를 relationship 생산자로 오인할 수 있다. 규칙 종류별 생산자와 선택/등록 검사가 필요하다.
+
+### R20-03과 R20-04 직책 및 장례의 시설 관계
+
+[직책 정의](Assets/Scripts/Models/Species/Core/CareerPositionDefinitionSO.cs#L21)의 `requiredFacilityTag`는 [직책 카탈로그](Assets/Scripts/Services/Character/CareerPositionDefinitionCatalog.cs#L11)에서 비어 있지 않은지만 검사한다. 실제 [임명 명령](Assets/Scripts/Models/Species/Core/CareerHouseholdDomain.cs#L652)은 Foreman/Mentor에 비어 있지 않은 `scopeId`만 요구하고 SO의 시설 태그를 조회하지 않는다. 현재 [Foreman](Assets/Resources/SO/Population/Careers/career-position_foreman.asset)과 [Mentor](Assets/Resources/SO/Population/Careers/career-position_mentor.asset)의 두 관계는 실제 제한으로 작동하지 않는다. 이 정의를 임명 권위에 연결하거나 실행 의미가 없는 작성 필드를 명시적으로 퇴역시켜야 한다.
+
+반면 [장례의 requiredFacilityTag](Assets/Scripts/Models/Species/Core/FuneralCultureSO.cs#L13)는 [실행](Assets/Scripts/Services/Character/FuneralFestivalRuntime.cs#L293)과 합동 추모에서 실제 시설을 찾는 외래 키다. 현재 11개 문화가 사용하는 10개 값은 [추모실](Assets/Resources/SO/Building/ResearchOverhaul/RF87_추모실.asset#L92)에 모두 있다. 이 필드는 수기이며 카탈로그 membership 검사가 없어 오타는 `ServiceFeatureMissing`으로 늦게 드러난다. 직책의 미소비 필드와 장례의 실제 관계를 같은 자유 태그로 분류하면 안 된다.
+
+### R20-05와 R20-06 실제 등록/제공자 목록으로 선택할 수 없는 소비 키
+
+[ProductionRecipeSO.facilityTag](Assets/Scripts/Models/Economy/Content/ProductionRecipeSO.cs#L32)는 [BuildingSemanticTagsAbility.tags](Assets/Scripts/Models/Buildings/Core/BuildingCoreAbilityDefinitions.cs#L83)와 실제 [재고 정책](Assets/Scripts/Services/Economy/Planning/ResourceStockPolicyRuntime.cs#L930) 및 [폐기물 처리](Assets/Scripts/Services/Economy/Waste/WasteProcessingPortAdapters.cs#L163)에서 결합된다. [조리 레시피](Assets/Resources/SO/Economy/Recipes/recipe_lavish_meat.asset#L28)의 `cookbench`와 [조리대](Assets/Resources/SO/Building/Modular/P15_조리대.asset#L169)가 예다. 현재 19개 외부/원천 경로 animal-pen/butcher/spoilage/exterior-grass/exterior-rock/exterior-tree는 정상 예외다. 이 예외를 보존한 선택 및 등록 검사가 필요하다.
+
+[질병 대응 목록](Assets/Scripts/Content/DiseaseDefinitionSO.cs#L26)은 실제 [private 대응 registry](Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs#L48) 및 [질병별 isolate/environment 형태](Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs#L525)에 연결된다. 현재 32개 값은 정상이다. 하지만 정의 검사는 이 집합을 공유하지 않으므로 잘못된 키는 [플레이어가 대응을 실행할 때](Assets/Scripts/Services/Character/DiseaseFieldResponseRuntime.cs#L140) `field-response-rule-unregistered`로 거절된다. 질병별 vaccine/isolate/environment 문맥을 보존한 선택/검증이 필요하다.
+
+### R20-07 출력 ID가 문자열 payload 안에 숨어 있는 관계
+
+[canonicalPayload](Assets/Scripts/Models/Economy/Content/ProductionOutputCostAllocationAuthoring.cs#L15)는 `출력ID=가중치;...`를 직접 적는다. [카탈로그 조립](Assets/Scripts/Services/Economy/ResourceEconomyContentCatalog.cs#L46)은 capability/version 등록만 확인하고 [실제 해석](Assets/Scripts/Services/Economy/ProductionOutputCostAllocationCapabilityRegistry.cs#L106)은 뒤에서 local 출력 ID 전체와 정확히 일치하는지 검사한다.
+
+현재 [logging](Assets/Resources/SO/Economy/Recipes/source_logging.asset#L63), [saltstone](Assets/Resources/SO/Economy/Recipes/source_saltstone.asset#L63), [quarry](Assets/Resources/SO/Economy/Recipes/source_quarry.asset#L63)의 2/2/5개 키는 정상이다. 게시된 출력 ID 자체는 이미 보호된다. 남은 것은 payload 쪽 오타나 복사한 키의 불일치다. local 출력 선택/구조 입력과 조기 해석 검사를 기존 저장 문자열 계약 위에서 제공해야 한다.
+
+### R20-08 욕구 ID는 선택 UI가 있어도 제공자 변경은 빠져 있다
+
+[욕구 제공자](Assets/Scripts/Content/GameDomainContentCatalogSO.cs#L243)의 6개 ID는 nested 게시 보호에서 제외된다. [C# 수집 경로](Assets/Editor/ContentIdentityProtection.cs#L713)와 [Python 경로](tools/V27Balance/verify_content_identities.py#L152)는 meta/run variable/doctrine/invasion만 수집한다. 실제 현재 에셋의 `need:hunger`를 메모리에서 변경한 좁은 반례에서 수집된 nested 보호 필드 32개는 그대로였고 `characterNeeds` 보호 필드는 0이었다. 이는 전체 CI를 실행한 PASS 주장이 아니다.
+
+구매 효과 [Hamburger](Assets/Resources/SO/Stock/Item/Onbuy/Hamburger.asset#L15)의 `need:hunger`는 현재 정상이며 [전용 선택기](Assets/Scripts/Services/Buildings/SO/Editor/CharacterNeedIdDrawer.cs)가 이미 있다. 남은 공백은 제공자 ID 불변성 및 공용 참조 검사가 이 전용 attribute를 다루지 않아 [실제 구매 명령](Assets/Scripts/Services/Character/Core/CharacterBuildingVisitorPort.cs#L655)에서야 unknown을 거절하는 점이다.
+
+### R20-09와 R20-10 제공자 쪽에 남은 변경 보호 공백
+
+[작업대와 생산 지원](Assets/Scripts/Services/Economy/ProductionWorkshopAbilities.cs#L45)의 `workstationTag/featureTags`, [서비스 hub와 지원](Assets/Scripts/Services/ServiceRooms/ServiceRoomAbilities.cs#L11)의 `serviceHubTag/featureTags`는 실제 관계 제공자다. 소비자는 선택기로 연결됐지만 [BuildingSO nested 보호](Assets/Editor/ContentIdentityProtection.cs#L710)는 production/security의 `abilityId`만 수집한다.
+
+생산 쪽 현재 작업대 제공자는 146행이며 유효한 지원 참조 58개 모두 작업대 문맥까지 일치한다. 서비스 쪽 hub 제공자는 8개 에셋/5개 키, feature는 21개 에셋/27개 작성행/19개 키이고 현재 consumer 모두 정상이다. 제공자 단독 변경은 기존 소비자를 끊는다. 특히 서비스의 stale 관계는 현재 시작 검사에서 거절되므로 조용한 실행 성공이나 확인되지 않은 저장 파손으로 과장하지 않는다. 새 제공자는 허용하고 게시된 제공자의 공유 namespace 및 변경을 보호해야 한다.
+
+### R20-11 침대 SO와 하드코딩된 수용량 관계
+
+[시설 code](Assets/Scripts/Models/Buildings/Core/BuildingCoreAbilityDefinitions.cs#L183)는 자유 입력이며 수용량은 [R01/R02/R03 집합](Assets/Scripts/Services/Recruitment/SettlementPopulationCapacityRuntime.cs#L213)과 [직접 비교](Assets/Scripts/Services/Recruitment/SettlementPopulationCapacityRuntime.cs#L294)한다. 현재 세 침대는 정상이다. code 변경이나 새로운 침대가 같은 휴식 기능을 제공해도 수용량에 반영되지 않는다. 전체 시설 code 331행/326종에는 의도된 중복도 있으므로 모든 code를 일괄 고유 ID로 잠그는 해법은 부적절하다. 침대의 실제 수용 capability와 이민 수용량을 같은 권위에 연결해야 한다.
+
+### R20-12와 R20-13 시설 진화의 필드 역할별 관계
+
+[진화 레시피](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecipeSO.cs#L17)의 `fromLineageTags`, `requiredRoomTags`, `allowedMutationTags`는 서로 다른 후보 집합을 소비하지만 모두 수기다. 계보는 [실제 9종 생산](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionService.cs#L693), 방 태그는 [room profile 생산](Assets/Scripts/Services/FacilityEvolution/RoomProfile.cs#L319), 변이는 [현재 evidence 해석](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionMutations.cs#L35) 문맥을 사용한다. 현재 6개 레시피의 계보/방 조건은 비어 있고 변이 태그 12행/9종에는 실제 근거가 있다. 변이 namespace 전체를 닫힌 enum으로 만들 것이 아니라 실제 동적 evidence 제공자도 보존해야 한다.
+
+[공용 value.key](Assets/Scripts/Models/Evolution/Facility/FacilityEvolutionTerms.cs#L165)는 Building의 score/metric에서는 제공자, 레시피의 `identityPressureWeights`에서는 소비자다. 현재 score 제공자 196행/48키, metric 8행/5키, score 조건 17행/11키는 정상이며 해당 레시피의 원본/필수 fixture 문맥도 일치한다. 정체성 가중치 13행/6키도 [실제 9종 pressure 생산자](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionIdentity.cs#L130)에 있다. 그러나 가중치의 오타는 [조회](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionIdentity.cs#L149)에서 0으로 읽히며 제공자 key 변경 보호도 없다. 제공자의 자유 확장과 소비자의 문맥별 선택/검증을 구별해야 한다.
+
+### R20-14 선택 가능한 해부 구조가 실제 표시 조회에는 전달되지 않음
+
+[표시 관계 필드](Assets/Scripts/Views/UI/Core/WorldInteractionPresentationCatalogSO.cs#L50)는 종족 또는 해부 구조를 고르게 하고 [선택 후보](Assets/Scripts/Services/Items/ContentReferenceCatalog.cs#L407)는 현재 해부 구조 18종도 허용한다. 실제 [운반 표시 호출](Assets/Scripts/Views/Character/Presentation/CharacterCarryPresentation.cs#L127)은 `actor.SpeciesTag`만 넘긴다. [조회](Assets/Scripts/Views/UI/Core/WorldInteractionPresentationCatalogSO.cs#L143)는 받은 키만 비교하고 default로 내려가므로 `anatomy:human` 같은 유효한 선택이 표시를 바꾸지 못한다. 현재 [표시 에셋](Assets/Resources/SO/Presentation/WorldInteractionPresentationCatalog.asset)의 5개 행은 default와 Slime만 쓰므로 현재 잘못된 행은 없다. 해부 구조 문맥을 실제 조회에 연결하거나 소비하지 않는 선택 후보를 제거해야 한다.
+
+### R20-15와 R20-16 존재 검사는 통과하지만 목록에서 빠져도 실행되는 관계
+
+[문화 ceremonyIds](Assets/Scripts/Content/SpeciesCultureDefinitionSO.cs#L39)는 SO 선택기와 [소유 문화 검사](Assets/Scripts/Services/Items/GameContentCatalog.cs#L93)가 있다. 하지만 실제 의식은 [전체 practice catalog](Assets/Scripts/Services/Character/CharacterNarrativeCatalog.cs#L17) 및 자식의 `cultureId`로 조회한다. 현재 10개 문화/20개 의식은 정확히 일치하지만 역목록의 누락은 검증되지 않고 실행에도 영향을 주지 않는다.
+
+[arc contractIds](Assets/Scripts/Content/FactionArcDefinitionSO.cs#L10)도 [기존 항목의 소유자](Assets/Scripts/Services/Run/V20StoryContentCatalog.cs#L176)만 확인하며 실제 [계약 query](Assets/Scripts/Services/Run/V20FactionContractQuery.cs#L31)는 faction별 전체 계약을 본다. 현재 18개 일반 계약은 arc 목록과 일치하고 6개 겨울 계약은 정상 별도 계절 경로다. 같은 catalog의 chapter는 이미 완전한 집합 동등성을 검사하지만 contract에는 그 검사가 없다. 두 역목록을 자식 소유자에서 파생하거나 실제 소비 집합과 정확히 대조해야 한다. 현재 잘못된 외래 ID나 수기 Inspector 문제가 아니라 중복 권위의 불일치 가능성이다.
+
+### 별도 참고 R20-X01 — SO 간 관계 밖의 엔진 문자열 참조
+
+[BuildingLightingSettingsSO.targetSortingLayers](Assets/Scripts/Models/Buildings/Core/BuildingLightingSettingsSO.cs#L23)는 Sorting Layer 이름의 수기 입력이며 [실제 변환](Assets/Scripts/Services/Buildings/Abilities/BuildingAbility.cs#L126)은 이름을 ID로 바꾼 뒤 ID만 검사한다. 현재 이 SO의 에셋은 0개이고 기본 4개 이름은 [TagManager](ProjectSettings/TagManager.asset#L45)에 있다. 따라서 현재 SO 간 관계 파손 16개 묶음에 합산하지 않았다. 설정 에셋 작성 시에는 실제 Sorting Layer 선택 및 이름의 존재 검사가 필요하다.
+
+### 정상으로 분류한 범위와 감사의 한계
+
+직접 BaseGenome, 촉매 ID/feature 의미, 게시 SO ID/GUID/등록, local module/variant/효과 binding, CoreSession 숫자 선택, 기존 formula mirror/applicator/stat, 현재 WorkType과 서비스 시작/단계/완료 관계는 원본 기준으로 다시 확인했다. 기존 저장 snapshot의 런타임 인스턴스 ID와 자기 identity, 자유 출처/표시 문자열은 외래 관계로 세지 않았다. 고정 스킬의 생성 snapshot 필드는 [전용 Editor](Assets/Editor/CharacterSOEditor.cs)에서 읽기 전용이며 새 module/variant 입력은 별도 선택 경로를 사용한다.
+
+현재 WorldFlag 효과 47개는 모두 양수이며 요구 flag 9개에 실제 계산/생산 경로가 있다. 질병 `symptomProfileId`는 자기 질병의 사실/표시용 값으로 외부 registry 참조가 아니다. seasonal `affectedDomainIds`와 진화 token의 `recipeTags`는 현재 실제 외래 조회가 없는 metadata다. `Festival.requiredBuildingDefinitionId`는 비어 있거나 생략되고 nonempty를 거절하는 퇴역 필드이며 실제 venue 관계와 중복해 기능이 있다고 세지 않았다.
+
+SO 상속과 nested/managed reference를 포함한 현재 모집단을 사용했다. `StockInfo.stocks`의 Tuple과 Building tile dictionary는 단순 최종 generic 인자만 보는 인벤토리 분류를 넘어 원본 및 실제 참조를 별도 확인했다. 직접 fileID 검사는 텍스트 `.asset` 대상의 anchor까지며 importer가 생성하는 sprite/model 내부 ID 전체를 실행 인증한 것은 아니다. Inspector GUI, 자연 AI의 모든 발동, 모든 저장 조합을 이번 조사에서 실행했다고 주장하지 않는다.
+
+반복 누락의 원인은 이전 감사가 표식/대상 존재 확인과 일부 registry에 치우쳐, 실제 소비 문맥이 다른 문자열, payload 내부의 외래 키, 제공자 쪽 변경 보호와 중복 역목록을 같은 기준으로 끝까지 보지 못한 데 있다. 이번에도 미래 코드 변경까지 영구적으로 0건을 보증하는 표현은 쓰지 않는다. 현재 확인한 잔여는 위 16개이며 별도 엔진 참조 1개를 함께 기록한다.
+
+외부 근거: [현재 모집단](C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/main-reaudit-r20/inventory.json), [GUID/fileID 대조](C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/main-reaudit-r20/current-assets.json), [현재 에셋 값](C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/main-reaudit-r20/asset-groups.json), [좁은 ID 변경 반례](C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/main-reaudit-r20/main-probes.json), [캐릭터/서비스 상세](C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/main-reaudit-r20/actor-findings.md), [콘텐츠 상세](C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/main-reaudit-r20/content-findings.md), [생산/시설 상세](C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/main-reaudit-r20/economy-findings.md).
+
+---
+
 R19-07 저장 차단 후속까지 실행 검증을 마쳤다. PR20의 main 통합 뒤 일시 feature 불가를 저장 취소로 처리하는 경계를 보완했다. 현재15개 mode의 기존 빈 요구 목록과 저장 형식은 유지한다. 실제 요구 시설이 없는 채 Capture→V7 JSON→공식 section 복원한 세션을 보존하고, 실행 거절 뒤 시설 복구와 결제/완료1회를 확인했다. 최신 영수증은 이 후속 소스에 결합되어 있으며 최종 GitHub 통합 상태는 해당 PR과 Goal의 실제 결과를 따른다.
 
 ## R19-01~20 수정 및 필요한 실행 검증 완료

@@ -94,9 +94,31 @@ public sealed class ResourceGameContentCatalog :
         {
             foreach (string id in culture.preferredItemIds.Concat(culture.forbiddenItemIds))
                 RequireReference(items.Contains(id), culture.StableId, "item", id);
-            foreach (string id in culture.ceremonyIds)
+            if (culture.ceremonyIds == null)
+                throw new InvalidOperationException(
+                    $"Culture '{culture.StableId}' ceremony list is missing.");
+            string[] ceremonyIds = culture.ceremonyIds.ToArray();
+            if (ceremonyIds.Distinct(StringComparer.Ordinal).Count()
+                != ceremonyIds.Length)
+                throw new InvalidOperationException(
+                    $"Culture '{culture.StableId}' has duplicate cultural practice references.");
+            foreach (string id in ceremonyIds)
                 RequireReference(practices.TryGetValue(id, out var practice) && practice.cultureId == culture.StableId,
                     culture.StableId, "cultural practice", id);
+
+            string[] ownedPracticeIds = practices.Values
+                .Where(practice => string.Equals(
+                    practice.cultureId,
+                    culture.StableId,
+                    StringComparison.Ordinal))
+                .Select(practice => practice.StableId)
+                .ToArray();
+            if (ceremonyIds.Length != ownedPracticeIds.Length
+                || !ceremonyIds.ToHashSet(StringComparer.Ordinal)
+                    .SetEquals(ownedPracticeIds))
+                throw new InvalidOperationException(
+                    $"Culture '{culture.StableId}' ceremony list does not match "
+                    + "the cultural practices owned by that culture.");
         }
         foreach (var practice in practices.Values)
         {

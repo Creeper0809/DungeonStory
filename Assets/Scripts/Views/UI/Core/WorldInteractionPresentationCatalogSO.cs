@@ -144,9 +144,20 @@ public sealed class WorldInteractionPresentationCatalogSO : ScriptableObject
         string speciesOrAnatomyId,
         CharacterCarryVisualKind kind)
     {
-        string requested = string.IsNullOrWhiteSpace(speciesOrAnatomyId)
+        string legacyRequest = string.IsNullOrWhiteSpace(speciesOrAnatomyId)
             ? "default"
-            : speciesOrAnatomyId.Trim();
+            : speciesOrAnatomyId;
+        return ResolvePropProfile(legacyRequest, string.Empty, kind);
+    }
+
+    public CharacterPropAttachmentProfile ResolvePropProfile(
+        string speciesTag,
+        string anatomyProfileId,
+        CharacterCarryVisualKind kind)
+    {
+        string requestedSpecies = speciesTag?.Trim() ?? string.Empty;
+        string requestedAnatomy = anatomyProfileId?.Trim() ?? string.Empty;
+        CharacterPropAttachmentProfile anatomyMatch = null;
         CharacterPropAttachmentProfile fallback = null;
         for (int i = 0; i < propProfiles.Count; i++)
         {
@@ -156,12 +167,23 @@ public sealed class WorldInteractionPresentationCatalogSO : ScriptableObject
                 continue;
             }
 
-            if (string.Equals(
+            if (requestedSpecies.Length > 0
+                && string.Equals(
                     profile.speciesOrAnatomyId,
-                    requested,
+                    requestedSpecies,
                     StringComparison.OrdinalIgnoreCase))
             {
                 return profile;
+            }
+
+            if (anatomyMatch == null
+                && requestedAnatomy.Length > 0
+                && string.Equals(
+                    profile.speciesOrAnatomyId,
+                    requestedAnatomy,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                anatomyMatch = profile;
             }
 
             if (string.Equals(
@@ -173,7 +195,7 @@ public sealed class WorldInteractionPresentationCatalogSO : ScriptableObject
             }
         }
 
-        return fallback ?? CreateDefaultProfile(kind);
+        return anatomyMatch ?? fallback ?? CreateDefaultProfile(kind);
     }
 
     public void InitializeDefaults()

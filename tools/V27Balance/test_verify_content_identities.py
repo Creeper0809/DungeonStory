@@ -21,6 +21,14 @@ VENDOR_SCRIPT_GUID = "ffffffffffffffffffffffffffffffff"
 ROOT_SCRIPT_GUID = "cccccccccccccccccccccccccccccccc"
 ITEM_CATALOG_SCRIPT_GUID = "dddddddddddddddddddddddddddddddd"
 DOMAIN_CATALOG_SCRIPT_GUID = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+PRODUCTION_FEATURE_ALPHA_PATH = (
+    "@nested:abilityModules.items[featureTags=feature%3Aalpha;"
+    "type=BuildingProductionSupportAbility].featureTags"
+)
+PRODUCTION_FEATURE_BETA_PATH = (
+    "@nested:abilityModules.items[featureTags=feature%3Abeta;"
+    "type=BuildingProductionSupportAbility].featureTags"
+)
 
 
 class GitIdentityFixture(unittest.TestCase):
@@ -89,6 +97,30 @@ class GitIdentityFixture(unittest.TestCase):
         Path(str(asset) + ".meta").write_text(
             f"fileFormatVersion: 2\nguid: {asset_guid}\n",
             encoding="utf-8",
+        )
+
+    def write_building_provider_asset(self, feature_tags: tuple[str, ...]) -> None:
+        source = self.root / "Assets/Scripts/TestSO.cs"
+        source.write_text("public sealed class BuildingSO {}\n", encoding="utf-8")
+        feature_lines = (
+            ("      featureTags:",)
+            + tuple(f"      - {tag}" for tag in feature_tags)
+            if feature_tags
+            else ("      featureTags: []",)
+        )
+        self.write_asset(
+            fields=(
+                "abilityModules:",
+                "  items:",
+                "  - rid: 10",
+                "references:",
+                "  RefIds:",
+                "  - rid: 10",
+                "    type: {class: BuildingProductionSupportAbility, "
+                "ns: '', asm: Assembly-CSharp}",
+                "    data:",
+            )
+            + feature_lines,
         )
 
     @staticmethod
@@ -180,6 +212,7 @@ class GitIdentityFixture(unittest.TestCase):
                 "runVariables: []",
                 "ownerDoctrines: []",
                 "invasionPatterns: []",
+                "characterNeeds: []",
             ),
         )
 
@@ -786,6 +819,50 @@ class RevisionVerificationTests(GitIdentityFixture):
             with self.assertRaisesRegex(verifier.VerificationError, "nested identities do not match"):
                 verifier.verify_revisions(base, changed, self.root)
 
+    def test_published_building_provider_rename_and_delete_are_rejected(self):
+        self.write_building_provider_asset(("feature:alpha",))
+        self.write_baseline([self.asset_row(
+            fields=((PRODUCTION_FEATURE_ALPHA_PATH, "feature:alpha"),),
+            type_name="BuildingSO",
+        )])
+        base = self.commit("publish building provider identity")
+
+        self.write_building_provider_asset(("feature:renamed",))
+        renamed = self.commit("rename building provider identity")
+        with self.assertRaisesRegex(
+            verifier.VerificationError, "nested identities do not match"
+        ):
+            verifier.verify_revisions(base, renamed, self.root)
+
+        self.write_building_provider_asset(())
+        deleted = self.commit("delete building provider identity")
+        with self.assertRaisesRegex(
+            verifier.VerificationError, "nested identities do not match"
+        ):
+            verifier.verify_revisions(base, deleted, self.root)
+
+    def test_explicit_new_building_provider_append_is_allowed(self):
+        self.write_building_provider_asset(("feature:alpha",))
+        self.write_baseline([self.asset_row(
+            fields=((PRODUCTION_FEATURE_ALPHA_PATH, "feature:alpha"),),
+            type_name="BuildingSO",
+        )])
+        base = self.commit("publish one building provider identity")
+
+        self.write_building_provider_asset(("feature:alpha", "feature:beta"))
+        self.write_baseline([self.asset_row(
+            fields=(
+                (PRODUCTION_FEATURE_ALPHA_PATH, "feature:alpha"),
+                (PRODUCTION_FEATURE_BETA_PATH, "feature:beta"),
+            ),
+            type_name="BuildingSO",
+        )])
+        head = self.commit("append building provider identity")
+
+        result = verifier.verify_revisions(base, head, self.root)
+
+        self.assertEqual(2, result["fieldsChecked"])
+
 
 class NestedIdentityExtractionTests(unittest.TestCase):
     def test_legacy_trait_without_rule_list_has_no_saved_rule_identity(self):
@@ -802,6 +879,119 @@ class NestedIdentityExtractionTests(unittest.TestCase):
         actual = self.extract("FacilityEvolutionRecipeSO",
             "  formulaCapabilities:\n  - capabilityId: facility:alpha\n    evolutionModuleId: facility:research\n")
         self.assertEqual({"@nested:formulaCapabilities[capabilityId=facility%3Aalpha].capabilityId": "facility:alpha"}, actual)
+
+    def test_building_provider_arrays_scalars_and_domain_need_are_captured(self):
+        actual = self.extract(
+            "BuildingSO",
+            "  abilityModules:\n"
+            "    items:\n"
+            "    - rid: 10\n"
+            "    - rid: 20\n"
+            "    - rid: 30\n"
+            "    - rid: 40\n"
+            "    - rid: 50\n"
+            "    - rid: 60\n"
+            "  references:\n"
+            "    RefIds:\n"
+            "    - rid: 10\n"
+            "      type: {class: BuildingSemanticTagsAbility, ns: '', asm: Assembly-CSharp}\n"
+            "      data: {tags: [room:quiet, room:warm]}\n"
+            "    - rid: 20\n"
+            "      type: {class: BuildingProductionSupportAbility, ns: '', asm: Assembly-CSharp}\n"
+            "      data: {featureTags: [production:heat]}\n"
+            "    - rid: 30\n"
+            "      type: {class: BuildingServiceSupportAbility, ns: '', asm: Assembly-CSharp}\n"
+            "      data: {featureTags: [service:privacy]}\n"
+            "    - rid: 40\n"
+            "      type: {class: BuildingEvolutionAbility, ns: '', asm: Assembly-CSharp}\n"
+            "      data:\n"
+            "        settings:\n"
+            "          tags: [evolution:rest]\n"
+            "          scores: [{key: evolution:comfort, value: 2}]\n"
+            "          metrics: [{key: evolution:traffic, value: 1}]\n"
+            "    - rid: 50\n"
+            "      type: {class: BuildingProductionWorkstationAbility, ns: '', asm: Assembly-CSharp}\n"
+            "      data: {workstationTag: workstation:forge}\n"
+            "    - rid: 60\n"
+            "      type: {class: BuildingServiceHubAbility, ns: '', asm: Assembly-CSharp}\n"
+            "      data: {serviceHubTag: service:lodging}\n",
+        )
+
+        expected = {
+            "@nested:abilityModules.items[tags=room%3Aquiet;"
+            "type=BuildingSemanticTagsAbility].tags": "room:quiet",
+            "@nested:abilityModules.items[tags=room%3Awarm;"
+            "type=BuildingSemanticTagsAbility].tags": "room:warm",
+            "@nested:abilityModules.items[featureTags=production%3Aheat;"
+            "type=BuildingProductionSupportAbility].featureTags": "production:heat",
+            "@nested:abilityModules.items[featureTags=service%3Aprivacy;"
+            "type=BuildingServiceSupportAbility].featureTags": "service:privacy",
+            "@nested:abilityModules.items[settings.tags=evolution%3Arest;"
+            "type=BuildingEvolutionAbility].settings.tags": "evolution:rest",
+            "@nested:abilityModules.items[settings.scores.key=evolution%3Acomfort;"
+            "type=BuildingEvolutionAbility].settings.scores.key": "evolution:comfort",
+            "@nested:abilityModules.items[settings.metrics.key=evolution%3Atraffic;"
+            "type=BuildingEvolutionAbility].settings.metrics.key": "evolution:traffic",
+            "@nested:abilityModules.items[workstationTag=workstation%3Aforge;"
+            "type=BuildingProductionWorkstationAbility].workstationTag":
+                "workstation:forge",
+            "@nested:abilityModules.items[serviceHubTag=service%3Alodging;"
+            "type=BuildingServiceHubAbility].serviceHubTag": "service:lodging",
+        }
+        self.assertEqual(expected, actual)
+
+        domain = self.extract(
+            "GameDomainContentCatalogSO",
+            "  metaUpgrades: []\n"
+            "  runVariables: []\n"
+            "  ownerDoctrines: []\n"
+            "  invasionPatterns: []\n"
+            "  characterNeeds:\n"
+            "  - id: need:sleep\n",
+        )
+        self.assertEqual(
+            {"@nested:characterNeeds[id=need%3Asleep].id": "need:sleep"},
+            domain,
+        )
+
+    def test_building_provider_same_key_is_allowed_across_managed_types(self):
+        actual = self.extract(
+            "BuildingSO",
+            "  abilityModules:\n"
+            "    items:\n"
+            "    - rid: 10\n"
+            "    - rid: 20\n"
+            "  references:\n"
+            "    RefIds:\n"
+            "    - rid: 10\n"
+            "      type: {class: BuildingProductionSupportAbility, ns: '', asm: Assembly-CSharp}\n"
+            "      data: {featureTags: [feature:shared]}\n"
+            "    - rid: 20\n"
+            "      type: {class: BuildingServiceSupportAbility, ns: '', asm: Assembly-CSharp}\n"
+            "      data: {featureTags: [feature:shared]}\n",
+        )
+
+        self.assertEqual(2, len(actual))
+        self.assertEqual({"feature:shared"}, set(actual.values()))
+        self.assertTrue(any("type=BuildingProductionSupportAbility" in key for key in actual))
+        self.assertTrue(any("type=BuildingServiceSupportAbility" in key for key in actual))
+
+    def test_duplicate_building_provider_key_in_same_type_is_rejected(self):
+        body = (
+            "  abilityModules:\n"
+            "    items:\n"
+            "    - rid: 10\n"
+            "  references:\n"
+            "    RefIds:\n"
+            "    - rid: 10\n"
+            "      type: {class: BuildingProductionSupportAbility, ns: '', asm: Assembly-CSharp}\n"
+            "      data: {featureTags: [feature:shared, feature:shared]}\n"
+        )
+
+        with self.assertRaisesRegex(
+            verifier.VerificationError, "duplicate nested identity selector"
+        ):
+            self.extract("BuildingSO", body)
 
     @staticmethod
     def record(type_name: str) -> verifier.PublishedAsset:

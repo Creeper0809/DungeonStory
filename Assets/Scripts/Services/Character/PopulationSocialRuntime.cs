@@ -587,14 +587,20 @@ public sealed class CareerRuntime : ICareerService, ICareerPersistence
 {
     private readonly DungeonRuntimeAggregateRootStore rootStore;
     private readonly IMilestoneGameplayModifierQuery milestoneModifiers;
+    private readonly ICareerPositionDefinitionCatalog positionDefinitions;
+    private readonly IBuildingWorldQuery buildings;
     public CareerRuntime(
         DungeonRuntimeAggregateRootStore rootStore,
-        IMilestoneGameplayModifierQuery milestoneModifiers = null)
+        IMilestoneGameplayModifierQuery milestoneModifiers = null,
+        ICareerPositionDefinitionCatalog positionDefinitions = null,
+        IBuildingWorldQuery buildings = null)
     {
         this.rootStore = rootStore
             ?? throw new ArgumentNullException(nameof(rootStore));
         this.milestoneModifiers = milestoneModifiers
             ?? NeutralMilestoneGameplayModifierQuery.Instance;
+        this.positionDefinitions = positionDefinitions;
+        this.buildings = buildings;
     }
     public IReadOnlyList<CareerMentorshipSnapshot> Mentorships => Current.Mentorships;
     public IReadOnlyList<RetirementScheduleSnapshot> RetirementSchedules =>
@@ -614,8 +620,36 @@ public sealed class CareerRuntime : ICareerService, ICareerPersistence
         int absoluteDay) => Writable.CancelRetirementByDeath(
         characterId,
         absoluteDay);
-    public void AssignPosition(CharacterId characterId, CareerPositionKind position, string scopeId, int absoluteDay) =>
-        Writable.AssignPosition(characterId, position, scopeId, absoluteDay);
+    public void AssignPosition(CharacterId characterId, CareerPositionKind position, string scopeId, int absoluteDay)
+    {
+        if (!Enum.IsDefined(typeof(CareerPositionKind), position))
+            throw new InvalidOperationException("Career position is unsupported.");
+        string scope = scopeId?.Trim() ?? string.Empty;
+        if (position != CareerPositionKind.None)
+        {
+            CareerPositionDefinitionSO definition = (positionDefinitions
+                ?? throw new InvalidOperationException("Career position definitions are unavailable."))
+                .Require(position);
+            if (definition.scope == CareerPositionScopeKind.Global)
+            {
+                if (scope.Length != 0)
+                    throw new InvalidOperationException("Global career positions cannot reference a facility.");
+            }
+            else if (definition.scope == CareerPositionScopeKind.Facility)
+            {
+                BuildableObject facility = (buildings
+                    ?? throw new InvalidOperationException("Career facility authority is unavailable."))
+                    .Buildings.FirstOrDefault(value => value != null && !value.isDestroy
+                        && string.Equals(value.PersistentInstanceId.Value, scope, StringComparison.Ordinal));
+                if (scope.Length == 0 || facility == null
+                    || !facility.HasSemanticTag(definition.requiredFacilityTag))
+                    throw new InvalidOperationException("Career position requires a live facility with its authored tag.");
+            }
+            else
+                throw new InvalidOperationException("Career position scope is unsupported.");
+        }
+        Writable.AssignPosition(characterId, position, scope, absoluteDay);
+    }
     public bool CanPerformRetiredWork(
         CharacterId characterId,
         int absoluteDay,

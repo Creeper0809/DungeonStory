@@ -59,6 +59,8 @@ internal sealed class V20ContentResolutionJournal
         grantDropoffX = grantDropoff.x,
         grantDropoffY = grantDropoff.y,
         childCommitEvidenceVersion = 2,
+        proficiencyAwardClockVersion = childCommits?.ProficiencyAwardAbsoluteHour.HasValue == true ? 1 : 0,
+        proficiencyAwardAbsoluteHour = childCommits?.ProficiencyAwardAbsoluteHour ?? 0L,
         moneyTransactionId = childCommits?.MoneyTransactionId ?? string.Empty,
         itemConsumptionOperationId = childCommits
             ?.ItemConsumptionOperationId ?? string.Empty,
@@ -261,7 +263,7 @@ internal sealed class V20ContentResolutionJournal
                         return false;
                     }
                     resolved = typedEffects.ApplyTypedDomainEffects(current.absoluteDay, resolved,
-                        effectRollback.CaptureEffectOwners).ToArray();
+                        effectRollback.CaptureEffectOwners, childCommits.ProficiencyAwardAbsoluteHour).ToArray();
                     if (retirementPlan.IsRequired)
                     {
                         latestCareer = careers.PrepareRestore(careers.Capture());

@@ -29,6 +29,7 @@ public sealed class ProductionRecipeSO : DataScriptableObject
     [SerializeField] private string recipeId = string.Empty;
     [SerializeField] private string displayName = string.Empty;
     [TextArea, SerializeField] private string description = string.Empty;
+    [ContentReference(ContentReferenceKind.ProductionFacilityTag)]
     [SerializeField] private string facilityTag = string.Empty;
     [ContentReference(ContentReferenceKind.ProductionWorkstation)]
     [SerializeField] private string workstationTag = string.Empty;

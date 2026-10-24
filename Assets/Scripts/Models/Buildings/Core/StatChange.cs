@@ -5,7 +5,7 @@ using UnityEngine.Scripting.APIUpdating;
 [CreateAssetMenu(menuName = "DungeonStory/Item/On Buy/Need Change", order = 0)]
 public class StatChange : OnBuyItemSO
 {
-    [CharacterNeedId]
+    [ContentReference(ContentReferenceKind.CharacterNeed)]
     public string needId = "need:hunger";
     public int value;
 

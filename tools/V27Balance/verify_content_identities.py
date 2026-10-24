@@ -95,6 +95,8 @@ class NestedRoute:
     children: tuple["NestedRoute", ...] = ()
     managed_reference: bool = False
     managed_types: tuple[str, ...] = ()
+    array_path: str = ""
+    array_value: str = ""
 
 
 NESTED_ROUTES: dict[str, tuple[NestedRoute, ...]] = {
@@ -148,12 +150,27 @@ NESTED_ROUTES: dict[str, tuple[NestedRoute, ...]] = {
             managed_reference=True,
             managed_types=("BuildingProductionAbility", "BuildingSecurityAbility"),
         ),
+        NestedRoute("abilityModules.items", "workstationTag", ("workstationTag",),
+                    managed_reference=True, managed_types=("BuildingProductionWorkstationAbility",)),
+        NestedRoute("abilityModules.items", "serviceHubTag", ("serviceHubTag",),
+                    managed_reference=True, managed_types=("BuildingServiceHubAbility",)),
+        NestedRoute("abilityModules.items", "tags", ("tags",),
+                    managed_reference=True, managed_types=("BuildingSemanticTagsAbility",), array_path="tags"),
+        NestedRoute("abilityModules.items", "featureTags", ("featureTags",),
+                    managed_reference=True, managed_types=("BuildingProductionSupportAbility", "BuildingServiceSupportAbility"), array_path="featureTags"),
+        NestedRoute("abilityModules.items", "settings.tags", ("settings.tags",),
+                    managed_reference=True, managed_types=("BuildingEvolutionAbility",), array_path="settings.tags"),
+        NestedRoute("abilityModules.items", "settings.scores.key", ("settings.scores.key",),
+                    managed_reference=True, managed_types=("BuildingEvolutionAbility",), array_path="settings.scores", array_value="key"),
+        NestedRoute("abilityModules.items", "settings.metrics.key", ("settings.metrics.key",),
+                    managed_reference=True, managed_types=("BuildingEvolutionAbility",), array_path="settings.metrics", array_value="key"),
     ),
     "GameDomainContentCatalogSO": (
         NestedRoute("metaUpgrades", "id", ("id",)),
         NestedRoute("runVariables", "id", ("id",)),
         NestedRoute("ownerDoctrines", "id", ("id",)),
         NestedRoute("invasionPatterns", "id", ("id",)),
+        NestedRoute("characterNeeds", "id", ("id",)),
     ),
     "EquipmentEvolutionFormulaCatalogSO": (
         NestedRoute("capabilities", "capabilityId", ("capabilityId",)),
@@ -882,35 +899,49 @@ def _capture_nested_route(
             if not isinstance(item, dict):
                 raise VerificationError(f"nested array element is not a mapping at {item_location}")
             element = item
-        selector = _identity_string(element, route.selector, item_location)
-        if selector in seen:
-            raise VerificationError(
-                f"duplicate nested identity selector at {location}: {route.selector}={selector}"
-            )
-        seen.add(selector)
-        encoded = quote(selector, safe="-._~")
-        scope = f"{route.path}[{route.selector}={encoded}"
-        if route.managed_types:
-            scope += f";type={managed_type}"
-        scope += "]"
-        if scope_prefix:
-            scope = f"{scope_prefix}.{scope}"
-        for leaf in route.leaves:
-            value = _identity_string(element, leaf, item_location)
-            virtual_path = f"{NESTED_FIELD_PREFIX}{scope}.{leaf}"
-            if virtual_path in result:
-                raise VerificationError(f"duplicate nested identity path at {location}: {virtual_path}")
-            result[virtual_path] = value
-        for child in route.children:
-            child_items = _sequence_at(element, child.path, item_location)
-            _capture_nested_route(
-                child_items,
-                child,
-                f"{item_location}.{child.path}",
-                result,
-                scope_prefix=scope,
-                references=references,
-            )
+        selected_elements = [element]
+        if route.array_path:
+            selected_elements = []
+            for array_index, array_item in enumerate(_sequence_at(element, route.array_path, item_location)):
+                array_location = f"{item_location}.{route.array_path}[{array_index}]"
+                if route.array_value:
+                    if not isinstance(array_item, dict):
+                        raise VerificationError(f"provider value is not a mapping at {array_location}")
+                    token = _identity_string(array_item, route.array_value, array_location)
+                else:
+                    token = _identity_string({route.selector: array_item}, route.selector, array_location)
+                selected_elements.append({route.selector: token})
+        for selected_element in selected_elements:
+            selector = _identity_string(selected_element, route.selector, item_location)
+            seen_selector = (managed_type, selector) if route.array_path else selector
+            if seen_selector in seen:
+                raise VerificationError(
+                    f"duplicate nested identity selector at {location}: {route.selector}={selector}"
+                )
+            seen.add(seen_selector)
+            encoded = quote(selector, safe="-._~")
+            scope = f"{route.path}[{route.selector}={encoded}"
+            if route.managed_types:
+                scope += f";type={managed_type}"
+            scope += "]"
+            if scope_prefix:
+                scope = f"{scope_prefix}.{scope}"
+            for leaf in route.leaves:
+                value = _identity_string(selected_element, leaf, item_location)
+                virtual_path = f"{NESTED_FIELD_PREFIX}{scope}.{leaf}"
+                if virtual_path in result:
+                    raise VerificationError(f"duplicate nested identity path at {location}: {virtual_path}")
+                result[virtual_path] = value
+            for child in route.children:
+                child_items = _sequence_at(selected_element, child.path, item_location)
+                _capture_nested_route(
+                    child_items,
+                    child,
+                    f"{item_location}.{child.path}",
+                    result,
+                    scope_prefix=scope,
+                    references=references,
+                )
 
 
 def _actual_nested_fields(

@@ -154,6 +154,7 @@ internal sealed class V20ContentEffectTransaction
         recoveryPhase = V20ContentResolutionRecoveryPhase.Prepared;
         childCommits = new V20ContentEffectCommitReferences
         {
+            ProficiencyAwardAbsoluteHour = typedEffects.CaptureProficiencyAwardHour(resolutions),
             ItemConsumptionOperationId = plan.ItemCosts.Count > 0
                 ? plan.ReservationOwnerId
                 : string.Empty,
@@ -279,7 +280,8 @@ internal sealed class V20ContentEffectTransaction
         childCommits.ItemGrantReceiptId = grantReceipt.RecoveryCommitId ?? string.Empty;
         recoveryPhase = V20ContentResolutionRecoveryPhase.ItemGrantsCommitted;
         childCommits.AppliedResolutions = typedEffects.ApplyTypedDomainEffects(
-            request.AbsoluteDay, resolutions, effectRollback.CaptureEffectOwners);
+            request.AbsoluteDay, resolutions, effectRollback.CaptureEffectOwners,
+            childCommits.ProficiencyAwardAbsoluteHour);
         recoveryPhase = V20ContentResolutionRecoveryPhase.TypedEffectsApplied;
         return true;
     }

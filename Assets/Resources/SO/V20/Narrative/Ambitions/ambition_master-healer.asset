@@ -44,7 +44,7 @@ MonoBehaviour:
     requiredFlags: []
     excludedFlags: []
   completionRewards:
-  - kind: 3
+  - kind: 19
     targetId: proficiency:medicine
     amount: 100
     durationDays: 0

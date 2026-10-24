@@ -126,6 +126,28 @@ public sealed class FacilityIdentitySnapshot
 
 public static class FacilityIdentityPressureUtility
 {
+    private static readonly (
+        string Key,
+        Func<RoomProfile, IEnumerable<IdentitySignal>> Signals)[] PressureProducers =
+    {
+        (FacilityEvolutionTerms.Crowd, CrowdSignals),
+        (FacilityEvolutionTerms.Luxury, LuxurySignals),
+        (FacilityEvolutionTerms.Combat, CombatSignals),
+        (FacilityEvolutionTerms.Outlaw, OutlawSignals),
+        (FacilityEvolutionTerms.Rest, RestSignals),
+        (FacilityEvolutionTerms.Service, ServiceSignals),
+        (FacilityEvolutionTerms.Ritual, RitualSignals),
+        (FacilityEvolutionTerms.Security, SecuritySignals),
+        (FacilityEvolutionTerms.Logistics, LogisticsSignals)
+    };
+
+    private static readonly IReadOnlyList<string> pressureKeys =
+        Array.AsReadOnly(PressureProducers
+            .Select(producer => producer.Key)
+            .ToArray());
+
+    public static IReadOnlyList<string> PressureKeys => pressureKeys;
+
     public static void ApplyDefaultPressures(RoomProfile profile)
     {
         if (profile == null)
@@ -133,15 +155,12 @@ public static class FacilityIdentityPressureUtility
             return;
         }
 
-        ApplyPressure(profile, FacilityEvolutionTerms.Crowd, CrowdSignals(profile));
-        ApplyPressure(profile, FacilityEvolutionTerms.Luxury, LuxurySignals(profile));
-        ApplyPressure(profile, FacilityEvolutionTerms.Combat, CombatSignals(profile));
-        ApplyPressure(profile, FacilityEvolutionTerms.Outlaw, OutlawSignals(profile));
-        ApplyPressure(profile, FacilityEvolutionTerms.Rest, RestSignals(profile));
-        ApplyPressure(profile, FacilityEvolutionTerms.Service, ServiceSignals(profile));
-        ApplyPressure(profile, FacilityEvolutionTerms.Ritual, RitualSignals(profile));
-        ApplyPressure(profile, FacilityEvolutionTerms.Security, SecuritySignals(profile));
-        ApplyPressure(profile, FacilityEvolutionTerms.Logistics, LogisticsSignals(profile));
+        foreach ((
+            string key,
+            Func<RoomProfile, IEnumerable<IdentitySignal>> signals) in PressureProducers)
+        {
+            ApplyPressure(profile, key, signals(profile));
+        }
 
         DetectConflicts(profile);
     }
@@ -150,12 +169,30 @@ public static class FacilityIdentityPressureUtility
         RoomProfile profile,
         FacilityEvolutionRecipeSO recipe)
     {
-        if (profile == null || recipe == null)
+        if (recipe == null)
         {
             return new FacilityEvolutionIdentityScore(false, 0f, 0f, Array.Empty<string>());
         }
 
         FacilityEvolutionValue[] weights = recipe.identityPressureWeights ?? Array.Empty<FacilityEvolutionValue>();
+        string unknownKey = weights
+            .Where(weight => !string.IsNullOrWhiteSpace(weight.key))
+            .Select(weight => weight.key)
+            .FirstOrDefault(key => !pressureKeys.Contains(
+                key,
+                StringComparer.Ordinal));
+        if (unknownKey != null)
+        {
+            throw new InvalidOperationException(
+                $"Facility evolution recipe '{recipe.EffectiveId}' identity pressure "
+                + $"weight names unknown key '{unknownKey}'.");
+        }
+
+        if (profile == null)
+        {
+            return new FacilityEvolutionIdentityScore(false, 0f, 0f, Array.Empty<string>());
+        }
+
         bool usesIdentity = recipe.minimumIdentityScore > 0f
             || weights.Any((weight) => !string.IsNullOrWhiteSpace(weight.key)
                 && !Mathf.Approximately(weight.value, 0f));

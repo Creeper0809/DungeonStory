@@ -709,12 +709,49 @@ public static class ContentIdentityProtection
                 List("effects", "bindingId"); List("specialReactions", "reactionId"); break;
             case nameof(BuildingSO):
                 List("abilityModules.items", "abilityId", types: new[]
-                    { "BuildingProductionAbility", "BuildingSecurityAbility" }); break;
+                    { "BuildingProductionAbility", "BuildingSecurityAbility" });
+                List("abilityModules.items", "workstationTag", types: new[] { "BuildingProductionWorkstationAbility" });
+                List("abilityModules.items", "serviceHubTag", types: new[] { "BuildingServiceHubAbility" });
+                CaptureProviderArray(source, record, "BuildingSemanticTagsAbility", "tags");
+                CaptureProviderArray(source, record, "BuildingProductionSupportAbility", "featureTags");
+                CaptureProviderArray(source, record, "BuildingServiceSupportAbility", "featureTags");
+                CaptureProviderArray(source, record, "BuildingEvolutionAbility", "settings.tags");
+                CaptureProviderArray(source, record, "BuildingEvolutionAbility", "settings.scores", "key");
+                CaptureProviderArray(source, record, "BuildingEvolutionAbility", "settings.metrics", "key");
+                break;
             case nameof(GameDomainContentCatalogSO):
-                foreach (string path in new[] { "metaUpgrades", "runVariables", "ownerDoctrines", "invasionPatterns" })
+                foreach (string path in new[] { "metaUpgrades", "runVariables", "ownerDoctrines", "invasionPatterns", "characterNeeds" })
                     List(path, "id"); break;
             case nameof(EquipmentEvolutionFormulaCatalogSO): List("capabilities", "capabilityId"); break;
             case nameof(FacilityEvolutionRecipeSO): List("formulaCapabilities", "capabilityId"); break;
+        }
+    }
+
+    private static void CaptureProviderArray(SerializedObject source, AssetRecord record,
+        string providerType, string arrayPath, string valueMember = null)
+    {
+        const string path = "abilityModules.items";
+        SerializedProperty list = source.FindProperty(path);
+        if (list == null || !list.isArray) throw new InvalidOperationException("Missing provider collection: " + path);
+        string key = arrayPath + (valueMember == null ? "" : "." + valueMember);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < list.arraySize; i++)
+        {
+            SerializedProperty element = list.GetArrayElementAtIndex(i);
+            if (element.propertyType != SerializedPropertyType.ManagedReference
+                || element.managedReferenceFullTypename.Split(' ').Last().Split('.').Last() != providerType) continue;
+            SerializedProperty values = element.FindPropertyRelative(arrayPath);
+            if (values == null || !values.isArray)
+                throw new InvalidOperationException($"Missing provider values '{providerType}.{arrayPath}'.");
+            for (int j = 0; j < values.arraySize; j++)
+            {
+                SerializedProperty value = values.GetArrayElementAtIndex(j);
+                string id = (valueMember == null ? value : value.FindPropertyRelative(valueMember))?.stringValue;
+                if (string.IsNullOrWhiteSpace(id) || id != id.Trim() || !seen.Add(id))
+                    throw new InvalidOperationException($"Blank, noncanonical or duplicate provider '{providerType}.{key}': '{id}'.");
+                string scope = path + "[" + key + "=" + Uri.EscapeDataString(id) + ";type=" + providerType + "]";
+                record.fields.Add(new FieldRecord { path = "@nested:" + scope + "." + key, value = id });
+            }
         }
     }
 

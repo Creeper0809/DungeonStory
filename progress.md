@@ -1,5 +1,31 @@
 # DungeonStory Current Progress
 
+## 2026-10-25 R20 최종 실행 마감
+
+R20-01~16 및 X01을 처리했다. 최종 r147st runtime600초와 effects1060/core240/character190/world250/crop200초가 모두 native0/C#0/consoleErrors0/drift0이다. 실제 GameCalendarRuntime의 다음 날 새 JSON 복원/재시도에서 숙련도와 승급 영수증이 각1회이고 누락/음수 시각을 거절한다. 공식 Gameplay 월드는104섹션 저장/복원과 baseline 복구를 완료했다. Unity0/lockfree/여유 약10.1GiB로 검증 창을 닫았다.
+
+현재 증거는 Artifacts/QA/ImpactCI/verification.json, r20-verification.json, r20-publication-review.json, world-round-trip.txt다. source ca389fb037ee9656a927c49abb9b4bc3fcddf2f79a8c78e5527b99403214ff11, configuration aa3cc68111a562a17bf5bb805e46b4f8a823de3c8e26487ae6d59d361bd81ea1, 입력21700/C# 등4775개다. 작성r142st330초와 Inspectorr145st160초의 실제 source/configuration을 유지했고 이후 파일별 차이 및 검사가 바뀌지 않은 범위를 기록했다. 지급 시각 코드는 최종 runtime 및 영향5그룹에서 실제 실행했으며 과거 증거를 현재 실행으로 바꾸지 않았다.
+
+기존3544에셋/10721게시 필드 보존, 기대1180추가로 총11901필드를 보호한다. Python82개/analyzer와 최종 생성 인덱스/링크/최신성 failure0이다. SO_REFERENCE_FULL_AUDIT.md 상단17행을 실제 수정과 검증에 연결하고 수정 전 감사를 역사 기록으로 구분했다. 원본 checkout의 사용자 변경과 QA는 보존했다. commit 비교와 GitHub PR/CI/main 통합 결과는 실제 실행 뒤 외부 r20-integration-final.json에 기록한다.
+
+## 2026-10-24 R20 수정 검증 진행
+
+- 최종 r147st SO runtime600초: native0/C#0/consoleErrors0/drift0. 실제 GameCalendarRuntime을 다음 날로 진행한 새 JSON 복원/재시도에서도 숙련도와 native 승급 영수증이 각1회다. 기존 복구 기록에 선택 clock metadata2필드만 추가하고 누락/음수 시각 거절을 확인했다. 구형 효과 번호/저장 버전과 기존 저장의 metadata 부재는 보존했다. 현재 같은 입력21700개에서 필수 영향5그룹을 실행 중이며 최종 결과는 아직 수용 전이다.
+- R145 SO runtime(550초) 및 private Inspector(160초): exit0, compiler0, consoleErrors0, drift0. 숙련도4, 구형 kind3 효과, 승급 영수증 및 새 JSON 재시도, 특성 피해/사과/Amber, 실제 시설 직책/침대와 Inspector27회 그리기를 수용했다.
+- R145 effects는 기존 확장 fixture의 새 의식이 부모 문화 목록에 없어서 실패했다. R146은 해당 fixture에서 소유 문화 clone에 새 의식도 함께 연결했다. 해당 입력의 effects1140/core240/character180/world250/crop200초는 모두 PASS였으나 이후 지급 시각 복구 코드가 바뀌었으므로 최종 입력 증거로 바꾸지 않는다. 모든 실패 원본을 보존했다.
+
+- r140st CUHA 현재 소스 컴파일 및 게시 후보 수집: exit0, C# 오류0, source drift0, 320초. 외부 `so-full-audit/r140st-publication`에 원본 증거를 보존했다.
+- 게시 후보의 기존3544에셋/10721필드 보존과 기대1180필드 추가를 C#/Python으로 대조 후 반영했다. 외부 `r20-fix/publication-review.json`에 검토를 기록했다.
+- Python CI82개, 고정 Roslyn 분석기와 생성 인덱스 freshness/link 검사는 성공했다. 현재 r141st의 표적 Unity 작성/실행/Inspector 및 변경 영향 실행은 수용 전이며 과거 PASS로 대체하지 않는다.
+
+## 2026-10-24 R20 main 재감사 마감
+
+main104459911의 실제 원본과 에셋을 대조해 잔여16묶음과 별도 엔진 참조1개를 SO_REFERENCE_FULL_AUDIT.md 상단에 기록했다. SO142종/직렬화2458/후보881/참조 표식227, 실제 에셋3544, GUID8962/fileID4731 누락/중복0이다. 현재 숙련도 보상4개와 특성 행동/관계 문맥의 불일치, 직책 요구의 미소비를 확인했으며 나머지 정상 현재 값의 작성/변경 보호 공백과 구분했다.
+
+실제 소비 메서드의 반례를 메인이 검토해 용서 특성을 미실행이라고 잘못 분류하지 않았다. 이 규칙은 사과 키로 연결된 것이 아니라 betrayal-or-assault 예외에서 양수 관계 기억이 적용된다. 현재 욕구 ID의 메모리 변경에 기존 Python nested 수집 결과가 그대로인 반례도 보존했다. 이들은 정적/좁은 helper 증거이며 Unity 실행이나 전체 CI 통과를 뜻하지 않는다.
+
+외부 증거는 C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/main-reaudit-r20의 inventory/current-assets/asset-groups/main-probes 및 actor/content/economy findings다. 문서 링크6514개와 신규 source line65개 범위 오류0, 문서 diff whitespace0, main 대비 Assets/ProjectSettings/Packages/tools 무변경, 마지막 fetch 같은 main을 확인했다. 이번 변경은 감사 문서와 기존 planning3파일뿐이다. Unity/Inspector/Play/저장 복원/인덱스 재생성/commit/push는 실행하지 않았다. 원본 사용자 변경과 QA를 보존했다.
+
 ## 2026-10-24 R19-07 최종 실행 영수증 마감
 
 r139sr runtime380초 및 effects1050/core240/character180/world250/crop200초가 모두 native0/C#0/consoleErrors0/drift0이다. 현재 입력에서104섹션의 공식 월드 저장/복원과 canonical baseline 복구도 PASS다. Unity0/lockfree/여유 약10.1GiB로 검증 창을 닫았다. Artifact verification은 source2bca6d13a58e24bf8ae9edded82968293a2743e6e3a9e6e9f3c3b8879ecd0587과 configurationee0e4dc0da3d0beddbaf5403150f4747f01d6afd3944f2ae25dc165d3a481582다.

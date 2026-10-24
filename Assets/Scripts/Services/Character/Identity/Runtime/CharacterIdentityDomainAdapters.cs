@@ -120,12 +120,7 @@ public sealed class CharacterRelationshipMemoryService
         foreach ((int traitId, CharacterIdentityRule identityRule) in router.Resolve(recipient))
         {
             if (identityRule is not RelationshipMemoryRule rule
-                || (!string.Equals(rule.eventId, normalizedEvent, StringComparison.Ordinal)
-                    && !(rule.apologyCanClear
-                        && string.Equals(
-                            normalizedEvent,
-                            "betrayal-or-assault",
-                            StringComparison.Ordinal))))
+                || !string.Equals(rule.eventId, normalizedEvent, StringComparison.Ordinal))
                 continue;
 
             CharacterTraitSO trait = recipient.Progression.ResolveSelectedTraits()

@@ -1209,6 +1209,7 @@
 | 16 | `AmbitionProgress` | AmbitionProgress (야망 진행) |
 | 17 | `MilestonePressure` | MilestonePressure (이정표 압력) |
 | 18 | `RetirementSchedule` | Retirement Schedule |
+| 19 | `ProficiencyExperience` | Proficiency Experience |
 
 ## V20FactionContractKind
 

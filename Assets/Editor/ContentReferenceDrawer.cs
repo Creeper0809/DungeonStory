@@ -153,6 +153,7 @@ public static class ContentReferenceSelection
         {
             V20ContentEffectKind.ItemGrant or V20ContentEffectKind.ItemConsume => ContentReferenceKind.Item,
             V20ContentEffectKind.DiseaseExposure => ContentReferenceKind.Disease,
+            V20ContentEffectKind.ProficiencyExperience => ContentReferenceKind.Proficiency,
             V20ContentEffectKind.FactionRapport or V20ContentEffectKind.FactionGrievance
                 or V20ContentEffectKind.FactionObligation => ContentReferenceKind.Faction,
             _ => null

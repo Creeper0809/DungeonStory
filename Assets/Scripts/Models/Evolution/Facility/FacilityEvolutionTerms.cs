@@ -164,6 +164,7 @@ public static class FacilityEvolutionMetricOwnership
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public struct FacilityEvolutionValue
 {
+    [ContentReference(ContentReferenceKind.FacilityValueKey)]
     public string key;
     public float value;
 

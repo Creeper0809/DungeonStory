@@ -133,14 +133,16 @@ internal sealed class V20ContentEffectHandler
 internal readonly struct V20ContentEffectInvocation
 {
     internal V20ContentEffectInvocation(int absoluteDay, V20ResolvedEventResult resolution,
-        V20ContentEffect effect, CharacterActor[] participants)
+        V20ContentEffect effect, CharacterActor[] participants, long absoluteHour = -1L)
     {
         AbsoluteDay = Math.Max(1, absoluteDay);
+        AbsoluteHour = absoluteHour;
         Resolution = resolution;
         Effect = effect;
         Participants = participants;
     }
     internal int AbsoluteDay { get; }
+    internal long AbsoluteHour { get; }
     internal V20ResolvedEventResult Resolution { get; }
     internal V20ContentEffect Effect { get; }
     internal CharacterActor[] Participants { get; }

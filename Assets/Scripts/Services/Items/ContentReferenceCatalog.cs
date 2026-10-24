@@ -56,7 +56,12 @@ public sealed class ContentReferenceCatalog
         or ContentReferenceKind.FormulaMirror or ContentReferenceKind.EquipmentApplicator
         or ContentReferenceKind.EquipmentStat or ContentReferenceKind.ProductionMassPolicy
         or ContentReferenceKind.ProductionOutputCostPolicy or ContentReferenceKind.RoomProfileKey
-        or ContentReferenceKind.RoomScore or ContentReferenceKind.RoomMetric or ContentReferenceKind.DecisionContextTag;
+        or ContentReferenceKind.RoomScore or ContentReferenceKind.RoomMetric or ContentReferenceKind.DecisionContextTag
+        or ContentReferenceKind.BuildingSemanticTag or ContentReferenceKind.ProductionFacilityTag
+        or ContentReferenceKind.DiseaseResponse or ContentReferenceKind.CharacterNeed
+        or ContentReferenceKind.IdentityRuleProtocol or ContentReferenceKind.FacilityLineageTag
+        or ContentReferenceKind.RoomTag or ContentReferenceKind.FacilityMutationTag
+        or ContentReferenceKind.FacilityPressure or ContentReferenceKind.FacilityValueKey;
 
     public static Type AssetType(ContentReferenceKind kind) => kind switch
     {
@@ -131,12 +136,20 @@ public sealed class ContentReferenceCatalog
         or ContentReferenceKind.ServiceFeature or ContentReferenceKind.ServiceProcessFeature
         or ContentReferenceKind.SkillBehavior or ContentReferenceKind.FormulaMirror
         or ContentReferenceKind.MetaEffectTarget or ContentReferenceKind.EquipmentStat
-        or ContentReferenceKind.RoomProfileKey;
+        or ContentReferenceKind.RoomProfileKey or ContentReferenceKind.DiseaseResponse
+        or ContentReferenceKind.IdentityRuleProtocol or ContentReferenceKind.FacilityValueKey;
 
     // Local relationships are scoped to their owning asset. They must never use
     // the global cache: two catalogs may intentionally publish the same local ID.
     public IReadOnlyList<Entry> Entries(ContentReferenceAttribute reference, ScriptableObject root, object owner = null)
     {
+        if (reference.Kind == ContentReferenceKind.DiseaseResponse)
+            return root is DiseaseDefinitionSO disease
+                ? DiseaseFieldResponseRuntime.AvailableResponseIds(disease.stableId, disease.vaccineAllowed)
+                    .Select(id => new Entry(null, id)).ToArray() : Array.Empty<Entry>();
+        if (reference.Kind == ContentReferenceKind.IdentityRuleProtocol)
+            return CharacterIdentityRuleProtocols.Keys(owner?.GetType(), reference.ContextMember)
+                .Select(id => new Entry(null, id)).ToArray();
         if (reference.Kind == ContentReferenceKind.SkillBehavior)
             return CharacterSkillModuleCapabilityRegistry.CapabilityIds.Select(CharacterSkillModuleCapabilityRegistry.Require)
                 .Where(value => owner is CharacterCombatSkillModuleRule && value.Domain == CharacterSkillCapabilityDomain.Combat
@@ -278,6 +291,28 @@ public sealed class ContentReferenceCatalog
             .SelectMany(building => building.Abilities).Where(value => value != null);
         switch (kind)
         {
+            case ContentReferenceKind.BuildingSemanticTag:
+            case ContentReferenceKind.ProductionFacilityTag:
+                return KeyEntries(abilities.OfType<BuildingSemanticTagsAbility>().SelectMany(value => value.tags ?? Array.Empty<string>())
+                    .Concat(kind == ContentReferenceKind.ProductionFacilityTag
+                        ? new[] { "animal-pen", "butcher", "spoilage", "exterior-grass", "exterior-rock", "exterior-tree" }
+                        : Array.Empty<string>())).ToArray();
+            case ContentReferenceKind.CharacterNeed:
+                return assets.OfType<GameDomainContentCatalogSO>().SelectMany(value => value.CharacterNeeds)
+                    .Select(value => new Entry(null, value.id, value.displayName)).ToArray();
+            case ContentReferenceKind.FacilityLineageTag:
+                return KeyEntries(FacilityEvolutionUtility.ProducedLineageKeys).ToArray();
+            case ContentReferenceKind.RoomTag:
+                return KeyEntries(FacilityEvolutionUtility.ProducedLineageKeys.Concat(new[] { FacilityEvolutionTerms.Hygiene })
+                    .Concat(GraphObjects(assets).OfType<FacilityEvolutionContributionData>()
+                        .SelectMany(value => value.tags ?? Array.Empty<string>()))).ToArray();
+            case ContentReferenceKind.FacilityPressure:
+                return KeyEntries(FacilityIdentityPressureUtility.PressureKeys).ToArray();
+            case ContentReferenceKind.FacilityMutationTag:
+                return KeyEntries(FacilityIdentityPressureUtility.PressureKeys
+                    .Concat(DefaultFacilityEvolutionMutationResolver.ExplicitEvidenceTags)
+                    .Concat(Entries(new ContentReferenceAttribute(ContentReferenceKind.RoomScore)).Select(value => value.Id))
+                    .Concat(assets.OfType<FacilityEvolutionRecordTokenDefinitionSO>().Select(value => value.TokenId))).ToArray();
             case ContentReferenceKind.CoreIncident:
                 return Enum.GetValues(typeof(ExteriorIncidentKind)).Cast<ExteriorIncidentKind>()
                     .Where(value => value != ExteriorIncidentKind.None)
@@ -495,6 +530,7 @@ public sealed class ContentReferenceCatalog
         {
             V20ContentEffectKind.ItemGrant or V20ContentEffectKind.ItemConsume => ContentReferenceKind.Item,
             V20ContentEffectKind.DiseaseExposure => ContentReferenceKind.Disease,
+            V20ContentEffectKind.ProficiencyExperience => ContentReferenceKind.Proficiency,
             V20ContentEffectKind.FactionRapport or V20ContentEffectKind.FactionGrievance
                 or V20ContentEffectKind.FactionObligation => ContentReferenceKind.Faction,
             _ => null
@@ -504,6 +540,12 @@ public sealed class ContentReferenceCatalog
     public static ContentReferenceAttribute ResolveReference(ContentReferenceAttribute reference, string path, object owner,
         ScriptableObject root = null)
     {
+        if (reference.Kind == ContentReferenceKind.IdentityRuleProtocol)
+            return new ContentReferenceAttribute(ContentReferenceKind.IdentityRuleProtocol)
+                { ContextMember = path.Substring(path.LastIndexOf('.') + 1) };
+        if (reference.Kind == ContentReferenceKind.FacilityValueKey)
+            return path.Contains("identityPressureWeights")
+                ? new ContentReferenceAttribute(ContentReferenceKind.FacilityPressure) : null;
         if (reference.Kind == ContentReferenceKind.RoomProfileKey)
             return new ContentReferenceAttribute(path.Contains("requiredRoomScores") ? ContentReferenceKind.RoomScore : ContentReferenceKind.RoomMetric);
         if (reference.Kind == ContentReferenceKind.MetaEffectTarget)
@@ -579,6 +621,15 @@ public sealed class ContentReferenceCatalog
             errors.AddRange(campaign.ValidateDefinition().Select(error => path + ": " + error));
         if (value is CharacterTraitSO authoredTrait)
             errors.AddRange(authoredTrait.ValidateDefinition().Select(error => path + ": " + error));
+        if (value is StatChange needChange && string.IsNullOrWhiteSpace(needChange.needId))
+            errors.Add(path + ": purchase need effect requires a character need.");
+        if (value is DiseaseDefinitionSO authoredDisease)
+            errors.AddRange(authoredDisease.ValidateDefinition().Select(error => path + ": " + error));
+        if (value is FuneralCultureSO funeral && string.IsNullOrWhiteSpace(funeral.requiredFacilityTag))
+            errors.Add(path + ": funeral culture requires a facility tag.");
+        if (value is V20ContentEffect { kind: V20ContentEffectKind.ProficiencyExperience } proficiencyReward
+            && !proficiencyReward.IsValid)
+            errors.Add(path + ": proficiency reward requires a target and positive finite experience.");
         if (value is FacilityEvolutionRecipeSO facilityRecipe)
             errors.AddRange(facilityRecipe.ValidateDefinition().Select(error => path + ": " + error));
         if (value is RoomEnvironmentSettingsSO roomSettings)
@@ -590,7 +641,7 @@ public sealed class ContentReferenceCatalog
             try
             {
                 ProductionMassExplanationCapabilityRegistry.CreateDefault().ValidateRegistered(production.MassExplanation);
-                ProductionOutputCostAllocationCapabilityRegistry.CreateDefault().ValidateRegistered(production.OutputCostAllocation);
+                ProductionOutputCostAllocationCapabilityRegistry.CreateDefault().ValidateForOutputs(production.OutputCostAllocation, production.Outputs);
             }
             catch (InvalidOperationException error) { errors.Add(path + ": " + error.Message); }
         }

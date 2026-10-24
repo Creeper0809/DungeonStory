@@ -680,6 +680,32 @@ public enum FacilityEvolutionCandidateOrderingSource
 
 public static class FacilityEvolutionUtility
 {
+    private static readonly (FacilityRole Role, string Key)[] FacilityLineageProducers =
+    {
+        (FacilityRole.Meal, FacilityEvolutionTerms.Dining),
+        (FacilityRole.Purchase, "Shop"),
+        (FacilityRole.Rest, FacilityEvolutionTerms.Rest),
+        (FacilityRole.Training, FacilityEvolutionTerms.Training),
+        (FacilityRole.Research, FacilityEvolutionTerms.Research),
+        (FacilityRole.Mana, FacilityEvolutionTerms.Mana),
+        (FacilityRole.Logistics, FacilityEvolutionTerms.Logistics)
+    };
+
+    private static readonly string[] DefenseLineageProducers =
+    {
+        FacilityEvolutionTerms.Defense,
+        FacilityEvolutionTerms.Combat
+    };
+
+    private static readonly IReadOnlyList<string> producedLineageKeys =
+        Array.AsReadOnly(FacilityLineageProducers
+            .Select(producer => producer.Key)
+            .Concat(DefenseLineageProducers)
+            .ToArray());
+
+    public static IReadOnlyList<string> ProducedLineageKeys =>
+        producedLineageKeys;
+
     public static string GetFacilityId(BuildingSO building)
     {
         if (building == null)
@@ -700,20 +726,22 @@ public static class FacilityEvolutionUtility
         FacilityData facility = building.Facility;
         if (facility != null)
         {
-            if (facility.SupportsRole(FacilityRole.Meal)) yield return FacilityEvolutionTerms.Dining;
-            if (facility.SupportsRole(FacilityRole.Purchase)) yield return "Shop";
-            if (facility.SupportsRole(FacilityRole.Rest)) yield return FacilityEvolutionTerms.Rest;
-            if (facility.SupportsRole(FacilityRole.Training)) yield return FacilityEvolutionTerms.Training;
-            if (facility.SupportsRole(FacilityRole.Research)) yield return FacilityEvolutionTerms.Research;
-            if (facility.SupportsRole(FacilityRole.Mana)) yield return FacilityEvolutionTerms.Mana;
-            if (facility.SupportsRole(FacilityRole.Logistics)) yield return FacilityEvolutionTerms.Logistics;
+            foreach ((FacilityRole role, string key) in FacilityLineageProducers)
+            {
+                if (facility.SupportsRole(role))
+                {
+                    yield return key;
+                }
+            }
         }
 
         DefenseFacilityData defense = building.Defense;
         if (defense != null && defense.IsDefenseFacility)
         {
-            yield return FacilityEvolutionTerms.Defense;
-            yield return FacilityEvolutionTerms.Combat;
+            foreach (string key in DefenseLineageProducers)
+            {
+                yield return key;
+            }
         }
     }
 }

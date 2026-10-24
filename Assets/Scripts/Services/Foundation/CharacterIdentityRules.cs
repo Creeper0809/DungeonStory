@@ -26,6 +26,7 @@ public abstract class CharacterIdentityRule
 [Serializable]
 public sealed class BehaviorUtilityRule : CharacterIdentityRule
 {
+    [ContentReference(ContentReferenceKind.IdentityRuleProtocol)]
     public string behaviorTag = string.Empty;
     [Range(-1f, 1f)] public float utilityDelta;
 
@@ -67,6 +68,7 @@ public sealed class PersistentNeedRule : CharacterIdentityRule
 [Serializable]
 public sealed class EventMoodRule : CharacterIdentityRule
 {
+    [ContentReference(ContentReferenceKind.IdentityRuleProtocol)]
     public string eventId = string.Empty;
     [Range(-20f, 20f)] public float moodDelta;
     [Min(1)] public int durationDays = 1;
@@ -86,6 +88,7 @@ public sealed class EventMoodRule : CharacterIdentityRule
 [Serializable]
 public sealed class MoodImmunityRule : CharacterIdentityRule
 {
+    [ContentReference(ContentReferenceKind.IdentityRuleProtocol)]
     public string eventId = string.Empty;
 
     public override IEnumerable<string> Validate()
@@ -99,6 +102,7 @@ public sealed class MoodImmunityRule : CharacterIdentityRule
 [Serializable]
 public sealed class MoodTransformRule : CharacterIdentityRule
 {
+    [ContentReference(ContentReferenceKind.IdentityRuleProtocol)]
     public string eventId = string.Empty;
     [Range(0f, 2f)] public float multiplier = 1f;
     [Range(-20f, 20f)] public float additiveDelta;
@@ -117,6 +121,7 @@ public sealed class MoodTransformRule : CharacterIdentityRule
 [Serializable]
 public sealed class PostActionConsequenceRule : CharacterIdentityRule
 {
+    [ContentReference(ContentReferenceKind.IdentityRuleProtocol)]
     public string actionTag = string.Empty;
     public bool directOrdersOnly;
     [Range(-20f, 20f)] public float moodDelta;
@@ -139,6 +144,7 @@ public sealed class PostActionConsequenceRule : CharacterIdentityRule
 [Serializable]
 public sealed class RelationshipMemoryRule : CharacterIdentityRule
 {
+    [ContentReference(ContentReferenceKind.IdentityRuleProtocol)]
     public string eventId = string.Empty;
     [Range(-20f, 20f)] public float relationshipDelta = -4f;
     [Min(0f)] public float dailyDecay = 1f;
@@ -162,7 +168,9 @@ public sealed class RelationshipMemoryRule : CharacterIdentityRule
 [Serializable]
 public sealed class AutonomousWorkRestrictionRule : CharacterIdentityRule
 {
+    [ContentReference(ContentReferenceKind.IdentityRuleProtocol)]
     public string actionTag = string.Empty;
+    [ContentReference(ContentReferenceKind.IdentityRuleProtocol)]
     public string requiredConditionId = string.Empty;
     public string failureReason = string.Empty;
 
@@ -179,6 +187,7 @@ public sealed class AutonomousWorkRestrictionRule : CharacterIdentityRule
 [Serializable]
 public sealed class IncidentWeightRule : CharacterIdentityRule
 {
+    [ContentReference(ContentReferenceKind.IdentityRuleProtocol)]
     public string incidentId = string.Empty;
     [Range(0.05f, 10f)] public float multiplier = 1f;
 
@@ -532,5 +541,220 @@ public static class CharacterTraitIdentityRuleContract
             && rule is PersistentNeedRule persistentNeed)
             return persistentNeed.needId ?? string.Empty;
         return string.Empty;
+    }
+}
+
+public static class CharacterIdentityRuleProtocols
+{
+    public const string MinorAlert = "alert:minor";
+
+    private static readonly string[] WorkTypeKeys =
+    {
+        "work:animal-care",
+        "work:butcher",
+        "work:clean",
+        "work:construct",
+        "work:cook",
+        "work:craft",
+        "work:dismantle",
+        "work:draw-water",
+        "work:gather",
+        "work:grand-project",
+        "work:guard",
+        "work:harvest",
+        "work:haul",
+        "work:hunt",
+        "work:logging",
+        "work:operate",
+        "work:perform",
+        "work:plumbing",
+        "work:quarry",
+        "work:reception",
+        "work:refuel",
+        "work:repair",
+        "work:rescue",
+        "work:rest",
+        "work:restock",
+        "work:research",
+        "work:sow",
+        "work:surgery",
+        "work:threat-mitigation",
+        "work:treat",
+        "work:warden"
+    };
+
+    private static readonly IReadOnlyList<string> BehaviorKeys = BuildKeys(
+        WorkTypeKeys,
+        new[]
+        {
+            "ai:curiosity",
+            "ai:exit",
+            "ai:patience",
+            "ai:self-care",
+            "ai:shopping",
+            "ai:work",
+            MinorAlert,
+            "consume:luxury",
+            "food:salted",
+            "food:sweet",
+            "food:unfamiliar",
+            "medical:rest-treatment",
+            "rest:private",
+            "ritual:fast",
+            "room:temperature-controlled",
+            "shift:day",
+            "shift:night",
+            "social:answer-insult",
+            "social:encourage",
+            "social:formal-etiquette",
+            "social:reconcile",
+            "survival:primitive",
+            "work:cold-zone",
+            "work:combat-training",
+            "work:crisis-rescue",
+            "work:dangerous",
+            "work:eat",
+            "work:emergency-check",
+            "work:heavy-haul",
+            "work:immediate",
+            "work:inspect",
+            "work:inspect-scout",
+            "work:long-shift",
+            "work:mentoring",
+            "work:new-process",
+            "work:on-schedule",
+            "work:precision",
+            "work:prevent-repeat-failure",
+            "work:prototype",
+            "work:quality-first",
+            "work:retry-after-failure",
+            "work:rough-terrain-rescue",
+            "work:salvage",
+            "work:subdue",
+            "work:substitute-material",
+            "work:while-in-pain"
+        });
+
+    private static readonly IReadOnlyList<string> MoodEventKeys =
+        Array.AsReadOnly(new[]
+        {
+            "apparel:equipped",
+            "apparel:removed",
+            "combat:victory",
+            "danger:directly-assigned",
+            "danger:safe-return",
+            "danger:success",
+            "environment:rot-stench",
+            "event:panic",
+            "expedition:failure",
+            "food:meal-missed",
+            "food:new-meal",
+            "food:salted",
+            "food:sated",
+            "food:sweet",
+            "health:critical",
+            "injury:blunt",
+            "living:basic-only",
+            "living:luxury-satisfied",
+            "medical:entered-clinic",
+            "medical:severity-reduced",
+            "mentee:rank-up",
+            "mood:butchery-guilt",
+            "mood:hostile-execution-guilt",
+            "mood:hostile-kill-guilt",
+            "mood:innocent-kill-guilt",
+            "mood:witnessed-kill",
+            "product:defect-caught-before-release",
+            "product:defect-found",
+            "product:quality-low",
+            "product:quality-masterwork",
+            "resource:salvageable-discarded",
+            "resource:wasted",
+            "rest:private",
+            "rest:sufficient",
+            "room:cleaned",
+            "room:cramped-long",
+            "room:dirty",
+            "schedule:sudden-reassignment",
+            "shift:forced-day",
+            "sleep:noisy",
+            "social:insult-answered",
+            "social:insulted",
+            "social:public-question",
+            "social:sincere-apology",
+            "status:publicly-ignored",
+            "status:recognized",
+            "stockpile:target-met",
+            "temperature:cold-long",
+            "temperature:safe-cold-work-complete",
+            "temperature:uncomfortable-long",
+            "terrain:rough-crossed-safely",
+            "wait:exceeded",
+            "work:failed",
+            "work:first-process-success",
+            "work:small-success",
+            "work:strict-procedure",
+            "work:substitute-success"
+        });
+
+    private static readonly IReadOnlyList<string> PostActionKeys =
+        Array.AsReadOnly(new[] { "order:defer-cleaning" });
+
+    private static readonly IReadOnlyList<string> RelationshipMemoryKeys =
+        Array.AsReadOnly(new[] { "betrayal-or-assault", "insulted" });
+
+    private static readonly IReadOnlyList<string> AutonomousActionKeys =
+        Array.AsReadOnly(new[] { "work:dangerous" });
+
+    private static readonly IReadOnlyList<string> AutonomousConditionKeys =
+        Array.AsReadOnly(new[] { "condition:no-safe-alternative" });
+
+    public static IReadOnlyList<string> Keys(
+        Type ruleType,
+        string memberName)
+    {
+        if (ruleType == typeof(BehaviorUtilityRule)
+            && SameMember(memberName, nameof(BehaviorUtilityRule.behaviorTag)))
+            return BehaviorKeys;
+        if ((ruleType == typeof(EventMoodRule)
+                || ruleType == typeof(MoodImmunityRule)
+                || ruleType == typeof(MoodTransformRule))
+            && SameMember(memberName, nameof(EventMoodRule.eventId)))
+            return MoodEventKeys;
+        if (ruleType == typeof(PostActionConsequenceRule)
+            && SameMember(memberName, nameof(PostActionConsequenceRule.actionTag)))
+            return PostActionKeys;
+        if (ruleType == typeof(RelationshipMemoryRule)
+            && SameMember(memberName, nameof(RelationshipMemoryRule.eventId)))
+            return RelationshipMemoryKeys;
+        if (ruleType == typeof(AutonomousWorkRestrictionRule)
+            && SameMember(memberName, nameof(AutonomousWorkRestrictionRule.actionTag)))
+            return AutonomousActionKeys;
+        if (ruleType == typeof(AutonomousWorkRestrictionRule)
+            && SameMember(
+                memberName,
+                nameof(AutonomousWorkRestrictionRule.requiredConditionId)))
+            return AutonomousConditionKeys;
+        if (ruleType == typeof(IncidentWeightRule)
+            && SameMember(memberName, nameof(IncidentWeightRule.incidentId)))
+            return Array.Empty<string>();
+        return Array.Empty<string>();
+    }
+
+    private static bool SameMember(string left, string right) =>
+        string.Equals(left, right, StringComparison.Ordinal);
+
+    private static IReadOnlyList<string> BuildKeys(
+        IEnumerable<string> first,
+        IEnumerable<string> second)
+    {
+        SortedSet<string> values = new(StringComparer.Ordinal);
+        foreach (string value in first)
+            values.Add(value);
+        foreach (string value in second)
+            values.Add(value);
+        string[] result = new string[values.Count];
+        values.CopyTo(result);
+        return Array.AsReadOnly(result);
     }
 }

@@ -5,7 +5,7 @@
   "code_source_file_count": 4016,
   "code_system_count": 76,
   "content_impact_type_count": 75,
-  "content_source_digest": "197712c294aab0460182eb809a6e7b649486c634e8aaf7a5282ffb0d9e3de244",
+  "content_source_digest": "f904fa431f1d5cf51229f830876f862dc2594e9b9eb3d0c5328703db8e724234",
   "document_broken_link_count": 0,
   "document_count": 74,
   "implementation_status_count": 37,
@@ -13,5 +13,5 @@
   "persistence_code_file_count": 566,
   "research_unlock_relation_count": 938,
   "state_authority_count": 36,
-  "system_content_relation_count": 345
+  "system_content_relation_count": 347
 }

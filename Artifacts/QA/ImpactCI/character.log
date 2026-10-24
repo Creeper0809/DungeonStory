@@ -7,11 +7,11 @@ Distro version:          #111-Ubuntu SMP PREEMPT_DYNAMIC Sat Apr 11 23:16:02 UTC
 Kernel version:          6.8.0-111-generic
 Architecture:            x86_64
 Available memory:        15719 MB
-Date:                    2026-10-24T12:39:33Z
+Date:                    2026-10-24T17:18:05Z
 [Licensing::Module] Trying to connect to existing licensing client channel...
 Initialize udev device monitor.
 [Licensing::IpcConnector] Channel LicenseClient-vulpo doesn't exist
-[Licensing::Module] Successfully launched the LicensingClient (PId: 2670778)
+[Licensing::Module] Successfully launched the LicensingClient (PId: 1904646)
 
 COMMAND LINE ARGUMENTS:
 /home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Unity
@@ -20,7 +20,7 @@ COMMAND LINE ARGUMENTS:
 -projectPath
 /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs
 -logFile
-/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r139sr-impact-character/unity.log
+/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r147st-impact-character/unity.log
 -job-worker-count
 1
 -gc-helper-count
@@ -67,7 +67,7 @@ Successfully changed project path to: /home/vulpo/codex-unity-validation-2026102
     "memorysetup-job-temp-allocator-block-size-background=1048576"
     "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
     "memorysetup-temp-allocator-size-gfx=262144"
-Player connection [129792990538560]  Target information:
+Player connection [126577650150208]  Target information:
 
 [redacted player-connection network identifiers]
 
@@ -89,25 +89,25 @@ Player connection [129792990538560]  Target information:
 
 [redacted player-connection network identifiers]
 
-Player connection [129792990538560] Host joined multi-casting on [225.0.0.222:54997]...
-Player connection [129792990538560] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Player connection [126577650150208] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [126577650150208] Host joined alternative multi-casting on [225.0.0.222:34997]...
 JobSystem: Creating JobQueue using job-worker-count value 1
 Input System module state changed to: Initialized.
 [Physics::Module] Initialized fallback backend.
 [Physics::Module] Id: 0xdecafbad
-[Package Manager] Connected to IPC stream "Upm-2670752" after 0.5 seconds.
+[Package Manager] Connected to IPC stream "Upm-1904614" after 0.5 seconds.
 [Licensing::Module] Licensing is not yet initialized.
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo" at "2026-10-24T12:39:34.611773Z"
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo" at "2026-10-24T17:18:06.169211Z"
 [SignatureVerifier] Application signature verification not supported on this platform.
 [Licensing::Client] Handshaking with LicensingClient:
   Version:                 1.17.4+4293ba1
 [redacted credential or identifier-related line]
-  Correlation Id:          0b43ee7c233eb5f9489d651ee62bbb22
-  External correlation Id: 4583730789819673752
+  Correlation Id:          62738b6e5bbbfa5c2f0a70ee83f3222e
+  External correlation Id: 5171188286620993511
 [redacted credential or identifier-related line]
-[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-vulpo" (connect: 0.87s, validation: 0.15s, handshake: 0.00s)
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-notifications" at "2026-10-24T12:39:34.75907Z"
-[Licensing::Module] Connected to LicensingClient (PId: 2670778, launch time: 0.00, total connection time: 1.01s)
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-vulpo" (connect: 0.86s, validation: 0.18s, handshake: 0.00s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-notifications" at "2026-10-24T17:18:06.350563Z"
+[Licensing::Module] Connected to LicensingClient (PId: 1904646, launch time: 0.00, total connection time: 1.04s)
 [redacted credential or identifier-related line]
 [Licensing::Client] Successfully resolved entitlement details
 [Licensing::Module] License group:
@@ -117,8 +117,8 @@ Input System module state changed to: Initialized.
   Expiration: Unlimited
 [Licensing::Client] Successfully updated license, isAsync: True, time: 0.03
 [Licensing::Client] Successfully resolved entitlement details
-[Licensing::Module] Licensing Background thread has ended after 1.11s
-[Licensing::Module] Licensing is initialized (took 0.52s).
+[Licensing::Module] Licensing Background thread has ended after 1.12s
+[Licensing::Module] Licensing is initialized (took 0.45s).
 [Licensing::Client] Successfully resolved entitlement details
 Library Redirect Path: Library/
 [Physics::Module] Selected backend.
@@ -127,7 +127,7 @@ Library Redirect Path: Library/
 [Physics::Module] SDK Version: 4.1.2
 [Physics::Module] Integration Version: 1.0.0
 [Physics::Module] Threading Mode: Multi-Threaded
-Refreshing native plugins compatible for Editor in 5.65 ms, found 0 plugins.
+Refreshing native plugins compatible for Editor in 4.48 ms, found 0 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Initialize engine version: 6000.3.8f1 (1c7db571dde0)
 [Subsystems] Discovering subsystems at path /home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/Resources/UnitySubsystems
@@ -142,7 +142,7 @@ Initialize mono
 Mono path[0] = '/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/Managed'
 Mono path[1] = '/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-linux'
 Mono config path = '/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56752
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56614
 Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
 Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
 ImportWorker Server TCP listen port: 0
@@ -150,42 +150,42 @@ AcceleratorClientConnectionCallback - disconnected - :0
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
 Register platform support module: /home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/PlaybackEngines/LinuxStandaloneSupport/UnityEditor.LinuxStandalone.Extensions.dll
-Registered in 0.003476 seconds.
-- Loaded All Assemblies, in  0.730 seconds
+Registered in 0.003494 seconds.
+- Loaded All Assemblies, in  0.816 seconds
 Native extension for LinuxStandalone target not found
 Package Manager log level set to [2]
 [Licensing::Client] Successfully resolved entitlement details
 ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in  6.501 seconds
-Domain Reload Profiling: 7231ms
-	BeginReloadAssembly (168ms)
+- Finished resetting the current domain, in  5.679 seconds
+Domain Reload Profiling: 6495ms
+	BeginReloadAssembly (155ms)
 		ExecutionOrderSort (0ms)
 		DisableScriptedObjects (0ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (12ms)
-	RebuildCommonClasses (78ms)
+		CreateAndSetChildDomain (11ms)
+	RebuildCommonClasses (110ms)
 	RebuildNativeTypeToScriptingClass (26ms)
-	initialDomainReloadingComplete (114ms)
-	LoadAllAssembliesAndSetupDomain (344ms)
-		LoadAssemblies (156ms)
+	initialDomainReloadingComplete (128ms)
+	LoadAllAssembliesAndSetupDomain (396ms)
+		LoadAssemblies (144ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (338ms)
-			TypeCache.Refresh (335ms)
-				TypeCache.ScanAssembly (311ms)
+		AnalyzeDomain (390ms)
+			TypeCache.Refresh (387ms)
+				TypeCache.ScanAssembly (356ms)
 			BuildScriptInfoCaches (0ms)
 			ResolveRequiredComponents (1ms)
-	FinalizeReload (6502ms)
+	FinalizeReload (5680ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (6393ms)
+		SetupLoadedEditorAssemblies (5598ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (91ms)
+			InitializePlatformSupportModulesInManaged (65ms)
 			SetLoadedEditorAssemblies (8ms)
-			BeforeProcessingInitializeOnLoad (199ms)
-			ProcessInitializeOnLoadAttributes (339ms)
-			ProcessInitializeOnLoadMethodAttributes (5755ms)
+			BeforeProcessingInitializeOnLoad (227ms)
+			ProcessInitializeOnLoadAttributes (407ms)
+			ProcessInitializeOnLoadMethodAttributes (4891ms)
 			AfterProcessingInitializeOnLoad (0ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
@@ -276,7 +276,7 @@ Application.AssetDatabase Initial Refresh Start
   Embedded packages:
     jp.hadashikick.vcontainer@file:/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Packages/jp.hadashikick.vcontainer (location: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Packages/jp.hadashikick.vcontainer)
 [Subsystems] No new subsystems found in resolved package list.
-[Package Manager] Done registering packages in 0.00 seconds
+[Package Manager] Done registering packages in 0.01 seconds
 [redacted credential or identifier-related line]
       Now listening on: http://unix:/tmp/ilpp.sock-760793a74df69600e387fca7b7e4ed0f
 [40m[32minfo[39m[22m[49m: Microsoft.Hosting.Lifetime[0]
@@ -292,8 +292,8 @@ Application.AssetDatabase Initial Refresh Start
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
       Executed endpoint 'gRPC - /UnityILPP.PostProcessing/Ping'
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[2]
-      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping application/grpc - - 200 - application/grpc 97.6984ms
-Refreshing native plugins compatible for Editor in 3.28 ms, found 1 plugins.
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping application/grpc - - 200 - application/grpc 85.6306ms
+Refreshing native plugins compatible for Editor in 1.98 ms, found 1 plugins.
 Starting: /home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/Tools/BuildPipeline/bee_backend --ipc --defer-dag-verification --dagfile="Library/Bee/2400b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
 WorkingDir: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[1]
@@ -311,18 +311,18 @@ WorkingDir: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
       Executed endpoint 'gRPC - /UnityILPP.PostProcessing/ConfigurePostProcessors'
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[2]
-      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/ConfigurePostProcessors application/grpc - - 200 - application/grpc 76.8028ms
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/ConfigurePostProcessors application/grpc - - 200 - application/grpc 59.6246ms
 DisplayProgressbar: Compiling Scripts
-ExitCode: 0 Duration: 0s776ms
-[1425/2018  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
-*** Tundra build success (0.72 seconds), 1 items updated, 2018 evaluated
-AssetDatabase: script compilation time: 1.845373s
+ExitCode: 0 Duration: 0s792ms
+[1456/2018  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
+*** Tundra build success (0.76 seconds), 1 items updated, 2018 evaluated
+AssetDatabase: script compilation time: 2.018282s
 Total cache size 98222776
-Total cache size after purge 98222776, took 00:00:00.0563076
+Total cache size after purge 98222776, took 00:00:00.1013629
 Begin MonoManager ReloadAssembly
 [redacted credential or identifier-related line]
-- Loaded All Assemblies, in  3.042 seconds
-Refreshing native plugins compatible for Editor in 3.27 ms, found 1 plugins.
+- Loaded All Assemblies, in  3.231 seconds
+Refreshing native plugins compatible for Editor in 2.78 ms, found 1 plugins.
 Native extension for LinuxStandalone target not found
 [redacted credential or identifier-related line]
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
@@ -345,88 +345,88 @@ Start HTTP server: port:7800
 [Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
 ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in 11.264 seconds
-Domain Reload Profiling: 14290ms
-	BeginReloadAssembly (419ms)
+- Finished resetting the current domain, in 11.432 seconds
+Domain Reload Profiling: 14650ms
+	BeginReloadAssembly (335ms)
 		ExecutionOrderSort (0ms)
-		DisableScriptedObjects (26ms)
+		DisableScriptedObjects (22ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (160ms)
-	RebuildCommonClasses (84ms)
-	RebuildNativeTypeToScriptingClass (20ms)
-	initialDomainReloadingComplete (88ms)
-	LoadAllAssembliesAndSetupDomain (2415ms)
-		LoadAssemblies (957ms)
+		CreateAndSetChildDomain (115ms)
+	RebuildCommonClasses (92ms)
+	RebuildNativeTypeToScriptingClass (14ms)
+	initialDomainReloadingComplete (97ms)
+	LoadAllAssembliesAndSetupDomain (2679ms)
+		LoadAssemblies (918ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (1613ms)
-			TypeCache.Refresh (1332ms)
-				TypeCache.ScanAssembly (1271ms)
-			BuildScriptInfoCaches (247ms)
+		AnalyzeDomain (1890ms)
+			TypeCache.Refresh (1570ms)
+				TypeCache.ScanAssembly (1521ms)
+			BuildScriptInfoCaches (285ms)
 			ResolveRequiredComponents (24ms)
-	FinalizeReload (11265ms)
+	FinalizeReload (11433ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (10740ms)
+		SetupLoadedEditorAssemblies (11028ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (57ms)
-			SetLoadedEditorAssemblies (29ms)
-			BeforeProcessingInitializeOnLoad (692ms)
-			ProcessInitializeOnLoadAttributes (9228ms)
-			ProcessInitializeOnLoadMethodAttributes (724ms)
-			AfterProcessingInitializeOnLoad (8ms)
-			EditorAssembliesLoaded (2ms)
+			InitializePlatformSupportModulesInManaged (44ms)
+			SetLoadedEditorAssemblies (15ms)
+			BeforeProcessingInitializeOnLoad (618ms)
+			ProcessInitializeOnLoadAttributes (9020ms)
+			ProcessInitializeOnLoadMethodAttributes (1318ms)
+			AfterProcessingInitializeOnLoad (10ms)
+			EditorAssembliesLoaded (1ms)
 		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (69ms)
-Asset Pipeline Refresh (id=87138818836b0d308823aee3877945a2): Total: 20.712 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+		AwakeInstancesAfterBackupRestoration (16ms)
+Asset Pipeline Refresh (id=494f3e24e069a728da601a8905630977): Total: 20.627 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
 	Summary:
 		Imports: total=0 (actual=0, local cache=0, cache server=0)
-		Asset DB Process Time: managed=0 ms, native=15148 ms
-		Asset DB Callback time: managed=487 ms, native=10 ms
-		Scripting: domain reloads=1, domain reload time=3043 ms, compile time=1848 ms, other=173 ms
+		Asset DB Process Time: managed=0 ms, native=15088 ms
+		Asset DB Callback time: managed=99 ms, native=15 ms
+		Scripting: domain reloads=1, domain reload time=3232 ms, compile time=2021 ms, other=170 ms
 		Project Asset Count: scripts=3042, non-scripts=9601
 		Asset File Changes: new=0, changed=0, moved=0, deleted=0
 		Scan Filter Count: 1
 	InvokeCustomDependenciesCallbacks: 0.006ms
-	InvokePackagesCallback: 10.962ms
-	ApplyChangesToAssetFolders: 0.933ms
-	Scan: 2729.469ms
-	OnSourceAssetsModified: 0.008ms
-	CategorizeAssetsWithTransientArtifact: 193.810ms
-	ProcessAssetsWithTransientArtifactChanges: 371.755ms
-	CategorizeAssets: 229.761ms
-	ImportOutOfDateAssets: 11312.085ms (9447.789ms without children)
-		CompileScripts: 1848.120ms
-		ReloadNativeAssets: 0.107ms
-		UnloadImportedAssets: 6.800ms
-		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 6.986ms
+	InvokePackagesCallback: 16.504ms
+	ApplyChangesToAssetFolders: 2.432ms
+	Scan: 2451.544ms
+	OnSourceAssetsModified: 0.003ms
+	CategorizeAssetsWithTransientArtifact: 146.234ms
+	ProcessAssetsWithTransientArtifactChanges: 367.625ms
+	CategorizeAssets: 253.527ms
+	ImportOutOfDateAssets: 11488.531ms (9443.661ms without children)
+		CompileScripts: 2020.637ms
+		ReloadNativeAssets: 0.099ms
+		UnloadImportedAssets: 8.053ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 8.958ms
 		InitializingProgressBar: 0.001ms
 		PostProcessAllAssetNotificationsAddChangedAssets: 0.001ms
-		OnDemandSchedulerStart: 2.282ms
-	PostProcessAllAssets: 487.672ms
+		OnDemandSchedulerStart: 7.121ms
+	PostProcessAllAssets: 99.287ms
 	GatherAllCurrentPrimaryArtifactRevisions: 0.001ms
-	UnloadStreamsBegin: 4.548ms
-	PersistCurrentRevisions: 0.887ms
-	UnloadStreamsEnd: 0.001ms
-	GenerateScriptTypeHashes: 11.856ms
-	Untracked: 5370.100ms
+	UnloadStreamsBegin: 5.849ms
+	PersistCurrentRevisions: 1.769ms
+	UnloadStreamsEnd: 0.003ms
+	GenerateScriptTypeHashes: 12.059ms
+	Untracked: 5794.132ms
 
 Application.AssetDatabase Initial Refresh End
-Scanning for USB devices : 7.714ms
+Scanning for USB devices : 12.101ms
 Initializing Unity extensions:
 UpdateMenuTitleForLanguage: 10
 [MODES] ModeService[none].Initialize
 [MODES] ModeService[none].LoadModes
 [MODES] Loading mode Default (0) for mode-current-id-DungeonStory
 Unloading 21 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 14685 unused Assets / (1.8 MB). Loaded Objects now: 15597.
-Memory consumption went from 279.0 MB to 277.1 MB.
-Total: 90.399271 ms (FindLiveObjects: 2.794988 ms CreateObjectMapping: 5.125219 ms MarkObjects: 60.011486 ms  DeleteObjects: 22.465006 ms)
+Unloading 14698 unused Assets / (10.4 MB). Loaded Objects now: 15610.
+Memory consumption went from 278.8 MB to 268.5 MB.
+Total: 60.223742 ms (FindLiveObjects: 2.729176 ms CreateObjectMapping: 4.926053 ms MarkObjects: 32.319339 ms  DeleteObjects: 20.247597 ms)
 
-Asset Pipeline Refresh (id=380403d511ff45ca2a975d2e2d1f8edd): Total: 1.564 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=85f514ff25973ddeca1b9b6f89f53427): Total: 1.516 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
 	Summary:
 		Imports: total=0 (actual=0, local cache=0, cache server=0)
-		Asset DB Process Time: managed=0 ms, native=1563 ms
+		Asset DB Process Time: managed=0 ms, native=1516 ms
 		Asset DB Callback time: managed=0 ms, native=0 ms
 		Scripting: domain reloads=0, domain reload time=0 ms, compile time=0 ms, other=0 ms
 		Project Asset Count: scripts=3042, non-scripts=9601
@@ -434,42 +434,42 @@ Asset Pipeline Refresh (id=380403d511ff45ca2a975d2e2d1f8edd): Total: 1.564 secon
 		Scan Filter Count: 1
 	InvokeCustomDependenciesCallbacks: 0.001ms
 	InvokePackagesCallback: 0.001ms
-	ApplyChangesToAssetFolders: 0.337ms
-	Scan: 1369.580ms
+	ApplyChangesToAssetFolders: 0.410ms
+	Scan: 1313.814ms
 	OnSourceAssetsModified: 0.001ms
-	CategorizeAssetsWithTransientArtifact: 0.004ms
-	ProcessAssetsWithTransientArtifactChanges: 0.428ms
-	CategorizeAssets: 153.856ms
-	ImportOutOfDateAssets: 14.516ms (4.880ms without children)
-		ReloadNativeAssets: 0.092ms
-		UnloadImportedAssets: 0.217ms
-		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 7.558ms
-		InitializingProgressBar: 0.001ms
+	CategorizeAssetsWithTransientArtifact: 0.003ms
+	ProcessAssetsWithTransientArtifactChanges: 0.471ms
+	CategorizeAssets: 166.532ms
+	ImportOutOfDateAssets: 5.600ms (1.359ms without children)
+		ReloadNativeAssets: 0.074ms
+		UnloadImportedAssets: 0.174ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 2.844ms
+		InitializingProgressBar: 0.000ms
 		PostProcessAllAssetNotificationsAddChangedAssets: 0.001ms
-		OnDemandSchedulerStart: 1.767ms
-	GatherAllCurrentPrimaryArtifactRevisions: 1.156ms
-	UnloadStreamsBegin: 0.084ms
-	PersistCurrentRevisions: 1.166ms
+		OnDemandSchedulerStart: 1.148ms
+	GatherAllCurrentPrimaryArtifactRevisions: 1.142ms
+	UnloadStreamsBegin: 0.118ms
+	PersistCurrentRevisions: 0.789ms
 	UnloadStreamsEnd: 0.002ms
-	Untracked: 22.606ms
+	Untracked: 27.202ms
 
-Asset Pipeline Refresh (id=b0d8dc22022c8568c9360ded565c5657): Total: 0.559 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=2bf1601aadcdfdb76ac91b0d9c36cc65): Total: 0.584 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
 	Summary:
 		Imports: total=0 (actual=0, local cache=0, cache server=0)
-		Asset DB Process Time: managed=0 ms, native=559 ms
+		Asset DB Process Time: managed=0 ms, native=583 ms
 		Asset DB Callback time: managed=0 ms, native=0 ms
 		Scripting: domain reloads=0, domain reload time=0 ms, compile time=0 ms, other=0 ms
 		Project Asset Count: scripts=3042, non-scripts=9601
 		Asset File Changes: new=0, changed=0, moved=0, deleted=0
 		Scan Filter Count: 1
-	InvokeCustomDependenciesCallbacks: 0.000ms
-	InvokePackagesCallback: 0.000ms
-	ApplyChangesToAssetFolders: 0.194ms
-	Scan: 557.348ms
-	GatherAllCurrentPrimaryArtifactRevisions: 0.831ms
-	UnloadStreamsBegin: 0.003ms
-	UnloadStreamsEnd: 0.233ms
-	Untracked: 0.862ms
+	InvokeCustomDependenciesCallbacks: 0.001ms
+	InvokePackagesCallback: 0.001ms
+	ApplyChangesToAssetFolders: 0.275ms
+	Scan: 580.761ms
+	GatherAllCurrentPrimaryArtifactRevisions: 1.090ms
+	UnloadStreamsBegin: 0.004ms
+	UnloadStreamsEnd: 0.237ms
+	Untracked: 1.199ms
 
 V27_PREPARATION_SKILLS=PASS; prepared selection; local evidence; duplicate no-op; world publication rejection/rollback/save/retry
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
@@ -478,24 +478,24 @@ UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOpt
 UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
-V27CiEvidenceBatch:RunPreparationSkills () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:439)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:195)
+V27CiEvidenceBatch:RunPreparationSkills () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:451)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:207)
 V27CiEvidenceBatch:RunImpactCharacterContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:81)
 
-(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 439)
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 451)
 
-IMPACT_CI_PASS group=character;source=2bca6d13a58e24bf8ae9edded82968293a2743e6e3a9e6e9f3c3b8879ecd0587;config=ee0e4dc0da3d0beddbaf5403150f4747f01d6afd3944f2ae25dc165d3a481582;consoleErrors=0
+IMPACT_CI_PASS group=character;source=ca389fb037ee9656a927c49abb9b4bc3fcddf2f79a8c78e5527b99403214ff11;config=aa3cc68111a562a17bf5bb805e46b4f8a823de3c8e26487ae6d59d361bd81ea1;consoleErrors=0
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
 UnityEngine.StackTraceUtility:ExtractStackTrace () (at /home/bokken/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:35)
 UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
 UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
-V27CiEvidenceBatch:CompleteImpact (string,string,string,bool) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:209)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:196)
+V27CiEvidenceBatch:CompleteImpact (string,string,string,bool) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:221)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:208)
 V27CiEvidenceBatch:RunImpactCharacterContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:81)
 
-(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 209)
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 221)
 
 Batchmode quit successfully invoked - shutting down!
 Pipeline Server stopped

@@ -1,5 +1,25 @@
 # DungeonStory Current Task Plan
 
+## 현재 Goal — R20-01~16 및 R20-X01 수정/main 통합 (2026-10-24)
+
+Status: implementation_and_execution_complete / GitHub integration pending. 기준 main104459911, branch codex/fix-so-r20. R20-01~16 및 X01을 구현하고 필요한 실제 실행을 수용했다. 최종 r147st runtime600초, effects1060초, core240초, character190초, world250초, crop200초가 모두 native0/C#0/consoleErrors0/drift0이다. 작성r142st330초와 Inspectorr145st160초는 원래 입력 식별자 및 전체21700파일 차이를 보존해 재사용한다. 지급 시각 보존, 하루 뒤 복원/재시도와 잘못된 시각 거절을 최종 runtime에서 확인했다. Unity0/lockfree로 검증 창을 닫았다. 원본 checkout과 기존 QA를 보존했고 전수 seed는 실행하지 않았다. commit/push/PR attach/CI/main 병합/후속 CI는 실제 GitHub 결과로 완료 판정한다.
+
+1. 구현/표적 실행 완료: 숙련도 보상과 특성 프로토콜. 기존 enum/게시 ID/GUID/DTO 버전과 일반 경험치10개를 보존했고 하루 뒤 부분 복구의 승급 중복 방지도 확인했다.
+2. 구현/표적 실행 완료: 직책/장례/생산/질병/제공자 보호/시설 진화/운반/역목록/Sorting Layer. 기존 registry와 owner 문맥, 정상 외부 원천을 유지한다.
+3. 완료: 현재 소스 컴파일, 실제 소비/Inspector, 저장/복원/거절 무변경/재시도와 영향5그룹. 영수증은 Artifacts/QA/ImpactCI/verification.json 및 r20-verification.json, 표는 SO_REFERENCE_FULL_AUDIT.md다. 통제 fixture와 공식 Gameplay 복원을 구별한다.
+4. 진행: 기존3544에셋/10721필드 보존 및1180추가, Python82개/analyzer와 최종 인덱스/링크 검사를 수용했다. 최종 commit의 호환/영향 검사를 확인하고 push/PR attach/CI/main 병합/후속 CI를 마친다.
+
+소유권: 메인이 효과/특성/직책 상태와 저장, 공용 enum/catalog/drawer, 게시 보호/등록과 최종 조립을 직접 통합한다. Leaf는 확정된 payload/UI/역목록 파일만 소유하며 Unity와 Git을 실행하지 않는다. 씬/프리팹 변경 없이 필요한 에셋값만 고치고 사용자 수동 연결을 요구하지 않는다.
+
+## 현재 작업 — main104459911 SO 관계 R20 읽기 전용 재감사 (2026-10-24)
+
+Status: completed / read-only audit. 시작과 마감 fetch가 같은 main10445991171a8b9e336a70469c28266438b7defa다. 원본 코드/에셋/소비자/게시 보호를 대조했고 SO_REFERENCE_FULL_AUDIT.md 상단 R20-01~16 및 별도 엔진 참조 R20-X01을 기록했다. 감사 완료이며 잔여 수정 완료가 아니다.
+
+1. 완료: 현재 SO142종/직렬화2458/후보881 및 실제 게임 에셋3544개 재추출, GUID8962/fileID4731 대조.
+2. 완료: 분야별 원본 소비자와 선택 문맥/등록, 제공자 변경 보호를 대조. 특성의 mood/relationship 생산자를 분리하고 예외 경로까지 메인이 재검토했다.
+3. 완료: 현재 잘못 적용되는 효과/특성, 미소비 관계와 미래 작성 공백을16묶음으로 기록. 잘못된 asset 값과 정상 현재 값의 보호 공백을 구분했다.
+4. 완료: 문서 링크6514/신규 source line65의 경로/범위, diff whitespace와 code/asset 무변경 확인. Unity/생성 인덱스/전수 seed/수정과 통합은 실행하지 않았다. 사용자 checkout과 QA 보존.
+
 ## 현재 Goal — R19-01~20 수정과 실제 검증/main 통합 (2026-10-24)
 
 Status: follow-up integration / branch `codex/fix-so-r19-save-retry`, base main cd73a69e4. PR20과 PR/main CI는 성공했다. R19-07 일시 불가 상태의 저장/복원 보존을 보완했고 r139 runtime380초 및 effects1050/core240/character180/world250/crop200초 모두 수용했다. 현재 입력 영수증, 문서와 생성 인덱스를 마감했다. 후속 commit/push, PR CI, main 병합과 후속 CI를 완료한다. 원본 checkout 및 QA를 보존한다.

@@ -224,6 +224,12 @@ internal static class V20ContentEffectEvidence
             characterId,
             StringComparison.Ordinal))?.trauma ?? 0f;
 
+    internal static float ProficiencyExperience(V20ContentEffectOwnerSnapshot snapshot,
+        string characterId, string proficiencyId) => (snapshot?.Narrative?.characters
+        ?.FirstOrDefault(value => value != null && value.characterId == characterId)?.skillExperience
+        ?.FirstOrDefault(value => value != null && value.proficiencyId == proficiencyId)
+        ?.lifetimeMilliExperience ?? 0L) / (float)ProficiencyProgressionRules.MilliPerExperience;
+
     internal static string ProgressionValue(
         V20ContentEffectOwnerSnapshot snapshot,
         string characterId)

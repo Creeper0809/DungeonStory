@@ -23,6 +23,7 @@ public sealed class DiseaseDefinitionSO : ScriptableObject
     [Min(1)] public int authoringRevision = 1;
     [TextArea] public string sourceNote = string.Empty;
     public string symptomProfileId = string.Empty;
+    [ContentReference(ContentReferenceKind.DiseaseResponse)]
     public List<string> fieldResponseIds = new();
 
     public DiseaseDefinition CreateRuntimeDefinition() => new(

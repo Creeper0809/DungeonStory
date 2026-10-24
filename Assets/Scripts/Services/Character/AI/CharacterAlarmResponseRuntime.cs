@@ -244,6 +244,13 @@ public sealed class CharacterAlarmResponseRuntime :
     {
         if (change.Current == SettlementThreatAlertLevel.Amber)
         {
+            foreach (CharacterActor actor in world.Characters)
+            {
+                if (actor == null || actor.IsDead || !actor.CanRunAi || actor.Brain == null) continue;
+                if ((actor.Progression?.GetEffectiveRuntimeProfile()?.GetBehaviorUtilityMultiplier(
+                        new[] { CharacterIdentityRuleProtocols.MinorAlert }) ?? 1f) > 1f)
+                    actor.Brain.RequestImmediateDecision(CharacterIdentityRuleProtocols.MinorAlert);
+            }
             // Amber changes reserve planning and response readiness without
             // interrupting the whole workforce.
             completedPending.Clear();

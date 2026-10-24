@@ -17,6 +17,7 @@ internal sealed class V20ContentTypedEffectRuntime
     internal readonly ICharacterNarrativeQuery narrativeQuery;
 
     internal readonly IDiseaseDefinitionCatalog diseases;
+    internal readonly IGameCalendar calendar;
     internal V21ContentEffectExecutionRegistry Handlers { get; }
 
     internal V20ContentTypedEffectRuntime(
@@ -28,8 +29,10 @@ internal sealed class V20ContentTypedEffectRuntime
         ICharacterNarrativeCatalog narrativeCatalog,
         ICharacterNarrativeQuery narrativeQuery,
         IDiseaseDefinitionCatalog diseases = null,
-        V21ContentEffectExecutionRegistry handlers = null)
+        V21ContentEffectExecutionRegistry handlers = null,
+        IGameCalendar calendar = null)
     {
+        this.calendar = calendar;
         this.diseases = diseases;
         Handlers = handlers ?? V21ContentEffectExecutionRegistry.Default;
         this.characters = characters;
@@ -77,11 +80,28 @@ internal sealed class V20ContentTypedEffectRuntime
         return true;
     }
 
+    internal long? CaptureProficiencyAwardHour(IReadOnlyList<V20ResolvedEventResult> resolutions)
+    {
+        if (!resolutions.SelectMany(value => value.Effects)
+            .Any(effect => effect.kind == V20ContentEffectKind.ProficiencyExperience))
+            return null;
+        long hour = calendar?.AbsoluteHour
+            ?? throw new InvalidOperationException("Content proficiency award calendar is unavailable.");
+        if (hour < 0L)
+            throw new InvalidOperationException("Content proficiency award time is invalid.");
+        return hour;
+    }
+
     internal IReadOnlyList<V20ResolvedEventResult> ApplyTypedDomainEffects(
         int requestedAbsoluteDay,
         IReadOnlyList<V20ResolvedEventResult> resolutions,
-        Func<IReadOnlyList<V20ResolvedEventResult>, V20ContentEffectOwnerSnapshot> capture)
+        Func<IReadOnlyList<V20ResolvedEventResult>, V20ContentEffectOwnerSnapshot> capture,
+        long? proficiencyAwardAbsoluteHour)
     {
+        if (resolutions.SelectMany(value => value.Effects)
+                .Any(effect => effect.kind == V20ContentEffectKind.ProficiencyExperience)
+            && (!proficiencyAwardAbsoluteHour.HasValue || proficiencyAwardAbsoluteHour.Value < 0L))
+            throw new InvalidOperationException("Content proficiency award has no frozen time.");
         int absoluteDay = Math.Max(1, requestedAbsoluteDay);
         Dictionary<string, CharacterActor> actors = characters.Characters
             .Where(value => value != null && value.Identity != null)
@@ -104,7 +124,8 @@ internal sealed class V20ContentTypedEffectRuntime
                 if (handler.Stage == V20ContentEffectStage.Typed)
                 {
                     V20ContentEffectOwnerSnapshot before = capture(new[] { resolution });
-                    handler.Apply(this, new V20ContentEffectInvocation(absoluteDay, resolution, effect, participants));
+                    handler.Apply(this, new V20ContentEffectInvocation(absoluteDay, resolution, effect, participants,
+                        proficiencyAwardAbsoluteHour ?? -1L));
                     applications.AddRange(V20ContentEffectEvidence.ObserveEffect(resolution, index,
                         before, capture(new[] { resolution }), handler));
                 }

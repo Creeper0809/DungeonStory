@@ -18,6 +18,7 @@ public sealed class CareerPositionDefinitionSO : ScriptableObject
     public CareerPositionKind position;
     public CareerPositionScopeKind scope;
     [Min(1)] public int maximumOccupants = 1;
+    [ContentReference(ContentReferenceKind.BuildingSemanticTag)]
     public string requiredFacilityTag = string.Empty;
 
     public string StableId => definitionId?.Trim() ?? string.Empty;
