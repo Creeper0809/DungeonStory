@@ -950,13 +950,12 @@ public sealed class OffenseUrgentMitigationRuntime :
         OffenseUrgentSiteDefinitionSO definition)
     {
         if (definition == null
-            || string.IsNullOrWhiteSpace(definition.mitigationWorkTypeId))
+            || !definition.HasMitigationWorkType)
         {
             return null;
         }
 
-        WorkTypeId semanticWorkType =
-            new WorkTypeId(definition.mitigationWorkTypeId);
+        WorkTypeId semanticWorkType = definition.MitigationWorkType;
         HashSet<BuildableObject> occupied =
             new HashSet<BuildableObject>(boundFacilities.Values
                 .Where(facility => facility != null && !facility.isDestroy));
@@ -1098,11 +1097,12 @@ public sealed class OffenseUrgentMitigationRuntime :
         OffenseUrgentSiteDefinitionSO definition)
     {
         string workLabel = definition != null
-            && WorkTypeCatalog.TryGet(
-                new WorkTypeId(definition.mitigationWorkTypeId),
-                out WorkTypeDefinition work)
-                    ? work.DisplayName
-                    : "대응";
+            && definition.HasMitigationWorkType
+                ? WorkTypeCatalog.RequireRegistered(
+                    definition.MitigationWorkType,
+                    $"Offense urgent site '{definition.urgentSiteId ?? "<null>"}'")
+                    .DisplayName
+                : "대응";
         return $"{workLabel} 작업이 가능한 정상 시설이 필요합니다.";
     }
 

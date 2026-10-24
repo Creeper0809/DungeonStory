@@ -1,5 +1,16 @@
 # DungeonStory Current Findings
 
+## 2026-10-24 main1f1f990a2 SO 재검토 — 원본 모집단
+
+새 fetch main과 조사 checkout의 tree가 같다. 현재 원본을 Roslyn editor/player로 다시 추출해 게임 SO142종·직렬화 필드2459개·관계 후보880개·ContentReference167개를 확인했다. 현재 asset YAML3544개는 파싱 오류0이며, partial SO의 MonoScript stub까지 포함한 독립 .meta 대조에서도 미게시 게임 SO0개다. 직접 GUID8962개/fileID 대상4731개에 미해결·중복 metadata0개다. 이 수치는 문자열 관계 의미와 Inspector 편집 경로의 완전성을 뜻하지 않는다.
+
+새 출력은 외부 `so-full-audit/main-reaudit-r17`에 저장했다. 이전 원본 감사 출력과 실행 증거는 덮어쓰지 않았다. KB query fresh이며 생성 인덱스는 재생성하지 않았다. 최종 판정은 [SO_REFERENCE_FULL_AUDIT.md](SO_REFERENCE_FULL_AUDIT.md) 상단 N01–N07이다.
+
+- 기존 감사에서 WorkType을 protocol, 로컬 연결을 이미 검증하는 관계로 분류하면서 선택기 누락을 제외했다. 현재 에셋 값의 유효성을 수기 관계 입력 제거와 혼동하지 않는다. 미등록 WorkType은 시설 급배수/사고 화재/종족 적성/작업 우선순위에서 조용한 기능 누락을 일으킬 수 있다.
+- 공유 formula의 SkillCapability 표식은 acquired 소유 문맥을 처리하지 못한다. 장비/시설 forbidden 목록도 실제 capability 관계이며 현재 빈 값이라고 의미 키로 제외할 수 없다. 현재 값 오류와 콘텐츠 확장을 막는 작성 경계를 별도로 기록한다.
+- CharacterSO.ownerFixedSkills는 DTO지만 실제 custom Inspector에서 중첩 필드까지 수기 편집한다. module/variant 관계와 파생 snapshot 전체의 authoring 경계가 필요하다. 현재 모든 자산이 빈 목록이므로 현행 기본 스킬이 깨졌다고 주장하지 않는다.
+- ServiceProcessSO.workTypeId는 등록 검증은 있으나 값을 읽는 TryGetWorkTypeId의 생산 호출처가 없다. 선택기만 추가해서 기능 연결을 완료했다고 할 수 없다. 이번 요청에서는 조사 결과만 기록하고 수정 범위를 확대하지 않는다.
+
 ## 2026-10-24 SO 보완 최종 계약
 
 - R10 CI는 등록 GUID의 에셋 존재뿐 아니라 실제 m_Script 연결과 게임 소유 여부를 확인한다. C# 게시 도구와 같은 `Assets/Scripts/`/제외 경로 규칙에 해당하면 자체 게시 row가 필수다. Plugins DLL의 vendor 설정은 게임 identity 목록에 억지로 편입하지 않으며, script 연결 누락·모호성은 거절한다. 기존 게시 row·필드는 계속 불변이다.
@@ -5726,3 +5737,9 @@ native-restock-current-r7에서 pending/no-path, selector reinjection, door-canc
 ### C3 batch boot boundary — 2026-10-17
 
 native-destructive-drain-current-r3은 Title/owner selection까지만 PASS하고 staff/draft 확정이 없는 준비 UI에서 Start를 기다려 실패했다. 실제 철거 기능 실패나 memory guard가 아니다. 새 isolated batch만 기존 Movement/whole-world와 같은 공식 fast-party command로 조립된 Gameplay를 사용하고, 수동 verification의 Title UI 경로는 유지한다. 실패 뒤 다른 준비 경로를 시도하는 fallback을 추가하지 않으며 batch 진입 경로를 고정한다.
+
+## N01–N07 구현 결정 (2026-10-24)
+- N01: WorkType 문법/등록 여부를 분리하고7필드 선택기 및 실제 recipe/fire/fluid/mitigation/priority/species 소비 경계를 연결했다. legacy 빈 recipe→craft와 누락 priority 기본값은 유지하며 migration은 검증 후 commit한다. schema2 조회는 검증된 private 목록을 재사용하고 역직렬화에서 무효화한다. 불변 species는 catalog 등록 때 배열을 검사하고 매 AI 조회에서 검증용 집합을 재생성하지 않는다.
+- N02/N03/N04/N06: 기존 공용 선택기에 소유 asset 문맥을 전달한다. campaign/효과 binding은 자기 목록, acquired 수식은 acquired benefit catalog, 장비/시설은 자기 positive 및 실제 지원되는 optional drawback만 선택한다. pending serialized 입력은 임시 객체에서 읽으며 원본에 Apply하지 않는다. invalid catalog는 입력을 지우지 않고 Inspector에 오류를 표시한다.
+- N05: 무소비 ServiceProcess.workTypeId와 builder 인자/5개 YAML 키만 제거했다. 서비스 실행/가격/자원/owner 권위와 GUID는 유지한다.
+- N07: 기존 DTO를 유지하면서 owner-fixed 작성 입력만 편집하고 생성 snapshot은 읽기 전용으로 표시한다. 원본 결손을 필터로 숨기지 않으며 startup와 실제 progression 조회/복원에서 module·variant·formula를 검사한다. 기존 빈 슬롯 기본 스킬/legacy ID 생성 계약은 유지하고 저장에 SO 정의를 복제하지 않는다.

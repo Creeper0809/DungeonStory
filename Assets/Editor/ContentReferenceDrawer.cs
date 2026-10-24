@@ -54,6 +54,9 @@ public sealed class ContentReferenceDrawer : PropertyDrawer
             if (kind == ContentReferenceKind.AnatomyNode || kind == ContentReferenceKind.ExpeditionChoice
                 || kind is ContentReferenceKind.InvasionPattern or ContentReferenceKind.SkillCapability
                     or ContentReferenceKind.GameplayValueTarget or ContentReferenceKind.WorkType
+                    or ContentReferenceKind.SkillModule or ContentReferenceKind.SkillVariant
+                    or ContentReferenceKind.CampaignTarget or ContentReferenceKind.AcquiredTraitBinding
+                    or ContentReferenceKind.EquipmentCapability or ContentReferenceKind.FacilityCapability
                 || contextual || aliases.Length > 0)
             {
                 var options = new List<(string Id, string Label)> { ("", "None") };
@@ -91,6 +94,12 @@ public sealed class ContentReferenceDrawer : PropertyDrawer
                 : valid ? (current.Length == 0 ? "선택 없음" : current)
                 : "끊어졌거나 중복된 ID: " + current + " — 기존 값 보존";
             EditorGUI.LabelField(line, status, valid ? EditorStyles.miniLabel : EditorStyles.boldLabel);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
+        {
+            // An incomplete owning catalog is still editable. Surface the real
+            // failure without clearing the stored ID or inventing candidates.
+            EditorGUI.LabelField(position, label.text, "참조 목록 오류: " + exception.Message);
         }
         finally
         {
@@ -191,15 +200,29 @@ public static class ContentReferenceSelection
     }
 
     public static bool HasMixedContext(ContentReferenceAttribute reference, SerializedProperty property) =>
-        reference.Kind == ContentReferenceKind.EncounterTarget
+        ContentReferenceCatalog.RequiresOwnerContext(reference.Kind) && property.serializedObject.isEditingMultipleObjects
+            || reference.Kind == ContentReferenceKind.SkillVariant && Sibling(property, "moduleId")?.hasMultipleDifferentValues == true
+            || (reference.Kind == ContentReferenceKind.EncounterTarget
             ? property.serializedObject.FindProperty("objective")?.hasMultipleDifferentValues == true
             : reference.Kind is ContentReferenceKind.EffectTarget or ContentReferenceKind.NarrativeTarget or ContentReferenceKind.AuthoredEffectText
-                && ContextKind(property)?.hasMultipleDifferentValues == true;
+                && ContextKind(property)?.hasMultipleDifferentValues == true);
+
+    private static SerializedProperty Sibling(SerializedProperty property, string name) =>
+        property.serializedObject.FindProperty(property.propertyPath.Substring(0, property.propertyPath.LastIndexOf('.') + 1) + name);
 
     public static IReadOnlyList<Entry> Entries(ContentReferenceAttribute reference, SerializedProperty property)
     {
         var all = Entries(reference);
         if (catalog == null) return all;
+        if (ContentReferenceCatalog.RequiresOwnerContext(reference.Kind))
+        {
+            if (HasMixedContext(reference, property)) return Array.Empty<Entry>();
+            if (reference.Kind == ContentReferenceKind.SkillVariant)
+                return catalog.Entries(reference, property.serializedObject.targetObject as ScriptableObject,
+                    new CharacterSkillModuleSelection { moduleId = Sibling(property, "moduleId")?.stringValue })
+                    .Select(entry => new Entry(entry.Asset, entry.Id)).ToArray();
+            return PendingOwnerEntries(reference, property.serializedObject);
+        }
         if (reference.Kind == ContentReferenceKind.AnatomyNode
             && property.serializedObject.targetObject is SurgicalProcedureSO)
         {
@@ -243,6 +266,56 @@ public static class ContentReferenceSelection
             return all.Where(value => selected.Contains(value.Id)).ToArray();
         }
         return all;
+    }
+
+    // Copy pending serialized values to a disposable object, never Apply to the
+    // user's asset just to populate a picker. New list rows and Undo therefore
+    // see the same local catalog that validation will see after Apply.
+    private static IReadOnlyList<Entry> PendingOwnerEntries(ContentReferenceAttribute reference, SerializedObject source)
+    {
+        if (source.targetObject is not ScriptableObject original) return Array.Empty<Entry>();
+        ScriptableObject pending = ScriptableObject.CreateInstance(original.GetType());
+        pending.hideFlags = HideFlags.HideAndDontSave;
+        try
+        {
+            using var copy = new SerializedObject(pending);
+            SerializedProperty field = source.GetIterator();
+            bool enter = true;
+            while (field.Next(enter))
+            {
+                enter = false;
+                if (field.name != "m_Script")
+                    CopyPendingValue(field, copy.FindProperty(field.propertyPath));
+            }
+            copy.ApplyModifiedPropertiesWithoutUndo();
+            return catalog.Entries(reference, pending).Select(entry =>
+                new Entry(entry.Asset == pending ? original : entry.Asset, entry.Id)).ToArray();
+        }
+        finally { UnityEngine.Object.DestroyImmediate(pending); }
+    }
+
+    private static void CopyPendingValue(SerializedProperty source, SerializedProperty target)
+    {
+        if (target == null)
+            throw new InvalidOperationException("Pending reference property is missing: " + source.propertyPath);
+        if (source.isArray && source.propertyType != SerializedPropertyType.String)
+        {
+            target.arraySize = source.arraySize;
+            for (int i = 0; i < source.arraySize; i++)
+                CopyPendingValue(source.GetArrayElementAtIndex(i), target.GetArrayElementAtIndex(i));
+        }
+        else if (source.propertyType == SerializedPropertyType.Generic)
+        {
+            var child = source.Copy();
+            var end = source.GetEndProperty();
+            if (child.Next(true))
+                do
+                {
+                    if (SerializedProperty.EqualContents(child, end)) break;
+                    CopyPendingValue(child, target.FindPropertyRelative(child.name));
+                } while (child.Next(false));
+        }
+        else target.boxedValue = source.boxedValue;
     }
 
     private static string[] ReadStrings(SerializedProperty list) =>

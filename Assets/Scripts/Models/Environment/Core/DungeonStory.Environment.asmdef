@@ -5,7 +5,8 @@
     "DungeonStory.Buildings",
     "DungeonStory.Foundation",
     "DungeonStory.Items",
-    "DungeonStory.Rooms"
+    "DungeonStory.Rooms",
+    "DungeonStory.Work"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

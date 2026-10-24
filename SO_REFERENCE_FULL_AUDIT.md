@@ -1,12 +1,113 @@
 # SO 관계 전수 감사 — 2026-10-24
 
+## N01~N07 보완 완료
+
+수정 기준은 main `1f1f990a2`다. 아래 재감사 기록은 수정 전 상태이며, 이번 보완의 결과는 이 표와 현재 소스에 결합된 실행 증거를 따른다. 기존 저장 ID, asset GUID, DTO 필드와 버전은 유지했다. 새 런타임 클래스나 SO 분할은 추가하지 않았다.
+
+| 항목 | 반영한 보완 | 확인한 경계 |
+|---|---|---|
+| N01 | 작업 종류 7필드를 기존 등록 목록 선택기에 연결하고 소비 경계에서 미등록 값과 중복을 거절 | 생산, 화재, 급배수, 종족 적성, 우선순위 JSON, 실패 후 무변경과 수정 후 재시도 |
+| N02 | 캠페인 선행 목표를 같은 SO 안에서 선택 | 미저장 새 행, 다른 SO 배제, 자기 참조와 순환 거절 |
+| N03 | 불이익 효과 binding을 해당 모듈 안에서 선택 | 외부 binding 배제, 구조화된 누락 오류, 수정 후 재검사 |
+| N04 | 공유 formula의 후보를 일반 스킬과 후천 특성 문맥에 맞게 분기 | 올바른 후보 집합, 잘못된 관계의 생성 전 거절, 수정 후 재시도 |
+| N05 | 소비자가 없는 서비스 작업 ID 작성면 제거 | 관련 에셋 5개의 해당 키만 제거, 기존 서비스 실행 검사 |
+| N06 | 장비와 시설의 금지 조합을 실제 조합 가능한 capability 목록에 연결 | 유효한 불이익 후보, 미등록 값 거절, 실제 조합 충돌 거절 |
+| N07 | 고정 스킬의 모듈과 변형 선택, 생성 snapshot 읽기 전용, 실행과 복원 전 정합성 확인 | 실제 작업 효과, legacy JSON, 실패 전후 무변경, 복원 후 무중복 재시도, 원본 SO 무변경 |
+
+[현재 SO 실행 증거](Artifacts/QA/ImpactCI/n01-n07-verification.json), [변경 영향 실행 증거](Artifacts/QA/ImpactCI/verification.json), [월드 저장과 복원](Artifacts/QA/ImpactCI/world-round-trip.txt), [실제 Inspector 격리 증거](Artifacts/QA/ImpactCI/n-so-inspector-isolation.json).
+
+Unity 컴파일, 표적 authoring 실행, private Xvfb의 실제 Inspector Layout/Repaint, 필수 영향 5그룹을 통과했다. 모든 수용 실행은 compiler error 0, console error 0, source drift 0을 확인했다. Python CI 67개, 게시 identity 3544개 에셋과 10607개 보호 항목, analyzer DSB001~DSB008을 검증했다. 전수 시드, 장기 밸런스와 무관한 확장 인증은 실행하지 않았다. 초기 실패나 다른 소스 결과를 현재 PASS로 바꾸지 않았다.
+
+실행 입력: source `72a4ca27a89469682d6e4d4b379c3c81d593d3664f5d5c8e85d3b2d67b338bbe`, configuration `ca67916ce8dde4a7f92660d364a30acfaded193341d81ffa6456d23e4e37cb3d`. GitHub 통합 상태는 현재 PR과 Goal 결과를 따른다. 아래 과거 R/U/I 검증의 원본 증거는 main `1f1f990a2`의 파일 이력에 보존된다.
+
+## 수정 전 main 원본 재검토 — 당시 남아 있던 수기 관계
+
+기준은 원격 main `1f1f990a26f457611d438eebd5423a92b4e77a51`이다. 조사 checkout의 HEAD `560cf45b30370006736adf9311a3d47fa77a0f18`와 main의 tree는 `c16083b71c1f16371032f3ede30d361f804f158e`로 같다. 재검토 마지막에도 원격 main SHA가 같음을 확인했다. 아래 기존 30항목 완료 표를 근거로 안전을 추정하지 않고 현재 C# 선언·Inspector 선택 경로·실제 소비자·에셋 YAML을 다시 대조했다.
+
+**현재 값이 유효하다는 것과 수기 관계 입력을 없앴다는 것은 다르다.** 아래에는 수기 관계, 선택 대상이 잘못된 문맥, 작성값의 소비가 없는 경계를 구분했다. WorkType은 코드에 정의된 작업 종류이며, 로컬 관계는 같은 SO 내부의 중첩 ID를 가리킨다. 모두 별도 SO 객체로 바꿀 대상은 아니지만, 사용자가 ID를 직접 입력하는 관계라는 점에서는 남은 범위다. 이전 감사에서 이들을 단순 protocol 또는 이미 검증하는 중첩 관계로 제외한 것은 수기 입력 제거 요청에 비추어 부족한 판정이었다.
+
+이번 재검토에서 확정한 보완 묶음은 **N01–N07의 7개**다. 권장 순서는 예외·기능 누락 위험인 N07/N01 → 잘못된 선택 대상과 미검증 관계인 N04/N06 → 검증은 있지만 수기인 N02/N03 → 소비 없는 작성면 N05다. 이 번호는 아래 과거 R/U/I 완료표와 별개다.
+
+### N01 · P1 · 작업 종류 관계 7필드의 선택기·등록 검증 누락
+
+기존 [ContentReferenceCatalog.cs](Assets/Scripts/Services/Items/ContentReferenceCatalog.cs#L117)는 `ContentReferenceKind.WorkType` 선택 목록을 이미 제공한다. 다음 필드에는 해당 표식이나 전용 선택기가 없다. [WorkTypeId.cs](Assets/Scripts/Models/Work/WorkTypeId.cs#L6)의 생성자와 `IsValid`는 비어 있지 않은지만 확인하므로 등록 여부 검사가 되지 않는다.
+
+| 실제 필드 | 현재 에셋 대조 | 잘못 입력했을 때 소스상 영향 |
+|---|---|---|
+| [ProductionRecipeSO.workTypeId](Assets/Scripts/Models/Economy/Content/ProductionRecipeSO.cs#L41) | 레시피 367개, 고유 작업 ID 6개 모두 등록됨 | 미등록 ID도 getter를 통과한다. 시설의 `SupportsWork`가 거절하므로 레시피를 실행할 작업과 연결되지 않는다. |
+| [BuildingProcessAccidentFireSourceAbility.workTypeId](Assets/Scripts/Models/Environment/Core/EnvironmentalBuildingAbilities.cs#L262) | 전기 제련 도가니 1개, `work:operate` 유효 | 작업 문자열이 다르면 `CaptureFirePlan`이 검증 전에 return하여 공정 사고의 화재 결과를 건너뛴다. |
+| [BuildingProcessFluidAbility.workTypeIds](Assets/Scripts/Services/Infrastructure/Industrial/IndustrialInfrastructureBuildingAbilities.cs#L166) | 18행, `work:cook`/`work:surgery` 모두 유효 | `Supports`가 false가 되어 시설의 공정 물·폐수 요구량이 0으로 투영된다. 레시피 자체 요구량은 별개로 유지된다. |
+| [OffenseUrgentSiteDefinitionSO.mitigationWorkTypeId](Assets/Scripts/Models/Offense/Core/OffenseUrgentSiteDefinitionSO.cs#L17) | 긴급 거점 6개 모두 등록된 작업 | 대응 시설을 찾지 못해 새 명령이 시설 없음으로 거절된다. 현재 플레이가 무한 대기한다는 판정은 하지 않는다. |
+| [WorkPriorityEntry.workTypeId](Assets/Scripts/Services/Character/Work/WorkPriorityProfile.cs#L30) | CharacterSO 16개, 우선순위 465행은 모두 등록된 작업이며 자산 내 중복 0 | 문자열을 직접 역직렬화하며 등록 검사 없이 보존한다. 실제 작업 조회는 해당 행을 찾지 못해 작성한 우선순위 대신 그 작업의 기본 우선순위를 사용한다. |
+| [CharacterSpeciesDefinitionSO.strongWorkTypeIds / weakWorkTypeIds](Assets/Scripts/Models/Species/Core/CharacterSpeciesDefinitionSO.cs#L255) — 2필드 | 종족 11개의 45개 항목은 모두 등록된 작업이며 같은 종족의 강점/약점 중복 0 | 문자열 비교가 실패하면 작업 적성 보정이 0이 된다. 의도한 학습 배율과 AI 작업 선호 보정이 오류 없이 빠진다. |
+
+소비 근거: [FacilityDefinitionData.SupportsWork](Assets/Scripts/Services/Buildings/SO/FacilityDefinitionData.cs#L128), [WorkAccidentObservationRuntime.CaptureFirePlan](Assets/Scripts/Services/Character/Work/WorkAccidentObservationRuntime.cs#L39), [ProductionCycleUtilityService](Assets/Scripts/Services/Economy/ProductionCycleUtilityService.cs#L182), [OffenseUrgentMitigationRuntime](Assets/Scripts/Services/Offense/Strategic/OffenseUrgentMitigationRuntime.cs#L949), [WorkPriorityProfile.GetPriority](Assets/Scripts/Services/Character/Work/WorkPriorityProfile.cs#L118), [CharacterSpeciesWorkAptitudeRules](Assets/Scripts/Services/Character/CharacterSpeciesWorkAptitudeRules.cs#L37).
+
+보완 범위는 기존 WorkType 선택·검증 경로에 이 7개 선언을 포함하는 것이다. 새 작업 SO나 구조 분리는 필요하지 않다. 정상 에셋 값과 저장 ID도 바꿀 이유가 없다. 잘못된 ID의 조기 거절과 급배수/화재/우선순위/종족 적성의 대표 소비 경계가 표적 검증 대상이다.
+
+### N02 · P2 · 캠페인 선행 목표는 여전히 로컬 ID 수기 입력
+
+- 필드: [OffenseTargetDefinition.prerequisiteTargetId](Assets/Scripts/Services/Offense/OffenseWorldMapModel.cs#L180).
+- 실제 에셋: [OffenseCampaignCatalog.asset](Assets/Resources/SO/Content/OffenseCampaignCatalog.asset#L60). 목표 6개와 비어 있지 않은 선행 연결 5개가 모두 같은 catalog의 `targets[].id`와 일치한다.
+- 소비자는 선행 목표 완료 여부로 다음 목표의 접근 가능 여부를 결정한다. [기존 검증](Assets/Scripts/Services/Offense/OffenseCampaignCatalogSO.cs#L72)은 누락·자기 참조·순환을 거절한다. 현재 끊어진 연결이나 조용한 진행 단절로 세지 않는다.
+- 남은 것은 같은 catalog 안의 목표를 고르는 선택기다. 별도 SO로 분리하거나 저장 ID를 변경할 필요는 없다.
+
+### N03 · P2 · 후천 특성의 불이익 효과 연결도 로컬 ID 수기 입력
+
+- 필드: [CharacterAcquiredTraitModuleSO.drawbackBindingIds](Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitModuleSO.cs#L18). 같은 SO의 `effects[].bindingId`를 가리키므로 단순 의미 문자열이 아니다.
+- 실제 에셋: [night-vigil 모듈](Assets/Resources/SO/V25/AcquiredTraits/Modules/acquired-trait_module_night-vigil.asset#L33)의 1개 연결은 현재 `effects`에 존재한다.
+- [효과 소비자](Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitEffectSource.cs#L69)는 이 목록으로 이익 효과에서 불이익 효과를 제외한다. [모듈 검증](Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitModuleSO.cs#L151)은 잘못된 연결을 거절한다. 현재 값 결함은 아니다.
+- 남은 것은 해당 모듈의 효과만 보여 주는 로컬 선택기다. 기존 binding identity와 저장 계약을 유지할 수 있다.
+
+### N04 · P2 · 공유 formula 선택기가 후천 특성 문맥에서 다른 catalog를 사용
+
+- 필드: [CharacterSkillPairSynergyCostDefinition.otherCapabilityId](Assets/Scripts/Services/Character/SO/CharacterSkillSystemSettingsSO.cs#L96), [CharacterSkillCapabilityFormulaDefinition.forbiddenSynergies](Assets/Scripts/Services/Character/SO/CharacterSkillSystemSettingsSO.cs#L120). 두 필드의 선택 종류가 `SkillCapability`로 고정되어 있다.
+- 이 formula 타입은 일반 스킬뿐 아니라 [후천 특성 모듈](Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitModuleSO.cs#L24)과 [후천 특성 불이익 정의](Assets/Scripts/Services/Character/Core/CharacterAcquiredTraitSettingsSO.cs#L134)도 사용한다.
+- [선택 목록](Assets/Scripts/Services/Items/ContentReferenceCatalog.cs#L127)은 소유자와 무관하게 일반 `CharacterSkillSystemSettingsSO.Modules`만 보여 준다. 반면 [후천 특성 catalog 검증](Assets/Scripts/Services/Character/AI/Editor/CharacterAcquiredTraitFormulaCatalogAssetBuilder.cs#L107)은 후천 특성 capability를 대상으로 금지 조합을 검사한다. 올바른 후천 특성 ID는 공통 선택/참조 검사에서 인정되지 않고, 선택기가 제안한 일반 스킬 ID는 후천 특성 catalog에서 유효한 조합이 아니다.
+- 현재 모듈 8개와 불이익 23개의 pair/forbidden 목록은 모두 비어 있다. 현재 깨진 값은 없지만 해당 관계를 사용하는 새 콘텐츠 작성이 막히는 경계다. 기존 R23의 일반 스킬 검증 성공을 이 재사용 문맥의 성공으로 확장하지 않는다.
+- 소유 SO/사용 문맥에 맞는 기존 catalog 선택과 검증이 필요하다. 공유 formula를 별도 클래스로 쪼개는 것이 완료 조건은 아니다.
+
+### N05 · P2 · 서비스 작업 ID는 수기 작성면이지만 생산 소비가 없음
+
+- [ServiceProcessSO.workTypeId](Assets/Scripts/Models/Rooms/Core/ServiceProcessSO.cs#L37)는 일반 문자열이다. 다만 [ValidateDefinition](Assets/Scripts/Models/Rooms/Core/ServiceProcessSO.cs#L99)이 `WorkTypeCatalog` 등록을 검사하므로 N01의 미검증 필드와는 구분한다.
+- 서비스 프로세스 5개 중 [의료 프로세스](Assets/Resources/SO/ServiceRooms/Processes/service_medical_treat.asset)는 `work:treat`를 작성하고 나머지 4개는 비어 있다. 현재 값은 유효하다.
+- 값을 읽는 `TryGetWorkTypeId`는 선언 외 C# 호출처가 없다. 현재 작성값이 실제 서비스 작업 연결을 제어한다는 근거가 없으므로 단순히 선택기만 붙여 완료할 항목은 아니다. 실제 서비스 작업의 권위와 대조해 이 작성면을 제거하거나 소비를 연결할지 결정해야 한다. 이번에는 수정하지 않았다.
+
+### N06 · P2 · 장비/시설 진화의 금지 조합 2필드도 미검증 문자열 관계
+
+- 필드: [EquipmentEvolutionFormulaCapabilityDefinition.forbiddenSynergies](Assets/Scripts/Services/Combat/EquipmentEvolutionFormulaDefinitionSO.cs#L49), [FacilityEvolutionFormulaCapabilityDefinition.forbiddenSynergies](Assets/Scripts/Services/FacilityEvolution/FacilityEvolutionRecipeSO.cs#L172). 다른 descriptor의 `CapabilityId`와 비교하는 실제 관계이며 자체 ID나 일반 분류 태그가 아니다.
+- 두 필드는 일반 문자열 목록이고 선택기가 없다. descriptor는 정규 문자열·중복·자기 참조만 검사하며, 장비/시설 catalog는 각 값이 실제 조합 대상 집합에 존재하는지 검사하지 않는다. 존재하지 않는 ID는 어느 대상과도 일치하지 않아 의도한 금지를 적용할 수 없다. catalog SHA 검사는 별도 보호이므로 단순 에셋 수정으로 모든 실행 검증이 통과한다고 주장하지 않는다.
+- 실제 소비는 [NarrativeFormulaModuleSelectionValidator](Assets/Scripts/Models/NarrativeMechanics/NarrativeFormulaModuleSelection.cs#L245)의 선택한 이익/불이익 조합 검사다. 현재 단일 descriptor 수치 최적화에서는 이 pair 관계를 소비하지 않는다는 경계도 구분한다.
+- 현재 장비 catalog 2개의 정의 13개, 시설 recipe 6개의 정의 6개는 모두 빈 목록이다. 관계 엔트리는 0개이며 현재 끊어진 값으로 세지 않는다. 미래에 작성할 때 필요한 선택/대상 존재 검사 누락이다.
+
+### N07 · P1 · 사장 고정 스킬에 수기 관계와 생성 snapshot 전체가 노출
+
+- 작성 루트: [CharacterSO.ownerFixedSkills](Assets/Scripts/Services/Character/SO/CharacterSO.cs#L24). [CharacterSOEditor](Assets/Editor/CharacterSOEditor.cs#L29)는 이 private serialized 필드와 중첩 DTO를 재귀 `PropertyField`로 편집·저장한다. 읽기 전용 생성 결과가 아니므로 DTO라는 이유로 감사에서 제외할 수 없다.
+- 실제 관계는 [CharacterSkillModuleSelection.moduleId / variantId](Assets/Scripts/Services/Character/Core/CharacterSkillDefinitionData.cs#L107)다. 전자는 스킬 settings의 모듈, 후자는 선택한 모듈의 변형을 가리키지만 선택기/소유 모듈 검증이 없다.
+- [GetSkills](Assets/Scripts/Services/Character/Core/StartPartyPreparationSnapshot.cs#L146)는 표시명이 있는 수기 스킬을 채택하고 그만큼 기본 스킬을 덜 넣는다. 잘못된 모듈이면 [자동 효과 해석](Assets/Scripts/Services/Character/Core/CharacterSkillRuntimeEffects.cs#L133)에서 null이 [Require](Assets/Scripts/Services/Character/Core/CharacterSkillModuleCapabilityRegistry.cs#L125)로 들어가 예외가 날 수 있다. 변형 ID만 틀리면 [legacy 효과량 계산](Assets/Scripts/Services/Character/Core/CharacterSkillRuntimeEffects.cs#L849)은 값 0을 사용할 수 있다.
+- `ruleId`는 생성 provenance이며 `combinationId`/`primaryCapabilityId`/`drawbackId`는 생성·formula의 파생 snapshot이다. 각자 SO 선택기를 붙일 대상은 아니지만 같은 Inspector에서 함께 수정할 수 있다. 작성할 입력과 생성 결과를 구분하고 전체 고정 스킬의 정합성을 한 경계에서 검사해야 한다.
+- 현재 CharacterSO 16개 중 15개는 `ownerFixedSkills: []`, 구버전 TestCharacter 1개는 필드 누락으로 기본 빈 배열이다. 수기 스킬 인스턴스는 0개이며, 실제 기본 스킬 4쌍(`work_speed/relationship/revenue/mood` + `small`)은 현재 settings에 모두 존재한다. 현재 저장 손상이나 실행 예외를 관측했다는 뜻은 아니다.
+
+### 이번에 확인한 정상 범위와 한계
+
+- 현재 소스를 Roslyn Editor/Player 조건으로 다시 추출했다. 게임 SO 142종, 직렬화 필드 후보 2,459개, 넓은 관계 후보 880개, `ContentReference` 표식 167개다. 구문 오류 0이며 이 결과를 Unity 컴파일 성공으로 부르지 않는다.
+- 실제 게임 SO 에셋 3,544개를 파싱하고 원본 `.cs.meta`/`.asset.meta`로 모집단을 교차 확인했다. partial SO의 MonoScript stub까지 포함하며, 게시 목록 밖 게임 SO와 파싱 오류는 0개다.
+- nonzero 직접 GUID 참조 8,962건에서 대상 누락·중복 metadata는 0개다. 그중 `.asset` 대상 4,731건의 YAML fileID anchor도 존재한다. imported texture/animation 등 모든 subasset의 fileID나 필수 None 여부 전체를 이 수치로 보장하지 않는다.
+- 현재 main을 대상으로 게시 identity 검사 도구를 새로 실행했다. 3,544개 에셋/10,607개 보호 항목이 게시 목록과 일치했다. 이 검사는 일반 문자열 관계가 모두 검증된다는 뜻이 아니다.
+- Research 180개 프로젝트의 object/string 선행 참조 불일치 0, blueprint가 연결된 7개의 역방향 연구 ID 불일치 0이다. 조건부 encounter 목표와 authored effect 문자열도 실제 kind/소비 경로에 맞춰 구분했다.
+- 개방형 시설 태그, 전투 목표 protocol, 표시 문구, 자체 identity, 런타임 인스턴스 ID를 별도 SO 참조로 오인하지 않았다. 예를 들어 Building의 `research:*` 태그 중 연구 SO ID와 다른 값은 일반 태그 소비 경로에서 쓰이므로 그것만으로 끊어진 연구 참조로 세지 않는다.
+- `FestivalDefinitionSO.requiredBuildingDefinitionId`는 비어 있지 않으면 명시적으로 거절하는 폐기된 작성 경로이고 실제 시설 요구는 `venueRequirements`가 소유한다. `StatChange.needId`에는 별도 `CharacterNeedIdDrawer`가 있다. 진화의 `evolutionModuleId`/formatter/applicator는 등록을 확인하는 코드 구현 계약이며, 런타임 목적지·재고 분류 키도 각각 실제 소비 의미에 따라 SO 관계와 구분했다.
+- 이번에는 게임 코드/에셋 수정, Unity 실행, Inspector 조작, 저장·복원 재실행, 생성 인덱스 갱신, commit/push를 하지 않았다. 위 오타 영향은 원본 코드 경로로 확인한 판정이며 새 Unity 재현 결과가 아니다.
+
+새 증거는 `C:/Users/vulpo/Documents/Codex/2026-10-24/so-full-audit/main-reaudit-r17`의 `inventory.json`, `current-assets.json`, `current-identity-check.json`, `campaign-reference-check.json`, 분야별 보고서에 보존한다. 이전 실제 실행 증거와 수정 전 감사 출력은 덮어쓰지 않았다. 아래 30항목의 완료는 해당 수정 범위에만 적용되며, 이 재검토에서 확인한 잔여 경계의 완료를 의미하지 않는다.
+
 ## 보완 완료 — R01–R24 / U01–U05 / I01
 
 30개 항목의 수정과 변경 영향 검증을 완료했다. 아래 수정 전 감사 기록은 당시의 결함·모집단을 보존한 자료이며 현재 미완료 목록이 아니다. GitHub 통합 상태는 `task_plan.md`와 `progress.md`의 최신 항목을 따른다.
 
 기존3538개 SO의 GUID/type/script metadata와5857개 보호 필드는 값 변경·누락0이다. 새6개 해부 프로필과 필요한 보호 필드를 더한 게시 목록은3544개 SO/10607필드다. 기존 DTO 필드를 삭제하거나 저장 버전을 올리지 않았다. Inspector 선택과 등록 검증을 기존 경로에 붙였고, 사용하지 않는 작성면5종은 제거했다.
 
-증거: [SO 표적 실행 영수증](Artifacts/QA/ImpactCI/so-verification.json), [변경 영향 실행 영수증](Artifacts/QA/ImpactCI/verification.json), [실제 월드 저장·복원](Artifacts/QA/ImpactCI/world-round-trip.txt), [Inspector 격리 증거](Artifacts/QA/ImpactCI/so-inspector-isolation.json). 최종 영향 실행 `r113sa`는 source `d9dff3485fe467653d986d00edefd3320544903da16585425ed9ab31bd47ec55`, configuration `6bacd40070886ee1391aa41a9f7e180e61ef163e87ac44ba73af996ca865d737`에 결합한다. SO 표적 검사는 실제 실행 source `9dfd54afcfbdc2be85b6387a731486772f245fc80862e22e6469fa62e2dbb090`를 그대로 기록한다. 두 입력의 차이는 새 특성을 복제하는 별도 Editor fixture 한 파일뿐이며, 게임 코드/에셋·SO 진입점/시나리오는 모두 같은 바이트다. 해당 fixture는 최종 effects에서 다시 실행했다. 재사용의 파일별 SHA 차이를 SO 영수증에 기록했으며 과거 결과를 새 소스의 실행으로 바꾸지 않는다. 실패·부분 실행은 PASS에 포함하지 않는다.
+증거: [SO 표적 실행 영수증](Artifacts/QA/ImpactCI/so-verification.json), [변경 영향 실행 영수증](https://github.com/Creeper0809/DungeonStory/blob/1f1f990a26f457611d438eebd5423a92b4e77a51/Artifacts/QA/ImpactCI/verification.json), [실제 월드 저장·복원](https://github.com/Creeper0809/DungeonStory/blob/1f1f990a26f457611d438eebd5423a92b4e77a51/Artifacts/QA/ImpactCI/world-round-trip.txt), [Inspector 격리 증거](Artifacts/QA/ImpactCI/so-inspector-isolation.json). 최종 영향 실행 `r113sa`는 source `d9dff3485fe467653d986d00edefd3320544903da16585425ed9ab31bd47ec55`, configuration `6bacd40070886ee1391aa41a9f7e180e61ef163e87ac44ba73af996ca865d737`에 결합한다. SO 표적 검사는 실제 실행 source `9dfd54afcfbdc2be85b6387a731486772f245fc80862e22e6469fa62e2dbb090`를 그대로 기록한다. 두 입력의 차이는 새 특성을 복제하는 별도 Editor fixture 한 파일뿐이며, 게임 코드/에셋·SO 진입점/시나리오는 모두 같은 바이트다. 해당 fixture는 최종 effects에서 다시 실행했다. 재사용의 파일별 SHA 차이를 SO 영수증에 기록했으며 과거 결과를 새 소스의 실행으로 바꾸지 않는다. 실패·부분 실행은 PASS에 포함하지 않는다.
 
 **A**는 `RunSoAuthoringContracts`, **R**은 `RunSoRuntimeContracts`, **I**는 `RunSoInspectorContracts`의 표적 실행이다. **P**는 실제 Unity 게시 후보와 기존 목록 보존/Python 검사의 조합이다. A/R은 통제된 production 객체·서비스 검증이며 I는 전용 가상 화면의 실제 `EditorGUI.PropertyField` 이벤트다. 월드/crop은 실제 Play 실행이다. 미래의 모든 콘텐츠 조합, 수동 클릭 UX 전체, 장기 밸런스의 증명을 뜻하지 않는다.
 

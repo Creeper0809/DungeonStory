@@ -82,7 +82,7 @@ public sealed class CharacterProgression : MonoBehaviour, ICharacterTraitInferen
     public IReadOnlyList<CharacterSkillInstance> ActiveSkills => GrowthState.activeSkills;
     public IReadOnlyList<CharacterSkillInstance> PassiveSkills => GrowthState.passiveSkills;
     public IReadOnlyList<CharacterSkillInstance> OwnerFixedSkills =>
-        CharacterOwnerFixedSkillUtility.GetSkills(actor?.Identity?.Data);
+        CharacterOwnerFixedSkillUtility.GetSkills(actor?.Identity?.Data, settingsProvider?.Settings);
     public CharacterSkillInstance Ultimate => GrowthState.ultimate;
     public IReadOnlyList<CharacterSkillDraft> Drafts => GrowthState.drafts;
     public IReadOnlyList<string> LearnedSkillIds

@@ -46,6 +46,7 @@ public sealed class EquipmentEvolutionFormulaCapabilityDefinition
     public float narrativeAffinity = 1f;
     public List<string> affinityKeys = new();
     public List<string> conflictGroups = new();
+    [ContentReference(ContentReferenceKind.EquipmentCapability)]
     public List<string> forbiddenSynergies = new();
     public List<string> appliedParameterIds = new();
     public string formatterId = string.Empty;
@@ -302,6 +303,31 @@ public sealed partial class EquipmentEvolutionFormulaCatalogSO : ScriptableObjec
         return descriptors;
     }
 
+    public IReadOnlyList<string> ReferenceCapabilityIds()
+    {
+        IReadOnlyList<string> catalogIds = RequireCatalogModuleIds();
+        IEnumerable<string> optionalDrawbackIds = Array.Empty<string>();
+        if (formulaPolicy != null
+            && formulaPolicy.formulaVersion
+                >= EquipmentEvolutionRules.DrawbackModuleSelectionFormulaVersion)
+        {
+            HashSet<string> includedIds = catalogIds.ToHashSet(StringComparer.Ordinal);
+            optionalDrawbackIds = new EvolutionModuleRegistry().All
+                .Where(value => includedIds.Contains(value.ModuleId)
+                    && value.BurdenKind == EvolutionModuleBurdenKind.OptionalDrawback)
+                .Select(value => value.ModuleId);
+        }
+        string[] result = (capabilities
+                ?? new List<EquipmentEvolutionFormulaCapabilityDefinition>())
+            .Where(value => value != null)
+            .Select(value => value.capabilityId)
+            .Concat(optionalDrawbackIds)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        return Array.AsReadOnly(result);
+    }
+
     public IReadOnlyList<string> RequireCatalogModuleIds()
     {
         string[] ids = (catalogModuleIds ?? new List<string>())
@@ -337,8 +363,18 @@ public sealed partial class EquipmentEvolutionFormulaCatalogSO : ScriptableObjec
         EquipmentEvolutionFormulaCapabilityDefinition found = capabilities?
             .SingleOrDefault(value => value != null
                 && string.Equals(value.capabilityId, canonical, StringComparison.Ordinal));
-        return found ?? throw new KeyNotFoundException(
-            $"Unknown equipment formula capability '{capabilityId ?? string.Empty}'.");
+        if (found == null)
+            throw new KeyNotFoundException(
+                $"Unknown equipment formula capability '{capabilityId ?? string.Empty}'.");
+        NarrativeFormulaCapabilityDescriptor descriptor = found.ToRuntime();
+        HashSet<string> referenceIds = ReferenceCapabilityIds()
+            .ToHashSet(StringComparer.Ordinal);
+        string unknown = descriptor.ForbiddenSynergies
+            .FirstOrDefault(value => !referenceIds.Contains(value));
+        if (unknown != null)
+            throw new InvalidOperationException(
+                $"Equipment capability '{descriptor.CapabilityId}' forbids unknown catalog capability '{unknown}'.");
+        return found;
     }
 
 }

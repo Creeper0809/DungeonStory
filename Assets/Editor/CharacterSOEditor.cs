@@ -27,6 +27,11 @@ public sealed class CharacterSOEditor : Editor
                 continue;
             }
             if (property.propertyPath == "speciesTag") continue;
+            if (property.propertyPath == "ownerFixedSkills")
+            {
+                DrawOwnerFixedSkills(property);
+                continue;
+            }
             if (property.propertyPath != "species")
             {
                 EditorGUILayout.PropertyField(property, true);
@@ -39,6 +44,71 @@ public sealed class CharacterSOEditor : Editor
         serializedObject.ApplyModifiedProperties();
         if (rejectedSelection.Length > 0)
             EditorGUILayout.HelpBox(rejectedSelection, MessageType.Error);
+    }
+
+    internal static bool IsOwnerFixedInput(string field, int formulaVersion) => formulaVersion == 0 && field is
+        "id" or "displayName" or "description" or "narrativeReason" or "rarity" or "trigger" or "target"
+        or "targetingMode" or "effectArea" or "areaSize" or "ultimateDomain" or "cooldownTurns"
+        or "manualDurationHours" or "manualCooldownDays" or "usableFrom" or "targetPositions" or "modules";
+
+    internal static void ResizeOwnerFixedSkills(SerializedProperty list, int size)
+    {
+        if (list.serializedObject.isEditingMultipleObjects)
+            throw new InvalidOperationException("Resize owner skills on one character at a time.");
+        int before = list.arraySize;
+        list.arraySize = Mathf.Clamp(size, 0, 4);
+        for (int i = before; i < list.arraySize; i++)
+            list.GetArrayElementAtIndex(i).boxedValue = new CharacterSkillInstance();
+    }
+
+    private static void DrawOwnerFixedSkills(SerializedProperty list)
+    {
+        list.isExpanded = EditorGUILayout.Foldout(list.isExpanded, list.displayName, true);
+        if (!list.isExpanded) return;
+        if (list.serializedObject.isEditingMultipleObjects)
+        {
+            EditorGUILayout.HelpBox("고정 스킬은 캐릭터를 개별 선택해서 편집하세요.", MessageType.Info);
+            return;
+        }
+        using (new EditorGUI.IndentLevelScope())
+        {
+            EditorGUILayout.HelpBox("최대 4개. 빈 슬롯은 기존 기본 스킬을 사용합니다. 모듈과 변형을 목록에서 선택하세요. 생성된 수식 스냅샷은 읽기 전용입니다.", MessageType.Info);
+            EditorGUI.BeginChangeCheck();
+            int size = EditorGUILayout.IntField("스킬 개수", list.arraySize);
+            if (EditorGUI.EndChangeCheck()) ResizeOwnerFixedSkills(list, size);
+            for (int i = 0; i < list.arraySize; i++)
+            {
+                SerializedProperty skill = list.GetArrayElementAtIndex(i);
+                skill.isExpanded = EditorGUILayout.Foldout(skill.isExpanded, $"고정 스킬 {i + 1}", true);
+                if (!skill.isExpanded) continue;
+                int version = skill.FindPropertyRelative("formulaVersion").intValue;
+                SerializedProperty showSnapshot = skill.FindPropertyRelative("formulaVersion");
+                using (new EditorGUI.IndentLevelScope())
+                {
+                    SerializedProperty child = skill.Copy();
+                    SerializedProperty end = skill.GetEndProperty();
+                    if (child.NextVisible(true))
+                        do
+                        {
+                            if (SerializedProperty.EqualContents(child, end)) break;
+                            if (IsOwnerFixedInput(child.name, version)) EditorGUILayout.PropertyField(child, true);
+                        } while (child.NextVisible(false));
+                    showSnapshot.isExpanded = EditorGUILayout.Foldout(showSnapshot.isExpanded,
+                        version > 0 ? "생성된 수식 스킬 (읽기 전용)" : "생성·저장 스냅샷 (읽기 전용)", true);
+                    if (!showSnapshot.isExpanded) continue;
+                    using (new EditorGUI.DisabledScope(true))
+                    {
+                        child = skill.Copy();
+                        if (child.NextVisible(true))
+                            do
+                            {
+                                if (SerializedProperty.EqualContents(child, end)) break;
+                                if (!IsOwnerFixedInput(child.name, version)) EditorGUILayout.PropertyField(child, true);
+                            } while (child.NextVisible(false));
+                    }
+                }
+            }
+        }
     }
 
     private void DrawSpeciesReference(

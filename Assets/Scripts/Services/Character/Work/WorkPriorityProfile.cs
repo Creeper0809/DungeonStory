@@ -27,24 +27,25 @@ public static class WorkTaskCatalog
 [Serializable]
 public sealed class WorkPriorityEntry
 {
+    [ContentReference(ContentReferenceKind.WorkType)]
     [SerializeField] private string workTypeId;
     [SerializeField] private WorkPriorityLevel priority;
 
     public WorkPriorityEntry(string workTypeId, WorkPriorityLevel priority)
-        : this(new WorkTypeId(workTypeId), priority)
     {
+        WorkTypeDefinition definition = WorkTypeCatalog.RequireRegistered(
+            workTypeId,
+            nameof(WorkPriorityEntry));
+        this.workTypeId = definition.Id;
+        this.priority = priority;
     }
 
     public WorkPriorityEntry(WorkTypeId workTypeId, WorkPriorityLevel priority)
     {
-        if (!workTypeId.IsValid)
-        {
-            throw new ArgumentException(
-                "Work priority entry requires a valid work type id.",
-                nameof(workTypeId));
-        }
-
-        this.workTypeId = workTypeId.Value;
+        WorkTypeDefinition definition = WorkTypeCatalog.RequireRegistered(
+            workTypeId,
+            nameof(WorkPriorityEntry));
+        this.workTypeId = definition.Id;
         this.priority = priority;
     }
 
@@ -66,6 +67,7 @@ public class WorkPriorityProfile : ISerializationCallbackReceiver
     [SerializeField] private int schemaVersion;
     [SerializeField] private List<WorkPriorityEntry> priorities = new List<WorkPriorityEntry>();
     [NonSerialized] private IReadOnlyList<WorkPriorityEntry> prioritiesView;
+    [NonSerialized] private List<WorkPriorityEntry> validatedPriorities;
 
     [SerializeField, HideInInspector, FormerlySerializedAs("operate")]
     private WorkPriorityLevel legacyOperate = WorkPriorityLevel.Priority1;
@@ -117,25 +119,20 @@ public class WorkPriorityProfile : ISerializationCallbackReceiver
 
     public WorkPriorityLevel GetPriority(WorkTypeId workTypeId)
     {
+        WorkTypeDefinition definition = WorkTypeCatalog.RequireRegistered(
+            workTypeId,
+            "Work priority query");
         EnsureMigrated();
-        if (WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition))
-        {
-            WorkPriorityEntry entry = FindEntry(definition.WorkTypeId);
-            return entry != null ? entry.Priority : definition.DefaultPriority;
-        }
-
-        return WorkPriorityLevel.Off;
+        WorkPriorityEntry entry = FindEntry(definition.WorkTypeId);
+        return entry != null ? entry.Priority : definition.DefaultPriority;
     }
 
     public void SetPriority(WorkTypeId workTypeId, WorkPriorityLevel priority)
     {
+        WorkTypeDefinition definition = WorkTypeCatalog.RequireRegistered(
+            workTypeId,
+            "Work priority update");
         EnsureMigrated();
-        WorkTypeDefinition definition = WorkTypeCatalog.TryGet(
-                workTypeId,
-                out WorkTypeDefinition resolved)
-            ? resolved
-            : throw new KeyNotFoundException(
-                $"No work type definition is registered for '{workTypeId}'.");
         WorkPriorityEntry entry = FindEntry(definition.WorkTypeId);
         if (entry != null)
         {
@@ -196,6 +193,7 @@ public class WorkPriorityProfile : ISerializationCallbackReceiver
 
     public void OnBeforeSerialize()
     {
+        InvalidateEntryValidation();
         EnsureMigrated();
     }
 
@@ -203,43 +201,100 @@ public class WorkPriorityProfile : ISerializationCallbackReceiver
     {
         priorities ??= new List<WorkPriorityEntry>();
         prioritiesView = null;
+        InvalidateEntryValidation();
     }
 
     private void EnsureMigrated()
     {
-        priorities ??= new List<WorkPriorityEntry>();
+        List<WorkPriorityEntry> source = priorities
+            ?? new List<WorkPriorityEntry>();
+        ValidateCurrentEntriesOrThrow(source);
         if (schemaVersion >= CurrentSchemaVersion)
         {
+            priorities = source;
             return;
         }
 
-        if (priorities.Count == 0)
+        try
         {
+            List<WorkPriorityEntry> migrated = source
+                .Select(entry => new WorkPriorityEntry(
+                    entry.TypedWorkTypeId,
+                    entry.Priority))
+                .ToList();
+            var authoredIds = new HashSet<string>(
+                migrated.Select(entry => entry.WorkTypeId),
+                StringComparer.Ordinal);
             foreach (WorkTypeDefinition definition in WorkTypeCatalog.All)
             {
-                priorities.Add(new WorkPriorityEntry(
-                    definition.WorkTypeId,
-                    GetLegacyPriority(
-                        FacilityWorkTypeMap.GetRequired(definition),
-                        definition.DefaultPriority)));
-            }
-        }
-        else
-        {
-            foreach (WorkTypeDefinition definition in WorkTypeCatalog.All)
-            {
-                if (FindEntry(definition.WorkTypeId) == null)
+                if (authoredIds.Add(definition.Id))
                 {
-                    priorities.Add(new WorkPriorityEntry(
+                    migrated.Add(new WorkPriorityEntry(
                         definition.WorkTypeId,
                         GetLegacyPriority(
                             FacilityWorkTypeMap.GetRequired(definition),
                             definition.DefaultPriority)));
                 }
             }
+
+            ValidateEntriesOrThrow(migrated);
+            priorities = migrated;
+            schemaVersion = CurrentSchemaVersion;
+            prioritiesView = null;
+            validatedPriorities = migrated;
+        }
+        catch
+        {
+            InvalidateEntryValidation();
+            throw;
+        }
+    }
+
+    private void ValidateCurrentEntriesOrThrow(
+        List<WorkPriorityEntry> entries)
+    {
+        if (ReferenceEquals(validatedPriorities, entries))
+        {
+            return;
         }
 
-        schemaVersion = CurrentSchemaVersion;
+        try
+        {
+            ValidateEntriesOrThrow(entries);
+            validatedPriorities = entries;
+        }
+        catch
+        {
+            InvalidateEntryValidation();
+            throw;
+        }
+    }
+
+    private void InvalidateEntryValidation() => validatedPriorities = null;
+
+    private static void ValidateEntriesOrThrow(
+        IReadOnlyList<WorkPriorityEntry> entries)
+    {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        for (int index = 0; index < entries.Count; index++)
+        {
+            WorkPriorityEntry entry = entries[index];
+            if (entry == null)
+            {
+                throw new InvalidOperationException(
+                    $"Work priority profile contains a null row at index {index}.");
+            }
+
+            WorkTypeDefinition definition = WorkTypeCatalog.RequireRegistered(
+                entry.WorkTypeId,
+                $"Work priority row {index}");
+            if (!ids.Add(definition.Id))
+            {
+                throw new InvalidOperationException(
+                    $"Work priority profile contains duplicate work type ID "
+                    + $"'{definition.Id}'.");
+            }
+        }
     }
 
     private WorkPriorityEntry FindEntry(WorkTypeId workTypeId)

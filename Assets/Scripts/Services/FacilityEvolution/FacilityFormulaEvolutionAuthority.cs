@@ -903,7 +903,7 @@ public static class FacilityFormulaEvolutionAuthority
                 out failureReason);
     }
 
-    private static bool IsEligibleOptionalDrawbackModule(
+    internal static bool IsEligibleOptionalDrawbackModule(
         FacilityEvolutionRecipeSO recipe,
         EvolutionModuleDefinition module,
         out string failureReason)

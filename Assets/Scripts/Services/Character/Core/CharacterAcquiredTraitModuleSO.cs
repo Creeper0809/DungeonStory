@@ -15,7 +15,8 @@ public sealed class CharacterAcquiredTraitModuleSO : ScriptableObject
     [SerializeField] private List<string> conflictGroups = new();
     [SerializeField] private List<CharacterNarrativeDomain> domainAffinities = new();
     [SerializeField] private List<GameplayEffectBinding> effects = new();
-    [SerializeField] private List<string> drawbackBindingIds = new();
+    [ContentReference(ContentReferenceKind.AcquiredTraitBinding), SerializeField]
+    private List<string> drawbackBindingIds = new();
     [Header("Special Reactions")]
     [SerializeField] private List<CharacterAcquiredTraitSpecialReactionDefinition>
         specialReactions = new();
@@ -157,8 +158,9 @@ public sealed class CharacterAcquiredTraitModuleSO : ScriptableObject
         {
             errors.Add($"Acquired-trait module '{ModuleId}' has invalid drawback binding IDs.");
         }
-        if (DrawbackBindingIds.Any(id => Effects.Single(value => value != null
-                && string.Equals(value.bindingId, id, StringComparison.Ordinal)).condition == null))
+        if (Effects.Any(value => value != null
+                && DrawbackBindingIds.Contains(value.bindingId, StringComparer.Ordinal)
+                && value.condition == null))
         {
             errors.Add($"Acquired-trait module '{ModuleId}' drawback bindings must have an authored reachable condition.");
         }

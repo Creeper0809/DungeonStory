@@ -39,6 +39,28 @@ public sealed class CharacterAcquiredTraitSettingsSO : ScriptableObject
         return formulaPolicy.ToRuntime();
     }
 
+    public void RequireFormulaRelations(IEnumerable<CharacterAcquiredTraitModuleSO> source)
+    {
+        CharacterAcquiredTraitModuleSO[] modules = (source
+            ?? throw new ArgumentNullException(nameof(source))).ToArray();
+        if (modules.Any(value => value == null))
+            throw new InvalidOperationException("Acquired-trait formula catalog contains a null module.");
+        NarrativeFormulaCapabilityDescriptor[] benefits = modules.Select(value => value.RequireFormulaDescriptor()).ToArray();
+        var ids = benefits.Select(value => value.CapabilityId).ToHashSet(StringComparer.Ordinal);
+        if (ids.Count != benefits.Length)
+            throw new InvalidOperationException("Acquired-trait formula capability IDs are ambiguous.");
+        foreach (NarrativeFormulaCapabilityDescriptor descriptor in benefits.Concat(
+            DrawbackCapabilities.Select(value => value?.RequireFormulaDescriptor()
+                ?? throw new InvalidOperationException("Acquired-trait formula catalog contains a null drawback."))))
+        {
+            foreach (string target in descriptor.ForbiddenSynergies.Concat(
+                descriptor.PairSynergyCosts.Select(value => value.OtherCapabilityId)))
+                if (!ids.Contains(target))
+                    throw new InvalidOperationException(
+                        $"Acquired-trait capability '{descriptor.CapabilityId}' references unknown benefit capability '{target}'.");
+        }
+    }
+
     [GameplayInternalOnly(
         "The controlled editor catalog builder writes immutable acquired-trait formula authoring.",
         "CharacterAcquiredTraitFormulaCatalogAssetBuilder")]

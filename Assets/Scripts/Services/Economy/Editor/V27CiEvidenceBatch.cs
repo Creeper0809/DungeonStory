@@ -99,6 +99,11 @@ public static class V27CiEvidenceBatch
         if (!CharacterSkillCapabilityDebugScenarios.RunFormulaCatalogRelationScenario())
             throw new InvalidOperationException("Skill relation contracts failed.");
         V27CharacterPerformanceDebugScenarios.ValidateFormulaReferenceGuards();
+            WorkTypeReferenceIntegrityDebugScenarios.RunFromMenu();
+        OwnerScopedContentReferenceDebugScenarios.RunAll();
+        EvolutionFormulaForbiddenSynergyReferenceDebugScenarios.Validate();
+        ServiceRoomDebugScenarios.Run();
+        CharacterProgressionDebugScenarios.VerifyOwnerFixedSkillReferenceRestore();
     }));
     public static void RunSoRuntimeContracts() => RunImpact("so-runtime", () =>
     {
@@ -114,7 +119,12 @@ public static class V27CiEvidenceBatch
         OffenseRewardDebugScenarios.RunPersistentBattleSnapshotRestoreRegression();
     });
     public static void RunSoInspectorContracts() => RunImpact("so-inspector", () =>
-        ContentReferenceSelectionDebugScenarios.RunWithUndoIsolation(ContentReferenceSelectionDebugScenarios.VerifyInspectorGUI));
+        ContentReferenceSelectionDebugScenarios.RunWithUndoIsolation(() =>
+        {
+            ContentReferenceSelectionDebugScenarios.VerifyInspectorGUI();
+            ContentReferenceSelectionDebugScenarios.VerifyOwnerFixedInspectorGUI();
+            OwnerScopedContentReferenceDebugScenarios.VerifyInspectorGUI();
+        }));
     public static void CaptureContentPublication() => RunImpact("content-publication", () =>
     {
         Directory.CreateDirectory("Artifacts/QA/ContentReferenceIntegrity");
@@ -176,9 +186,12 @@ public static class V27CiEvidenceBatch
 
     private static void CompleteImpact(string group, string source, string config, bool errors)
     {
-        if (errors || source != V27CurrentSourceEvidenceDigest.ComputeAllScriptsDigest()
-            || config != ComputeImpactConfigurationDigest())
-            throw new InvalidOperationException("Impact CI execution changed its inputs or logged errors: " + group);
+        if (errors)
+            throw new InvalidOperationException("Impact CI execution logged console errors: " + group);
+        if (source != V27CurrentSourceEvidenceDigest.ComputeAllScriptsDigest())
+            throw new InvalidOperationException("Impact CI execution changed its source inputs: " + group);
+        if (config != ComputeImpactConfigurationDigest())
+            throw new InvalidOperationException("Impact CI execution changed its configuration inputs: " + group);
         Debug.Log($"IMPACT_CI_PASS group={group};source={source};config={config};consoleErrors=0");
     }
 

@@ -9,6 +9,7 @@ using UnityEngine;
 public sealed class OffenseCampaignCatalogSO : ScriptableObject
 {
     [SerializeField] private List<OffenseTargetDefinition> targets = new();
+    public IReadOnlyList<OffenseTargetDefinition> Targets => targets;
 
     public IReadOnlyList<OffenseTargetDefinition> CreateRuntimeDefinitions()
     {

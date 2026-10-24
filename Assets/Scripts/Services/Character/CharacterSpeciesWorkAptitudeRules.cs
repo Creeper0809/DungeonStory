@@ -41,12 +41,23 @@ public static class CharacterSpeciesWorkAptitudeRules
         CharacterSpeciesSO species = actor.Identity?.Data?.species;
         if (species == null)
             return 0;
-        bool strong = Contains(species.strongWorkTypeIds, workTypeId.Value);
-        bool weak = Contains(species.weakWorkTypeIds, workTypeId.Value);
-        if (strong && weak)
-            throw new InvalidOperationException(
-                $"Species '{species.speciesTag}' lists work '{workTypeId.Value}' "
-                + "as both strong and weak.");
+        return GetDisposition(species, workTypeId);
+    }
+
+    public static int GetDisposition(
+        CharacterSpeciesDefinitionSO species,
+        WorkTypeId workTypeId)
+    {
+        if (species == null || !workTypeId.IsValid)
+            return 0;
+
+        WorkTypeDefinition definition = WorkTypeCatalog.RequireRegistered(
+            workTypeId,
+            $"Character species '{species.speciesTag}' aptitude query");
+        // Immutable species definitions are checked when the species catalog is
+        // built; AI utility queries must not allocate two validation sets each time.
+        bool strong = Contains(species.strongWorkTypeIds, definition.Id);
+        bool weak = Contains(species.weakWorkTypeIds, definition.Id);
         return strong ? 1 : weak ? -1 : 0;
     }
 

@@ -259,25 +259,28 @@ public sealed class BuildingActiveHeatFireSourceAbility : BuildingAbility
 public sealed class BuildingProcessAccidentFireSourceAbility : BuildingAbility
 {
     [InspectorName("화재 결과 작업 ID")]
+    [ContentReference(ContentReferenceKind.WorkType)]
     public string workTypeId = string.Empty;
     [Range(0.01f, 1f), InspectorName("초기 강도")]
     public float ignitionIntensity = 0.25f;
 
-    public bool Supports(string candidateWorkTypeId) =>
-        !string.IsNullOrWhiteSpace(candidateWorkTypeId)
-        && string.Equals(
-            workTypeId?.Trim() ?? string.Empty,
-            candidateWorkTypeId.Trim(),
-            StringComparison.Ordinal);
+    public bool Supports(string candidateWorkTypeId)
+    {
+        WorkTypeDefinition authored = RequireWorkTypeDefinition();
+        if (string.IsNullOrWhiteSpace(candidateWorkTypeId))
+        {
+            return false;
+        }
+
+        WorkTypeDefinition candidate = WorkTypeCatalog.RequireRegistered(
+            candidateWorkTypeId,
+            $"{nameof(BuildingProcessAccidentFireSourceAbility)} candidate");
+        return authored.WorkTypeId == candidate.WorkTypeId;
+    }
 
     public void ValidateOrThrow()
     {
-        if (string.IsNullOrWhiteSpace(workTypeId)
-            || !string.Equals(workTypeId, workTypeId.Trim(), StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                $"{nameof(BuildingProcessAccidentFireSourceAbility)} requires a canonical work type ID.");
-        }
+        RequireWorkTypeDefinition();
         if (float.IsNaN(ignitionIntensity)
             || float.IsInfinity(ignitionIntensity)
             || ignitionIntensity < 0.01f
@@ -287,4 +290,9 @@ public sealed class BuildingProcessAccidentFireSourceAbility : BuildingAbility
                 $"{nameof(BuildingProcessAccidentFireSourceAbility)}.{nameof(ignitionIntensity)} is outside its valid range.");
         }
     }
+
+    private WorkTypeDefinition RequireWorkTypeDefinition() =>
+        WorkTypeCatalog.RequireRegistered(
+            workTypeId,
+            nameof(BuildingProcessAccidentFireSourceAbility));
 }

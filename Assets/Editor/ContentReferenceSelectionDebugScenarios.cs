@@ -293,6 +293,89 @@ public static class ContentReferenceSelectionDebugScenarios
         }
     }
 
+    public static void VerifyOwnerFixedInspectorGUI()
+    {
+        if (!Application.isBatchMode)
+            throw new InvalidOperationException("Inspector verification requires isolated batch mode.");
+        var owner = ScriptableObject.CreateInstance<CharacterSO>();
+        var window = ScriptableObject.CreateInstance<ContentReferenceInspectorProbeWindow>();
+        Editor editor = null;
+        try
+        {
+            owner.hideFlags = HideFlags.HideAndDontSave;
+            owner.role = CharacterRole.Owner;
+            using var serialized = new SerializedObject(owner);
+            var skills = serialized.FindProperty("ownerFixedSkills");
+            skills.arraySize = 1;
+            var skill = skills.GetArrayElementAtIndex(0);
+            skill.FindPropertyRelative("displayName").stringValue = "Owner picker probe";
+            var modules = skill.FindPropertyRelative("modules");
+            modules.arraySize = 1;
+            var module = modules.GetArrayElementAtIndex(0);
+            module.FindPropertyRelative("moduleId").stringValue = "work_speed";
+            module.FindPropertyRelative("variantId").stringValue = "small";
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            window.position = new Rect(0, 0, 680, 850);
+            window.ShowUtility();
+            module.FindPropertyRelative("moduleId").stringValue = "damage";
+            var variant = module.FindPropertyRelative("variantId");
+            var reference = new ContentReferenceAttribute(ContentReferenceKind.SkillVariant);
+            Require(ContentReferenceSelection.Entries(reference, variant).Any(entry => entry.Id == "light"),
+                "Pending owner module did not expose its variants.");
+            DrawProbe(window, variant, "pending owner module variant");
+            Require(owner.OwnerFixedSkills.First().modules[0].moduleId == "work_speed"
+                    && variant.stringValue == "small",
+                "Drawing a different module silently applied or repaired the previous variant.");
+            module.FindPropertyRelative("moduleId").stringValue = "work_speed";
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            foreach (string derived in new[] { "ruleId", "combinationId", "formulaVersion", "primaryCapabilityId",
+                "drawbackId", "formulaCapabilities", "evidenceIds", "narrativeTrace", "formulaCatalogSha256" })
+                Require(!CharacterSOEditor.IsOwnerFixedInput(derived, 0),
+                    "Generated snapshot field became an owner input: " + derived);
+            Require(!CharacterSOEditor.IsOwnerFixedInput("modules", 1)
+                    && CharacterSOEditor.IsOwnerFixedInput("modules", 0),
+                "Frozen formula modules are editable or legacy module authoring is unavailable.");
+            skill.FindPropertyRelative("formulaVersion").intValue = 1;
+            skill.FindPropertyRelative("combinationId").stringValue = "frozen-existing-probe";
+            CharacterSOEditor.ResizeOwnerFixedSkills(skills, 2);
+            var added = skills.GetArrayElementAtIndex(1);
+            Require(added.FindPropertyRelative("formulaVersion").intValue == 0
+                    && added.FindPropertyRelative("combinationId").stringValue.Length == 0
+                    && added.FindPropertyRelative("modules").arraySize == 0
+                    && skills.GetArrayElementAtIndex(0).FindPropertyRelative("formulaVersion").intValue == 1
+                    && owner.OwnerFixedSkills.Count == 1,
+                "Adding an owner skill copied a frozen snapshot, changed an existing row or applied pending edits.");
+            serialized.Update();
+            string before = EditorJsonUtility.ToJson(owner);
+            editor = Editor.CreateEditor(owner, typeof(CharacterSOEditor));
+            var editorSkills = editor.serializedObject.FindProperty("ownerFixedSkills");
+            editorSkills.isExpanded = true;
+            var editorSkill = editorSkills.GetArrayElementAtIndex(0);
+            editorSkill.isExpanded = true;
+            editorSkill.FindPropertyRelative("modules").isExpanded = true;
+            editorSkill.FindPropertyRelative("modules").GetArrayElementAtIndex(0).isExpanded = true;
+            editorSkill.FindPropertyRelative("formulaVersion").isExpanded = true;
+            window.Property = null;
+            window.CustomEditor = editor;
+            int previous = window.DrawCount;
+            window.SendEvent(new Event { type = EventType.Layout });
+            window.SendEvent(new Event { type = EventType.Repaint });
+            if (window.Failure != null) throw new InvalidOperationException("Owner Inspector GUI", window.Failure);
+            Require(window.DrawCount > previous && EditorJsonUtility.ToJson(owner) == before,
+                "Owner custom Inspector failed to draw or changed its serialized authoring.");
+            Debug.Log("N07_OWNER_INSPECTOR_GUI=PASS; pending-module-variant; readonly-snapshot; actual-custom-editor; unchanged-source");
+        }
+        finally
+        {
+            window.Property = null;
+            window.CustomEditor = null;
+            window.Close();
+            if (editor != null) Object.DestroyImmediate(editor);
+            Undo.ClearUndo(owner);
+            Object.DestroyImmediate(owner);
+        }
+    }
+
     private static void DrawProbe(ContentReferenceInspectorProbeWindow window, SerializedProperty property, string context)
     {
         window.Property = property;
@@ -347,6 +430,15 @@ public static class ContentReferenceSelectionDebugScenarios
 
             IReadOnlyList<ContentReferenceSelection.Entry> entries =
                 ContentReferenceSelection.Entries(kind);
+            if (ContentReferenceCatalog.RequiresOwnerContext(kind)
+                && kind != ContentReferenceKind.SkillCapability)
+            {
+                // Local IDs must not leak into a global list. Their exact
+                // owner/pending-row choices are verified by the owner-scoped
+                // and owner-fixed Inspector scenarios in this same batch.
+                Require(entries.Count == 0, $"{kind} exposed choices without its owner.");
+                continue;
+            }
             Require(entries.Count > 0, $"{kind} has no catalog entries.");
             if (kind == ContentReferenceKind.WorkType)
             {
@@ -383,7 +475,7 @@ public static class ContentReferenceSelectionDebugScenarios
                     entries.Select(entry => entry.Id)
                         .Distinct(StringComparer.Ordinal).Count() == entries.Count,
                     $"{kind} contains duplicate IDs.");
-                if (kind is not (ContentReferenceKind.InvasionPattern or ContentReferenceKind.SkillCapability))
+                if (kind is not (ContentReferenceKind.InvasionPattern or ContentReferenceKind.SkillCapability or ContentReferenceKind.SkillModule))
                     Require(entries.Select(entry => entry.Asset).Distinct().Count() == entries.Count,
                         $"{kind} contains more than one ID for an asset.");
             }
@@ -934,14 +1026,16 @@ public sealed class ContentReferenceInspectorProbeData : ScriptableObject
 public sealed class ContentReferenceInspectorProbeWindow : EditorWindow
 {
     internal SerializedProperty Property;
+    internal Editor CustomEditor;
     internal int DrawCount;
     internal Exception Failure;
     private void OnGUI()
     {
-        if (Property == null || Failure != null) return;
+        if (Property == null && CustomEditor == null || Failure != null) return;
         try
         {
-            EditorGUI.PropertyField(new Rect(8, 8, 600, EditorGUI.GetPropertyHeight(Property)), Property, true);
+            if (CustomEditor != null) CustomEditor.OnInspectorGUI();
+            else EditorGUI.PropertyField(new Rect(8, 8, 600, EditorGUI.GetPropertyHeight(Property)), Property, true);
             DrawCount++;
         }
         catch (Exception exception) { Failure = exception; }

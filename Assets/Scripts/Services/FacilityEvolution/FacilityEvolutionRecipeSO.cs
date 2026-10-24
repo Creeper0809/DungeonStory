@@ -76,12 +76,10 @@ public class FacilityEvolutionRecipeSO : DataScriptableObject
 
     public FacilityEvolutionFormulaCapabilityDefinition RequireFormulaCapability()
     {
-        FacilityEvolutionFormulaCapabilityDefinition[] values = (formulaCapabilities
-                ?? new List<FacilityEvolutionFormulaCapabilityDefinition>())
-            .Where(value => value != null).ToArray();
+        FacilityEvolutionFormulaCapabilityDefinition[] values =
+            RequireFormulaCapabilities().ToArray();
         if (values.Length != 1)
             throw new InvalidOperationException($"Facility recipe '{EffectiveId}' requires exactly one v1 formula capability.");
-        values[0].ToRuntime();
         return values[0];
     }
 
@@ -92,14 +90,49 @@ public class FacilityEvolutionRecipeSO : DataScriptableObject
             .Where(value => value != null)
             .OrderBy(value => value.evolutionModuleId, StringComparer.Ordinal)
             .ToArray();
-        if (values.Length == 0
+        if (values.Length == 0 || values.Length != formulaCapabilities.Count
+            || values.Select(value => value.capabilityId).Distinct(StringComparer.Ordinal).Count() != values.Length
             || values.Select(value => value.evolutionModuleId)
                 .Distinct(StringComparer.Ordinal).Count() != values.Length)
             throw new InvalidOperationException(
                 $"Facility recipe '{EffectiveId}' requires distinct formula module definitions.");
+        HashSet<string> referenceIds = ReferenceCapabilityIds()
+            .ToHashSet(StringComparer.Ordinal);
         foreach (FacilityEvolutionFormulaCapabilityDefinition value in values)
-            value.ToRuntime();
+        {
+            NarrativeFormulaCapabilityDescriptor descriptor = value.ToRuntime();
+            string unknown = descriptor.ForbiddenSynergies
+                .FirstOrDefault(id => !referenceIds.Contains(id));
+            if (unknown != null)
+                throw new InvalidOperationException(
+                    $"Facility capability '{descriptor.CapabilityId}' forbids unknown recipe capability '{unknown}'.");
+        }
         return Array.AsReadOnly(values);
+    }
+
+    public IReadOnlyList<string> ReferenceCapabilityIds()
+    {
+        IEnumerable<string> optionalDrawbackIds = Array.Empty<string>();
+        if (formulaPolicy != null
+            && formulaPolicy.formulaVersion
+                >= FacilityFormulaEvolutionAuthority.DrawbackModuleSelectionFormulaVersion)
+        {
+            optionalDrawbackIds = new EvolutionModuleRegistry().All
+                .Where(value => value.ModuleId.StartsWith("facility:", StringComparison.Ordinal)
+                    && value.BurdenKind == EvolutionModuleBurdenKind.OptionalDrawback
+                    && FacilityFormulaEvolutionAuthority.IsEligibleOptionalDrawbackModule(
+                        this, value, out _))
+                .Select(value => value.ModuleId);
+        }
+        string[] result = (formulaCapabilities
+                ?? new List<FacilityEvolutionFormulaCapabilityDefinition>())
+            .Where(value => value != null)
+            .Select(value => value.capabilityId)
+            .Concat(optionalDrawbackIds)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        return Array.AsReadOnly(result);
     }
 
     public FacilityEvolutionFormulaCapabilityDefinition RequireFormulaCapabilityForModule(
@@ -169,6 +202,7 @@ public sealed class FacilityEvolutionFormulaCapabilityDefinition
     [Min(0f)] public float narrativeAffinity = 1f;
     public List<string> affinityKeys = new();
     public List<string> conflictGroups = new();
+    [ContentReference(ContentReferenceKind.FacilityCapability)]
     public List<string> forbiddenSynergies = new();
     public string formatterId = string.Empty;
     public string applicatorId = string.Empty;

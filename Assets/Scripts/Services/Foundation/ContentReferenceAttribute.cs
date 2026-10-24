@@ -10,7 +10,9 @@ public enum ContentReferenceKind
     EnemyArchetype, BattlefieldModifier, Disease, EffectTarget, WeightedTarget,
     Definition, SpeciesOrAnatomy, NarrativeTarget, ExpeditionChoice, ExpeditionSite, AnatomySpecies,
     AuthoredEffectText, InvasionPattern, EncounterTarget, Equipment,
-    WorkerTrait, WorkType, GameplayValueTarget, SkillCapability
+    WorkerTrait, WorkType, GameplayValueTarget, SkillCapability,
+    CampaignTarget, AcquiredTraitBinding, SkillModule, SkillVariant,
+    EquipmentCapability, FacilityCapability
 }
 
 [AttributeUsage(AttributeTargets.Field)]

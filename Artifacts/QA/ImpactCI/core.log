@@ -7,11 +7,11 @@ Distro version:          #111-Ubuntu SMP PREEMPT_DYNAMIC Sat Apr 11 23:16:02 UTC
 Kernel version:          6.8.0-111-generic
 Architecture:            x86_64
 Available memory:        15719 MB
-Date:                    2026-10-23T20:09:59Z
+Date:                    2026-10-24T05:24:37Z
 [Licensing::Module] Trying to connect to existing licensing client channel...
-Initialize udev device monitor.
 [Licensing::IpcConnector] Channel LicenseClient-vulpo doesn't exist
-[Licensing::Module] Successfully launched the LicensingClient (PId: 2877949)
+Initialize udev device monitor.
+[Licensing::Module] Successfully launched the LicensingClient (PId: 1502998)
 
 COMMAND LINE ARGUMENTS:
 /home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Unity
@@ -20,7 +20,7 @@ COMMAND LINE ARGUMENTS:
 -projectPath
 /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs
 -logFile
-/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r113sa-impact-core/unity.log
+/home/vulpo/codex-unity-validation-20261021/project-editmode-repairs/Artifacts/QA/r121sn-impact-core/unity.log
 -job-worker-count
 1
 -gc-helper-count
@@ -67,7 +67,7 @@ Successfully changed project path to: /home/vulpo/codex-unity-validation-2026102
     "memorysetup-job-temp-allocator-block-size-background=1048576"
     "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
     "memorysetup-temp-allocator-size-gfx=262144"
-Player connection [133172282592064]  Target information:
+Player connection [133979112815424]  Target information:
 
 [redacted player-connection network identifiers]
 
@@ -89,25 +89,25 @@ Player connection [133172282592064]  Target information:
 
 [redacted player-connection network identifiers]
 
-Player connection [133172282592064] Host joined multi-casting on [225.0.0.222:54997]...
-Player connection [133172282592064] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Player connection [133979112815424] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [133979112815424] Host joined alternative multi-casting on [225.0.0.222:34997]...
 JobSystem: Creating JobQueue using job-worker-count value 1
 Input System module state changed to: Initialized.
 [Physics::Module] Initialized fallback backend.
 [Physics::Module] Id: 0xdecafbad
-[Package Manager] Connected to IPC stream "Upm-2877930" after 0.5 seconds.
+[Package Manager] Connected to IPC stream "Upm-1502954" after 0.6 seconds.
 [Licensing::Module] Licensing is not yet initialized.
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo" at "2026-10-23T20:10:00.452772Z"
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo" at "2026-10-24T05:24:38.082765Z"
 [SignatureVerifier] Application signature verification not supported on this platform.
 [Licensing::Client] Handshaking with LicensingClient:
   Version:                 1.17.4+4293ba1
 [redacted credential or identifier-related line]
-  Correlation Id:          [redacted]
-  External correlation Id: [redacted]
+  Correlation Id:          3cd2bdb8d76a2b03914356e92d9019bd
+  External correlation Id: 4572901974171918456
 [redacted credential or identifier-related line]
-[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-vulpo" (connect: 0.86s, validation: 0.16s, handshake: 0.00s)
-[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-notifications" at "2026-10-23T20:10:00.614867Z"
-[Licensing::Module] Connected to LicensingClient (PId: 2877949, launch time: 0.00, total connection time: 1.02s)
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-vulpo" (connect: 0.87s, validation: 0.22s, handshake: 0.00s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-vulpo-notifications" at "2026-10-24T05:24:38.305205Z"
+[Licensing::Module] Connected to LicensingClient (PId: 1502998, launch time: 0.00, total connection time: 1.10s)
 [redacted credential or identifier-related line]
 [Licensing::Client] Successfully resolved entitlement details
 [Licensing::Module] License group:
@@ -115,10 +115,10 @@ Input System module state changed to: Initialized.
   Product: Unity Personal
   Type: Assigned
   Expiration: Unlimited
-[Licensing::Client] Successfully updated license, isAsync: True, time: 0.03
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.05
 [Licensing::Client] Successfully resolved entitlement details
-[Licensing::Module] Licensing Background thread has ended after 1.16s
-[Licensing::Module] Licensing is initialized (took 0.55s).
+[Licensing::Module] Licensing Background thread has ended after 1.24s
+[Licensing::Module] Licensing is initialized (took 0.56s).
 [Licensing::Client] Successfully resolved entitlement details
 Library Redirect Path: Library/
 [Physics::Module] Selected backend.
@@ -127,7 +127,7 @@ Library Redirect Path: Library/
 [Physics::Module] SDK Version: 4.1.2
 [Physics::Module] Integration Version: 1.0.0
 [Physics::Module] Threading Mode: Multi-Threaded
-Refreshing native plugins compatible for Editor in 4.58 ms, found 0 plugins.
+Refreshing native plugins compatible for Editor in 5.80 ms, found 0 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
 Initialize engine version: 6000.3.8f1 (1c7db571dde0)
 [Subsystems] Discovering subsystems at path /home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/Resources/UnitySubsystems
@@ -142,7 +142,7 @@ Initialize mono
 Mono path[0] = '/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/Managed'
 Mono path[1] = '/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-linux'
 Mono config path = '/home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/MonoBleedingEdge/etc'
-Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56930
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56954
 Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
 Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
 ImportWorker Server TCP listen port: 0
@@ -150,42 +150,42 @@ AcceleratorClientConnectionCallback - disconnected - :0
 Begin MonoManager ReloadAssembly
 Registering precompiled unity dll's ...
 Register platform support module: /home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/PlaybackEngines/LinuxStandaloneSupport/UnityEditor.LinuxStandalone.Extensions.dll
-Registered in 0.004050 seconds.
-- Loaded All Assemblies, in  0.824 seconds
+Registered in 0.002813 seconds.
+- Loaded All Assemblies, in  0.815 seconds
 Native extension for LinuxStandalone target not found
 Package Manager log level set to [2]
 [Licensing::Client] Successfully resolved entitlement details
 ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in  5.749 seconds
-Domain Reload Profiling: 6573ms
-	BeginReloadAssembly (283ms)
+- Finished resetting the current domain, in  5.439 seconds
+Domain Reload Profiling: 6255ms
+	BeginReloadAssembly (232ms)
 		ExecutionOrderSort (0ms)
 		DisableScriptedObjects (0ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (19ms)
-	RebuildCommonClasses (110ms)
-	RebuildNativeTypeToScriptingClass (26ms)
-	initialDomainReloadingComplete (80ms)
-	LoadAllAssembliesAndSetupDomain (326ms)
-		LoadAssemblies (265ms)
+		CreateAndSetChildDomain (18ms)
+	RebuildCommonClasses (109ms)
+	RebuildNativeTypeToScriptingClass (19ms)
+	initialDomainReloadingComplete (78ms)
+	LoadAllAssembliesAndSetupDomain (378ms)
+		LoadAssemblies (214ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (321ms)
-			TypeCache.Refresh (317ms)
-				TypeCache.ScanAssembly (289ms)
+		AnalyzeDomain (372ms)
+			TypeCache.Refresh (369ms)
+				TypeCache.ScanAssembly (338ms)
 			BuildScriptInfoCaches (0ms)
 			ResolveRequiredComponents (1ms)
-	FinalizeReload (5750ms)
+	FinalizeReload (5440ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (5651ms)
+		SetupLoadedEditorAssemblies (5299ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (76ms)
-			SetLoadedEditorAssemblies (8ms)
-			BeforeProcessingInitializeOnLoad (206ms)
-			ProcessInitializeOnLoadAttributes (330ms)
-			ProcessInitializeOnLoadMethodAttributes (5032ms)
+			InitializePlatformSupportModulesInManaged (78ms)
+			SetLoadedEditorAssemblies (10ms)
+			BeforeProcessingInitializeOnLoad (175ms)
+			ProcessInitializeOnLoadAttributes (446ms)
+			ProcessInitializeOnLoadMethodAttributes (4590ms)
 			AfterProcessingInitializeOnLoad (0ms)
 			EditorAssembliesLoaded (0ms)
 		ExecutionOrderSort2 (0ms)
@@ -292,8 +292,8 @@ Application.AssetDatabase Initial Refresh Start
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
       Executed endpoint 'gRPC - /UnityILPP.PostProcessing/Ping'
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[2]
-      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping application/grpc - - 200 - application/grpc 69.6282ms
-Refreshing native plugins compatible for Editor in 2.80 ms, found 1 plugins.
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping application/grpc - - 200 - application/grpc 75.1279ms
+Refreshing native plugins compatible for Editor in 3.19 ms, found 1 plugins.
 Starting: /home/vulpo/codex-unity-validation-20261021/editor/6000.3.8f1/Editor/Data/Tools/BuildPipeline/bee_backend --ipc --defer-dag-verification --dagfile="Library/Bee/2400b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
 WorkingDir: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[1]
@@ -311,18 +311,18 @@ WorkingDir: /home/vulpo/codex-unity-validation-20261021/project-editmode-repairs
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
       Executed endpoint 'gRPC - /UnityILPP.PostProcessing/ConfigurePostProcessors'
 [40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[2]
-      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/ConfigurePostProcessors application/grpc - - 200 - application/grpc 92.6179ms
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/ConfigurePostProcessors application/grpc - - 200 - application/grpc 63.8122ms
 DisplayProgressbar: Compiling Scripts
-ExitCode: 0 Duration: 1s29ms
+ExitCode: 0 Duration: 0s851ms
 [1456/2018  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
-*** Tundra build success (0.95 seconds), 1 items updated, 2018 evaluated
-AssetDatabase: script compilation time: 2.388939s
+*** Tundra build success (0.81 seconds), 1 items updated, 2018 evaluated
+AssetDatabase: script compilation time: 2.193175s
 Total cache size 98222776
-Total cache size after purge 98222776, took 00:00:00.2185741
+Total cache size after purge 98222776, took 00:00:00.1140396
 Begin MonoManager ReloadAssembly
 [redacted credential or identifier-related line]
-- Loaded All Assemblies, in  3.257 seconds
-Refreshing native plugins compatible for Editor in 2.81 ms, found 1 plugins.
+- Loaded All Assemblies, in  3.229 seconds
+Refreshing native plugins compatible for Editor in 2.88 ms, found 1 plugins.
 Native extension for LinuxStandalone target not found
 [redacted credential or identifier-related line]
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
@@ -345,88 +345,88 @@ Start HTTP server: port:7800
 [Licensing::Client] Error: Code 404 while processing request (status: Found 0 entitlement groups and 0 free entitlements matching requested entitlement ids)
 ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
 Mono: successfully reloaded assembly
-- Finished resetting the current domain, in 10.662 seconds
-Domain Reload Profiling: 13904ms
-	BeginReloadAssembly (310ms)
+- Finished resetting the current domain, in 10.977 seconds
+Domain Reload Profiling: 14196ms
+	BeginReloadAssembly (303ms)
 		ExecutionOrderSort (0ms)
-		DisableScriptedObjects (24ms)
+		DisableScriptedObjects (13ms)
 		BackupInstance (0ms)
 		ReleaseScriptingObjects (0ms)
-		CreateAndSetChildDomain (93ms)
-	RebuildCommonClasses (55ms)
-	RebuildNativeTypeToScriptingClass (13ms)
-	initialDomainReloadingComplete (96ms)
-	LoadAllAssembliesAndSetupDomain (2768ms)
-		LoadAssemblies (1115ms)
+		CreateAndSetChildDomain (90ms)
+	RebuildCommonClasses (89ms)
+	RebuildNativeTypeToScriptingClass (25ms)
+	initialDomainReloadingComplete (92ms)
+	LoadAllAssembliesAndSetupDomain (2709ms)
+		LoadAssemblies (1028ms)
 		RebuildTransferFunctionScriptingTraits (0ms)
-		AnalyzeDomain (1781ms)
-			TypeCache.Refresh (1456ms)
-				TypeCache.ScanAssembly (1402ms)
-			BuildScriptInfoCaches (271ms)
-			ResolveRequiredComponents (39ms)
-	FinalizeReload (10663ms)
+		AnalyzeDomain (1822ms)
+			TypeCache.Refresh (1518ms)
+				TypeCache.ScanAssembly (1466ms)
+			BuildScriptInfoCaches (258ms)
+			ResolveRequiredComponents (33ms)
+	FinalizeReload (10977ms)
 		ReleaseScriptCaches (0ms)
 		RebuildScriptCaches (0ms)
-		SetupLoadedEditorAssemblies (10286ms)
+		SetupLoadedEditorAssemblies (10642ms)
 			LogAssemblyErrors (0ms)
-			InitializePlatformSupportModulesInManaged (37ms)
-			SetLoadedEditorAssemblies (14ms)
-			BeforeProcessingInitializeOnLoad (525ms)
-			ProcessInitializeOnLoadAttributes (8731ms)
-			ProcessInitializeOnLoadMethodAttributes (967ms)
-			AfterProcessingInitializeOnLoad (10ms)
+			InitializePlatformSupportModulesInManaged (56ms)
+			SetLoadedEditorAssemblies (16ms)
+			BeforeProcessingInitializeOnLoad (516ms)
+			ProcessInitializeOnLoadAttributes (9226ms)
+			ProcessInitializeOnLoadMethodAttributes (818ms)
+			AfterProcessingInitializeOnLoad (9ms)
 			EditorAssembliesLoaded (1ms)
 		ExecutionOrderSort2 (0ms)
-		AwakeInstancesAfterBackupRestoration (9ms)
-Asset Pipeline Refresh (id=8914a84de191e995e92b8fda7f3c51a6): Total: 20.944 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+		AwakeInstancesAfterBackupRestoration (10ms)
+Asset Pipeline Refresh (id=2ea5eb8b4dfaab0628031323de5d53f1): Total: 20.472 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
 	Summary:
 		Imports: total=0 (actual=0, local cache=0, cache server=0)
-		Asset DB Process Time: managed=0 ms, native=14980 ms
-		Asset DB Callback time: managed=76 ms, native=13 ms
-		Scripting: domain reloads=1, domain reload time=3258 ms, compile time=2393 ms, other=222 ms
+		Asset DB Process Time: managed=0 ms, native=14760 ms
+		Asset DB Callback time: managed=70 ms, native=22 ms
+		Scripting: domain reloads=1, domain reload time=3230 ms, compile time=2195 ms, other=193 ms
 		Project Asset Count: scripts=3042, non-scripts=9601
 		Asset File Changes: new=0, changed=0, moved=0, deleted=0
 		Scan Filter Count: 1
 	InvokeCustomDependenciesCallbacks: 0.006ms
-	InvokePackagesCallback: 13.981ms
-	ApplyChangesToAssetFolders: 0.900ms
-	Scan: 2823.306ms
-	OnSourceAssetsModified: 0.002ms
-	CategorizeAssetsWithTransientArtifact: 227.197ms
-	ProcessAssetsWithTransientArtifactChanges: 312.082ms
-	CategorizeAssets: 396.524ms
-	ImportOutOfDateAssets: 10717.469ms (8301.654ms without children)
-		CompileScripts: 2392.730ms
-		ReloadNativeAssets: 0.095ms
-		UnloadImportedAssets: 10.047ms
-		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 8.260ms
+	InvokePackagesCallback: 23.349ms
+	ApplyChangesToAssetFolders: 0.789ms
+	Scan: 2500.829ms
+	OnSourceAssetsModified: 0.013ms
+	CategorizeAssetsWithTransientArtifact: 169.802ms
+	ProcessAssetsWithTransientArtifactChanges: 322.184ms
+	CategorizeAssets: 251.064ms
+	ImportOutOfDateAssets: 11020.349ms (8806.410ms without children)
+		CompileScripts: 2195.114ms
+		ReloadNativeAssets: 0.114ms
+		UnloadImportedAssets: 8.497ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 7.190ms
 		InitializingProgressBar: 0.001ms
 		PostProcessAllAssetNotificationsAddChangedAssets: 0.001ms
-		OnDemandSchedulerStart: 4.680ms
-	PostProcessAllAssets: 76.485ms
-	GatherAllCurrentPrimaryArtifactRevisions: 0.001ms
-	UnloadStreamsBegin: 5.186ms
-	PersistCurrentRevisions: 0.960ms
+		OnDemandSchedulerStart: 3.021ms
+	PostProcessAllAssets: 70.521ms
+	GatherAllCurrentPrimaryArtifactRevisions: 0.000ms
+	UnloadStreamsBegin: 9.783ms
+	PersistCurrentRevisions: 0.840ms
 	UnloadStreamsEnd: 0.002ms
-	GenerateScriptTypeHashes: 34.493ms
-	Untracked: 6369.786ms
+	GenerateScriptTypeHashes: 9.006ms
+	Untracked: 6102.951ms
 
 Application.AssetDatabase Initial Refresh End
-Scanning for USB devices : 7.062ms
+Scanning for USB devices : 7.804ms
 Initializing Unity extensions:
 UpdateMenuTitleForLanguage: 10
 [MODES] ModeService[none].Initialize
 [MODES] ModeService[none].LoadModes
 [MODES] Loading mode Default (0) for mode-current-id-DungeonStory
 Unloading 21 Unused Serialized files (Serialized files now loaded: 0)
-Unloading 14672 unused Assets / (10.5 MB). Loaded Objects now: 15584.
-Memory consumption went from 278.8 MB to 268.3 MB.
-Total: 96.901461 ms (FindLiveObjects: 2.493877 ms CreateObjectMapping: 5.033368 ms MarkObjects: 64.166520 ms  DeleteObjects: 25.205368 ms)
+Unloading 14675 unused Assets / (7.6 MB). Loaded Objects now: 15587.
+Memory consumption went from 275.2 MB to 267.7 MB.
+Total: 78.831975 ms (FindLiveObjects: 2.995148 ms CreateObjectMapping: 6.376979 ms MarkObjects: 47.796661 ms  DeleteObjects: 21.660829 ms)
 
-Asset Pipeline Refresh (id=fca5ca1e824902b4bb348ed1b9759a0b): Total: 1.654 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=ebe76c44fc1f9f0388adff02e5c8fdc7): Total: 1.341 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
 	Summary:
 		Imports: total=0 (actual=0, local cache=0, cache server=0)
-		Asset DB Process Time: managed=0 ms, native=1653 ms
+		Asset DB Process Time: managed=0 ms, native=1340 ms
 		Asset DB Callback time: managed=0 ms, native=0 ms
 		Scripting: domain reloads=0, domain reload time=0 ms, compile time=0 ms, other=0 ms
 		Project Asset Count: scripts=3042, non-scripts=9601
@@ -434,24 +434,24 @@ Asset Pipeline Refresh (id=fca5ca1e824902b4bb348ed1b9759a0b): Total: 1.654 secon
 		Scan Filter Count: 1
 	InvokeCustomDependenciesCallbacks: 0.001ms
 	InvokePackagesCallback: 0.001ms
-	ApplyChangesToAssetFolders: 0.405ms
-	Scan: 1457.770ms
-	OnSourceAssetsModified: 0.002ms
+	ApplyChangesToAssetFolders: 0.448ms
+	Scan: 1159.794ms
+	OnSourceAssetsModified: 0.001ms
 	CategorizeAssetsWithTransientArtifact: 0.004ms
-	ProcessAssetsWithTransientArtifactChanges: 0.470ms
-	CategorizeAssets: 158.040ms
-	ImportOutOfDateAssets: 7.547ms (1.846ms without children)
-		ReloadNativeAssets: 0.086ms
-		UnloadImportedAssets: 0.166ms
-		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 3.849ms
+	ProcessAssetsWithTransientArtifactChanges: 0.461ms
+	CategorizeAssets: 140.694ms
+	ImportOutOfDateAssets: 9.699ms (2.233ms without children)
+		ReloadNativeAssets: 0.100ms
+		UnloadImportedAssets: 0.227ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 4.297ms
 		InitializingProgressBar: 0.001ms
 		PostProcessAllAssetNotificationsAddChangedAssets: 0.001ms
-		OnDemandSchedulerStart: 1.598ms
-	GatherAllCurrentPrimaryArtifactRevisions: 1.845ms
-	UnloadStreamsBegin: 0.105ms
-	PersistCurrentRevisions: 1.105ms
-	UnloadStreamsEnd: 0.003ms
-	Untracked: 26.229ms
+		OnDemandSchedulerStart: 2.840ms
+	GatherAllCurrentPrimaryArtifactRevisions: 1.158ms
+	UnloadStreamsBegin: 0.119ms
+	PersistCurrentRevisions: 2.349ms
+	UnloadStreamsEnd: 0.002ms
+	Untracked: 26.111ms
 
 V27_SOURCE_IDENTITY_CONTRACTS=PASS; LF/CRLF/CR/BOM equivalence; content mutation; invalid UTF-8; missing authority; raw artifact hashing preserved
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
@@ -460,12 +460,12 @@ UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOpt
 UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
-V27CiEvidenceBatch:RunSourceIdentityContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:371)
+V27CiEvidenceBatch:RunSourceIdentityContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:384)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:70)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
-(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 371)
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 384)
 
 V27_NATURAL_CLOCK scale=16;fixed=0.319999784;capture=0.0166666675
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
@@ -475,9 +475,9 @@ UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,st
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 NaturalPortfolioTimeScope:Begin (DungeonStory.Foundation.IGameTimeScaleController,single,single) (at Assets/Scripts/Services/Items/Editor/PhysicalItemLogisticsNaturalPortfolioRunner.cs:325)
-V27CiEvidenceBatch:RunNaturalTimeScopeContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:288)
+V27CiEvidenceBatch:RunNaturalTimeScopeContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:301)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:71)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Items/Editor/PhysicalItemLogisticsNaturalPortfolioRunner.cs Line: 325)
@@ -491,9 +491,9 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 NaturalPortfolioTimeScope:RestoreActiveState () (at Assets/Scripts/Services/Items/Editor/PhysicalItemLogisticsNaturalPortfolioRunner.cs:372)
 NaturalPortfolioTimeScope:Dispose () (at Assets/Scripts/Services/Items/Editor/PhysicalItemLogisticsNaturalPortfolioRunner.cs:350)
-V27CiEvidenceBatch:RunNaturalTimeScopeContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:306)
+V27CiEvidenceBatch:RunNaturalTimeScopeContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:319)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:71)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Items/Editor/PhysicalItemLogisticsNaturalPortfolioRunner.cs Line: 372)
@@ -506,9 +506,9 @@ UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,st
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 NaturalPortfolioTimeScope:Begin (DungeonStory.Foundation.IGameTimeScaleController,single,single) (at Assets/Scripts/Services/Items/Editor/PhysicalItemLogisticsNaturalPortfolioRunner.cs:325)
-V27CiEvidenceBatch:RunNaturalTimeScopeContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:313)
+V27CiEvidenceBatch:RunNaturalTimeScopeContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:326)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:71)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Items/Editor/PhysicalItemLogisticsNaturalPortfolioRunner.cs Line: 325)
@@ -522,9 +522,9 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 NaturalPortfolioTimeScope:RestoreActiveState () (at Assets/Scripts/Services/Items/Editor/PhysicalItemLogisticsNaturalPortfolioRunner.cs:372)
 NaturalPortfolioTimeScope:Dispose () (at Assets/Scripts/Services/Items/Editor/PhysicalItemLogisticsNaturalPortfolioRunner.cs:350)
-V27CiEvidenceBatch:RunNaturalTimeScopeContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:314)
+V27CiEvidenceBatch:RunNaturalTimeScopeContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:327)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:71)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Items/Editor/PhysicalItemLogisticsNaturalPortfolioRunner.cs Line: 372)
@@ -536,12 +536,12 @@ UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOpt
 UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
-V27CiEvidenceBatch:RunNaturalTimeScopeContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:320)
+V27CiEvidenceBatch:RunNaturalTimeScopeContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:333)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:71)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
-(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 320)
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 333)
 
 B125_COMPLETION_ACK_BEFORE_JSON_FRESH_OWNER=PASS; recipe=recipe:sawmill-lumber
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
@@ -552,9 +552,9 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 ProductionPreparedOutputFullPersistenceDebugScenarios:VerifyCompletionAckRecovery (bool,ProductionPreparedOutputFullPersistenceDebugScenarios/ScenarioConfig,bool) (at Assets/Scripts/Services/Economy/Editor/ProductionCompletionObserverRecoveryDebugScenarios.cs:183)
 ProductionPreparedOutputFullPersistenceDebugScenarios:RunCompletionCommitIdentityContractsForBatch () (at Assets/Scripts/Services/Economy/Editor/ProductionCompletionObserverRecoveryDebugScenarios.cs:44)
-V27CiEvidenceBatch:RunProductionCommitIdentityContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:255)
+V27CiEvidenceBatch:RunProductionCommitIdentityContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:268)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:72)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Economy/Editor/ProductionCompletionObserverRecoveryDebugScenarios.cs Line: 183)
@@ -568,9 +568,9 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 ProductionPreparedOutputFullPersistenceDebugScenarios:VerifyCompletionAckRecovery (bool,ProductionPreparedOutputFullPersistenceDebugScenarios/ScenarioConfig,bool) (at Assets/Scripts/Services/Economy/Editor/ProductionCompletionObserverRecoveryDebugScenarios.cs:183)
 ProductionPreparedOutputFullPersistenceDebugScenarios:RunCompletionCommitIdentityContractsForBatch () (at Assets/Scripts/Services/Economy/Editor/ProductionCompletionObserverRecoveryDebugScenarios.cs:45)
-V27CiEvidenceBatch:RunProductionCommitIdentityContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:255)
+V27CiEvidenceBatch:RunProductionCommitIdentityContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:268)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:72)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Economy/Editor/ProductionCompletionObserverRecoveryDebugScenarios.cs Line: 183)
@@ -584,9 +584,9 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 ProductionPreparedOutputFullPersistenceDebugScenarios:VerifyCompletionAckRecovery (bool,ProductionPreparedOutputFullPersistenceDebugScenarios/ScenarioConfig,bool) (at Assets/Scripts/Services/Economy/Editor/ProductionCompletionObserverRecoveryDebugScenarios.cs:183)
 ProductionPreparedOutputFullPersistenceDebugScenarios:RunCompletionCommitIdentityContractsForBatch () (at Assets/Scripts/Services/Economy/Editor/ProductionCompletionObserverRecoveryDebugScenarios.cs:44)
-V27CiEvidenceBatch:RunProductionCommitIdentityContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:255)
+V27CiEvidenceBatch:RunProductionCommitIdentityContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:268)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:72)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Economy/Editor/ProductionCompletionObserverRecoveryDebugScenarios.cs Line: 183)
@@ -600,9 +600,9 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 ProductionPreparedOutputFullPersistenceDebugScenarios:VerifyCompletionAckRecovery (bool,ProductionPreparedOutputFullPersistenceDebugScenarios/ScenarioConfig,bool) (at Assets/Scripts/Services/Economy/Editor/ProductionCompletionObserverRecoveryDebugScenarios.cs:183)
 ProductionPreparedOutputFullPersistenceDebugScenarios:RunCompletionCommitIdentityContractsForBatch () (at Assets/Scripts/Services/Economy/Editor/ProductionCompletionObserverRecoveryDebugScenarios.cs:45)
-V27CiEvidenceBatch:RunProductionCommitIdentityContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:255)
+V27CiEvidenceBatch:RunProductionCommitIdentityContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:268)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:72)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Economy/Editor/ProductionCompletionObserverRecoveryDebugScenarios.cs Line: 183)
@@ -615,9 +615,9 @@ UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,st
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 ProductionPreparedOutputFullPersistenceDebugScenarios:RunCompletionCommitIdentityContractsForBatch () (at Assets/Scripts/Services/Economy/Editor/ProductionCompletionObserverRecoveryDebugScenarios.cs:47)
-V27CiEvidenceBatch:RunProductionCommitIdentityContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:255)
+V27CiEvidenceBatch:RunProductionCommitIdentityContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:268)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:72)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Economy/Editor/ProductionCompletionObserverRecoveryDebugScenarios.cs Line: 47)
@@ -629,30 +629,30 @@ UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOpt
 UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
-V27CiEvidenceBatch:RunProductionCommitIdentityContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:256)
+V27CiEvidenceBatch:RunProductionCommitIdentityContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:269)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:72)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
-(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 256)
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 269)
 
-Asset Pipeline Refresh (id=ffbb4d683fac0a6bfbfd4f5b6a15ebb9): Total: 0.515 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=0d660edc37e9764b9bedae73439d4120): Total: 0.524 seconds - Initiated by RefreshV2(NoUpdateAssetOptions)
 	Summary:
 		Imports: total=0 (actual=0, local cache=0, cache server=0)
-		Asset DB Process Time: managed=0 ms, native=515 ms
+		Asset DB Process Time: managed=0 ms, native=523 ms
 		Asset DB Callback time: managed=0 ms, native=0 ms
 		Scripting: domain reloads=0, domain reload time=0 ms, compile time=0 ms, other=0 ms
 		Project Asset Count: scripts=3042, non-scripts=9601
 		Asset File Changes: new=0, changed=0, moved=0, deleted=0
 		Scan Filter Count: 1
-	InvokeCustomDependenciesCallbacks: 0.000ms
+	InvokeCustomDependenciesCallbacks: 0.001ms
 	InvokePackagesCallback: 0.001ms
-	ApplyChangesToAssetFolders: 0.209ms
-	Scan: 498.058ms
-	GatherAllCurrentPrimaryArtifactRevisions: 0.823ms
-	UnloadStreamsBegin: 15.241ms
-	UnloadStreamsEnd: 0.164ms
-	Untracked: 0.782ms
+	ApplyChangesToAssetFolders: 0.207ms
+	Scan: 497.656ms
+	GatherAllCurrentPrimaryArtifactRevisions: 0.886ms
+	UnloadStreamsBegin: 24.071ms
+	UnloadStreamsEnd: 0.226ms
+	Untracked: 0.961ms
 
 Environmental ambient-independent save round trip passed.
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
@@ -662,9 +662,9 @@ UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,st
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 EnvironmentalFieldDebugScenarios:RunAmbientIndependentSaveRoundTrip () (at Assets/Scripts/Services/Infrastructure/Environment/Editor/EnvironmentalFieldDebugScenarios.cs:421)
-V27CiEvidenceBatch:RunNaturalRestoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:388)
+V27CiEvidenceBatch:RunNaturalRestoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:401)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:73)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Infrastructure/Environment/Editor/EnvironmentalFieldDebugScenarios.cs Line: 421)
@@ -676,12 +676,12 @@ UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOpt
 UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
-V27CiEvidenceBatch:RunNaturalRestoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:390)
+V27CiEvidenceBatch:RunNaturalRestoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:403)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:73)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
-(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 390)
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 403)
 
 V27_NATURAL_RESTORE_CONTRACTS=PASS; ambient-independent field; sparse compatibility; exact epoch advance; mutation rejection; ledger candidate lifetime
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
@@ -690,12 +690,12 @@ UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOpt
 UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
-V27CiEvidenceBatch:RunNaturalRestoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:392)
+V27CiEvidenceBatch:RunNaturalRestoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:405)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:73)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
-(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 392)
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 405)
 
 V27_SKILL_RESTORE_RETRY_CONTRACTS=PASS; saved pending resume; empty world no-op; five real timeouts; JSON/detached restore preserves deferred retry; explicit retry once
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
@@ -704,12 +704,12 @@ UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOpt
 UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
-V27CiEvidenceBatch:RunSkillRestoreRetryContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:265)
+V27CiEvidenceBatch:RunSkillRestoreRetryContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:278)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:74)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
-(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 265)
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 278)
 
 [V27][PASS] Durable facility-equipment slot runtime preserves registered policy/capacity/usability authority, exact 1300g custody, idempotent supply, fenced drain ordering, and sequence-scoped reopening without touching foreign owners.
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
@@ -720,7 +720,7 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 DurableFacilityEquipmentSlotRuntimeDebugScenarios:RunAll () (at Assets/Scripts/Services/Items/Editor/DurableFacilityEquipmentSlotRuntimeDebugScenarios.cs:25)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:75)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Items/Editor/DurableFacilityEquipmentSlotRuntimeDebugScenarios.cs Line: 25)
@@ -738,7 +738,7 @@ DurableFacilityEquipmentUseRuntimeDebugScenarios:VerifyCommittedEffectSurvivesCl
 DurableFacilityEquipmentUseRuntimeDebugScenarios:VerifyCommittedEffectSurvivesPostCommitSlotFaults () (at Assets/Scripts/Services/Items/Editor/DurableFacilityEquipmentUseRuntimeDebugScenarios.cs:262)
 DurableFacilityEquipmentUseRuntimeDebugScenarios:RunAll () (at Assets/Scripts/Services/Items/Editor/DurableFacilityEquipmentUseRuntimeDebugScenarios.cs:30)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:76)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Items/DurableFacilityEquipmentUseRuntime.cs Line: 365)
@@ -756,7 +756,7 @@ DurableFacilityEquipmentUseRuntimeDebugScenarios:VerifyCommittedEffectSurvivesCl
 DurableFacilityEquipmentUseRuntimeDebugScenarios:VerifyCommittedEffectSurvivesPostCommitSlotFaults () (at Assets/Scripts/Services/Items/Editor/DurableFacilityEquipmentUseRuntimeDebugScenarios.cs:263)
 DurableFacilityEquipmentUseRuntimeDebugScenarios:RunAll () (at Assets/Scripts/Services/Items/Editor/DurableFacilityEquipmentUseRuntimeDebugScenarios.cs:30)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:76)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Items/DurableFacilityEquipmentUseRuntime.cs Line: 365)
@@ -774,7 +774,7 @@ DurableFacilityEquipmentUseRuntimeDebugScenarios:VerifyCommittedEffectSurvivesLa
 DurableFacilityEquipmentUseRuntimeDebugScenarios:VerifyCommittedEffectSurvivesPostCommitSlotFaults () (at Assets/Scripts/Services/Items/Editor/DurableFacilityEquipmentUseRuntimeDebugScenarios.cs:264)
 DurableFacilityEquipmentUseRuntimeDebugScenarios:RunAll () (at Assets/Scripts/Services/Items/Editor/DurableFacilityEquipmentUseRuntimeDebugScenarios.cs:30)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:76)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Items/DurableFacilityEquipmentUseRuntime.cs Line: 365)
@@ -792,7 +792,7 @@ DurableFacilityEquipmentUseRuntimeDebugScenarios:VerifyCommittedEffectSurvivesLa
 DurableFacilityEquipmentUseRuntimeDebugScenarios:VerifyCommittedEffectSurvivesPostCommitSlotFaults () (at Assets/Scripts/Services/Items/Editor/DurableFacilityEquipmentUseRuntimeDebugScenarios.cs:265)
 DurableFacilityEquipmentUseRuntimeDebugScenarios:RunAll () (at Assets/Scripts/Services/Items/Editor/DurableFacilityEquipmentUseRuntimeDebugScenarios.cs:30)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:76)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Items/DurableFacilityEquipmentUseRuntime.cs Line: 365)
@@ -810,7 +810,7 @@ DurableFacilityEquipmentUseRuntimeDebugScenarios:VerifyCommittedEffectSurvivesCl
 DurableFacilityEquipmentUseRuntimeDebugScenarios:VerifyCommittedEffectSurvivesPostCommitSlotFaults () (at Assets/Scripts/Services/Items/Editor/DurableFacilityEquipmentUseRuntimeDebugScenarios.cs:266)
 DurableFacilityEquipmentUseRuntimeDebugScenarios:RunAll () (at Assets/Scripts/Services/Items/Editor/DurableFacilityEquipmentUseRuntimeDebugScenarios.cs:30)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:76)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Items/DurableFacilityEquipmentUseRuntime.cs Line: 365)
@@ -824,7 +824,7 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 DurableFacilityEquipmentUseRuntimeDebugScenarios:RunAll () (at Assets/Scripts/Services/Items/Editor/DurableFacilityEquipmentUseRuntimeDebugScenarios.cs:33)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:76)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Items/Editor/DurableFacilityEquipmentUseRuntimeDebugScenarios.cs Line: 33)
@@ -838,7 +838,7 @@ UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 DurableFacilityEquipmentSaveDebugScenarios:RunAll () (at Assets/Scripts/Services/Items/Editor/DurableFacilityEquipmentSaveDebugScenarios.cs:34)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:77)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Items/Editor/DurableFacilityEquipmentSaveDebugScenarios.cs Line: 34)
@@ -915,64 +915,64 @@ UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,st
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
 V27CiEvidenceBatch/<>c:<RunImpactCoreContracts>b__9_0 () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:78)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:171)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:181)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
 (Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 78)
 
-IMPACT_CI_PASS group=core;source=d9dff3485fe467653d986d00edefd3320544903da16585425ed9ab31bd47ec55;config=6bacd40070886ee1391aa41a9f7e180e61ef163e87ac44ba73af996ca865d737;consoleErrors=0
+IMPACT_CI_PASS group=core;source=72a4ca27a89469682d6e4d4b379c3c81d593d3664f5d5c8e85d3b2d67b338bbe;config=ca67916ce8dde4a7f92660d364a30acfaded193341d81ffa6456d23e4e37cb3d;consoleErrors=0
 UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
 UnityEngine.StackTraceUtility:ExtractStackTrace () (at /home/bokken/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:35)
 UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
 UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
 UnityEngine.Logger:Log (UnityEngine.LogType,object)
 UnityEngine.Debug:Log (object)
-V27CiEvidenceBatch:CompleteImpact (string,string,string,bool) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:182)
-V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:172)
+V27CiEvidenceBatch:CompleteImpact (string,string,string,bool) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:195)
+V27CiEvidenceBatch:RunImpact (string,System.Action) (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:182)
 V27CiEvidenceBatch:RunImpactCoreContracts () (at Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs:68)
 
-(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 182)
+(Filename: Assets/Scripts/Services/Economy/Editor/V27CiEvidenceBatch.cs Line: 195)
 
 Batchmode quit successfully invoked - shutting down!
 Pipeline Server stopped
-Start importing ProjectSettings/TimeManager.asset using Guid(00000000000000007000000000000000) (LibraryAssetImporter) -> (artifact id: '798285cc66c9bcaaaa970b240d0f6188') in 0.017587731 seconds
-Refreshing native plugins compatible for Editor in 2.32 ms, found 1 plugins.
+Start importing ProjectSettings/TimeManager.asset using Guid(00000000000000007000000000000000) (LibraryAssetImporter) -> (artifact id: '798285cc66c9bcaaaa970b240d0f6188') in 0.018504933 seconds
+Refreshing native plugins compatible for Editor in 2.07 ms, found 1 plugins.
 Preloading 0 native plugins for Editor in 0.00 ms.
-Asset Pipeline Refresh (id=690b2064fef690a24b27de1a191937d0): Total: 0.674 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Asset Pipeline Refresh (id=3780983fa655effeabd2a8430e4a2e72): Total: 0.753 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
 	Summary:
 		Imports: total=1 (actual=1, local cache=0, cache server=0)
-		Asset DB Process Time: managed=9 ms, native=60 ms
-		Asset DB Callback time: managed=592 ms, native=11 ms
+		Asset DB Process Time: managed=9 ms, native=56 ms
+		Asset DB Callback time: managed=675 ms, native=10 ms
 		Scripting: domain reloads=0, domain reload time=0 ms, compile time=0 ms, other=0 ms
 		Project Asset Count: scripts=3042, non-scripts=9601
 		Asset File Changes: new=0, changed=0, moved=0, deleted=0
 		Scan Filter Count: 1
 	InvokeCustomDependenciesCallbacks: 0.001ms
 	InvokePackagesCallback: 0.001ms
-	ApplyChangesToAssetFolders: 0.323ms
-	Scan: 10.312ms
+	ApplyChangesToAssetFolders: 0.264ms
+	Scan: 9.131ms
 	OnSourceAssetsModified: 0.001ms
-	CategorizeAssetsWithTransientArtifact: 0.011ms
-	ProcessAssetsWithTransientArtifactChanges: 0.249ms
-	CategorizeAssets: 10.866ms
-	ImportOutOfDateAssets: 36.992ms (1.256ms without children)
-		ImportManagerImport: 22.753ms (4.885ms without children)
-			ImportInProcess: 17.846ms
-			UpdateCategorizedAssets: 0.022ms
-		ReloadNativeAssets: 7.148ms
-		UnloadImportedAssets: 0.265ms
-		ReloadImportedAssets: 0.171ms
-		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 4.017ms
+	CategorizeAssetsWithTransientArtifact: 0.009ms
+	ProcessAssetsWithTransientArtifactChanges: 0.237ms
+	CategorizeAssets: 10.122ms
+	ImportOutOfDateAssets: 36.597ms (2.107ms without children)
+		ImportManagerImport: 21.308ms (2.487ms without children)
+			ImportInProcess: 18.795ms
+			UpdateCategorizedAssets: 0.027ms
+		ReloadNativeAssets: 6.977ms
+		UnloadImportedAssets: 0.261ms
+		ReloadImportedAssets: 0.226ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 4.217ms
 		InitializingProgressBar: 0.001ms
 		PostProcessAllAssetNotificationsAddChangedAssets: 0.001ms
-		OnDemandSchedulerStart: 1.379ms
-	PostProcessAllAssets: 601.914ms
-	Hotreload: 2.577ms
-	GatherAllCurrentPrimaryArtifactRevisions: 1.170ms
-	UnloadStreamsBegin: 0.334ms
-	PersistCurrentRevisions: 1.155ms
+		OnDemandSchedulerStart: 1.499ms
+	PostProcessAllAssets: 684.164ms
+	Hotreload: 2.360ms
+	GatherAllCurrentPrimaryArtifactRevisions: 0.949ms
+	UnloadStreamsBegin: 0.331ms
+	PersistCurrentRevisions: 1.072ms
 	UnloadStreamsEnd: 0.002ms
-	Untracked: 8.512ms
+	Untracked: 8.136ms
 
 [Physics::Module] Cleanup current backend.
 [Physics::Module] Id: 0xf2b8ea05
